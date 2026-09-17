@@ -1,6 +1,12 @@
 # PR 102 device check, v3
 
-**Status:** current. This is the first version of this document to exist in the repository.
+**Status:** **superseded, 2026-09-16, by [v4](2026-09-16-pr102-device-check-v4.md). Do not run this
+version.** It was the first version of this document to exist in the repository, and it is kept
+intact and unedited below this line as the record of what was written. Four of its claims are wrong
+against the tree — two of them, in step 7 and step 12, would cost a run — and the readings are in
+[the corrections note](2026-09-16-device-check-v3-tree-corrections.md). v4 carries those four
+corrections in the body, because a device check is an operational instrument as well as a record and
+relying on a runner to read a companion note first is the same assumption that produced the defect.
 
 **Written against:** `claude/new-session-vto65i` at `1e7d97a`, debug build containing `a9587d7`
 or later.
