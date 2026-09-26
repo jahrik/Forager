@@ -70,9 +70,8 @@ import com.zynergylabs.forager.app.ui.theme.MapPalette
  */
 private const val NIGHT_RASTER_PAINT = """,
           "paint": {
-            "raster-brightness-min": 1,
-            "raster-brightness-max": 0,
-            "raster-hue-rotate": 180
+            "raster-saturation": -0.35,
+            "raster-contrast": 0.1
           }"""
 
 internal fun styleJsonFor(basemap: Basemap, night: Boolean = false): String = """
