@@ -1856,3 +1856,18 @@ Quote this message verbatim in the record.
 **Flags:** (a) The centre-pin anchor is the bottom of the 40 dp box (CentrePinLocationPicker.kt:198-201); in the LocationOn approximation the drawn tip is 3.3 dp above it. Whether the real icon's tip is there was not checked. (b) At night the selected blue ring against the grey sighting-dot fill is 1.076:1 in luminance (dE 0.170); the selected state is carried by ring colour alone, since the two states share one silhouette. (c) The live breadcrumb's (0.4, 1.0) dashes with round caps and casing close their gaps into a bead chain, on this board as on the swatch board's convention. (d) Nothing was run on the device.
 
 ---
+
+**Kind:** merge
+**ID:** 2026-09-27-20
+**Timestamp:** 2026-09-26T23:30:27Z
+**PR:** 132
+**Head:** marker-glyphs
+**Base:** pre-main
+**Merge-commit:** 29277b75f8a1d41f34bbbc1b5b767fc5bbd5031d
+**Pre-merge:** 3428a9212ffc497bbf8a06568e27ab9e97313727
+**Backup:** 2026-09-26-16
+**Merged-by:** coder preserved/2026-09-26-46.md
+**Carries:** 2026-09-27-17, 2026-09-27-18, 2026-09-27-19
+**Notes:** Written in the sweep of the dispatch preserved as preserved/2026-09-26-47.md, on branch split-scaffold cut from origin/pre-main 29277b75f8a1d41f34bbbc1b5b767fc5bbd5031d. The one merge on pre-main's first-parent chain newer than 3428a92, the newest merge a `merge` entry records (2026-09-27-17, Base pre-main): git log --first-parent --merges --format='%H %P %s' origin/pre-main lists 29277b7 first, parents 3428a9212ffc497bbf8a06568e27ab9e97313727 and 5657a74d94314c9d89b738d6caacc04e393dacb3, "Merge pull request #132 from slayer8366/marker-glyphs", then 3428a92. PR, Head, Base, Timestamp (mergedAt) from gh pr view 132 --json number,headRefName,baseRefName,mergeCommit,mergedAt,state: 132, marker-glyphs, pre-main, mergeCommit 29277b75f8a1d41f34bbbc1b5b767fc5bbd5031d, 2026-09-26T23:30:27Z; state MERGED. Backup and Merged-by: ~/Zynergy/forager-repo-backups/INDEX.md's line "- 2026-09-26-16: PR #132 (marker-glyphs into pre-main), pre-merge 3428a9212ffc497bbf8a06568e27ab9e97313727, bundle of origin/pre-main, written by coder under intent 2026-09-27-18 (prompts/preserved/2026-09-26-46.md)". Carries from git diff 3428a92 29277b7 -- RECORD.md, which adds IDs 2026-09-27-17, -18 and -19; -17 is the merge entry for #131, written in marker-glyphs' sweep, so it is listed, as -14 was in -17's Carries. The dispatch expected -17 to -19; confirmed. main: no merge newer than 76905d4 (#119), which merge entry 2026-09-26-24 records. No unclaimed store copy other than this dispatch's own, preserved/2026-09-26-47.md, which the intent claims.
+
+---
