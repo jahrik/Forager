@@ -1790,3 +1790,18 @@ Quote this message verbatim in the record.
 **Flags:** (a) Compose group keys and JVM file-facade classes change with the move (AvailabilityScreenKt becomes eight facades); nothing in the repo names a facade (git grep -e AvailabilityScreenKt -e 'UiKt\b' -- app is empty) and the moved code has no rememberSaveable, but whether a composable called from moved code in another file uses rememberSaveable was not checked. (b) assembleDebug was not run locally; CI ran it. (c) Seen while moving, not touched: the compiler's two Icons.Filled.MenuBook deprecation warnings, now in AvailabilityNavigationUi.kt:93 and AvailabilitySettingsUi.kt:144; AS keeps imports that are now unused, as the dispatch directs, since no tool reports them.
 
 ---
+
+**Kind:** merge
+**ID:** 2026-09-27-17
+**Timestamp:** 2026-09-26T22:57:32Z
+**PR:** 131
+**Head:** split-move
+**Base:** pre-main
+**Merge-commit:** 3428a9212ffc497bbf8a06568e27ab9e97313727
+**Pre-merge:** 3bd0efe05332b07384df36ef025cd0787a50cd60
+**Backup:** 2026-09-26-15
+**Merged-by:** coder preserved/2026-09-26-45.md
+**Carries:** 2026-09-27-14, 2026-09-27-15, 2026-09-27-16
+**Notes:** Written in the sweep of the dispatch preserved as preserved/2026-09-26-46.md, on branch marker-glyphs cut from origin/pre-main 3428a9212ffc497bbf8a06568e27ab9e97313727. The one merge on pre-main's first-parent chain newer than 3bd0efe, the newest merge a `merge` entry records (2026-09-27-14, Base pre-main): git log --first-parent --merges --format='%H %P %s' 3bd0efe..origin/pre-main lists only 3428a92, parents 3bd0efe05332b07384df36ef025cd0787a50cd60 and ca0ee4a7d51868cb86588adea60fd6190753a4ba, "Merge pull request #131 from slayer8366/split-move". PR, Head, Base, Timestamp (mergedAt) from gh pr view 131 --json number,headRefName,baseRefName,mergeCommit,mergedAt: 131, split-move, pre-main, mergeCommit 3428a9212ffc497bbf8a06568e27ab9e97313727, 2026-09-26T22:57:32Z. Backup and Merged-by: ~/Zynergy/forager-repo-backups/INDEX.md's line "- 2026-09-26-15: PR #131 (split-move into pre-main), pre-merge 3bd0efe05332b07384df36ef025cd0787a50cd60, bundle of origin/pre-main, written by coder under intent 2026-09-27-15 (prompts/preserved/2026-09-26-45.md)". Carries from git diff 3bd0efe 3428a92 -- RECORD.md, which adds IDs 2026-09-27-14, -15 and -16; -14 is the merge entry for #130, written in split-move's sweep, so it is listed, as -08 was in -14's Carries. The dispatch expected -14 to -16; confirmed. main: no merge newer than 76905d4 (#119), which merge entry 2026-09-26-24 records. No unclaimed store copy other than this dispatch's own, preserved/2026-09-26-46.md, which the intent claims.
+
+---
