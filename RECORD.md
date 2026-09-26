@@ -1579,3 +1579,18 @@ Quote this message verbatim in the record.
 **Flags:** (a) The location puck turned from blue (first capture) to red (every later capture, same build and style included); cause not determined. (b) The earlier report's "brightness-min/max clamp/scale, they don't invert" (2026-08-28-night-inversion-phase1-report.md:124) and map-redesign.md's "no per-pixel invert" reasoning are contradicted on 13.5.0; those documents were not edited. (c) The Tillamook sample is almost all forest; roads, settlements and open water are under-represented.
 
 ---
+
+**Kind:** merge
+**ID:** 2026-09-27-04
+**Timestamp:** 2026-09-26T20:21:41Z
+**PR:** 128
+**Head:** night-evidence
+**Base:** pre-main
+**Merge-commit:** 9ea36d64d4f657c6c4349eee680a495945044c89
+**Pre-merge:** 15e79009945a1d40d24f5a9cbaa8d26f6f04907c
+**Backup:** 2026-09-26-12
+**Merged-by:** coder preserved/2026-09-26-38.md
+**Carries:** 2026-09-26-98, 2026-09-26-99, 2026-09-27-01, 2026-09-27-02, 2026-09-27-03
+**Notes:** Written in the sweep of the dispatch preserved as preserved/2026-09-26-39.md, on branch marker-swatches cut from origin/pre-main 9ea36d64d4f657c6c4349eee680a495945044c89. The one merge on pre-main's first-parent chain newer than 15e7900, the newest merge a `merge` entry records (2026-09-26-98, Base pre-main): git log --first-parent --merges --format='%H %P' 15e7900..origin/pre-main lists only 9ea36d6, parents 15e79009945a1d40d24f5a9cbaa8d26f6f04907c and d251d5b9b9ec3a0f78fadfdafc73ebb351801eb8. PR, Head, Base, Timestamp (mergedAt) from gh pr view 128 --json number,headRefName,baseRefName,mergeCommit,mergedAt: 128, night-evidence, pre-main, mergeCommit 9ea36d64d4f657c6c4349eee680a495945044c89, 2026-09-26T20:21:41Z; state MERGED. Backup and Merged-by: ~/Zynergy/forager-repo-backups/INDEX.md's line "- 2026-09-26-12: PR #128 (night-evidence into pre-main), pre-merge 15e79009945a1d40d24f5a9cbaa8d26f6f04907c, bundle of origin/pre-main, written by coder under intent 2026-09-27-02 (prompts/preserved/2026-09-26-38.md)". Carries from git diff 15e7900 9ea36d6 -- RECORD.md, which adds IDs 2026-09-26-98, -99, 2026-09-27-01, -02 and -03. The dispatch expected -99 and 2026-09-27-01 to -03 and said to confirm from the diff; the diff also adds -98 (the merge entry for #127, written in landscape-b2's sweep 16f7d4f, which night-evidence was cut from), so it is listed, as -95 was in -98's Carries. main: no merge newer than 76905d4 (recorded at RECORD.md line 822). Unclaimed store files: none; check_prompts.py PASS at 9ea36d6 with 61 files, and this dispatch's own copy is claimed by its intent in the next commit.
+
+---
