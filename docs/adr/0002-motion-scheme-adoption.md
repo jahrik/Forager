@@ -352,3 +352,31 @@ property springs exist for — while every scaffolding category around it
 gets to use it. Rejected as a taste call, on the record, and it is exactly
 what Gate G question 2 exists to check on hardware rather than settle by
 argument alone.
+
+## Amendment, 2026-09-26: predictive back first
+
+Appended; no earlier line of this ADR is edited.
+
+**The owner's ruling: "Predictive back first".** Step 6 of
+`understory-design-system.md`'s implementation order (swap `BackHandler`
+for `PredictiveBackHandler` at the dismissible surfaces) moves ahead of
+step 5. The reasoning and the finding are recorded in that document's
+"Amendment, 2026-09-26: owner changes after the landscape and map-colour
+work", section 1.
+
+**Why.** "Gate G outcomes, 2026-08-26" above left Q3 open because no
+`PredictiveBackHandler` existed to check. It then held step 6 to Gate G as
+well: "step 6 does not start before it either, the same 'Gate G passed'
+condition step 5 is held to" (`:311-312`). Step 6 was waiting on a gate
+that could not close until step 6 existed.
+
+**Two supersessions.**
+1. **Step 6 no longer waits on Gate G.** This supersedes the sentence at
+   `:311-312`.
+2. **Q3 is answered after step 6.** Once step 6 has landed, Q3 is checked
+   on hardware, before step 5.
+
+**Unchanged.** Step 5 stays gated on Gate G passing, so Q3 and Q5 must both
+close, and on R6's annotation re-check, as "Net: Gate G is not fully
+passed" (`:332-335`) states. Q1, Q2 and Q4's outcomes above stand. This
+amendment changes order, not any motion value or mapping.
