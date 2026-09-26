@@ -1531,3 +1531,23 @@ Quote this message verbatim in the record.
 **Notes:** Written in the sweep of the dispatch preserved as preserved/2026-09-26-36.md, on branch landscape-b2 cut from origin/pre-main 15e79009945a1d40d24f5a9cbaa8d26f6f04907c. The one merge on pre-main's first-parent chain newer than bc54f6d, the newest merge a `merge` entry records (2026-09-26-95, Base pre-main): git log --first-parent --merges --format='%H %P' bc54f6d..origin/pre-main lists only 15e7900, parents bc54f6dc12e82c8b7be265516c8a3162ac42f9d1 and 76e1a4fa2f57d9dc726f256d2446514fddd25dd1. PR, Head, Base, Timestamp (mergedAt) from gh pr view 127 --json number,headRefName,baseRefName,mergeCommit,mergedAt: 127, landscape-b1, pre-main, mergeCommit 15e79009945a1d40d24f5a9cbaa8d26f6f04907c, 2026-09-26T18:54:01Z; state MERGED. Backup and Merged-by: ~/Zynergy/forager-repo-backups/INDEX.md's line "- 2026-09-26-11: PR #127 (landscape-b1 into pre-main), pre-merge bc54f6dc12e82c8b7be265516c8a3162ac42f9d1, bundle of origin/pre-main, written by coder under intent 2026-09-26-96 (prompts/preserved/2026-09-26-35.md)". Carries: the IDs git diff bc54f6d 15e7900 -- RECORD.md adds (it removes no line), 2026-09-26-95 to -97, as the dispatch expected. Main has no merge newer than 76905d4 (git log --first-parent --merges 76905d4..origin/main is empty; origin/main 76905d4993813caaead1caad5db6fd18da5c97e8). No dispatch-note in this sweep: check_prompts.py at 15e7900 reported PASS with every store file claimed, and the planner worktree's prompts/preserved/ held only this dispatch's copy (preserved/2026-09-26-36.md), claimed by the next commit's intent.
 
 ---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-26-99
+**Dispatch-file:** preserved/2026-09-26-36.md
+**Type:** build
+**Outcome:** stopped
+**Report:** none in the repository. The dispatch preserved as preserved/2026-09-26-38.md states that this dispatch "was stopped by the owner before its intent".
+**Notes:** The planner's build dispatch for landscape step B2 (the Map tab's controls in a short landscape window). Preserved 2026-09-26T19:02:28Z by .claude/hooks/dispatch_guard.py, header HEAD 15e79009945a1d40d24f5a9cbaa8d26f6f04907c, Target subagent coder, Type build. Its coder wrote only the sweep 16f7d4f (merge entry 2026-09-26-98 for #127) on branch landscape-b2 and stopped before writing an intent (coder.md item 8); no entry names this file. Moved with mv from ~/Zynergy/forager-wt/landscape-b2, where it sat untracked: original path /home/zynergy-labs/Zynergy/forager-wt/landscape-b2/prompts/preserved/2026-09-26-36.md, 12565 bytes, sha256 32d4df499b4cd42ba1c5f37fa0d1ec66ba70ec1402e8457f2e0cf5197ecd35c7, equal before and after the move. Kept under the hook's own name, free on this branch and on origin/pre-main 15e7900. Written in the sweep of the dispatch preserved as preserved/2026-09-26-38.md, on branch night-evidence cut from origin/landscape-b2 16f7d4f28abc3e988e6669fc2d13899f69c7c7b4.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-27-01
+**Dispatch-file:** preserved/2026-09-26-37.md
+**Type:** pulse
+**Outcome:** answered
+**Report:** answered in the planner's session; not relayed to the record
+**Notes:** The planner's read-only code pulse on map marker colours, the night raster paint and the basemaps at origin/pre-main 15e7900. Preserved 2026-09-26T19:32:00Z by .claude/hooks/dispatch_guard.py, header HEAD 15e79009945a1d40d24f5a9cbaa8d26f6f04907c, Target subagent pulse. Moved with mv from the planner worktree: original path /home/zynergy-labs/Zynergy/Forager/.claude/worktrees/bridge-cse_01BcqShzosraMo4pUXkqaqRp/prompts/preserved/2026-09-26-37.md, 3967 bytes, sha256 80aa3ce5cf486d64ec1dfac9c7a75dbe29bc6b83aac0cbd0aba5055acb25aea1, equal before and after the move. Kept under the hook's own name, free on this branch and on origin/pre-main. Merge entries: none written in this sweep. pre-main's only merge newer than the last one recorded before this branch (15e7900, #127) already has merge entry 2026-09-26-98, on this branch's base commit 16f7d4f; main has no merge newer than 76905d4, which merge entry 2026-09-26-24 records. Written in the sweep of the dispatch preserved as preserved/2026-09-26-38.md.
+
+---
