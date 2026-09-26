@@ -1747,3 +1747,18 @@ Quote this message verbatim in the record.
 **Flags:** Per the planner message at line 2113, not fixed here: (a) whether the search bar (Surface with Modifier.fillMaxWidth(), AvailabilitySearchUi.kt:260) counts as "width-bounded" under the amended Surface rule, and whether the bar and the cluster have long-press tests, is not assessed. (b) Other stale README passages: :28-31 (the drawer sentence and the "Fungi · August · 15 km" strip), :70-72 (six destinations with Album and Settings), :75 and :83-86 (the quick-search strip, the Search icon and the Open Search button), :108-119, and :502-538 (project layout). (c) docs/plans/README.md:23's Understory status line. Also noticed: ui/theme/Typography.kt:62-74 still assigns the strip's tabular figures to step 5; Understory's "six-tab bottom nav" (:304, :548, :715) against CompactTab's five entries (AvailabilityScreen.kt:357-363).
 
 ---
+
+**Kind:** merge
+**ID:** 2026-09-27-14
+**Timestamp:** 2026-09-26T22:19:48Z
+**PR:** 130
+**Head:** understory-amend
+**Base:** pre-main
+**Merge-commit:** 3bd0efe05332b07384df36ef025cd0787a50cd60
+**Pre-merge:** e5ecb9131f5e898cbe6f70cd72412e2fbb58a423
+**Backup:** 2026-09-26-14
+**Merged-by:** coder preserved/2026-09-26-44.md
+**Carries:** 2026-09-27-08, 2026-09-27-09, 2026-09-27-10, 2026-09-27-11, 2026-09-27-12, 2026-09-27-13
+**Notes:** Written in the sweep of the dispatch preserved as preserved/2026-09-26-45.md, on branch split-move cut from origin/pre-main 3bd0efe05332b07384df36ef025cd0787a50cd60. The one merge on pre-main's first-parent chain newer than e5ecb91, the newest merge a `merge` entry records (2026-09-27-08, Base pre-main): git log --first-parent --merges --format='%H %P %s' e5ecb91..origin/pre-main lists only 3bd0efe, parents e5ecb9131f5e898cbe6f70cd72412e2fbb58a423 and d589495e88fa3c2b04cb9664e5fdde0eda46b1f3, "Merge pull request #130 from slayer8366/understory-amend". PR, Head, Base, Timestamp (mergedAt) from gh pr view 130 --json number,headRefName,baseRefName,mergeCommit,mergedAt,state: 130, understory-amend, pre-main, mergeCommit 3bd0efe05332b07384df36ef025cd0787a50cd60, 2026-09-26T22:19:48Z; state MERGED. Backup and Merged-by: ~/Zynergy/forager-repo-backups/INDEX.md's line "- 2026-09-26-14: PR #130 (understory-amend into pre-main), pre-merge e5ecb9131f5e898cbe6f70cd72412e2fbb58a423, bundle of origin/pre-main, written by coder under intent 2026-09-27-12 (prompts/preserved/2026-09-26-44.md)". Carries from git diff e5ecb91 3bd0efe -- RECORD.md, which adds IDs 2026-09-27-08 to -13; -08 is the merge entry for #129, written in understory-amend's sweep, so it is listed, as -04 was in -08's Carries. The dispatch expected -08 to -13; confirmed. main: no merge newer than 76905d4 (#119), which merge entry 2026-09-26-24 records. No unclaimed store copy other than this dispatch's own, preserved/2026-09-26-45.md, which the intent claims.
+
+---
