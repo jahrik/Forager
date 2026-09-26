@@ -1633,3 +1633,48 @@ Quote this message verbatim in the record.
 **Flags:** (a) (b) cannot be met under the direction's casing polarity: a white casing by day needs ground Y at most 0.30, and a black casing at night needs Y at least 0.10; the owner's call. (b) The dispatch's 200-280 degree band does not contain V2's violet (280-320), so the band's V2 figure understates what the owner saw. (c) The pink-red road references come from openstreetmap-carto v6.1.0 source, not from the sample. (d) The centre-pin candidates move it off theme primary. (e) The model's open choices, listed in the doc's section 2, were a coder's, not the owner's or the planner's.
 
 ---
+
+**Kind:** merge
+**ID:** 2026-09-27-08
+**Timestamp:** 2026-09-26T21:38:06Z
+**PR:** 129
+**Head:** marker-swatches
+**Base:** pre-main
+**Merge-commit:** e5ecb9131f5e898cbe6f70cd72412e2fbb58a423
+**Pre-merge:** 9ea36d64d4f657c6c4349eee680a495945044c89
+**Backup:** 2026-09-26-13
+**Merged-by:** coder preserved/2026-09-26-40.md
+**Carries:** 2026-09-27-04, 2026-09-27-05, 2026-09-27-06, 2026-09-27-07
+**Notes:** Written in the sweep of the dispatch preserved as preserved/2026-09-26-44.md, on branch understory-amend cut from origin/pre-main e5ecb9131f5e898cbe6f70cd72412e2fbb58a423. The one merge on pre-main's first-parent chain newer than 9ea36d6, the newest merge a `merge` entry records (2026-09-27-04, Base pre-main): git log --first-parent --merges --format='%H %P %s' 9ea36d6..origin/pre-main lists only e5ecb91, parents 9ea36d64d4f657c6c4349eee680a495945044c89 and e3da9f91e5c472a7e550c0f1880ce75959f761e3, "Merge pull request #129 from slayer8366/marker-swatches". PR, Head, Base, Timestamp (mergedAt) from gh pr view 129 --json number,headRefName,baseRefName,mergeCommit,mergedAt,state: 129, marker-swatches, pre-main, mergeCommit e5ecb9131f5e898cbe6f70cd72412e2fbb58a423, 2026-09-26T21:38:06Z; state MERGED. Backup and Merged-by: ~/Zynergy/forager-repo-backups/INDEX.md's line "- 2026-09-26-13: PR #129 (marker-swatches into pre-main), pre-merge 9ea36d64d4f657c6c4349eee680a495945044c89, bundle of origin/pre-main, written by coder under intent 2026-09-27-05, continuation 2026-09-27-06 (prompts/preserved/2026-09-26-40.md)"; Merged-by names the continuation's store copy, the dispatch that INDEX line says the merge ran under (the intent's own copy is preserved/2026-09-26-39.md). Carries from git diff 9ea36d6 e5ecb91 -- RECORD.md, which adds IDs 2026-09-27-04, -05, -06 and -07; -04 is the merge entry for #128, written in marker-swatches' sweep 013c0c2, so it is listed, as -98 was in -04's Carries. main: no merge newer than 76905d4 (#119), which merge entry 2026-09-26-24 records.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-27-09
+**Dispatch-file:** preserved/2026-09-26-41.md
+**Type:** pulse
+**Outcome:** answered
+**Report:** answered in the planner's session; not relayed to the record
+**Notes:** The planner's read-only code pulse at origin/pre-main 9ea36d6 for a build that would make the Night Maps setting restyle the map, switch the night raster paint to V1, feed markers a day or night palette, draw marker casings and replace MapPaletteTest's beige-tile reference. Preserved 2026-09-26T21:16:49Z by .claude/hooks/dispatch_guard.py, header HEAD 9ea36d64d4f657c6c4349eee680a495945044c89, Target subagent pulse. Moved with mv from the planner worktree: original path /home/zynergy-labs/Zynergy/Forager/.claude/worktrees/bridge-cse_01BcqShzosraMo4pUXkqaqRp/prompts/preserved/2026-09-26-41.md, 4328 bytes, sha256 55c7c937938bfdbf129948b09398d869e8a2cfa62239a3d103ae388ea8946c66, equal before and after the move. Kept under the hook's own name, free on this branch and on origin/pre-main. Counted as answered in the planner's session, per the dispatch preserved as preserved/2026-09-26-44.md ("A planner pulse counts as answered in the planner's session"). Written in that dispatch's sweep.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-27-10
+**Dispatch-file:** preserved/2026-09-26-42.md
+**Type:** pulse
+**Outcome:** answered
+**Report:** answered in the planner's session; not relayed to the record
+**Notes:** The planner's read-only pulse at origin/pre-main 9ea36d6 on where the owner's abandonment of the side-sheet search panel is recorded, and on Understory (docs/plans/understory-design-system.md) as it bears on landscape step B2; the source of the findings the dispatch preserved as preserved/2026-09-26-44.md lists under "What a read-only pulse found at 9ea36d6" (inferred from the questions; the answer is not in the repository). Preserved 2026-09-26T21:17:06Z by .claude/hooks/dispatch_guard.py, header HEAD 9ea36d64d4f657c6c4349eee680a495945044c89, Target subagent pulse. Moved with mv from the planner worktree: original path /home/zynergy-labs/Zynergy/Forager/.claude/worktrees/bridge-cse_01BcqShzosraMo4pUXkqaqRp/prompts/preserved/2026-09-26-42.md, 4308 bytes, sha256 299714731c15e88cd7ffd8169f3b8acf3605312577cff4cec9a75a93fb94dc0b, equal before and after the move. Kept under the hook's own name, free on this branch and on origin/pre-main. Counted as answered in the planner's session, per preserved/2026-09-26-44.md. Written in that dispatch's sweep.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-27-11
+**Dispatch-file:** preserved/2026-09-26-43.md
+**Type:** pulse
+**Outcome:** answered
+**Report:** answered in the planner's session; not relayed to the record
+**Notes:** The planner's read-only pulse at origin/pre-main 9ea36d6 mapping app/src/main/java/com/zynergylabs/forager/app/ui/availability/AvailabilityScreen.kt (Understory's tag 06) for a behaviour-preserving split: what is already recorded about the split, the file's top-level declarations and their coupling. Preserved 2026-09-26T21:28:36Z by .claude/hooks/dispatch_guard.py, header HEAD 9ea36d64d4f657c6c4349eee680a495945044c89, Target subagent pulse. Moved with mv from the planner worktree: original path /home/zynergy-labs/Zynergy/Forager/.claude/worktrees/bridge-cse_01BcqShzosraMo4pUXkqaqRp/prompts/preserved/2026-09-26-43.md, 4305 bytes, sha256 aa1f1c7ce47db8339c735ef1ce53b43b9f55d35941a41c6b4d78ca4463a91519, equal before and after the move. Kept under the hook's own name, free on this branch and on origin/pre-main. Counted as answered in the planner's session, per preserved/2026-09-26-44.md. Written in that dispatch's sweep.
+
+---
