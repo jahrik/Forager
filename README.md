@@ -15,14 +15,16 @@ more certainty than the data supports. See `AvailabilityForecast` and
 
 ## How it works
 
-1. Search controls live in a **navigation drawer**. On medium/expanded
-   windows (tablets, landscape, foldables) it's opened from the tune icon in
-   the app bar; on a compact (phone-width) window there is no app bar or tune
-   icon — the drawer is reached from the map's own floating **Search** icon
-   instead (or an **Open Search** button before a first search has run — see
-   item 5 below). You pick a region there — either "use current location"
-   (device GPS/network location, with a radius slider) or manually entered
-   latitude/longitude — and a month. The drawer keeps the map, which is the
+1. On a phone (a window under 600 dp wide, or under 480 dp tall, as a
+   phone held sideways is) search is a **search bar across the top of the
+   screen**, floating over the map on the Maps tab (`SearchEntryBar`). Type a
+   species name into it; focusing it opens a **dropdown** below it
+   (`SearchDropdown`) where you set the region — **Set on map** or **Use
+   current location** (device GPS/network location) — the radius and the
+   month, re-run a **Recent search**, or enter latitude/longitude by hand
+   under **Advanced search**. On tablets and foldables (at least 600 dp wide
+   and 480 dp tall) the same controls sit in a permanent **navigation
+   drawer** beside the map instead. The drawer keeps the map, which is the
    primary content, at full height; a one-line strip above it
    ("Fungi · August · 15 km") says what the current search is while the
    controls are hidden. See `ui/availability/AvailabilityScreen` for why the
@@ -95,11 +97,14 @@ more certainty than the data supports. See `AvailabilityForecast` and
    `domain/CompassProvider` interface so it's testable without real
    hardware.
 
-   **The compact search drawer is the whole search feature, not just region
-   and month.** The species/category chips and taxon search field that used
-   to sit in the app bar, and Recent Searches, Advanced Search and Trip
-   Planner, all live in this one drawer, reached only from the Maps tab (see
-   above).
+   **On compact windows the top search bar is the whole search feature.**
+   The species field is the bar itself, and region, radius, month, Recent
+   Searches and Advanced Search are in the dropdown it opens, so search is
+   reachable from every compact tab, not only the Maps tab (the bar is
+   hidden in fullscreen and while a Journal entry is being edited). The
+   **Tools** drawer, opened from the bottom nav, holds no search controls:
+   it is for per-trip and rarely used tools such as Trip Planner, waypoints
+   and Settings (see `CompactTab`'s doc comment).
    The "Fungi · August · 15 km" strip above the map stays visible on every
    compact tab as a read-only summary of the current search, so checking
    what's currently searched doesn't require opening the drawer — it just

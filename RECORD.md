@@ -1633,3 +1633,117 @@ Quote this message verbatim in the record.
 **Flags:** (a) (b) cannot be met under the direction's casing polarity: a white casing by day needs ground Y at most 0.30, and a black casing at night needs Y at least 0.10; the owner's call. (b) The dispatch's 200-280 degree band does not contain V2's violet (280-320), so the band's V2 figure understates what the owner saw. (c) The pink-red road references come from openstreetmap-carto v6.1.0 source, not from the sample. (d) The centre-pin candidates move it off theme primary. (e) The model's open choices, listed in the doc's section 2, were a coder's, not the owner's or the planner's.
 
 ---
+
+**Kind:** merge
+**ID:** 2026-09-27-08
+**Timestamp:** 2026-09-26T21:38:06Z
+**PR:** 129
+**Head:** marker-swatches
+**Base:** pre-main
+**Merge-commit:** e5ecb9131f5e898cbe6f70cd72412e2fbb58a423
+**Pre-merge:** 9ea36d64d4f657c6c4349eee680a495945044c89
+**Backup:** 2026-09-26-13
+**Merged-by:** coder preserved/2026-09-26-40.md
+**Carries:** 2026-09-27-04, 2026-09-27-05, 2026-09-27-06, 2026-09-27-07
+**Notes:** Written in the sweep of the dispatch preserved as preserved/2026-09-26-44.md, on branch understory-amend cut from origin/pre-main e5ecb9131f5e898cbe6f70cd72412e2fbb58a423. The one merge on pre-main's first-parent chain newer than 9ea36d6, the newest merge a `merge` entry records (2026-09-27-04, Base pre-main): git log --first-parent --merges --format='%H %P %s' 9ea36d6..origin/pre-main lists only e5ecb91, parents 9ea36d64d4f657c6c4349eee680a495945044c89 and e3da9f91e5c472a7e550c0f1880ce75959f761e3, "Merge pull request #129 from slayer8366/marker-swatches". PR, Head, Base, Timestamp (mergedAt) from gh pr view 129 --json number,headRefName,baseRefName,mergeCommit,mergedAt,state: 129, marker-swatches, pre-main, mergeCommit e5ecb9131f5e898cbe6f70cd72412e2fbb58a423, 2026-09-26T21:38:06Z; state MERGED. Backup and Merged-by: ~/Zynergy/forager-repo-backups/INDEX.md's line "- 2026-09-26-13: PR #129 (marker-swatches into pre-main), pre-merge 9ea36d64d4f657c6c4349eee680a495945044c89, bundle of origin/pre-main, written by coder under intent 2026-09-27-05, continuation 2026-09-27-06 (prompts/preserved/2026-09-26-40.md)"; Merged-by names the continuation's store copy, the dispatch that INDEX line says the merge ran under (the intent's own copy is preserved/2026-09-26-39.md). Carries from git diff 9ea36d6 e5ecb91 -- RECORD.md, which adds IDs 2026-09-27-04, -05, -06 and -07; -04 is the merge entry for #128, written in marker-swatches' sweep 013c0c2, so it is listed, as -98 was in -04's Carries. main: no merge newer than 76905d4 (#119), which merge entry 2026-09-26-24 records.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-27-09
+**Dispatch-file:** preserved/2026-09-26-41.md
+**Type:** pulse
+**Outcome:** answered
+**Report:** answered in the planner's session; not relayed to the record
+**Notes:** The planner's read-only code pulse at origin/pre-main 9ea36d6 for a build that would make the Night Maps setting restyle the map, switch the night raster paint to V1, feed markers a day or night palette, draw marker casings and replace MapPaletteTest's beige-tile reference. Preserved 2026-09-26T21:16:49Z by .claude/hooks/dispatch_guard.py, header HEAD 9ea36d64d4f657c6c4349eee680a495945044c89, Target subagent pulse. Moved with mv from the planner worktree: original path /home/zynergy-labs/Zynergy/Forager/.claude/worktrees/bridge-cse_01BcqShzosraMo4pUXkqaqRp/prompts/preserved/2026-09-26-41.md, 4328 bytes, sha256 55c7c937938bfdbf129948b09398d869e8a2cfa62239a3d103ae388ea8946c66, equal before and after the move. Kept under the hook's own name, free on this branch and on origin/pre-main. Counted as answered in the planner's session, per the dispatch preserved as preserved/2026-09-26-44.md ("A planner pulse counts as answered in the planner's session"). Written in that dispatch's sweep.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-27-10
+**Dispatch-file:** preserved/2026-09-26-42.md
+**Type:** pulse
+**Outcome:** answered
+**Report:** answered in the planner's session; not relayed to the record
+**Notes:** The planner's read-only pulse at origin/pre-main 9ea36d6 on where the owner's abandonment of the side-sheet search panel is recorded, and on Understory (docs/plans/understory-design-system.md) as it bears on landscape step B2; the source of the findings the dispatch preserved as preserved/2026-09-26-44.md lists under "What a read-only pulse found at 9ea36d6" (inferred from the questions; the answer is not in the repository). Preserved 2026-09-26T21:17:06Z by .claude/hooks/dispatch_guard.py, header HEAD 9ea36d64d4f657c6c4349eee680a495945044c89, Target subagent pulse. Moved with mv from the planner worktree: original path /home/zynergy-labs/Zynergy/Forager/.claude/worktrees/bridge-cse_01BcqShzosraMo4pUXkqaqRp/prompts/preserved/2026-09-26-42.md, 4308 bytes, sha256 299714731c15e88cd7ffd8169f3b8acf3605312577cff4cec9a75a93fb94dc0b, equal before and after the move. Kept under the hook's own name, free on this branch and on origin/pre-main. Counted as answered in the planner's session, per preserved/2026-09-26-44.md. Written in that dispatch's sweep.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-27-11
+**Dispatch-file:** preserved/2026-09-26-43.md
+**Type:** pulse
+**Outcome:** answered
+**Report:** answered in the planner's session; not relayed to the record
+**Notes:** The planner's read-only pulse at origin/pre-main 9ea36d6 mapping app/src/main/java/com/zynergylabs/forager/app/ui/availability/AvailabilityScreen.kt (Understory's tag 06) for a behaviour-preserving split: what is already recorded about the split, the file's top-level declarations and their coupling. Preserved 2026-09-26T21:28:36Z by .claude/hooks/dispatch_guard.py, header HEAD 9ea36d64d4f657c6c4349eee680a495945044c89, Target subagent pulse. Moved with mv from the planner worktree: original path /home/zynergy-labs/Zynergy/Forager/.claude/worktrees/bridge-cse_01BcqShzosraMo4pUXkqaqRp/prompts/preserved/2026-09-26-43.md, 4305 bytes, sha256 aa1f1c7ce47db8339c735ef1ce53b43b9f55d35941a41c6b4d78ca4463a91519, equal before and after the move. Kept under the hook's own name, free on this branch and on origin/pre-main. Counted as answered in the planner's session, per preserved/2026-09-26-44.md. Written in that dispatch's sweep.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-27-12
+**Timestamp:** 2026-09-26T21:59:00Z
+**Title:** Understory amendment: the owner's changes after the landscape and map-colour work, the search-overlay record, an ADR-0002 amendment, and the README's search wording; docs only, into pre-main
+**Dispatch-file:** preserved/2026-09-26-44.md
+**Change:** (1) Worktree ~/Zynergy/forager-wt/understory-amend, branch understory-amend from origin/pre-main e5ecb91, upstream unset, pushed with -u; store copies moved in with mv. (2) Sweep bd3dcff: merge entry 2026-09-27-08 for #129 and dispatch-notes 2026-09-27-09 to -11 for pulse copies -41 to -43. (3) This intent with the store copy -44. (4) One section appended to the end of docs/plans/understory-design-system.md, headed "Amendment, 2026-09-26: owner changes after the landscape and map-colour work", recording six owner-selected changes, each with the owner's decision, the finding it answers (file:line re-verified at e5ecb91) and what it supersedes: 1 gates (predictive back first, which lifts step 6's Gate G condition, including ADR-0002 :309-311; the Gate G count, five not four); 2 ordering (short-window layout before step 5; the tag-06 split queued before landscape step 2, seam F included per the planner's definition, the compact-scaffold extraction as a second build); 3 the stale component table and place table; 4 the Surface-over-map rule amended; 5 the search decision (da96da6, 1f95776, 62a49c1 and the two code comments) with a paragraph on P8 and the owner's reason; 6 tabular figures (decided, not built; every changing numeral on the strip; landscape B2). (5) One append-only, dated amendment at the end of docs/adr/0002-motion-scheme-adoption.md recording "Predictive back first" and its two supersessions. (6) README.md :18-25 and :98-102 rewritten to describe search as the top overlay. (7) No docs/plans/README.md row: that index lists plans, not amendments. (8) Terminal, PR into pre-main, CI green, backup, merge, update_worktree.py on the main checkout and the planner worktree.
+**Scope boundary:** Files: understory-design-system.md (append only), docs/adr/0002-motion-scheme-adoption.md (append only, widened by the planner message below), README.md (the two passages only), RECORD.md (IDs 2026-09-27-12 onward) and the store copy -44. No app/ change, no other README passage, no earlier line of either design document. Out of scope: the split, predictive back, the Expressive components, landscape step 2, tabular figures in code, map colours, the flagged stale passages; rebase, amend, force-push, delete.
+**Baseline:** After git fetch: origin/pre-main e5ecb9131f5e898cbe6f70cd72412e2fbb58a423 (merge of #129, parents 9ea36d6 and e3da9f9); origin/understory-amend bd3dcff (the sweep, one commit on e5ecb91). Main checkout on pre-main at e5ecb91. Highest ID on origin/pre-main 2026-09-27-07; -08 to -11 used by the sweep; -12 onward free on origin/pre-main. Backups up to 2026-09-26-13. At the sweep check_record.py PASS and check_prompts.py failing only on this dispatch's untracked copy, which this entry claims. git diff 9ea36d6 e5ecb91 is empty for docs/plans, docs/adr, README.md and app/, so every line the pulse gave at 9ea36d6 holds at e5ecb91; drift found: "four named questions" is at understory :34 and :702, not :765. Seam F at e5ecb91: PERMANENT_DRAWER_WIDTH :2429-2435, CombinedResultsPane :2437-2488, COMBINED_PANE_LIST_WIDTH :2490-2491, MapModeToggle :2958-2988, MapTab :3089-3315, ThreeWayActionDialog :4837-4864, each a doc comment to its closing line, unchanged from 9ea36d6; NavigationHud's only call site is AvailabilityScreen.kt:4211, inside CompactMapTab (:3376), so the wide MapTab has no HUD. docs/audits/2026-09-07-return-estimate-prebuild-report.md:366 carries the quoted hold reason.
+**Prediction (outcome — planner):** From the dispatch: 1. Every cited line re-verifies at e5ecb91, allowing for drift. 2. git diff on understory-design-system.md shows additions only. 3. The README change touches only the two passages.
+**Prediction (mechanism — coder):** git diff -U0 e5ecb91 on understory-design-system.md and 0002-motion-scheme-adoption.md shows hunks only after each file's last line (@@ -1024,0 and @@ -354,0), with no "-" line; on README.md it shows exactly two hunks, one inside :18-25 and one inside :98-102. CI runs only assembleDebug and testDebugUnitTest (ci.yml:102, :163), which read no docs, so it is green on a docs-only diff; git diff origin/pre-main -- app/ stays empty. check_record.py and check_prompts.py PASS at every RECORD.md commit after this one, since -44 is claimed here. The merge produces a merge commit whose first parent is e5ecb91, since nothing else merges into pre-main meanwhile.
+**Finish line:** From the dispatch: steps 1 to 8 done; the PR merged with a backup; both checkers PASS; both checkouts updated. Per coder.md item 3 the terminal is written after CI is green and the backup is written, before the merge; the merge and the checkout updates are recorded by the next sweep. Deferral is not provided for.
+**Abort conditions:** From the dispatch: a premise wrong in a way that changes what a ruling means; any app/ diff; an ID collision; any guard or classifier refusal, apart from the one form-only merge retry; CI red; two failed attempts at one step.
+**Planner message (rulings on the stop):** Planner log ~/.claude/projects/-home-zynergy-labs-Zynergy-Forager--claude-worktrees-bridge-cse-01BcqShzosraMo4pUXkqaqRp/321c677d-f4cb-5bb7-8265-014f29328807.jsonl, line 2113 (SendMessage to a0d831205d2733036, 2026-09-26T21:57:35.139Z). Verbatim, each line prefixed "> ":
+
+> Planner rulings on your stop. Resume at step 3.
+>
+> This message continues the same dispatch (coder.md item 6). `prompts/preserved/2026-09-26-44.md` is claimed by your intent, not by a `stopped` note. Quote this message verbatim in the intent and cite its planner-log line.
+>
+> **1. "Release F" means (a): included.** Seam F is moved out of `AvailabilityScreen.kt` as part of the split. The owner chose the option worded "Move the wide layout into its own file with the rest."
+>
+> The original extent of seam F was never recorded in the repository. For this amendment, seam F means the wide-layout set that the planner's pulse (`preserved/2026-09-26-43.md`, answered in the planner's session) proposed as file F5, `AvailabilityWideLayoutUi.kt`. At `9ea36d6` the lines are:
+> - `PERMANENT_DRAWER_WIDTH` (`AvailabilityScreen.kt:2429-2435`);
+> - `CombinedResultsPane` (`:2437-2488`) and `COMBINED_PANE_LIST_WIDTH` (`:2490-2491`);
+> - `MapModeToggle` (`:2958-2988`);
+> - `MapTab` (`:3089-3315`);
+> - `ThreeWayActionDialog` (`:4837-4864`).
+>
+> Re-verify each at `e5ecb91`. Record three things:
+> - this definition, marked as the planner's;
+> - that the historical extent is unrecorded;
+> - the only recorded reason for the old hold, "moving the HUD before stage two would mean moving it twice" (`docs/audits/2026-09-07-return-estimate-prebuild-report.md:366`). Say that the wide `MapTab` has no HUD today, which is the planner's reason for why that hold no longer applies.
+>
+> **2. ADR-0002 `:309-311`: your reading is right.** "Predictive back first" lifts step 6's Gate G condition. Otherwise the owner's ruling cannot be carried out. Record it as superseded in the Understory amendment. Also widen Files to include one append-only, dated amendment at the end of `docs/adr/0002-motion-scheme-adoption.md`. It records the owner's ruling, "Predictive back first", with the two supersessions: step 6 no longer waits on Gate G, and step 5's Q3 is answered after step 6. Edit no earlier ADR line.
+>
+> **3. Tabular figures scope, the planner's call under the owner's delegation for landscape design ("You're the designer").**
+> - **Scope:** every numeral in the compass/elevation strip that changes while it's shown: heading degrees, elevation and the coordinate segment. A strip sized to its content only holds a steady width if all of its changing digits are fixed-width.
+> - **Supersession:** this supersedes Understory `:264-265` ("the coordinate segment only") for the strip.
+> - **Status:** decided, not built. It lands in landscape step 2, which is `landscape-phone-design.md` B2, as you inferred.
+>
+> **4. Your other decisions are accepted:**
+> - Merged-by `-40`;
+> - Carries including `-04`;
+> - no index row;
+> - the six-change mapping.
+>
+> **5. Your flags.** Record them under the terminal's Flags:
+> - whether the search bar counts as "width-bounded" under the amended Surface rule, and whether the bar and the cluster have long-press tests (not assessed);
+> - the other stale README passages;
+> - the `docs/plans/README.md:23` status line.
+>
+> Do not fix any of them here.
+>
+> Everything else in the dispatch stands, including the ID sequence from `2026-09-27-12`.
+**Notes:** Store copy moved with mv from the planner worktree: original path /home/zynergy-labs/Zynergy/Forager/.claude/worktrees/bridge-cse_01BcqShzosraMo4pUXkqaqRp/prompts/preserved/2026-09-26-44.md, 9147 bytes, sha256 bf7d27ca68d6557d9df9811f643241e2db11b6bacef8fbc20013d81efba71477 (equal before and after the move); Preserved 2026-09-26T21:51:01Z by .claude/hooks/dispatch_guard.py, header HEAD e5ecb91, Target subagent coder, Type build; kept under the hook's name, free on origin/pre-main. Structural validation only: every section .claude/kit.json lists for type build is present; this says nothing about decisions the dispatch did not state. The coder stopped after the sweep, before this intent, on the ambiguity of "Release F", and raised the ADR-0002 :309-311 gate on step 6 and the tabular-figures scope; the planner message above rules on all three and widens Files to one ADR-0002 amendment. The widening quotes owner rulings ("Predictive back first"; "Move the wide layout into its own file with the rest."; "You're the designer"), so it is taken under coder.md item 6. Closed decisions, quoted from the dispatch (the owner, in the planner session): "Let's look at the understory philosophy and see if we can make a few changes"; the six changes selected as "1+2: gates and ordering", "3+5: stale table and record", "4: Surface-over-map rule", "6: tabular figures"; "Predictive back first"; "Do the split next"; "Thanks for asking on the split. That's something I have been wanting to do for a while"; "Release F"; "Yes, as a second build"; "I abandoned the side sheet search panel in favor of the overlay in portrait"; the merge authorised under "merge into pre main without device check". The ordering (short-window layout before step 5, step 5 then applying to both orientations) and the amended Surface rule's wording are the planner's options, which the owner accepted by selecting them. The mapping of the six numbers to their content is the coder's, accepted by the planner.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-27-13
+**Timestamp:** 2026-09-26T22:12:00Z
+**Closes:** 2026-09-27-12
+**Outcome:** completed
+**Working-state:** Worktree ~/Zynergy/forager-wt/understory-amend (branch understory-amend, pushed), left in place. Against origin/pre-main e5ecb91 the branch adds RECORD.md (2026-09-27-08 to -13), prompts/preserved/2026-09-26-41.md to -44.md, one appended section in docs/plans/understory-design-system.md (+245, -0), one appended section in docs/adr/0002-motion-scheme-adoption.md (+28, -0), and README.md's two passages (+18, -13 across two hunks); git diff e5ecb91 -- app/ printed 0 lines. No docs/plans/README.md row. PR #130 into pre-main. Backup ~/Zynergy/forager-repo-backups/2026-09-26-14 written before this entry.
+**Observed:** (1) Commits, all pushed: sweep bd3dcff; intent 8b2a0b4 with the store copy; amendments 416c76d; README e675cb7; this entry. (2) Planner predictions. 1 met with drift: every cited line re-verified at e5ecb91 (git diff 9ea36d6 e5ecb91 is empty for docs/plans, docs/adr, README.md and app/); drift: "four named questions" is at understory :34 and :702, not :765 (and "names four" at :978); ADR-0002's "step 6 does not start before it either" sentence runs :311-312, not :309-311; the search bar's Surface is :254-261 inside the cited :242-262; the seam F ranges hold unchanged. 2 met: git diff -U0 e5ecb91 on understory-design-system.md is one hunk, @@ -1024,0 +1025,245 @@, no removed line; head -1024 of the file is byte-identical to e5ecb91's. 3 met: README.md has exactly two hunks, @@ -18,8 +18,10 @@ and @@ -98,5 +100,8 @@. (3) Coder mechanism prediction met for the diffs (ADR-0002: one hunk @@ -354,0 +355,28 @@, no removed line), CI and app/; the merge's first parent is recorded by the next sweep. (4) CI run 36275063578 SUCCESS on e675cb7 (Build, test, publish APK); the run for this entry's commit is cited in the hand-back. (5) check_record.py and check_prompts.py PASS before this commit and before the intent commit; at the sweep commit check_prompts.py reported only this dispatch's untracked copy, claimed by the intent. (6) The intent's quotation of the planner message was diffed against the SendMessage text extracted from planner-log line 2113: identical apart from the source's missing final newline. (7) git fetch origin; origin/pre-main e5ecb9131f5e898cbe6f70cd72412e2fbb58a423. Backup 2026-09-26-14: bundle pre-main-e5ecb91.bundle (git bundle verify: complete history); merge.json {pr 130, branch pre-main, sha e5ecb91..., bundle}; MANIFEST.sha256 (sha256sum -c OK; merge.json 28c4eef3..., bundle bebf546e...); INDEX.md line "- 2026-09-26-14: PR #130 (understory-amend into pre-main), pre-merge e5ecb9131f5e898cbe6f70cd72412e2fbb58a423, bundle of origin/pre-main, written by coder under intent 2026-09-27-12 (prompts/preserved/2026-09-26-44.md)". (8) README before, lines 18-25 (to "and a month."): "Search controls live in a navigation drawer. On medium/expanded windows (tablets, landscape, foldables) it's opened from the tune icon in the app bar; on a compact (phone-width) window there is no app bar or tune icon — the drawer is reached from the map's own floating Search icon instead (or an Open Search button before a first search has run — see item 5 below). You pick a region there — either "use current location" (device GPS/network location, with a radius slider) or manually entered latitude/longitude — and a month."; after: search is a bar across the top of the screen on windows under 600 dp wide or under 480 dp tall (SearchEntryBar), whose dropdown (SearchDropdown) holds Set on map / Use current location, radius, month, Recent searches and manual coordinates under Advanced search; tablets and foldables keep the permanent drawer. Lines 98-102 before: "The compact search drawer is the whole search feature ... all live in this one drawer, reached only from the Maps tab (see above)."; after: the top bar is the whole compact search feature, reachable from every compact tab except in fullscreen and while a Journal entry is edited, and the Tools drawer holds no search controls. Facts checked in code: AvailabilityScreen.kt:2193 (compact or short window), :1752 and :1931 (SearchEntryBar), :2147 (SearchDropdown), :2229 (PermanentNavigationDrawer), ShortWindow.kt:14 (480), WindowWidthClass.kt:24 (600), AvailabilitySearchUi.kt:360-460 (dropdown contents); no "Open Search" in app/src/main.
+**Deviations:** (1) The coder stopped after the sweep, before the intent, on "Release F"; the dispatch resumed on the planner message at planner-log line 2113, quoted in the intent, which also widened Files to the ADR-0002 amendment. (2) The section heading is "Amendment, 2026-09-26: owner changes after the landscape and map-colour work", following the document's existing "Addendum, 2026-09-26: ..." form, where the dispatch gave the title as "Amendment: owner changes after the landscape and map-colour work" headed with the date. (3) Beyond the lines the pulse listed, the amendment also names as superseded or stale :34 and :978 (the Gate G count), :553 (step 5's targets), :573-574 (step 6 after the gate), :307 and :737-739 (search reachable only from the Maps tab); each is re-read at e5ecb91. (4) Seven citations in the new Understory text and two in the new ADR text were corrected before their commit, after a re-read found them one or two lines off; no committed line was changed. (5) Order follows coder.md item 3: backup after CI green, this entry after the backup.
+**Flags:** Per the planner message at line 2113, not fixed here: (a) whether the search bar (Surface with Modifier.fillMaxWidth(), AvailabilitySearchUi.kt:260) counts as "width-bounded" under the amended Surface rule, and whether the bar and the cluster have long-press tests, is not assessed. (b) Other stale README passages: :28-31 (the drawer sentence and the "Fungi · August · 15 km" strip), :70-72 (six destinations with Album and Settings), :75 and :83-86 (the quick-search strip, the Search icon and the Open Search button), :108-119, and :502-538 (project layout). (c) docs/plans/README.md:23's Understory status line. Also noticed: ui/theme/Typography.kt:62-74 still assigns the strip's tabular figures to step 5; Understory's "six-tab bottom nav" (:304, :548, :715) against CompactTab's five entries (AvailabilityScreen.kt:357-363).
+
+---

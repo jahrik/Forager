@@ -1022,3 +1022,248 @@ decisions, their reasons, and the open questions.
 **Tablets and foldables are unchanged.** A window 480 dp tall or more keeps
 the treatment this document gives it: medium deferred and the rail not
 approved; expanded tokens only.
+
+## Amendment, 2026-09-26: owner changes after the landscape and map-colour work
+
+Appended; no earlier text in this document is edited. Where a line above
+says otherwise, this section supersedes it, and says so by line number.
+Every file:line here was re-read at `e5ecb91` (`origin/pre-main`, the merge
+of #129). The record of the dispatch is `RECORD.md` intent `2026-09-27-12`.
+
+The owner asked to "look at the understory philosophy and see if we can
+make a few changes". The planner offered six candidate changes and the
+owner selected all six: "1+2: gates and ordering", "3+5: stale table and
+record", "4: Surface-over-map rule", "6: tabular figures". Which finding
+each number covers is the coder's reading of those labels, accepted by the
+planner. Nothing here is built; every change below is a decision about
+order, scope or wording.
+
+### 1. Gates: predictive back first
+
+**Decision (owner): "Predictive back first".** Step 6 (swap `BackHandler`
+for `PredictiveBackHandler` at the dismissible surfaces) moves ahead of
+step 5, so that Gate G question 3 can be answered on hardware before the
+component pass.
+
+**Finding.** The order could not complete. Step 5 is gated on Gate G
+(`:703`), and Gate G stays open until Q3 and Q5 close (`:787-791`). Q3,
+"Does predictive-back progress track the gesture?" (`:772`), needs a
+`PredictiveBackHandler` to exist. That is step 6, and step 6 was gated on
+step 5 (`:704`). ADR-0002 recorded Q3 as not answered for exactly that
+reason, and added that "step 6 does not start before it either, the same
+'Gate G passed' condition step 5 is held to"
+(`docs/adr/0002-motion-scheme-adoption.md:306-312`). So step 6 waited on
+Gate G, and Gate G waited on step 6.
+
+**Supersedes.**
+- The step 6 row's gate, "Step 5" (`:704`). Step 6 now runs before step 5.
+- "step 6 follows the device gate rather than preceding it" (`:573-574`).
+- ADR-0002's "step 6 does not start before it either"
+  (`0002-motion-scheme-adoption.md:311-312`). Step 6 no longer waits on
+  Gate G. The owner's ruling cannot be carried out otherwise. ADR-0002
+  carries its own dated amendment recording this.
+
+**Unchanged.** Step 5 is still gated on Gate G passed and on R6's
+annotation re-check (`:703`). Gate G still needs Q3 and Q5. Q3 is now
+answered after step 6 lands, on hardware, before step 5.
+
+**The count.** Gate G is described as "Four named questions" (`:702`), and
+as "four named questions" in R4 (`:34`) and "Gate G now names four of them"
+under Open items (`:978`). Five questions are listed (`:768-778`), and
+ADR-0002 counts five ("Two of five questions are open",
+`0002-motion-scheme-adoption.md:332`). The number is five.
+
+### 2. Ordering: short-window layout before step 5, and the split next
+
+**Decision (owner, selecting the planner's option under "1+2").**
+Short-window layout (the landscape work in
+[`landscape-phone-design.md`](landscape-phone-design.md)) proceeds before
+step 5. Step 5 later applies its components to both orientations at once.
+
+**Decision (owner): "Do the split next".** The tag-06 split of
+`AvailabilityScreen.kt` is queued before landscape step 2 (B2 in
+`landscape-phone-design.md`'s build order, `:386`). The owner: "Thanks for
+asking on the split. That's something I have been wanting to do for a
+while".
+
+**Split scope (owner).**
+- "Release F": seam F, the wide-window layout, is **included**. It moves
+  out of `AvailabilityScreen.kt` as part of the split. The owner chose the
+  option worded "Move the wide layout into its own file with the rest."
+- "Yes, as a second build": the compact-scaffold extraction follows the
+  pure move as its own build. Where that second build sits relative to
+  landscape B2 was not stated.
+
+**What seam F means here (the planner's definition).** The historical
+extent of seam F was never recorded in the repository. For this amendment,
+seam F is the wide-layout set that the planner's pulse
+(`prompts/preserved/2026-09-26-43.md`, answered in the planner's session)
+proposed as file F5, `AvailabilityWideLayoutUi.kt`. In
+`AvailabilityScreen.kt` at `e5ecb91`, unchanged from `9ea36d6`, each range
+running from its doc comment to its closing line:
+- `PERMANENT_DRAWER_WIDTH` (`:2429-2435`);
+- `CombinedResultsPane` (`:2437-2488`) and `COMBINED_PANE_LIST_WIDTH`
+  (`:2490-2491`);
+- `MapModeToggle` (`:2958-2988`);
+- `MapTab` (`:3089-3315`);
+- `ThreeWayActionDialog` (`:4837-4864`).
+
+**Why seam F was held, and why that no longer applies.** The only recorded
+reason for the old hold is the owner acceptance in
+`docs/audits/2026-09-07-return-estimate-prebuild-report.md:366`: "seams F
+and G are held because moving the HUD before stage two would mean moving it
+twice". The wide `MapTab` has no HUD today: `NavigationHud`'s only call site
+is `AvailabilityScreen.kt:4211`, inside `CompactMapTab` (`:3376`). That is
+the planner's reason for why the hold no longer applies.
+
+**Finding.** The layout phase was planned after step 5 and Gate G
+(`:707-740`, "Why layout comes after and not before"). Whether it opened
+with the split was left as "a scoping decision for whoever writes it"
+(`:750-753`). The 2026-09-26 addendum above (`:1010-1024`) superseded only
+the medium-window deferral for short windows. It did not touch this
+ordering, although the landscape work was already running ahead of step 5.
+
+**Supersedes.**
+- `:707-740`: layout after step 5 no longer holds for short windows.
+- `:750-753`: the split is decided, not left open. It opens the layout
+  work.
+
+Tag 06 stays its own workstream, as `:990-993` says. It is its own builds,
+not part of a design pass.
+
+### 3. The stale component and place tables
+
+**Decision (owner, "3+5: stale table and record").** The tables are
+corrected by this record, not by editing them. Which Expressive component
+replaces each current composable is left to step 5's own dispatch; this
+section only corrects what the tables name.
+
+**Finding, component table (`:590-600`).**
+- **Map icon stack (`:594`).** It names `MapIconStack`,
+  `AvailabilityScreen.kt:3678`. That composable is now `MapIconBar`
+  (`ui/map/MapChrome.kt:343`), drawn inside the map icon cluster's
+  `Surface` (`AvailabilityScreen.kt:4076-4092`).
+- **Add action (`:595`).** It names `ThreeWayActionDialog`. On compact
+  windows the add action is now `AddActionTile`
+  (`AvailabilityScreen.kt:4866-4984`, the function at `:4914`).
+  `ThreeWayActionDialog` (`:4837-4864`) remains for the wide `MapTab`,
+  called at `:3277`.
+- **Category filter (`:596`).** It names "A plain `Row` of `FilterChip`".
+  That row is gone. Commit `4009ea8` ("Remove the category chip row: Fungi
+  is the only category now", an owner decision), confirmed in the code:
+  `CategoryChipRow` and `onCategorySelected` are absent from
+  `app/src/main`, and `AvailabilitySearchUi.kt:906-907` records the
+  removal. There is nothing left for `ButtonGroup` to replace in that row.
+
+**Finding, place table (`:305-306`) and the compact finish pass (`:553`).**
+- "Map icon stack (fixed at five) | Recentre, layers, search, fullscreen,
+  add" (`:305`) is stale. `MapIconBar`'s five rows are fullscreen,
+  orientation-reset, locate-me, map mode and add, with search removed
+  (`MapChrome.kt:330-340`).
+- "Compass strip | … record toggle, return-to-vehicle" (`:306`) is stale.
+  Record start/stop and return-to-vehicle are both in `ControlPill`
+  (`MapChrome.kt:326-328`; `ControlPill` at `AvailabilityScreen.kt:4520`, doc comment `:4508-4511`).
+- `:553` names the icon stack, the three-way add dialog and the category
+  filter as step 5's targets. It is stale in the same three ways.
+
+**Supersedes.** The rows at `:594-596` and `:305-306`, and the three
+targets named at `:553`, as descriptions of the current code.
+
+### 4. The Surface-over-map rule
+
+**Decision (owner, selecting the planner's option 4).** Rule 2 is amended
+to: "a `Surface` over the map is allowed if it is width-bounded and has a
+long-press test".
+
+**Finding.** Rule 2 reads "No `Surface` over the map" (`:675-678`). Two
+`Surface`s sit over the map today:
+- the search bar (`AvailabilitySearchUi.kt:242-262`; the `Surface` at
+  `:254-261`, whose comment at `:242-253` records why it intercepts on
+  purpose);
+- the map icon cluster (`AvailabilityScreen.kt:4076-4092`).
+
+**Supersedes.** Rule 2 at `:675-678`. Rules 1, 3 and 4 (`:672-674`,
+`:679-684`) are unchanged. Rule 1 already requires the long-press test of
+every composable over the map. Whether the search bar and the cluster meet
+the amended rule is not assessed here.
+
+### 5. The search decision, recorded
+
+**Decision (owner).** Search moved from the Tools drawer's panel to the
+top overlay. On compact windows, search is `SearchEntryBar` plus
+`SearchDropdown`, not the drawer. The owner, 2026-09-26: "I abandoned the
+side sheet search panel in favor of the overlay in portrait".
+
+Until this section, the decision was recorded only in commits and code
+comments:
+- `da96da6` (2026-08-29), "WIP: Dispatch C item 1 — advanced search moves
+  to a top dropdown". Location, radius and month leave the drawer for a
+  dropdown floating over the tab content.
+- `1f95776` (2026-08-29), "Fold species search and Recent Searches into the
+  search dropdown". The owner's follow-up call that the top dropdown covers
+  basic species search and Recent Searches too, "rather than leaving
+  species search behind in the Tools drawer under a 'search drawer'
+  framing".
+- `62a49c1` (2026-08-31), "Rename the Tools drawer away from search
+  framing". The owner asks to stop calling the Tools drawer a search
+  drawer anywhere in code or docs, "so it doesn't get lumped together in
+  the future by some ambitious planner".
+- `SearchEntryBar`'s doc comment (`AvailabilitySearchUi.kt:163-172`): the
+  top bar is "the entry field for searches", the owner's direct call.
+- `SearchDropdown`'s doc comment (`AvailabilitySearchUi.kt:293-301`): the
+  compact window's entire search surface, with species search and Recent
+  Searches folded in by a follow-up owner call.
+
+**What it supersedes here.**
+- The "Compact drawer | Search only …" row (`:307`), which says search is
+  "unreachable from five of six tabs".
+- The layout-phase finding that "search is reachable only from the Maps
+  tab" (`:737-739`).
+
+On compact windows, `SearchEntryBar` is composed on the Maps tab
+(`AvailabilityScreen.kt:1931`) and on the other tabs (`:1752`), except in
+fullscreen or while a Journal entry is being edited. The wide tree keeps
+the drawer's `DrawerPanel.Search` (`AvailabilityScreen.kt:405`, the
+default at `:840`, in the `PermanentNavigationDrawer` at `:2229`).
+
+**The side-sheet proposal this record would have prevented.** On
+2026-09-26 the planner's landscape design proposed P8: a Search action in
+the rail that opens a 360 dp side sheet holding the search field and its
+results, with "no search bar over the map in landscape"
+(`landscape-phone-design.md:261-270`). That re-proposed the pattern the
+owner had already abandoned in portrait. It happened because this
+decision was nowhere in `docs/`: a planner that knows the tree only
+through documents had no way to see it, which is the failure `62a49c1`'s
+rename was meant to prevent. The owner rejected P8 with the reason quoted
+above: "I abandoned the side sheet search panel in favor of the overlay in
+portrait". The landscape redraft that follows is not recorded here.
+
+### 6. Tabular figures
+
+**Decision (owner): "6: tabular figures".** Decided, not built. It lands in
+landscape step 2 (B2 in `landscape-phone-design.md`), not in step 5.
+
+**Scope (the planner's call, under the owner's delegation for landscape
+design, "You're the designer").** Every numeral in the compass/elevation
+strip that changes while it is shown: heading degrees, elevation and the
+coordinate segment. A strip sized to its content only holds a steady width
+if all of its changing digits are fixed-width.
+
+**Finding.**
+- `:264-265` gives tabular figures to "the coordinate segment only".
+- Step 5 carried them ("compass-strip figures", `:703`; `:553`).
+- The style exists and is unwired. `CompassCoordinateTextStyle`
+  (`ui/theme/Typography.kt:75`, doc comment `:62-74`) has no reference in
+  `app/src` other than its declaration, and its comment still assigns the
+  wiring to step 5.
+
+**Supersedes.**
+- `:264-265`'s "the coordinate segment only", for the strip.
+- Step 5's ownership of the strip's figures (`:553`, `:703`).
+
+### Not changed: the motion line
+
+"Grounded; no springy overshoot" is ADR-0001's wording, from
+`docs/motion-spec.md` §2. Understory replaced it for panels through ADR-0002
+(`:480-501`; `0002-motion-scheme-adoption.md:12-18`). It is not Understory's
+motion rule and is not restated as one here.
