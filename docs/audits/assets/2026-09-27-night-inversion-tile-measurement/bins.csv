@@ -1,0 +1,175 @@
+set,axis,bin,value
+opentopomap z13+z14,L,0.0-0.1,0.0001
+opentopomap z13+z14,L,0.1-0.2,0.0009
+opentopomap z13+z14,L,0.2-0.3,0.0027
+opentopomap z13+z14,L,0.3-0.4,0.0036
+opentopomap z13+z14,L,0.4-0.5,0.0098
+opentopomap z13+z14,L,0.5-0.6,0.0568
+opentopomap z13+z14,L,0.6-0.7,0.1143
+opentopomap z13+z14,L,0.7-0.8,0.2170
+opentopomap z13+z14,L,0.8-0.9,0.3490
+opentopomap z13+z14,L,0.9-1.0,0.2458
+opentopomap z13+z14,C,C<0.02 (achromatic),0.0312
+opentopomap z13+z14,C,0.02-0.05,0.0174
+opentopomap z13+z14,C,0.05-0.10,0.2980
+opentopomap z13+z14,C,0.10-0.15,0.6418
+opentopomap z13+z14,C,>=0.15,0.0117
+opentopomap z13+z14,h(of chromatic),0-30,0.0000
+opentopomap z13+z14,h(of chromatic),30-60,0.0001
+opentopomap z13+z14,h(of chromatic),60-90,0.0435
+opentopomap z13+z14,h(of chromatic),90-120,0.4672
+opentopomap z13+z14,h(of chromatic),120-150,0.4679
+opentopomap z13+z14,h(of chromatic),150-180,0.0006
+opentopomap z13+z14,h(of chromatic),180-210,0.0025
+opentopomap z13+z14,h(of chromatic),210-240,0.0008
+opentopomap z13+z14,h(of chromatic),240-270,0.0159
+opentopomap z13+z14,h(of chromatic),270-300,0.0012
+opentopomap z13+z14,h(of chromatic),300-330,0.0003
+opentopomap z13+z14,h(of chromatic),330-360,0.0001
+opentopomap z13+z14,relLum P10/P50/P90,,0.260/0.591/0.864
+opentopomap z13+z14,OklabL P10/P50/P90,,0.632/0.835/0.947
+opentopomap z13,L,0.0-0.1,0.0001
+opentopomap z13,L,0.1-0.2,0.0010
+opentopomap z13,L,0.2-0.3,0.0017
+opentopomap z13,L,0.3-0.4,0.0025
+opentopomap z13,L,0.4-0.5,0.0126
+opentopomap z13,L,0.5-0.6,0.0868
+opentopomap z13,L,0.6-0.7,0.1302
+opentopomap z13,L,0.7-0.8,0.1941
+opentopomap z13,L,0.8-0.9,0.3317
+opentopomap z13,L,0.9-1.0,0.2394
+opentopomap z13,C,C<0.02 (achromatic),0.0324
+opentopomap z13,C,0.02-0.05,0.0222
+opentopomap z13,C,0.05-0.10,0.3756
+opentopomap z13,C,0.10-0.15,0.5594
+opentopomap z13,C,>=0.15,0.0103
+opentopomap z13,h(of chromatic),0-30,0.0000
+opentopomap z13,h(of chromatic),30-60,0.0001
+opentopomap z13,h(of chromatic),60-90,0.0602
+opentopomap z13,h(of chromatic),90-120,0.5942
+opentopomap z13,h(of chromatic),120-150,0.3209
+opentopomap z13,h(of chromatic),150-180,0.0004
+opentopomap z13,h(of chromatic),180-210,0.0033
+opentopomap z13,h(of chromatic),210-240,0.0010
+opentopomap z13,h(of chromatic),240-270,0.0188
+opentopomap z13,h(of chromatic),270-300,0.0003
+opentopomap z13,h(of chromatic),300-330,0.0006
+opentopomap z13,h(of chromatic),330-360,0.0001
+opentopomap z13,relLum P10/P50/P90,,0.207/0.574/0.890
+opentopomap z13,OklabL P10/P50/P90,,0.585/0.827/0.955
+opentopomap z14,L,0.0-0.1,0.0001
+opentopomap z14,L,0.1-0.2,0.0009
+opentopomap z14,L,0.2-0.3,0.0038
+opentopomap z14,L,0.3-0.4,0.0046
+opentopomap z14,L,0.4-0.5,0.0070
+opentopomap z14,L,0.5-0.6,0.0268
+opentopomap z14,L,0.6-0.7,0.0984
+opentopomap z14,L,0.7-0.8,0.2400
+opentopomap z14,L,0.8-0.9,0.3662
+opentopomap z14,L,0.9-1.0,0.2522
+opentopomap z14,C,C<0.02 (achromatic),0.0299
+opentopomap z14,C,0.02-0.05,0.0126
+opentopomap z14,C,0.05-0.10,0.2204
+opentopomap z14,C,0.10-0.15,0.7241
+opentopomap z14,C,>=0.15,0.0130
+opentopomap z14,h(of chromatic),0-30,0.0000
+opentopomap z14,h(of chromatic),30-60,0.0002
+opentopomap z14,h(of chromatic),60-90,0.0269
+opentopomap z14,h(of chromatic),90-120,0.3405
+opentopomap z14,h(of chromatic),120-150,0.6144
+opentopomap z14,h(of chromatic),150-180,0.0007
+opentopomap z14,h(of chromatic),180-210,0.0017
+opentopomap z14,h(of chromatic),210-240,0.0006
+opentopomap z14,h(of chromatic),240-270,0.0129
+opentopomap z14,h(of chromatic),270-300,0.0020
+opentopomap z14,h(of chromatic),300-330,0.0000
+opentopomap z14,h(of chromatic),330-360,0.0001
+opentopomap z14,relLum P10/P50/P90,,0.309/0.604/0.863
+opentopomap z14,OklabL P10/P50/P90,,0.673/0.839/0.945
+osm z13+z14,L,0.0-0.1,0.0000
+osm z13+z14,L,0.1-0.2,0.0000
+osm z13+z14,L,0.2-0.3,0.0001
+osm z13+z14,L,0.3-0.4,0.0003
+osm z13+z14,L,0.4-0.5,0.0006
+osm z13+z14,L,0.5-0.6,0.0012
+osm z13+z14,L,0.6-0.7,0.0033
+osm z13+z14,L,0.7-0.8,0.0580
+osm z13+z14,L,0.8-0.9,0.9200
+osm z13+z14,L,0.9-1.0,0.0166
+osm z13+z14,C,C<0.02 (achromatic),0.0216
+osm z13+z14,C,0.02-0.05,0.0449
+osm z13+z14,C,0.05-0.10,0.9280
+osm z13+z14,C,0.10-0.15,0.0051
+osm z13+z14,C,>=0.15,0.0004
+osm z13+z14,h(of chromatic),0-30,0.0000
+osm z13+z14,h(of chromatic),30-60,0.0001
+osm z13+z14,h(of chromatic),60-90,0.0102
+osm z13+z14,h(of chromatic),90-120,0.0088
+osm z13+z14,h(of chromatic),120-150,0.9444
+osm z13+z14,h(of chromatic),150-180,0.0078
+osm z13+z14,h(of chromatic),180-210,0.0079
+osm z13+z14,h(of chromatic),210-240,0.0193
+osm z13+z14,h(of chromatic),240-270,0.0008
+osm z13+z14,h(of chromatic),270-300,0.0005
+osm z13+z14,h(of chromatic),300-330,0.0000
+osm z13+z14,h(of chromatic),330-360,0.0001
+osm z13+z14,relLum P10/P50/P90,,0.570/0.570/0.570
+osm z13+z14,OklabL P10/P50/P90,,0.821/0.821/0.821
+osm z13,L,0.0-0.1,0.0000
+osm z13,L,0.1-0.2,0.0000
+osm z13,L,0.2-0.3,0.0000
+osm z13,L,0.3-0.4,0.0002
+osm z13,L,0.4-0.5,0.0007
+osm z13,L,0.5-0.6,0.0015
+osm z13,L,0.6-0.7,0.0042
+osm z13,L,0.7-0.8,0.0616
+osm z13,L,0.8-0.9,0.9129
+osm z13,L,0.9-1.0,0.0188
+osm z13,C,C<0.02 (achromatic),0.0243
+osm z13,C,0.02-0.05,0.0501
+osm z13,C,0.05-0.10,0.9177
+osm z13,C,0.10-0.15,0.0074
+osm z13,C,>=0.15,0.0005
+osm z13,h(of chromatic),0-30,0.0000
+osm z13,h(of chromatic),30-60,0.0000
+osm z13,h(of chromatic),60-90,0.0106
+osm z13,h(of chromatic),90-120,0.0119
+osm z13,h(of chromatic),120-150,0.9377
+osm z13,h(of chromatic),150-180,0.0098
+osm z13,h(of chromatic),180-210,0.0104
+osm z13,h(of chromatic),210-240,0.0177
+osm z13,h(of chromatic),240-270,0.0011
+osm z13,h(of chromatic),270-300,0.0006
+osm z13,h(of chromatic),300-330,0.0001
+osm z13,h(of chromatic),330-360,0.0002
+osm z13,relLum P10/P50/P90,,0.570/0.570/0.577
+osm z13,OklabL P10/P50/P90,,0.821/0.821/0.825
+osm z14,L,0.0-0.1,0.0000
+osm z14,L,0.1-0.2,0.0000
+osm z14,L,0.2-0.3,0.0001
+osm z14,L,0.3-0.4,0.0003
+osm z14,L,0.4-0.5,0.0005
+osm z14,L,0.5-0.6,0.0009
+osm z14,L,0.6-0.7,0.0024
+osm z14,L,0.7-0.8,0.0543
+osm z14,L,0.8-0.9,0.9271
+osm z14,L,0.9-1.0,0.0144
+osm z14,C,C<0.02 (achromatic),0.0189
+osm z14,C,0.02-0.05,0.0396
+osm z14,C,0.05-0.10,0.9383
+osm z14,C,0.10-0.15,0.0028
+osm z14,C,>=0.15,0.0003
+osm z14,h(of chromatic),0-30,0.0000
+osm z14,h(of chromatic),30-60,0.0003
+osm z14,h(of chromatic),60-90,0.0098
+osm z14,h(of chromatic),90-120,0.0057
+osm z14,h(of chromatic),120-150,0.9512
+osm z14,h(of chromatic),150-180,0.0057
+osm z14,h(of chromatic),180-210,0.0054
+osm z14,h(of chromatic),210-240,0.0209
+osm z14,h(of chromatic),240-270,0.0006
+osm z14,h(of chromatic),270-300,0.0004
+osm z14,h(of chromatic),300-330,0.0000
+osm z14,h(of chromatic),330-360,0.0000
+osm z14,relLum P10/P50/P90,,0.570/0.570/0.570
+osm z14,OklabL P10/P50/P90,,0.821/0.821/0.821
