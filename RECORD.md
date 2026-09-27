@@ -2606,3 +2606,14 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Written by the planner by hand. Owner rulings, verbatim: "Add long press options for tiles to edit/delete them" and "Album photos, Find tiles, Entry cards" (plan addendum J4b); "Say 'Changes discarded' (Recommended)" (on J4's question). L5 is a planner's call under CLAUDE.md's suspect-check rule; it strengthens a test and changes no production code.
 
 ---
+
+**Kind:** continuation
+**ID:** 2026-09-27-60
+**Timestamp:** 2026-09-27T18:15:27Z
+**Continues:** 2026-09-27-59
+**Dispatch-file:** preserved/2026-09-27-23.md
+**Reason:** the owner changed the gesture model mid-stage: a two-stage swipe on list items, long-press kept on grid tiles
+**Changes:** L2 becomes a two-stage swipe (short swipe reveals Edit and Delete, full swipe deletes) instead of a long-press; new L6 applies the same two-stage swipe to J4's waypoint and offline-region rows, revealing Delete only for a type with no existing edit path; one shared swipe component; scope adds AvailabilityTripsWaypointsUi.kt and AvailabilityOfflineMapsUi.kt (row gesture and Edit only).
+**Notes:** Owner's words, verbatim: "Or have it slide gesture once to reveal an edit button, and slide again to delete", then "Lists swipe, grids long-press (Recommended)". The coder was told to do L4, L5 and the headless holders first while the gesture was pending.
+
+---
