@@ -599,9 +599,9 @@ internal fun JournalTab(
                     pendingSubTab = recordsPendingSubTab,
                     onPendingSubTabConsumed = { recordsPendingSubTab = null },
                     selectedTabState = journalState.recordsFilterState,
-                    // J5, L3: in a short window the filter chips are the second row, which gets out
-                    // of the way while the list scrolls.
-                    hideChipsOnScroll = shortLandscape,
+                    // J5, L3 and L5a: in a short window the filter chips are the second row, which
+                    // gets out of the way while the list scrolls, with the tighter chip spacing.
+                    shortWindow = shortLandscape,
                 )
             }
         }
