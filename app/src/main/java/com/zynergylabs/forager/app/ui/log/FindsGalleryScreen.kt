@@ -172,7 +172,7 @@ private fun AddEntryTile(onClick: () -> Unit, modifier: Modifier = Modifier) {
  * (the former "Incomplete" badge was removed on 2026-09-13 — see the comment at that spot).
  */
 @Composable
-private fun FindTile(entry: MushroomLogEntry, onClick: () -> Unit, modifier: Modifier = Modifier, isDraft: Boolean = false) {
+internal fun FindTile(entry: MushroomLogEntry, onClick: () -> Unit, modifier: Modifier = Modifier, isDraft: Boolean = false) {
     Card(
         onClick = onClick,
         modifier = modifier
