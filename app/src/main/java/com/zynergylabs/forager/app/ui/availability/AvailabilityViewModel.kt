@@ -847,12 +847,20 @@ class AvailabilityViewModel(
         }
     }
 
-    /** Restores Settings' "Night Maps" checkbox — same read-failure treatment as [loadOfflineMapPreferences]. */
+    /**
+     * Restores Settings' "Night Maps" checkbox — same read-failure treatment as
+     * [loadOfflineMapPreferences], plus the cold-launch gate (colour build C1): either way the read
+     * ends, [AvailabilityUiState.nightModeMapsLoaded] becomes `true` in the same update, so the map
+     * loads its first style knowing the answer. A failed read falls back to day, logged.
+     */
     private fun loadNightModePreferences() {
         viewModelScope.launch {
             mapPreferencesRepository.getNightModeMaps().fold(
-                onSuccess = { night -> _uiState.update { it.copy(nightModeMaps = night) } },
-                onFailure = { error -> errorLog.w(TAG, "Couldn't read the night-maps preference.", error) },
+                onSuccess = { night -> _uiState.update { it.copy(nightModeMaps = night, nightModeMapsLoaded = true) } },
+                onFailure = { error ->
+                    errorLog.w(TAG, "Couldn't read the night-maps preference.", error)
+                    _uiState.update { it.copy(nightModeMaps = false, nightModeMapsLoaded = true) }
+                },
             )
         }
     }

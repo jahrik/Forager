@@ -48,6 +48,19 @@ data class MapRenderMode(
      */
     val night: Boolean = false,
     /**
+     * Whether [night] is the stored preference yet — colour build C1's cold-launch gate.
+     * [SightingsMap] loads no style while this is `false`, so a night user's first style is the
+     * night one rather than a day style the asynchronous preference read might never correct.
+     *
+     * `true` by default, and only the main map passes the real flag (`AvailabilityScreen`'s
+     * `mapRenderMode`, from `AvailabilityUiState.nightModeMapsLoaded`), by the planner's ruling. The
+     * centre-pin pickers and the Cartography entry map keep the default: each sits behind user
+     * navigation, so the preference is assumed to have loaded by the time one is reached. That is an
+     * inference, not an observation; it is a device item in
+     * `docs/audits/2026-09-27-night-mode-c1-completion-report.md`.
+     */
+    val nightModeLoaded: Boolean = true,
+    /**
      * Whether this map instance may seize the camera for live GPS tracking — Journal Stage 2d.
      * `true` (every existing caller's unchanged behavior) lets [SightingsMap] activate MapLibre's
      * own "blue dot" location puck and follow it the moment location permission is granted, exactly
@@ -308,6 +321,7 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
         plannedTrips = content.plannedTrips,
         basemap = renderMode.basemap,
         nightMode = renderMode.night,
+        nightModeLoaded = renderMode.nightModeLoaded,
         focusOverride = focusOverride,
         onLongPress = onLongPress,
         onTap = onTap,
