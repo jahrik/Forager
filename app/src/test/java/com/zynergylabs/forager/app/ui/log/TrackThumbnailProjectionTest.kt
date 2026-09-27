@@ -91,4 +91,39 @@ class TrackThumbnailProjectionTest {
         out.forEach { p -> assertTrue("finite: $p", p.x.isFinite() && p.y.isFinite()) }
         assertPoints(listOf(0f to 50f, 0f to 50f), out)
     }
+
+    // ── Journal redesign J4, D5: several tracks in one box (owner ruling "All in one box (Recommended)") ──
+
+    @Test
+    fun `two tracks share one scale and one box, so side by side at the equator they split it`() {
+        val a = listOf(pt(0.0, 0.0), pt(0.01, 0.01))
+        val b = listOf(pt(0.0, 0.01), pt(0.01, 0.02))
+
+        val out = projectTracksToBox(listOf(a, b), width = 200f, height = 100f)
+
+        assertEquals("one projected list per track, in order", 2, out.size)
+        assertPoints(listOf(0f to 100f, 100f to 0f), out[0])
+        assertPoints(listOf(100f to 100f, 200f to 0f), out[1])
+    }
+
+    @Test
+    fun `one track through the several-track projection is exactly its own projection`() {
+        val a = listOf(pt(45.0, -122.0), pt(45.004, -122.003), pt(45.002, -121.998))
+
+        val out = projectTracksToBox(listOf(a), width = 56f, height = 56f, inset = 2f)
+
+        assertEquals(listOf(projectTrackToBox(a, width = 56f, height = 56f, inset = 2f)), out)
+        assertEquals(3, out.single().size)
+    }
+
+    @Test
+    fun `a track with fewer than two points projects to nothing and does not widen the shared box`() {
+        val a = listOf(pt(0.0, 0.0), pt(0.01, 0.01))
+        val far = listOf(pt(1.0, 1.0))
+
+        val out = projectTracksToBox(listOf(a, far), width = 100f, height = 100f)
+
+        assertEquals(emptyList<ThumbnailPoint>(), out[1])
+        assertPoints(listOf(0f to 100f, 100f to 0f), out[0])
+    }
 }

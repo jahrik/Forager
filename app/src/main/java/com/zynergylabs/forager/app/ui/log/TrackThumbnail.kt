@@ -106,3 +106,7 @@ internal fun projectTrackToBox(points: List<TrackPoint>, width: Float, height: F
         )
     }
 }
+
+/** J4 D5 stub. */
+internal fun projectTracksToBox(tracks: List<List<TrackPoint>>, width: Float, height: Float, inset: Float = 0f): List<List<ThumbnailPoint>> =
+    tracks.map { emptyList() }
