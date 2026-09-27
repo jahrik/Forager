@@ -60,11 +60,14 @@ import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.expressions.Expression
+import org.maplibre.android.style.layers.BackgroundLayer
 import org.maplibre.android.style.layers.CircleLayer
 import org.maplibre.android.style.layers.FillLayer
+import org.maplibre.android.style.layers.Layer
 import org.maplibre.android.style.layers.LineLayer
 import org.maplibre.android.style.layers.Property
 import org.maplibre.android.style.layers.PropertyFactory
+import org.maplibre.android.style.layers.PropertyValue
 import org.maplibre.android.style.layers.SymbolLayer
 import org.maplibre.android.style.sources.GeoJsonSource
 import org.maplibre.geojson.Feature
@@ -170,8 +173,9 @@ fun SightingsMap(
     /** See [com.zynergylabs.forager.app.ui.map.MapSlot]'s doc comment on this same parameter. */
     onCameraIdle: (LatLng) -> Unit = {},
     /**
-     * Night mode: a slightly desaturated, higher-contrast basemap (`BasemapStyles.kt`'s
-     * `NIGHT_RASTER_PAINT`). Sightings, area markers and every other overlay marker draw
+     * Night mode: the basemap's colours inverted with hue kept (the V1 transform, `BasemapStyles.kt`'s
+     * `NIGHT_RASTER_PAINT`), except Satellite, which stays day; over the offline style, the same
+     * transform applied to its own layers after it loads (`applyOfflineNightRecolour`). Sightings, area markers and every other overlay marker draw
      * identically to day mode regardless of this flag — see [MapPalette]'s own doc comment,
      * "Markers stay day-only, always" for why that's deliberate, not an oversight. Still drives
      * the map's own twilight trigger and long-press override; only what those feed into markers
@@ -181,6 +185,8 @@ fun SightingsMap(
      * why that was tried, measured and abandoned.
      */
     nightMode: Boolean = false,
+    /** See [MapRenderMode.nightModeLoaded]'s own doc comment: no style loads while this is `false`. */
+    nightModeLoaded: Boolean = true,
     /** See [com.zynergylabs.forager.app.ui.map.MapSlot]'s doc comment on this same parameter. */
     breadcrumbPoints: List<LatLng> = emptyList(),
     /** See [com.zynergylabs.forager.app.ui.map.MapSlot]'s doc comment on this same parameter. */
@@ -252,9 +258,10 @@ fun SightingsMap(
     // applyBasemap's own name()-comparison guard and for the same reason: setStyle discards every
     // source and layer the previous style had, so calling it when nothing about the style actually
     // changed would flash the map to blank and rebuild everything for nothing. One value holding
-    // basemap, palette and the offline flag (Stage 2e-ii) rather than the two separate
-    // appliedBasemap/appliedPalette vars it replaced — see needsStyleReload's own doc comment for
-    // the "toggle does nothing" gap two separate comparisons left open.
+    // basemap, palette, the offline flag (Stage 2e-ii) and effective night (colour build C1) rather
+    // than the two separate appliedBasemap/appliedPalette vars it replaced — see needsStyleReload's
+    // own doc comment for the "toggle does nothing" gap two separate comparisons left open, and
+    // AppliedMapStyle.night's for the same gap night itself had until C1.
     //
     // The palette is in here for the reason the old appliedPalette existed: the overlay layers are
     // built once per style load with their colours baked into the layer properties, so a palette
@@ -390,7 +397,8 @@ fun SightingsMap(
         onDispose { }
     }
 
-    // Style swap: basemap, palette, or — Stage 2e-ii — the offline style. Keyed on the inputs
+    // Style swap: basemap, palette, the offline style (Stage 2e-ii), or effective night (colour
+    // build C1: nightMode is a key, and AppliedMapStyle.night is compared). Keyed on the inputs
     // rather than driven from an AndroidView update block: setStyle is asynchronous (its callback
     // is where the new style's sources/layers can actually be added), which the old synchronous
     // update-block shape has no equivalent of.
@@ -400,12 +408,13 @@ fun SightingsMap(
     // MapLibre's offline database can serve the style document, its TileJSON and its tiles from
     // the store. Nothing else about the swap differs from a basemap swap: initializeOverlayLayers
     // re-adds every overlay in the callback exactly as it does for a basemap change, and the
-    // data+camera refresh effect below re-pushes their content keyed on loadedStyle. Two things
-    // deliberately left as the user will see them (owner ruling, 2e-ii: report, do not fix):
-    // nightMode has no effect on the offline style (mapStyleSourceFor's doc comment), and the max
+    // data+camera refresh effect below re-pushes their content keyed on loadedStyle. One thing
+    // deliberately left as the user will see it (owner ruling, 2e-ii: report, do not fix): the max
     // zoom preference stays the *basemap's* (17 for OpenTopoMap) over a store that stops at zoom
     // 15 — vector tiles overzoom cleanly, per OfflineMapRepository.MAX_ZOOM's doc comment, so the
-    // user can zoom past the data's own ceiling without a hard stop.
+    // user can zoom past the data's own ceiling without a hard stop. 2e-ii also left night inert
+    // on the offline style; since colour build C1 it is applied by recolouring the loaded style's
+    // own layers in the setStyle callback below (mapStyleSourceFor's doc comment).
     //
     // A style that fails to load (offline with no region covering the camera, a worker URL that
     // moved, a cold store) never reaches this callback, so appliedStyle and loadedStyle keep their
@@ -413,9 +422,18 @@ fun SightingsMap(
     // OnDidFailLoadingMapListener registered in the DisposableEffect above, never swallowed; what
     // the user should be *told* in that state is a decision the pre-build report lists and this
     // dispatch did not make.
-    LaunchedEffect(mapLibreMap, basemap, mapPalette, useOfflineTiles) {
+    LaunchedEffect(mapLibreMap, basemap, mapPalette, useOfflineTiles, nightMode, nightModeLoaded) {
         val map = mapLibreMap ?: return@LaunchedEffect
-        val requested = AppliedMapStyle(basemap = basemap, palette = mapPalette, useOfflineTiles = useOfflineTiles)
+        // null until the Night Maps preference has loaded (the cold-launch gate): the effect
+        // relaunches when nightModeLoaded turns true, and the first style it requests is then the
+        // right one. The map shows MapLibre's own blank until then.
+        val requested = requestedMapStyle(
+            basemap = basemap,
+            palette = mapPalette,
+            useOfflineTiles = useOfflineTiles,
+            nightMode = nightMode,
+            nightModeLoaded = nightModeLoaded,
+        ) ?: return@LaunchedEffect
         if (!needsStyleReload(appliedStyle, requested)) return@LaunchedEffect
         // Captured before setStyle below discards the LocationComponent entirely (see
         // activateLiveLocationIfPermitted's own doc comment on why re-activation is needed at
@@ -423,7 +441,8 @@ fun SightingsMap(
         // CameraMode.NONE if the user had already broken tracking by panning/zooming;
         // CameraMode.TRACKING if they hadn't. Restoring exactly this, rather than always
         // re-forcing TRACKING, is the fix for a real hardware report: switching basemap (or
-        // toggling night mode, which goes through this same style-swap path) was recentering the
+        // toggling night mode, which goes through this same style-swap path everywhere but over
+        // Satellite, whose style does not change at night) was recentering the
         // map on the user's location even after they had deliberately panned away — the
         // GPS/locate-me icon is the control for that, not this one.
         val previousCameraMode = if (map.locationComponent.isLocationComponentActivated) {
@@ -432,11 +451,17 @@ fun SightingsMap(
             null
         }
         map.setMaxZoomPreference(basemap.maxZoom.toDouble())
-        val builder = when (val source = mapStyleSourceFor(basemap, night = nightMode, useOfflineTiles = useOfflineTiles)) {
+        val builder = when (val source = mapStyleSourceFor(basemap, night = requested.night, useOfflineTiles = useOfflineTiles)) {
             is MapStyleSource.Json -> Style.Builder().fromJson(source.json)
             is MapStyleSource.Uri -> Style.Builder().fromUri(source.uri)
         }
         map.setStyle(builder) { style ->
+            // Offline night (colour build C1 (d)): the offline style has no raster layer for
+            // NIGHT_RASTER_PAINT to act on, so its own layers are recoloured here, after it loads
+            // from its one URL and before the overlays are added, so the overlays' own line and
+            // fill layers are never touched. Day, or night off, restyles nothing: the style came
+            // fresh from its URI.
+            if (requested.useOfflineTiles && requested.night) applyOfflineNightRecolour(style)
             initializeOverlayLayers(style, density = context.resources.displayMetrics.density, palette = mapPalette)
             // The data+camera refresh effect below re-pushes every source right after this, keyed
             // on loadedStyle among other things — including the sighting source, with "selected"
@@ -769,7 +794,8 @@ private fun refreshOverlayData(
  * unit-testable. Real hardware report this fixes: that effect is keyed on `loadedStyle` (needed so
  * [refreshOverlayData] above re-runs after a basemap swap blanks the style), but with no guard, it
  * also re-ran the camera move below whenever GPS tracking wasn't active — including on a basemap
- * or night-mode swap that changed neither `region` nor `focusOverride` — which read as "changing
+ * or night-mode swap (a night toggle reloads the style everywhere but over Satellite, since colour
+ * build C1) that changed neither `region` nor `focusOverride` — which read as "changing
  * map style brought the map back to my location" even though the GPS/locate-me icon is the only
  * control meant to do that. Comparing [target] against [lastAppliedCameraTarget] — what was
  * actually last applied, not merely that the effect ran again — is what tells "the search moved"
@@ -819,7 +845,7 @@ internal fun locationIndicatorTrackingAnimationMultiplier(): Float =
  *
  * [restoreCameraMode] is what this composable's own basemap-swap effect passes to avoid a real
  * hardware-reported bug: `setStyle` (any basemap change, or a night-mode toggle, which shares this
- * same path) discards the LocationComponent outright, so this function has to run again on every
+ * same path everywhere but over Satellite) discards the LocationComponent outright, so this function has to run again on every
  * such swap just to keep the puck visible — but always re-forcing [CameraMode.TRACKING] here, as
  * this used to do, snapped the camera back onto the user's location on every basemap switch even
  * after they had deliberately panned away, which the GPS/locate-me icon is the control for, not
@@ -1156,6 +1182,85 @@ private const val PLANNED_TRIP_MARKER_SIZE_DP = 22f
 
 private const val SEARCH_CENTER_RADIUS_PX = 8f
 private const val SEARCH_CENTER_STROKE_WIDTH_PX = 2f
+
+/**
+ * The offline style's night: every background, fill and line colour property of the loaded style set
+ * to its V1 night value ([offlineNightRecolourOf]). The SDK calls were checked with `javap` against
+ * the pinned `13.5.0` artifact before this was written: `Style.getLayers`, `Layer.setProperties`,
+ * the `BackgroundLayer`/`FillLayer`/`LineLayer` colour getters (each a `PropertyValue<String>`), the
+ * `PropertyFactory` colour setters for `String` and `Expression`, `PropertyValue.isExpression`/
+ * `getExpression`/`isValue`/`getValue`, and `Expression.toString`/`Expression.raw`.
+ *
+ * A property whose value is unset (the style leaves it to the default) is not touched. One the pure
+ * function cannot read is left in its day colour and logged by layer and property, never dropped
+ * silently (CLAUDE.md); a summary line says how many were recoloured and how many left. Which form
+ * MapLibre hands the colours back in (an `rgba()` string, `["rgba", ...]` arrays inside expressions)
+ * is unverified until a device run; a form this does not read shows up in these log lines.
+ */
+private fun applyOfflineNightRecolour(style: Style) {
+    var recoloured = 0
+    var left = 0
+    for (layer in style.layers) {
+        for ((property, value) in dayColourPropertiesOf(layer)) {
+            val colourValue = when {
+                value.isNull -> continue
+                value.isExpression -> StyleColourValue.Expression(value.expression.toString())
+                value.value is String -> StyleColourValue.Literal(value.value as String)
+                else -> null
+            }
+            val outcome = if (colourValue == null) {
+                NightRecolour.Left(
+                    LayerColourProperty(layer.id, property, StyleColourValue.Literal(value.toString())),
+                    "value of type ${value.value?.javaClass?.name} is neither a colour string nor an expression",
+                )
+            } else {
+                offlineNightRecolourOf(LayerColourProperty(layer.id, property, colourValue))
+            }
+            when (outcome) {
+                is NightRecolour.Recoloured -> try {
+                    layer.setProperties(nightPropertyValue(property, outcome.night))
+                    recoloured++
+                } catch (e: RuntimeException) {
+                    left++
+                    Log.w(SIGHTINGS_MAP_TAG, "Offline night: could not set ${layer.id}/$property; left in its day colour.", e)
+                }
+                is NightRecolour.Left -> {
+                    left++
+                    Log.w(SIGHTINGS_MAP_TAG, "Offline night: ${layer.id}/$property left in its day colour: ${outcome.reason}")
+                }
+            }
+        }
+    }
+    Log.i(SIGHTINGS_MAP_TAG, "Offline night: $recoloured colour properties recoloured, $left left in day colours.")
+}
+
+/** [layer]'s colour properties the offline night walks ([NIGHT_RECOLOURED_PROPERTIES]), with their day values. */
+private fun dayColourPropertiesOf(layer: Layer): List<Pair<String, PropertyValue<*>>> = when (layer) {
+    is BackgroundLayer -> listOf("background-color" to layer.backgroundColor)
+    is FillLayer -> listOf("fill-color" to layer.fillColor, "fill-outline-color" to layer.fillOutlineColor)
+    is LineLayer -> listOf("line-color" to layer.lineColor)
+    else -> emptyList()
+}
+
+private fun nightPropertyValue(property: String, night: StyleColourValue): PropertyValue<*> = when (night) {
+    is StyleColourValue.Literal -> when (property) {
+        "background-color" -> PropertyFactory.backgroundColor(night.text)
+        "fill-color" -> PropertyFactory.fillColor(night.text)
+        "fill-outline-color" -> PropertyFactory.fillOutlineColor(night.text)
+        "line-color" -> PropertyFactory.lineColor(night.text)
+        else -> error("offline night does not walk $property")
+    }
+    is StyleColourValue.Expression -> {
+        val expression = Expression.raw(night.json)
+        when (property) {
+            "background-color" -> PropertyFactory.backgroundColor(expression)
+            "fill-color" -> PropertyFactory.fillColor(expression)
+            "fill-outline-color" -> PropertyFactory.fillOutlineColor(expression)
+            "line-color" -> PropertyFactory.lineColor(expression)
+            else -> error("offline night does not walk $property")
+        }
+    }
+}
 
 private const val SIGHTINGS_MAP_TAG = "SightingsMap"
 private const val BREADCRUMB_STROKE_WIDTH_PX = 6f

@@ -40,13 +40,27 @@ import com.zynergylabs.forager.app.domain.model.Waypoint
 data class MapRenderMode(
     val basemap: Basemap,
     /**
-     * Night mode: a slightly desaturated, higher-contrast basemap (`BasemapStyles.kt`'s
-     * `NIGHT_RASTER_PAINT`). Overlay markers (sightings, area markers, planned trips, waypoints)
+     * Night mode: the basemap's colours inverted with hue kept (the V1 transform, `BasemapStyles.kt`'s
+     * `NIGHT_RASTER_PAINT`), except Satellite, which stays day; the offline style is recoloured with
+     * the same transform after it loads. Overlay markers (sightings, area markers, planned trips, waypoints)
      * render identically regardless of this flag — see `MapPalette`'s own doc comment, "Markers
      * stay day-only, always." Not the device's dark theme, and deliberately not derived from it —
      * see `MapPalette` for why that was tried, measured and abandoned.
      */
     val night: Boolean = false,
+    /**
+     * Whether [night] is the stored preference yet — colour build C1's cold-launch gate.
+     * [SightingsMap] loads no style while this is `false`, so a night user's first style is the
+     * night one rather than a day style the asynchronous preference read might never correct.
+     *
+     * `true` by default, and only the main map passes the real flag (`AvailabilityScreen`'s
+     * `mapRenderMode`, from `AvailabilityUiState.nightModeMapsLoaded`), by the planner's ruling. The
+     * centre-pin pickers and the Cartography entry map keep the default: each sits behind user
+     * navigation, so the preference is assumed to have loaded by the time one is reached. That is an
+     * inference, not an observation; it is a device item in
+     * `docs/audits/2026-09-27-night-mode-c1-completion-report.md`.
+     */
+    val nightModeLoaded: Boolean = true,
     /**
      * Whether this map instance may seize the camera for live GPS tracking — Journal Stage 2d.
      * `true` (every existing caller's unchanged behavior) lets [SightingsMap] activate MapLibre's
@@ -69,8 +83,8 @@ data class MapRenderMode(
      * 2e-i surfaced the choice; **Stage 2e-ii acts on it**). Read by [SightingsMap], which loads
      * `OFFLINE_STYLE_URL` by URI when this is `true` — the exact string every region was downloaded
      * against, so MapLibre's offline database can serve it — and the basemap's raster style
-     * otherwise; see `mapStyleSourceFor`'s own doc comment for why by URI, and for why night mode
-     * is inert on the offline style. The attribution caption follows it (`mapAttributionFor`).
+     * otherwise; see `mapStyleSourceFor`'s own doc comment for why by URI, and for how night mode
+     * reaches the offline style (a post-load recolour, colour build C1). The attribution caption follows it (`mapAttributionFor`).
      * Manual only, by owner ruling: an automatic swap on losing connectivity would need
      * connectivity code this app does not have, and would reload the style mid-pan.
      *
@@ -308,6 +322,7 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
         plannedTrips = content.plannedTrips,
         basemap = renderMode.basemap,
         nightMode = renderMode.night,
+        nightModeLoaded = renderMode.nightModeLoaded,
         focusOverride = focusOverride,
         onLongPress = onLongPress,
         onTap = onTap,

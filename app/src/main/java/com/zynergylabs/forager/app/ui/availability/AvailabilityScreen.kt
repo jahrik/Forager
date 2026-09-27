@@ -784,7 +784,10 @@ fun AvailabilityScreen(
     // long-press-hold control (MapNightMode) per the project owner's own request to move night
     // mode to a plain Settings checkbox instead.
     val isNightMode = uiState.nightModeMaps
-    val mapRenderMode = MapRenderMode(basemap = basemap, night = isNightMode)
+    // nightModeLoaded: the cold-launch gate (colour build C1) — the map loads no style until the
+    // preference read above has landed, so a night user's first style is the night one. Only this
+    // map gets it; see MapRenderMode.nightModeLoaded for why the others keep the default.
+    val mapRenderMode = MapRenderMode(basemap = basemap, night = isNightMode, nightModeLoaded = uiState.nightModeMapsLoaded)
     // Persisted via the ViewModel/DataStore — see AvailabilityUiState.distanceUnit's own doc
     // comment. mapMode above is still session-local; see the observation in that same doc comment.
     val distanceUnit = uiState.distanceUnit
