@@ -408,3 +408,20 @@ Both are new capability, not restyling, so they are stages of their own and do n
 ### Order
 
 J4 (running), then J4b, then J5 (short windows, which will need to place the map chip too if J8 lands first, so J5 stays before J8), then J8, then the single Journal PR. J6 (tablets) and J7 (device check) as the plan lists them; J7 gains the long-press menus and the map overlays.
+
+### M1. Tap a map glyph for a bubble (after J5, before J8)
+
+Asked by the owner, verbatim: "Tap glyphs to show a bubble that contains their info. (Finds, photo, track, waypointz etc). Tapping waypoints offers an option to navigate to them."
+
+What the code does today (read by the planner at `journal-redesign` `b65b775`): only sighting dots respond to a tap. `ui/map/SightingsMap.kt:312-325` queries the tapped point against `SIGHTING_LAYER_ID` alone and opens `ObservationBubble` (`ui/availability/AvailabilityMapOverlaysUi.kt:357`); every other glyph layer (`SightingsMap.kt:1142-1159`: planned trips, waypoints, kept tracks, finds, photos, offline-region circles) is drawn and ignores taps. A waypoint row's "Directions" hands the location to an installed navigation app (`launchDirections`, `ui/availability/AvailabilityTripsWaypointsUi.kt:146`); the app also has its own navigation HUD.
+
+Owner rulings:
+- Glyphs: **"Finds and photos, Waypoints, Tracks, Planned trips & offline maps"**: every glyph kind gets a bubble with its info on tap, alongside the sighting bubble that exists.
+- Navigate: **"In-app HUD, plus Directions (Recommended)"**: a waypoint's bubble offers Navigate, which starts Forager's own navigation HUD to it, and Directions, the existing hand-off to an installed app.
+- Placement: **"Journal branch, before J8 (Recommended)"**: stage M1 on `journal-redesign`, after J5, so J8's entry overlays reuse the same bubbles; it ships in the single Journal PR.
+
+Open, for M1's pre-build pass: what each bubble shows per kind (starting from what that record's row already shows); what tapping the bubble itself does (open the find, photo or track; J8 adds entry records); which glyph wins when several overlap at the tap point; how a bubble interacts with the sighting bubble and with long-press (which drops a point today, `SightingsMap.kt:334`); and the map-surface touch rules (CLAUDE.md), with coordinate-touch tests on the map.
+
+### Order, revised
+
+J4 (running), J4b, J5, **M1**, J8, then the single Journal PR.
