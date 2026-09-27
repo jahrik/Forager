@@ -75,7 +75,7 @@ class MainActivity : ComponentActivity() {
                     container.unitSystemPreferenceRepository,
                     container.appThemePreferenceRepository,
                     container.getTodaysForecastUseCase,
-                    getOfflineRegionReferenceCount = { id -> container.getEntryReferenceCountUseCase.forOfflineRegion(id).getOrDefault(0) },
+                    getOfflineRegionReferenceCount = { id -> offlineRegionEntryReferenceCountOrZero(id, container.getEntryReferenceCountUseCase::forOfflineRegion, androidErrorLog) },
                     getAutoSaveLocationToPhotos = container.photoLocationPreferenceRepository::getAutoSaveLocationToPhotos,
                     setAutoSaveLocationToPhotos = container.photoLocationPreferenceRepository::setAutoSaveLocationToPhotos,
                     getLockCameraToPortrait = container.cameraOrientationPreferenceRepository::getLockCameraToPortrait,
@@ -179,7 +179,7 @@ class MainActivity : ComponentActivity() {
                     container.alertDelivery,
                     container.alertAudibility,
                     androidErrorLog,
-                    getWaypointReferenceCount = { id -> container.getEntryReferenceCountUseCase.forWaypoint(id).getOrDefault(0) },
+                    getWaypointReferenceCount = { id -> waypointEntryReferenceCountOrZero(id, container.getEntryReferenceCountUseCase::forWaypoint, androidErrorLog) },
                 )
             }
         }
@@ -598,3 +598,17 @@ internal suspend fun photoEntryReferenceCountOrZero(
     errorLog.w("PhotoReferenceCount", "Couldn't count journal entries keeping photo $photoId; showing 0.", error)
     0
 }
+
+/** J4 D6: extracted unchanged (a failed count is 0, not logged); the log lands in the D6 commit. */
+internal suspend fun waypointEntryReferenceCountOrZero(
+    waypointId: String,
+    countEntriesReferencingWaypoint: suspend (String) -> Result<Int>,
+    @Suppress("UNUSED_PARAMETER") errorLog: ErrorLog,
+): Int = countEntriesReferencingWaypoint(waypointId).getOrDefault(0)
+
+/** J4 D6: extracted unchanged (a failed count is 0, not logged); the log lands in the D6 commit. */
+internal suspend fun offlineRegionEntryReferenceCountOrZero(
+    offlineRegionId: Long,
+    countEntriesReferencingOfflineRegion: suspend (Long) -> Result<Int>,
+    @Suppress("UNUSED_PARAMETER") errorLog: ErrorLog,
+): Int = countEntriesReferencingOfflineRegion(offlineRegionId).getOrDefault(0)
