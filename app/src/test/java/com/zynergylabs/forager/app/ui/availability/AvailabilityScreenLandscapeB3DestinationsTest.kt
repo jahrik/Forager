@@ -128,12 +128,13 @@ class AvailabilityScreenLandscapeB3DestinationsTest {
 
     private fun listContent(): DpRect = taggedBounds(SPECIES_ROW_TAG)
 
-    private fun journalTopTabs(): DpRect {
-        // J2 T1: the Entries | Records switch replaced the tab row; its two segments span it.
-        val first = taggedBounds(com.zynergylabs.forager.app.ui.log.journalSwitchTestTag(com.zynergylabs.forager.app.ui.log.JournalTopTab.CARTOGRAPHY))
-        val last = taggedBounds(com.zynergylabs.forager.app.ui.log.journalSwitchTestTag(com.zynergylabs.forager.app.ui.log.JournalTopTab.RECORDS))
-        return DpRect(first.left, first.top, last.right, last.bottom)
-    }
+    /**
+     * Journal redesign J5 (L1): in a short window the Entries | Records switch sits at the start of
+     * the Journal's pinned 48 dp row, sized to its labels, so its segments no longer span the width
+     * the Journal was handed. The row fills that width, so it is what is measured, as the Records
+     * chip row is below. (Until J5 the switch's two segments spanned it and were measured.)
+     */
+    private fun journalTopTabs(): DpRect = taggedBounds(com.zynergylabs.forager.app.ui.log.SHORT_HEADER_TAG)
 
     /**
      * Journal redesign J1 (S3): the Records filter chip row, which replaced the sub-tab row. The

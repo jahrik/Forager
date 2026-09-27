@@ -17,6 +17,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -302,8 +303,17 @@ internal fun JournalTab(
     // See this composable's own doc comment on "leaving Records mid-find-edit" for why this now
     // guards leaving Records (inverted from Stage 1, which guarded leaving Cartography — finds lived
     // there then).
+    //
+    // J5: reads the open find through rememberUpdatedState. The function reference handed to
+    // RecordsTab (onFindsTabLeft) and to the short window's header row can be memoized by the Compose
+    // compiler with the find open at the composition that created it; read straight from `editing`,
+    // a reference kept from before the find opened saw null and skipped the incidental exit
+    // (RecordsFilterChipsTest caught it while J5 was being built; instrumented, the call ran with
+    // editing = null and mode = EDIT). The latest value is what the rule is about.
+    val latestEditing by rememberUpdatedState(editing)
+    val latestOnLeaveEditingIncidentally by rememberUpdatedState(onLeaveEditingIncidentally)
     fun leaveFindEditingIfNeeded() {
-        if (editing != null && mode == JournalEntryMode.EDIT) onLeaveEditingIncidentally()
+        if (latestEditing != null && mode == JournalEntryMode.EDIT) latestOnLeaveEditingIncidentally()
     }
 
     // System back unwinds one of this tab's own nested states before AvailabilityScreen's
@@ -443,33 +453,52 @@ internal fun JournalTab(
         }
     }
 
+    fun selectTopTab(tab: JournalTopTab) {
+        // Leaving Records mid-find-edit for Entries is an incidental exit — see this composable's
+        // own doc comment.
+        if (tab == JournalTopTab.CARTOGRAPHY) leaveFindEditingIfNeeded()
+        selectedTopTab = tab
+    }
+
+    // Journal redesign J5 (plan L1-L3; owner's ruling 1): in a short landscape window the switch
+    // moves into one pinned 48 dp row with the search icon and the screen's action, so it is not
+    // drawn here. Entries draws that row itself (CartographyScreen, which owns the New and photo
+    // actions and the state they need); Records gets it from the RECORDS branch below. `null` in
+    // portrait and in every window that is not short, which is exactly as before.
+    val shortLandscape = isShortLandscapeJournal()
+    // Any entry open, find or Cartography entry: the scaffold hides the search header then anyway
+    // (its isEditingJournalEntry rule, the same two fields), so the row's search icon is left out.
+    val journalEntryOpen = editing != null || cartographyUiState.editingEntry != null
+    val shortWindowHeader: (@Composable ((@Composable () -> Unit)?) -> Unit)? = if (shortLandscape) {
+        { action ->
+            ShortWindowJournalHeader(
+                selectedTopTab = selectedTopTab,
+                onSelectTopTab = ::selectTopTab,
+                showSearch = !journalEntryOpen,
+                searchRevealed = journalState.searchHeaderRevealed,
+                onToggleSearch = { journalState.searchHeaderRevealed = !journalState.searchHeaderRevealed },
+                action = action,
+            )
+        }
+    } else {
+        null
+    }
+
     Column(modifier = modifier.fillMaxSize()) {
         // Journal redesign J2, T1 (plan J1): one single-choice segmented button replaces the
         // SecondaryTabRow that used to sit here, so the Journal's top level no longer reads as a
         // second tab row stacked on the bottom bar. Only the on-screen label changed: the
         // CARTOGRAPHY value, CartographyScreen and CartographyEntry keep their names. The selection
         // is still journalState's hoisted top tab (J1, S1), and the Records -> Entries Back step is
-        // the BackHandler above, unchanged.
-        SingleChoiceSegmentedButtonRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
-                .testTag(JOURNAL_SWITCH_TAG),
-        ) {
-            JournalTopTab.entries.forEachIndexed { index, tab ->
-                SegmentedButton(
-                    selected = selectedTopTab == tab,
-                    onClick = {
-                        // Leaving Records mid-find-edit for Entries is an incidental exit — see
-                        // this composable's own doc comment.
-                        if (tab == JournalTopTab.CARTOGRAPHY) leaveFindEditingIfNeeded()
-                        selectedTopTab = tab
-                    },
-                    shape = SegmentedButtonDefaults.itemShape(index = index, count = JournalTopTab.entries.size),
-                    modifier = Modifier.testTag(journalSwitchTestTag(tab)),
-                    label = { Text(tab.switchLabel) },
-                )
-            }
+        // the BackHandler above, unchanged. In a short window it sits in the L1 row instead (above).
+        if (!shortLandscape) {
+            JournalSwitch(
+                selected = selectedTopTab,
+                onSelect = ::selectTopTab,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+            )
         }
 
         when (selectedTopTab) {
@@ -507,8 +536,8 @@ internal fun JournalTab(
                 onDeleteEntry = onDeleteCartographyEntry,
                 modifier = Modifier.weight(1f),
                 // J3, C4 (plan J9): one full-width column in compact portrait; `columns` stays the
-                // only width knob. A short window (a phone on its side) keeps today's two columns:
-                // short windows are stage J5's (plan L4, sideways cards in two columns), not J3's.
+                // only width knob. A short window (a phone on its side) keeps two columns, which J5's
+                // sideways cards use (plan L4); the rule is J3's, unchanged.
                 columns = if (isShortWindow()) SHORT_WINDOW_ENTRY_COLUMNS else COMPACT_PORTRAIT_ENTRY_COLUMNS,
                 entriesViewState = journalState.entriesViewState,
                 // J3, C3: the track list this tab already receives for Records (MainActivity's
@@ -520,47 +549,89 @@ internal fun JournalTab(
                 draftFindIds = uiState.draftEntries.mapTo(HashSet()) { it.id },
                 onRequestDeleteEntry = onRequestDeleteCartographyEntry,
                 onRequestDeleteGalleryPhoto = onRequestDeleteGalleryPhoto,
+                // J5: the L1 row (null outside a short landscape window), drawn by Entries itself
+                // with its own action; see CartographyScreen's shortWindowHeader.
+                shortWindowHeader = shortWindowHeader,
             )
 
-            JournalTopTab.RECORDS -> RecordsTab(
-                modifier = Modifier.weight(1f),
-                waypoints = waypoints,
-                waypointsErrorMessage = waypointsErrorMessage,
-                onDeleteWaypoint = onDeleteWaypoint,
-                waypointEntryReferenceCounts = waypointEntryReferenceCounts,
-                availabilityUiState = availabilityUiState,
-                distanceUnit = distanceUnit,
-                currentTime = currentTime,
-                mapSlot = mapSlot,
-                night = night,
-                onOfflineMapRegionPicked = { location ->
-                    onOfflineMapLatChanged(location.lat.toString())
-                    onOfflineMapLngChanged(location.lng.toString())
-                },
-                onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
-                onOfflineMapNameChanged = onOfflineMapNameChanged,
-                onOfflineMapsOpened = onOfflineMapsOpened,
-                onDownloadOfflineMaps = onDownloadOfflineMaps,
-                onDeleteOfflineRegion = onDeleteOfflineRegion,
-                tracks = tracks,
-                onTracksOpened = onTracksOpened,
-                getFullRecord = getFullRecord,
-                findsContent = findsSection,
-                finds = uiState.entries,
-                // The All logbook's find tap: RecordsTab has already selected the Finds chip; this
-                // opens the report there, exactly as the Finds gallery's own tile does.
-                onOpenFind = { id ->
-                    mode = JournalEntryMode.REPORT
-                    onOpenEntry(id)
-                },
-                // J4b L1: the All logbook's find tiles get the same long-press menu.
-                onDeleteFind = onDeleteEntry,
-                onEditFind = editFind,
-                onFindsTabLeft = ::leaveFindEditingIfNeeded,
-                findsEditingInProgress = findsSectionHasBackStack,
-                pendingSubTab = recordsPendingSubTab,
-                onPendingSubTabConsumed = { recordsPendingSubTab = null },
-                selectedTabState = journalState.recordsFilterState,
+            // J5: a Column in every window, so RecordsTab keeps one place in the composition when
+            // the phone turns (plan L7: a rotation is not a recreation here, and a moved call site
+            // would drop its remember state); the L1 row sits above it only in a short window, with
+            // no action (portrait's Records has no floating button to move into it, L2).
+            JournalTopTab.RECORDS -> Column(modifier = Modifier.weight(1f)) {
+                shortWindowHeader?.invoke(null)
+                RecordsTab(
+                    modifier = Modifier.weight(1f),
+                    waypoints = waypoints,
+                    waypointsErrorMessage = waypointsErrorMessage,
+                    onDeleteWaypoint = onDeleteWaypoint,
+                    waypointEntryReferenceCounts = waypointEntryReferenceCounts,
+                    availabilityUiState = availabilityUiState,
+                    distanceUnit = distanceUnit,
+                    currentTime = currentTime,
+                    mapSlot = mapSlot,
+                    night = night,
+                    onOfflineMapRegionPicked = { location ->
+                        onOfflineMapLatChanged(location.lat.toString())
+                        onOfflineMapLngChanged(location.lng.toString())
+                    },
+                    onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
+                    onOfflineMapNameChanged = onOfflineMapNameChanged,
+                    onOfflineMapsOpened = onOfflineMapsOpened,
+                    onDownloadOfflineMaps = onDownloadOfflineMaps,
+                    onDeleteOfflineRegion = onDeleteOfflineRegion,
+                    tracks = tracks,
+                    onTracksOpened = onTracksOpened,
+                    getFullRecord = getFullRecord,
+                    findsContent = findsSection,
+                    finds = uiState.entries,
+                    // The All logbook's find tap: RecordsTab has already selected the Finds chip; this
+                    // opens the report there, exactly as the Finds gallery's own tile does.
+                    onOpenFind = { id ->
+                        mode = JournalEntryMode.REPORT
+                        onOpenEntry(id)
+                    },
+                    // J4b L1: the All logbook's find tiles get the same long-press menu.
+                    onDeleteFind = onDeleteEntry,
+                    onEditFind = editFind,
+                    onFindsTabLeft = ::leaveFindEditingIfNeeded,
+                    findsEditingInProgress = findsSectionHasBackStack,
+                    pendingSubTab = recordsPendingSubTab,
+                    onPendingSubTabConsumed = { recordsPendingSubTab = null },
+                    selectedTabState = journalState.recordsFilterState,
+                    // J5, L3: in a short window the filter chips are the second row, which gets out
+                    // of the way while the list scrolls.
+                    hideChipsOnScroll = shortLandscape,
+                )
+            }
+        }
+    }
+
+    // J5 (owner's ruling 1): Back puts a brought-up search header away before anything else in the
+    // Journal takes Back. Composed after both branches, so it outranks their own handlers (the most
+    // recently composed enabled handler wins). Off while an entry is open: the header is hidden then
+    // regardless, and Back belongs to the entry.
+    BackHandler(enabled = shortLandscape && journalState.searchHeaderRevealed && !journalEntryOpen) {
+        journalState.searchHeaderRevealed = false
+    }
+}
+
+/**
+ * The Entries | Records switch (journal redesign J2, T1; plan J1): one single-choice segmented
+ * button. [JournalTab] draws it full width at the top in portrait; in a short window it sits at the
+ * start of the L1 row ([ShortWindowJournalHeader], J5), sized to its labels. Extracted by J5 so the
+ * two places draw one control with one set of tags.
+ */
+@Composable
+internal fun JournalSwitch(selected: JournalTopTab, onSelect: (JournalTopTab) -> Unit, modifier: Modifier = Modifier) {
+    SingleChoiceSegmentedButtonRow(modifier = modifier.testTag(JOURNAL_SWITCH_TAG)) {
+        JournalTopTab.entries.forEachIndexed { index, tab ->
+            SegmentedButton(
+                selected = selected == tab,
+                onClick = { onSelect(tab) },
+                shape = SegmentedButtonDefaults.itemShape(index = index, count = JournalTopTab.entries.size),
+                modifier = Modifier.testTag(journalSwitchTestTag(tab)),
+                label = { Text(tab.switchLabel) },
             )
         }
     }

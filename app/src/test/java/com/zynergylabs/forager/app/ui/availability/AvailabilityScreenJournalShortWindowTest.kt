@@ -91,6 +91,7 @@ class AvailabilityScreenJournalShortWindowTest {
     private var rotationSeenByScreen: Int? = null
     private val startedEntries = mutableListOf<LocalDate>()
     private val openedEntries = mutableListOf<String>()
+    private val cameraTargets = mutableListOf<com.zynergylabs.forager.app.ui.log.InAppCameraTarget>()
 
     private fun setScreen(rotation: Int, entries: List<CartographyEntry> = MANY_ENTRIES, drafts: List<CartographyEntry> = emptyList()) {
         Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(rotation)
@@ -105,6 +106,7 @@ class AvailabilityScreenJournalShortWindowTest {
                     cartography = cartography.copy(editingEntry = (cartography.entries + cartography.draftEntries).first { it.id == id })
                 },
                 onClose = { cartography = cartography.copy(editingEntry = null) },
+                onOpenCamera = { target -> cameraTargets += target },
             )
         }
         composeRule.waitForIdle()
@@ -278,12 +280,19 @@ class AvailabilityScreenJournalShortWindowTest {
         composeRule.waitForIdle()
         assertTrue("no floating button on the album either", !exists(ENTRIES_FAB))
         assertTrue("the album's row has no New", !exists(NEW_ICON))
-        for (fraction in TOUCH_SAMPLES) {
+        Shadows.shadowOf(ApplicationProvider.getApplicationContext<Application>()).grantPermissions(android.Manifest.permission.CAMERA)
+        for ((i, fraction) in TOUCH_SAMPLES.withIndex()) {
             touch(PHOTO_ICON, fraction)
             node(MENU_TAKE_PHOTO).assertIsDisplayed()
             node(MENU_IMPORT).assertIsDisplayed()
-            composeRule.activity.onBackPressedDispatcher.onBackPressed()
+            assertEquals("the button alone opens no camera", i, cameraTargets.size)
+            // Take photo closes the menu and opens the album's camera (Back cannot reach a popup
+            // window under Robolectric, so the menu is closed by using it).
+            node(MENU_TAKE_PHOTO).performTouchInput { click(Offset(width * fraction.x, height * fraction.y)) }
             composeRule.waitForIdle()
+            assertEquals(i + 1, cameraTargets.size)
+            assertEquals(com.zynergylabs.forager.app.ui.log.InAppCameraTarget.ALBUM, cameraTargets.last())
+            assertTrue("the menu closed", !exists(MENU_TAKE_PHOTO))
         }
         val row = bounds(SHORT_HEADER)
         val photo = bounds(PHOTO_ICON)
@@ -559,6 +568,7 @@ private fun shortWindowScreen(
     onStart: (LocalDate) -> Unit,
     onOpen: (String) -> Unit,
     onClose: () -> Unit,
+    onOpenCamera: (com.zynergylabs.forager.app.ui.log.InAppCameraTarget) -> Unit = {},
 ) {
     AvailabilityScreen(
         uiState = AvailabilityUiState(),
@@ -592,5 +602,6 @@ private fun shortWindowScreen(
         onOpenCartographyEntry = onOpen,
         onCloseCartographyEntry = onClose,
         waypoints = MANY_WAYPOINTS,
+        onOpenCamera = onOpenCamera,
     )
 }

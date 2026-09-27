@@ -37,7 +37,7 @@ import androidx.compose.runtime.setValue
  * onto this holder is plan stage J6.
  *
  * **Added in J2.** The Entries view mode (timeline/album), [entriesView], is the third element of
- * [Saver]'s list. Scroll positions (plan J10) are still not built; add each as a field and as one
+ * [Saver]'s list. **Added in J5:** [searchHeaderRevealed], the fourth. Scroll positions (plan J10) are still not built; add each as a field and as one
  * more element of that list, keeping names rather than ordinals.
  */
 @Stable
@@ -45,6 +45,7 @@ internal class JournalScreenState(
     initialTopTab: JournalTopTab = JournalTopTab.CARTOGRAPHY,
     initialRecordsFilter: RecordsSubTab = DEFAULT_RECORDS_FILTER,
     initialEntriesView: EntriesViewMode = EntriesViewMode.TIMELINE,
+    initialSearchHeaderRevealed: Boolean = false,
 ) {
     /** Which of the Journal's two top tabs is showing. */
     var topTab: JournalTopTab by mutableStateOf(initialTopTab)
@@ -66,16 +67,30 @@ internal class JournalScreenState(
     val entriesViewState: MutableState<EntriesViewMode> = mutableStateOf(initialEntriesView)
     var entriesView: EntriesViewMode by entriesViewState
 
+    /**
+     * Whether the app-wide search header is brought up on the Journal tab in a short window —
+     * journal redesign J5 (owner's ruling 1, "Hide header; icon reveals it (Recommended)"). In a
+     * short landscape window the header is hidden on the Journal tab (height is the scarce axis);
+     * the short-window header row's search icon sets this, and the same icon or Back clears it.
+     * Portrait and every other tab ignore it. Here rather than in `JournalTab` because the header is
+     * composed by `CompactMainScaffold`, above the Journal branch, which reads it; saved with the rest
+     * so a user who brought the header up finds it up again after leaving the tab (CLAUDE.md, UX
+     * defaults: a panel the user opened stays open).
+     */
+    var searchHeaderRevealed: Boolean by mutableStateOf(initialSearchHeaderRevealed)
+
     // Scroll positions go here when a stage builds them (see the class doc comment).
 
     companion object {
         val Saver: Saver<JournalScreenState, Any> = listSaver(
-            save = { state -> listOf(state.topTab.name, state.recordsFilter.name, state.entriesView.name) },
+            save = { state -> listOf(state.topTab.name, state.recordsFilter.name, state.entriesView.name, state.searchHeaderRevealed.toString()) },
             restore = { saved ->
                 JournalScreenState(
                     initialTopTab = JournalTopTab.valueOf(saved[0]),
                     initialRecordsFilter = RecordsSubTab.valueOf(saved[1]),
                     initialEntriesView = EntriesViewMode.valueOf(saved[2]),
+                    // toBooleanStrict: anything but "true"/"false" fails loudly, as valueOf does above.
+                    initialSearchHeaderRevealed = saved[3].toBooleanStrict(),
                 )
             },
         )

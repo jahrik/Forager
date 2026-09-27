@@ -20,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
@@ -77,6 +78,13 @@ internal fun CartographyEntryListScreen(
     onDeleteEntry: ((String) -> Unit)? = null,
     /** J4b L2: the swipe row's Edit, opening the entry in its editor. Only read when [onDeleteEntry] is set. */
     onEditEntry: ((String) -> Unit)? = null,
+    /**
+     * Journal redesign J5, L4: a short window's sideways cards ([SidewaysEntryCard]: the 72 dp slot on
+     * the left, owner's ruling 3) with J4b's long-press menu in place of the swipe (ruling 2), where
+     * [onDeleteEntry] is set; its Edit is [onEditEntry]. `false` (portrait, `LogPanel`) is J3's cards
+     * and J4b's swipe, unchanged.
+     */
+    sideways: Boolean = false,
 ) {
     if (isLoading && entries.isEmpty()) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -114,7 +122,7 @@ internal fun CartographyEntryListScreen(
         LazyVerticalGrid(
             columns = GridCells.Fixed(columns),
             state = gridState,
-            modifier = Modifier.weight(1f).swipeRevealTouchWatcher(swipeGroup),
+            modifier = Modifier.weight(1f).swipeRevealTouchWatcher(swipeGroup).testTag(ENTRIES_GRID_TAG),
             contentPadding = PaddingValues(start = Spacing.lg, end = Spacing.lg, bottom = bottomContentPadding),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -126,36 +134,91 @@ internal fun CartographyEntryListScreen(
                 items(monthEntries, key = { it.id }) { entry ->
                     val open = { onOpenEntry(entry.id) }
                     val hero = entryHeroPhoto(entry, photosById)
-                    val card: @Composable () -> Unit = {
-                        if (isCollapsedEntry(entry, hasHero = hero != null)) {
-                            CollapsedEntryRow(entry = entry, distanceUnit = distanceUnit, onClick = open)
-                        } else {
-                            CartographyEntryCard(
-                                entry = entry,
-                                distanceUnit = distanceUnit,
-                                onClick = open,
-                                hero = hero?.let { photo -> { EntryHeroPhoto(entry.id, photo) } },
-                                thumbnail = entryThumbnailTracks(entry, tracksById).takeIf { it.isNotEmpty() }?.let { found -> { EntryTrackThumbnail(entry.id, found) } },
-                            )
-                        }
-                    }
-                    if (onDeleteEntry != null) {
-                        TwoStageSwipeRow(
-                            testTag = entrySwipeTag(entry.id),
-                            rowKey = entry.id,
-                            group = swipeGroup,
-                            onDelete = { onDeleteEntry(entry.id) },
+                    if (sideways) {
+                        SidewaysEntryItem(
+                            entry = entry,
+                            hero = hero,
+                            tracksById = tracksById,
+                            distanceUnit = distanceUnit,
+                            onOpen = open,
+                            onDelete = onDeleteEntry?.let { delete -> { delete(entry.id) } },
                             onEdit = onEditEntry?.let { edit -> { edit(entry.id) } },
-                            content = card,
                         )
                     } else {
-                        card()
+                        val card: @Composable () -> Unit = {
+                            if (isCollapsedEntry(entry, hasHero = hero != null)) {
+                                CollapsedEntryRow(entry = entry, distanceUnit = distanceUnit, onClick = open)
+                            } else {
+                                CartographyEntryCard(
+                                    entry = entry,
+                                    distanceUnit = distanceUnit,
+                                    onClick = open,
+                                    hero = hero?.let { photo -> { EntryHeroPhoto(entry.id, photo) } },
+                                    thumbnail = entryThumbnailTracks(entry, tracksById).takeIf { it.isNotEmpty() }?.let { found -> { EntryTrackThumbnail(entry.id, found) } },
+                                )
+                            }
+                        }
+                        if (onDeleteEntry != null) {
+                            TwoStageSwipeRow(
+                                testTag = entrySwipeTag(entry.id),
+                                rowKey = entry.id,
+                                group = swipeGroup,
+                                onDelete = { onDeleteEntry(entry.id) },
+                                onEdit = onEditEntry?.let { edit -> { edit(entry.id) } },
+                                content = card,
+                            )
+                        } else {
+                            card()
+                        }
                     }
                 }
             }
         }
     }
 }
+
+/**
+ * One sideways entry in a short window (J5, L4): [SidewaysEntryCard] with its slot chosen by
+ * [entrySlotContent] (ruling 3), or J3's collapsed row, either one inside J4b's
+ * [LongPressOptionsBox] when [onDelete] is set (ruling 2: "Long-press, like grids").
+ */
+@Composable
+private fun SidewaysEntryItem(
+    entry: CartographyEntry,
+    hero: GalleryPhoto?,
+    tracksById: Map<String, Track>,
+    distanceUnit: DistanceUnit,
+    onOpen: () -> Unit,
+    onDelete: (() -> Unit)?,
+    onEdit: (() -> Unit)?,
+) {
+    val item: @Composable (TileOptions?) -> Unit = { options ->
+        if (isCollapsedEntry(entry, hasHero = hero != null)) {
+            SidewaysCollapsedEntryRow(entry = entry, distanceUnit = distanceUnit, onClick = onOpen, options = options)
+        } else {
+            val slot = entrySlotContent(hero, entryThumbnailTracks(entry, tracksById), entryStats(entry, distanceUnit))
+            SidewaysEntryCard(
+                entry = entry,
+                distanceUnit = distanceUnit,
+                onClick = onOpen,
+                slot = { EntrySlotView(entry.id, slot) },
+                options = options,
+            )
+        }
+    }
+    if (onDelete != null) {
+        LongPressOptionsBox(
+            longClickLabel = "Options for entry on ${entry.date}",
+            onEdit = onEdit,
+            onDelete = onDelete,
+        ) { options -> item(options) }
+    } else {
+        item(null)
+    }
+}
+
+/** The Entries grid itself (J5: the short-window tests scroll and measure it). */
+internal const val ENTRIES_GRID_TAG = "entries-grid"
 
 /** The test tag of an entry card's two-stage swipe row (J4b L2). */
 internal fun entrySwipeTag(entryId: String): String = "entries-swipe-$entryId"

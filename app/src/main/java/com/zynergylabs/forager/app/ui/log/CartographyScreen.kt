@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app.ui.log
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -27,6 +28,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.testTag
@@ -147,8 +149,26 @@ internal fun CartographyScreen(
     onRequestDeleteEntry: ((String) -> Unit)? = null,
     /** An album photo's long-press Delete (J4b L3): a *pending* delete with Undo. `null` (the default; `LogPanel`) leaves the photos without the menu. */
     onRequestDeleteGalleryPhoto: ((String) -> Unit)? = null,
+    /**
+     * Journal redesign J5 (plan L1-L4, L6): the short window's pinned L1 row, which `JournalTab`
+     * builds (the Entries | Records switch and the search icon) and this screen draws at its top with
+     * its own action in the row's last slot: "New entry" on the timeline, the photo button on the
+     * album, nothing while an entry or the drafts list is open. Non-null means a short landscape
+     * window, and with it: no floating button (L2), the drafts chip and view toggle in a second row
+     * that hides on scroll (L3), sideways cards with the long-press menu (L4) and a 5-column album
+     * (L6). `null` (portrait, `LogPanel`) is this screen exactly as before.
+     */
+    shortWindowHeader: (@Composable ((@Composable () -> Unit)?) -> Unit)? = null,
 ) {
     var mode by remember { mutableStateOf(CartographyEntryMode.VIEW) }
+    val shortWindow = shortWindowHeader != null
+
+    // The album's Take photo / Import. Held here, above every branch, rather than inside the album
+    // (where J2 had it), so the album's floating button (portrait) and the L1 row's photo button (a
+    // short window) share one set: a rotation is not a recreation here (the manifest's
+    // configChanges), and a launcher that moved with the layout would lose a picker result that
+    // arrives after the turn.
+    val albumPhotoAcquisition = rememberPhotoAcquisitionLaunchers(onAddGalleryPhoto, onOpenCameraForAlbum)
 
     // Back-nav-and-save-flow dispatch, Item 1: system back on an open entry used to reach no
     // BackHandler at all — AvailabilityScreen's own comment on its outer four assumed "a Journal
@@ -268,61 +288,65 @@ internal fun CartographyScreen(
     var draftsListOpen by rememberSaveable { mutableStateOf(false) }
 
     if (editingEntry != null) {
-        if (mode == CartographyEntryMode.EDIT) {
-            CartographyEntryEditScreen(
-                entry = editingEntry,
-                candidates = uiState.candidatesForEditingEntry,
-                candidateOfflineRegions = uiState.candidateOfflineRegionsForEditingEntry,
-                isLoadingCandidates = uiState.isLoadingCandidates,
-                galleryPhotos = galleryPhotos,
-                distanceUnit = distanceUnit,
-                hasUnsavedChanges = uiState.hasUnsavedChanges,
-                showLeavePrompt = confirmingLeaveEntry,
-                onRequestBack = ::requestLeaveEntry,
-                onDismissLeavePrompt = { confirmingLeaveEntry = false },
-                onTextChanged = onTextChanged,
-                onTagsChanged = onTagsChanged,
-                onSetFindDecision = onSetFindDecision,
-                onSetTrackDecision = onSetTrackDecision,
-                onSetWaypointDecision = onSetWaypointDecision,
-                onSetOfflineRegionDecision = onSetOfflineRegionDecision,
-                onToggleKeptPhoto = onToggleKeptPhoto,
-                onOpenCamera = onOpenCameraForEntry,
-                onAcquirePhoto = onAcquirePhotoForEntry,
-                onAcquisitionInFlightChanged = { inFlight -> photoAcquisitionInFlight = inFlight },
-                onFinish = onFinishEntry,
-                onSave = onSaveEntry,
-                onDiscardChanges = onDiscardEntryChanges,
-                showReturnPrompt = showReturnPrompt,
-                onContinueEditing = { showReturnPrompt = false },
-                onCommit = { showReturnPrompt = false; onSaveEntry() },
-                onSaveAsDraft = { showReturnPrompt = false; onSaveEntryAsDraft() },
-                onDeleteEntry = { onDeleteEntry(editingEntry.id) },
-                onBack = onCloseEntry,
-                modifier = modifier.fillMaxSize(),
-            )
-        } else {
-            CartographyEntryReportScreen(
-                entry = editingEntry,
-                galleryPhotos = galleryPhotos,
-                distanceUnit = distanceUnit,
-                mapSlot = mapSlot,
-                night = night,
-                getMapData = getMapData,
-                getCoveringOfflineRegion = getCoveringOfflineRegion,
-                getCurrentLocation = getCurrentLocation,
-                onEdit = { mode = CartographyEntryMode.EDIT },
-                onDeleteEntry = { onDeleteEntry(editingEntry.id) },
-                onBack = onCloseEntry,
-                modifier = modifier.fillMaxSize(),
-            )
+        ShortWindowFrame(shortWindowHeader, action = null, modifier = modifier) { contentModifier ->
+            if (mode == CartographyEntryMode.EDIT) {
+                CartographyEntryEditScreen(
+                    entry = editingEntry,
+                    candidates = uiState.candidatesForEditingEntry,
+                    candidateOfflineRegions = uiState.candidateOfflineRegionsForEditingEntry,
+                    isLoadingCandidates = uiState.isLoadingCandidates,
+                    galleryPhotos = galleryPhotos,
+                    distanceUnit = distanceUnit,
+                    hasUnsavedChanges = uiState.hasUnsavedChanges,
+                    showLeavePrompt = confirmingLeaveEntry,
+                    onRequestBack = ::requestLeaveEntry,
+                    onDismissLeavePrompt = { confirmingLeaveEntry = false },
+                    onTextChanged = onTextChanged,
+                    onTagsChanged = onTagsChanged,
+                    onSetFindDecision = onSetFindDecision,
+                    onSetTrackDecision = onSetTrackDecision,
+                    onSetWaypointDecision = onSetWaypointDecision,
+                    onSetOfflineRegionDecision = onSetOfflineRegionDecision,
+                    onToggleKeptPhoto = onToggleKeptPhoto,
+                    onOpenCamera = onOpenCameraForEntry,
+                    onAcquirePhoto = onAcquirePhotoForEntry,
+                    onAcquisitionInFlightChanged = { inFlight -> photoAcquisitionInFlight = inFlight },
+                    onFinish = onFinishEntry,
+                    onSave = onSaveEntry,
+                    onDiscardChanges = onDiscardEntryChanges,
+                    showReturnPrompt = showReturnPrompt,
+                    onContinueEditing = { showReturnPrompt = false },
+                    onCommit = { showReturnPrompt = false; onSaveEntry() },
+                    onSaveAsDraft = { showReturnPrompt = false; onSaveEntryAsDraft() },
+                    onDeleteEntry = { onDeleteEntry(editingEntry.id) },
+                    onBack = onCloseEntry,
+                    modifier = contentModifier,
+                )
+            } else {
+                CartographyEntryReportScreen(
+                    entry = editingEntry,
+                    galleryPhotos = galleryPhotos,
+                    distanceUnit = distanceUnit,
+                    mapSlot = mapSlot,
+                    night = night,
+                    getMapData = getMapData,
+                    getCoveringOfflineRegion = getCoveringOfflineRegion,
+                    getCurrentLocation = getCurrentLocation,
+                    onEdit = { mode = CartographyEntryMode.EDIT },
+                    onDeleteEntry = { onDeleteEntry(editingEntry.id) },
+                    onBack = onCloseEntry,
+                    modifier = contentModifier,
+                )
+            }
         }
         return
     }
 
     if (uiState.isLoadingCandidates) {
-        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
+        ShortWindowFrame(shortWindowHeader, action = null, modifier = modifier) { contentModifier ->
+            Box(modifier = contentModifier, contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
         }
         return
     }
@@ -338,20 +362,24 @@ internal fun CartographyScreen(
     val showDraftsList = draftsListOpen && drafts.isNotEmpty()
     BackHandler(enabled = showDraftsList) { draftsListOpen = false }
     if (showDraftsList) {
-        DraftsListScreen(
-            drafts = uiState.draftEntries,
-            isLoading = uiState.isLoadingEntries,
-            onOpenDraft = { id -> mode = CartographyEntryMode.EDIT; onOpenEntry(id) },
-            onBack = { draftsListOpen = false },
-            distanceUnit = distanceUnit,
-            galleryPhotos = galleryPhotos,
-            tracks = tracks,
-            columns = columns,
-            modifier = modifier.fillMaxSize(),
-            onDeleteDraft = onRequestDeleteEntry,
-            // J4b L2: a draft's swipe Edit is its tap, the open-draft path above (a draft opens in EDIT).
-            onEditDraft = { id -> mode = CartographyEntryMode.EDIT; onOpenEntry(id) },
-        )
+        ShortWindowFrame(shortWindowHeader, action = null, modifier = modifier) { contentModifier ->
+            DraftsListScreen(
+                drafts = uiState.draftEntries,
+                isLoading = uiState.isLoadingEntries,
+                onOpenDraft = { id -> mode = CartographyEntryMode.EDIT; onOpenEntry(id) },
+                onBack = { draftsListOpen = false },
+                distanceUnit = distanceUnit,
+                galleryPhotos = galleryPhotos,
+                tracks = tracks,
+                columns = columns,
+                modifier = contentModifier,
+                onDeleteDraft = onRequestDeleteEntry,
+                // J4b L2: a draft's swipe Edit is its tap, the open-draft path above (a draft opens in EDIT).
+                onEditDraft = { id -> mode = CartographyEntryMode.EDIT; onOpenEntry(id) },
+                // J5, L4: the drafts list's cards turn sideways in a short window too.
+                sideways = shortWindow,
+            )
+        }
         return
     }
 
@@ -364,23 +392,49 @@ internal fun CartographyScreen(
     var viewMode by entriesViewState
     BackHandler(enabled = viewMode == EntriesViewMode.ALBUM) { viewMode = EntriesViewMode.TIMELINE }
 
-    Column(modifier = modifier.fillMaxSize().testTag(ENTRIES_HOME_TAG)) {
-        EntriesToolbar(viewMode = viewMode, onViewModeChange = { viewMode = it })
+    // The banner's Continue, and in a short window the drafts chip's (J5, L3): one draft straight
+    // into it, the Drafts sub-tab's open-draft path (a draft is unfinished work, so EDIT, never the
+    // read-only view); more than one, the list.
+    val continueDrafts = {
+        if (drafts.size == 1) {
+            mode = CartographyEntryMode.EDIT
+            onOpenEntry(drafts.single().id)
+        } else {
+            draftsListOpen = true
+        }
+    }
+    val startNewEntry = { mode = CartographyEntryMode.EDIT; onStartEntry(LocalDate.now()) }
+    // J5, L3: the second row's hide-on-scroll state, fed by the content below it (nestedScroll).
+    val secondRowScroll = rememberHideOnScrollState()
 
-        if (drafts.isNotEmpty()) {
-            DraftsBanner(
-                count = drafts.size,
-                onContinue = {
-                    // One draft: straight into it, the Drafts sub-tab's open-draft path (a draft is
-                    // unfinished work, so EDIT, never the read-only view). More: the list.
-                    if (drafts.size == 1) {
-                        mode = CartographyEntryMode.EDIT
-                        onOpenEntry(drafts.single().id)
-                    } else {
-                        draftsListOpen = true
-                    }
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .testTag(ENTRIES_HOME_TAG)
+            .then(if (shortWindow) Modifier.nestedScroll(secondRowScroll.connection) else Modifier),
+    ) {
+        if (shortWindowHeader != null) {
+            // J5, L1 and L2: the pinned row, with this view's action where the floating button was.
+            shortWindowHeader(
+                when (viewMode) {
+                    EntriesViewMode.TIMELINE -> { { ShortWindowNewEntryButton(onClick = startNewEntry) } }
+                    EntriesViewMode.ALBUM -> { { ShortWindowAddPhotoButton(onTakePhoto = albumPhotoAcquisition.launchCamera, onImport = albumPhotoAcquisition.launchGallery) } }
                 },
             )
+            // J5, L3: the drafts chip and the view toggle share one row, which hides while the
+            // content scrolls down and returns on a scroll up.
+            ShortWindowSecondRow(secondRowScroll) {
+                Row(modifier = Modifier.fillMaxWidth().padding(start = Spacing.lg), verticalAlignment = Alignment.CenterVertically) {
+                    if (drafts.isNotEmpty()) ShortWindowDraftsChip(count = drafts.size, onClick = continueDrafts)
+                    EntriesToolbar(viewMode = viewMode, onViewModeChange = { viewMode = it })
+                }
+            }
+        } else {
+            EntriesToolbar(viewMode = viewMode, onViewModeChange = { viewMode = it })
+
+            if (drafts.isNotEmpty()) {
+                DraftsBanner(count = drafts.size, onContinue = continueDrafts)
+            }
         }
 
         if (uiState.candidatesErrorMessage != null) {
@@ -408,35 +462,40 @@ internal fun CartographyScreen(
                     tracks = tracks,
                     loadErrorMessage = uiState.loadErrorMessage,
                     columns = columns,
-                    bottomContentPadding = FAB_CLEARANCE,
+                    // No floating button in a short window (J5, L2), so nothing to clear.
+                    bottomContentPadding = if (shortWindow) Spacing.lg else FAB_CLEARANCE,
                     modifier = Modifier.fillMaxSize(),
                     onDeleteEntry = onRequestDeleteEntry,
                     // J4b L2: Edit opens the editor the way the app already reaches it for an entry:
                     // open it with mode EDIT, as the drafts list does and as the report's own "Edit
                     // entry" does once the entry is open (both above in this file).
                     onEditEntry = { id -> mode = CartographyEntryMode.EDIT; onOpenEntry(id) },
+                    // J5, L4: sideways cards with the long-press menu in a short window.
+                    sideways = shortWindow,
                 )
 
                 EntriesViewMode.ALBUM -> EntriesAlbum(
                     photos = galleryPhotos,
                     isLoading = isLoadingGalleryPhotos,
                     onDeletePhoto = onDeleteGalleryPhoto,
-                    onOpenCamera = onOpenCameraForAlbum,
-                    onAddGalleryPhoto = onAddGalleryPhoto,
+                    photoAcquisition = albumPhotoAcquisition,
                     loadErrorMessage = galleryLoadErrorMessage,
                     cartographyEntryReferenceCounts = galleryPhotoEntryReferenceCounts,
                     draftFindIds = draftFindIds,
                     modifier = Modifier.fillMaxSize(),
                     onRequestDeletePhoto = onRequestDeleteGalleryPhoto,
+                    // J5: 5 columns at 640 dp (L6), and the photo button is in the L1 row (L2).
+                    columns = if (shortWindow) SHORT_WINDOW_ALBUM_COLUMNS else ALBUM_COLUMNS,
+                    showAddPhotoButton = !shortWindow,
                 )
             }
-            if (viewMode == EntriesViewMode.TIMELINE) {
+            if (viewMode == EntriesViewMode.TIMELINE && !shortWindow) {
                 // The content-lambda overload, not the (icon, text) one: under material3 1.5.0-alpha26
                 // the (icon, text) overload wraps its label in clearAndSetSemantics, so the button's
                 // merged semantics, what TalkBack reads, carry no label at all (seen in a Robolectric
                 // semantics dump while building this; the content overload exposes the Text).
                 ExtendedFloatingActionButton(
-                    onClick = { mode = CartographyEntryMode.EDIT; onStartEntry(LocalDate.now()) },
+                    onClick = startNewEntry,
                     modifier = Modifier.align(Alignment.BottomEnd).padding(Spacing.lg).testTag(ENTRIES_FAB_TAG),
                 ) {
                     Icon(Icons.Filled.Edit, contentDescription = null)
@@ -465,6 +524,26 @@ internal const val ENTRIES_FAB_TAG = "entries-fab"
  * system inset (CLAUDE.md, the Robolectric insets pitfall: nothing here depends on a real inset).
  */
 internal val FAB_CLEARANCE = 88.dp
+
+/**
+ * A branch of [CartographyScreen] under the short window's L1 row (journal redesign J5). The same
+ * Column in every window, with an empty header slot outside a short window, so a branch keeps its
+ * place in the composition when the phone turns (plan L7: the manifest handles rotation, so a turn
+ * is not a recreation, and a moved call site would drop an open editor's local state). [content]
+ * gets the modifier that fills what the row leaves.
+ */
+@Composable
+private fun ShortWindowFrame(
+    header: (@Composable ((@Composable () -> Unit)?) -> Unit)?,
+    action: (@Composable () -> Unit)?,
+    modifier: Modifier,
+    content: @Composable (Modifier) -> Unit,
+) {
+    Column(modifier = modifier.fillMaxSize()) {
+        header?.invoke(action)
+        content(Modifier.weight(1f).fillMaxWidth())
+    }
+}
 
 /** Which screen [CartographyScreen] shows for [CartographyUiState.editingEntry] — Journal Stage 2c. See this file's own doc comment, "Tap opens the view, not the editor," for the full reasoning. */
 internal enum class CartographyEntryMode { VIEW, EDIT }

@@ -688,7 +688,20 @@ internal fun CompactMainScaffold(
                     // closes, was flagged as an unexercised race before this was built — now exercised and
                     // ruled out by `AvailabilityScreenBackNavigationTest`'s own "backgrounding and
                     // resuming mid-edit, then closing normally..." test.
-                    if (!isMapFullscreen() && compactTab() != CompactTab.MAP && !isEditingJournalEntry) {
+                    // Journal redesign J5 (owner's ruling 1, "Hide header; icon reveals it
+                    // (Recommended)"): on the Journal tab of a short landscape window the header is
+                    // hidden, since height is the scarce axis there, until the Journal's own
+                    // short-window header row brings it up (JournalScreenState.searchHeaderRevealed;
+                    // its search icon and Back clear it again). Portrait, every other tab and
+                    // windows that are not short are unchanged. The rail shows exactly in a short
+                    // landscape window (showRail), the dispatch's "isShortWindow() and landscape".
+                    val journalHidesSearchHeader = showRail && compactTab() == CompactTab.JOURNAL && !journalScreenState.searchHeaderRevealed
+                    // Hiding the header closes its dropdown too, so the dropdown's dismiss scrim
+                    // (below) is never left over content with no bar above it.
+                    LaunchedEffect(journalHidesSearchHeader) {
+                        if (journalHidesSearchHeader) showSearchDropdown = false
+                    }
+                    if (!isMapFullscreen() && compactTab() != CompactTab.MAP && !isEditingJournalEntry && !journalHidesSearchHeader) {
                         SearchEntryBar(
                             uiState = uiState,
                             distanceUnit = distanceUnit,
