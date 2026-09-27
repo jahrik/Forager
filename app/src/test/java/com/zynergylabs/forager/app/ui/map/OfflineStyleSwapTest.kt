@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app.ui.map
 import com.zynergylabs.forager.app.ui.theme.MapPalette
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -146,5 +147,41 @@ class OfflineStyleSwapTest {
         assertTrue(effectiveNight(Basemap.OPEN_TOPO_MAP, nightMode = true, useOfflineTiles = false))
         assertTrue(effectiveNight(Basemap.OSM_STANDARD, nightMode = true, useOfflineTiles = false))
         assertFalse(effectiveNight(Basemap.USGS_IMAGERY_ONLY, nightMode = true, useOfflineTiles = false))
+    }
+
+    /**
+     * The cold-launch gate, at the level a JVM test reaches: the style effect asks
+     * [requestedMapStyle] for what to load and returns early on `null`, so nothing is requested
+     * (no `mapStyleSourceFor`, no `setStyle`) until the Night Maps preference has loaded. The
+     * effect's own keys are not reachable headless (see the completion report): SightingsMap
+     * constructs a MapView, whose native initialiser Robolectric cannot run.
+     */
+    @Test
+    fun `no style is requested before the Night Maps preference has loaded`() {
+        Basemap.entries.forEach { basemap ->
+            listOf(false, true).forEach { nightMode ->
+                listOf(false, true).forEach { offline ->
+                    assertNull(
+                        "$basemap night=$nightMode offline=$offline",
+                        requestedMapStyle(basemap, palette, useOfflineTiles = offline, nightMode = nightMode, nightModeLoaded = false),
+                    )
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `once loaded, the requested style carries effective night`() {
+        Basemap.entries.forEach { basemap ->
+            listOf(false, true).forEach { nightMode ->
+                listOf(false, true).forEach { offline ->
+                    assertEquals(
+                        "$basemap night=$nightMode offline=$offline",
+                        applied(basemap, nightMode = nightMode, useOfflineTiles = offline),
+                        requestedMapStyle(basemap, palette, useOfflineTiles = offline, nightMode = nightMode, nightModeLoaded = true),
+                    )
+                }
+            }
+        }
     }
 }
