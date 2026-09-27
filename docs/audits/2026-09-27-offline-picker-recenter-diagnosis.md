@@ -36,3 +36,17 @@ No test pans this picker with a real touch; map tests stub `MapSlot` and never c
 ## When
 
 The combination has existed since `aa60f2d4` (2026-08-24), about five weeks; before it the offline picker used long-press and a re-centre did not move the picked point.
+
+## Correction, added 2026-09-27: the owner's bug is the find-location picker, not the offline one
+
+The owner corrected the report after the sections above were written, verbatim: "It's not offline maps, it's actually in the finds entry log, when choosing a location to save to the find log", and then "Offline maps works fine". Earlier observations, given while the question was framed as the offline picker: "Stays zoomed in", "Every single pan", "No, only the picker", "Any size", "Dot shows, location on".
+
+A second read-only pulse confirmed the find-picker chain at `origin/pre-main` `352b708` and `origin/journal-redesign` `ec1aa2d` (the files involved identical on both):
+1. `AndroidLocationTracker.kt:71-75, :103` requests GPS and network fixes every 1 s with a 0 m minimum distance; `AvailabilityViewModel.kt:227-230` writes every fix passing `acceptLiveFix` (only accuracy worse than 50 m is dropped, `LiveFixGate.kt:68-74`) to `liveFix`; nothing de-duplicates.
+2. `AvailabilityCompactScaffold.kt:920` passes `deviceLocation = uiState.liveFix` to `JournalTab`, and `JournalTab.kt:311` passes `region = findLocationPickerRegion(deviceLocation, pickerRegion)`, a new `Region(fix.lat, fix.lng, 1)` per fix (`FindLocationPickerRegion.kt:21-22`); the wide tree does the same (`AvailabilityScreen.kt:1121`, `LogPanel.kt:278`).
+3. `CentrePinLocationPicker.kt:113` `remember(region)` discards the panned point on every change.
+4. After a pan ends tracking (13.5.0: `maplibre_trackingGesturesManagement` defaults false in the AAR's `res/values/values.xml:59` and bytecode; the app never overrides it), `SightingsMap.kt:482-515` sets the camera to the new fix at `zoomForRadiusKm(1)` = **13.0** (:1303-1308), and again on every later fix.
+
+So the find picker snaps back about a second after any pan, at zoom 13 (inferred: stationary fixes rarely repeat exact coordinates). The main map does not, because its `region` changes only on a search or a one-shot locate (`AvailabilityCompactMapUi.kt:513-516`). A device check that separates this from a tracking snap: pinch to about 18, pan; this mechanism drops the view to 13. The existing `JournalTabTest` "Add Location" test (:304) never passes a `deviceLocation`, so it could not see this bug.
+
+**The offline-picker findings above stand as code findings not seen on the device:** M1 (a late location fix snapping away a pan, once per visit), M2 (the radius slider re-centring on the device and resetting the pin), and a running download deleted when the Offline maps list reloads. The owner reports offline maps working; they are recorded, not scheduled.
