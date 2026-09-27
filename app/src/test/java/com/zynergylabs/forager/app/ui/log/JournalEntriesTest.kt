@@ -185,7 +185,18 @@ class JournalEntriesTest {
                 onSetWaypointDecision = { _, _ -> },
                 onSetOfflineRegionDecision = { _, _ -> },
                 onToggleKeptPhoto = {},
-                onFinishCartographyEntry = {},
+                // Finish commits the open draft: it leaves draftEntries, joins entries, and closes
+                // (added by the second coder; no test before it tapped Finish).
+                onFinishCartographyEntry = {
+                    val finished = cartographyState.editingEntry
+                    if (finished != null) {
+                        cartographyState = cartographyState.copy(
+                            editingEntry = null,
+                            draftEntries = cartographyState.draftEntries.filterNot { it.id == finished.id },
+                            entries = cartographyState.entries + finished.copy(isDraft = false),
+                        )
+                    }
+                },
                 onDeleteCartographyEntry = {},
                 getCartographyEntryMapData = { _, _ -> ENTRIES_EMPTY_MAP_DATA },
                 getCartographyEntryOfflineRegion = { _, _ -> null },
@@ -356,8 +367,8 @@ class JournalEntriesTest {
     }
 
     /**
-     * Where Back from a draft opened out of the list lands is not pinned here (an open question in
-     * the J2 report); after closing it, this re-opens the list through Continue only if it is not
+     * Where Back from a draft opened out of the list lands is pinned by the test after this one (the
+     * owner's "Back to the list"); this one re-opens the list through Continue only if it is not
      * already showing, so each sample's pick still has to be a real touch on a card in the list.
      */
     @Test
@@ -378,6 +389,63 @@ class JournalEntriesTest {
             pressBack()
             composeRule.onNodeWithText(EDITOR_FIELD).assertDoesNotExist()
         }
+    }
+
+    // ── T2, added by the second coder: Back from a draft opened out of the list (owner, "Back to the list (Recommended)") ──
+
+    @Test
+    fun `Back from a draft opened out of the drafts list returns to the list, and Back again returns to Entries`() {
+        setScreen(threeDrafts)
+        touch(DRAFTS_CONTINUE, Offset(0.5f, 0.5f))
+
+        for ((i, point) in TOUCH_SAMPLES.withIndex()) {
+            node(DRAFTS_LIST).assertIsDisplayed()
+            composeRule.onNodeWithText(ENTRIES_DRAFT_C.date.toString()).performTouchInput { click(Offset(width * point.x, height * point.y)) }
+            composeRule.waitForIdle()
+            assertEquals(List(i + 1) { ENTRIES_DRAFT_C.id }, openedCartographyIds)
+            composeRule.onNodeWithText(EDITOR_FIELD).assertIsDisplayed()
+
+            pressBack()
+
+            composeRule.onNodeWithText(EDITOR_FIELD).assertDoesNotExist()
+            node(DRAFTS_LIST).assertIsDisplayed()
+            node(ENTRIES_HOME).assertDoesNotExist()
+        }
+
+        pressBack()
+
+        node(DRAFTS_LIST).assertDoesNotExist()
+        node(ENTRIES_HOME).assertIsDisplayed()
+        node(DRAFTS_BANNER).assertIsDisplayed()
+    }
+
+    /**
+     * The list is where Back lands while drafts remain; once the last one is finished there is no
+     * list to return to, so the draft closes onto Entries. "Finish entry" is a semantic click: the
+     * claim here is where the screen lands, not how the touch reaches the button.
+     */
+    @Test
+    fun `finishing a draft opened from the list returns to the list while drafts remain, and to Entries when none do`() {
+        setScreen(CartographyUiState(entries = listOf(ENTRIES_COMMITTED), draftEntries = listOf(ENTRIES_DRAFT_A, ENTRIES_DRAFT_B)))
+        touch(DRAFTS_CONTINUE, Offset(0.5f, 0.5f))
+
+        composeRule.onNodeWithText(ENTRIES_DRAFT_A.date.toString()).performTouchInput { click(center) }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Finish entry").performClick()
+        composeRule.waitForIdle()
+
+        node(DRAFTS_LIST).assertIsDisplayed()
+        composeRule.onNodeWithText(ENTRIES_DRAFT_B.date.toString()).assertIsDisplayed()
+        composeRule.onNodeWithText(ENTRIES_DRAFT_A.date.toString()).assertDoesNotExist()
+
+        composeRule.onNodeWithText(ENTRIES_DRAFT_B.date.toString()).performTouchInput { click(center) }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Finish entry").performClick()
+        composeRule.waitForIdle()
+
+        node(DRAFTS_LIST).assertDoesNotExist()
+        node(ENTRIES_HOME).assertIsDisplayed()
+        node(DRAFTS_BANNER).assertDoesNotExist()
     }
 
     // ── T3: the timeline/album toggle ──
