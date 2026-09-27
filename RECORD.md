@@ -2514,3 +2514,14 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Written by the planner by hand. Owner rulings for this stage, verbatim: "Full-screen list (Recommended)" (the drafts list with several drafts) and "Yes, fold into J2 (Recommended)" (compactTab). PR strategy from terminal 2026-09-27-51: one PR for the whole Journal.
 
 ---
+
+**Kind:** continuation
+**ID:** 2026-09-27-53
+**Timestamp:** 2026-09-27T14:18:38Z
+**Continues:** 2026-09-27-52
+**Dispatch-file:** preserved/2026-09-27-19.md
+**Reason:** finish J2 after the first coder stopped on three questions (T1, T2, T5 built; T3 without its badge; T4 timeline only; report and code up to a31c3e3) and its session was lost to a container restart
+**Changes:** none
+**Notes:** Owner's answers, verbatim: "Two badges" (the album's badge; the dispatch's premise that PhotoGalleryScreen.kt:148 showed a count on the tile was wrong, it shows only in the delete dialog); "Menu of both (Recommended)" (the album's Add photo button); "Back to the list (Recommended)" (Back from a draft opened out of the list). Planner's rulings: the first coder's move of 16 tests at 6 call sites from the removed "+" tile to the floating button's tag, assertions unchanged (aa0ac15), stands; LogPanel's unsaved toggle stands until J6; fix T5's side effect (compactTab saved, selectedTab not) after confirming it from the code. First coder's final suite: 233 / 1826 / 0 / 0 / 24, not yet re-run by the planner. The container restart kept /opt/android-sdk, /root/.gradle and the branch.
+
+---
