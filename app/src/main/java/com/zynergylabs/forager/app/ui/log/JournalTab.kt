@@ -193,9 +193,18 @@ internal fun JournalTab(
      * cards without the swipe.
      */
     onRequestDeleteCartographyEntry: ((String) -> Unit)? = null,
-    /** J4b tests-first stub. */
+    /**
+     * A find tile's long-press Edit (journal redesign J4b L1): `MushroomLogViewModel.onOpenEntryForEditing`,
+     * the one call that opens a find and starts editing it atomically (`LogPanel`'s open path). The
+     * tile's menu also offers Delete, which goes through [onDeleteEntry] (J4's pending delete). `null`
+     * (the default) gives the tiles a menu of Delete only.
+     */
     onOpenEntryForEditing: ((String) -> Unit)? = null,
-    /** J4b tests-first stub. */
+    /**
+     * An album photo's long-press Delete (J4b L3): a *pending* delete with Undo
+     * (`MushroomLogViewModel.requestDeleteGalleryPhoto`). `null` (the default) leaves the photos without
+     * the menu; the photo's corner delete button (immediate, after its dialog) is unchanged either way.
+     */
     onRequestDeleteGalleryPhoto: ((String) -> Unit)? = null,
     /** [CartographyEntryReportScreen]'s own map, Stage 2d — see that composable's doc comment. */
     getCartographyEntryMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData,
@@ -250,6 +259,15 @@ internal fun JournalTab(
     // for). Reset to REPORT whenever a *different* entry becomes the open one, so returning to an
     // entry after editing shows the freshly-recompiled report rather than staying in edit mode.
     var mode by remember { mutableStateOf(JournalEntryMode.REPORT) }
+    // J4b L1: a find tile's long-press Edit, straight into the edit form (EDIT mode, as a draft opens
+    // and as the report's own Edit switches to). onOpenEntryForEditing opens and starts editing in one
+    // critical section, the call LogPanel already uses; null means the tiles offer Delete only.
+    val editFind: ((String) -> Unit)? = onOpenEntryForEditing?.let { open ->
+        { id: String ->
+            mode = JournalEntryMode.EDIT
+            open(id)
+        }
+    }
     val editing = uiState.editingEntry
 
     // Only meaningful while editing — set by LogEntryDetailScreen's own "Add Location" button, read
@@ -417,6 +435,10 @@ internal fun JournalTab(
                 },
                 modifier = Modifier.weight(1f),
                 loadErrorMessage = uiState.loadErrorMessage,
+                // J4b L1: a tile's long-press menu. Delete is the report's own pending delete (J4);
+                // Edit opens the find straight into its edit form.
+                onDeleteEntry = onDeleteEntry,
+                onEditEntry = editFind,
             )
         }
     }
@@ -497,6 +519,7 @@ internal fun JournalTab(
                 // already in this tab's MushroomLogUiState.
                 draftFindIds = uiState.draftEntries.mapTo(HashSet()) { it.id },
                 onRequestDeleteEntry = onRequestDeleteCartographyEntry,
+                onRequestDeleteGalleryPhoto = onRequestDeleteGalleryPhoto,
             )
 
             JournalTopTab.RECORDS -> RecordsTab(
@@ -530,6 +553,9 @@ internal fun JournalTab(
                     mode = JournalEntryMode.REPORT
                     onOpenEntry(id)
                 },
+                // J4b L1: the All logbook's find tiles get the same long-press menu.
+                onDeleteFind = onDeleteEntry,
+                onEditFind = editFind,
                 onFindsTabLeft = ::leaveFindEditingIfNeeded,
                 findsEditingInProgress = findsSectionHasBackStack,
                 pendingSubTab = recordsPendingSubTab,
