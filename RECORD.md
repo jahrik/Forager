@@ -2003,3 +2003,18 @@ Quote this message verbatim in the record.
 **Flags:** (a) MapPalette.kt:349 still describes the night paint as raster-saturation/raster-contrast; C2's file, not touched. (b) SightingsMap.nightMode's doc still says it drives a twilight trigger and long-press override that no longer exist in ui/map; among the marker sentences left for C2. (c) AvailabilitySettingsUi.kt's NightModeMapsSection doc is not stale but was not in scope. (d) A toggle made before the startup read lands is overwritten by the read (base behaviour on success; the failure path now does the same with false, as dispatched). (e) CSS colour names inside an expression are not recognised and stay day; the repository's offline style has none. (f) Whether Expression.toString() yields parseable JSON for a live style's match/case expressions, and which colour form the SDK returns, is unverified; the adapter logs every property it leaves. (g) Nothing was run on the device; seven device items are in the report, the seventh added by the planner's ruling.
 
 ---
+
+**Kind:** merge
+**ID:** 2026-09-27-26
+**Timestamp:** 2026-09-27T01:00:49Z
+**PR:** 134
+**Head:** night-mode
+**Base:** pre-main
+**Merge-commit:** 545258eb5fb1233f20583a3b185615408c38f115
+**Pre-merge:** d0ae6125ed0935c4fde4adfbf65a3b281adf7d5c
+**Backup:** 2026-09-27-02
+**Merged-by:** coder preserved/2026-09-27-01.md
+**Carries:** 2026-09-27-23, 2026-09-27-24, 2026-09-27-25
+**Notes:** Written in the sweep of the dispatch preserved as preserved/2026-09-27-02.md, on branch marker-palette cut from origin/pre-main 545258eb5fb1233f20583a3b185615408c38f115. The one merge on pre-main's first-parent chain newer than d0ae612, the newest merge a `merge` entry records (2026-09-27-23, Base pre-main): git log --first-parent --merges --format='%H %P %s' d0ae6125ed0935c4fde4adfbf65a3b281adf7d5c..origin/pre-main lists only 545258e, parents d0ae6125ed0935c4fde4adfbf65a3b281adf7d5c and 1a02acd14298afb33da6af30bac41f4826840677, "Merge pull request #134 from slayer8366/night-mode". PR, Head, Base, Timestamp (mergedAt) from gh pr view 134 --json number,headRefName,baseRefName,mergeCommit,mergedAt: 134, night-mode, pre-main, mergeCommit 545258eb5fb1233f20583a3b185615408c38f115, 2026-09-27T01:00:49Z. Backup and Merged-by: ~/Zynergy/forager-repo-backups/INDEX.md's line "- 2026-09-27-02: PR #134 (night-mode into pre-main), pre-merge d0ae6125ed0935c4fde4adfbf65a3b281adf7d5c, bundle of origin/pre-main, written by coder under intent 2026-09-27-24 (prompts/preserved/2026-09-27-01.md)". Carries from git diff d0ae612 545258e -- RECORD.md, which adds IDs 2026-09-27-23, -24 and -25; -23 is the merge entry for #133, written in night-mode's sweep. The dispatch expected -23 to -25; confirmed. main: no merge newer than 76905d4 (#119), which merge entry 2026-09-26-24 records. No unclaimed store copy other than this dispatch's own, preserved/2026-09-27-02.md, which the intent claims.
+
+---
