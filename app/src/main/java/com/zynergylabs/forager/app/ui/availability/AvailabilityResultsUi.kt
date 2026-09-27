@@ -299,8 +299,11 @@ internal fun SeasonalTab(uiState: AvailabilityUiState, modifier: Modifier = Modi
     }
 }
 
-/** Same readable-width reasoning as [SeasonalTab]; see [CombinedResultsPane] for the drawer/pane analogs. */
-private val READABLE_CONTENT_MAX_WIDTH = 640.dp
+/**
+ * Same readable-width reasoning as [SeasonalTab]; see [CombinedResultsPane] for the drawer/pane analogs.
+ * `internal` since landscape B3 (R9): the compact scaffold caps every tab beside the landscape rail with it.
+ */
+internal val READABLE_CONTENT_MAX_WIDTH = 640.dp
 
 /** Lets [AvailabilityScreenAdaptiveLayoutTest] measure the readable-width column directly. */
 const val SEASONAL_CONTENT_TAG = "seasonal-content"
