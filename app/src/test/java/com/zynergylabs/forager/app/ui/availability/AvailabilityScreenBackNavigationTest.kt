@@ -19,8 +19,6 @@ import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.assertIsSelected
-import androidx.compose.ui.test.hasTestTag
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -541,9 +539,9 @@ class AvailabilityScreenBackNavigationTest {
     private val committedCartographyEntry = CartographyEntry.draft(id = "committed-1", date = LocalDate.of(2026, 8, 1), updatedAtEpochMillis = 1_000L)
         .copy(isDraft = false)
 
-    /** The entry-level layer: a draft opens straight into the editor, and back on it must step back to the Drafts list — never exit the Journal, and never prompt (drafts autosave silently, unchanged by this dispatch). */
+    /** The entry-level layer: a draft opens straight into the editor, and back on it must step back to Entries, where the Drafts banner (J2 T2, which replaced the Drafts list sub-tab) counts it — never exit the Journal, and never prompt (drafts autosave silently, unchanged by this dispatch). */
     @Test
-    fun `back on an open Cartography draft steps back to the drafts list, not out of the Journal, and the draft persists`() {
+    fun `back on an open Cartography draft steps back to Entries with the drafts banner, not out of the Journal, and the draft persists`() {
         setScreen()
         composeRule.onNodeWithText("Journal").performClick()
         composeRule.onNodeWithContentDescription("New Cartography entry").performClick()
@@ -556,7 +554,7 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.onNodeWithText("Save your changes?").assertDoesNotExist()
         // J2 T1: the top tab is the Entries | Records switch now ("Cartography" reads "Entries").
         composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.journalSwitchTestTag(com.zynergylabs.forager.app.ui.log.JournalTopTab.CARTOGRAPHY)).assertIsSelected()
-        composeRule.onNodeWithText("Drafts (1)").assertIsDisplayed()
+        composeRule.onNodeWithText("✎ 1 unfinished entry").assertIsDisplayed() // J2 T2: the banner, was the "Drafts (1)" sub-tab
     }
 
     /**
@@ -570,7 +568,7 @@ class AvailabilityScreenBackNavigationTest {
      * case in this file already exercises.
      */
     @Test
-    fun `back from the add-photo picker returns to the editor, and back again reaches the drafts list`() {
+    fun `back from the add-photo picker returns to the editor, and back again reaches Entries with the drafts banner`() {
         setScreen()
         composeRule.onNodeWithText("Journal").performClick()
         composeRule.onNodeWithContentDescription("New Cartography entry").performClick()
@@ -590,7 +588,7 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.onNodeWithText("Draft with a photo picker open.").assertDoesNotExist()
         // J2 T1: the top tab is the Entries | Records switch now ("Cartography" reads "Entries").
         composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.journalSwitchTestTag(com.zynergylabs.forager.app.ui.log.JournalTopTab.CARTOGRAPHY)).assertIsSelected()
-        composeRule.onNodeWithText("Drafts (1)").assertIsDisplayed()
+        composeRule.onNodeWithText("✎ 1 unfinished entry").assertIsDisplayed() // J2 T2: the banner, was the "Drafts (1)" sub-tab
     }
 
     /**
@@ -878,14 +876,16 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.onNodeWithText("Welcome back").assertDoesNotExist()
         // Closed — visible under Drafts now, not left open silently rendering as a draft.
         composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_HOME_TAG).assertIsDisplayed()
-        composeRule.onNodeWithText("Drafts (1)").performClick()
+        // J2 T2: the Drafts banner replaced the "Drafts (1)" sub-tab; with one draft its Continue
+        // opens that draft directly, so there is no list card to tap.
+        composeRule.onNodeWithText("✎ 1 unfinished entry").assertIsDisplayed()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.DRAFTS_CONTINUE_TAG).performClick()
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("2026-08-01").performClick()
         composeRule.onNodeWithText("Saved as draft on return.").assertIsDisplayed()
-        // And it's really gone from Entries, not just still showing there too.
+        // And it's really gone from Entries, not just still showing there too. (Back from a draft
+        // lands on Entries itself now, so no sub-tab tap is needed to get there.)
         composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
-        // J2 T1: "Entries" also labels the switch now; this is the Cartography sub-tab.
-        composeRule.onNode(hasText("Entries") and !hasTestTag(com.zynergylabs.forager.app.ui.log.journalSwitchTestTag(com.zynergylabs.forager.app.ui.log.JournalTopTab.CARTOGRAPHY))).performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_HOME_TAG).assertIsDisplayed()
         composeRule.onNodeWithText("2026-08-01").assertDoesNotExist()
     }
 

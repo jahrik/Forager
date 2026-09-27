@@ -279,17 +279,51 @@ internal fun CartographyScreen(
         return
     }
 
+    // Journal redesign J2, T2 (plan J2, owner ruling "Full-screen list (Recommended)"): the Drafts
+    // sub-tab became the banner below, and with more than one draft its Continue opens this
+    // full-screen list in place of Entries. Whether the list is open is transient navigation state
+    // (the dispatch's words): saveable, so a night-mode toggle or a fold keeps it, but held here, not
+    // in JournalScreenState, so leaving the Journal tab closes it. Declared after the open-entry
+    // early return above, as the Drafts sub-tab's selection was, so it is forgotten while a draft is
+    // open and Back from that draft lands on Entries, as it did from the Drafts sub-tab (J0 A1,
+    // inferred there; kept, not chosen anew; raised in the J2 report).
+    var draftsListOpen by rememberSaveable { mutableStateOf(false) }
+    BackHandler(enabled = draftsListOpen) { draftsListOpen = false }
+    if (draftsListOpen) {
+        DraftsListScreen(
+            drafts = uiState.draftEntries,
+            isLoading = uiState.isLoadingEntries,
+            onOpenDraft = { id -> mode = CartographyEntryMode.EDIT; onOpenEntry(id) },
+            onBack = { draftsListOpen = false },
+            columns = columns,
+            modifier = modifier.fillMaxSize(),
+        )
+        return
+    }
+
     var selectedTab by remember { mutableStateOf(CartographyTab.ENTRIES) }
 
     Column(modifier = modifier.fillMaxSize().testTag(ENTRIES_HOME_TAG)) {
         SecondaryTabRow(selectedTabIndex = selectedTab.ordinal) {
             Tab(selected = selectedTab == CartographyTab.ENTRIES, onClick = { selectedTab = CartographyTab.ENTRIES }, text = { Text("Entries") })
-            Tab(
-                selected = selectedTab == CartographyTab.DRAFTS,
-                onClick = { selectedTab = CartographyTab.DRAFTS },
-                text = { Text(if (uiState.draftEntries.isEmpty()) "Drafts" else "Drafts (${uiState.draftEntries.size})") },
-            )
             Tab(selected = selectedTab == CartographyTab.ALBUM, onClick = { selectedTab = CartographyTab.ALBUM }, text = { Text("Album") })
+        }
+
+        val drafts = uiState.draftEntries
+        if (drafts.isNotEmpty()) {
+            DraftsBanner(
+                count = drafts.size,
+                onContinue = {
+                    // One draft: straight into it, the Drafts sub-tab's open-draft path (a draft is
+                    // unfinished work, so EDIT, never the read-only view). More: the list.
+                    if (drafts.size == 1) {
+                        mode = CartographyEntryMode.EDIT
+                        onOpenEntry(drafts.single().id)
+                    } else {
+                        draftsListOpen = true
+                    }
+                },
+            )
         }
 
         if (uiState.candidatesErrorMessage != null) {
@@ -308,14 +342,6 @@ internal fun CartographyScreen(
                 onOpenEntry = { id -> mode = CartographyEntryMode.VIEW; onOpenEntry(id) },
                 onAddEntry = { mode = CartographyEntryMode.EDIT; onStartEntry(LocalDate.now()) },
                 loadErrorMessage = uiState.loadErrorMessage,
-                columns = columns,
-                modifier = Modifier.weight(1f),
-            )
-
-            CartographyTab.DRAFTS -> CartographyEntryListScreen(
-                entries = uiState.draftEntries,
-                isLoading = uiState.isLoadingEntries,
-                onOpenEntry = { id -> mode = CartographyEntryMode.EDIT; onOpenEntry(id) },
                 columns = columns,
                 modifier = Modifier.weight(1f),
             )
@@ -341,8 +367,8 @@ internal fun CartographyScreen(
  */
 internal const val ENTRIES_HOME_TAG = "entries-home"
 
-/** Which of Cartography's three submenus is selected — ordinal order matches display order. */
-private enum class CartographyTab { ENTRIES, DRAFTS, ALBUM }
+/** Which of Cartography's submenus is selected — ordinal order matches display order. Drafts left for the banner in J2, T2. */
+private enum class CartographyTab { ENTRIES, ALBUM }
 
 /** Which screen [CartographyScreen] shows for [CartographyUiState.editingEntry] — Journal Stage 2c. See this file's own doc comment, "Tap opens the view, not the editor," for the full reasoning. */
 internal enum class CartographyEntryMode { VIEW, EDIT }
