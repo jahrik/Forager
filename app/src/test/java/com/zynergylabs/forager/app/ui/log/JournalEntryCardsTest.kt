@@ -43,6 +43,7 @@ import com.zynergylabs.forager.app.domain.model.PhotoAttachment
 import com.zynergylabs.forager.app.domain.model.OfflineRegionDecision
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.TrackDecision
+import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.WaypointDecision
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.ui.availability.AvailabilityUiState
@@ -342,6 +343,66 @@ class JournalEntryCardsTest {
         composeRule.onAllNodes(hasTagPrefix("entry-hero-${PHOTO_GONE_ENTRY.id}-"), useUnmergedTree = true).assertCountEquals(0)
     }
 
+    // ── C3: track thumbnails (owner: "Rows and Entries cards", "Join in memory (Recommended)") ──
+
+    @Test
+    fun `a card whose kept track is in the loaded list with two or more points shows its thumbnail`() {
+        setScreen(listOf(TRACK_CARD), tracks = listOf(track("tr-a", points = 3)))
+
+        inCard(entryThumbTag(TRACK_CARD.id)).assertIsDisplayed()
+        val thumb = inCard(entryThumbTag(TRACK_CARD.id)).getUnclippedBoundsInRoot()
+        val card = node(cardTag(TRACK_CARD.id)).getUnclippedBoundsInRoot()
+        assertTrue("the thumbnail sits inside its card", thumb.left >= card.left && thumb.right <= card.right && thumb.top >= card.top && thumb.bottom <= card.bottom)
+        assertTrue("and has a size (${thumb.right - thumb.left} x ${thumb.bottom - thumb.top})", thumb.right - thumb.left > 0.dp && thumb.bottom - thumb.top > 0.dp)
+    }
+
+    @Test
+    fun `a card whose kept track has fewer than two points shows no thumbnail, beside one that has two`() {
+        setScreen(
+            listOf(TRACK_CARD, TRACK_CARD_B),
+            tracks = listOf(track("tr-a", points = 2), track("tr-b", points = 1)),
+        )
+
+        inCard(entryThumbTag(TRACK_CARD.id)).assertExists()
+        inCard(entryThumbTag(TRACK_CARD_B.id)).assertDoesNotExist()
+    }
+
+    @Test
+    fun `a card whose kept track is not in the loaded list shows no thumbnail, beside one that is`() {
+        setScreen(listOf(TRACK_CARD, TRACK_CARD_B), tracks = listOf(track("tr-a", points = 3)))
+
+        inCard(entryThumbTag(TRACK_CARD.id)).assertExists()
+        node(cardTag(TRACK_CARD_B.id)).assertExists()
+        inCard(entryThumbTag(TRACK_CARD_B.id)).assertDoesNotExist()
+    }
+
+    @Test
+    fun `only a kept track draws, a withheld track in the list gives no thumbnail`() {
+        setScreen(listOf(TRACK_CARD, WITHHELD_TRACK_CARD), tracks = listOf(track("tr-a", points = 3), track("tr-w", points = 3)))
+
+        inCard(entryThumbTag(TRACK_CARD.id)).assertExists()
+        inCard(entryThumbTag(WITHHELD_TRACK_CARD.id)).assertDoesNotExist()
+    }
+
+    @Test
+    fun `a Recorded Tracks row shows its thumbnail with two or more points and none with fewer`() {
+        setScreen(
+            listOf(TRACK_CARD),
+            tracks = listOf(track("tr-a", points = 2), track("tr-b", points = 1), track("tr-c", points = 0)),
+        )
+        node(SWITCH_RECORDS).performTouchInput { click(center) }
+        composeRule.waitForIdle()
+        node(TRACKS_CHIP).performTouchInput { click(center) }
+        composeRule.waitForIdle()
+
+        inCard(rowThumbTag("tr-a")).assertIsDisplayed()
+        inCard(rowThumbTag("tr-b")).assertDoesNotExist()
+        inCard(rowThumbTag("tr-c")).assertDoesNotExist()
+        // Each row is still there, so the absences are the thumbnail's, not the row's.
+        node("share-track-tr-b").assertExists()
+        node("share-track-tr-c").assertExists()
+    }
+
     @Test
     fun `touching a card at several points opens that entry`() {
         setScreen(listOf(FULL_ENTRY, AUGUST_ENTRY))
@@ -404,6 +465,37 @@ private val PHOTO_ONLY_ENTRY: CartographyEntry = committed("photo-only", LocalDa
 /** No text, no track, one photo that has been deleted from the gallery. */
 private val PHOTO_GONE_ENTRY: CartographyEntry = committed("photo-gone", LocalDate.of(2026, 9, 22)).copy(
     photos = listOf(PhotoAttachment(photoId = "p-gone", attachedAtEpochMillis = 1_000L)),
+)
+
+private const val SWITCH_RECORDS = "journal-switch-records"
+private const val TRACKS_CHIP = "records-chip-tracks"
+private fun entryThumbTag(entryId: String): String = "entry-track-thumbnail-$entryId"
+private fun rowThumbTag(trackId: String): String = "track-thumbnail-$trackId"
+
+/** A recorded track with [points] points walking north-east from a fixed start. */
+private fun track(id: String, points: Int): Track = Track(
+    id = id,
+    name = null,
+    startedAtEpochMillis = 1_758_200_000_000L,
+    endedAtEpochMillis = 1_758_203_600_000L,
+    points = List(points) { i ->
+        TrackPoint(lat = 45.0 + i * 0.001, lng = -122.0 + i * 0.002, altitude = null, accuracyMeters = null, timestampEpochMillis = 1_758_200_000_000L + i * 1_000L)
+    },
+)
+
+private val TRACK_CARD: CartographyEntry = committed("with-track-a", LocalDate.of(2026, 9, 12)).copy(
+    text = "Loop A",
+    trackDecisions = listOf(trackDecision("tr-a", meters = 1_500.0, millis = 30 * 60_000L)),
+)
+
+private val TRACK_CARD_B: CartographyEntry = committed("with-track-b", LocalDate.of(2026, 9, 11)).copy(
+    text = "Loop B",
+    trackDecisions = listOf(trackDecision("tr-b", meters = 800.0, millis = 20 * 60_000L)),
+)
+
+private val WITHHELD_TRACK_CARD: CartographyEntry = committed("withheld-track", LocalDate.of(2026, 9, 9)).copy(
+    text = "Kept nothing of the walk",
+    trackDecisions = listOf(trackDecision("tr-w", meters = 800.0, millis = 20 * 60_000L, kept = false)),
 )
 
 /** Three touches spread across a control: near its start edge, its centre, near its end edge, at differing heights. */
