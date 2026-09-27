@@ -2590,3 +2590,19 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner ruling on the coder's question: "Say 'Changes discarded' (Recommended)": Delete in the edit form of a re-edited find removes only the draft, and its snackbar must say "Changes discarded", not "Find deleted"; carried to J4b. Flags: AvailabilityScreenSettingsPanelTest:636's "no Delete buttons" assertion now passes whatever it checks, since no "Delete" text exists anywhere (CLAUDE.md, a check that passes identically before and after is suspect); carried to J4b. The J4 wiring in MainActivity has no test (no test builds MainActivity). Possible existing bug, inferred by the coder and not run: opening the Offline maps list during a download may delete it (MapLibreOfflineMapRepository.kt:172-176); added to the offline-picker diagnosis running now.
 
 ---
+
+**Kind:** intent
+**ID:** 2026-09-27-59
+**Timestamp:** 2026-09-27T18:13:06Z
+**Title:** Journal J4b: long-press Edit and Delete menus on find tiles, entry cards and album photos, "Changes discarded", and a rewritten vacuous test
+**Dispatch-file:** preserved/2026-09-27-22.md
+**Change:** The plan addendum's J4b (owner: "Album photos, Find tiles, Entry cards"): L1 find tiles, Edit to the editor and Delete through J4's find holder; L2 entry cards, Edit to the entry editor and Delete through a new Cartography-entry pending holder with Undo; L3 album photos, Delete through a new gallery-photo holder with the file delete deferred and the reference warning in the snackbar, Edit only if a photo edit screen exists (else stop); L4 "Changes discarded" for a re-edited find's Delete (owner); L5 AvailabilityScreenSettingsPanelTest:636 rewritten so it can fail, proved by a revert check. Long-press targets carry labels and Edit/Delete custom actions.
+**Scope boundary:** Branch journal-redesign only. FindsGalleryScreen.kt and the All logbook find tile, CartographyEntryCard.kt, CartographyEntryListScreen.kt, EntriesAlbum.kt, CartographyViewModel.kt and MushroomLogViewModel.kt (new holders only), DeleteGalleryPhotoUseCase.kt only if needed and stated, the edit form's snackbar text, JournalTab.kt, CartographyScreen.kt, MainActivity.kt wiring, AvailabilityScreenSettingsPanelTest.kt, tests. Not offline-maps files, not J4's rows, not the map screens, not J5, M1 or J8, not LogPanel, not Room or DAOs, not the record, index, CLAUDE.md, plans or prompts. No PR or merge.
+**Baseline:** journal-redesign at 8343c9e (J4 closed by terminal 2026-09-27-58, the plan addendum merged). Planner's full suite at 36330db, the same app tree: 239 classes / 1925 / 0 / 0 / 24.
+**Prediction (outcome — planner):** 1. The two new holders reuse J4's holder type unchanged. 2. No DAO or repository signature changes. 3. The suite grows by 30 to 55 tests, 0 failures, skipped unchanged.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** L1-L5 pushed with the completion report; tests first, real long-presses, custom actions and revert checks as the dispatch requires; full suite 0 failures; the planner re-runs the suite and writes the terminal. No PR or merge.
+**Abort conditions:** A wrong premise; no photo edit screen (L3's Edit only); a delete not deferrable without a DAO change; a tests-first test passing at base; a revert build with compile errors; an unrelated test failing (reported, not touched); Maven 429s on a new artifact; two failed fixes on one symptom; an open design question.
+**Notes:** Written by the planner by hand. Owner rulings, verbatim: "Add long press options for tiles to edit/delete them" and "Album photos, Find tiles, Entry cards" (plan addendum J4b); "Say 'Changes discarded' (Recommended)" (on J4's question). L5 is a planner's call under CLAUDE.md's suspect-check rule; it strengthens a test and changes no production code.
+
+---
