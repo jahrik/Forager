@@ -247,7 +247,7 @@ class JournalPendingDeleteTest {
                     basemap = Basemap.DEFAULT,
                     onOpenEntry = logViewModel::onOpenEntry,
                     onCloseEntry = logViewModel::onCloseEntry,
-                    onStartEntry = { _, _ -> },
+                    onStartEntry = logViewModel::onStartNewEntry,
                     onEntryChanged = logViewModel::onEntryEdited,
                     onStartEditingEntry = logViewModel::onStartEditingEntry,
                     onSaveEntry = logViewModel::onSaveEntry,
@@ -619,24 +619,67 @@ class JournalPendingDeleteTest {
         assertEquals(emptyList<String>(), logRepository.deletedIds)
     }
 
-    @Test
-    fun `deleting from the find's edit form is the same pending delete, of the open draft`() {
-        setScreen(chip = RecordsSubTab.FINDS, finds = listOf(PD_FIND_A))
-        openFindReport("2026-09-20")
+    private fun openFindEditForm(date: String) {
+        openFindReport(date)
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
         composeRule.waitForIdle()
+    }
 
+    private fun deleteFromEditForm() {
         composeRule.onNodeWithContentDescription("Delete this entry").performClick()
         composeRule.waitForIdle()
+    }
+
+    // J4b L4 (owner: "Say 'Changes discarded' (Recommended)"). Rewritten from J4's "deleting from the
+    // find's edit form is the same pending delete, of the open draft", which asserted "Find deleted"
+    // for this case; the deferral and the id deleted are unchanged, only the message is new.
+    @Test
+    fun `Delete in a re-edited find's form discards only the draft and says Changes discarded, not Find deleted`() {
+        setScreen(chip = RecordsSubTab.FINDS, finds = listOf(PD_FIND_A))
+        openFindEditForm("2026-09-20")
+
+        deleteFromEditForm()
 
         composeRule.onNodeWithContentDescription("Delete this entry").assertDoesNotExist()
-        composeRule.onNodeWithText("Find deleted").assertIsDisplayed()
+        composeRule.onNodeWithText("Changes discarded").assertIsDisplayed()
+        composeRule.onNodeWithText("Find deleted").assertDoesNotExist()
+        composeRule.onNodeWithText("Undo").assert(hasClickAction())
         assertEquals(emptyList<String>(), logRepository.deletedIds)
         letSnackbarTimeOut()
         // The form was editing the re-edit's draft row, so that row is what is deleted, as before J4.
         assertEquals(listOf("draft-of-find"), logRepository.deletedIds)
         findTiles("2026-09-20").assertCountEquals(1)
+    }
+
+    @Test
+    fun `Undo on Changes discarded deletes nothing, even after the timeout`() {
+        setScreen(chip = RecordsSubTab.FINDS, finds = listOf(PD_FIND_A))
+        openFindEditForm("2026-09-20")
+        deleteFromEditForm()
+        composeRule.onNodeWithText("Changes discarded").assertIsDisplayed()
+
+        touchUndo()
+        letSnackbarTimeOut()
+
+        assertEquals(emptyList<String>(), logRepository.deletedIds)
+        findTiles("2026-09-20").assertCountEquals(1)
+    }
+
+    @Test
+    fun `Delete in a new find's form, with no committed original, still says Find deleted`() {
+        setScreen(chip = RecordsSubTab.FINDS, finds = listOf(PD_FIND_A))
+        composeRule.onNodeWithContentDescription("New log entry").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithContentDescription("Delete this entry").assertIsDisplayed()
+
+        deleteFromEditForm()
+
+        composeRule.onNodeWithText("Find deleted").assertIsDisplayed()
+        composeRule.onNodeWithText("Changes discarded").assertDoesNotExist()
+        assertEquals(emptyList<String>(), logRepository.deletedIds)
+        letSnackbarTimeOut()
+        assertEquals(listOf("find-new"), logRepository.deletedIds)
     }
 
     @Test
