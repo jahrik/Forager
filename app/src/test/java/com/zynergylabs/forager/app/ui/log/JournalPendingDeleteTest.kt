@@ -1248,7 +1248,8 @@ class JournalPendingDeleteTest {
 
     private fun photoTile(id: String) = composeRule.onNodeWithTag(albumPhotoTestTag(id))
 
-    // The corner delete button covers roughly the tile's top-end 48 dp; these points stay off it.
+    // Chosen, before F5, to stay off the corner delete button (the top-end 48 dp); F5 removed it, and
+    // the corner itself is sampled by the F5 test below.
     private val photoPoints = listOf(0.2f to 0.3f, 0.5f to 0.7f, 0.8f to 0.85f)
 
     @Test

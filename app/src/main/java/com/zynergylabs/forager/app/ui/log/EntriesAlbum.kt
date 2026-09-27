@@ -20,7 +20,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddAPhoto
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.PhotoCamera
@@ -30,7 +29,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -62,12 +60,13 @@ import java.time.format.DateTimeFormatter
  * dispatch says must keep working and may keep its look until J6. Leaving it untouched keeps that
  * caller exactly as it was; this view reuses its parts instead: the same acquisition launchers
  * ([rememberPhotoAcquisitionLaunchers]), the same Take photo/Import actions (now behind the Add photo button), the same full-screen viewer
- * ([PhotoViewerDialog], stepping through the photos in the order shown here) and the same delete
- * confirmation ([GalleryPhotoDeleteDialog], extracted from [PhotoGalleryScreen] for this).
+ * ([PhotoViewerDialog], stepping through the photos in the order shown here). It also reused the
+ * delete confirmation ([GalleryPhotoDeleteDialog]) for a corner delete button until picker-fixes F5
+ * removed that button (see [AlbumPhotoTile]); the dialog stays [PhotoGalleryScreen]'s.
  *
  * **Badges** ([AlbumAttachmentBadges], added by the second J2 coder): one for a photo a journal
  * entry keeps, a distinct one for a photo attached to a find, both when both. The first coder found
- * no visible reference count on the tile to replace; the count stays only in the delete dialog.
+ * no visible reference count on the tile to replace; the counts are in the long-press Delete's snackbar.
  *
  * **Add photo** ([AddPhotoButton], also the second coder's): the floating button's menu of Take
  * photo and Import replaced the album's own Camera/Import row.
@@ -76,14 +75,20 @@ import java.time.format.DateTimeFormatter
 internal fun EntriesAlbum(
     photos: List<GalleryPhoto>,
     isLoading: Boolean,
-    onDeletePhoto: (GalleryPhoto) -> Unit,
+    /**
+     * **Unused since F5** (the corner button and its dialog were its only reader). Kept so the
+     * callers' chain (`CartographyScreen.onDeleteGalleryPhoto`, from `JournalTab`/`LogPanel` and on
+     * up) is unchanged by this stage; removing the chain is a follow-up recorded in
+     * `docs/audits/2026-09-27-picker-fixes-completion-report.md`.
+     */
+    @Suppress("UNUSED_PARAMETER") onDeletePhoto: (GalleryPhoto) -> Unit,
     /** Opens the in-app camera for the Album — see [InAppCameraHost]. */
     onOpenCamera: () -> Unit,
     /** A photo acquired via Camera or Import here, added to the gallery standalone. */
     onAddGalleryPhoto: (PhotoSource) -> Unit,
     modifier: Modifier = Modifier,
     loadErrorMessage: String? = null,
-    /** How many Cartography entries keep each photo (by id); read by the delete confirmation. */
+    /** How many Cartography entries keep each photo (by id); read by the journal-entry badge. */
     cartographyEntryReferenceCounts: Map<String, Int> = emptyMap(),
     /**
      * Ids of draft (unsaved) finds, so the find badge marks only photos on a saved find (J3, C5;
@@ -95,7 +100,8 @@ internal fun EntriesAlbum(
      * J4b L3: when set, a long-press on a photo opens a menu whose Delete calls this with the photo's
      * id (a *pending* delete with Undo, the file deleted only when the snackbar ends). The menu has no
      * Edit: the app has no photo details or location editing screen. `null` leaves the photos
-     * tap-only. The corner delete button, with its dialog, is unchanged either way.
+     * tap-only, with no delete in the album at all (picker-fixes F5 removed the corner button; see
+     * [AlbumPhotoTile]).
      */
     onRequestDeletePhoto: ((String) -> Unit)? = null,
 ) {
@@ -143,7 +149,6 @@ internal fun EntriesAlbum(
                         AlbumPhotoTile(
                             galleryPhoto = galleryPhoto,
                             onOpen = { viewingPhotoId = galleryPhoto.photo.id },
-                            onDelete = { onDeletePhoto(galleryPhoto) },
                             cartographyEntryCount = cartographyEntryReferenceCounts[galleryPhoto.photo.id] ?: 0,
                             draftFindIds = draftFindIds,
                             onRequestDelete = onRequestDeletePhoto?.let { request -> { request(galleryPhoto.photo.id) } },
@@ -209,18 +214,26 @@ private fun AddPhotoButton(onTakePhoto: () -> Unit, onImport: () -> Unit, modifi
 internal const val ENTRIES_FAB_MENU_TAKE_PHOTO_TAG = "entries-fab-menu-take-photo"
 internal const val ENTRIES_FAB_MENU_IMPORT_TAG = "entries-fab-menu-import"
 
-/** A square album tile: the photo opens the viewer; the delete button in its corner asks first, as on [PhotoGalleryScreen]'s tiles. */
+/**
+ * A square album tile: the photo opens the viewer, and a long-press opens its Delete menu.
+ *
+ * **No corner delete button** (picker-fixes dispatch F5, owner: "Remove the corner button
+ * (Recommended)", then "Remove everywhere now"). J4b left two deletes on the tile that behaved
+ * differently: the long-press Delete, pending with Undo, and the corner trash button, which confirmed
+ * in a dialog and then deleted the row and file at once. Now the long-press Delete is the only one.
+ * Where it is not wired ([onRequestDelete] `null`: the wide tree's `LogPanel`, until J6) the album
+ * has no delete of its own, by the owner's choice; those photos are deleted from the drawer's
+ * [PhotoGalleryScreen], which keeps its own button and dialog.
+ */
 @Composable
 private fun AlbumPhotoTile(
     galleryPhoto: GalleryPhoto,
     onOpen: () -> Unit,
-    onDelete: () -> Unit,
     cartographyEntryCount: Int,
     draftFindIds: Set<String>,
     /** J4b L3: the long-press menu's Delete; `null` leaves the photo tap-only. */
     onRequestDelete: (() -> Unit)? = null,
 ) {
-    var confirmingDelete by remember(galleryPhoto.photo.id) { mutableStateOf(false) }
     Box(modifier = Modifier.fillMaxWidth().aspectRatio(1f).testTag(albumPhotoTestTag(galleryPhoto.photo.id))) {
         if (onRequestDelete == null) {
             DecodedPhoto(
@@ -237,22 +250,11 @@ private fun AlbumPhotoTile(
                 )
             }
         }
-        IconButton(onClick = { confirmingDelete = true }, modifier = Modifier.align(Alignment.TopEnd)) {
-            Icon(Icons.Filled.Delete, contentDescription = "Delete this photo")
-        }
         AlbumAttachmentBadges(
             photoId = galleryPhoto.photo.id,
             attachedToEntry = cartographyEntryCount > 0,
             attachedToFind = galleryPhoto.referencingEntryIds.any { it !in draftFindIds },
             modifier = Modifier.align(Alignment.BottomStart).padding(ALBUM_BADGE_INSET),
-        )
-    }
-    if (confirmingDelete) {
-        GalleryPhotoDeleteDialog(
-            galleryPhoto = galleryPhoto,
-            cartographyEntryCount = cartographyEntryCount,
-            onConfirm = { confirmingDelete = false; onDelete() },
-            onDismiss = { confirmingDelete = false },
         )
     }
 }
