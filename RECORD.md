@@ -2498,3 +2498,19 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner rulings during J1: on the planner's Back-to-All call, "We'll try it and see if it works" (added to J7's device check); PR strategy, "One PR for the whole journal. It gets it done faster. Otherwise it's 5-8 minutes between each iteration", so each stage is verified and closed on journal-redesign and a single PR goes to pre-main after the last stage. Open, not ruled: compactTab is plain remember, so after a night-mode toggle or a fold the app opens on Maps (the Journal state survives). Device-only items are in the report.
 
 ---
+
+**Kind:** intent
+**ID:** 2026-09-27-52
+**Timestamp:** 2026-09-27T10:56:02Z
+**Title:** Journal redesign J2: the Entries | Records switch, the Drafts banner with a full-screen drafts list, Album as a view of Entries, the floating button, and a saveable bottom tab
+**Dispatch-file:** preserved/2026-09-27-18.md
+**Change:** docs/plans/journal-redesign.md stage J2 (plan decisions J1, J2, J3, J7): T1 a segmented Entries | Records switch replacing the Journal's top tab row, label "Cartography" becoming "Entries"; T2 a Drafts banner on Entries, Continue opening the one draft or, with several, a full-screen drafts list (owner: "Full-screen list (Recommended)"); T3 a timeline/album toggle held in JournalScreenState, the album grouped by day in 3 columns with a link badge; T4 an extended FAB, "New entry" on the timeline and "Add photo" on the album; T5 compactTab made rememberSaveable (owner: "Yes, fold into J2 (Recommended)").
+**Scope boundary:** Branch journal-redesign only. JournalTab.kt, CartographyScreen.kt, CartographyEntryListScreen.kt, PhotoGalleryScreen.kt (keeping its wide-tree drawer caller working), JournalScreenState.kt, new files under ui/log/, AvailabilityScreen.kt (T5 and passing state), AvailabilityCompactScaffold.kt only to pass state, tests. Not LogPanel or the wide tree (J6), not J3-J5 work, not Room, not the entry edit or report screens beyond routing, not the map screens, not the record, index, CLAUDE.md, plans or prompts. No PR or merge.
+**Baseline:** journal-redesign at 0ba8877 after J1 (terminal 2026-09-27-51). Planner's full suite at d32ca5e, the same app tree: 230 classes / 1801 / 0 / 0 / 24.
+**Prediction (outcome — planner):** 1. CartographyScreen's SecondaryTabRow goes entirely. 2. Every test locating "Cartography", the Cartography "Drafts (1)", "Album" or the "Entries" sub-tab changes; the Finds gallery's tab tests do not. 3. compactTab saves with plain rememberSaveable. 4. The suite grows by 20 to 40 tests, 0 failures, skipped unchanged.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** T1-T5 pushed to journal-redesign with the completion report; tests-first failures, the FAB coordinate-touch test and revert checks as the dispatch requires; full suite 0 failures; the planner re-runs the suite and writes the terminal. No PR or merge: one PR for the whole Journal after the last stage.
+**Abort conditions:** A wrong premise; a tests-first test passing at base; a revert build with compile errors; an unrelated test failing (reported, not touched); Maven 429s on a new artifact; two failed fixes on one symptom; an open design question.
+**Notes:** Written by the planner by hand. Owner rulings for this stage, verbatim: "Full-screen list (Recommended)" (the drafts list with several drafts) and "Yes, fold into J2 (Recommended)" (compactTab). PR strategy from terminal 2026-09-27-51: one PR for the whole Journal.
+
+---
