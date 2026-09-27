@@ -974,9 +974,11 @@ class AvailabilityScreenBackNavigationTest {
      * untouched and stays `AvailabilityScreenAdaptiveLayoutTest`'s own equivalent test. "Album" is
      * the Cartography sub-tab (`CartographyScreen`'s Entries/Drafts/Album row), reached after the
      * "Journal" bottom-nav tap; it is not a bottom-nav label (`CompactTab` has none by that name).
+     * Journal redesign J2, T3: that sub-tab is now Entries' album view, chosen with the toolbar's
+     * view toggle.
      */
     @Test
-    fun `the Album tab shows the photo gallery`() {
+    fun `the album view shows the photo gallery`() {
         val photo = com.zynergylabs.forager.app.domain.model.GalleryPhoto(
             photo = com.zynergylabs.forager.app.domain.model.LogPhoto(id = "p1", relativePath = "photos/p1.jpg", createdAtEpochMillis = null),
             referencingEntryIds = emptyList(),
@@ -984,7 +986,7 @@ class AvailabilityScreenBackNavigationTest {
         setScreen(logUiState = MushroomLogUiState(galleryPhotos = listOf(photo)))
 
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithText("Album").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_VIEW_ALBUM_TAG).performClick() // J2 T3: was the "Album" sub-tab
 
         composeRule.onNodeWithText("Date unknown").assertIsDisplayed()
     }

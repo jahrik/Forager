@@ -36,14 +36,15 @@ import androidx.compose.runtime.setValue
  * not a place the user chose to be. `LogPanel` (the wide tree) keeps its own local state; bringing it
  * onto this holder is plan stage J6.
  *
- * **Room for J2/J3.** The Entries view mode (timeline/album) and the scroll positions belong here
- * too (plan J10). They are not built in J1; add each as a field below and as one more element of
- * [Saver]'s list, keeping names rather than ordinals.
+ * **Added in J2.** The Entries view mode (timeline/album), [entriesView], is the third element of
+ * [Saver]'s list. Scroll positions (plan J10) are still not built; add each as a field and as one
+ * more element of that list, keeping names rather than ordinals.
  */
 @Stable
 internal class JournalScreenState(
     initialTopTab: JournalTopTab = JournalTopTab.CARTOGRAPHY,
     initialRecordsFilter: RecordsSubTab = DEFAULT_RECORDS_FILTER,
+    initialEntriesView: EntriesViewMode = EntriesViewMode.TIMELINE,
 ) {
     /** Which of the Journal's two top tabs is showing. */
     var topTab: JournalTopTab by mutableStateOf(initialTopTab)
@@ -56,15 +57,25 @@ internal class JournalScreenState(
     val recordsFilterState: MutableState<RecordsSubTab> = mutableStateOf(initialRecordsFilter)
     var recordsFilter: RecordsSubTab by recordsFilterState
 
-    // J2/J3: Entries view mode and scroll positions go here (see the class doc comment).
+    /**
+     * Whether Entries shows its timeline or its album — journal redesign J2, T3 (plan J3, J10). A
+     * [MutableState] for the same reason as [recordsFilterState]: `CartographyScreen` takes it as a
+     * state object, and `LogPanel` (J6) calls `CartographyScreen` without one and gets a local
+     * default.
+     */
+    val entriesViewState: MutableState<EntriesViewMode> = mutableStateOf(initialEntriesView)
+    var entriesView: EntriesViewMode by entriesViewState
+
+    // Scroll positions go here when a stage builds them (see the class doc comment).
 
     companion object {
         val Saver: Saver<JournalScreenState, Any> = listSaver(
-            save = { state -> listOf(state.topTab.name, state.recordsFilter.name) },
+            save = { state -> listOf(state.topTab.name, state.recordsFilter.name, state.entriesView.name) },
             restore = { saved ->
                 JournalScreenState(
                     initialTopTab = JournalTopTab.valueOf(saved[0]),
                     initialRecordsFilter = RecordsSubTab.valueOf(saved[1]),
+                    initialEntriesView = EntriesViewMode.valueOf(saved[2]),
                 )
             },
         )
@@ -81,3 +92,6 @@ internal fun rememberJournalScreenState(): JournalScreenState =
  * `RecordsTab`'s own local default for a caller that passes no state (`LogPanel`).
  */
 internal val DEFAULT_RECORDS_FILTER: RecordsSubTab = RecordsSubTab.ALL
+
+/** Entries' two views (J2, T3; plan J3): the entries timeline, or the album of every photo grouped by day. */
+internal enum class EntriesViewMode { TIMELINE, ALBUM }

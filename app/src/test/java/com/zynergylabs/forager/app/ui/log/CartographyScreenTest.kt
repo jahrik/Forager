@@ -229,7 +229,7 @@ class CartographyScreenTest {
         composeRule.onNodeWithText("2026-08-01").performClick()
         composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
 
-        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+        composeRule.onNodeWithTag(ENTRIES_HOME_TAG).assertIsDisplayed() // J2 T3: Entries' top level, was the "Entries" sub-tab
         composeRule.onNodeWithText("2026-08-01").assertIsDisplayed()
     }
 
@@ -268,7 +268,7 @@ class CartographyScreenTest {
 
         // No leave-prompt was needed to get here, and the edit landed in the Entries list.
         composeRule.onNodeWithText("Save your changes?").assertDoesNotExist()
-        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+        composeRule.onNodeWithTag(ENTRIES_HOME_TAG).assertIsDisplayed() // J2 T3: Entries' top level, was the "Entries" sub-tab
         composeRule.onNodeWithText("2026-08-01").performClick()
         composeRule.onNodeWithText("Chanterelles under the big fir.").assertIsDisplayed()
     }
@@ -320,7 +320,7 @@ class CartographyScreenTest {
         composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
         composeRule.onNodeWithTag(LEAVE_PROMPT_DISCARD_TEST_TAG).performClick()
 
-        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+        composeRule.onNodeWithTag(ENTRIES_HOME_TAG).assertIsDisplayed() // J2 T3: Entries' top level, was the "Entries" sub-tab
     }
 
     @Test
@@ -332,7 +332,7 @@ class CartographyScreenTest {
         composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
         composeRule.onNodeWithTag(LEAVE_PROMPT_SAVE_TEST_TAG).performClick()
 
-        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+        composeRule.onNodeWithTag(ENTRIES_HOME_TAG).assertIsDisplayed() // J2 T3: Entries' top level, was the "Entries" sub-tab
     }
 
     /** Drafts still autosave silently and back still never prompts — unchanged, deliberately, from before this dispatch. */

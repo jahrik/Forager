@@ -67,6 +67,11 @@ import java.time.ZoneId
  * Album surfaces at once** — consistent with the dispatch's own general "Album is a place you add
  * to" framing, not compact-only, so this is not treated as an asymmetry to design around.
  *
+ * **Since journal redesign J2 this is the drawer's only.** The Journal's Album sub-tab became
+ * Entries' album view, [EntriesAlbum] (grouped by day, 3 columns); this composable is left as it was
+ * for [DrawerPanel.PhotoGallery] until J6 brings the wide tree along. The two share the launchers,
+ * the viewer and [GalleryPhotoDeleteDialog].
+ *
  * [photos] can contain a [GalleryPhoto] with an empty [GalleryPhoto.referencingEntryIds] — a real,
  * reachable state (see that type's own doc comment; every photo acquired here starts this way), not
  * a hypothetical one this screen can assume away. [GalleryPhotoTile]'s own confirmation dialog
@@ -206,43 +211,63 @@ private fun GalleryPhotoTile(
     }
 
     if (confirmingDelete) {
-        val referencedCount = galleryPhoto.referencingEntryIds.size
-        AlertDialog(
-            onDismissRequest = { confirmingDelete = false },
-            title = { Text("Delete this photo?") },
-            text = {
-                Text(
-                    // No count line at all for a photo referenced by neither a find nor a
-                    // Cartography entry (owner decision, 2026-08-22: "if nothing references it, no
-                    // warning is needed") — there is nothing to warn about at zero either way.
-                    buildList {
-                        if (referencedCount > 0) {
-                            add(
-                                "This photo is used in $referencedCount ${if (referencedCount == 1) "entry" else "entries"}. " +
-                                    "Deleting it will remove it from ${if (referencedCount == 1) "that entry" else "all of them"} too.",
-                            )
-                        }
-                        if (cartographyEntryCount > 0) {
-                            // Journal Stage 2b, 4b extended to photos: a wordless entry can consist
-                            // mostly of attached photos, so this deserves the same warning
-                            // track/waypoint/offline-region deletion gets. No permanence claim — see
-                            // OfflineRegionsSection's identical dialog for why.
-                            add(
-                                "This photo appears in $cartographyEntryCount ${if (cartographyEntryCount == 1) "journal entry" else "journal entries"}.",
-                            )
-                        }
-                        if (isEmpty()) add("This photo isn't used in any entry.")
-                    }.joinToString(" "),
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = { confirmingDelete = false; onDelete() }) { Text("Delete") }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmingDelete = false }) { Text("Cancel") }
-            },
+        GalleryPhotoDeleteDialog(
+            galleryPhoto = galleryPhoto,
+            cartographyEntryCount = cartographyEntryCount,
+            onConfirm = { confirmingDelete = false; onDelete() },
+            onDismiss = { confirmingDelete = false },
         )
     }
+}
+
+/**
+ * The gallery photo delete confirmation, extracted unchanged from [GalleryPhotoTile] in journal
+ * redesign J2 (T3) so the Entries album's tiles ([EntriesAlbum]) confirm through the same dialog and
+ * the two cannot drift apart. Text and behaviour are what the tile's inline dialog had.
+ */
+@Composable
+internal fun GalleryPhotoDeleteDialog(
+    galleryPhoto: GalleryPhoto,
+    cartographyEntryCount: Int,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val referencedCount = galleryPhoto.referencingEntryIds.size
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Delete this photo?") },
+        text = {
+            Text(
+                // No count line at all for a photo referenced by neither a find nor a
+                // Cartography entry (owner decision, 2026-08-22: "if nothing references it, no
+                // warning is needed") — there is nothing to warn about at zero either way.
+                buildList {
+                    if (referencedCount > 0) {
+                        add(
+                            "This photo is used in $referencedCount ${if (referencedCount == 1) "entry" else "entries"}. " +
+                                "Deleting it will remove it from ${if (referencedCount == 1) "that entry" else "all of them"} too.",
+                        )
+                    }
+                    if (cartographyEntryCount > 0) {
+                        // Journal Stage 2b, 4b extended to photos: a wordless entry can consist
+                        // mostly of attached photos, so this deserves the same warning
+                        // track/waypoint/offline-region deletion gets. No permanence claim — see
+                        // OfflineRegionsSection's identical dialog for why.
+                        add(
+                            "This photo appears in $cartographyEntryCount ${if (cartographyEntryCount == 1) "journal entry" else "journal entries"}.",
+                        )
+                    }
+                    if (isEmpty()) add("This photo isn't used in any entry.")
+                }.joinToString(" "),
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) { Text("Delete") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
 }
 
 /** The device's local calendar date for [epochMillis], as a plain ISO string — the same "just show LocalDate.toString()" convention [LogEntryDetailScreen]'s/[LogEntryListScreen]'s own "Find on ${entry.foundOn}" text already uses, rather than introducing a new date-formatting pattern for this one screen. */
