@@ -3,6 +3,9 @@ package com.zynergylabs.forager.app.domain
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.LatLng
+import com.zynergylabs.forager.app.domain.model.RecordPoint
+import com.zynergylabs.forager.app.domain.model.RecordPolyline
+import com.zynergylabs.forager.app.domain.model.RecordRegion
 import com.zynergylabs.forager.app.domain.model.Region
 
 /**
@@ -52,6 +55,11 @@ import com.zynergylabs.forager.app.domain.model.Region
  * `kept` filter this method applies, which is a bug waiting to happen the first time it is
  * forgotten. Withheld items must be unreachable by construction, not by convention: anything that
  * draws an entry on a map takes a [CartographyEntryMapData], and only this method builds one.
+ *
+ * **Every drawn item keeps its record's id** (map layers L0a, owner's ruling 2 on
+ * `prompts/preserved/2026-09-27-30.md`): each one is a [RecordPoint], [RecordPolyline] or
+ * [RecordRegion] carrying the kept decision's own id, so a tap on the map can name the record.
+ * Before L0a these ids were in hand here and dropped when mapping to [LatLng] and [Region].
  */
 class GetCartographyEntryMapDataUseCase(
     private val trackRepository: TrackRepository,
@@ -59,7 +67,8 @@ class GetCartographyEntryMapDataUseCase(
 ) {
     suspend operator fun invoke(entry: CartographyEntry, galleryPhotos: List<GalleryPhoto>): CartographyEntryMapData {
         val trackPolylines = entry.trackDecisions.filter { it.kept }.mapNotNull { decision ->
-            trackRepository.getById(decision.trackId).getOrNull()?.points?.takeIf { it.isNotEmpty() }?.map { LatLng(it.lat, it.lng) }
+            trackRepository.getById(decision.trackId).getOrNull()?.points?.takeIf { it.isNotEmpty() }
+                ?.let { points -> RecordPolyline(decision.trackId, points.map { LatLng(it.lat, it.lng) }) }
         }
 
         val keptFinds = entry.findDecisions.filter { it.kept }
@@ -70,21 +79,21 @@ class GetCartographyEntryMapDataUseCase(
             findsByDayKey[decision.foundOn.toString()]
                 ?.firstOrNull { it.id == decision.findId }
                 ?.foundAt
-                ?.let { LatLng(it.lat, it.lng) }
+                ?.let { RecordPoint(decision.findId, LatLng(it.lat, it.lng)) }
         }
 
-        val waypointMarkers = entry.waypointDecisions.filter { it.kept }.map { LatLng(it.lat, it.lng) }
+        val waypointMarkers = entry.waypointDecisions.filter { it.kept }.map { RecordPoint(it.waypointId, LatLng(it.lat, it.lng)) }
 
         val photosById = galleryPhotos.associateBy { it.photo.id }
         val photoMarkers = entry.photos.mapNotNull { attachment ->
             val photo = photosById[attachment.photoId]?.photo ?: return@mapNotNull null
             val lat = photo.latitude ?: return@mapNotNull null
             val lng = photo.longitude ?: return@mapNotNull null
-            LatLng(lat, lng)
+            RecordPoint(attachment.photoId, LatLng(lat, lng))
         }
 
         val offlineRegionCircles = entry.offlineRegionDecisions.filter { it.kept }.map {
-            Region(lat = it.lat, lng = it.lng, radiusKm = it.radiusKm)
+            RecordRegion(it.offlineRegionId.toString(), Region(lat = it.lat, lng = it.lng, radiusKm = it.radiusKm))
         }
 
         return CartographyEntryMapData(
@@ -103,11 +112,11 @@ class GetCartographyEntryMapDataUseCase(
  * only way an entry's geometry reaches a map.
  */
 data class CartographyEntryMapData(
-    val trackPolylines: List<List<LatLng>>,
-    val findMarkers: List<LatLng>,
-    val waypointMarkers: List<LatLng>,
-    val photoMarkers: List<LatLng>,
-    val offlineRegionCircles: List<Region>,
+    val trackPolylines: List<RecordPolyline>,
+    val findMarkers: List<RecordPoint>,
+    val waypointMarkers: List<RecordPoint>,
+    val photoMarkers: List<RecordPoint>,
+    val offlineRegionCircles: List<RecordRegion>,
 ) {
     /**
      * Every point that is actually *drawn as a datum of the day* — track points, finds, waypoints,
@@ -118,7 +127,7 @@ data class CartographyEntryMapData(
      * outer lists, so a polyline with nothing in it counts for nothing.
      */
     val drawablePoints: List<LatLng>
-        get() = trackPolylines.flatten() + findMarkers + waypointMarkers + photoMarkers
+        get() = trackPolylines.flatMap { it.points } + (findMarkers + waypointMarkers + photoMarkers).map { it.at }
 
     /**
      * `true` when nothing here resolved to a single drawable point — a real, reachable state (an
@@ -142,5 +151,5 @@ data class CartographyEntryMapData(
      * explicitly deferred to the owner's own judgement after seeing it.
      */
     val allPoints: List<LatLng>
-        get() = drawablePoints + offlineRegionCircles.map { LatLng(it.lat, it.lng) }
+        get() = drawablePoints + offlineRegionCircles.map { LatLng(it.region.lat, it.region.lng) }
 }

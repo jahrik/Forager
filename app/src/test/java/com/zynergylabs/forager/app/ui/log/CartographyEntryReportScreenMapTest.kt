@@ -1,5 +1,8 @@
 package com.zynergylabs.forager.app.ui.log
 
+import com.zynergylabs.forager.app.domain.model.RecordRegion
+import com.zynergylabs.forager.app.domain.model.RecordPolyline
+import com.zynergylabs.forager.app.domain.model.RecordPoint
 import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
@@ -106,8 +109,8 @@ class CartographyEntryReportScreenMapTest {
 
     @Test
     fun `two kept tracks reach the map as two separate polylines, not one joined trail`() {
-        val trackOne = listOf(LatLng(45.20, -122.50), LatLng(45.21, -122.51))
-        val trackTwo = listOf(LatLng(46.00, -123.00), LatLng(46.01, -123.01))
+        val trackOne = RecordPolyline("track-1", listOf(LatLng(45.20, -122.50), LatLng(45.21, -122.51)))
+        val trackTwo = RecordPolyline("track-2", listOf(LatLng(46.00, -123.00), LatLng(46.01, -123.01)))
         setScreen(
             baseEntry,
             CartographyEntryMapData(
@@ -126,6 +129,36 @@ class CartographyEntryReportScreenMapTest {
     }
 
     /**
+     * Map layers L0a (owner's ruling 2): the entry map's waypoints carry the kept waypoint's own id,
+     * not the index-generated `cartography-map-waypoint-N` this screen used to synthesize, so the
+     * map's feature tap names a real record. Finds, photos and offline regions are handed over as
+     * the use case built them, ids included.
+     */
+    @Test
+    fun `the entry map's waypoints and other kept items reach the map with their own record ids`() {
+        val find = RecordPoint("find-7", LatLng(45.3, -122.3))
+        val photo = RecordPoint("photo-9", LatLng(45.35, -122.35))
+        val region = RecordRegion("4", com.zynergylabs.forager.app.domain.model.Region(lat = 45.6, lng = -122.6, radiusKm = 10))
+        setScreen(
+            baseEntry,
+            CartographyEntryMapData(
+                trackPolylines = emptyList(),
+                findMarkers = listOf(find),
+                waypointMarkers = listOf(RecordPoint("w-trailhead", LatLng(45.5, -122.5)), RecordPoint("w-creek", LatLng(45.4, -122.4))),
+                photoMarkers = listOf(photo),
+                offlineRegionCircles = listOf(region),
+            ),
+        )
+
+        composeRule.onNodeWithTag(CARTOGRAPHY_MAP_TEST_TAG).assertIsDisplayed()
+        assertEquals(listOf("w-trailhead", "w-creek"), capturedContent?.waypoints?.map { it.id })
+        assertEquals(listOf(LatLng(45.5, -122.5), LatLng(45.4, -122.4)), capturedContent?.waypoints?.map { LatLng(it.lat, it.lng) })
+        assertEquals(listOf(find), capturedContent?.findMarkers)
+        assertEquals(listOf(photo), capturedContent?.photoMarkers)
+        assertEquals(listOf(region), capturedContent?.offlineRegionCircles)
+    }
+
+    /**
      * A kept track deleted from Records never reaches this screen at all — [getMapData] (in
      * production, [com.zynergylabs.forager.app.domain.GetCartographyEntryMapDataUseCase]) is where that
      * resolution/omission happens, see that class's own test for the dangling-reference case
@@ -141,7 +174,7 @@ class CartographyEntryReportScreenMapTest {
             CartographyEntryMapData(
                 trackPolylines = emptyList(),
                 findMarkers = emptyList(),
-                waypointMarkers = listOf(LatLng(45.5, -122.5)),
+                waypointMarkers = listOf(RecordPoint("w1", LatLng(45.5, -122.5))),
                 photoMarkers = emptyList(),
                 offlineRegionCircles = emptyList(),
             ),
@@ -164,7 +197,7 @@ class CartographyEntryReportScreenMapTest {
             CartographyEntryMapData(
                 trackPolylines = emptyList(),
                 findMarkers = emptyList(),
-                waypointMarkers = listOf(LatLng(45.5, -122.5)),
+                waypointMarkers = listOf(RecordPoint("w1", LatLng(45.5, -122.5))),
                 photoMarkers = emptyList(),
                 offlineRegionCircles = emptyList(),
             ),
@@ -223,7 +256,7 @@ class CartographyEntryReportScreenMapTest {
             CartographyEntryMapData(
                 trackPolylines = emptyList(),
                 findMarkers = emptyList(),
-                waypointMarkers = listOf(LatLng(45.5, -122.5)),
+                waypointMarkers = listOf(RecordPoint("w1", LatLng(45.5, -122.5))),
                 photoMarkers = emptyList(),
                 offlineRegionCircles = emptyList(),
             ),
@@ -248,7 +281,7 @@ class CartographyEntryReportScreenMapTest {
     private val mapDataWithWaypoint = CartographyEntryMapData(
         trackPolylines = emptyList(),
         findMarkers = emptyList(),
-        waypointMarkers = listOf(LatLng(45.5, -122.5)),
+        waypointMarkers = listOf(RecordPoint("w1", LatLng(45.5, -122.5))),
         photoMarkers = emptyList(),
         offlineRegionCircles = emptyList(),
     )
@@ -330,9 +363,9 @@ class CartographyEntryReportScreenMapTest {
             CartographyEntryMapData(
                 trackPolylines = emptyList(),
                 findMarkers = emptyList(),
-                waypointMarkers = listOf(LatLng(45.5, -122.5)),
+                waypointMarkers = listOf(RecordPoint("w1", LatLng(45.5, -122.5))),
                 photoMarkers = emptyList(),
-                offlineRegionCircles = listOf(com.zynergylabs.forager.app.domain.model.Region(lat = 45.6, lng = -122.6, radiusKm = 10)),
+                offlineRegionCircles = listOf(RecordRegion("1", com.zynergylabs.forager.app.domain.model.Region(lat = 45.6, lng = -122.6, radiusKm = 10))),
             ),
         )
 
@@ -362,7 +395,7 @@ class CartographyEntryReportScreenMapTest {
                 findMarkers = emptyList(),
                 waypointMarkers = emptyList(),
                 photoMarkers = emptyList(),
-                offlineRegionCircles = listOf(com.zynergylabs.forager.app.domain.model.Region(lat = 45.6, lng = -122.6, radiusKm = 10)),
+                offlineRegionCircles = listOf(RecordRegion("1", com.zynergylabs.forager.app.domain.model.Region(lat = 45.6, lng = -122.6, radiusKm = 10))),
             ),
         )
 
@@ -392,9 +425,9 @@ class CartographyEntryReportScreenMapTest {
                     CartographyEntryMapData(
                         trackPolylines = emptyList(),
                         findMarkers = emptyList(),
-                        waypointMarkers = listOf(waypoint),
+                        waypointMarkers = listOf(RecordPoint("w1", waypoint)),
                         photoMarkers = emptyList(),
-                        offlineRegionCircles = listOf(com.zynergylabs.forager.app.domain.model.Region(lat = 45.6, lng = -122.6, radiusKm = 10)),
+                        offlineRegionCircles = listOf(RecordRegion("1", com.zynergylabs.forager.app.domain.model.Region(lat = 45.6, lng = -122.6, radiusKm = 10))),
                     )
                 },
                 getCoveringOfflineRegion = { _, points -> pointsAsked = points; null },

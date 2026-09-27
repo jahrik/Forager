@@ -355,13 +355,15 @@ internal fun CartographyEntryReportScreen(
                 mapSlot(
                     mapRegion,
                     MapOverlayContent(
-                        // Synthesized, id/name/note carry no real data — this map has no tap handling,
-                        // so nothing ever reads them; only lat/lng reach the layer's own GeoJSON feature.
-                        waypoints = resolvedMapData.waypointMarkers.mapIndexed { index, point ->
+                        // The kept waypoint's own id (map layers L0a: the map's tap reports it through
+                        // MapRenderMode.onFeatureTap), with its snapshot's coordinate. Name and note
+                        // are placeholders, as they have been since Stage 2d: this map draws the pin
+                        // only, and what it draws is unchanged.
+                        waypoints = resolvedMapData.waypointMarkers.map { marker ->
                             Waypoint(
-                                id = "cartography-map-waypoint-$index",
-                                lat = point.lat,
-                                lng = point.lng,
+                                id = marker.recordId,
+                                lat = marker.at.lat,
+                                lng = marker.at.lng,
                                 altitude = null,
                                 name = "Waypoint",
                                 note = "",

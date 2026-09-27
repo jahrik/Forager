@@ -1,5 +1,7 @@
 package com.zynergylabs.forager.app.domain
 
+import com.zynergylabs.forager.app.domain.model.RecordPolyline
+import com.zynergylabs.forager.app.domain.model.RecordPoint
 import android.app.Application
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
@@ -103,8 +105,9 @@ class GetCartographyEntryMapDataUseCaseTest {
         val result = useCase(entry, galleryPhotos = emptyList())
 
         assertEquals(2, result.trackPolylines.size)
-        assertEquals(listOf(LatLng(45.20, -122.50)), result.trackPolylines[0])
-        assertEquals(listOf(LatLng(46.00, -123.00)), result.trackPolylines[1])
+        // Each polyline carries its kept track's own id (map layers L0a).
+        assertEquals(RecordPolyline("track-1", listOf(LatLng(45.20, -122.50))), result.trackPolylines[0])
+        assertEquals(RecordPolyline("track-2", listOf(LatLng(46.00, -123.00))), result.trackPolylines[1])
     }
 
     @Test
@@ -149,7 +152,7 @@ class GetCartographyEntryMapDataUseCaseTest {
 
         val result = useCase(entry, galleryPhotos = emptyList())
 
-        assertEquals("the track resolved to zero points, so no polyline may be emitted for it", emptyList<List<LatLng>>(), result.trackPolylines)
+        assertEquals("the track resolved to zero points, so no polyline may be emitted for it", emptyList<RecordPolyline>(), result.trackPolylines)
         assertTrue(result.isEmpty)
     }
 
@@ -182,7 +185,7 @@ class GetCartographyEntryMapDataUseCaseTest {
 
         val result = useCase(entry, galleryPhotos = emptyList())
 
-        assertEquals(listOf(LatLng(45.5, -122.5)), result.findMarkers)
+        assertEquals(listOf(RecordPoint("find-1", LatLng(45.5, -122.5))), result.findMarkers)
     }
 
     @Test
@@ -223,11 +226,12 @@ class GetCartographyEntryMapDataUseCaseTest {
 
         val result = useCase(entry, galleryPhotos = emptyList())
 
-        assertEquals(listOf(LatLng(45.4, -122.4)), result.waypointMarkers)
+        assertEquals(listOf(RecordPoint("w1", LatLng(45.4, -122.4))), result.waypointMarkers)
         assertEquals(1, result.offlineRegionCircles.size)
-        assertEquals(45.6, result.offlineRegionCircles.single().lat, 0.0)
-        assertEquals(-122.6, result.offlineRegionCircles.single().lng, 0.0)
-        assertEquals(10, result.offlineRegionCircles.single().radiusKm)
+        assertEquals("1", result.offlineRegionCircles.single().recordId)
+        assertEquals(45.6, result.offlineRegionCircles.single().region.lat, 0.0)
+        assertEquals(-122.6, result.offlineRegionCircles.single().region.lng, 0.0)
+        assertEquals(10, result.offlineRegionCircles.single().region.radiusKm)
     }
 
     @Test
@@ -242,7 +246,7 @@ class GetCartographyEntryMapDataUseCaseTest {
 
         val result = useCase(entry, galleryPhotos)
 
-        assertEquals(listOf(LatLng(45.7, -122.7)), result.photoMarkers)
+        assertEquals(listOf(RecordPoint("p1", LatLng(45.7, -122.7))), result.photoMarkers)
     }
 
     @Test

@@ -263,7 +263,7 @@ class NetworkFixExclusionPerConsumerTest {
             trackDecisions = listOf(TrackDecision(trackId = "t1", name = null, distanceMeters = 0.0, durationMillis = 0L, pointCount = 0, kept = true)),
         )
         val mapData = GetCartographyEntryMapDataUseCase(trackRepository, logRepository)(entry, emptyList())
-        assertEquals(survivors.map { it.lat }, mapData.trackPolylines.single().map { it.lat })
+        assertEquals(survivors.map { it.lat }, mapData.trackPolylines.single().points.map { it.lat })
 
         // A region whose footprint holds only the two excluded points: coverage must not count them.
         val aroundTheNetworkFixes = object : OfflineMapRepository {
