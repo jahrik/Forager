@@ -142,11 +142,114 @@ object MapSourceIds {
     const val PHOTOS = "photo-markers"
 }
 
+private val LINE_OPACITY = listOf(BaseOpacity(OpacityProperty.LINE, 1f))
+private val ICON_OPACITY = listOf(BaseOpacity(OpacityProperty.ICON, 1f))
+
+/** The offline region's fill opacity, today's value (Journal Stage 2d). */
+private const val OFFLINE_REGION_FILL_OPACITY = 0.2f
+
+/** The sighting dot's fill opacity, today's value: about the deleted osmdroid version's 0xB3 alpha. */
+private const val SIGHTING_DOT_OPACITY = 0.7f
+
+/**
+ * The sighting dot's ring opacity, today's value: a light, near-opaque stroke (not translucent like
+ * the fill) so each dot's boundary stays crisp in a dense cluster.
+ */
+private const val SIGHTING_DOT_STROKE_OPACITY = 0.85f
+
+private fun marker(id: String, sourceId: String, role: PaletteRole, toggleable: Boolean) = MapLayerSpec(
+    id = id,
+    kind = LayerKind.MARKER,
+    renderer = LayerRenderer.SYMBOL,
+    sourceId = sourceId,
+    zGroup = ZGroup.MARKERS,
+    paletteRole = role,
+    userToggleable = toggleable,
+    userOpacity = false,
+    userReorderable = false,
+    tapGroup = TapGroup.MARKER,
+    baseOpacities = ICON_OPACITY,
+)
+
+private fun line(id: String, sourceId: String, role: PaletteRole, tapGroup: TapGroup, owner: String?) = MapLayerSpec(
+    id = id,
+    kind = LayerKind.LINE,
+    renderer = LayerRenderer.LINE,
+    sourceId = sourceId,
+    zGroup = ZGroup.LINES,
+    paletteRole = role,
+    // A layer that follows another's state is not offered on its own.
+    userToggleable = owner == null,
+    userOpacity = false,
+    userReorderable = false,
+    tapGroup = tapGroup,
+    baseOpacities = LINE_OPACITY,
+    stateOwnerId = owner,
+)
+
 /**
  * Today's overlay layers, bottom to top. The colour-field group is empty in L0a (L0b adds the
  * synthetic layer).
+ *
+ * Within each group the order is the one `SightingsMap` drew before L0a, and the reasons recorded
+ * there still hold: the offline region's fill is lowest, so a coverage circle never covers a
+ * marker; each casing is directly below its own track; planned trips, then waypoints, then finds
+ * and photos, so a pin never sits under a sibling marker at the same point.
+ *
+ * **One visible change, accepted by the owner** (ruling 1 on `prompts/preserved/2026-09-27-30.md`,
+ * "Accept: markers above lines"): the search centre and the sighting dots used to be added between
+ * the offline outline and the breadcrumb casing, so every track line drew over them. As markers
+ * they now draw above every line, the convention point markers follow elsewhere, and the order a
+ * finger wins in ([tapWinner]) is now the order things are drawn in.
+ *
+ * `userToggleable` follows the owner's overlay list for the Layers sheet (layer ruling 3: finds,
+ * waypoints, tracks, planned trips, offline maps, journal entries); photos are counted with finds as
+ * part of an entry. The sighting dots and the search centre are not in that list, so they are not
+ * toggleable here. `userOpacity` is offered for colour fields only (layer ruling 1: "each with its
+ * own opacity slider"); the multiplier itself applies to any layer. Both are for L0b to confirm.
  */
-val MAP_LAYER_REGISTRY: List<MapLayerSpec> = emptyList()
+val MAP_LAYER_REGISTRY: List<MapLayerSpec> = listOf(
+    MapLayerSpec(
+        id = MapLayerIds.OFFLINE_REGION_FILL,
+        kind = LayerKind.AREA,
+        renderer = LayerRenderer.FILL,
+        sourceId = MapSourceIds.OFFLINE_REGIONS,
+        zGroup = ZGroup.AREAS,
+        paletteRole = PaletteRole.OFFLINE_REGION,
+        userToggleable = true,
+        userOpacity = false,
+        userReorderable = false,
+        // Owner's ruling 4: taps on the fill fall through; the outline is what a finger hits.
+        tapGroup = TapGroup.NONE,
+        baseOpacities = listOf(BaseOpacity(OpacityProperty.FILL, OFFLINE_REGION_FILL_OPACITY)),
+    ),
+    line(MapLayerIds.OFFLINE_REGION_OUTLINE, MapSourceIds.OFFLINE_REGIONS, PaletteRole.CASING, TapGroup.LINE, owner = MapLayerIds.OFFLINE_REGION_FILL),
+    line(MapLayerIds.BREADCRUMB_CASING, MapSourceIds.BREADCRUMB, PaletteRole.CASING, TapGroup.NONE, owner = MapLayerIds.BREADCRUMB),
+    line(MapLayerIds.BREADCRUMB, MapSourceIds.BREADCRUMB, PaletteRole.BREADCRUMB, TapGroup.LINE, owner = null),
+    line(MapLayerIds.KEPT_TRACKS_CASING, MapSourceIds.KEPT_TRACKS, PaletteRole.CASING, TapGroup.NONE, owner = MapLayerIds.KEPT_TRACKS),
+    line(MapLayerIds.KEPT_TRACKS, MapSourceIds.KEPT_TRACKS, PaletteRole.KEPT_TRACK, TapGroup.LINE, owner = null),
+    marker(MapLayerIds.SEARCH_CENTRE, MapSourceIds.SEARCH_CENTRE, PaletteRole.SEARCH_CENTRE, toggleable = false),
+    MapLayerSpec(
+        id = MapLayerIds.SIGHTINGS,
+        kind = LayerKind.MARKER,
+        renderer = LayerRenderer.CIRCLE,
+        sourceId = MapSourceIds.SIGHTINGS,
+        zGroup = ZGroup.MARKERS,
+        paletteRole = PaletteRole.SIGHTING_DOT,
+        userToggleable = false,
+        userOpacity = false,
+        userReorderable = false,
+        tapGroup = TapGroup.MARKER,
+        baseOpacities = listOf(
+            BaseOpacity(OpacityProperty.CIRCLE, SIGHTING_DOT_OPACITY),
+            BaseOpacity(OpacityProperty.CIRCLE_STROKE, SIGHTING_DOT_STROKE_OPACITY),
+        ),
+    ),
+    marker(MapLayerIds.PLANNED_TRIPS, MapSourceIds.PLANNED_TRIPS, PaletteRole.PLANNED_TRIP, toggleable = true),
+    marker(MapLayerIds.WAYPOINTS, MapSourceIds.WAYPOINTS, PaletteRole.WAYPOINT, toggleable = true),
+    marker(MapLayerIds.FINDS, MapSourceIds.FINDS, PaletteRole.FIND, toggleable = true),
+    marker(MapLayerIds.PHOTOS, MapSourceIds.PHOTOS, PaletteRole.PHOTO, toggleable = true),
+)
 
 /**
  * What is wrong with [registry] as a registry, one line per problem; empty when nothing is. Checks
@@ -154,11 +257,48 @@ val MAP_LAYER_REGISTRY: List<MapLayerSpec> = emptyList()
  * [MapLayerSpec.stateOwnerId] names another layer that owns its own state, that only colour
  * fields are reorderable, and that every base opacity belongs to its layer's renderer.
  */
-fun registryProblems(registry: List<MapLayerSpec>): List<String> = emptyList()
+fun registryProblems(registry: List<MapLayerSpec>): List<String> = buildList {
+    registry.groupingBy { it.id }.eachCount().filterValues { it > 1 }.keys.forEach {
+        add("layer id $it appears more than once")
+    }
+    registry.zipWithNext().forEach { (lower, upper) ->
+        if (upper.zGroup.ordinal < lower.zGroup.ordinal) {
+            add("${upper.id} (${upper.zGroup}) is listed after ${lower.id} (${lower.zGroup}), a group it belongs below")
+        }
+    }
+    val byId = registry.associateBy { it.id }
+    registry.forEach { spec ->
+        spec.stateOwnerId?.let { ownerId ->
+            val owner = byId[ownerId]
+            when {
+                owner == null -> add("${spec.id} follows $ownerId, which is not in the registry")
+                owner.stateOwnerId != null -> add("${spec.id} follows $ownerId, which itself follows ${owner.stateOwnerId}")
+            }
+        }
+        if (spec.userReorderable && spec.zGroup != ZGroup.COLOUR_FIELDS) {
+            add("${spec.id} is reorderable but is in ${spec.zGroup}; only colour fields are")
+        }
+        spec.baseOpacities.filter { it.property.renderer != spec.renderer }.forEach {
+            add("${spec.id} is a ${spec.renderer} layer but sets ${it.property.styleName}")
+        }
+    }
+}
 
 /**
  * [registry] in draw order, bottom to top: the groups in [ZGroup] order and, inside a group whose
  * layers are reorderable, the order [state] holds ([MapLayersState.reorderableOrder]); every other
  * layer keeps its registry position within its group.
  */
-fun orderedLayers(registry: List<MapLayerSpec>, state: MapLayersState): List<MapLayerSpec> = registry
+fun orderedLayers(registry: List<MapLayerSpec>, state: MapLayersState): List<MapLayerSpec> {
+    val userRank = state.reorderableOrder.withIndex().associate { it.value to it.index }
+    return ZGroup.entries.flatMap { group ->
+        val members = registry.filter { it.zGroup == group }
+        val (reorderable, fixed) = members.partition { it.userReorderable }
+        if (reorderable.isEmpty()) {
+            members
+        } else {
+            // sortedBy is stable, so layers the stored order does not name keep their registry order.
+            reorderable.sortedBy { userRank[it.id] ?: Int.MAX_VALUE } + fixed
+        }
+    }
+}
