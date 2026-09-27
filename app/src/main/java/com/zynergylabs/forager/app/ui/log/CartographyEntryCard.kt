@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -29,6 +30,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
+import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.LocalDate
 import java.time.YearMonth
@@ -299,6 +301,33 @@ internal fun groupEntriesByMonth(entries: List<CartographyEntry>): List<Pair<Yea
     }
     return runs
 }
+
+/**
+ * The card's hero photo (J3, C2; owner ruling "Direct photos only (Recommended)"): the earliest
+ * *directly attached* photo that still exists. [CartographyEntry.photos] sorted by
+ * [com.zynergylabs.forager.app.domain.model.PhotoAttachment.attachedAtEpochMillis] (their stored
+ * order is undefined: `getPhotoRefs` has no `ORDER BY`, J0 B2), each looked up in the gallery the
+ * screen already holds ([photosById]); the first that resolves is the hero. A photo deleted from the
+ * gallery leaves its reference behind, so it is skipped rather than drawn as a blank. None resolves,
+ * no hero. Photos of the entry's kept finds are not considered (the owner's ruling; the entry holds
+ * no id for them). Ties keep the list's order (a stable sort). No query, column or migration.
+ */
+internal fun entryHeroPhoto(entry: CartographyEntry, photosById: Map<String, GalleryPhoto>): GalleryPhoto? =
+    entry.photos.sortedBy { it.attachedAtEpochMillis }.firstNotNullOfOrNull { photosById[it.photoId] }
+
+/** The hero drawn on top of a card: the existing [DecodedPhoto], full width, a fixed height, cropped. */
+@Composable
+internal fun EntryHeroPhoto(entryId: String, photo: GalleryPhoto) {
+    DecodedPhoto(
+        relativePath = photo.photo.relativePath,
+        contentDescription = null,
+        modifier = Modifier.fillMaxWidth().height(ENTRY_HERO_HEIGHT).testTag(entryHeroTestTag(entryId, photo.photo.id)),
+    )
+}
+
+private val ENTRY_HERO_HEIGHT = 140.dp
+
+internal fun entryHeroTestTag(entryId: String, photoId: String): String = "entry-hero-$entryId-$photoId"
 
 internal fun entryCardTestTag(entryId: String): String = "entry-card-$entryId"
 internal fun entryRowTestTag(entryId: String): String = "entry-row-$entryId"
