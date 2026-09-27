@@ -74,6 +74,15 @@ class BasemapNightStyleTest {
         assertEquals(day, night)
     }
 
+    /** The per-basemap decision behind the Satellite case, asserted on its own so a new basemap has to choose. */
+    @Test
+    fun `only Satellite opts out of the night paint`() {
+        assertEquals(
+            setOf(Basemap.OPEN_TOPO_MAP, Basemap.OSM_STANDARD),
+            Basemap.entries.filter { basemapTakesNightPaint(it) }.toSet(),
+        )
+    }
+
     @Test
     fun `night mode changes nothing else about the style`() {
         for (basemap in Basemap.entries) {
