@@ -2450,3 +2450,13 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Merged through the GitHub API by the planner's cloud session on the owner's instruction, verbatim: "Open the PR and merge then we can start on the journal redesign". Merged-by reads owner because the merge was the owner's decision and no coder dispatch carried it; the checker allows only owner or a coder's store file. Merged after CI: check run "Build, test, publish APK" (Actions run 36308125724) concluded success at 2026-09-27T09:08:15Z on head cb8eec4d52b350e44c360ca4033e438724a5072c, and GitHub reported mergeable_state clean. PR, Head, Base, merged_at from the GitHub API; git log -1 --format=%P 352b708 gives e136330873031c49004a8da42213f6556bc36b4b and cb8eec4d52b350e44c360ca4033e438724a5072c. Backup: none. No pre-merge bundle of pre-main at e136330 was written: the backup store is on the owner's machine, which this cloud session does not reach (owner: "Stay off the machine. We are in the cloud now"), and the history guard that required one was removed by e136330. The pre-merge state is recoverable from the remote as e136330 itself. Carries from git diff e136330 352b708 -- RECORD.md, which adds IDs 2026-09-27-42 to -46. Written on claude/docs-pr137-loose-ends-jnv47u, fast-forwarded to origin/pre-main 352b708.
 
 ---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-27-48
+**Dispatch-file:** preserved/2026-09-27-15.md
+**Type:** pulse
+**Outcome:** answered
+**Report:** docs/audits/2026-09-27-journal-j0-pulse.md
+**Notes:** The Journal J0 pulse re-run, by three read-only pulse agents in parallel (parts A, B and C), each reading the working tree at e871179, identical to pre-main 352b708 for every app and test file. The first J0 (dispatch-note 2026-09-27-34, store copy preserved/2026-09-27-05.md) was answered only in that planner's session; this re-run exists so the answers are in the repository. Written by the planner by hand at 2026-09-27T09:15:50Z; no hook.
+
+---

@@ -223,3 +223,82 @@ asserts these. *Could not determine:* why 85 dp against the 45 dp estimate (a
 notice strip set in that test's state, or Robolectric's font metrics); a run
 would settle it. The plan's L1 48 dp budget (open question 4) needs recounting
 either way, since the header does render.
+
+## Part B: deletes, card photos and track thumbnails
+
+### B1. Is each delete reversible? (J0 question 2; decides J8)
+
+Every delete is a hard SQL `DELETE`. No table has a soft-delete column, there
+is no trash, and no delete has an Undo (a grep of `ui/` for `Undo`, `trash` and
+`SnackbarResult.ActionPerformed`; the code says so at
+`ui/log/CartographyEntryReportScreen.kt:96`). What an Undo would take differs:
+
+| Delete | UI entry point | What goes | Restorable by |
+|---|---|---|---|
+| Waypoint | trash IconButton, `ui/availability/AvailabilityTripsWaypointsUi.kt:270`, confirm at :209-233 | the row (`WaypointDao.kt:43-44`); Cartography refs stay | re-saving the held copy: `@Insert(REPLACE)` (`WaypointDao.kt:40-41`) |
+| Recorded track | **none**: `DeleteTrackUseCase` is built at `AppContainer.kt:255` and has no other reference in `main/`; `TrackExportPanel.kt` has no delete | (unreachable) track and all points, one transaction (`TrackDao.kt:70-74`) | create plus append points; point rowids would change |
+| Offline region | text `OutlinedButton("Delete")`, `ui/availability/AvailabilityOfflineMapsUi.kt:455`, confirm at :380-406 | MapLibre tiles (`MapLibreOfflineMapRepository.kt:145-148`) then the row | nothing short of a re-download, under a new MapLibre id, so old refs would not re-link (inferred) |
+| Logged find | inside the entry screens, **no confirm**: `LogEntryReportScreen.kt:137-143`, `LogEntryDetailScreen.kt:159-160` | the row and its photo cross-refs (`MushroomLogDao.kt:92-96`); photos kept by design | `save` (REPLACE) plus `attachPhotoToEntry` per photo, since `save` never touches photos (`domain/MushroomLogRepository.kt:50-58`) |
+| Gallery photo | trash IconButton, `ui/log/PhotoGalleryScreen.kt:190`, confirm at :208-243 | the row and cross-refs (`MushroomLogDao.kt:140-144`), **then the JPEG file** (`photo/FilePhotoStore.kt:149-154`) | only by deferring the file delete until the Undo is dismissed |
+| Cartography entry | confirm at `CartographyEntryEditScreen.kt:303-312`, `CartographyEntryReportScreen.kt:531-540` | the entry and its five ref tables (`CartographyEntryDao.kt:107-115`) | `save` rewrites them all from the domain object |
+
+Premises that were wrong: tracks have no delete in the UI at all; the plan's
+"the always-visible trash icon goes" fits waypoints and photos only (regions
+use a text button, finds delete from inside the entry, tracks cannot be
+deleted); `amendment-2b-finds-and-trash.md`, cited in code comments, is not in
+the repository.
+
+### B2. The first photo on an Entries card (J0 question 3)
+
+- **Photos attached directly to an entry: cheap.** `CartographyEntry.photos`
+  (`domain/model/CartographyEntry.kt:73`, ids and attach times at :131-134) is
+  already in the list's data, and `CartographyScreen` already receives
+  `galleryPhotos` (`ui/log/CartographyScreen.kt:77`). The report and edit
+  screens do the same id-to-path join in memory
+  (`CartographyEntryReportScreen.kt:482-487`, `CartographyEntryEditScreen.kt:410-418`).
+  Cost: pass `galleryPhotos` to `CartographyEntryListScreen`; no query,
+  column or migration. Each card then decodes its image (`ui/log/DecodedPhoto.kt:56-63`,
+  `inSampleSize = 4`, `remember(relativePath)` with no shared cache), as
+  `FindsGalleryScreen.kt:192-194` already does.
+- **Photos of the entry's kept finds: not cheap.** The entry holds only
+  `FindDecision.hasPhotos` (`CartographyEntry.kt:94-100`), no photo id; the find
+  list is not passed to `CartographyScreen`. It would need a new join or a new
+  column with a migration.
+- "First" is undefined today: `getPhotoRefs` has no `ORDER BY`
+  (`CartographyEntryDao.kt:40-41`); `attachedAtEpochMillis` can be sorted in
+  memory. A photo deleted from the gallery leaves its ref, so the card must
+  fall through to the next photo or to none.
+
+### B3. A static track thumbnail per card (J0 question 4)
+
+- Nothing draws a track except the live MapLibre map; no bitmap or canvas
+  renderer exists (grep of `main/` for `Canvas(`, `drawPath`, `drawLine`,
+  `createBitmap`, `Snapshotter`).
+- **Recorded Tracks rows:** every point of every track is already in memory
+  (`TrackRecordingUiState.tracks`, `ui/track/TrackRecordingUiState.kt:80`,
+  loaded by `RoomTrackRepository.getAll`, :38-40) and already reaches
+  `RecordsTab`. A thumbnail needs a bounding-box projection and a `Canvas`
+  `drawPath`, remembered per track.
+- **Cartography entry cards:** `TrackDecision` has no geometry
+  (`CartographyEntry.kt:103-110`). Points would need a full load per card (as
+  the report screen does), a join against the track list (not passed there
+  today), or a new stored polyline with a migration.
+- Point counts are code ceilings, not measurements: 720, 240 and 60 points an
+  hour for the three recording modes (`domain/model/TrackRecordingMode.kt:27-29`).
+  Real tracks recorded in the repo are small (135 points, quoted from
+  `2026-09-07-track-distance-label-completion-report.md:6`).
+
+## What J0 settles in the plan's open questions
+
+1. **J8's form:** reversibility is mixed, not yes or no. Waypoints and finds
+   can be undone by re-saving a held copy; offline regions only by deferring
+   the MapLibre delete; tracks have no delete. This goes to the owner.
+2. **The J5 hero photo and track thumbnail:** a hero from directly attached
+   photos is cheap; from finds' photos it is not. A track thumbnail is cheap on
+   Records rows and not on entry cards. This goes to the owner.
+3. **L7's mechanism:** rotation does not recreate the Activity, so what loses
+   state today is leaving the Journal tab (all tab and sub-tab state is
+   `remember` inside the Journal branch). A night-mode toggle and a fold do
+   recreate it. This goes to the owner.
+4. **The header in short windows:** it renders, inside the 640 dp cap, so L1's
+   48 dp budget must be recounted before J5.
