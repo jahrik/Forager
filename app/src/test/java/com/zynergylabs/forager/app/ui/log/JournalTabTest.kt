@@ -206,7 +206,8 @@ class JournalTabTest {
         // own, with no manual tap standing in for what a real one-shot request already did.
         if (pendingDestination == null) {
             composeRule.onNodeWithText("Records").performClick()
-            composeRule.onNodeWithText("Logged Finds").performClick()
+            // J1 S3: the Finds filter chip replaced the "Logged Finds" sub-tab.
+            composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.FINDS)).performClick()
         }
     }
 

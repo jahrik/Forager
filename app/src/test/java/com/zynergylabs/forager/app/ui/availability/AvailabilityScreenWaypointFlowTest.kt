@@ -217,11 +217,13 @@ class AvailabilityScreenWaypointFlowTest {
 
     /**
      * Journal restructure Stage 1: Waypoints moved from the Tools drawer's own section into the
-     * Journal's Records tab (default sub-tab, so no further tap is needed once Records is open).
+     * Journal's Records tab. Journal redesign J1 (S3): Records opens on its All chip now, so the
+     * Waypoints chip takes one more tap.
      */
     private fun openWaypointsTab() {
         composeRule.onNodeWithText("Journal").performClick()
         composeRule.onNodeWithText("Records").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.WAYPOINTS)).performScrollTo().performClick()
         composeRule.waitForIdle()
     }
 

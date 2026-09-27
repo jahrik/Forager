@@ -426,7 +426,8 @@ class AvailabilityScreenWideWindowLayoutTest {
         composeRule.onNodeWithText("Mushroom Log").performClick()
         // Journal Stage 2b: finds relocated from Cartography into Records' fourth Finds submenu.
         composeRule.onNodeWithText("Records").performClick()
-        composeRule.onNodeWithText("Logged Finds").performClick()
+        // J1 S3: the Finds filter chip replaced the "Logged Finds" sub-tab (LogPanel shares RecordsTab).
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.FINDS)).performClick()
         composeRule.onNodeWithText("Find on 2026-08-01").performClick()
         composeRule.onNodeWithContentDescription("Back to your log").performClick()
 

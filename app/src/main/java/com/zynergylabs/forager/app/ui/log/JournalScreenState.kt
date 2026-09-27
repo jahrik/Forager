@@ -80,4 +80,4 @@ internal fun rememberJournalScreenState(): JournalScreenState =
  * What Records shows when nothing has chosen otherwise — the holder's initial value and
  * `RecordsTab`'s own local default for a caller that passes no state (`LogPanel`).
  */
-internal val DEFAULT_RECORDS_FILTER: RecordsSubTab = RecordsSubTab.WAYPOINTS
+internal val DEFAULT_RECORDS_FILTER: RecordsSubTab = RecordsSubTab.ALL
