@@ -2731,3 +2731,19 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Device-only items for the consolidated J7 check: the sheet's height and scrim on the real phone in both orientations. The owner's device result on build 1.0.1173 (the merge of e36ff86) is recorded in docs/audits/2026-09-27-owner-device-result-find-picker.md.
 
 ---
+
+**Kind:** intent
+**ID:** 2026-09-27-70
+**Timestamp:** 2026-09-27T22:43:28Z
+**Title:** L0a, the map layer model: a registry of layers as plain data with explicit z-groups, SightingsMap building from it, visibility and opacity from state, tap priority, attribution as a list; no new UI
+**Dispatch-file:** preserved/2026-09-27-29.md
+**Change:** The owner's layer-framework rulings (plan: "Map layering framework", "L0 design rulings"): A1 a layer model and ordered registry (colour fields < areas < lines < markers) free of MapLibre and Android; A2 initializeOverlayLayers loops over the registry with each layer's paint and layout unchanged and the offline night recolour still first; A3 visibility and opacity applied from a layer state carried in MapRenderMode or MapOverlayContent (no tenth MapSlot parameter), defaults equal to today; A4 a pure precedence function (markers, then lines and outlines, then colour; topmost within a group) behind the click listener, sighting taps unchanged, one generic non-sighting callback defaulted to no-op; A5 attribution as a list of credits, today's output unchanged.
+**Scope boundary:** Branch journal-redesign only. SightingsMap.kt, MapSlot.kt (the two bundles), BasemapStyles.kt (attribution), a new layers package, callers only where a default is not enough, tests. Not the Layers sheet, legend, Diagnostics toggle, DataStore, forecast data or synthetic layer (L0b); not M1 or J8; not Room; not MapModePicker; not the held flaky tests; not the record, index, CLAUDE.md, plans or prompts.
+**Baseline:** journal-redesign at 9a81a7e (J5c closed by terminal 2026-09-27-69). Planner's full suite at 3b09e43, the same app tree: 248 classes / 2052 / 1 / 0 / 24, a held flaky album test.
+**Prediction (outcome — planner):** 1. No existing test changes. 2. The layer state fits in MapRenderMode without touching MapOverlayContent's marker fields. 3. The suite grows by 25 to 50 headless tests.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** A1-A5 pushed with the completion report and a device-only list; tests first for the pure functions, revert checks, existing map tests unchanged; full suite with held flaky failures reported as such; the planner re-runs the suite and writes the terminal.
+**Abort conditions:** A wrong premise; a visible draw-order or styling change not ruled out headlessly; needing a tenth MapSlot parameter; a tests-first test passing at base; a non-compiling revert build; a non-held test failing; Maven 429s; two failed fixes on one symptom; an open design question.
+**Notes:** Written by the planner by hand. Owner rulings, verbatim: "Across app restarts (Recommended)", "Collapsible chip, bottom corner (Recommended)", "Markers, then lines, then colour (Recommended)", "Diagnostics screen (Recommended)" (the first, second and fourth apply in L0b). D58 check required before each push.
+
+---
