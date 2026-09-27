@@ -17,6 +17,11 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.filterToOne
+import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -82,6 +87,8 @@ class RecordsFilterChipsTest {
     private var offlineMapsOpenedCount = 0
     private var tracksOpenedCount = 0
     private var incidentalExitCount = 0
+    private val deletedWaypointIds = mutableListOf<String>()
+    private val deletedRegionIds = mutableListOf<Long>()
 
     private fun pressBack() {
         composeRule.activity.onBackPressedDispatcher.onBackPressed()
@@ -92,6 +99,9 @@ class RecordsFilterChipsTest {
         initial: MushroomLogUiState = MushroomLogUiState(entries = listOf(CHIPS_FIND)),
         pendingDestination: PendingJournalDestination? = null,
         openRecords: Boolean = true,
+        waypoints: List<Waypoint> = CHIPS_WAYPOINTS,
+        tracks: List<Track> = CHIPS_TRACKS,
+        regions: List<OfflineRegionSummary> = CHIPS_REGIONS,
     ) {
         composeRule.setContent {
             var uiState by remember { mutableStateOf(initial) }
@@ -138,7 +148,7 @@ class RecordsFilterChipsTest {
                 getCartographyEntryMapData = { _, _ -> CHIPS_EMPTY_MAP_DATA },
                 getCartographyEntryOfflineRegion = { _, _ -> null },
                 getCartographyEntryCurrentLocation = { LocationResult.LocationUnavailable },
-                availabilityUiState = AvailabilityUiState(offlineRegions = CHIPS_REGIONS),
+                availabilityUiState = AvailabilityUiState(offlineRegions = regions),
                 distanceUnit = DistanceUnit.MILES,
                 currentTime = CurrentTimeProvider { 0L },
                 onOfflineMapLatChanged = {},
@@ -147,12 +157,12 @@ class RecordsFilterChipsTest {
                 onOfflineMapNameChanged = {},
                 onOfflineMapsOpened = { offlineMapsOpenedCount++ },
                 onDownloadOfflineMaps = {},
-                onDeleteOfflineRegion = {},
-                tracks = CHIPS_TRACKS,
+                onDeleteOfflineRegion = { id -> deletedRegionIds += id },
+                tracks = tracks,
                 onTracksOpened = { tracksOpenedCount++ },
-                waypoints = CHIPS_WAYPOINTS,
+                waypoints = waypoints,
                 waypointsErrorMessage = null,
-                onDeleteWaypoint = {},
+                onDeleteWaypoint = { id -> deletedWaypointIds += id },
                 pendingDestination = pending,
                 onPendingDestinationConsumed = { pending = null },
             )
@@ -312,6 +322,143 @@ class RecordsFilterChipsTest {
         touchChip(FINDS_CHIP, Offset(0.5f, 0.5f))
         touchChip(WAYPOINTS_CHIP, Offset(0.5f, 0.5f))
         assertTrue(incidentalExitCount == 0)
+    }
+
+    // ── S4: the All logbook (journal redesign J1, continuation prompts/preserved/2026-09-27-17.md) ──
+    //
+    // Owner's answers: finds first within their day (they carry a date and no time), then the timed
+    // records newest first; days newest first; each type's own row as its chip shows it, with a type
+    // badge; tapping a find selects the Finds chip and opens its report there; committed finds only.
+    // Times are built at local hours in the JVM's default zone, the zone the screen groups by, so the
+    // day a record falls on does not depend on where the suite runs.
+
+    private fun localMillis(date: LocalDate, hour: Int): Long =
+        date.atTime(hour, 0).atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+
+    private val d1 = LocalDate.of(2026, 9, 26)
+    private val d2 = LocalDate.of(2026, 9, 24)
+    private val d3 = LocalDate.of(2026, 9, 20)
+
+    private val logFind1 = MushroomLogEntry.draft(id = "F1", location = null, date = d1).copy(isDraft = false)
+    private val logFind2 = MushroomLogEntry.draft(id = "F2", location = null, date = d1).copy(isDraft = false)
+    private val logFind3 = MushroomLogEntry.draft(id = "F3", location = null, date = d3).copy(isDraft = false)
+    private val logDraft = MushroomLogEntry.draft(id = "D1", location = null, date = d1)
+
+    private fun logWaypoints() = listOf(
+        Waypoint(id = "W1", lat = 45.5, lng = -122.6, altitude = null, name = "Morning pin", note = "", createdAtEpochMillis = localMillis(d1, 9)),
+        Waypoint(id = "W2", lat = 45.6, lng = -122.7, altitude = null, name = "Creek pin", note = "", createdAtEpochMillis = localMillis(d2, 10)),
+    )
+
+    private fun logTracks() = listOf(
+        Track(id = "T1", name = null, startedAtEpochMillis = localMillis(d1, 15), endedAtEpochMillis = localMillis(d1, 16), points = emptyList()),
+    )
+
+    private fun logRegions() = listOf(
+        OfflineRegionSummary(id = 7L, name = "Noon region", region = Region(45.5, -122.6, 5), minZoom = 10.0, maxZoom = 15.0, tileCount = 10, sizeBytes = 1000L, createdAtEpochMillis = localMillis(d1, 12)),
+    )
+
+    private fun setLogbookScreen() = setScreen(
+        initial = MushroomLogUiState(entries = listOf(logFind1, logFind2, logFind3), draftEntries = listOf(logDraft)),
+        waypoints = logWaypoints(),
+        tracks = logTracks(),
+        regions = logRegions(),
+    )
+
+    private fun rowTag(type: String, id: String) = "records-logbook-row-$type-$id"
+    private fun badgeTag(type: String, id: String) = "records-badge-$type-$id"
+    private fun dayTag(date: LocalDate) = "records-logbook-day-$date"
+
+    @Test
+    fun `All shows every committed record grouped by day, days newest first, finds first in their day, then timed records newest first`() {
+        setLogbookScreen()
+        chip(ALL_CHIP).assertIsSelected()
+
+        // Reading order: top first, then left (two finds share a row, as in the Finds gallery grid).
+        val expected = listOf(
+            dayTag(d1),
+            rowTag("finds", "F1"),
+            rowTag("finds", "F2"),
+            rowTag("tracks", "T1"),
+            rowTag("offline-maps", "7"),
+            rowTag("waypoints", "W1"),
+            dayTag(d2),
+            rowTag("waypoints", "W2"),
+            dayTag(d3),
+            rowTag("finds", "F3"),
+        )
+        val positions = expected.map { tag ->
+            val b = composeRule.onNodeWithTag(tag).getUnclippedBoundsInRoot()
+            tag to (b.top.value to b.left.value)
+        }
+        val sorted = positions.sortedWith(compareBy({ it.second.first }, { it.second.second })).map { it.first }
+        assertEquals("the logbook's reading order", expected, sorted)
+
+        // Day headers carry the day's record count.
+        composeRule.onNodeWithTag(dayTag(d1)).assert(hasText("5 records", substring = true))
+        composeRule.onNodeWithTag(dayTag(d2)).assert(hasText("1 record", substring = true))
+        composeRule.onNodeWithTag(dayTag(d3)).assert(hasText("1 record", substring = true))
+        // Committed finds only: the draft is neither listed nor counted.
+        composeRule.onNodeWithTag(rowTag("finds", "D1")).assertDoesNotExist()
+        chip(ALL_CHIP).assert(hasText("7"))
+        chip(FINDS_CHIP).assert(hasText("3"))
+    }
+
+    @Test
+    fun `every All row carries its type badge, and each row is its chip's own row with its own controls`() {
+        setLogbookScreen()
+
+        for ((type, id) in listOf("finds" to "F1", "finds" to "F2", "finds" to "F3", "tracks" to "T1", "offline-maps" to "7", "waypoints" to "W1", "waypoints" to "W2")) {
+            composeRule.onNodeWithTag(badgeTag(type, id), useUnmergedTree = true).assertExists()
+        }
+        // The same rows the single-type chips show: find tiles, the track row's share action, the
+        // waypoint row's Directions and Remove, the region row's Delete.
+        composeRule.onNodeWithText("Find on $d1", useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithTag("share-track-T1").assertExists()
+        composeRule.onNodeWithContentDescription("Directions to Morning pin").assertExists()
+        composeRule.onNodeWithContentDescription("Remove waypoint Creek pin").assertExists()
+        composeRule.onNodeWithText("Noon region").assertExists()
+    }
+
+    @Test
+    fun `deleting from All goes through the same confirmation dialogs as the chips`() {
+        setLogbookScreen()
+
+        composeRule.onNodeWithContentDescription("Remove waypoint Creek pin").performScrollTo().performClick()
+        composeRule.onNodeWithText("Delete \"Creek pin\"?").assertIsDisplayed()
+        assertEquals(emptyList<String>(), deletedWaypointIds)
+        composeRule.onNodeWithText("Delete").performClick()
+        assertEquals(listOf("W2"), deletedWaypointIds)
+
+        composeRule.onNodeWithTag(rowTag("offline-maps", "7")).performScrollTo()
+        composeRule.onNode(hasText("Delete") and hasAnyAncestor(hasTestTag(rowTag("offline-maps", "7")))).performClick()
+        composeRule.onNodeWithText("Delete \"Noon region\"?").assertIsDisplayed()
+        assertEquals(emptyList<Long>(), deletedRegionIds)
+        composeRule.onAllNodesWithText("Delete").filterToOne(hasAnyAncestor(isDialog())).performClick()
+        assertEquals(listOf(7L), deletedRegionIds)
+    }
+
+    @Test
+    fun `touching a find in All selects the Finds chip and opens its report, and Back goes to the Finds gallery, then All`() {
+        setLogbookScreen()
+
+        for (point in TOUCH_SAMPLES) {
+            chip(ALL_CHIP).assertIsSelected()
+            composeRule.onNodeWithTag(rowTag("finds", "F2")).performScrollTo()
+            composeRule.onNodeWithTag(rowTag("finds", "F2")).performTouchInput { click(Offset(width * point.x, height * point.y)) }
+            composeRule.waitForIdle()
+
+            chip(FINDS_CHIP).assertIsSelected()
+            composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
+            composeRule.onNodeWithText("Find on $d1").assertDoesNotExist()
+
+            pressBack()
+            chip(FINDS_CHIP).assertIsSelected()
+            composeRule.onNodeWithContentDescription("Entry options").assertDoesNotExist()
+            composeRule.onNodeWithContentDescription("New log entry").assertIsDisplayed()
+
+            pressBack()
+            chip(ALL_CHIP).assertIsSelected()
+        }
     }
 }
 
