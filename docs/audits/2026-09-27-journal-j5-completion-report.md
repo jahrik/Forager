@@ -283,3 +283,118 @@ final run has no failures, so no held test needed a rerun there. The suite grew 
   legacy metrics (Premises 1). Not audited.
 - `JournalPendingDeleteTest`'s "a plain tap on an album photo still opens the viewer" failed at
   baseline; it is an album test but not a long-press one.
+
+## Added after the resume (continuation `prompts/preserved/2026-09-27-27.md`, RECORD.md 2026-09-27-66)
+
+The owner's answers: L5 chips, option (a) "Tighter chips (fits by ~6 dp)"; L5 rows, "A small
+follow-up stage", now; drafts chip, "Entries only (Recommended)", as built (no change). Pulled
+`54bcc6bf` with `git pull --no-rebase` (a fast-forward: only the continuation's store copy and its
+RECORD.md line). The continuation makes a revert build that does not compile an abort.
+
+**Status: L5a is built, tested, revert-checked and pushed. L5b stopped before building, on the
+continuation's own stop-and-ask rule: every Records row type loses information it shows today when
+made one line, the offline-region row always and the waypoint and track rows in named cases (the
+inventory below). No row was changed.** Both L5a revert builds compiled, so the abort condition did
+not arise. Final full suite: 246 / 2029 / 0 / 0 / 24.
+
+### Commits added after the resume (all pushed to `journal-redesign`)
+
+| SHA | What |
+|---|---|
+| `841eb255` | L5a tests first: the guard (native graphics), the font-scale 1.15 record, a portrait pin. At `54bcc6bf`: the guard fails, "the chip row's content is 48.0dp wider than the row". |
+| `27e5c70a` | L5a: `RecordsChipRowMetrics`. |
+| this report commit | This section. |
+
+### L5a, the chips: what was built
+
+`RecordsFilterChips.kt`: `RecordsChipRowMetrics(iconSize, chipGap, rowPadding)`. `Default` is J1's row
+(the chip `Icon` unsized, which draws at 24 dp; 8 dp gaps; 16 dp padding), used in portrait and by
+`LogPanel`. `ShortWindow` is Material's own chip icon size, `FilterChipDefaults.IconSize` (18 dp), 4 dp
+gaps (`Spacing.xs`) and 12 dp padding (`Spacing.md`). `RecordsTab`'s J5 parameter `hideChipsOnScroll`
+is renamed `shortWindow` and now also picks the metrics; `JournalTab` passes it in a short landscape
+window as before. The row still scrolls sideways when it overflows, as J1 built it.
+
+**Measured** (native graphics, `w823dp-h384dp-land`, through the real `AvailabilityScreen`, the row at
+B3's 640 dp cap, counts All 38 / Finds 12 / Tracks 10 / Waypoints 16 / Offline maps 0, the counts
+option (a) was priced with):
+
+| | Before (`54bcc6bf`) | After (`27e5c70a`) |
+|---|---|---|
+| Font scale 1.0 | overflows by 48 dp (content ends at 740, row ends at 692) | **fits, 6 dp to spare** (content ends at 686) |
+| Font scale 1.15 | overflows by 79 dp | **overflows by 25 dp; the row scrolls** |
+
+**At 1.15 the row overflows by 25 dp.** Per the continuation, the design was not changed further. The
+margin at 1.0 is 6 dp, so a two-digit Offline maps count, or larger counts elsewhere, can also tip it
+over; not measured.
+
+### L5a tests (`AvailabilityScreenJournalShortWindowTest`, +3)
+
+- **Guard**, native graphics: asserts font scale 1.0 was in force, the row is 640 dp, the five chips
+  share one line, and the content (last chip's end plus the row's end padding, taken equal to its start
+  padding) is no wider than the row; the message states the overflow and the geometry. At base it fails
+  for that reason: 48.0 dp.
+- **Record at font scale 1.15** (`@Config(fontScale = 1.15f)`), native graphics: asserts the screen
+  saw font scale 1.15, then prints the result either way (above). **It cannot fail on overflow, by
+  the continuation's design; it passes identically before and after the change and is a record, not
+  evidence of a fit** (CLAUDE.md's "passes identically" rule, flagged here).
+- **Portrait pin**, native graphics at `w411dp-h891dp`: 16 dp row padding, 8 dp gaps, 24 dp icon. It
+  passes before and after, by design.
+
+### L5a revert checks
+
+The same runner as before (edit from a saved copy; refuse on any `e:` line; restore from the saved
+copy; byte comparison true and `git status` empty after each):
+
+| Check | Edit | Result, 0 `e:` lines |
+|---|---|---|
+| l5a-padding (the continuation's "old padding") | `ShortWindow`'s `rowPadding = Spacing.md` → `Spacing.lg` | guard fails: "the chip row's content is 2.0dp wider than the row ... padding 16.0.dp" |
+| l5a-metrics | `RecordsTab` picks `Default` in a short window | guard fails: "48.0dp wider", the base figure |
+
+Both failures name figures only these edits produce (2 dp is 634 + 8 dp of padding against 640).
+
+### L5b, the rows: the pre-build inventory, and why it stopped
+
+Measured with a probe (native graphics, not committed): each row's width in the All logbook at
+`w823dp-h384dp-land`, where rows are narrowest, and each piece of text's single-line width at its
+current style. The logbook's row (badge included) is **608 dp** wide; the badge and its gap take 36 dp,
+so a row's own content gets **572 dp**. The single-type lists were not measured; they are at most the
+640 dp cap, so 32 to 68 dp wider.
+
+| Row type | Composable, file | What it shows today | Its date or time | Fits one line? |
+|---|---|---|---|---|
+| Waypoint | `WaypointRow`, `ui/availability/AvailabilityTripsWaypointsUi.kt:230` (in the Waypoints chip via `WaypointsSection`, and in All) | name (`titleSmall`); MGRS (`bodySmall`, omitted when unsupported); lat/lng to 4 places; Directions button; inside a `Card` with 12 dp padding | none shown; `Waypoint.createdAtEpochMillis` (`domain/model/Waypoint.kt:29`); no existing formatter formats a waypoint's time | **Only for short names.** 572 - 24 card padding - 48 Directions = 500 dp for text. MGRS 122 + coordinates 113 + a time in the track format 137 + three 8 dp gaps = 396, leaving **about 104 dp for the name**. "Pin 1" is 34 dp; "Chanterelle patch by the creek" is 198 dp and would be cut. |
+| Recorded track | `TrackExportRow`, `ui/track/TrackExportPanel.kt:92` | 40 dp track thumbnail; start time as the title (`bodyLarge`, `formatTrackTimestamp`, `DISPLAY_FORMAT` "MMM d, yyyy, h:mm a" at `:163`); `trackSubtitle`: "N points", plus the network-fix exclusion note when one applies, plus "· recording"; Share button | its start, already shown (the title) | **Not in the note cases.** Text gets about 468 dp (572 - thumbnail 40 - Share 48 - gaps). With the time right-aligned at `bodySmall` (137 + 8), the subtitle gets about 323 dp. "1234 points" is 70 dp and fits. "240 points · 812 more not shown (network fixes) · recording" is 345 dp, and "No usable points — all 123 fixes were from the network provider · recording" is 432 dp: both would be cut. That note exists so a short or empty track is never silent (`trackSubtitle`'s doc comment), which is the continuation's "a status". |
+| Offline region | `OfflineRegionRow`, `ui/availability/AvailabilityOfflineMapsUi.kt:421` | name (`bodyMedium`); "Stale" when stale; a detail line: radius around lat/lng, tile count, size, "downloaded N days ago" (`relativeTimeLabel`, `ui/availability/AvailabilityPureFunctions.kt:39`); a three-line paragraph on zoom levels | `OfflineRegionSummary.createdAtEpochMillis` (`domain/OfflineMapRepository.kt:204`), shown relative inside the detail line | **No, never.** The detail line alone is 485 dp and the paragraph is 1486 dp on one line, against 572. One line keeps the name, the Stale flag and the date; the radius, the coordinates, the tile count, the size and the zoom paragraph would go. |
+| Find | none | Finds are tiles, not rows: `FindTile` in `FindsGalleryScreen`'s grid (`ui/log/FindsGalleryScreen.kt:188`), and two to a row in the All logbook | `foundOn`, in the tile's label ("Find on 2026-09-20", `findTileLabel`, `:240`) | No row exists, so there is nothing to change. |
+| All logbook rows | `RecordsLogbookList.kt` (`BadgedRow` around the three rows above) | the rows above with a type badge | as above | As the rows above. |
+
+**Under the continuation's rule ("if a row cannot become one line without dropping information it
+shows today ... stop and report which row and what would go"), L5b stopped here.** What would go:
+
+1. **Offline region**, always: the radius, the centre coordinates, the tile count, the size, and the
+   zoom-level paragraph.
+2. **Waypoint**, for names longer than about 104 dp (about 15 characters): the end of the name. The
+   alternative, keeping the whole name, would drop the MGRS or the coordinates instead. A waypoint also
+   shows no time today, so one line adds one (its creation time; no existing formatter formats a
+   waypoint, so the format is also a choice, the track's "MMM d, yyyy, h:mm a" being the nearest).
+3. **Recorded track**, when a network-fix note applies: the end of the note. This is also the only row
+   whose time is already its title, so "primary label on the left" would make "N points" the label.
+
+The rows keep J4b's two-stage swipe and long-press menus unchanged, since nothing in them changed.
+Options for whoever decides, not built: (a) one line only where nothing is lost, and the region row
+kept as it is; (b) one line with the dropped pieces moved elsewhere (a second line shown only when a
+row is opened, or the region's details behind a tap); (c) keep today's rows in short windows.
+
+### Suite after the resume
+
+- **Final, `27e5c70a`, cleared results directory, 0 `e:` lines: 246 classes / 2029 / 0 / 0 / 24.**
+  That is +3 over `07dd9d45` (the three L5a tests). No failures, so no held test needed a rerun.
+- Affected classes during the work: `AvailabilityScreenJournalShortWindowTest` (26),
+  `RecordsFilterChipsTest` (13) and `AvailabilityScreenLandscapeB3DestinationsTest` (12), 51/0/0/0 at
+  `27e5c70a`'s tree.
+
+### Device-only items added after the resume
+
+- The chips at the device's own font, and at the user's font scale: the guard measures Robolectric's
+  native fonts, not the S22 Ultra's.
+- The 18 dp chip icons' legibility (each chip keeps Material's chip height and touch target).
