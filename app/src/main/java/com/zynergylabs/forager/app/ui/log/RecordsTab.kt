@@ -165,10 +165,11 @@ internal fun RecordsTab(
     /**
      * Journal redesign J5, L3: in a short window the filter chip row is the second row under the
      * Journal's L1 row, and hides while the content below it scrolls down, returning on a scroll up
-     * ([HideOnScrollState]). `false` (the default: portrait, and `LogPanel`) keeps the row fixed, as
-     * before.
+     * ([HideOnScrollState]); and (L5a) the chips take the tighter [RecordsChipRowMetrics.ShortWindow]
+     * so all five fit one line at 640 dp. `false` (the default: portrait, and `LogPanel`) keeps the
+     * row fixed and J1's spacing, as before.
      */
-    hideChipsOnScroll: Boolean = false,
+    shortWindow: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     var selectedTab by selectedTabState
@@ -210,7 +211,7 @@ internal fun RecordsTab(
     // J5, L3: a nested-scroll parent over the whole tab, so whichever list is showing (the All
     // logbook, a single-type list, the Finds gallery) reports its scroll to the chip row's state.
     val chipRowScroll = rememberHideOnScrollState()
-    Column(modifier = modifier.fillMaxSize().then(if (hideChipsOnScroll) Modifier.nestedScroll(chipRowScroll.connection) else Modifier)) {
+    Column(modifier = modifier.fillMaxSize().then(if (shortWindow) Modifier.nestedScroll(chipRowScroll.connection) else Modifier)) {
         // Journal redesign J1, S3 (plan J4): one horizontally scrolling row of filter chips replaced
         // the four-tab SecondaryTabRow ("Waypoint Markers" / "Offline Maps" / "Recorded Tracks" /
         // "Logged Finds"). That row's fixed 90 dp tabs are why its labels had to be two words and
@@ -228,9 +229,10 @@ internal fun RecordsTab(
                     offlineMaps = availabilityUiState.visibleOfflineRegions.size,
                 ),
                 onSelect = ::selectTab,
+                metrics = if (shortWindow) RecordsChipRowMetrics.ShortWindow else RecordsChipRowMetrics.Default,
             )
         }
-        if (hideChipsOnScroll) ShortWindowSecondRow(chipRowScroll) { chipRow() } else chipRow()
+        if (shortWindow) ShortWindowSecondRow(chipRowScroll) { chipRow() } else chipRow()
 
         when (selectedTab) {
             // J1 S4: the All logbook — see RecordsLogbookList.

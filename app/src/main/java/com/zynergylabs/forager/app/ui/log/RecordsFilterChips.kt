@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ViewList
@@ -23,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
 /**
@@ -63,14 +65,16 @@ internal fun RecordsFilterChipRow(
     counts: RecordsFilterCounts,
     onSelect: (RecordsSubTab) -> Unit,
     modifier: Modifier = Modifier,
+    /** The row's spacing and icon size: [RecordsChipRowMetrics.Default], or the short window's (J5, L5a). */
+    metrics: RecordsChipRowMetrics = RecordsChipRowMetrics.Default,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .testTag(RECORDS_FILTER_CHIP_ROW_TAG)
             .horizontalScroll(rememberScrollState())
-            .padding(horizontal = Spacing.lg, vertical = Spacing.xs),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            .padding(horizontal = metrics.rowPadding, vertical = Spacing.xs),
+        horizontalArrangement = Arrangement.spacedBy(metrics.chipGap),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         RecordsSubTab.entries.forEach { filter ->
@@ -79,13 +83,14 @@ internal fun RecordsFilterChipRow(
                 count = counts.of(filter),
                 selected = filter == selected,
                 onClick = { onSelect(filter) },
+                iconSize = metrics.iconSize,
             )
         }
     }
 }
 
 @Composable
-private fun RecordsFilterChip(filter: RecordsSubTab, count: Int?, selected: Boolean, onClick: () -> Unit) {
+private fun RecordsFilterChip(filter: RecordsSubTab, count: Int?, selected: Boolean, onClick: () -> Unit, iconSize: Dp?) {
     val type = filter.recordType()
     val colors = if (type != null) {
         val typeColors = RecordTypeStyle.colors(type)
@@ -107,10 +112,33 @@ private fun RecordsFilterChip(filter: RecordsSubTab, count: Int?, selected: Bool
                 if (count != null) Text(count.toString(), style = MaterialTheme.typography.labelMedium)
             }
         },
-        leadingIcon = { Icon(filter.chipIcon(), contentDescription = null) },
+        leadingIcon = { Icon(filter.chipIcon(), contentDescription = null, modifier = if (iconSize != null) Modifier.size(iconSize) else Modifier) },
         colors = colors,
         modifier = Modifier.testTag(recordsFilterChipTestTag(filter)),
     )
+}
+
+/**
+ * The chip row's spacing and leading-icon size. [Default] is J1's row, unchanged in portrait and in
+ * the wide tree. [ShortWindow] is journal redesign J5's L5a (continuation 2026-09-27-27; the owner's
+ * "Tighter chips (fits by ~6 dp)", option (a) in the J5 report): Material's own 18 dp chip icon
+ * ([FilterChipDefaults.IconSize]) in place of the unsized `Icon`'s 24 dp, 4 dp between chips and
+ * 12 dp at the row's ends, so All, Finds, Tracks, Waypoints and Offline maps, each with its icon and
+ * count, fit one line at the 640 dp cap. Measured in native graphics with two-digit counts, the row
+ * fits with 6 dp to spare, so a guard test (`AvailabilityScreenJournalShortWindowTest`, "L5a guard")
+ * fails if it stops fitting. Larger counts or font scales can still overflow; the row still scrolls
+ * sideways then, as J1 built it.
+ */
+internal data class RecordsChipRowMetrics(
+    /** `null` leaves the chip's `Icon` at its own size (24 dp), as J1 built it. */
+    val iconSize: Dp?,
+    val chipGap: Dp,
+    val rowPadding: Dp,
+) {
+    companion object {
+        val Default = RecordsChipRowMetrics(iconSize = null, chipGap = Spacing.sm, rowPadding = Spacing.lg)
+        val ShortWindow = RecordsChipRowMetrics(iconSize = FilterChipDefaults.IconSize, chipGap = Spacing.xs, rowPadding = Spacing.md)
+    }
 }
 
 /** The record type a single-type chip filters to; `null` for [RecordsSubTab.ALL]. */
