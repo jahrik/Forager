@@ -252,9 +252,10 @@ fun SightingsMap(
     // applyBasemap's own name()-comparison guard and for the same reason: setStyle discards every
     // source and layer the previous style had, so calling it when nothing about the style actually
     // changed would flash the map to blank and rebuild everything for nothing. One value holding
-    // basemap, palette and the offline flag (Stage 2e-ii) rather than the two separate
-    // appliedBasemap/appliedPalette vars it replaced — see needsStyleReload's own doc comment for
-    // the "toggle does nothing" gap two separate comparisons left open.
+    // basemap, palette, the offline flag (Stage 2e-ii) and effective night (colour build C1) rather
+    // than the two separate appliedBasemap/appliedPalette vars it replaced — see needsStyleReload's
+    // own doc comment for the "toggle does nothing" gap two separate comparisons left open, and
+    // AppliedMapStyle.night's for the same gap night itself had until C1.
     //
     // The palette is in here for the reason the old appliedPalette existed: the overlay layers are
     // built once per style load with their colours baked into the layer properties, so a palette
@@ -413,9 +414,14 @@ fun SightingsMap(
     // OnDidFailLoadingMapListener registered in the DisposableEffect above, never swallowed; what
     // the user should be *told* in that state is a decision the pre-build report lists and this
     // dispatch did not make.
-    LaunchedEffect(mapLibreMap, basemap, mapPalette, useOfflineTiles) {
+    LaunchedEffect(mapLibreMap, basemap, mapPalette, useOfflineTiles, nightMode) {
         val map = mapLibreMap ?: return@LaunchedEffect
-        val requested = AppliedMapStyle(basemap = basemap, palette = mapPalette, useOfflineTiles = useOfflineTiles)
+        val requested = AppliedMapStyle(
+            basemap = basemap,
+            palette = mapPalette,
+            useOfflineTiles = useOfflineTiles,
+            night = effectiveNight(basemap, nightMode = nightMode, useOfflineTiles = useOfflineTiles),
+        )
         if (!needsStyleReload(appliedStyle, requested)) return@LaunchedEffect
         // Captured before setStyle below discards the LocationComponent entirely (see
         // activateLiveLocationIfPermitted's own doc comment on why re-activation is needed at
@@ -432,7 +438,7 @@ fun SightingsMap(
             null
         }
         map.setMaxZoomPreference(basemap.maxZoom.toDouble())
-        val builder = when (val source = mapStyleSourceFor(basemap, night = nightMode, useOfflineTiles = useOfflineTiles)) {
+        val builder = when (val source = mapStyleSourceFor(basemap, night = requested.night, useOfflineTiles = useOfflineTiles)) {
             is MapStyleSource.Json -> Style.Builder().fromJson(source.json)
             is MapStyleSource.Uri -> Style.Builder().fromUri(source.uri)
         }

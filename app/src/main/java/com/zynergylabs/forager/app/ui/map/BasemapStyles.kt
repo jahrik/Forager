@@ -133,7 +133,27 @@ internal fun mapAttributionFor(basemap: Basemap, useOfflineTiles: Boolean): Stri
  * nothing" bug would come from (§2.2). Extracted so that gap is pinned by a test rather than by
  * reading the effect's keys.
  */
-internal data class AppliedMapStyle(val basemap: Basemap, val palette: MapPalette, val useOfflineTiles: Boolean)
+internal data class AppliedMapStyle(
+    val basemap: Basemap,
+    val palette: MapPalette,
+    val useOfflineTiles: Boolean,
+    /**
+     * **Effective** night ([effectiveNight]), not the raw toggle. Night Maps did nothing before
+     * colour build C1 partly because this value had no night component at all, so a toggle compared
+     * equal and never reached `setStyle`. Holding the effective value rather than the toggle is what
+     * keeps a toggle over Satellite, whose style does not change at night, from reloading for nothing.
+     */
+    val night: Boolean,
+)
+
+/**
+ * Whether the style [SightingsMap] loads should be the night one: the Night Maps toggle, except on
+ * Satellite's own raster style, which stays day ([basemapTakesNightPaint]). Over the offline style
+ * it is the toggle whatever the basemap, because the offline style's night is its post-load
+ * recolour ([offlineNightRecolourOf]), not a raster paint.
+ */
+internal fun effectiveNight(basemap: Basemap, nightMode: Boolean, useOfflineTiles: Boolean): Boolean =
+    nightMode && (useOfflineTiles || basemapTakesNightPaint(basemap))
 
 /** `true` when nothing has been applied yet, or when any part of [requested] differs from what was. */
 internal fun needsStyleReload(applied: AppliedMapStyle?, requested: AppliedMapStyle): Boolean = applied != requested
