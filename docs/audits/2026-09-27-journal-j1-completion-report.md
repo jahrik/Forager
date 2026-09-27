@@ -1,10 +1,15 @@
-# 2026-09-27: Journal redesign J1, completion report (partial: S4 stopped for decisions)
+# 2026-09-27: Journal redesign J1, completion report
 
 Dispatch: `prompts/preserved/2026-09-27-16.md` (build, J1 coder). Plan:
 `docs/plans/journal-redesign.md` (J4, J6, J10, L7, "Build order" J1, "Rules for
 every build stage"). Map: `docs/audits/2026-09-27-journal-j0-pulse.md`. Written
 by the J1 coder in a cloud worktree on local branch `j1`, which tracks
 `origin/journal-redesign`.
+
+**Status after the resume (added): S1 to S5 are all built, tested and pushed.
+S4 was built after the owner answered its three questions
+(`prompts/preserved/2026-09-27-17.md`); see the section "Added after the
+resume" at the end. The paragraph below is the status as first written.**
 
 **Status: S1, S2, S3 and S5 are built, tested and pushed. S4 (the All logbook
 and type badges) is not built.** It stopped on three design questions the
@@ -310,3 +315,153 @@ These three block S4; nothing of S4 was built or guessed.
   new one is noted at its declaration as added after that count, rather than
   editing the historical tally.
 - The branch head's Records opens on an empty All until S4 is built.
+
+## Added after the resume: S4, the All logbook (continuation `prompts/preserved/2026-09-27-17.md`)
+
+Everything above this section was written before the resume and is left as
+written, including "Needs a decision" (now answered) and the status line's
+original wording, which is superseded by the status note at the top.
+
+### Answers applied
+
+The owner's three answers, from the continuation: (1) finds first in their day;
+(2) the same rows as the chips, with a type badge, controls included; a find tap
+selects the Finds chip and opens the report there; (3) committed finds only.
+
+### Commits added after the resume (all pushed to `journal-redesign`)
+
+| SHA | What |
+|---|---|
+| `68c0c52` | (planner) the continuation store copy; pulled with `git pull --no-rebase`. |
+| `31e9c31` | S4 tests first: four tests in `RecordsFilterChipsTest`. |
+| `20d4574` | S4: `RecordsLogbook.kt` (pure model), `RecordsLogbookList.kt` (the list), `RecordsLogbookTest` (3), rows widened and dialogs extracted. |
+| this report's commit | This section. |
+
+Full SHAs: `31e9c3144b3f2e6dd96765df102a2acd640d8874` (tests first); `20d45742f51124ffe7a07fd8a3851fdf778a9d6b` (S4).
+
+### What was built
+
+- **`ui/log/RecordsLogbook.kt`, `buildRecordsLogbook(...)`**, pure Kotlin, no
+  Compose. Days newest first. Within a day: that day's committed finds first,
+  **in the order they arrive** (`MushroomLogUiState.entries`, the Finds
+  gallery's own order: the answer to "say which stable order"), then the timed
+  records newest first by epoch millis. Ties on the same millisecond keep
+  tracks, then waypoints, then regions, each in input order (both sorts are
+  Kotlin's stable `sortedBy*`). Epoch-millis records fall on their calendar
+  date in `ZoneId.systemDefault()`, finds on their stored `foundOn` as-is, the
+  device-local convention `domain/LocalDayRange.kt` states.
+- **`ui/log/RecordsLogbookList.kt`, `RecordsLogbookList`**, the All branch of
+  `RecordsTab`. A scrolling `Column` (like `WaypointsSection` and
+  `TrackExportList`) of day headers ("Sat, Sep 26, 2026 · 5 records") and the
+  chips' own rows: `FindTile` two to a row (the Finds gallery's own two-column
+  grid, so a tile keeps its shape instead of stretching full width), and
+  `TrackExportRow`, `WaypointRow`, `OfflineRegionRow` each with a
+  `RecordTypeBadge` in front (a 28 dp disc: the type's container colour, the
+  chip icon in its accent, announced as "Find"/"Track"/"Waypoint"/"Offline
+  map"; on find tiles it sits over the tile's top-start corner). Controls are
+  the rows' own: Directions and Remove on waypoints, Share on tracks, Delete on
+  regions. Deletes confirm through the same dialogs as the chips.
+- **Find tap:** `RecordsTab` selects the Finds chip, then calls the new
+  `onOpenFind`, which `JournalTab` wires to `mode = REPORT; onOpenEntry(id)`,
+  the same thing the Finds gallery's own tile does. Back: report, Finds
+  gallery, All.
+- **`RecordsTab`'s `findsCount: Int?` became `finds: List<MushroomLogEntry>?`**
+  (count and logbook from one list). `LogPanel` passes neither, so its All
+  shows a line "Finds are not listed here. See the Finds chip." above the timed
+  records, and its Finds and All chips show no count: a partial list is labelled
+  as partial rather than passed off as everything. Its find tap would only
+  switch chips (its `onOpenFind` is the default no-op), and with no finds in its
+  All there is no find to tap.
+- **Changes to the sub-tab content files, forced by "the same rows" (scope
+  allows these "only where the chip change forces it"):** `WaypointRow`,
+  `OfflineRegionRow`, `TrackExportRow` and `FindTile` went `private` →
+  `internal`, bodies untouched. The two delete confirmations were extracted,
+  text and behaviour unchanged, into `internal` `WaypointDeleteDialog`
+  (`AvailabilityTripsWaypointsUi.kt`) and `OfflineRegionDeleteDialog`
+  (`AvailabilityOfflineMapsUi.kt`); `WaypointsSection` and
+  `OfflineRegionsSection` now call them. The existing waypoint and offline-map
+  delete tests in `AvailabilityScreenWaypointFlowTest` and
+  `AvailabilityScreenSettingsPanelTest` pass on the final head.
+
+### Tests: base failures
+
+**S4 at `68c0c52`** (`31e9c31` over the planner's continuation commit, whose
+code is `89cdd39`'s): the class ran 13 tests, 4 failures, the 4 new ones, each
+on All being empty: `could not find any node` for
+`records-logbook-day-2026-09-26`, `records-badge-finds-F1`,
+`records-logbook-row-finds-F2`, and for the content description
+`Remove waypoint Creek pin`. The nine S3 tests in the class passed.
+
+**Three test assertions were wrong and were corrected at `20d4574`, not the
+code.** The first forward run failed 3 of the 4, each for a reason the
+prediction did not include, so I fixed the check first (CLAUDE.md, Bug fixing):
+a `"Delete"` text matcher that also matched the region row's own Delete button
+(now filtered to the dialog); `"Find on 2026-09-26"` asserted as unique while
+two finds share that date (now `assertCountEquals(2)`); and the find-tap test
+asserting that text gone after opening the report, which the report screen
+itself shows (now asserts the All row's tag is gone). Each corrected line sits
+after the assertion that failed at base, so the base failures above still
+stand for the corrected tests; I did not re-run the corrected file at base.
+
+`RecordsLogbookTest` (3 tests) went in with the model rather than before it: it
+calls `buildRecordsLogbook`, which does not exist at base, so at base it could
+only fail to compile, not fail for a reason. Its zone is fixed
+(`America/Los_Angeles`) and two records are placed at 20:00 and 21:00 local,
+which are the next day in UTC, so a grouping that ignored the zone would fail.
+
+What the S4 Compose tests assert, through the real `JournalTab`:
+
+- reading order (top, then left) of day headers and rows matches
+  finds-first-then-timed-newest, days newest first, across three days;
+  header counts; the draft is absent and the All/Finds chips count committed
+  finds only (7 and 3);
+- every row's badge exists; the rows are the chips' rows (two find tiles, the
+  track share tag, waypoint Directions and Remove, the region's name);
+- Remove on a waypoint and Delete on a region open their confirmation dialogs,
+  nothing is deleted until confirm, and confirm deletes exactly that id;
+- touching a find tile at three points across its bounds (a real
+  `performTouchInput` each time) selects the Finds chip and shows the report;
+  Back shows the Finds gallery with Finds still selected; Back again selects
+  All.
+
+### Revert checks added after the resume
+
+Same runner and rules as above: saved copy, one-line edit, cleared results,
+build log checked for `e: ` first (clean every time), restore from the copy
+with `cmp`, forward change confirmed present by `grep` before commit.
+
+| Behaviour | Edit | Predicted | Observed |
+|---|---|---|---|
+| Logbook ordering: days | `RecordsLogbook.kt`: `.sortedDescending()` → `.sorted()` | the ordering tests fail | `RecordsLogbookTest` `expected:<[2026-09-26, 2026-09-25]> but was:<[2026-09-25, 2026-09-26]>`; `RecordsFilterChipsTest` reading-order test fails; 2/16 |
+| Logbook ordering: within a day (extra) | `.sortedByDescending { it.epochMillis }` → `.sortedBy { … }` | the same two fail | `expected:<[F2, F1, T1, r7, W1]> but was:<[F2, F1, W1, r7, T1]>` and the reading-order test; 2/16 |
+| Find-tap routing | `RecordsTab.kt`: the `selectTab(RecordsSubTab.FINDS)` line before `onOpenFind(id)` removed | the find-tap test fails | `records-chip-finds` Selected = 'false'; 1/13 |
+
+### Suite after S4
+
+At `20d4574` (the final code head; the report commit adds no code), cleared
+results directory, build log clean: **230 classes / 1801 tests / 0 failures / 0 errors / 24 skipped**. Against the base (1782): +19 tests, +4 classes (`AvailabilityScreenJournalStateTest` 2, `RecordTypeStyleTest` 1, `RecordsFilterChipsTest` 13, `RecordsLogbookTest` 3).
+
+Planner's prediction 3 (grows by 20 to 45, 0 failures, skipped unchanged):
++19, one short of the predicted range; 0 failures and 24 skipped hold.
+
+### Decisions added after the resume
+
+1. Finds in All are two to a row, as in the Finds gallery grid, rather than one
+   full-width tile each (a full-width tile at the gallery's 0.85 aspect ratio
+   would be taller than the screen is wide).
+2. The badge on a find tile overlays the tile's top-start corner; on other rows
+   it sits in front of the row.
+3. Day headers use `EEE, MMM d, yyyy` and "N record(s)"; no "Today"/"Yesterday"
+   wording (the mockup's "Today" was not specified further).
+4. The two delete dialogs were extracted rather than duplicated, so the chips
+   and All cannot drift apart.
+5. `LogPanel`'s All labels itself as not listing finds (above). J6 would pass
+   `LogPanel`'s own finds and find-open callback to `RecordsTab`.
+
+### Device-only items added after the resume
+
+- The All list at 360 dp with real data: find tiles two to a row, badges not
+  covering anything that matters on a tile, long region rows wrapping.
+- Scrolling performance of All with a large log (a non-lazy `Column`, like the
+  lists it gathers; fine for the record counts in this repo's reports, not
+  measured on a big log).
