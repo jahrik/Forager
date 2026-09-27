@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.log
 
+import com.zynergylabs.forager.app.ui.adaptive.isShortWindow
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
@@ -471,6 +472,10 @@ internal fun JournalTab(
                 onSaveEntryAsDraft = onSaveCartographyEntryAsDraft,
                 onDeleteEntry = onDeleteCartographyEntry,
                 modifier = Modifier.weight(1f),
+                // J3, C4 (plan J9): one full-width column in compact portrait; `columns` stays the
+                // only width knob. A short window (a phone on its side) keeps today's two columns:
+                // short windows are stage J5's (plan L4, sideways cards in two columns), not J3's.
+                columns = if (isShortWindow()) SHORT_WINDOW_ENTRY_COLUMNS else COMPACT_PORTRAIT_ENTRY_COLUMNS,
                 entriesViewState = journalState.entriesViewState,
                 // J3, C3: the track list this tab already receives for Records (MainActivity's
                 // trackUiState.tracks, through AvailabilityScreen and CompactMainScaffold), joined in
@@ -534,6 +539,12 @@ internal enum class JournalTopTab(
     CARTOGRAPHY("Entries"),
     RECORDS("Records"),
 }
+
+/** Entries timeline columns in compact portrait (J3, C4; plan J9). */
+private const val COMPACT_PORTRAIT_ENTRY_COLUMNS = 1
+
+/** Entries timeline columns in a short window, unchanged by J3 (stage J5 owns short windows). */
+private const val SHORT_WINDOW_ENTRY_COLUMNS = 2
 
 /** The row holding [JournalTab]'s Entries | Records switch. */
 internal const val JOURNAL_SWITCH_TAG = "journal-switch"
