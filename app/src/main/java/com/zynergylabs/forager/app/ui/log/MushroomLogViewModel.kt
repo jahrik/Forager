@@ -28,7 +28,9 @@ import com.zynergylabs.forager.app.domain.model.LogPhoto
 import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 import com.zynergylabs.forager.app.domain.model.PhotoSource
 import com.zynergylabs.forager.app.photo.CameraCapturePhotoSource
+import com.zynergylabs.forager.app.domain.PendingDeleteSlot
 import java.time.LocalDate
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -218,6 +220,11 @@ class MushroomLogViewModel(
      * construction applied to it.
      */
     private val autoSaveLocationToPhotos: suspend () -> Boolean = { true },
+    /**
+     * Where a find delete still pending when this ViewModel is cleared is committed (journal
+     * redesign J4): `viewModelScope` is cancelled by then. See [PendingDeleteCommitScope].
+     */
+    private val pendingDeleteCommitScope: CoroutineScope = PendingDeleteCommitScope,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MushroomLogUiState())
@@ -617,6 +624,15 @@ class MushroomLogViewModel(
      * file-deleting behavior under gallery ownership. No photo lookup needed any more: nothing left
      * downstream of [deleteEntry] touches the entry's photos.
      */
+    /** J4 stub: the find report's Delete. */
+    fun requestDeleteEntry(id: String) = Unit
+
+    /** J4 stub: the snackbar's Undo. */
+    fun undoDeleteEntry(id: String) = Unit
+
+    /** J4 stub: the snackbar ended any other way. */
+    fun commitDeleteEntry(id: String) = Unit
+
     fun onDeleteEntry(id: String) {
         viewModelScope.launch {
             editingEntryMutex.withLock {

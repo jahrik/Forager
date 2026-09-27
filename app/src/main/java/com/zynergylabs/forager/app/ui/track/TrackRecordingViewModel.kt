@@ -36,7 +36,10 @@ import com.zynergylabs.forager.app.domain.model.TrackPointRecord
 import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.model.WaypointDesignation
+import com.zynergylabs.forager.app.domain.PendingDeleteSlot
+import com.zynergylabs.forager.app.ui.log.PendingDeleteCommitScope
 import java.time.ZoneId
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -141,6 +144,11 @@ class TrackRecordingViewModel(
      * to construct it. Defaults to the stated default margin.
      */
     private val darknessMarginMinutes: suspend () -> Int = { DEFAULT_DARKNESS_MARGIN_MINUTES },
+    /**
+     * Where a waypoint delete still pending when this ViewModel is cleared is committed (journal
+     * redesign J4): `viewModelScope` is cancelled by then. See [PendingDeleteCommitScope].
+     */
+    private val pendingDeleteCommitScope: CoroutineScope = PendingDeleteCommitScope,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TrackRecordingUiState())
@@ -612,6 +620,15 @@ class TrackRecordingViewModel(
                 }
         }
     }
+
+    /** J4 stub: a swipe on a waypoint's row. */
+    fun requestRemoveWaypoint(id: String) = Unit
+
+    /** J4 stub: the snackbar's Undo. */
+    fun undoRemoveWaypoint(id: String) = Unit
+
+    /** J4 stub: the snackbar ended any other way. */
+    fun commitRemoveWaypoint(id: String) = Unit
 
     fun removeWaypoint(id: String) {
         viewModelScope.launch {

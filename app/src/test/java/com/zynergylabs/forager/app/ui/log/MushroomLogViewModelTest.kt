@@ -32,6 +32,11 @@ import com.zynergylabs.forager.app.photo.GalleryImportPhotoSource
 import java.time.LocalDate
 import java.io.File
 import kotlinx.coroutines.CompletableDeferred
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -81,6 +86,7 @@ class MushroomLogViewModelTest {
         currentFix: () -> LocationFix.Update? = { null },
         autoSaveLocationToPhotos: suspend () -> Boolean = { true },
         recordCaptureWithoutEditingEntry: (String?, Throwable?) -> Unit = { _, _ -> },
+        pendingDeleteCommitScope: CoroutineScope? = null,
     ) = MushroomLogViewModel(
         getEntries = GetMushroomLogEntriesUseCase(repository),
         getDraftEntries = GetDraftEntriesUseCase(repository),
@@ -101,6 +107,7 @@ class MushroomLogViewModelTest {
         now = { NOW },
         autoSaveLocationToPhotos = autoSaveLocationToPhotos,
         recordCaptureWithoutEditingEntry = recordCaptureWithoutEditingEntry,
+        pendingDeleteCommitScope = pendingDeleteCommitScope ?: PendingDeleteCommitScope,
     )
 
     // isDraft = false: every test below seeds this as an already-committed, pre-existing entry
@@ -1518,6 +1525,127 @@ class MushroomLogViewModelTest {
         assertNull("and no rescue message", vm.uiState.value.saveErrorMessage)
     }
 
+
+    // ---- Journal redesign J4, D1/D4: a find deleted from its report is pending until its snackbar ends ----
+
+    private val secondFind = MushroomLogEntry.draft(id = "entry-2", location = LatLng(45.4, -122.7), date = LocalDate.of(2026, 8, 2)).copy(isDraft = false)
+
+    @Test
+    fun `a requested find delete closes its report, hides it from the visible state, and deletes nothing`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository(initial = listOf(entry, secondFind))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onOpenEntry(entry.id)
+        advanceUntilIdle()
+        assertEquals(entry.id, vm.uiState.value.editingEntry?.id)
+
+        vm.requestDeleteEntry(entry.id)
+        advanceUntilIdle()
+
+        assertNull("the report closes, as it did when the delete ran at once", vm.uiState.value.editingEntry)
+        assertEquals(entry.id, vm.uiState.value.pendingDelete?.item?.id)
+        assertNull("finds have no reference count", vm.uiState.value.pendingDelete?.entryReferenceCount)
+        assertEquals(listOf(secondFind.id), vm.uiState.value.hidingPendingDelete().entries.map { it.id })
+        assertEquals(emptyList<String>(), repository.deletedIds)
+    }
+
+    @Test
+    fun `a requested delete of an open draft hides it from the visible drafts and leaves its committed parent`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository(initial = listOf(entry))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onOpenEntry(entry.id)
+        vm.onStartEditingEntry()
+        advanceUntilIdle()
+        // Edited, so leaving keeps it: an unchanged re-edit's draft is discarded on the way out.
+        vm.onEntryEdited(vm.uiState.value.editingEntry!!.copy(notes = "changed"))
+        advanceUntilIdle()
+        vm.onLeaveEditingIncidentally()
+        advanceUntilIdle()
+        val draftId = vm.uiState.value.draftEntries.single().id
+        vm.onOpenEntry(draftId)
+        advanceUntilIdle()
+
+        vm.requestDeleteEntry(draftId)
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.editingEntry)
+        val visible = vm.uiState.value.hidingPendingDelete()
+        assertEquals(emptyList<String>(), visible.draftEntries.map { it.id })
+        assertEquals(listOf(entry.id), visible.entries.map { it.id })
+        assertEquals(emptyList<String>(), repository.deletedIds)
+    }
+
+    @Test
+    fun `undo of a pending find delete shows it again and deletes nothing`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository(initial = listOf(entry, secondFind))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.requestDeleteEntry(entry.id)
+        advanceUntilIdle()
+        assertEquals("positive control: pending before the undo", listOf(secondFind.id), vm.uiState.value.hidingPendingDelete().entries.map { it.id })
+
+        vm.undoDeleteEntry(entry.id)
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.pendingDelete)
+        assertEquals(setOf(entry.id, secondFind.id), vm.uiState.value.hidingPendingDelete().entries.map { it.id }.toSet())
+        assertEquals(emptyList<String>(), repository.deletedIds)
+    }
+
+    @Test
+    fun `committing a pending find delete (the snackbar timing out) deletes exactly that find once`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository(initial = listOf(entry, secondFind))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.requestDeleteEntry(entry.id)
+        advanceUntilIdle()
+
+        vm.commitDeleteEntry(entry.id)
+        advanceUntilIdle()
+        vm.commitDeleteEntry(entry.id)
+        advanceUntilIdle()
+
+        assertEquals(listOf(entry.id), repository.deletedIds)
+        assertNull(vm.uiState.value.pendingDelete)
+        assertEquals(listOf(secondFind.id), vm.uiState.value.hidingPendingDelete().entries.map { it.id })
+    }
+
+    @Test
+    fun `a second find delete commits the first when it replaces it`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository(initial = listOf(entry, secondFind))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.requestDeleteEntry(entry.id)
+        advanceUntilIdle()
+
+        vm.requestDeleteEntry(secondFind.id)
+        advanceUntilIdle()
+
+        assertEquals(listOf(entry.id), repository.deletedIds)
+        assertEquals(secondFind.id, vm.uiState.value.pendingDelete?.item?.id)
+        assertEquals(emptyList<String>(), vm.uiState.value.hidingPendingDelete().entries.map { it.id })
+    }
+
+    @Test
+    fun `a find delete still pending when the ViewModel is cleared is committed`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository(initial = listOf(entry, secondFind))
+        val testScope: CoroutineScope = this
+        val store = ViewModelStore()
+        val vm = ViewModelProvider(
+            store,
+            viewModelFactory { initializer { viewModel(repository, pendingDeleteCommitScope = testScope) } },
+        )[MushroomLogViewModel::class.java]
+        advanceUntilIdle()
+        vm.requestDeleteEntry(entry.id)
+        advanceUntilIdle()
+        assertEquals(emptyList<String>(), repository.deletedIds)
+
+        store.clear()
+        advanceUntilIdle()
+
+        assertEquals(listOf(entry.id), repository.deletedIds)
+    }
 }
 
 private class FakeMushroomLogRepository(
@@ -1538,6 +1666,9 @@ private class FakeMushroomLogRepository(
     private val crossRefs = mutableSetOf<Pair<String, String>>()
 
     val galleryPhotoIds: Set<String> get() = galleryPhotos.keys
+
+    /** Every id [delete] was called with, in order (journal redesign J4: the delete calls a pending delete defers). */
+    val deletedIds = mutableListOf<String>()
 
     /** Every distinct entry id currently holding at least one cross-reference row — used to assert no orphaned reference survives a draft's removal. */
     fun crossRefEntryIds(): Set<String> = crossRefs.map { it.first }.toSet()
@@ -1595,6 +1726,7 @@ private class FakeMushroomLogRepository(
     }
 
     override suspend fun delete(id: String): Result<Unit> {
+        deletedIds += id
         entries.remove(id)
         crossRefs.removeAll { it.first == id }
         return Result.success(Unit)

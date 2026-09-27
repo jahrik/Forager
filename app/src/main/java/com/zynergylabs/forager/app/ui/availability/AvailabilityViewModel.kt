@@ -37,7 +37,10 @@ import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.TaxonFilter
 import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
+import com.zynergylabs.forager.app.domain.PendingDeleteSlot
+import com.zynergylabs.forager.app.ui.log.PendingDeleteCommitScope
 import java.time.LocalDate
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -96,6 +99,11 @@ class AvailabilityViewModel(
     /** Settings' "Lock camera to portrait" — the same borrowed-capability shape as the pair above, defaulted off, the repository's own default. */
     private val getLockCameraToPortrait: suspend () -> Result<Boolean> = { Result.success(false) },
     private val setLockCameraToPortrait: suspend (Boolean) -> Result<Unit> = { Result.success(Unit) },
+    /**
+     * Where an offline-region delete still pending when this ViewModel is cleared is committed
+     * (journal redesign J4): `viewModelScope` is cancelled by then. See [PendingDeleteCommitScope].
+     */
+    private val pendingDeleteCommitScope: CoroutineScope = PendingDeleteCommitScope,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AvailabilityUiState())
@@ -1137,6 +1145,15 @@ class AvailabilityViewModel(
      * — deletion isn't a download, and the region simply staying in the list on failure already
      * shows the delete didn't take effect, the same signal a stale list already carries.
      */
+    /** J4 stub: a swipe on a region's row. */
+    fun requestDeleteOfflineRegion(id: Long) = Unit
+
+    /** J4 stub: the snackbar's Undo. */
+    fun undoDeleteOfflineRegion(id: Long) = Unit
+
+    /** J4 stub: the snackbar ended any other way. */
+    fun commitDeleteOfflineRegion(id: Long) = Unit
+
     fun onDeleteOfflineRegion(id: Long) {
         viewModelScope.launch {
             offlineMapRepository.deleteRegion(id).fold(
