@@ -2388,3 +2388,39 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Written by hand at the owner's request in a cloud session on branch claude/docs-pr137-loose-ends-jnv47u, cut from origin/pre-main e136330, not by a coder sweep. The kit's hooks, agents and checkers were removed from pre-main by e136330 after this merge (docs/audits/2026-09-27-kit-hooks-disabled.md), so check_record.py was run from git show 3896118:check_record.py. PR, Head, Base, Merge-commit, Timestamp (merged_at) from the GitHub API for #137: 137, landscape-b2r, pre-main, base sha 47638bb37bda0921767b0010ce86b1a02a4afec5, head sha 37fa01d9abe8ca6b0f86332cb5e86d5e6d5080f1, merged_at 2026-09-27T06:09:13Z, merged_by slayer8366. git log -1 --format=%P 3896118 gives 47638bb37bda0921767b0010ce86b1a02a4afec5 and 37fa01d9abe8ca6b0f86332cb5e86d5e6d5080f1, so Pre-merge is the first parent and the head is terminal 2026-09-27-41's commit. Backup: taken from terminals 2026-09-27-39 and 2026-09-27-41, which name ~/Zynergy/forager-repo-backups/2026-09-27-05 (bundle of pre-main at 47638bb, merge.json with pr 137) and its INDEX.md line; that folder is on the owner's machine and was not read here. Merged-by: inferred, not read. Terminal 2026-09-27-41 says #137 is merged under the finish dispatch's Merge section (preserved/2026-09-27-11.md), and GitHub's merged_by is the account both the owner and the coders use, so it cannot tell them apart; INDEX.md's line was not read. Carries from git diff 47638bb 3896118 -- RECORD.md, which adds IDs 2026-09-27-33 to -41. Not recorded here, because no record of them reached this session: the CI run on 37fa01d, the merge-parent check and the two checkout-update dry runs that terminal 2026-09-27-41 left to its hand-back, and whether the checkouts were updated. The owner ruled "Leave it" on these. Other merges newer than the last merge entries, not recorded here: none further on pre-main's first-parent chain (e136330 is a direct push, not a merge); on main, faf2f88 (#138, disable-kit-hooks, 2026-09-27T06:42:45Z) is newer than 76905d4 (#119, merge entry 2026-09-26-24) and has no merge entry.
 
 ---
+
+**Kind:** intent
+**ID:** 2026-09-27-43
+**Timestamp:** 2026-09-27T07:21:00Z
+**Title:** Landscape build B3: the tools drawer (P12, scrim tap closes, opens from the rail side) and the other destinations capped beside the rail (P11)
+**Dispatch-file:** preserved/2026-09-27-12.md
+**Change:** From docs/plans/landscape-phone-design.md P11 and P12, as corrected by R2, R7 and R9, and the owner's four rulings in docs/audits/2026-09-27-landscape-b3-prebuild-report.md section 5. P12: gesturesEnabled = drawerState.isOpen on the compact ModalNavigationDrawer (AvailabilityScreen.kt:1441), so a scrim tap closes it in both orientations and swipe-to-open stays off; in a short landscape window with the port edge on the right, the layout direction is flipped around the drawer and restored inside it, so it opens from the rail side. P11: in a short landscape window, every tab but Map is capped at READABLE_CONTENT_MAX_WIDTH (640 dp, made internal) and centred beside the rail, in the scaffold. Run as three dispatches: setup (this store copy, preserved/2026-09-27-12.md: SDK, Gradle cache, baseline), then drawer (preserved/2026-09-27-13.md, continuation 2026-09-27-44) and destinations (preserved/2026-09-27-14.md, continuation 2026-09-27-45) in parallel on disjoint files.
+**Scope boundary:** Branch landscape-b3 only. Drawer: AvailabilityScreen.kt's drawer block and comments, a comment in AvailabilitySettingsUi.kt, new test class CompactToolsDrawerTest. Destinations: AvailabilityCompactScaffold.kt's railBeside non-Map content, the visibility of READABLE_CONTENT_MAX_WIDTH in AvailabilityResultsUi.kt, new test class AvailabilityScreenLandscapeB3DestinationsTest. Nothing under ui/log/; no edit to AvailabilityScreenShortLandscapeTest or AvailabilityScreenLandscapeB2Test; the coders write no record, index or plan file. Not touched: main, pre-main, the phone, the owner's machine, the Journal redesign. No PR or merge in this intent.
+**Baseline:** landscape-b3 cut from claude/docs-pr137-loose-ends-jnv47u at acba675 (pre-main e136330 plus three docs commits). Last CI count on the app code: 224 suites / 1757 / 0 / 0 / 24 (terminal 2026-09-27-41); e136330 removed no app or test file. The cloud container has no Android SDK and no Gradle cache at dispatch; the setup dispatch measures the baseline.
+**Prediction (outcome — planner):** 1. The drawer change is one line of code plus comments; the destinations change is under 40 lines of main code. 2. Every tests-first test the dispatches mark as failing at its base does so, for the stated reason. 3. No existing test changes. 4. The full suite grows by 16 to 32 tests, with 0 failures and skipped unchanged. 5. The layout-direction flip anchors the drawer on the right at ROTATION_90 without mirroring its contents; this is the prediction most likely to be wrong, and the owner's stop condition covers it.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** Both builds pushed to landscape-b3 with their completion reports; the full suite run on the merged head with 0 failures; a terminal written by the planner citing both reports; device items listed for B4. No PR or merge without the owner.
+**Abort conditions:** A wrong premise; a tests-first test passing at its base where it should fail; a revert build with compile errors; an unrelated test failing (reported, not touched); Maven 429 after three retries; the layout-direction flip mirroring contents or the map; a full-width-by-design destination; two failed fixes on one symptom.
+**Notes:** (1) Written by the planner by hand: the kit, dispatch hook and checkers were removed from pre-main by e136330 (docs/audits/2026-09-27-kit-hooks-disabled.md), and the owner ruled "Also RECORD.md by hand". The three store copies were written by the planner, not a hook; their headers say so. check_record.py is run from git show 3896118:check_record.py. (2) Mechanism predictions are in each coder's completion report, not here, since the coders do not write the record while running in parallel (docs/audits/README.md is a serialization point, CLAUDE.md). (3) Owner's words for the parallel run: "You are the planner, so dispatch to coding agents. Use multiple sub agents if the work can handle it".
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-27-44
+**Timestamp:** 2026-09-27T07:21:00Z
+**Continues:** 2026-09-27-43
+**Dispatch-file:** preserved/2026-09-27-13.md
+**Reason:** drawer build (P12), in parallel with 2026-09-27-45
+**Changes:** none
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-27-45
+**Timestamp:** 2026-09-27T07:21:00Z
+**Continues:** 2026-09-27-43
+**Dispatch-file:** preserved/2026-09-27-14.md
+**Reason:** destinations build (P11), in parallel with 2026-09-27-44
+**Changes:** none
+
+---

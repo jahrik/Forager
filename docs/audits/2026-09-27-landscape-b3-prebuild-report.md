@@ -64,3 +64,21 @@ is read-only.
 
 Drawer side and scrim at both rotations; content caps beside the real rail
 and cut-out. A cloud session cannot run these.
+
+## 5. The owner's rulings, added 2026-09-27
+
+Answers to section 3, in the planner session, verbatim:
+
+1. Scrim fix: "gestures = isOpen (Recommended)". So `gesturesEnabled =
+   drawerState.isOpen`, in both orientations.
+2. Drawer side at `ROTATION_90`: "Flip layout direction". The coder stops and
+   reports if the flip mirrors the drawer's contents or the map.
+3. Branch: "New branch landscape-b3", cut from this branch at `acba675`.
+4. Recordkeeping: "Also RECORD.md by hand". An intent and continuations are
+   written by the planner, checked with `check_record.py` recovered from
+   `git show 3896118:check_record.py`.
+
+Then the owner: "You are the planner, so dispatch to coding agents. Use
+multiple sub agents if the work can handle it". B3 runs as a setup dispatch
+(SDK, dependency cache, baseline suite), then the drawer (P12) and the
+destinations (P11) as two coders in parallel, on disjoint files.
