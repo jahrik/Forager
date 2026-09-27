@@ -54,3 +54,9 @@ So the find picker snaps back about a second after any pan, at zoom 13 (inferred
 ## The owner's ruling on the find-picker fix, added 2026-09-27
 
 Asked what the picker should do if it opens before any location fix, the owner chose **"Follow until you touch it (Recommended)"**, whose option read: "Until you first pan, the picker moves to your location when the first fix arrives. After you pan, it never moves on its own again. No snap-back, and no stale start." Routing, from the owner earlier: "On the Journal branch". The fix is scheduled on `journal-redesign` after J4b, which is editing `JournalTab.kt` now. It applies to the find picker in both trees (`JournalTab`, `LogPanel`); the offline picker is not changed (owner: "Offline maps works fine").
+
+## The owner's ruling on the offline-picker findings, added 2026-09-27
+
+The owner first limited the work to the reported bug ("Just the bug report fixes, because offline maps is not the problem as I stated"), then noted "M1 and M2 and download deletion still can happen to offline maps" and, asked, chose **"Fix all three (Recommended)"**, whose option read: "One stage after the find-picker fix, on the Journal branch. M1 gets the same 'follow until you touch it' rule; M2 keeps your panned centre when the radius changes; the list reload stops deleting a download that's still running. Each with a failing test first." This supersedes "recorded, not scheduled" above for these three.
+
+The planner will dispatch the find-picker fix and the three offline fixes as one stage on `journal-redesign` after J4b, with separate tests-first commits per fix.
