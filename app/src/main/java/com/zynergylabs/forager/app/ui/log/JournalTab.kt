@@ -472,6 +472,10 @@ internal fun JournalTab(
                 onDeleteEntry = onDeleteCartographyEntry,
                 modifier = Modifier.weight(1f),
                 entriesViewState = journalState.entriesViewState,
+                // J3, C3: the track list this tab already receives for Records (MainActivity's
+                // trackUiState.tracks, through AvailabilityScreen and CompactMainScaffold), joined in
+                // memory by the Entries cards for their thumbnails.
+                tracks = tracks,
             )
 
             JournalTopTab.RECORDS -> RecordsTab(

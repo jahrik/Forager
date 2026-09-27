@@ -21,6 +21,7 @@ import androidx.compose.ui.platform.testTag
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
+import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
 /**
@@ -80,6 +81,8 @@ internal fun DraftsListScreen(
     columns: Int,
     /** For a draft card's hero photo (J3, C2), as on the timeline. */
     galleryPhotos: List<GalleryPhoto> = emptyList(),
+    /** For a draft card's track thumbnail (J3, C3), as on the timeline. */
+    tracks: List<Track> = emptyList(),
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.testTag(DRAFTS_LIST_TAG)) {
@@ -99,6 +102,7 @@ internal fun DraftsListScreen(
             emptyMessage = "No drafts. An entry you haven't finished shows up here.",
             distanceUnit = distanceUnit,
             galleryPhotos = galleryPhotos,
+            tracks = tracks,
             columns = columns,
             modifier = Modifier.weight(1f),
         )

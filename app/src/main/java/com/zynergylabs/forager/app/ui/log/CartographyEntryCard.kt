@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
+import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.LocalDate
 import java.time.YearMonth
@@ -326,6 +327,34 @@ internal fun EntryHeroPhoto(entryId: String, photo: GalleryPhoto) {
 }
 
 private val ENTRY_HERO_HEIGHT = 140.dp
+
+/**
+ * The recorded track a card draws as its thumbnail (J3, C3; owner ruling "Join in memory
+ * (Recommended)"): the entry's kept track, looked up by id in the track list already loaded
+ * (`TrackRecordingUiState.tracks`, passed down; [tracksById]). No database read per card. A track
+ * not in the list (deleted, or not loaded yet) gives no thumbnail.
+ *
+ * **Exactly one kept track, or none.** An entry that keeps two or more tracks gets no thumbnail for
+ * now: which of them to draw, or whether to draw them all in one box, is an open question for the
+ * owner (J3 completion report, "Needs a decision"), and drawing one of two would suggest the day was
+ * one walk.
+ */
+internal fun entryThumbnailTrack(entry: CartographyEntry, tracksById: Map<String, Track>): Track? =
+    entry.trackDecisions.filter { it.kept }.singleOrNull()?.let { tracksById[it.trackId] }
+
+/** A card's track thumbnail: [TrackThumbnail] in a small square at the card's end. */
+@Composable
+internal fun EntryTrackThumbnail(entryId: String, track: Track) {
+    TrackThumbnail(
+        trackId = track.id,
+        points = track.points,
+        modifier = Modifier.size(ENTRY_THUMBNAIL_SIZE).testTag(entryTrackThumbnailTestTag(entryId)),
+    )
+}
+
+private val ENTRY_THUMBNAIL_SIZE = 56.dp
+
+internal fun entryTrackThumbnailTestTag(entryId: String): String = "entry-track-thumbnail-$entryId"
 
 internal fun entryHeroTestTag(entryId: String, photoId: String): String = "entry-hero-$entryId-$photoId"
 

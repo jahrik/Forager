@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -30,6 +31,7 @@ import com.zynergylabs.forager.app.domain.model.TrackPointRecord
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.networkFixExclusionNote
 import com.zynergylabs.forager.app.export.TrackGpxExporter
+import com.zynergylabs.forager.app.ui.log.TrackThumbnail
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.io.File
 import java.time.Instant
@@ -102,9 +104,23 @@ internal fun TrackExportRow(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column {
-            Text(formatTrackTimestamp(track), style = MaterialTheme.typography.bodyLarge)
-            Text(trackSubtitle(track), style = MaterialTheme.typography.bodySmall)
+        // Journal redesign J3, C3 (owner ruling "Rows and Entries cards"): the track's own points,
+        // already in memory on every row, drawn as a small thumbnail in front of its text. Fewer than
+        // two points draws nothing (TrackThumbnail's rule).
+        Row(
+            modifier = Modifier.weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TrackThumbnail(
+                trackId = track.id,
+                points = track.points,
+                modifier = Modifier.size(TRACK_ROW_THUMBNAIL_SIZE).testTag("track-thumbnail-${track.id}"),
+            )
+            Column {
+                Text(formatTrackTimestamp(track), style = MaterialTheme.typography.bodyLarge)
+                Text(trackSubtitle(track), style = MaterialTheme.typography.bodySmall)
+            }
         }
         // testTag, not contentDescription alone, is what a test (and this dispatch's own testing
         // note) needs to find this by: a contentDescription proves TalkBack can reach it, not that
@@ -141,6 +157,8 @@ internal fun trackSubtitle(track: Track): String {
 
 private fun formatTrackTimestamp(track: Track): String =
     DISPLAY_FORMAT.format(Instant.ofEpochMilli(track.startedAtEpochMillis).atZone(ZoneId.systemDefault()))
+
+private val TRACK_ROW_THUMBNAIL_SIZE = 40.dp
 
 private val DISPLAY_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy, h:mm a")
 

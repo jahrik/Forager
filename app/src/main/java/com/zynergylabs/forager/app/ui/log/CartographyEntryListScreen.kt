@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.Dp
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
+import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
 /**
@@ -62,6 +63,8 @@ internal fun CartographyEntryListScreen(
     bottomContentPadding: Dp = Spacing.lg,
     /** The gallery photos the screen already holds, which a card's hero is resolved against (J3, C2; see [entryHeroPhoto]). */
     galleryPhotos: List<GalleryPhoto> = emptyList(),
+    /** The already-loaded recorded tracks, which a card's thumbnail is looked up in by id (J3, C3; see [entryThumbnailTrack]). */
+    tracks: List<Track> = emptyList(),
 ) {
     if (isLoading && entries.isEmpty()) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -81,6 +84,7 @@ internal fun CartographyEntryListScreen(
 
     val months = remember(entries) { groupEntriesByMonth(entries) }
     val photosById = remember(galleryPhotos) { galleryPhotos.associateBy { it.photo.id } }
+    val tracksById = remember(tracks) { tracks.associateBy { it.id } }
     Column(modifier = modifier.fillMaxSize()) {
         if (entries.isEmpty() && loadErrorMessage != null) {
             Text(
@@ -111,6 +115,7 @@ internal fun CartographyEntryListScreen(
                             distanceUnit = distanceUnit,
                             onClick = open,
                             hero = hero?.let { photo -> { EntryHeroPhoto(entry.id, photo) } },
+                            thumbnail = entryThumbnailTrack(entry, tracksById)?.let { track -> { EntryTrackThumbnail(entry.id, track) } },
                         )
                     }
                 }
