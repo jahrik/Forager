@@ -18,6 +18,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -514,7 +515,8 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.onNodeWithText("Journal").performClick()
         // Journal Stage 2b: finds relocated from Cartography into Records' fourth Finds submenu.
         composeRule.onNodeWithText("Records").performClick()
-        composeRule.onNodeWithText("Logged Finds").performClick()
+        // J1 S3: the Finds filter chip replaced the "Logged Finds" sub-tab.
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.FINDS)).performClick()
         composeRule.onNodeWithContentDescription("New log entry").performClick()
         composeRule.onNodeWithText("Photos").assertIsDisplayed()
 
@@ -588,35 +590,37 @@ class AvailabilityScreenBackNavigationTest {
     }
 
     /**
-     * The Records sub-tab layer: back from a non-default sub-tab steps to Waypoints, the fixed
-     * default — not out to Cartography in the same press. Recorded Tracks, not Offline Maps: that
-     * sub-tab's own `onOfflineMapsOpened` calls the real `AvailabilityViewModel`, which reaches a
-     * real `LocationProvider` this fixture deliberately stubs to error (see
-     * [BackNavUnusedLocationProvider]) — unrelated to what this test is proving, so it picks the
-     * sub-tab that doesn't touch it.
+     * The Records filter layer: back from a single-type chip steps to All, the fixed default — not
+     * out to Cartography in the same press. (Journal redesign J1, S3: this stepped to Waypoints, the
+     * old default sub-tab, before the chips replaced the sub-tabs; the planner's call moved the
+     * target to All.) Tracks, not Offline maps: that chip's own `onOfflineMapsOpened` calls the real
+     * `AvailabilityViewModel`, which reaches a real `LocationProvider` this fixture deliberately
+     * stubs to error (see [BackNavUnusedLocationProvider]) — unrelated to what this test is proving,
+     * so it picks the chip that doesn't touch it.
      */
     @Test
-    fun `back on a non-default Records sub-tab steps to Waypoints before leaving Records`() {
+    fun `back on a single-type Records chip steps to All before leaving Records`() {
         setScreen()
         composeRule.onNodeWithText("Journal").performClick()
         composeRule.onNodeWithText("Records").performClick()
-        composeRule.onNodeWithText("Recorded Tracks").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.RECORDED_TRACKS)).performClick()
         composeRule.onNodeWithText("No recorded tracks yet.").assertIsDisplayed()
 
         pressBack()
 
-        // Still on Records, now showing Waypoints' own content — not bounced out to Cartography or Maps.
+        // Still on Records, now on All — not bounced out to Cartography or Maps.
         composeRule.onNodeWithText("No recorded tracks yet.").assertDoesNotExist()
-        composeRule.onNodeWithText("No waypoints dropped yet. Tap the add button on the map to drop one.").assertIsDisplayed()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.ALL)).assertIsSelected()
+        composeRule.onNodeWithText("Records").assertIsSelected()
     }
 
-    /** The top-tab layer: back from Records' own default sub-tab (nothing left within Records to unwind) steps to Cartography — still inside the Journal, not out to Maps. */
+    /** The top-tab layer: back from Records' own default chip, All (nothing left within Records to unwind), steps to Cartography — still inside the Journal, not out to Maps. */
     @Test
-    fun `back on Records' default sub-tab steps to Cartography before leaving the Journal`() {
+    fun `back on Records' default chip steps to Cartography before leaving the Journal`() {
         setScreen()
         composeRule.onNodeWithText("Journal").performClick()
         composeRule.onNodeWithText("Records").performClick()
-        composeRule.onNodeWithText("Waypoint Markers").assertIsDisplayed()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.ALL)).assertIsSelected()
 
         pressBack()
 
@@ -914,7 +918,8 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertIsDisplayed()
 
         composeRule.onNodeWithText("Records").performClick()
-        composeRule.onNodeWithText("Logged Finds").performClick()
+        // J1 S3: the Finds filter chip replaced the "Logged Finds" sub-tab.
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.FINDS)).performClick()
         composeRule.onNodeWithContentDescription("New log entry").performClick()
         composeRule.onNodeWithText("Photos").assertIsDisplayed()
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertDoesNotExist()
@@ -961,9 +966,9 @@ class AvailabilityScreenBackNavigationTest {
      * [com.zynergylabs.forager.app.ui.log.LogGalleryScreen]'s own third tab (Log/Drafts/Album), reached through
      * Journal rather than standing alone on the bottom nav, to make room for a fifth bottom-nav slot
      * — see that composable's own doc comment. The medium/expanded half (a drawer entry) is
-     * untouched and stays `AvailabilityScreenAdaptiveLayoutTest`'s own equivalent test. Labelled
-     * "Album" rather than "Photos" — see `CompactTab`'s own doc comment for why that exact string
-     * collides with existing on-screen text elsewhere in this same feature.
+     * untouched and stays `AvailabilityScreenAdaptiveLayoutTest`'s own equivalent test. "Album" is
+     * the Cartography sub-tab (`CartographyScreen`'s Entries/Drafts/Album row), reached after the
+     * "Journal" bottom-nav tap; it is not a bottom-nav label (`CompactTab` has none by that name).
      */
     @Test
     fun `the Album tab shows the photo gallery`() {

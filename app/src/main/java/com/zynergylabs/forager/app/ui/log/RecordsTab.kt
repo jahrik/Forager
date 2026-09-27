@@ -1,11 +1,10 @@
 package com.zynergylabs.forager.app.ui.log
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.SecondaryTabRow
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -15,7 +14,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.LatLng
@@ -53,13 +51,14 @@ import com.zynergylabs.forager.app.ui.track.TrackExportList
  * already sent before finds moved here; now that finds live *inside* Records, switching among
  * Records' own sub-tabs can interrupt an edit too, a scenario that didn't exist before this move.
  *
- * Follows this app's one existing nested-tab precedent, [FindsGalleryScreen]'s
- * `SecondaryTabRow`/`FindsGalleryTab` — this codebase has no navigation library (no `NavHost`, no
- * `NavController`), so, like every other "route" in this app, [RecordsSubTab] is a private enum
- * plus local `remember` state, not a real navigation destination.
+ * **Filter chips, not sub-tabs, as of journal redesign J1 (S3; plan J4).** The four sub-tabs
+ * became a [RecordsFilterChipRow] of five chips, All · Finds · Tracks · Waypoints · Offline maps,
+ * All the default. This codebase has no navigation library (no `NavHost`, no `NavController`), so
+ * [RecordsSubTab] is still an enum plus state, not a real navigation destination; that state is
+ * now [selectedTabState], hoisted by [JournalTab] into [JournalScreenState] (S1).
  *
  * **No header, no back arrow, unlike the drill-in shape these screens used inside Settings.**
- * A flat `SecondaryTabRow` sub-tab is left by tapping another tab, not by a back affordance
+ * A flat chip filter is left by tapping another chip, not by a back affordance
  * embedded in the content — so [OfflineMapsPanel]/[TrackExportList] are called here without the
  * header rows (`OfflineMapsHeader`, `TrackExportHeader`) their old drill-in homes needed; both
  * were deleted as dead code once this became their only caller's shape.
@@ -73,7 +72,7 @@ import com.zynergylabs.forager.app.ui.track.TrackExportList
  * **`Modifier.weight(1f)` on every branch, [findsContent] included, is load-bearing** — see this
  * file's own git history (Stage 1's `WaypointsSection` regression) and
  * `amendment-2b-finds-and-trash.md`'s own reminder: a branch without it is measured as though the
- * tab row above took no space and can overflow.
+ * chip row above took no space and can overflow.
  */
 @Composable
 internal fun RecordsTab(
@@ -97,6 +96,12 @@ internal fun RecordsTab(
     /** GPX full-record export dispatch — see [TrackExportList]'s own doc comment. Defaults empty/no-op so no other caller of this tab changes. */
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>> = { Result.success(emptyList()) },
     findsContent: @Composable ColumnScope.() -> Unit,
+    /**
+     * How many logged finds the Finds chip counts — committed finds, what the Finds gallery's own
+     * first ("Log") tab lists. `null` shows the Finds chip, and All, without a count rather than a
+     * made-up one: [LogPanel] (out of scope until J6) has no count to pass today.
+     */
+    findsCount: Int? = null,
     onFindsTabLeft: () -> Unit = {},
     /**
      * Whether [JournalTab]/[LogPanel]'s own find-editing `BackHandler` is currently live —
@@ -142,7 +147,7 @@ internal fun RecordsTab(
         when (selectedTab) {
             RecordsSubTab.OFFLINE_MAPS -> onOfflineMapsOpened()
             RecordsSubTab.RECORDED_TRACKS -> onTracksOpened()
-            RecordsSubTab.WAYPOINTS, RecordsSubTab.FINDS -> Unit
+            RecordsSubTab.ALL, RecordsSubTab.WAYPOINTS, RecordsSubTab.FINDS -> Unit
         }
     }
 
@@ -151,75 +156,43 @@ internal fun RecordsTab(
         selectedTab = tab
     }
 
-    // Back-nav-and-save-flow dispatch, Item 1: step back to Waypoints — the fixed default, not
-    // whichever sub-tab was last selected. A fixed target keeps back deterministic regardless of
-    // navigation history (the same press always does the same thing); tracking "last selected" as
-    // a second piece of state to reason about was considered and rejected for exactly that reason.
-    // Disabled while findsEditingInProgress — see that parameter's own doc comment for why this
-    // can't just rely on Compose's usual nested-handler-wins ordering here.
-    BackHandler(enabled = selectedTab != RecordsSubTab.WAYPOINTS && !findsEditingInProgress) {
-        selectTab(RecordsSubTab.WAYPOINTS)
+    // Back-nav-and-save-flow dispatch, Item 1, retargeted by journal redesign J1 (S3, the planner's
+    // call in prompts/preserved/2026-09-27-16.md; the owner may overrule): step back to All — the
+    // fixed default, not whichever chip was last selected. It used to step back to Waypoints, the
+    // old default sub-tab; the rule is the same, only the default moved. A fixed target keeps back
+    // deterministic regardless of navigation history (the same press always does the same thing);
+    // tracking "last selected" as a second piece of state to reason about was considered and
+    // rejected for exactly that reason. Disabled while findsEditingInProgress — see that parameter's
+    // own doc comment for why this can't just rely on Compose's usual nested-handler-wins ordering
+    // here. From All this handler is off, so Back falls to JournalTab's Records -> Cartography step,
+    // exactly what Back did from Waypoints before.
+    BackHandler(enabled = selectedTab != RecordsSubTab.ALL && !findsEditingInProgress) {
+        selectTab(RecordsSubTab.ALL)
     }
 
     Column(modifier = modifier.fillMaxSize()) {
-        // SecondaryTabRow is the fixed-width kind: at 360dp each of these four tabs measures
-        // exactly 90dp (measured, a plain 360/4, not sized to content), so each label gets the
-        // same narrow column and the only question is where its text breaks.
-        //
-        // Every label is two words, deliberately — owner's call, from a device screenshot.
-        // "Waypoints" and "Finds" used to be one word each, and a single word too wide for 90dp
-        // has nowhere to break but inside itself: "Waypoints" rendered as "Waypoint" / "s" on
-        // hardware. Shrinking the type was tried first (titleSmall 14sp -> labelMedium 12sp) and
-        // the owner's next screenshot showed the same broken word, which is the answer to
-        // whether a smaller font buys enough headroom at this width: it does not, and any margin
-        // it does buy is one long word away from being spent again. Naming each tab with two
-        // words removes the failure mode rather than narrowing it — the longest single word left
-        // is "Waypoint"/"Recorded" at eight characters, and all four labels take two lines, so
-        // the row is uniform instead of one odd tab out.
-        //
-        // No style override, so these are Tab's own default label style again. The 12sp override
-        // was only ever load-bearing while a nine-character word had to fit one line; two-word
-        // names carry their own headroom, and the owner's call is that the row reads better at
-        // the normal size. Nothing here depends on the smaller type — if a future label does,
-        // that is the signal to rename it rather than to shrink the row again.
-        //
-        // Not a rename for brevity's sake: "Waypoint Markers" and "Logged Finds" are what these
-        // screens hold. The earlier instruction was not to *shorten* the word ("Points"), which
-        // this does not do.
-        //
-        // textAlign = Center because a wrapped label is not centred by default: a single-line
-        // label's text box wraps to its content and the Tab centres the box, but a label that
-        // wraps fills the tab's full width and its lines then sit start-aligned inside it — the
-        // second line visibly hanging left, which the same screenshot showed.
-        //
-        // Robolectric cannot check any of this: its text-layout measurement in this project
-        // reports implausible glyph widths (single digits of px for a whole word, at any font
-        // size), so nothing here ever measures as wrapping and a line-count assertion would pass
-        // whatever the labels say. The device is the only authority on this row.
-        SecondaryTabRow(selectedTabIndex = selectedTab.ordinal) {
-            Tab(
-                selected = selectedTab == RecordsSubTab.WAYPOINTS,
-                onClick = { selectTab(RecordsSubTab.WAYPOINTS) },
-                text = { Text("Waypoint Markers", textAlign = TextAlign.Center) },
-            )
-            Tab(
-                selected = selectedTab == RecordsSubTab.OFFLINE_MAPS,
-                onClick = { selectTab(RecordsSubTab.OFFLINE_MAPS) },
-                text = { Text("Offline Maps", textAlign = TextAlign.Center) },
-            )
-            Tab(
-                selected = selectedTab == RecordsSubTab.RECORDED_TRACKS,
-                onClick = { selectTab(RecordsSubTab.RECORDED_TRACKS) },
-                text = { Text("Recorded Tracks", textAlign = TextAlign.Center) },
-            )
-            Tab(
-                selected = selectedTab == RecordsSubTab.FINDS,
-                onClick = { selectTab(RecordsSubTab.FINDS) },
-                text = { Text("Logged Finds", textAlign = TextAlign.Center) },
-            )
-        }
+        // Journal redesign J1, S3 (plan J4): one horizontally scrolling row of filter chips replaced
+        // the four-tab SecondaryTabRow ("Waypoint Markers" / "Offline Maps" / "Recorded Tracks" /
+        // "Logged Finds"). That row's fixed 90 dp tabs are why its labels had to be two words and
+        // wrapped to two lines on a phone (see this file's history, and the plan's evidence
+        // section); a scrolling chip row sizes each chip to its label, so the short names fit on one
+        // line and the row scrolls sideways when it overflows.
+        RecordsFilterChipRow(
+            selected = selectedTab,
+            counts = RecordsFilterCounts(
+                finds = findsCount,
+                tracks = tracks.size,
+                waypoints = waypoints.size,
+                offlineMaps = availabilityUiState.offlineRegions.size,
+            ),
+            onSelect = ::selectTab,
+        )
 
         when (selectedTab) {
+            // J1 S4 (the All logbook) is not built yet: the dispatch's S4 questions went back to the
+            // planner. Until then All shows the chip row alone.
+            RecordsSubTab.ALL -> Box(modifier = Modifier.weight(1f).fillMaxSize())
+
             RecordsSubTab.WAYPOINTS -> WaypointsSection(
                 waypoints = waypoints,
                 errorMessage = waypointsErrorMessage,
@@ -259,8 +232,10 @@ internal fun RecordsTab(
 }
 
 /**
- * Which of [RecordsTab]'s four sub-tabs is selected — ordinal order matches display order.
- * `internal`, not `private`, as of Stage 2d: [JournalTab]/[LogPanel] hold a pending value of this
- * type to request [FINDS] externally — see [RecordsTab]'s own `pendingSubTab` doc comment.
+ * Which of [RecordsTab]'s filter chips is selected — declared in chip display order (journal
+ * redesign J1, S3: [ALL] added and made the default, the rest reordered to the plan's All · Finds ·
+ * Tracks · Waypoints · Offline maps). Nothing reads the ordinal: [JournalScreenState]'s saver stores
+ * names. `internal`, not `private`, as of Stage 2d: [JournalTab]/[LogPanel] hold a pending value of
+ * this type to request [FINDS] externally — see [RecordsTab]'s own `pendingSubTab` doc comment.
  */
-internal enum class RecordsSubTab { WAYPOINTS, OFFLINE_MAPS, RECORDED_TRACKS, FINDS }
+internal enum class RecordsSubTab { ALL, FINDS, RECORDED_TRACKS, WAYPOINTS, OFFLINE_MAPS }

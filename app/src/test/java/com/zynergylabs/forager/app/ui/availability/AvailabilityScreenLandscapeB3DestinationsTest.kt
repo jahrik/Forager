@@ -134,11 +134,12 @@ class AvailabilityScreenLandscapeB3DestinationsTest {
         return DpRect(first.left, first.top, last.right, last.bottom)
     }
 
-    private fun recordsSubTabs(): DpRect {
-        val first = bounds("Waypoint Markers")
-        val last = bounds("Logged Finds")
-        return DpRect(first.left, first.top, last.right, last.bottom)
-    }
+    /**
+     * Journal redesign J1 (S3): the Records filter chip row, which replaced the sub-tab row. The
+     * chips themselves size to their labels and scroll, so their outer edges no longer span the
+     * width Records was handed; the row fills that width (`fillMaxWidth`), so it is what is measured.
+     */
+    private fun recordsSubTabs(): DpRect = taggedBounds(com.zynergylabs.forager.app.ui.log.RECORDS_FILTER_CHIP_ROW_TAG)
 
     // ── T1: List, Journal (its default top tab), Records ──
 
@@ -163,8 +164,8 @@ class AvailabilityScreenLandscapeB3DestinationsTest {
         openTab("Journal")
         composeRule.onNodeWithText("Records").performClick()
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("Waypoint Markers").assertIsSelected()
-        assertCappedAndCentred("the Records sub-tab row", recordsSubTabs())
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.ALL)).assertIsSelected()
+        assertCappedAndCentred("the Records filter chip row", recordsSubTabs())
     }
 
     @Test fun `T1 at ROTATION_90 List is capped at 640 and centred beside the rail`() = checkList(Surface.ROTATION_90)

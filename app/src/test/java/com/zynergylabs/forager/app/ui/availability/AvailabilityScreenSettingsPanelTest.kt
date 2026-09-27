@@ -24,6 +24,8 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -243,14 +245,17 @@ class AvailabilityScreenSettingsPanelTest {
         composeRule.onNodeWithText("Records").performClick()
     }
 
+    // Journal redesign J1 (S3): the Offline maps and Tracks filter chips replaced the "Offline Maps"
+    // and "Recorded Tracks" sub-tabs; Records opens on All. Offline maps is the last chip and can sit
+    // past a phone's edge in the scrolling row, so it is scrolled into view first.
     private fun openOfflineMapsSubTab() {
         openRecordsTab()
-        composeRule.onNodeWithText("Offline Maps").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.OFFLINE_MAPS)).performScrollTo().performClick()
     }
 
     private fun openRecordedTracksSubTab() {
         openRecordsTab()
-        composeRule.onNodeWithText("Recorded Tracks").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.RECORDED_TRACKS)).performScrollTo().performClick()
     }
 
     @Test
@@ -437,7 +442,8 @@ class AvailabilityScreenSettingsPanelTest {
         setScreen()
         openRecordsTab()
 
-        composeRule.onNodeWithText("Offline Maps").assertIsDisplayed()
+        // J1 S3: an "Offline maps" filter chip now, scrolled into view in the chip row.
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.OFFLINE_MAPS)).performScrollTo().assertIsDisplayed().assert(hasText("Offline maps"))
     }
 
     /**
@@ -450,7 +456,8 @@ class AvailabilityScreenSettingsPanelTest {
         setScreen()
         openRecordsTab()
 
-        composeRule.onNodeWithText("Recorded Tracks").assertIsDisplayed()
+        // J1 S3: a "Tracks" filter chip now.
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.RECORDED_TRACKS)).performScrollTo().assertIsDisplayed().assert(hasText("Tracks"))
     }
 
     @Test
@@ -602,16 +609,17 @@ class AvailabilityScreenSettingsPanelTest {
         setScreen()
         openRecordsTab()
 
-        // Waypoints is Records' default sub-tab.
+        // J1 S3: Records opens on All now; the Waypoints chip shows Waypoints' content.
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.WAYPOINTS)).performScrollTo().performClick()
         composeRule.onNodeWithText("No waypoints dropped yet. Tap the add button on the map to drop one.")
             .assertIsDisplayed()
 
-        composeRule.onNodeWithText("Offline Maps").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.OFFLINE_MAPS)).performScrollTo().performClick()
         composeRule.onNodeWithTag(OFFLINE_PICKER_MAP_TAG).assertIsDisplayed()
         composeRule.onAllNodesWithText("No waypoints dropped yet. Tap the add button on the map to drop one.")
             .assertCountEquals(0)
 
-        composeRule.onNodeWithText("Recorded Tracks").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.RECORDED_TRACKS)).performScrollTo().performClick()
         composeRule.onNodeWithText("No recorded tracks yet.").assertIsDisplayed()
         composeRule.onAllNodesWithTag(OFFLINE_PICKER_MAP_TAG).assertCountEquals(0)
     }

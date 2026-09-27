@@ -481,6 +481,7 @@ internal fun JournalTab(
                 onTracksOpened = onTracksOpened,
                 getFullRecord = getFullRecord,
                 findsContent = findsSection,
+                findsCount = uiState.entries.size,
                 onFindsTabLeft = ::leaveFindEditingIfNeeded,
                 findsEditingInProgress = findsSectionHasBackStack,
                 pendingSubTab = recordsPendingSubTab,
