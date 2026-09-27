@@ -385,6 +385,35 @@ class JournalEntryCardsTest {
         inCard(entryThumbTag(WITHHELD_TRACK_CARD.id)).assertDoesNotExist()
     }
 
+    // ── J4, D5: several kept tracks (owner rulings "All in one box" and "Sum, with a count") ──
+
+    @Test
+    fun `a card keeping two tracks draws them in one thumbnail`() {
+        setScreen(listOf(MULTI_TRACK_CARD, TRACK_CARD_B), tracks = listOf(track("tr-m1", points = 3), track("tr-m2", points = 4), track("tr-b", points = 3)))
+
+        inCard(entryThumbTag(MULTI_TRACK_CARD.id)).assertIsDisplayed()
+        composeRule.onAllNodes(hasTestTag(entryThumbTag(MULTI_TRACK_CARD.id)), useUnmergedTree = true).assertCountEquals(1)
+        inCard(entryThumbTag(TRACK_CARD_B.id)).assertExists()
+    }
+
+    @Test
+    fun `a card keeping two tracks, one of them not loaded, still draws the one it has`() {
+        setScreen(listOf(MULTI_TRACK_CARD), tracks = listOf(track("tr-m2", points = 4)))
+
+        inCard(entryThumbTag(MULTI_TRACK_CARD.id)).assertExists()
+    }
+
+    @Test
+    fun `a card keeping two tracks shows their total distance and duration labelled with the count`() {
+        setScreen(listOf(MULTI_TRACK_CARD, TRACK_CARD))
+
+        // 3000 m + 2400 m, 80 min + 50 min.
+        textIn(cardTag(MULTI_TRACK_CARD.id), "2 tracks · 5.4 km · 2h 10m").assertIsDisplayed()
+        // One kept track keeps its plain figure, with no count.
+        textIn(cardTag(TRACK_CARD.id), "1.5 km · 30m").assertIsDisplayed()
+        composeRule.onNodeWithText("1 track", substring = true).assertDoesNotExist()
+    }
+
     @Test
     fun `a Recorded Tracks row shows its thumbnail with two or more points and none with fewer`() {
         setScreen(
@@ -537,6 +566,16 @@ private val TRACK_CARD: CartographyEntry = committed("with-track-a", LocalDate.o
 private val TRACK_CARD_B: CartographyEntry = committed("with-track-b", LocalDate.of(2026, 9, 11)).copy(
     text = "Loop B",
     trackDecisions = listOf(trackDecision("tr-b", meters = 800.0, millis = 20 * 60_000L)),
+)
+
+/** Two kept tracks, 3000 m in 80 min and 2400 m in 50 min, and one withheld. */
+private val MULTI_TRACK_CARD: CartographyEntry = committed("multi-track", LocalDate.of(2026, 9, 13)).copy(
+    text = "Two loops",
+    trackDecisions = listOf(
+        trackDecision("tr-m1", meters = 3_000.0, millis = 80 * 60_000L),
+        trackDecision("tr-m2", meters = 2_400.0, millis = 50 * 60_000L),
+        trackDecision("tr-w", meters = 900.0, millis = 10 * 60_000L, kept = false),
+    ),
 )
 
 private val WITHHELD_TRACK_CARD: CartographyEntry = committed("withheld-track", LocalDate.of(2026, 9, 9)).copy(
