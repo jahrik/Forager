@@ -15,6 +15,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasClickAction
 import com.zynergylabs.forager.app.domain.AppThemePreferenceRepository
@@ -73,6 +76,26 @@ import com.zynergylabs.forager.app.domain.AlertAudibility
 import com.zynergylabs.forager.app.domain.AlertAudibilityState
 import com.zynergylabs.forager.app.domain.CartographyEntryMapData
 import com.zynergylabs.forager.app.domain.ComputeReturnToStartUseCase
+import com.zynergylabs.forager.app.domain.AddPhotoToGalleryUseCase
+import com.zynergylabs.forager.app.domain.AddPhotoToLogEntryUseCase
+import com.zynergylabs.forager.app.domain.CommitDraftEntryUseCase
+import com.zynergylabs.forager.app.domain.CreateMushroomLogEntryUseCase
+import com.zynergylabs.forager.app.domain.DeleteGalleryPhotoUseCase
+import com.zynergylabs.forager.app.domain.DeleteMushroomLogEntryUseCase
+import com.zynergylabs.forager.app.domain.GetDraftEntriesUseCase
+import com.zynergylabs.forager.app.domain.GetGalleryPhotosUseCase
+import com.zynergylabs.forager.app.domain.GetMushroomLogEntriesUseCase
+import com.zynergylabs.forager.app.domain.MushroomLogRepository
+import com.zynergylabs.forager.app.domain.PhotoStore
+import com.zynergylabs.forager.app.domain.PullPhotoIntoEntryUseCase
+import com.zynergylabs.forager.app.domain.RemovePhotoFromLogEntryUseCase
+import com.zynergylabs.forager.app.domain.SaveMushroomLogEntryUseCase
+import com.zynergylabs.forager.app.domain.StartEditingLogEntryUseCase
+import com.zynergylabs.forager.app.domain.UpdatePhotoLocationUseCase
+import com.zynergylabs.forager.app.domain.model.GalleryPhoto
+import com.zynergylabs.forager.app.domain.model.LogPhoto
+import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
+import com.zynergylabs.forager.app.domain.model.PhotoSource
 import com.zynergylabs.forager.app.domain.CreateWaypointUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
@@ -138,13 +161,35 @@ class JournalPendingDeleteTest {
     private lateinit var trackViewModel: TrackRecordingViewModel
     private val offlineMapRepository = PendingDeleteOfflineMapRepository(PD_REGIONS)
     private lateinit var availabilityViewModel: AvailabilityViewModel
+    private lateinit var logRepository: PendingDeleteLogRepository
+    private lateinit var logViewModel: MushroomLogViewModel
     private val searchCache = InMemorySearchCacheRepository()
 
     private fun setScreen(
         waypointReferenceCounts: Map<String, Int> = mapOf("wp-creek" to 2, "wp-oak" to 1),
         chip: RecordsSubTab = RecordsSubTab.WAYPOINTS,
         regionReferenceCounts: Map<Long, Int> = mapOf(7L to 2, 8L to 0),
+        finds: List<MushroomLogEntry> = emptyList(),
     ) {
+        logRepository = PendingDeleteLogRepository(finds)
+        val photoStore = PendingDeletePhotoStore
+        logViewModel = MushroomLogViewModel(
+            getEntries = GetMushroomLogEntriesUseCase(logRepository),
+            getDraftEntries = GetDraftEntriesUseCase(logRepository),
+            createEntry = CreateMushroomLogEntryUseCase(logRepository, today = { LocalDate.of(2026, 9, 27) }, idGenerator = { "find-new" }),
+            startEditingEntry = StartEditingLogEntryUseCase(logRepository, idGenerator = { "draft-of-find" }),
+            saveEntry = SaveMushroomLogEntryUseCase(logRepository),
+            commitDraftEntry = CommitDraftEntryUseCase(logRepository),
+            deleteEntry = DeleteMushroomLogEntryUseCase(logRepository),
+            addPhoto = AddPhotoToLogEntryUseCase(photoStore, logRepository),
+            addPhotoToGallery = AddPhotoToGalleryUseCase(photoStore, logRepository),
+            removePhoto = RemovePhotoFromLogEntryUseCase(logRepository),
+            getGalleryPhotos = GetGalleryPhotosUseCase(logRepository),
+            pullPhotoIntoEntry = PullPhotoIntoEntryUseCase(logRepository),
+            deleteGalleryPhoto = DeleteGalleryPhotoUseCase(logRepository, photoStore),
+            locationProvider = PendingDeleteUnusedLocationProvider,
+            updatePhotoLocation = UpdatePhotoLocationUseCase(logRepository),
+        )
         availabilityViewModel = AvailabilityViewModel(
             locationProvider = PendingDeleteUnusedLocationProvider,
             locationTracker = PendingDeleteNoOpLocationTracker,
@@ -188,28 +233,30 @@ class JournalPendingDeleteTest {
             val hostState = remember { SnackbarHostState() }
             val track by trackViewModel.uiState.collectAsState()
             val availability by availabilityViewModel.uiState.collectAsState()
+            val log by logViewModel.uiState.collectAsState()
             val journalState = rememberJournalScreenState()
             Box(modifier = Modifier.fillMaxSize()) {
                 JournalTab(
-                    uiState = MushroomLogUiState(),
+                    // What MainActivity passes: the state with a pending find left out.
+                    uiState = log.hidingPendingDelete(),
                     onOpenCameraForLogEntry = {},
                     onOpenCameraForAlbum = {},
                     onOpenCameraForCartographyEntry = {},
                     mapSlot = PD_STUB_MAP,
                     pickerRegion = Region(lat = 45.326, lng = -122.634, radiusKm = 15),
                     basemap = Basemap.DEFAULT,
-                    onOpenEntry = {},
-                    onCloseEntry = {},
+                    onOpenEntry = logViewModel::onOpenEntry,
+                    onCloseEntry = logViewModel::onCloseEntry,
                     onStartEntry = { _, _ -> },
-                    onEntryChanged = {},
-                    onStartEditingEntry = {},
-                    onSaveEntry = {},
-                    onCancelEditing = {},
-                    onLeaveEditingIncidentally = {},
+                    onEntryChanged = logViewModel::onEntryEdited,
+                    onStartEditingEntry = logViewModel::onStartEditingEntry,
+                    onSaveEntry = logViewModel::onSaveEntry,
+                    onCancelEditing = logViewModel::onCancelEditing,
+                    onLeaveEditingIncidentally = logViewModel::onLeaveEditingIncidentally,
                     onAddPhoto = {},
                     onRemovePhoto = {},
                     onPullPhoto = {},
-                    onDeleteEntry = {},
+                    onDeleteEntry = logViewModel::requestDeleteEntry,
                     onSaveErrorDismissed = {},
                     cartographyUiState = CartographyUiState(),
                     onOpenCartographyEntry = {},
@@ -257,6 +304,7 @@ class JournalPendingDeleteTest {
                         availabilityViewModel::undoDeleteOfflineRegion,
                         availabilityViewModel::commitDeleteOfflineRegion,
                     ),
+                    findDeleteNotice(log.pendingDelete, logViewModel::undoDeleteEntry, logViewModel::commitDeleteEntry),
                 ),
                 hostState = hostState,
             )
@@ -512,6 +560,116 @@ class JournalPendingDeleteTest {
         letSnackbarTimeOut()
         assertEquals(listOf(7L), offlineMapRepository.deletedIds)
     }
+    // ── Finds, from the report (D4) ──
+
+    private fun openFindReport(date: String) {
+        composeRule.onNodeWithText("Find on $date", useUnmergedTree = true).performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
+    }
+
+    private fun deleteFromReport() {
+        composeRule.onNodeWithContentDescription("Entry options").performClick()
+        composeRule.onNodeWithText("Delete entry").performClick()
+        composeRule.waitForIdle()
+    }
+
+    private fun findTiles(date: String) = composeRule.onAllNodesWithText("Find on $date", useUnmergedTree = true)
+
+    @Test
+    fun `deleting a find from its report closes the report, hides the find, says Find deleted, and deletes nothing yet`() {
+        setScreen(chip = RecordsSubTab.FINDS, finds = listOf(PD_FIND_A, PD_FIND_B))
+        openFindReport("2026-09-20")
+
+        deleteFromReport()
+
+        composeRule.onNodeWithContentDescription("Entry options").assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("New log entry").assertIsDisplayed()
+        findTiles("2026-09-20").assertCountEquals(0)
+        findTiles("2026-09-21").assertCountEquals(1)
+        composeRule.onNodeWithText("Find deleted").assertIsDisplayed()
+        assertEquals(emptyList<String>(), logRepository.deletedIds)
+    }
+
+    @Test
+    fun `when the find's snackbar times out, exactly one delete runs, with the find's id`() {
+        setScreen(chip = RecordsSubTab.FINDS, finds = listOf(PD_FIND_A, PD_FIND_B))
+        openFindReport("2026-09-21")
+        deleteFromReport()
+        assertEquals(emptyList<String>(), logRepository.deletedIds)
+
+        letSnackbarTimeOut()
+
+        assertEquals(listOf("find-b"), logRepository.deletedIds)
+        findTiles("2026-09-21").assertCountEquals(0)
+        findTiles("2026-09-20").assertCountEquals(1)
+    }
+
+    @Test
+    fun `Undo brings the find back to the gallery, leaves its report closed, and deletes nothing`() {
+        setScreen(chip = RecordsSubTab.FINDS, finds = listOf(PD_FIND_A, PD_FIND_B))
+        openFindReport("2026-09-20")
+        deleteFromReport()
+
+        touchUndo()
+        letSnackbarTimeOut()
+
+        findTiles("2026-09-20").assertCountEquals(1)
+        composeRule.onNodeWithContentDescription("Entry options").assertDoesNotExist()
+        assertEquals(emptyList<String>(), logRepository.deletedIds)
+    }
+
+    @Test
+    fun `deleting from the find's edit form is the same pending delete, of the open draft`() {
+        setScreen(chip = RecordsSubTab.FINDS, finds = listOf(PD_FIND_A))
+        openFindReport("2026-09-20")
+        composeRule.onNodeWithContentDescription("Entry options").performClick()
+        composeRule.onNodeWithText("Edit entry").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithContentDescription("Delete this entry").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithContentDescription("Delete this entry").assertDoesNotExist()
+        composeRule.onNodeWithText("Find deleted").assertIsDisplayed()
+        assertEquals(emptyList<String>(), logRepository.deletedIds)
+        letSnackbarTimeOut()
+        // The form was editing the re-edit's draft row, so that row is what is deleted, as before J4.
+        assertEquals(listOf("draft-of-find"), logRepository.deletedIds)
+        findTiles("2026-09-20").assertCountEquals(1)
+    }
+
+    @Test
+    fun `a pending find is gone from the Finds count, from All, and from All's count`() {
+        setScreen(chip = RecordsSubTab.ALL, finds = listOf(PD_FIND_A, PD_FIND_B))
+        composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.FINDS)).assert(hasText("2"))
+        composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.ALL)).assert(hasText("6"))
+        composeRule.onNodeWithTag(logbookRowTag(RecordType.FINDS, "find-a")).performScrollTo().performClick()
+        composeRule.waitForIdle()
+
+        deleteFromReport()
+        composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.ALL)).performScrollTo().performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(logbookRowTag(RecordType.FINDS, "find-a")).assertDoesNotExist()
+        composeRule.onNodeWithTag(logbookRowTag(RecordType.FINDS, "find-b")).assertExists()
+        composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.FINDS)).assert(hasText("1"))
+        composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.ALL)).assert(hasText("5"))
+        composeRule.onNodeWithText("Find deleted").assertIsDisplayed()
+        assertEquals(emptyList<String>(), logRepository.deletedIds)
+    }
+
+    @Test
+    fun `find tiles have no swipe`() {
+        setScreen(chip = RecordsSubTab.ALL, finds = listOf(PD_FIND_A))
+        composeRule.onNodeWithTag(logbookRowTag(RecordType.FINDS, "find-a")).assertExists()
+        composeRule.onNodeWithTag(swipeToDeleteTag(RecordType.FINDS, "find-a")).assertDoesNotExist()
+        composeRule.onNodeWithTag(logbookRowTag(RecordType.FINDS, "find-a")).performScrollTo().performTouchInput { swipeLeft() }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Find deleted").assertDoesNotExist()
+        letSnackbarTimeOut()
+        assertEquals(emptyList<String>(), logRepository.deletedIds)
+    }
 }
 
 private const val SNACKBAR_LONG_MILLIS = 10_000L
@@ -646,4 +804,49 @@ private object PendingDeleteUnitSystem : UnitSystemPreferenceRepository {
 private object PendingDeleteTheme : AppThemePreferenceRepository {
     override suspend fun getThemeMode(): Result<AppThemeMode> = Result.success(AppThemeMode.LIGHT)
     override suspend fun setThemeMode(mode: AppThemeMode): Result<Unit> = Result.success(Unit)
+}
+
+private val PD_FIND_A = MushroomLogEntry.draft(id = "find-a", location = null, date = LocalDate.of(2026, 9, 20)).copy(isDraft = false)
+private val PD_FIND_B = MushroomLogEntry.draft(id = "find-b", location = null, date = LocalDate.of(2026, 9, 21)).copy(isDraft = false)
+
+/** Finds kept in memory, no photos; every [delete] call is recorded, in order. */
+private class PendingDeleteLogRepository(initial: List<MushroomLogEntry>) : MushroomLogRepository {
+    private val entries = initial.associateByTo(LinkedHashMap()) { it.id }
+    val deletedIds = mutableListOf<String>()
+
+    override suspend fun getAll(): Result<List<MushroomLogEntry>> = Result.success(entries.values.toList())
+    override suspend fun getForDay(foundOnKey: String): Result<List<MushroomLogEntry>> =
+        Result.success(entries.values.filter { it.foundOn.toString() == foundOnKey })
+    override suspend fun getAllPhotos(): Result<List<GalleryPhoto>> = Result.success(emptyList())
+    override suspend fun save(entry: MushroomLogEntry): Result<Unit> {
+        entries[entry.id] = entry
+        return Result.success(Unit)
+    }
+    override suspend fun commitDraft(draftId: String, committed: MushroomLogEntry): Result<Unit> {
+        entries[committed.id] = committed
+        if (committed.id != draftId) entries.remove(draftId)
+        return Result.success(Unit)
+    }
+    override suspend fun delete(id: String): Result<Unit> {
+        deletedIds += id
+        entries.remove(id)
+        return Result.success(Unit)
+    }
+    override suspend fun addPhotoToGallery(photo: LogPhoto): Result<Unit> =
+        Result.failure(UnsupportedOperationException("photos are not part of this test's path"))
+    override suspend fun updatePhotoLocation(photoId: String, latitude: Double, longitude: Double): Result<Unit> =
+        Result.failure(UnsupportedOperationException("photos are not part of this test's path"))
+    override suspend fun attachPhotoToEntry(entryId: String, photoId: String): Result<Unit> =
+        Result.failure(UnsupportedOperationException("photos are not part of this test's path"))
+    override suspend fun detachPhotoFromEntry(entryId: String, photoId: String): Result<Unit> =
+        Result.failure(UnsupportedOperationException("photos are not part of this test's path"))
+    override suspend fun deletePhotoFromGallery(photoId: String): Result<Unit> =
+        Result.failure(UnsupportedOperationException("photos are not part of this test's path"))
+}
+
+private object PendingDeletePhotoStore : PhotoStore {
+    override suspend fun persist(source: PhotoSource): Result<LogPhoto> =
+        Result.failure(UnsupportedOperationException("photos are not part of this test's path"))
+    override suspend fun delete(photo: LogPhoto): Result<Unit> =
+        Result.failure(UnsupportedOperationException("photos are not part of this test's path"))
 }

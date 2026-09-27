@@ -9,6 +9,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.PendingDelete
+import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -86,6 +87,13 @@ internal fun offlineRegionDeleteNotice(
         onCommit = { onCommit(id) },
     )
 }
+
+/** J4 D4 stub. */
+internal fun findDeleteNotice(
+    pending: PendingDelete<MushroomLogEntry>?,
+    onUndo: (String) -> Unit,
+    onCommit: (String) -> Unit,
+): PendingDeleteNotice? = null
 
 /**
  * Shows each pending delete's Undo snackbar in [hostState] and reports how it ended (J4):
