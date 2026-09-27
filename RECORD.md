@@ -1938,3 +1938,18 @@ Quote this message verbatim in the record.
 **Flags:** (a) AvailabilityScreenSeasonalTabTest "a loading state shows a progress indicator rather than stale content" passed under R2: its only assertion is assertDoesNotExist, which holds on the Map tab too, so it cannot fail on a missing tab switch; not touched. (b) "the bottom nav's three destinations select the same ResultsTab the old tab row did" asserts only map-slot presence (compactTab), not ResultsTab, despite its name; not touched. (c) The journal-destination and photo-acquisition writes have no test through the screen; both screen-level "Log a find" tests are @Ignore'd. (d) Compose group keys change with the extraction; no rememberSaveable in these files; whether a composable the body calls elsewhere uses rememberSaveable was not checked. (e) assembleDebug was not run locally; CI ran it. (f) Nothing was run on the device.
 
 ---
+
+**Kind:** merge
+**ID:** 2026-09-27-23
+**Timestamp:** 2026-09-27T00:16:51Z
+**PR:** 133
+**Head:** split-scaffold
+**Base:** pre-main
+**Merge-commit:** d0ae6125ed0935c4fde4adfbf65a3b281adf7d5c
+**Pre-merge:** 29277b75f8a1d41f34bbbc1b5b767fc5bbd5031d
+**Backup:** 2026-09-27-01
+**Merged-by:** coder preserved/2026-09-26-47.md
+**Carries:** 2026-09-27-20, 2026-09-27-21, 2026-09-27-22
+**Notes:** Written in the sweep of the dispatch preserved as preserved/2026-09-27-01.md, on branch night-mode cut from origin/pre-main d0ae6125ed0935c4fde4adfbf65a3b281adf7d5c. The one merge on pre-main's first-parent chain newer than 29277b7, the newest merge a `merge` entry records (2026-09-27-20, Base pre-main): git log --first-parent --merges --format='%H %P %s' 3428a92..origin/pre-main lists d0ae612 first, parents 29277b75f8a1d41f34bbbc1b5b767fc5bbd5031d and 4f6aebee093f8189a671d66726b78f0549060ee9, "Merge pull request #133 from slayer8366/split-scaffold", then 29277b7. PR, Head, Base, Timestamp (mergedAt) from gh pr view 133 --json number,headRefName,baseRefName,mergeCommit,mergedAt: 133, split-scaffold, pre-main, mergeCommit d0ae6125ed0935c4fde4adfbf65a3b281adf7d5c, 2026-09-27T00:16:51Z. Backup and Merged-by: ~/Zynergy/forager-repo-backups/INDEX.md's line "- 2026-09-27-01: PR #133 (split-scaffold into pre-main), pre-merge 29277b75f8a1d41f34bbbc1b5b767fc5bbd5031d, bundle of origin/pre-main, written by coder under intent 2026-09-27-21 (prompts/preserved/2026-09-26-47.md)". Carries from git diff 29277b7 d0ae612 -- RECORD.md, which adds IDs 2026-09-27-20, -21 and -22; -20 is the merge entry for #132, written in split-scaffold's sweep, so it is listed, as -17 was in -20's Carries. The dispatch expected -20 to -22; confirmed. main: no merge newer than 76905d4 (#119), which merge entry 2026-09-26-24 records. No unclaimed store copy other than this dispatch's own, preserved/2026-09-27-01.md, which the intent claims.
+
+---
