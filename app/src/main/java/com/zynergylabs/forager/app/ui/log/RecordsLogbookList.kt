@@ -37,7 +37,6 @@ import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.TrackPointRecord
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.ui.availability.AvailabilityUiState
-import com.zynergylabs.forager.app.ui.availability.OfflineRegionDeleteDialog
 import com.zynergylabs.forager.app.ui.availability.OfflineRegionRow
 import com.zynergylabs.forager.app.ui.availability.WaypointRow
 import com.zynergylabs.forager.app.ui.theme.Spacing
@@ -57,8 +56,9 @@ import java.time.format.DateTimeFormatter
  * it, controls included, with a [RecordTypeBadge] in front. Finds sit two to a row, as the Finds
  * gallery's own two-column grid shows them. Deletes confirm through the same dialogs the chips use
  * ([WaypointDeleteDialog], [OfflineRegionDeleteDialog]); nothing about deleting changes in J1.
- * Journal redesign J4 replaced that for waypoints: a waypoint's whole badged row is a
- * [SwipeToDeleteRow], as in its own chip, and [onDeleteWaypoint] asks for a pending delete with Undo.
+ * Journal redesign J4 replaced both dialogs: a waypoint's or region's whole badged row is a
+ * [SwipeToDeleteRow], as in its own chip, and [onDeleteWaypoint]/[onDeleteOfflineRegion] ask for a
+ * pending delete with Undo. The regions listed are [AvailabilityUiState.visibleOfflineRegions].
  *
  * **Tapping a find** calls [onOpenFind], which `RecordsTab` turns into "select the Finds chip and open
  * that find's report there", so Back goes report, then the Finds gallery, then All. Waypoint, track
@@ -84,12 +84,11 @@ internal fun RecordsLogbookList(
     onOpenFind: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var pendingDeleteRegion by remember { mutableStateOf<OfflineRegionSummary?>(null) }
     val days = buildRecordsLogbook(
         finds = finds.orEmpty(),
         tracks = tracks,
         waypoints = waypoints,
-        offlineRegions = availabilityUiState.offlineRegions,
+        offlineRegions = availabilityUiState.visibleOfflineRegions,
         zone = ZoneId.systemDefault(),
     )
     val now = currentTime.nowEpochMillis()
@@ -142,28 +141,26 @@ internal fun RecordsLogbookList(
                             }
                         }
                     }
-                    is TimedRecord.OfflineRegionRecord -> BadgedRow(RecordType.OFFLINE_MAPS, record.region.id.toString()) {
-                        OfflineRegionRow(
-                            region = record.region,
-                            isStale = isOfflineRegionStale(record.region.createdAtEpochMillis, now, availabilityUiState.offlineStaleThresholdDays),
-                            distanceUnit = distanceUnit,
-                            nowEpochMillis = now,
-                            onDelete = { pendingDeleteRegion = record.region },
-                        )
+                    is TimedRecord.OfflineRegionRecord -> key(RecordType.OFFLINE_MAPS, record.region.id) {
+                        SwipeToDeleteRow(
+                            testTag = swipeToDeleteTag(RecordType.OFFLINE_MAPS, record.region.id.toString()),
+                            onDelete = { onDeleteOfflineRegion(record.region.id) },
+                        ) {
+                            BadgedRow(RecordType.OFFLINE_MAPS, record.region.id.toString()) {
+                                OfflineRegionRow(
+                                    region = record.region,
+                                    isStale = isOfflineRegionStale(record.region.createdAtEpochMillis, now, availabilityUiState.offlineStaleThresholdDays),
+                                    distanceUnit = distanceUnit,
+                                    nowEpochMillis = now,
+                                )
+                            }
+                        }
                     }
                 }
             }
         }
     }
 
-    pendingDeleteRegion?.let { region ->
-        OfflineRegionDeleteDialog(
-            region = region,
-            entryReferenceCounts = availabilityUiState.offlineRegionEntryReferenceCounts,
-            onDeleteOfflineRegion = onDeleteOfflineRegion,
-            onDismiss = { pendingDeleteRegion = null },
-        )
-    }
 }
 
 @Composable

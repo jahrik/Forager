@@ -416,21 +416,24 @@ class RecordsFilterChipsTest {
         }
         // The same rows the single-type chips show: find tiles, the track row's share action, the
         // waypoint row's Directions and its swipe-to-delete row (J4: the trash icon is gone), the
-        // region row's Delete.
+        // region row and its swipe-to-delete row (J4: its "Delete" button is gone).
         composeRule.onAllNodesWithText("Find on $d1", useUnmergedTree = true).assertCountEquals(2)
         composeRule.onNodeWithTag("share-track-T1").assertExists()
         composeRule.onNodeWithContentDescription("Directions to Morning pin").assertExists()
         composeRule.onNodeWithTag(swipeToDeleteTag(RecordType.WAYPOINTS, "W2")).assertExists()
         composeRule.onNodeWithText("Noon region").assertExists()
+        composeRule.onNodeWithTag(swipeToDeleteTag(RecordType.OFFLINE_MAPS, "7")).assertExists()
     }
 
     /**
-     * Rewritten by journal redesign J4 (D2): a waypoint in All is deleted by swiping its row, which
-     * asks for the pending delete at once, with no confirmation dialog (the Undo snackbar replaces it;
-     * [JournalPendingDeleteTest] covers the snackbar). The region half is unchanged until D3.
+     * Rewritten by journal redesign J4 (D2 for the waypoint, D3 for the region): a waypoint or region
+     * in All is deleted by swiping its row, which asks for the pending delete at once, with no
+     * confirmation dialog (the Undo snackbar replaces it; [JournalPendingDeleteTest] covers the
+     * snackbar and the deferred delete). Was: "deleting from All goes through the same confirmation
+     * dialogs as the chips".
      */
     @Test
-    fun `deleting a waypoint from All is a swipe with no dialog, and a region still confirms`() {
+    fun `deleting a waypoint or a region from All is a swipe, with no dialog`() {
         setLogbookScreen()
 
         composeRule.onNodeWithTag(swipeToDeleteTag(RecordType.WAYPOINTS, "W2")).performScrollTo().performTouchInput { swipeLeft() }
@@ -439,11 +442,10 @@ class RecordsFilterChipsTest {
         composeRule.onNode(isDialog()).assertDoesNotExist()
         assertEquals(listOf("W2"), deletedWaypointIds)
 
-        composeRule.onNodeWithTag(rowTag("offline-maps", "7")).performScrollTo()
-        composeRule.onNode(hasText("Delete") and hasAnyAncestor(hasTestTag(rowTag("offline-maps", "7")))).performClick()
-        composeRule.onNodeWithText("Delete \"Noon region\"?").assertIsDisplayed()
-        assertEquals(emptyList<Long>(), deletedRegionIds)
-        composeRule.onAllNodesWithText("Delete").filterToOne(hasAnyAncestor(isDialog())).performClick()
+        composeRule.onNodeWithTag(swipeToDeleteTag(RecordType.OFFLINE_MAPS, "7")).performScrollTo().performTouchInput { swipeLeft() }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Delete \"Noon region\"?").assertDoesNotExist()
+        composeRule.onNode(isDialog()).assertDoesNotExist()
         assertEquals(listOf(7L), deletedRegionIds)
     }
 

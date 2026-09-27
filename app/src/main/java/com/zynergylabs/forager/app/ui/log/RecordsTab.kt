@@ -204,7 +204,8 @@ internal fun RecordsTab(
                 finds = finds?.size,
                 tracks = tracks.size,
                 waypoints = waypoints.size,
-                offlineMaps = availabilityUiState.offlineRegions.size,
+                // J4: a region whose delete is pending is not counted.
+                offlineMaps = availabilityUiState.visibleOfflineRegions.size,
             ),
             onSelect = ::selectTab,
         )
