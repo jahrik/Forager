@@ -302,3 +302,21 @@ the repository.
    recreate it. This goes to the owner.
 4. **The header in short windows:** it renders, inside the 640 dp cap, so L1's
    48 dp budget must be recounted before J5.
+
+## The owner's rulings on J0, added 2026-09-27
+
+In the planner session, verbatim:
+
+1. J8: "Swipe + Undo, delayed delete (Recommended)". Swipe-to-dismiss with an
+   Undo snackbar on waypoint, find and offline-region rows; the real delete
+   (including MapLibre's tile delete) runs only when the snackbar ends, so Undo
+   is exact for every type. The trash icon and the regions' text button go.
+   Tracks stay undeletable (adding a delete is new capability, not asked).
+2. J5 hero: "Direct photos only (Recommended)". The earliest directly attached
+   photo that still exists; none means no hero.
+3. Track thumbnail: "Rows and Entries cards". On Recorded Tracks rows and on
+   Entries cards. The mechanism for Entries cards is asked separately, since
+   the options offered missed the in-memory join.
+4. J10/L7: "Hoisted, saveable (Recommended)". Journal UI state held above the
+   Journal branch with `rememberSaveable`, surviving tab changes, rotation, a
+   night-mode toggle and a fold; not app restarts.
