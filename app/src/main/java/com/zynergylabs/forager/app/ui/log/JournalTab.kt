@@ -193,6 +193,10 @@ internal fun JournalTab(
      * cards without the swipe.
      */
     onRequestDeleteCartographyEntry: ((String) -> Unit)? = null,
+    /** J4b tests-first stub. */
+    onOpenEntryForEditing: ((String) -> Unit)? = null,
+    /** J4b tests-first stub. */
+    onRequestDeleteGalleryPhoto: ((String) -> Unit)? = null,
     /** [CartographyEntryReportScreen]'s own map, Stage 2d — see that composable's doc comment. */
     getCartographyEntryMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData,
     /** [CartographyEntryReportScreen]'s own offline-map toggle, Stage 2e-i — see that composable's doc comment. */
