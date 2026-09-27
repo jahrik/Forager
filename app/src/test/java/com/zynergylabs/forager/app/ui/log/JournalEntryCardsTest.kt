@@ -9,6 +9,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
@@ -35,6 +38,8 @@ import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.FindDecision
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
+import com.zynergylabs.forager.app.domain.model.LogPhoto
+import com.zynergylabs.forager.app.domain.model.PhotoAttachment
 import com.zynergylabs.forager.app.domain.model.OfflineRegionDecision
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.TrackDecision
@@ -297,6 +302,43 @@ class JournalEntryCardsTest {
         textIn(rowTag(EMPTY_ENTRY.id), "Nothing kept").assertIsDisplayed()
     }
 
+    // ── C2: the hero photo (owner: "Direct photos only (Recommended)") ──
+
+    @Test
+    fun `the hero is the earliest attached photo still in the gallery, skipping an earlier deleted one, on top of the card`() {
+        setScreen(listOf(HERO_ENTRY), galleryPhotos = listOf(galleryPhoto("p-new"), galleryPhoto("p-mid")))
+
+        node(heroTag(HERO_ENTRY.id, "p-mid")).assertIsDisplayed()
+        node(heroTag(HERO_ENTRY.id, "p-deleted")).assertDoesNotExist()
+        node(heroTag(HERO_ENTRY.id, "p-new")).assertDoesNotExist()
+        composeRule.onAllNodes(hasTagPrefix("entry-hero-")).assertCountEquals(1)
+        val hero = node(heroTag(HERO_ENTRY.id, "p-mid")).getUnclippedBoundsInRoot()
+        val card = node(cardTag(HERO_ENTRY.id)).getUnclippedBoundsInRoot()
+        val title = textIn(cardTag(HERO_ENTRY.id), "Hero walk").getUnclippedBoundsInRoot()
+        assertTrue("the hero sits inside the card, at its top ($hero in $card)", hero.top >= card.top && hero.top - card.top <= 1.dp && hero.bottom <= card.bottom)
+        assertTrue("and above the card's text", hero.bottom <= title.top)
+    }
+
+    @Test
+    fun `an entry with no attached photo has no hero, beside one that has`() {
+        setScreen(listOf(HERO_ENTRY, FULL_ENTRY), galleryPhotos = listOf(galleryPhoto("p-mid")))
+
+        // Positive control: the entry with a photo does draw one.
+        node(heroTag(HERO_ENTRY.id, "p-mid")).assertExists()
+        composeRule.onAllNodes(hasTagPrefix("entry-hero-${FULL_ENTRY.id}-")).assertCountEquals(0)
+    }
+
+    @Test
+    fun `a wordless, trackless entry is a card when its photo exists and collapses when every photo is gone`() {
+        setScreen(listOf(PHOTO_ONLY_ENTRY, PHOTO_GONE_ENTRY), galleryPhotos = listOf(galleryPhoto("p-only")))
+
+        node(cardTag(PHOTO_ONLY_ENTRY.id)).assertIsDisplayed()
+        node(heroTag(PHOTO_ONLY_ENTRY.id, "p-only")).assertIsDisplayed()
+        node(rowTag(PHOTO_ONLY_ENTRY.id)).assertDoesNotExist()
+        node(rowTag(PHOTO_GONE_ENTRY.id)).assertIsDisplayed()
+        composeRule.onAllNodes(hasTagPrefix("entry-hero-${PHOTO_GONE_ENTRY.id}-")).assertCountEquals(0)
+    }
+
     @Test
     fun `touching a card at several points opens that entry`() {
         setScreen(listOf(FULL_ENTRY, AUGUST_ENTRY))
@@ -331,6 +373,35 @@ private const val ENTRIES_HOME = "entries-home"
 private fun cardTag(entryId: String): String = "entry-card-$entryId"
 private fun rowTag(entryId: String): String = "entry-row-$entryId"
 private fun monthTag(yearMonth: String): String = "entries-month-$yearMonth"
+
+private fun heroTag(entryId: String, photoId: String): String = "entry-hero-$entryId-$photoId"
+
+private fun hasTagPrefix(prefix: String): SemanticsMatcher = SemanticsMatcher("TestTag starts with '$prefix'") { node ->
+    node.config.getOrNull(SemanticsProperties.TestTag)?.startsWith(prefix) == true
+}
+
+private fun galleryPhoto(id: String): GalleryPhoto =
+    GalleryPhoto(photo = LogPhoto(id = id, relativePath = "photos/$id.jpg", createdAtEpochMillis = null), referencingEntryIds = emptyList())
+
+/** Three photos attached out of order; the earliest ("p-deleted") is not in the gallery any more. */
+private val HERO_ENTRY: CartographyEntry = committed("hero", LocalDate.of(2026, 9, 24)).copy(
+    text = "Hero walk",
+    photos = listOf(
+        PhotoAttachment(photoId = "p-new", attachedAtEpochMillis = 3_000L),
+        PhotoAttachment(photoId = "p-deleted", attachedAtEpochMillis = 1_000L),
+        PhotoAttachment(photoId = "p-mid", attachedAtEpochMillis = 2_000L),
+    ),
+)
+
+/** No text, no track, one photo that exists. */
+private val PHOTO_ONLY_ENTRY: CartographyEntry = committed("photo-only", LocalDate.of(2026, 9, 23)).copy(
+    photos = listOf(PhotoAttachment(photoId = "p-only", attachedAtEpochMillis = 1_000L)),
+)
+
+/** No text, no track, one photo that has been deleted from the gallery. */
+private val PHOTO_GONE_ENTRY: CartographyEntry = committed("photo-gone", LocalDate.of(2026, 9, 22)).copy(
+    photos = listOf(PhotoAttachment(photoId = "p-gone", attachedAtEpochMillis = 1_000L)),
+)
 
 /** Three touches spread across a control: near its start edge, its centre, near its end edge, at differing heights. */
 private val TOUCH_SAMPLES = listOf(Offset(0.12f, 0.3f), Offset(0.5f, 0.5f), Offset(0.88f, 0.7f))
