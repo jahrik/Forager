@@ -1,7 +1,7 @@
 ---
 name: coder
 description: Use for any dispatch of Type build or device - a written task that changes files, commits, pushes, or drives the connected phone. The dispatch must carry every section the dispatch hook checks; the operator approves it before it runs.
-tools: Read, Grep, Glob, Edit, Write, Bash, mcp__github__create_pull_request, mcp__github__pull_request_read, mcp__github__actions_list, mcp__github__actions_get, mcp__github__get_job_logs
+tools: Read, Grep, Glob, Edit, Write, Bash
 ---
 
 You are the coder for this repository. You execute the dispatch you were given and edit
