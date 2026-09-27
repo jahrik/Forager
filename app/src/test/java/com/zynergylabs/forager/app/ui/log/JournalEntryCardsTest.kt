@@ -39,6 +39,7 @@ import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.FindDecision
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.LogPhoto
+import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 import com.zynergylabs.forager.app.domain.model.PhotoAttachment
 import com.zynergylabs.forager.app.domain.model.OfflineRegionDecision
 import com.zynergylabs.forager.app.domain.model.Track
@@ -426,6 +427,28 @@ class JournalEntryCardsTest {
         }
     }
 
+    // ── C5: the album's find badge marks saved finds only (owner: "Saved finds only (Recommended)") ──
+
+    @Test
+    fun `the album's find badge marks a photo on a saved find, and not one attached only to a draft find`() {
+        setScreen(
+            listOf(FULL_ENTRY),
+            galleryPhotos = listOf(
+                findPhoto("p-draft", listOf("find-draft")),
+                findPhoto("p-saved", listOf("find-saved")),
+                findPhoto("p-both", listOf("find-draft", "find-saved")),
+            ),
+            logState = MushroomLogUiState(draftEntries = listOf(MushroomLogEntry.draft(id = "find-draft", location = null, date = LocalDate.of(2026, 9, 26)))),
+        )
+        node(VIEW_ALBUM).performTouchInput { click(center) }
+        composeRule.waitForIdle()
+
+        inCard(albumPhotoTag("p-draft")).assertExists()
+        inCard(findBadgeTag("p-draft")).assertDoesNotExist()
+        inCard(findBadgeTag("p-saved")).assertIsDisplayed()
+        inCard(findBadgeTag("p-both")).assertIsDisplayed()
+    }
+
     @Test
     fun `touching a card at several points opens that entry`() {
         setScreen(listOf(FULL_ENTRY, AUGUST_ENTRY))
@@ -520,6 +543,13 @@ private val WITHHELD_TRACK_CARD: CartographyEntry = committed("withheld-track", 
     text = "Kept nothing of the walk",
     trackDecisions = listOf(trackDecision("tr-w", meters = 800.0, millis = 20 * 60_000L, kept = false)),
 )
+
+private const val VIEW_ALBUM = "entries-view-album"
+private fun albumPhotoTag(id: String): String = "entries-album-photo-$id"
+private fun findBadgeTag(id: String): String = "entries-album-badge-find-$id"
+
+private fun findPhoto(id: String, findIds: List<String>): GalleryPhoto =
+    GalleryPhoto(photo = LogPhoto(id = id, relativePath = "photos/$id.jpg", createdAtEpochMillis = null), referencingEntryIds = findIds)
 
 /** Three touches spread across a control: near its start edge, its centre, near its end edge, at differing heights. */
 private val TOUCH_SAMPLES = listOf(Offset(0.12f, 0.3f), Offset(0.5f, 0.5f), Offset(0.88f, 0.7f))
