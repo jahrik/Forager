@@ -42,9 +42,9 @@ data class MapRenderMode(
     /**
      * Night mode: the basemap's colours inverted with hue kept (the V1 transform, `BasemapStyles.kt`'s
      * `NIGHT_RASTER_PAINT`), except Satellite, which stays day; the offline style is recoloured with
-     * the same transform after it loads. Overlay markers (sightings, area markers, planned trips, waypoints)
-     * render identically regardless of this flag — see `MapPalette`'s own doc comment, "Markers
-     * stay day-only, always." Not the device's dark theme, and deliberately not derived from it —
+     * the same transform after it loads. Every overlay marker follows it too, on every basemap,
+     * Satellite included: markers draw from `MapPalette.forMode` of this flag (colour build C2), so
+     * over Satellite only the markers switch. Not the device's dark theme, and deliberately not derived from it —
      * see `MapPalette` for why that was tried, measured and abandoned.
      */
     val night: Boolean = false,
@@ -99,7 +99,8 @@ data class MapRenderMode(
      */
     val useOfflineTiles: Boolean = false,
     /**
-     * Whether this map draws the search-centre marker — the `searchCentre`-coloured dot at
+     * Whether this map draws the search-centre marker — the `searchCentre`-coloured reticle (a dot
+     * before colour build C2) at
      * [com.zynergylabs.forager.app.ui.map.MapSlot]'s `region` centre that the live Maps tab uses to show where
      * the current search is anchored. `true` for every existing caller, unchanged. `false` for a
      * map about a **historical** place ([com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreen]):
@@ -201,8 +202,9 @@ data class MapOverlayContent(
     val keptTrackPolylines: List<List<LatLng>> = emptyList(),
     /**
      * Journal Stage 2d: a Cartography entry's kept finds with a resolved coordinate — drawn as
-     * discrete pins, the same [SymbolLayer][org.maplibre.android.style.layers.SymbolLayer] template
-     * [Waypoint] markers already use. A find with no coordinate (the ordinary case — see
+     * discrete markers, each a [SymbolLayer][org.maplibre.android.style.layers.SymbolLayer] like the
+     * [Waypoint] markers; since colour build C2 a find is a mushroom in its own colour, no longer the
+     * waypoint's pin in the offline region's colour (`MarkerGlyphs.kt`). A find with no coordinate (the ordinary case — see
      * [com.zynergylabs.forager.app.domain.model.MushroomLogEntry.foundAt]'s own doc comment) is simply absent
      * from this list, never a placeholder point.
      */
@@ -212,7 +214,9 @@ data class MapOverlayContent(
      * [com.zynergylabs.forager.app.domain.model.LogPhoto.latitude]/`.longitude` non-null, and the gallery row
      * still present) — most existing photos will have neither, which is normal, not an error; see
      * [com.zynergylabs.forager.app.domain.model.LogPhoto]'s own doc comment on the two ways a photo gains a
-     * coordinate. Also a discrete-pin [SymbolLayer][org.maplibre.android.style.layers.SymbolLayer].
+     * coordinate. Also a discrete [SymbolLayer][org.maplibre.android.style.layers.SymbolLayer] marker: since
+     * colour build C2 a rounded square with a camera, in its own colour, no longer the planned trip's
+     * diamond.
      */
     val photoMarkers: List<LatLng> = emptyList(),
     /**

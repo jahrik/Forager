@@ -73,7 +73,8 @@ import org.maplibre.geojson.Polygon
 /**
  * Shows the searched region as a map with a marker per real observation ([sightings]).
  *
- * [plannedTrips] draws a second, distinct marker per planned trip — a diamond, to read as
+ * [plannedTrips] draws a second, distinct marker per planned trip — a flag since colour build C2
+ * (a diamond before it; `MarkerGlyphs.kt` has every marker's silhouette), to read as
  * different from the translucent sighting dots (density of what's been observed): a planned trip
  * is a place the user chose for themselves, not derived from observation history.
  *
@@ -100,7 +101,8 @@ import org.maplibre.geojson.Polygon
  * `CircleLayer`/`LineLayer`/`SymbolLayer` in
  * [initializeOverlayLayers], with actual data pushed by [refreshOverlayData] — see that function's
  * doc comment for why the two are split. [Basemap]/[styleJsonFor] are the only pieces reused as-is;
- * everything else, including [zoomForRadiusKm]'s numbers and the colour constants, is carried over
+ * everything else, including [zoomForRadiusKm]'s numbers and (until colour build C2 replaced them
+ * with `MapPalette`'s per-role palette) the colour constants, was carried over
  * from the deleted osmdroid version deliberately (same reasoning, same visual intent), not reused
  * as code (the two rendering APIs share nothing at the type level). The one exception is the dash
  * pattern's ratio, later moved off the connector entirely and redesigned for its new home on the
@@ -169,11 +171,11 @@ fun SightingsMap(
     /**
      * Night mode: the basemap's colours inverted with hue kept (the V1 transform, `BasemapStyles.kt`'s
      * `NIGHT_RASTER_PAINT`), except Satellite, which stays day; over the offline style, the same
-     * transform applied to its own layers after it loads (`applyOfflineNightRecolour`). Sightings, area markers and every other overlay marker draw
-     * identically to day mode regardless of this flag — see [MapPalette]'s own doc comment,
-     * "Markers stay day-only, always" for why that's deliberate, not an oversight. Still drives
-     * the map's own twilight trigger and long-press override; only what those feed into markers
-     * has changed.
+     * transform applied to its own layers after it loads (`applyOfflineNightRecolour`). Every
+     * overlay marker follows it on every basemap, Satellite included: the markers draw from
+     * [MapPalette.forMode] of this flag (colour build C2), so over Satellite only the markers switch.
+     * It is the Night Maps setting and nothing else; no twilight trigger or long-press override
+     * drives it (both were replaced by the setting, `MapPreferencesRepository`).
      *
      * Not the device's dark theme, and not derived from it: see [MapPalette]'s doc comment for
      * why that was tried, measured and abandoned.
