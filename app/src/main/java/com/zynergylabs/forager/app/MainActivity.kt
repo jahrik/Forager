@@ -37,6 +37,7 @@ import com.zynergylabs.forager.app.ui.log.CameraAbsenceWatcher
 import com.zynergylabs.forager.app.ui.log.CameraGridModeViewModel
 import com.zynergylabs.forager.app.ui.log.InAppCameraViewModel
 import com.zynergylabs.forager.app.ui.log.MushroomLogViewModel
+import com.zynergylabs.forager.app.ui.log.cartographyEntryDeleteNotice
 import com.zynergylabs.forager.app.ui.log.findDeleteNotice
 import com.zynergylabs.forager.app.ui.log.offlineRegionDeleteNotice
 import com.zynergylabs.forager.app.ui.log.waypointDeleteNotice
@@ -474,7 +475,8 @@ class MainActivity : ComponentActivity() {
                     onDeleteGalleryPhoto = mushroomLogViewModel::onDeleteGalleryPhoto,
                     onAddGalleryPhoto = mushroomLogViewModel::onAddGalleryPhoto,
                     onSaveLogErrorDismissed = mushroomLogViewModel::onSaveErrorDismissed,
-                    cartographyUiState = cartographyUiState,
+                    // J4b L2: a pending entry delete is left out of the lists, as J4 does for finds.
+                    cartographyUiState = cartographyUiState.hidingPendingDelete(),
                     onOpenCartographyEntry = cartographyViewModel::onOpenEntry,
                     onStartCartographyEntry = cartographyViewModel::onStartEntry,
                     onCloseCartographyEntry = cartographyViewModel::onCloseEntry,
@@ -501,6 +503,7 @@ class MainActivity : ComponentActivity() {
                     onDiscardCartographyEntryChanges = cartographyViewModel::onDiscardEntryChanges,
                     onSaveCartographyEntryAsDraft = cartographyViewModel::onSaveEntryAsDraft,
                     onDeleteCartographyEntry = cartographyViewModel::onDeleteEntry,
+                    onRequestDeleteCartographyEntry = cartographyViewModel::requestDeleteEntry,
                     getCartographyEntryMapData = { entry, photos -> container.getCartographyEntryMapDataUseCase(entry, photos) },
                     getCartographyEntryOfflineRegion = { entry, points -> container.getCartographyEntryOfflineRegionUseCase(entry, points) },
                     getCartographyEntryCurrentLocation = { container.locationProvider.getCurrentLocation() },
@@ -571,6 +574,11 @@ class MainActivity : ComponentActivity() {
                             logUiState.pendingDelete,
                             onUndo = mushroomLogViewModel::undoDeleteEntry,
                             onCommit = mushroomLogViewModel::commitDeleteEntry,
+                        ),
+                        cartographyEntryDeleteNotice(
+                            cartographyUiState.pendingDelete,
+                            onUndo = cartographyViewModel::undoDeleteEntry,
+                            onCommit = cartographyViewModel::commitDeleteEntry,
                         ),
                     ),
                 )

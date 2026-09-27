@@ -543,6 +543,13 @@ fun AvailabilityScreen(
     onSaveCartographyEntryAsDraft: () -> Unit = {},
     onDeleteCartographyEntry: (String) -> Unit = {},
     /**
+     * An Entries card's swipe Delete (journal redesign J4b L2): a *pending* delete with Undo
+     * (`CartographyViewModel.requestDeleteEntry`), passed to the compact tree's `JournalTab` only.
+     * `null` (the default) leaves the cards without the swipe; the wide tree's `LogPanel` is not
+     * given it (J6 owns the wide tree).
+     */
+    onRequestDeleteCartographyEntry: ((String) -> Unit)? = null,
+    /**
      * [com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreen]'s own map, Stage 2d — see that
      * composable's doc comment. Defaulted to always report nothing resolved, same reasoning as
      * [logUiState]: the many existing tests of this screen that never open a Cartography entry
@@ -1446,6 +1453,7 @@ fun AvailabilityScreen(
             onDiscardCartographyEntryChanges = onDiscardCartographyEntryChanges,
             onSaveCartographyEntryAsDraft = onSaveCartographyEntryAsDraft,
             onDeleteCartographyEntry = onDeleteCartographyEntry,
+            onRequestDeleteCartographyEntry = onRequestDeleteCartographyEntry,
             getCartographyEntryMapData = getCartographyEntryMapData,
             getCartographyEntryOfflineRegion = getCartographyEntryOfflineRegion,
             getCartographyEntryCurrentLocation = getCartographyEntryCurrentLocation,

@@ -138,6 +138,13 @@ internal fun CartographyScreen(
     tracks: List<Track> = emptyList(),
     /** Ids of draft finds, for the album's find badge (J3, C5); see [EntriesAlbum]. `LogPanel` passes none. */
     draftFindIds: Set<String> = emptySet(),
+    /**
+     * An entry card's swipe Delete (J4b L2): a *pending* delete with Undo
+     * (`CartographyViewModel.requestDeleteEntry`), on the timeline and in the drafts list. [onDeleteEntry]
+     * stays the report's and edit screen's immediate delete behind their confirm dialogs. `null`
+     * (the default; `LogPanel` passes none) leaves the cards without the swipe.
+     */
+    onRequestDeleteEntry: ((String) -> Unit)? = null,
 ) {
     var mode by remember { mutableStateOf(CartographyEntryMode.VIEW) }
 
@@ -339,6 +346,9 @@ internal fun CartographyScreen(
             tracks = tracks,
             columns = columns,
             modifier = modifier.fillMaxSize(),
+            onDeleteDraft = onRequestDeleteEntry,
+            // J4b L2: a draft's swipe Edit is its tap, the open-draft path above (a draft opens in EDIT).
+            onEditDraft = { id -> mode = CartographyEntryMode.EDIT; onOpenEntry(id) },
         )
         return
     }
@@ -398,6 +408,11 @@ internal fun CartographyScreen(
                     columns = columns,
                     bottomContentPadding = FAB_CLEARANCE,
                     modifier = Modifier.fillMaxSize(),
+                    onDeleteEntry = onRequestDeleteEntry,
+                    // J4b L2: Edit opens the editor the way the app already reaches it for an entry:
+                    // open it with mode EDIT, as the drafts list does and as the report's own "Edit
+                    // entry" does once the entry is open (both above in this file).
+                    onEditEntry = { id -> mode = CartographyEntryMode.EDIT; onOpenEntry(id) },
                 )
 
                 EntriesViewMode.ALBUM -> EntriesAlbum(

@@ -83,6 +83,10 @@ internal fun DraftsListScreen(
     galleryPhotos: List<GalleryPhoto> = emptyList(),
     /** For a draft card's track thumbnail (J3, C3), as on the timeline. */
     tracks: List<Track> = emptyList(),
+    /** J4b L2: a draft card's swipe Delete (pending, with Undo); `null` leaves the cards unswipeable. See [CartographyEntryListScreen]. */
+    onDeleteDraft: ((String) -> Unit)? = null,
+    /** J4b L2: a draft card's swipe Edit. */
+    onEditDraft: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.testTag(DRAFTS_LIST_TAG)) {
@@ -105,6 +109,8 @@ internal fun DraftsListScreen(
             tracks = tracks,
             columns = columns,
             modifier = Modifier.weight(1f),
+            onDeleteEntry = onDeleteDraft,
+            onEditEntry = onEditDraft,
         )
     }
 }

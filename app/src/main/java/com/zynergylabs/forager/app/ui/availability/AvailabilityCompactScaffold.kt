@@ -246,6 +246,8 @@ internal fun CompactMainScaffold(
     onDiscardCartographyEntryChanges: () -> Unit,
     onSaveCartographyEntryAsDraft: () -> Unit,
     onDeleteCartographyEntry: (String) -> Unit,
+    /** J4b L2: an Entries card's swipe Delete (pending, with Undo); see [JournalTab]. */
+    onRequestDeleteCartographyEntry: ((String) -> Unit)? = null,
     getCartographyEntryMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData,
     getCartographyEntryOfflineRegion: suspend (CartographyEntry, List<LatLng>) -> OfflineRegionSummary?,
     getCartographyEntryCurrentLocation: suspend () -> LocationResult,
@@ -969,6 +971,7 @@ internal fun CompactMainScaffold(
                                 onDiscardCartographyEntryChanges = onDiscardCartographyEntryChanges,
                                 onSaveCartographyEntryAsDraft = onSaveCartographyEntryAsDraft,
                                 onDeleteCartographyEntry = onDeleteCartographyEntry,
+                                onRequestDeleteCartographyEntry = onRequestDeleteCartographyEntry,
                                 getCartographyEntryMapData = getCartographyEntryMapData,
                                 getCartographyEntryOfflineRegion = getCartographyEntryOfflineRegion,
                                 getCartographyEntryCurrentLocation = getCartographyEntryCurrentLocation,
