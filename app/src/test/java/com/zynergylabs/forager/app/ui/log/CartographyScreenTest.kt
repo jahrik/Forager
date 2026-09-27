@@ -191,11 +191,12 @@ class CartographyScreenTest {
     }
 
     @Test
-    fun `tapping a draft in the Drafts tab opens the editor directly, never the view`() {
+    fun `opening a draft from the Drafts banner opens the editor directly, never the view`() {
         setScreen(CartographyUiState(draftEntries = listOf(draftEntry)))
 
-        composeRule.onNodeWithText("Drafts (1)").performClick()
-        composeRule.onNodeWithText("2026-08-02").performClick()
+        // J2 T2: the Drafts banner replaced the "Drafts (1)" sub-tab; with one draft its Continue
+        // opens that draft directly.
+        composeRule.onNodeWithTag(DRAFTS_CONTINUE_TAG).performClick()
 
         composeRule.onNodeWithText("Your own account (optional)").assertIsDisplayed()
     }
@@ -344,7 +345,7 @@ class CartographyScreenTest {
         composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
 
         composeRule.onNodeWithText("Save your changes?").assertDoesNotExist()
-        composeRule.onNodeWithText("Drafts (1)").assertIsDisplayed()
+        composeRule.onNodeWithText("✎ 1 unfinished entry").assertIsDisplayed() // J2 T2: the banner, was the "Drafts (1)" sub-tab
     }
 
     /**
