@@ -425,3 +425,7 @@ Open, for M1's pre-build pass: what each bubble shows per kind (starting from wh
 ### Order, revised
 
 J4 (running), J4b, J5, **M1**, J8, then the single Journal PR.
+
+### Photo editing: sequenced after the camera work (owner, 2026-09-27)
+
+The owner, verbatim, on the photo details and location stage above: "Photo editing is a large project in itself, but not outside the scope of nature photography, so we can add it, but it will come after the central camera improvements land". So photo editing is in scope as its own project, larger than a details-and-location screen, and it starts only after "the central camera improvements" land. No plan in `docs/plans/` is titled for that camera work at the time of writing; which work the phrase names is to be confirmed with the owner when photo editing is scheduled, not assumed.
