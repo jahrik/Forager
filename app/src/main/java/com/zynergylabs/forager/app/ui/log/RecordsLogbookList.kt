@@ -17,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -38,7 +39,6 @@ import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.ui.availability.AvailabilityUiState
 import com.zynergylabs.forager.app.ui.availability.OfflineRegionDeleteDialog
 import com.zynergylabs.forager.app.ui.availability.OfflineRegionRow
-import com.zynergylabs.forager.app.ui.availability.WaypointDeleteDialog
 import com.zynergylabs.forager.app.ui.availability.WaypointRow
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import com.zynergylabs.forager.app.ui.track.TrackExportRow
@@ -57,6 +57,8 @@ import java.time.format.DateTimeFormatter
  * it, controls included, with a [RecordTypeBadge] in front. Finds sit two to a row, as the Finds
  * gallery's own two-column grid shows them. Deletes confirm through the same dialogs the chips use
  * ([WaypointDeleteDialog], [OfflineRegionDeleteDialog]); nothing about deleting changes in J1.
+ * Journal redesign J4 replaced that for waypoints: a waypoint's whole badged row is a
+ * [SwipeToDeleteRow], as in its own chip, and [onDeleteWaypoint] asks for a pending delete with Undo.
  *
  * **Tapping a find** calls [onOpenFind], which `RecordsTab` turns into "select the Finds chip and open
  * that find's report there", so Back goes report, then the Finds gallery, then All. Waypoint, track
@@ -76,14 +78,12 @@ internal fun RecordsLogbookList(
     availabilityUiState: AvailabilityUiState,
     distanceUnit: DistanceUnit,
     currentTime: CurrentTimeProvider,
-    waypointEntryReferenceCounts: Map<String, Int>,
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
     onDeleteWaypoint: (String) -> Unit,
     onDeleteOfflineRegion: (Long) -> Unit,
     onOpenFind: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var pendingDeleteWaypoint by remember { mutableStateOf<Waypoint?>(null) }
     var pendingDeleteRegion by remember { mutableStateOf<OfflineRegionSummary?>(null) }
     val days = buildRecordsLogbook(
         finds = finds.orEmpty(),
@@ -132,8 +132,15 @@ internal fun RecordsLogbookList(
                     is TimedRecord.TrackRecord -> BadgedRow(RecordType.TRACKS, record.track.id) {
                         TrackExportRow(track = record.track, waypoints = waypoints, getFullRecord = getFullRecord)
                     }
-                    is TimedRecord.WaypointRecord -> BadgedRow(RecordType.WAYPOINTS, record.waypoint.id) {
-                        WaypointRow(waypoint = record.waypoint, onDelete = { pendingDeleteWaypoint = record.waypoint })
+                    is TimedRecord.WaypointRecord -> key(RecordType.WAYPOINTS, record.waypoint.id) {
+                        SwipeToDeleteRow(
+                            testTag = swipeToDeleteTag(RecordType.WAYPOINTS, record.waypoint.id),
+                            onDelete = { onDeleteWaypoint(record.waypoint.id) },
+                        ) {
+                            BadgedRow(RecordType.WAYPOINTS, record.waypoint.id) {
+                                WaypointRow(waypoint = record.waypoint)
+                            }
+                        }
                     }
                     is TimedRecord.OfflineRegionRecord -> BadgedRow(RecordType.OFFLINE_MAPS, record.region.id.toString()) {
                         OfflineRegionRow(
@@ -149,14 +156,6 @@ internal fun RecordsLogbookList(
         }
     }
 
-    pendingDeleteWaypoint?.let { waypoint ->
-        WaypointDeleteDialog(
-            waypoint = waypoint,
-            entryReferenceCounts = waypointEntryReferenceCounts,
-            onDeleteWaypoint = onDeleteWaypoint,
-            onDismiss = { pendingDeleteWaypoint = null },
-        )
-    }
     pendingDeleteRegion?.let { region ->
         OfflineRegionDeleteDialog(
             region = region,
@@ -227,7 +226,7 @@ private fun RecordType.displayName(): String = when (this) {
     RecordType.OFFLINE_MAPS -> "Offline map"
 }
 
-private fun RecordType.tagName(): String = when (this) {
+internal fun RecordType.tagName(): String = when (this) {
     RecordType.FINDS -> "finds"
     RecordType.TRACKS -> "tracks"
     RecordType.WAYPOINTS -> "waypoints"

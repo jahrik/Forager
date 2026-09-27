@@ -78,8 +78,20 @@ import com.zynergylabs.forager.app.ui.track.TrackExportList
 internal fun RecordsTab(
     waypoints: List<Waypoint>,
     waypointsErrorMessage: String?,
+    /**
+     * A swipe (or the rows' "Delete" accessibility action) on a waypoint row: asks for a pending
+     * delete with Undo (journal redesign J4); `MainActivity` wires it to
+     * `TrackRecordingViewModel.requestRemoveWaypoint`. It used to be the delete itself, behind a
+     * confirm dialog.
+     */
     onDeleteWaypoint: (String) -> Unit,
-    waypointEntryReferenceCounts: Map<String, Int> = emptyMap(),
+    /**
+     * Not read since journal redesign J4: the reference warning moved from the confirm dialog into the
+     * Undo snackbar, which gets its count from the ViewModel's pending delete. Left in place because
+     * its callers ([JournalTab], [LogPanel], through the scaffold) are outside J4's files; J6 (the wide
+     * tree) is the natural place to drop it.
+     */
+    @Suppress("UNUSED_PARAMETER") waypointEntryReferenceCounts: Map<String, Int> = emptyMap(),
     availabilityUiState: AvailabilityUiState,
     distanceUnit: DistanceUnit,
     currentTime: CurrentTimeProvider,
@@ -206,7 +218,6 @@ internal fun RecordsTab(
                 availabilityUiState = availabilityUiState,
                 distanceUnit = distanceUnit,
                 currentTime = currentTime,
-                waypointEntryReferenceCounts = waypointEntryReferenceCounts,
                 getFullRecord = getFullRecord,
                 onDeleteWaypoint = onDeleteWaypoint,
                 onDeleteOfflineRegion = onDeleteOfflineRegion,
@@ -221,7 +232,6 @@ internal fun RecordsTab(
                 waypoints = waypoints,
                 errorMessage = waypointsErrorMessage,
                 onDeleteWaypoint = onDeleteWaypoint,
-                entryReferenceCounts = waypointEntryReferenceCounts,
                 modifier = Modifier.weight(1f),
             )
 

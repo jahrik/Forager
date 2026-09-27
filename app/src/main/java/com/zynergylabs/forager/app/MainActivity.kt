@@ -37,6 +37,7 @@ import com.zynergylabs.forager.app.ui.log.CameraAbsenceWatcher
 import com.zynergylabs.forager.app.ui.log.CameraGridModeViewModel
 import com.zynergylabs.forager.app.ui.log.InAppCameraViewModel
 import com.zynergylabs.forager.app.ui.log.MushroomLogViewModel
+import com.zynergylabs.forager.app.ui.log.waypointDeleteNotice
 import com.zynergylabs.forager.app.ui.theme.ForagerTheme
 import com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel
 
@@ -525,11 +526,14 @@ class MainActivity : ComponentActivity() {
                     tripStartWarning = trackUiState.tripStartWarning,
                     networkFixesNotice = trackUiState.networkFixesNotice,
                     breadcrumbPoints = trackUiState.breadcrumbPoints.map { LatLng(it.lat, it.lng) },
-                    waypoints = trackUiState.waypoints,
+                    // Journal redesign J4: the visible list leaves out a waypoint whose delete is
+                    // pending (Undo snackbar up), everywhere this screen shows waypoints, the map
+                    // included; a row's swipe asks for that pending delete.
+                    waypoints = trackUiState.visibleWaypoints,
                     waypointsErrorMessage = trackUiState.waypointsErrorMessage,
                     waypointEntryReferenceCounts = trackUiState.waypointEntryReferenceCounts,
                     onDropWaypoint = { location, name -> trackRecordingViewModel.addWaypoint(location.lat, location.lng, name) },
-                    onDeleteWaypoint = trackRecordingViewModel::removeWaypoint,
+                    onDeleteWaypoint = trackRecordingViewModel::requestRemoveWaypoint,
                     returnToStart = trackUiState.returnToStart,
                     isReturning = trackUiState.isReturning,
                     isOffTrack = trackUiState.isOffTrack,
@@ -544,6 +548,13 @@ class MainActivity : ComponentActivity() {
                     tracks = trackUiState.tracks,
                     onTracksOpened = trackRecordingViewModel::loadTracks,
                     getFullRecord = trackRecordingViewModel::getFullRecord,
+                    pendingDeleteNotices = listOfNotNull(
+                        waypointDeleteNotice(
+                            trackUiState.pendingWaypointDelete,
+                            onUndo = trackRecordingViewModel::undoRemoveWaypoint,
+                            onCommit = trackRecordingViewModel::commitRemoveWaypoint,
+                        ),
+                    ),
                 )
             }
         }
