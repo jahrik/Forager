@@ -8,11 +8,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SecondaryTabRow
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,12 +43,14 @@ import java.time.LocalDate
  * same composable for their Cartography tab; the only thing that varies between them is [columns]
  * (more grid columns on expanded — "more of the same thing at once," not a different arrangement).
  *
- * Three submenus — **Entries**, **Drafts**, **Album** — the same flat `SecondaryTabRow` shape
- * [RecordsTab] established for Stage 1, no header, no back arrow. Entries/Drafts are both
- * [CartographyEntryListScreen] over the two halves of [CartographyUiState] ([CartographyUiState.entries]/
- * [CartographyUiState.draftEntries]); Album is the pre-existing, unmodified [PhotoGalleryScreen] —
- * unaffected by either amendment, since it was never part of the Entries/Drafts ambiguity they
- * resolved.
+ * **Journal redesign J2 replaced the three submenus** (Entries, Drafts, Album, a `SecondaryTabRow`)
+ * with one screen: a toolbar whose toggle switches between the entries timeline
+ * ([CartographyEntryListScreen] over [CartographyUiState.entries]) and the album ([EntriesAlbum],
+ * every gallery photo grouped by day), and, when there are drafts, a banner ([DraftsBanner]) whose
+ * Continue opens the one draft or the full-screen [DraftsListScreen] over
+ * [CartographyUiState.draftEntries]. The toggle's value is `JournalScreenState`'s when [JournalTab]
+ * hosts this; [LogPanel] gets a local default. Back unwinds, innermost first: an open entry, the
+ * drafts list, the album view.
  *
  * [uiState].editingEntry doubles as this screen's own navigation state, the same convention
  * [MushroomLogUiState.editingEntry] uses: non-null means "showing an entry" (which of
@@ -114,6 +115,12 @@ internal fun CartographyScreen(
     modifier: Modifier = Modifier,
     /** Grid column count for the Entries/Drafts lists — 2 for compact, more for expanded/tablet. */
     columns: Int = 2,
+    /**
+     * Timeline or album (journal redesign J2, T3). `JournalTab` passes `JournalScreenState`'s, so
+     * the choice survives a tab change and a restore; `LogPanel` (the wide tree, J6) passes none and
+     * gets this local, unsaved default.
+     */
+    entriesViewState: MutableState<EntriesViewMode> = remember { mutableStateOf(EntriesViewMode.TIMELINE) },
 ) {
     var mode by remember { mutableStateOf(CartographyEntryMode.VIEW) }
 
@@ -301,13 +308,17 @@ internal fun CartographyScreen(
         return
     }
 
-    var selectedTab by remember { mutableStateOf(CartographyTab.ENTRIES) }
+    // Journal redesign J2, T3 (plan J3): the Album sub-tab became a view of Entries, switched by
+    // the toolbar's toggle, and with Drafts already a banner (T2) the SecondaryTabRow is gone. The
+    // view lives in JournalScreenState (entriesViewState), so it survives a tab change and a
+    // restore. Back from the album steps to the timeline before anything else takes Back: this
+    // handler is composed after JournalTab's, so it wins while enabled, and it is only composed
+    // at this top level (no entry open, drafts list closed).
+    var viewMode by entriesViewState
+    BackHandler(enabled = viewMode == EntriesViewMode.ALBUM) { viewMode = EntriesViewMode.TIMELINE }
 
     Column(modifier = modifier.fillMaxSize().testTag(ENTRIES_HOME_TAG)) {
-        SecondaryTabRow(selectedTabIndex = selectedTab.ordinal) {
-            Tab(selected = selectedTab == CartographyTab.ENTRIES, onClick = { selectedTab = CartographyTab.ENTRIES }, text = { Text("Entries") })
-            Tab(selected = selectedTab == CartographyTab.ALBUM, onClick = { selectedTab = CartographyTab.ALBUM }, text = { Text("Album") })
-        }
+        EntriesToolbar(viewMode = viewMode, onViewModeChange = { viewMode = it })
 
         val drafts = uiState.draftEntries
         if (drafts.isNotEmpty()) {
@@ -335,8 +346,8 @@ internal fun CartographyScreen(
             )
         }
 
-        when (selectedTab) {
-            CartographyTab.ENTRIES -> CartographyEntryListScreen(
+        when (viewMode) {
+            EntriesViewMode.TIMELINE -> CartographyEntryListScreen(
                 entries = uiState.entries,
                 isLoading = uiState.isLoadingEntries,
                 onOpenEntry = { id -> mode = CartographyEntryMode.VIEW; onOpenEntry(id) },
@@ -346,7 +357,7 @@ internal fun CartographyScreen(
                 modifier = Modifier.weight(1f),
             )
 
-            CartographyTab.ALBUM -> PhotoGalleryScreen(
+            EntriesViewMode.ALBUM -> EntriesAlbum(
                 photos = galleryPhotos,
                 isLoading = isLoadingGalleryPhotos,
                 onDeletePhoto = onDeleteGalleryPhoto,
@@ -366,9 +377,6 @@ internal fun CartographyScreen(
  * Journal is on screen (journal redesign J2, T1).
  */
 internal const val ENTRIES_HOME_TAG = "entries-home"
-
-/** Which of Cartography's submenus is selected — ordinal order matches display order. Drafts left for the banner in J2, T2. */
-private enum class CartographyTab { ENTRIES, ALBUM }
 
 /** Which screen [CartographyScreen] shows for [CartographyUiState.editingEntry] — Journal Stage 2c. See this file's own doc comment, "Tap opens the view, not the editor," for the full reasoning. */
 internal enum class CartographyEntryMode { VIEW, EDIT }

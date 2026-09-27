@@ -471,6 +471,7 @@ internal fun JournalTab(
                 onSaveEntryAsDraft = onSaveCartographyEntryAsDraft,
                 onDeleteEntry = onDeleteCartographyEntry,
                 modifier = Modifier.weight(1f),
+                entriesViewState = journalState.entriesViewState,
             )
 
             JournalTopTab.RECORDS -> RecordsTab(

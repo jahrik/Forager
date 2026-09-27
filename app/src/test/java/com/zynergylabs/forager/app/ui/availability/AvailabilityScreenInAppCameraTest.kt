@@ -283,7 +283,7 @@ class AvailabilityScreenInAppCameraTest {
     fun `with the camera open, a real touch where the Camera button sits is taken by the camera and not by the button behind it`() {
         setScreen()
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithText("Album").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_VIEW_ALBUM_TAG).performClick() // J2 T3: the album view toggle, was the "Album" sub-tab
         composeRule.waitForIdle()
 
         val button = composeRule.onNodeWithText("Camera").getBoundsInRoot()
@@ -313,7 +313,7 @@ class AvailabilityScreenInAppCameraTest {
     fun `the Album's Camera button opens the camera for the Album`() {
         setScreen()
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithText("Album").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_VIEW_ALBUM_TAG).performClick() // J2 T3: the album view toggle, was the "Album" sub-tab
         composeRule.onNodeWithText("Camera").performClick()
         composeRule.waitForIdle()
 
