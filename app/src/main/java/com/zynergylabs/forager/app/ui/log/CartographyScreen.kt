@@ -17,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -233,6 +234,21 @@ internal fun CartographyScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
+    // Journal redesign J2, T2 (plan J2, owner ruling "Full-screen list (Recommended)"): the Drafts
+    // sub-tab became the banner below, and with more than one draft its Continue opens the
+    // full-screen list in place of Entries. Whether the list is open is transient navigation state
+    // (the dispatch's words): saveable, so a night-mode toggle or a fold keeps it, but held here, not
+    // in JournalScreenState, so leaving the Journal tab closes it.
+    //
+    // Declared above the open-entry early return below (moved by the second J2 coder, owner ruling
+    // "Back to the list (Recommended)", prompts/preserved/2026-09-27-19.md), so it outlives a draft
+    // opened from the list: closing that draft lands back on the list, and Back from the list lands
+    // on Entries. The first coder had it after the return, which forgot it and landed on Entries, as
+    // the old Drafts sub-tab did. A draft opened from the banner (one draft) never sets it, so that
+    // one still closes onto Entries. The list's own BackHandler stays after the return, so while a
+    // draft is open the entry's handler above is the only one enabled here.
+    var draftsListOpen by rememberSaveable { mutableStateOf(false) }
+
     if (editingEntry != null) {
         if (mode == CartographyEntryMode.EDIT) {
             CartographyEntryEditScreen(
@@ -293,17 +309,17 @@ internal fun CartographyScreen(
         return
     }
 
-    // Journal redesign J2, T2 (plan J2, owner ruling "Full-screen list (Recommended)"): the Drafts
-    // sub-tab became the banner below, and with more than one draft its Continue opens this
-    // full-screen list in place of Entries. Whether the list is open is transient navigation state
-    // (the dispatch's words): saveable, so a night-mode toggle or a fold keeps it, but held here, not
-    // in JournalScreenState, so leaving the Journal tab closes it. Declared after the open-entry
-    // early return above, as the Drafts sub-tab's selection was, so it is forgotten while a draft is
-    // open and Back from that draft lands on Entries, as it did from the Drafts sub-tab (J0 A1,
-    // inferred there; kept, not chosen anew; raised in the J2 report).
-    var draftsListOpen by rememberSaveable { mutableStateOf(false) }
-    BackHandler(enabled = draftsListOpen) { draftsListOpen = false }
-    if (draftsListOpen) {
+    // The list is where a closed draft returns to only while drafts remain (the option as the owner
+    // was offered it: "return to the list while drafts remain"). Finishing the last one leaves no
+    // list to return to, so the flag is dropped and the screen lands on Entries; dropping it, rather
+    // than only hiding the list, keeps a later new draft from reopening a list nobody asked for.
+    val drafts = uiState.draftEntries
+    LaunchedEffect(draftsListOpen, drafts.isEmpty()) {
+        if (draftsListOpen && drafts.isEmpty()) draftsListOpen = false
+    }
+    val showDraftsList = draftsListOpen && drafts.isNotEmpty()
+    BackHandler(enabled = showDraftsList) { draftsListOpen = false }
+    if (showDraftsList) {
         DraftsListScreen(
             drafts = uiState.draftEntries,
             isLoading = uiState.isLoadingEntries,
@@ -327,7 +343,6 @@ internal fun CartographyScreen(
     Column(modifier = modifier.fillMaxSize().testTag(ENTRIES_HOME_TAG)) {
         EntriesToolbar(viewMode = viewMode, onViewModeChange = { viewMode = it })
 
-        val drafts = uiState.draftEntries
         if (drafts.isNotEmpty()) {
             DraftsBanner(
                 count = drafts.size,
