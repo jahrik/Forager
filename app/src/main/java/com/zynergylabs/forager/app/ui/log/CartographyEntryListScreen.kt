@@ -10,11 +10,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
@@ -65,6 +68,15 @@ internal fun CartographyEntryListScreen(
     galleryPhotos: List<GalleryPhoto> = emptyList(),
     /** The already-loaded recorded tracks, which a card's thumbnail is looked up in by id (J3, C3; see [entryThumbnailTracks]). */
     tracks: List<Track> = emptyList(),
+    /**
+     * J4b L2 (owner ruling "Lists swipe, grids long-press (Recommended)"): when set, every card is a
+     * [TwoStageSwipeRow] whose revealed Delete, full swipe and "Delete" accessibility action call
+     * this with the entry's id (a *pending* delete with Undo). `null` (the default, `LogPanel`'s
+     * wide tree) leaves the cards as they were.
+     */
+    onDeleteEntry: ((String) -> Unit)? = null,
+    /** J4b L2: the swipe row's Edit, opening the entry in its editor. Only read when [onDeleteEntry] is set. */
+    onEditEntry: ((String) -> Unit)? = null,
 ) {
     if (isLoading && entries.isEmpty()) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -85,6 +97,12 @@ internal fun CartographyEntryListScreen(
     val months = remember(entries) { groupEntriesByMonth(entries) }
     val photosById = remember(galleryPhotos) { galleryPhotos.associateBy { it.photo.id } }
     val tracksById = remember(tracks) { tracks.associateBy { it.id } }
+    // J4b L2: one open card at a time; a touch elsewhere on the list or a scroll closes it.
+    val swipeGroup = rememberSwipeRevealGroup()
+    val gridState = rememberLazyGridState()
+    LaunchedEffect(gridState, swipeGroup) {
+        snapshotFlow { gridState.isScrollInProgress }.collect { scrolling -> if (scrolling) swipeGroup.closeAll() }
+    }
     Column(modifier = modifier.fillMaxSize()) {
         if (entries.isEmpty() && loadErrorMessage != null) {
             Text(
@@ -95,7 +113,8 @@ internal fun CartographyEntryListScreen(
         }
         LazyVerticalGrid(
             columns = GridCells.Fixed(columns),
-            modifier = Modifier.weight(1f),
+            state = gridState,
+            modifier = Modifier.weight(1f).swipeRevealTouchWatcher(swipeGroup),
             contentPadding = PaddingValues(start = Spacing.lg, end = Spacing.lg, bottom = bottomContentPadding),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -107,16 +126,30 @@ internal fun CartographyEntryListScreen(
                 items(monthEntries, key = { it.id }) { entry ->
                     val open = { onOpenEntry(entry.id) }
                     val hero = entryHeroPhoto(entry, photosById)
-                    if (isCollapsedEntry(entry, hasHero = hero != null)) {
-                        CollapsedEntryRow(entry = entry, distanceUnit = distanceUnit, onClick = open)
-                    } else {
-                        CartographyEntryCard(
-                            entry = entry,
-                            distanceUnit = distanceUnit,
-                            onClick = open,
-                            hero = hero?.let { photo -> { EntryHeroPhoto(entry.id, photo) } },
-                            thumbnail = entryThumbnailTracks(entry, tracksById).takeIf { it.isNotEmpty() }?.let { found -> { EntryTrackThumbnail(entry.id, found) } },
+                    val card: @Composable () -> Unit = {
+                        if (isCollapsedEntry(entry, hasHero = hero != null)) {
+                            CollapsedEntryRow(entry = entry, distanceUnit = distanceUnit, onClick = open)
+                        } else {
+                            CartographyEntryCard(
+                                entry = entry,
+                                distanceUnit = distanceUnit,
+                                onClick = open,
+                                hero = hero?.let { photo -> { EntryHeroPhoto(entry.id, photo) } },
+                                thumbnail = entryThumbnailTracks(entry, tracksById).takeIf { it.isNotEmpty() }?.let { found -> { EntryTrackThumbnail(entry.id, found) } },
+                            )
+                        }
+                    }
+                    if (onDeleteEntry != null) {
+                        TwoStageSwipeRow(
+                            testTag = entrySwipeTag(entry.id),
+                            rowKey = entry.id,
+                            group = swipeGroup,
+                            onDelete = { onDeleteEntry(entry.id) },
+                            onEdit = onEditEntry?.let { edit -> { edit(entry.id) } },
+                            content = card,
                         )
+                    } else {
+                        card()
                     }
                 }
             }

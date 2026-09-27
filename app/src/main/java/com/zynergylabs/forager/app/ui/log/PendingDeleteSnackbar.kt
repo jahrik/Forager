@@ -9,6 +9,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.PendingDelete
+import com.zynergylabs.forager.app.domain.model.CartographyEntry
+import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import kotlinx.coroutines.CoroutineScope
@@ -37,7 +39,7 @@ internal val PendingDeleteCommitScope: CoroutineScope = CoroutineScope(Superviso
  * internal.
  */
 class PendingDeleteNotice internal constructor(
-    internal val type: RecordType,
+    internal val type: PendingDeleteKind,
     internal val token: Long,
     internal val message: String,
     internal val onUndo: () -> Unit,
@@ -64,7 +66,7 @@ internal fun waypointDeleteNotice(
 ): PendingDeleteNotice? = pending?.let { p ->
     val id = p.item.id
     PendingDeleteNotice(
-        type = RecordType.WAYPOINTS,
+        type = PendingDeleteKind.WAYPOINT,
         token = p.token,
         message = pendingDeleteMessage("Waypoint", p.entryReferenceCount),
         onUndo = { onUndo(id) },
@@ -80,7 +82,7 @@ internal fun offlineRegionDeleteNotice(
 ): PendingDeleteNotice? = pending?.let { p ->
     val id = p.item.id
     PendingDeleteNotice(
-        type = RecordType.OFFLINE_MAPS,
+        type = PendingDeleteKind.OFFLINE_REGION,
         token = p.token,
         message = pendingDeleteMessage("Offline map", p.entryReferenceCount),
         onUndo = { onUndo(id) },
@@ -106,7 +108,7 @@ internal fun findDeleteNotice(
 ): PendingDeleteNotice? = pending?.let { p ->
     val id = p.item.id
     PendingDeleteNotice(
-        type = RecordType.FINDS,
+        type = PendingDeleteKind.FIND,
         token = p.token,
         message = if (p.item.draftOfEntryId != null) CHANGES_DISCARDED_MESSAGE else pendingDeleteMessage("Find", p.entryReferenceCount),
         onUndo = { onUndo(id) },
@@ -162,9 +164,60 @@ internal const val UNDO_LABEL = "Undo"
 /** The find snackbar's text when only a re-edit's draft is discarded (J4b L4); see [findDeleteNotice]. */
 internal const val CHANGES_DISCARDED_MESSAGE = "Changes discarded"
 
-/** J4b tests-first stub. */
+/**
+ * Which pending delete a notice is for: one snackbar slot per kind ([PendingDeleteSnackbarEffects]
+ * keys on it). J4 keyed on [RecordType], which has the four Records types only; J4b adds Cartography
+ * entries and gallery photos, which are not Records types, so the slot got its own enum rather than
+ * two values bolted onto the type the chips and colour roles read.
+ */
+internal enum class PendingDeleteKind { WAYPOINT, OFFLINE_REGION, FIND, CARTOGRAPHY_ENTRY, GALLERY_PHOTO }
+
+/**
+ * The entry snackbar for [pending] (J4b L2): "Entry deleted", or "Draft deleted" for an unfinished
+ * one (the dispatch's two messages); `null` when none is pending. Nothing references a Cartography
+ * entry, so there is never a warning to add.
+ */
 internal fun cartographyEntryDeleteNotice(
-    pending: PendingDelete<com.zynergylabs.forager.app.domain.model.CartographyEntry>?,
+    pending: PendingDelete<CartographyEntry>?,
     onUndo: (String) -> Unit,
     onCommit: (String) -> Unit,
-): PendingDeleteNotice? = null
+): PendingDeleteNotice? = pending?.let { p ->
+    val id = p.item.id
+    PendingDeleteNotice(
+        type = PendingDeleteKind.CARTOGRAPHY_ENTRY,
+        token = p.token,
+        message = if (p.item.isDraft) "Draft deleted" else "Entry deleted",
+        onUndo = { onUndo(id) },
+        onCommit = { onCommit(id) },
+    )
+}
+
+/**
+ * The photo snackbar for [pending] (J4b L3), or `null` when none is pending: "Photo deleted", and
+ * while Undo is possible the warning the old confirm dialog (`GalleryPhotoDeleteDialog`) carried,
+ * now in the dispatch's short form: how many finds use it (its [GalleryPhoto.referencingEntryIds])
+ * and how many journal entries keep it ([PendingDelete.entryReferenceCount]), e.g. "Photo deleted ·
+ * used in 1 find and 2 journal entries". Either part is left out at zero; both at zero, no warning.
+ */
+internal fun galleryPhotoDeleteNotice(
+    pending: PendingDelete<GalleryPhoto>?,
+    onUndo: (String) -> Unit,
+    onCommit: (String) -> Unit,
+): PendingDeleteNotice? = pending?.let { p ->
+    val id = p.item.photo.id
+    PendingDeleteNotice(
+        type = PendingDeleteKind.GALLERY_PHOTO,
+        token = p.token,
+        message = photoDeleteMessage(findCount = p.item.referencingEntryIds.size, journalEntryCount = p.entryReferenceCount ?: 0),
+        onUndo = { onUndo(id) },
+        onCommit = { onCommit(id) },
+    )
+}
+
+internal fun photoDeleteMessage(findCount: Int, journalEntryCount: Int): String {
+    val parts = buildList {
+        if (findCount > 0) add(if (findCount == 1) "1 find" else "$findCount finds")
+        if (journalEntryCount > 0) add(if (journalEntryCount == 1) "1 journal entry" else "$journalEntryCount journal entries")
+    }
+    return if (parts.isEmpty()) "Photo deleted" else "Photo deleted · used in ${parts.joinToString(" and ")}"
+}
