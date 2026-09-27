@@ -4,14 +4,8 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import android.util.Log
 import android.view.MotionEvent
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.Path
-import android.graphics.RectF
 import android.view.Gravity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -618,10 +612,12 @@ fun SightingsMap(
  * needs the second. Layer add order is the draw order (later added draws on top), kept the same as
  * the deleted osmdroid version's overlay list order: search centre, sightings, planned trips last.
  *
- * Every marker is a plain [CircleLayer] now, day or night — see [MapPalette]'s own doc comment,
- * "Markers stay day-only, always." `docs/plans/contrast_assertions.md` archives the night-specific
- * `SymbolLayer`/icon-bitmap version this replaced, for whoever revives night-mode marker
- * differentiation later.
+ * [palette] is the Night Maps palette ([MapPalette.forMode], colour build C2), so every colour here
+ * follows the toggle. The point markers other than the sighting dot are bitmap [SymbolLayer]s, each
+ * its own silhouette (`MarkerGlyphs.kt`, [MarkerIcon]) with its casing drawn into the bitmap and its
+ * anchor at the bitmap's centre, hence `icon-anchor: center` for all of them. The sighting dot stays
+ * a [CircleLayer] whose own ring is its casing; the tracks and the offline outline are line layers
+ * ([trackLayerSpecs], [offlineRegionOutlineSpec]).
  *
  * The sighting layer's `circle-stroke-color`/`circle-stroke-width` are fixed expressions keyed on
  * each feature's own `"selected"` boolean property — see [sightingStrokeColorExpression]'s own doc
@@ -630,7 +626,8 @@ fun SightingsMap(
  * currently focused: [refreshOverlayData] bakes `"selected"` into the pushed data itself.
  */
 private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPalette) {
-    style.addImage(PLANNED_TRIP_ICON_ID, plannedTripDiamondBitmap(density, palette.plannedTrip))
+    // Every bitmap marker's image, in this palette's colours. Registered here and nowhere else.
+    MarkerIcon.entries.forEach { style.addImage(it.imageId, markerIconImage(it, palette, density).bitmap) }
 
     // Added first, so its fill sits under every point marker and line — a coverage circle covering
     // a marker would make the marker unreadable, never the other way around. Journal Stage 2d.
@@ -644,15 +641,9 @@ private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPa
     // The outline is the region's casing: a dashed line in the casing colour (colour build C2 (c)).
     addLineLayer(style, offlineRegionOutlineSpec(), palette)
 
+    // The search centre is a reticle bitmap since colour build C2 (d), replacing a filled circle.
     style.addSource(GeoJsonSource(SEARCH_CENTER_SOURCE_ID, emptyFeatureCollection()))
-    style.addLayer(
-        CircleLayer(SEARCH_CENTER_LAYER_ID, SEARCH_CENTER_SOURCE_ID).withProperties(
-            PropertyFactory.circleRadius(SEARCH_CENTER_RADIUS_PX),
-            PropertyFactory.circleColor(palette.searchCentre),
-            PropertyFactory.circleStrokeColor(Color.WHITE),
-            PropertyFactory.circleStrokeWidth(SEARCH_CENTER_STROKE_WIDTH_PX),
-        ),
-    )
+    addMarkerSymbolLayer(style, SEARCH_CENTER_LAYER_ID, SEARCH_CENTER_SOURCE_ID, MarkerIcon.SEARCH_CENTRE)
 
     style.addSource(GeoJsonSource(SIGHTING_SOURCE_ID, emptyFeatureCollection()))
     style.addLayer(
@@ -683,51 +674,36 @@ private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPa
     style.addSource(GeoJsonSource(KEPT_TRACKS_SOURCE_ID, emptyFeatureCollection()))
     trackLayerSpecs().forEach { addLineLayer(style, it, palette) }
 
+    // Planned trips are flags anchored at the pole foot (colour build C2 (d)).
     style.addSource(GeoJsonSource(PLANNED_TRIP_SOURCE_ID, emptyFeatureCollection()))
-    style.addLayer(
-        SymbolLayer(PLANNED_TRIP_LAYER_ID, PLANNED_TRIP_SOURCE_ID).withProperties(
-            PropertyFactory.iconImage(PLANNED_TRIP_ICON_ID),
-            PropertyFactory.iconAllowOverlap(true),
-            PropertyFactory.iconAnchor("center"),
-        ),
-    )
+    addMarkerSymbolLayer(style, PLANNED_TRIP_LAYER_ID, PLANNED_TRIP_SOURCE_ID, MarkerIcon.PLANNED_TRIP)
 
-    // Last, so a waypoint marker never sits under a planned-trip diamond if the two ever land on
-    // the same point.
-    style.addImage(WAYPOINT_ICON_ID, waypointPinBitmap(density, palette.waypoint))
+    // After planned trips, so a waypoint pin never sits under a flag if the two land on the same
+    // point. Anchored at the pin's tip.
     style.addSource(GeoJsonSource(WAYPOINT_SOURCE_ID, emptyFeatureCollection()))
-    style.addLayer(
-        SymbolLayer(WAYPOINT_LAYER_ID, WAYPOINT_SOURCE_ID).withProperties(
-            PropertyFactory.iconImage(WAYPOINT_ICON_ID),
-            PropertyFactory.iconAllowOverlap(true),
-            // Bottom, not center like the planned-trip diamond: a pin's drawn tip is what should
-            // sit on the actual coordinate, not the shape's bounding-box center.
-            PropertyFactory.iconAnchor(Property.ICON_ANCHOR_BOTTOM),
-        ),
-    )
+    addMarkerSymbolLayer(style, WAYPOINT_LAYER_ID, WAYPOINT_SOURCE_ID, MarkerIcon.WAYPOINT)
 
-    // Find and photo markers (Journal Stage 2d) — the waypoint pin's own template, reused with a
-    // different colour/shape per the dispatch's own guidance ("this is the reusable template for
-    // find and photo markers — discrete markers, not density dots"). Added last, after waypoints,
-    // for the same "never sit under a sibling point marker" reasoning the waypoint layer's own
-    // comment already gives.
-    style.addImage(FIND_ICON_ID, waypointPinBitmap(density, palette.find))
+    // Find and photo markers (Journal Stage 2d), last for the same "never sit under a sibling point
+    // marker" reasoning. Since colour build C2 each has its own silhouette and role: the find a
+    // mushroom anchored at its stem foot, the photo a rounded square with a camera, centred.
     style.addSource(GeoJsonSource(FIND_SOURCE_ID, emptyFeatureCollection()))
-    style.addLayer(
-        SymbolLayer(FIND_LAYER_ID, FIND_SOURCE_ID).withProperties(
-            PropertyFactory.iconImage(FIND_ICON_ID),
-            PropertyFactory.iconAllowOverlap(true),
-            PropertyFactory.iconAnchor(Property.ICON_ANCHOR_BOTTOM),
-        ),
-    )
+    addMarkerSymbolLayer(style, FIND_LAYER_ID, FIND_SOURCE_ID, MarkerIcon.FIND)
 
-    style.addImage(PHOTO_ICON_ID, plannedTripDiamondBitmap(density, palette.photo))
     style.addSource(GeoJsonSource(PHOTO_SOURCE_ID, emptyFeatureCollection()))
+    addMarkerSymbolLayer(style, PHOTO_LAYER_ID, PHOTO_SOURCE_ID, MarkerIcon.PHOTO)
+}
+
+/**
+ * A bitmap marker's [SymbolLayer]. Every [MarkerIcon]'s image has its anchor at its exact centre
+ * ([drawGlyph]), so `icon-anchor: center` puts the pin tip, stem foot, pole foot or centre on the
+ * feature's coordinate, with no `icon-offset`.
+ */
+private fun addMarkerSymbolLayer(style: Style, layerId: String, sourceId: String, icon: MarkerIcon) {
     style.addLayer(
-        SymbolLayer(PHOTO_LAYER_ID, PHOTO_SOURCE_ID).withProperties(
-            PropertyFactory.iconImage(PHOTO_ICON_ID),
+        SymbolLayer(layerId, sourceId).withProperties(
+            PropertyFactory.iconImage(icon.imageId),
             PropertyFactory.iconAllowOverlap(true),
-            PropertyFactory.iconAnchor("center"),
+            PropertyFactory.iconAnchor(Property.ICON_ANCHOR_CENTER),
         ),
     )
 }
@@ -1153,61 +1129,6 @@ internal fun offlineRegionCirclesFeatureCollection(regions: List<Region>): Featu
     return FeatureCollection.fromFeatures(features)
 }
 
-/**
- * A solid diamond bitmap for the planned-trip [SymbolLayer]'s `icon-image`, distinct in shape and
- * colour from the translucent sighting-dot circles, so "planned" reads as its own kind of pin
- * rather than a variant of one — same intent as the deleted osmdroid `plannedTripIcon`, redrawn
- * because MapLibre's `SymbolLayer` needs a named image registered on the [Style]
- * (`Style.addImage`) rather than a per-`Marker` `Drawable`.
- */
-private fun plannedTripDiamondBitmap(density: Float, markerColor: Int): Bitmap {
-    val sizePx = (PLANNED_TRIP_MARKER_SIZE_DP * density).toInt().coerceAtLeast(1)
-    val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(bitmap)
-
-    val diamond = Path().apply {
-        moveTo(sizePx / 2f, 0f)
-        lineTo(sizePx.toFloat(), sizePx / 2f)
-        lineTo(sizePx / 2f, sizePx.toFloat())
-        lineTo(0f, sizePx / 2f)
-        close()
-    }
-    canvas.drawPath(diamond, Paint().apply { color = markerColor; style = Paint.Style.FILL; isAntiAlias = true })
-    return bitmap
-}
-
-/**
- * A teardrop pin bitmap for the waypoint [SymbolLayer]'s `icon-image` — round head, pointed tail
- * touching the actual coordinate (see [initializeOverlayLayers]'s `iconAnchor(BOTTOM)` for why the
- * tail, not the shape's center, has to be what's anchored). A distinct amber — the "you dropped a
- * pin here" colour convention this app's other roles don't otherwise use.
- */
-private fun waypointPinBitmap(density: Float, markerColor: Int): Bitmap {
-    val widthPx = (WAYPOINT_MARKER_WIDTH_DP * density).toInt().coerceAtLeast(1)
-    val heightPx = (WAYPOINT_MARKER_HEIGHT_DP * density).toInt().coerceAtLeast(1)
-    val bitmap = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(bitmap)
-
-    val headRadius = widthPx / 2f
-    val headCenterX = widthPx / 2f
-    val headCenterY = headRadius
-    val pin = Path().apply {
-        addCircle(headCenterX, headCenterY, headRadius, Path.Direction.CW)
-    }
-    // The tail: a triangle from the circle's sides down to the bottom-center tip, unioned with
-    // the circle above so the whole pin fills as one shape.
-    pin.addPath(
-        Path().apply {
-            moveTo(headCenterX - headRadius, headCenterY)
-            lineTo(headCenterX, heightPx.toFloat())
-            lineTo(headCenterX + headRadius, headCenterY)
-            close()
-        },
-    )
-    canvas.drawPath(pin, Paint().apply { color = markerColor; style = Paint.Style.FILL; isAntiAlias = true })
-    return bitmap
-}
-
 // Source/layer ids. Fixed strings rather than generated, since every one of them is referenced by
 // name from at least two places (initializeOverlayLayers and refreshOverlayData, or a layer
 // referencing its source) and a typo needs to be a compile error, not a silently-missing layer.
@@ -1217,13 +1138,11 @@ private const val SIGHTING_SOURCE_ID = "sightings"
 private const val SIGHTING_LAYER_ID = "sightings-layer"
 private const val PLANNED_TRIP_SOURCE_ID = "planned-trips"
 private const val PLANNED_TRIP_LAYER_ID = "planned-trips-layer"
-private const val PLANNED_TRIP_ICON_ID = "planned-trip-diamond"
 private const val BREADCRUMB_SOURCE_ID = "breadcrumb-trail"
 private const val BREADCRUMB_LAYER_ID = "breadcrumb-trail-layer"
 private const val BREADCRUMB_CASING_LAYER_ID = "breadcrumb-trail-casing-layer"
 private const val WAYPOINT_SOURCE_ID = "waypoints"
 private const val WAYPOINT_LAYER_ID = "waypoints-layer"
-private const val WAYPOINT_ICON_ID = "waypoint-pin"
 
 // Journal Stage 2d.
 private const val KEPT_TRACKS_SOURCE_ID = "kept-tracks"
@@ -1231,10 +1150,8 @@ private const val KEPT_TRACKS_LAYER_ID = "kept-tracks-layer"
 private const val KEPT_TRACKS_CASING_LAYER_ID = "kept-tracks-casing-layer"
 private const val FIND_SOURCE_ID = "find-markers"
 private const val FIND_LAYER_ID = "find-markers-layer"
-private const val FIND_ICON_ID = "find-pin"
 private const val PHOTO_SOURCE_ID = "photo-markers"
 private const val PHOTO_LAYER_ID = "photo-markers-layer"
-private const val PHOTO_ICON_ID = "photo-diamond"
 private const val OFFLINE_REGION_CIRCLE_SOURCE_ID = "offline-region-circles"
 private const val OFFLINE_REGION_CIRCLE_LAYER_ID = "offline-region-circles-layer"
 private const val OFFLINE_REGION_CIRCLE_OUTLINE_LAYER_ID = "offline-region-circles-outline-layer"
@@ -1266,10 +1183,6 @@ internal const val SIGHTING_DOT_STROKE_WIDTH_PX = 1.5f
 internal const val SIGHTING_DOT_SELECTED_STROKE_WIDTH_PX = 3f
 private const val SIGHTING_DOT_STROKE_OPACITY = 0.85f
 
-private const val PLANNED_TRIP_MARKER_SIZE_DP = 22f
-
-private const val SEARCH_CENTER_RADIUS_PX = 8f
-private const val SEARCH_CENTER_STROKE_WIDTH_PX = 2f
 
 /**
  * The offline style's night: every background, fill and line colour property of the loaded style set
@@ -1353,8 +1266,6 @@ private fun nightPropertyValue(property: String, night: StyleColourValue): Prope
 private const val SIGHTINGS_MAP_TAG = "SightingsMap"
 private const val BREADCRUMB_STROKE_WIDTH_PX = 6f
 
-private const val WAYPOINT_MARKER_WIDTH_DP = 22f
-private const val WAYPOINT_MARKER_HEIGHT_DP = 28f
 
 // Journal Stage 2d.
 private const val KEPT_TRACK_STROKE_WIDTH_PX = 6f
