@@ -60,11 +60,14 @@ import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.expressions.Expression
+import org.maplibre.android.style.layers.BackgroundLayer
 import org.maplibre.android.style.layers.CircleLayer
 import org.maplibre.android.style.layers.FillLayer
+import org.maplibre.android.style.layers.Layer
 import org.maplibre.android.style.layers.LineLayer
 import org.maplibre.android.style.layers.Property
 import org.maplibre.android.style.layers.PropertyFactory
+import org.maplibre.android.style.layers.PropertyValue
 import org.maplibre.android.style.layers.SymbolLayer
 import org.maplibre.android.style.sources.GeoJsonSource
 import org.maplibre.geojson.Feature
@@ -449,6 +452,12 @@ fun SightingsMap(
             is MapStyleSource.Uri -> Style.Builder().fromUri(source.uri)
         }
         map.setStyle(builder) { style ->
+            // Offline night (colour build C1 (d)): the offline style has no raster layer for
+            // NIGHT_RASTER_PAINT to act on, so its own layers are recoloured here, after it loads
+            // from its one URL and before the overlays are added, so the overlays' own line and
+            // fill layers are never touched. Day, or night off, restyles nothing: the style came
+            // fresh from its URI.
+            if (requested.useOfflineTiles && requested.night) applyOfflineNightRecolour(style)
             initializeOverlayLayers(style, density = context.resources.displayMetrics.density, palette = mapPalette)
             // The data+camera refresh effect below re-pushes every source right after this, keyed
             // on loadedStyle among other things — including the sighting source, with "selected"
@@ -1168,6 +1177,85 @@ private const val PLANNED_TRIP_MARKER_SIZE_DP = 22f
 
 private const val SEARCH_CENTER_RADIUS_PX = 8f
 private const val SEARCH_CENTER_STROKE_WIDTH_PX = 2f
+
+/**
+ * The offline style's night: every background, fill and line colour property of the loaded style set
+ * to its V1 night value ([offlineNightRecolourOf]). The SDK calls were checked with `javap` against
+ * the pinned `13.5.0` artifact before this was written: `Style.getLayers`, `Layer.setProperties`,
+ * the `BackgroundLayer`/`FillLayer`/`LineLayer` colour getters (each a `PropertyValue<String>`), the
+ * `PropertyFactory` colour setters for `String` and `Expression`, `PropertyValue.isExpression`/
+ * `getExpression`/`isValue`/`getValue`, and `Expression.toString`/`Expression.raw`.
+ *
+ * A property whose value is unset (the style leaves it to the default) is not touched. One the pure
+ * function cannot read is left in its day colour and logged by layer and property, never dropped
+ * silently (CLAUDE.md); a summary line says how many were recoloured and how many left. Which form
+ * MapLibre hands the colours back in (an `rgba()` string, `["rgba", ...]` arrays inside expressions)
+ * is unverified until a device run; a form this does not read shows up in these log lines.
+ */
+private fun applyOfflineNightRecolour(style: Style) {
+    var recoloured = 0
+    var left = 0
+    for (layer in style.layers) {
+        for ((property, value) in dayColourPropertiesOf(layer)) {
+            val colourValue = when {
+                value.isNull -> continue
+                value.isExpression -> StyleColourValue.Expression(value.expression.toString())
+                value.value is String -> StyleColourValue.Literal(value.value as String)
+                else -> null
+            }
+            val outcome = if (colourValue == null) {
+                NightRecolour.Left(
+                    LayerColourProperty(layer.id, property, StyleColourValue.Literal(value.toString())),
+                    "value of type ${value.value?.javaClass?.name} is neither a colour string nor an expression",
+                )
+            } else {
+                offlineNightRecolourOf(LayerColourProperty(layer.id, property, colourValue))
+            }
+            when (outcome) {
+                is NightRecolour.Recoloured -> try {
+                    layer.setProperties(nightPropertyValue(property, outcome.night))
+                    recoloured++
+                } catch (e: RuntimeException) {
+                    left++
+                    Log.w(SIGHTINGS_MAP_TAG, "Offline night: could not set ${layer.id}/$property; left in its day colour.", e)
+                }
+                is NightRecolour.Left -> {
+                    left++
+                    Log.w(SIGHTINGS_MAP_TAG, "Offline night: ${layer.id}/$property left in its day colour: ${outcome.reason}")
+                }
+            }
+        }
+    }
+    Log.i(SIGHTINGS_MAP_TAG, "Offline night: $recoloured colour properties recoloured, $left left in day colours.")
+}
+
+/** [layer]'s colour properties the offline night walks ([NIGHT_RECOLOURED_PROPERTIES]), with their day values. */
+private fun dayColourPropertiesOf(layer: Layer): List<Pair<String, PropertyValue<*>>> = when (layer) {
+    is BackgroundLayer -> listOf("background-color" to layer.backgroundColor)
+    is FillLayer -> listOf("fill-color" to layer.fillColor, "fill-outline-color" to layer.fillOutlineColor)
+    is LineLayer -> listOf("line-color" to layer.lineColor)
+    else -> emptyList()
+}
+
+private fun nightPropertyValue(property: String, night: StyleColourValue): PropertyValue<*> = when (night) {
+    is StyleColourValue.Literal -> when (property) {
+        "background-color" -> PropertyFactory.backgroundColor(night.text)
+        "fill-color" -> PropertyFactory.fillColor(night.text)
+        "fill-outline-color" -> PropertyFactory.fillOutlineColor(night.text)
+        "line-color" -> PropertyFactory.lineColor(night.text)
+        else -> error("offline night does not walk $property")
+    }
+    is StyleColourValue.Expression -> {
+        val expression = Expression.raw(night.json)
+        when (property) {
+            "background-color" -> PropertyFactory.backgroundColor(expression)
+            "fill-color" -> PropertyFactory.fillColor(expression)
+            "fill-outline-color" -> PropertyFactory.fillOutlineColor(expression)
+            "line-color" -> PropertyFactory.lineColor(expression)
+            else -> error("offline night does not walk $property")
+        }
+    }
+}
 
 private const val SIGHTINGS_MAP_TAG = "SightingsMap"
 private const val BREADCRUMB_STROKE_WIDTH_PX = 6f
