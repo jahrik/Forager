@@ -10,6 +10,7 @@ import com.zynergylabs.forager.app.domain.OfflineMapRepository
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Region
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -89,6 +90,20 @@ class MapLibreOfflineMapRepository(
 
     private val appContext = context.applicationContext
 
+    /**
+     * Ids of regions [download] has registered with `OfflineManager` and is still downloading, in
+     * this process — picker-fixes dispatch, F4. [listRegions] deletes every incomplete region
+     * except these ([offlineRegionIdsToDelete]); before this set existed it deleted a running
+     * download too whenever the list reloaded (entering the Offline maps sub-tab, another region's
+     * delete, ViewModel init, two use cases). In memory on purpose: a region left incomplete by a
+     * killed or crashed process is in no process's set, so a restart still cleans it up.
+     *
+     * One set per repository instance, and there is one instance per process
+     * (`AppContainer.offlineMapRepository`). Concurrent because `OfflineManager`'s callbacks and the
+     * callers' coroutines need not share a thread.
+     */
+    private val inFlightRegionIds: MutableSet<Long> = ConcurrentHashMap.newKeySet()
+
     override suspend fun download(
         name: String,
         region: Region,
@@ -106,13 +121,30 @@ class MapLibreOfflineMapRepository(
         // time, matching this class's own original single-region semantics.
         val placeholderMetadata = RegionMetadata(name, region, OfflineMapRepository.MIN_ZOOM, OfflineMapRepository.MAX_ZOOM, downloadedAtEpochMillis = 0L).toBytes()
 
-        val offlineRegion = offlineManager().createOfflineRegionSuspend(definition, placeholderMetadata)
+        // Marked in flight inside the create callback itself, not after this call resumes, so the
+        // gap in which listRegions() could see the new region unmarked is only MapLibre's own
+        // delivery of onCreate, not also a coroutine dispatch (picker-fixes dispatch, F4). The
+        // finally covers the create call too: a cancellation landing between onCreate and this
+        // coroutine resuming would otherwise leave the id marked for the life of the process.
+        var markedId: Long? = null
+        val offlineRegion: OfflineRegion
         val finalStatus = try {
-            offlineRegion.downloadToCompletionSuspend(onProgress)
-        } catch (e: Exception) {
-            // Never leave a half-downloaded region looking like a complete one.
-            offlineRegion.deleteSuspend()
-            throw e
+            offlineRegion = offlineManager().createOfflineRegionSuspend(definition, placeholderMetadata) { id ->
+                markedId = id
+                inFlightRegionIds += id
+            }
+            try {
+                offlineRegion.downloadToCompletionSuspend(onProgress)
+            } catch (e: Exception) {
+                // Never leave a half-downloaded region looking like a complete one.
+                offlineRegion.deleteSuspend()
+                throw e
+            }
+        } finally {
+            // Complete (so listRegions keeps it on its own), deleted just above, or abandoned
+            // before it resumed here (left for listRegions' orphan cleanup): no longer this
+            // process's to protect.
+            markedId?.let { inFlightRegionIds -= it }
         }
 
         val downloadedAt = downloadedAtEpochMillisProvider()
@@ -165,7 +197,7 @@ class MapLibreOfflineMapRepository(
         val statuses = offlineRegions.associate { it.id to it.getStatusSuspend() }
         val idsToDelete = offlineRegionIdsToDelete(
             completeById = statuses.mapValues { (_, status) -> status.isComplete },
-            inFlightIds = emptySet(),
+            inFlightIds = inFlightRegionIds.toSet(),
         )
         offlineRegions.mapNotNull { offlineRegion ->
             val status = statuses.getValue(offlineRegion.id)
@@ -251,7 +283,9 @@ private const val TAG = "MapLibreOfflineMapRepo"
 /**
  * Which of `OfflineManager`'s regions [MapLibreOfflineMapRepository.listRegions] deletes: every
  * region that is not complete ([completeById] maps each region id to
- * `OfflineRegionStatus.isComplete`). [inFlightIds] is not consulted yet.
+ * `OfflineRegionStatus.isComplete`), except one still downloading in this process ([inFlightIds]).
+ * The cleanup is for a region a killed or crashed process left incomplete; a running download is
+ * incomplete too and was deleted with them until F4 of the picker-fixes dispatch.
  *
  * A pure function so the decision is testable headless: `OfflineManager` and `OfflineRegion` are
  * not constructible off a device, which is why this repository's only tests so far are of the
@@ -260,7 +294,7 @@ private const val TAG = "MapLibreOfflineMapRepo"
  * comment leaves `OfflineManager` behaviour to this class).
  */
 internal fun offlineRegionIdsToDelete(completeById: Map<Long, Boolean>, inFlightIds: Set<Long>): Set<Long> =
-    completeById.filterValues { complete -> !complete }.keys
+    completeById.filterValues { complete -> !complete }.keys - inFlightIds
 
 private fun Region.toLatLngBounds(): LatLngBounds {
     val box = GeoDistance.boundingBox(LatLng(lat, lng), radiusKm)
@@ -292,13 +326,18 @@ private suspend fun OfflineManager.listOfflineRegionsSuspend(): List<OfflineRegi
 private suspend fun OfflineManager.createOfflineRegionSuspend(
     definition: OfflineTilePyramidRegionDefinition,
     metadata: ByteArray,
+    /** Called with the new region's id on `onCreate`'s own thread, before the caller resumes. */
+    onCreated: (Long) -> Unit,
 ): OfflineRegion = suspendCancellableCoroutine { continuation ->
     createOfflineRegion(
         definition,
         metadata,
         object : OfflineManager.CreateOfflineRegionCallback {
             override fun onCreate(offlineRegion: OfflineRegion) {
-                if (continuation.isActive) continuation.resume(offlineRegion)
+                if (continuation.isActive) {
+                    onCreated(offlineRegion.id)
+                    continuation.resume(offlineRegion)
+                }
             }
 
             override fun onError(error: String) {
