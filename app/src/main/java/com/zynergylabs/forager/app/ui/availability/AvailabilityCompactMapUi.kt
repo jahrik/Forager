@@ -100,6 +100,8 @@ import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.LocalDate
 import kotlin.math.roundToInt
+import kotlin.properties.ReadWriteProperty
+import kotlin.reflect.KProperty
 
 /**
  * The icon cluster's position on the compact Map tab, as one holder so it can live *above*
@@ -128,6 +130,43 @@ internal class MapIconClusterPositionState {
     val displayedOffsetPx = Animatable(0f)
     var isOnLeftSide by mutableStateOf(false)
     var isMinimized by mutableStateOf(false)
+
+    // Landscape B2 (S6): a short landscape window's own cluster position, separate from the
+    // portrait one above so that turning the phone neither carries a portrait drag into landscape
+    // nor loses it on the way back. The side is stored as port or punch-hole, not left or right,
+    // and translated to a window side from the current port edge where the cluster is anchored,
+    // so turning between ROTATION_90 and ROTATION_270 keeps the cluster on the same device edge.
+    // Defaults to the punch-hole side. Session only, like the portrait fields.
+    var landscapeOnPortSide by mutableStateOf(false)
+    var landscapeUserChosenOffsetPx by mutableStateOf(0f)
+    val landscapeDisplayedOffsetPx = Animatable(0f)
+    var landscapeIsMinimized by mutableStateOf(false)
+}
+
+/**
+ * Landscape B2 (S6): "is the cluster on the window's left" for a short landscape window, read and
+ * written through [MapIconClusterPositionState.landscapeOnPortSide] against the current port and
+ * punch-hole edges.
+ */
+private class LandscapeClusterSide(
+    private val state: MapIconClusterPositionState,
+    private val portEdge: ScreenEdge,
+    private val punchHoleEdge: ScreenEdge,
+) : ReadWriteProperty<Any?, Boolean> {
+    override fun getValue(thisRef: Any?, property: KProperty<*>): Boolean =
+        (if (state.landscapeOnPortSide) portEdge else punchHoleEdge) == ScreenEdge.Left
+
+    override fun setValue(thisRef: Any?, property: KProperty<*>, value: Boolean) {
+        state.landscapeOnPortSide = (if (value) ScreenEdge.Left else ScreenEdge.Right) == portEdge
+    }
+}
+
+/** The portrait side, [MapIconClusterPositionState.isOnLeftSide], unchanged, behind the same delegate type. */
+private class PortraitClusterSide(private val state: MapIconClusterPositionState) : ReadWriteProperty<Any?, Boolean> {
+    override fun getValue(thisRef: Any?, property: KProperty<*>): Boolean = state.isOnLeftSide
+    override fun setValue(thisRef: Any?, property: KProperty<*>, value: Boolean) {
+        state.isOnLeftSide = value
+    }
 }
 
 @Composable
@@ -318,7 +357,10 @@ internal fun CompactMapTab(
     // when the user leaves the Map tab" was a planner rule, and the owner's standing UX default
     // (CLAUDE.md, "UX defaults") is that user-set state survives a tab change unless an exception
     // is stated explicitly for the case — none has been for this.
-    var isMapIconBarMinimized by clusterPosition::isMinimized
+    // Landscape B2 (S6): in a short landscape window the cluster reads and writes its own landscape
+    // position (MapIconClusterPositionState's landscape fields); portrait is exactly as before.
+    val landscapeCluster = railPortEdge != null && punchHoleEdge != null
+    var isMapIconBarMinimized by (if (landscapeCluster) clusterPosition::landscapeIsMinimized else clusterPosition::isMinimized)
     // Direct owner request (not part of the fullscreen-fixes dispatch): the icon bar can be
     // dragged up/down to reposition it, and snaps to the left or right edge — for left-handed
     // users who want it within thumb reach on that side. Held in clusterPosition (see
@@ -326,7 +368,12 @@ internal fun CompactMapTab(
     // session-only — not persisted to DataStore (CLAUDE.md's Room/DataStore split would put a
     // "last-used side" preference there, since it's a flat, unrelated toggle). Worth revisiting
     // if the owner wants that choice to survive an app restart.
-    var isMapIconBarOnLeftSide by clusterPosition::isOnLeftSide
+    val clusterSide: ReadWriteProperty<Any?, Boolean> = if (railPortEdge != null && punchHoleEdge != null) {
+        LandscapeClusterSide(clusterPosition, portEdge = railPortEdge, punchHoleEdge = punchHoleEdge)
+    } else {
+        PortraitClusterSide(clusterPosition)
+    }
+    var isMapIconBarOnLeftSide by clusterSide
     // Icon-bar-position-memory dispatch: the bar's vertical position is two values that derive
     // one from the other, never two that can drift. mapIconBarUserChosenOffsetPx is the single
     // source of truth — the offset the user last dragged the bar (or its restore handle) to, and
@@ -344,8 +391,8 @@ internal fun CompactMapTab(
     // Both live in clusterPosition (see MapIconClusterPositionState) so they survive leaving and
     // returning to this tab — the owner's later ask, reversing the earlier "nothing survives a
     // tab change" ruling for the position. Session-only still.
-    var mapIconBarUserChosenOffsetPx by clusterPosition::userChosenOffsetPx
-    val mapIconBarDisplayedOffsetPx = clusterPosition.displayedOffsetPx
+    var mapIconBarUserChosenOffsetPx by (if (landscapeCluster) clusterPosition::landscapeUserChosenOffsetPx else clusterPosition::userChosenOffsetPx)
+    val mapIconBarDisplayedOffsetPx = if (landscapeCluster) clusterPosition.landscapeDisplayedOffsetPx else clusterPosition.displayedOffsetPx
     val mapIconBarOffsetScope = rememberCoroutineScope()
     // Horizontal drag distance accumulated only during an in-progress drag gesture — read once, at
     // gesture end, to decide whether to flip isMapIconBarOnLeftSide, then reset to 0 regardless of
@@ -745,7 +792,11 @@ internal fun CompactMapTab(
                         y = (mapIconBarDisplayedOffsetPx.value + mapIconBarCentreInClusterPx - mapIconClusterHeightPx / 2f).toDp(),
                     )
                 }
-                val mapIconBarDragModifier = Modifier.pointerInput(Unit) {
+                // Keyed on the two edges (landscape B2, S6): the gesture block keeps the closure it
+                // started with, so a turn (portrait to landscape, or 90 to 270) must restart it or a
+                // drag would write through the previous orientation's position and side. Constant
+                // in portrait (both null), so portrait behaves as the Unit key did.
+                val mapIconBarDragModifier = Modifier.pointerInput(railPortEdge, punchHoleEdge) {
                     detectDragGesturesAfterLongPress(
                         onDragEnd = {
                             when {
@@ -797,7 +848,7 @@ internal fun CompactMapTab(
                 // mapIconBarUserChosenOffsetPx's own doc comment. Not keyed on the memory itself:
                 // a drag snaps the displayed value directly and is never animated.
                 val mapIconBarOffsetSpec = MotionTokens.navigationMotionSpec<Float>()
-                LaunchedEffect(mapIconClusterHeightPx, mapContentBoxHeightPx, mapBottomNavHeightPx, isFullscreen) {
+                LaunchedEffect(mapIconClusterHeightPx, mapContentBoxHeightPx, mapBottomNavHeightPx, isFullscreen, landscapeCluster) {
                     val targetPx = clampMapIconBarVerticalOffset(mapIconBarUserChosenOffsetPx)
                     if (targetPx != mapIconBarDisplayedOffsetPx.value) {
                         mapIconBarDisplayedOffsetPx.animateTo(targetPx, mapIconBarOffsetSpec)
