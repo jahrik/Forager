@@ -155,6 +155,9 @@ class TrackRecordingViewModel(
     val uiState: StateFlow<TrackRecordingUiState> = _uiState.asStateFlow()
 
     private var pollingJob: Job? = null
+
+    /** The one waypoint whose delete is pending (journal redesign J4) — see [requestRemoveWaypoint]. */
+    private val waypointDeletes = PendingDeleteSlot<String, Waypoint> { it.id }
     private var locationJob: Job? = null
 
     // Oldest first, cleared on every startReturn()/stopReturn()/stopRecording() — see
@@ -621,14 +624,70 @@ class TrackRecordingViewModel(
         }
     }
 
-    /** J4 stub: a swipe on a waypoint's row. */
-    fun requestRemoveWaypoint(id: String) = Unit
+    /**
+     * A swipe on a waypoint's Records row (journal redesign J4): the waypoint becomes pending —
+     * hidden from [TrackRecordingUiState.visibleWaypoints] at once, still saved — and the Undo
+     * snackbar shows. Its real delete ([deleteWaypoint], unchanged) runs from [commitRemoveWaypoint]
+     * when the snackbar ends without Undo, from here when a second waypoint is swiped while this one
+     * is still pending (the first is committed then), or from [onCleared].
+     *
+     * The reference count carried for the snackbar's warning is the one already loaded, read the
+     * way the old confirm dialog read it: a waypoint missing from
+     * [TrackRecordingUiState.waypointEntryReferenceCounts] counts as zero (that field's own doc
+     * comment). An id not in the list is logged and pends nothing: there is no row for it.
+     */
+    fun requestRemoveWaypoint(id: String) {
+        val state = _uiState.value
+        val waypoint = state.waypoints.firstOrNull { it.id == id }
+        if (waypoint == null) {
+            errorLog.w(TAG, "A delete was asked for waypoint '$id', which is not loaded; nothing pended.", IllegalStateException("no waypoint '$id'"))
+            return
+        }
+        val displaced = waypointDeletes.pend(waypoint, state.waypointEntryReferenceCounts[id] ?: 0)
+        _uiState.update { it.copy(pendingWaypointDelete = waypointDeletes.pending) }
+        displaced?.let(::commitWaypointDelete)
+    }
 
-    /** J4 stub: the snackbar's Undo. */
-    fun undoRemoveWaypoint(id: String) = Unit
+    /** The snackbar's Undo: the pending waypoint shows again. Nothing was deleted, so nothing is restored. */
+    fun undoRemoveWaypoint(id: String) {
+        if (waypointDeletes.undo(id) == null) {
+            errorLog.w(TAG, "Undo for waypoint '$id' came after its delete was committed; nothing to undo.", IllegalStateException("waypoint '$id' not pending"))
+        }
+        _uiState.update { it.copy(pendingWaypointDelete = waypointDeletes.pending) }
+    }
 
-    /** J4 stub: the snackbar ended any other way. */
-    fun commitRemoveWaypoint(id: String) = Unit
+    /** The snackbar ended without Undo (timed out, or a newer snackbar replaced it): the pending waypoint's delete runs, once. */
+    fun commitRemoveWaypoint(id: String) {
+        val waypoint = waypointDeletes.commit(id)
+        _uiState.update { it.copy(pendingWaypointDelete = waypointDeletes.pending) }
+        waypoint?.let(::commitWaypointDelete)
+    }
+
+    /**
+     * The real delete of a waypoint whose pending time is over. It leaves [TrackRecordingUiState.waypoints]
+     * at once rather than when the reload lands, so it does not flash back onto the screen between
+     * the snackbar closing and the delete finishing. A failed delete puts it back where it was and
+     * reports the failure the way [removeWaypoint] does.
+     */
+    private fun commitWaypointDelete(waypoint: Waypoint) {
+        val index = _uiState.value.waypoints.indexOfFirst { it.id == waypoint.id }
+        _uiState.update { state -> state.copy(waypoints = state.waypoints.filterNot { it.id == waypoint.id }) }
+        viewModelScope.launch {
+            deleteWaypoint(waypoint.id)
+                .onSuccess { loadWaypoints() }
+                .onFailure { error ->
+                    errorLog.w(TAG, "Couldn't delete waypoint.", error)
+                    _uiState.update { state ->
+                        val restored = if (state.waypoints.any { it.id == waypoint.id }) {
+                            state.waypoints
+                        } else {
+                            state.waypoints.toMutableList().apply { add(index.coerceIn(0, size), waypoint) }
+                        }
+                        state.copy(waypoints = restored, waypointsErrorMessage = "Couldn't delete waypoint.")
+                    }
+                }
+        }
+    }
 
     fun removeWaypoint(id: String) {
         viewModelScope.launch {
@@ -712,6 +771,15 @@ class TrackRecordingViewModel(
     override fun onCleared() {
         pollingJob?.cancel()
         locationJob?.cancel()
+        // Journal redesign J4: a waypoint still pending is committed here, since no snackbar is left
+        // to end. viewModelScope is already cancelled, so the delete runs on pendingDeleteCommitScope.
+        waypointDeletes.takeAny()?.let { waypoint ->
+            pendingDeleteCommitScope.launch {
+                deleteWaypoint(waypoint.id).onFailure { error ->
+                    errorLog.w(TAG, "Couldn't delete waypoint '${waypoint.id}' pending when the screen closed; it is still saved.", error)
+                }
+            }
+        }
     }
 
     private companion object {
