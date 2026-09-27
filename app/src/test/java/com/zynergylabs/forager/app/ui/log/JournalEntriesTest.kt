@@ -446,6 +446,14 @@ class JournalEntriesTest {
         node(DRAFTS_LIST).assertDoesNotExist()
         node(ENTRIES_HOME).assertIsDisplayed()
         node(DRAFTS_BANNER).assertDoesNotExist()
+
+        // The list is gone, not just hidden: a new draft started now and closed lands on Entries,
+        // not on a drafts list that reappears because a new draft exists.
+        touch(FAB, Offset(0.5f, 0.5f))
+        composeRule.onNodeWithText(EDITOR_FIELD).assertIsDisplayed()
+        pressBack()
+        node(DRAFTS_LIST).assertDoesNotExist()
+        node(ENTRIES_HOME).assertIsDisplayed()
     }
 
     // ── T3: the timeline/album toggle ──
