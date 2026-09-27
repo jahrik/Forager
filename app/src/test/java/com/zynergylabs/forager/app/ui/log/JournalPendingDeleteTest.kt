@@ -838,6 +838,36 @@ class JournalPendingDeleteTest {
         assertEquals(listOf(7L), offlineMapRepository.deletedIds)
     }
 
+    /** A slow end-to-start swipe (no fling) over [fraction] of the row's own width, from near its end edge. */
+    private fun slowSwipeLeft(tag: String, fraction: Float) {
+        composeRule.onNodeWithTag(tag).performScrollTo().performTouchInput {
+            val y = centerY
+            val startX = right - 4f
+            swipe(start = Offset(startX, y), end = Offset(startX - width * fraction, y), durationMillis = 3_000)
+        }
+        composeRule.waitForIdle()
+    }
+
+    // The delete threshold by position alone: a slow swipe carries no fling, so where it ends
+    // decides. Past half of the way from open to the row's whole width deletes; short of it rests open.
+    @Test
+    fun `a slow swipe past the delete threshold deletes, and one short of it only opens the row`() {
+        setScreen()
+        val oak = swipeToDeleteTag(RecordType.WAYPOINTS, "wp-oak")
+
+        val creek = swipeToDeleteTag(RecordType.WAYPOINTS, "wp-creek")
+
+        slowSwipeLeft(oak, fraction = 0.45f)
+        composeRule.onNodeWithTag(twoStageSwipeDeleteTag(oak)).assertIsDisplayed()
+        composeRule.onNodeWithText("Waypoint deleted", substring = true).assertDoesNotExist()
+
+        // From closed (a different row), so the whole distance is this one swipe's.
+        slowSwipeLeft(creek, fraction = 0.8f)
+        composeRule.onNodeWithText("Waypoint deleted · used in 2 journal entries").assertIsDisplayed()
+        composeRule.onNodeWithText("Creek pin").assertDoesNotExist()
+        assertEquals(emptyList<String>(), waypointRepository.deletedIds)
+    }
+
     @Test
     fun `a revealed row in All closes when a touch lands elsewhere on the list`() {
         setScreen(chip = RecordsSubTab.ALL)
