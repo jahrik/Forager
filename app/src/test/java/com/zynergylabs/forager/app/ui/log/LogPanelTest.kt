@@ -16,12 +16,17 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipe
+import androidx.compose.ui.geometry.Offset
 import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.ui.map.Basemap
 import com.zynergylabs.forager.app.ui.map.MapSlot
+import com.zynergylabs.forager.app.ui.map.PAN_RECORDING_MAP_TAG
+import com.zynergylabs.forager.app.ui.map.PanRecordingMapSlot
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -57,7 +62,10 @@ class LogPanelTest {
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
 
-    private fun setScreen(initial: MushroomLogUiState) {
+    /** The device's live fix, as `AvailabilityScreen` passes `liveFix` to [LogPanel]; held in state for F1's tests (see [JournalTabTest]'s own). */
+    private val deviceLocation = mutableStateOf<LatLng?>(null)
+
+    private fun setScreen(initial: MushroomLogUiState, mapSlot: MapSlot = StubPickerMapSlot) {
         composeRule.setContent {
             var uiState by remember { mutableStateOf(initial) }
             LogPanel(
@@ -65,8 +73,9 @@ class LogPanelTest {
                 onOpenCameraForLogEntry = {},
                 onOpenCameraForAlbum = {},
                 onOpenCameraForCartographyEntry = {},
-                mapSlot = StubPickerMapSlot,
+                mapSlot = mapSlot,
                 region = Region(lat = 45.326, lng = -122.634, radiusKm = 15),
+                deviceLocation = deviceLocation.value,
                 basemap = Basemap.DEFAULT,
                 onOpenEntryForEditing = { id ->
                     // See JournalTabTest's identical stand-in for the full reasoning — this file's
@@ -213,9 +222,59 @@ class LogPanelTest {
 
         composeRule.onNodeWithText("Found at 45.5000, -122.5000").assertExists()
     }
+
+    /** Picker-fixes dispatch, F1, in the wide tree: the same find picker, the same rule — see [JournalTabTest]'s identical test. */
+    @Test
+    fun `after a pan, a new device fix moves neither the find picker's pin, nor the map's region, nor what OK saves`() {
+        val map = PanRecordingMapSlot(panTo = PANNED_LOCATION)
+        deviceLocation.value = FIRST_FIX
+        setScreen(MushroomLogUiState(entries = listOf(locatedEntry), editingEntry = locatedEntry), mapSlot = map.slot)
+        composeRule.onNodeWithText("Change Location").performClick()
+        composeRule.onNodeWithText(pinText(FIRST_FIX)).assertExists()
+
+        composeRule.onNodeWithTag(PAN_RECORDING_MAP_TAG).performTouchInput { swipe(center, center - Offset(120f, 60f), 300) }
+        composeRule.onNodeWithText(pinText(PANNED_LOCATION)).assertExists()
+        val regionsAtPan = map.regions.toList()
+
+        composeRule.runOnIdle { deviceLocation.value = SECOND_FIX }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText(pinText(SECOND_FIX)).assertDoesNotExist()
+        composeRule.onNodeWithText(pinText(PANNED_LOCATION)).assertExists()
+        assertEquals("no new region may reach the map after the pan", regionsAtPan, map.regions.toList())
+        composeRule.onNodeWithText("OK").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText(foundAtText(PANNED_LOCATION)).assertExists()
+    }
+
+    /** F1's other half in the wide tree: before any pan, the first fix moves the picker — see [JournalTabTest]'s identical test. */
+    @Test
+    fun `before any pan, the first device fix arriving after the find picker opened moves it there`() {
+        val map = PanRecordingMapSlot(panTo = PANNED_LOCATION)
+        setScreen(MushroomLogUiState(entries = listOf(locatedEntry), editingEntry = locatedEntry), mapSlot = map.slot)
+        composeRule.onNodeWithText("Change Location").performClick()
+        composeRule.onNodeWithText("Pin at: 45.3260, -122.6340").assertExists()
+
+        composeRule.runOnIdle { deviceLocation.value = FIRST_FIX }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText(pinText(FIRST_FIX)).assertExists()
+        assertEquals(Region(FIRST_FIX.lat, FIRST_FIX.lng, FIND_PICKER_DEVICE_RADIUS_KM), map.regions.last())
+    }
+
+    private val locatedEntry = MushroomLogEntry.draft(id = "existing-1", location = LatLng(45.0, -122.0), date = LocalDate.of(2026, 8, 1))
 }
 
 private val PICKED_LOCATION = LatLng(45.5, -122.5)
+
+// Picker-fixes dispatch, F1 — see JournalTabTest's identical values.
+private val FIRST_FIX = LatLng(45.6, -122.7)
+private val SECOND_FIX = LatLng(45.61, -122.71)
+private val PANNED_LOCATION = LatLng(45.7, -122.9)
+
+private fun pinText(at: LatLng) = "Pin at: ${"%.4f".format(at.lat)}, ${"%.4f".format(at.lng)}"
+
+private fun foundAtText(at: LatLng) = "Found at ${"%.4f".format(at.lat)}, ${"%.4f".format(at.lng)}"
 
 private val StubPickerMapSlot: MapSlot = { _, _, _, _, _, _, _, onCameraIdle, modifier ->
     Column(modifier.testTag("picker-map")) {
