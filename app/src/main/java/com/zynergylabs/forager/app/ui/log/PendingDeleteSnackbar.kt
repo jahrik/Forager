@@ -92,6 +92,12 @@ internal fun offlineRegionDeleteNotice(
  * The find snackbar for [pending] ("Find deleted"), or `null` when none is pending. Finds have no
  * Cartography reference count in this app, so there is never a warning to add (owner ruling "Keep
  * inside the report (Recommended)": the same delayed delete and Undo snackbar, from the report).
+ *
+ * **"Changes discarded"** (J4b L4, owner: "Say 'Changes discarded' (Recommended)") when the pending
+ * record is a re-edit's draft of a committed find ([MushroomLogEntry.draftOfEntryId] set): that is
+ * what the edit form of an already-committed find deletes, and the committed find itself stays, so
+ * "Find deleted" would say something that did not happen. A new find's own draft (no committed
+ * original, `draftOfEntryId == null`) is the whole find, and still says "Find deleted".
  */
 internal fun findDeleteNotice(
     pending: PendingDelete<MushroomLogEntry>?,
@@ -102,7 +108,7 @@ internal fun findDeleteNotice(
     PendingDeleteNotice(
         type = RecordType.FINDS,
         token = p.token,
-        message = pendingDeleteMessage("Find", p.entryReferenceCount),
+        message = if (p.item.draftOfEntryId != null) CHANGES_DISCARDED_MESSAGE else pendingDeleteMessage("Find", p.entryReferenceCount),
         onUndo = { onUndo(id) },
         onCommit = { onCommit(id) },
     )
@@ -152,3 +158,6 @@ private class PendingDeleteSnackbarVisuals(override val message: String) : Snack
 }
 
 internal const val UNDO_LABEL = "Undo"
+
+/** The find snackbar's text when only a re-edit's draft is discarded (J4b L4); see [findDeleteNotice]. */
+internal const val CHANGES_DISCARDED_MESSAGE = "Changes discarded"
