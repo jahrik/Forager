@@ -594,7 +594,7 @@ class JournalEntriesTest {
         composeRule.onAllNodesWithContentDescription(FIND_BADGE_DESCRIPTION).assertCountEquals(2)
     }
 
-    // ── T4: the floating button (timeline half; the album half is an open question in the report) ──
+    // ── T4: the floating button, timeline half (the album half is further down) ──
 
     private val manyEntries = CartographyUiState(entries = FAB_ENTRIES)
 
