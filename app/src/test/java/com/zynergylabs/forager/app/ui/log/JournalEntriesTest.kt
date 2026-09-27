@@ -1,8 +1,19 @@
 package com.zynergylabs.forager.app.ui.log
 
+import android.Manifest
 import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivityResultRegistryOwner
+import androidx.activity.result.ActivityResultRegistry
+import androidx.activity.result.ActivityResultRegistryOwner
+import androidx.activity.result.contract.ActivityResultContract
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
+import androidx.core.app.ActivityOptionsCompat
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -98,6 +109,26 @@ class JournalEntriesTest {
         composeRule.waitForIdle()
     }
 
+    /**
+     * Every contract launched through the Activity Result API from inside the screen (added by the
+     * second J2 coder). The album's Import goes out to the system photo picker, which a Robolectric
+     * test cannot drive; this records the launch itself, the real entry point the menu item reaches.
+     */
+    private val launchedContracts = mutableListOf<ActivityResultContract<*, *>>()
+    private val recordingRegistryOwner = object : ActivityResultRegistryOwner {
+        override val activityResultRegistry: ActivityResultRegistry = object : ActivityResultRegistry() {
+            override fun <I, O> onLaunch(requestCode: Int, contract: ActivityResultContract<I, O>, input: I, options: ActivityOptionsCompat?) {
+                launchedContracts += contract
+            }
+        }
+    }
+
+    private fun photoPickerLaunches(): Int = launchedContracts.count { it is ActivityResultContracts.PickMultipleVisualMedia }
+
+    private fun grantCamera() {
+        Shadows.shadowOf(ApplicationProvider.getApplicationContext<Application>()).grantPermissions(Manifest.permission.CAMERA)
+    }
+
     private fun setScreen(
         cartography: CartographyUiState = CartographyUiState(entries = listOf(ENTRIES_COMMITTED)),
         galleryPhotos: List<GalleryPhoto> = emptyList(),
@@ -105,6 +136,7 @@ class JournalEntriesTest {
         journalState: JournalScreenState? = null,
     ) {
         composeRule.setContent {
+          CompositionLocalProvider(LocalActivityResultRegistryOwner provides recordingRegistryOwner) {
             var logState by remember { mutableStateOf(MushroomLogUiState()) }
             var cartographyState by remember { mutableStateOf(cartography) }
             val state = journalState ?: rememberJournalScreenState()
@@ -175,6 +207,7 @@ class JournalEntriesTest {
                 onDeleteWaypoint = {},
                 journalState = state,
             )
+          }
         }
         composeRule.waitForIdle()
     }
@@ -556,6 +589,102 @@ class JournalEntriesTest {
         assertEquals(0, startedCartographyEntries)
         assertEquals(6, openedCartographyIds.size)
     }
+
+    // ── T4, album half, added by the second coder (owner, "Menu of both (Recommended)") ──
+
+    /** Thirty photos on one day: ten rows of three, more than the album shows, so a tile sits under the button. */
+    private val manyPhotos: List<GalleryPhoto> = (1..30).map { albumPhoto("m$it", ALBUM_DAY_1) }
+
+    private fun openAlbum(photos: List<GalleryPhoto> = manyPhotos) {
+        setScreen(galleryPhotos = photos)
+        touch(VIEW_ALBUM, Offset(0.5f, 0.5f))
+        node(ALBUM).assertIsDisplayed()
+    }
+
+    @Test
+    fun `the album has an Add photo floating button, and the album's own Camera and Import row is gone`() {
+        openAlbum(listOf(albumPhoto("p1", ALBUM_DAY_1)))
+
+        node(FAB).assertIsDisplayed().assert(hasText("Add photo"))
+        composeRule.onNodeWithText("New entry").assertDoesNotExist()
+        composeRule.onNodeWithText("Camera").assertDoesNotExist()
+        composeRule.onNodeWithText("Import").assertDoesNotExist()
+        // The menu is closed until the button is touched.
+        node(FAB_MENU_TAKE_PHOTO).assertDoesNotExist()
+        node(FAB_MENU_IMPORT).assertDoesNotExist()
+    }
+
+    @Test
+    fun `touching Add photo at several points opens the menu, never the photo beneath it, and Take photo at several points opens the album's camera`() {
+        grantCamera()
+        openAlbum()
+        val fab = bounds(FAB)
+        val beneath = manyPhotos.filter { photo ->
+            composeRule.onAllNodesWithTag(albumPhotoTag(photo.photo.id)).fetchSemanticsNodes().isNotEmpty() &&
+                overlaps(bounds(albumPhotoTag(photo.photo.id)), fab)
+        }
+        assertTrue("the setup puts a photo under the floating button (fab $fab)", beneath.isNotEmpty())
+
+        for ((i, point) in TOUCH_SAMPLES.withIndex()) {
+            touch(FAB, point)
+
+            node(FAB_MENU_TAKE_PHOTO).assertIsDisplayed().assert(hasText("Take photo"))
+            node(FAB_MENU_IMPORT).assertIsDisplayed().assert(hasText("Import"))
+            node(PHOTO_VIEWER).assertDoesNotExist()
+            assertEquals("touching the button alone opens no camera", i, albumCameraOpens)
+
+            touch(FAB_MENU_TAKE_PHOTO, point)
+
+            assertEquals(i + 1, albumCameraOpens)
+            assertEquals("Take photo imports nothing", 0, photoPickerLaunches())
+            node(FAB_MENU_TAKE_PHOTO).assertDoesNotExist()
+            node(PHOTO_VIEWER).assertDoesNotExist()
+        }
+    }
+
+    @Test
+    fun `Import in the Add photo menu, touched at several points, launches the system photo picker`() {
+        openAlbum()
+
+        for ((i, point) in TOUCH_SAMPLES.withIndex()) {
+            touch(FAB, Offset(0.5f, 0.5f))
+            node(FAB_MENU_IMPORT).assertIsDisplayed()
+
+            touch(FAB_MENU_IMPORT, point)
+
+            assertEquals(i + 1, photoPickerLaunches())
+            assertEquals("Import opens no camera", 0, albumCameraOpens)
+            node(FAB_MENU_IMPORT).assertDoesNotExist()
+        }
+    }
+
+    @Test
+    fun `scrolled to the end, the album's last photos sit clear of Add photo and open at a touch at several points`() {
+        openAlbum()
+        val lastRow = manyPhotos.takeLast(3)
+
+        for (photo in lastRow) {
+            val tag = albumPhotoTag(photo.photo.id)
+            for (point in TOUCH_SAMPLES) {
+                val grid = composeRule.onNode(hasScrollToIndexAction())
+                grid.performScrollToNode(hasTestTag(tag))
+                repeat(2) { grid.performTouchInput { swipeUp() } }
+                composeRule.waitForIdle()
+                val fab = bounds(FAB)
+                val tile = bounds(tag)
+                assertTrue("${photo.photo.id} ends above the floating button at the end of the album: tile $tile, fab $fab", tile.bottom <= fab.top)
+
+                touch(tag, point)
+
+                node(PHOTO_VIEWER).assertIsDisplayed()
+                composeRule.onNodeWithTag(PHOTO_VIEWER_COUNTER).assert(hasText("${manyPhotos.indexOf(photo) + 1} / ${manyPhotos.size}"))
+                node(FAB_MENU_TAKE_PHOTO).assertDoesNotExist()
+                composeRule.onNodeWithContentDescription("Close photo").performClick()
+                composeRule.waitForIdle()
+                node(PHOTO_VIEWER).assertDoesNotExist()
+            }
+        }
+    }
 }
 
 private const val SWITCH_ENTRIES = "journal-switch-entries"
@@ -571,6 +700,10 @@ private const val VIEW_ALBUM = "entries-view-album"
 private const val ALBUM = "entries-album"
 private const val FAB = "entries-fab"
 private const val ALBUM_DAY_UNKNOWN = "entries-album-day-unknown"
+private const val FAB_MENU_TAKE_PHOTO = "entries-fab-menu-take-photo"
+private const val FAB_MENU_IMPORT = "entries-fab-menu-import"
+private const val PHOTO_VIEWER = "photo-viewer"
+private const val PHOTO_VIEWER_COUNTER = "photo-viewer-counter"
 
 private fun albumDayTag(day: LocalDate): String = "entries-album-day-$day"
 private fun albumPhotoTag(id: String): String = "entries-album-photo-$id"
