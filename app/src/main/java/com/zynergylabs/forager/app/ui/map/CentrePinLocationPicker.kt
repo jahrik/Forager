@@ -118,12 +118,15 @@ fun CentrePinLocationPicker(
     var touched by remember { mutableStateOf(false) }
     var mapRegion by remember { mutableStateOf(region) }
     var cameraCenter by remember { mutableStateOf(LatLng(region.lat, region.lng)) }
-    if (!touched && region != mapRegion) {
-        // A write during composition, of state this composable owns, converging in one pass (the
-        // next pass sees region == mapRegion). Chosen over a LaunchedEffect so the map is never
-        // handed one frame of the old region after the caller's has changed.
-        mapRegion = region
-        cameraCenter = LatLng(region.lat, region.lng)
+    var previousRegion by remember { mutableStateOf(region) }
+    if (region != previousRegion) {
+        // Writes during composition, of state this composable owns, converging in one pass (the
+        // next pass sees region == previousRegion). Chosen over a LaunchedEffect so the map is
+        // never handed one frame of the old region after the caller's has changed.
+        val next = centrePinMapRegion(previousRegion, region, mapRegion, touched, cameraCenter)
+        previousRegion = region
+        if (!touched) cameraCenter = LatLng(next.lat, next.lng)
+        mapRegion = next
     }
     val onUserCameraGesture = remember { { touched = true } }
 
@@ -169,6 +172,31 @@ fun CentrePinLocationPicker(
             onCancel = onCancel,
         )
     }
+}
+
+/**
+ * The region [CentrePinLocationPicker] hands its map when the caller's region changes from
+ * [previous] to [caller], given the region it is showing ([shown]), whether the user has touched
+ * the map ([touched]) and where the camera last settled ([cameraCenter]).
+ *
+ * - **Not touched:** the caller's region, whole (follow until touched, F1).
+ * - **Touched, and only the radius changed** (the offline picker's radius slider, F3 / the
+ *   diagnosis's M2): the panned point at the new radius, so the pin and OK keep the panned point
+ *   and the zoom still follows the radius as it did before (`zoomForRadiusKm`).
+ * - **Touched, and the centre changed** (a new live fix, the offline picker's late device centre,
+ *   the offline picker's own confirmed pick): unchanged. This includes a centre and radius change
+ *   together: the find picker's first fix after a pan swaps the search region (15 km) for the
+ *   device's (1 km), and that is a follow the user has already overridden, not a radius they chose.
+ *
+ * Telling "only the radius changed" apart by comparing [previous] with [caller], rather than a
+ * separate radius parameter, keeps every call site as it was: the offline panel already builds its
+ * region from the slider's value, and the find pickers' radius never changes on its own.
+ */
+internal fun centrePinMapRegion(previous: Region, caller: Region, shown: Region, touched: Boolean, cameraCenter: LatLng): Region = when {
+    !touched -> caller
+    caller.lat == previous.lat && caller.lng == previous.lng && caller.radiusKm != previous.radiusKm ->
+        Region(cameraCenter.lat, cameraCenter.lng, caller.radiusKm)
+    else -> shown
 }
 
 /**
