@@ -5,7 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
@@ -13,15 +13,21 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.filled.Link
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -55,14 +61,16 @@ import java.time.format.DateTimeFormatter
  * wide tree's drawer panel (`AvailabilityScreen.kt`, `DrawerPanel.PhotoGallery`), which the
  * dispatch says must keep working and may keep its look until J6. Leaving it untouched keeps that
  * caller exactly as it was; this view reuses its parts instead: the same acquisition launchers
- * ([rememberPhotoAcquisitionLaunchers]), the same Camera/Import buttons, the same full-screen viewer
+ * ([rememberPhotoAcquisitionLaunchers]), the same Take photo/Import actions (now behind the Add photo button), the same full-screen viewer
  * ([PhotoViewerDialog], stepping through the photos in the order shown here) and the same delete
  * confirmation ([GalleryPhotoDeleteDialog], extracted from [PhotoGalleryScreen] for this).
  *
  * **Badges** ([AlbumAttachmentBadges], added by the second J2 coder): one for a photo a journal
  * entry keeps, a distinct one for a photo attached to a find, both when both. The first coder found
- * no visible reference count on the tile to replace; the count stays only in the delete dialog. The
- * Camera/Import row stays until the floating button's album action is settled (J2, T4).
+ * no visible reference count on the tile to replace; the count stays only in the delete dialog.
+ *
+ * **Add photo** ([AddPhotoButton], also the second coder's): the floating button's menu of Take
+ * photo and Import replaced the album's own Camera/Import row.
  */
 @Composable
 internal fun EntriesAlbum(
@@ -84,36 +92,29 @@ internal fun EntriesAlbum(
     val days = remember(photos) { groupAlbumByDay(photos) }
     val shownInOrder = remember(days) { days.flatMap { it.photos } }
 
-    Column(modifier = modifier.fillMaxSize().testTag(ENTRIES_ALBUM_TAG)) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            Button(onClick = photoAcquisition.launchCamera) { Text("Camera") }
-            Button(onClick = photoAcquisition.launchGallery) { Text("Import") }
-        }
-
+    Box(modifier = modifier.fillMaxSize().testTag(ENTRIES_ALBUM_TAG)) {
         when {
-            isLoading && photos.isEmpty() -> Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+            isLoading && photos.isEmpty() -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
 
             photos.isEmpty() && loadErrorMessage != null -> Text(
                 loadErrorMessage,
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg),
+                modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
             )
 
             photos.isEmpty() -> Text(
-                "No photos yet. Use Camera or Import above to add one.",
+                "No photos yet. Use Add photo to take or import one.",
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg),
+                modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
             )
 
             else -> LazyVerticalGrid(
                 columns = GridCells.Fixed(ALBUM_COLUMNS),
-                modifier = Modifier.weight(1f).fillMaxWidth(),
-                contentPadding = PaddingValues(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg),
+                modifier = Modifier.fillMaxSize(),
+                // FAB_CLEARANCE at the bottom, as the timeline: the last row scrolls clear of Add photo.
+                contentPadding = PaddingValues(start = Spacing.lg, end = Spacing.lg, bottom = FAB_CLEARANCE),
                 horizontalArrangement = Arrangement.spacedBy(ALBUM_GAP),
                 verticalArrangement = Arrangement.spacedBy(ALBUM_GAP),
             ) {
@@ -136,6 +137,12 @@ internal fun EntriesAlbum(
                 }
             }
         }
+
+        AddPhotoButton(
+            onTakePhoto = photoAcquisition.launchCamera,
+            onImport = photoAcquisition.launchGallery,
+            modifier = Modifier.align(Alignment.BottomEnd).padding(Spacing.lg),
+        )
     }
 
     val viewingIndex = viewingPhotoId?.let { id -> shownInOrder.indexOfFirst { it.photo.id == id } }?.takeIf { it >= 0 }
@@ -143,6 +150,49 @@ internal fun EntriesAlbum(
         PhotoViewerDialog(photos = shownInOrder.map { it.photo }, initialIndex = viewingIndex, onDismiss = { viewingPhotoId = null })
     }
 }
+
+/**
+ * The album's floating button, "📷 Add photo" (plan J7; owner ruling "Menu of both (Recommended)",
+ * `prompts/preserved/2026-09-27-19.md`): it opens a small menu of Take photo and Import, which call
+ * the same two actions the album's Camera/Import row called before this replaced it
+ * ([PhotoAcquisitionLaunchers.launchCamera], [PhotoAcquisitionLaunchers.launchGallery]). A
+ * `DropdownMenu` anchored to the button, the stable Material 3 menu; the Expressive FAB menu is
+ * Understory step 5's (plan, "Components"). The same tag as the timeline's "New entry" button, since
+ * exactly one of the two is on screen at a time.
+ */
+@Composable
+private fun AddPhotoButton(onTakePhoto: () -> Unit, onImport: () -> Unit, modifier: Modifier = Modifier) {
+    var menuOpen by remember { mutableStateOf(false) }
+    Box(modifier = modifier) {
+        // The content-lambda overload, for the same reason as the timeline's button: the (icon, text)
+        // overload clears the label out of the merged semantics under material3 1.5.0-alpha26.
+        ExtendedFloatingActionButton(
+            onClick = { menuOpen = true },
+            modifier = Modifier.testTag(ENTRIES_FAB_TAG),
+        ) {
+            Icon(Icons.Filled.AddAPhoto, contentDescription = null)
+            Spacer(Modifier.width(Spacing.md))
+            Text("Add photo")
+        }
+        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+            DropdownMenuItem(
+                text = { Text("Take photo") },
+                leadingIcon = { Icon(Icons.Filled.PhotoCamera, contentDescription = null) },
+                onClick = { menuOpen = false; onTakePhoto() },
+                modifier = Modifier.testTag(ENTRIES_FAB_MENU_TAKE_PHOTO_TAG),
+            )
+            DropdownMenuItem(
+                text = { Text("Import") },
+                leadingIcon = { Icon(Icons.Filled.PhotoLibrary, contentDescription = null) },
+                onClick = { menuOpen = false; onImport() },
+                modifier = Modifier.testTag(ENTRIES_FAB_MENU_IMPORT_TAG),
+            )
+        }
+    }
+}
+
+internal const val ENTRIES_FAB_MENU_TAKE_PHOTO_TAG = "entries-fab-menu-take-photo"
+internal const val ENTRIES_FAB_MENU_IMPORT_TAG = "entries-fab-menu-import"
 
 /** A square album tile: the photo opens the viewer; the delete button in its corner asks first, as on [PhotoGalleryScreen]'s tiles. */
 @Composable

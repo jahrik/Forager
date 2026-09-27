@@ -355,8 +355,8 @@ internal fun CartographyScreen(
 
         // J2, T4 (plan J7): the floating button replaced the timeline's "+" tile and sits over
         // the content, bottom end; the timeline gets FAB_CLEARANCE of bottom padding so its last
-        // row scrolls clear of it. The album's "Add photo" button is not built (J2 report, open
-        // question), so the album keeps its own Camera/Import row and has no floating button.
+        // row scrolls clear of it. The album draws its own "Add photo" button (EntriesAlbum's
+        // AddPhotoButton, whose menu needs the album's photo launchers) with the same clearance.
         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
             when (viewMode) {
                 EntriesViewMode.TIMELINE -> CartographyEntryListScreen(
@@ -415,7 +415,7 @@ internal const val ENTRIES_FAB_TAG = "entries-fab"
  * here because the button sits inside this screen's own bounds, above the bottom bar, not over a
  * system inset (CLAUDE.md, the Robolectric insets pitfall: nothing here depends on a real inset).
  */
-private val FAB_CLEARANCE = 88.dp
+internal val FAB_CLEARANCE = 88.dp
 
 /** Which screen [CartographyScreen] shows for [CartographyUiState.editingEntry] — Journal Stage 2c. See this file's own doc comment, "Tap opens the view, not the editor," for the full reasoning. */
 internal enum class CartographyEntryMode { VIEW, EDIT }

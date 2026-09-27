@@ -286,12 +286,17 @@ class AvailabilityScreenInAppCameraTest {
         composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_VIEW_ALBUM_TAG).performClick() // J2 T3: the album view toggle, was the "Album" sub-tab
         composeRule.waitForIdle()
 
-        val button = composeRule.onNodeWithText("Camera").getBoundsInRoot()
+        // J2 (second coder): the album's Camera button became the Add photo floating button's Take
+        // photo item (owner ruling "Menu of both"). The point under test is now the floating button,
+        // the album control that stays on screen; the camera opens through its menu.
+        val button = composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_FAB_TAG).getBoundsInRoot()
         val x = (button.left + button.right) / 2
         val y = (button.top + button.bottom) / 2
 
         // Positive control: this exact point is live when the camera is not covering it.
         tapAtRoot(x, y)
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_FAB_MENU_TAKE_PHOTO_TAG).performTouchInput { click(center) }
+        composeRule.waitForIdle()
         assertEquals("the control: the touch reached the button", listOf(InAppCameraTarget.ALBUM), opened)
         composeRule.onAllNodesWithTag(IN_APP_CAMERA_TAG).assertCountEquals(1)
 
@@ -314,7 +319,9 @@ class AvailabilityScreenInAppCameraTest {
         setScreen()
         composeRule.onNodeWithText("Journal").performClick()
         composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_VIEW_ALBUM_TAG).performClick() // J2 T3: the album view toggle, was the "Album" sub-tab
-        composeRule.onNodeWithText("Camera").performClick()
+        // J2 (second coder): the album's Camera button is now Add photo's Take photo item.
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_FAB_TAG).performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_FAB_MENU_TAKE_PHOTO_TAG).performClick()
         composeRule.waitForIdle()
 
         assertEquals(listOf(InAppCameraTarget.ALBUM), opened)
