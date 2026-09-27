@@ -87,6 +87,7 @@ class MushroomLogViewModelTest {
         autoSaveLocationToPhotos: suspend () -> Boolean = { true },
         recordCaptureWithoutEditingEntry: (String?, Throwable?) -> Unit = { _, _ -> },
         pendingDeleteCommitScope: CoroutineScope? = null,
+        getPhotoEntryReferenceCount: suspend (String) -> Int = { 0 },
     ) = MushroomLogViewModel(
         getEntries = GetMushroomLogEntriesUseCase(repository),
         getDraftEntries = GetDraftEntriesUseCase(repository),
@@ -108,6 +109,7 @@ class MushroomLogViewModelTest {
         autoSaveLocationToPhotos = autoSaveLocationToPhotos,
         recordCaptureWithoutEditingEntry = recordCaptureWithoutEditingEntry,
         pendingDeleteCommitScope = pendingDeleteCommitScope ?: PendingDeleteCommitScope,
+        getPhotoEntryReferenceCount = getPhotoEntryReferenceCount,
     )
 
     // isDraft = false: every test below seeds this as an already-committed, pre-existing entry
@@ -1646,6 +1648,154 @@ class MushroomLogViewModelTest {
 
         assertEquals(listOf(entry.id), repository.deletedIds)
     }
+
+    // ---- Journal redesign J4b L3: an album photo's delete is pending until its snackbar ends ----
+    // The whole DeleteGalleryPhotoUseCase call (row, then file) is what is deferred, so the file
+    // delete waits for the snackbar too. Every assertion reads the fakes' own call lists.
+
+    private val photoA = LogPhoto(id = "photo-a", relativePath = "photos/a.jpg", createdAtEpochMillis = 1L)
+    private val photoB = LogPhoto(id = "photo-b", relativePath = "photos/b.jpg", createdAtEpochMillis = 2L)
+
+    private fun photoRepository(): FakeMushroomLogRepository {
+        val findWithPhoto = entry.copy(photos = listOf(photoA))
+        return FakeMushroomLogRepository(initial = listOf(findWithPhoto)).also { repo ->
+            kotlinx.coroutines.runBlocking { repo.addPhotoToGallery(photoB) }
+        }
+    }
+
+    @Test
+    fun `a requested photo delete hides it from the gallery and from its find, carries its journal count, and deletes nothing`() = runTest(dispatcher) {
+        val repository = photoRepository()
+        val photoStore = FakePhotoStore()
+        val vm = viewModel(repository, photoStore, getPhotoEntryReferenceCount = { id -> if (id == photoA.id) 2 else 0 })
+        advanceUntilIdle()
+        assertEquals("positive control: both photos loaded", setOf(photoA.id, photoB.id), vm.uiState.value.galleryPhotos.map { it.photo.id }.toSet())
+
+        vm.requestDeleteGalleryPhoto(photoA.id)
+        advanceUntilIdle()
+
+        val pending = vm.uiState.value.pendingPhotoDelete
+        assertEquals(photoA.id, pending?.item?.photo?.id)
+        assertEquals(2, pending?.entryReferenceCount)
+        assertEquals(listOf(entry.id), pending?.item?.referencingEntryIds)
+        val visible = vm.uiState.value.hidingPendingDelete()
+        assertEquals(listOf(photoB.id), visible.galleryPhotos.map { it.photo.id })
+        assertEquals(emptyList<String>(), visible.entries.single { it.id == entry.id }.photos.map { it.id })
+        assertEquals(emptyList<String>(), repository.deletedPhotoIds)
+        assertEquals(emptyList<LogPhoto>(), photoStore.deletedPhotos)
+    }
+
+    @Test
+    fun `undo of a pending photo delete shows it again and deletes neither row nor file`() = runTest(dispatcher) {
+        val repository = photoRepository()
+        val photoStore = FakePhotoStore()
+        val vm = viewModel(repository, photoStore)
+        advanceUntilIdle()
+        vm.requestDeleteGalleryPhoto(photoA.id)
+        advanceUntilIdle()
+        assertEquals("positive control: hidden before the undo", listOf(photoB.id), vm.uiState.value.hidingPendingDelete().galleryPhotos.map { it.photo.id })
+
+        vm.undoDeleteGalleryPhoto(photoA.id)
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.pendingPhotoDelete)
+        assertEquals(setOf(photoA.id, photoB.id), vm.uiState.value.hidingPendingDelete().galleryPhotos.map { it.photo.id }.toSet())
+        assertEquals(emptyList<String>(), repository.deletedPhotoIds)
+        assertEquals(emptyList<LogPhoto>(), photoStore.deletedPhotos)
+    }
+
+    @Test
+    fun `committing a pending photo delete deletes its row and then its file, exactly once each`() = runTest(dispatcher) {
+        val repository = photoRepository()
+        val photoStore = FakePhotoStore()
+        val vm = viewModel(repository, photoStore)
+        advanceUntilIdle()
+        vm.requestDeleteGalleryPhoto(photoA.id)
+        advanceUntilIdle()
+        assertEquals("not before the snackbar ends", emptyList<LogPhoto>(), photoStore.deletedPhotos)
+
+        vm.commitDeleteGalleryPhoto(photoA.id)
+        advanceUntilIdle()
+        vm.commitDeleteGalleryPhoto(photoA.id)
+        advanceUntilIdle()
+
+        assertEquals(listOf(photoA.id), repository.deletedPhotoIds)
+        assertEquals(listOf(photoA), photoStore.deletedPhotos)
+        assertNull(vm.uiState.value.pendingPhotoDelete)
+        assertEquals(listOf(photoB.id), vm.uiState.value.galleryPhotos.map { it.photo.id })
+    }
+
+    @Test
+    fun `a second photo delete commits the first when it replaces it`() = runTest(dispatcher) {
+        val repository = photoRepository()
+        val photoStore = FakePhotoStore()
+        val vm = viewModel(repository, photoStore)
+        advanceUntilIdle()
+        vm.requestDeleteGalleryPhoto(photoA.id)
+        advanceUntilIdle()
+
+        vm.requestDeleteGalleryPhoto(photoB.id)
+        advanceUntilIdle()
+
+        assertEquals(listOf(photoA.id), repository.deletedPhotoIds)
+        assertEquals(listOf(photoA), photoStore.deletedPhotos)
+        assertEquals(photoB.id, vm.uiState.value.pendingPhotoDelete?.item?.photo?.id)
+        assertEquals(emptyList<String>(), vm.uiState.value.hidingPendingDelete().galleryPhotos.map { it.photo.id })
+    }
+
+    @Test
+    fun `a photo delete still pending when the ViewModel is cleared is committed, row and file`() = runTest(dispatcher) {
+        val repository = photoRepository()
+        val photoStore = FakePhotoStore()
+        val testScope: CoroutineScope = this
+        val store = ViewModelStore()
+        val vm = ViewModelProvider(
+            store,
+            viewModelFactory { initializer { viewModel(repository, photoStore, pendingDeleteCommitScope = testScope) } },
+        )[MushroomLogViewModel::class.java]
+        advanceUntilIdle()
+        vm.requestDeleteGalleryPhoto(photoA.id)
+        advanceUntilIdle()
+        assertEquals(emptyList<String>(), repository.deletedPhotoIds)
+
+        store.clear()
+        advanceUntilIdle()
+
+        assertEquals(listOf(photoA.id), repository.deletedPhotoIds)
+        assertEquals(listOf(photoA), photoStore.deletedPhotos)
+    }
+
+    @Test
+    fun `a failed photo delete puts the photo back and says so, and deletes no file`() = runTest(dispatcher) {
+        val repository = photoRepository()
+        val photoStore = FakePhotoStore()
+        val vm = viewModel(repository, photoStore)
+        advanceUntilIdle()
+        vm.requestDeleteGalleryPhoto(photoA.id)
+        advanceUntilIdle()
+        repository.deletePhotoShouldFail = true
+
+        vm.commitDeleteGalleryPhoto(photoA.id)
+        advanceUntilIdle()
+
+        assertEquals(listOf(photoA.id), repository.deletedPhotoIds)
+        assertEquals(emptyList<LogPhoto>(), photoStore.deletedPhotos)
+        assertEquals(setOf(photoA.id, photoB.id), vm.uiState.value.hidingPendingDelete().galleryPhotos.map { it.photo.id }.toSet())
+        assertEquals("Couldn't delete that photo.", vm.uiState.value.saveErrorMessage)
+    }
+
+    @Test
+    fun `a delete asked for a photo that is not loaded pends nothing`() = runTest(dispatcher) {
+        val repository = photoRepository()
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+
+        vm.requestDeleteGalleryPhoto("photo-missing")
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.pendingPhotoDelete)
+        assertEquals(2, vm.uiState.value.hidingPendingDelete().galleryPhotos.size)
+    }
 }
 
 private class FakeMushroomLogRepository(
@@ -1751,7 +1901,15 @@ private class FakeMushroomLogRepository(
         return Result.success(Unit)
     }
 
+    /** Every id [deletePhotoFromGallery] was called with, in order (journal redesign J4b: the row delete a pending photo delete defers). */
+    val deletedPhotoIds = mutableListOf<String>()
+
+    /** Set by a test to make the gallery row delete fail. */
+    var deletePhotoShouldFail: Boolean = false
+
     override suspend fun deletePhotoFromGallery(photoId: String): Result<Unit> {
+        deletedPhotoIds += photoId
+        if (deletePhotoShouldFail) return Result.failure(RuntimeException("photo delete failed"))
         galleryPhotos.remove(photoId)
         crossRefs.removeAll { it.second == photoId }
         return Result.success(Unit)

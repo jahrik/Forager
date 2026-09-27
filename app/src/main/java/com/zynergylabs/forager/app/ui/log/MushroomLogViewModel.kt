@@ -1066,6 +1066,18 @@ class MushroomLogViewModel(
         }
     }
 
+    fun requestDeleteGalleryPhoto(photoId: String) {
+        // J4b tests-first stub.
+    }
+
+    fun undoDeleteGalleryPhoto(photoId: String) {
+        // J4b tests-first stub.
+    }
+
+    fun commitDeleteGalleryPhoto(photoId: String) {
+        // J4b tests-first stub.
+    }
+
     /**
      * Clears [MushroomLogUiState.saveErrorMessage] once its one-shot Toast has been shown — see
      * that field's own render site (`LogPanel`/`JournalTab`'s `LaunchedEffect`) for the other half

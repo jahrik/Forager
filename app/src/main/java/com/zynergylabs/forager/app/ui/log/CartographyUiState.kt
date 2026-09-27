@@ -1,6 +1,8 @@
 package com.zynergylabs.forager.app.ui.log
 
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
+import com.zynergylabs.forager.app.domain.PendingDelete
+import com.zynergylabs.forager.app.domain.withoutPending
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.DerivedTrip
 
@@ -43,4 +45,24 @@ data class CartographyUiState(
      * machinery than the honesty gains for a flag whose only job is "does leaving need to ask."
      */
     val hasUnsavedChanges: Boolean = false,
-)
+    /**
+     * The entry whose delete was asked for from its card (journal redesign J4b L2) and has not run
+     * yet: the Undo snackbar is still up. Entries have no reference count of their own (nothing
+     * references a Cartography entry), so [PendingDelete.entryReferenceCount] is always `null`. See
+     * [CartographyViewModel.requestDeleteEntry].
+     */
+    val pendingDelete: PendingDelete<CartographyEntry>? = null,
+) {
+    /**
+     * This state with [pendingDelete] left out of [entries] and [draftEntries]: what the Entries
+     * timeline, the drafts banner's count and the drafts list are given, so a pending entry is gone
+     * from all of them at once and comes back on Undo (J4's rule, applied to entries by J4b).
+     */
+    fun hidingPendingDelete(): CartographyUiState {
+        if (pendingDelete == null) return this
+        return copy(
+            entries = entries.withoutPending(pendingDelete) { it.id },
+            draftEntries = draftEntries.withoutPending(pendingDelete) { it.id },
+        )
+    }
+}

@@ -59,6 +59,14 @@ data class MushroomLogUiState(
      * [PendingDelete.entryReferenceCount] is always `null`. See [MushroomLogViewModel.requestDeleteEntry].
      */
     val pendingDelete: PendingDelete<MushroomLogEntry>? = null,
+    /**
+     * The gallery photo whose delete was asked for from its album tile (journal redesign J4b L3) and
+     * has not run yet. Its [PendingDelete.entryReferenceCount] is how many Cartography (journal)
+     * entries keep it, from [cartographyEntryPhotoReferenceCounts] when the delete was asked for; how
+     * many finds use it is [GalleryPhoto.referencingEntryIds] on the held item. See
+     * [MushroomLogViewModel.requestDeleteGalleryPhoto].
+     */
+    val pendingPhotoDelete: PendingDelete<GalleryPhoto>? = null,
 ) {
     /**
      * This state with [pendingDelete] left out of [entries] and [draftEntries]: what `MainActivity`

@@ -25,6 +25,8 @@ import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.WaypointDecision
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import java.time.LocalDate
+import com.zynergylabs.forager.app.domain.PendingDeleteSlot
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -69,6 +71,11 @@ class CartographyViewModel(
     private val computeTrackStatistics: ComputeTrackStatisticsUseCase,
     /** Injected so a test can fix when a photo attachment is stamped — same reasoning as every other `now`/`currentTime` provider in this codebase. */
     private val now: () -> Long = System::currentTimeMillis,
+    /**
+     * Where an entry delete still pending when this ViewModel is cleared is committed (journal
+     * redesign J4b L2): `viewModelScope` is cancelled by then. See [PendingDeleteCommitScope].
+     */
+    private val pendingDeleteCommitScope: CoroutineScope = PendingDeleteCommitScope,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CartographyUiState())
@@ -463,6 +470,18 @@ class CartographyViewModel(
                 },
             )
         }
+    }
+
+    fun requestDeleteEntry(id: String) {
+        // J4b tests-first stub.
+    }
+
+    fun undoDeleteEntry(id: String) {
+        // J4b tests-first stub.
+    }
+
+    fun commitDeleteEntry(id: String) {
+        // J4b tests-first stub.
     }
 
     fun onSaveErrorDismissed() {
