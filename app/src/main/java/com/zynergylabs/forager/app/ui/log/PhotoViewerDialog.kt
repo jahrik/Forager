@@ -108,9 +108,12 @@ internal fun PhotoViewerDialog(
     initialIndex: Int,
     onDismiss: () -> Unit,
 ) {
-    // rememberSaveable, not remember: the host Activity declares no configChanges, so a rotation
-    // while zoomed in on a gill photo recreates it, and the host's own viewer state comes back
-    // through rememberSaveable too — losing which of several photos was open would be a reset of
+    // rememberSaveable, not remember. A plain rotation no longer recreates the Activity (the
+    // manifest's configChanges handles orientation|screenSize|screenLayout|keyboardHidden, pinned
+    // by MainActivityConfigChangesTest; this comment used to say it declared none), but a
+    // night-mode toggle, a fold or other smallest-width change, a locale, font-scale or density
+    // change, and process death still do, and the host's own viewer state comes back through
+    // rememberSaveable too — losing which of several photos was open would be a reset of
     // something the user set (CLAUDE.md, UX defaults). Clamped rather than trusted: the list can
     // shrink underneath a saved index.
     var currentIndex by rememberSaveable(initialIndex) { mutableIntStateOf(initialIndex) }

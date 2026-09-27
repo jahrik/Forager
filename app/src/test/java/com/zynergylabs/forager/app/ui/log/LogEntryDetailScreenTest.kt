@@ -260,8 +260,8 @@ class LogEntryDetailScreenTest {
 
     /**
      * Workstream G3: the third Photos-row button, distinct from "Camera" and "Gallery" (the
-     * system picker) and from the bottom nav's own "Album" tab label — see this screen's own
-     * inline comment on the wording check.
+     * system picker) and from the Journal's own "Album" tab (a Cartography sub-tab, not a
+     * bottom-nav label) — see this screen's own inline comment on the wording check.
      */
     @Test
     fun `tapping From Album invokes onPullPhoto`() {
