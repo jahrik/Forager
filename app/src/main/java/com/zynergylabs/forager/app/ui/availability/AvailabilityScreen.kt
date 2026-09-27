@@ -274,6 +274,8 @@ import com.zynergylabs.forager.app.ui.log.InAppCameraHost
 import com.zynergylabs.forager.app.ui.log.InAppCameraSlot
 import com.zynergylabs.forager.app.ui.log.InAppCameraTarget
 import com.zynergylabs.forager.app.ui.log.JournalTab
+import com.zynergylabs.forager.app.ui.log.PendingDeleteNotice
+import com.zynergylabs.forager.app.ui.log.PendingDeleteSnackbarEffects
 import com.zynergylabs.forager.app.ui.log.rememberJournalScreenState
 import com.zynergylabs.forager.app.ui.log.LogPanel
 import com.zynergylabs.forager.app.ui.log.MushroomLogUiState
@@ -682,6 +684,14 @@ fun AvailabilityScreen(
      * `MainActivity`.
      */
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>> = { Result.success(emptyList()) },
+    /**
+     * The Journal's pending deletes, one per record type at most (journal redesign J4): each is shown
+     * as an Undo snackbar in this screen's one snackbar host, the same slot "Saved to Drafts" and
+     * the trip-start warning use, so it docks where those do in both window classes and outlives a
+     * Journal tab change. `MainActivity` builds them from the owning ViewModels' pending state; see
+     * [PendingDeleteSnackbarEffects]. Empty by default, so no other caller changes.
+     */
+    pendingDeleteNotices: List<PendingDeleteNotice> = emptyList(),
 ) {
     // Map up front. The list is one tap away; the map is the thing this screen is arranged around.
     //
@@ -1003,6 +1013,8 @@ fun AvailabilityScreen(
     // wrapper, since there is no window left to show a Snackbar in by the time that fires.
     val logDraftSnackbarHostState = remember { SnackbarHostState() }
     val logDraftSnackbarScope = rememberCoroutineScope()
+    // Journal redesign J4: the pending deletes' Undo snackbars share this host too.
+    PendingDeleteSnackbarEffects(pendingDeleteNotices, logDraftSnackbarHostState)
     // Alert-delivery dispatch, Item 3: the trip-start audibility warning shares this host — a host
     // is a slot, not a message — rather than adding a second surface over the map. A foreground
     // moment by construction (the user just tapped record), so a composed effect is the right

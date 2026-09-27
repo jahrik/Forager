@@ -21,6 +21,12 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeLeft
+import com.zynergylabs.forager.app.domain.PendingDelete
+import com.zynergylabs.forager.app.ui.log.RecordType
+import com.zynergylabs.forager.app.ui.log.swipeToDeleteTag
+import com.zynergylabs.forager.app.ui.log.waypointDeleteNotice
 import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCase
@@ -145,6 +151,7 @@ class AvailabilityScreenWaypointFlowTest {
         composeRule.setContent {
             val uiState by viewModel.uiState.collectAsState()
             var waypoints by remember(initialWaypoints) { mutableStateOf(initialWaypoints) }
+            var pendingWaypoint by remember { mutableStateOf<PendingDelete<Waypoint>?>(null) }
             AvailabilityScreen(
                 uiState = uiState,
                 onUseCurrentLocation = viewModel::useCurrentLocation,
@@ -187,9 +194,13 @@ class AvailabilityScreenWaypointFlowTest {
                 },
                 onDeleteWaypoint = { id ->
                     deletedWaypointIds += id
+                    pendingWaypoint = waypoints.firstOrNull { it.id == id }?.let { PendingDelete(it, entryReferenceCount = 0, token = deletedWaypointIds.size.toLong()) }
                     waypoints = waypoints.filterNot { it.id == id }
                 },
                 mapSlot = TriggerableWaypointMapSlot,
+                pendingDeleteNotices = listOfNotNull(
+                    waypointDeleteNotice(pendingWaypoint, onUndo = { pendingWaypoint = null }, onCommit = { pendingWaypoint = null }),
+                ),
             )
         }
     }
@@ -320,8 +331,14 @@ class AvailabilityScreenWaypointFlowTest {
             .assertIsDisplayed()
     }
 
+    /**
+     * Rewritten by journal redesign J4 (D2): delete is a swipe on the row, with no confirm dialog; the
+     * swipe calls onDeleteWaypoint (in production the pending-delete request) with the row's id, and
+     * the Undo snackbar shows in this screen's own snackbar host (the notice is built from this
+     * harness's pending state with the same builder MainActivity uses). Undo there clears it.
+     */
     @Test
-    fun `every Waypoints drawer control is reachable, and delete calls onDeleteWaypoint with its id`() {
+    fun `every Waypoints drawer control is reachable, and a swipe asks for the delete and shows Undo in the screen's snackbar host`() {
         val waypoint = Waypoint(
             id = "reachable-waypoint",
             lat = 45.40,
@@ -340,15 +357,17 @@ class AvailabilityScreenWaypointFlowTest {
         composeRule.onNodeWithContentDescription("Directions to Reachable Waypoint")
             .performScrollTo()
             .assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Remove waypoint Reachable Waypoint")
+        composeRule.onNodeWithTag(swipeToDeleteTag(RecordType.WAYPOINTS, "reachable-waypoint"))
             .performScrollTo()
-            .performClick()
-        // Journal Stage 2b, 4b: this section gained a confirm dialog (it had none before) so a
-        // deletion warning has somewhere to show — see WaypointsSection's own doc comment.
-        composeRule.onNodeWithText("Delete").performClick()
+            .performTouchInput { swipeLeft() }
         composeRule.waitForIdle()
 
         assertEquals(listOf("reachable-waypoint"), deletedWaypointIds)
+        composeRule.onNodeWithText("Delete").assertDoesNotExist()
+        composeRule.onNodeWithText("Waypoint deleted").assertIsDisplayed()
+        composeRule.onNodeWithText("Undo").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Waypoint deleted").assertDoesNotExist()
     }
 
     /**

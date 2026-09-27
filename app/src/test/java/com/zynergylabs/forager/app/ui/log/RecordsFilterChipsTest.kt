@@ -30,6 +30,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeLeft
 import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.domain.CartographyEntryMapData
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
@@ -229,8 +230,9 @@ class RecordsFilterChipsTest {
     fun `touching Waypoints shows the waypoint list`() {
         setScreen()
         touchChipAcrossItsBounds(WAYPOINTS_CHIP) {
-            composeRule.onNodeWithContentDescription("Remove waypoint Alpha").assertExists()
-            composeRule.onNodeWithContentDescription("Remove waypoint Bravo").assertExists()
+            // J4: the waypoint rows' delete is their swipe row now (the trash icon is gone).
+            composeRule.onNodeWithTag(swipeToDeleteTag(RecordType.WAYPOINTS, "w1")).assertExists()
+            composeRule.onNodeWithTag(swipeToDeleteTag(RecordType.WAYPOINTS, "w2")).assertExists()
         }
     }
 
@@ -413,22 +415,28 @@ class RecordsFilterChipsTest {
             composeRule.onNodeWithTag(badgeTag(type, id), useUnmergedTree = true).assertExists()
         }
         // The same rows the single-type chips show: find tiles, the track row's share action, the
-        // waypoint row's Directions and Remove, the region row's Delete.
+        // waypoint row's Directions and its swipe-to-delete row (J4: the trash icon is gone), the
+        // region row's Delete.
         composeRule.onAllNodesWithText("Find on $d1", useUnmergedTree = true).assertCountEquals(2)
         composeRule.onNodeWithTag("share-track-T1").assertExists()
         composeRule.onNodeWithContentDescription("Directions to Morning pin").assertExists()
-        composeRule.onNodeWithContentDescription("Remove waypoint Creek pin").assertExists()
+        composeRule.onNodeWithTag(swipeToDeleteTag(RecordType.WAYPOINTS, "W2")).assertExists()
         composeRule.onNodeWithText("Noon region").assertExists()
     }
 
+    /**
+     * Rewritten by journal redesign J4 (D2): a waypoint in All is deleted by swiping its row, which
+     * asks for the pending delete at once, with no confirmation dialog (the Undo snackbar replaces it;
+     * [JournalPendingDeleteTest] covers the snackbar). The region half is unchanged until D3.
+     */
     @Test
-    fun `deleting from All goes through the same confirmation dialogs as the chips`() {
+    fun `deleting a waypoint from All is a swipe with no dialog, and a region still confirms`() {
         setLogbookScreen()
 
-        composeRule.onNodeWithContentDescription("Remove waypoint Creek pin").performScrollTo().performClick()
-        composeRule.onNodeWithText("Delete \"Creek pin\"?").assertIsDisplayed()
-        assertEquals(emptyList<String>(), deletedWaypointIds)
-        composeRule.onAllNodesWithText("Delete").filterToOne(hasAnyAncestor(isDialog())).performClick()
+        composeRule.onNodeWithTag(swipeToDeleteTag(RecordType.WAYPOINTS, "W2")).performScrollTo().performTouchInput { swipeLeft() }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Delete \"Creek pin\"?").assertDoesNotExist()
+        composeRule.onNode(isDialog()).assertDoesNotExist()
         assertEquals(listOf("W2"), deletedWaypointIds)
 
         composeRule.onNodeWithTag(rowTag("offline-maps", "7")).performScrollTo()
