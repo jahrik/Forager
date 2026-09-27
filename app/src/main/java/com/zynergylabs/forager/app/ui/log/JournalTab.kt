@@ -5,8 +5,11 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.SecondaryTabRow
-import androidx.compose.material3.Tab
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -16,6 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import com.zynergylabs.forager.app.domain.CartographyEntryMapData
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.LocationResult
@@ -35,15 +39,17 @@ import com.zynergylabs.forager.app.ui.availability.AvailabilityUiState
 import com.zynergylabs.forager.app.ui.map.Basemap
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker
 import com.zynergylabs.forager.app.ui.map.MapSlot
+import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.LocalDate
 
 /**
  * The compact bottom nav's Journal destination — two tabs (journal restructure Stage 1): the
  * project owner's own framing, "**Records is a logbook** — raw, complete, machine-generated data.
  * **Cartography is where those records are compiled into a coherent story.**" [selectedTopTab]
- * picks between them with the same [SecondaryTabRow] pattern [RecordsTab] already established —
- * this codebase has no navigation library, so, like every other "route" here, this is a private
- * enum plus local `remember` state, not a real destination.
+ * picks between them — a `SecondaryTabRow` until journal redesign J2, now an Entries | Records
+ * segmented button (Cartography reads "Entries" on screen; see the switch below). This codebase has
+ * no navigation library, so, like every other "route" here, this is an enum plus state (hoisted
+ * into [JournalScreenState] since J1), not a real destination.
  *
  * **Cartography, Stage 2b: [CartographyScreen], a new authored entity's own Entries/Drafts/Album
  * submenus** — see that composable's own doc comment. Distinct from browsing raw
@@ -403,22 +409,32 @@ internal fun JournalTab(
     }
 
     Column(modifier = modifier.fillMaxSize()) {
-        SecondaryTabRow(selectedTabIndex = selectedTopTab.ordinal) {
-            Tab(
-                selected = selectedTopTab == JournalTopTab.CARTOGRAPHY,
-                onClick = {
-                    // Leaving Records mid-find-edit for Cartography is an incidental exit — see
-                    // this composable's own doc comment.
-                    leaveFindEditingIfNeeded()
-                    selectedTopTab = JournalTopTab.CARTOGRAPHY
-                },
-                text = { Text("Cartography") },
-            )
-            Tab(
-                selected = selectedTopTab == JournalTopTab.RECORDS,
-                onClick = { selectedTopTab = JournalTopTab.RECORDS },
-                text = { Text("Records") },
-            )
+        // Journal redesign J2, T1 (plan J1): one single-choice segmented button replaces the
+        // SecondaryTabRow that used to sit here, so the Journal's top level no longer reads as a
+        // second tab row stacked on the bottom bar. Only the on-screen label changed: the
+        // CARTOGRAPHY value, CartographyScreen and CartographyEntry keep their names. The selection
+        // is still journalState's hoisted top tab (J1, S1), and the Records -> Entries Back step is
+        // the BackHandler above, unchanged.
+        SingleChoiceSegmentedButtonRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
+                .testTag(JOURNAL_SWITCH_TAG),
+        ) {
+            JournalTopTab.entries.forEachIndexed { index, tab ->
+                SegmentedButton(
+                    selected = selectedTopTab == tab,
+                    onClick = {
+                        // Leaving Records mid-find-edit for Entries is an incidental exit — see
+                        // this composable's own doc comment.
+                        if (tab == JournalTopTab.CARTOGRAPHY) leaveFindEditingIfNeeded()
+                        selectedTopTab = tab
+                    },
+                    shape = SegmentedButtonDefaults.itemShape(index = index, count = JournalTopTab.entries.size),
+                    modifier = Modifier.testTag(journalSwitchTestTag(tab)),
+                    label = { Text(tab.switchLabel) },
+                )
+            }
         }
 
         when (selectedTopTab) {
@@ -506,7 +522,22 @@ internal fun JournalTab(
  * not allow two files in the same package to each declare a file-private top-level type of the same
  * name.
  */
-internal enum class JournalTopTab { CARTOGRAPHY, RECORDS }
+internal enum class JournalTopTab(
+    /** The on-screen label on [JournalTab]'s Entries | Records switch (J2, T1): CARTOGRAPHY reads "Entries" (plan J1). */
+    val switchLabel: String,
+) {
+    CARTOGRAPHY("Entries"),
+    RECORDS("Records"),
+}
+
+/** The row holding [JournalTab]'s Entries | Records switch. */
+internal const val JOURNAL_SWITCH_TAG = "journal-switch"
+
+/** One side of [JournalTab]'s Entries | Records switch: fixed strings, not enum names, so a rename cannot move a test's target. */
+internal fun journalSwitchTestTag(tab: JournalTopTab): String = when (tab) {
+    JournalTopTab.CARTOGRAPHY -> "journal-switch-entries"
+    JournalTopTab.RECORDS -> "journal-switch-records"
+}
 
 /**
  * Which screen [JournalTab]'s relocated Finds section shows for [MushroomLogUiState.editingEntry] —

@@ -129,8 +129,9 @@ class AvailabilityScreenLandscapeB3DestinationsTest {
     private fun listContent(): DpRect = taggedBounds(SPECIES_ROW_TAG)
 
     private fun journalTopTabs(): DpRect {
-        val first = bounds("Cartography")
-        val last = bounds("Records")
+        // J2 T1: the Entries | Records switch replaced the tab row; its two segments span it.
+        val first = taggedBounds(com.zynergylabs.forager.app.ui.log.journalSwitchTestTag(com.zynergylabs.forager.app.ui.log.JournalTopTab.CARTOGRAPHY))
+        val last = taggedBounds(com.zynergylabs.forager.app.ui.log.journalSwitchTestTag(com.zynergylabs.forager.app.ui.log.JournalTopTab.RECORDS))
         return DpRect(first.left, first.top, last.right, last.bottom)
     }
 
@@ -155,7 +156,7 @@ class AvailabilityScreenLandscapeB3DestinationsTest {
     private fun checkJournal(rotation: Int) {
         setScreen(rotation)
         openTab("Journal")
-        composeRule.onNodeWithText("Cartography").assertIsSelected()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.journalSwitchTestTag(com.zynergylabs.forager.app.ui.log.JournalTopTab.CARTOGRAPHY)).assertIsSelected()
         assertCappedAndCentred("the Journal's top tab row", journalTopTabs())
     }
 

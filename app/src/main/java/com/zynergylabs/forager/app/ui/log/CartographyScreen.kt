@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.zynergylabs.forager.app.domain.CartographyEntryMapData
@@ -280,7 +281,7 @@ internal fun CartographyScreen(
 
     var selectedTab by remember { mutableStateOf(CartographyTab.ENTRIES) }
 
-    Column(modifier = modifier.fillMaxSize()) {
+    Column(modifier = modifier.fillMaxSize().testTag(ENTRIES_HOME_TAG)) {
         SecondaryTabRow(selectedTabIndex = selectedTab.ordinal) {
             Tab(selected = selectedTab == CartographyTab.ENTRIES, onClick = { selectedTab = CartographyTab.ENTRIES }, text = { Text("Entries") })
             Tab(
@@ -332,6 +333,13 @@ internal fun CartographyScreen(
         }
     }
 }
+
+/**
+ * Entries' own top level: present only while no entry is open, so a test can tell "Entries is
+ * showing its list" apart from the Entries | Records switch label, which reads "Entries" whenever the
+ * Journal is on screen (journal redesign J2, T1).
+ */
+internal const val ENTRIES_HOME_TAG = "entries-home"
 
 /** Which of Cartography's three submenus is selected — ordinal order matches display order. */
 private enum class CartographyTab { ENTRIES, DRAFTS, ALBUM }

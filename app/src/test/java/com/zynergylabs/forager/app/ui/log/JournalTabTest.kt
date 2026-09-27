@@ -335,11 +335,12 @@ class JournalTabTest {
             pendingDestination = PendingJournalDestination.EDIT_NEW_FIND,
         )
 
-        // The edit form itself, with the picked coordinate — not Cartography's own Entries/Drafts/
-        // Album tabs (which would show "Entries"/"Drafts"/"Album" tab text instead).
+        // The edit form itself, with the picked coordinate — not Entries' own top level. (J2 T1:
+        // "Entries" also labels the Entries | Records switch now, which is always on screen, so the
+        // absence check is on Entries' own top-level tag rather than that text.)
         composeRule.onNodeWithText("Photos").assertIsDisplayed()
         composeRule.onNodeWithText("Found at 45.5000, -122.5000").assertIsDisplayed()
-        composeRule.onNodeWithText("Entries").assertDoesNotExist()
+        composeRule.onNodeWithTag(ENTRIES_HOME_TAG).assertDoesNotExist()
     }
 
     /**
