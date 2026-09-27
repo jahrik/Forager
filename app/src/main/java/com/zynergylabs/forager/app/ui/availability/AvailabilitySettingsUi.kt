@@ -97,10 +97,10 @@ internal fun BuildIdentityFooter() {
 /**
  * A visible close affordance at the top of the drawer sheet.
  *
- * Gestures are deliberately disabled on this drawer (see the comment on `gesturesEnabled = false`
- * in [AvailabilityScreen]) because the content behind it is a pannable map, so a swipe there has
- * to mean "pan", not "close". That leaves tapping the scrim as the only other way out, which is
- * easy to miss — this gives the drawer its own explicit, discoverable close control.
+ * Gestures on this drawer are on only while it is open (see the comment on `gesturesEnabled` in
+ * [AvailabilityScreen], landscape B3): the content behind it is a pannable map, so a swipe there
+ * has to mean "pan", never "open". Tapping the scrim and swipe-to-close are the other ways out,
+ * and both are easy to miss — this gives the drawer its own explicit, discoverable close control.
  *
  * The whole bar is the tap target, not just an icon: a bare [IconButton] here is a 48dp target in
  * the corner of an otherwise-empty full-width row, which is easy to miss the same way the scrim
