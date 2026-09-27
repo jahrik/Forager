@@ -2460,3 +2460,19 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** The Journal J0 pulse re-run, by three read-only pulse agents in parallel (parts A, B and C), each reading the working tree at e871179, identical to pre-main 352b708 for every app and test file. The first J0 (dispatch-note 2026-09-27-34, store copy preserved/2026-09-27-05.md) was answered only in that planner's session; this re-run exists so the answers are in the repository. Written by the planner by hand at 2026-09-27T09:15:50Z; no hook.
 
 ---
+
+**Kind:** intent
+**ID:** 2026-09-27-49
+**Timestamp:** 2026-09-27T09:30:02Z
+**Title:** Journal redesign J1: hoisted saveable Journal state, record-type colour roles, Records filter chips and the All logbook
+**Dispatch-file:** preserved/2026-09-27-16.md
+**Change:** docs/plans/journal-redesign.md stage J1 (J4, J6, J10/L7), with the owner's J0 rulings in docs/audits/2026-09-27-journal-j0-pulse.md: S1 one Journal UI-state holder, rememberSaveable, created above the Journal branch at AvailabilityScreen's compactTab level; S2 one style object mapping record type to theme roles per the plan's table; S3 FilterChips All, Finds, Tracks, Waypoints, Offline maps replacing RecordsTab's tab row, Finds editing and EDIT_NEW_FIND routing unchanged, Back from a single-type chip to All (planner's call); S4 the All logbook grouped by day newest first with type badges; S5 three stale comments J0 found.
+**Scope boundary:** Branch journal-redesign only. JournalTab.kt, RecordsTab.kt, new state and style files under ui/log/, AvailabilityScreen.kt and AvailabilityCompactScaffold.kt only to create and pass the holder, sub-tab content only where forced, PhotoViewerDialog.kt comment, tests. Not LogPanel or the wide tree, not J2-J5 work, not Room, not the find edit form or report screen beyond routing, not the map screens, not the record, index, CLAUDE.md, plans or prompts. No PR or merge.
+**Baseline:** journal-redesign cut from claude/docs-pr137-loose-ends-jnv47u at c3791de, whose app and test files equal pre-main 352b708 (#139 merged). Full suite at 352b708: 226 classes / 1782 / 0 / 0 / 24 (planner, terminal 2026-09-27-46 on a49dda0, the same app tree).
+**Prediction (outcome — planner):** 1. The hoist needs a custom Saver. 2. Every test clicking a Records sub-tab label changes; tests clicking only "Records" do not. 3. The suite grows by 20 to 45 tests, 0 failures, skipped unchanged. 4. No production file outside the scope changes.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** S1-S5 pushed to journal-redesign with the completion report; tests-first failures and revert checks as the dispatch requires; full suite 0 failures; the planner's terminal citing the report. No PR or merge without the owner.
+**Abort conditions:** A wrong premise; a record type with no date; a tests-first test passing at base; a revert build with compile errors; an unrelated test failing (reported, not touched); Maven 429s on a new artifact; two failed fixes on one symptom; an open design question.
+**Notes:** Written by the planner by hand (owner: "Also RECORD.md by hand", for B3, applied here the same way). The coder's mechanism prediction is in its completion report. Owner's words for this stage: "Open the PR and merge then we can start on the journal redesign"; branch ruling "One journal branch".
+
+---

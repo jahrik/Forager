@@ -320,3 +320,13 @@ In the planner session, verbatim:
 4. J10/L7: "Hoisted, saveable (Recommended)". Journal UI state held above the
    Journal branch with `rememberSaveable`, surviving tab changes, rotation, a
    night-mode toggle and a fold; not app restarts.
+5. Thumbnail data for Entries cards: "Join in memory (Recommended)". The
+   already-loaded track list (`TrackRecordingUiState.tracks`) is passed to the
+   Entries screen and each card looks up its kept track by id; no migration,
+   no extra reads; a track not found means no thumbnail.
+6. Branch: "One journal branch". All Journal stages on one branch,
+   `journal-redesign`, cut from this branch after J0. Whether it gets one PR at
+   the end or one per stage is asked when J1 is done.
+
+Planner's placement, not an owner ruling: track thumbnails (both surfaces) and
+the hero photo belong to stage J3 (entry cards); swipe-with-Undo belongs to J4.
