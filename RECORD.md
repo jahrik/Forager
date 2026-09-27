@@ -2628,3 +2628,19 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner rulings on the coder's questions, verbatim: "Remove the corner button (Recommended)" (the album photo's always-visible trash button, which still confirms in a dialog and deletes at once; carried to the next stage); "Later, own stage (Recommended)" (a photo details and location screen, recorded in the plan); "Keep finds and entries (Recommended)" (the photo snackbar's wording, as built).
 
 ---
+
+**Kind:** intent
+**ID:** 2026-09-27-62
+**Timestamp:** 2026-09-27T19:17:11Z
+**Title:** Picker and offline-maps fixes: the find picker follows until touched, the offline picker the same (M1), the radius keeps the panned centre (M2), the list reload keeps a running download, and the album's corner trash button goes
+**Dispatch-file:** preserved/2026-09-27-24.md
+**Change:** From docs/audits/2026-09-27-offline-picker-recenter-diagnosis.md and the owner's rulings in it: F1 the find picker (JournalTab, LogPanel) follows the device only until the user's first pan; F2 the offline picker's late default centre the same (consistency, not an observed failure); F3 a radius change after a pan keeps the panned centre; F4 MapLibreOfflineMapRepository.listRegions skips regions downloading in this process while still cleaning orphaned ones; F5 the Journal album's corner trash button removed.
+**Scope boundary:** Branch journal-redesign only. JournalTab.kt and LogPanel.kt (the find-picker call), CentrePinLocationPicker.kt, MapSlot.kt and SightingsMap.kt only for a gesture signal, AvailabilityOfflineMapsUi.kt, MapLibreOfflineMapRepository.kt, EntriesAlbum.kt, tests. Not the main map's behaviour, not FindLocationPickerRegion's radius, not other Journal UI, not Room, not the record, index, CLAUDE.md, plans or prompts. No PR or merge.
+**Baseline:** journal-redesign at c5ad2e7 (J4b closed by terminal 2026-09-27-61, the diagnosis merged). Planner's full suite at b293297, the same app tree: 241 classes / 1974 / 0 / 0 / 24.
+**Prediction (outcome — planner):** 1. F1 needs a gesture signal added to MapSlot. 2. F4 is testable only through an extracted pure function. 3. No main-map behaviour or test changes. 4. The suite grows by 12 to 30 tests, 0 failures, skipped unchanged.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** F1-F5 pushed with the completion report; each fix's test seen failing at base for the diagnosed reason, then passing, with a revert check; full suite 0 failures; device-only items listed; the planner re-runs the suite and writes the terminal. No PR or merge.
+**Abort conditions:** A wrong premise; no way to tell a user pan from a programmatic move without changing MapLibre behaviour; a tests-first test passing at base; a revert build with compile errors; an unrelated test failing (reported, not touched); Maven 429s; two failed fixes on one symptom; an open design question.
+**Notes:** Written by the planner by hand. Owner's words, verbatim: the report correction "It's not offline maps, it's actually in the finds entry log, when choosing a location to save to the find log"; "Follow until you touch it (Recommended)"; "Fix all three (Recommended)"; "Offline maps doesn't do this currently, but it may as well echo the same behavior"; "Remove the corner button (Recommended)". Routing: "On the Journal branch".
+
+---
