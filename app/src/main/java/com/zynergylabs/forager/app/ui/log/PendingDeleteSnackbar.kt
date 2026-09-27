@@ -7,6 +7,7 @@ import androidx.compose.material3.SnackbarVisuals
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
+import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.PendingDelete
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import kotlinx.coroutines.CoroutineScope
@@ -69,6 +70,13 @@ internal fun waypointDeleteNotice(
         onCommit = { onCommit(id) },
     )
 }
+
+/** J4 D3 stub. */
+internal fun offlineRegionDeleteNotice(
+    pending: PendingDelete<OfflineRegionSummary>?,
+    onUndo: (Long) -> Unit,
+    onCommit: (Long) -> Unit,
+): PendingDeleteNotice? = null
 
 /**
  * Shows each pending delete's Undo snackbar in [hostState] and reports how it ended (J4):
