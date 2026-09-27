@@ -1161,19 +1161,30 @@ internal fun CompactMapTab(
                 // map under it keeps its size whether it shows or not; the controls are padded
                 // clear of it by its measured width (controlsPadding). Absent in fullscreen, with
                 // no animation — the slide toward the port edge is B2's (P10).
-                if (railPortEdge != null && !isFullscreen) {
-                    ForagerNavigationRail(
-                        selectedTab = CompactTab.MAP,
-                        isDrawerOpen = isDrawerOpen,
-                        onTabSelected = onBottomNavTabSelected,
-                        portEdge = railPortEdge,
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.8f),
-                        modifier = Modifier
-                            .align(if (railPortEdge == ScreenEdge.Left) Alignment.CenterStart else Alignment.CenterEnd)
-                            .onGloballyPositioned { coordinates ->
+                // Landscape B2 (S7): on entering fullscreen the rail slides toward the port edge,
+                // off the window, and back on exit, on the theme's motionScheme spatial spec (the
+                // nav's own navigationMotionSpec, defaultSpatialSpec) — no ad-hoc tween. A pure
+                // translation of a Box child: the map's size never changes. The rail leaves the
+                // tree once its exit animation ends (AnimatedVisibility), as B1's absence did.
+                if (railPortEdge != null) {
+                    val railSlideOffset: (Int) -> Int = { fullWidth -> if (railPortEdge == ScreenEdge.Left) -fullWidth else fullWidth }
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = !isFullscreen,
+                        enter = slideInHorizontally(animationSpec = MotionTokens.navigationMotionSpec(), initialOffsetX = railSlideOffset),
+                        exit = slideOutHorizontally(animationSpec = MotionTokens.navigationMotionSpec(), targetOffsetX = railSlideOffset),
+                        modifier = Modifier.align(if (railPortEdge == ScreenEdge.Left) Alignment.CenterStart else Alignment.CenterEnd),
+                    ) {
+                        ForagerNavigationRail(
+                            selectedTab = CompactTab.MAP,
+                            isDrawerOpen = isDrawerOpen,
+                            onTabSelected = onBottomNavTabSelected,
+                            portEdge = railPortEdge,
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.8f),
+                            modifier = Modifier.onGloballyPositioned { coordinates ->
                                 onRailWidthMeasured(coordinates.size.width.toFloat())
                             },
-                    )
+                        )
+                    }
                 }
 
                 // Inside this Box, not alongside it, so it can align near the add button's own
