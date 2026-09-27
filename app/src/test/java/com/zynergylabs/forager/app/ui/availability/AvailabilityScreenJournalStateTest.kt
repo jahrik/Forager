@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import org.junit.Rule
@@ -68,15 +70,16 @@ class AvailabilityScreenJournalStateTest {
         openBottomTab("Journal")
         composeRule.onNodeWithText("Records").performClick()
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("Offline Maps").performClick()
+        // J1 S3: the Records selection is a filter chip now (was the "Offline Maps" sub-tab in S1).
+        composeRule.onNodeWithTag(OFFLINE_MAPS_CHIP_TAG).performScrollTo().performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Records").assertIsSelected()
-        composeRule.onNodeWithText("Offline Maps").assertIsSelected()
+        composeRule.onNodeWithTag(OFFLINE_MAPS_CHIP_TAG).assertIsSelected()
     }
 
     private fun assertRecordsAndTheSelectionSurvived() {
         composeRule.onNodeWithText("Records").assertIsSelected()
-        composeRule.onNodeWithText("Offline Maps").assertIsSelected()
+        composeRule.onNodeWithTag(OFFLINE_MAPS_CHIP_TAG).assertIsSelected()
     }
 
     @Test
@@ -103,6 +106,9 @@ class AvailabilityScreenJournalStateTest {
         assertRecordsAndTheSelectionSurvived()
     }
 }
+
+/** The Records "Offline maps" filter chip (J1 S3); a literal so this file compiles against a base without chips. */
+private const val OFFLINE_MAPS_CHIP_TAG = "records-chip-offline-maps"
 
 private val JOURNAL_STATE_STUB_MAP: MapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier) }
 
