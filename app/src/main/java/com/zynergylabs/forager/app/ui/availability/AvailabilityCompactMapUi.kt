@@ -39,6 +39,8 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material3.CircularProgressIndicator
@@ -98,6 +100,8 @@ import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.LocalDate
 import kotlin.math.roundToInt
+import kotlin.properties.ReadWriteProperty
+import kotlin.reflect.KProperty
 
 /**
  * The icon cluster's position on the compact Map tab, as one holder so it can live *above*
@@ -126,6 +130,43 @@ internal class MapIconClusterPositionState {
     val displayedOffsetPx = Animatable(0f)
     var isOnLeftSide by mutableStateOf(false)
     var isMinimized by mutableStateOf(false)
+
+    // Landscape B2 (S6): a short landscape window's own cluster position, separate from the
+    // portrait one above so that turning the phone neither carries a portrait drag into landscape
+    // nor loses it on the way back. The side is stored as port or punch-hole, not left or right,
+    // and translated to a window side from the current port edge where the cluster is anchored,
+    // so turning between ROTATION_90 and ROTATION_270 keeps the cluster on the same device edge.
+    // Defaults to the punch-hole side. Session only, like the portrait fields.
+    var landscapeOnPortSide by mutableStateOf(false)
+    var landscapeUserChosenOffsetPx by mutableStateOf(0f)
+    val landscapeDisplayedOffsetPx = Animatable(0f)
+    var landscapeIsMinimized by mutableStateOf(false)
+}
+
+/**
+ * Landscape B2 (S6): "is the cluster on the window's left" for a short landscape window, read and
+ * written through [MapIconClusterPositionState.landscapeOnPortSide] against the current port and
+ * punch-hole edges.
+ */
+private class LandscapeClusterSide(
+    private val state: MapIconClusterPositionState,
+    private val portEdge: ScreenEdge,
+    private val punchHoleEdge: ScreenEdge,
+) : ReadWriteProperty<Any?, Boolean> {
+    override fun getValue(thisRef: Any?, property: KProperty<*>): Boolean =
+        (if (state.landscapeOnPortSide) portEdge else punchHoleEdge) == ScreenEdge.Left
+
+    override fun setValue(thisRef: Any?, property: KProperty<*>, value: Boolean) {
+        state.landscapeOnPortSide = (if (value) ScreenEdge.Left else ScreenEdge.Right) == portEdge
+    }
+}
+
+/** The portrait side, [MapIconClusterPositionState.isOnLeftSide], unchanged, behind the same delegate type. */
+private class PortraitClusterSide(private val state: MapIconClusterPositionState) : ReadWriteProperty<Any?, Boolean> {
+    override fun getValue(thisRef: Any?, property: KProperty<*>): Boolean = state.isOnLeftSide
+    override fun setValue(thisRef: Any?, property: KProperty<*>, value: Boolean) {
+        state.isOnLeftSide = value
+    }
 }
 
 @Composable
@@ -194,6 +235,14 @@ internal fun CompactMapTab(
      * absent in fullscreen, with no animation. Null everywhere else, which is today's behaviour.
      */
     railPortEdge: ScreenEdge? = null,
+    /**
+     * Landscape B2 (S1): the punch-hole edge (`punchHoleEdgeFor`), non-null exactly when
+     * [railPortEdge] is. The search bar, its filter chip and the cluster's landscape default sit
+     * on this side.
+     */
+    punchHoleEdge: ScreenEdge? = null,
+    /** Landscape B2 (S2/S3): the search bar's capped width on the punch-hole side; null in portrait. */
+    landscapeSearchWidth: Dp? = null,
     /** Reports the overlaid rail's measured width up, as [onBottomNavHeightMeasured] does the bar's. */
     onRailWidthMeasured: (Float) -> Unit = {},
     /**
@@ -308,7 +357,10 @@ internal fun CompactMapTab(
     // when the user leaves the Map tab" was a planner rule, and the owner's standing UX default
     // (CLAUDE.md, "UX defaults") is that user-set state survives a tab change unless an exception
     // is stated explicitly for the case — none has been for this.
-    var isMapIconBarMinimized by clusterPosition::isMinimized
+    // Landscape B2 (S6): in a short landscape window the cluster reads and writes its own landscape
+    // position (MapIconClusterPositionState's landscape fields); portrait is exactly as before.
+    val landscapeCluster = railPortEdge != null && punchHoleEdge != null
+    var isMapIconBarMinimized by (if (landscapeCluster) clusterPosition::landscapeIsMinimized else clusterPosition::isMinimized)
     // Direct owner request (not part of the fullscreen-fixes dispatch): the icon bar can be
     // dragged up/down to reposition it, and snaps to the left or right edge — for left-handed
     // users who want it within thumb reach on that side. Held in clusterPosition (see
@@ -316,7 +368,12 @@ internal fun CompactMapTab(
     // session-only — not persisted to DataStore (CLAUDE.md's Room/DataStore split would put a
     // "last-used side" preference there, since it's a flat, unrelated toggle). Worth revisiting
     // if the owner wants that choice to survive an app restart.
-    var isMapIconBarOnLeftSide by clusterPosition::isOnLeftSide
+    val clusterSide: ReadWriteProperty<Any?, Boolean> = if (railPortEdge != null && punchHoleEdge != null) {
+        LandscapeClusterSide(clusterPosition, portEdge = railPortEdge, punchHoleEdge = punchHoleEdge)
+    } else {
+        PortraitClusterSide(clusterPosition)
+    }
+    var isMapIconBarOnLeftSide by clusterSide
     // Icon-bar-position-memory dispatch: the bar's vertical position is two values that derive
     // one from the other, never two that can drift. mapIconBarUserChosenOffsetPx is the single
     // source of truth — the offset the user last dragged the bar (or its restore handle) to, and
@@ -334,8 +391,8 @@ internal fun CompactMapTab(
     // Both live in clusterPosition (see MapIconClusterPositionState) so they survive leaving and
     // returning to this tab — the owner's later ask, reversing the earlier "nothing survives a
     // tab change" ruling for the position. Session-only still.
-    var mapIconBarUserChosenOffsetPx by clusterPosition::userChosenOffsetPx
-    val mapIconBarDisplayedOffsetPx = clusterPosition.displayedOffsetPx
+    var mapIconBarUserChosenOffsetPx by (if (landscapeCluster) clusterPosition::landscapeUserChosenOffsetPx else clusterPosition::userChosenOffsetPx)
+    val mapIconBarDisplayedOffsetPx = if (landscapeCluster) clusterPosition.landscapeDisplayedOffsetPx else clusterPosition.displayedOffsetPx
     val mapIconBarOffsetScope = rememberCoroutineScope()
     // Horizontal drag distance accumulated only during an in-progress drag gesture — read once, at
     // gesture end, to decide whether to flip isMapIconBarOnLeftSide, then reset to 0 regardless of
@@ -735,7 +792,11 @@ internal fun CompactMapTab(
                         y = (mapIconBarDisplayedOffsetPx.value + mapIconBarCentreInClusterPx - mapIconClusterHeightPx / 2f).toDp(),
                     )
                 }
-                val mapIconBarDragModifier = Modifier.pointerInput(Unit) {
+                // Keyed on the two edges (landscape B2, S6): the gesture block keeps the closure it
+                // started with, so a turn (portrait to landscape, or 90 to 270) must restart it or a
+                // drag would write through the previous orientation's position and side. Constant
+                // in portrait (both null), so portrait behaves as the Unit key did.
+                val mapIconBarDragModifier = Modifier.pointerInput(railPortEdge, punchHoleEdge) {
                     detectDragGesturesAfterLongPress(
                         onDragEnd = {
                             when {
@@ -787,7 +848,7 @@ internal fun CompactMapTab(
                 // mapIconBarUserChosenOffsetPx's own doc comment. Not keyed on the memory itself:
                 // a drag snaps the displayed value directly and is never animated.
                 val mapIconBarOffsetSpec = MotionTokens.navigationMotionSpec<Float>()
-                LaunchedEffect(mapIconClusterHeightPx, mapContentBoxHeightPx, mapBottomNavHeightPx, isFullscreen) {
+                LaunchedEffect(mapIconClusterHeightPx, mapContentBoxHeightPx, mapBottomNavHeightPx, isFullscreen, landscapeCluster) {
                     val targetPx = clampMapIconBarVerticalOffset(mapIconBarUserChosenOffsetPx)
                     if (targetPx != mapIconBarDisplayedOffsetPx.value) {
                         mapIconBarDisplayedOffsetPx.animateTo(targetPx, mapIconBarOffsetSpec)
@@ -950,11 +1011,21 @@ internal fun CompactMapTab(
                         // in the same Box as this tab's own content (compactMainScaffold's own call
                         // site) instead of a sibling Column entry above it; 0.dp (this parameter's own
                         // default) reproduces the old flush-against-the-map-top behavior exactly.
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(controlsPadding)
-                            .fillMaxWidth()
-                            .padding(top = topInset),
+                        modifier = if (railPortEdge != null) {
+                            // Landscape B2 (S4): the top corner on the rail side, below the
+                            // status bar only (the Scaffold's top inset), not below the search
+                            // bar, which is on the other side now; content-width.
+                            Modifier
+                                .align(if (railPortEdge == ScreenEdge.Left) Alignment.TopStart else Alignment.TopEnd)
+                                .padding(controlsPadding)
+                        } else {
+                            Modifier
+                                .align(Alignment.TopCenter)
+                                .padding(controlsPadding)
+                                .fillMaxWidth()
+                                .padding(top = topInset)
+                        },
+                        contentWidth = railPortEdge != null,
                     )
                 }
 
@@ -968,10 +1039,22 @@ internal fun CompactMapTab(
                     TaxonMapFilterChip(
                         label = label,
                         onClear = onClearTaxonFilter,
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(controlsPadding)
-                            .padding(top = topInset + compassStripClearance + Spacing.sm),
+                        modifier = if (punchHoleEdge != null && landscapeSearchWidth != null) {
+                            // Landscape B2 (S3): directly under the search bar (the strip is in
+                            // the rail corner now, not under the bar), in a column the bar's own
+                            // width on the punch-hole side, aligned to the bar's start.
+                            Modifier
+                                .align(if (punchHoleEdge == ScreenEdge.Left) Alignment.TopStart else Alignment.TopEnd)
+                                .padding(controlsPadding)
+                                .padding(top = topInset + Spacing.sm)
+                                .width(landscapeSearchWidth)
+                                .wrapContentWidth(Alignment.Start)
+                        } else {
+                            Modifier
+                                .align(Alignment.TopCenter)
+                                .padding(controlsPadding)
+                                .padding(top = topInset + compassStripClearance + Spacing.sm)
+                        },
                     )
                 }
 
@@ -996,11 +1079,21 @@ internal fun CompactMapTab(
                         showDecimalDegrees = showDecimalDegrees,
                         onToggleCoordinateFormat = onToggleCoordinateFormat,
                         onExit = onToggleReturning,
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(controlsPadding)
-                            .fillMaxWidth()
-                            .padding(top = topInset),
+                        modifier = if (railPortEdge != null) {
+                            // Landscape B2 (S4): the top corner on the rail side, below the
+                            // status bar only, at most 360dp wide.
+                            Modifier
+                                .align(if (railPortEdge == ScreenEdge.Left) Alignment.TopStart else Alignment.TopEnd)
+                                .padding(controlsPadding)
+                                .widthIn(max = LANDSCAPE_HUD_MAX_WIDTH)
+                                .fillMaxWidth()
+                        } else {
+                            Modifier
+                                .align(Alignment.TopCenter)
+                                .padding(controlsPadding)
+                                .fillMaxWidth()
+                                .padding(top = topInset)
+                        },
                     )
                 }
 
@@ -1068,19 +1161,30 @@ internal fun CompactMapTab(
                 // map under it keeps its size whether it shows or not; the controls are padded
                 // clear of it by its measured width (controlsPadding). Absent in fullscreen, with
                 // no animation — the slide toward the port edge is B2's (P10).
-                if (railPortEdge != null && !isFullscreen) {
-                    ForagerNavigationRail(
-                        selectedTab = CompactTab.MAP,
-                        isDrawerOpen = isDrawerOpen,
-                        onTabSelected = onBottomNavTabSelected,
-                        portEdge = railPortEdge,
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.8f),
-                        modifier = Modifier
-                            .align(if (railPortEdge == ScreenEdge.Left) Alignment.CenterStart else Alignment.CenterEnd)
-                            .onGloballyPositioned { coordinates ->
+                // Landscape B2 (S7): on entering fullscreen the rail slides toward the port edge,
+                // off the window, and back on exit, on the theme's motionScheme spatial spec (the
+                // nav's own navigationMotionSpec, defaultSpatialSpec) — no ad-hoc tween. A pure
+                // translation of a Box child: the map's size never changes. The rail leaves the
+                // tree once its exit animation ends (AnimatedVisibility), as B1's absence did.
+                if (railPortEdge != null) {
+                    val railSlideOffset: (Int) -> Int = { fullWidth -> if (railPortEdge == ScreenEdge.Left) -fullWidth else fullWidth }
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = !isFullscreen,
+                        enter = slideInHorizontally(animationSpec = MotionTokens.navigationMotionSpec(), initialOffsetX = railSlideOffset),
+                        exit = slideOutHorizontally(animationSpec = MotionTokens.navigationMotionSpec(), targetOffsetX = railSlideOffset),
+                        modifier = Modifier.align(if (railPortEdge == ScreenEdge.Left) Alignment.CenterStart else Alignment.CenterEnd),
+                    ) {
+                        ForagerNavigationRail(
+                            selectedTab = CompactTab.MAP,
+                            isDrawerOpen = isDrawerOpen,
+                            onTabSelected = onBottomNavTabSelected,
+                            portEdge = railPortEdge,
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.8f),
+                            modifier = Modifier.onGloballyPositioned { coordinates ->
                                 onRailWidthMeasured(coordinates.size.width.toFloat())
                             },
-                    )
+                        )
+                    }
                 }
 
                 // Inside this Box, not alongside it, so it can align near the add button's own
@@ -1222,3 +1326,6 @@ internal const val MAP_ICON_CLUSTER_TAG = "map-icon-cluster"
 
 /** [MapIconBar]'s layers ("Map Mode") row is its 4th of 5 — see [mapIconBarRowAnchorOffset]. */
 private val MAP_MODE_PICKER_COMPACT_ANCHOR_OFFSET = mapIconBarRowAnchorOffset(rowIndexFromTop = 4)
+
+/** Landscape B2 (S4): the navigation HUD's width cap in the rail-side top corner. */
+private val LANDSCAPE_HUD_MAX_WIDTH = 360.dp

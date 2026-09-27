@@ -258,6 +258,11 @@ internal fun CompassElevationStrip(
     showDecimalDegrees: Boolean,
     onToggleCoordinateFormat: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * Landscape B2 (S4): wrap the content instead of spanning the width — the strip sits in the
+     * top corner on the rail side there. False (full width) everywhere else, as before.
+     */
+    contentWidth: Boolean = false,
 ) {
     val reading by heading
     CompassElevationStripContent(
@@ -267,6 +272,7 @@ internal fun CompassElevationStrip(
         showDecimalDegrees = showDecimalDegrees,
         onToggleCoordinateFormat = onToggleCoordinateFormat,
         modifier = modifier,
+        contentWidth = contentWidth,
     )
 }
 
@@ -295,6 +301,7 @@ private fun CompassElevationStripContent(
     showDecimalDegrees: Boolean,
     onToggleCoordinateFormat: () -> Unit,
     modifier: Modifier = Modifier,
+    contentWidth: Boolean = false,
 ) {
     // A plain Box + background, not Surface: Surface (even with no onClick) intercepts pointer
     // input for the area it occupies, which — now that this strip is full-width — swallowed the
@@ -341,7 +348,8 @@ private fun CompassElevationStripContent(
                     // without this. Re-added once, in the direction opposite the three prior trims
                     // Part A item 4 warns about, and explained rather than blindly re-trimmed.
                     .padding(horizontal = Spacing.sm)
-                    .fillMaxWidth(),
+                    // Landscape B2 (S4): content-width in landscape; full width otherwise.
+                    .then(if (contentWidth) Modifier else Modifier.fillMaxWidth()),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 // Fixed-width slot, not inline in the text group below — a hardware report found the
@@ -372,8 +380,10 @@ private fun CompassElevationStripContent(
                         style = MaterialTheme.typography.labelMedium,
                         maxLines = 1,
                         textAlign = TextAlign.Center,
+                        // Landscape B2 (S4): no weight when content-width, or this one line
+                        // would stretch the strip back across the window.
                         modifier = Modifier
-                            .weight(1f)
+                            .then(if (contentWidth) Modifier else Modifier.weight(1f))
                             .testTag(COMPASS_STRIP_NO_FIX_TAG),
                     )
                 } else {
@@ -390,7 +400,8 @@ private fun CompassElevationStripContent(
                     // horizontalScroll — see this composable's own doc comment above for why
                     // horizontalScroll was rejected (it intercepts touches meant for the map underneath).
                     Row(
-                        modifier = Modifier.weight(1f),
+                        // Landscape B2 (S4): no weight when content-width.
+                        modifier = if (contentWidth) Modifier else Modifier.weight(1f),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
                     ) {
@@ -410,7 +421,9 @@ private fun CompassElevationStripContent(
                                 TrueHeadingReading.Unreliable -> "Compass unreliable"
                                 TrueHeadingReading.NeedsFix -> "—"
                             },
-                            style = MaterialTheme.typography.labelMedium,
+                            // Landscape B2 (S5): tabular figures, so the strip's width holds
+                            // steady as the digits change. Both orientations; labelMedium kept.
+                            style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
                             maxLines = 1,
                             modifier = Modifier.testTag(COMPASS_STRIP_HEADING_TAG),
                         )
@@ -419,13 +432,13 @@ private fun CompassElevationStripContent(
                             // Meters, matching this app's existing metric convention (radiusKm) rather
                             // than introducing feet — nothing else in the app displays imperial units.
                             text = elevationMeters?.let { "${it.roundToInt()} m" } ?: "Elevation unavailable",
-                            style = MaterialTheme.typography.labelMedium,
+                            style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
                             maxLines = 1,
                         )
                         Text("·", style = MaterialTheme.typography.labelMedium)
                         Text(
                             text = coordinatesStripText(location, showDecimalDegrees),
-                            style = MaterialTheme.typography.labelMedium,
+                            style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier
