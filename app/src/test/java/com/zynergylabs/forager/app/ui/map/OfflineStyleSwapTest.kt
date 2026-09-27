@@ -98,10 +98,14 @@ class OfflineStyleSwapTest {
         assertTrue(needsStyleReload(applied = topo, requested = osm))
     }
 
-    /** What the style effect builds for one set of inputs: effective night, not the raw toggle. */
+    /**
+     * What the style effect builds for one set of inputs: effective night, not the raw toggle, for the
+     * basemap; the raw toggle for the marker palette (colour build C2: markers follow Night Maps on
+     * every basemap, Satellite included). Before C2 this helper fixed the palette at DAY.
+     */
     private fun applied(basemap: Basemap, nightMode: Boolean, useOfflineTiles: Boolean = false) = AppliedMapStyle(
         basemap = basemap,
-        palette = palette,
+        palette = MapPalette.forMode(nightMode),
         useOfflineTiles = useOfflineTiles,
         night = effectiveNight(basemap, nightMode = nightMode, useOfflineTiles = useOfflineTiles),
     )
@@ -117,13 +121,39 @@ class OfflineStyleSwapTest {
         }
     }
 
+    /**
+     * Changed on purpose in colour build C2. Before C2 this asserted that a toggle over Satellite was
+     * *not* a reload, since Satellite's style does not change at night and the markers were day-only.
+     * The owner ruled that on Satellite only the markers switch, so the palette now changes with the
+     * toggle and the overlay layers, which bake their colours in, have to be rebuilt: a reload. The
+     * basemap itself still stays day: effective night is false both ways.
+     */
     @Test
-    fun `turning Night Maps on or off over Satellite is not a reload -- Satellite stays day`() {
-        val day = applied(Basemap.USGS_IMAGERY_ONLY, nightMode = false)
-        val night = applied(Basemap.USGS_IMAGERY_ONLY, nightMode = true)
+    fun `turning Night Maps on or off over Satellite reloads for the markers, and the basemap stays day`() {
+        val day = requestedMapStyle(Basemap.USGS_IMAGERY_ONLY, useOfflineTiles = false, nightMode = false, nightModeLoaded = true)!!
+        val night = requestedMapStyle(Basemap.USGS_IMAGERY_ONLY, useOfflineTiles = false, nightMode = true, nightModeLoaded = true)!!
 
-        assertFalse(needsStyleReload(applied = day, requested = night))
-        assertFalse(needsStyleReload(applied = night, requested = day))
+        assertTrue(needsStyleReload(applied = day, requested = night))
+        assertTrue(needsStyleReload(applied = night, requested = day))
+        assertFalse("Satellite's basemap stays day", night.night)
+        assertEquals(MapPalette.DAY, day.palette)
+        assertEquals(MapPalette.NIGHT, night.palette)
+    }
+
+    @Test
+    fun `the marker palette follows Night Maps on every basemap, Satellite included, online and offline`() {
+        Basemap.entries.forEach { basemap ->
+            listOf(false, true).forEach { offline ->
+                listOf(false, true).forEach { nightMode ->
+                    val requested = requestedMapStyle(basemap, useOfflineTiles = offline, nightMode = nightMode, nightModeLoaded = true)
+                    assertEquals(
+                        "$basemap offline=$offline night=$nightMode",
+                        if (nightMode) MapPalette.NIGHT else MapPalette.DAY,
+                        requested?.palette,
+                    )
+                }
+            }
+        }
     }
 
     @Test
@@ -163,7 +193,7 @@ class OfflineStyleSwapTest {
                 listOf(false, true).forEach { offline ->
                     assertNull(
                         "$basemap night=$nightMode offline=$offline",
-                        requestedMapStyle(basemap, palette, useOfflineTiles = offline, nightMode = nightMode, nightModeLoaded = false),
+                        requestedMapStyle(basemap, useOfflineTiles = offline, nightMode = nightMode, nightModeLoaded = false),
                     )
                 }
             }
@@ -178,7 +208,7 @@ class OfflineStyleSwapTest {
                     assertEquals(
                         "$basemap night=$nightMode offline=$offline",
                         applied(basemap, nightMode = nightMode, useOfflineTiles = offline),
-                        requestedMapStyle(basemap, palette, useOfflineTiles = offline, nightMode = nightMode, nightModeLoaded = true),
+                        requestedMapStyle(basemap, useOfflineTiles = offline, nightMode = nightMode, nightModeLoaded = true),
                     )
                 }
             }
