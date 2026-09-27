@@ -466,3 +466,7 @@ Seasonal panel timing, the owner's answer: **"With the first real forecast (Reco
 ### Order, revised again
 
 J4b (done), the picker and offline-maps fix stage (running), J5, **L0**, M1, J8, then the single Journal PR. Photo editing after the central camera improvements. Real forecast data, condition layers and the Seasonal panel's alignment wait on the commercial-use ruling and on the forecast project's D55 change.
+
+### Device check timing (owner, 2026-09-27)
+
+The owner, verbatim: "I'll run a device check after we are finished with this journal project". So every device-only item from B3, J1-J4b, the picker fix stage, J5, L0, M1 and J8 goes into one consolidated J7 checklist, run once at the end on the S22 Ultra. The planner assembles that checklist from each stage's completion report before the single Journal PR; items proven only by Robolectric are not claimed as verified until then. First among them: the find picker's pinch-and-pan (the only check that the new user-gesture signal is wired in the live map), and Back from a Records chip returning to All ("We'll try it and see if it works").
