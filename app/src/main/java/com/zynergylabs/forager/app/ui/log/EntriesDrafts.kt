@@ -90,6 +90,7 @@ internal fun DraftsListScreen(
             entries = drafts,
             isLoading = isLoading,
             onOpenEntry = onOpenDraft,
+            emptyMessage = "No drafts. An entry you haven't finished shows up here.",
             columns = columns,
             modifier = Modifier.weight(1f),
         )

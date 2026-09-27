@@ -6,7 +6,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.zynergylabs.forager.app.domain.CartographyEntryMapData
@@ -346,15 +353,21 @@ internal fun CartographyScreen(
             )
         }
 
+        // J2, T4 (plan J7): the floating button replaced the timeline's "+" tile and sits over
+        // the content, bottom end; the timeline gets FAB_CLEARANCE of bottom padding so its last
+        // row scrolls clear of it. The album's "Add photo" button is not built (J2 report, open
+        // question), so the album keeps its own Camera/Import row and has no floating button.
+        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
         when (viewMode) {
             EntriesViewMode.TIMELINE -> CartographyEntryListScreen(
                 entries = uiState.entries,
                 isLoading = uiState.isLoadingEntries,
                 onOpenEntry = { id -> mode = CartographyEntryMode.VIEW; onOpenEntry(id) },
-                onAddEntry = { mode = CartographyEntryMode.EDIT; onStartEntry(LocalDate.now()) },
+                emptyMessage = "No entries yet. Use New entry to start one.",
                 loadErrorMessage = uiState.loadErrorMessage,
                 columns = columns,
-                modifier = Modifier.weight(1f),
+                bottomContentPadding = FAB_CLEARANCE,
+                modifier = Modifier.fillMaxSize(),
             )
 
             EntriesViewMode.ALBUM -> EntriesAlbum(
@@ -365,8 +378,23 @@ internal fun CartographyScreen(
                 onAddGalleryPhoto = onAddGalleryPhoto,
                 loadErrorMessage = galleryLoadErrorMessage,
                 cartographyEntryReferenceCounts = galleryPhotoEntryReferenceCounts,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.fillMaxSize(),
             )
+        }
+        if (viewMode == EntriesViewMode.TIMELINE) {
+            // The content-lambda overload, not the (icon, text) one: under material3 1.5.0-alpha26
+            // the (icon, text) overload wraps its label in clearAndSetSemantics, so the button's
+            // merged semantics, what TalkBack reads, carry no label at all (seen in a Robolectric
+            // semantics dump while building this; the content overload exposes the Text).
+            ExtendedFloatingActionButton(
+                onClick = { mode = CartographyEntryMode.EDIT; onStartEntry(LocalDate.now()) },
+                modifier = Modifier.align(Alignment.BottomEnd).padding(Spacing.lg).testTag(ENTRIES_FAB_TAG),
+            ) {
+                Icon(Icons.Filled.Edit, contentDescription = null)
+                Spacer(Modifier.width(Spacing.md))
+                Text("New entry")
+            }
+        }
         }
     }
 }
@@ -377,6 +405,17 @@ internal fun CartographyScreen(
  * Journal is on screen (journal redesign J2, T1).
  */
 internal const val ENTRIES_HOME_TAG = "entries-home"
+
+/** Entries' floating button (J2, T4): "New entry" on the timeline. */
+internal const val ENTRIES_FAB_TAG = "entries-fab"
+
+/**
+ * Bottom padding that lets the timeline's last row scroll clear of the floating button: the
+ * button's 56 dp height plus its 16 dp margin, plus 16 dp of air above it. A fixed figure is right
+ * here because the button sits inside this screen's own bounds, above the bottom bar, not over a
+ * system inset (CLAUDE.md, the Robolectric insets pitfall: nothing here depends on a real inset).
+ */
+private val FAB_CLEARANCE = 88.dp
 
 /** Which screen [CartographyScreen] shows for [CartographyUiState.editingEntry] — Journal Stage 2c. See this file's own doc comment, "Tap opens the view, not the editor," for the full reasoning. */
 internal enum class CartographyEntryMode { VIEW, EDIT }
