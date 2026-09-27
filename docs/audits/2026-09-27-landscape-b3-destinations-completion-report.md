@@ -230,3 +230,15 @@ classes failed.
   design (tests first). Not touched.
 - The vertical space consumed by stacked chrome in Records (above) may deserve
   its own look in B4 or the Journal redesign.
+
+## Addendum: after merging the drawer's implementation
+
+Pushing this report was rejected once. `git pull --no-rebase origin
+landscape-b3` merged the drawer coder's `96c0517` as merge `8cc65cd`, which
+touches only `AvailabilityScreen.kt` and `AvailabilitySettingsUi.kt`. At
+`8cc65cd` the affected classes plus the drawer's class were re-run:
+`AvailabilityScreenLandscapeB3DestinationsTest` 12/0/0/0,
+`AvailabilityScreenShortLandscapeTest` 11/0/0/0,
+`AvailabilityScreenLandscapeB2Test` 26/0/0/0 and `CompactToolsDrawerTest`
+13/0/0/0, with 0 compile errors. The full suite was **not** re-run at
+`8cc65cd`. Its one run is the `2b9897f` figure above.
