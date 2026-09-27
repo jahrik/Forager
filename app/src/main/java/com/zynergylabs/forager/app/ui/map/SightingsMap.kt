@@ -1052,6 +1052,7 @@ private fun emptyFeatureCollection(): FeatureCollection = FeatureCollection.from
  */
 internal fun searchCenterFeatureCollection(region: Region): FeatureCollection {
     val feature = Feature.fromGeometry(Point.fromLngLat(region.lng, region.lat))
+    feature.addStringProperty(FEATURE_ID_PROPERTY, SEARCH_CENTRE_FEATURE_ID)
     feature.addStringProperty("title", "Search location")
     feature.addStringProperty("snippet", "Radius: ${region.radiusKm} km")
     return FeatureCollection.fromFeature(feature)
@@ -1242,12 +1243,14 @@ private fun lineLayerFor(spec: LineLayerSpec, palette: MapPalette): LineLayer {
 internal fun breadcrumbFeatureCollection(points: List<LatLng>): FeatureCollection {
     if (points.size < 2) return emptyFeatureCollection()
     val line = LineString.fromLngLats(points.map { Point.fromLngLat(it.lng, it.lat) })
-    return FeatureCollection.fromFeature(Feature.fromGeometry(line))
+    val feature = Feature.fromGeometry(line).apply { addStringProperty(FEATURE_ID_PROPERTY, BREADCRUMB_FEATURE_ID) }
+    return FeatureCollection.fromFeature(feature)
 }
 
 internal fun plannedTripsFeatureCollection(plannedTrips: List<PlannedTrip>): FeatureCollection {
     val features = plannedTrips.map { trip ->
         Feature.fromGeometry(Point.fromLngLat(trip.location.lng, trip.location.lat)).apply {
+            addStringProperty(FEATURE_ID_PROPERTY, trip.id)
             addStringProperty("title", "Planned trip")
             addStringProperty("snippet", trip.date.toString())
         }
@@ -1255,10 +1258,11 @@ internal fun plannedTripsFeatureCollection(plannedTrips: List<PlannedTrip>): Fea
     return FeatureCollection.fromFeatures(features)
 }
 
-/** Every saved [Waypoint] as a point feature carrying its own name, for the pin's [SymbolLayer]. */
+/** Every saved [Waypoint] as a point feature carrying its own id and name, for the pin's [SymbolLayer]. */
 internal fun waypointsFeatureCollection(waypoints: List<Waypoint>): FeatureCollection {
     val features = waypoints.map { waypoint ->
         Feature.fromGeometry(Point.fromLngLat(waypoint.lng, waypoint.lat)).apply {
+            addStringProperty(FEATURE_ID_PROPERTY, waypoint.id)
             addStringProperty("title", waypoint.name)
             addStringProperty("snippet", waypoint.note)
         }
@@ -1277,13 +1281,23 @@ internal fun waypointsFeatureCollection(waypoints: List<Waypoint>): FeatureColle
 internal fun keptTracksFeatureCollection(polylines: List<RecordPolyline>): FeatureCollection {
     val features = polylines
         .filter { it.points.size >= 2 }
-        .map { track -> Feature.fromGeometry(LineString.fromLngLats(track.points.map { Point.fromLngLat(it.lng, it.lat) })) }
+        .map { track ->
+            Feature.fromGeometry(LineString.fromLngLats(track.points.map { Point.fromLngLat(it.lng, it.lat) })).apply {
+                addStringProperty(FEATURE_ID_PROPERTY, track.recordId)
+            }
+        }
     return FeatureCollection.fromFeatures(features)
 }
 
-/** Journal Stage 2d's find and photo pins, one point feature per record. */
+/** Journal Stage 2d's find and photo pins, one point feature per record, carrying the record's id. */
 internal fun pointsFeatureCollection(points: List<RecordPoint>): FeatureCollection =
-    FeatureCollection.fromFeatures(points.map { Feature.fromGeometry(Point.fromLngLat(it.at.lng, it.at.lat)) })
+    FeatureCollection.fromFeatures(
+        points.map { point ->
+            Feature.fromGeometry(Point.fromLngLat(point.at.lng, point.at.lat)).apply {
+                addStringProperty(FEATURE_ID_PROPERTY, point.recordId)
+            }
+        },
+    )
 
 /**
  * A Cartography entry's kept offline regions as filled polygon features — Journal Stage 2d. Each
@@ -1295,7 +1309,10 @@ internal fun offlineRegionCirclesFeatureCollection(regions: List<RecordRegion>):
     val features = regions.map { kept ->
         val region = kept.region
         val ring = GeoDistance.circlePolygonPoints(LatLng(region.lat, region.lng), region.radiusKm)
-        Feature.fromGeometry(Polygon.fromLngLats(listOf(ring.map { Point.fromLngLat(it.lng, it.lat) })))
+        Feature.fromGeometry(Polygon.fromLngLats(listOf(ring.map { Point.fromLngLat(it.lng, it.lat) }))).apply {
+            // Read back through the outline layer, which shares this source: the fill is not tappable.
+            addStringProperty(FEATURE_ID_PROPERTY, kept.recordId)
+        }
     }
     return FeatureCollection.fromFeatures(features)
 }
