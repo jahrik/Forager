@@ -17,6 +17,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.ui.map.MapSlot
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExternalResource
@@ -160,7 +161,62 @@ class AvailabilityScreenJournalEntriesStateTest {
         composeRule.onNodeWithText("Maps").assertIsNotSelected()
         composeRule.onNodeWithTag(ENTRIES_STATE_MAP_TAG).assertDoesNotExist()
     }
+
+    // ── T5's side effect, added by the second coder (prompts/preserved/2026-09-27-19.md, "Also fix") ──
+    //
+    // compactTab (the bottom nav) is saveable since T5; selectedTab (ResultsTab, beside it in
+    // AvailabilityScreen) drives the LaunchedEffect that loads the Map's sightings and the Seasonal
+    // pattern (onMapTabSelected / onSeasonalTabSelected). If only one of the two survives a restore,
+    // the bottom nav says Seasonal while the loader thinks Maps.
+
+    private var mapTabSelectedCalls = 0
+    private var seasonalTabSelectedCalls = 0
+
+    private fun restoreOnSeasonal(uiState: androidx.compose.runtime.MutableState<AvailabilityUiState>) {
+        val restorationTester = StateRestorationTester(composeRule)
+        restorationTester.setContent {
+            entriesStateScreen(
+                uiState = uiState.value,
+                onMapTabSelected = { mapTabSelectedCalls++ },
+                onSeasonalTabSelected = { seasonalTabSelectedCalls++ },
+            )
+        }
+        openBottomTab("Seasonal")
+        composeRule.onNodeWithText("Seasonal").assertIsSelected()
+        mapTabSelectedCalls = 0
+        seasonalTabSelectedCalls = 0
+
+        restorationTester.emulateSavedInstanceStateRestore()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Seasonal").assertIsSelected()
+    }
+
+    @Test
+    fun `restored on Seasonal, the tab loader asks for the Seasonal pattern and not the map's sightings`() {
+        val uiState = androidx.compose.runtime.mutableStateOf(AvailabilityUiState(region = RESULTS_REGION_A))
+        restoreOnSeasonal(uiState)
+
+        assertEquals("the restored composition asks for Seasonal", 1, seasonalTabSelectedCalls)
+        assertEquals("and not for the map, which is not showing", 0, mapTabSelectedCalls)
+    }
+
+    @Test
+    fun `restored on Seasonal, a new search reloads the Seasonal pattern and not the map's sightings`() {
+        val uiState = androidx.compose.runtime.mutableStateOf(AvailabilityUiState(region = RESULTS_REGION_A))
+        restoreOnSeasonal(uiState)
+        mapTabSelectedCalls = 0
+        seasonalTabSelectedCalls = 0
+
+        uiState.value = uiState.value.copy(region = RESULTS_REGION_B)
+        composeRule.waitForIdle()
+
+        assertEquals("a new search on the Seasonal tab reloads Seasonal", 1, seasonalTabSelectedCalls)
+        assertEquals("and does not fetch the map's sightings", 0, mapTabSelectedCalls)
+    }
 }
+
+private val RESULTS_REGION_A = com.zynergylabs.forager.app.domain.model.Region(lat = 45.326, lng = -122.634, radiusKm = 15)
+private val RESULTS_REGION_B = com.zynergylabs.forager.app.domain.model.Region(lat = 44.0, lng = -121.0, radiusKm = 15)
 
 private const val VIEW_TIMELINE = "entries-view-timeline"
 private const val SWITCH_ENTRIES = "journal-switch-entries"
@@ -171,17 +227,21 @@ private const val ENTRIES_STATE_MAP_TAG = "entries-state-map-slot"
 private val ENTRIES_STATE_STUB_MAP: MapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier.testTag(ENTRIES_STATE_MAP_TAG)) }
 
 @androidx.compose.runtime.Composable
-private fun entriesStateScreen() {
+private fun entriesStateScreen(
+    uiState: AvailabilityUiState = AvailabilityUiState(),
+    onMapTabSelected: () -> Unit = {},
+    onSeasonalTabSelected: () -> Unit = {},
+) {
     AvailabilityScreen(
-        uiState = AvailabilityUiState(),
+        uiState = uiState,
         onUseCurrentLocation = {},
         onManualLatChanged = {},
         onManualLngChanged = {},
         onSearchManualCoordinates = {},
         onRadiusChanged = {},
         onMonthSelected = {},
-        onMapTabSelected = {},
-        onSeasonalTabSelected = {},
+        onMapTabSelected = onMapTabSelected,
+        onSeasonalTabSelected = onSeasonalTabSelected,
         onTaxonSearchQueryChanged = {},
         onTaxonSearchResultSelected = {},
         onDismissTaxonSuggestions = {},
