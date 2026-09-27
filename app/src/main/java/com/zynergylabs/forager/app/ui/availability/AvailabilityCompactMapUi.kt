@@ -39,6 +39,8 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material3.CircularProgressIndicator
@@ -194,6 +196,14 @@ internal fun CompactMapTab(
      * absent in fullscreen, with no animation. Null everywhere else, which is today's behaviour.
      */
     railPortEdge: ScreenEdge? = null,
+    /**
+     * Landscape B2 (S1): the punch-hole edge (`punchHoleEdgeFor`), non-null exactly when
+     * [railPortEdge] is. The search bar, its filter chip and the cluster's landscape default sit
+     * on this side.
+     */
+    punchHoleEdge: ScreenEdge? = null,
+    /** Landscape B2 (S2/S3): the search bar's capped width on the punch-hole side; null in portrait. */
+    landscapeSearchWidth: Dp? = null,
     /** Reports the overlaid rail's measured width up, as [onBottomNavHeightMeasured] does the bar's. */
     onRailWidthMeasured: (Float) -> Unit = {},
     /**
@@ -968,10 +978,22 @@ internal fun CompactMapTab(
                     TaxonMapFilterChip(
                         label = label,
                         onClear = onClearTaxonFilter,
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(controlsPadding)
-                            .padding(top = topInset + compassStripClearance + Spacing.sm),
+                        modifier = if (punchHoleEdge != null && landscapeSearchWidth != null) {
+                            // Landscape B2 (S3): directly under the search bar (the strip is in
+                            // the rail corner now, not under the bar), in a column the bar's own
+                            // width on the punch-hole side, aligned to the bar's start.
+                            Modifier
+                                .align(if (punchHoleEdge == ScreenEdge.Left) Alignment.TopStart else Alignment.TopEnd)
+                                .padding(controlsPadding)
+                                .padding(top = topInset + Spacing.sm)
+                                .width(landscapeSearchWidth)
+                                .wrapContentWidth(Alignment.Start)
+                        } else {
+                            Modifier
+                                .align(Alignment.TopCenter)
+                                .padding(controlsPadding)
+                                .padding(top = topInset + compassStripClearance + Spacing.sm)
+                        },
                     )
                 }
 

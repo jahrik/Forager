@@ -76,6 +76,10 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
@@ -155,6 +159,8 @@ internal fun CompactMainScaffold(
     isDrawerOpen: () -> Boolean,
     isShortLandscapeWindow: Boolean,
     portEdge: ScreenEdge,
+    /** Landscape B2 (S1): the punch-hole edge from `punchHoleEdgeFor`; read only while the rail shows. */
+    punchHoleEdge: ScreenEdge,
     logDraftSnackbarHostState: SnackbarHostState,
     uiState: AvailabilityUiState,
     distanceUnit: DistanceUnit,
@@ -697,6 +703,25 @@ internal fun CompactMainScaffold(
                     // since a Box — unlike the Column this used to be a direct child of — doesn't
                     // distribute weight among its children.
                     BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                        // Landscape B2 (S2): on the Map tab of a short landscape window the search
+                        // bar sits at the top on the punch-hole side, width min(384dp, distance
+                        // from the punch-hole-side controls edge to the map's horizontal centre
+                        // - 8dp), so it ends before the centre line; its dropdown takes the same
+                        // width and side. The map fills this Box, so its centre is maxWidth / 2.
+                        // SearchEntryBar takes no modifier, so the cap goes on its wrapper. Null
+                        // everywhere else: portrait's full-width bar is unchanged.
+                        val searchLayoutDirection = LocalLayoutDirection.current
+                        val landscapeSearchWidth: Dp? = if (showRail && compactTab() == CompactTab.MAP) {
+                            val punchHoleInset = if (punchHoleEdge == ScreenEdge.Left) {
+                                mapControlsPadding.calculateLeftPadding(searchLayoutDirection)
+                            } else {
+                                mapControlsPadding.calculateRightPadding(searchLayoutDirection)
+                            }
+                            minOf(LANDSCAPE_SEARCH_MAX_WIDTH, maxWidth / 2 - punchHoleInset - LANDSCAPE_SEARCH_CENTRE_GAP).coerceAtLeast(0.dp)
+                        } else {
+                            null
+                        }
+                        val landscapeSearchAlignment = if (punchHoleEdge == ScreenEdge.Left) Alignment.Start else Alignment.End
                         when (compactTab()) {
                             CompactTab.LIST -> ListTab(
                                 uiState = uiState,
@@ -709,6 +734,10 @@ internal fun CompactMainScaffold(
                                 uiState = uiState,
                                 mapSlot = mapSlot,
                                 clusterPosition = mapIconClusterPosition,
+                                // Landscape B2: the punch-hole side, and the search bar's capped
+                                // width there (the chip sits under it, within it).
+                                punchHoleEdge = if (showRail) punchHoleEdge else null,
+                                landscapeSearchWidth = landscapeSearchWidth,
                                 // Attribution must rise above the floating bottom nav while the nav
                                 // is there — fullscreen-fixes dispatch, Item 1 (third design) — and
                                 // follow it off screen while it isn't: safeAttributionBottomInset
@@ -830,7 +859,16 @@ internal fun CompactMainScaffold(
                                             exit = slideOutVertically(animationSpec = MotionTokens.panelMotionSpec()) { fullHeight -> -(fullHeight + statusBarTopPx) },
                                             // Landscape B1: clear of the overlaid rail and the
                                             // cut-out band (mapControlsPadding); zero in portrait.
-                                            modifier = Modifier.padding(mapControlsPadding),
+                                            // Landscape B2 (S2): capped and on the punch-hole side.
+                                            modifier = if (landscapeSearchWidth != null) {
+                                                Modifier
+                                                    .padding(mapControlsPadding)
+                                                    .fillMaxWidth()
+                                                    .wrapContentWidth(landscapeSearchAlignment)
+                                                    .width(landscapeSearchWidth)
+                                            } else {
+                                                Modifier.padding(mapControlsPadding)
+                                            },
                                         ) {
                                         Column {
                                             SearchEntryBar(
@@ -997,6 +1035,11 @@ internal fun CompactMainScaffold(
                                             top = if (compactTab() == CompactTab.MAP) searchBarHeight else 0.dp,
                                             bottom = if (compactTab() == CompactTab.MAP) bottomNavHeight else 0.dp,
                                         )
+                                        // Landscape B2 (S2): off the overlaid rail, so a tap on the
+                                        // rail while the dropdown is open still reaches the rail.
+                                        // Zero in portrait; Map tab only (elsewhere the rail is
+                                        // beside this Box, not in it).
+                                        .padding(if (compactTab() == CompactTab.MAP) mapControlsPadding else PaddingValues(0.dp))
                                         .testTag(SEARCH_DROPDOWN_SCRIM_TAG)
                                         .pointerInput(Unit) {
                                             detectTapGestures { showSearchDropdown = false }
@@ -1041,13 +1084,23 @@ internal fun CompactMainScaffold(
                                 // reported bounds genuinely overlapped the nav's), not assumed. Capped
                                 // to what's actually left below this panel's own top offset, minus the
                                 // nav's own band on the Map tab, so it scrolls instead of overflowing.
-                                modifier = Modifier
-                                    .align(Alignment.TopStart)
-                                    .padding(top = searchDropdownTopOffset)
-                                    .heightIn(
-                                        max = maxHeight - searchDropdownTopOffset -
-                                            (if (compactTab() == CompactTab.MAP) bottomNavHeight else 0.dp),
-                                    ),
+                                modifier = if (landscapeSearchWidth != null) {
+                                    // Landscape B2 (S2): the bar's width and side.
+                                    Modifier
+                                        .align(if (punchHoleEdge == ScreenEdge.Left) Alignment.TopStart else Alignment.TopEnd)
+                                        .padding(mapControlsPadding)
+                                        .padding(top = searchDropdownTopOffset)
+                                        .width(landscapeSearchWidth)
+                                        .heightIn(max = maxHeight - searchDropdownTopOffset)
+                                } else {
+                                    Modifier
+                                        .align(Alignment.TopStart)
+                                        .padding(top = searchDropdownTopOffset)
+                                        .heightIn(
+                                            max = maxHeight - searchDropdownTopOffset -
+                                                (if (compactTab() == CompactTab.MAP) bottomNavHeight else 0.dp),
+                                        )
+                                },
                             ) {
                                 SearchDropdown(
                                     uiState = uiState,
@@ -1091,3 +1144,9 @@ internal fun CompactMainScaffold(
             }
         }
 }
+
+/** Landscape B2 (S2): the search bar's width cap in a short landscape window. */
+internal val LANDSCAPE_SEARCH_MAX_WIDTH = 384.dp
+
+/** Landscape B2 (S2): how far short of the map's centre line the capped search bar ends. */
+internal val LANDSCAPE_SEARCH_CENTRE_GAP = 8.dp

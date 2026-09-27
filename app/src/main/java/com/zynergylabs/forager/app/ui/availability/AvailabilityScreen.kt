@@ -258,6 +258,8 @@ import androidx.compose.ui.platform.LocalConfiguration
 import com.zynergylabs.forager.app.ui.log.ScreenEdge
 import com.zynergylabs.forager.app.ui.adaptive.isShortWindow
 import com.zynergylabs.forager.app.ui.adaptive.currentWindowPortEdge
+import com.zynergylabs.forager.app.ui.adaptive.punchHoleEdgeFor
+import com.zynergylabs.forager.app.ui.log.currentDisplayRotation
 import com.zynergylabs.forager.app.ui.crash.CrashLogPanel
 import com.zynergylabs.forager.app.ui.crash.CrashLogsEntryRow
 import com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsEntryRow
@@ -957,6 +959,14 @@ fun AvailabilityScreen(
     val isShortLandscapeWindow = isShortWindow &&
         LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val portEdge = currentWindowPortEdge()
+    // Landscape B2 (S1): the punch-hole edge, where the search bar, its filter chip and the icon
+    // cluster's default side go in a short landscape window. From punchHoleEdgeFor — the port
+    // edge's opposite, by the one rotation-to-edge mapping in PortEdge.kt — never derived a second
+    // way here. Read only while the rail shows, like portEdge.
+    val punchHoleEdge = punchHoleEdgeFor(
+        windowIsLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE,
+        displayRotation = currentDisplayRotation(),
+    )
 
     // Workstream L4b-R2: the one wrapped "leaving without answering" callback, hoisted here (rather
     // than declared separately inside compactMainScaffold and again wherever the drawer's own
@@ -1315,6 +1325,7 @@ fun AvailabilityScreen(
             isDrawerOpen = { isDrawerOpen },
             isShortLandscapeWindow = isShortLandscapeWindow,
             portEdge = portEdge,
+            punchHoleEdge = punchHoleEdge,
             logDraftSnackbarHostState = logDraftSnackbarHostState,
             uiState = uiState,
             distanceUnit = distanceUnit,
