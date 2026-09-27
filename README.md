@@ -757,10 +757,14 @@ hardware questions in the meantime. Whether the sighting dots, the connector, th
 planned-trip diamond, the breadcrumb trail and the waypoint pin stay
 distinguishable from each other and from the tiles underneath — in sun, in
 shade, on topo and on plain, day and night — is a device question and is
-open. Colour inversion as night mode's eventual replacement for the
-icon/halo scheme is tracked as a deferred research item, not built this
-session — see `docs/plans/map-redesign.md`, "Deferred: night-mode colour
-inversion."
+open. Colour inversion reached the basemap in colour build C1
+(2026-09-27): the V1 transform (`BasemapStyles.kt`'s `NIGHT_RASTER_PAINT`,
+brightness range swapped and hue rotated 180°), with Satellite left as day
+by the owner's ruling and the offline style recoloured with the same
+transform after it loads. So night has a dark ground again on
+Topographical and Street. The markers' night treatment described above is
+colour build C2's and is unchanged by C1 — see `docs/plans/map-redesign.md`,
+"Deferred: night-mode colour inversion," and the C1 note appended after it.
 
 **The GPS camera-mode fix and first-activation zoom-in have no headless
 assertion either, for the same reason the rest of the map's native behavior
