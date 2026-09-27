@@ -106,6 +106,12 @@ class CompactToolsDrawerTest {
     /** The sheet's horizontal extent: the full-width close bar at its top. */
     private fun sheetBounds(): DpRect = composeRule.onNodeWithContentDescription(CLOSE_BAR).getUnclippedBoundsInRoot()
 
+    /**
+     * True only for a placed sheet that overlaps the window. A sheet that is not placed at all
+     * reports [Dp.Unspecified] bounds (seen after a close); every comparison with those is false,
+     * so it counts as off screen, which is what an unplaced sheet is. The node itself must exist,
+     * or [sheetBounds] throws, so a missing drawer cannot pass as a closed one.
+     */
     private fun sheetIsOnScreen(): Boolean {
         val sheet = sheetBounds()
         val root = rootBounds()
