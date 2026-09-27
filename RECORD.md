@@ -2116,3 +2116,28 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 > The command-form rule stands.
 
 ---
+
+**Kind:** merge
+**ID:** 2026-09-27-29
+**Timestamp:** 2026-09-27T02:11:59Z
+**PR:** 135
+**Head:** marker-palette
+**Base:** pre-main
+**Merge-commit:** cff1309cf57d404e08c8b14d2c85b60d57eb4e5b
+**Pre-merge:** 545258eb5fb1233f20583a3b185615408c38f115
+**Backup:** 2026-09-27-03
+**Merged-by:** coder preserved/2026-09-27-02.md
+**Carries:** 2026-09-27-26, 2026-09-27-27, 2026-09-27-28
+**Notes:** Written in the sweep of the dispatch preserved as preserved/2026-09-27-06.md, on branch journal-plan cut from origin/pre-main cff1309cf57d404e08c8b14d2c85b60d57eb4e5b. The one merge on pre-main's first-parent chain newer than 545258e, the newest merge a `merge` entry records (2026-09-27-26, Base pre-main): git log --first-parent --merges --format='%H %P %s' 545258eb5fb1233f20583a3b185615408c38f115..origin/pre-main lists only cff1309, parents 545258eb5fb1233f20583a3b185615408c38f115 and 4d3bbd4ad4f3a16ab047d6daa6f3a84becfe8431, "Merge pull request #135 from slayer8366/marker-palette". PR, Head, Base, Timestamp (mergedAt) from gh pr view 135 --json number,headRefName,baseRefName,mergeCommit,mergedAt: 135, marker-palette, pre-main, mergeCommit cff1309cf57d404e08c8b14d2c85b60d57eb4e5b, 2026-09-27T02:11:59Z. Backup and Merged-by: ~/Zynergy/forager-repo-backups/INDEX.md's line "- 2026-09-27-03: PR #135 (marker-palette into pre-main), pre-merge 545258eb5fb1233f20583a3b185615408c38f115, bundle of origin/pre-main, written by coder under intent 2026-09-27-27 (prompts/preserved/2026-09-27-02.md)". Carries from git diff 545258e cff1309 -- RECORD.md, which adds IDs 2026-09-27-26, -27 and -28; -26 is the merge entry for #134, written in marker-palette's sweep. The dispatch expected -26 to -28; confirmed. main: no merge newer than 76905d4 (#119), which merge entry 2026-09-26-24 records.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-27-30
+**Dispatch-file:** preserved/2026-09-27-03.md
+**Type:** pulse
+**Outcome:** answered
+**Report:** answered in the planner's session; not relayed to the record
+**Notes:** The planner's read-only pulse at origin/pre-main 545258e preparing landscape step B2, noting where B2 overlaps colour build C2 (branch marker-palette). Preserved 2026-09-27T01:48:40Z by .claude/hooks/dispatch_guard.py, header HEAD 545258eb5fb1233f20583a3b185615408c38f115, Target subagent pulse. Moved with mv from the planner worktree: original path /home/zynergy-labs/Zynergy/Forager/.claude/worktrees/bridge-cse_01BcqShzosraMo4pUXkqaqRp/prompts/preserved/2026-09-27-03.md, 4103 bytes, sha256 0fd5ebd7d451b1e245149bc76da4175199267287cc27e442905e389787d322e9, equal before and after the move. Kept under the hook's own name, free on this branch and on origin/pre-main. Merge entries in this sweep: 2026-09-27-29 (#135). Left unclaimed on purpose: preserved/2026-09-27-05.md (a planner pulse still running, per the dispatch), for the next sweep.
+
+---
