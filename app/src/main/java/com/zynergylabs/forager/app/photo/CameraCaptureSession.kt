@@ -62,6 +62,46 @@ internal interface CameraCaptureSession {
      * on partial results never being presented as success.
      */
     suspend fun capture(destination: File): Result<Unit>
+
+    /**
+     * Whether the bound camera has a flash unit. `false` before [open] has bound a camera and
+     * after [close]: until a camera is bound there is no unit to report, and `false` is what hides
+     * the flash chip. Observable, so the chip appears when the bind lands.
+     */
+    val hasFlashUnit: Boolean
+
+    /**
+     * The flash mode the camera is in. [FlashMode.Off] until [setFlashMode] changes it, and reset
+     * to `Off` by [close]: no flash mode persists past the camera closing, and nothing stores it.
+     * Observable, so the chip's glyph follows the session rather than keeping a copy of its own.
+     */
+    val flashMode: FlashMode
+
+    /**
+     * Asks for [mode]. On a session with no flash unit this changes nothing and is logged, rather
+     * than reporting a mode the hardware cannot be in.
+     */
+    fun setFlashMode(mode: FlashMode)
+}
+
+/**
+ * The flash chip's modes. Torch came first (owner, 2026-09-21): continuous light for gills and
+ * pores under a cap. **Auto and On** — flash on capture — joined it in the same chip on 2026-09-26
+ * (decision B8 in `docs/audits/2026-09-21-camera-strip-basics-decisions.md`, extending B2).
+ *
+ * Each mode sets two things: the torch, lit only at [Torch], and the flash the capture fires —
+ * none at Off and Torch, the camera's choice at Auto, always at On. Whether CameraX honours a
+ * capture flash while the torch is lit is unverified and does not arise: Torch's capture flash is
+ * off.
+ */
+internal enum class FlashMode { Off, Auto, On, Torch }
+
+/** What a tap on the flash chip asks for next: Off, Auto, On, Torch, and back to Off. */
+internal fun FlashMode.next(): FlashMode = when (this) {
+    FlashMode.Off -> FlashMode.Auto
+    FlashMode.Auto -> FlashMode.On
+    FlashMode.On -> FlashMode.Torch
+    FlashMode.Torch -> FlashMode.Off
 }
 
 /**

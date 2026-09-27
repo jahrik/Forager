@@ -538,3 +538,116 @@ here either.
    actually shipped (not just the add-button wiring — e.g. if Phase 1 also
    touched navigation structure), stop and report rather than silently
    picking a resolution, per `CLAUDE.md`'s ambiguity rule.
+
+## Addendum, 2026-09-26: short windows superseded by the landscape-phone design
+
+Appended; no earlier text in this document is edited.
+
+For windows shorter than 480 dp — a phone held sideways — the compact-only
+scope decision above ("Scope decision made after this doc was written") and
+the `MEDIUM` deferral under "Known defect in the untouched path (recorded
+2026-08-25, deferred)" are superseded by
+[`landscape-phone-design.md`](landscape-phone-design.md). The owner decided on
+2026-09-26 that a sideways phone gets this redesign, adapted, with the bottom
+navigation bar becoming a navigation rail on the charger-port side; that
+document records the decisions, their reasons, and the open questions.
+
+The deferral's binding reason was that no medium-width device was in the loop.
+A sideways phone is one: the S22 Ultra in landscape is 823 x 384 dp, width
+class `MEDIUM` (`docs/audits/2026-09-26-landscape-capture-record.md`).
+
+**Tablets and foldables are unchanged.** A window 480 dp tall or more keeps
+the rule this document records: `COMPACT` below 600 dp wide, the
+`PermanentNavigationDrawer` + `CombinedResultsPane` tree otherwise. The known
+`MEDIUM` defect and the open `EXPANDED` question above stand for those
+windows.
+
+## Addendum, 2026-09-27: night mode as built (colour build C1, basemap)
+
+Appended; no earlier text in this document is edited.
+
+**Night Maps did nothing before this build.** The style-swap effect in
+`SightingsMap.kt` was not keyed on night mode, and the value it compared to
+decide whether to reload (`AppliedMapStyle`) had no night component, so a
+toggle never reached `setStyle`. Two earlier passages read differently from
+what the code did: the recentering fix under "Icon stack superseded again"
+(lines 382-386 as of `d0ae612`) describes toggling night mode as a style swap
+on the same path as a basemap switch, which it was not until now; and
+"Deferred: night-mode colour inversion" (lines 459-467 as of `d0ae612`)
+records that the raster paint properties have no per-pixel invert, so that
+inversion would need tile interception. The second was wrong about the
+consequence. `raster-brightness-min 1` with `raster-brightness-max 0` swaps
+the output range and inverts every channel. The spike and tile measurement
+(`docs/audits/2026-09-27-night-inversion-spike-and-tile-measurement.md`)
+measured that on the S22, and the swatch board
+(`docs/audits/2026-09-27-marker-swatch-board.md`, section 2) cites the formula
+from MapLibre's shader source.
+
+**What was built:**
+
+- **V1, the owner's choice.** `NIGHT_RASTER_PAINT` is exactly
+  `raster-brightness-min 1`, `raster-brightness-max 0` and
+  `raster-hue-rotate 180`. MapLibre's shader then gives
+  `night = clamp(c + 1 - 2 * mean(r, g, b))` per channel: lightness inverts,
+  hue stays. Plain inversion (V2, with no hue rotate) was rejected because it
+  turns the ground blue-violet ("The blue in V2 ... can be an eyesore at
+  night").
+- **Satellite stays day** ("Satellite stays as it is at night; only the
+  markers switch to night colours"). `basemapTakesNightPaint` is false only
+  for `USGS_IMAGERY_ONLY`. The reload guard compares *effective* night, so a
+  toggle over Satellite does not reload for nothing.
+- **Offline night, by recolour.** The offline vector style is still loaded
+  from its one URL. It has no raster layer for the paint to act on. After it
+  loads, and before the overlays are added, each background, fill and line
+  colour property is set to its V1 value (`NightColour.kt`'s `nightColorOf`
+  and `offlineNightRecolourOf`, including the colour literals inside
+  `match`, `case` and `interpolate` expressions). Anything the recolour
+  cannot read is left in its day colour and logged. A second, night style
+  URL was rejected because it would need its own download.
+- **Cold-launch gate.** The Night Maps preference is read asynchronously, so
+  the main map could apply a day style before the read reported night, and
+  nothing would switch it. `AvailabilityUiState.nightModeMapsLoaded` now
+  holds the main map's style until the read completes, and the read sets it
+  on success and on logged failure. The centre-pin pickers and the
+  Cartography entry map keep the default "loaded". That rests on the
+  unverified inference that the preference has loaded by the time a user
+  navigates to one.
+
+The markers' night colours are colour build C2's and are not changed here.
+Nothing in this build was run on a device; the device items are listed in
+`docs/audits/2026-09-27-night-mode-c1-completion-report.md`.
+
+## Addendum, 2026-09-27: markers as built (colour build C2)
+
+This note corrects the "What shipped instead" paragraph of "Deferred:
+night-mode colour inversion" above (lines 472-477 when this was written),
+which is no longer true. That text is left as it was.
+
+- **No shared warm fill, no dark ink, no halos.** `MapPalette.NIGHT` no
+  longer holds `NIGHT_WARM`/`NIGHT_INK`, and no marker draws a halo. (Before
+  C2 the markers were in fact day-only: `SightingsMap` read `MapPalette.DAY`
+  whatever the toggle, so the night icons and halos that paragraph describes
+  were not being drawn either.)
+- **One role per marker, day and night.** Waypoint, find, planned trip,
+  photo, kept track, live breadcrumb, centre-pin picker, search centre,
+  offline region and sighting dot each have their own colour, plus the
+  sighting dot's two rings and a casing. The colours are the owner's picks
+  from `docs/audits/2026-09-27-marker-swatch-board.md`. The sighting dot's
+  greys (`#2B2B2B` by day, `#8C8C8C` at night) are the planner's picks
+  under the owner's "near black" and "mute grey", and its rings (white;
+  `#2196F3` selected, now 3dp) are owner overrides.
+- **Markers follow Night Maps on every basemap.** Over Satellite the basemap
+  stays day and only the markers switch, so a toggle there now reloads the
+  style for the markers.
+- **Silhouettes and casings.** Each point marker has its own shape (the
+  glyph board, `docs/audits/2026-09-26-marker-glyph-board.md`, with the
+  search centre as a reticle whose arms pass its ring), drawn with a 1.5dp
+  casing into its bitmap. Tracks have casing lines below them, and the
+  offline region a dashed casing outline.
+- **`MapPalette` is hand-authored, not derived from the colour scheme.**
+  That is the reality R2 in `docs/plans/understory-design-system.md` was
+  superseded by: a scheme-derived palette was built, measured and
+  abandoned, and every value now is chosen per role.
+
+Nothing in C2 was run on a device; the device items are listed in
+`docs/audits/2026-09-27-marker-palette-c2-completion-report.md`.

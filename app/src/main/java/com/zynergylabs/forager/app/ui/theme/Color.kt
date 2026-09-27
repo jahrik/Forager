@@ -90,14 +90,16 @@ val MushroomOnContainerLight = Color(0xFF3A2008)
 val MushroomOnContainerDark = Color(0xFF452507)
 
 /**
- * `tertiary`. Not a new hue: this is the planned-trip marker's existing blue, promoted out of
+ * `tertiary`. Not a new hue: this was the planned-trip marker's blue, promoted out of
  * `SightingsMap.kt` into the theme so the palette gains a cool third note and dark theme stops
  * having `primary` and `tertiary` set to the same green.
  *
- * **The map does not read this role back.** `MapPalette` *derives* its blue from `tertiary`
- * rather than returning it, so retuning this value for on-screen contrast cannot move what the
- * map draws -- see that object's doc comment, and "R2" in the design doc for why identity here
- * would re-create tag 08's defect in semantic form.
+ * **The map does not read this role.** `MapPalette` is hand-authored per role and derives nothing
+ * from the theme, so retuning this value for on-screen contrast cannot move what the map draws; since
+ * colour build C2 the planned-trip marker is `MapPalette.plannedTrip` (`#9553A4` by day), no longer
+ * this blue. "R2" in the design doc had `MapPalette` derive from the scheme; a derived version was
+ * built, measured and abandoned, and the hand-authored palette superseded it (see that object's doc
+ * comment).
  */
 val TrailBlue = Color(0xFF3B6EA5)
 
@@ -107,10 +109,11 @@ val TrailBlueContainerDark = Color(0xFF2B4763)
 val TrailBlueOnContainerLight = Color(0xFF12283F)
 
 /**
- * `error`. Sourced from the search-centre pin's red the same way [TrailBlue] is sourced from the
- * trip marker's blue -- and, the same way, **not** bound to it: the search centre gets its own
- * derivation in `MapPalette`. A pin meaning "you searched here" and text meaning "something
- * failed" have no reason to move together.
+ * `error`. Sourced from the search-centre pin's former red the same way [TrailBlue] was sourced from
+ * the trip marker's blue -- and, the same way, **not** bound to it: the search centre has its own,
+ * hand-authored role in `MapPalette` (`searchCentre`, black by day and light grey at night since
+ * colour build C2). A pin meaning "you searched here" and text meaning "something failed" have no
+ * reason to move together.
  */
 val SignalRed = Color(0xFFB33B3B)
 

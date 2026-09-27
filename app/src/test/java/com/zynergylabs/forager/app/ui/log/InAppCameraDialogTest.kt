@@ -10,6 +10,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import com.zynergylabs.forager.app.domain.GridMode
+import com.zynergylabs.forager.app.domain.LevelProvider
+import com.zynergylabs.forager.app.sensor.FakeLevelProvider
 import org.robolectric.shadows.ShadowDisplay
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.runtime.CompositionLocalProvider
@@ -54,6 +59,11 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows
 import org.robolectric.annotation.Config
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performTouchInput
+import com.zynergylabs.forager.app.photo.FlashMode
 
 /**
  * [InAppCameraDialog] driven through its real controls, against a fake [CameraCaptureSession].
@@ -139,7 +149,11 @@ class InAppCameraDialogTest {
     private fun Subject(
         session: CameraCaptureSession,
         viewfinder: @Composable (Modifier) -> Unit = { modifier -> Box(modifier.fillMaxSize()) },
-        stripContent: (@Composable (ScreenEdge, Int?, Int) -> Unit)? = defaultStripContent(),
+        gridMode: GridMode = GridMode.Off,
+        onGridModeChanged: (GridMode) -> Unit = {},
+        levelProvider: LevelProvider = FakeLevelProvider(),
+        autoSaveLocationToPhotos: Boolean = true,
+        onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit = {},
     ) {
         InAppCameraDialog(
             session = session,
@@ -147,7 +161,11 @@ class InAppCameraDialogTest {
             lockToPortrait = false,
             onPhotoCaptured = { captured += it },
             onDismiss = { dismissals += 1 },
-            stripContent = stripContent,
+            gridMode = gridMode,
+            onGridModeChanged = onGridModeChanged,
+            autoSaveLocationToPhotos = autoSaveLocationToPhotos,
+            onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
+            levelProvider = levelProvider,
             statusBarHider = recordingStatusBarHider,
             viewfinder = viewfinder,
         )
@@ -430,7 +448,30 @@ class InAppCameraDialogTest {
         assertEquals("one control row deep", STRIP_ROW_HEIGHT.value, strip.height.value, 0.51f)
         assertEquals("the shutter on the port edge, inside the frame's padding", (frame.bottom - Spacing.lg).value, shutter.bottom.value, 0.51f)
         assertEquals("centred along it", frame.centreX(), shutter.centreX(), 0.51f)
-        composeRule.onNodeWithTag(CAMERA_STRIP_PLACEHOLDER_TAG).assertExists()
+        val chip = bounds(CAMERA_FLASH_CHIP_TAG)
+        assertTrue("the flash chip is in the strip: $chip in $strip", chip.left >= strip.left && chip.right <= strip.right && chip.top >= strip.top && chip.bottom <= strip.bottom)
+    }
+
+    /**
+     * **All four chips fit** (decision B8, Closed decision A): in portrait the strip is a row along
+     * the top, and Flash, Timer, Grid and Location each sit inside its bounds, in that order, none
+     * overlapping the next. Robolectric reports zero window insets (CLAUDE.md), so this says the
+     * row holds four chips; it says nothing about the punch-hole cut-out, which is a device item.
+     */
+    @Test
+    fun `in portrait all four chips sit inside the strip, Flash, Timer, Grid, Location, none overlapping`() {
+        composeRule.setContent { Subject(FakeCameraCaptureSession()) }
+        composeRule.waitForIdle()
+        val strip = bounds(CAMERA_STRIP_TAG)
+        val tags = listOf(CAMERA_FLASH_CHIP_TAG, CAMERA_TIMER_CHIP_TAG, CAMERA_GRID_CHIP_TAG, CAMERA_LOCATION_CHIP_TAG)
+        val chips = tags.map { bounds(it) }
+
+        tags.zip(chips).forEach { (tag, chip) ->
+            assertTrue("$tag inside the strip: $chip in $strip", chip.left >= strip.left && chip.right <= strip.right && chip.top >= strip.top && chip.bottom <= strip.bottom)
+        }
+        tags.zip(chips).zipWithNext().forEach { (a, b) ->
+            assertTrue("${a.first} ends before ${b.first} starts: ${a.second} then ${b.second}", a.second.right <= b.second.left)
+        }
     }
 
     /**
@@ -485,19 +526,116 @@ class InAppCameraDialogTest {
         assertEquals("put back, so only the camera rotates this way", before, composeRule.activity.window.attributes.rotationAnimation)
     }
 
-    /** Gated off, the placeholder is not composed, the strip is gone, and nothing else moves. */
+    /**
+     * A camera with no flash unit: no flash chip, so the Timer chip takes the strip's first place
+     * and the grid chip the second; nothing else moves. Until the grid chip this test also held "no
+     * chip, no strip at all"; the grid chip is always present, so the camera's strip is never empty
+     * now, and the empty case is held at the container, in `CameraStripTest`.
+     *
+     * Changed 2026-09-26 (decision B8, applying Closed decision A's order Flash, Timer, Grid,
+     * Location; planner ruling 1, planner log line 863): was `with no flash unit there is no flash
+     * chip, the grid chip comes first, ...`, asserting the grid chip in the first slot. Each slot is
+     * checked the way the first one was, by its offset along the strip against [STRIP_ROW_HEIGHT].
+     */
     @Test
-    fun `with no strip content the placeholder is absent and the shutter is where it was`() {
-        composeRule.setContent { Subject(FakeCameraCaptureSession(), stripContent = null) }
+    fun `with no flash unit there is no flash chip, the timer chip comes first and the grid chip second, and the shutter is where it was`() {
+        composeRule.setContent { Subject(FakeCameraCaptureSession(flashUnitOnOpen = false)) }
         composeRule.waitForIdle()
 
-        composeRule.onAllNodesWithTag(CAMERA_STRIP_PLACEHOLDER_TAG).assertCountEquals(0)
-        // Rule 9, in production now that nothing else lives in the strip: no band at all.
-        composeRule.onAllNodesWithTag(CAMERA_STRIP_TAG).assertCountEquals(0)
+        composeRule.onAllNodesWithTag(CAMERA_FLASH_CHIP_TAG).assertCountEquals(0)
+        val strip = bounds(CAMERA_STRIP_TAG)
+        val timer = bounds(CAMERA_TIMER_CHIP_TAG)
+        val grid = bounds(CAMERA_GRID_CHIP_TAG)
+        // Slot n starts n rows plus n spacings along the strip, and a chip's node sits a few dp
+        // inside its 48 dp touch target. So the first slot is an offset under one row; the second
+        // is at least one row plus the spacing, and under two rows plus the spacing.
+        assertTrue("the timer chip in the strip's first slot: $timer in $strip", timer.left - strip.left < STRIP_ROW_HEIGHT)
+        assertTrue("the grid chip not in the first slot: $grid in $strip", grid.left - strip.left >= STRIP_ROW_HEIGHT + Spacing.sm)
+        assertTrue("the grid chip in the second slot: $grid in $strip", grid.left - strip.left < STRIP_ROW_HEIGHT * 2 + Spacing.sm)
         val frame = bounds(IN_APP_CAMERA_TAG)
         val shutter = bounds(CAMERA_SHUTTER_TAG)
         assertEquals((frame.bottom - Spacing.lg).value, shutter.bottom.value, 0.51f)
         assertEquals(frame.centreX(), shutter.centreX(), 0.51f)
+    }
+
+    /**
+     * **A finger on the flash chip reaches it**, with the viewfinder underneath: real touches at
+     * screen coordinates, not a semantic click, which would bypass hit-testing (CLAUDE.md). A
+     * finger is not a point, so five touches across the chip's own bounds, centre and four points
+     * inset from its corners, each of which must reach the session.
+     */
+    @Test
+    fun `a real touch anywhere on the flash chip reaches it, over the viewfinder`() {
+        val session = FakeCameraCaptureSession()
+        composeRule.setContent { Subject(session) }
+        composeRule.waitForIdle()
+        val chip = composeRule.onNodeWithTag(CAMERA_FLASH_CHIP_TAG).fetchSemanticsNode().boundsInRoot
+        val inset = 0.2f
+        val points = listOf(
+            chip.center,
+            Offset(chip.left + chip.width * inset, chip.top + chip.height * inset),
+            Offset(chip.right - chip.width * inset, chip.top + chip.height * inset),
+            Offset(chip.left + chip.width * inset, chip.bottom - chip.height * inset),
+            Offset(chip.right - chip.width * inset, chip.bottom - chip.height * inset),
+        )
+
+        points.forEachIndexed { i, point ->
+            composeRule.onRoot().performTouchInput { click(point) }
+            composeRule.waitForIdle()
+            assertEquals("touch ${i + 1} at $point reached the chip", i + 1, session.setFlashModeCalls)
+        }
+        // Changed 2026-09-26 (decision B8): the cycle is Off, Auto, On, Torch, so five taps from Off end on Auto.
+        assertEquals("five taps from Off end on Auto", FlashMode.Auto, session.flashMode)
+    }
+
+    /**
+     * The grid is over the preview and under the bands: at Grid it fills the camera's frame, and it
+     * is placed before the strip and the shutter band, which is the order they draw and hit-test in.
+     * Placement order is read from the frame's semantics children; that it is also the order the
+     * pixels land in is the device check's first step.
+     */
+    @Test
+    fun `at Grid the grid fills the preview and sits under both bands`() {
+        composeRule.setContent { Subject(FakeCameraCaptureSession(), gridMode = GridMode.Grid) }
+        composeRule.waitForIdle()
+
+        val frame = bounds(IN_APP_CAMERA_TAG)
+        assertEquals("the grid spans the preview", frame, bounds(CAMERA_GRID_TAG))
+        val order = composeRule.onNodeWithTag(IN_APP_CAMERA_TAG).fetchSemanticsNode().children.map { it.config.getOrNull(SemanticsProperties.TestTag) }
+        val grid = order.indexOf(CAMERA_GRID_TAG)
+        assertTrue("the grid is a child of the frame: $order", grid >= 0)
+        assertTrue("placed before the strip: $order", grid < order.indexOf(CAMERA_STRIP_TAG))
+        assertTrue("and before the shutter band: $order", grid < order.indexOf(CAMERA_SHUTTER_BAND_TAG))
+    }
+
+    @Test
+    fun `at Off there is no grid and no level`() {
+        composeRule.setContent { Subject(FakeCameraCaptureSession(), gridMode = GridMode.Off) }
+        composeRule.waitForIdle()
+
+        composeRule.onAllNodesWithTag(CAMERA_GRID_TAG).assertCountEquals(0)
+        composeRule.onAllNodesWithTag(CAMERA_LEVEL_TAG).assertCountEquals(0)
+    }
+
+    /**
+     * **The level's sensor does not outlive the camera** (the dispatch's rule: register on open,
+     * unregister on close). With Grid + Level on, the camera is listening while it is open, and
+     * not once it has closed.
+     */
+    @Test
+    fun `at Grid and Level the level is shown and its sensor is released when the camera closes`() {
+        val level = FakeLevelProvider(initial = 3f)
+        var open by mutableStateOf(true)
+        composeRule.setContent { if (open) Subject(FakeCameraCaptureSession(), gridMode = GridMode.GridLevel, levelProvider = level) }
+        composeRule.waitForIdle()
+        composeRule.onAllNodesWithTag(CAMERA_GRID_TAG).assertCountEquals(1)
+        composeRule.onAllNodesWithTag(CAMERA_LEVEL_TAG).assertCountEquals(1)
+        assertEquals("listening while open", 1, level.collectors)
+
+        open = false
+        composeRule.waitForIdle()
+
+        assertEquals("released once closed", 0, level.collectors)
     }
 
     /** The outline is a second, stroked pass of the same text — it must not become a second text node. */
