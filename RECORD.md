@@ -2666,3 +2666,19 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Deviations:** (1) F3 ignores a combined centre-and-radius change after a gesture (the find picker's first fix after an early pan, 15 km region to 1 km device region), since following it would drop the view to zoom 13, which F1 forbids. (2) Corrections to the dispatch: the ViewModel-init call is at AvailabilityViewModel.kt:145, not :133, and its comments do not state the orphan-cleanup intent (listRegions' own comment does); no test drove the corner button. (3) EntriesAlbum.onDeletePhoto has no reader after F5; kept with a comment so its callers did not change; for J6 or a small change of its own. Open, recorded not built: a list reload landing between MapLibre creating a region and delivering onCreate could still delete a new download (no data shows the case). Device-only, for the consolidated J7 check the owner will run at the end of the Journal project: the find picker's pinch-and-pan on the S22 Ultra (the only proof the gesture listener is wired), the first-fix follow, the offline picker after a slow first fix, and a download kept while the Offline maps list reopens.
 
 ---
+
+**Kind:** intent
+**ID:** 2026-09-27-65
+**Timestamp:** 2026-09-27T20:31:31Z
+**Title:** Journal redesign J5: short windows (L1-L8) with the app-wide search header hidden on the Journal tab, long-press on two-column cards, and a photo-then-track-then-icon thumbnail
+**Dispatch-file:** preserved/2026-09-27-26.md
+**Change:** docs/plans/journal-redesign.md stage J5 (L1-L8, owner O6) with three owner rulings: in a short window the app-wide search header is hidden on the Journal tab and L1's search icon reveals it; two-column entry cards use J4b's long-press menu; L4's 72 dp slot shows the hero photo, else the track thumbnail, else the type icon. L1 pinned header row, L2 no FAB, L3 drafts chip in a hide-on-scroll row, L4 sideways two-column cards, L5 one-line chips and rows, L6 five-column album, L7 rotation confirmed by test, L8 device-only. Height budget measured before building.
+**Scope boundary:** Branch journal-redesign only. JournalTab, CartographyScreen, CartographyEntryListScreen, CartographyEntryCard, EntriesAlbum, EntriesToolbar, EntriesDrafts, RecordsTab, RecordsFilterChips, JournalScreenState, new files under ui/log/, AvailabilityCompactScaffold (the header condition and passing state), tests. Not portrait beyond not breaking it, not the Map tab, not LogPanel (J6), not L0, M1 or J8, not Room, not the held flaky tests, not the record, index, CLAUDE.md, plans or prompts. No PR or merge.
+**Baseline:** journal-redesign at 94a034c (picker fix stage closed partial by terminal 2026-09-27-64). Planner's full suite at eefce47, the same app tree: 244 classes / 1990 / 1 / 0 / 24, the failure an intermittent album long-press test held by the owner.
+**Prediction (outcome — planner):** 1. With the header hidden, the Entries content area is at least 250 dp at w823dp-h384dp-land. 2. No portrait test changes. 3. The suite grows by 25 to 50 tests.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** L1-L7 and the three rulings pushed with the completion report and height table; tests first, coordinate touches and revert checks; full suite with any held flaky failure reported as such; the planner re-runs the suite and writes the terminal. No PR or merge.
+**Abort conditions:** A wrong premise; fewer than two card rows visible; a tests-first test passing at base; a revert build with compile errors; an unrelated test failing that is not a held flaky test (reported, not touched); Maven 429s; two failed fixes on one symptom; an open design question.
+**Notes:** Written by the planner by hand. Owner rulings, verbatim: "Hide header; icon reveals it (Recommended)", "Long-press, like grids (Recommended)", "Photo, then track, then icon (Recommended)". An emulator started by the planner may be running in the container; the coder is told not to touch it.
+
+---
