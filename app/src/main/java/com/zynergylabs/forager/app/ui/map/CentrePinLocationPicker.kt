@@ -24,11 +24,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.VectorPath
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Region
+import com.zynergylabs.forager.app.ui.theme.MapPalette
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
 /**
@@ -132,7 +139,7 @@ fun CentrePinLocationPicker(
                 { location -> cameraCenter = location },
                 Modifier.fillMaxSize(),
             )
-            CentrePin(modifier = Modifier.align(Alignment.Center))
+            CentrePin(night = night, modifier = Modifier.align(Alignment.Center))
         }
         CentrePinConfirmRow(
             // UI-defects dispatch, §2: this is the pin's current map position, live from
@@ -172,9 +179,15 @@ fun CentrePinLocationPickerOverlay(
      * pads for its bottom bar.
      */
     bottomInset: Dp = 0.dp,
+    /**
+     * Night Maps, as the map underneath is drawing it: the caller passes its own
+     * `MapRenderMode.night`, so the pin's colours follow the map's (colour build C2 (e)). Defaults to
+     * day for callers that have no night value.
+     */
+    night: Boolean = false,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
-        CentrePin(modifier = Modifier.align(Alignment.Center))
+        CentrePin(night = night, modifier = Modifier.align(Alignment.Center))
         Surface(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -189,17 +202,67 @@ fun CentrePinLocationPickerOverlay(
     }
 }
 
+/**
+ * The centre pin: Material `LocationOn`, filled in [MapPalette.centrePin] with a casing behind it in
+ * [MapPalette.casing], both from [MapPalette.forMode] for [night] (colour build C2 (e)). Before C2 it
+ * was tinted with the theme's `primary`, which followed the device theme rather than the map. Its
+ * shape, 40dp size and anchor are unchanged.
+ */
 @Composable
-private fun CentrePin(modifier: Modifier = Modifier) {
+private fun CentrePin(night: Boolean, modifier: Modifier = Modifier) {
+    val palette = MapPalette.forMode(night)
+    val casingVector = remember(palette.casing) { centrePinCasingVector(palette.casing) }
     // LocationOn's drawn point sits at the bottom-centre of its bounding box, not the geometric
     // centre Alignment.Center gives every caller — shifted up by half the icon's own height so the
     // pin's tip, not the icon's box, is what actually marks the coordinate onConfirm reports.
-    Icon(
-        imageVector = Icons.Filled.LocationOn,
-        contentDescription = "Pin marks the location that will be picked",
-        tint = MaterialTheme.colorScheme.primary,
-        modifier = modifier.padding(bottom = CENTRE_PIN_SIZE / 2).size(CENTRE_PIN_SIZE),
+    Box(modifier = modifier.padding(bottom = CENTRE_PIN_SIZE / 2).size(CENTRE_PIN_SIZE)) {
+        Icon(
+            imageVector = casingVector,
+            contentDescription = null,
+            tint = Color.Unspecified,
+            modifier = Modifier.fillMaxSize(),
+        )
+        Icon(
+            imageVector = Icons.Filled.LocationOn,
+            contentDescription = "Pin marks the location that will be picked",
+            tint = Color(palette.centrePin),
+            modifier = Modifier.fillMaxSize(),
+        )
+    }
+}
+
+/**
+ * The centre pin's casing: `LocationOn`'s own paths, filled and stroked in [casing] with round joins,
+ * the stroke [CASING_WIDTH_DP] wide on each side of the outline at [CENTRE_PIN_SIZE]. Drawn behind
+ * the pin, it shows only as the outline outside the pin's edge and round its hole. The paths are
+ * copied, not approximated, so the casing matches the icon exactly. `LocationOn`'s root holds its
+ * paths directly (no groups, no transforms); anything else is an error rather than a silently wrong
+ * outline.
+ */
+internal fun centrePinCasingVector(casing: Int): ImageVector {
+    val source = Icons.Filled.LocationOn
+    // The stroke straddles the outline, so its full width is two casings, in viewport units.
+    val strokeUnits = 2 * CASING_WIDTH_DP * source.viewportWidth / CENTRE_PIN_SIZE.value
+    val builder = ImageVector.Builder(
+        name = "LocationOnCasing",
+        defaultWidth = source.defaultWidth,
+        defaultHeight = source.defaultHeight,
+        viewportWidth = source.viewportWidth,
+        viewportHeight = source.viewportHeight,
     )
+    for (node in source.root) {
+        val path = node as? VectorPath ?: error("LocationOn has a ${node::class.simpleName}; the casing copies paths only")
+        builder.addPath(
+            pathData = path.pathData,
+            pathFillType = path.pathFillType,
+            fill = SolidColor(Color(casing)),
+            stroke = SolidColor(Color(casing)),
+            strokeLineWidth = strokeUnits,
+            strokeLineJoin = StrokeJoin.Round,
+            strokeLineCap = StrokeCap.Round,
+        )
+    }
+    return builder.build()
 }
 
 @Composable

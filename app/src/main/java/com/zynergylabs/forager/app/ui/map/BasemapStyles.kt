@@ -140,13 +140,20 @@ internal fun mapAttributionFor(basemap: Basemap, useOfflineTiles: Boolean): Stri
  */
 internal data class AppliedMapStyle(
     val basemap: Basemap,
+    /**
+     * The marker palette: `MapPalette.forMode` of the **raw** Night Maps toggle, on every basemap,
+     * Satellite included (colour build C2; the owner ruled that on Satellite only the markers switch).
+     * The overlay layers bake these colours in when the style loads, so a palette change is a reload:
+     * that is why a toggle over Satellite reloads, even though [night] stays false there.
+     */
     val palette: MapPalette,
     val useOfflineTiles: Boolean,
     /**
-     * **Effective** night ([effectiveNight]), not the raw toggle. Night Maps did nothing before
-     * colour build C1 partly because this value had no night component at all, so a toggle compared
-     * equal and never reached `setStyle`. Holding the effective value rather than the toggle is what
-     * keeps a toggle over Satellite, whose style does not change at night, from reloading for nothing.
+     * **Effective** night ([effectiveNight]), not the raw toggle: whether the *basemap* takes its night
+     * paint. Night Maps did nothing before colour build C1 partly because this value had no night
+     * component at all, so a toggle compared equal and never reached `setStyle`. Over Satellite it is
+     * false either way, since Satellite's style does not change at night; the reload a toggle there
+     * causes comes from [palette].
      */
     val night: Boolean,
 )
@@ -165,11 +172,11 @@ internal fun effectiveNight(basemap: Basemap, nightMode: Boolean, useOfflineTile
  * preference has not loaded ([nightModeLoaded] `false`): the cold-launch gate. Without it, the effect
  * could apply a day style before an asynchronous read reported night, and a night user's map would
  * stay day. A pure function so the gate is asserted headless (`OfflineStyleSwapTest`); the effect's
- * own keys are not reachable without a native MapView.
+ * own keys are not reachable without a native MapView. The marker palette is chosen here too, from the
+ * raw toggle, for the same reason: a test can reach it here and not in the composable.
  */
 internal fun requestedMapStyle(
     basemap: Basemap,
-    palette: MapPalette,
     useOfflineTiles: Boolean,
     nightMode: Boolean,
     nightModeLoaded: Boolean,
@@ -179,7 +186,7 @@ internal fun requestedMapStyle(
     } else {
         AppliedMapStyle(
             basemap = basemap,
-            palette = palette,
+            palette = MapPalette.forMode(nightMode),
             useOfflineTiles = useOfflineTiles,
             night = effectiveNight(basemap, nightMode = nightMode, useOfflineTiles = useOfflineTiles),
         )

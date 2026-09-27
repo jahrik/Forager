@@ -616,3 +616,38 @@ from MapLibre's shader source.
 The markers' night colours are colour build C2's and are not changed here.
 Nothing in this build was run on a device; the device items are listed in
 `docs/audits/2026-09-27-night-mode-c1-completion-report.md`.
+
+## Addendum, 2026-09-27: markers as built (colour build C2)
+
+This note corrects the "What shipped instead" paragraph of "Deferred:
+night-mode colour inversion" above (lines 472-477 when this was written),
+which is no longer true. That text is left as it was.
+
+- **No shared warm fill, no dark ink, no halos.** `MapPalette.NIGHT` no
+  longer holds `NIGHT_WARM`/`NIGHT_INK`, and no marker draws a halo. (Before
+  C2 the markers were in fact day-only: `SightingsMap` read `MapPalette.DAY`
+  whatever the toggle, so the night icons and halos that paragraph describes
+  were not being drawn either.)
+- **One role per marker, day and night.** Waypoint, find, planned trip,
+  photo, kept track, live breadcrumb, centre-pin picker, search centre,
+  offline region and sighting dot each have their own colour, plus the
+  sighting dot's two rings and a casing. The colours are the owner's picks
+  from `docs/audits/2026-09-27-marker-swatch-board.md`. The sighting dot's
+  greys (`#2B2B2B` by day, `#8C8C8C` at night) are the planner's picks
+  under the owner's "near black" and "mute grey", and its rings (white;
+  `#2196F3` selected, now 3dp) are owner overrides.
+- **Markers follow Night Maps on every basemap.** Over Satellite the basemap
+  stays day and only the markers switch, so a toggle there now reloads the
+  style for the markers.
+- **Silhouettes and casings.** Each point marker has its own shape (the
+  glyph board, `docs/audits/2026-09-26-marker-glyph-board.md`, with the
+  search centre as a reticle whose arms pass its ring), drawn with a 1.5dp
+  casing into its bitmap. Tracks have casing lines below them, and the
+  offline region a dashed casing outline.
+- **`MapPalette` is hand-authored, not derived from the colour scheme.**
+  That is the reality R2 in `docs/plans/understory-design-system.md` was
+  superseded by: a scheme-derived palette was built, measured and
+  abandoned, and every value now is chosen per role.
+
+Nothing in C2 was run on a device; the device items are listed in
+`docs/audits/2026-09-27-marker-palette-c2-completion-report.md`.

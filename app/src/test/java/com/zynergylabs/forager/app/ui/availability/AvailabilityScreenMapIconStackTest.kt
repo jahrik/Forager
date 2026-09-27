@@ -103,6 +103,8 @@ import com.zynergylabs.forager.app.domain.model.WeatherSeries
 import com.zynergylabs.forager.app.ui.map.CENTRE_PIN_CONFIRM_ROW_TAG
 import com.zynergylabs.forager.app.ui.map.MAP_MODE_PICKER_TAG
 import com.zynergylabs.forager.app.ui.map.MapSlot
+import com.zynergylabs.forager.app.ui.map.centrePinFillPixel
+import com.zynergylabs.forager.app.ui.theme.MapPalette
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import com.zynergylabs.forager.app.ui.track.RecordingNotice
 import java.time.LocalDate
@@ -125,6 +127,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 import org.robolectric.shadows.ShadowToast
 
 /**
@@ -1062,6 +1065,29 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.waitForIdle()
 
         assertEquals(LatLng(45.326, -122.634), startedLogEntryAt)
+    }
+
+    /**
+     * Colour build C2 (e), the compact layout's call site (`AvailabilityCompactMapUi.kt`, the add
+     * button's picker): the centre pin follows Night Maps, set through the real ViewModel, via
+     * `CompactMapTab`'s own `renderMode.night`. Read from the drawn pixels, day and then night, with
+     * the picker left open across the toggle.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun `the main map's centre pin follows Night Maps in the palette's centre-pin colour`() {
+        setScreen()
+        searchAReferenceRegion()
+        composeRule.onNodeWithContentDescription("Plan a trip or log a find here").performClick()
+        composeRule.onNodeWithText("Find").performClick()
+        composeRule.waitForIdle()
+
+        assertEquals("day", "#%08X".format(MapPalette.DAY.centrePin), "#%08X".format(composeRule.centrePinFillPixel()))
+
+        composeRule.runOnIdle { viewModel.onNightModeMapsChanged(true) }
+        composeRule.waitForIdle()
+
+        assertEquals("night", "#%08X".format(MapPalette.NIGHT.centrePin), "#%08X".format(composeRule.centrePinFillPixel()))
     }
 
     // @Ignore: harness-only dismissal failure — see docs/audits/2026-08-31-search-dropdown-dismiss-chip-unmount.md
