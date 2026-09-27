@@ -155,6 +155,31 @@ internal data class AppliedMapStyle(
 internal fun effectiveNight(basemap: Basemap, nightMode: Boolean, useOfflineTiles: Boolean): Boolean =
     nightMode && (useOfflineTiles || basemapTakesNightPaint(basemap))
 
+/**
+ * What [SightingsMap]'s style effect should load for these inputs, or `null` while the Night Maps
+ * preference has not loaded ([nightModeLoaded] `false`): the cold-launch gate. Without it, the effect
+ * could apply a day style before an asynchronous read reported night, and a night user's map would
+ * stay day. A pure function so the gate is asserted headless (`OfflineStyleSwapTest`); the effect's
+ * own keys are not reachable without a native MapView.
+ */
+internal fun requestedMapStyle(
+    basemap: Basemap,
+    palette: MapPalette,
+    useOfflineTiles: Boolean,
+    nightMode: Boolean,
+    nightModeLoaded: Boolean,
+): AppliedMapStyle? =
+    if (!nightModeLoaded) {
+        null
+    } else {
+        AppliedMapStyle(
+            basemap = basemap,
+            palette = palette,
+            useOfflineTiles = useOfflineTiles,
+            night = effectiveNight(basemap, nightMode = nightMode, useOfflineTiles = useOfflineTiles),
+        )
+    }
+
 /** `true` when nothing has been applied yet, or when any part of [requested] differs from what was. */
 internal fun needsStyleReload(applied: AppliedMapStyle?, requested: AppliedMapStyle): Boolean = applied != requested
 

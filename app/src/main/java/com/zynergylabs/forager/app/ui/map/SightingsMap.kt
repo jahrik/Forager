@@ -181,6 +181,8 @@ fun SightingsMap(
      * why that was tried, measured and abandoned.
      */
     nightMode: Boolean = false,
+    /** See [MapRenderMode.nightModeLoaded]'s own doc comment: no style loads while this is `false`. */
+    nightModeLoaded: Boolean = true,
     /** See [com.zynergylabs.forager.app.ui.map.MapSlot]'s doc comment on this same parameter. */
     breadcrumbPoints: List<LatLng> = emptyList(),
     /** See [com.zynergylabs.forager.app.ui.map.MapSlot]'s doc comment on this same parameter. */
@@ -414,14 +416,18 @@ fun SightingsMap(
     // OnDidFailLoadingMapListener registered in the DisposableEffect above, never swallowed; what
     // the user should be *told* in that state is a decision the pre-build report lists and this
     // dispatch did not make.
-    LaunchedEffect(mapLibreMap, basemap, mapPalette, useOfflineTiles, nightMode) {
+    LaunchedEffect(mapLibreMap, basemap, mapPalette, useOfflineTiles, nightMode, nightModeLoaded) {
         val map = mapLibreMap ?: return@LaunchedEffect
-        val requested = AppliedMapStyle(
+        // null until the Night Maps preference has loaded (the cold-launch gate): the effect
+        // relaunches when nightModeLoaded turns true, and the first style it requests is then the
+        // right one. The map shows MapLibre's own blank until then.
+        val requested = requestedMapStyle(
             basemap = basemap,
             palette = mapPalette,
             useOfflineTiles = useOfflineTiles,
-            night = effectiveNight(basemap, nightMode = nightMode, useOfflineTiles = useOfflineTiles),
-        )
+            nightMode = nightMode,
+            nightModeLoaded = nightModeLoaded,
+        ) ?: return@LaunchedEffect
         if (!needsStyleReload(appliedStyle, requested)) return@LaunchedEffect
         // Captured before setStyle below discards the LocationComponent entirely (see
         // activateLiveLocationIfPermitted's own doc comment on why re-activation is needed at
