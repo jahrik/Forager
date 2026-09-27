@@ -2644,3 +2644,14 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Written by the planner by hand. Owner's words, verbatim: the report correction "It's not offline maps, it's actually in the finds entry log, when choosing a location to save to the find log"; "Follow until you touch it (Recommended)"; "Fix all three (Recommended)"; "Offline maps doesn't do this currently, but it may as well echo the same behavior"; "Remove the corner button (Recommended)". Routing: "On the Journal branch".
 
 ---
+
+**Kind:** continuation
+**ID:** 2026-09-27-63
+**Timestamp:** 2026-09-27T19:52:47Z
+**Continues:** 2026-09-27-62
+**Dispatch-file:** preserved/2026-09-27-25.md
+**Reason:** F5 decided by the owner after the coder stopped on it; an intermittent test failure seen in the planner's full suite, to diagnose from data
+**Changes:** F5 removes the album's corner trash button in both trees (owner: "Remove everywhere now"); new F6 reproduces and diagnoses the intermittent JournalPendingDeleteTest album-Undo failure before any fix.
+**Notes:** F1-F4 are pushed (code 53ecbff, report af51dc7): a gesture signal on MapRenderMode (onUserCameraGesture, fired from addOnCameraMoveStartedListener for REASON_API_GESTURE only, checked with javap), one change in CentrePinLocationPicker fixing F1 and F2, F3 keeping the panned point on a radius-only change, F4's pure offlineRegionIdsToDelete with an in-memory in-flight mark. Coder's final run: 244 / 1988 / 1 / 0 / 24, the failure JournalTabTest's photo-pull test (passed alone 17/0). Planner's full suite on af51dc7, results cleared, UTF-8 locale, 0 "e: " lines: 244 / 1988 / 1 / 0 / 24, the failure JournalPendingDeleteTest "Undo on an album photo brings it back and deletes neither row nor file" ('tile-options-delete' is not displayed, JournalPendingDeleteTest.kt:1132 from :1300); the class alone passed 51/0 three times. Corrections from the coder: the ViewModel-init call is at AvailabilityViewModel.kt:145, not :133, and its comments do not state the orphan-cleanup intent (listRegions' own comment does); no test drove the corner button. Open, recorded not built: a reload between region creation and onCreate could still delete a new download.
+
+---
