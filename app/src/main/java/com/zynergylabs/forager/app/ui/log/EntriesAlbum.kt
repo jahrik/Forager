@@ -1,6 +1,8 @@
 package com.zynergylabs.forager.app.ui.log
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,12 +12,15 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Eco
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -30,7 +35,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.PhotoSource
@@ -50,10 +59,10 @@ import java.time.format.DateTimeFormatter
  * ([PhotoViewerDialog], stepping through the photos in the order shown here) and the same delete
  * confirmation ([GalleryPhotoDeleteDialog], extracted from [PhotoGalleryScreen] for this).
  *
- * **What is not here yet.** The plan's 🔗 badge for an attached photo is not built: see the J2
- * completion report (its premise, a visible reference-count text to replace, does not hold at
- * `0ba8877`, and which kind of "entry" it marks is open). The Camera/Import row stays until the
- * floating button's album action is settled (J2, T4).
+ * **Badges** ([AlbumAttachmentBadges], added by the second J2 coder): one for a photo a journal
+ * entry keeps, a distinct one for a photo attached to a find, both when both. The first coder found
+ * no visible reference count on the tile to replace; the count stays only in the delete dialog. The
+ * Camera/Import row stays until the floating button's album action is settled (J2, T4).
  */
 @Composable
 internal fun EntriesAlbum(
@@ -152,6 +161,12 @@ private fun AlbumPhotoTile(
         IconButton(onClick = { confirmingDelete = true }, modifier = Modifier.align(Alignment.TopEnd)) {
             Icon(Icons.Filled.Delete, contentDescription = "Delete this photo")
         }
+        AlbumAttachmentBadges(
+            photoId = galleryPhoto.photo.id,
+            attachedToEntry = cartographyEntryCount > 0,
+            attachedToFind = galleryPhoto.referencingEntryIds.isNotEmpty(),
+            modifier = Modifier.align(Alignment.BottomStart).padding(ALBUM_BADGE_INSET),
+        )
     }
     if (confirmingDelete) {
         GalleryPhotoDeleteDialog(
@@ -162,6 +177,80 @@ private fun AlbumPhotoTile(
         )
     }
 }
+
+/**
+ * The album's two attachment badges (owner ruling "Two badges", `prompts/preserved/2026-09-27-19.md`):
+ * one for a photo a journal (Cartography) entry keeps, a distinct one for a photo attached to a find,
+ * both when both. Each is its own node with a content description, so a screen reader announces it
+ * on the tile.
+ *
+ * Where each fact comes from, both already on the album's inputs, no new read:
+ * - **Journal entry:** `cartographyEntryReferenceCounts` (`MushroomLogUiState.cartographyEntryPhotoReferenceCounts`,
+ *   loaded in `MushroomLogViewModel.loadGalleryPhotos` through `GetEntryReferenceCountUseCase.forPhoto`
+ *   and `CartographyEntryDao.countEntriesReferencingPhoto`, which counts committed entries only,
+ *   `isDraft = 0`).
+ * - **Find:** [GalleryPhoto.referencingEntryIds], the join over `log_entry_photos` in
+ *   `RoomMushroomLogRepository.getAllPhotos`. That table holds draft finds' rows too (a draft find is
+ *   a standalone row), so a photo attached only to an unfinished find carries this badge; the delete
+ *   dialog's "N entries" count reads the same list the same way.
+ *
+ * The link icon is the plan's 🔗 for "attached to an entry"; the find badge takes the Finds chip's
+ * icon and its J6 colour role ([RecordTypeStyle], Finds), so it reads as the same kind of thing the
+ * Records chips call a find. Neither is touchable: touches on them fall through to the photo.
+ */
+@Composable
+private fun AlbumAttachmentBadges(
+    photoId: String,
+    attachedToEntry: Boolean,
+    attachedToFind: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    if (!attachedToEntry && !attachedToFind) return
+    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(ALBUM_BADGE_INSET)) {
+        if (attachedToEntry) {
+            AlbumBadge(
+                icon = Icons.Filled.Link,
+                description = ALBUM_ENTRY_BADGE_DESCRIPTION,
+                container = MaterialTheme.colorScheme.surfaceContainerHighest,
+                content = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.testTag(albumEntryBadgeTestTag(photoId)),
+            )
+        }
+        if (attachedToFind) {
+            val finds = RecordTypeStyle.colors(RecordType.FINDS)
+            AlbumBadge(
+                icon = Icons.Filled.Eco,
+                description = ALBUM_FIND_BADGE_DESCRIPTION,
+                container = finds.container,
+                content = finds.accent,
+                modifier = Modifier.testTag(albumFindBadgeTestTag(photoId)),
+            )
+        }
+    }
+}
+
+@Composable
+private fun AlbumBadge(icon: ImageVector, description: String, container: Color, content: Color, modifier: Modifier = Modifier) {
+    Box(
+        // The description sits on the badge's own node, not the icon inside it, so the badge is one
+        // thing a screen reader announces and one thing a test finds by its tag.
+        modifier = modifier.size(ALBUM_BADGE_SIZE).background(container, CircleShape).semantics { contentDescription = description },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, contentDescription = null, tint = content, modifier = Modifier.size(ALBUM_BADGE_ICON_SIZE))
+    }
+}
+
+private val ALBUM_BADGE_SIZE = 22.dp
+private val ALBUM_BADGE_ICON_SIZE = 14.dp
+private val ALBUM_BADGE_INSET = 4.dp
+
+internal const val ALBUM_ENTRY_BADGE_DESCRIPTION = "Attached to a journal entry"
+internal const val ALBUM_FIND_BADGE_DESCRIPTION = "Attached to a find"
+
+internal fun albumEntryBadgeTestTag(photoId: String): String = "entries-album-badge-entry-$photoId"
+
+internal fun albumFindBadgeTestTag(photoId: String): String = "entries-album-badge-find-$photoId"
 
 /** Plan J3: 3 columns in compact portrait. (Short windows get 5 in J5, L6; not built here.) */
 private const val ALBUM_COLUMNS = 3
