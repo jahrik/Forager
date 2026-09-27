@@ -2704,3 +2704,19 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Finding for later work: Robolectric's default graphics mode measures text at about 1 px per glyph with lines too tall; B3's 85 dp header measures 45 dp natively, so any existing test measuring text-dependent sizes in default mode may be off. A third member of the held intermittent family was seen at the coder's baseline: "a plain tap on an album photo still opens the viewer", a tap test. Device-only items (L8 cut-out inset, the chips at the device's font and font scale, real insets) go to the consolidated J7 check.
 
 ---
+
+**Kind:** intent
+**ID:** 2026-09-27-68
+**Timestamp:** 2026-09-27T22:04:51Z
+**Title:** Journal J5c: tapping a waypoint, recorded-track or offline-region row opens a bottom sheet of its details and actions
+**Dispatch-file:** preserved/2026-09-27-28.md
+**Change:** Owner: "Expanding my answer: have them display info upon tapping" and "Bottom sheet of details (Recommended)". A ModalBottomSheet per row type with at least everything the row shows plus details (waypoint coordinates, created time, track, reference count; Directions and in-app Navigate, Navigate only if an entry point exists, else stop; track start, end, distance, duration, points, note, share; region radius, centre, tiles, size, zoom, downloaded date), from data already in memory; a tap on an open swipe row closes it instead; row buttons unchanged; Back and scrim dismiss.
+**Scope boundary:** Branch journal-redesign only. The row composables (AvailabilityTripsWaypointsUi, AvailabilityOfflineMapsUi rows only, TrackExportPanel), RecordsTab and the All logbook, a new sheet file under ui/log/, an existing navigation entry point's caller only, tests. Not find tiles or entry cards, not the map screens beyond an existing entry point, not L0, M1 or J8, not Room, not the held flaky tests, not the record, index, CLAUDE.md, plans or prompts.
+**Baseline:** journal-redesign at e36ff86 (J5 closed by terminal 2026-09-27-67). Planner's full suite at 381e1e7, the same app tree: 246 classes / 2029 / 1 / 0 / 24, the held album-Undo test.
+**Prediction (outcome — planner):** 1. No new query or ViewModel state for the sheet's content. 2. Navigate needs a small new route (the HUD starts from the map). 3. The suite grows by 15 to 35 tests.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** the sheet for all three row types pushed with the completion report; tests first, coordinate taps, revert checks; full suite with held flaky failures reported as such; the planner re-runs the suite and writes the terminal.
+**Abort conditions:** A wrong premise; Navigate needing a non-existent path (Directions only, stop and report); a tests-first test passing at base; a non-compiling revert build; an unrelated non-held test failing (reported, not touched); Maven 429s; two failed fixes on one symptom; an open design question.
+**Notes:** Written by the planner by hand. The album-Undo test has failed in the last three full-suite runs seen (CI on 27e5c70a and 381e1e7, the planner's run on 381e1e7) after passing in the J5 coder's two full runs; recorded for the owner's flake session, not acted on.
+
+---
