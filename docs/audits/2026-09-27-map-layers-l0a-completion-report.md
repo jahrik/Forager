@@ -7,7 +7,7 @@ Dispatch: `prompts/preserved/2026-09-27-29.md` (build, L0a coder). Plan: `docs/p
 on local branch `l0a`, cut from `origin/journal-redesign` at `6d1fced` (the planner's store-copy commit
 after `9a81a7e`, which the dispatch allows).
 
-**Status: stopped at the premise check. Nothing was built and no test was written.** Two findings
+**Status (superseded 2026-09-27: built after the owner's rulings, see the last section): stopped at the premise check. Nothing was built and no test was written.** Two findings
 trigger the dispatch's abort conditions, and a third is an open design question the build cannot go
 round:
 
@@ -220,3 +220,79 @@ records why). The following would be proven only on a device:
 ## D58 check
 
 `git grep -i` for the three forbidden phrases over this report and this commit's message: zero hits.
+
+## Built after the owner's rulings (second L0a coder, 2026-09-27)
+
+Dispatch: `prompts/preserved/2026-09-27-30.md` (the rulings) over `2026-09-27-29.md`. Branch cut from
+`origin/journal-redesign` at `488d361` as local `l0a-2` (a local `l0a` already existed in the first
+coder's worktree); every push to `journal-redesign`. The premise table above was re-read at `488d361`
+and still holds with its shifted line numbers. `/opt/android-sdk` and the Gradle cache were present;
+every run was `--offline`.
+
+**Paused note.** The planner's pause request arrived after every step below had finished: all work,
+the ten revert checks and the full suite are done and pushed. Nothing is left uncommitted. Written
+briefly at the planner's request.
+
+### Commits
+
+| SHA | What |
+|---|---|
+| `193400f6` | Tests first (A1, A3, A4, A5) with stubs: 4 classes / 46 tests / 36 failures. The 10 that passed are invariant guards a stub cannot break (for example, an empty registry has no problems). Revert checks cover them. |
+| `337e5b53` | `ui/map/layers/`: the registry, `registryProblems`, `orderedLayers`, `layerPaintFor`, `activeLayerCredits`, `tapWinner`/`resolveTap`; `mapCreditsFor`/`attributionCaption`. All 36 pass. |
+| `e3591aa1` | `SightingsMap` builds its layers from the registry, applies state without a style reload, and uses the new tap listener. Record ids are carried through the use case, `CartographyEntryMapData` and `MapOverlayContent`, and the entry map uses real waypoint ids. At this commit, feature-id tests were written first: 7 failed with `expected:<[ids]> but was:<[null...]>`. |
+| `b0ce1bea` | The builders write `featureId`. The 7 failures pass. |
+
+### What was built, per ruling
+
+1. **Draw order.** `MAP_LAYER_REGISTRY` (`ui/map/layers/MapLayers.kt`) lists the layers bottom to top: offline fill (areas); outline, breadcrumb casing and line, kept-track casing and line (lines); search centre, sightings, planned trips, waypoints, finds, photos (markers). The colour-field group is empty. The only change from before is that the search centre and the sighting dots now draw above the lines. This is recorded in the registry's doc and in `initializeOverlayLayers`, and a test pins that nothing else moved. The offline night recolour still runs before the loop, and the stale order comment is replaced.
+2. **Ids.** New `domain/model/RecordGeometry.kt` (`RecordPoint`, `RecordPolyline`, `RecordRegion`). The use case keeps `trackId`, `findId`, `photoId` and `waypointId`, plus `offlineRegionId` as decimal text, so every layer's feature id is text. No Room or DAO change was needed. The search centre and the breadcrumb have fixed ids (`search-centre`, `breadcrumb`). The id travels in a string property `featureId`, not the GeoJSON feature id, because a property is what has been seen to round-trip on hardware (sightings' `observationId`). Sightings are unchanged.
+3. **Opacity.** `LayerState.opacity` is a multiplier from 0 to 1 on each base opacity. It refuses values outside that range at construction rather than clamping them. Base opacities live in the registry (0.7 and 0.85 for sightings, 0.2 for the offline fill, 1 everywhere else), and `SightingsMap` builds each layer with them. A casing follows its track's state, and the offline outline follows the fill's.
+4. **Taps.** The outline is tappable and the fill is not (`TapGroup.NONE`), and neither are the casings. The listener queries each tappable layer separately, because a returned Feature does not name its layer. The box is **48 dp square (±24 dp)**, the Android/Material minimum touch target. It is queried **only when nothing tappable lies exactly under the tap point**. I added the point-first stage so that a near miss inside the box cannot beat a marker the finger is directly on. See Needs a decision.
+- A3 plumbing: `MapRenderMode.layers` (default = today) and `MapRenderMode.onFeatureTap(layerId, featureId)` (default no-op). There is no new `MapSlot` parameter; it stays at 9. A `LaunchedEffect(loadedStyle, layersState)` sets `visibility` and opacity through `setProperties`, with no `setStyle`.
+- A5: the caption is `attributionCaption(mapCreditsFor(basemap, offline, activeLayerCredits(...)))`, joined with " · ". With a single credit the output is unchanged (pinned for every basemap and the offline style).
+
+### Tests
+
+- **Full suite** (cleared results dir, at `b0ce1bea`): **253 classes / 2112 / 1 / 0 / 24**. That is the base (248 / 2052) plus 5 classes and 60 tests. The one failure is in the held family: `JournalPendingDeleteTest` "Undo on an album photo brings it back and deletes neither row nor file", `The component with TestTag = 'tile-options-delete' is not displayed!`. Its class rerun alone: 52 / 0 / 0 / 0. I did not touch it.
+- **Existing tests changed** (all because of ruling 2's new types; no assertion weakened): `SightingsMapOverlayDataTest` (the kept-track, point and offline-circle builder inputs are wrapped), `GetCartographyEntryMapDataUseCaseTest` (its expected values now include the record ids, so it asserts the ids), `CartographyEntryMapDataTest` (the helper wraps its inputs), `CartographyEntryReportScreenMapTest` (inputs wrapped, plus one new test for real waypoint ids), `CartographyEntryReportScreenFullscreenTest` and `NetworkFixExclusionPerConsumerTest` (types only).
+- **Revert checks** (`app/build/l0a/revert.py`: it restores from a saved copy, refuses to read results if the build log has a compile error, and I confirmed the tree was clean afterwards). All 10 compiled (0 `e:` lines), and each failed with a message specific to its own edit:
+  - Topmost-in-group becomes bottom-most: waypoints-over-sightings and kept-over-breadcrumb fail.
+  - Box-first instead of point-first: "what lies under the point decides" fails (the photo wins).
+  - Multiplier dropped: 4 failures.
+  - State owner ignored: the casing and outline tests fail.
+  - Search centre moved back below the lines: 5 registry failures.
+  - User order dropped: the colour-field order test fails.
+  - Layer credits dropped: 3 failures.
+  - Point builder id removed: the find and photo id test fails.
+  - Use case find id set to "": that test fails.
+  - Entry-map waypoint id set to a constant: the new screen test fails.
+- **Predictions:**
+  - 1 (no existing test changes): wrong, because ruling 2 widened the scope.
+  - 2: the state fits in `MapRenderMode`, but `MapOverlayContent`'s four marker fields changed type (ruling 2).
+  - 3 (25 to 50 new tests): 60.
+
+### Needs a decision
+
+- **Point first, then the box.** My addition to ruling 4, for the reason given there. A literal box-only query would let a waypoint 20 dp away beat a sighting dot directly under the finger (topmost within the group). Revert if the owner wants box-only.
+- **Tap behaviour changes that follow from the rulings**, and are not draw-order changes:
+  - a tap on a planned trip, waypoint, find or photo drawn over a sighting dot now goes to that marker (no bubble; `onFeatureTap` has no UI yet);
+  - a tap that misses every pixel but has a sighting dot within 24 dp now opens its bubble, anchored at the tap point as before, and re-anchored on the next camera idle.
+- **`onTap` still fires after `onFeatureTap`**, so the fullscreen map's "tap to restore chrome" is unchanged. M1 may want otherwise.
+- **Provisional registry flags for L0b.** Toggleable: finds, photos, waypoints, planned trips, breadcrumb, kept tracks and the offline fill; not sightings or the search centre, which are absent from the owner's overlay list. Opacity slider: colour fields only. Reordering: colour fields only. A change to the stored reorder list takes effect at the next style load; the group is empty in L0a.
+
+### Device-only (for J7)
+
+`SightingsMap` cannot run under Robolectric, so these are device-only:
+
+- the twelve layers' actual draw order, especially the dots and the reticle over a recording trail;
+- that explicit `visibility: visible`, `line-opacity 1` and `icon-opacity 1` look identical to before (the MapLibre spec defaults; not observed);
+- that `queryRenderedFeatures` returns the `featureId` property, and that the RectF box query works;
+- that hidden layers are excluded from queries (unverified);
+- that a tap inside an offline circle away from its outline falls through;
+- that the sighting bubble is unchanged for direct taps;
+- that the night recolour still leaves the overlays alone;
+- the caption text.
+
+### D58
+
+`git grep -i` over every commit's diff and message for the three forbidden phrases: zero hits.
