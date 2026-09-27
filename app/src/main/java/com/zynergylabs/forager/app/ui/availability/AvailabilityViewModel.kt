@@ -37,6 +37,7 @@ import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.TaxonFilter
 import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
+import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.PendingDeleteSlot
 import com.zynergylabs.forager.app.ui.log.PendingDeleteCommitScope
 import java.time.LocalDate
@@ -122,6 +123,9 @@ class AvailabilityViewModel(
      * from "collected once, completed, nothing listening any more", which is the first-launch bug.
      */
     private var liveFixJob: Job? = null
+
+    /** The one offline region whose delete is pending (journal redesign J4) — see [requestDeleteOfflineRegion]. */
+    private val offlineRegionDeletes = PendingDeleteSlot<Long, OfflineRegionSummary> { it.id }
 
     /**
      * Whether the hosting Activity is between `ON_START` and `ON_STOP`. Gates every start of
@@ -1145,14 +1149,88 @@ class AvailabilityViewModel(
      * — deletion isn't a download, and the region simply staying in the list on failure already
      * shows the delete didn't take effect, the same signal a stale list already carries.
      */
-    /** J4 stub: a swipe on a region's row. */
-    fun requestDeleteOfflineRegion(id: Long) = Unit
+    /**
+     * A swipe on an offline region's Records row (journal redesign J4): the region becomes pending —
+     * hidden from [AvailabilityUiState.visibleOfflineRegions] at once, its tiles still on disk — and
+     * the Undo snackbar shows. The real delete ([OfflineMapRepository.deleteRegion], MapLibre's tile
+     * delete and then the row, unchanged) runs from [commitDeleteOfflineRegion] when the snackbar
+     * ends without Undo, from here when a second region is swiped while this one is pending (the
+     * first is committed then), or from [onCleared]. That deferral is the only thing that makes Undo
+     * possible for a region at all: deleted tiles can only come back by a re-download, under a new
+     * MapLibre id (J0 B1).
+     *
+     * A region still downloading is never a row here: [OfflineMapRepository.listRegions] only lists
+     * complete regions (it deletes incomplete ones), and [AvailabilityUiState.offlineRegions] is only
+     * ever that list, so there is no downloading region to swipe.
+     *
+     * Reference count: the loaded one, a missing entry counting as zero as
+     * [AvailabilityUiState.offlineRegionEntryReferenceCounts] documents. An id not in the list is
+     * logged and pends nothing.
+     */
+    fun requestDeleteOfflineRegion(id: Long) {
+        val state = _uiState.value
+        val region = state.offlineRegions.firstOrNull { it.id == id }
+        if (region == null) {
+            errorLog.w(TAG, "A delete was asked for offline region $id, which is not loaded; nothing pended.", IllegalStateException("no region $id"))
+            return
+        }
+        val displaced = offlineRegionDeletes.pend(region, state.offlineRegionEntryReferenceCounts[id] ?: 0)
+        _uiState.update { it.copy(pendingOfflineRegionDelete = offlineRegionDeletes.pending) }
+        displaced?.let(::commitOfflineRegionDelete)
+    }
 
-    /** J4 stub: the snackbar's Undo. */
-    fun undoDeleteOfflineRegion(id: Long) = Unit
+    /** The snackbar's Undo: the pending region shows again. No tile was deleted, so nothing is restored. */
+    fun undoDeleteOfflineRegion(id: Long) {
+        if (offlineRegionDeletes.undo(id) == null) {
+            errorLog.w(TAG, "Undo for offline region $id came after its delete was committed; nothing to undo.", IllegalStateException("region $id not pending"))
+        }
+        _uiState.update { it.copy(pendingOfflineRegionDelete = offlineRegionDeletes.pending) }
+    }
 
-    /** J4 stub: the snackbar ended any other way. */
-    fun commitDeleteOfflineRegion(id: Long) = Unit
+    /** The snackbar ended without Undo (timed out, or a newer snackbar replaced it): the pending region's tile and row delete runs, once. */
+    fun commitDeleteOfflineRegion(id: Long) {
+        val region = offlineRegionDeletes.commit(id)
+        _uiState.update { it.copy(pendingOfflineRegionDelete = offlineRegionDeletes.pending) }
+        region?.let(::commitOfflineRegionDelete)
+    }
+
+    /**
+     * The real delete of a region whose pending time is over. It leaves [AvailabilityUiState.offlineRegions]
+     * at once, so it does not flash back between the snackbar closing and MapLibre finishing; a failed
+     * delete puts it back where it was and reports the failure the way [onDeleteOfflineRegion] does.
+     */
+    private fun commitOfflineRegionDelete(region: OfflineRegionSummary) {
+        val index = _uiState.value.offlineRegions.indexOfFirst { it.id == region.id }
+        _uiState.update { state -> state.copy(offlineRegions = state.offlineRegions.filterNot { it.id == region.id }) }
+        viewModelScope.launch {
+            offlineMapRepository.deleteRegion(region.id).fold(
+                onSuccess = { loadOfflineRegions() },
+                onFailure = { error ->
+                    errorLog.w(TAG, "Couldn't delete that region.", error)
+                    _uiState.update { state ->
+                        val restored = if (state.offlineRegions.any { it.id == region.id }) {
+                            state.offlineRegions
+                        } else {
+                            state.offlineRegions.toMutableList().apply { add(index.coerceIn(0, size), region) }
+                        }
+                        state.copy(offlineRegions = restored, offlineRegionsErrorMessage = "Couldn't delete that region.")
+                    }
+                },
+            )
+        }
+    }
+
+    override fun onCleared() {
+        // Journal redesign J4: a region still pending is committed here, since no snackbar is left
+        // to end. viewModelScope is already cancelled, so the delete runs on pendingDeleteCommitScope.
+        offlineRegionDeletes.takeAny()?.let { region ->
+            pendingDeleteCommitScope.launch {
+                offlineMapRepository.deleteRegion(region.id).onFailure { error ->
+                    errorLog.w(TAG, "Couldn't delete offline region ${region.id} pending when the screen closed; its tiles are still on disk.", error)
+                }
+            }
+        }
+    }
 
     fun onDeleteOfflineRegion(id: Long) {
         viewModelScope.launch {

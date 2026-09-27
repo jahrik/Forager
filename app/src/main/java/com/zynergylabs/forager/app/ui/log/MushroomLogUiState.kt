@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.ui.log
 
 import com.zynergylabs.forager.app.domain.PendingDelete
+import com.zynergylabs.forager.app.domain.withoutPending
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 
@@ -64,5 +65,11 @@ data class MushroomLogUiState(
      * hands the screen, so a pending find is gone from the Finds gallery, the Finds chip's count and
      * the All logbook at once (J4), and comes back on Undo.
      */
-    fun hidingPendingDelete(): MushroomLogUiState = this
+    fun hidingPendingDelete(): MushroomLogUiState {
+        if (pendingDelete == null) return this
+        return copy(
+            entries = entries.withoutPending(pendingDelete) { it.id },
+            draftEntries = draftEntries.withoutPending(pendingDelete) { it.id },
+        )
+    }
 }
