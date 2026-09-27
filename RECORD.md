@@ -2476,3 +2476,14 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Written by the planner by hand (owner: "Also RECORD.md by hand", for B3, applied here the same way). The coder's mechanism prediction is in its completion report. Owner's words for this stage: "Open the PR and merge then we can start on the journal redesign"; branch ruling "One journal branch".
 
 ---
+
+**Kind:** continuation
+**ID:** 2026-09-27-50
+**Timestamp:** 2026-09-27T10:32:10Z
+**Continues:** 2026-09-27-49
+**Dispatch-file:** preserved/2026-09-27-17.md
+**Reason:** S4 (the All logbook and type badges), after the J1 coder stopped on three open questions; S1, S2, S3 and S5 were pushed (ff26f29, report 89cdd39)
+**Changes:** none
+**Notes:** Owner's answers, verbatim: "Finds first in the day (Recommended)", "Same rows as their chips (Recommended)", "Committed finds only (Recommended)". On the planner's Back-to-All call the owner said "We'll try it and see if it works". The J1 coder's suite at ff26f29: 229 classes / 1794 / 0 / 0 / 24 (its report; not yet re-run by the planner).
+
+---
