@@ -14,6 +14,8 @@ import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.hasScrollToIndexAction
@@ -428,6 +430,61 @@ class JournalEntriesTest {
         node(albumPhotoTag("u1")).assertExists()
     }
 
+    // ── T3, added by the second coder: the album's two badges (owner, "Two badges") ──
+
+    /**
+     * One photo per case. Entry attachment arrives as the Cartography reference counts
+     * (`cartographyEntryReferenceCounts`), find attachment as [GalleryPhoto.referencingEntryIds];
+     * the counts carry a zero for every unattached photo, as `MushroomLogViewModel.loadGalleryPhotos`
+     * builds them.
+     */
+    private val badgePhotos = listOf(
+        albumPhoto("plain", ALBUM_DAY_1),
+        albumPhoto("in-entry", ALBUM_DAY_1),
+        albumPhoto("in-find", ALBUM_DAY_1, findIds = listOf("find-1")),
+        albumPhoto("in-both", ALBUM_DAY_1, findIds = listOf("find-1", "find-2")),
+    )
+    private val badgeEntryCounts = mapOf("plain" to 0, "in-entry" to 1, "in-find" to 0, "in-both" to 2)
+
+    @Test
+    fun `the album badges each photo by what it is attached to - a journal entry, a find, both, or neither`() {
+        setScreen(galleryPhotos = badgePhotos, galleryPhotoEntryReferenceCounts = badgeEntryCounts)
+        touch(VIEW_ALBUM, Offset(0.5f, 0.5f))
+
+        node(entryBadgeTag("in-entry")).assertExists()
+        node(findBadgeTag("in-entry")).assertDoesNotExist()
+        node(findBadgeTag("in-find")).assertExists()
+        node(entryBadgeTag("in-find")).assertDoesNotExist()
+        node(entryBadgeTag("in-both")).assertExists()
+        node(findBadgeTag("in-both")).assertExists()
+        node(entryBadgeTag("plain")).assertDoesNotExist()
+        node(findBadgeTag("plain")).assertDoesNotExist()
+
+        // Each badge sits on its own photo's tile, and the two on one tile do not overlap.
+        for ((id, badge) in listOf("in-entry" to entryBadgeTag("in-entry"), "in-find" to findBadgeTag("in-find"),
+            "in-both" to entryBadgeTag("in-both"), "in-both" to findBadgeTag("in-both"))) {
+            val tile = bounds(albumPhotoTag(id))
+            val b = bounds(badge)
+            assertTrue("$badge lies inside tile $id: badge $b, tile $tile",
+                b.left >= tile.left && b.right <= tile.right && b.top >= tile.top && b.bottom <= tile.bottom)
+        }
+        assertTrue("the two badges on one tile are distinct marks side by side",
+            !overlaps(bounds(entryBadgeTag("in-both")), bounds(findBadgeTag("in-both"))))
+    }
+
+    @Test
+    fun `each album badge carries a content description a screen reader reads`() {
+        setScreen(galleryPhotos = badgePhotos, galleryPhotoEntryReferenceCounts = badgeEntryCounts)
+        touch(VIEW_ALBUM, Offset(0.5f, 0.5f))
+
+        node(entryBadgeTag("in-entry")).assert(hasContentDescription(ENTRY_BADGE_DESCRIPTION))
+        node(findBadgeTag("in-find")).assert(hasContentDescription(FIND_BADGE_DESCRIPTION))
+        node(entryBadgeTag("in-both")).assert(hasContentDescription(ENTRY_BADGE_DESCRIPTION))
+        node(findBadgeTag("in-both")).assert(hasContentDescription(FIND_BADGE_DESCRIPTION))
+        composeRule.onAllNodesWithContentDescription(ENTRY_BADGE_DESCRIPTION).assertCountEquals(2)
+        composeRule.onAllNodesWithContentDescription(FIND_BADGE_DESCRIPTION).assertCountEquals(2)
+    }
+
     // ── T4: the floating button (timeline half; the album half is an open question in the report) ──
 
     private val manyEntries = CartographyUiState(entries = FAB_ENTRIES)
@@ -517,6 +574,11 @@ private const val ALBUM_DAY_UNKNOWN = "entries-album-day-unknown"
 
 private fun albumDayTag(day: LocalDate): String = "entries-album-day-$day"
 private fun albumPhotoTag(id: String): String = "entries-album-photo-$id"
+private fun entryBadgeTag(id: String): String = "entries-album-badge-entry-$id"
+private fun findBadgeTag(id: String): String = "entries-album-badge-find-$id"
+
+private const val ENTRY_BADGE_DESCRIPTION = "Attached to a journal entry"
+private const val FIND_BADGE_DESCRIPTION = "Attached to a find"
 
 private val ALBUM_DAY_1: LocalDate = LocalDate.of(2026, 9, 26)
 private val ALBUM_DAY_2: LocalDate = LocalDate.of(2026, 9, 20)
