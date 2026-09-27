@@ -10,7 +10,9 @@ package com.zynergylabs.forager.app.ui.availability
 
 import androidx.compose.runtime.key
 import com.zynergylabs.forager.app.ui.log.RecordType
-import com.zynergylabs.forager.app.ui.log.SwipeToDeleteRow
+import com.zynergylabs.forager.app.ui.log.TwoStageSwipeRow
+import com.zynergylabs.forager.app.ui.log.rememberSwipeRevealGroup
+import com.zynergylabs.forager.app.ui.log.swipeRevealTouchWatcher
 import com.zynergylabs.forager.app.ui.log.swipeToDeleteTag
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -168,7 +170,7 @@ private fun PlannedTripRow(trip: PlannedTrip, isToday: Boolean, onDelete: () -> 
  * flat `Column(fillMaxSize())`, which does not — this is now `WaypointsSection`'s only caller.
  *
  * **Delete is a swipe, with Undo (journal redesign J4).** Each row is a
- * [SwipeToDeleteRow]; [onDeleteWaypoint] asks the owning ViewModel for a *pending* delete
+ * [TwoStageSwipeRow] since J4b (L6: a short swipe reveals Delete, a full swipe deletes); [onDeleteWaypoint] asks the owning ViewModel for a *pending* delete
  * (`TrackRecordingViewModel.requestRemoveWaypoint`), which hides the row and shows the Undo snackbar
  * carrying the reference warning. The confirm dialog Journal Stage 2b added here (its 4b warning)
  * is gone with the trash icon: the warning moved into the snackbar (owner ruling "In the Undo
@@ -181,8 +183,10 @@ internal fun WaypointsSection(
     onDeleteWaypoint: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // J4b L6: one open row at a time, and a touch elsewhere on the list closes it.
+    val swipeGroup = rememberSwipeRevealGroup()
     Column(
-        modifier = modifier.verticalScroll(rememberScrollState()),
+        modifier = modifier.swipeRevealTouchWatcher(swipeGroup).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         when {
@@ -199,9 +203,14 @@ internal fun WaypointsSection(
 
             else -> waypoints.forEach { waypoint ->
                 key(waypoint.id) {
-                    SwipeToDeleteRow(
+                    // J4b L6: two-stage swipe. No Edit: nothing in the app edits a waypoint after
+                    // it is dropped (WaypointRepository.save's only caller is CreateWaypointUseCase).
+                    TwoStageSwipeRow(
                         testTag = swipeToDeleteTag(RecordType.WAYPOINTS, waypoint.id),
+                        rowKey = waypoint.id,
+                        group = swipeGroup,
                         onDelete = { onDeleteWaypoint(waypoint.id) },
+                        onEdit = null,
                     ) {
                         WaypointRow(waypoint = waypoint)
                     }
@@ -215,7 +224,7 @@ internal fun WaypointsSection(
  * One saved waypoint: its user-chosen [Waypoint.name] as the primary identifying text, the same
  * MGRS-plus-decimal-degrees coordinate display [PlannedTripRow] uses, and a "Directions" action
  * ([launchDirections]) reusing the exact same `geo:` intent machinery. No delete control of its
- * own since journal redesign J4: its callers wrap it in a [SwipeToDeleteRow].
+ * own since journal redesign J4: its callers wrap it in a [TwoStageSwipeRow] (J4b L6).
  */
 @Composable
 internal fun WaypointRow(waypoint: Waypoint) {

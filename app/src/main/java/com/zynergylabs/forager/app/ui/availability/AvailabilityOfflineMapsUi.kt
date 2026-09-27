@@ -52,7 +52,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import com.zynergylabs.forager.app.ui.log.RecordType
-import com.zynergylabs.forager.app.ui.log.SwipeToDeleteRow
+import com.zynergylabs.forager.app.ui.log.TwoStageSwipeRow
+import com.zynergylabs.forager.app.ui.log.rememberSwipeRevealGroup
+import com.zynergylabs.forager.app.ui.log.swipeRevealTouchWatcher
 import com.zynergylabs.forager.app.ui.log.swipeToDeleteTag
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -330,8 +332,8 @@ private fun OfflineDownloadStatusContent(status: OfflineMapStatus) {
  * reported size — this text deliberately never promises a specific amount reclaimed.
  *
  * Deleting a downloaded region is not reversible without re-downloading it. It used to confirm
- * through a dialog behind each row's "Delete" button; since journal redesign J4 a row is a
- * [SwipeToDeleteRow] and [onDeleteOfflineRegion] asks for a *pending* delete
+ * through a dialog behind each row's "Delete" button; since journal redesign J4 a row swipes (a
+ * [TwoStageSwipeRow] since J4b L6: a short swipe reveals Delete, a full swipe deletes) and [onDeleteOfflineRegion] asks for a *pending* delete
  * (`AvailabilityViewModel.requestDeleteOfflineRegion`): the row hides, the Undo snackbar shows with
  * the reference warning the dialog carried, and MapLibre's tile delete runs only when the snackbar
  * ends without Undo — the only way Undo can be exact for a region.
@@ -353,9 +355,12 @@ private fun OfflineRegionsSection(
     // No scroll/height cap of its own: OfflineMapsPanel's whole Column scrolls as one unit (see
     // its doc comment), so this section just renders at its natural height as the last thing in
     // that scroll.
+    // J4b L6: one open row at a time, and a touch elsewhere in this section closes it.
+    val swipeGroup = rememberSwipeRevealGroup()
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .swipeRevealTouchWatcher(swipeGroup)
             .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
@@ -377,9 +382,14 @@ private fun OfflineRegionsSection(
         } else {
             regions.forEach { region ->
                 key(region.id) {
-                    SwipeToDeleteRow(
+                    // J4b L6: two-stage swipe. No Edit: nothing in the app edits a downloaded region
+                    // (OfflineMapRepository has download, deleteRegion and listRegions only).
+                    TwoStageSwipeRow(
                         testTag = swipeToDeleteTag(RecordType.OFFLINE_MAPS, region.id.toString()),
+                        rowKey = region.id,
+                        group = swipeGroup,
                         onDelete = { onDeleteOfflineRegion(region.id) },
+                        onEdit = null,
                     ) {
                         OfflineRegionRow(
                             region = region,
@@ -405,7 +415,7 @@ private fun OfflineRegionsSection(
  * of to "the one download that just finished."
  *
  * No delete control of its own since journal redesign J4 (the text "Delete" button is gone): its
- * callers wrap it in a [SwipeToDeleteRow].
+ * callers wrap it in a [TwoStageSwipeRow] (J4b L6).
  */
 @Composable
 internal fun OfflineRegionRow(

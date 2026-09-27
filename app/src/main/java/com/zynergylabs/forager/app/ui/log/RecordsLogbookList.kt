@@ -16,6 +16,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -56,8 +58,8 @@ import java.time.format.DateTimeFormatter
  * it, controls included, with a [RecordTypeBadge] in front. Finds sit two to a row, as the Finds
  * gallery's own two-column grid shows them. Deletes confirm through the same dialogs the chips use
  * ([WaypointDeleteDialog], [OfflineRegionDeleteDialog]); nothing about deleting changes in J1.
- * Journal redesign J4 replaced both dialogs: a waypoint's or region's whole badged row is a
- * [SwipeToDeleteRow], as in its own chip, and [onDeleteWaypoint]/[onDeleteOfflineRegion] ask for a
+ * Journal redesign J4 replaced both dialogs: a waypoint's or region's whole badged row swipes, as in its own chip (a
+ * [TwoStageSwipeRow] since J4b L6), and [onDeleteWaypoint]/[onDeleteOfflineRegion] ask for a
  * pending delete with Undo. The regions listed are [AvailabilityUiState.visibleOfflineRegions].
  *
  * **Tapping a find** calls [onOpenFind], which `RecordsTab` turns into "select the Finds chip and open
@@ -92,11 +94,18 @@ internal fun RecordsLogbookList(
         zone = ZoneId.systemDefault(),
     )
     val now = currentTime.nowEpochMillis()
+    // J4b L6: one open row at a time across the logbook; a touch elsewhere or a scroll closes it.
+    val swipeGroup = rememberSwipeRevealGroup()
+    val scrollState = rememberScrollState()
+    LaunchedEffect(scrollState, swipeGroup) {
+        snapshotFlow { scrollState.isScrollInProgress }.collect { scrolling -> if (scrolling) swipeGroup.closeAll() }
+    }
 
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
+            .swipeRevealTouchWatcher(swipeGroup)
+            .verticalScroll(scrollState)
             .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
@@ -132,9 +141,12 @@ internal fun RecordsLogbookList(
                         TrackExportRow(track = record.track, waypoints = waypoints, getFullRecord = getFullRecord)
                     }
                     is TimedRecord.WaypointRecord -> key(RecordType.WAYPOINTS, record.waypoint.id) {
-                        SwipeToDeleteRow(
+                        TwoStageSwipeRow(
                             testTag = swipeToDeleteTag(RecordType.WAYPOINTS, record.waypoint.id),
+                            rowKey = RecordType.WAYPOINTS to record.waypoint.id,
+                            group = swipeGroup,
                             onDelete = { onDeleteWaypoint(record.waypoint.id) },
+                            onEdit = null,
                         ) {
                             BadgedRow(RecordType.WAYPOINTS, record.waypoint.id) {
                                 WaypointRow(waypoint = record.waypoint)
@@ -142,9 +154,12 @@ internal fun RecordsLogbookList(
                         }
                     }
                     is TimedRecord.OfflineRegionRecord -> key(RecordType.OFFLINE_MAPS, record.region.id) {
-                        SwipeToDeleteRow(
+                        TwoStageSwipeRow(
                             testTag = swipeToDeleteTag(RecordType.OFFLINE_MAPS, record.region.id.toString()),
+                            rowKey = RecordType.OFFLINE_MAPS to record.region.id,
+                            group = swipeGroup,
                             onDelete = { onDeleteOfflineRegion(record.region.id) },
+                            onEdit = null,
                         ) {
                             BadgedRow(RecordType.OFFLINE_MAPS, record.region.id.toString()) {
                                 OfflineRegionRow(
