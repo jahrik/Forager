@@ -641,12 +641,8 @@ private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPa
             PropertyFactory.fillOpacity(OFFLINE_REGION_CIRCLE_OPACITY),
         ),
     )
-    style.addLayer(
-        LineLayer(OFFLINE_REGION_CIRCLE_OUTLINE_LAYER_ID, OFFLINE_REGION_CIRCLE_SOURCE_ID).withProperties(
-            PropertyFactory.lineColor(palette.offlineRegion),
-            PropertyFactory.lineWidth(OFFLINE_REGION_CIRCLE_OUTLINE_WIDTH_PX),
-        ),
-    )
+    // The outline is the region's casing: a dashed line in the casing colour (colour build C2 (c)).
+    addLineLayer(style, offlineRegionOutlineSpec(), palette)
 
     style.addSource(GeoJsonSource(SEARCH_CENTER_SOURCE_ID, emptyFeatureCollection()))
     style.addLayer(
@@ -669,42 +665,23 @@ private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPa
             PropertyFactory.circleRadius(SIGHTING_DOT_RADIUS_PX),
             // See sightingStrokeColorExpression's own doc comment — it keys off each feature's own
             // "selected" property, so nothing here needs seeding with the current
-            // focusedObservationId the way an id-comparison expression would. Stroke width stays a
-            // flat SIGHTING_DOT_STROKE_WIDTH_PX for every dot, selected or not — a prior widened
-            // selected-width was tried and reverted on request, to keep the highlight to colour
-            // alone (see SIGHTING_DOT_STROKE_WIDTH_PX's own doc comment for that history).
+            // focusedObservationId the way an id-comparison expression would. The width keys off the
+            // same property: the selected ring is 3dp, every other ring 1.5dp (colour build C2, an
+            // owner-approved tweak; see sightingStrokeWidthExpression).
             PropertyFactory.circleStrokeColor(sightingStrokeColorExpression(palette)),
-            PropertyFactory.circleStrokeWidth(SIGHTING_DOT_STROKE_WIDTH_PX),
+            PropertyFactory.circleStrokeWidth(sightingStrokeWidthExpression()),
             PropertyFactory.circleStrokeOpacity(SIGHTING_DOT_STROKE_OPACITY),
         ),
     )
 
-    // Breadcrumb is dashed (a short dash with round caps reads as a trail of dots —
-    // "breadcrumbs" should look like breadcrumbs). See BREADCRUMB_DASH_PATTERN's own doc comment.
+    // The breadcrumb and the kept tracks, each with its casing directly below it: see
+    // trackLayerSpecs. The breadcrumb is dashed (see BREADCRUMB_DASH_PATTERN); the kept tracks are
+    // solid (keptTracksFeatureCollection has why they are a genuine MultiLineString). The kept tracks'
+    // colour is MapPalette.keptTrack, its own role since colour build C2 (before C2 it borrowed the
+    // retired connector colour of the deleted foraging-areas feature).
     style.addSource(GeoJsonSource(BREADCRUMB_SOURCE_ID, emptyFeatureCollection()))
-    style.addLayer(
-        LineLayer(BREADCRUMB_LAYER_ID, BREADCRUMB_SOURCE_ID).withProperties(
-            PropertyFactory.lineColor(palette.breadcrumb),
-            PropertyFactory.lineWidth(BREADCRUMB_STROKE_WIDTH_PX),
-            PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
-            PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
-            PropertyFactory.lineDasharray(BREADCRUMB_DASH_PATTERN),
-        ),
-    )
-
-    // Kept tracks (Journal Stage 2d): a solid line, distinct from the live breadcrumb's dash — see
-    // keptTracksFeatureCollection's own doc comment for why this is a genuine MultiLineString, not
-    // breadcrumbPoints reshaped. Its colour is MapPalette.keptTrack, its own role since colour build
-    // C2 (before C2 it borrowed the retired connector colour of the deleted foraging-areas feature).
     style.addSource(GeoJsonSource(KEPT_TRACKS_SOURCE_ID, emptyFeatureCollection()))
-    style.addLayer(
-        LineLayer(KEPT_TRACKS_LAYER_ID, KEPT_TRACKS_SOURCE_ID).withProperties(
-            PropertyFactory.lineColor(palette.keptTrack),
-            PropertyFactory.lineWidth(KEPT_TRACK_STROKE_WIDTH_PX),
-            PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
-            PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
-        ),
-    )
+    trackLayerSpecs().forEach { addLineLayer(style, it, palette) }
 
     style.addSource(GeoJsonSource(PLANNED_TRIP_SOURCE_ID, emptyFeatureCollection()))
     style.addLayer(
@@ -1009,6 +986,109 @@ internal fun sightingStrokeColorExpression(palette: MapPalette): Expression =
     )
 
 /**
+ * The sighting layer's `circle-stroke-width`: [SIGHTING_DOT_SELECTED_STROKE_WIDTH_PX] (3dp) for the
+ * dot [sightingsFeatureCollection] marks `"selected"`, [SIGHTING_DOT_STROKE_WIDTH_PX] (1.5dp) for every
+ * other. Keyed on the same boolean property as [sightingStrokeColorExpression], for the same reason.
+ *
+ * Colour build C2, an owner-approved tweak: the highlight is colour **and** width again. Widths of
+ * 3.5 and 4.5px were tried before and reverted on request to keep the highlight to colour alone
+ * ([SIGHTING_DOT_STROKE_WIDTH_PX] has that history); the owner approved 3dp on the glyph board.
+ */
+internal fun sightingStrokeWidthExpression(): Expression =
+    Expression.switchCase(
+        Expression.get("selected"),
+        Expression.literal(SIGHTING_DOT_SELECTED_STROKE_WIDTH_PX),
+        Expression.literal(SIGHTING_DOT_STROKE_WIDTH_PX),
+    )
+
+/**
+ * One overlay [LineLayer], described without constructing it: [LineLayer] calls a native
+ * initialiser from its constructor, so a headless test cannot build one, but it can read this
+ * (`SightingsMapOverlayDataTest`). [addLineLayer] is the only thing that turns one into a layer, so
+ * what the test reads is what the map draws. Widths are MapLibre style units, which are dp.
+ */
+internal data class LineLayerSpec(
+    val layerId: String,
+    val sourceId: String,
+    /** The palette role this line is drawn in. */
+    val colour: (MapPalette) -> Int,
+    val widthDp: Float,
+    /** `line-dasharray`, in multiples of [widthDp]; `null` for a solid line. */
+    val dashPattern: List<Float>?,
+    /** Round caps and joins (the tracks); `false` leaves MapLibre's butt caps and miter joins. */
+    val roundCaps: Boolean,
+)
+
+/**
+ * The track lines, in draw order: each track's casing immediately before it, so it draws directly
+ * below it (colour build C2 (c)). A casing is the track's own line, [CASING_WIDTH_DP] wider on each
+ * side, in [MapPalette.casing], and always solid: under the dashed breadcrumb it still outlines the
+ * whole trail, so the dashes read as one path against a busy ground.
+ */
+internal fun trackLayerSpecs(): List<LineLayerSpec> {
+    fun casingFor(track: LineLayerSpec, layerId: String) = track.copy(
+        layerId = layerId,
+        colour = MapPalette::casing,
+        widthDp = track.widthDp + 2 * CASING_WIDTH_DP,
+        dashPattern = null,
+    )
+    val breadcrumb = LineLayerSpec(
+        layerId = BREADCRUMB_LAYER_ID,
+        sourceId = BREADCRUMB_SOURCE_ID,
+        colour = MapPalette::breadcrumb,
+        widthDp = BREADCRUMB_STROKE_WIDTH_PX,
+        dashPattern = BREADCRUMB_DASH_PATTERN.toList(),
+        roundCaps = true,
+    )
+    val keptTrack = LineLayerSpec(
+        layerId = KEPT_TRACKS_LAYER_ID,
+        sourceId = KEPT_TRACKS_SOURCE_ID,
+        colour = MapPalette::keptTrack,
+        widthDp = KEPT_TRACK_STROKE_WIDTH_PX,
+        dashPattern = null,
+        roundCaps = true,
+    )
+    return listOf(
+        casingFor(breadcrumb, BREADCRUMB_CASING_LAYER_ID),
+        breadcrumb,
+        casingFor(keptTrack, KEPT_TRACKS_CASING_LAYER_ID),
+        keptTrack,
+    )
+}
+
+/**
+ * The offline region's outline (colour build C2 (c)): a dashed line in [MapPalette.casing],
+ * [OFFLINE_REGION_CIRCLE_OUTLINE_WIDTH_PX] wide, dash 6dp and gap 4dp, with butt ends. The glyph
+ * board's dash pattern; the region's fill is its own role, [MapPalette.offlineRegion], at
+ * [OFFLINE_REGION_CIRCLE_OPACITY].
+ */
+internal fun offlineRegionOutlineSpec(): LineLayerSpec = LineLayerSpec(
+    layerId = OFFLINE_REGION_CIRCLE_OUTLINE_LAYER_ID,
+    sourceId = OFFLINE_REGION_CIRCLE_SOURCE_ID,
+    colour = MapPalette::casing,
+    widthDp = OFFLINE_REGION_CIRCLE_OUTLINE_WIDTH_PX,
+    dashPattern = listOf(
+        OFFLINE_REGION_OUTLINE_DASH_DP / OFFLINE_REGION_CIRCLE_OUTLINE_WIDTH_PX,
+        OFFLINE_REGION_OUTLINE_GAP_DP / OFFLINE_REGION_CIRCLE_OUTLINE_WIDTH_PX,
+    ),
+    roundCaps = false,
+)
+
+/** Adds the [LineLayer] [spec] describes, in [palette]'s colours. Its source must already exist. */
+private fun addLineLayer(style: Style, spec: LineLayerSpec, palette: MapPalette) {
+    val properties = buildList {
+        add(PropertyFactory.lineColor(spec.colour(palette)))
+        add(PropertyFactory.lineWidth(spec.widthDp))
+        if (spec.roundCaps) {
+            add(PropertyFactory.lineCap(Property.LINE_CAP_ROUND))
+            add(PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND))
+        }
+        spec.dashPattern?.let { add(PropertyFactory.lineDasharray(it.toTypedArray())) }
+    }
+    style.addLayer(LineLayer(spec.layerId, spec.sourceId).withProperties(*properties.toTypedArray()))
+}
+
+/**
  * The active track's recorded points as a single [LineString] feature, oldest first — an empty
  * [FeatureCollection] when [points] has fewer than two points (nothing recorded yet, or only the
  * first fix so far): a `LineString` needs at least two points.
@@ -1140,6 +1220,7 @@ private const val PLANNED_TRIP_LAYER_ID = "planned-trips-layer"
 private const val PLANNED_TRIP_ICON_ID = "planned-trip-diamond"
 private const val BREADCRUMB_SOURCE_ID = "breadcrumb-trail"
 private const val BREADCRUMB_LAYER_ID = "breadcrumb-trail-layer"
+private const val BREADCRUMB_CASING_LAYER_ID = "breadcrumb-trail-casing-layer"
 private const val WAYPOINT_SOURCE_ID = "waypoints"
 private const val WAYPOINT_LAYER_ID = "waypoints-layer"
 private const val WAYPOINT_ICON_ID = "waypoint-pin"
@@ -1147,6 +1228,7 @@ private const val WAYPOINT_ICON_ID = "waypoint-pin"
 // Journal Stage 2d.
 private const val KEPT_TRACKS_SOURCE_ID = "kept-tracks"
 private const val KEPT_TRACKS_LAYER_ID = "kept-tracks-layer"
+private const val KEPT_TRACKS_CASING_LAYER_ID = "kept-tracks-casing-layer"
 private const val FIND_SOURCE_ID = "find-markers"
 private const val FIND_LAYER_ID = "find-markers-layer"
 private const val FIND_ICON_ID = "find-pin"
@@ -1157,10 +1239,17 @@ private const val OFFLINE_REGION_CIRCLE_SOURCE_ID = "offline-region-circles"
 private const val OFFLINE_REGION_CIRCLE_LAYER_ID = "offline-region-circles-layer"
 private const val OFFLINE_REGION_CIRCLE_OUTLINE_LAYER_ID = "offline-region-circles-outline-layer"
 
-// The overlay's colours now come from ui/theme/MapPalette.kt, derived from the active
-// ColorScheme and passed in -- see that type's doc comment for the derivation rule, and for
-// the recorded objection about deriving map colours from a theme the basemap does not follow.
-// Only non-colour geometry constants remain here.
+// The overlay's colours come from ui/theme/MapPalette.kt, hand-authored per role in a day and a
+// night variant and chosen by the Night Maps toggle (MapPalette.forMode) -- not derived from the app
+// theme; that type's doc comment has why. Only non-colour geometry constants remain here.
+
+/**
+ * The casing every marker except the sighting dot is outlined in, on each side of its fill
+ * (colour build C2 (c), the planner's call): the tracks' casing lines are this much wider on each
+ * side, and the marker bitmaps (`MarkerGlyphs.kt`) draw it into their own padding.
+ */
+internal const val CASING_WIDTH_DP = 1.5f
+
 private const val SIGHTING_DOT_OPACITY = 0.7f // ~= the deleted osmdroid version's 0xB3 alpha.
 private const val SIGHTING_DOT_RADIUS_PX = 9f
 
@@ -1171,9 +1260,10 @@ private const val SIGHTING_DOT_RADIUS_PX = 9f
 //
 // The selected dot's ring used to widen this on top of recolouring — first to 3.5px, then to
 // 4.5px alongside MapPalette.sightingDotStrokeSelected moving to a deeper blue — and both were
-// reverted on request: the highlight is colour alone now, [sightingStrokeColorExpression] against
-// this one flat width for every dot, selected or not.
+// reverted on request, leaving the highlight to colour alone. Colour build C2 widens it again, to
+// SIGHTING_DOT_SELECTED_STROKE_WIDTH_PX, as an owner-approved tweak (sightingStrokeWidthExpression).
 internal const val SIGHTING_DOT_STROKE_WIDTH_PX = 1.5f
+internal const val SIGHTING_DOT_SELECTED_STROKE_WIDTH_PX = 3f
 private const val SIGHTING_DOT_STROKE_OPACITY = 0.85f
 
 private const val PLANNED_TRIP_MARKER_SIZE_DP = 22f
@@ -1270,6 +1360,10 @@ private const val WAYPOINT_MARKER_HEIGHT_DP = 28f
 private const val KEPT_TRACK_STROKE_WIDTH_PX = 6f
 private const val OFFLINE_REGION_CIRCLE_OPACITY = 0.2f
 private const val OFFLINE_REGION_CIRCLE_OUTLINE_WIDTH_PX = 1.5f
+
+// The offline outline's dash and gap, in dp (colour build C2 (c), from the glyph board §1).
+private const val OFFLINE_REGION_OUTLINE_DASH_DP = 6f
+private const val OFFLINE_REGION_OUTLINE_GAP_DP = 4f
 
 /**
  * A short dash with round line caps ([Property.LINE_CAP_ROUND], already set on the breadcrumb
