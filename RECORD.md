@@ -2563,3 +2563,19 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Carried to J4 by owner ruling: the multi-track thumbnail (all kept tracks in one box, scaled together) and stat (sum with a track count); and "Fix in J4 (Recommended)" for MainActivity.kt:75 and :179, which turn a failed offline-region or waypoint reference count into 0 with no log. Device-only items are in the report.
 
 ---
+
+**Kind:** intent
+**ID:** 2026-09-27-57
+**Timestamp:** 2026-09-27T17:13:46Z
+**Title:** Journal redesign J4: swipe-to-delete with a delayed delete and an Undo snackbar on waypoint and offline-region rows, Undo for find deletes from the report, the multi-track card, and two logged fallbacks
+**Dispatch-file:** preserved/2026-09-27-21.md
+**Change:** docs/plans/journal-redesign.md stage J4 (plan decision J8) in the owner's form: D1 a pending-delete holder per record type in the ViewModel that owns the delete, committed when the snackbar ends for any reason but Undo or when the ViewModel is cleared, Undo deleting nothing; D2 waypoint rows and D3 offline-region rows swipe end-to-start with the reference warning in the snackbar, trash icon and text button gone, MapLibre tile delete deferred; D4 find delete from the report through the same holder; D5 multi-track thumbnail (all in one box) and stat (sum with a count); D6 logged fallbacks at MainActivity.kt:75 and :179.
+**Scope boundary:** Branch journal-redesign only. The three ViewModels (pending holders only), the waypoint, region, finds-report and Records row composables, the Journal snackbar wiring, CartographyEntryCard.kt and TrackThumbnail.kt, MainActivity.kt, tests. Not gallery-photo or Cartography-entry deletes, no track delete, not LogPanel or the wide tree (J6), not J5, not Room or DAOs, not the map screens, not the record, index, CLAUDE.md, plans or prompts. No PR or merge.
+**Baseline:** journal-redesign at 19f5216 after J3 (terminal 2026-09-27-56). Planner's full suite at 5a6a061, the same app tree: 236 classes / 1869 / 0 / 0 / 24.
+**Prediction (outcome — planner):** 1. No DAO or repository signature changes. 2. The waypoint and region confirm-dialog tests are rewritten, not moved. 3. The suite grows by 30 to 60 tests, 0 failures, skipped unchanged.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** D1-D6 pushed to journal-redesign with the completion report; tests first, real swipes, the accessibility action and revert checks as the dispatch requires; full suite 0 failures; the planner re-runs the suite and writes the terminal. No PR or merge.
+**Abort conditions:** A wrong premise; a region delete during download needing new behaviour; a delete that cannot be deferred without a DAO change; a tests-first test passing at base; a revert build with compile errors; an unrelated test failing (reported, not touched); Maven 429s on a new artifact; two failed fixes on one symptom; an open design question.
+**Notes:** Written by the planner by hand. Owner rulings, verbatim: "Swipe + Undo, delayed delete (Recommended)" (J0); "In the Undo snackbar (Recommended)", "Keep inside the report (Recommended)" (asked for J4); "All in one box (Recommended)", "Sum, with a count (Recommended)", "Fix in J4 (Recommended)" (on J3's questions). Planner's calls, open to the owner: where pending deletes live and when they commit, end-to-start swipe, a mandatory "Delete" accessibility action, and a stop on region deletes during download.
+
+---
