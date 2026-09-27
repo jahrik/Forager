@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
+import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
 /**
@@ -77,6 +78,8 @@ internal fun DraftsListScreen(
     /** The user's distance unit, for a card's track stat (J3, C1: the shared list's cards need it). */
     distanceUnit: DistanceUnit,
     columns: Int,
+    /** For a draft card's hero photo (J3, C2), as on the timeline. */
+    galleryPhotos: List<GalleryPhoto> = emptyList(),
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.testTag(DRAFTS_LIST_TAG)) {
@@ -95,6 +98,7 @@ internal fun DraftsListScreen(
             onOpenEntry = onOpenDraft,
             emptyMessage = "No drafts. An entry you haven't finished shows up here.",
             distanceUnit = distanceUnit,
+            galleryPhotos = galleryPhotos,
             columns = columns,
             modifier = Modifier.weight(1f),
         )

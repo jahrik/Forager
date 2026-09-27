@@ -175,6 +175,9 @@ class JournalEntryCardsTest {
     private fun textIn(cardTag: String, text: String): SemanticsNodeInteraction =
         composeRule.onNode(hasText(text) and hasAnyAncestor(hasTestTag(cardTag)), useUnmergedTree = true)
 
+    /** A node tagged [tag] inside a card: the unmerged tree, since the card merges its children (see [textIn]). */
+    private fun inCard(tag: String): SemanticsNodeInteraction = composeRule.onNodeWithTag(tag, useUnmergedTree = true)
+
     private fun scrollListTo(tag: String) {
         composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasTestTag(tag))
         composeRule.waitForIdle()
@@ -308,11 +311,11 @@ class JournalEntryCardsTest {
     fun `the hero is the earliest attached photo still in the gallery, skipping an earlier deleted one, on top of the card`() {
         setScreen(listOf(HERO_ENTRY), galleryPhotos = listOf(galleryPhoto("p-new"), galleryPhoto("p-mid")))
 
-        node(heroTag(HERO_ENTRY.id, "p-mid")).assertIsDisplayed()
-        node(heroTag(HERO_ENTRY.id, "p-deleted")).assertDoesNotExist()
-        node(heroTag(HERO_ENTRY.id, "p-new")).assertDoesNotExist()
-        composeRule.onAllNodes(hasTagPrefix("entry-hero-")).assertCountEquals(1)
-        val hero = node(heroTag(HERO_ENTRY.id, "p-mid")).getUnclippedBoundsInRoot()
+        inCard(heroTag(HERO_ENTRY.id, "p-mid")).assertIsDisplayed()
+        inCard(heroTag(HERO_ENTRY.id, "p-deleted")).assertDoesNotExist()
+        inCard(heroTag(HERO_ENTRY.id, "p-new")).assertDoesNotExist()
+        composeRule.onAllNodes(hasTagPrefix("entry-hero-"), useUnmergedTree = true).assertCountEquals(1)
+        val hero = inCard(heroTag(HERO_ENTRY.id, "p-mid")).getUnclippedBoundsInRoot()
         val card = node(cardTag(HERO_ENTRY.id)).getUnclippedBoundsInRoot()
         val title = textIn(cardTag(HERO_ENTRY.id), "Hero walk").getUnclippedBoundsInRoot()
         assertTrue("the hero sits inside the card, at its top ($hero in $card)", hero.top >= card.top && hero.top - card.top <= 1.dp && hero.bottom <= card.bottom)
@@ -324,8 +327,8 @@ class JournalEntryCardsTest {
         setScreen(listOf(HERO_ENTRY, FULL_ENTRY), galleryPhotos = listOf(galleryPhoto("p-mid")))
 
         // Positive control: the entry with a photo does draw one.
-        node(heroTag(HERO_ENTRY.id, "p-mid")).assertExists()
-        composeRule.onAllNodes(hasTagPrefix("entry-hero-${FULL_ENTRY.id}-")).assertCountEquals(0)
+        inCard(heroTag(HERO_ENTRY.id, "p-mid")).assertExists()
+        composeRule.onAllNodes(hasTagPrefix("entry-hero-${FULL_ENTRY.id}-"), useUnmergedTree = true).assertCountEquals(0)
     }
 
     @Test
@@ -333,10 +336,10 @@ class JournalEntryCardsTest {
         setScreen(listOf(PHOTO_ONLY_ENTRY, PHOTO_GONE_ENTRY), galleryPhotos = listOf(galleryPhoto("p-only")))
 
         node(cardTag(PHOTO_ONLY_ENTRY.id)).assertIsDisplayed()
-        node(heroTag(PHOTO_ONLY_ENTRY.id, "p-only")).assertIsDisplayed()
+        inCard(heroTag(PHOTO_ONLY_ENTRY.id, "p-only")).assertIsDisplayed()
         node(rowTag(PHOTO_ONLY_ENTRY.id)).assertDoesNotExist()
         node(rowTag(PHOTO_GONE_ENTRY.id)).assertIsDisplayed()
-        composeRule.onAllNodes(hasTagPrefix("entry-hero-${PHOTO_GONE_ENTRY.id}-")).assertCountEquals(0)
+        composeRule.onAllNodes(hasTagPrefix("entry-hero-${PHOTO_GONE_ENTRY.id}-"), useUnmergedTree = true).assertCountEquals(0)
     }
 
     @Test
