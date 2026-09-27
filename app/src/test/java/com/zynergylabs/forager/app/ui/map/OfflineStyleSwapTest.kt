@@ -49,8 +49,12 @@ class OfflineStyleSwapTest {
 
             assertTrue("$basemap day must be a JSON style", day is MapStyleSource.Json)
             assertTrue("$basemap must name its own tile template", (day as MapStyleSource.Json).json.contains(basemap.tileUrlTemplate))
-            assertTrue("$basemap night must still be the basemap's JSON style, with night paint", (night as MapStyleSource.Json).json.contains("raster-saturation"))
-            assertFalse("day must not carry the night paint", day.json.contains("raster-saturation"))
+            assertEquals(
+                "$basemap night must still be the basemap's JSON style, with the V1 night paint unless it is Satellite",
+                basemap != Basemap.USGS_IMAGERY_ONLY,
+                (night as MapStyleSource.Json).json.contains("raster-hue-rotate"),
+            )
+            assertFalse("day must not carry the night paint", day.json.contains("raster-hue-rotate"))
         }
     }
 

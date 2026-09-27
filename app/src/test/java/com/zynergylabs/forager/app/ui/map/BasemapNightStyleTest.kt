@@ -7,7 +7,6 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -17,11 +16,10 @@ import org.junit.Test
  * initialiser — so this asserts the document handed to MapLibre, not the render.
  *
  * That boundary is the point of the check rather than a limitation of it: the failure this guards
- * against is the paint block being absent, malformed, or applied in day mode, all of which are
- * properties of the JSON. Whether the desaturation/contrast tuning is *comfortable*, and whether
- * markers stay legible against the now-full-brightness ground (see `BasemapStyles.kt`'s
- * `NIGHT_RASTER_PAINT` doc comment, "Dimming removed"), are device-gate questions and no assertion
- * here speaks to either.
+ * against is the paint block being absent, malformed, applied in day mode, or applied to Satellite,
+ * all of which are properties of the JSON. Whether the V1 inversion looks right on a device, and
+ * whether markers stay legible against the inverted ground (colour build C2), are device questions
+ * and no assertion here speaks to either.
  */
 class BasemapNightStyleTest {
 
@@ -44,31 +42,36 @@ class BasemapNightStyleTest {
     }
 
     /**
-     * No brightness assertion here any more — see `BasemapStyles.kt`'s `NIGHT_RASTER_PAINT` doc
-     * comment, "Dimming removed": `raster-brightness-max` is not a property this style JSON sets
-     * at all now, night or day, so there is nothing to assert a range on.
+     * The V1 night transform (owner's choice; `docs/audits/2026-09-27-marker-swatch-board.md` §1):
+     * exactly `raster-brightness-min 1`, `raster-brightness-max 0` and `raster-hue-rotate 180`, and
+     * nothing else. Replaces the earlier desaturate-and-contrast block, whose `raster-saturation` and
+     * `raster-contrast` are asserted absent here on purpose, as is the old "no brightness at all".
      */
     @Test
-    fun `night mode desaturates and re-sharpens every basemap, without dimming it`() {
-        for (basemap in Basemap.entries) {
+    fun `night mode on Topographical and Street carries exactly the three V1 properties`() {
+        for (basemap in listOf(Basemap.OPEN_TOPO_MAP, Basemap.OSM_STANDARD)) {
             val paint = rasterLayer(basemap, night = true)["paint"]
                 ?: error("${basemap.name} has no raster paint in night mode")
             val obj = paint.jsonObject
 
-            assertTrue(
-                "${basemap.name}: raster-brightness-max should not be set at all -- dimming was removed",
-                "raster-brightness-max" !in obj,
+            assertEquals(
+                "${basemap.name}: the night paint is exactly the V1 properties",
+                setOf("raster-brightness-min", "raster-brightness-max", "raster-hue-rotate"),
+                obj.keys,
             )
-
-            val saturation = obj.getValue("raster-saturation").jsonPrimitive.double
-            assertTrue(
-                "${basemap.name}: saturation $saturation should pull colour out, not add it",
-                saturation < 0.0 && saturation >= -1.0,
-            )
-
-            val contrast = obj.getValue("raster-contrast").jsonPrimitive.double
-            assertTrue("${basemap.name}: contrast $contrast out of spec range", contrast in -1.0..1.0)
+            assertEquals("${basemap.name}: brightness-min", 1.0, obj.getValue("raster-brightness-min").jsonPrimitive.double, 0.0)
+            assertEquals("${basemap.name}: brightness-max", 0.0, obj.getValue("raster-brightness-max").jsonPrimitive.double, 0.0)
+            assertEquals("${basemap.name}: hue-rotate", 180.0, obj.getValue("raster-hue-rotate").jsonPrimitive.double, 0.0)
         }
+    }
+
+    /** Owner ruling: "Satellite stays as it is at night". Its night document is its day document. */
+    @Test
+    fun `Satellite's night style JSON equals its day style JSON`() {
+        val day = json.parseToJsonElement(styleJsonFor(Basemap.USGS_IMAGERY_ONLY, night = false))
+        val night = json.parseToJsonElement(styleJsonFor(Basemap.USGS_IMAGERY_ONLY, night = true))
+
+        assertEquals(day, night)
     }
 
     @Test
