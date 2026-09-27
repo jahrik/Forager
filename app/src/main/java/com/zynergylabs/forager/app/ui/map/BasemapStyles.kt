@@ -107,11 +107,16 @@ sealed interface MapStyleSource {
 
 /**
  * The offline style when [useOfflineTiles] is on, regardless of [basemap] and [night]; the
- * basemap's own raster style otherwise. **Night is deliberately inert on the offline style** (owner
- * ruling, 2e-ii: report what the user sees, do not fix): `NIGHT_RASTER_PAINT` is a raster paint
- * block on the raster layer, and the offline style has 57 vector layers and no raster layer, so
- * there is nothing for it to apply to. A user with Night Maps on will see the day palette of the
- * offline style. Stated here so it is a known limitation, not a surprise.
+ * basemap's own raster style otherwise, with the night paint when [night] is on and the basemap
+ * takes it ([basemapTakesNightPaint]).
+ *
+ * The offline source ignores [night] because the store holds one style document, keyed by its one
+ * URL: `NIGHT_RASTER_PAINT` is a raster paint block, and the offline style has 57 vector layers and
+ * no raster layer, so there is nothing for it to apply to. Stage 2e-ii left night inert there (owner
+ * ruling: report, do not fix). Since colour build C1 the offline style's night is applied after it
+ * loads, by recolouring its own layers with the same V1 transform ([offlineNightRecolourOf], called
+ * from `SightingsMap`'s `setStyle` callback), rather than by a second style URL that would need its
+ * own download.
  */
 internal fun mapStyleSourceFor(basemap: Basemap, night: Boolean, useOfflineTiles: Boolean): MapStyleSource =
     if (useOfflineTiles) MapStyleSource.Uri(OFFLINE_STYLE_URL) else MapStyleSource.Json(styleJsonFor(basemap, night))

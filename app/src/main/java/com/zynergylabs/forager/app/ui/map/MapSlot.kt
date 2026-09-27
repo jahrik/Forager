@@ -40,8 +40,9 @@ import com.zynergylabs.forager.app.domain.model.Waypoint
 data class MapRenderMode(
     val basemap: Basemap,
     /**
-     * Night mode: a slightly desaturated, higher-contrast basemap (`BasemapStyles.kt`'s
-     * `NIGHT_RASTER_PAINT`). Overlay markers (sightings, area markers, planned trips, waypoints)
+     * Night mode: the basemap's colours inverted with hue kept (the V1 transform, `BasemapStyles.kt`'s
+     * `NIGHT_RASTER_PAINT`), except Satellite, which stays day; the offline style is recoloured with
+     * the same transform after it loads. Overlay markers (sightings, area markers, planned trips, waypoints)
      * render identically regardless of this flag — see `MapPalette`'s own doc comment, "Markers
      * stay day-only, always." Not the device's dark theme, and deliberately not derived from it —
      * see `MapPalette` for why that was tried, measured and abandoned.
@@ -82,8 +83,8 @@ data class MapRenderMode(
      * 2e-i surfaced the choice; **Stage 2e-ii acts on it**). Read by [SightingsMap], which loads
      * `OFFLINE_STYLE_URL` by URI when this is `true` — the exact string every region was downloaded
      * against, so MapLibre's offline database can serve it — and the basemap's raster style
-     * otherwise; see `mapStyleSourceFor`'s own doc comment for why by URI, and for why night mode
-     * is inert on the offline style. The attribution caption follows it (`mapAttributionFor`).
+     * otherwise; see `mapStyleSourceFor`'s own doc comment for why by URI, and for how night mode
+     * reaches the offline style (a post-load recolour, colour build C1). The attribution caption follows it (`mapAttributionFor`).
      * Manual only, by owner ruling: an automatic swap on losing connectivity would need
      * connectivity code this app does not have, and would reload the style mid-pan.
      *

@@ -173,8 +173,9 @@ fun SightingsMap(
     /** See [com.zynergylabs.forager.app.ui.map.MapSlot]'s doc comment on this same parameter. */
     onCameraIdle: (LatLng) -> Unit = {},
     /**
-     * Night mode: a slightly desaturated, higher-contrast basemap (`BasemapStyles.kt`'s
-     * `NIGHT_RASTER_PAINT`). Sightings, area markers and every other overlay marker draw
+     * Night mode: the basemap's colours inverted with hue kept (the V1 transform, `BasemapStyles.kt`'s
+     * `NIGHT_RASTER_PAINT`), except Satellite, which stays day; over the offline style, the same
+     * transform applied to its own layers after it loads (`applyOfflineNightRecolour`). Sightings, area markers and every other overlay marker draw
      * identically to day mode regardless of this flag — see [MapPalette]'s own doc comment,
      * "Markers stay day-only, always" for why that's deliberate, not an oversight. Still drives
      * the map's own twilight trigger and long-press override; only what those feed into markers
@@ -396,7 +397,8 @@ fun SightingsMap(
         onDispose { }
     }
 
-    // Style swap: basemap, palette, or — Stage 2e-ii — the offline style. Keyed on the inputs
+    // Style swap: basemap, palette, the offline style (Stage 2e-ii), or effective night (colour
+    // build C1: nightMode is a key, and AppliedMapStyle.night is compared). Keyed on the inputs
     // rather than driven from an AndroidView update block: setStyle is asynchronous (its callback
     // is where the new style's sources/layers can actually be added), which the old synchronous
     // update-block shape has no equivalent of.
@@ -406,12 +408,13 @@ fun SightingsMap(
     // MapLibre's offline database can serve the style document, its TileJSON and its tiles from
     // the store. Nothing else about the swap differs from a basemap swap: initializeOverlayLayers
     // re-adds every overlay in the callback exactly as it does for a basemap change, and the
-    // data+camera refresh effect below re-pushes their content keyed on loadedStyle. Two things
-    // deliberately left as the user will see them (owner ruling, 2e-ii: report, do not fix):
-    // nightMode has no effect on the offline style (mapStyleSourceFor's doc comment), and the max
+    // data+camera refresh effect below re-pushes their content keyed on loadedStyle. One thing
+    // deliberately left as the user will see it (owner ruling, 2e-ii: report, do not fix): the max
     // zoom preference stays the *basemap's* (17 for OpenTopoMap) over a store that stops at zoom
     // 15 — vector tiles overzoom cleanly, per OfflineMapRepository.MAX_ZOOM's doc comment, so the
-    // user can zoom past the data's own ceiling without a hard stop.
+    // user can zoom past the data's own ceiling without a hard stop. 2e-ii also left night inert
+    // on the offline style; since colour build C1 it is applied by recolouring the loaded style's
+    // own layers in the setStyle callback below (mapStyleSourceFor's doc comment).
     //
     // A style that fails to load (offline with no region covering the camera, a worker URL that
     // moved, a cold store) never reaches this callback, so appliedStyle and loadedStyle keep their
@@ -438,7 +441,8 @@ fun SightingsMap(
         // CameraMode.NONE if the user had already broken tracking by panning/zooming;
         // CameraMode.TRACKING if they hadn't. Restoring exactly this, rather than always
         // re-forcing TRACKING, is the fix for a real hardware report: switching basemap (or
-        // toggling night mode, which goes through this same style-swap path) was recentering the
+        // toggling night mode, which goes through this same style-swap path everywhere but over
+        // Satellite, whose style does not change at night) was recentering the
         // map on the user's location even after they had deliberately panned away — the
         // GPS/locate-me icon is the control for that, not this one.
         val previousCameraMode = if (map.locationComponent.isLocationComponentActivated) {
@@ -790,7 +794,8 @@ private fun refreshOverlayData(
  * unit-testable. Real hardware report this fixes: that effect is keyed on `loadedStyle` (needed so
  * [refreshOverlayData] above re-runs after a basemap swap blanks the style), but with no guard, it
  * also re-ran the camera move below whenever GPS tracking wasn't active — including on a basemap
- * or night-mode swap that changed neither `region` nor `focusOverride` — which read as "changing
+ * or night-mode swap (a night toggle reloads the style everywhere but over Satellite, since colour
+ * build C1) that changed neither `region` nor `focusOverride` — which read as "changing
  * map style brought the map back to my location" even though the GPS/locate-me icon is the only
  * control meant to do that. Comparing [target] against [lastAppliedCameraTarget] — what was
  * actually last applied, not merely that the effect ran again — is what tells "the search moved"
@@ -840,7 +845,7 @@ internal fun locationIndicatorTrackingAnimationMultiplier(): Float =
  *
  * [restoreCameraMode] is what this composable's own basemap-swap effect passes to avoid a real
  * hardware-reported bug: `setStyle` (any basemap change, or a night-mode toggle, which shares this
- * same path) discards the LocationComponent outright, so this function has to run again on every
+ * same path everywhere but over Satellite) discards the LocationComponent outright, so this function has to run again on every
  * such swap just to keep the puck visible — but always re-forcing [CameraMode.TRACKING] here, as
  * this used to do, snapped the camera back onto the user's location on every basemap switch even
  * after they had deliberately panned away, which the GPS/locate-me icon is the control for, not
