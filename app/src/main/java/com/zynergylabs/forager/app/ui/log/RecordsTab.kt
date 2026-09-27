@@ -9,6 +9,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -119,9 +120,16 @@ internal fun RecordsTab(
     pendingSubTab: RecordsSubTab? = null,
     /** Fires once [pendingSubTab] has been applied — the caller clears its own copy so the same request doesn't reapply after the user has since navigated elsewhere. */
     onPendingSubTabConsumed: () -> Unit = {},
+    /**
+     * Where the selection lives. [JournalTab] passes [JournalScreenState.recordsFilterState], hoisted
+     * and saveable (journal redesign J1, S1), so the selection survives leaving the Journal tab and
+     * an Activity recreation. The default is local, plain `remember` state, which is what [LogPanel]
+     * (the wide tree, out of scope until plan stage J6) still gets, unchanged.
+     */
+    selectedTabState: MutableState<RecordsSubTab> = remember { mutableStateOf(DEFAULT_RECORDS_FILTER) },
     modifier: Modifier = Modifier,
 ) {
-    var selectedTab by remember { mutableStateOf(RecordsSubTab.WAYPOINTS) }
+    var selectedTab by selectedTabState
 
     LaunchedEffect(pendingSubTab) {
         if (pendingSubTab != null) {
