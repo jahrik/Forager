@@ -216,10 +216,9 @@ fun SightingsMap(
 ) {
     val context = LocalContext.current
 
-    // Always MapPalette.DAY, deliberately independent of nightMode — see MapPalette's own doc
-    // comment, "Markers stay day-only, always." MapPalette.NIGHT/forMode still exist and are
-    // still tested (MapPaletteTest), just not read here any more.
-    val mapPalette = MapPalette.DAY
+    // The marker palette is MapPalette.forMode(nightMode) on every basemap, Satellite included
+    // (colour build C2). It is chosen inside requestedMapStyle, below, rather than here, so that a
+    // headless test reaches it (OfflineStyleSwapTest); the style effect reads requested.palette.
     val lifecycleOwner = LocalLifecycleOwner.current
 
     val mapView = remember {
@@ -422,14 +421,13 @@ fun SightingsMap(
     // OnDidFailLoadingMapListener registered in the DisposableEffect above, never swallowed; what
     // the user should be *told* in that state is a decision the pre-build report lists and this
     // dispatch did not make.
-    LaunchedEffect(mapLibreMap, basemap, mapPalette, useOfflineTiles, nightMode, nightModeLoaded) {
+    LaunchedEffect(mapLibreMap, basemap, useOfflineTiles, nightMode, nightModeLoaded) {
         val map = mapLibreMap ?: return@LaunchedEffect
         // null until the Night Maps preference has loaded (the cold-launch gate): the effect
         // relaunches when nightModeLoaded turns true, and the first style it requests is then the
         // right one. The map shows MapLibre's own blank until then.
         val requested = requestedMapStyle(
             basemap = basemap,
-            palette = mapPalette,
             useOfflineTiles = useOfflineTiles,
             nightMode = nightMode,
             nightModeLoaded = nightModeLoaded,
@@ -441,8 +439,9 @@ fun SightingsMap(
         // CameraMode.NONE if the user had already broken tracking by panning/zooming;
         // CameraMode.TRACKING if they hadn't. Restoring exactly this, rather than always
         // re-forcing TRACKING, is the fix for a real hardware report: switching basemap (or
-        // toggling night mode, which goes through this same style-swap path everywhere but over
-        // Satellite, whose style does not change at night) was recentering the
+        // toggling night mode, which goes through this same style-swap path on every basemap:
+        // since colour build C2 the marker palette follows the toggle even over Satellite, whose
+        // basemap style stays day) was recentering the
         // map on the user's location even after they had deliberately panned away — the
         // GPS/locate-me icon is the control for that, not this one.
         val previousCameraMode = if (map.locationComponent.isLocationComponentActivated) {
@@ -462,7 +461,7 @@ fun SightingsMap(
             // fill layers are never touched. Day, or night off, restyles nothing: the style came
             // fresh from its URI.
             if (requested.useOfflineTiles && requested.night) applyOfflineNightRecolour(style)
-            initializeOverlayLayers(style, density = context.resources.displayMetrics.density, palette = mapPalette)
+            initializeOverlayLayers(style, density = context.resources.displayMetrics.density, palette = requested.palette)
             // The data+camera refresh effect below re-pushes every source right after this, keyed
             // on loadedStyle among other things — including the sighting source, with "selected"
             // baked in from whatever focusedObservationId is current at that point. Nothing here
@@ -793,8 +792,8 @@ private fun refreshOverlayData(
  * unit-testable. Real hardware report this fixes: that effect is keyed on `loadedStyle` (needed so
  * [refreshOverlayData] above re-runs after a basemap swap blanks the style), but with no guard, it
  * also re-ran the camera move below whenever GPS tracking wasn't active — including on a basemap
- * or night-mode swap (a night toggle reloads the style everywhere but over Satellite, since colour
- * build C1) that changed neither `region` nor `focusOverride` — which read as "changing
+ * or night-mode swap (a night toggle reloads the style on every basemap since colour build C2, over
+ * Satellite for the marker palette alone) that changed neither `region` nor `focusOverride` — which read as "changing
  * map style brought the map back to my location" even though the GPS/locate-me icon is the only
  * control meant to do that. Comparing [target] against [lastAppliedCameraTarget] — what was
  * actually last applied, not merely that the effect ran again — is what tells "the search moved"
@@ -844,7 +843,7 @@ internal fun locationIndicatorTrackingAnimationMultiplier(): Float =
  *
  * [restoreCameraMode] is what this composable's own basemap-swap effect passes to avoid a real
  * hardware-reported bug: `setStyle` (any basemap change, or a night-mode toggle, which shares this
- * same path everywhere but over Satellite) discards the LocationComponent outright, so this function has to run again on every
+ * same path on every basemap, Satellite included since colour build C2) discards the LocationComponent outright, so this function has to run again on every
  * such swap just to keep the puck visible — but always re-forcing [CameraMode.TRACKING] here, as
  * this used to do, snapped the camera back onto the user's location on every basemap switch even
  * after they had deliberately panned away, which the GPS/locate-me icon is the control for, not
