@@ -183,6 +183,15 @@ data class AvailabilityUiState(
      * load completes.
      */
     val nightModeMaps: Boolean = false,
+    /**
+     * Whether the Night Maps preference read has completed, successfully or not — colour build C1's
+     * cold-launch gate. [nightModeMaps] is read asynchronously from `init`, and the map's style
+     * effect only waits for the map itself, so without this a night user could get a day style that
+     * never switches. `SightingsMap` loads no style while this is `false`. Set `true` by
+     * `AvailabilityViewModel.loadNightModePreferences` on success (together with the value) and on
+     * failure (logged, [nightModeMaps] left `false`), so it can never hold the map blank forever.
+     */
+    val nightModeMapsLoaded: Boolean = false,
 
     /**
      * Settings' "Automatically Save Location to Photos" checkbox — see

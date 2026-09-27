@@ -561,3 +561,58 @@ the rule this document records: `COMPACT` below 600 dp wide, the
 `PermanentNavigationDrawer` + `CombinedResultsPane` tree otherwise. The known
 `MEDIUM` defect and the open `EXPANDED` question above stand for those
 windows.
+
+## Addendum, 2026-09-27: night mode as built (colour build C1, basemap)
+
+Appended; no earlier text in this document is edited.
+
+**Night Maps did nothing before this build.** The style-swap effect in
+`SightingsMap.kt` was not keyed on night mode, and the value it compared to
+decide whether to reload (`AppliedMapStyle`) had no night component, so a
+toggle never reached `setStyle`. Two earlier passages read differently from
+what the code did: the recentering fix under "Icon stack superseded again"
+(lines 382-386 as of `d0ae612`) describes toggling night mode as a style swap
+on the same path as a basemap switch, which it was not until now; and
+"Deferred: night-mode colour inversion" (lines 459-467 as of `d0ae612`)
+records that the raster paint properties have no per-pixel invert, so that
+inversion would need tile interception. The second was wrong about the
+consequence. `raster-brightness-min 1` with `raster-brightness-max 0` swaps
+the output range and inverts every channel. The spike and tile measurement
+(`docs/audits/2026-09-27-night-inversion-spike-and-tile-measurement.md`)
+measured that on the S22, and the swatch board
+(`docs/audits/2026-09-27-marker-swatch-board.md`, section 2) cites the formula
+from MapLibre's shader source.
+
+**What was built:**
+
+- **V1, the owner's choice.** `NIGHT_RASTER_PAINT` is exactly
+  `raster-brightness-min 1`, `raster-brightness-max 0` and
+  `raster-hue-rotate 180`. MapLibre's shader then gives
+  `night = clamp(c + 1 - 2 * mean(r, g, b))` per channel: lightness inverts,
+  hue stays. Plain inversion (V2, with no hue rotate) was rejected because it
+  turns the ground blue-violet ("The blue in V2 ... can be an eyesore at
+  night").
+- **Satellite stays day** ("Satellite stays as it is at night; only the
+  markers switch to night colours"). `basemapTakesNightPaint` is false only
+  for `USGS_IMAGERY_ONLY`. The reload guard compares *effective* night, so a
+  toggle over Satellite does not reload for nothing.
+- **Offline night, by recolour.** The offline vector style is still loaded
+  from its one URL. It has no raster layer for the paint to act on. After it
+  loads, and before the overlays are added, each background, fill and line
+  colour property is set to its V1 value (`NightColour.kt`'s `nightColorOf`
+  and `offlineNightRecolourOf`, including the colour literals inside
+  `match`, `case` and `interpolate` expressions). Anything the recolour
+  cannot read is left in its day colour and logged. A second, night style
+  URL was rejected because it would need its own download.
+- **Cold-launch gate.** The Night Maps preference is read asynchronously, so
+  the main map could apply a day style before the read reported night, and
+  nothing would switch it. `AvailabilityUiState.nightModeMapsLoaded` now
+  holds the main map's style until the read completes, and the read sets it
+  on success and on logged failure. The centre-pin pickers and the
+  Cartography entry map keep the default "loaded". That rests on the
+  unverified inference that the preference has loaded by the time a user
+  navigates to one.
+
+The markers' night colours are colour build C2's and are not changed here.
+Nothing in this build was run on a device; the device items are listed in
+`docs/audits/2026-09-27-night-mode-c1-completion-report.md`.

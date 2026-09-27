@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app.ui.map
 import com.zynergylabs.forager.app.ui.theme.MapPalette
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -49,8 +50,12 @@ class OfflineStyleSwapTest {
 
             assertTrue("$basemap day must be a JSON style", day is MapStyleSource.Json)
             assertTrue("$basemap must name its own tile template", (day as MapStyleSource.Json).json.contains(basemap.tileUrlTemplate))
-            assertTrue("$basemap night must still be the basemap's JSON style, with night paint", (night as MapStyleSource.Json).json.contains("raster-saturation"))
-            assertFalse("day must not carry the night paint", day.json.contains("raster-saturation"))
+            assertEquals(
+                "$basemap night must still be the basemap's JSON style, with the V1 night paint unless it is Satellite",
+                basemap != Basemap.USGS_IMAGERY_ONLY,
+                (night as MapStyleSource.Json).json.contains("raster-hue-rotate"),
+            )
+            assertFalse("day must not carry the night paint", day.json.contains("raster-hue-rotate"))
         }
     }
 
@@ -70,7 +75,7 @@ class OfflineStyleSwapTest {
 
     @Test
     fun `flipping only the offline flag is a reload -- the gap the old basemap-and-palette guard left open`() {
-        val online = AppliedMapStyle(Basemap.OPEN_TOPO_MAP, palette, useOfflineTiles = false)
+        val online = AppliedMapStyle(Basemap.OPEN_TOPO_MAP, palette, useOfflineTiles = false, night = false)
         val offline = online.copy(useOfflineTiles = true)
 
         assertTrue(needsStyleReload(applied = online, requested = offline))
@@ -79,7 +84,7 @@ class OfflineStyleSwapTest {
 
     @Test
     fun `nothing applied yet is a reload, and an identical request is not`() {
-        val style = AppliedMapStyle(Basemap.OSM_STANDARD, palette, useOfflineTiles = false)
+        val style = AppliedMapStyle(Basemap.OSM_STANDARD, palette, useOfflineTiles = false, night = false)
 
         assertTrue(needsStyleReload(applied = null, requested = style))
         assertFalse(needsStyleReload(applied = style, requested = style))
@@ -87,9 +92,96 @@ class OfflineStyleSwapTest {
 
     @Test
     fun `a basemap change is still a reload, with the offline flag unchanged`() {
-        val topo = AppliedMapStyle(Basemap.OPEN_TOPO_MAP, palette, useOfflineTiles = false)
+        val topo = AppliedMapStyle(Basemap.OPEN_TOPO_MAP, palette, useOfflineTiles = false, night = false)
         val osm = topo.copy(basemap = Basemap.OSM_STANDARD)
 
         assertTrue(needsStyleReload(applied = topo, requested = osm))
+    }
+
+    /** What the style effect builds for one set of inputs: effective night, not the raw toggle. */
+    private fun applied(basemap: Basemap, nightMode: Boolean, useOfflineTiles: Boolean = false) = AppliedMapStyle(
+        basemap = basemap,
+        palette = palette,
+        useOfflineTiles = useOfflineTiles,
+        night = effectiveNight(basemap, nightMode = nightMode, useOfflineTiles = useOfflineTiles),
+    )
+
+    @Test
+    fun `turning Night Maps on or off is a reload on Topographical and Street`() {
+        for (basemap in listOf(Basemap.OPEN_TOPO_MAP, Basemap.OSM_STANDARD)) {
+            val day = applied(basemap, nightMode = false)
+            val night = applied(basemap, nightMode = true)
+
+            assertTrue("$basemap: day -> night", needsStyleReload(applied = day, requested = night))
+            assertTrue("$basemap: night -> day", needsStyleReload(applied = night, requested = day))
+        }
+    }
+
+    @Test
+    fun `turning Night Maps on or off over Satellite is not a reload -- Satellite stays day`() {
+        val day = applied(Basemap.USGS_IMAGERY_ONLY, nightMode = false)
+        val night = applied(Basemap.USGS_IMAGERY_ONLY, nightMode = true)
+
+        assertFalse(needsStyleReload(applied = day, requested = night))
+        assertFalse(needsStyleReload(applied = night, requested = day))
+    }
+
+    @Test
+    fun `turning Night Maps on or off over the offline style is a reload, whatever the basemap`() {
+        Basemap.entries.forEach { basemap ->
+            val day = applied(basemap, nightMode = false, useOfflineTiles = true)
+            val night = applied(basemap, nightMode = true, useOfflineTiles = true)
+
+            assertTrue("$basemap offline: day -> night", needsStyleReload(applied = day, requested = night))
+            assertTrue("$basemap offline: night -> day", needsStyleReload(applied = night, requested = day))
+        }
+    }
+
+    @Test
+    fun `effective night is the toggle, except Satellite's own raster style, which stays day`() {
+        Basemap.entries.forEach { basemap ->
+            assertFalse("$basemap night off", effectiveNight(basemap, nightMode = false, useOfflineTiles = false))
+            assertFalse("$basemap night off, offline", effectiveNight(basemap, nightMode = false, useOfflineTiles = true))
+            assertTrue("$basemap night on, offline: offline night applies", effectiveNight(basemap, nightMode = true, useOfflineTiles = true))
+        }
+        assertTrue(effectiveNight(Basemap.OPEN_TOPO_MAP, nightMode = true, useOfflineTiles = false))
+        assertTrue(effectiveNight(Basemap.OSM_STANDARD, nightMode = true, useOfflineTiles = false))
+        assertFalse(effectiveNight(Basemap.USGS_IMAGERY_ONLY, nightMode = true, useOfflineTiles = false))
+    }
+
+    /**
+     * The cold-launch gate, at the level a JVM test reaches: the style effect asks
+     * [requestedMapStyle] for what to load and returns early on `null`, so nothing is requested
+     * (no `mapStyleSourceFor`, no `setStyle`) until the Night Maps preference has loaded. The
+     * effect's own keys are not reachable headless (see the completion report): SightingsMap
+     * constructs a MapView, whose native initialiser Robolectric cannot run.
+     */
+    @Test
+    fun `no style is requested before the Night Maps preference has loaded`() {
+        Basemap.entries.forEach { basemap ->
+            listOf(false, true).forEach { nightMode ->
+                listOf(false, true).forEach { offline ->
+                    assertNull(
+                        "$basemap night=$nightMode offline=$offline",
+                        requestedMapStyle(basemap, palette, useOfflineTiles = offline, nightMode = nightMode, nightModeLoaded = false),
+                    )
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `once loaded, the requested style carries effective night`() {
+        Basemap.entries.forEach { basemap ->
+            listOf(false, true).forEach { nightMode ->
+                listOf(false, true).forEach { offline ->
+                    assertEquals(
+                        "$basemap night=$nightMode offline=$offline",
+                        applied(basemap, nightMode = nightMode, useOfflineTiles = offline),
+                        requestedMapStyle(basemap, palette, useOfflineTiles = offline, nightMode = nightMode, nightModeLoaded = true),
+                    )
+                }
+            }
+        }
     }
 }
