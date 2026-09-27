@@ -154,6 +154,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import com.zynergylabs.forager.app.domain.GridMode
 import kotlinx.coroutines.launch
 import androidx.lifecycle.Lifecycle
@@ -177,6 +178,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -192,6 +194,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -1025,9 +1028,9 @@ fun AvailabilityScreen(
         when (drawerPanel) {
             DrawerPanel.Search -> {
                 if (showCloseButton) {
-                    // The one visible way to close this drawer other than tapping the scrim:
-                    // gestures are off (see gesturesEnabled below), and the scrim alone is
-                    // undiscoverable.
+                    // The one visible way to close this drawer: tapping the scrim and
+                    // swipe-to-close (on only while the drawer is open, see gesturesEnabled
+                    // below) are both undiscoverable.
                     DrawerHeader(onClose = { isDrawerOpen = false })
                 }
                 SearchControls(
@@ -1432,15 +1435,56 @@ fun AvailabilityScreen(
     // Landscape B1, P1 and Resolution R1 ("Classify by window"): a short window takes the compact
     // tree whatever its width. Every other window is chosen by width exactly as before.
     if (windowWidthClass == WindowWidthClass.COMPACT || isShortWindow) {
+        // Landscape B3 (P12 as corrected by R2; owner ruling 1 in
+        // docs/audits/2026-09-27-landscape-b3-prebuild-report.md, section 5). With gestures on
+        // while the drawer is open, M3's scrim tap and swipe-to-close call drawerState.close()
+        // themselves and never touch isDrawerOpen, the authority for "should the drawer be open"
+        // (its comment, above). Left alone, the flag stays true after such a close: the drawer is
+        // visibly shut, but Back is still routed to the close-drawer handler and Tools sets a flag
+        // that is already true, so the drawer will not open again (seen in CompactToolsDrawerTest
+        // with only the gesturesEnabled change applied). So the flag follows a close the drawer
+        // made itself, once that close has settled. Only the settled-closed edge is acted on: a
+        // just-requested open (flag true, drawer still closed and idle) emits nothing, because
+        // the watched value has not changed.
+        LaunchedEffect(drawerState) {
+            snapshotFlow { drawerState.currentValue == DrawerValue.Closed && !drawerState.isAnimationRunning }
+                .collect { settledClosed -> if (settledClosed && isDrawerOpen) isDrawerOpen = false }
+        }
+        // Landscape B3 (P12, owner ruling 2, "Flip layout direction"): in a short landscape window
+        // the drawer opens from the rail side, the port edge. ModalNavigationDrawer has no edge
+        // parameter; it anchors to the start edge of LocalLayoutDirection. So the direction is
+        // set around the drawer to the one whose start edge is the port edge, and the ambient
+        // direction is restored inside both the sheet's content and the screen content, so only
+        // the drawer's anchoring changes. Portrait and every non-short window keep the ambient
+        // direction untouched. The mapping is physical (port on the right -> Rtl, on the left ->
+        // Ltr), not "the opposite of ambient": in an RTL locale the drawer already starts on the
+        // right, and flipping it would move it away from the rail. With the app's LTR locale
+        // this is exactly "flip at ROTATION_90, unchanged at ROTATION_270". See the B3 drawer
+        // completion report for that choice, which is open for the planner to confirm.
+        val ambientDirection = LocalLayoutDirection.current
+        val drawerDirection = if (isShortLandscapeWindow) {
+            if (portEdge == ScreenEdge.Right) LayoutDirection.Rtl else LayoutDirection.Ltr
+        } else {
+            ambientDirection
+        }
+        CompositionLocalProvider(LocalLayoutDirection provides drawerDirection) {
         ModalNavigationDrawer(
             drawerState = drawerState,
             // Swipe-to-open is off on purpose: the content behind the drawer is a full-screen
-            // pannable map, and a horizontal drag there means "pan", not "open the drawer". The
-            // app-bar icon is the way in. Swipe-to-close still works — Material3 enables the drag
-            // whenever the drawer is open regardless of this flag.
-            gesturesEnabled = false,
+            // pannable map, and a horizontal drag there means "pan", not "open the drawer". Tools
+            // is the way in. Gestures are on only while the drawer is open, which is what lets a
+            // scrim tap close it: in material3 1.5.0-alpha26 both the scrim's dismiss and the
+            // drag are gated on this flag (`if (gesturesEnabled && ...)` and
+            // `anchoredDraggable(enabled = gesturesEnabled)`), so with it off neither a scrim tap
+            // nor swipe-to-close worked. While open it also re-enables swipe-to-close; while
+            // closed it stays false, so swipe-to-open stays off. See the pre-build report above.
+            gesturesEnabled = drawerState.isOpen,
             drawerContent = {
+                // The sheet itself stays in drawerDirection, so its rounded edge faces the
+                // content and its start-side inset padding lands on the window edge it sits on.
+                // Only what is inside it goes back to the ambient direction.
                 ModalDrawerSheet {
+                    CompositionLocalProvider(LocalLayoutDirection provides ambientDirection) {
                     CompactToolsDrawerContent(
                         uiState = uiState,
                         distanceUnit = distanceUnit,
@@ -1458,10 +1502,16 @@ fun AvailabilityScreen(
                         onThemeModeChanged = onThemeModeChanged,
                         crashFileStore = crashFileStore,
                     )
+                    }
                 }
             },
-            content = compactMainScaffold,
+            content = {
+                CompositionLocalProvider(LocalLayoutDirection provides ambientDirection) {
+                    compactMainScaffold()
+                }
+            },
         )
+        }
     } else {
         // M3's "swapped" adaptive pattern: the same drawer panel, but always on screen and never
         // covering the content — see drawerSheetContent's own doc comment for what's shared.
