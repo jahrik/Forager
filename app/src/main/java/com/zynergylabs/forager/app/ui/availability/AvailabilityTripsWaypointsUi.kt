@@ -11,6 +11,7 @@ package com.zynergylabs.forager.app.ui.availability
 import androidx.compose.runtime.key
 import com.zynergylabs.forager.app.ui.log.RecordType
 import com.zynergylabs.forager.app.ui.log.TwoStageSwipeRow
+import com.zynergylabs.forager.app.ui.log.opensRecordDetails
 import com.zynergylabs.forager.app.ui.log.rememberSwipeRevealGroup
 import com.zynergylabs.forager.app.ui.log.swipeRevealTouchWatcher
 import com.zynergylabs.forager.app.ui.log.swipeToDeleteTag
@@ -36,6 +37,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import com.zynergylabs.forager.app.domain.MgrsConverter
 import com.zynergylabs.forager.app.domain.model.LatLng
@@ -182,6 +184,12 @@ internal fun WaypointsSection(
     errorMessage: String?,
     onDeleteWaypoint: (String) -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * Journal redesign J5c: a tap on a closed row opens that waypoint's details sheet, given its id.
+     * A tap on an open row closes it instead ([TwoStageSwipeRow]'s overlay takes that tap). `null`,
+     * the default, leaves the rows without a tap.
+     */
+    onOpenWaypointDetails: ((String) -> Unit)? = null,
 ) {
     // J4b L6: one open row at a time, and a touch elsewhere on the list closes it.
     val swipeGroup = rememberSwipeRevealGroup()
@@ -212,7 +220,7 @@ internal fun WaypointsSection(
                         onDelete = { onDeleteWaypoint(waypoint.id) },
                         onEdit = null,
                     ) {
-                        WaypointRow(waypoint = waypoint)
+                        WaypointRow(waypoint = waypoint, onClick = onOpenWaypointDetails?.let { open -> { open(waypoint.id) } })
                     }
                 }
             }
@@ -225,12 +233,20 @@ internal fun WaypointsSection(
  * MGRS-plus-decimal-degrees coordinate display [PlannedTripRow] uses, and a "Directions" action
  * ([launchDirections]) reusing the exact same `geo:` intent machinery. No delete control of its
  * own since journal redesign J4: its callers wrap it in a [TwoStageSwipeRow] (J4b L6).
+ *
+ * [onClick] (journal redesign J5c) is what a tap on the card opens, the waypoint's details sheet, or
+ * `null` for no card tap. The All logbook passes `null` and puts the tap on its badged row instead,
+ * so the type badge takes it too. Directions keeps its own tap either way.
  */
 @Composable
-internal fun WaypointRow(waypoint: Waypoint) {
+internal fun WaypointRow(waypoint: Waypoint, onClick: (() -> Unit)? = null) {
     val context = LocalContext.current
     val location = LatLng(waypoint.lat, waypoint.lng)
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clip(CardDefaults.shape).opensRecordDetails(waypoint.name, onClick) else Modifier),
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -246,10 +262,7 @@ internal fun WaypointRow(waypoint: Waypoint) {
                     // own use of the same MgrsCoordinate branch for why.
                     is MgrsCoordinate.Unsupported -> Unit
                 }
-                Text(
-                    "${"%.4f".format(waypoint.lat)}, ${"%.4f".format(waypoint.lng)}",
-                    style = MaterialTheme.typography.bodySmall,
-                )
+                Text(decimalDegreesLabel(waypoint.lat, waypoint.lng), style = MaterialTheme.typography.bodySmall)
             }
             IconButton(onClick = { launchDirections(context, waypoint.name, location) }) {
                 Icon(Icons.Filled.Directions, contentDescription = "Directions to ${waypoint.name}")
@@ -257,3 +270,10 @@ internal fun WaypointRow(waypoint: Waypoint) {
         }
     }
 }
+
+/**
+ * A point in decimal degrees to four places, "45.3260, -122.6340": how [WaypointRow] and the offline
+ * region row print coordinates, and (journal redesign J5c) how the details sheet prints them, so the
+ * sheet shows the coordinates exactly as the row does.
+ */
+internal fun decimalDegreesLabel(lat: Double, lng: Double): String = "${"%.4f".format(lat)}, ${"%.4f".format(lng)}"

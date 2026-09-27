@@ -32,6 +32,7 @@ import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.networkFixExclusionNote
 import com.zynergylabs.forager.app.export.TrackGpxExporter
 import com.zynergylabs.forager.app.ui.log.TrackThumbnail
+import com.zynergylabs.forager.app.ui.log.opensRecordDetails
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.io.File
 import java.time.Instant
@@ -68,6 +69,11 @@ internal fun TrackExportList(
      */
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>> = { Result.success(emptyList()) },
     modifier: Modifier = Modifier,
+    /**
+     * Journal redesign J5c: a tap on a row opens that track's details sheet (`RecordDetailsSheet`),
+     * given the track's id. `null`, the default, leaves the rows without a tap, as before.
+     */
+    onOpenTrackDetails: ((String) -> Unit)? = null,
 ) {
     if (tracks.isEmpty()) {
         Text(
@@ -84,7 +90,14 @@ internal fun TrackExportList(
             .padding(horizontal = Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
-        tracks.forEach { track -> TrackExportRow(track = track, waypoints = waypoints, getFullRecord = getFullRecord) }
+        tracks.forEach { track ->
+            TrackExportRow(
+                track = track,
+                waypoints = waypoints,
+                getFullRecord = getFullRecord,
+                onClick = onOpenTrackDetails?.let { open -> { open(track.id) } },
+            )
+        }
     }
 }
 
@@ -93,6 +106,12 @@ internal fun TrackExportRow(
     track: Track,
     waypoints: List<Waypoint>,
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
+    /**
+     * Journal redesign J5c: what a tap on the row opens (the track's details sheet), or `null` for no
+     * row tap. The All logbook passes `null` and puts the tap on its badged row instead, so the badge
+     * takes it too. The Share button keeps its own tap either way.
+     */
+    onClick: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -100,6 +119,7 @@ internal fun TrackExportRow(
         modifier = Modifier
             .fillMaxWidth()
             .testTag(trackExportRowTag(track.id))
+            .then(if (onClick != null) Modifier.opensRecordDetails(trackTitle(track), onClick) else Modifier)
             .heightIn(min = 48.dp)
             .padding(vertical = Spacing.xs),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -128,10 +148,7 @@ internal fun TrackExportRow(
         // a sighted tester can find it visually — see this dispatch's item 2 for the bug that shape
         // of assertion hid for an entire release.
         IconButton(
-            onClick = {
-                val trackWaypoints = waypoints.filter { it.trackId == track.id }
-                scope.launch { exportAndShareTrack(context, track, trackWaypoints, getFullRecord) }
-            },
+            onClick = { scope.launch { shareTrackGpx(context, track, waypoints, getFullRecord) } },
             modifier = Modifier.testTag("share-track-${track.id}"),
         ) {
             Icon(Icons.Filled.Share, contentDescription = "Share track recorded ${formatTrackTimestamp(track)}")
@@ -156,8 +173,19 @@ internal fun trackSubtitle(track: Track): String {
     return if (track.endedAtEpochMillis == null) "$body · recording" else body
 }
 
-private fun formatTrackTimestamp(track: Track): String =
-    DISPLAY_FORMAT.format(Instant.ofEpochMilli(track.startedAtEpochMillis).atZone(ZoneId.systemDefault()))
+private fun formatTrackTimestamp(track: Track): String = formatRecordTimestamp(track.startedAtEpochMillis)
+
+/**
+ * A record's moment in this list's own format, "Sep 20, 2026, 6:42 PM" ([DISPLAY_FORMAT], the same
+ * pattern `CrashLogPanel` uses), in the device's zone. Widened for journal redesign J5c, whose
+ * details sheet prints a waypoint's creation time, a track's start and end and a region's download
+ * time with it: the one existing date-and-time formatter in the Records rows.
+ */
+internal fun formatRecordTimestamp(epochMillis: Long): String =
+    DISPLAY_FORMAT.format(Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()))
+
+/** A track's name, or its start time when it has none: what the row shows as its title (J5c's sheet title too). */
+internal fun trackTitle(track: Track): String = track.name ?: formatTrackTimestamp(track)
 
 /** The Tracks chip's row for [trackId] (J5c: the details tap is tested at several points across it). */
 internal fun trackExportRowTag(trackId: String): String = "track-row-$trackId"
@@ -173,6 +201,17 @@ private val DISPLAY_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM
  * itself: the filtered `<trkseg>` the app already displayed is still worth getting out, even
  * without the raw `<extensions>` record this dispatch adds.
  */
+/**
+ * The row's Share action, also the J5c details sheet's: [allWaypoints] filtered to [track] (by
+ * [Waypoint.trackId]), then [exportAndShareTrack]. One function so the two buttons cannot drift.
+ */
+internal suspend fun shareTrackGpx(
+    context: Context,
+    track: Track,
+    allWaypoints: List<Waypoint>,
+    getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
+) = exportAndShareTrack(context, track, allWaypoints.filter { it.trackId == track.id }, getFullRecord)
+
 private suspend fun exportAndShareTrack(
     context: Context,
     track: Track,

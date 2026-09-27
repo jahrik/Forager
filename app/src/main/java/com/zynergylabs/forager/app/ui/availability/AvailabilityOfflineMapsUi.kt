@@ -53,6 +53,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import com.zynergylabs.forager.app.ui.log.RecordType
 import com.zynergylabs.forager.app.ui.log.TwoStageSwipeRow
+import com.zynergylabs.forager.app.ui.log.opensRecordDetails
 import com.zynergylabs.forager.app.ui.log.rememberSwipeRevealGroup
 import com.zynergylabs.forager.app.ui.log.swipeRevealTouchWatcher
 import com.zynergylabs.forager.app.ui.log.swipeToDeleteTag
@@ -128,6 +129,12 @@ internal fun OfflineMapsPanel(
     onOfflineMapNameChanged: (String) -> Unit,
     onDownloadOfflineMaps: () -> Unit,
     onDeleteOfflineRegion: (Long) -> Unit,
+    /**
+     * Journal redesign J5c: passed through to the downloaded-region rows, where a tap on a closed row
+     * opens that region's details sheet, given its id. The picker and download code above does not
+     * read it. `null`, the default, leaves the rows without a tap.
+     */
+    onOpenRegionDetails: ((Long) -> Unit)? = null,
 ) {
     val pickedLat = uiState.offlineMapLatText.toDoubleOrNull()
     val pickedLng = uiState.offlineMapLngText.toDoubleOrNull()
@@ -253,6 +260,7 @@ internal fun OfflineMapsPanel(
             distanceUnit = distanceUnit,
             nowEpochMillis = now,
             onDeleteOfflineRegion = onDeleteOfflineRegion,
+            onOpenRegionDetails = onOpenRegionDetails,
         )
     }
 }
@@ -350,6 +358,7 @@ private fun OfflineRegionsSection(
     distanceUnit: DistanceUnit,
     nowEpochMillis: Long,
     onDeleteOfflineRegion: (Long) -> Unit,
+    onOpenRegionDetails: ((Long) -> Unit)?,
 ) {
 
     // No scroll/height cap of its own: OfflineMapsPanel's whole Column scrolls as one unit (see
@@ -396,6 +405,7 @@ private fun OfflineRegionsSection(
                             isStale = isOfflineRegionStale(region.createdAtEpochMillis, nowEpochMillis, staleThresholdDays),
                             distanceUnit = distanceUnit,
                             nowEpochMillis = nowEpochMillis,
+                            onClick = onOpenRegionDetails?.let { open -> { open(region.id) } },
                         )
                     }
                 }
@@ -416,6 +426,10 @@ private fun OfflineRegionsSection(
  *
  * No delete control of its own since journal redesign J4 (the text "Delete" button is gone): its
  * callers wrap it in a [TwoStageSwipeRow] (J4b L6).
+ *
+ * [onClick] (journal redesign J5c) is what a tap on the row opens, the region's details sheet, or
+ * `null` for no row tap. The All logbook passes `null` and puts the tap on its badged row instead,
+ * so the type badge takes it too.
  */
 @Composable
 internal fun OfflineRegionRow(
@@ -423,9 +437,12 @@ internal fun OfflineRegionRow(
     isStale: Boolean,
     distanceUnit: DistanceUnit,
     nowEpochMillis: Long,
+    onClick: (() -> Unit)? = null,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (onClick != null) Modifier.opensRecordDetails(region.name, onClick) else Modifier),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -438,19 +455,26 @@ internal fun OfflineRegionRow(
             }
             Text(
                 "${formatDistanceKm(region.region.radiusKm, distanceUnit)} around " +
-                    "${"%.4f".format(region.region.lat)}, ${"%.4f".format(region.region.lng)} — " +
-                    "${region.tileCount} tiles, ${"%.1f".format(region.sizeBytes / 1_000_000.0)} MB — " +
+                    "${decimalDegreesLabel(region.region.lat, region.region.lng)} — " +
+                    "${region.tileCount} tiles, ${offlineRegionSizeLabel(region)} — " +
                     "downloaded ${relativeTimeLabel(region.createdAtEpochMillis, nowEpochMillis)}",
                 style = MaterialTheme.typography.bodySmall,
             )
-            Text(
-                "Ready to zoom ${region.maxZoom.toInt()}: zoom ${region.minZoom.toInt()}–${region.maxZoom.toInt() - 1} " +
-                    "from the archive, zoom ${region.maxZoom.toInt()} detail fetched live from Protomaps when this " +
-                    "region downloaded — a region that shows here has both, since a zoom-${region.maxZoom.toInt()} " +
-                    "fetch failure fails the whole download rather than silently completing without it.",
-                style = MaterialTheme.typography.bodySmall,
-            )
+            Text(offlineRegionZoomNote(region), style = MaterialTheme.typography.bodySmall)
         }
     }
 }
+
+/** A region's size on disk as its row prints it, "12.3 MB" (J5c: the details sheet prints the same). */
+internal fun offlineRegionSizeLabel(region: OfflineRegionSummary): String = "${"%.1f".format(region.sizeBytes / 1_000_000.0)} MB"
+
+/**
+ * The row's zoom-readiness paragraph (see [OfflineRegionRow]'s doc comment for where it came from),
+ * as one function since journal redesign J5c so the details sheet shows the identical text.
+ */
+internal fun offlineRegionZoomNote(region: OfflineRegionSummary): String =
+    "Ready to zoom ${region.maxZoom.toInt()}: zoom ${region.minZoom.toInt()}–${region.maxZoom.toInt() - 1} " +
+        "from the archive, zoom ${region.maxZoom.toInt()} detail fetched live from Protomaps when this " +
+        "region downloaded — a region that shows here has both, since a zoom-${region.maxZoom.toInt()} " +
+        "fetch failure fails the whole download rather than silently completing without it."
 

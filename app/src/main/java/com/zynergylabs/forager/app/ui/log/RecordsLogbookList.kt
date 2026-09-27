@@ -43,6 +43,7 @@ import com.zynergylabs.forager.app.ui.availability.OfflineRegionRow
 import com.zynergylabs.forager.app.ui.availability.WaypointRow
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import com.zynergylabs.forager.app.ui.track.TrackExportRow
+import com.zynergylabs.forager.app.ui.track.trackTitle
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -64,7 +65,8 @@ import java.time.format.DateTimeFormatter
  *
  * **Tapping a find** calls [onOpenFind], which `RecordsTab` turns into "select the Finds chip and open
  * that find's report there", so Back goes report, then the Finds gallery, then All. Waypoint, track
- * and region rows have no row tap, as today.
+ * and region rows had no row tap until journal redesign J5c: a tap on one now opens its details
+ * sheet ([onOpenDetails], [RecordDetailsSheet]).
  *
  * [finds] `null` means the caller has no finds list to give (`LogPanel`, out of scope until J6): the
  * logbook then says so in a line of its own rather than presenting the timed records as everything.
@@ -89,6 +91,12 @@ internal fun RecordsLogbookList(
     onDeleteFind: ((String) -> Unit)? = null,
     /** J4b L1: a find tile's long-press Edit. */
     onEditFind: ((String) -> Unit)? = null,
+    /**
+     * Journal redesign J5c: a tap on a closed waypoint, track or region row (its whole badged row,
+     * badge included) opens that record's details sheet. `null` leaves those rows without a tap. A
+     * tap on a row whose two-stage swipe is open closes the row instead (J4b's overlay takes it).
+     */
+    onOpenDetails: ((RecordDetailsTarget) -> Unit)? = null,
 ) {
     val days = buildRecordsLogbook(
         finds = finds.orEmpty(),
@@ -141,7 +149,12 @@ internal fun RecordsLogbookList(
             }
             day.timed.forEach { record ->
                 when (record) {
-                    is TimedRecord.TrackRecord -> BadgedRow(RecordType.TRACKS, record.track.id) {
+                    is TimedRecord.TrackRecord -> BadgedRow(
+                        type = RecordType.TRACKS,
+                        recordId = record.track.id,
+                        detailsName = trackTitle(record.track),
+                        onClick = onOpenDetails?.let { open -> { open(RecordDetailsTarget.TrackDetails(record.track.id)) } },
+                    ) {
                         TrackExportRow(track = record.track, waypoints = waypoints, getFullRecord = getFullRecord)
                     }
                     is TimedRecord.WaypointRecord -> key(RecordType.WAYPOINTS, record.waypoint.id) {
@@ -152,7 +165,12 @@ internal fun RecordsLogbookList(
                             onDelete = { onDeleteWaypoint(record.waypoint.id) },
                             onEdit = null,
                         ) {
-                            BadgedRow(RecordType.WAYPOINTS, record.waypoint.id) {
+                            BadgedRow(
+                                type = RecordType.WAYPOINTS,
+                                recordId = record.waypoint.id,
+                                detailsName = record.waypoint.name,
+                                onClick = onOpenDetails?.let { open -> { open(RecordDetailsTarget.WaypointDetails(record.waypoint.id)) } },
+                            ) {
                                 WaypointRow(waypoint = record.waypoint)
                             }
                         }
@@ -165,7 +183,12 @@ internal fun RecordsLogbookList(
                             onDelete = { onDeleteOfflineRegion(record.region.id) },
                             onEdit = null,
                         ) {
-                            BadgedRow(RecordType.OFFLINE_MAPS, record.region.id.toString()) {
+                            BadgedRow(
+                                type = RecordType.OFFLINE_MAPS,
+                                recordId = record.region.id.toString(),
+                                detailsName = record.region.name,
+                                onClick = onOpenDetails?.let { open -> { open(RecordDetailsTarget.OfflineRegionDetails(record.region.id)) } },
+                            ) {
                                 OfflineRegionRow(
                                     region = record.region,
                                     isStale = isOfflineRegionStale(record.region.createdAtEpochMillis, now, availabilityUiState.offlineStaleThresholdDays),
@@ -195,11 +218,24 @@ private fun LogbookDayHeader(day: LogbookDay) {
     )
 }
 
-/** A timed record's own row with its type badge in front. */
+/**
+ * A timed record's own row with its type badge in front. With [onClick] (J5c), a tap anywhere on it,
+ * badge included, opens the record's details sheet, announced as "Details for [detailsName]"; the
+ * row's own buttons inside it keep their taps.
+ */
 @Composable
-private fun BadgedRow(type: RecordType, recordId: String, row: @Composable () -> Unit) {
+private fun BadgedRow(
+    type: RecordType,
+    recordId: String,
+    detailsName: String,
+    onClick: (() -> Unit)?,
+    row: @Composable () -> Unit,
+) {
     Row(
-        modifier = Modifier.fillMaxWidth().testTag(logbookRowTag(type, recordId)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(logbookRowTag(type, recordId))
+            .then(if (onClick != null) Modifier.opensRecordDetails(detailsName, onClick) else Modifier),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
