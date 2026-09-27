@@ -470,3 +470,7 @@ J4b (done), the picker and offline-maps fix stage (running), J5, **L0**, M1, J8,
 ### Device check timing (owner, 2026-09-27)
 
 The owner, verbatim: "I'll run a device check after we are finished with this journal project". So every device-only item from B3, J1-J4b, the picker fix stage, J5, L0, M1 and J8 goes into one consolidated J7 checklist, run once at the end on the S22 Ultra. The planner assembles that checklist from each stage's completion report before the single Journal PR; items proven only by Robolectric are not claimed as verified until then. First among them: the find picker's pinch-and-pan (the only check that the new user-gesture signal is wired in the live map), and Back from a Records chip returning to All ("We'll try it and see if it works").
+
+### In-app Navigate deferred (owner, 2026-09-27)
+
+J5c's coder stopped on Navigate: starting the app's own navigation HUD for a waypoint from the Records tab needs a path the app does not have. The owner, verbatim: "We can defer the navigation for another time. It's going to need more work anyway", and for M1's waypoint bubble: "Defer for now too. It will go with a review in current waypoint navigation." So J5c's details sheet and M1's waypoint bubble offer **Directions only** (the existing hand-off to an installed navigation app). In-app Navigate, from both places, waits for a later review of the current waypoint navigation, which will specify the route. This supersedes the Navigate half of the M1 ruling "In-app HUD, plus Directions (Recommended)"; Directions stands.
