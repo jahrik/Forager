@@ -2536,3 +2536,19 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Carried to J3 by owner ruling: the find badge counts saved finds only (today it also counts draft finds, from log_entry_photos); and "Fix in J3 (Recommended)" for MainActivity.kt:104, where getOrDefault(0) turns a failed journal-entry count into 0 with no log, against CLAUDE.md's logged-fallback rule. JournalTabTest's photo-pull intermittent failure recurred once. Device-only items are in the report.
 
 ---
+
+**Kind:** intent
+**ID:** 2026-09-27-55
+**Timestamp:** 2026-09-27T16:20:17Z
+**Title:** Journal redesign J3: entry cards with hero photo and track thumbnails, one column in compact portrait, the find badge on saved finds only, and a logged fallback at MainActivity.kt:104
+**Dispatch-file:** preserved/2026-09-27-20.md
+**Change:** docs/plans/journal-redesign.md stage J3 (plan decisions J5, J9) with the owner's J0 rulings: C1 entry cards (sticky month headers, day numeral and weekday, first line as title, species chips, stats row by type, collapse when empty); C2 hero photo from the earliest directly attached photo that still exists; C3 a static track thumbnail composable on Recorded Tracks rows and on Entries cards, the card's track found in the already-loaded track list; C4 one full-width column in compact portrait; C5 the album's find badge on committed finds only (owner, carried from J2); C6 log the silent fallback at MainActivity.kt:104 (owner, carried from J2).
+**Scope boundary:** Branch journal-redesign only. CartographyEntryListScreen.kt, CartographyScreen.kt, new card and thumbnail files under ui/log/, TrackExportPanel.kt, the J2 album badge file, JournalTab.kt, AvailabilityCompactScaffold.kt and AvailabilityScreen.kt only to pass the track list, MainActivity.kt (C6 and passing), tests. Not LogPanel or the wide tree (J6), not J4-J5 work, not Room, not the entry edit or report screens, not the map screens, not the record, index, CLAUDE.md, plans or prompts. No PR or merge.
+**Baseline:** journal-redesign at 558f090 after J2 (terminal 2026-09-27-54). Planner's full suite at 338589f, the same app tree: 233 classes / 1836 / 0 / 0 / 24.
+**Prediction (outcome — planner):** 1. The thumbnail needs no new dependency. 2. The track list reaches CartographyScreen by one or two new parameters, no ViewModel change. 3. C6 is under ten lines. 4. The suite grows by 25 to 50 tests, 0 failures, skipped unchanged.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** C1-C6 pushed to journal-redesign with the completion report; tests-first, coordinate touches and revert checks as the dispatch requires; full suite 0 failures; the planner re-runs the suite and writes the terminal. No PR or merge.
+**Abort conditions:** A wrong premise; a kept find with no identification; no formatter to reuse; a tests-first test passing at base; a revert build with compile errors; an unrelated test failing (reported, not touched); Maven 429s on a new artifact; two failed fixes on one symptom; an open design question.
+**Notes:** Written by the planner by hand. Owner rulings used, verbatim: "Direct photos only (Recommended)", "Rows and Entries cards", "Join in memory (Recommended)" (J0); "Saved finds only (Recommended)", "Fix in J3 (Recommended)" (on J2's second coder's questions).
+
+---
