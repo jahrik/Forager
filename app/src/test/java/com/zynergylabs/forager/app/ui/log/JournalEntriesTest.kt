@@ -12,6 +12,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
@@ -28,13 +34,16 @@ import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
+import com.zynergylabs.forager.app.domain.model.LogPhoto
 import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.ui.availability.AvailabilityUiState
 import com.zynergylabs.forager.app.ui.map.Basemap
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import java.time.LocalDate
+import java.time.ZoneId
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExternalResource
@@ -330,6 +339,89 @@ class JournalEntriesTest {
             composeRule.onNodeWithText(EDITOR_FIELD).assertDoesNotExist()
         }
     }
+
+    // ── T3: the timeline/album toggle ──
+
+    @Test
+    fun `the view toggle shows timeline and album with timeline on, and the Album sub-tab is gone`() {
+        setScreen()
+
+        node(VIEW_TIMELINE).assertIsOn()
+        node(VIEW_ALBUM).assertIsOff()
+        composeRule.onNodeWithText("Album").assertDoesNotExist()
+        // No sub-tab row at all: "Entries" appears once, on the switch.
+        composeRule.onAllNodesWithText("Entries").assertCountEquals(1)
+        node(ALBUM).assertDoesNotExist()
+    }
+
+    @Test
+    fun `touching album at several points shows the album, and touching timeline brings the entries back`() {
+        setScreen(galleryPhotos = listOf(albumPhoto("p1", ALBUM_DAY_1)))
+
+        for (point in TOUCH_SAMPLES) {
+            touch(VIEW_ALBUM, point)
+            node(VIEW_ALBUM).assertIsOn()
+            node(VIEW_TIMELINE).assertIsOff()
+            node(ALBUM).assertIsDisplayed()
+            node(albumPhotoTag("p1")).assertExists()
+            composeRule.onNodeWithText(ENTRIES_COMMITTED.date.toString()).assertDoesNotExist()
+
+            touch(VIEW_TIMELINE, point)
+            node(VIEW_TIMELINE).assertIsOn()
+            node(ALBUM).assertDoesNotExist()
+            composeRule.onNodeWithText(ENTRIES_COMMITTED.date.toString()).assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun `Back from the album returns to the timeline`() {
+        setScreen()
+        touch(VIEW_ALBUM, Offset(0.5f, 0.5f))
+        node(ALBUM).assertIsDisplayed()
+
+        pressBack()
+
+        node(VIEW_TIMELINE).assertIsOn()
+        node(ALBUM).assertDoesNotExist()
+        node(ENTRIES_HOME).assertIsDisplayed()
+        node(SWITCH_ENTRIES).assertIsSelected()
+    }
+
+    @Test
+    fun `the album groups photos by day, newest day first and unknown dates last, in 3 columns with 3 dp gaps`() {
+        val photos = listOf(
+            albumPhoto("a1", ALBUM_DAY_1), albumPhoto("b1", ALBUM_DAY_2), albumPhoto("a2", ALBUM_DAY_1),
+            albumPhoto("u1", null), albumPhoto("a3", ALBUM_DAY_1), albumPhoto("a4", ALBUM_DAY_1),
+        )
+        setScreen(galleryPhotos = photos)
+        touch(VIEW_ALBUM, Offset(0.5f, 0.5f))
+
+        val day1 = node(albumDayTag(ALBUM_DAY_1)).assert(hasText("Sat, Sep 26, 2026")).getUnclippedBoundsInRoot()
+        val a = listOf("a1", "a2", "a3", "a4").map { node(albumPhotoTag(it)).getUnclippedBoundsInRoot() }
+
+        // Row one: a1, a2, a3 side by side, in input order, below the day header, 3 dp apart.
+        assertTrue("a1 sits below its day header", a[0].top >= day1.bottom)
+        for (i in 0..1) {
+            assertEquals("a${i + 2} shares a1's row", a[0].top.value, a[i + 1].top.value, 0.5f)
+            assertEquals("3 dp between a${i + 1} and a${i + 2}", 3f, (a[i + 1].left - a[i].right).value, 0.5f)
+        }
+        // Three columns: the fourth photo wraps under the first, 3 dp below.
+        assertEquals("a4 wraps to a1's column", a[0].left.value, a[3].left.value, 0.5f)
+        assertEquals("3 dp between rows", 3f, (a[3].top - a[0].bottom).value, 0.5f)
+        assertEquals("square tiles", (a[0].right - a[0].left).value, (a[0].bottom - a[0].top).value, 0.5f)
+
+        // The older day, then the unknown-date group, each under its own header, in that order.
+        val day2 = node(albumDayTag(ALBUM_DAY_2)).assert(hasText("Sun, Sep 20, 2026")).getUnclippedBoundsInRoot()
+        assertTrue("the older day comes after the newer day's photos", day2.top >= a[3].bottom)
+        node(albumPhotoTag("b1")).performScrollTo()
+        val b1 = node(albumPhotoTag("b1")).getUnclippedBoundsInRoot()
+        val day2AfterScroll = node(albumDayTag(ALBUM_DAY_2)).getUnclippedBoundsInRoot()
+        assertTrue("b1 sits under its own header", b1.top >= day2AfterScroll.bottom)
+        node(ALBUM_DAY_UNKNOWN).performScrollTo().assert(hasText("Date unknown"))
+        val unknown = node(ALBUM_DAY_UNKNOWN).getUnclippedBoundsInRoot()
+        assertTrue("unknown dates come last", unknown.top >= node(albumPhotoTag("b1")).getUnclippedBoundsInRoot().bottom)
+        node(albumPhotoTag("u1")).assertExists()
+    }
 }
 
 private const val SWITCH_ENTRIES = "journal-switch-entries"
@@ -340,6 +432,26 @@ private const val DRAFTS_BANNER = "entries-drafts-banner"
 private const val DRAFTS_CONTINUE = "entries-drafts-continue"
 private const val DRAFTS_LIST = "entries-drafts-list"
 private const val DRAFTS_LIST_BACK = "entries-drafts-list-back"
+private const val VIEW_TIMELINE = "entries-view-timeline"
+private const val VIEW_ALBUM = "entries-view-album"
+private const val ALBUM = "entries-album"
+private const val ALBUM_DAY_UNKNOWN = "entries-album-day-unknown"
+
+private fun albumDayTag(day: LocalDate): String = "entries-album-day-$day"
+private fun albumPhotoTag(id: String): String = "entries-album-photo-$id"
+
+private val ALBUM_DAY_1: LocalDate = LocalDate.of(2026, 9, 26)
+private val ALBUM_DAY_2: LocalDate = LocalDate.of(2026, 9, 20)
+
+/** A gallery photo taken at local noon on [day] (or with no known time), attached to nothing. */
+private fun albumPhoto(id: String, day: LocalDate?, findIds: List<String> = emptyList()): GalleryPhoto = GalleryPhoto(
+    photo = LogPhoto(
+        id = id,
+        relativePath = "photos/$id.jpg",
+        createdAtEpochMillis = day?.atTime(12, 0)?.atZone(ZoneId.systemDefault())?.toInstant()?.toEpochMilli(),
+    ),
+    referencingEntryIds = findIds,
+)
 
 /** The Cartography editor's text field label: present only when an entry is open for editing. */
 private const val EDITOR_FIELD = "Your own account (optional)"
