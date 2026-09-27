@@ -358,43 +358,43 @@ internal fun CartographyScreen(
         // row scrolls clear of it. The album's "Add photo" button is not built (J2 report, open
         // question), so the album keeps its own Camera/Import row and has no floating button.
         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-        when (viewMode) {
-            EntriesViewMode.TIMELINE -> CartographyEntryListScreen(
-                entries = uiState.entries,
-                isLoading = uiState.isLoadingEntries,
-                onOpenEntry = { id -> mode = CartographyEntryMode.VIEW; onOpenEntry(id) },
-                emptyMessage = "No entries yet. Use New entry to start one.",
-                loadErrorMessage = uiState.loadErrorMessage,
-                columns = columns,
-                bottomContentPadding = FAB_CLEARANCE,
-                modifier = Modifier.fillMaxSize(),
-            )
+            when (viewMode) {
+                EntriesViewMode.TIMELINE -> CartographyEntryListScreen(
+                    entries = uiState.entries,
+                    isLoading = uiState.isLoadingEntries,
+                    onOpenEntry = { id -> mode = CartographyEntryMode.VIEW; onOpenEntry(id) },
+                    emptyMessage = "No entries yet. Use New entry to start one.",
+                    loadErrorMessage = uiState.loadErrorMessage,
+                    columns = columns,
+                    bottomContentPadding = FAB_CLEARANCE,
+                    modifier = Modifier.fillMaxSize(),
+                )
 
-            EntriesViewMode.ALBUM -> EntriesAlbum(
-                photos = galleryPhotos,
-                isLoading = isLoadingGalleryPhotos,
-                onDeletePhoto = onDeleteGalleryPhoto,
-                onOpenCamera = onOpenCameraForAlbum,
-                onAddGalleryPhoto = onAddGalleryPhoto,
-                loadErrorMessage = galleryLoadErrorMessage,
-                cartographyEntryReferenceCounts = galleryPhotoEntryReferenceCounts,
-                modifier = Modifier.fillMaxSize(),
-            )
-        }
-        if (viewMode == EntriesViewMode.TIMELINE) {
-            // The content-lambda overload, not the (icon, text) one: under material3 1.5.0-alpha26
-            // the (icon, text) overload wraps its label in clearAndSetSemantics, so the button's
-            // merged semantics, what TalkBack reads, carry no label at all (seen in a Robolectric
-            // semantics dump while building this; the content overload exposes the Text).
-            ExtendedFloatingActionButton(
-                onClick = { mode = CartographyEntryMode.EDIT; onStartEntry(LocalDate.now()) },
-                modifier = Modifier.align(Alignment.BottomEnd).padding(Spacing.lg).testTag(ENTRIES_FAB_TAG),
-            ) {
-                Icon(Icons.Filled.Edit, contentDescription = null)
-                Spacer(Modifier.width(Spacing.md))
-                Text("New entry")
+                EntriesViewMode.ALBUM -> EntriesAlbum(
+                    photos = galleryPhotos,
+                    isLoading = isLoadingGalleryPhotos,
+                    onDeletePhoto = onDeleteGalleryPhoto,
+                    onOpenCamera = onOpenCameraForAlbum,
+                    onAddGalleryPhoto = onAddGalleryPhoto,
+                    loadErrorMessage = galleryLoadErrorMessage,
+                    cartographyEntryReferenceCounts = galleryPhotoEntryReferenceCounts,
+                    modifier = Modifier.fillMaxSize(),
+                )
             }
-        }
+            if (viewMode == EntriesViewMode.TIMELINE) {
+                // The content-lambda overload, not the (icon, text) one: under material3 1.5.0-alpha26
+                // the (icon, text) overload wraps its label in clearAndSetSemantics, so the button's
+                // merged semantics, what TalkBack reads, carry no label at all (seen in a Robolectric
+                // semantics dump while building this; the content overload exposes the Text).
+                ExtendedFloatingActionButton(
+                    onClick = { mode = CartographyEntryMode.EDIT; onStartEntry(LocalDate.now()) },
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(Spacing.lg).testTag(ENTRIES_FAB_TAG),
+                ) {
+                    Icon(Icons.Filled.Edit, contentDescription = null)
+                    Spacer(Modifier.width(Spacing.md))
+                    Text("New entry")
+                }
+            }
         }
     }
 }
