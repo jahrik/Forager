@@ -960,11 +960,21 @@ internal fun CompactMapTab(
                         // in the same Box as this tab's own content (compactMainScaffold's own call
                         // site) instead of a sibling Column entry above it; 0.dp (this parameter's own
                         // default) reproduces the old flush-against-the-map-top behavior exactly.
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(controlsPadding)
-                            .fillMaxWidth()
-                            .padding(top = topInset),
+                        modifier = if (railPortEdge != null) {
+                            // Landscape B2 (S4): the top corner on the rail side, below the
+                            // status bar only (the Scaffold's top inset), not below the search
+                            // bar, which is on the other side now; content-width.
+                            Modifier
+                                .align(if (railPortEdge == ScreenEdge.Left) Alignment.TopStart else Alignment.TopEnd)
+                                .padding(controlsPadding)
+                        } else {
+                            Modifier
+                                .align(Alignment.TopCenter)
+                                .padding(controlsPadding)
+                                .fillMaxWidth()
+                                .padding(top = topInset)
+                        },
+                        contentWidth = railPortEdge != null,
                     )
                 }
 
@@ -1018,11 +1028,21 @@ internal fun CompactMapTab(
                         showDecimalDegrees = showDecimalDegrees,
                         onToggleCoordinateFormat = onToggleCoordinateFormat,
                         onExit = onToggleReturning,
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(controlsPadding)
-                            .fillMaxWidth()
-                            .padding(top = topInset),
+                        modifier = if (railPortEdge != null) {
+                            // Landscape B2 (S4): the top corner on the rail side, below the
+                            // status bar only, at most 360dp wide.
+                            Modifier
+                                .align(if (railPortEdge == ScreenEdge.Left) Alignment.TopStart else Alignment.TopEnd)
+                                .padding(controlsPadding)
+                                .widthIn(max = LANDSCAPE_HUD_MAX_WIDTH)
+                                .fillMaxWidth()
+                        } else {
+                            Modifier
+                                .align(Alignment.TopCenter)
+                                .padding(controlsPadding)
+                                .fillMaxWidth()
+                                .padding(top = topInset)
+                        },
                     )
                 }
 
@@ -1244,3 +1264,6 @@ internal const val MAP_ICON_CLUSTER_TAG = "map-icon-cluster"
 
 /** [MapIconBar]'s layers ("Map Mode") row is its 4th of 5 — see [mapIconBarRowAnchorOffset]. */
 private val MAP_MODE_PICKER_COMPACT_ANCHOR_OFFSET = mapIconBarRowAnchorOffset(rowIndexFromTop = 4)
+
+/** Landscape B2 (S4): the navigation HUD's width cap in the rail-side top corner. */
+private val LANDSCAPE_HUD_MAX_WIDTH = 360.dp
