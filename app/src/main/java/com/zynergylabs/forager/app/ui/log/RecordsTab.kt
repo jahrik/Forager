@@ -11,6 +11,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -88,12 +89,13 @@ internal fun RecordsTab(
      */
     onDeleteWaypoint: (String) -> Unit,
     /**
-     * Not read since journal redesign J4: the reference warning moved from the confirm dialog into the
-     * Undo snackbar, which gets its count from the ViewModel's pending delete. Left in place because
-     * its callers ([JournalTab], [LogPanel], through the scaffold) are outside J4's files; J6 (the wide
-     * tree) is the natural place to drop it.
+     * How many journal entries keep each waypoint (`TrackRecordingUiState.waypointEntryReferenceCounts`).
+     * Unread from journal redesign J4 (its warning moved into the Undo snackbar) until J5c, whose
+     * waypoint details sheet shows it as "Used in N journal entries". A waypoint with no entry here
+     * has no count to show and the sheet leaves the line out, rather than print a zero it was not
+     * given (the default map is empty, for callers with no counts).
      */
-    @Suppress("UNUSED_PARAMETER") waypointEntryReferenceCounts: Map<String, Int> = emptyMap(),
+    waypointEntryReferenceCounts: Map<String, Int> = emptyMap(),
     availabilityUiState: AvailabilityUiState,
     distanceUnit: DistanceUnit,
     currentTime: CurrentTimeProvider,
@@ -194,6 +196,12 @@ internal fun RecordsTab(
         selectedTab = tab
     }
 
+    // Journal redesign J5c: the record whose details sheet is open, if any. Saveable, so the sheet
+    // survives a rotation and an Activity recreation (RecordDetailsTarget's doc comment). Every row
+    // type that opens a sheet sets it; the sheet's own dismissal (Back, a scrim tap) clears it.
+    var detailsTarget by rememberSaveable(stateSaver = RecordDetailsTargetSaver) { mutableStateOf<RecordDetailsTarget?>(null) }
+    val openDetails: (RecordDetailsTarget) -> Unit = { target -> detailsTarget = target }
+
     // Back-nav-and-save-flow dispatch, Item 1, retargeted by journal redesign J1 (S3, the planner's
     // call in prompts/preserved/2026-09-27-16.md; the owner may overrule): step back to All — the
     // fixed default, not whichever chip was last selected. It used to step back to Waypoints, the
@@ -258,6 +266,7 @@ internal fun RecordsTab(
                         edit(id)
                     }
                 },
+                onOpenDetails = openDetails,
             )
 
             RecordsSubTab.WAYPOINTS -> WaypointsSection(
@@ -265,6 +274,7 @@ internal fun RecordsTab(
                 errorMessage = waypointsErrorMessage,
                 onDeleteWaypoint = onDeleteWaypoint,
                 modifier = Modifier.weight(1f),
+                onOpenWaypointDetails = { id -> openDetails(RecordDetailsTarget.WaypointDetails(id)) },
             )
 
             RecordsSubTab.OFFLINE_MAPS -> OfflineMapsPanel(
@@ -279,6 +289,7 @@ internal fun RecordsTab(
                 onOfflineMapNameChanged = onOfflineMapNameChanged,
                 onDownloadOfflineMaps = onDownloadOfflineMaps,
                 onDeleteOfflineRegion = onDeleteOfflineRegion,
+                onOpenRegionDetails = { id -> openDetails(RecordDetailsTarget.OfflineRegionDetails(id)) },
             )
 
             RecordsSubTab.RECORDED_TRACKS -> TrackExportList(
@@ -286,6 +297,7 @@ internal fun RecordsTab(
                 waypoints = waypoints,
                 getFullRecord = getFullRecord,
                 modifier = Modifier.weight(1f),
+                onOpenTrackDetails = { id -> openDetails(RecordDetailsTarget.TrackDetails(id)) },
             )
 
             // Column, not Box: the relocated find-editing composables (CentrePinLocationPicker,
@@ -294,6 +306,23 @@ internal fun RecordsTab(
             // exactly as-is rather than unified.
             RecordsSubTab.FINDS -> Column(modifier = Modifier.weight(1f).fillMaxSize()) { findsContent() }
         }
+    }
+
+    // J5c: the details sheet, over whichever list the row was tapped in. It reads the same lists the
+    // rows were drawn from (waypoints and regions already leave out a pending delete).
+    detailsTarget?.let { target ->
+        RecordDetailsSheet(
+            target = target,
+            waypoints = waypoints,
+            tracks = tracks,
+            offlineRegions = availabilityUiState.visibleOfflineRegions,
+            waypointEntryReferenceCounts = waypointEntryReferenceCounts,
+            distanceUnit = distanceUnit,
+            nowEpochMillis = currentTime.nowEpochMillis(),
+            staleThresholdDays = availabilityUiState.offlineStaleThresholdDays,
+            getFullRecord = getFullRecord,
+            onDismiss = { detailsTarget = null },
+        )
     }
 }
 
