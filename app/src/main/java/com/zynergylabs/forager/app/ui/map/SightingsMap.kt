@@ -209,6 +209,8 @@ fun SightingsMap(
     offlineRegionCircles: List<Region> = emptyList(),
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.bottomInset]'s own doc comment. */
     bottomInset: Dp = 0.dp,
+    /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.onUserCameraGesture]'s own doc comment. */
+    onUserCameraGesture: () -> Unit = {},
 ) {
     val context = LocalContext.current
 
@@ -235,6 +237,7 @@ fun SightingsMap(
     val currentOnSightingTap by rememberUpdatedState(onSightingTap)
     val currentOnLongPress by rememberUpdatedState(onLongPress)
     val currentOnCameraIdle by rememberUpdatedState(onCameraIdle)
+    val currentOnUserCameraGesture by rememberUpdatedState(onUserCameraGesture)
     // Read inside the click listener below (registered once, see that DisposableEffect's own
     // comment) so a tapped dot resolves against whichever sightings list is current, not whichever
     // one was in scope the moment the listener was registered.
@@ -333,6 +336,12 @@ fun SightingsMap(
             map.addOnMapLongClickListener { latLng ->
                 currentOnLongPress(LatLng(latLng.latitude, latLng.longitude))
                 true
+            }
+            // Only a touch counts: REASON_API_GESTURE is dispatched from MapGestureDetector's
+            // listeners alone, every programmatic move from Transform as REASON_API_ANIMATION —
+            // see MapRenderMode.onUserCameraGesture's doc comment for the javap check.
+            map.addOnCameraMoveStartedListener { reason ->
+                if (isUserCameraGesture(reason)) currentOnUserCameraGesture()
             }
             // OnCameraIdleListener.onCameraIdle() takes no argument (verified via javap against
             // the pinned org.maplibre.gl:android-sdk:13.5.0 artifact — MapLibreMap$OnCameraIdleListener
@@ -756,6 +765,14 @@ private fun refreshOverlayData(
  * at the call site (see that effect's own doc comment on why moving the camera while it's true
  * would fight the puck), not folded into this function, so this stays a pure comparison.
  */
+/**
+ * Whether a MapLibre camera-move-started [reason] is the user's touch — see
+ * [MapRenderMode.onUserCameraGesture]. A plain function so the one constant it keys on is pinned
+ * by a headless test rather than only by a device.
+ */
+internal fun isUserCameraGesture(reason: Int): Boolean =
+    reason == MapLibreMap.OnCameraMoveStartedListener.REASON_API_GESTURE
+
 internal fun shouldMoveCameraToTarget(
     isGpsTracking: Boolean,
     target: Pair<Region, LatLng?>,
