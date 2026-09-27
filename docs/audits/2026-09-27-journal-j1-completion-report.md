@@ -221,7 +221,10 @@ other than WaypointFlow's) still pass.
 
 - Before, at `3df97d1`: 226 classes / 1782 tests / 0 failures / 0 errors / 24 skipped.
 - After, at `ff26f29` (the final code head; this report adds no code), cleared
-  results directory, build log clean: **FINAL_COUNTS**.
+  results directory, build log clean: **229 classes / 1794 tests / 0 failures /
+  0 errors / 24 skipped.** +3 classes (`AvailabilityScreenJournalStateTest`,
+  `RecordTypeStyleTest`, `RecordsFilterChipsTest`), +12 tests (2 + 1 + 9),
+  skipped unchanged.
 
 ## Needs a decision (why S4 stopped)
 
