@@ -4,24 +4,22 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
+import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
 /**
@@ -36,7 +34,11 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
  * sits over this grid, so [bottomContentPadding] lets the last row scroll clear of it. [emptyMessage]
  * is what an empty list says (the timeline and the drafts list say different things).
  *
- * A card names its date, its tag chips (if any), and kept-item counts — **never whether it has
+ * **Cards since journal redesign J3 (C1, plan J5):** each month's entries sit under a sticky
+ * month header, and each entry is a [CartographyEntryCard] (day numeral and weekday, title, species
+ * chips, stats by type) or, with nothing to draw large, a [CollapsedEntryRow]; see that file.
+ *
+ * A card names its date, its tag chips (if any), and kept-item stats — **never whether it has
  * writing**. Per `amendment-2b-optional-writing.md`: a wordless entry with kept items is complete,
  * not incomplete, so no card here carries an "Incomplete"-style badge (the find tiles' own such badge was removed on 2026-09-13) the way [LogGalleryScreen]'s
  * find tiles do; [MushroomLogEntry] is a different entity with a different completeness question,
@@ -49,6 +51,8 @@ internal fun CartographyEntryListScreen(
     onOpenEntry: (String) -> Unit,
     /** Shown when there is nothing to list and no load error to show instead. */
     emptyMessage: String,
+    /** The user's distance unit, for a card's track stat (J3, C1). */
+    distanceUnit: DistanceUnit,
     modifier: Modifier = Modifier,
     loadErrorMessage: String? = null,
     /** Grid column count — 2 for compact, more for expanded/tablet. See this composable's own doc comment on owner decision #3. */
@@ -72,6 +76,7 @@ internal fun CartographyEntryListScreen(
         return
     }
 
+    val months = remember(entries) { groupEntriesByMonth(entries) }
     Column(modifier = modifier.fillMaxSize()) {
         if (entries.isEmpty() && loadErrorMessage != null) {
             Text(
@@ -83,55 +88,23 @@ internal fun CartographyEntryListScreen(
         LazyVerticalGrid(
             columns = GridCells.Fixed(columns),
             modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(start = Spacing.lg, top = Spacing.lg, end = Spacing.lg, bottom = bottomContentPadding),
+            contentPadding = PaddingValues(start = Spacing.lg, end = Spacing.lg, bottom = bottomContentPadding),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
-            items(entries, key = { it.id }) { entry -> CartographyEntryTile(entry = entry, onClick = { onOpenEntry(entry.id) }) }
+            months.forEachIndexed { run, (month, monthEntries) ->
+                // J3, C1 (plan J5): a sticky header per month. The run index keeps keys unique where
+                // a month recurs (the drafts list's order is by last update, not date).
+                stickyHeader(key = "month-$month-$run", contentType = "month") { EntryMonthHeader(month) }
+                items(monthEntries, key = { it.id }) { entry ->
+                    val open = { onOpenEntry(entry.id) }
+                    if (isCollapsedEntry(entry, hasHero = false)) {
+                        CollapsedEntryRow(entry = entry, distanceUnit = distanceUnit, onClick = open)
+                    } else {
+                        CartographyEntryCard(entry = entry, distanceUnit = distanceUnit, onClick = open)
+                    }
+                }
+            }
         }
     }
 }
-
-@Composable
-private fun CartographyEntryTile(entry: CartographyEntry, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val keptCount = entry.findDecisions.count { it.kept } +
-        entry.trackDecisions.count { it.kept } +
-        entry.waypointDecisions.count { it.kept } +
-        entry.offlineRegionDecisions.count { it.kept }
-    Card(
-        onClick = onClick,
-        modifier = modifier.fillMaxWidth().aspectRatio(ENTRY_TILE_ASPECT_RATIO),
-        shape = RoundedCornerShape(Spacing.sm),
-    ) {
-        Column(modifier = Modifier.fillMaxSize().padding(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            Text(entry.date.toString(), style = MaterialTheme.typography.labelLarge)
-            if (entry.text.isNotBlank()) {
-                Text(
-                    entry.text,
-                    style = MaterialTheme.typography.bodySmall,
-                    maxLines = 4,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-            } else {
-                Box(modifier = Modifier.weight(1f))
-            }
-            if (entry.tags.isNotEmpty()) {
-                Text(
-                    entry.tags.joinToString(" · "),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            Text(
-                if (keptCount == 1) "1 kept item" else "$keptCount kept items",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-private const val ENTRY_TILE_ASPECT_RATIO = 0.85f

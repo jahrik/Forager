@@ -11,6 +11,8 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
@@ -183,7 +185,7 @@ class CartographyScreenTest {
     fun `tapping a committed entry in the Entries tab opens the view screen, not the editor`() {
         setScreen(CartographyUiState(entries = listOf(committedEntry)))
 
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(entryMatcher(committedEntry)).performClick()
 
         // The view screen: an overflow menu exists, but none of the editor's editable fields do.
         composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
@@ -205,7 +207,7 @@ class CartographyScreenTest {
     fun `edit entry in the view screen's overflow menu switches to the editor`() {
         setScreen(CartographyUiState(entries = listOf(committedEntry)))
 
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(entryMatcher(committedEntry)).performClick()
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
 
@@ -226,17 +228,17 @@ class CartographyScreenTest {
     fun `backing out of the view screen returns to the entries list`() {
         setScreen(CartographyUiState(entries = listOf(committedEntry)))
 
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(entryMatcher(committedEntry)).performClick()
         composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
 
         composeRule.onNodeWithTag(ENTRIES_HOME_TAG).assertIsDisplayed() // J2 T3: Entries' top level, was the "Entries" sub-tab
-        composeRule.onNodeWithText("2026-08-01").assertIsDisplayed()
+        composeRule.onNode(entryMatcher(committedEntry)).assertIsDisplayed()
     }
 
     // --- Device-check patch, Item 1: Save/Discard/Cancel for a committed entry ---------------------
 
     private fun openCommittedEntryEditor() {
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(entryMatcher(committedEntry)).performClick()
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
     }
@@ -269,7 +271,7 @@ class CartographyScreenTest {
         // No leave-prompt was needed to get here, and the edit landed in the Entries list.
         composeRule.onNodeWithText("Save your changes?").assertDoesNotExist()
         composeRule.onNodeWithTag(ENTRIES_HOME_TAG).assertIsDisplayed() // J2 T3: Entries' top level, was the "Entries" sub-tab
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(entryMatcher(committedEntry)).performClick()
         composeRule.onNodeWithText("Chanterelles under the big fir.").assertIsDisplayed()
     }
 
@@ -363,7 +365,7 @@ class CartographyScreenTest {
     @Test
     fun `Camera and Import buttons are on the add-photo picker, reached from inside the editor`() {
         setScreen(CartographyUiState(entries = listOf(committedEntry)))
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(entryMatcher(committedEntry)).performClick()
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
 
@@ -374,3 +376,10 @@ class CartographyScreenTest {
         composeRule.onNodeWithText("Gallery").assertDoesNotExist()
     }
 }
+
+/**
+ * An entry's card or collapsed row (journal redesign J3, C1): the ISO date these tests used to find a
+ * card by is no longer on it, so they find it by the card's own tag, whichever of the two shapes it has.
+ */
+private fun entryMatcher(entry: CartographyEntry): SemanticsMatcher =
+    hasTestTag("entry-card-${entry.id}") or hasTestTag("entry-row-${entry.id}")

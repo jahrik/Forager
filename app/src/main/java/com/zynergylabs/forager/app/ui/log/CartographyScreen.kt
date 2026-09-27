@@ -325,6 +325,7 @@ internal fun CartographyScreen(
             isLoading = uiState.isLoadingEntries,
             onOpenDraft = { id -> mode = CartographyEntryMode.EDIT; onOpenEntry(id) },
             onBack = { draftsListOpen = false },
+            distanceUnit = distanceUnit,
             columns = columns,
             modifier = modifier.fillMaxSize(),
         )
@@ -379,6 +380,7 @@ internal fun CartographyScreen(
                     isLoading = uiState.isLoadingEntries,
                     onOpenEntry = { id -> mode = CartographyEntryMode.VIEW; onOpenEntry(id) },
                     emptyMessage = "No entries yet. Use New entry to start one.",
+                    distanceUnit = distanceUnit,
                     loadErrorMessage = uiState.loadErrorMessage,
                     columns = columns,
                     bottomContentPadding = FAB_CLEARANCE,

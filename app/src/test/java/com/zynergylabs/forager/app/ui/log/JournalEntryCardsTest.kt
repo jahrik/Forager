@@ -162,9 +162,13 @@ class JournalEntryCardsTest {
         composeRule.waitForIdle()
     }
 
-    /** A node showing exactly [text] inside the card or row tagged [cardTag]. */
+    /**
+     * A node showing exactly [text] inside the card or row tagged [cardTag]. The unmerged tree: a
+     * clickable `Card` merges its children's text into its own node, so in the merged tree no child
+     * text node has the card as an ancestor.
+     */
     private fun textIn(cardTag: String, text: String): SemanticsNodeInteraction =
-        composeRule.onNode(hasText(text) and hasAnyAncestor(hasTestTag(cardTag)))
+        composeRule.onNode(hasText(text) and hasAnyAncestor(hasTestTag(cardTag)), useUnmergedTree = true)
 
     private fun scrollListTo(tag: String) {
         composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasTestTag(tag))
@@ -190,7 +194,7 @@ class JournalEntryCardsTest {
     fun `a card shows kept finds' identifications as species chips, each species once, withheld finds left out`() {
         setScreen(listOf(FULL_ENTRY))
 
-        composeRule.onAllNodes(hasText("C. formosus") and hasAnyAncestor(hasTestTag(cardTag(FULL_ENTRY.id)))).assertCountEquals(1)
+        composeRule.onAllNodes(hasText("C. formosus") and hasAnyAncestor(hasTestTag(cardTag(FULL_ENTRY.id))), useUnmergedTree = true).assertCountEquals(1)
         textIn(cardTag(FULL_ENTRY.id), "B. edulis").assertIsDisplayed()
         // Withheld: not part of the entry, so no chip.
         composeRule.onNodeWithText("A. muscaria").assertDoesNotExist()
@@ -256,8 +260,10 @@ class JournalEntryCardsTest {
         composeRule.onNode(hasScrollToIndexAction()).performScrollToIndex(MANY_SEPTEMBER.size)
         composeRule.waitForIdle()
 
-        // The first card has scrolled away; the header has not.
-        node(cardTag(MANY_SEPTEMBER.first().id)).assertDoesNotExist()
+        // The first card has scrolled away (gone, or moved up under the header); the header has not.
+        val firstGone = composeRule.onAllNodes(hasTestTag(cardTag(MANY_SEPTEMBER.first().id))).fetchSemanticsNodes().isEmpty() ||
+            node(cardTag(MANY_SEPTEMBER.first().id)).getUnclippedBoundsInRoot().top < headerBefore.top
+        assertTrue("the list scrolled", firstGone)
         node(monthTag("2026-09")).assertIsDisplayed()
         val headerAfter = node(monthTag("2026-09")).getUnclippedBoundsInRoot()
         val lastCard = node(cardTag(MANY_SEPTEMBER.last().id)).getUnclippedBoundsInRoot()
@@ -382,8 +388,8 @@ private val EMPTY_ENTRY: CartographyEntry = committed("empty", LocalDate.of(2026
 
 private val AUGUST_ENTRY: CartographyEntry = committed("august", LocalDate.of(2026, 8, 30)).copy(text = "Late summer scouting")
 
-/** Twelve September entries with writing, newest first: more than the screen holds at one column. */
-private val MANY_SEPTEMBER: List<CartographyEntry> = (28 downTo 17).map { day ->
+/** Twenty-eight September entries with writing, newest first: more than the screen holds. */
+private val MANY_SEPTEMBER: List<CartographyEntry> = (28 downTo 1).map { day ->
     committed("sep-$day", LocalDate.of(2026, 9, day)).copy(text = "Walk on the $day")
 }
 
