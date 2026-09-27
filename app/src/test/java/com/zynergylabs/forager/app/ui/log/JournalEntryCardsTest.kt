@@ -403,6 +403,29 @@ class JournalEntryCardsTest {
         node("share-track-tr-c").assertExists()
     }
 
+    // ── C4: one column in compact portrait (plan J9) ──
+
+    @Test
+    fun `in compact portrait the cards are one full-width column, one card per row`() {
+        val three = listOf(
+            committed("col-1", LocalDate.of(2026, 9, 3)).copy(text = "First"),
+            committed("col-2", LocalDate.of(2026, 9, 2)).copy(text = "Second"),
+            committed("col-3", LocalDate.of(2026, 9, 1)).copy(text = "Third"),
+        )
+        setScreen(three)
+
+        val list = composeRule.onNode(hasScrollToIndexAction()).getUnclippedBoundsInRoot()
+        val cards = three.map { node(cardTag(it.id)).getUnclippedBoundsInRoot() }
+        for ((i, card) in cards.withIndex()) {
+            // The list's own 16 dp side padding either side; nothing else shares the row.
+            assertEquals("card $i starts at the list's start padding", (list.left + 16.dp).value, card.left.value, 1f)
+            assertEquals("card $i ends at the list's end padding", (list.right - 16.dp).value, card.right.value, 1f)
+        }
+        for (i in 1 until cards.size) {
+            assertTrue("card $i sits below card ${i - 1} (${cards[i]} vs ${cards[i - 1]})", cards[i].top >= cards[i - 1].bottom)
+        }
+    }
+
     @Test
     fun `touching a card at several points opens that entry`() {
         setScreen(listOf(FULL_ENTRY, AUGUST_ENTRY))
