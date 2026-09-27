@@ -129,3 +129,97 @@ comments excluded.
   Activity declares no `configChanges`, so a rotation recreates it. That has
   been false since the 2026-09-15 manifest change; the `rememberSaveable` it
   justifies is still right for the other causes.
+
+## Part C: tests by label, and the short-window header
+
+### C1. Tests that select a Journal tab by label (J0 question 5)
+
+Searches: `git grep -n` over `app/src/test app/src/androidTest` for (1) the
+seven exact literals, (2) any string literal containing one, and (3) "Records",
+"Entries", "Log" and "Journal". Coverage: `git ls-files` lists 229 test files
+(228 unit, 1 androidTest), and `git grep -l '.'` and `find` both see 229. Two
+helpers were read: `AvailabilityScreenLandscapeB3DestinationsTest.kt:93, :110`
+and `AvailabilityScreenSettingsPanelTest.kt:241-254` (`openOfflineMapsSubTab`
+with 9 callers, `openRecordedTracksSubTab` with 5). Test paths below are under
+`app/src/test/java/com/zynergylabs/forager/app/`; `av/` is `ui/availability/`,
+`log/` is `ui/log/`, and each `Test.kt` suffix is dropped.
+
+**Selects by label (`performClick`), 16 call sites:**
+- "Logged Finds" 5: `av/AvailabilityScreenAdaptiveLayout:429`,
+  `av/AvailabilityScreenBackNavigation:517, :917`, `log/JournalTab:209`,
+  `log/LogPanel:169`.
+- "Recorded Tracks" 3: `av/AvailabilityScreenBackNavigation:603`,
+  `av/AvailabilityScreenSettingsPanel:253` (helper, 5 tests), `:614`.
+- "Offline Maps" 2: `av/AvailabilityScreenSettingsPanel:248` (helper, 9 tests),
+  `:609`.
+- "Album" 3, each the Cartography sub-tab after a "Journal" click:
+  `av/AvailabilityScreenBackNavigation:977`, `av/AvailabilityScreenInAppCamera:286, :316`.
+- "Drafts" 0 as an exact literal; all 3 selections use "Drafts (1)", because
+  the tab text carries a count (`CartographyScreen.kt:289`,
+  `FindsGalleryScreen.kt:103`): `av/AvailabilityScreenBackNavigation:873`,
+  `log/CartographyScreen:197`, `log/FindsGalleryScreen:108` (the last is the
+  finds gallery's own Drafts tab).
+- "Cartography" 0; "Waypoint Markers" 0.
+
+**Locates by label to assert or measure (breaks on a rename), 16:**
+"Cartography" 6 (`av/AvailabilityScreenBackNavigation:553, :586`;
+`av/AvailabilityScreenLandscapeB3Destinations:132, :157`;
+`av/AvailabilityScreenShortLandscape:468, :474`); "Waypoint Markers" 3
+(`av/AvailabilityScreenBackNavigation:619`;
+`av/AvailabilityScreenLandscapeB3Destinations:138, :166`); "Logged Finds" 1
+(`…LandscapeB3Destinations:139`); "Offline Maps" 1
+(`av/AvailabilityScreenSettingsPanel:440`); "Recorded Tracks" 1 (`…:453`);
+"Drafts (1)" 3 (`av/AvailabilityScreenBackNavigation:554, :587`;
+`log/CartographyScreen:347`); "Album" 1 (`log/FindsGalleryScreen:156`).
+
+**Per file, selects plus locates, 32 in all:** BackNavigation 10,
+SettingsPanel 6, LandscapeB3Destinations 5, InAppCamera 2, ShortLandscape 2,
+CartographyScreen 2, FindsGalleryScreen 2, AdaptiveLayout 1, JournalTab 1,
+LogPanel 1.
+
+**Labels the plan's list leaves out:** "Records" (top tab), 10 click sites
+(`av/AvailabilityScreenAdaptiveLayout:428`,
+`av/AvailabilityScreenBackNavigation:516, :602, :618, :916`,
+`av/AvailabilityScreenLandscapeB3Destinations:164`,
+`av/AvailabilityScreenSettingsPanel:243` (helper),
+`av/AvailabilityScreenWaypointFlow:224`, `log/JournalTab:208`,
+`log/LogPanel:168`) and one measurement (`…LandscapeB3Destinations:133`).
+"Entries" (Cartography sub-tab), 1 click (`av/AvailabilityScreenBackNavigation:879`),
+13 display checks and 1 absence check (`log/JournalTab:341`). "Log" (the finds
+gallery's first tab), 0.
+
+**Label strings used for other things** (snackbar, content descriptions such
+as "New Cartography entry" and "Back to Cartography", the "From Album" button,
+assertion messages, comments) were listed by the pulse and are not tab
+selections. Two test comments are stale: `av/AvailabilityScreenBackNavigation:965`
+and `log/LogEntryDetailScreen:263` call "Album" a bottom-nav label, which
+`CompactTab` (`ui/availability/AvailabilityNavigationUi.kt:80-86`) no longer
+has.
+
+*Could not determine:* a test that builds a label at runtime would evade the
+string-literal search; none was looked for.
+
+### C2. The search header in a short landscape window (J0 question 8)
+
+**Yes, it renders on the Journal tab, inside B3's 640 dp cap, unless an entry
+is being edited.** From `ui/availability/AvailabilityCompactScaffold.kt`:
+`railBeside` is true on Journal (:503-504); the capped Column (:649-653) holds
+`if (!isMapFullscreen() && compactTab() != CompactTab.MAP && !isEditingJournalEntry) { SearchEntryBar(...); SearchNotice(uiState) }`
+(:686), with `isEditingJournalEntry` at :381; the Journal content takes the
+remaining height (`weight(1f)`, :726).
+
+Height: built from a measurement, not a fixed dp (`AvailabilitySearchUi.kt:199-296`):
+4 dp padding, a field of twice the measured height of "Mg" in `labelMedium`
+(:213-218), a 4 dp spacer, a divider, 4 dp padding. *Estimate, inferred:* about
+45 dp at default font scale, growing with it; `SearchNotice` (:521-545) adds a
+strip of roughly 30-35 dp only when an error or a denied location permission is
+set. The cap limits width only.
+
+The B3 destinations coder measured, under Robolectric at `w823dp-h384dp-land`
+on Records, the bar ending at 85 dp, the Journal tab row at 141 dp and the
+Records sub-tab row at 197 dp, leaving about 187 dp
+(`2026-09-27-landscape-b3-destinations-completion-report.md:200-204`). No test
+asserts these. *Could not determine:* why 85 dp against the 45 dp estimate (a
+notice strip set in that test's state, or Robolectric's font metrics); a run
+would settle it. The plan's L1 48 dp budget (open question 4) needs recounting
+either way, since the header does render.
