@@ -282,7 +282,8 @@ class RecordsFilterChipsTest {
 
         pressBack()
 
-        composeRule.onNodeWithText("Cartography").assertIsSelected()
+        // J2 T1: the Entries | Records switch replaced the tab row ("Cartography" reads "Entries").
+        composeRule.onNodeWithTag(journalSwitchTestTag(JournalTopTab.CARTOGRAPHY)).assertIsSelected()
     }
 
     // ── The Finds editing flow, unchanged ──

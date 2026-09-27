@@ -19,6 +19,8 @@ import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -552,7 +554,8 @@ class AvailabilityScreenBackNavigationTest {
         // Still inside the Journal (not bounced to Maps), and the draft is visible, not lost.
         composeRule.onNodeWithText("Your own account (optional)").assertDoesNotExist()
         composeRule.onNodeWithText("Save your changes?").assertDoesNotExist()
-        composeRule.onNodeWithText("Cartography").assertIsDisplayed()
+        // J2 T1: the top tab is the Entries | Records switch now ("Cartography" reads "Entries").
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.journalSwitchTestTag(com.zynergylabs.forager.app.ui.log.JournalTopTab.CARTOGRAPHY)).assertIsSelected()
         composeRule.onNodeWithText("Drafts (1)").assertIsDisplayed()
     }
 
@@ -585,7 +588,8 @@ class AvailabilityScreenBackNavigationTest {
         pressBack()
 
         composeRule.onNodeWithText("Draft with a photo picker open.").assertDoesNotExist()
-        composeRule.onNodeWithText("Cartography").assertIsDisplayed()
+        // J2 T1: the top tab is the Entries | Records switch now ("Cartography" reads "Entries").
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.journalSwitchTestTag(com.zynergylabs.forager.app.ui.log.JournalTopTab.CARTOGRAPHY)).assertIsSelected()
         composeRule.onNodeWithText("Drafts (1)").assertIsDisplayed()
     }
 
@@ -624,7 +628,7 @@ class AvailabilityScreenBackNavigationTest {
 
         pressBack()
 
-        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_HOME_TAG).assertIsDisplayed()
         composeRule.onNodeWithTag("map-slot").assertDoesNotExist()
     }
 
@@ -637,7 +641,7 @@ class AvailabilityScreenBackNavigationTest {
     fun `back on Cartography's own top level still falls through to the go-home handler`() {
         setScreen()
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_HOME_TAG).assertIsDisplayed()
 
         pressBack()
 
@@ -658,7 +662,7 @@ class AvailabilityScreenBackNavigationTest {
         pressBack()
 
         composeRule.onNodeWithText("Save your changes?").assertDoesNotExist()
-        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_HOME_TAG).assertIsDisplayed()
     }
 
     /** Item 2: a dirty committed entry's system back shows Save/Discard/Cancel — the exact prompt the on-screen arrow already showed, now reachable by the nav-bar button too. Cancel keeps editing with the change intact. */
@@ -698,7 +702,7 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.LEAVE_PROMPT_DISCARD_TEST_TAG).performClick()
 
         composeRule.onNodeWithText("Save your changes?").assertDoesNotExist()
-        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_HOME_TAG).assertIsDisplayed()
     }
 
     /** Item 2/3: Save via system back's own prompt saves and leaves in one step — no second dialog. */
@@ -717,7 +721,7 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.LEAVE_PROMPT_SAVE_TEST_TAG).performClick()
 
         composeRule.onNodeWithText("Save your changes?").assertDoesNotExist()
-        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_HOME_TAG).assertIsDisplayed()
         composeRule.onNodeWithText("2026-08-01").performClick()
         composeRule.onNodeWithText("Saved via system back.").assertIsDisplayed()
     }
@@ -827,7 +831,7 @@ class AvailabilityScreenBackNavigationTest {
         // Still on the entry (Commit doesn't leave), and it landed in Entries.
         composeRule.onNodeWithText("Committed on return.").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
-        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_HOME_TAG).assertIsDisplayed()
         composeRule.onNodeWithText("2026-08-01").performClick()
         // Proves the tap actually opened the entry — see this test's own doc comment.
         composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
@@ -873,14 +877,15 @@ class AvailabilityScreenBackNavigationTest {
 
         composeRule.onNodeWithText("Welcome back").assertDoesNotExist()
         // Closed — visible under Drafts now, not left open silently rendering as a draft.
-        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_HOME_TAG).assertIsDisplayed()
         composeRule.onNodeWithText("Drafts (1)").performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithText("2026-08-01").performClick()
         composeRule.onNodeWithText("Saved as draft on return.").assertIsDisplayed()
         // And it's really gone from Entries, not just still showing there too.
         composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
-        composeRule.onNodeWithText("Entries").performClick()
+        // J2 T1: "Entries" also labels the switch now; this is the Cartography sub-tab.
+        composeRule.onNode(hasText("Entries") and !hasTestTag(com.zynergylabs.forager.app.ui.log.journalSwitchTestTag(com.zynergylabs.forager.app.ui.log.JournalTopTab.CARTOGRAPHY))).performClick()
         composeRule.onNodeWithText("2026-08-01").assertDoesNotExist()
     }
 
@@ -907,7 +912,7 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertDoesNotExist()
 
         composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
-        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_HOME_TAG).assertIsDisplayed()
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertIsDisplayed()
     }
 
@@ -955,7 +960,7 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
         composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.LEAVE_PROMPT_DISCARD_TEST_TAG).performClick()
 
-        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_HOME_TAG).assertIsDisplayed()
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertIsDisplayed()
         composeRule.onNodeWithText("Set on map").assertDoesNotExist()
     }
