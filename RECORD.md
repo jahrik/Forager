@@ -2552,3 +2552,14 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Written by the planner by hand. Owner rulings used, verbatim: "Direct photos only (Recommended)", "Rows and Entries cards", "Join in memory (Recommended)" (J0); "Saved finds only (Recommended)", "Fix in J3 (Recommended)" (on J2's second coder's questions).
 
 ---
+
+**Kind:** terminal
+**ID:** 2026-09-27-56
+**Timestamp:** 2026-09-27T17:13:00Z
+**Closes:** 2026-09-27-55
+**Outcome:** completed
+**Observed:** (1) Commits on journal-redesign, each step tests first: C1 8331afc/0bbfe87 (entry cards: sticky month headers, day numeral and weekday, first line as title, species chips, stats by type, collapsed row, in new CartographyEntryCard.kt); C2 2f7a93b/b270102 (hero photo, earliest directly attached photo that resolves); C3 2342406/08af83a (TrackThumbnail.kt, bounding-box projection and Canvas path, on Recorded Tracks rows and Entries cards via the already-loaded track list); C4 0b21357 onward (one column in compact portrait); C5 (album find badge on committed finds only); C6 (MainActivity.kt:104 logs its fallback); last code commit 4aaf5f4, report docs/audits/2026-09-27-journal-j3-completion-report.md at 5a6a061. (2) Every step's tests seen failing at base, except three absence checks passing at base by construction (fewer than two points projects nothing; two "success logs nothing" C6 tests), each held by its own revert check. Twelve revert checks, clean build logs, saved-copy restores. 37 call sites in 3 test files moved from the removed ISO date to card tags, assertions unchanged; one fixture grew from 12 to 30 entries so a card still sits under the FAB. (3) Full suite by the planner on 5a6a061, results cleared first, UTF-8 locale: BUILD SUCCESSFUL in 2m 50s, 0 "e: " lines, 236 classes / 1869 / 0 / 0 / 24 (+3 classes, +33 tests over 233 / 1836). All four planner predictions held. JournalTabTest's photo-pull test did not fail in any run.
+**Deviations:** (1) EntriesDrafts.kt was edited though not in the dispatch's file list: the drafts list uses the same list screen and its cards need the distance unit, photos and tracks. (2) Short windows keep two columns (C4 was scoped to compact portrait; short windows are J5). (3) C6 still shows 0 on a failed count, now logged; the photo delete dialog's "appears in N journal entries" warning is still hidden when the count fails. (4) LogPanel gets the new cards without tracks or draft-find ids until J6. (5) An entry with two or more kept tracks shows no thumbnail and a summed track stat; owner rulings "All in one box (Recommended)" and "Sum, with a count (Recommended)", not built in J3, carried to J4.
+**Notes:** Carried to J4 by owner ruling: the multi-track thumbnail (all kept tracks in one box, scaled together) and stat (sum with a track count); and "Fix in J4 (Recommended)" for MainActivity.kt:75 and :179, which turn a failed offline-region or waypoint reference count into 0 with no log. Device-only items are in the report.
+
+---
