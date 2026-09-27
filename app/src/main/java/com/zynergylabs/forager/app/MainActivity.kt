@@ -101,7 +101,7 @@ class MainActivity : ComponentActivity() {
                     container.deleteGalleryPhotoUseCase,
                     container.locationProvider,
                     container.updatePhotoLocationUseCase,
-                    getPhotoEntryReferenceCount = { id -> container.getEntryReferenceCountUseCase.forPhoto(id).getOrDefault(0) },
+                    getPhotoEntryReferenceCount = { id -> photoEntryReferenceCountOrZero(id, container.getEntryReferenceCountUseCase::forPhoto, androidErrorLog) },
                     // Find-location-at-creation dispatch, Fix 1: the held live fix, read at the
                     // moment a find is started. AvailabilityViewModel is the one live collector.
                     currentFix = { viewModel.uiState.value.liveFix },
@@ -549,3 +549,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
+/**
+ * How many journal (Cartography) entries keep photo [photoId], for the album's entry badge and the
+ * photo delete dialog (`MushroomLogViewModel.loadGalleryPhotos`). A failed count shows as 0.
+ */
+internal suspend fun photoEntryReferenceCountOrZero(
+    photoId: String,
+    countEntriesReferencingPhoto: suspend (String) -> Result<Int>,
+    @Suppress("UNUSED_PARAMETER") errorLog: ErrorLog,
+): Int = countEntriesReferencingPhoto(photoId).getOrDefault(0)
