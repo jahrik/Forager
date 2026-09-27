@@ -207,7 +207,7 @@ class AvailabilityScreenInAppCameraTest {
     /** Journal → a new Cartography entry → its add-photo picker, whose Camera button is the deepest one in the compact tree. */
     private fun openEditorCamera() {
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithContentDescription("New Cartography entry").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_FAB_TAG).performClick() // J2 T4: the New entry floating button, was the "+" tile
         composeRule.onNodeWithContentDescription("Add a photo from the Album").performClick()
         composeRule.onNodeWithText("Camera").performClick()
         composeRule.waitForIdle()

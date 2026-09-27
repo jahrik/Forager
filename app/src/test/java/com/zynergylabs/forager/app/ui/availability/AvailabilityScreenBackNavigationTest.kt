@@ -544,7 +544,7 @@ class AvailabilityScreenBackNavigationTest {
     fun `back on an open Cartography draft steps back to Entries with the drafts banner, not out of the Journal, and the draft persists`() {
         setScreen()
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithContentDescription("New Cartography entry").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_FAB_TAG).performClick() // J2 T4: the New entry floating button, was the "+" tile
         composeRule.onNodeWithText("Your own account (optional)").assertIsDisplayed()
 
         pressBack()
@@ -571,7 +571,7 @@ class AvailabilityScreenBackNavigationTest {
     fun `back from the add-photo picker returns to the editor, and back again reaches Entries with the drafts banner`() {
         setScreen()
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithContentDescription("New Cartography entry").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_FAB_TAG).performClick() // J2 T4: the New entry floating button, was the "+" tile
         composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Draft with a photo picker open.")
         composeRule.onNodeWithContentDescription("Add a photo from the Album").performClick()
         composeRule.onNodeWithText("Camera").assertIsDisplayed()
@@ -764,7 +764,7 @@ class AvailabilityScreenBackNavigationTest {
     fun `backgrounding an open draft shows no return prompt on resume — drafts autosave, unchanged`() {
         setScreen()
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithContentDescription("New Cartography entry").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_FAB_TAG).performClick() // J2 T4: the New entry floating button, was the "+" tile
         composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Draft text.")
         composeRule.waitForIdle()
 

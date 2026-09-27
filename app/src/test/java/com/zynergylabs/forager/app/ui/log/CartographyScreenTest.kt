@@ -216,7 +216,7 @@ class CartographyScreenTest {
     fun `starting a brand-new entry from the Entries tab opens the editor directly, never the view`() {
         setScreen(CartographyUiState())
 
-        composeRule.onNodeWithContentDescription("New Cartography entry").performClick()
+        composeRule.onNodeWithTag(ENTRIES_FAB_TAG).performClick() // J2 T4: the New entry floating button, was the "+" tile
 
         composeRule.onNodeWithText("Your own account (optional)").assertIsDisplayed()
     }
@@ -339,7 +339,7 @@ class CartographyScreenTest {
     @Test
     fun `backing out of a draft with text typed still does not prompt`() {
         setScreen(CartographyUiState())
-        composeRule.onNodeWithContentDescription("New Cartography entry").performClick()
+        composeRule.onNodeWithTag(ENTRIES_FAB_TAG).performClick() // J2 T4: the New entry floating button, was the "+" tile
 
         composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Draft text.")
         composeRule.onNodeWithContentDescription("Back to Cartography").performClick()

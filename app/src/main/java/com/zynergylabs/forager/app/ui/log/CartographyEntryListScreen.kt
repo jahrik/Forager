@@ -1,6 +1,5 @@
 package com.zynergylabs.forager.app.ui.log
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,19 +12,15 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
@@ -36,9 +31,10 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
  * decision #3 calls for (one Cartography implementation, [columns] the only thing that changes
  * between window classes).
  *
- * [onAddEntry] renders the same "+" tile precedent [LogGalleryScreen]'s `AddEntryTile` established,
- * `null` for the Drafts list — starting a *new* entry from Drafts would read as "add a draft," not a
- * distinct action from "add an entry," the same reasoning [LogGalleryScreen] already applies.
+ * **No "+" tile since journal redesign J2 (T4, plan J7).** It used to be the first grid cell, the
+ * largest thing on screen; starting an entry is now [CartographyScreen]'s floating button, which
+ * sits over this grid, so [bottomContentPadding] lets the last row scroll clear of it. [emptyMessage]
+ * is what an empty list says (the timeline and the drafts list say different things).
  *
  * A card names its date, its tag chips (if any), and kept-item counts — **never whether it has
  * writing**. Per `amendment-2b-optional-writing.md`: a wordless entry with kept items is complete,
@@ -51,11 +47,14 @@ internal fun CartographyEntryListScreen(
     entries: List<CartographyEntry>,
     isLoading: Boolean,
     onOpenEntry: (String) -> Unit,
+    /** Shown when there is nothing to list and no load error to show instead. */
+    emptyMessage: String,
     modifier: Modifier = Modifier,
-    onAddEntry: (() -> Unit)? = null,
     loadErrorMessage: String? = null,
     /** Grid column count — 2 for compact, more for expanded/tablet. See this composable's own doc comment on owner decision #3. */
     columns: Int = 2,
+    /** Space below the last row, so a floating button over the grid does not cover it at the end of the list (J2, T4). */
+    bottomContentPadding: Dp = Spacing.lg,
 ) {
     if (isLoading && entries.isEmpty()) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -64,9 +63,9 @@ internal fun CartographyEntryListScreen(
         return
     }
 
-    if (entries.isEmpty() && onAddEntry == null && loadErrorMessage == null) {
+    if (entries.isEmpty() && loadErrorMessage == null) {
         Text(
-            "No drafts. An entry you haven't finished shows up here.",
+            emptyMessage,
             style = MaterialTheme.typography.bodyMedium,
             modifier = modifier.fillMaxWidth().padding(Spacing.lg),
         )
@@ -84,36 +83,11 @@ internal fun CartographyEntryListScreen(
         LazyVerticalGrid(
             columns = GridCells.Fixed(columns),
             modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(Spacing.lg),
+            contentPadding = PaddingValues(start = Spacing.lg, top = Spacing.lg, end = Spacing.lg, bottom = bottomContentPadding),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
-            if (onAddEntry != null) item { AddCartographyEntryTile(onClick = onAddEntry) }
             items(entries, key = { it.id }) { entry -> CartographyEntryTile(entry = entry, onClick = { onOpenEntry(entry.id) }) }
-        }
-    }
-}
-
-/** Mirrors [LogGalleryScreen]'s `AddEntryTile` — a blank outline with a centered `+`. */
-@Composable
-private fun AddCartographyEntryTile(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    OutlinedCard(
-        onClick = onClick,
-        modifier = modifier.fillMaxWidth().aspectRatio(ENTRY_TILE_ASPECT_RATIO),
-        shape = RoundedCornerShape(Spacing.sm),
-        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.outline),
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            Icon(
-                Icons.Filled.Add,
-                contentDescription = "New Cartography entry",
-                tint = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.padding(Spacing.sm),
-            )
         }
     }
 }
