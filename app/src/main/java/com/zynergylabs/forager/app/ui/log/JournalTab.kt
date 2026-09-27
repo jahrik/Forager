@@ -185,6 +185,14 @@ internal fun JournalTab(
     /** The backgrounding-return prompt's "Save as draft" option — pending-edit-and-fixes dispatch, Item 1. See [CartographyScreen]'s own lifecycle-observer doc comment. */
     onSaveCartographyEntryAsDraft: () -> Unit = {},
     onDeleteCartographyEntry: (String) -> Unit,
+    /**
+     * An entry card's Delete (journal redesign J4b L2: the revealed Delete, a full swipe, or the
+     * card's accessibility action), which asks for a *pending* delete with Undo
+     * (`CartographyViewModel.requestDeleteEntry`). [onDeleteCartographyEntry] stays the report's and
+     * edit screen's immediate delete behind their confirm dialogs. `null` (the default) leaves the
+     * cards without the swipe.
+     */
+    onRequestDeleteCartographyEntry: ((String) -> Unit)? = null,
     /** [CartographyEntryReportScreen]'s own map, Stage 2d — see that composable's doc comment. */
     getCartographyEntryMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData,
     /** [CartographyEntryReportScreen]'s own offline-map toggle, Stage 2e-i — see that composable's doc comment. */
