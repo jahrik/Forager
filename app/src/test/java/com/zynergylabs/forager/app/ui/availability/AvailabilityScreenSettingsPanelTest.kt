@@ -1,7 +1,13 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasContentDescription
+import com.zynergylabs.forager.app.ui.log.RecordType
+import com.zynergylabs.forager.app.ui.log.swipeToDeleteTag
 import android.app.Application
 import android.content.ComponentName
 import android.content.Intent
@@ -133,10 +139,10 @@ class AvailabilityScreenSettingsPanelTest {
         }
     }
 
-    private fun setScreen(tracks: List<Track> = emptyList()) {
+    private fun setScreen(tracks: List<Track> = emptyList(), uiState: AvailabilityUiState = SEARCHED_STATE) {
         composeRule.setContent {
             AvailabilityScreen(
-                uiState = SEARCHED_STATE,
+                uiState = uiState,
                 onUseCurrentLocation = {},
                 onManualLatChanged = {},
                 onManualLngChanged = {},
@@ -624,16 +630,43 @@ class AvailabilityScreenSettingsPanelTest {
         composeRule.onAllNodesWithTag(OFFLINE_PICKER_MAP_TAG).assertCountEquals(0)
     }
 
+    // Journal redesign J4b L5: this test used to end with `onAllNodesWithText("Delete")
+    // .assertCountEquals(0)` on an empty region list, guarding "no standalone Delete button". J4
+    // removed every "Delete" text from the app, so that line passed whatever it checked, and with
+    // no region there was no row for a delete control to be on anyway. The empty-list half stays
+    // here; what the line was guarding moved to the next test, which has a row to look at.
     @Test
-    fun `Download Maps is disabled with no region picked, and no regions or delete buttons show with nothing downloaded`() {
+    fun `Download Maps is disabled with no region picked, and no regions show with nothing downloaded`() {
         setScreen()
         openOfflineMapsSubTab()
 
         composeRule.onNodeWithText("Download Maps").performScrollTo().assertIsDisplayed().assertIsNotEnabled()
-        // Delete is per-region now (OfflineRegionRow), not a standalone always-present button — with
-        // nothing downloaded there is no row to show one on.
         composeRule.onNodeWithText("No regions downloaded yet.").performScrollTo().assertIsDisplayed()
-        composeRule.onAllNodesWithText("Delete").assertCountEquals(0)
+    }
+
+    /**
+     * J4b L5: what the old "no delete buttons" line was guarding, asserted where it can fail. A
+     * downloaded region's row, at rest, carries **no** delete control of its own (no "Delete" text,
+     * no clickable node described as a delete), and **does** carry J4's swipe (its tag) and the
+     * "Delete" accessibility action that stands in for the button (J4 D3). The row's name showing is
+     * the positive control: the row is really there to be looked at.
+     */
+    @Test
+    fun `a downloaded region's row has no Delete control at rest, and carries the swipe and its Delete action`() {
+        setScreen(uiState = SEARCHED_STATE.copy(offlineRegions = listOf(L5_REGION)))
+        openOfflineMapsSubTab()
+
+        composeRule.onNodeWithText(L5_REGION.name).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag(swipeToDeleteTag(RecordType.OFFLINE_MAPS, L5_REGION.id.toString()))
+            .assertExists()
+            .assert(
+                SemanticsMatcher("has a custom accessibility action labelled Delete") { node ->
+                    node.config.getOrNull(SemanticsActions.CustomActions).orEmpty().any { it.label == "Delete" }
+                },
+            )
+        composeRule.onAllNodesWithText("Delete", ignoreCase = true).assertCountEquals(0)
+        composeRule.onAllNodes(hasContentDescription("Delete", substring = true, ignoreCase = true) and hasClickAction())
+            .assertCountEquals(0)
     }
 
     @Test
@@ -872,4 +905,16 @@ private fun sighting(index: Int) = Sighting(
 private val SEARCHED_STATE = AvailabilityUiState(
     region = REGION,
     sightings = List(4) { sighting(it) },
+)
+
+/** J4b L5's one downloaded region. */
+private val L5_REGION = OfflineRegionSummary(
+    id = 5L,
+    name = "Molalla Ridge",
+    region = Region(lat = 45.1, lng = -122.5, radiusKm = 5),
+    minZoom = OfflineMapRepository.MIN_ZOOM,
+    maxZoom = OfflineMapRepository.MAX_ZOOM,
+    tileCount = 1200,
+    sizeBytes = 5_000_000L,
+    createdAtEpochMillis = 0L,
 )
