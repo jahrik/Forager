@@ -2435,3 +2435,18 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Device items for B4, none run: the drawer sheet's inset padding and rounded edge at ROTATION_90; a real scrim tap and swipe-to-close over a panning map, and swipe-to-open staying off; rotating between 90 and 270 with the drawer open; the 640 dp cap and centring against real insets and the cut-out; the two picker maps at 640 dp. Outside scope, from the destinations coder: in Records the search bar and two tab rows take 197 of the 384 dp window under Robolectric, before real insets. Scrolling of each destination was checked by reading the code, not by test: all scroll except the log entry's location-picker map and List's one-line empty state. No PR and no merge into pre-main: that waits on the owner.
 
 ---
+
+**Kind:** merge
+**ID:** 2026-09-27-47
+**Timestamp:** 2026-09-27T09:08:45Z
+**PR:** 139
+**Head:** landscape-b3
+**Base:** pre-main
+**Merge-commit:** 352b70842fb014ec5d30aa5bc483c29c25144cf2
+**Pre-merge:** e136330873031c49004a8da42213f6556bc36b4b
+**Backup:** none
+**Merged-by:** owner
+**Carries:** 2026-09-27-42, 2026-09-27-43, 2026-09-27-44, 2026-09-27-45, 2026-09-27-46
+**Notes:** Merged through the GitHub API by the planner's cloud session on the owner's instruction, verbatim: "Open the PR and merge then we can start on the journal redesign". Merged-by reads owner because the merge was the owner's decision and no coder dispatch carried it; the checker allows only owner or a coder's store file. Merged after CI: check run "Build, test, publish APK" (Actions run 36308125724) concluded success at 2026-09-27T09:08:15Z on head cb8eec4d52b350e44c360ca4033e438724a5072c, and GitHub reported mergeable_state clean. PR, Head, Base, merged_at from the GitHub API; git log -1 --format=%P 352b708 gives e136330873031c49004a8da42213f6556bc36b4b and cb8eec4d52b350e44c360ca4033e438724a5072c. Backup: none. No pre-merge bundle of pre-main at e136330 was written: the backup store is on the owner's machine, which this cloud session does not reach (owner: "Stay off the machine. We are in the cloud now"), and the history guard that required one was removed by e136330. The pre-merge state is recoverable from the remote as e136330 itself. Carries from git diff e136330 352b708 -- RECORD.md, which adds IDs 2026-09-27-42 to -46. Written on claude/docs-pr137-loose-ends-jnv47u, fast-forwarded to origin/pre-main 352b708.
+
+---
