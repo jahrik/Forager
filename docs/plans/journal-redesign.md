@@ -429,3 +429,48 @@ J4 (running), J4b, J5, **M1**, J8, then the single Journal PR.
 ### Photo details and location (future stage, not scheduled)
 
 J4b found no photo edit screen, so the album's long-press menu is Delete-only. The owner chose **"Later, own stage (Recommended)"**: a photo details and location screen is a stage of its own, to be specified when scheduled (`updatePhotoLocationUseCase` is wired in `MainActivity` and would be where such a screen writes; J4b traced what reaches it).
+
+### Photo editing: sequenced after the camera work (owner, 2026-09-27)
+
+The owner, verbatim, on the photo details and location stage above: "Photo editing is a large project in itself, but not outside the scope of nature photography, so we can add it, but it will come after the central camera improvements land". So photo editing is in scope as its own project, larger than a details-and-location screen, and it starts only after "the central camera improvements" land. No plan in `docs/plans/` is titled for that camera work at the time of writing; which work the phrase names is to be confirmed with the owner when photo editing is scheduled, not assumed.
+
+### Map layering framework (owner, 2026-09-27; to be specified)
+
+The owner, verbatim: "Prepare the map for layering framework also. We are going to improve the forecast methods with layering based on several conditions, similar to how other prediction maps do."
+
+Planner's placement, pending the owner's confirmation: the framework is built before M1 (glyph bubbles) and J8 (entries on the map), since both add map layers and would otherwise be built outside it and reworked. It is a framework for layers, not the forecast method itself; the forecast conditions and how they combine are a later, separate piece of work. Before specifying it, a read-only pulse maps today's layer composition in `ui/map/SightingsMap.kt` and the forecast data the app already has, and a prior-art pass records how established prediction maps structure layer controls. The owner's decisions on scope follow from those.
+
+#### What `slayer8366/forager-forecast` already fixes for the layer framework (read 2026-09-27 at its `main` `876156b`)
+
+The owner, verbatim: "Look at forager-forecast repo for details. It's pure R&D so what's there is very raw so far". Read by the planner; citations are to that repo. Its own status: planning complete, data audits done, no model fit and nothing published yet.
+
+- **What reaches the app (D55, accepted with edits in D56, target confirmed as this app in D57).** Per forager group and ISO week, weather-cell polygons at 0.1 degree, published nightly as GeoJSON split into 1 degree blocks (one file per group per week per block, under a dated path named in a manifest), beside vector PMTiles, with a 250 m raster later. Cell properties by name: `group`, `week`, `chance` (0 to 1), `uncertainty_low`, `uncertainty_high`, `applicable`, `drivers` (a list of `{label, value}`, top first), `weather_through`, `model_version`. The manifest names groups (with GBIF and iNaturalist ids), the current week, the published ecoregions, the attribution text and the layer paths. The reason (D55): MapLibre's offline packs never download a source added at runtime and have no PMTiles path, so for offline use in a saved region the app fetches the blocks touching its areas and **stores them itself**.
+- **What the app promises in return (D55).** The number is called "sighting chance" and nothing else, with a unit test searching the app's copy for forbidden terms; shown only beside its reference class; nothing drawn for an unscored cell, with "no forecast here" in the legend; nothing finer than the weather cell until a later decision allows the 250 m raster, labelled "relative habitat" with no percent; the attribution string shown on the map. Tap a cell: chance, uncertainty and data dates (SPEC acceptance; T11).
+- **Standing rule for agents in this repo (D58).** Three phrases the forecast project forbids never reach `slayer8366/Forager` in code, strings, docs or commit messages, other than inside a rule or test that names them as forbidden. The planner checked `journal-redesign` on 2026-09-27: zero hits in files and in commit messages. Every dispatch touching forecast copy repeats this check. (D59: this app's own wording rules are the app's to redo after the integration.)
+- **Gate.** Nothing derived from non-commercial-licensed records is published or shipped until the owner rules on commercial use (D22, D29). The framework can be built and tested with synthetic cells before that; no real forecast layer ships until it.
+- **"Several conditions."** The model is habitat x trigger x observation (START_HERE), and each cell carries its top `drivers`. Whether the app also shows individual conditions as their own layers, as other prediction maps do, is the owner's call after the prior-art pass.
+
+So the framework must give: layers the app feeds from data it stores (re-added after every style reload, basemap change and night-mode change), explicit z-order between the basemap and the markers, per-layer toggles, a legend with a "no forecast here" state and an attribution slot, and tap-to-query per layer, which is what M1's bubbles and J8's overlays need too.
+
+**Correction to M1 above (2026-09-27).** "Long-press (which drops a point today, `SightingsMap.kt:334`)" is wrong: the long-press listener exists, but every production caller passes `{}`, so a long-press does nothing on any map today (`docs/audits/2026-09-27-map-layers-and-forecast-data-pulse.md`). M1 does not need to avoid a long-press action; it only needs to keep long-press free if a later stage wants it.
+
+#### The owner's rulings on the layer framework (2026-09-27)
+
+Asked after the pulse (`docs/audits/2026-09-27-map-layers-and-forecast-data-pulse.md`) and the prior-art pass (`docs/audits/2026-09-27-prediction-map-layers-prior-art.md`), verbatim answers:
+
+1. Colour fields: **"Several, with opacity"**. Like Gaia and CalTopo: any number of colour layers on at once, each with its own opacity slider, and the user can reorder them. (Not Windy's one-at-a-time.)
+2. Conditions: **"Both, like Waldschatzfinder (Recommended)"**. Sighting chance plus each condition (rain, soil temperature, soil moisture and the like) as its own layer, and tapping a cell shows the per-condition breakdown. This needs the forecast project to publish condition grids as well as sighting chance, a change to its D55 contract; that is decided in `slayer8366/forager-forecast`, which this session reads but does not write.
+3. Layers menu: **"One sheet, two sections (Recommended)"**. The map's existing Layers button opens one sheet: "Map type" (pick one basemap) and "Overlays" (toggles for finds, waypoints, tracks, planned trips, offline maps, journal entries, and later the forecast layers).
+4. Stage scope: **Option 1, "Framework + synthetic layer"**, with the owner's addition: "This will also require an update to the seasonal forecast panel to align with the model, otherwise it will be two sources of info competing." So the framework stage builds a generic layer model (order, visibility, per-layer opacity, legend, multi-credit attribution, tap precedence), moves today's markers onto it as toggleable overlays, adds a stored-data interface for downloaded cells, and proves it with a synthetic forecast layer behind a developer flag; no real forecast data. And the Seasonal tab's forecast panel (today's point-based conditions, trip windows and fruiting-lag figures, `ui/availability/AvailabilityResultsUi.kt`) must be brought into line with the model so the two do not compete; its timing is asked separately.
+
+Stage name and place: **L0, the map layer framework**, after J5 and before M1 and J8, which become its first users. Every L0 dispatch repeats the D58 check for the forecast project's forbidden phrases, and no forecast copy lands without it.
+
+Seasonal panel timing, the owner's answer: **"With the first real forecast (Recommended)"**. The Seasonal tab's forecast panel changes in the same stage that turns on real forecast data (after the commercial-use ruling), so the map and the panel switch to the model together; until then both keep today's figures. L0 does not touch the panel.
+
+### Order, revised again
+
+J4b (done), the picker and offline-maps fix stage (running), J5, **L0**, M1, J8, then the single Journal PR. Photo editing after the central camera improvements. Real forecast data, condition layers and the Seasonal panel's alignment wait on the commercial-use ruling and on the forecast project's D55 change.
+
+### Device check timing (owner, 2026-09-27)
+
+The owner, verbatim: "I'll run a device check after we are finished with this journal project". So every device-only item from B3, J1-J4b, the picker fix stage, J5, L0, M1 and J8 goes into one consolidated J7 checklist, run once at the end on the S22 Ultra. The planner assembles that checklist from each stage's completion report before the single Journal PR; items proven only by Robolectric are not claimed as verified until then. First among them: the find picker's pinch-and-pan (the only check that the new user-gesture signal is wired in the live map), and Back from a Records chip returning to All ("We'll try it and see if it works").
