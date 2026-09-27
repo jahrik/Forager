@@ -599,16 +599,33 @@ internal suspend fun photoEntryReferenceCountOrZero(
     0
 }
 
-/** J4 D6: extracted unchanged (a failed count is 0, not logged); the log lands in the D6 commit. */
+/**
+ * How many journal entries keep waypoint [waypointId], for the Records Undo snackbar's warning
+ * (`TrackRecordingViewModel.loadWaypoints`, read by `requestRemoveWaypoint`). A failed count still
+ * shows as 0, as it always has, but the fallback is now logged when it fires (journal redesign J4,
+ * D6; owner ruling "Fix in J4 (Recommended)"), the same way [photoEntryReferenceCountOrZero] was fixed
+ * in J3. Shown as 0, a failed read means the snackbar says only "Waypoint deleted" for a waypoint
+ * entries do use; the log is what tells that apart from a real 0.
+ */
 internal suspend fun waypointEntryReferenceCountOrZero(
     waypointId: String,
     countEntriesReferencingWaypoint: suspend (String) -> Result<Int>,
-    @Suppress("UNUSED_PARAMETER") errorLog: ErrorLog,
-): Int = countEntriesReferencingWaypoint(waypointId).getOrDefault(0)
+    errorLog: ErrorLog,
+): Int = countEntriesReferencingWaypoint(waypointId).getOrElse { error ->
+    errorLog.w("WaypointReferenceCount", "Couldn't count journal entries keeping waypoint $waypointId; showing 0.", error)
+    0
+}
 
-/** J4 D6: extracted unchanged (a failed count is 0, not logged); the log lands in the D6 commit. */
+/**
+ * How many journal entries keep offline region [offlineRegionId], for the Records Undo snackbar's
+ * warning (`AvailabilityViewModel.loadOfflineRegions`, read by `requestDeleteOfflineRegion`). Logged
+ * when the 0 fallback fires, as [waypointEntryReferenceCountOrZero] (J4, D6).
+ */
 internal suspend fun offlineRegionEntryReferenceCountOrZero(
     offlineRegionId: Long,
     countEntriesReferencingOfflineRegion: suspend (Long) -> Result<Int>,
-    @Suppress("UNUSED_PARAMETER") errorLog: ErrorLog,
-): Int = countEntriesReferencingOfflineRegion(offlineRegionId).getOrDefault(0)
+    errorLog: ErrorLog,
+): Int = countEntriesReferencingOfflineRegion(offlineRegionId).getOrElse { error ->
+    errorLog.w("OfflineRegionReferenceCount", "Couldn't count journal entries keeping offline region $offlineRegionId; showing 0.", error)
+    0
+}
