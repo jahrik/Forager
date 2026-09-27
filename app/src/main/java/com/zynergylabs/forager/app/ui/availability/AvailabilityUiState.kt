@@ -5,6 +5,8 @@ import com.zynergylabs.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
 import com.zynergylabs.forager.app.domain.ForagingSelection
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
+import com.zynergylabs.forager.app.domain.PendingDelete
+import com.zynergylabs.forager.app.domain.withoutPending
 import com.zynergylabs.forager.app.domain.model.AppThemeMode
 import com.zynergylabs.forager.app.domain.model.AvailabilityForecast
 import com.zynergylabs.forager.app.domain.model.ConditionsSummary
@@ -164,6 +166,12 @@ data class AvailabilityUiState(
     /** How many Cartography entries currently keep a reference to each offline region (by id) — Journal Stage 2b's 4b deletion warning. Loaded alongside [offlineRegions]; a region missing from this map has never been counted, treated as zero the same as an explicit zero. */
     val offlineRegionEntryReferenceCounts: Map<Long, Int> = emptyMap(),
     /**
+     * The offline region whose delete was asked for (a swipe on its Records row, journal redesign J4)
+     * and has not run yet: the Undo snackbar is still up, and its tiles are still on disk. See
+     * [AvailabilityViewModel.requestDeleteOfflineRegion].
+     */
+    val pendingOfflineRegionDelete: PendingDelete<OfflineRegionSummary>? = null,
+    /**
      * A region-*list-load* failure, not a download failure — see
      * [AvailabilityViewModel.loadOfflineRegions][com.zynergylabs.forager.app.ui.availability.AvailabilityViewModel]'s
      * doc comment for the belief-changing distinction from [offlineDownloadStatus]. Also carries a
@@ -270,6 +278,14 @@ data class AvailabilityUiState(
      */
     val unitSystem: UnitSystem = UnitSystem.IMPERIAL,
 ) {
+    /**
+     * [offlineRegions] without [pendingOfflineRegionDelete]: what the Journal's region rows, the All
+     * logbook and the Offline maps chip count show (J4). The tile budget and the download gate keep
+     * reading [offlineRegions], because a pending region's tiles are on disk until its delete runs.
+     */
+    val visibleOfflineRegions: List<OfflineRegionSummary>
+        get() = offlineRegions.withoutPending(pendingOfflineRegionDelete) { it.id }
+
     /** Derived from [unitSystem], never set on its own — every distance display reads this exactly as before. */
     val distanceUnit: DistanceUnit get() = unitSystem.distanceUnit
 

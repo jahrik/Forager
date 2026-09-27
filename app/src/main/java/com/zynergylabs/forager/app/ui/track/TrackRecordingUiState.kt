@@ -1,6 +1,8 @@
 package com.zynergylabs.forager.app.ui.track
 
 import com.zynergylabs.forager.app.domain.PathHome
+import com.zynergylabs.forager.app.domain.PendingDelete
+import com.zynergylabs.forager.app.domain.withoutPending
 import com.zynergylabs.forager.app.domain.model.ReturnToStartInfo
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.SundownCountdown
@@ -112,8 +114,20 @@ data class TrackRecordingUiState(
      * for why a blank is the specific failure worth designing against here.
      */
     val sundownCountdown: SundownCountdown = SundownCountdown.NoPositionYet,
+    /**
+     * The waypoint whose delete was asked for (a swipe on its Records row, journal redesign J4) and
+     * has not run yet: the Undo snackbar is still up. See [TrackRecordingViewModel.requestRemoveWaypoint].
+     */
+    val pendingWaypointDelete: PendingDelete<Waypoint>? = null,
 ) {
     val isRecording: Boolean get() = activeTrack != null
+
+    /**
+     * [waypoints] without [pendingWaypointDelete]: what every screen shows (J4, "a pending record is
+     * hidden from every Journal list, count and the All logbook at once"). `MainActivity` passes this,
+     * not [waypoints], to the screen, so the map hides a pending waypoint too until Undo brings it back.
+     */
+    val visibleWaypoints: List<Waypoint> get() = waypoints.withoutPending(pendingWaypointDelete) { it.id }
 }
 
 /** A one-shot message for the map's Snackbar host, keyed by [id] so an identical [message] re-shows — see [TrackRecordingUiState.tripStartWarning] and [TrackRecordingUiState.networkFixesNotice]. */

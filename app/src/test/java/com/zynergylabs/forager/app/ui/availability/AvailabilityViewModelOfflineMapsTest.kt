@@ -46,6 +46,11 @@ import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
 import com.zynergylabs.forager.app.domain.model.WeatherSeries
 import java.io.IOException
 import java.time.LocalDate
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
@@ -173,6 +178,9 @@ private class RecordingOfflineMapRepository(
     var lastRegion: Region? = null
     var lastDeletedId: Long? = null
 
+    /** Every id [deleteRegion] was called with, in order — the MapLibre tile delete plus row delete the real one runs (journal redesign J4). */
+    val deletedIds = mutableListOf<Long>()
+
     override suspend fun download(
         name: String,
         region: Region,
@@ -188,6 +196,7 @@ private class RecordingOfflineMapRepository(
 
     override suspend fun deleteRegion(id: Long): Result<Unit> {
         lastDeletedId = id
+        deletedIds += id
         deleteRegionResult.onSuccess {
             listRegionsResult = Result.success(listRegionsResult.getOrNull().orEmpty().filterNot { it.id == id })
         }
@@ -212,6 +221,8 @@ class AvailabilityViewModelOfflineMapsTest {
     private fun viewModel(
         offlineMapRepository: OfflineMapRepository,
         mapPreferencesRepository: MapPreferencesRepository = OfflineMapsStubMapPreferencesRepository,
+        getOfflineRegionReferenceCount: suspend (Long) -> Int = { 0 },
+        pendingDeleteCommitScope: CoroutineScope? = null,
     ): AvailabilityViewModel = AvailabilityViewModel(
         locationProvider = OfflineMapsUnusedLocationProvider,
         locationTracker = OfflineMapsNoOpLocationTracker,
@@ -234,6 +245,8 @@ class AvailabilityViewModelOfflineMapsTest {
         unitSystemPreferenceRepository = OfflineMapsStubUnitSystemPreferenceRepository,
         appThemePreferenceRepository = OfflineMapsStubAppThemePreferenceRepository,
         getTodaysForecast = GetTodaysForecastUseCase(OfflineMapsStubTripPlanningWeatherProvider),
+        getOfflineRegionReferenceCount = getOfflineRegionReferenceCount,
+        pendingDeleteCommitScope = pendingDeleteCommitScope ?: com.zynergylabs.forager.app.ui.log.PendingDeleteCommitScope,
     )
 
     /** Mirrors how [AvailabilityScreen]'s picker map now sets these — panning and confirming with OK, not typing. */
@@ -512,5 +525,99 @@ class AvailabilityViewModelOfflineMapsTest {
 
         assertNull(vm.uiState.value.region)
         assertEquals(REFERENCE_REGION, repository.lastRegion)
+    }
+    // ---- Journal redesign J4, D1/D3: a swiped region is pending, and its tiles stay, until its snackbar ends ----
+
+    private val secondRegion = REFERENCE_REGION_SUMMARY.copy(id = 2L, name = "Molalla", tileCount = 120, createdAtEpochMillis = 1_755_100_000_000L)
+
+    private fun twoRegions() = RecordingOfflineMapRepository(listRegionsResult = Result.success(listOf(REFERENCE_REGION_SUMMARY, secondRegion)))
+
+    @Test
+    fun `a requested region delete is pending, hidden from visibleOfflineRegions, and the tile delete is not called`() = runTest(dispatcher) {
+        val repository = twoRegions()
+        val vm = viewModel(repository, getOfflineRegionReferenceCount = { id -> if (id == 1L) 3 else 0 })
+        advanceUntilIdle()
+
+        vm.requestDeleteOfflineRegion(1L)
+        advanceUntilIdle()
+
+        val pending = requireNotNull(vm.uiState.value.pendingOfflineRegionDelete)
+        assertEquals(1L, pending.item.id)
+        assertEquals(3, pending.entryReferenceCount)
+        assertEquals(listOf(2L), vm.uiState.value.visibleOfflineRegions.map { it.id })
+        assertEquals("the tile budget still counts the pending region's tiles", listOf(1L, 2L), vm.uiState.value.offlineRegions.map { it.id })
+        assertEquals(emptyList<Long>(), repository.deletedIds)
+    }
+
+    @Test
+    fun `undo of a pending region delete shows it again and deletes no tiles`() = runTest(dispatcher) {
+        val repository = twoRegions()
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.requestDeleteOfflineRegion(1L)
+        advanceUntilIdle()
+        assertEquals("positive control: pending before the undo", listOf(2L), vm.uiState.value.visibleOfflineRegions.map { it.id })
+
+        vm.undoDeleteOfflineRegion(1L)
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.pendingOfflineRegionDelete)
+        assertEquals(listOf(1L, 2L), vm.uiState.value.visibleOfflineRegions.map { it.id })
+        assertEquals(emptyList<Long>(), repository.deletedIds)
+    }
+
+    @Test
+    fun `committing a pending region delete runs the tile delete once, for that region`() = runTest(dispatcher) {
+        val repository = twoRegions()
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.requestDeleteOfflineRegion(1L)
+        advanceUntilIdle()
+
+        vm.commitDeleteOfflineRegion(1L)
+        advanceUntilIdle()
+        vm.commitDeleteOfflineRegion(1L)
+        advanceUntilIdle()
+
+        assertEquals(listOf(1L), repository.deletedIds)
+        assertNull(vm.uiState.value.pendingOfflineRegionDelete)
+        assertEquals(listOf(2L), vm.uiState.value.visibleOfflineRegions.map { it.id })
+        assertEquals(listOf(2L), vm.uiState.value.offlineRegions.map { it.id })
+    }
+
+    @Test
+    fun `a second region delete commits the first when it replaces it`() = runTest(dispatcher) {
+        val repository = twoRegions()
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.requestDeleteOfflineRegion(1L)
+        advanceUntilIdle()
+
+        vm.requestDeleteOfflineRegion(2L)
+        advanceUntilIdle()
+
+        assertEquals(listOf(1L), repository.deletedIds)
+        assertEquals(2L, vm.uiState.value.pendingOfflineRegionDelete?.item?.id)
+        assertEquals(emptyList<Long>(), vm.uiState.value.visibleOfflineRegions.map { it.id })
+    }
+
+    @Test
+    fun `a region delete still pending when the ViewModel is cleared is committed`() = runTest(dispatcher) {
+        val repository = twoRegions()
+        val testScope: CoroutineScope = this
+        val store = ViewModelStore()
+        val vm = ViewModelProvider(
+            store,
+            viewModelFactory { initializer { viewModel(repository, pendingDeleteCommitScope = testScope) } },
+        )[AvailabilityViewModel::class.java]
+        advanceUntilIdle()
+        vm.requestDeleteOfflineRegion(1L)
+        advanceUntilIdle()
+        assertEquals(emptyList<Long>(), repository.deletedIds)
+
+        store.clear()
+        advanceUntilIdle()
+
+        assertEquals(listOf(1L), repository.deletedIds)
     }
 }

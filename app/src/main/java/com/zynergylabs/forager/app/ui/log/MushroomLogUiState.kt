@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.log
 
+import com.zynergylabs.forager.app.domain.PendingDelete
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 
@@ -50,4 +51,18 @@ data class MushroomLogUiState(
     val galleryLoadErrorMessage: String? = null,
     /** How many Cartography entries currently keep each photo (by id) attached — Journal Stage 2b's 4b deletion warning, extended to photos per the owner's own reasoning (a wordless entry can consist mostly of attached photos). Loaded alongside [galleryPhotos]. */
     val cartographyEntryPhotoReferenceCounts: Map<String, Int> = emptyMap(),
-)
+    /**
+     * The find whose delete was asked for from its report or edit form (journal redesign J4) and has
+     * not run yet: the Undo snackbar is still up. Finds carry no Cartography reference count
+     * ([com.zynergylabs.forager.app.domain.GetEntryReferenceCountUseCase] has none for finds), so its
+     * [PendingDelete.entryReferenceCount] is always `null`. See [MushroomLogViewModel.requestDeleteEntry].
+     */
+    val pendingDelete: PendingDelete<MushroomLogEntry>? = null,
+) {
+    /**
+     * This state with [pendingDelete] left out of [entries] and [draftEntries]: what `MainActivity`
+     * hands the screen, so a pending find is gone from the Finds gallery, the Finds chip's count and
+     * the All logbook at once (J4), and comes back on Undo.
+     */
+    fun hidingPendingDelete(): MushroomLogUiState = this
+}
