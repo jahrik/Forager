@@ -46,7 +46,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
-import com.zynergylabs.forager.app.domain.model.PhotoSource
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -82,10 +81,14 @@ internal fun EntriesAlbum(
      * `docs/audits/2026-09-27-picker-fixes-completion-report.md`.
      */
     @Suppress("UNUSED_PARAMETER") onDeletePhoto: (GalleryPhoto) -> Unit,
-    /** Opens the in-app camera for the Album — see [InAppCameraHost]. */
-    onOpenCamera: () -> Unit,
-    /** A photo acquired via Camera or Import here, added to the gallery standalone. */
-    onAddGalleryPhoto: (PhotoSource) -> Unit,
+    /**
+     * Take photo and Import ([rememberPhotoAcquisitionLaunchers]: the in-app camera for the Album,
+     * and the system picker adding to the gallery standalone). Held by `CartographyScreen` since
+     * journal redesign J5, which gives one set to both this album's floating button and the short
+     * window's photo button in the L1 row, so turning the phone while the picker is up does not drop
+     * its result on a launcher that left the composition.
+     */
+    photoAcquisition: PhotoAcquisitionLaunchers,
     modifier: Modifier = Modifier,
     loadErrorMessage: String? = null,
     /** How many Cartography entries keep each photo (by id); read by the journal-entry badge. */
@@ -104,8 +107,14 @@ internal fun EntriesAlbum(
      * [AlbumPhotoTile]).
      */
     onRequestDeletePhoto: ((String) -> Unit)? = null,
+    /** Grid columns: 3 in portrait (plan J3), 5 in a short window (J5, plan L6). */
+    columns: Int = ALBUM_COLUMNS,
+    /**
+     * The floating "Add photo" button (J2). `false` in a short window (J5, plan L2), where the same
+     * menu is the L1 row's photo button, and the grid then needs no clearance for it.
+     */
+    showAddPhotoButton: Boolean = true,
 ) {
-    val photoAcquisition = rememberPhotoAcquisitionLaunchers(onAddGalleryPhoto, onOpenCamera)
     // The id, not the index, and saveable — as PhotoGalleryScreen's own viewer state.
     var viewingPhotoId by rememberSaveable { mutableStateOf<String?>(null) }
     val days = remember(photos) { groupAlbumByDay(photos) }
@@ -130,10 +139,10 @@ internal fun EntriesAlbum(
             )
 
             else -> LazyVerticalGrid(
-                columns = GridCells.Fixed(ALBUM_COLUMNS),
+                columns = GridCells.Fixed(columns),
                 modifier = Modifier.fillMaxSize(),
                 // FAB_CLEARANCE at the bottom, as the timeline: the last row scrolls clear of Add photo.
-                contentPadding = PaddingValues(start = Spacing.lg, end = Spacing.lg, bottom = FAB_CLEARANCE),
+                contentPadding = PaddingValues(start = Spacing.lg, end = Spacing.lg, bottom = if (showAddPhotoButton) FAB_CLEARANCE else Spacing.lg),
                 horizontalArrangement = Arrangement.spacedBy(ALBUM_GAP),
                 verticalArrangement = Arrangement.spacedBy(ALBUM_GAP),
             ) {
@@ -158,11 +167,13 @@ internal fun EntriesAlbum(
             }
         }
 
-        AddPhotoButton(
-            onTakePhoto = photoAcquisition.launchCamera,
-            onImport = photoAcquisition.launchGallery,
-            modifier = Modifier.align(Alignment.BottomEnd).padding(Spacing.lg),
-        )
+        if (showAddPhotoButton) {
+            AddPhotoButton(
+                onTakePhoto = photoAcquisition.launchCamera,
+                onImport = photoAcquisition.launchGallery,
+                modifier = Modifier.align(Alignment.BottomEnd).padding(Spacing.lg),
+            )
+        }
     }
 
     val viewingIndex = viewingPhotoId?.let { id -> shownInOrder.indexOfFirst { it.photo.id == id } }?.takeIf { it >= 0 }
@@ -335,8 +346,11 @@ internal fun albumEntryBadgeTestTag(photoId: String): String = "entries-album-ba
 
 internal fun albumFindBadgeTestTag(photoId: String): String = "entries-album-badge-find-$photoId"
 
-/** Plan J3: 3 columns in compact portrait. (Short windows get 5 in J5, L6; not built here.) */
-private const val ALBUM_COLUMNS = 3
+/** Plan J3: 3 columns in compact portrait. */
+internal const val ALBUM_COLUMNS = 3
+
+/** Plan L6: 5 columns in a short window, at 640 dp (J5). */
+internal const val SHORT_WINDOW_ALBUM_COLUMNS = 5
 
 /** Plan J3: 3 dp between tiles, both ways. */
 private val ALBUM_GAP = 3.dp

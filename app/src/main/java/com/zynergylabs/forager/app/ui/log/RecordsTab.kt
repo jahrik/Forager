@@ -13,6 +13,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.testTag
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.LatLng
@@ -160,6 +162,13 @@ internal fun RecordsTab(
      * (the wide tree, out of scope until plan stage J6) still gets, unchanged.
      */
     selectedTabState: MutableState<RecordsSubTab> = remember { mutableStateOf(DEFAULT_RECORDS_FILTER) },
+    /**
+     * Journal redesign J5, L3: in a short window the filter chip row is the second row under the
+     * Journal's L1 row, and hides while the content below it scrolls down, returning on a scroll up
+     * ([HideOnScrollState]). `false` (the default: portrait, and `LogPanel`) keeps the row fixed, as
+     * before.
+     */
+    hideChipsOnScroll: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     var selectedTab by selectedTabState
@@ -198,24 +207,30 @@ internal fun RecordsTab(
         selectTab(RecordsSubTab.ALL)
     }
 
-    Column(modifier = modifier.fillMaxSize()) {
+    // J5, L3: a nested-scroll parent over the whole tab, so whichever list is showing (the All
+    // logbook, a single-type list, the Finds gallery) reports its scroll to the chip row's state.
+    val chipRowScroll = rememberHideOnScrollState()
+    Column(modifier = modifier.fillMaxSize().then(if (hideChipsOnScroll) Modifier.nestedScroll(chipRowScroll.connection) else Modifier)) {
         // Journal redesign J1, S3 (plan J4): one horizontally scrolling row of filter chips replaced
         // the four-tab SecondaryTabRow ("Waypoint Markers" / "Offline Maps" / "Recorded Tracks" /
         // "Logged Finds"). That row's fixed 90 dp tabs are why its labels had to be two words and
         // wrapped to two lines on a phone (see this file's history, and the plan's evidence
         // section); a scrolling chip row sizes each chip to its label, so the short names fit on one
         // line and the row scrolls sideways when it overflows.
-        RecordsFilterChipRow(
-            selected = selectedTab,
-            counts = RecordsFilterCounts(
-                finds = finds?.size,
-                tracks = tracks.size,
-                waypoints = waypoints.size,
-                // J4: a region whose delete is pending is not counted.
-                offlineMaps = availabilityUiState.visibleOfflineRegions.size,
-            ),
-            onSelect = ::selectTab,
-        )
+        val chipRow: @Composable () -> Unit = {
+            RecordsFilterChipRow(
+                selected = selectedTab,
+                counts = RecordsFilterCounts(
+                    finds = finds?.size,
+                    tracks = tracks.size,
+                    waypoints = waypoints.size,
+                    // J4: a region whose delete is pending is not counted.
+                    offlineMaps = availabilityUiState.visibleOfflineRegions.size,
+                ),
+                onSelect = ::selectTab,
+            )
+        }
+        if (hideChipsOnScroll) ShortWindowSecondRow(chipRowScroll) { chipRow() } else chipRow()
 
         when (selectedTab) {
             // J1 S4: the All logbook — see RecordsLogbookList.
@@ -233,7 +248,7 @@ internal fun RecordsTab(
                     selectTab(RecordsSubTab.FINDS)
                     onOpenFind(id)
                 },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).testTag(RECORDS_LOGBOOK_LIST_TAG),
                 onDeleteFind = onDeleteFind,
                 onEditFind = onEditFind?.let { edit ->
                     { id ->
@@ -288,3 +303,6 @@ internal fun RecordsTab(
  * this type to request [FINDS] externally — see [RecordsTab]'s own `pendingSubTab` doc comment.
  */
 internal enum class RecordsSubTab { ALL, FINDS, RECORDED_TRACKS, WAYPOINTS, OFFLINE_MAPS }
+
+/** The All logbook's list, as `RecordsTab` places it (J5: the short-window tests scroll and measure it). */
+internal const val RECORDS_LOGBOOK_LIST_TAG = "records-logbook-list"

@@ -87,6 +87,8 @@ internal fun DraftsListScreen(
     onDeleteDraft: ((String) -> Unit)? = null,
     /** J4b L2: a draft card's swipe Edit. */
     onEditDraft: ((String) -> Unit)? = null,
+    /** J5, L4: sideways cards with the long-press menu, in a short window. See [CartographyEntryListScreen]. */
+    sideways: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.testTag(DRAFTS_LIST_TAG)) {
@@ -111,6 +113,7 @@ internal fun DraftsListScreen(
             modifier = Modifier.weight(1f),
             onDeleteEntry = onDeleteDraft,
             onEditEntry = onEditDraft,
+            sideways = sideways,
         )
     }
 }

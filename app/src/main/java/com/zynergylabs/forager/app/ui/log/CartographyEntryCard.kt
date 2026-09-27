@@ -188,7 +188,7 @@ internal fun EntryMonthHeader(month: YearMonth, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun EntryDay(date: LocalDate, large: Boolean) {
+internal fun EntryDay(date: LocalDate, large: Boolean) {
     Column(modifier = Modifier.widthIn(min = if (large) 44.dp else 32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Text(entryDayNumeral(date), style = if (large) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.titleMedium)
         Text(entryWeekday(date), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -196,7 +196,7 @@ private fun EntryDay(date: LocalDate, large: Boolean) {
 }
 
 @Composable
-private fun EntryStat(stat: EntryStat) {
+internal fun EntryStat(stat: EntryStat) {
     val colors = RecordTypeStyle.colors(stat.type)
     Row(
         modifier = Modifier.background(colors.container, RoundedCornerShape(Spacing.sm)).padding(horizontal = Spacing.xs, vertical = 2.dp),
@@ -209,7 +209,7 @@ private fun EntryStat(stat: EntryStat) {
 }
 
 /** The Records chips' icons (J1, `RecordsFilterChips.kt`), so a stat reads as the same kind of thing its chip does. */
-private fun entryStatIcon(type: RecordType): ImageVector = when (type) {
+internal fun entryStatIcon(type: RecordType): ImageVector = when (type) {
     RecordType.FINDS -> Icons.Filled.Eco
     RecordType.TRACKS -> Icons.Filled.Timeline
     RecordType.WAYPOINTS -> Icons.Filled.Place

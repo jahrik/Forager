@@ -24,7 +24,9 @@ import androidx.compose.ui.test.isPopup
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
@@ -100,6 +102,7 @@ class JournalShortWindowCardsTest {
 
     private val opened = mutableListOf<String>()
     private val deleteRequests = mutableListOf<String>()
+    private var incidentalExits = 0
 
     private fun setScreen(
         entries: List<CartographyEntry>,
@@ -111,9 +114,10 @@ class JournalShortWindowCardsTest {
     ) {
         composeRule.setContent {
             var cartography by remember { mutableStateOf(CartographyUiState(entries = entries)) }
+            var log by remember { mutableStateOf(MushroomLogUiState(entries = finds)) }
             val tab: @androidx.compose.runtime.Composable () -> Unit = {
                 JournalTab(
-                    uiState = MushroomLogUiState(entries = finds),
+                    uiState = log,
                     onOpenCameraForLogEntry = {},
                     onOpenCameraForAlbum = {},
                     onOpenCameraForCartographyEntry = {},
@@ -122,12 +126,15 @@ class JournalShortWindowCardsTest {
                     basemap = Basemap.DEFAULT,
                     onOpenEntry = {},
                     onCloseEntry = {},
-                    onStartEntry = { _, _ -> },
+                    onStartEntry = { location, date -> log = log.copy(editingEntry = MushroomLogEntry.draft(id = "new-find", location = location, date = date)) },
                     onEntryChanged = {},
                     onStartEditingEntry = {},
                     onSaveEntry = {},
                     onCancelEditing = {},
-                    onLeaveEditingIncidentally = {},
+                    onLeaveEditingIncidentally = {
+                        incidentalExits++
+                        log = log.copy(editingEntry = null)
+                    },
                     onAddPhoto = {},
                     onRemovePhoto = {},
                     onPullPhoto = {},
@@ -331,6 +338,29 @@ class JournalShortWindowCardsTest {
         val a = bounds(card(HERO_TRACK_ENTRY.id))
         val b = bounds(card(TEXT_FIND_ENTRY.id))
         assertTrue("one column: the second card is below the first", b.top >= a.bottom)
+    }
+
+    // ── The L1 row's switch keeps the incidental-exit rule ──
+
+    /**
+     * Leaving Records for Entries mid-find-edit is an incidental exit (`JournalTab`'s doc comment). In
+     * a short window the switch is the L1 row's; this pins that the rule came with it. Added while
+     * building, after RecordsFilterChipsTest caught a stale read of the open find in the same rule.
+     */
+    @Test
+    fun `in a short window, the L1 switch leaving Records mid-find-edit is an incidental exit`() {
+        setScreen(entries = emptyList())
+        node("journal-switch-records").performClick()
+        composeRule.waitForIdle()
+        node("records-chip-finds").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithContentDescription("New log entry").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Photos").assertIsDisplayed()
+        assertEquals(0, incidentalExits)
+        touchAt("journal-switch-entries", Offset(0.5f, 0.5f))
+        assertEquals("leaving Records mid-edit by the L1 switch is one incidental exit", 1, incidentalExits)
+        node("journal-switch-entries").assertIsSelected()
     }
 
     // ── L6: the album in 5 columns ──
