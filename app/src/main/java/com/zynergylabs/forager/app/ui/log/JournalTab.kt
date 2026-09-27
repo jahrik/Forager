@@ -207,6 +207,13 @@ internal fun JournalTab(
     pendingDestination: PendingJournalDestination? = null,
     /** Fires once [pendingDestination] has been applied, so [AvailabilityScreen] clears its own copy and is ready for the next request. */
     onPendingDestinationConsumed: () -> Unit = {},
+    /**
+     * The Journal's user-set UI state (top tab, Records selection), hoisted and saveable — journal
+     * redesign J1, S1; see [JournalScreenState]. `AvailabilityScreen` creates it above the
+     * `when (compactTab)` branch this tab is composed in and passes it down, so leaving the Journal
+     * tab no longer resets it. The default is only for callers that host this tab on its own (tests).
+     */
+    journalState: JournalScreenState = rememberJournalScreenState(),
     modifier: Modifier = Modifier,
 ) {
     // See LogPanel's identical effect for why this both shows and immediately clears the field.
@@ -235,7 +242,8 @@ internal fun JournalTab(
     // (Workstream G3) instead of "Add Location".
     var pullingPhotoForEditingEntry by remember { mutableStateOf(false) }
 
-    var selectedTopTab by remember { mutableStateOf(JournalTopTab.CARTOGRAPHY) }
+    // Hoisted into journalState (journal redesign J1, S1) — see JournalScreenState for why.
+    var selectedTopTab by journalState::topTab
 
     // The second, local latch this composable's own "map '+' routing bug" doc comment describes —
     // staged here rather than forwarding pendingDestination straight to RecordsTab, since RecordsTab
@@ -477,6 +485,7 @@ internal fun JournalTab(
                 findsEditingInProgress = findsSectionHasBackStack,
                 pendingSubTab = recordsPendingSubTab,
                 onPendingSubTabConsumed = { recordsPendingSubTab = null },
+                selectedTabState = journalState.recordsFilterState,
             )
         }
     }

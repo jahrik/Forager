@@ -136,6 +136,7 @@ import com.zynergylabs.forager.app.ui.log.ScreenEdge
 import com.zynergylabs.forager.app.ui.log.CartographyUiState
 import com.zynergylabs.forager.app.ui.log.InAppCameraTarget
 import com.zynergylabs.forager.app.ui.log.JournalTab
+import com.zynergylabs.forager.app.ui.log.JournalScreenState
 import com.zynergylabs.forager.app.ui.log.MushroomLogUiState
 import com.zynergylabs.forager.app.ui.log.PendingJournalDestination
 import com.zynergylabs.forager.app.ui.map.Basemap
@@ -261,6 +262,12 @@ internal fun CompactMainScaffold(
     onRecentSearchSelected: (CachedSearchSummary) -> Unit,
     onRadiusChanged: (Int) -> Unit,
     onMonthSelected: (Int) -> Unit,
+    /**
+     * Journal redesign J1, S1: the Journal's hoisted, saveable UI state, created in
+     * `AvailabilityScreen` beside `compactTab` and handed to [JournalTab] below. Added after the
+     * extraction this file's header describes, so it is not among the 109 parameters counted there.
+     */
+    journalScreenState: JournalScreenState,
 ) {
         // SearchDropdown, under ActiveSearchSummary — see that composable's own onToggleSearch doc
         // comment. Local to this scaffold, not AvailabilityUiState: which panel is showing is a
@@ -986,6 +993,7 @@ internal fun CompactMainScaffold(
                                 waypointEntryReferenceCounts = waypointEntryReferenceCounts,
                                 pendingDestination = pendingJournalDestination(),
                                 onPendingDestinationConsumed = { onPendingJournalDestinationChange(null) },
+                                journalState = journalScreenState,
                                 modifier = Modifier.fillMaxSize(),
                             )
                             // Never actually reached — CompactTab.TOOLS never becomes compactTab itself,

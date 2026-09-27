@@ -273,6 +273,7 @@ import com.zynergylabs.forager.app.ui.log.InAppCameraHost
 import com.zynergylabs.forager.app.ui.log.InAppCameraSlot
 import com.zynergylabs.forager.app.ui.log.InAppCameraTarget
 import com.zynergylabs.forager.app.ui.log.JournalTab
+import com.zynergylabs.forager.app.ui.log.rememberJournalScreenState
 import com.zynergylabs.forager.app.ui.log.LogPanel
 import com.zynergylabs.forager.app.ui.log.MushroomLogUiState
 import com.zynergylabs.forager.app.ui.log.PendingJournalDestination
@@ -691,6 +692,12 @@ fun AvailabilityScreen(
     // onSeasonalTabSelected's LaunchedEffect keeps firing correctly and a later resize to a wider
     // window lands on the same List/Maps/Seasonal tab compact was just showing.
     var compactTab by remember { mutableStateOf(CompactTab.MAP) }
+
+    // Journal redesign J1, S1: the Journal's user-set UI state (top tab, Records selection), held
+    // here beside compactTab rather than inside the Journal branch of `when (compactTab)`, so leaving
+    // the Journal tab no longer disposes it, and saveable so an Activity recreation does not either.
+    // See JournalScreenState's own doc comment.
+    val journalScreenState = rememberJournalScreenState()
 
     // Device-check patch, Items 2/3: whether a find's camera/gallery round-trip is currently in
     // flight, reported up from whichever of JournalTab/LogPanel is composed via
@@ -1428,6 +1435,7 @@ fun AvailabilityScreen(
             onRecentSearchSelected = onRecentSearchSelected,
             onRadiusChanged = onRadiusChanged,
             onMonthSelected = onMonthSelected,
+            journalScreenState = journalScreenState,
         )
     }
 
