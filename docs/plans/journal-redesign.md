@@ -447,3 +447,5 @@ The owner, verbatim: "Look at forager-forecast repo for details. It's pure R&D s
 - **"Several conditions."** The model is habitat x trigger x observation (START_HERE), and each cell carries its top `drivers`. Whether the app also shows individual conditions as their own layers, as other prediction maps do, is the owner's call after the prior-art pass.
 
 So the framework must give: layers the app feeds from data it stores (re-added after every style reload, basemap change and night-mode change), explicit z-order between the basemap and the markers, per-layer toggles, a legend with a "no forecast here" state and an attribution slot, and tap-to-query per layer, which is what M1's bubbles and J8's overlays need too.
+
+**Correction to M1 above (2026-09-27).** "Long-press (which drops a point today, `SightingsMap.kt:334`)" is wrong: the long-press listener exists, but every production caller passes `{}`, so a long-press does nothing on any map today (`docs/audits/2026-09-27-map-layers-and-forecast-data-pulse.md`). M1 does not need to avoid a long-press action; it only needs to keep long-press free if a later stage wants it.
