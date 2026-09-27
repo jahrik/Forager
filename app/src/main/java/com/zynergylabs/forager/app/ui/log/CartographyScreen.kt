@@ -41,6 +41,7 @@ import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.PhotoSource
+import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.LocalDate
@@ -129,6 +130,12 @@ internal fun CartographyScreen(
      * gets this local, unsaved default.
      */
     entriesViewState: MutableState<EntriesViewMode> = remember { mutableStateOf(EntriesViewMode.TIMELINE) },
+    /**
+     * The already-loaded recorded tracks (`TrackRecordingUiState.tracks`), for the cards' track
+     * thumbnails (J3, C3; owner ruling "Join in memory (Recommended)"). `JournalTab` passes its own;
+     * `LogPanel` (J6) passes none, so its cards draw no thumbnail.
+     */
+    tracks: List<Track> = emptyList(),
 ) {
     var mode by remember { mutableStateOf(CartographyEntryMode.VIEW) }
 
@@ -327,6 +334,7 @@ internal fun CartographyScreen(
             onBack = { draftsListOpen = false },
             distanceUnit = distanceUnit,
             galleryPhotos = galleryPhotos,
+            tracks = tracks,
             columns = columns,
             modifier = modifier.fillMaxSize(),
         )
@@ -383,6 +391,7 @@ internal fun CartographyScreen(
                     emptyMessage = "No entries yet. Use New entry to start one.",
                     distanceUnit = distanceUnit,
                     galleryPhotos = galleryPhotos,
+                    tracks = tracks,
                     loadErrorMessage = uiState.loadErrorMessage,
                     columns = columns,
                     bottomContentPadding = FAB_CLEARANCE,
