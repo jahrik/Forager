@@ -5,8 +5,16 @@ Dispatch: `prompts/preserved/2026-09-27-28.md` (build, J5c coder). Plan: `docs/p
 J4b and J5 completion reports. Written by the J5c coder in a cloud worktree on local branch `j5c`, cut
 from `origin/journal-redesign` at `463468f`.
 
+**Resolution after the stop (planner's message, same day).**
+- **Navigate is deferred by the owner.** Verbatim: "We can defer the navigation for another time.
+  It's going to need more work anyway". And for M1: "Defer for now too. It will go with a review in
+  current waypoint navigation." So the sheet stays Directions only. The analysis under "How in-app
+  navigation starts today" and Needs a decision 1 is recorded as the input for that later review.
+- **rv8 retried once, as the planner allowed, and it compiled and bit.** See the revert table (rv8b).
+- **The planner runs the full suite on `3b09e43`,** so this session ran none after the report.
+
 **Status: the sheet is built, tested and pushed for all three row types, with Directions and without
-Navigate. Two things stopped the stage:**
+Navigate. Two things stopped the stage; the resolution above answers both:**
 
 1. **Navigate stopped on the dispatch's own rule.** The app has no way to start its navigation HUD
    for a chosen waypoint (Premises, "How in-app navigation starts today"). The sheet ships with
@@ -176,7 +184,7 @@ the sheet ships with Directions only.** Needs a decision 1 lists what Navigate w
 **Passing at base by construction (2):** "the waypoint row's own Directions button starts directions
 and does not open the sheet" and "the track row's own Share button starts the GPX share and does not
 open the sheet". They describe today's behaviour. The Directions one is shown to bite by rv7. The
-Share one's revert (rv8) did not compile, so **the Share pin has not been shown to bite.**
+Share one's first revert (rv8) did not compile; its retry (rv8b) compiled and bit.
 
 **Harness fixes made before the tests-first commit** (from iterating the test against the draft build,
 before any of it was committed):
@@ -219,6 +227,7 @@ by byte comparison each time), with `git status` empty and `HEAD` `b6a5ae5` afte
 | rv6 no made-up zero | `referenceCounts[id]?.let` → `(referenceCounts[id] ?: 0).let` | 1/21: "a waypoint with no count given has no Used in line, rather than a made-up zero" |
 | rv7 row's Directions keeps its tap | the button's `onClick` → `onClick ?: { launchDirections(…) }` | 1/21: `expected:<[geo:0,0?q=45.326,-122.634(Creek%20pin)]> but was:<[null]>` |
 | **rv8 row's Share keeps its tap** | the button's `onClick` → `onClick ?: { scope.launch { … } }` | **Did not compile** (`TrackExportPanel.kt:151:23 Argument type mismatch: actual type is 'Function0<Any>', but 'Function0<Unit>' was expected`). **Results refused, nothing cited. The abort.** |
+| **rv8b** (the one allowed retry) row's Share keeps its tap | the button's `onClick = { scope.launch { … } }` → `onClick = { if (onClick != null) onClick() else scope.launch { … } }` (the expected type stays `() -> Unit`, so it compiles) | **0 `e:` lines.** 1/21: "the track row's own Share button starts the GPX share and does not open the sheet", `ComposeTimeoutException: Condition still not satisfied after 5000 ms`. The chooser never started, because the button opened the sheet instead. Only this edit makes the row's Share start nothing. Restored from the saved copy, identical; `git status` empty; the forward line is present at `TrackExportPanel.kt:151`. |
 | rv9 saver fails loudly | `else -> error(…)` → `else -> null` | 1/2: "expected java.lang.IllegalStateException to be thrown, but nothing was thrown" |
 
 Every failure named is one only its own edit could produce: the field and value in each message
@@ -264,11 +273,13 @@ None. The full suite on the build broke no existing test, so no file needed a co
 
    M1's glyph bubbles need the same Navigate. **Options:** build (a) to (d) once, as its own stage or
    inside M1, and add the sheet's button then; or leave the sheet with Directions only. Built:
-   Directions only.
+   Directions only. **Answered: deferred by the owner** (Resolution, above), for both the sheet and
+   M1, until a review of the current waypoint navigation. (a) to (d) are that review's input.
 2. **The abort.** rv8 was an extra pin I added, not one of the dispatch's required checks (sheet
    opening, open-swipe exception, each type's content, which all ran and bit). Whether to re-run it
    with a compiling edit (for example `onClick = if (onClick != null) { { onClick() } } else { … }`),
-   and whether to run a full suite on `b6a5ae5` itself, is the planner's call.
+   and whether to run a full suite on `b6a5ae5` itself, is the planner's call. **Answered:** one retry
+   allowed, which compiled and bit (rv8b). The planner runs the full suite on `3b09e43`.
 
 ## Decisions I made that the dispatch did not
 
@@ -320,7 +331,7 @@ None. The full suite on the build broke no existing test, so no file needed a co
 
 - **`MainActivity`'s wiring is exercised by no test,** as J4 and J4b recorded: the tests drive
   `AvailabilityScreen`. J5c changed nothing in `MainActivity`.
-- **The Share pin is unproven** (rv8, above).
+- **The Share pin**, unproven when this report was first written, is proven by rv8b.
 - **The baseline and the build run each failed a different held test** (album long-press at base,
   `JournalTabTest` photo pull on the build), and each passed in its class alone. Recorded for the flake
   session, not investigated.
