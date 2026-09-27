@@ -2188,3 +2188,28 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Flags:** (a) preserved/2026-09-27-05.md (Journal J0 pulse) remains unclaimed in the planner worktree for the next sweep. (b) Local worktree /home/zynergy-labs/Zynergy/forager-wt/journal-redesign-plan (branch journal-redesign-plan at 545258e, never pushed) exists; not touched. (c) The plan's `JournalTab.kt:243` points at a use of RecordsSubTab, not its declaration; a reading note, not drift, left in the body per the dispatch.
 
 ---
+
+**Kind:** merge
+**ID:** 2026-09-27-33
+**Timestamp:** 2026-09-27T02:41:57Z
+**PR:** 136
+**Head:** journal-plan
+**Base:** pre-main
+**Merge-commit:** 47638bb37bda0921767b0010ce86b1a02a4afec5
+**Pre-merge:** cff1309cf57d404e08c8b14d2c85b60d57eb4e5b
+**Backup:** 2026-09-27-04
+**Merged-by:** coder preserved/2026-09-27-06.md
+**Carries:** 2026-09-27-29, 2026-09-27-30, 2026-09-27-31, 2026-09-27-32
+**Notes:** Written in the sweep of the dispatch preserved as preserved/2026-09-27-07.md (B2 local setup), on branch landscape-b2r cut from origin/pre-main 47638bb37bda0921767b0010ce86b1a02a4afec5. The one merge on pre-main's first-parent chain newer than cff1309, the newest merge a `merge` entry records (2026-09-27-29, Base pre-main): git log --first-parent --merges --format='%H %P %s' cff1309cf57d404e08c8b14d2c85b60d57eb4e5b..origin/pre-main lists only 47638bb, parents cff1309cf57d404e08c8b14d2c85b60d57eb4e5b and 10ddac4b87c9b019153333d0c93ed9b018917cad, "Merge pull request #136 from slayer8366/journal-plan". PR, Head, Base, Timestamp (mergedAt) from gh pr view 136 --json number,headRefName,baseRefName,mergeCommit,mergedAt: 136, journal-plan, pre-main, mergeCommit 47638bb37bda0921767b0010ce86b1a02a4afec5, 2026-09-27T02:41:57Z. Backup and Merged-by: ~/Zynergy/forager-repo-backups/INDEX.md's line "- 2026-09-27-04: PR #136 (journal-plan into pre-main), pre-merge cff1309cf57d404e08c8b14d2c85b60d57eb4e5b, bundle of origin/pre-main, written by coder under intent 2026-09-27-31 (prompts/preserved/2026-09-27-06.md)". Carries from git diff cff1309 47638bb -- RECORD.md, which adds IDs 2026-09-27-29, -30, -31 and -32; -29 is the merge entry for #135 and -30 the dispatch-note for pulse -03, both written in journal-plan's sweep. The dispatch expected -29 to -32; confirmed. main: no merge newer than 76905d4 (#119), which merge entry 2026-09-26-24 records.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-27-34
+**Dispatch-file:** preserved/2026-09-27-05.md
+**Type:** pulse
+**Outcome:** answered
+**Report:** answered in the planner's session; not relayed to the record
+**Notes:** The planner's read-only pulse (Journal J0: questions the approved Journal redesign left open), read at origin/pre-main 545258e. Preserved 2026-09-27T02:08:34Z by .claude/hooks/dispatch_guard.py, header HEAD 545258eb5fb1233f20583a3b185615408c38f115, Target subagent pulse. Moved with mv from the planner worktree: original path /home/zynergy-labs/Zynergy/Forager/.claude/worktrees/bridge-cse_01BcqShzosraMo4pUXkqaqRp/prompts/preserved/2026-09-27-05.md, 4553 bytes, sha256 dd79db3b63ce1fc3c541b0e8e2cdfbf42b867b4cd8208833daa2bc8c345ec56e before the move and dd79db3b63ce1fc3c541b0e8e2cdfbf42b867b4cd8208833daa2bc8c345ec56e after it, equal. Kept under the hook's own name, free on this branch and on origin/pre-main. Merge entries in this sweep: 2026-09-27-33 (#136).
+
+---
