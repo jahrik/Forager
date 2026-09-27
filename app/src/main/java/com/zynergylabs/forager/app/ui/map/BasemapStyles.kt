@@ -136,10 +136,10 @@ internal fun mapAttributionFor(basemap: Basemap, useOfflineTiles: Boolean): Stri
  * without repeating one already present. Map layers L0a, A5.
  */
 internal fun mapCreditsFor(basemap: Basemap, useOfflineTiles: Boolean, layerCredits: List<String> = emptyList()): List<String> =
-    emptyList()
+    (listOf(mapAttributionFor(basemap, useOfflineTiles)) + layerCredits).distinct()
 
 /** [credits] as the one line the caption draws, joined by [ATTRIBUTION_SEPARATOR]. */
-internal fun attributionCaption(credits: List<String>): String = ""
+internal fun attributionCaption(credits: List<String>): String = credits.joinToString(ATTRIBUTION_SEPARATOR)
 
 /**
  * Between two credits in the caption. A middle dot rather than a comma or a dash, because both of

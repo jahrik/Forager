@@ -55,11 +55,21 @@ data class LayerPaint(val layerId: String, val visible: Boolean, val opacities: 
  * [spec]'s paint under [state]: the state of [MapLayerSpec.stateOwnerId] when it has one, its own
  * otherwise; every base opacity times that state's multiplier.
  */
-fun layerPaintFor(spec: MapLayerSpec, state: MapLayersState): LayerPaint =
-    LayerPaint(spec.id, visible = true, opacities = emptyList())
+fun layerPaintFor(spec: MapLayerSpec, state: MapLayersState): LayerPaint {
+    val governing = state.stateOf(spec.stateOwnerId ?: spec.id)
+    return LayerPaint(
+        layerId = spec.id,
+        visible = governing.visible,
+        opacities = spec.baseOpacities.map { OpacityValue(it.property, it.base * governing.opacity) },
+    )
+}
 
 /**
  * The credits of every layer in [registry] that is visible under [state] and has one, in draw order,
  * without repeats: what the attribution caption adds after the basemap's credit.
  */
-fun activeLayerCredits(registry: List<MapLayerSpec>, state: MapLayersState): List<String> = emptyList()
+fun activeLayerCredits(registry: List<MapLayerSpec>, state: MapLayersState): List<String> =
+    orderedLayers(registry, state)
+        .filter { layerPaintFor(it, state).visible }
+        .mapNotNull { it.credit }
+        .distinct()
