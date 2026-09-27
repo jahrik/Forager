@@ -81,6 +81,9 @@ class CartographyViewModel(
     private val _uiState = MutableStateFlow(CartographyUiState())
     val uiState: StateFlow<CartographyUiState> = _uiState.asStateFlow()
 
+    /** The one entry whose delete is pending (journal redesign J4b L2) — see [requestDeleteEntry]. */
+    private val entryDeletes = PendingDeleteSlot<String, CartographyEntry> { it.id }
+
     init {
         loadEntries()
     }
@@ -472,16 +475,107 @@ class CartographyViewModel(
         }
     }
 
+    /**
+     * An entry card's Delete (journal redesign J4b L2, the owner's "Lists swipe": a full swipe, the
+     * revealed Delete button, or the card's "Delete" accessibility action): the entry becomes pending
+     * instead of being deleted, held in J4's [PendingDeleteSlot] exactly as J4's three owners hold
+     * theirs. It is left out of [CartographyUiState.hidingPendingDelete]'s lists while the Undo
+     * snackbar shows; the real delete ([deleteEntry], unchanged) runs from [commitDeleteEntry] when
+     * the snackbar ends without Undo, from here when a second entry is deleted while this one is
+     * pending (the first is committed then), or from [onCleared].
+     *
+     * The report's and edit screen's own Delete, with their confirm dialogs, still call
+     * [onDeleteEntry] at once (the J4b dispatch: they "stay as they are"). If the entry being pended is
+     * the open one, it is closed, as [onDeleteEntry] closes it. An id found in neither list nor open
+     * is logged and pends nothing.
+     */
     fun requestDeleteEntry(id: String) {
-        // J4b tests-first stub.
+        val state = _uiState.value
+        val entry = state.entries.firstOrNull { it.id == id }
+            ?: state.draftEntries.firstOrNull { it.id == id }
+            ?: state.editingEntry?.takeIf { it.id == id }
+        if (entry == null) {
+            Log.w(TAG, "A delete was asked for entry '$id', which is not loaded; nothing pended.")
+            return
+        }
+        val displaced = entryDeletes.pend(entry, entryReferenceCount = null)
+        _uiState.update { current ->
+            if (current.editingEntry?.id == id) {
+                current.copy(
+                    pendingDelete = entryDeletes.pending,
+                    editingEntry = null,
+                    candidatesForEditingEntry = null,
+                    candidateOfflineRegionsForEditingEntry = emptyList(),
+                    hasUnsavedChanges = false,
+                )
+            } else {
+                current.copy(pendingDelete = entryDeletes.pending)
+            }
+        }
+        displaced?.let(::commitEntryDelete)
     }
 
+    /** The snackbar's Undo: the pending entry shows again, in the list it was in. Nothing was deleted, so nothing is restored. */
     fun undoDeleteEntry(id: String) {
-        // J4b tests-first stub.
+        if (entryDeletes.undo(id) == null) {
+            Log.w(TAG, "Undo for entry '$id' came after its delete was committed; nothing to undo.")
+        }
+        _uiState.update { it.copy(pendingDelete = entryDeletes.pending) }
     }
 
+    /** The snackbar ended without Undo (timed out, or a newer snackbar replaced it): the pending entry's delete runs, once. */
     fun commitDeleteEntry(id: String) {
-        // J4b tests-first stub.
+        val entry = entryDeletes.commit(id)
+        _uiState.update { it.copy(pendingDelete = entryDeletes.pending) }
+        entry?.let(::commitEntryDelete)
+    }
+
+    /**
+     * The real delete of an entry whose pending time is over. It leaves the lists at once, so it does
+     * not flash back between the snackbar closing and the delete finishing. A failed delete puts it
+     * back where it was and reports the failure the way [onDeleteEntry] does.
+     */
+    private fun commitEntryDelete(entry: CartographyEntry) {
+        val before = _uiState.value
+        val entriesIndex = before.entries.indexOfFirst { it.id == entry.id }
+        val draftsIndex = before.draftEntries.indexOfFirst { it.id == entry.id }
+        _uiState.update { state ->
+            state.copy(
+                entries = state.entries.filterNot { it.id == entry.id },
+                draftEntries = state.draftEntries.filterNot { it.id == entry.id },
+            )
+        }
+        viewModelScope.launch {
+            deleteEntry(entry.id).fold(
+                onSuccess = { _uiState.update { it.copy(saveErrorMessage = null) } },
+                onFailure = { error ->
+                    Log.w(TAG, "Couldn't delete entry '${entry.id}'.", error)
+                    _uiState.update { state ->
+                        state.copy(
+                            entries = state.entries.reinsert(entry, entriesIndex),
+                            draftEntries = state.draftEntries.reinsert(entry, draftsIndex),
+                            saveErrorMessage = "Couldn't delete that entry.",
+                        )
+                    }
+                },
+            )
+        }
+    }
+
+    /** [entry] back at [index] when it was in this list ([index] >= 0) and is not there now. */
+    private fun List<CartographyEntry>.reinsert(entry: CartographyEntry, index: Int): List<CartographyEntry> =
+        if (index < 0 || any { it.id == entry.id }) this else toMutableList().apply { add(index.coerceAtMost(size), entry) }
+
+    override fun onCleared() {
+        // J4b L2: an entry still pending is committed here, since no snackbar is left to end.
+        // viewModelScope is already cancelled, so the delete runs on pendingDeleteCommitScope.
+        entryDeletes.takeAny()?.let { entry ->
+            pendingDeleteCommitScope.launch {
+                deleteEntry(entry.id).onFailure { error ->
+                    Log.w(TAG, "Couldn't delete entry '${entry.id}' pending when the screen closed; it is still saved.", error)
+                }
+            }
+        }
     }
 
     fun onSaveErrorDismissed() {

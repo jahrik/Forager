@@ -72,12 +72,27 @@ data class MushroomLogUiState(
      * This state with [pendingDelete] left out of [entries] and [draftEntries]: what `MainActivity`
      * hands the screen, so a pending find is gone from the Finds gallery, the Finds chip's count and
      * the All logbook at once (J4), and comes back on Undo.
+     *
+     * Also [pendingPhotoDelete] (J4b L3): left out of [galleryPhotos] (the album, the drawer's
+     * gallery, and the Cartography screens' id-to-photo joins, which read this list) and out of each
+     * listed find's own `photos` (the Finds gallery's cover photo and the find report), so the photo
+     * is gone everywhere a list shows it until Undo. [editingEntry] is left as it is: it is the open
+     * form's own working copy, which loadEntries refreshes once the delete has run.
      */
     fun hidingPendingDelete(): MushroomLogUiState {
-        if (pendingDelete == null) return this
+        if (pendingDelete == null && pendingPhotoDelete == null) return this
+        val hiddenPhotoId = pendingPhotoDelete?.item?.photo?.id
+        fun List<MushroomLogEntry>.visible(): List<MushroomLogEntry> {
+            val withoutFind = withoutPending(pendingDelete) { it.id }
+            if (hiddenPhotoId == null) return withoutFind
+            return withoutFind.map { entry ->
+                if (entry.photos.none { it.id == hiddenPhotoId }) entry else entry.copy(photos = entry.photos.filterNot { it.id == hiddenPhotoId })
+            }
+        }
         return copy(
-            entries = entries.withoutPending(pendingDelete) { it.id },
-            draftEntries = draftEntries.withoutPending(pendingDelete) { it.id },
+            entries = entries.visible(),
+            draftEntries = draftEntries.visible(),
+            galleryPhotos = galleryPhotos.withoutPending(pendingPhotoDelete) { it.photo.id },
         )
     }
 }
