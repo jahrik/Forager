@@ -482,3 +482,7 @@ The owner, verbatim: "Sharing the root cause is a finding, it may guide us to th
 ### J5c. Tap a Records row for its details (owner, 2026-09-27)
 
 After keeping today's rows in short windows ("Keep today's rows (Recommended)"), the owner added, verbatim: "Expanding my answer: have them display info upon tapping", and chose **"Bottom sheet of details (Recommended)"**: tapping a waypoint, recorded-track or offline-map row, in portrait and landscape, opens a bottom sheet with the record's full details and its actions. Scheduled as J5c, after J5 and before L0. The M1 ruling for waypoints (Navigate in-app plus Directions) applies to the sheet's waypoint actions too.
+
+### In-app Navigate deferred (owner, 2026-09-27)
+
+J5c's coder stopped on Navigate: starting the app's own navigation HUD for a waypoint from the Records tab needs a path the app does not have. The owner, verbatim: "We can defer the navigation for another time. It's going to need more work anyway", and for M1's waypoint bubble: "Defer for now too. It will go with a review in current waypoint navigation." So J5c's details sheet and M1's waypoint bubble offer **Directions only** (the existing hand-off to an installed navigation app). In-app Navigate, from both places, waits for a later review of the current waypoint navigation, which will specify the route. This supersedes the Navigate half of the M1 ruling "In-app HUD, plus Directions (Recommended)"; Directions stands.
