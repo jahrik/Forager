@@ -109,6 +109,8 @@ class AvailabilityScreenSettingsPanelTest {
     private var capturedBasemap: Basemap? = null
     private var capturedOfflinePickerBasemap: Basemap? = null
     private var capturedNightMode: Boolean? = null
+    private var capturedNightModeLoaded: Boolean? = null
+    private var capturedOfflinePickerNightModeLoaded: Boolean? = null
     private var capturedThemeMode: AppThemeMode? = null
     private var capturedAutoSaveLocation: Boolean? = null
     private var capturedLockCamera: Boolean? = null
@@ -117,12 +119,14 @@ class AvailabilityScreenSettingsPanelTest {
     private val CapturingMapSlot: MapSlot = { _, content, renderMode, _, _, _, _, onCameraIdle, modifier ->
         if (content.sightings.isEmpty() && content.plannedTrips.isEmpty()) {
             capturedOfflinePickerBasemap = renderMode.basemap
+            capturedOfflinePickerNightModeLoaded = renderMode.nightModeLoaded
             Column(modifier.testTag(OFFLINE_PICKER_MAP_TAG)) {
                 Button(onClick = { onCameraIdle(PICKED_LOCATION) }) { Text("Simulate pan to test location") }
             }
         } else {
             capturedBasemap = renderMode.basemap
             capturedNightMode = renderMode.night
+            capturedNightModeLoaded = renderMode.nightModeLoaded
             Box(modifier.testTag(MAP_SLOT_TAG))
         }
     }
@@ -286,6 +290,43 @@ class AvailabilityScreenSettingsPanelTest {
         composeRule.onNodeWithText("Night Maps").performClick()
         composeRule.waitForIdle()
         assertEquals(false, capturedNightMode)
+    }
+
+    /**
+     * Colour build C1's cold-launch gate, through the real screen: the main map's [MapRenderMode]
+     * carries [AvailabilityUiState.nightModeMapsLoaded] (the one hop the planner's ruling routes it
+     * through, `AvailabilityScreen`'s `mapRenderMode`), so its style waits for the preference.
+     */
+    @Test
+    fun `the main map is told the Night Maps preference has not loaded yet`() {
+        setScreenWithOfflineMapsState(initial = SEARCHED_STATE.copy(nightModeMapsLoaded = false))
+        composeRule.onNodeWithTag(MAP_SLOT_TAG).assertExists()
+
+        assertEquals(false, capturedNightModeLoaded)
+    }
+
+    @Test
+    fun `the main map is told once the Night Maps preference has loaded`() {
+        setScreenWithOfflineMapsState(initial = SEARCHED_STATE.copy(nightModeMapsLoaded = true))
+        composeRule.onNodeWithTag(MAP_SLOT_TAG).assertExists()
+
+        assertEquals(true, capturedNightModeLoaded)
+    }
+
+    /**
+     * By the planner's ruling the centre-pin picker keeps [MapRenderMode.nightModeLoaded]'s default
+     * `true`: it sits behind user navigation, so the preference is assumed (unverified) to have
+     * loaded by the time it is reached. Asserted with the screen's own flag still `false`, so the
+     * picker's `true` can only be the default, not the screen's value passed through.
+     */
+    @Test
+    fun `the offline picker map keeps the default, not the gate`() {
+        setScreen()
+        openOfflineMapsSubTab()
+        composeRule.onNodeWithTag(OFFLINE_PICKER_MAP_TAG).assertIsDisplayed()
+
+        assertEquals(false, SEARCHED_STATE.nightModeMapsLoaded)
+        assertEquals(true, capturedOfflinePickerNightModeLoaded)
     }
 
     /**
