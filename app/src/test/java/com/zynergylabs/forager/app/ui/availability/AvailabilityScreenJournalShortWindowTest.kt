@@ -25,6 +25,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
@@ -421,6 +422,97 @@ class AvailabilityScreenJournalShortWindowTest {
     @Test @GraphicsMode(GraphicsMode.Mode.NATIVE)
     fun `height budget at ROTATION_270 the header hidden leaves two card rows on Entries`() = checkHeightBudget(Surface.ROTATION_270)
 
+    // ── L5a: the Records chips fit one line at 640 dp (continuation 2026-09-27-27, owner: "Tighter chips") ──
+
+    private var fontScaleSeenByScreen: Float? = null
+
+    /**
+     * Records' All chip row through the real screen, with two-digit counts on All (38), Finds (12),
+     * Tracks (10) and Waypoints (16) and none on Offline maps: the counts the owner's option (a) was
+     * measured with in the J5 report (native graphics, "fits by about 6 dp").
+     */
+    private fun openRecordsWithCounts() {
+        Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(Surface.ROTATION_90)
+        composeRule.setContent {
+            fontScaleSeenByScreen = androidx.compose.ui.platform.LocalDensity.current.fontScale
+            shortWindowScreen(
+                cartography = CartographyUiState(),
+                onStart = {},
+                onOpen = {},
+                onClose = {},
+                logState = com.zynergylabs.forager.app.ui.log.MushroomLogUiState(entries = (1..12).map { committedFind("find-$it") }),
+                tracks = (1..10).map { recordedTrack("track-$it") },
+            )
+        }
+        composeRule.waitForIdle()
+        openJournal()
+        node(SWITCH_RECORDS).performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("38").assertExists()
+    }
+
+    /**
+     * How far the chip row's content runs past the row: the last chip's end plus the row's own end
+     * padding (taken equal to its start padding, the first chip's inset), less the row's end. Zero or
+     * less means every chip, and the padding after the last, is on screen without scrolling.
+     */
+    private fun chipRowOverflow(): Pair<Float, String> {
+        val row = bounds(CHIP_ROW)
+        val first = bounds(CHIP_ALL)
+        val last = bounds(CHIP_OFFLINE)
+        val padding = first.left - row.left
+        val contentEnd = last.right + padding
+        val overflow = (contentEnd - row.right).value
+        return overflow to "row ${row.left}..${row.right} (${row.right - row.left}), chips ${first.left}..${last.right}, padding $padding, content ends at $contentEnd"
+    }
+
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun `L5a guard - at 640 dp the five Records chips, icons and counts, fit one line without scrolling`() {
+        openRecordsWithCounts()
+        assertEquals("this case is at the default font scale", 1f, fontScaleSeenByScreen)
+        val row = bounds(CHIP_ROW)
+        assertEquals("the chip row is B3's capped 640 dp", 640f, (row.right - row.left).value, 0.5f)
+        val chips = listOf(CHIP_ALL, "records-chip-finds", "records-chip-tracks", CHIP_WAYPOINTS, CHIP_OFFLINE).map { bounds(it) }
+        chips.forEach { assertEquals("one line", chips.first().top.value, it.top.value, 0.5f) }
+        val (overflow, detail) = chipRowOverflow()
+        println("J5-L5A fontScale=1.0 overflow=$overflow $detail")
+        assertTrue("the chip row's content is ${overflow}dp wider than the row: $detail", overflow <= 0f)
+    }
+
+    /**
+     * The same row at font scale 1.15. A record, not a guard, by the continuation's design: it
+     * states the result either way, and the owner chose not to change the design further if it
+     * overflows. It asserts only that the case ran at the scale it names.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(fontScale = 1.15f)
+    fun `L5a record - at font scale 1_15 the chip row's fit is measured and stated`() {
+        openRecordsWithCounts()
+        assertEquals("this case runs at font scale 1.15", 1.15f, fontScaleSeenByScreen ?: 0f, 0.001f)
+        val (overflow, detail) = chipRowOverflow()
+        val result = if (overflow <= 0f) "fits, ${-overflow}dp to spare" else "OVERFLOWS by ${overflow}dp; the row scrolls"
+        println("J5-L5A fontScale=1.15 $result: $detail")
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h891dp")
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun `L5a portrait chips are unchanged - 16 dp row padding, 8 dp gaps, 24 dp icons`() {
+        setScreen(Surface.ROTATION_0)
+        openJournal()
+        node(SWITCH_RECORDS).performClick()
+        composeRule.waitForIdle()
+        val row = bounds(CHIP_ROW)
+        val all = bounds(CHIP_ALL)
+        val finds = bounds("records-chip-finds")
+        assertEquals("row padding", 16f, (all.left - row.left).value, 0.5f)
+        assertEquals("gap between chips", 8f, (finds.left - all.right).value, 0.5f)
+        val icon = composeRule.onNode(hasTestTag(CHIP_ALL), useUnmergedTree = true).onChildren()[0].getUnclippedBoundsInRoot()
+        assertEquals("leading icon", 24f, (icon.right - icon.left).value, 0.5f)
+    }
+
     // ── L7: state survives turning between portrait and a short landscape window ──
 
     /**
@@ -528,6 +620,19 @@ private const val DRAFTS_CHIP = "entries-drafts-chip"
 private const val DRAFTS_LIST = "entries-drafts-list"
 private const val DRAFTS_CONTINUE = "entries-drafts-continue"
 private const val CHIP_WAYPOINTS = "records-chip-waypoints"
+private const val CHIP_ALL = "records-chip-all"
+private const val CHIP_OFFLINE = "records-chip-offline-maps"
+
+private fun committedFind(id: String): com.zynergylabs.forager.app.domain.model.MushroomLogEntry =
+    com.zynergylabs.forager.app.domain.model.MushroomLogEntry.draft(id = id, location = null, date = LocalDate.of(2026, 9, 20)).copy(isDraft = false)
+
+private fun recordedTrack(id: String): com.zynergylabs.forager.app.domain.model.Track = com.zynergylabs.forager.app.domain.model.Track(
+    id = id,
+    name = null,
+    startedAtEpochMillis = 1_758_200_000_000L,
+    endedAtEpochMillis = 1_758_203_600_000L,
+    points = emptyList(),
+)
 private const val CHIP_ROW = "records-filter-chip-row"
 private const val ENTRIES_GRID = "entries-grid"
 private const val RECORDS_ALL_LIST = "records-logbook-list"
@@ -569,6 +674,8 @@ private fun shortWindowScreen(
     onOpen: (String) -> Unit,
     onClose: () -> Unit,
     onOpenCamera: (com.zynergylabs.forager.app.ui.log.InAppCameraTarget) -> Unit = {},
+    logState: com.zynergylabs.forager.app.ui.log.MushroomLogUiState = com.zynergylabs.forager.app.ui.log.MushroomLogUiState(),
+    tracks: List<com.zynergylabs.forager.app.domain.model.Track> = emptyList(),
 ) {
     AvailabilityScreen(
         uiState = AvailabilityUiState(),
@@ -603,5 +710,7 @@ private fun shortWindowScreen(
         onCloseCartographyEntry = onClose,
         waypoints = MANY_WAYPOINTS,
         onOpenCamera = onOpenCamera,
+        logUiState = logState,
+        tracks = tracks,
     )
 }
