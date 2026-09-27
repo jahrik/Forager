@@ -638,13 +638,13 @@ private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPa
     style.addSource(GeoJsonSource(OFFLINE_REGION_CIRCLE_SOURCE_ID, emptyFeatureCollection()))
     style.addLayer(
         FillLayer(OFFLINE_REGION_CIRCLE_LAYER_ID, OFFLINE_REGION_CIRCLE_SOURCE_ID).withProperties(
-            PropertyFactory.fillColor(palette.areaMarkerBackground),
+            PropertyFactory.fillColor(palette.offlineRegion),
             PropertyFactory.fillOpacity(OFFLINE_REGION_CIRCLE_OPACITY),
         ),
     )
     style.addLayer(
         LineLayer(OFFLINE_REGION_CIRCLE_OUTLINE_LAYER_ID, OFFLINE_REGION_CIRCLE_SOURCE_ID).withProperties(
-            PropertyFactory.lineColor(palette.areaMarkerBackground),
+            PropertyFactory.lineColor(palette.offlineRegion),
             PropertyFactory.lineWidth(OFFLINE_REGION_CIRCLE_OUTLINE_WIDTH_PX),
         ),
     )
@@ -695,13 +695,12 @@ private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPa
 
     // Kept tracks (Journal Stage 2d): a solid line, distinct from the live breadcrumb's dash — see
     // keptTracksFeatureCollection's own doc comment for why this is a genuine MultiLineString, not
-    // breadcrumbPoints reshaped. connector was designed for, and is otherwise unused since, the
-    // deleted foraging-areas feature — revived here rather than adding a new, contrast-unverified
-    // colour to MapPalette.
+    // breadcrumbPoints reshaped. Its colour is MapPalette.keptTrack, its own role since colour build
+    // C2 (before C2 it borrowed the retired connector colour of the deleted foraging-areas feature).
     style.addSource(GeoJsonSource(KEPT_TRACKS_SOURCE_ID, emptyFeatureCollection()))
     style.addLayer(
         LineLayer(KEPT_TRACKS_LAYER_ID, KEPT_TRACKS_SOURCE_ID).withProperties(
-            PropertyFactory.lineColor(palette.connector),
+            PropertyFactory.lineColor(palette.keptTrack),
             PropertyFactory.lineWidth(KEPT_TRACK_STROKE_WIDTH_PX),
             PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
             PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
@@ -736,7 +735,7 @@ private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPa
     // find and photo markers — discrete markers, not density dots"). Added last, after waypoints,
     // for the same "never sit under a sibling point marker" reasoning the waypoint layer's own
     // comment already gives.
-    style.addImage(FIND_ICON_ID, waypointPinBitmap(density, palette.areaMarkerBackground))
+    style.addImage(FIND_ICON_ID, waypointPinBitmap(density, palette.find))
     style.addSource(GeoJsonSource(FIND_SOURCE_ID, emptyFeatureCollection()))
     style.addLayer(
         SymbolLayer(FIND_LAYER_ID, FIND_SOURCE_ID).withProperties(
@@ -746,7 +745,7 @@ private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPa
         ),
     )
 
-    style.addImage(PHOTO_ICON_ID, plannedTripDiamondBitmap(density, palette.plannedTrip))
+    style.addImage(PHOTO_ICON_ID, plannedTripDiamondBitmap(density, palette.photo))
     style.addSource(GeoJsonSource(PHOTO_SOURCE_ID, emptyFeatureCollection()))
     style.addLayer(
         SymbolLayer(PHOTO_LAYER_ID, PHOTO_SOURCE_ID).withProperties(
