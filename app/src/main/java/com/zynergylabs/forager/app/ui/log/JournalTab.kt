@@ -481,6 +481,9 @@ internal fun JournalTab(
                 // trackUiState.tracks, through AvailabilityScreen and CompactMainScaffold), joined in
                 // memory by the Entries cards for their thumbnails.
                 tracks = tracks,
+                // J3, C5: the album's find badge marks saved finds only; the draft finds' ids are
+                // already in this tab's MushroomLogUiState.
+                draftFindIds = uiState.draftEntries.mapTo(HashSet()) { it.id },
             )
 
             JournalTopTab.RECORDS -> RecordsTab(

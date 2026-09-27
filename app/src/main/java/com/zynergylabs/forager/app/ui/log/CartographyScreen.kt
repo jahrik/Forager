@@ -136,6 +136,8 @@ internal fun CartographyScreen(
      * `LogPanel` (J6) passes none, so its cards draw no thumbnail.
      */
     tracks: List<Track> = emptyList(),
+    /** Ids of draft finds, for the album's find badge (J3, C5); see [EntriesAlbum]. `LogPanel` passes none. */
+    draftFindIds: Set<String> = emptySet(),
 ) {
     var mode by remember { mutableStateOf(CartographyEntryMode.VIEW) }
 
@@ -406,6 +408,7 @@ internal fun CartographyScreen(
                     onAddGalleryPhoto = onAddGalleryPhoto,
                     loadErrorMessage = galleryLoadErrorMessage,
                     cartographyEntryReferenceCounts = galleryPhotoEntryReferenceCounts,
+                    draftFindIds = draftFindIds,
                     modifier = Modifier.fillMaxSize(),
                 )
             }

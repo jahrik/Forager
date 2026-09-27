@@ -85,6 +85,12 @@ internal fun EntriesAlbum(
     loadErrorMessage: String? = null,
     /** How many Cartography entries keep each photo (by id); read by the delete confirmation. */
     cartographyEntryReferenceCounts: Map<String, Int> = emptyMap(),
+    /**
+     * Ids of draft (unsaved) finds, so the find badge marks only photos on a saved find (J3, C5;
+     * owner ruling "Saved finds only (Recommended)"). Already in memory
+     * (`MushroomLogUiState.draftEntries`); no query. Empty means no find is treated as a draft.
+     */
+    draftFindIds: Set<String> = emptySet(),
 ) {
     val photoAcquisition = rememberPhotoAcquisitionLaunchers(onAddGalleryPhoto, onOpenCamera)
     // The id, not the index, and saveable — as PhotoGalleryScreen's own viewer state.
@@ -132,6 +138,7 @@ internal fun EntriesAlbum(
                             onOpen = { viewingPhotoId = galleryPhoto.photo.id },
                             onDelete = { onDeletePhoto(galleryPhoto) },
                             cartographyEntryCount = cartographyEntryReferenceCounts[galleryPhoto.photo.id] ?: 0,
+                            draftFindIds = draftFindIds,
                         )
                     }
                 }
@@ -201,6 +208,7 @@ private fun AlbumPhotoTile(
     onOpen: () -> Unit,
     onDelete: () -> Unit,
     cartographyEntryCount: Int,
+    draftFindIds: Set<String>,
 ) {
     var confirmingDelete by remember(galleryPhoto.photo.id) { mutableStateOf(false) }
     Box(modifier = Modifier.fillMaxWidth().aspectRatio(1f).testTag(albumPhotoTestTag(galleryPhoto.photo.id))) {
@@ -214,7 +222,7 @@ private fun AlbumPhotoTile(
         AlbumAttachmentBadges(
             photoId = galleryPhoto.photo.id,
             attachedToEntry = cartographyEntryCount > 0,
-            attachedToFind = galleryPhoto.referencingEntryIds.isNotEmpty(),
+            attachedToFind = galleryPhoto.referencingEntryIds.any { it !in draftFindIds },
             modifier = Modifier.align(Alignment.BottomStart).padding(ALBUM_BADGE_INSET),
         )
     }
@@ -241,8 +249,10 @@ private fun AlbumPhotoTile(
  *   `isDraft = 0`).
  * - **Find:** [GalleryPhoto.referencingEntryIds], the join over `log_entry_photos` in
  *   `RoomMushroomLogRepository.getAllPhotos`. That table holds draft finds' rows too (a draft find is
- *   a standalone row), so a photo attached only to an unfinished find carries this badge; the delete
- *   dialog's "N entries" count reads the same list the same way.
+ *   a standalone row), so since J3 (C5, owner ruling "Saved finds only (Recommended)") the badge
+ *   leaves out ids in `draftFindIds` (`MushroomLogUiState.draftEntries`, already in memory): a photo
+ *   attached only to an unfinished find carries no badge. The delete dialog's "N entries" count still
+ *   reads the whole list, drafts included, as before.
  *
  * The link icon is the plan's 🔗 for "attached to an entry"; the find badge takes the Finds chip's
  * icon and its J6 colour role ([RecordTypeStyle], Finds), so it reads as the same kind of thing the
