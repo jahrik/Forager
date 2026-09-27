@@ -104,13 +104,28 @@ fun CentrePinLocationPicker(
     mapAspectRatio: Float? = null,
     modifier: Modifier = Modifier,
 ) {
-    // Seeded from region's own centre and never fed back into mapSlot's region argument — region
-    // stays fixed for this composable's whole lifetime, so SightingsMap's own region-keyed camera
-    // effect never re-fires and never fights the panning this camera-idle listener is reading.
-    // See this file's class doc comment for why a second, feedback-driven approach (updating
-    // region on every idle event) was rejected: it would re-run zoomForRadiusKm on every pan frame
-    // for no reason region.radiusKm ever needs to change here.
-    var cameraCenter by remember(region) { mutableStateOf(LatLng(region.lat, region.lng)) }
+    // "Follow until you touch it" (owner ruling, picker-fixes dispatch F1): until the user's first
+    // touch on the map, the region handed to mapSlot, and the pin, follow the caller's region — so a
+    // picker opened before any location fix moves to the first one. After that touch, a new caller
+    // region changes neither: the find picker's region is the device's live fix, a new one about
+    // every second, and before this each one reset the pin and (tracking already ended by the pan)
+    // moved SightingsMap's camera back to the device at zoom 13 — the owner's "snaps back after
+    // every pan". The touch is MapRenderMode.onUserCameraGesture, not onCameraIdle, because the
+    // first activation's ease to zoom 16 and every region-driven camera move end in an idle too.
+    //
+    // Idle events are still never fed back into mapSlot's region argument: that would re-run
+    // SightingsMap's region-keyed camera effect, and zoomForRadiusKm, on every pan.
+    var touched by remember { mutableStateOf(false) }
+    var mapRegion by remember { mutableStateOf(region) }
+    var cameraCenter by remember { mutableStateOf(LatLng(region.lat, region.lng)) }
+    if (!touched && region != mapRegion) {
+        // A write during composition, of state this composable owns, converging in one pass (the
+        // next pass sees region == mapRegion). Chosen over a LaunchedEffect so the map is never
+        // handed one frame of the old region after the caller's has changed.
+        mapRegion = region
+        cameraCenter = LatLng(region.lat, region.lng)
+    }
+    val onUserCameraGesture = remember { { touched = true } }
 
     // Fills its slot only when the map is the leftover (mapAspectRatio == null). With a ratio, the
     // map has a determinate height and this column wraps its content, so the caller gets a picker
@@ -129,9 +144,9 @@ fun CentrePinLocationPicker(
             },
         ) {
             mapSlot(
-                region,
+                mapRegion,
                 MapOverlayContent(),
-                MapRenderMode(basemap, night),
+                MapRenderMode(basemap, night, onUserCameraGesture = onUserCameraGesture),
                 null,
                 {},
                 {},
