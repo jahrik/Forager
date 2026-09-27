@@ -38,9 +38,10 @@ import org.robolectric.annotation.Config
  * `SaveableStateRegistry`, disposes the whole composition and recomposes it from the saved values,
  * which is what an Activity recreation (night-mode toggle, fold, process death) does to composition
  * state. Plain `remember` state does not come back from it, which is what lets it tell a saveable
- * holder from a hoisted-but-unsaved one. `compactTab` itself is plain `remember` today
- * (`AvailabilityScreen.kt:693`), so after the round trip the screen is back on Maps and the test taps
- * Journal again; making `compactTab` survive is not part of this stage.
+ * holder from a hoisted-but-unsaved one. `compactTab` itself was plain `remember` when this was
+ * written (`AvailabilityScreen.kt:693` at `3df97d1`), so the test taps Journal again after the round
+ * trip; journal redesign J2 (T5) made `compactTab` saveable, so that tap is now a no-op on the tab
+ * already showing, and `AvailabilityScreenJournalEntriesStateTest` covers the tab surviving.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w360dp-h640dp-xhdpi")

@@ -151,6 +151,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -691,7 +692,14 @@ fun AvailabilityScreen(
     // below whenever the tapped destination is one of the three they share, so onMapTabSelected/
     // onSeasonalTabSelected's LaunchedEffect keeps firing correctly and a later resize to a wider
     // window lands on the same List/Maps/Seasonal tab compact was just showing.
-    var compactTab by remember { mutableStateOf(CompactTab.MAP) }
+    //
+    // Journal redesign J2, T5 (owner ruling "Yes, fold into J2 (Recommended)"): saveable, so an
+    // Activity recreation (a night-mode toggle, a fold, process death; a plain rotation does not
+    // recreate, see AndroidManifest.xml's configChanges) no longer drops the user back on Maps. An
+    // enum saves as-is through the default saver. Only this changed: selectedTab above stays plain
+    // remember, so after a recreation on List or Seasonal the two can disagree until the next tab
+    // tap re-syncs them (raised in the J2 report, not changed here).
+    var compactTab by rememberSaveable { mutableStateOf(CompactTab.MAP) }
 
     // Journal redesign J1, S1: the Journal's user-set UI state (top tab, Records selection), held
     // here beside compactTab rather than inside the Journal branch of `when (compactTab)`, so leaving
