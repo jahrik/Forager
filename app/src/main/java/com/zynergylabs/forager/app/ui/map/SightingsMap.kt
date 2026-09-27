@@ -4,6 +4,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.RectF
 import android.util.Log
 import android.view.MotionEvent
 import android.view.Gravity
@@ -38,10 +39,28 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.zynergylabs.forager.app.domain.GeoDistance
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
+import com.zynergylabs.forager.app.domain.model.RecordPoint
+import com.zynergylabs.forager.app.domain.model.RecordPolyline
+import com.zynergylabs.forager.app.domain.model.RecordRegion
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.map.initializeMapLibre
+import com.zynergylabs.forager.app.ui.map.layers.LayerPaint
+import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
+import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
+import com.zynergylabs.forager.app.ui.map.layers.MapLayerSpec
+import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
+import com.zynergylabs.forager.app.ui.map.layers.MapSourceIds
+import com.zynergylabs.forager.app.ui.map.layers.OpacityProperty
+import com.zynergylabs.forager.app.ui.map.layers.OpacityValue
+import com.zynergylabs.forager.app.ui.map.layers.TAP_BOX_DP
+import com.zynergylabs.forager.app.ui.map.layers.TapHit
+import com.zynergylabs.forager.app.ui.map.layers.activeLayerCredits
+import com.zynergylabs.forager.app.ui.map.layers.layerPaintFor
+import com.zynergylabs.forager.app.ui.map.layers.orderedLayers
+import com.zynergylabs.forager.app.ui.map.layers.resolveTap
+import com.zynergylabs.forager.app.ui.map.layers.tappableLayerIds
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
@@ -133,7 +152,7 @@ import org.maplibre.geojson.Polygon
  *   services osmdroid used (see [Basemap]'s doc comment). **That theory held for the connector but
  *   not the sighting dots.** The first real hardware pass of this renderer (Portland-metro, USGS
  *   Topo) confirmed the dashed connector still reads as dashed — the colour question there really
- *   was moot. But the same screenshot found the sighting dots (bark brown, [SIGHTING_DOT_OPACITY])
+ *   was moot. But the same screenshot found the sighting dots (bark brown, at the sighting layer's 0.7 fill opacity, now in `MAP_LAYER_REGISTRY`)
  *   an unresolvable smudge in a dense cluster near Lake Oswego, overlapping each other and the
  *   cluster badge — a real legibility failure this migration's "same raster tiles, same palette"
  *   reasoning didn't predict, because the failure is about density and boundary loss between
@@ -147,10 +166,11 @@ import org.maplibre.geojson.Polygon
  * gave for free had no style-layer equivalent — until [onSightingTap], added for a real observation
  * marker's info card, which does query the tapped point back (`MapLibreMap.queryRenderedFeatures`
  * against [SIGHTING_LAYER_ID] in the click listener below) and calls out with the matching
- * [Sighting]. Every other marker type — search centre, planned trips, waypoints — still has no
- * click handler; their [Feature]s built by [searchCenterFeatureCollection]/
- * [plannedTripsFeatureCollection] still carry title/snippet as GeoJSON properties only, ready for
- * the same treatment when one of those needs it too.
+ * [Sighting]. Since map layers L0a every other tappable layer is queried too and the winner is
+ * chosen by `resolveTap` (markers, then lines, then colour fields; the topmost layer within a
+ * group); a winner that is not a sighting goes to [onFeatureTap] with its layer id and the
+ * `featureId` property the pure builders write ([FEATURE_ID_PROPERTY]). Nothing shows a popup for
+ * those yet (M1 builds the bubbles).
  */
 @Composable
 fun SightingsMap(
@@ -200,17 +220,21 @@ fun SightingsMap(
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.useOfflineTiles]'s own doc comment. */
     useOfflineTiles: Boolean = false,
     /** See [com.zynergylabs.forager.app.ui.map.MapOverlayContent.keptTrackPolylines]'s own doc comment. */
-    keptTrackPolylines: List<List<LatLng>> = emptyList(),
+    keptTrackPolylines: List<RecordPolyline> = emptyList(),
     /** See [com.zynergylabs.forager.app.ui.map.MapOverlayContent.findMarkers]'s own doc comment. */
-    findMarkers: List<LatLng> = emptyList(),
+    findMarkers: List<RecordPoint> = emptyList(),
     /** See [com.zynergylabs.forager.app.ui.map.MapOverlayContent.photoMarkers]'s own doc comment. */
-    photoMarkers: List<LatLng> = emptyList(),
+    photoMarkers: List<RecordPoint> = emptyList(),
     /** See [com.zynergylabs.forager.app.ui.map.MapOverlayContent.offlineRegionCircles]'s own doc comment. */
-    offlineRegionCircles: List<Region> = emptyList(),
+    offlineRegionCircles: List<RecordRegion> = emptyList(),
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.bottomInset]'s own doc comment. */
     bottomInset: Dp = 0.dp,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.onUserCameraGesture]'s own doc comment. */
     onUserCameraGesture: () -> Unit = {},
+    /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.layers]'s own doc comment. */
+    layersState: MapLayersState = MapLayersState.DEFAULT,
+    /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.onFeatureTap]'s own doc comment. */
+    onFeatureTap: (layerId: String, featureId: String) -> Unit = { _, _ -> },
 ) {
     val context = LocalContext.current
 
@@ -238,6 +262,11 @@ fun SightingsMap(
     val currentOnLongPress by rememberUpdatedState(onLongPress)
     val currentOnCameraIdle by rememberUpdatedState(onCameraIdle)
     val currentOnUserCameraGesture by rememberUpdatedState(onUserCameraGesture)
+    val currentOnFeatureTap by rememberUpdatedState(onFeatureTap)
+    // Read by the click listener (the draw order the tap precedence ranks against) and by each
+    // style load (the order the layers are added in): both were registered or launched before a
+    // later state change could otherwise reach them.
+    val currentLayersState by rememberUpdatedState(layersState)
     // Read inside the click listener below (registered once, see that DisposableEffect's own
     // comment) so a tapped dot resolves against whichever sightings list is current, not whichever
     // one was in scope the moment the listener was registered.
@@ -313,20 +342,50 @@ fun SightingsMap(
         }
         mapView.getMapAsync { map ->
             map.addOnMapClickListener { latLng ->
-                // queryRenderedFeatures/toScreenLocation signatures confirmed via javap against the
-                // pinned org.maplibre.gl:android-sdk:13.5.0 (Projection) and
-                // org.maplibre.gl:android-sdk-geojson:6.0.1 (Feature) artifacts. Sighting dots share
-                // one CircleLayer (SIGHTING_LAYER_ID) — restricting the query to it is what makes
-                // this "did the tap land on a dot" rather than "did it land on the map at all."
+                // queryRenderedFeatures (PointF and RectF overloads)/toScreenLocation signatures
+                // confirmed via javap against the pinned org.maplibre.gl:android-sdk:13.5.0
+                // (Projection, MapLibreMap) and org.maplibre.gl:android-sdk-geojson:6.0.1 (Feature)
+                // artifacts. Map layers L0a: every tappable layer is queried, one layer per call,
+                // because a returned Feature does not say which layer drew it; resolveTap picks the
+                // winner (markers, then lines, then colour fields; the topmost layer within a
+                // group). What lies exactly under the tap point decides; only when nothing tappable
+                // is there is a TAP_BOX_DP square around it queried, so a thin line can be hit
+                // without a near miss beating a marker the finger is actually on.
                 val screenPoint = map.projection.toScreenLocation(latLng)
-                val tappedSighting = map.queryRenderedFeatures(screenPoint, SIGHTING_LAYER_ID)
-                    .firstOrNull()
-                    ?.getNumberProperty("observationId")
-                    ?.toLong()
-                    ?.let { id -> currentSightings.firstOrNull { it.observationId == id } }
-                if (tappedSighting != null) {
-                    currentOnSightingTap(tappedSighting, Offset(screenPoint.x, screenPoint.y), map.cameraPosition.bearing.toFloat())
+                val drawOrder = orderedLayers(MAP_LAYER_REGISTRY, currentLayersState)
+                val tappable = tappableLayerIds(drawOrder)
+                val winner = resolveTap(
+                    pointHits = tappable.flatMap { id -> map.queryRenderedFeatures(screenPoint, id).map { tapHitOf(id, it) } },
+                    boxHits = {
+                        val half = TAP_BOX_DP / 2f * context.resources.displayMetrics.density
+                        val box = RectF(screenPoint.x - half, screenPoint.y - half, screenPoint.x + half, screenPoint.y + half)
+                        tappable.flatMap { id -> map.queryRenderedFeatures(box, id).map { tapHitOf(id, it) } }
+                    },
+                    drawOrder = drawOrder,
+                )
+                if (winner != null && winner.layerId == SIGHTING_LAYER_ID) {
+                    // The sighting path as before L0a: the dot's observationId looked back up in the
+                    // current list, the bubble anchored at the tap point, onTap when the id no longer
+                    // resolves.
+                    val tappedSighting = winner.featureId?.toLongOrNull()
+                        ?.let { id -> currentSightings.firstOrNull { it.observationId == id } }
+                    if (tappedSighting != null) {
+                        currentOnSightingTap(tappedSighting, Offset(screenPoint.x, screenPoint.y), map.cameraPosition.bearing.toFloat())
+                    } else {
+                        currentOnTap()
+                    }
                 } else {
+                    if (winner != null) {
+                        val featureId = winner.featureId
+                        if (featureId != null) {
+                            currentOnFeatureTap(winner.layerId, featureId)
+                        } else {
+                            Log.w(SIGHTINGS_MAP_TAG, "Tapped a feature on ${winner.layerId} with no $FEATURE_ID_PROPERTY; no feature tap reported.")
+                        }
+                    }
+                    // Still fires after a feature tap, as it did before L0a for a tap on any marker
+                    // but a sighting: the fullscreen map's "tap to restore chrome"
+                    // (MapRenderMode.onFeatureTap's doc comment).
                     currentOnTap()
                 }
                 // false: unconsumed, matching the deleted osmdroid MapEventsOverlay's
@@ -466,7 +525,13 @@ fun SightingsMap(
             // fill layers are never touched. Day, or night off, restyles nothing: the style came
             // fresh from its URI.
             if (requested.useOfflineTiles && requested.night) applyOfflineNightRecolour(style)
-            initializeOverlayLayers(style, density = context.resources.displayMetrics.density, palette = requested.palette)
+            initializeOverlayLayers(
+                style,
+                density = context.resources.displayMetrics.density,
+                palette = requested.palette,
+                drawOrder = orderedLayers(MAP_LAYER_REGISTRY, currentLayersState),
+                layersState = currentLayersState,
+            )
             // The data+camera refresh effect below re-pushes every source right after this, keyed
             // on loadedStyle among other things — including the sighting source, with "selected"
             // baked in from whatever focusedObservationId is current at that point. Nothing here
@@ -522,6 +587,16 @@ fun SightingsMap(
                 .build()
             lastAppliedCameraTarget = target
         }
+    }
+
+    // Layer visibility and opacity (map layers L0a, A3): each native layer's `visibility` layout
+    // property and its opacity paint properties set from layersState through layerPaintFor, on the
+    // loaded style's own layers — no setStyle, so nothing is rebuilt. Keyed on loadedStyle as well,
+    // so a freshly loaded style gets the current state; initializeOverlayLayers has already built
+    // each layer with it, so for that case this re-sets the same values.
+    LaunchedEffect(loadedStyle, layersState) {
+        val style = loadedStyle ?: return@LaunchedEffect
+        MAP_LAYER_REGISTRY.forEach { spec -> applyLayerPaint(style, layerPaintFor(spec, layersState)) }
     }
 
     // Re-engages GPS camera tracking on demand — the map redesign's GPS/locate-me icon, tapped
@@ -600,8 +675,10 @@ fun SightingsMap(
         // "attribution" field (see styleJsonFor), but that is deliberately not relied on alone here
         // — see Basemap's doc comment on [Basemap.attribution] for why an always-drawn guarantee
         // matters for this app's USGS/ODbL credit and shouldn't quietly become tap-only.
+        // A list of credits since map layers L0a (A5): the basemap's, then each visible layer's own
+        // (none of today's layers has one, so the text is exactly what it always was).
         Text(
-            text = mapAttributionFor(basemap, useOfflineTiles),
+            text = attributionCaption(mapCreditsFor(basemap, useOfflineTiles, activeLayerCredits(MAP_LAYER_REGISTRY, layersState))),
             style = MaterialTheme.typography.labelSmall,
             color = ComposeColor.White,
             modifier = Modifier
@@ -620,8 +697,22 @@ fun SightingsMap(
  * Split from [refreshOverlayData] (which pushes the real data) because `setStyle` throws away the
  * previous style's sources and layers wholesale: a basemap swap needs both — the shape rebuilt here,
  * the content pushed there — while a plain data change (a new search, a new planned trip) only ever
- * needs the second. Layer add order is the draw order (later added draws on top), kept the same as
- * the deleted osmdroid version's overlay list order: search centre, sightings, planned trips last.
+ * needs the second.
+ *
+ * **Layer add order is the draw order (later added draws on top), and since map layers L0a that
+ * order is the registry's**: this walks [drawOrder] (`orderedLayers` of `MAP_LAYER_REGISTRY`) and adds
+ * one native layer per spec, each source the first time a layer needs it. Nothing here orders
+ * anything by hand; to move a layer, move it in the registry, whose doc comment has the groups
+ * (colour fields < areas < lines < markers) and the reasons for the order within each. The comment
+ * this replaced ("search centre, sightings, planned trips last", from the osmdroid overlay list) was
+ * stale before L0a: it predated the breadcrumb, the kept tracks and the offline circles, which were
+ * all inserted between those. One visible change came with the registry and was accepted by the
+ * owner: the search centre and the sighting dots now draw above the track lines.
+ *
+ * Each layer is built with today's paint and layout ([nativeLayerFor]), then given its visibility
+ * and opacities from [layersState] ([layerPaintFor]) before it is added, so a layer's opacity is
+ * written in one place, the registry's base opacities. At the default state that is exactly the
+ * paint it always had.
  *
  * [palette] is the Night Maps palette ([MapPalette.forMode], colour build C2), so every colour here
  * follows the toggle. The point markers other than the sighting dot are bitmap [SymbolLayer]s, each
@@ -635,35 +726,52 @@ fun SightingsMap(
  * comment for why that property, not a paint-property expression comparing `observationId`
  * directly, is what actually selects the ring. Nothing here needs to know which sighting is
  * currently focused: [refreshOverlayData] bakes `"selected"` into the pushed data itself.
+ *
+ * Runs after the offline night recolour in the `setStyle` callback, never before: that recolour
+ * walks every layer present, and the overlays must not be among them.
  */
-private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPalette) {
+private fun initializeOverlayLayers(
+    style: Style,
+    density: Float,
+    palette: MapPalette,
+    drawOrder: List<MapLayerSpec>,
+    layersState: MapLayersState,
+) {
     // Every bitmap marker's image, in this palette's colours. Registered here and nowhere else.
     MarkerIcon.entries.forEach { style.addImage(it.imageId, markerIconImage(it, palette, density).bitmap) }
 
-    // Added first, so its fill sits under every point marker and line — a coverage circle covering
-    // a marker would make the marker unreadable, never the other way around. Journal Stage 2d.
-    style.addSource(GeoJsonSource(OFFLINE_REGION_CIRCLE_SOURCE_ID, emptyFeatureCollection()))
-    style.addLayer(
-        FillLayer(OFFLINE_REGION_CIRCLE_LAYER_ID, OFFLINE_REGION_CIRCLE_SOURCE_ID).withProperties(
+    val addedSources = mutableSetOf<String>()
+    for (spec in drawOrder) {
+        val layer = nativeLayerFor(spec, palette)
+        if (layer == null) {
+            // A registry entry this function cannot build is a programming error, never a silent
+            // gap: logged by id, and the rest of the overlays still draw.
+            Log.w(SIGHTINGS_MAP_TAG, "No native layer is defined for registry layer ${spec.id}; it is not drawn.")
+            continue
+        }
+        if (addedSources.add(spec.sourceId)) style.addSource(GeoJsonSource(spec.sourceId, emptyFeatureCollection()))
+        layer.setProperties(*paintProperties(layerPaintFor(spec, layersState)))
+        style.addLayer(layer)
+    }
+}
+
+/**
+ * The native layer for [spec], with today's paint and layout and no opacity (that comes from the
+ * registry, [paintProperties]); `null` for a registry id this file has no builder for.
+ */
+private fun nativeLayerFor(spec: MapLayerSpec, palette: MapPalette): Layer? {
+    markerIconForLayer(spec.id)?.let { return markerSymbolLayer(spec.id, spec.sourceId, it) }
+    lineSpecForLayer(spec.id)?.let { return lineLayerFor(it, palette) }
+    return when (spec.id) {
+        // Lowest of all (the areas group), so a coverage circle never covers a marker or a line.
+        OFFLINE_REGION_CIRCLE_LAYER_ID -> FillLayer(spec.id, spec.sourceId).withProperties(
             PropertyFactory.fillColor(palette.offlineRegion),
-            PropertyFactory.fillOpacity(OFFLINE_REGION_CIRCLE_OPACITY),
-        ),
-    )
-    // The outline is the region's casing: a dashed line in the casing colour (colour build C2 (c)).
-    addLineLayer(style, offlineRegionOutlineSpec(), palette)
-
-    // The search centre is a reticle bitmap since colour build C2 (d), replacing a filled circle.
-    style.addSource(GeoJsonSource(SEARCH_CENTER_SOURCE_ID, emptyFeatureCollection()))
-    addMarkerSymbolLayer(style, SEARCH_CENTER_LAYER_ID, SEARCH_CENTER_SOURCE_ID, MarkerIcon.SEARCH_CENTRE)
-
-    style.addSource(GeoJsonSource(SIGHTING_SOURCE_ID, emptyFeatureCollection()))
-    style.addLayer(
-        // One shared layer for every observation, styled once — unlike osmdroid, which built
-        // one Drawable and stamped it per Marker, MapLibre draws every feature in the source
-        // with the same layer properties, so there is nothing per-sighting to construct here.
-        CircleLayer(SIGHTING_LAYER_ID, SIGHTING_SOURCE_ID).withProperties(
+        )
+        // One shared layer for every observation, styled once — unlike osmdroid, which built one
+        // Drawable and stamped it per Marker, MapLibre draws every feature in the source with the
+        // same layer properties, so there is nothing per-sighting to construct here.
+        SIGHTING_LAYER_ID -> CircleLayer(spec.id, spec.sourceId).withProperties(
             PropertyFactory.circleColor(palette.sightingDot),
-            PropertyFactory.circleOpacity(SIGHTING_DOT_OPACITY),
             PropertyFactory.circleRadius(SIGHTING_DOT_RADIUS_PX),
             // See sightingStrokeColorExpression's own doc comment — it keys off each feature's own
             // "selected" property, so nothing here needs seeding with the current
@@ -672,52 +780,95 @@ private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPa
             // owner-approved tweak; see sightingStrokeWidthExpression).
             PropertyFactory.circleStrokeColor(sightingStrokeColorExpression(palette)),
             PropertyFactory.circleStrokeWidth(sightingStrokeWidthExpression()),
-            PropertyFactory.circleStrokeOpacity(SIGHTING_DOT_STROKE_OPACITY),
-        ),
-    )
-
-    // The breadcrumb and the kept tracks, each with its casing directly below it: see
-    // trackLayerSpecs. The breadcrumb is dashed (see BREADCRUMB_DASH_PATTERN); the kept tracks are
-    // solid (keptTracksFeatureCollection has why they are a genuine MultiLineString). The kept tracks'
-    // colour is MapPalette.keptTrack, its own role since colour build C2 (before C2 it borrowed the
-    // retired connector colour of the deleted foraging-areas feature).
-    style.addSource(GeoJsonSource(BREADCRUMB_SOURCE_ID, emptyFeatureCollection()))
-    style.addSource(GeoJsonSource(KEPT_TRACKS_SOURCE_ID, emptyFeatureCollection()))
-    trackLayerSpecs().forEach { addLineLayer(style, it, palette) }
-
-    // Planned trips are flags anchored at the pole foot (colour build C2 (d)).
-    style.addSource(GeoJsonSource(PLANNED_TRIP_SOURCE_ID, emptyFeatureCollection()))
-    addMarkerSymbolLayer(style, PLANNED_TRIP_LAYER_ID, PLANNED_TRIP_SOURCE_ID, MarkerIcon.PLANNED_TRIP)
-
-    // After planned trips, so a waypoint pin never sits under a flag if the two land on the same
-    // point. Anchored at the pin's tip.
-    style.addSource(GeoJsonSource(WAYPOINT_SOURCE_ID, emptyFeatureCollection()))
-    addMarkerSymbolLayer(style, WAYPOINT_LAYER_ID, WAYPOINT_SOURCE_ID, MarkerIcon.WAYPOINT)
-
-    // Find and photo markers (Journal Stage 2d), last for the same "never sit under a sibling point
-    // marker" reasoning. Since colour build C2 each has its own silhouette and role: the find a
-    // mushroom anchored at its stem foot, the photo a rounded square with a camera, centred.
-    style.addSource(GeoJsonSource(FIND_SOURCE_ID, emptyFeatureCollection()))
-    addMarkerSymbolLayer(style, FIND_LAYER_ID, FIND_SOURCE_ID, MarkerIcon.FIND)
-
-    style.addSource(GeoJsonSource(PHOTO_SOURCE_ID, emptyFeatureCollection()))
-    addMarkerSymbolLayer(style, PHOTO_LAYER_ID, PHOTO_SOURCE_ID, MarkerIcon.PHOTO)
+        )
+        else -> null
+    }
 }
+
+/**
+ * The bitmap marker a symbol layer draws, by layer id; `null` for a layer that is not a bitmap
+ * marker. The search centre is a reticle since colour build C2 (d); planned trips are flags anchored
+ * at the pole foot; waypoints pins anchored at the tip; finds a mushroom at its stem foot; photos a
+ * rounded square with a camera, centred. `internal` so `MapLayerRegistryTest`'s palette check reads
+ * what the map draws.
+ */
+internal fun markerIconForLayer(layerId: String): MarkerIcon? = when (layerId) {
+    SEARCH_CENTER_LAYER_ID -> MarkerIcon.SEARCH_CENTRE
+    PLANNED_TRIP_LAYER_ID -> MarkerIcon.PLANNED_TRIP
+    WAYPOINT_LAYER_ID -> MarkerIcon.WAYPOINT
+    FIND_LAYER_ID -> MarkerIcon.FIND
+    PHOTO_LAYER_ID -> MarkerIcon.PHOTO
+    else -> null
+}
+
+/**
+ * The line a line layer draws, by layer id: the offline region's dashed outline (its casing, colour
+ * build C2 (c)), and the breadcrumb and kept tracks each with its casing ([trackLayerSpecs]: the
+ * breadcrumb dashed, see [BREADCRUMB_DASH_PATTERN]; the kept tracks solid, see
+ * [keptTracksFeatureCollection]). `null` for a layer that is not one of these.
+ */
+internal fun lineSpecForLayer(layerId: String): LineLayerSpec? =
+    (listOf(offlineRegionOutlineSpec()) + trackLayerSpecs()).singleOrNull { it.layerId == layerId }
 
 /**
  * A bitmap marker's [SymbolLayer]. Every [MarkerIcon]'s image has its anchor at its exact centre
  * ([drawGlyph]), so `icon-anchor: center` puts the pin tip, stem foot, pole foot or centre on the
  * feature's coordinate, with no `icon-offset`.
  */
-private fun addMarkerSymbolLayer(style: Style, layerId: String, sourceId: String, icon: MarkerIcon) {
-    style.addLayer(
-        SymbolLayer(layerId, sourceId).withProperties(
-            PropertyFactory.iconImage(icon.imageId),
-            PropertyFactory.iconAllowOverlap(true),
-            PropertyFactory.iconAnchor(Property.ICON_ANCHOR_CENTER),
-        ),
+private fun markerSymbolLayer(layerId: String, sourceId: String, icon: MarkerIcon): SymbolLayer =
+    SymbolLayer(layerId, sourceId).withProperties(
+        PropertyFactory.iconImage(icon.imageId),
+        PropertyFactory.iconAllowOverlap(true),
+        PropertyFactory.iconAnchor(Property.ICON_ANCHOR_CENTER),
     )
+
+/**
+ * [paint] as MapLibre property values: `visibility` (a layout property) and each opacity paint
+ * property. Every [OpacityProperty] maps to its own `PropertyFactory` setter, each checked with
+ * `javap` against the pinned `13.5.0` artifact (`visibility(String)`, `fillOpacity(Float)`,
+ * `lineOpacity(Float)`, `circleOpacity(Float)`, `circleStrokeOpacity(Float)`, `iconOpacity(Float)`).
+ */
+private fun paintProperties(paint: LayerPaint): Array<PropertyValue<*>> = buildList<PropertyValue<*>> {
+    add(PropertyFactory.visibility(if (paint.visible) Property.VISIBLE else Property.NONE))
+    paint.opacities.forEach { add(opacityPropertyValue(it)) }
+}.toTypedArray()
+
+private fun opacityPropertyValue(value: OpacityValue): PropertyValue<Float> = when (value.property) {
+    OpacityProperty.FILL -> PropertyFactory.fillOpacity(value.value)
+    OpacityProperty.LINE -> PropertyFactory.lineOpacity(value.value)
+    OpacityProperty.CIRCLE -> PropertyFactory.circleOpacity(value.value)
+    OpacityProperty.CIRCLE_STROKE -> PropertyFactory.circleStrokeOpacity(value.value)
+    OpacityProperty.ICON -> PropertyFactory.iconOpacity(value.value)
 }
+
+/**
+ * Sets [paint] on the loaded style's layer of that id, in place. A layer the style does not have
+ * is logged, not skipped silently: every registry layer is added on each style load, so a missing
+ * one means that add failed.
+ */
+private fun applyLayerPaint(style: Style, paint: LayerPaint) {
+    val layer = style.getLayer(paint.layerId)
+    if (layer == null) {
+        Log.w(SIGHTINGS_MAP_TAG, "Layer ${paint.layerId} is not in the loaded style; its visibility and opacity were not set.")
+        return
+    }
+    layer.setProperties(*paintProperties(paint))
+}
+
+/**
+ * The [TapHit] for [feature], queried on [layerId]: a sighting's id is its `observationId` number
+ * property, written in decimal; every other layer's is its [FEATURE_ID_PROPERTY] string property.
+ * `null` when the feature has neither. A plain function over the pure GeoJSON [Feature], so a
+ * headless test can round-trip a builder's feature through it.
+ */
+internal fun tapHitOf(layerId: String, feature: Feature): TapHit = TapHit(
+    layerId = layerId,
+    featureId = if (layerId == SIGHTING_LAYER_ID) {
+        feature.getNumberProperty("observationId")?.toLong()?.toString()
+    } else {
+        feature.getStringProperty(FEATURE_ID_PROPERTY)
+    },
+)
 
 /**
  * Pushes the real content into every source [initializeOverlayLayers] created, replacing whatever
@@ -732,10 +883,10 @@ private fun refreshOverlayData(
     breadcrumbPoints: List<LatLng>,
     waypoints: List<Waypoint>,
     focusedObservationId: Long?,
-    keptTrackPolylines: List<List<LatLng>>,
-    findMarkers: List<LatLng>,
-    photoMarkers: List<LatLng>,
-    offlineRegionCircles: List<Region>,
+    keptTrackPolylines: List<RecordPolyline>,
+    findMarkers: List<RecordPoint>,
+    photoMarkers: List<RecordPoint>,
+    offlineRegionCircles: List<RecordRegion>,
     showSearchCentre: Boolean,
 ) {
     style.getSourceAs<GeoJsonSource>(SEARCH_CENTER_SOURCE_ID)?.setGeoJson(searchCentreOverlay(region, showSearchCentre))
@@ -999,7 +1150,7 @@ internal fun sightingStrokeWidthExpression(): Expression =
 /**
  * One overlay [LineLayer], described without constructing it: [LineLayer] calls a native
  * initialiser from its constructor, so a headless test cannot build one, but it can read this
- * (`SightingsMapOverlayDataTest`). [addLineLayer] is the only thing that turns one into a layer, so
+ * (`SightingsMapOverlayDataTest`). [lineLayerFor] is the only thing that turns one into a layer, so
  * what the test reads is what the map draws. Widths are MapLibre style units, which are dp.
  */
 internal data class LineLayerSpec(
@@ -1055,7 +1206,7 @@ internal fun trackLayerSpecs(): List<LineLayerSpec> {
  * The offline region's outline (colour build C2 (c)): a dashed line in [MapPalette.casing],
  * [OFFLINE_REGION_CIRCLE_OUTLINE_WIDTH_PX] wide, dash 6dp and gap 4dp, with butt ends. The glyph
  * board's dash pattern; the region's fill is its own role, [MapPalette.offlineRegion], at
- * [OFFLINE_REGION_CIRCLE_OPACITY].
+ * the registry's 0.2 fill opacity (`MAP_LAYER_REGISTRY`).
  */
 internal fun offlineRegionOutlineSpec(): LineLayerSpec = LineLayerSpec(
     layerId = OFFLINE_REGION_CIRCLE_OUTLINE_LAYER_ID,
@@ -1069,8 +1220,8 @@ internal fun offlineRegionOutlineSpec(): LineLayerSpec = LineLayerSpec(
     roundCaps = false,
 )
 
-/** Adds the [LineLayer] [spec] describes, in [palette]'s colours. Its source must already exist. */
-private fun addLineLayer(style: Style, spec: LineLayerSpec, palette: MapPalette) {
+/** The [LineLayer] [spec] describes, in [palette]'s colours. Its source must already exist when it is added. */
+private fun lineLayerFor(spec: LineLayerSpec, palette: MapPalette): LineLayer {
     val properties = buildList {
         add(PropertyFactory.lineColor(spec.colour(palette)))
         add(PropertyFactory.lineWidth(spec.widthDp))
@@ -1080,7 +1231,7 @@ private fun addLineLayer(style: Style, spec: LineLayerSpec, palette: MapPalette)
         }
         spec.dashPattern?.let { add(PropertyFactory.lineDasharray(it.toTypedArray())) }
     }
-    style.addLayer(LineLayer(spec.layerId, spec.sourceId).withProperties(*properties.toTypedArray()))
+    return LineLayer(spec.layerId, spec.sourceId).withProperties(*properties.toTypedArray())
 }
 
 /**
@@ -1123,16 +1274,16 @@ internal fun waypointsFeatureCollection(waypoints: List<Waypoint>): FeatureColle
  * one-point line; this is also what makes a kept track that resolved to zero/one usable point (data
  * already thin before this reaches here) draw nothing instead of erroring.
  */
-internal fun keptTracksFeatureCollection(polylines: List<List<LatLng>>): FeatureCollection {
+internal fun keptTracksFeatureCollection(polylines: List<RecordPolyline>): FeatureCollection {
     val features = polylines
-        .filter { it.size >= 2 }
-        .map { points -> Feature.fromGeometry(LineString.fromLngLats(points.map { Point.fromLngLat(it.lng, it.lat) })) }
+        .filter { it.points.size >= 2 }
+        .map { track -> Feature.fromGeometry(LineString.fromLngLats(track.points.map { Point.fromLngLat(it.lng, it.lat) })) }
     return FeatureCollection.fromFeatures(features)
 }
 
-/** Plain point markers with no per-feature properties — Journal Stage 2d's find/photo pins, neither of which has a tap handler (or any other reason to carry one) yet. */
-internal fun pointsFeatureCollection(points: List<LatLng>): FeatureCollection =
-    FeatureCollection.fromFeatures(points.map { Feature.fromGeometry(Point.fromLngLat(it.lng, it.lat)) })
+/** Journal Stage 2d's find and photo pins, one point feature per record. */
+internal fun pointsFeatureCollection(points: List<RecordPoint>): FeatureCollection =
+    FeatureCollection.fromFeatures(points.map { Feature.fromGeometry(Point.fromLngLat(it.at.lng, it.at.lat)) })
 
 /**
  * A Cartography entry's kept offline regions as filled polygon features — Journal Stage 2d. Each
@@ -1140,8 +1291,9 @@ internal fun pointsFeatureCollection(points: List<LatLng>): FeatureCollection =
  * ring itself comes from [GeoDistance.circlePolygonPoints], the true-circle approximation built for
  * exactly this drawn-shape use (as opposed to [GeoDistance.boundingBox]'s tile-download rectangle).
  */
-internal fun offlineRegionCirclesFeatureCollection(regions: List<Region>): FeatureCollection {
-    val features = regions.map { region ->
+internal fun offlineRegionCirclesFeatureCollection(regions: List<RecordRegion>): FeatureCollection {
+    val features = regions.map { kept ->
+        val region = kept.region
         val ring = GeoDistance.circlePolygonPoints(LatLng(region.lat, region.lng), region.radiusKm)
         Feature.fromGeometry(Polygon.fromLngLats(listOf(ring.map { Point.fromLngLat(it.lng, it.lat) })))
     }
@@ -1149,31 +1301,49 @@ internal fun offlineRegionCirclesFeatureCollection(regions: List<Region>): Featu
 }
 
 // Source/layer ids. Fixed strings rather than generated, since every one of them is referenced by
-// name from at least two places (initializeOverlayLayers and refreshOverlayData, or a layer
-// referencing its source) and a typo needs to be a compile error, not a silently-missing layer.
-private const val SEARCH_CENTER_SOURCE_ID = "search-center"
-private const val SEARCH_CENTER_LAYER_ID = "search-center-layer"
-private const val SIGHTING_SOURCE_ID = "sightings"
-private const val SIGHTING_LAYER_ID = "sightings-layer"
-private const val PLANNED_TRIP_SOURCE_ID = "planned-trips"
-private const val PLANNED_TRIP_LAYER_ID = "planned-trips-layer"
-private const val BREADCRUMB_SOURCE_ID = "breadcrumb-trail"
-private const val BREADCRUMB_LAYER_ID = "breadcrumb-trail-layer"
-private const val BREADCRUMB_CASING_LAYER_ID = "breadcrumb-trail-casing-layer"
-private const val WAYPOINT_SOURCE_ID = "waypoints"
-private const val WAYPOINT_LAYER_ID = "waypoints-layer"
+// name from at least two places (the registry and refreshOverlayData, or a layer referencing its
+// source) and a typo needs to be a compile error, not a silently-missing layer. Since map layers
+// L0a the strings live in the layers package (MapLayerIds, MapSourceIds), beside the registry that
+// orders them; these names are kept as aliases so the rest of this file reads as it did.
+private const val SEARCH_CENTER_SOURCE_ID = MapSourceIds.SEARCH_CENTRE
+private const val SEARCH_CENTER_LAYER_ID = MapLayerIds.SEARCH_CENTRE
+private const val SIGHTING_SOURCE_ID = MapSourceIds.SIGHTINGS
+private const val SIGHTING_LAYER_ID = MapLayerIds.SIGHTINGS
+private const val PLANNED_TRIP_SOURCE_ID = MapSourceIds.PLANNED_TRIPS
+private const val PLANNED_TRIP_LAYER_ID = MapLayerIds.PLANNED_TRIPS
+private const val BREADCRUMB_SOURCE_ID = MapSourceIds.BREADCRUMB
+private const val BREADCRUMB_LAYER_ID = MapLayerIds.BREADCRUMB
+private const val BREADCRUMB_CASING_LAYER_ID = MapLayerIds.BREADCRUMB_CASING
+private const val WAYPOINT_SOURCE_ID = MapSourceIds.WAYPOINTS
+private const val WAYPOINT_LAYER_ID = MapLayerIds.WAYPOINTS
 
 // Journal Stage 2d.
-private const val KEPT_TRACKS_SOURCE_ID = "kept-tracks"
-private const val KEPT_TRACKS_LAYER_ID = "kept-tracks-layer"
-private const val KEPT_TRACKS_CASING_LAYER_ID = "kept-tracks-casing-layer"
-private const val FIND_SOURCE_ID = "find-markers"
-private const val FIND_LAYER_ID = "find-markers-layer"
-private const val PHOTO_SOURCE_ID = "photo-markers"
-private const val PHOTO_LAYER_ID = "photo-markers-layer"
-private const val OFFLINE_REGION_CIRCLE_SOURCE_ID = "offline-region-circles"
-private const val OFFLINE_REGION_CIRCLE_LAYER_ID = "offline-region-circles-layer"
-private const val OFFLINE_REGION_CIRCLE_OUTLINE_LAYER_ID = "offline-region-circles-outline-layer"
+private const val KEPT_TRACKS_SOURCE_ID = MapSourceIds.KEPT_TRACKS
+private const val KEPT_TRACKS_LAYER_ID = MapLayerIds.KEPT_TRACKS
+private const val KEPT_TRACKS_CASING_LAYER_ID = MapLayerIds.KEPT_TRACKS_CASING
+private const val FIND_SOURCE_ID = MapSourceIds.FINDS
+private const val FIND_LAYER_ID = MapLayerIds.FINDS
+private const val PHOTO_SOURCE_ID = MapSourceIds.PHOTOS
+private const val PHOTO_LAYER_ID = MapLayerIds.PHOTOS
+private const val OFFLINE_REGION_CIRCLE_SOURCE_ID = MapSourceIds.OFFLINE_REGIONS
+private const val OFFLINE_REGION_CIRCLE_LAYER_ID = MapLayerIds.OFFLINE_REGION_FILL
+private const val OFFLINE_REGION_CIRCLE_OUTLINE_LAYER_ID = MapLayerIds.OFFLINE_REGION_OUTLINE
+
+/**
+ * The property every overlay feature but a sighting carries its own id in (map layers L0a, A4): a
+ * record id for a find, photo, kept track, waypoint, planned trip or offline region, and a fixed id
+ * for the two singletons ([SEARCH_CENTRE_FEATURE_ID], [BREADCRUMB_FEATURE_ID]). A string property,
+ * not the GeoJSON feature id, for the reason the sighting's `observationId` is a property: a
+ * property is what this file has seen round-trip through `queryRenderedFeatures` on hardware. A
+ * sighting keeps its `observationId` and gets no second id.
+ */
+internal const val FEATURE_ID_PROPERTY = "featureId"
+
+/** The search-centre marker's fixed feature id: there is only ever one. */
+internal const val SEARCH_CENTRE_FEATURE_ID = "search-centre"
+
+/** The breadcrumb trail's fixed feature id: there is only ever one active track. */
+internal const val BREADCRUMB_FEATURE_ID = "breadcrumb"
 
 // The overlay's colours come from ui/theme/MapPalette.kt, hand-authored per role in a day and a
 // night variant and chosen by the Night Maps toggle (MapPalette.forMode) -- not derived from the app
@@ -1186,13 +1356,15 @@ private const val OFFLINE_REGION_CIRCLE_OUTLINE_LAYER_ID = "offline-region-circl
  */
 internal const val CASING_WIDTH_DP = 1.5f
 
-private const val SIGHTING_DOT_OPACITY = 0.7f // ~= the deleted osmdroid version's 0xB3 alpha.
+// The dot's fill opacity (0.7, about the deleted osmdroid version's 0xB3 alpha) and its ring's
+// (0.85) are the registry's base opacities since map layers L0a (MAP_LAYER_REGISTRY).
 private const val SIGHTING_DOT_RADIUS_PX = 9f
 
 // The stroke that keeps individual dots distinguishable within a dense cluster — see this file's
 // class doc comment, "The overlay colours", for the hardware finding this fixes. A light, near-
-// opaque stroke (not translucent like the fill) so the boundary itself stays crisp regardless of
-// how many dots overlap or what opacity the fill composites to underneath.
+// opaque stroke (not translucent like the fill, its 0.85 opacity now in the registry) so the
+// boundary itself stays crisp regardless of how many dots overlap or what opacity the fill
+// composites to underneath.
 //
 // The selected dot's ring used to widen this on top of recolouring — first to 3.5px, then to
 // 4.5px alongside MapPalette.sightingDotStrokeSelected moving to a deeper blue — and both were
@@ -1200,7 +1372,6 @@ private const val SIGHTING_DOT_RADIUS_PX = 9f
 // SIGHTING_DOT_SELECTED_STROKE_WIDTH_PX, as an owner-approved tweak (sightingStrokeWidthExpression).
 internal const val SIGHTING_DOT_STROKE_WIDTH_PX = 1.5f
 internal const val SIGHTING_DOT_SELECTED_STROKE_WIDTH_PX = 3f
-private const val SIGHTING_DOT_STROKE_OPACITY = 0.85f
 
 
 /**
@@ -1288,7 +1459,6 @@ private const val BREADCRUMB_STROKE_WIDTH_PX = 6f
 
 // Journal Stage 2d.
 private const val KEPT_TRACK_STROKE_WIDTH_PX = 6f
-private const val OFFLINE_REGION_CIRCLE_OPACITY = 0.2f
 private const val OFFLINE_REGION_CIRCLE_OUTLINE_WIDTH_PX = 1.5f
 
 // The offline outline's dash and gap, in dp (colour build C2 (c), from the glyph board §1).

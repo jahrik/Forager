@@ -1,5 +1,8 @@
 package com.zynergylabs.forager.app.domain
 
+import com.zynergylabs.forager.app.domain.model.RecordRegion
+import com.zynergylabs.forager.app.domain.model.RecordPolyline
+import com.zynergylabs.forager.app.domain.model.RecordPoint
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Region
 import org.junit.Assert.assertEquals
@@ -25,7 +28,13 @@ class CartographyEntryMapDataTest {
         waypointMarkers: List<LatLng> = emptyList(),
         photoMarkers: List<LatLng> = emptyList(),
         offlineRegionCircles: List<Region> = emptyList(),
-    ) = CartographyEntryMapData(trackPolylines, findMarkers, waypointMarkers, photoMarkers, offlineRegionCircles)
+    ) = CartographyEntryMapData(
+        trackPolylines = trackPolylines.mapIndexed { i, points -> RecordPolyline("track-$i", points) },
+        findMarkers = findMarkers.mapIndexed { i, at -> RecordPoint("find-$i", at) },
+        waypointMarkers = waypointMarkers.mapIndexed { i, at -> RecordPoint("waypoint-$i", at) },
+        photoMarkers = photoMarkers.mapIndexed { i, at -> RecordPoint("photo-$i", at) },
+        offlineRegionCircles = offlineRegionCircles.mapIndexed { i, region -> RecordRegion("$i", region) },
+    )
 
     @Test
     fun `a polyline with no points is not content`() {

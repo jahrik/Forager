@@ -3,6 +3,9 @@ package com.zynergylabs.forager.app.ui.map
 import com.zynergylabs.forager.app.domain.GeoDistance
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
+import com.zynergylabs.forager.app.domain.model.RecordPoint
+import com.zynergylabs.forager.app.domain.model.RecordPolyline
+import com.zynergylabs.forager.app.domain.model.RecordRegion
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.Waypoint
@@ -391,8 +394,8 @@ class SightingsMapOverlayDataTest {
     // Journal Stage 2d: the Cartography entry map's own feature builders — pure GeoJSON, same
     // reasoning as the rest of this file for why these are testable off a device at all.
 
-    private val trackOne = listOf(LatLng(45.20, -122.50), LatLng(45.21, -122.51), LatLng(45.22, -122.52))
-    private val trackTwo = listOf(LatLng(46.00, -123.00), LatLng(46.01, -123.01))
+    private val trackOne = RecordPolyline("track-1", listOf(LatLng(45.20, -122.50), LatLng(45.21, -122.51), LatLng(45.22, -122.52)))
+    private val trackTwo = RecordPolyline("track-2", listOf(LatLng(46.00, -123.00), LatLng(46.01, -123.01)))
 
     @Test
     fun `two kept tracks become two separate LineStrings, not one joined trail`() {
@@ -400,15 +403,15 @@ class SightingsMapOverlayDataTest {
         assertEquals(2, features.size)
 
         val firstLine = features[0].geometry() as LineString
-        assertEquals(trackOne.map { Point.fromLngLat(it.lng, it.lat) }, firstLine.coordinates())
+        assertEquals(trackOne.points.map { Point.fromLngLat(it.lng, it.lat) }, firstLine.coordinates())
 
         val secondLine = features[1].geometry() as LineString
-        assertEquals(trackTwo.map { Point.fromLngLat(it.lng, it.lat) }, secondLine.coordinates())
+        assertEquals(trackTwo.points.map { Point.fromLngLat(it.lng, it.lat) }, secondLine.coordinates())
     }
 
     @Test
     fun `a track with fewer than two points produces no LineString`() {
-        val features = keptTracksFeatureCollection(listOf(trackOne, listOf(LatLng(45.0, -122.0)), emptyList())).features()!!
+        val features = keptTracksFeatureCollection(listOf(trackOne, RecordPolyline("one-point", listOf(LatLng(45.0, -122.0))), RecordPolyline("empty", emptyList()))).features()!!
         assertEquals(
             "Only trackOne has two or more points -- the single-point and empty tracks must be silently dropped, not error.",
             1,
@@ -424,7 +427,7 @@ class SightingsMapOverlayDataTest {
     @Test
     fun `pointsFeatureCollection places one point feature per marker at its own coordinates`() {
         val markers = listOf(LatLng(45.5, -122.5), LatLng(45.6, -122.6))
-        val features = pointsFeatureCollection(markers).features()!!
+        val features = pointsFeatureCollection(markers.mapIndexed { i, at -> RecordPoint("find-$i", at) }).features()!!
         assertEquals(2, features.size)
 
         val points = features.map { it.geometry() as Point }
@@ -442,7 +445,7 @@ class SightingsMapOverlayDataTest {
     @Test
     fun `each offline region becomes a closed polygon ring centred on its own coordinates`() {
         val region = Region(lat = 45.5, lng = -122.5, radiusKm = 5)
-        val feature = offlineRegionCirclesFeatureCollection(listOf(region)).features()!!.single()
+        val feature = offlineRegionCirclesFeatureCollection(listOf(RecordRegion("1", region))).features()!!.single()
         val polygon = feature.geometry() as org.maplibre.geojson.Polygon
         val ring = polygon.coordinates().single()
 

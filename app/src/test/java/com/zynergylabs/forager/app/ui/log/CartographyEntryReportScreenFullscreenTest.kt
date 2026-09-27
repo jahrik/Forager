@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.log
 
+import com.zynergylabs.forager.app.domain.model.RecordPoint
 import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
@@ -77,7 +78,7 @@ class CartographyEntryReportScreenFullscreenTest {
     private val mapDataWithWaypoint = CartographyEntryMapData(
         trackPolylines = emptyList(),
         findMarkers = emptyList(),
-        waypointMarkers = listOf(LatLng(45.5, -122.5)),
+        waypointMarkers = listOf(RecordPoint("w1", LatLng(45.5, -122.5))),
         photoMarkers = emptyList(),
         offlineRegionCircles = emptyList(),
     )

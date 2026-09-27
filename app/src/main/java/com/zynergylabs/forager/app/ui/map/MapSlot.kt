@@ -7,9 +7,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
+import com.zynergylabs.forager.app.domain.model.RecordPoint
+import com.zynergylabs.forager.app.domain.model.RecordPolyline
+import com.zynergylabs.forager.app.domain.model.RecordRegion
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 
 /**
  * Everything [MapSlot] draws on top of the basemap, bundled into one value rather than one
@@ -156,6 +160,34 @@ data class MapRenderMode(
      * non-capturing lambda, so every existing caller's [MapRenderMode] still compares equal.
      */
     val onUserCameraGesture: () -> Unit = {},
+    /**
+     * Every overlay layer's visibility and opacity, and the user's order for the reorderable group:
+     * map layers L0a, A3. [SightingsMap] applies it to the native layers through their `visibility`
+     * and opacity properties without reloading the style (`layerPaintFor` is the pure conversion).
+     * [MapLayersState.DEFAULT] is every layer visible at today's opacities, so every existing caller
+     * draws exactly as before. Nothing sets anything else yet: the Layers sheet and its DataStore
+     * persistence are L0b.
+     *
+     * Here, not an 11th [MapSlot] parameter, for the reason every field above gives (the Compose
+     * compiler crash at 10 declared parameters; [MapSlot] is at 9).
+     */
+    val layers: MapLayersState = MapLayersState.DEFAULT,
+    /**
+     * Fires when a tap's winning feature is on any layer but the sighting dots (map layers L0a, A4),
+     * with that layer's id (`MapLayerIds`) and the feature's own id: the record id for a find,
+     * photo, kept track, waypoint, planned trip or offline region, and a fixed id for the search
+     * centre and the breadcrumb (`SEARCH_CENTRE_FEATURE_ID`, `BREADCRUMB_FEATURE_ID`). A sighting
+     * still goes to [MapSlot]'s `onSightingTap`, exactly as before. Which feature wins is
+     * `resolveTap`'s decision: markers, then lines, then colour fields, the topmost layer within a
+     * group.
+     *
+     * [MapSlot]'s `onTap` still fires after this one, as it did before L0a for a tap on any marker
+     * but a sighting, so the fullscreen map's "tap to restore chrome" is unchanged. No UI reacts to
+     * this callback yet (M1 builds the bubbles). `{ _, _ -> }` by default, a non-capturing lambda, so
+     * every existing caller's [MapRenderMode] still compares equal. Here rather than on [MapSlot]
+     * for the parameter-count reason [layers] gives.
+     */
+    val onFeatureTap: (layerId: String, featureId: String) -> Unit = { _, _ -> },
 )
 
 data class MapOverlayContent(
@@ -208,7 +240,7 @@ data class MapOverlayContent(
      */
     val focusedObservationId: Long? = null,
     /**
-     * Journal Stage 2d: a Cartography entry's kept tracks, one inner list per track, each oldest
+     * Journal Stage 2d: a Cartography entry's kept tracks, one [RecordPolyline] per track, each oldest
      * point first — a genuine `MultiLineString`, not [breadcrumbPoints] concatenated. A single
      * `List<LatLng>` (what [breadcrumbPoints] already is) can only ever draw as one connected
      * `LineString` (see [breadcrumbFeatureCollection]); two kept tracks drawn that way would show a
@@ -219,8 +251,11 @@ data class MapOverlayContent(
      * absent from this list by the time it reaches here — see [com.zynergylabs.forager.app.domain.GetCartographyEntryMapDataUseCase]'s
      * own doc comment for where that resolution happens; this composable never knows a track was
      * ever kept, only what actually resolved.
+     *
+     * Each item carries its record's id beside its geometry since map layers L0a ([RecordPoint],
+     * [RecordPolyline], [RecordRegion]), written into its map feature so a tap can name the record.
      */
-    val keptTrackPolylines: List<List<LatLng>> = emptyList(),
+    val keptTrackPolylines: List<RecordPolyline> = emptyList(),
     /**
      * Journal Stage 2d: a Cartography entry's kept finds with a resolved coordinate — drawn as
      * discrete markers, each a [SymbolLayer][org.maplibre.android.style.layers.SymbolLayer] like the
@@ -228,8 +263,11 @@ data class MapOverlayContent(
      * waypoint's pin in the offline region's colour (`MarkerGlyphs.kt`). A find with no coordinate (the ordinary case — see
      * [com.zynergylabs.forager.app.domain.model.MushroomLogEntry.foundAt]'s own doc comment) is simply absent
      * from this list, never a placeholder point.
+     *
+     * Each item carries its record's id beside its geometry since map layers L0a ([RecordPoint],
+     * [RecordPolyline], [RecordRegion]), written into its map feature so a tap can name the record.
      */
-    val findMarkers: List<LatLng> = emptyList(),
+    val findMarkers: List<RecordPoint> = emptyList(),
     /**
      * Journal Stage 2d: a Cartography entry's kept photos with a resolved coordinate (both
      * [com.zynergylabs.forager.app.domain.model.LogPhoto.latitude]/`.longitude` non-null, and the gallery row
@@ -238,16 +276,22 @@ data class MapOverlayContent(
      * coordinate. Also a discrete [SymbolLayer][org.maplibre.android.style.layers.SymbolLayer] marker: since
      * colour build C2 a rounded square with a camera, in its own colour, no longer the planned trip's
      * diamond.
+     *
+     * Each item carries its record's id beside its geometry since map layers L0a ([RecordPoint],
+     * [RecordPolyline], [RecordRegion]), written into its map feature so a tap can name the record.
      */
-    val photoMarkers: List<LatLng> = emptyList(),
+    val photoMarkers: List<RecordPoint> = emptyList(),
     /**
      * Journal Stage 2d: a Cartography entry's kept offline regions, drawn as a translucent coverage
      * circle each — their snapshot already carries lat/lng/radius (see [Region]'s own shape), so
      * unlike tracks/finds/photos this needs no live fetch to resolve at all. Whether this is more
      * useful than cluttered is an open visual question the dispatch that added this explicitly left
      * to be reported on after building it, not decided in advance.
+     *
+     * Each item carries its record's id beside its geometry since map layers L0a ([RecordPoint],
+     * [RecordPolyline], [RecordRegion]), written into its map feature so a tap can name the record.
      */
-    val offlineRegionCircles: List<Region> = emptyList(),
+    val offlineRegionCircles: List<RecordRegion> = emptyList(),
 )
 
 /**
@@ -367,6 +411,8 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
         offlineRegionCircles = content.offlineRegionCircles,
         bottomInset = renderMode.bottomInset,
         onUserCameraGesture = renderMode.onUserCameraGesture,
+        layersState = renderMode.layers,
+        onFeatureTap = renderMode.onFeatureTap,
         modifier = modifier,
     )
 }
