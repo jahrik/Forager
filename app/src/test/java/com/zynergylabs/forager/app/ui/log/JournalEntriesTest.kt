@@ -12,6 +12,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasText
@@ -32,6 +34,7 @@ import com.zynergylabs.forager.app.ui.availability.AvailabilityUiState
 import com.zynergylabs.forager.app.ui.map.Basemap
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import java.time.LocalDate
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExternalResource
@@ -213,17 +216,143 @@ class JournalEntriesTest {
         node(SWITCH_RECORDS).assertIsNotSelected()
         node(RECORDS_CHIP_ROW).assertDoesNotExist()
     }
+
+    // ── T2: the Drafts banner ──
+
+    private val oneDraft = CartographyUiState(entries = listOf(ENTRIES_COMMITTED), draftEntries = listOf(ENTRIES_DRAFT_A))
+    private val threeDrafts = CartographyUiState(
+        entries = listOf(ENTRIES_COMMITTED),
+        draftEntries = listOf(ENTRIES_DRAFT_A, ENTRIES_DRAFT_B, ENTRIES_DRAFT_C),
+    )
+
+    @Test
+    fun `with one draft the banner reads 1 unfinished entry with Continue, and the Drafts sub-tab is gone`() {
+        setScreen(oneDraft)
+
+        node(DRAFTS_BANNER).assertIsDisplayed()
+        composeRule.onNodeWithText("✎ 1 unfinished entry").assertIsDisplayed()
+        node(DRAFTS_CONTINUE).assert(hasText("Continue ›"))
+        composeRule.onNodeWithText("Drafts", substring = true).assertDoesNotExist()
+        composeRule.onNodeWithText("unfinished entries", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun `with three drafts the banner reads 3 unfinished entries`() {
+        setScreen(threeDrafts)
+
+        composeRule.onNodeWithText("✎ 3 unfinished entries").assertIsDisplayed()
+        node(DRAFTS_CONTINUE).assert(hasText("Continue ›"))
+    }
+
+    @Test
+    fun `with no drafts there is no banner`() {
+        setScreen(CartographyUiState(entries = listOf(ENTRIES_COMMITTED)))
+
+        node(ENTRIES_HOME).assertIsDisplayed()
+        node(DRAFTS_BANNER).assertDoesNotExist()
+        composeRule.onNodeWithText("unfinished", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun `with one draft, touching Continue at several points opens that draft in the editor`() {
+        setScreen(oneDraft)
+
+        for ((i, point) in TOUCH_SAMPLES.withIndex()) {
+            touch(DRAFTS_CONTINUE, point)
+
+            assertEquals(List(i + 1) { ENTRIES_DRAFT_A.id }, openedCartographyIds)
+            composeRule.onNodeWithText(EDITOR_FIELD).assertIsDisplayed()
+            node(DRAFTS_LIST).assertDoesNotExist()
+
+            pressBack()
+            node(ENTRIES_HOME).assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun `with several drafts, touching Continue at several points opens the full-screen drafts list, and Back returns to Entries`() {
+        setScreen(threeDrafts)
+
+        for (point in TOUCH_SAMPLES) {
+            touch(DRAFTS_CONTINUE, point)
+
+            node(DRAFTS_LIST).assertIsDisplayed()
+            node(ENTRIES_HOME).assertDoesNotExist()
+            for (draft in threeDrafts.draftEntries) composeRule.onNodeWithText(draft.date.toString()).assertExists()
+            // The committed entry is not in the drafts list.
+            composeRule.onNodeWithText(ENTRIES_COMMITTED.date.toString()).assertDoesNotExist()
+            assertEquals("Continue with several drafts opens no draft by itself", emptyList<String>(), openedCartographyIds)
+
+            pressBack()
+
+            node(DRAFTS_LIST).assertDoesNotExist()
+            node(ENTRIES_HOME).assertIsDisplayed()
+            node(DRAFTS_BANNER).assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun `the drafts list's back arrow, touched at several points, returns to Entries`() {
+        setScreen(threeDrafts)
+
+        for (point in TOUCH_SAMPLES) {
+            touch(DRAFTS_CONTINUE, Offset(0.5f, 0.5f))
+            node(DRAFTS_LIST).assertIsDisplayed()
+
+            touch(DRAFTS_LIST_BACK, point)
+
+            node(DRAFTS_LIST).assertDoesNotExist()
+            node(ENTRIES_HOME).assertIsDisplayed()
+        }
+    }
+
+    /**
+     * Where Back from a draft opened out of the list lands is not pinned here (an open question in
+     * the J2 report); after closing it, this re-opens the list through Continue only if it is not
+     * already showing, so each sample's pick still has to be a real touch on a card in the list.
+     */
+    @Test
+    fun `a draft picked from the list by a touch at several points opens that draft in the editor`() {
+        setScreen(threeDrafts)
+
+        for ((i, point) in TOUCH_SAMPLES.withIndex()) {
+            if (composeRule.onAllNodesWithTag(DRAFTS_LIST).fetchSemanticsNodes().isEmpty()) touch(DRAFTS_CONTINUE, Offset(0.5f, 0.5f))
+            node(DRAFTS_LIST).assertIsDisplayed()
+
+            composeRule.onNodeWithText(ENTRIES_DRAFT_B.date.toString()).performTouchInput { click(Offset(width * point.x, height * point.y)) }
+            composeRule.waitForIdle()
+
+            assertEquals(List(i + 1) { ENTRIES_DRAFT_B.id }, openedCartographyIds)
+            // A draft opens straight into the editor, never the read-only view.
+            composeRule.onNodeWithText(EDITOR_FIELD).assertIsDisplayed()
+
+            pressBack()
+            composeRule.onNodeWithText(EDITOR_FIELD).assertDoesNotExist()
+        }
+    }
 }
 
 private const val SWITCH_ENTRIES = "journal-switch-entries"
 private const val SWITCH_RECORDS = "journal-switch-records"
 private const val RECORDS_CHIP_ROW = "records-filter-chip-row"
+private const val ENTRIES_HOME = "entries-home"
+private const val DRAFTS_BANNER = "entries-drafts-banner"
+private const val DRAFTS_CONTINUE = "entries-drafts-continue"
+private const val DRAFTS_LIST = "entries-drafts-list"
+private const val DRAFTS_LIST_BACK = "entries-drafts-list-back"
+
+/** The Cartography editor's text field label: present only when an entry is open for editing. */
+private const val EDITOR_FIELD = "Your own account (optional)"
 
 /** Three touches spread across a control: near its start edge, its centre, near its end edge, at differing heights. */
 private val TOUCH_SAMPLES = listOf(Offset(0.12f, 0.3f), Offset(0.5f, 0.5f), Offset(0.88f, 0.7f))
 
 private val ENTRIES_COMMITTED = CartographyEntry.draft(id = "committed-1", date = LocalDate.of(2026, 8, 1), updatedAtEpochMillis = 1_000L)
     .copy(isDraft = false)
+
+private val ENTRIES_DRAFT_A = CartographyEntry.draft(id = "draft-a", date = LocalDate.of(2026, 8, 2), updatedAtEpochMillis = 2_000L)
+private val ENTRIES_DRAFT_B = CartographyEntry.draft(id = "draft-b", date = LocalDate.of(2026, 8, 3), updatedAtEpochMillis = 3_000L)
+private val ENTRIES_DRAFT_C = CartographyEntry.draft(id = "draft-c", date = LocalDate.of(2026, 8, 4), updatedAtEpochMillis = 4_000L)
 
 private val ENTRIES_EMPTY_MAP_DATA = CartographyEntryMapData(
     trackPolylines = emptyList(),
