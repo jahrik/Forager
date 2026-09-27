@@ -9,9 +9,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.swipeUp
+import androidx.compose.ui.test.performScrollToIndex
+import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.onAllNodesWithText
@@ -422,6 +427,78 @@ class JournalEntriesTest {
         assertTrue("unknown dates come last", unknown.top >= node(albumPhotoTag("b1")).getUnclippedBoundsInRoot().bottom)
         node(albumPhotoTag("u1")).assertExists()
     }
+
+    // ── T4: the floating button (timeline half; the album half is an open question in the report) ──
+
+    private val manyEntries = CartographyUiState(entries = FAB_ENTRIES)
+
+    private fun bounds(tag: String): DpRect = node(tag).getUnclippedBoundsInRoot()
+
+    private fun cardBounds(entry: CartographyEntry): DpRect = composeRule.onNodeWithText(entry.date.toString()).getUnclippedBoundsInRoot()
+
+    private fun overlaps(a: DpRect, b: DpRect): Boolean = a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
+
+    /** Scrolls the timeline grid to its very end: to the last item, then two more swipes. */
+    private fun scrollTimelineToEnd() {
+        val grid = composeRule.onNode(hasScrollToIndexAction())
+        grid.performScrollToIndex(FAB_ENTRIES.lastIndex)
+        repeat(2) { grid.performTouchInput { swipeUp() } }
+        composeRule.waitForIdle()
+    }
+
+    @Test
+    fun `the timeline has a New entry floating button in place of the plus tile`() {
+        setScreen()
+
+        node(FAB).assertIsDisplayed().assert(hasText("New entry"))
+        composeRule.onNodeWithContentDescription("New Cartography entry").assertDoesNotExist()
+    }
+
+    @Test
+    fun `touching the floating button at several points starts a new entry each time, never the card beneath it`() {
+        setScreen(manyEntries)
+        val fab = bounds(FAB)
+        val beneath = FAB_ENTRIES.filter { entry ->
+            composeRule.onAllNodesWithText(entry.date.toString()).fetchSemanticsNodes().isNotEmpty() && overlaps(cardBounds(entry), fab)
+        }
+        assertTrue("the setup puts a card under the floating button (fab $fab)", beneath.isNotEmpty())
+
+        for ((i, point) in TOUCH_SAMPLES.withIndex()) {
+            touch(FAB, point)
+
+            assertEquals(i + 1, startedCartographyEntries)
+            assertEquals("no card under the button was opened", emptyList<String>(), openedCartographyIds)
+            composeRule.onNodeWithText(EDITOR_FIELD).assertIsDisplayed()
+
+            pressBack()
+            node(ENTRIES_HOME).assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun `scrolled to the end, the last cards sit clear of the floating button and take touches at several points`() {
+        setScreen(manyEntries)
+        val last = FAB_ENTRIES.last()
+        val besideLast = FAB_ENTRIES[FAB_ENTRIES.lastIndex - 1]
+
+        for (entry in listOf(last, besideLast)) {
+            for (point in TOUCH_SAMPLES) {
+                scrollTimelineToEnd()
+                val fab = bounds(FAB)
+                val card = cardBounds(entry)
+                assertTrue("${entry.id} ends above the floating button at the end of the list: card $card, fab $fab", card.bottom <= fab.top)
+
+                composeRule.onNodeWithText(entry.date.toString()).performTouchInput { click(Offset(width * point.x, height * point.y)) }
+                composeRule.waitForIdle()
+
+                assertEquals(entry.id, openedCartographyIds.last())
+                composeRule.onNodeWithText(EDITOR_FIELD).assertDoesNotExist()
+                pressBack()
+            }
+        }
+        assertEquals(0, startedCartographyEntries)
+        assertEquals(6, openedCartographyIds.size)
+    }
 }
 
 private const val SWITCH_ENTRIES = "journal-switch-entries"
@@ -435,6 +512,7 @@ private const val DRAFTS_LIST_BACK = "entries-drafts-list-back"
 private const val VIEW_TIMELINE = "entries-view-timeline"
 private const val VIEW_ALBUM = "entries-view-album"
 private const val ALBUM = "entries-album"
+private const val FAB = "entries-fab"
 private const val ALBUM_DAY_UNKNOWN = "entries-album-day-unknown"
 
 private fun albumDayTag(day: LocalDate): String = "entries-album-day-$day"
@@ -465,6 +543,11 @@ private val ENTRIES_COMMITTED = CartographyEntry.draft(id = "committed-1", date 
 private val ENTRIES_DRAFT_A = CartographyEntry.draft(id = "draft-a", date = LocalDate.of(2026, 8, 2), updatedAtEpochMillis = 2_000L)
 private val ENTRIES_DRAFT_B = CartographyEntry.draft(id = "draft-b", date = LocalDate.of(2026, 8, 3), updatedAtEpochMillis = 3_000L)
 private val ENTRIES_DRAFT_C = CartographyEntry.draft(id = "draft-c", date = LocalDate.of(2026, 8, 4), updatedAtEpochMillis = 4_000L)
+
+/** Twelve committed entries: more than a 360 x 640 dp screen shows at two columns, so one sits under the floating button. */
+private val FAB_ENTRIES: List<CartographyEntry> = (1..12).map { day ->
+    CartographyEntry.draft(id = "fab-$day", date = LocalDate.of(2026, 7, day), updatedAtEpochMillis = day.toLong()).copy(isDraft = false)
+}
 
 private val ENTRIES_EMPTY_MAP_DATA = CartographyEntryMapData(
     trackPolylines = emptyList(),
