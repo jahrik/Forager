@@ -429,3 +429,9 @@ J4 (running), J4b, J5, **M1**, J8, then the single Journal PR.
 ### Photo editing: sequenced after the camera work (owner, 2026-09-27)
 
 The owner, verbatim, on the photo details and location stage above: "Photo editing is a large project in itself, but not outside the scope of nature photography, so we can add it, but it will come after the central camera improvements land". So photo editing is in scope as its own project, larger than a details-and-location screen, and it starts only after "the central camera improvements" land. No plan in `docs/plans/` is titled for that camera work at the time of writing; which work the phrase names is to be confirmed with the owner when photo editing is scheduled, not assumed.
+
+### Map layering framework (owner, 2026-09-27; to be specified)
+
+The owner, verbatim: "Prepare the map for layering framework also. We are going to improve the forecast methods with layering based on several conditions, similar to how other prediction maps do."
+
+Planner's placement, pending the owner's confirmation: the framework is built before M1 (glyph bubbles) and J8 (entries on the map), since both add map layers and would otherwise be built outside it and reworked. It is a framework for layers, not the forecast method itself; the forecast conditions and how they combine are a later, separate piece of work. Before specifying it, a read-only pulse maps today's layer composition in `ui/map/SightingsMap.kt` and the forecast data the app already has, and a prior-art pass records how established prediction maps structure layer controls. The owner's decisions on scope follow from those.
