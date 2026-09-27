@@ -16,6 +16,7 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.click
@@ -1324,6 +1325,32 @@ class JournalPendingDeleteTest {
         letSnackbarTimeOut()
         assertEquals(listOf(PD_PHOTO_B.photo.id), logRepository.deletedPhotoIds)
         assertEquals(listOf(PD_PHOTO_B.photo.id), photoStore.deletedPhotoIds)
+    }
+
+    /**
+     * Picker-fixes dispatch F5 (owner: "Remove the corner button (Recommended)", then "Remove
+     * everywhere now"): the album photo has no corner trash button, so long-press Delete with Undo
+     * is the only delete in the album. The corner the button used to cover is sampled by a real
+     * long-press, the one region [photoPoints] above stayed off: with the button there, that touch
+     * went to the button and opened no menu.
+     */
+    @Test
+    fun `an album photo has no corner delete control, and a long-press at that corner opens the Delete menu`() {
+        setScreen(photos = listOf(PD_PHOTO_A, PD_PHOTO_B), openRecords = false)
+        openAlbum()
+        photoTile(PD_PHOTO_A.photo.id).assertExists()
+        composeRule.onAllNodesWithContentDescription("Delete this photo").assertCountEquals(0)
+        composeRule.onAllNodes(hasAnyAncestor(hasTestTag(albumPhotoTestTag(PD_PHOTO_A.photo.id))) and hasClickAction())
+            .assertCountEquals(1) // the photo itself, nothing else touchable on the tile
+
+        photoTile(PD_PHOTO_A.photo.id).performTouchInput { longClick(Offset(width * 0.88f, height * 0.12f)) }
+        composeRule.waitForIdle()
+        menuItems().assertCountEquals(1)
+        touchMenuItem(TILE_OPTIONS_DELETE_TAG)
+        composeRule.onNodeWithText("Photo deleted · used in 1 find").assertIsDisplayed()
+        letSnackbarTimeOut()
+        assertEquals(listOf(PD_PHOTO_A.photo.id), logRepository.deletedPhotoIds)
+        assertEquals(listOf(PD_PHOTO_A.photo.id), photoStore.deletedPhotoIds)
     }
 
     @Test

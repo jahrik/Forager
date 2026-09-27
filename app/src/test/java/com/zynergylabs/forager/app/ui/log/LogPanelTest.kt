@@ -17,6 +17,10 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import com.zynergylabs.forager.app.domain.model.GalleryPhoto
+import com.zynergylabs.forager.app.domain.model.LogPhoto
 import androidx.compose.ui.test.swipe
 import androidx.compose.ui.geometry.Offset
 import androidx.test.core.app.ApplicationProvider
@@ -65,11 +69,16 @@ class LogPanelTest {
     /** The device's live fix, as `AvailabilityScreen` passes `liveFix` to [LogPanel]; held in state for F1's tests (see [JournalTabTest]'s own). */
     private val deviceLocation = mutableStateOf<LatLng?>(null)
 
-    private fun setScreen(initial: MushroomLogUiState, mapSlot: MapSlot = StubPickerMapSlot) {
+    private fun setScreen(
+        initial: MushroomLogUiState,
+        mapSlot: MapSlot = StubPickerMapSlot,
+        galleryPhotos: List<GalleryPhoto> = emptyList(),
+    ) {
         composeRule.setContent {
             var uiState by remember { mutableStateOf(initial) }
             LogPanel(
                 uiState = uiState,
+                galleryPhotos = galleryPhotos,
                 onOpenCameraForLogEntry = {},
                 onOpenCameraForAlbum = {},
                 onOpenCameraForCartographyEntry = {},
@@ -262,7 +271,30 @@ class LogPanelTest {
         assertEquals(Region(FIRST_FIX.lat, FIRST_FIX.lng, FIND_PICKER_DEVICE_RADIUS_KM), map.regions.last())
     }
 
-    private val locatedEntry = MushroomLogEntry.draft(id = "existing-1", location = LatLng(45.0, -122.0), date = LocalDate.of(2026, 8, 1))
+    /**
+     * Picker-fixes dispatch F5, in the wide tree (owner: "Remove everywhere now"): `LogPanel`'s
+     * Journal album, reached through `CartographyScreen`'s Entries toolbar, shows no corner trash
+     * button. It has no long-press Delete either (`LogPanel` passes no `onRequestDeleteGalleryPhoto`);
+     * until J6 the wide tree's photos are deleted from the drawer's `PhotoGalleryScreen`, which keeps
+     * its own button.
+     */
+    @Test
+    fun `the wide tree's Journal album photo has no corner delete control`() {
+        val photo = GalleryPhoto(
+            photo = LogPhoto(id = "photo-wide", relativePath = "photos/none-wide.jpg", createdAtEpochMillis = 1_758_300_000_000L),
+            referencingEntryIds = emptyList(),
+        )
+        setScreen(MushroomLogUiState(), galleryPhotos = listOf(photo))
+        // setScreen lands on Records' Finds chip for this file's find tests; the album is Cartography's.
+        composeRule.onNodeWithText("Cartography").performClick()
+        composeRule.onNodeWithTag(ENTRIES_VIEW_ALBUM_TAG).performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(albumPhotoTestTag(photo.photo.id)).assertExists()
+        composeRule.onAllNodesWithContentDescription("Delete this photo").assertCountEquals(0)
+    }
+
+    private val locatedEntry =MushroomLogEntry.draft(id = "existing-1", location = LatLng(45.0, -122.0), date = LocalDate.of(2026, 8, 1))
 }
 
 private val PICKED_LOCATION = LatLng(45.5, -122.5)
