@@ -550,6 +550,12 @@ fun AvailabilityScreen(
      */
     onRequestDeleteCartographyEntry: ((String) -> Unit)? = null,
     /**
+     * An album photo's long-press Delete (J4b L3): a *pending* delete with Undo
+     * (`MushroomLogViewModel.requestDeleteGalleryPhoto`), for the compact tree's album only. `null`
+     * (the default) leaves the photos without the menu.
+     */
+    onRequestDeleteGalleryPhoto: ((String) -> Unit)? = null,
+    /**
      * [com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreen]'s own map, Stage 2d — see that
      * composable's doc comment. Defaulted to always report nothing resolved, same reasoning as
      * [logUiState]: the many existing tests of this screen that never open a Cartography entry
@@ -1454,6 +1460,10 @@ fun AvailabilityScreen(
             onSaveCartographyEntryAsDraft = onSaveCartographyEntryAsDraft,
             onDeleteCartographyEntry = onDeleteCartographyEntry,
             onRequestDeleteCartographyEntry = onRequestDeleteCartographyEntry,
+            onRequestDeleteGalleryPhoto = onRequestDeleteGalleryPhoto,
+            // J4b L1: a find tile's long-press Edit uses the same open-and-edit call the wide tree's
+            // LogPanel already uses for every find it opens.
+            onOpenLogEntryForEditing = onOpenLogEntryForEditing,
             getCartographyEntryMapData = getCartographyEntryMapData,
             getCartographyEntryOfflineRegion = getCartographyEntryOfflineRegion,
             getCartographyEntryCurrentLocation = getCartographyEntryCurrentLocation,

@@ -248,6 +248,10 @@ internal fun CompactMainScaffold(
     onDeleteCartographyEntry: (String) -> Unit,
     /** J4b L2: an Entries card's swipe Delete (pending, with Undo); see [JournalTab]. */
     onRequestDeleteCartographyEntry: ((String) -> Unit)? = null,
+    /** J4b L3: an album photo's long-press Delete (pending, with Undo); see [JournalTab]. */
+    onRequestDeleteGalleryPhoto: ((String) -> Unit)? = null,
+    /** J4b L1: a find tile's long-press Edit (`MushroomLogViewModel.onOpenEntryForEditing`); see [JournalTab]. */
+    onOpenLogEntryForEditing: ((String) -> Unit)? = null,
     getCartographyEntryMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData,
     getCartographyEntryOfflineRegion: suspend (CartographyEntry, List<LatLng>) -> OfflineRegionSummary?,
     getCartographyEntryCurrentLocation: suspend () -> LocationResult,
@@ -972,6 +976,8 @@ internal fun CompactMainScaffold(
                                 onSaveCartographyEntryAsDraft = onSaveCartographyEntryAsDraft,
                                 onDeleteCartographyEntry = onDeleteCartographyEntry,
                                 onRequestDeleteCartographyEntry = onRequestDeleteCartographyEntry,
+                                onRequestDeleteGalleryPhoto = onRequestDeleteGalleryPhoto,
+                                onOpenEntryForEditing = onOpenLogEntryForEditing,
                                 getCartographyEntryMapData = getCartographyEntryMapData,
                                 getCartographyEntryOfflineRegion = getCartographyEntryOfflineRegion,
                                 getCartographyEntryCurrentLocation = getCartographyEntryCurrentLocation,

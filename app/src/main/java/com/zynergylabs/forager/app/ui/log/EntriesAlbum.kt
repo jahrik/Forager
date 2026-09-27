@@ -91,6 +91,13 @@ internal fun EntriesAlbum(
      * (`MushroomLogUiState.draftEntries`); no query. Empty means no find is treated as a draft.
      */
     draftFindIds: Set<String> = emptySet(),
+    /**
+     * J4b L3: when set, a long-press on a photo opens a menu whose Delete calls this with the photo's
+     * id (a *pending* delete with Undo, the file deleted only when the snackbar ends). The menu has no
+     * Edit: the app has no photo details or location editing screen. `null` leaves the photos
+     * tap-only. The corner delete button, with its dialog, is unchanged either way.
+     */
+    onRequestDeletePhoto: ((String) -> Unit)? = null,
 ) {
     val photoAcquisition = rememberPhotoAcquisitionLaunchers(onAddGalleryPhoto, onOpenCamera)
     // The id, not the index, and saveable — as PhotoGalleryScreen's own viewer state.
@@ -139,6 +146,7 @@ internal fun EntriesAlbum(
                             onDelete = { onDeletePhoto(galleryPhoto) },
                             cartographyEntryCount = cartographyEntryReferenceCounts[galleryPhoto.photo.id] ?: 0,
                             draftFindIds = draftFindIds,
+                            onRequestDelete = onRequestDeletePhoto?.let { request -> { request(galleryPhoto.photo.id) } },
                         )
                     }
                 }
@@ -209,13 +217,26 @@ private fun AlbumPhotoTile(
     onDelete: () -> Unit,
     cartographyEntryCount: Int,
     draftFindIds: Set<String>,
+    /** J4b L3: the long-press menu's Delete; `null` leaves the photo tap-only. */
+    onRequestDelete: (() -> Unit)? = null,
 ) {
     var confirmingDelete by remember(galleryPhoto.photo.id) { mutableStateOf(false) }
     Box(modifier = Modifier.fillMaxWidth().aspectRatio(1f).testTag(albumPhotoTestTag(galleryPhoto.photo.id))) {
-        DecodedPhoto(
-            relativePath = galleryPhoto.photo.relativePath,
-            modifier = Modifier.fillMaxSize().clickable(onClickLabel = "Open full screen", onClick = onOpen),
-        )
+        if (onRequestDelete == null) {
+            DecodedPhoto(
+                relativePath = galleryPhoto.photo.relativePath,
+                modifier = Modifier.fillMaxSize().clickable(onClickLabel = "Open full screen", onClick = onOpen),
+            )
+        } else {
+            // J4b L3: the same photo, taking the tap and a long-press on one node; the menu is
+            // anchored at the tile. Delete only: there is no photo edit screen to open.
+            LongPressOptionsBox(longClickLabel = "Options for photo", onEdit = null, onDelete = onRequestDelete, modifier = Modifier.fillMaxSize()) { options ->
+                DecodedPhoto(
+                    relativePath = galleryPhoto.photo.relativePath,
+                    modifier = Modifier.fillMaxSize().tileClickable(onClick = onOpen, options = options, onClickLabel = "Open full screen"),
+                )
+            }
+        }
         IconButton(onClick = { confirmingDelete = true }, modifier = Modifier.align(Alignment.TopEnd)) {
             Icon(Icons.Filled.Delete, contentDescription = "Delete this photo")
         }

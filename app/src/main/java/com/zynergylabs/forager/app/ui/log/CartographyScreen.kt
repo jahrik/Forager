@@ -145,6 +145,8 @@ internal fun CartographyScreen(
      * (the default; `LogPanel` passes none) leaves the cards without the swipe.
      */
     onRequestDeleteEntry: ((String) -> Unit)? = null,
+    /** An album photo's long-press Delete (J4b L3): a *pending* delete with Undo. `null` (the default; `LogPanel`) leaves the photos without the menu. */
+    onRequestDeleteGalleryPhoto: ((String) -> Unit)? = null,
 ) {
     var mode by remember { mutableStateOf(CartographyEntryMode.VIEW) }
 
@@ -425,6 +427,7 @@ internal fun CartographyScreen(
                     cartographyEntryReferenceCounts = galleryPhotoEntryReferenceCounts,
                     draftFindIds = draftFindIds,
                     modifier = Modifier.fillMaxSize(),
+                    onRequestDeletePhoto = onRequestDeleteGalleryPhoto,
                 )
             }
             if (viewMode == EntriesViewMode.TIMELINE) {

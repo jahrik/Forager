@@ -85,6 +85,10 @@ internal fun RecordsLogbookList(
     onDeleteOfflineRegion: (Long) -> Unit,
     onOpenFind: (String) -> Unit,
     modifier: Modifier = Modifier,
+    /** J4b L1: a find tile's long-press Delete (pending, with Undo); `null` leaves the tiles tap-only. */
+    onDeleteFind: ((String) -> Unit)? = null,
+    /** J4b L1: a find tile's long-press Edit. */
+    onEditFind: ((String) -> Unit)? = null,
 ) {
     val days = buildRecordsLogbook(
         finds = finds.orEmpty(),
@@ -124,7 +128,7 @@ internal fun RecordsLogbookList(
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     pair.forEach { find ->
                         Box(modifier = Modifier.weight(1f).testTag(logbookRowTag(RecordType.FINDS, find.id))) {
-                            FindTile(entry = find, onClick = { onOpenFind(find.id) })
+                            FindTileWithOptions(entry = find, onClick = { onOpenFind(find.id) }, onEdit = onEditFind, onDelete = onDeleteFind)
                             RecordTypeBadge(
                                 type = RecordType.FINDS,
                                 recordId = find.id,

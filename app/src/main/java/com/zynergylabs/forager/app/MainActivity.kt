@@ -39,6 +39,7 @@ import com.zynergylabs.forager.app.ui.log.InAppCameraViewModel
 import com.zynergylabs.forager.app.ui.log.MushroomLogViewModel
 import com.zynergylabs.forager.app.ui.log.cartographyEntryDeleteNotice
 import com.zynergylabs.forager.app.ui.log.findDeleteNotice
+import com.zynergylabs.forager.app.ui.log.galleryPhotoDeleteNotice
 import com.zynergylabs.forager.app.ui.log.offlineRegionDeleteNotice
 import com.zynergylabs.forager.app.ui.log.waypointDeleteNotice
 import com.zynergylabs.forager.app.ui.theme.ForagerTheme
@@ -504,6 +505,7 @@ class MainActivity : ComponentActivity() {
                     onSaveCartographyEntryAsDraft = cartographyViewModel::onSaveEntryAsDraft,
                     onDeleteCartographyEntry = cartographyViewModel::onDeleteEntry,
                     onRequestDeleteCartographyEntry = cartographyViewModel::requestDeleteEntry,
+                    onRequestDeleteGalleryPhoto = mushroomLogViewModel::requestDeleteGalleryPhoto,
                     getCartographyEntryMapData = { entry, photos -> container.getCartographyEntryMapDataUseCase(entry, photos) },
                     getCartographyEntryOfflineRegion = { entry, points -> container.getCartographyEntryOfflineRegionUseCase(entry, points) },
                     getCartographyEntryCurrentLocation = { container.locationProvider.getCurrentLocation() },
@@ -579,6 +581,11 @@ class MainActivity : ComponentActivity() {
                             cartographyUiState.pendingDelete,
                             onUndo = cartographyViewModel::undoDeleteEntry,
                             onCommit = cartographyViewModel::commitDeleteEntry,
+                        ),
+                        galleryPhotoDeleteNotice(
+                            logUiState.pendingPhotoDelete,
+                            onUndo = mushroomLogViewModel::undoDeleteGalleryPhoto,
+                            onCommit = mushroomLogViewModel::commitDeleteGalleryPhoto,
                         ),
                     ),
                 )

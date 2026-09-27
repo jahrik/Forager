@@ -123,6 +123,13 @@ internal fun RecordsTab(
      * answer 2). The default does nothing beyond that chip switch ([LogPanel] passes none).
      */
     onOpenFind: (String) -> Unit = {},
+    /** J4b L1: the All logbook find tile's long-press Delete (pending, with Undo); `null` leaves it tap-only. */
+    onDeleteFind: ((String) -> Unit)? = null,
+    /**
+     * J4b L1: the All logbook find tile's long-press Edit. `RecordsTab` selects the Finds chip first,
+     * as for [onOpenFind], so the edit form opens in the Finds slot.
+     */
+    onEditFind: ((String) -> Unit)? = null,
     onFindsTabLeft: () -> Unit = {},
     /**
      * Whether [JournalTab]/[LogPanel]'s own find-editing `BackHandler` is currently live —
@@ -227,6 +234,13 @@ internal fun RecordsTab(
                     onOpenFind(id)
                 },
                 modifier = Modifier.weight(1f),
+                onDeleteFind = onDeleteFind,
+                onEditFind = onEditFind?.let { edit ->
+                    { id ->
+                        selectTab(RecordsSubTab.FINDS)
+                        edit(id)
+                    }
+                },
             )
 
             RecordsSubTab.WAYPOINTS -> WaypointsSection(
