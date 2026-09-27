@@ -552,10 +552,20 @@ class MainActivity : ComponentActivity() {
 
 /**
  * How many journal (Cartography) entries keep photo [photoId], for the album's entry badge and the
- * photo delete dialog (`MushroomLogViewModel.loadGalleryPhotos`). A failed count shows as 0.
+ * photo delete dialog (`MushroomLogViewModel.loadGalleryPhotos`).
+ *
+ * A failed count still shows as 0, as it always has, but the fallback is now logged when it fires
+ * (journal redesign J3, C6; CLAUDE.md, "no default fallback that isn't logged when it fires"),
+ * through the same [ErrorLog] seam and `getOrElse { log; fallback }` shape the photo-location
+ * preference read uses in `MainActivity`'s ViewModel factory. Shown as 0, a failed read means no
+ * entry badge and no "appears in N journal entries" warning in the delete dialog; the log is what
+ * tells that apart from a real 0.
  */
 internal suspend fun photoEntryReferenceCountOrZero(
     photoId: String,
     countEntriesReferencingPhoto: suspend (String) -> Result<Int>,
-    @Suppress("UNUSED_PARAMETER") errorLog: ErrorLog,
-): Int = countEntriesReferencingPhoto(photoId).getOrDefault(0)
+    errorLog: ErrorLog,
+): Int = countEntriesReferencingPhoto(photoId).getOrElse { error ->
+    errorLog.w("PhotoReferenceCount", "Couldn't count journal entries keeping photo $photoId; showing 0.", error)
+    0
+}
