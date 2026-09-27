@@ -88,12 +88,25 @@ internal fun offlineRegionDeleteNotice(
     )
 }
 
-/** J4 D4 stub. */
+/**
+ * The find snackbar for [pending] ("Find deleted"), or `null` when none is pending. Finds have no
+ * Cartography reference count in this app, so there is never a warning to add (owner ruling "Keep
+ * inside the report (Recommended)": the same delayed delete and Undo snackbar, from the report).
+ */
 internal fun findDeleteNotice(
     pending: PendingDelete<MushroomLogEntry>?,
     onUndo: (String) -> Unit,
     onCommit: (String) -> Unit,
-): PendingDeleteNotice? = null
+): PendingDeleteNotice? = pending?.let { p ->
+    val id = p.item.id
+    PendingDeleteNotice(
+        type = RecordType.FINDS,
+        token = p.token,
+        message = pendingDeleteMessage("Find", p.entryReferenceCount),
+        onUndo = { onUndo(id) },
+        onCommit = { onCommit(id) },
+    )
+}
 
 /**
  * Shows each pending delete's Undo snackbar in [hostState] and reports how it ended (J4):
