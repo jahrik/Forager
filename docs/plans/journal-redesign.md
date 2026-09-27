@@ -382,3 +382,46 @@ dispatch that committed this file.
 - O7. Order. The owner chose "Landscape B2, B3, then Journal". Journal stages start after landscape B3; the J0 pulse ran in parallel.
 - O8. Committed here. The owner chose "A coder here commits it".
 - Citation drift found while committing: none; all ten checked at `cff1309` hold. `JournalTab.kt:398-414` holds (the `SecondaryTabRow` opens at 398 and closes at 414); `:243` holds (the `RecordsSubTab`-typed `recordsPendingSubTab` latch); `CartographyEntryListScreen.kt:57-58` holds (`columns: Int = 2` and its doc comment); `:91` holds (the `AddCartographyEntryTile` item); `:97-119` holds (`AddCartographyEntryTile`); `:121-161` holds (`CartographyEntryTile`); `:163` holds (`ENTRY_TILE_ASPECT_RATIO = 0.85f`); `domain/model/CartographyEntry.kt:50-135` holds (`CartographyEntry` through `PhotoAttachment`); `understory-design-system.md:230-235` holds (the `primary` to `tertiaryContainer` role rows, dark primary `#A8CBA0`). None of these four files changed between `545258e` and `cff1309`.
+
+## Addendum, 2026-09-27 (later): two new features, owner rulings in the cloud planner session
+
+Asked by the owner while J4 was running, verbatim: "Add long press options for tiles to edit/delete them. Have an option for cartography entries to show up on the main map so the journal doesn't need to be opened every time. More than one entry may be active at a time on the main map."
+
+Both are new capability, not restyling, so they are stages of their own and do not reopen J1-J4.
+
+### J4b. Long-press menus on tiles (after J4)
+
+- Tiles: **"Album photos, Find tiles, Entry cards"**. Records rows keep swipe only.
+- Each opens a menu with Edit and Delete. Delete uses J4's delayed delete and Undo snackbar.
+  - Find tiles (Records → Finds, and in All): Edit opens the find's editor. This supersedes J4's "Keep inside the report": delete stays in the report too, and is also on the tile.
+  - Entry cards: Edit opens the entry editor. Delete gets the same delayed delete and Undo, which J4 did not cover for Cartography entries.
+  - Album photos: Delete gets delayed delete and Undo, with the file delete deferred until the snackbar ends (J0 B1: a photo's file is gone at once today). What Edit means for a photo is **open**: the photo's details and location screen if one exists; the dispatch must find it and stop if there is none.
+- Every menu is reachable by TalkBack, as J4's swipe rows are.
+
+### J8. Journal entries on the main map (after J5)
+
+- Content: **"Kept tracks, Kept waypoints, Kept finds, Offline-map outlines"**: an entry shown on the map draws all four kinds of its kept records.
+- Toggle: **"Card menu + map chip (Recommended)"**. "Show on map" / "Hide from map" in the entry's long-press menu (J4b) and in its report. On the main map, a small chip shows how many entries are showing; tapping it lists them to hide one or all. More than one entry may show at once.
+- Persistence: **"Yes, keep them (Recommended)"**. Stored with the entry in Room, since it belongs to an entry (CLAUDE.md, Room for data that relates). That is a migration: `ForagerDatabase` is at version 15 on this branch's base; the dispatch must check the version against `pre-main` at dispatch time, not this note (CLAUDE.md, verify globally-unique claims), and the new column lands with its reader in the same change.
+- Open, for J8's pre-build pass: how entry overlays are told apart from live map markers and from each other (the J6 colour roles and C2 marker palette apply); whether drafts can be shown; what tapping an overlaid record does; where the chip sits in portrait and in short landscape without breaking the map-surface touch rules (CLAUDE.md, Surface intercepts touches); and whether the map's existing marker layers already draw any of these records.
+
+### Order
+
+J4 (running), then J4b, then J5 (short windows, which will need to place the map chip too if J8 lands first, so J5 stays before J8), then J8, then the single Journal PR. J6 (tablets) and J7 (device check) as the plan lists them; J7 gains the long-press menus and the map overlays.
+
+### M1. Tap a map glyph for a bubble (after J5, before J8)
+
+Asked by the owner, verbatim: "Tap glyphs to show a bubble that contains their info. (Finds, photo, track, waypointz etc). Tapping waypoints offers an option to navigate to them."
+
+What the code does today (read by the planner at `journal-redesign` `b65b775`): only sighting dots respond to a tap. `ui/map/SightingsMap.kt:312-325` queries the tapped point against `SIGHTING_LAYER_ID` alone and opens `ObservationBubble` (`ui/availability/AvailabilityMapOverlaysUi.kt:357`); every other glyph layer (`SightingsMap.kt:1142-1159`: planned trips, waypoints, kept tracks, finds, photos, offline-region circles) is drawn and ignores taps. A waypoint row's "Directions" hands the location to an installed navigation app (`launchDirections`, `ui/availability/AvailabilityTripsWaypointsUi.kt:146`); the app also has its own navigation HUD.
+
+Owner rulings:
+- Glyphs: **"Finds and photos, Waypoints, Tracks, Planned trips & offline maps"**: every glyph kind gets a bubble with its info on tap, alongside the sighting bubble that exists.
+- Navigate: **"In-app HUD, plus Directions (Recommended)"**: a waypoint's bubble offers Navigate, which starts Forager's own navigation HUD to it, and Directions, the existing hand-off to an installed app.
+- Placement: **"Journal branch, before J8 (Recommended)"**: stage M1 on `journal-redesign`, after J5, so J8's entry overlays reuse the same bubbles; it ships in the single Journal PR.
+
+Open, for M1's pre-build pass: what each bubble shows per kind (starting from what that record's row already shows); what tapping the bubble itself does (open the find, photo or track; J8 adds entry records); which glyph wins when several overlap at the tap point; how a bubble interacts with the sighting bubble and with long-press (which drops a point today, `SightingsMap.kt:334`); and the map-surface touch rules (CLAUDE.md), with coordinate-touch tests on the map.
+
+### Order, revised
+
+J4 (running), J4b, J5, **M1**, J8, then the single Journal PR.
