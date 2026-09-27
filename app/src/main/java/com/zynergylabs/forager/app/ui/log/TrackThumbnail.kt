@@ -39,14 +39,32 @@ internal fun TrackThumbnail(
     points: List<TrackPoint>,
     modifier: Modifier = Modifier,
 ) {
-    if (points.size < 2) return
+    TracksThumbnail(trackIds = listOf(trackId), tracks = listOf(points), modifier = modifier)
+}
+
+/**
+ * Several tracks in one thumbnail, on one shared projection ([projectTracksToBox]) — journal redesign
+ * J4, D5, for an Entries card keeping two or more tracks. Each track is its own subpath, so no line
+ * joins the end of one walk to the start of the next. Composes nothing when no track has two points.
+ * The path is remembered on every track's id and point count and the box size, [TrackThumbnail]'s
+ * keys for each track.
+ */
+@Composable
+internal fun TracksThumbnail(
+    trackIds: List<String>,
+    tracks: List<List<TrackPoint>>,
+    modifier: Modifier = Modifier,
+) {
+    if (tracks.none { it.size >= 2 }) return
     val color = RecordTypeStyle.colors(RecordType.TRACKS).accent
     val strokePx = with(LocalDensity.current) { THUMBNAIL_STROKE.toPx() }
     var boxSize by remember { mutableStateOf(IntSize.Zero) }
-    val path = remember(trackId, points.size, boxSize) {
-        val projected = projectTrackToBox(points, boxSize.width.toFloat(), boxSize.height.toFloat(), inset = strokePx)
+    val path = remember(trackIds, tracks.map { it.size }, boxSize) {
+        val projected = projectTracksToBox(tracks, boxSize.width.toFloat(), boxSize.height.toFloat(), inset = strokePx)
         Path().apply {
-            projected.forEachIndexed { i, p -> if (i == 0) moveTo(p.x, p.y) else lineTo(p.x, p.y) }
+            projected.forEach { track ->
+                track.forEachIndexed { i, p -> if (i == 0) moveTo(p.x, p.y) else lineTo(p.x, p.y) }
+            }
         }
     }
     Canvas(modifier = modifier.onSizeChanged { boxSize = it }) {
@@ -79,12 +97,27 @@ internal data class ThumbnailPoint(val x: Float, val y: Float)
  * Not handled: a track crossing the antimeridian (±180°) would project as spanning the globe. No
  * track in this app's reports comes near it.
  */
-internal fun projectTrackToBox(points: List<TrackPoint>, width: Float, height: Float, inset: Float = 0f): List<ThumbnailPoint> {
-    if (points.size < 2) return emptyList()
-    val minLat = points.minOf { it.lat }
-    val maxLat = points.maxOf { it.lat }
-    val minLng = points.minOf { it.lng }
-    val maxLng = points.maxOf { it.lng }
+internal fun projectTrackToBox(points: List<TrackPoint>, width: Float, height: Float, inset: Float = 0f): List<ThumbnailPoint> =
+    // One track is the several-track projection with one track in it (J4, D5 moved the arithmetic
+    // there unchanged, so the two cannot drift apart).
+    projectTracksToBox(listOf(points), width, height, inset).single()
+
+/**
+ * Several tracks projected into one box on **one shared projection** — journal redesign J4, D5
+ * (owner ruling "All in one box (Recommended)"): an Entries card keeping two or more tracks draws
+ * them all in its one thumbnail, scaled together, so their sizes and positions stay true to each
+ * other. The rules are [projectTrackToBox]'s, applied to the bounding box of every track with two or
+ * more points; one list out per track in, in order. A track with fewer than two points projects to an
+ * empty list and takes no part in the shared box.
+ */
+internal fun projectTracksToBox(tracks: List<List<TrackPoint>>, width: Float, height: Float, inset: Float = 0f): List<List<ThumbnailPoint>> {
+    val drawable = tracks.filter { it.size >= 2 }
+    if (drawable.isEmpty()) return tracks.map { emptyList() }
+    val all = drawable.flatten()
+    val minLat = all.minOf { it.lat }
+    val maxLat = all.maxOf { it.lat }
+    val minLng = all.minOf { it.lng }
+    val maxLng = all.maxOf { it.lng }
     val lngScale = cos(Math.toRadians((minLat + maxLat) / 2.0))
     val spanX = (maxLng - minLng) * lngScale
     val spanY = maxLat - minLat
@@ -99,14 +132,16 @@ internal fun projectTrackToBox(points: List<TrackPoint>, width: Float, height: F
     }
     val left = margin + (availW - spanX * scale) / 2.0
     val top = margin + (availH - spanY * scale) / 2.0
-    return points.map { p ->
-        ThumbnailPoint(
-            x = (left + (p.lng - minLng) * lngScale * scale).toFloat(),
-            y = (top + (maxLat - p.lat) * scale).toFloat(),
-        )
+    return tracks.map { points ->
+        if (points.size < 2) {
+            emptyList()
+        } else {
+            points.map { p ->
+                ThumbnailPoint(
+                    x = (left + (p.lng - minLng) * lngScale * scale).toFloat(),
+                    y = (top + (maxLat - p.lat) * scale).toFloat(),
+                )
+            }
+        }
     }
 }
-
-/** J4 D5 stub. */
-internal fun projectTracksToBox(tracks: List<List<TrackPoint>>, width: Float, height: Float, inset: Float = 0f): List<List<ThumbnailPoint>> =
-    tracks.map { emptyList() }

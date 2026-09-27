@@ -269,7 +269,10 @@ internal fun entryStats(entry: CartographyEntry, distanceUnit: DistanceUnit): Li
     if (finds > 0) add(EntryStat(RecordType.FINDS, countLabel(finds, "find", "finds")))
     val tracks = entry.trackDecisions.filter { it.kept }
     if (tracks.isNotEmpty()) {
-        add(EntryStat(RecordType.TRACKS, trackSubtitle(tracks.sumOf { it.distanceMeters }, tracks.sumOf { it.durationMillis }, distanceUnit)))
+        val total = trackSubtitle(tracks.sumOf { it.distanceMeters }, tracks.sumOf { it.durationMillis }, distanceUnit)
+        // J4, D5 (owner ruling "Sum, with a count (Recommended)"): two or more kept tracks show their
+        // total labelled with the count, "2 tracks · 5.4 km · 2h 10m"; one track keeps its plain figure.
+        add(EntryStat(RecordType.TRACKS, if (tracks.size >= 2) "${tracks.size} tracks · $total" else total))
     }
     val waypoints = entry.waypointDecisions.count { it.kept }
     if (waypoints > 0) add(EntryStat(RecordType.WAYPOINTS, countLabel(waypoints, "waypoint", "waypoints")))
@@ -334,20 +337,20 @@ private val ENTRY_HERO_HEIGHT = 140.dp
  * (`TrackRecordingUiState.tracks`, passed down; [tracksById]). No database read per card. A track
  * not in the list (deleted, or not loaded yet) gives no thumbnail.
  *
- * **Exactly one kept track, or none.** An entry that keeps two or more tracks gets no thumbnail for
- * now: which of them to draw, or whether to draw them all in one box, is an open question for the
- * owner (J3 completion report, "Needs a decision"), and drawing one of two would suggest the day was
- * one walk.
+ * **Every kept track, in one box** (journal redesign J4, D5; owner ruling "All in one box
+ * (Recommended)", answering the J3 report's open question): an entry keeping two or more tracks draws
+ * them all together on one projection. A kept track not in the loaded list is left out and the rest
+ * still draw; none found means no thumbnail, as with one track.
  */
-internal fun entryThumbnailTrack(entry: CartographyEntry, tracksById: Map<String, Track>): Track? =
-    entry.trackDecisions.filter { it.kept }.singleOrNull()?.let { tracksById[it.trackId] }
+internal fun entryThumbnailTracks(entry: CartographyEntry, tracksById: Map<String, Track>): List<Track> =
+    entry.trackDecisions.filter { it.kept }.mapNotNull { tracksById[it.trackId] }
 
-/** A card's track thumbnail: [TrackThumbnail] in a small square at the card's end. */
+/** A card's track thumbnail: [TracksThumbnail] in a small square at the card's end, every kept track found drawn in it. */
 @Composable
-internal fun EntryTrackThumbnail(entryId: String, track: Track) {
-    TrackThumbnail(
-        trackId = track.id,
-        points = track.points,
+internal fun EntryTrackThumbnail(entryId: String, tracks: List<Track>) {
+    TracksThumbnail(
+        trackIds = tracks.map { it.id },
+        tracks = tracks.map { it.points },
         modifier = Modifier.size(ENTRY_THUMBNAIL_SIZE).testTag(entryTrackThumbnailTestTag(entryId)),
     )
 }
