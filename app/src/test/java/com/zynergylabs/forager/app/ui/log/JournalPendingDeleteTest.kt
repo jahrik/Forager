@@ -70,6 +70,9 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
+import androidx.compose.ui.test.swipe
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.geometry.Offset
 import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.domain.Alert
 import com.zynergylabs.forager.app.domain.AlertAudibility
@@ -712,6 +715,142 @@ class JournalPendingDeleteTest {
         composeRule.onNodeWithText("Find deleted").assertDoesNotExist()
         letSnackbarTimeOut()
         assertEquals(emptyList<String>(), logRepository.deletedIds)
+    }
+
+    // ── J4b L6: waypoint and region rows swipe in two stages ──
+    // (`prompts/preserved/2026-09-27-23.md`.) A short swipe settles a row open with its actions
+    // behind it; J4's full-swipe tests above still run a full `swipeLeft()` and still delete. Neither
+    // type has an edit path in the app today (the J4b report cites the search), so each reveals Delete
+    // only.
+
+    /** A short end-to-start swipe: about [distanceDp] of finger travel from near the row's end edge, slowly. */
+    private fun shortSwipeLeft(tag: String, distanceDp: Float = 64f) {
+        composeRule.onNodeWithTag(tag).performScrollTo().performTouchInput {
+            val y = centerY
+            val startX = right - 8f
+            swipe(start = Offset(startX, y), end = Offset(startX - distanceDp.dp.toPx(), y), durationMillis = 600)
+        }
+        composeRule.waitForIdle()
+    }
+
+    /** Several real touches across [tag]'s own bounds, each a fresh attempt set up by [before]. */
+    private fun touchAcross(tag: String, before: () -> Unit, after: (Int) -> Unit) {
+        listOf(0.2f to 0.3f, 0.5f to 0.5f, 0.8f to 0.7f).forEachIndexed { index, (fx, fy) ->
+            before()
+            composeRule.onNodeWithTag(tag).performTouchInput { click(Offset(width * fx, height * fy)) }
+            composeRule.waitForIdle()
+            after(index)
+        }
+    }
+
+    @Test
+    fun `a short swipe on a waypoint row leaves it open with only Delete behind it, and deletes nothing`() {
+        setScreen()
+        val creek = swipeToDeleteTag(RecordType.WAYPOINTS, "wp-creek")
+        val oak = swipeToDeleteTag(RecordType.WAYPOINTS, "wp-oak")
+
+        for (row in listOf(creek, oak)) {
+            shortSwipeLeft(row)
+            composeRule.onNodeWithTag(twoStageSwipeDeleteTag(row)).assertIsDisplayed()
+            composeRule.onNodeWithTag(twoStageSwipeEditTag(row)).assertDoesNotExist()
+            composeRule.onNodeWithTag(row).assertExists()
+        }
+        composeRule.onNodeWithText("Waypoint deleted", substring = true).assertDoesNotExist()
+        letSnackbarTimeOut()
+        assertEquals(emptyList<String>(), waypointRepository.deletedIds)
+    }
+
+    @Test
+    fun `touching a waypoint row's revealed Delete, anywhere on it, is J4's pending delete with its snackbar`() {
+        setScreen()
+        val oak = swipeToDeleteTag(RecordType.WAYPOINTS, "wp-oak")
+        touchAcross(
+            tag = twoStageSwipeDeleteTag(oak),
+            before = { shortSwipeLeft(oak) },
+            after = {
+                composeRule.onNodeWithText("Waypoint deleted · used in 1 journal entry").assertIsDisplayed()
+                composeRule.onNodeWithText("Big oak").assertDoesNotExist()
+                assertEquals(emptyList<String>(), waypointRepository.deletedIds)
+                touchUndo()
+                composeRule.onNodeWithText("Big oak").assertIsDisplayed()
+            },
+        )
+        shortSwipeLeft(oak)
+        composeRule.onNodeWithTag(twoStageSwipeDeleteTag(oak)).performTouchInput { click(center) }
+        composeRule.waitForIdle()
+        letSnackbarTimeOut()
+        assertEquals(listOf("wp-oak"), waypointRepository.deletedIds)
+    }
+
+    @Test
+    fun `a revealed waypoint row closes on a swipe back, and opening another row closes the first`() {
+        setScreen()
+        val creek = swipeToDeleteTag(RecordType.WAYPOINTS, "wp-creek")
+        val oak = swipeToDeleteTag(RecordType.WAYPOINTS, "wp-oak")
+        shortSwipeLeft(creek)
+        composeRule.onNodeWithTag(twoStageSwipeDeleteTag(creek)).assertIsDisplayed()
+
+        composeRule.onNodeWithTag(creek).performTouchInput { swipeRight(startX = left + 8f, endX = left + 8f + 96.dp.toPx(), durationMillis = 600) }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(twoStageSwipeDeleteTag(creek)).assertDoesNotExist()
+
+        shortSwipeLeft(creek)
+        shortSwipeLeft(oak)
+        composeRule.onNodeWithTag(twoStageSwipeDeleteTag(oak)).assertIsDisplayed()
+        composeRule.onNodeWithTag(twoStageSwipeDeleteTag(creek)).assertDoesNotExist()
+        assertEquals(emptyList<String>(), waypointRepository.deletedIds)
+    }
+
+    @Test
+    fun `waypoint and region rows carry a Delete accessibility action and no Edit, since neither has an edit path`() {
+        setScreen(chip = RecordsSubTab.ALL)
+        for (row in listOf(swipeToDeleteTag(RecordType.WAYPOINTS, "wp-oak"), swipeToDeleteTag(RecordType.OFFLINE_MAPS, "7"))) {
+            val labels = composeRule.onNodeWithTag(row).performScrollTo().fetchSemanticsNode().config[SemanticsActions.CustomActions].map { it.label }
+            assertEquals(listOf("Delete"), labels)
+        }
+    }
+
+    @Test
+    fun `a short swipe on a region row reveals Delete, whose touch pends the region and runs no tile delete until the snackbar ends`() {
+        setScreen(chip = RecordsSubTab.OFFLINE_MAPS)
+        val first = swipeToDeleteTag(RecordType.OFFLINE_MAPS, "7")
+        val second = swipeToDeleteTag(RecordType.OFFLINE_MAPS, "8")
+        shortSwipeLeft(second)
+        composeRule.onNodeWithTag(twoStageSwipeDeleteTag(second)).assertIsDisplayed()
+        composeRule.onNodeWithTag(twoStageSwipeEditTag(second)).assertDoesNotExist()
+
+        touchAcross(
+            tag = twoStageSwipeDeleteTag(first),
+            before = { shortSwipeLeft(first) },
+            after = {
+                composeRule.onNodeWithText("Offline map deleted · used in 2 journal entries").assertIsDisplayed()
+                assertEquals(emptyList<Long>(), offlineMapRepository.deletedIds)
+                touchUndo()
+            },
+        )
+        shortSwipeLeft(first)
+        composeRule.onNodeWithTag(twoStageSwipeDeleteTag(first)).performTouchInput { click(center) }
+        composeRule.waitForIdle()
+        composeRule.mainClock.advanceTimeBy(SNACKBAR_LONG_MILLIS / 2)
+        composeRule.waitForIdle()
+        assertEquals("not before the snackbar ends", emptyList<Long>(), offlineMapRepository.deletedIds)
+        letSnackbarTimeOut()
+        assertEquals(listOf(7L), offlineMapRepository.deletedIds)
+    }
+
+    @Test
+    fun `a revealed row in All closes when a touch lands elsewhere on the list`() {
+        setScreen(chip = RecordsSubTab.ALL)
+        val oak = swipeToDeleteTag(RecordType.WAYPOINTS, "wp-oak")
+        shortSwipeLeft(oak)
+        composeRule.onNodeWithTag(twoStageSwipeDeleteTag(oak)).assertIsDisplayed()
+
+        composeRule.onNodeWithTag(swipeToDeleteTag(RecordType.WAYPOINTS, "wp-creek")).performScrollTo().performTouchInput { click(Offset(width * 0.3f, centerY)) }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(twoStageSwipeDeleteTag(oak)).assertDoesNotExist()
+        composeRule.onNodeWithText("Waypoint deleted", substring = true).assertDoesNotExist()
+        assertEquals(emptyList<String>(), waypointRepository.deletedIds)
     }
 }
 
