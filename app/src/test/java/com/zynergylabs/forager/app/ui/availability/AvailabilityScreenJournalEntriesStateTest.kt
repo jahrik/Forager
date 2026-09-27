@@ -8,6 +8,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -32,6 +34,9 @@ import org.robolectric.annotation.Config
  * - T3: the Entries view (timeline or album) lives in `JournalScreenState` (plan J10), so it
  *   survives leaving the Journal tab and a saved-instance-state round trip; Back from the album
  *   steps to the timeline before it leaves the Journal.
+ * - T5 (owner ruling "Yes, fold into J2 (Recommended)"): the bottom-nav selection, `compactTab`,
+ *   survives a saved-instance-state round trip, so a night-mode toggle or a fold no longer returns
+ *   the app to Maps.
  *
  * Recreation uses [StateRestorationTester], as `AvailabilityScreenJournalStateTest` (J1) does; see
  * that class for why it stands in for an Activity recreation. Bottom-nav and toggle taps here are
@@ -122,9 +127,43 @@ class AvailabilityScreenJournalEntriesStateTest {
         composeRule.onNodeWithTag(ENTRIES_STATE_MAP_TAG).assertIsDisplayed()
         composeRule.onNodeWithTag(VIEW_TIMELINE).assertDoesNotExist()
     }
+
+    // ── T5: the bottom tab survives recreation ──
+
+    @Test
+    fun `the Journal bottom tab survives a saved-instance-state round trip without being tapped again`() {
+        val restorationTester = StateRestorationTester(composeRule)
+        restorationTester.setContent { entriesStateScreen() }
+        openBottomTab("Journal")
+        composeRule.onNodeWithText("Journal").assertIsSelected()
+
+        restorationTester.emulateSavedInstanceStateRestore()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Journal").assertIsSelected()
+        composeRule.onNodeWithText("Maps").assertIsNotSelected()
+        composeRule.onNodeWithTag(SWITCH_ENTRIES).assertIsDisplayed()
+        composeRule.onNodeWithTag(ENTRIES_STATE_MAP_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun `the List bottom tab survives a saved-instance-state round trip`() {
+        val restorationTester = StateRestorationTester(composeRule)
+        restorationTester.setContent { entriesStateScreen() }
+        openBottomTab("List")
+        composeRule.onNodeWithText("List").assertIsSelected()
+
+        restorationTester.emulateSavedInstanceStateRestore()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("List").assertIsSelected()
+        composeRule.onNodeWithText("Maps").assertIsNotSelected()
+        composeRule.onNodeWithTag(ENTRIES_STATE_MAP_TAG).assertDoesNotExist()
+    }
 }
 
 private const val VIEW_TIMELINE = "entries-view-timeline"
+private const val SWITCH_ENTRIES = "journal-switch-entries"
 private const val VIEW_ALBUM = "entries-view-album"
 private const val ALBUM = "entries-album"
 private const val ENTRIES_STATE_MAP_TAG = "entries-state-map-slot"
