@@ -5,11 +5,19 @@ Specification: `docs/audits/2026-09-27-offline-picker-recenter-diagnosis.md`, in
 correction and the owner's rulings. Written by the coder in a cloud worktree on local branch
 `fixes`, which tracks `origin/journal-redesign`.
 
-**Status: F1, F2, F3 and F4 are built, tested, revert-checked and pushed. F5 is not built. It
-stopped on an open design question:** removing the corner button also removes the only delete from
-the wide tree's Journal album, and the dispatch does not say what should happen there (see Needs a
-decision, item 1). Final suite: 244 classes / 1988 / 1 / 0 / 24. The one failure is the
-known-intermittent `JournalTabTest` photo-pull test, and its class passed 17/0 when rerun alone.
+**Status, updated after the continuation (`prompts/preserved/2026-09-27-25.md`): F1 to F5 are built,
+tested, revert-checked and pushed. F6 is held by the owner** ("F6 should be held for another
+session"), with the reproduction counts gathered before the hold (see "Continuation: F6"). Final
+suite at `a79f30b`: **244 classes / 1990 / 1 / 0 / 24**. The one failure is F6's intermittent
+album test.
+
+The first hand-back's status is kept below, as it was written at `af51dc7`:
+
+> **Status: F1, F2, F3 and F4 are built, tested, revert-checked and pushed. F5 is not built. It
+> stopped on an open design question:** removing the corner button also removes the only delete from
+> the wide tree's Journal album, and the dispatch does not say what should happen there (see Needs a
+> decision, item 1). Final suite: 244 classes / 1988 / 1 / 0 / 24. The one failure is the
+> known-intermittent `JournalTabTest` photo-pull test, and its class passed 17/0 when rerun alone.
 
 ## Commits (all pushed to `journal-redesign`)
 
@@ -314,3 +322,99 @@ Nothing was disabled, skipped or weakened. No main-map test changed.
 - **The picker map's search-centre reticle** (`showSearchCentre` default `true`) draws at the region
   handed to the map. After a touch that is no longer where the pin is, which was already the case
   during any pan before this work. Not changed.
+
+## Continuation: F5 (dispatch `prompts/preserved/2026-09-27-25.md`)
+
+Owner's answer to Needs a decision, item 1 above: **"Remove everywhere now"** ("The tablet album has
+no delete of its own until J6; photos can still be deleted from the tablet's photo drawer"). That
+item is decided; the options above are kept as the record of what was asked.
+
+**Commits (pushed):**
+
+| SHA | What |
+|---|---|
+| `f07ecaa2bb78700b1ea139d8f0d8942bd9c838cd` | F5 tests first: compact (`JournalPendingDeleteTest`) 1, wide (`LogPanelTest`, harness gains `galleryPhotos`) 1. |
+| `a79f30b0ddd5eb6d774a92ec45a20f61f70b0661` | F5: corner button, its dialog state and its dialog call removed from `AlbumPhotoTile` (`EntriesAlbum.kt`). |
+
+**What changed.** `AlbumPhotoTile` no longer draws the `IconButton` ("Delete this photo") or opens
+`GalleryPhotoDeleteDialog`. Where `onRequestDeletePhoto` is wired (the compact tree), long-press
+Delete with Undo is the album's only delete. `LogPanel`'s album (wide tree, via `CartographyScreen`)
+is tap-only, by the owner's choice. The drawer's `PhotoGalleryScreen` is untouched and keeps its
+button and dialog (`PhotoGalleryScreenTest` ran green in the same batch). Doc comments that described
+the button were corrected, including the J4b test comment on `photoPoints` in `JournalPendingDeleteTest`.
+
+**Tests.**
+- Compact: "an album photo has no corner delete control, and a long-press at that corner opens the
+  Delete menu". No `Delete this photo` node; exactly one touchable node on the tile (the photo); a real
+  long-press at (0.88, 0.12) of the tile, the corner the button covered and the one region J4b's
+  `photoPoints` stayed off, opens the one-item menu; its Delete pends the photo ("Photo deleted · used
+  in 1 find"), and the row and file are deleted on timeout.
+- Wide: "the wide tree's Journal album photo has no corner delete control". The photo tile is shown,
+  and there is no `Delete this photo` node.
+- **Base failures, at `f07ecaa`:** both fail for the stated reason (the button found: 2 nodes compact,
+  1 wide). The first wide run failed for a wrong reason: `LogPanelTest`'s `setScreen` lands on Records,
+  so the Entries toolbar was not composed ("could not find … `entries-view-album`"). Found by printing
+  the semantics tree once. The test taps Cartography first, and the second base run is the one cited.
+- No existing test moved: none drove the corner button (first report, Premises).
+
+**Revert checks** (same runner, clean build logs, restored identical by `cmp`, tree clean after):
+
+| Edit | Observed |
+|---|---|
+| The button put back, described "Delete this photo" | Both F5 tests fail on the button found (1 node wide, 2 compact) |
+| The button put back, no description | The compact test fails on the tile's touchable nodes, "Expected exactly '1' node but found '2'" |
+
+Each revert run also had **one more failure that these edits cannot produce**. The Undo test failed in
+the first; "an album photo's Delete hides it…" failed in the second; both were `'tile-options-delete'
+is not displayed`. That is F6's shape, and it is counted there. The corner long-press half of the
+compact test is not isolated by either revert, because the count assertion fails first; it is covered
+by the base run's design, not by a revert of its own.
+
+**Flag, not changed: `EntriesAlbum.onDeletePhoto` is now unused.** It is kept with
+`@Suppress("UNUSED_PARAMETER")` and a doc comment, so the caller chain is unchanged by this stage
+(`CartographyScreen.onDeleteGalleryPhoto`, fed from `JournalTab` and `LogPanel` and on up to
+`MainActivity`). Removing the chain touches files outside this dispatch's list. Options: remove it in
+J6 with the wide tree's rework, or as its own small change.
+
+## Continuation: F6, held by the owner
+
+The planner, relaying the owner verbatim: **"F6 should be held for another session."** I stopped at
+that message. No fix was written. The only F6 change was diagnostic instrumentation in
+`JournalPendingDeleteTest.touchMenuItem`, and it was never committed. It was discarded with
+`git checkout -- <file>`, which was safe because the forward change was already pushed at `a79f30b`.
+After that the tree matched `a79f30b` exactly (empty `git status`, and no `F6DIAG` left in the file).
+**No F6 commit was pushed.**
+
+**What was gathered before the hold, counts only.** Every run below of `JournalPendingDeleteTest`
+this session was read from its own XML, with a clean build log.
+
+| Runs | Tree | Runs with a failure of this shape | Which test, which message |
+|---|---|---|---|
+| Full suite at `3025bab` and at `53ecbff`; the two F5 base runs | before F5's production change | 0 of 4 | none |
+| The 5-class F5 batch | `a79f30b` tree, uncommitted then | 1 of 1 | Undo on an album photo: `'tile-options-delete' is not displayed` |
+| The class alone, 10 runs | `a79f30b` + diagnostics that run only on failure | 2 of 10 (runs 5 and 9) | Run 5, Undo on an album photo: the menu item was **not in the tree at all** when the diagnostics fetched it (`could not find any node … tile-options-delete`). Run 9, "a long-press anywhere on an album photo opens a menu of exactly Delete": **no popup item** after a long-press (`Expected exactly '1' node … (OnClick is defined) && hasAnyAncestorThat(IsPopup…)`). |
+| The two F5 revert runs | `a79f30b` with the button put back | 2 of 2 | Undo (first), "Delete hides it…" (second): `not displayed` |
+| Final full suite | `a79f30b` | 1 of 1 | Undo on an album photo: `not displayed` |
+
+**Totals.** 6 failing runs out of 18. All 6 were album-photo long-press tests, and each time the menu
+item was missing or not displayed right after `longClick` and `waitForIdle`. Separately, the
+planner's own failure was at `af51dc7`, before F5 existed. The two find-tile long-press tests never
+failed in these runs.
+
+**What this licenses, and what it doesn't.** The runs before F5's production change are too few (0 of
+4) to show whether F5 changed the rate. The planner's failure at `af51dc7` shows F5 did not create
+the failure. No mechanism was established. The diagnostics' two readings (item absent from the tree;
+no popup item) say the menu had not opened, rather than that it had opened off-screen. That is from
+two samples, and it is recorded as an observation for the next session, not as a diagnosis.
+`JournalTabTest`'s photo-pull failure was not examined for a shared cause.
+
+**Consequence for this report's suite figure:** the final full suite is red on this test, and it
+stays red until F6 is taken up. Nothing was disabled, skipped or weakened.
+
+## Suite, after the continuation
+
+- At `a79f30b`, cleared results directory, build log clean: **244 classes / 1990 tests / 1 failure /
+  0 errors / 24 skipped.** That is +2 tests over `af51dc7` (the two F5 tests). The failure is F6's
+  (Undo on an album photo, `'tile-options-delete' is not displayed`), held by the owner.
+- The known F4 window stays an open item (Needs a decision, item 2), left unbuilt by the planner's
+  instruction: no speculative fix without data.
