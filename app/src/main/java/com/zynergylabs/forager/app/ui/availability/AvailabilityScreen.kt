@@ -684,7 +684,14 @@ fun AvailabilityScreen(
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>> = { Result.success(emptyList()) },
 ) {
     // Map up front. The list is one tap away; the map is the thing this screen is arranged around.
-    var selectedTab by remember { mutableStateOf(ResultsTab.MAP) }
+    //
+    // Saveable, like compactTab below (journal redesign J2, second coder; planner's call in
+    // prompts/preserved/2026-09-27-19.md): compactTab restores after an Activity recreation, and a
+    // plain-remember selectedTab reset to MAP beside it, so after a recreation on Seasonal the bottom
+    // nav showed Seasonal while the LaunchedEffect below asked for the map's sightings, and a new
+    // search did not reload Seasonal until a tab tap re-synced the two. Saving both keeps them equal
+    // across a restore; nothing else about tab selection changed.
+    var selectedTab by rememberSaveable { mutableStateOf(ResultsTab.MAP) }
 
     // The compact bottom nav's own 5-way selection — see [CompactTab]'s doc comment for why this
     // is separate from selectedTab rather than extending ResultsTab itself (which the medium/
@@ -696,9 +703,9 @@ fun AvailabilityScreen(
     // Journal redesign J2, T5 (owner ruling "Yes, fold into J2 (Recommended)"): saveable, so an
     // Activity recreation (a night-mode toggle, a fold, process death; a plain rotation does not
     // recreate, see AndroidManifest.xml's configChanges) no longer drops the user back on Maps. An
-    // enum saves as-is through the default saver. Only this changed: selectedTab above stays plain
-    // remember, so after a recreation on List or Seasonal the two can disagree until the next tab
-    // tap re-syncs them (raised in the J2 report, not changed here).
+    // enum saves as-is through the default saver. selectedTab above was left plain remember by T5,
+    // which let the two disagree after a recreation; it is saveable too since the second J2 coder
+    // (see its own comment).
     var compactTab by rememberSaveable { mutableStateOf(CompactTab.MAP) }
 
     // Journal redesign J1, S1: the Journal's user-set UI state (top tab, Records selection), held
