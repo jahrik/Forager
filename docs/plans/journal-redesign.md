@@ -486,3 +486,13 @@ After keeping today's rows in short windows ("Keep today's rows (Recommended)"),
 ### In-app Navigate deferred (owner, 2026-09-27)
 
 J5c's coder stopped on Navigate: starting the app's own navigation HUD for a waypoint from the Records tab needs a path the app does not have. The owner, verbatim: "We can defer the navigation for another time. It's going to need more work anyway", and for M1's waypoint bubble: "Defer for now too. It will go with a review in current waypoint navigation." So J5c's details sheet and M1's waypoint bubble offer **Directions only** (the existing hand-off to an installed navigation app). In-app Navigate, from both places, waits for a later review of the current waypoint navigation, which will specify the route. This supersedes the Navigate half of the M1 ruling "In-app HUD, plus Directions (Recommended)"; Directions stands.
+
+### L0 design rulings (owner, 2026-09-27)
+
+Asked before dispatching L0, verbatim answers:
+1. Persistence: **"Across app restarts (Recommended)"**: which overlays are on, their opacity and their order are stored in DataStore (like Night Maps and fullscreen), so the map opens as it was left.
+2. Legend: **"Collapsible chip, bottom corner (Recommended)"**: a small chip naming the active colour layer(s) in the bottom corner opposite the attribution; tap to expand the colour scale and "no forecast here"; clear of the icon cluster and the landscape rail.
+3. Tap priority: **"Markers, then lines, then colour (Recommended)"**: a marker wins, then a track line or offline-map outline, then a colour cell only if nothing else is under the finger; the topmost layer wins within each group.
+4. The synthetic layer's switch: **"Diagnostics screen (Recommended)"**: a toggle in the existing Diagnostics (debug build) screen, debug builds only, never in release.
+
+L0 runs as two sequential stages: **L0a** (the layer model, explicit z-order, visibility and opacity, tap priority, today's markers moved onto it; no new UI) and **L0b** (the Layers sheet, DataStore persistence, the legend chip, the stored-data interface for forecast cells, the synthetic layer).
