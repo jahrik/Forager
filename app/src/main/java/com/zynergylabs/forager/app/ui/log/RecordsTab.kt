@@ -1,7 +1,6 @@
 package com.zynergylabs.forager.app.ui.log
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,6 +16,7 @@ import androidx.compose.ui.Modifier
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.LatLng
+import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.TrackPointRecord
 import com.zynergylabs.forager.app.domain.model.Waypoint
@@ -97,11 +97,20 @@ internal fun RecordsTab(
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>> = { Result.success(emptyList()) },
     findsContent: @Composable ColumnScope.() -> Unit,
     /**
-     * How many logged finds the Finds chip counts — committed finds, what the Finds gallery's own
-     * first ("Log") tab lists. `null` shows the Finds chip, and All, without a count rather than a
-     * made-up one: [LogPanel] (out of scope until J6) has no count to pass today.
+     * The committed logged finds (`MushroomLogUiState.entries`, what the Finds gallery's own first
+     * "Log" tab lists; owner's answer 3 in `prompts/preserved/2026-09-27-17.md`, "Committed finds
+     * only"): the Finds chip counts them and the All logbook lists them (journal redesign J1, S3/S4).
+     * `null` means the caller has none to give — [LogPanel], out of scope until J6 — and then the
+     * Finds and All chips show no count and the All logbook says finds are not listed, rather than
+     * showing a made-up number or passing the rest off as everything.
      */
-    findsCount: Int? = null,
+    finds: List<MushroomLogEntry>? = null,
+    /**
+     * Opens a find's report — the All logbook's find tap (J1 S4). `RecordsTab` selects the Finds chip
+     * first, so the report opens in the Finds slot and Back goes report, Finds gallery, All (owner's
+     * answer 2). The default does nothing beyond that chip switch ([LogPanel] passes none).
+     */
+    onOpenFind: (String) -> Unit = {},
     onFindsTabLeft: () -> Unit = {},
     /**
      * Whether [JournalTab]/[LogPanel]'s own find-editing `BackHandler` is currently live —
@@ -180,7 +189,7 @@ internal fun RecordsTab(
         RecordsFilterChipRow(
             selected = selectedTab,
             counts = RecordsFilterCounts(
-                finds = findsCount,
+                finds = finds?.size,
                 tracks = tracks.size,
                 waypoints = waypoints.size,
                 offlineMaps = availabilityUiState.offlineRegions.size,
@@ -189,9 +198,24 @@ internal fun RecordsTab(
         )
 
         when (selectedTab) {
-            // J1 S4 (the All logbook) is not built yet: the dispatch's S4 questions went back to the
-            // planner. Until then All shows the chip row alone.
-            RecordsSubTab.ALL -> Box(modifier = Modifier.weight(1f).fillMaxSize())
+            // J1 S4: the All logbook — see RecordsLogbookList.
+            RecordsSubTab.ALL -> RecordsLogbookList(
+                finds = finds,
+                tracks = tracks,
+                waypoints = waypoints,
+                availabilityUiState = availabilityUiState,
+                distanceUnit = distanceUnit,
+                currentTime = currentTime,
+                waypointEntryReferenceCounts = waypointEntryReferenceCounts,
+                getFullRecord = getFullRecord,
+                onDeleteWaypoint = onDeleteWaypoint,
+                onDeleteOfflineRegion = onDeleteOfflineRegion,
+                onOpenFind = { id ->
+                    selectTab(RecordsSubTab.FINDS)
+                    onOpenFind(id)
+                },
+                modifier = Modifier.weight(1f),
+            )
 
             RecordsSubTab.WAYPOINTS -> WaypointsSection(
                 waypoints = waypoints,

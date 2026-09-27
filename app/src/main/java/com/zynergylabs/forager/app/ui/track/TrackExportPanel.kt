@@ -87,7 +87,7 @@ internal fun TrackExportList(
 }
 
 @Composable
-private fun TrackExportRow(
+internal fun TrackExportRow(
     track: Track,
     waypoints: List<Waypoint>,
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,

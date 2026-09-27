@@ -481,7 +481,13 @@ internal fun JournalTab(
                 onTracksOpened = onTracksOpened,
                 getFullRecord = getFullRecord,
                 findsContent = findsSection,
-                findsCount = uiState.entries.size,
+                finds = uiState.entries,
+                // The All logbook's find tap: RecordsTab has already selected the Finds chip; this
+                // opens the report there, exactly as the Finds gallery's own tile does.
+                onOpenFind = { id ->
+                    mode = JournalEntryMode.REPORT
+                    onOpenEntry(id)
+                },
                 onFindsTabLeft = ::leaveFindEditingIfNeeded,
                 findsEditingInProgress = findsSectionHasBackStack,
                 pendingSubTab = recordsPendingSubTab,

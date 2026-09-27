@@ -11,6 +11,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
@@ -412,7 +413,7 @@ class RecordsFilterChipsTest {
         }
         // The same rows the single-type chips show: find tiles, the track row's share action, the
         // waypoint row's Directions and Remove, the region row's Delete.
-        composeRule.onNodeWithText("Find on $d1", useUnmergedTree = true).assertExists()
+        composeRule.onAllNodesWithText("Find on $d1", useUnmergedTree = true).assertCountEquals(2)
         composeRule.onNodeWithTag("share-track-T1").assertExists()
         composeRule.onNodeWithContentDescription("Directions to Morning pin").assertExists()
         composeRule.onNodeWithContentDescription("Remove waypoint Creek pin").assertExists()
@@ -426,7 +427,7 @@ class RecordsFilterChipsTest {
         composeRule.onNodeWithContentDescription("Remove waypoint Creek pin").performScrollTo().performClick()
         composeRule.onNodeWithText("Delete \"Creek pin\"?").assertIsDisplayed()
         assertEquals(emptyList<String>(), deletedWaypointIds)
-        composeRule.onNodeWithText("Delete").performClick()
+        composeRule.onAllNodesWithText("Delete").filterToOne(hasAnyAncestor(isDialog())).performClick()
         assertEquals(listOf("W2"), deletedWaypointIds)
 
         composeRule.onNodeWithTag(rowTag("offline-maps", "7")).performScrollTo()
@@ -449,7 +450,7 @@ class RecordsFilterChipsTest {
 
             chip(FINDS_CHIP).assertIsSelected()
             composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
-            composeRule.onNodeWithText("Find on $d1").assertDoesNotExist()
+            composeRule.onNodeWithTag(rowTag("finds", "F2")).assertDoesNotExist()
 
             pressBack()
             chip(FINDS_CHIP).assertIsSelected()

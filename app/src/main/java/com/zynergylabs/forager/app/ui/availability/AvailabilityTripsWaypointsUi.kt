@@ -207,31 +207,51 @@ internal fun WaypointsSection(
     }
 
     pendingDeleteWaypoint?.let { waypoint ->
-        val referencingEntryCount = entryReferenceCounts[waypoint.id] ?: 0
-        AlertDialog(
-            onDismissRequest = { pendingDeleteWaypoint = null },
-            title = { Text("Delete \"${waypoint.name}\"?") },
-            text = {
-                Text(
-                    // No permanence claim — see OfflineRegionsSection's identical dialog for why.
-                    if (referencingEntryCount > 0) {
-                        "This waypoint appears in $referencingEntryCount ${if (referencingEntryCount == 1) "journal entry" else "journal entries"}."
-                    } else {
-                        "Delete this waypoint?"
-                    },
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onDeleteWaypoint(waypoint.id)
-                        pendingDeleteWaypoint = null
-                    },
-                ) { Text("Delete") }
-            },
-            dismissButton = { TextButton(onClick = { pendingDeleteWaypoint = null }) { Text("Cancel") } },
+        WaypointDeleteDialog(
+            waypoint = waypoint,
+            entryReferenceCounts = entryReferenceCounts,
+            onDeleteWaypoint = onDeleteWaypoint,
+            onDismiss = { pendingDeleteWaypoint = null },
         )
     }
+}
+
+/**
+ * [WaypointsSection]'s delete confirmation, extracted unchanged (journal redesign J1, S4) so the
+ * Journal's All logbook, which shows the same [WaypointRow], confirms a delete with the same dialog —
+ * "deletes stay as they are" in that stage.
+ */
+@Composable
+internal fun WaypointDeleteDialog(
+    waypoint: Waypoint,
+    entryReferenceCounts: Map<String, Int>,
+    onDeleteWaypoint: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val referencingEntryCount = entryReferenceCounts[waypoint.id] ?: 0
+    AlertDialog(
+        onDismissRequest = { onDismiss() },
+        title = { Text("Delete \"${waypoint.name}\"?") },
+        text = {
+            Text(
+                // No permanence claim — see OfflineRegionsSection's identical dialog for why.
+                if (referencingEntryCount > 0) {
+                    "This waypoint appears in $referencingEntryCount ${if (referencingEntryCount == 1) "journal entry" else "journal entries"}."
+                } else {
+                    "Delete this waypoint?"
+                },
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onDeleteWaypoint(waypoint.id)
+                    onDismiss()
+                },
+            ) { Text("Delete") }
+        },
+        dismissButton = { TextButton(onClick = { onDismiss() }) { Text("Cancel") } },
+    )
 }
 
 /**
@@ -240,7 +260,7 @@ internal fun WaypointsSection(
  * ([launchDirections]) reusing the exact same `geo:` intent machinery, and delete.
  */
 @Composable
-private fun WaypointRow(waypoint: Waypoint, onDelete: () -> Unit) {
+internal fun WaypointRow(waypoint: Waypoint, onDelete: () -> Unit) {
     val context = LocalContext.current
     val location = LatLng(waypoint.lat, waypoint.lng)
     Card(modifier = Modifier.fillMaxWidth()) {

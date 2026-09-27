@@ -378,33 +378,53 @@ private fun OfflineRegionsSection(
     }
 
     pendingDeleteRegion?.let { region ->
-        val referencingEntryCount = entryReferenceCounts[region.id] ?: 0
-        AlertDialog(
-            onDismissRequest = { pendingDeleteRegion = null },
-            title = { Text("Delete \"${region.name}\"?") },
-            text = {
-                Text(
-                    // No permanence claim (a future trash lands this becoming false) — states the
-                    // consequence, not that it's irreversible. See amendment-2b-finds-and-trash.md.
-                    if (referencingEntryCount > 0) {
-                        "This region appears in $referencingEntryCount ${if (referencingEntryCount == 1) "journal entry" else "journal entries"}. " +
-                            "This deletes the downloaded map tiles for this region. You can re-download it later."
-                    } else {
-                        "This deletes the downloaded map tiles for this region. You can re-download it later."
-                    },
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onDeleteOfflineRegion(region.id)
-                        pendingDeleteRegion = null
-                    },
-                ) { Text("Delete") }
-            },
-            dismissButton = { TextButton(onClick = { pendingDeleteRegion = null }) { Text("Cancel") } },
+        OfflineRegionDeleteDialog(
+            region = region,
+            entryReferenceCounts = entryReferenceCounts,
+            onDeleteOfflineRegion = onDeleteOfflineRegion,
+            onDismiss = { pendingDeleteRegion = null },
         )
     }
+}
+
+/**
+ * [OfflineRegionsSection]'s delete confirmation, extracted unchanged (journal redesign J1, S4) so the
+ * Journal's All logbook, which shows the same [OfflineRegionRow], confirms a delete with the same
+ * dialog — "deletes stay as they are" in that stage.
+ */
+@Composable
+internal fun OfflineRegionDeleteDialog(
+    region: OfflineRegionSummary,
+    entryReferenceCounts: Map<Long, Int>,
+    onDeleteOfflineRegion: (Long) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val referencingEntryCount = entryReferenceCounts[region.id] ?: 0
+    AlertDialog(
+        onDismissRequest = { onDismiss() },
+        title = { Text("Delete \"${region.name}\"?") },
+        text = {
+            Text(
+                // No permanence claim (a future trash lands this becoming false) — states the
+                // consequence, not that it's irreversible. See amendment-2b-finds-and-trash.md.
+                if (referencingEntryCount > 0) {
+                    "This region appears in $referencingEntryCount ${if (referencingEntryCount == 1) "journal entry" else "journal entries"}. " +
+                        "This deletes the downloaded map tiles for this region. You can re-download it later."
+                } else {
+                    "This deletes the downloaded map tiles for this region. You can re-download it later."
+                },
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onDeleteOfflineRegion(region.id)
+                    onDismiss()
+                },
+            ) { Text("Delete") }
+        },
+        dismissButton = { TextButton(onClick = { onDismiss() }) { Text("Cancel") } },
+    )
 }
 
 /**
@@ -418,7 +438,7 @@ private fun OfflineRegionsSection(
  * of to "the one download that just finished."
  */
 @Composable
-private fun OfflineRegionRow(
+internal fun OfflineRegionRow(
     region: OfflineRegionSummary,
     isStale: Boolean,
     distanceUnit: DistanceUnit,
