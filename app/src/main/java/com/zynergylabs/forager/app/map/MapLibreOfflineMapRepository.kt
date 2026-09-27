@@ -162,16 +162,25 @@ class MapLibreOfflineMapRepository(
         // rows where it's true so the region-management list doesn't show automatic per-log-entry
         // captures alongside regions the user picked. Not implemented: entry-captures don't exist
         // yet, and this is a later workstream's job, not B's.
+        val statuses = offlineRegions.associate { it.id to it.getStatusSuspend() }
+        val idsToDelete = offlineRegionIdsToDelete(
+            completeById = statuses.mapValues { (_, status) -> status.isComplete },
+            inFlightIds = emptySet(),
+        )
         offlineRegions.mapNotNull { offlineRegion ->
-            val status = offlineRegion.getStatusSuspend()
+            val status = statuses.getValue(offlineRegion.id)
 
             // A region OfflineManager still has on file but never finished — e.g. the process was
             // killed mid-download — is the same "half-downloaded region looking complete" case
             // download()'s own catch block prevents within one run. A restart bypasses that catch
             // block entirely, so the same invariant is re-checked here, per region.
+            // Which incomplete regions are deleted is offlineRegionIdsToDelete's decision; an
+            // incomplete region is never listed either way.
             if (!status.isComplete) {
-                offlineRegion.deleteSuspend()
-                offlineRegionDao.deleteById(offlineRegion.id)
+                if (offlineRegion.id in idsToDelete) {
+                    offlineRegion.deleteSuspend()
+                    offlineRegionDao.deleteById(offlineRegion.id)
+                }
                 return@mapNotNull null
             }
 
@@ -238,6 +247,20 @@ class MapLibreOfflineMapRepository(
 // for a reason that specific theory didn't predict) is recorded there so the theory doesn't get
 // re-tried.
 private const val TAG = "MapLibreOfflineMapRepo"
+
+/**
+ * Which of `OfflineManager`'s regions [MapLibreOfflineMapRepository.listRegions] deletes: every
+ * region that is not complete ([completeById] maps each region id to
+ * `OfflineRegionStatus.isComplete`). [inFlightIds] is not consulted yet.
+ *
+ * A pure function so the decision is testable headless: `OfflineManager` and `OfflineRegion` are
+ * not constructible off a device, which is why this repository's only tests so far are of the
+ * other pure piece it holds, the metadata bytes (`MapLibreOfflineRegionMetadataTest`); the
+ * ViewModel's tests use a fake repository (`AvailabilityViewModelOfflineMapsTest`, whose doc
+ * comment leaves `OfflineManager` behaviour to this class).
+ */
+internal fun offlineRegionIdsToDelete(completeById: Map<Long, Boolean>, inFlightIds: Set<Long>): Set<Long> =
+    completeById.filterValues { complete -> !complete }.keys
 
 private fun Region.toLatLngBounds(): LatLngBounds {
     val box = GeoDistance.boundingBox(LatLng(lat, lng), radiusKm)
