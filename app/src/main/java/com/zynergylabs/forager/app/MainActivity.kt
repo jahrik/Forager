@@ -37,6 +37,7 @@ import com.zynergylabs.forager.app.ui.log.CameraAbsenceWatcher
 import com.zynergylabs.forager.app.ui.log.CameraGridModeViewModel
 import com.zynergylabs.forager.app.ui.log.InAppCameraViewModel
 import com.zynergylabs.forager.app.ui.log.MushroomLogViewModel
+import com.zynergylabs.forager.app.ui.log.findDeleteNotice
 import com.zynergylabs.forager.app.ui.log.offlineRegionDeleteNotice
 import com.zynergylabs.forager.app.ui.log.waypointDeleteNotice
 import com.zynergylabs.forager.app.ui.theme.ForagerTheme
@@ -445,7 +446,9 @@ class MainActivity : ComponentActivity() {
                     onLockCameraToPortraitChanged = viewModel::onLockCameraToPortraitChanged,
                     onThemeModeChanged = viewModel::onThemeModeChanged,
                     onMapFullscreenChanged = viewModel::onMapFullscreenChanged,
-                    logUiState = logUiState,
+                    // Journal redesign J4: a find whose delete is pending (Undo snackbar up) is left
+                    // out of the lists the screen gets.
+                    logUiState = logUiState.hidingPendingDelete(),
                     cameraCaptureFiles = container.cameraCaptureFiles,
                     inAppCameraTarget = inAppCameraTarget,
                     onOpenCamera = inAppCameraViewModel::open,
@@ -465,7 +468,9 @@ class MainActivity : ComponentActivity() {
                     onAddLogPhoto = mushroomLogViewModel::onAddPhoto,
                     onRemoveLogPhoto = mushroomLogViewModel::onRemovePhoto,
                     onPullLogPhoto = mushroomLogViewModel::onPullPhoto,
-                    onDeleteLogEntry = mushroomLogViewModel::onDeleteEntry,
+                    // J4: the find report's (and edit form's) Delete asks for a pending delete; the
+                    // "Saved to Drafts" snackbar's Discard (onDiscardLogDraft above) stays immediate.
+                    onDeleteLogEntry = mushroomLogViewModel::requestDeleteEntry,
                     onDeleteGalleryPhoto = mushroomLogViewModel::onDeleteGalleryPhoto,
                     onAddGalleryPhoto = mushroomLogViewModel::onAddGalleryPhoto,
                     onSaveLogErrorDismissed = mushroomLogViewModel::onSaveErrorDismissed,
@@ -561,6 +566,11 @@ class MainActivity : ComponentActivity() {
                             uiState.pendingOfflineRegionDelete,
                             onUndo = viewModel::undoDeleteOfflineRegion,
                             onCommit = viewModel::commitDeleteOfflineRegion,
+                        ),
+                        findDeleteNotice(
+                            logUiState.pendingDelete,
+                            onUndo = mushroomLogViewModel::undoDeleteEntry,
+                            onCommit = mushroomLogViewModel::commitDeleteEntry,
                         ),
                     ),
                 )
