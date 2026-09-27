@@ -15,14 +15,16 @@ more certainty than the data supports. See `AvailabilityForecast` and
 
 ## How it works
 
-1. Search controls live in a **navigation drawer**. On medium/expanded
-   windows (tablets, landscape, foldables) it's opened from the tune icon in
-   the app bar; on a compact (phone-width) window there is no app bar or tune
-   icon — the drawer is reached from the map's own floating **Search** icon
-   instead (or an **Open Search** button before a first search has run — see
-   item 5 below). You pick a region there — either "use current location"
-   (device GPS/network location, with a radius slider) or manually entered
-   latitude/longitude — and a month. The drawer keeps the map, which is the
+1. On a phone (a window under 600 dp wide, or under 480 dp tall, as a
+   phone held sideways is) search is a **search bar across the top of the
+   screen**, floating over the map on the Maps tab (`SearchEntryBar`). Type a
+   species name into it; focusing it opens a **dropdown** below it
+   (`SearchDropdown`) where you set the region — **Set on map** or **Use
+   current location** (device GPS/network location) — the radius and the
+   month, re-run a **Recent search**, or enter latitude/longitude by hand
+   under **Advanced search**. On tablets and foldables (at least 600 dp wide
+   and 480 dp tall) the same controls sit in a permanent **navigation
+   drawer** beside the map instead. The drawer keeps the map, which is the
    primary content, at full height; a one-line strip above it
    ("Fungi · August · 15 km") says what the current search is while the
    controls are hidden. See `ui/availability/AvailabilityScreen` for why the
@@ -95,11 +97,14 @@ more certainty than the data supports. See `AvailabilityForecast` and
    `domain/CompassProvider` interface so it's testable without real
    hardware.
 
-   **The compact search drawer is the whole search feature, not just region
-   and month.** The species/category chips and taxon search field that used
-   to sit in the app bar, and Recent Searches, Advanced Search and Trip
-   Planner, all live in this one drawer, reached only from the Maps tab (see
-   above).
+   **On compact windows the top search bar is the whole search feature.**
+   The species field is the bar itself, and region, radius, month, Recent
+   Searches and Advanced Search are in the dropdown it opens, so search is
+   reachable from every compact tab, not only the Maps tab (the bar is
+   hidden in fullscreen and while a Journal entry is being edited). The
+   **Tools** drawer, opened from the bottom nav, holds no search controls:
+   it is for per-trip and rarely used tools such as Trip Planner, waypoints
+   and Settings (see `CompactTab`'s doc comment).
    The "Fungi · August · 15 km" strip above the map stays visible on every
    compact tab as a read-only summary of the current search, so checking
    what's currently searched doesn't require opening the drawer — it just
@@ -547,10 +552,9 @@ more certainty than the data supports. See `AvailabilityForecast` and
   the sighting dots as MapLibre GeoJSON sources/style layers rather than
   osmdroid `Overlay`s. The live breadcrumb trail renders dashed (a short
   dot-like `lineDasharray` — see `BREADCRUMB_DASH_PATTERN`'s doc comment);
-  night mode also differentiates markers by icon shape rather than hue now,
-  one shared warm colour and one shared ink colour standing in for the
-  independently-tuned ones day mode still uses — see `MapPalette.NIGHT`'s
-  doc comment, "Fifth pass." `Basemap`, the
+  every marker has its own colour role in `MapPalette`, day and night,
+  follows Night Maps, and has its own cased silhouette (`MarkerGlyphs.kt`,
+  colour build C2). `Basemap`, the
   same own-the-vendor-boundary idea one level down — the basemap catalogue
   is pure Kotlin (labels, coverage limits, zoom ceilings, attribution, no
   MapLibre and no Compose), and `BasemapStyles.styleJsonFor` is the only
@@ -721,41 +725,27 @@ paints in it — same limitation the paragraph above already states, for the
 renderer actually running today.
 
 **Map overlay legibility has no headless assertion that establishes it.**
-`MapPalette` gives day and night modes distinct treatments now, and
-`MapPaletteTest` guards what it can of each. Day still differentiates its
-seven marker roles by hue, checked with a contrast *ratchet* (not a bar)
-against a stated, provisional pale-tile reference — the ratchet exists
-because the shipped day colours don't clear 4:1 or even 3:1 against that
-reference at all, and were tuned on real hardware instead; the test pins
-the measured minimum so nothing quietly gets worse, without claiming the
-arithmetic is the right measure for a saturated mark on a busy, desaturated
-basemap. Night no longer makes a colour-legibility claim against the tile
-at all: since night mode stopped dimming the basemap (`BasemapStyles.kt`'s
-`NIGHT_RASTER_PAINT` doc comment, "Dimming removed," 2026-08-26), it
-differentiates markers by icon shape instead of hue, one shared warm fill
-and one shared dark ink standing in for the nine independently-tuned
-colours it used before (`MapPalette.NIGHT`, "Fifth pass"), with every night
-icon drawing a darkened, semi-transparent halo behind its fill
-(`SightingsMap.kt`'s `*Bitmap` functions) rather than relying on tuned
-contrast against the ground. `MapPaletteTest` checks what colour arithmetic
-still can — the two night colours' contrast against each other, and that
-each sits on the expected side of every day marker's lightness. The two
-checks that held `NIGHT_WARM` to a contrast floor against the ground itself
-are gone rather than run-but-failing: this repo's CI fails the whole build
-on any skipped test, so `@Ignore` was not an option, and running them today
-would pin a known, expected "failure" (the ground brightened, the colour
-wasn't retuned for it) as if it were a bug. `MapPaletteTest` records what
-they asserted in a comment, for whoever revives them once colour inversion
-(see below) gives night a dark ground again. Legibility against the ground
-and shape-distinctness are
-hardware questions in the meantime. Whether the sighting dots, the connector, the
-planned-trip diamond, the breadcrumb trail and the waypoint pin stay
-distinguishable from each other and from the tiles underneath — in sun, in
-shade, on topo and on plain, day and night — is a device question and is
-open. Colour inversion as night mode's eventual replacement for the
-icon/halo scheme is tracked as a deferred research item, not built this
-session — see `docs/plans/map-redesign.md`, "Deferred: night-mode colour
-inversion."
+Since colour build C2 (2026-09-27) every marker has its own role in
+`MapPalette`, in a day and a night variant, and follows Night Maps on every
+basemap: over Satellite, whose basemap stays day, only the markers switch.
+The colours are the owner's picks from the marker swatch board
+(`docs/audits/2026-09-27-marker-swatch-board.md`), searched there against
+the measured ground of both basemaps in both modes, night measured on the V1
+inversion; the sighting dot's greys and its two rings are owner overrides.
+Every marker but the sighting dot is outlined in a casing, white by day and
+black at night, and each point marker has its own silhouette (waypoint pin
+with a ring, mushroom, flag, rounded square with a camera, reticle;
+`MarkerGlyphs.kt`), since colour alone did not tell them apart.
+`MapPaletteTest` pins each colour's measured distance from that ground,
+contrast with its casing, separation from the other roles and day/night hue
+family as ratchets, and records where a figure falls short of the board's
+threshold (the night search centre and offline region, and the owner
+overrides). The board also found that no casing colour clears 3:1 against
+the whole ground range in either mode, so that is not asserted. What
+arithmetic cannot say is whether the markers read on a real screen: every
+marker legible on Topographical and Street, day and night, and on Satellite
+at night; the silhouettes distinguishable at a glance; the casings not
+clipped. Those are device questions, deferred to beta, and open.
 
 **The GPS camera-mode fix and first-activation zoom-in have no headless
 assertion either, for the same reason the rest of the map's native behavior

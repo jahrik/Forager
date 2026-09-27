@@ -31,8 +31,8 @@ import androidx.compose.ui.unit.dp
  * the outline is what keeps a glyph readable over light and dark alike, and it is what lets the
  * strip and the controls have **no background of their own** — no scrim, no gradient, no panel.
  * Fill is the only thing that means anything: white for ordinary chrome (the count, the shutter,
- * the loading and unavailable states, strip controls), red for an error so a failure still reads
- * as one, and red for recording controls when PR #103 brings them.
+ * the loading and unavailable states, strip controls), and red for an error so a failure still
+ * reads as one.
  *
  * Everything here takes the outline from [OverlayOutline] and the default fill from [OverlayFill],
  * so a control added later inherits the rule by using these composables rather than by knowing it.
@@ -58,6 +58,14 @@ import androidx.compose.ui.unit.dp
  */
 internal val OverlayOutline: Color = Color.Black
 internal val OverlayFill: Color = Color.White
+
+/**
+ * The level line's fill when the phone is level (`LevelLine.kt`): a fill that carries meaning, so
+ * not white. Yellow because it reads against both the white default and a green woodland scene,
+ * and because red here means an error. Pixel and iPhone mark "level" in yellow in the owner's and
+ * this session's recollection; that was not checked.
+ */
+internal val OverlayLevelFill: Color = Color(0xFFFFD600)
 
 /** Stroke width for text and the offset for icons. Three dp reads as an outline at body size and does not fill a letter's counter. */
 internal val OVERLAY_OUTLINE_WIDTH: Dp = 3.dp
