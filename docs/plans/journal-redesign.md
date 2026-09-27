@@ -425,3 +425,7 @@ Open, for M1's pre-build pass: what each bubble shows per kind (starting from wh
 ### Order, revised
 
 J4 (running), J4b, J5, **M1**, J8, then the single Journal PR.
+
+### Photo details and location (future stage, not scheduled)
+
+J4b found no photo edit screen, so the album's long-press menu is Delete-only. The owner chose **"Later, own stage (Recommended)"**: a photo details and location screen is a stage of its own, to be specified when scheduled (`updatePhotoLocationUseCase` is wired in `MainActivity` and would be where such a screen writes; J4b traced what reaches it).
