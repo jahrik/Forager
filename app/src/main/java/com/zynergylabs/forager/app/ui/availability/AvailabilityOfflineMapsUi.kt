@@ -50,6 +50,10 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
+import com.zynergylabs.forager.app.ui.log.RecordType
+import com.zynergylabs.forager.app.ui.log.SwipeToDeleteRow
+import com.zynergylabs.forager.app.ui.log.swipeToDeleteTag
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -238,13 +242,15 @@ internal fun OfflineMapsPanel(
         HorizontalDivider()
 
         OfflineRegionsSection(
-            regions = uiState.offlineRegions,
+            // Journal redesign J4: a region whose delete is pending is left out of the rows, but
+            // its tiles are still on disk until the delete runs, so the budget counts every region.
+            regions = uiState.visibleOfflineRegions,
+            tilesUsed = uiState.offlineRegions.sumOf { it.tileCount },
             errorMessage = uiState.offlineRegionsErrorMessage,
             staleThresholdDays = uiState.offlineStaleThresholdDays,
             distanceUnit = distanceUnit,
             nowEpochMillis = now,
             onDeleteOfflineRegion = onDeleteOfflineRegion,
-            entryReferenceCounts = uiState.offlineRegionEntryReferenceCounts,
         )
     }
 }
@@ -323,21 +329,26 @@ private fun OfflineDownloadStatusContent(status: OfflineMapStatus) {
  * tile counts overstate real disk usage and a delete can free far less than its region's own
  * reported size — this text deliberately never promises a specific amount reclaimed.
  *
- * Deleting a downloaded region is not reversible without re-downloading it, so each row's "Delete"
- * button opens a confirmation dialog ([pendingDeleteRegion]) rather than deleting immediately on tap.
+ * Deleting a downloaded region is not reversible without re-downloading it. It used to confirm
+ * through a dialog behind each row's "Delete" button; since journal redesign J4 a row is a
+ * [SwipeToDeleteRow] and [onDeleteOfflineRegion] asks for a *pending* delete
+ * (`AvailabilityViewModel.requestDeleteOfflineRegion`): the row hides, the Undo snackbar shows with
+ * the reference warning the dialog carried, and MapLibre's tile delete runs only when the snackbar
+ * ends without Undo — the only way Undo can be exact for a region.
+ *
+ * [tilesUsed] is passed separately from [regions] because a pending region is not a row but its
+ * tiles still count against the budget until they are deleted.
  */
 @Composable
 private fun OfflineRegionsSection(
     regions: List<OfflineRegionSummary>,
+    tilesUsed: Int,
     errorMessage: String?,
     staleThresholdDays: Int,
     distanceUnit: DistanceUnit,
     nowEpochMillis: Long,
     onDeleteOfflineRegion: (Long) -> Unit,
-    /** How many Cartography entries currently keep a reference to each region (by id) — Journal Stage 2b's 4b deletion warning, shown in the confirm dialog below. */
-    entryReferenceCounts: Map<Long, Int> = emptyMap(),
 ) {
-    var pendingDeleteRegion by remember { mutableStateOf<OfflineRegionSummary?>(null) }
 
     // No scroll/height cap of its own: OfflineMapsPanel's whole Column scrolls as one unit (see
     // its doc comment), so this section just renders at its natural height as the last thing in
@@ -350,7 +361,6 @@ private fun OfflineRegionsSection(
     ) {
         Text("Downloaded Maps", style = MaterialTheme.typography.titleSmall)
 
-        val tilesUsed = regions.sumOf { it.tileCount }
         Text(
             "Tile budget: $tilesUsed / ${OfflineMapRepository.TILE_COUNT_LIMIT}. Sizes don't add up to " +
                 "total disk usage — overlapping regions share tiles, so deleting one may free less " +
@@ -366,65 +376,22 @@ private fun OfflineRegionsSection(
             Text("No regions downloaded yet.", style = MaterialTheme.typography.bodySmall)
         } else {
             regions.forEach { region ->
-                OfflineRegionRow(
-                    region = region,
-                    isStale = isOfflineRegionStale(region.createdAtEpochMillis, nowEpochMillis, staleThresholdDays),
-                    distanceUnit = distanceUnit,
-                    nowEpochMillis = nowEpochMillis,
-                    onDelete = { pendingDeleteRegion = region },
-                )
+                key(region.id) {
+                    SwipeToDeleteRow(
+                        testTag = swipeToDeleteTag(RecordType.OFFLINE_MAPS, region.id.toString()),
+                        onDelete = { onDeleteOfflineRegion(region.id) },
+                    ) {
+                        OfflineRegionRow(
+                            region = region,
+                            isStale = isOfflineRegionStale(region.createdAtEpochMillis, nowEpochMillis, staleThresholdDays),
+                            distanceUnit = distanceUnit,
+                            nowEpochMillis = nowEpochMillis,
+                        )
+                    }
+                }
             }
         }
     }
-
-    pendingDeleteRegion?.let { region ->
-        OfflineRegionDeleteDialog(
-            region = region,
-            entryReferenceCounts = entryReferenceCounts,
-            onDeleteOfflineRegion = onDeleteOfflineRegion,
-            onDismiss = { pendingDeleteRegion = null },
-        )
-    }
-}
-
-/**
- * [OfflineRegionsSection]'s delete confirmation, extracted unchanged (journal redesign J1, S4) so the
- * Journal's All logbook, which shows the same [OfflineRegionRow], confirms a delete with the same
- * dialog — "deletes stay as they are" in that stage.
- */
-@Composable
-internal fun OfflineRegionDeleteDialog(
-    region: OfflineRegionSummary,
-    entryReferenceCounts: Map<Long, Int>,
-    onDeleteOfflineRegion: (Long) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val referencingEntryCount = entryReferenceCounts[region.id] ?: 0
-    AlertDialog(
-        onDismissRequest = { onDismiss() },
-        title = { Text("Delete \"${region.name}\"?") },
-        text = {
-            Text(
-                // No permanence claim (a future trash lands this becoming false) — states the
-                // consequence, not that it's irreversible. See amendment-2b-finds-and-trash.md.
-                if (referencingEntryCount > 0) {
-                    "This region appears in $referencingEntryCount ${if (referencingEntryCount == 1) "journal entry" else "journal entries"}. " +
-                        "This deletes the downloaded map tiles for this region. You can re-download it later."
-                } else {
-                    "This deletes the downloaded map tiles for this region. You can re-download it later."
-                },
-            )
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    onDeleteOfflineRegion(region.id)
-                    onDismiss()
-                },
-            ) { Text("Delete") }
-        },
-        dismissButton = { TextButton(onClick = { onDismiss() }) { Text("Cancel") } },
-    )
 }
 
 /**
@@ -436,6 +403,9 @@ internal fun OfflineRegionDeleteDialog(
  * marker with no region data left to attach it to, and every completed region in this list is
  * exactly the thing that text was originally describing, so it's reworded to apply per-row instead
  * of to "the one download that just finished."
+ *
+ * No delete control of its own since journal redesign J4 (the text "Delete" button is gone): its
+ * callers wrap it in a [SwipeToDeleteRow].
  */
 @Composable
 internal fun OfflineRegionRow(
@@ -443,7 +413,6 @@ internal fun OfflineRegionRow(
     isStale: Boolean,
     distanceUnit: DistanceUnit,
     nowEpochMillis: Long,
-    onDelete: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -472,7 +441,6 @@ internal fun OfflineRegionRow(
                 style = MaterialTheme.typography.bodySmall,
             )
         }
-        OutlinedButton(onClick = onDelete) { Text("Delete") }
     }
 }
 

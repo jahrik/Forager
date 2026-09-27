@@ -71,12 +71,21 @@ internal fun waypointDeleteNotice(
     )
 }
 
-/** J4 D3 stub. */
+/** The offline-region snackbar for [pending] ("Offline map deleted", the chip's own noun), or `null` when none is pending. */
 internal fun offlineRegionDeleteNotice(
     pending: PendingDelete<OfflineRegionSummary>?,
     onUndo: (Long) -> Unit,
     onCommit: (Long) -> Unit,
-): PendingDeleteNotice? = null
+): PendingDeleteNotice? = pending?.let { p ->
+    val id = p.item.id
+    PendingDeleteNotice(
+        type = RecordType.OFFLINE_MAPS,
+        token = p.token,
+        message = pendingDeleteMessage("Offline map", p.entryReferenceCount),
+        onUndo = { onUndo(id) },
+        onCommit = { onCommit(id) },
+    )
+}
 
 /**
  * Shows each pending delete's Undo snackbar in [hostState] and reports how it ended (J4):

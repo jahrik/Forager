@@ -37,6 +37,7 @@ import com.zynergylabs.forager.app.ui.log.CameraAbsenceWatcher
 import com.zynergylabs.forager.app.ui.log.CameraGridModeViewModel
 import com.zynergylabs.forager.app.ui.log.InAppCameraViewModel
 import com.zynergylabs.forager.app.ui.log.MushroomLogViewModel
+import com.zynergylabs.forager.app.ui.log.offlineRegionDeleteNotice
 import com.zynergylabs.forager.app.ui.log.waypointDeleteNotice
 import com.zynergylabs.forager.app.ui.theme.ForagerTheme
 import com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel
@@ -435,7 +436,9 @@ class MainActivity : ComponentActivity() {
                     onOfflineMapNameChanged = viewModel::onOfflineMapNameChanged,
                     onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
                     onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
-                    onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
+                    // Journal redesign J4: a region row's swipe asks for a pending delete; the
+                    // tile delete runs when its Undo snackbar ends (pendingDeleteNotices below).
+                    onDeleteOfflineRegion = viewModel::requestDeleteOfflineRegion,
                     onDistanceUnitSelected = viewModel::onDistanceUnitSelected,
                     onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
                     onAutoSaveLocationToPhotosChanged = viewModel::onAutoSaveLocationToPhotosChanged,
@@ -553,6 +556,11 @@ class MainActivity : ComponentActivity() {
                             trackUiState.pendingWaypointDelete,
                             onUndo = trackRecordingViewModel::undoRemoveWaypoint,
                             onCommit = trackRecordingViewModel::commitRemoveWaypoint,
+                        ),
+                        offlineRegionDeleteNotice(
+                            uiState.pendingOfflineRegionDelete,
+                            onUndo = viewModel::undoDeleteOfflineRegion,
+                            onCommit = viewModel::commitDeleteOfflineRegion,
                         ),
                     ),
                 )
