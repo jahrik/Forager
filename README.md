@@ -552,10 +552,9 @@ more certainty than the data supports. See `AvailabilityForecast` and
   the sighting dots as MapLibre GeoJSON sources/style layers rather than
   osmdroid `Overlay`s. The live breadcrumb trail renders dashed (a short
   dot-like `lineDasharray` — see `BREADCRUMB_DASH_PATTERN`'s doc comment);
-  night mode also differentiates markers by icon shape rather than hue now,
-  one shared warm colour and one shared ink colour standing in for the
-  independently-tuned ones day mode still uses — see `MapPalette.NIGHT`'s
-  doc comment, "Fifth pass." `Basemap`, the
+  every marker has its own colour role in `MapPalette`, day and night,
+  follows Night Maps, and has its own cased silhouette (`MarkerGlyphs.kt`,
+  colour build C2). `Basemap`, the
   same own-the-vendor-boundary idea one level down — the basemap catalogue
   is pure Kotlin (labels, coverage limits, zoom ceilings, attribution, no
   MapLibre and no Compose), and `BasemapStyles.styleJsonFor` is the only
@@ -726,45 +725,27 @@ paints in it — same limitation the paragraph above already states, for the
 renderer actually running today.
 
 **Map overlay legibility has no headless assertion that establishes it.**
-`MapPalette` gives day and night modes distinct treatments now, and
-`MapPaletteTest` guards what it can of each. Day still differentiates its
-seven marker roles by hue, checked with a contrast *ratchet* (not a bar)
-against a stated, provisional pale-tile reference — the ratchet exists
-because the shipped day colours don't clear 4:1 or even 3:1 against that
-reference at all, and were tuned on real hardware instead; the test pins
-the measured minimum so nothing quietly gets worse, without claiming the
-arithmetic is the right measure for a saturated mark on a busy, desaturated
-basemap. Night no longer makes a colour-legibility claim against the tile
-at all: since night mode stopped dimming the basemap (`BasemapStyles.kt`'s
-`NIGHT_RASTER_PAINT` doc comment, "Dimming removed," 2026-08-26), it
-differentiates markers by icon shape instead of hue, one shared warm fill
-and one shared dark ink standing in for the nine independently-tuned
-colours it used before (`MapPalette.NIGHT`, "Fifth pass"), with every night
-icon drawing a darkened, semi-transparent halo behind its fill
-(`SightingsMap.kt`'s `*Bitmap` functions) rather than relying on tuned
-contrast against the ground. `MapPaletteTest` checks what colour arithmetic
-still can — the two night colours' contrast against each other, and that
-each sits on the expected side of every day marker's lightness. The two
-checks that held `NIGHT_WARM` to a contrast floor against the ground itself
-are gone rather than run-but-failing: this repo's CI fails the whole build
-on any skipped test, so `@Ignore` was not an option, and running them today
-would pin a known, expected "failure" (the ground brightened, the colour
-wasn't retuned for it) as if it were a bug. `MapPaletteTest` records what
-they asserted in a comment, for whoever revives them once colour inversion
-(see below) gives night a dark ground again. Legibility against the ground
-and shape-distinctness are
-hardware questions in the meantime. Whether the sighting dots, the connector, the
-planned-trip diamond, the breadcrumb trail and the waypoint pin stay
-distinguishable from each other and from the tiles underneath — in sun, in
-shade, on topo and on plain, day and night — is a device question and is
-open. Colour inversion reached the basemap in colour build C1
-(2026-09-27): the V1 transform (`BasemapStyles.kt`'s `NIGHT_RASTER_PAINT`,
-brightness range swapped and hue rotated 180°), with Satellite left as day
-by the owner's ruling and the offline style recoloured with the same
-transform after it loads. So night has a dark ground again on
-Topographical and Street. The markers' night treatment described above is
-colour build C2's and is unchanged by C1 — see `docs/plans/map-redesign.md`,
-"Deferred: night-mode colour inversion," and the C1 note appended after it.
+Since colour build C2 (2026-09-27) every marker has its own role in
+`MapPalette`, in a day and a night variant, and follows Night Maps on every
+basemap: over Satellite, whose basemap stays day, only the markers switch.
+The colours are the owner's picks from the marker swatch board
+(`docs/audits/2026-09-27-marker-swatch-board.md`), searched there against
+the measured ground of both basemaps in both modes, night measured on the V1
+inversion; the sighting dot's greys and its two rings are owner overrides.
+Every marker but the sighting dot is outlined in a casing, white by day and
+black at night, and each point marker has its own silhouette (waypoint pin
+with a ring, mushroom, flag, rounded square with a camera, reticle;
+`MarkerGlyphs.kt`), since colour alone did not tell them apart.
+`MapPaletteTest` pins each colour's measured distance from that ground,
+contrast with its casing, separation from the other roles and day/night hue
+family as ratchets, and records where a figure falls short of the board's
+threshold (the night search centre and offline region, and the owner
+overrides). The board also found that no casing colour clears 3:1 against
+the whole ground range in either mode, so that is not asserted. What
+arithmetic cannot say is whether the markers read on a real screen: every
+marker legible on Topographical and Street, day and night, and on Satellite
+at night; the silhouettes distinguishable at a glance; the casings not
+clipped. Those are device questions, deferred to beta, and open.
 
 **The GPS camera-mode fix and first-activation zoom-in have no headless
 assertion either, for the same reason the rest of the map's native behavior

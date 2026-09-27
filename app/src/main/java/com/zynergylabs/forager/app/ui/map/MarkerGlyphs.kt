@@ -1,0 +1,208 @@
+package com.zynergylabs.forager.app.ui.map
+
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.RectF
+import com.zynergylabs.forager.app.ui.theme.MapPalette
+import kotlin.math.ceil
+import kotlin.math.max
+
+/**
+ * The map's bitmap marker silhouettes (colour build C2 (d)), each distinct in shape as well as
+ * colour, since the owner found that "color isn't enough" to tell the markers apart. The geometry is
+ * the glyph board's (`docs/audits/2026-09-26-marker-glyph-board.md` §1, with its §2 shape choices),
+ * ported from its Python polygons to Android [Path]s, plus the search centre's reticle, which the
+ * owner changed after the board (arms extending beyond the ring).
+ *
+ * Every dimension is in dp, measured from the top-left of the glyph's **fill extent** (its fill, not
+ * counting the casing). The anchor is the point that sits on the feature's coordinate.
+ *
+ * Differences from the board's Python, recorded rather than silent:
+ *  - **Waypoint.** The board's `pin_poly` is the head's upper half-circle joined to the tip, which
+ *    drops the parts of the head's lower half that lie outside the triangle. Its §1 text describes
+ *    today's `waypointPinBitmap` instead (the whole head circle and a triangle from its equator to
+ *    the tip), and that is what is drawn here.
+ *  - **Casing.** The board grew each polygon by 1.5dp with a round-joined stroke; here each fill part
+ *    is stroked 3dp wide with round joins in the casing colour, then filled on top. That is the same
+ *    footprint, drawn with the platform's stroker instead of a polygon approximation.
+ *  - **Curves.** Arcs are true Path arcs and circles, not the board's 120- to 180-point polygons.
+ *  - **Search centre.** The board drew a plus 3dp from the centre, inside the ring. The owner's
+ *    tweak puts the arms beyond the ring: see [SEARCH_CENTRE_ARM_DP].
+ */
+internal enum class MarkerGlyph(val widthDp: Float, val heightDp: Float, val anchorXDp: Float, val anchorYDp: Float) {
+    /** A teardrop pin with a 7dp hollow ring on its head; anchored at the tip. */
+    WAYPOINT(22f, 28f, 11f, 28f),
+
+    /** A mushroom: a half-ellipse dome with a flat underside and a straight 8dp stem; anchored at the stem foot. */
+    FIND(24f, 26f, 12f, 26f),
+
+    /** A flag: a 3dp pole with a rectangular pennant at its top; anchored at the pole foot. */
+    PLANNED_TRIP(20f, 28f, 1.5f, 28f),
+
+    /** A 22dp rounded square with a camera in the casing colour; anchored at its centre. */
+    PHOTO(22f, 22f, 11f, 11f),
+
+    /** A reticle: a ring with crosshair arms that pass beyond it; anchored at its centre. */
+    SEARCH_CENTRE(2 * SEARCH_CENTRE_ARM_DP, 2 * SEARCH_CENTRE_ARM_DP, SEARCH_CENTRE_ARM_DP, SEARCH_CENTRE_ARM_DP),
+}
+
+/** How a [GlyphPart] is painted. Only [FILL] parts are cased. */
+internal enum class GlyphPaint {
+    /** The glyph's body: cased, then filled in its role colour. */
+    FILL,
+
+    /** Detail drawn on the body in the casing colour (the waypoint's ring, the camera). */
+    DETAIL_IN_CASING,
+
+    /** Detail drawn on a casing-colour detail in the fill colour (the camera's lens). */
+    DETAIL_IN_FILL,
+}
+
+internal class GlyphPart(val path: Path, val paint: GlyphPaint)
+
+/**
+ * A drawn glyph: the bitmap, and the anchor's pixel in it. The anchor is always the bitmap's exact
+ * centre (both dimensions are even), so the layer registers the image with `icon-anchor: center`
+ * and the anchor lands on the coordinate without relying on `icon-offset`'s units.
+ */
+internal class GlyphImage(val bitmap: Bitmap, val anchorXPx: Int, val anchorYPx: Int)
+
+/**
+ * The reticle's arm half-length: each arm runs from the centre to 13dp out, 4dp past the ring's outer
+ * edge ([SEARCH_CENTRE_RING_RADIUS_DP] + half of [SEARCH_CENTRE_STROKE_DP] = 9dp) and 2.5dp past the
+ * ring's casing. Chosen (the dispatch asked for arms that clearly pass the ring's outer edge): 4dp is
+ * two stroke widths beyond it, so the arms read as crossing the ring rather than touching it.
+ */
+internal const val SEARCH_CENTRE_ARM_DP = 13f
+
+/** The reticle ring's radius at its stroke's centre line: today's search-centre circle radius (glyph board §2.5). */
+internal const val SEARCH_CENTRE_RING_RADIUS_DP = 8f
+
+/** The reticle's ring and arm stroke width: today's search-centre stroke (glyph board §2.5). */
+internal const val SEARCH_CENTRE_STROKE_DP = 2f
+
+/** Extra transparent margin beyond the casing, so the antialiased casing edge is never clipped. */
+private const val GLYPH_MARGIN_DP = 1f
+
+/** Each glyph's parts, in dp from the top-left of its fill extent, in drawing order within each [GlyphPaint]. */
+internal fun MarkerGlyph.parts(): List<GlyphPart> = when (this) {
+    MarkerGlyph.WAYPOINT -> listOf(
+        GlyphPart(circle(11f, 11f, 11f), GlyphPaint.FILL),
+        GlyphPart(
+            Path().apply {
+                moveTo(0f, 11f)
+                lineTo(11f, 28f)
+                lineTo(22f, 11f)
+                close()
+            },
+            GlyphPaint.FILL,
+        ),
+        // A ring 7dp across (outer radius 3.5dp), 1.5dp stroke, on the head centre; its hollow stays
+        // the pin's fill (glyph board §2.3).
+        GlyphPart(annulus(11f, 11f, outer = 3.5f, inner = 2f), GlyphPaint.DETAIL_IN_CASING),
+    )
+    MarkerGlyph.FIND -> listOf(
+        // The dome: the upper half of an ellipse rx 12, ry 14 centred at (12, 14), flat underside at y 14.
+        GlyphPart(
+            Path().apply {
+                arcTo(RectF(0f, 0f, 24f, 28f), 180f, 180f, true)
+                close()
+            },
+            GlyphPaint.FILL,
+        ),
+        GlyphPart(rect(8f, 13.5f, 16f, 26f), GlyphPaint.FILL),
+    )
+    MarkerGlyph.PLANNED_TRIP -> listOf(
+        GlyphPart(rect(0f, 0f, 3f, 28f), GlyphPaint.FILL),
+        GlyphPart(rect(3f, 0f, 20f, 12f), GlyphPaint.FILL),
+    )
+    MarkerGlyph.PHOTO -> listOf(
+        GlyphPart(roundRect(0f, 0f, 22f, 22f, 5f), GlyphPaint.FILL),
+        // A hand-drawn camera approximating Material PhotoCamera (glyph board §2.4).
+        GlyphPart(roundRect(4f, 7f, 18f, 17f, 1.5f), GlyphPaint.DETAIL_IN_CASING),
+        GlyphPart(rect(8f, 5f, 14f, 8f), GlyphPaint.DETAIL_IN_CASING),
+        GlyphPart(circle(11f, 12f, 3.2f), GlyphPaint.DETAIL_IN_FILL),
+    )
+    MarkerGlyph.SEARCH_CENTRE -> {
+        val c = SEARCH_CENTRE_ARM_DP
+        val half = SEARCH_CENTRE_STROKE_DP / 2
+        listOf(
+            GlyphPart(
+                annulus(c, c, outer = SEARCH_CENTRE_RING_RADIUS_DP + half, inner = SEARCH_CENTRE_RING_RADIUS_DP - half),
+                GlyphPaint.FILL,
+            ),
+            GlyphPart(rect(0f, c - half, 2 * c, c + half), GlyphPaint.FILL),
+            GlyphPart(rect(c - half, 0f, c + half, 2 * c), GlyphPaint.FILL),
+        )
+    }
+}
+
+/**
+ * Draws [glyph] in [fill], cased [CASING_WIDTH_DP] on each side in [casing], at [density] px per dp.
+ * The bitmap is padded symmetrically round the anchor by the glyph's farthest extent from it, plus the
+ * casing, plus a 1dp margin, so the anchor is its exact centre and the casing is never clipped.
+ */
+internal fun drawGlyph(glyph: MarkerGlyph, density: Float, fill: Int, casing: Int): GlyphImage {
+    val pad = CASING_WIDTH_DP + GLYPH_MARGIN_DP
+    val halfWidthPx = ceil((max(glyph.anchorXDp, glyph.widthDp - glyph.anchorXDp) + pad) * density).toInt()
+    val halfHeightPx = ceil((max(glyph.anchorYDp, glyph.heightDp - glyph.anchorYDp) + pad) * density).toInt()
+    val bitmap = Bitmap.createBitmap(2 * halfWidthPx, 2 * halfHeightPx, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    canvas.translate(halfWidthPx - glyph.anchorXDp * density, halfHeightPx - glyph.anchorYDp * density)
+    canvas.scale(density, density)
+
+    val parts = glyph.parts()
+    // The casing is a stroke over the part's outline plus the part filled, drawn as two passes. One
+    // FILL_AND_STROKE pass is not used: under it an even-odd part (the reticle's ring) lost its hole
+    // and came out solid, which MarkerGlyphsTest caught on the reticle.
+    val casingStroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = casing
+        style = Paint.Style.STROKE
+        strokeWidth = 2 * CASING_WIDTH_DP
+        strokeJoin = Paint.Join.ROUND
+        strokeCap = Paint.Cap.ROUND
+    }
+    val casingFill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = casing; style = Paint.Style.FILL }
+    val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = fill; style = Paint.Style.FILL }
+    // Every casing first, then every fill: a part's casing never covers a neighbouring part's fill.
+    parts.filter { it.paint == GlyphPaint.FILL }.forEach {
+        canvas.drawPath(it.path, casingFill)
+        canvas.drawPath(it.path, casingStroke)
+    }
+    parts.filter { it.paint == GlyphPaint.FILL }.forEach { canvas.drawPath(it.path, fillPaint) }
+    parts.filter { it.paint == GlyphPaint.DETAIL_IN_CASING }.forEach { canvas.drawPath(it.path, casingFill) }
+    parts.filter { it.paint == GlyphPaint.DETAIL_IN_FILL }.forEach { canvas.drawPath(it.path, fillPaint) }
+    return GlyphImage(bitmap, halfWidthPx, halfHeightPx)
+}
+
+/**
+ * The map's bitmap markers: the `Style` image id each is registered under, its glyph, and its role.
+ * `SightingsMap`'s `initializeOverlayLayers` registers exactly these, through [markerIconImage].
+ */
+internal enum class MarkerIcon(val imageId: String, val glyph: MarkerGlyph, val colour: (MapPalette) -> Int) {
+    WAYPOINT("waypoint-pin", MarkerGlyph.WAYPOINT, MapPalette::waypoint),
+    FIND("find-mushroom", MarkerGlyph.FIND, MapPalette::find),
+    PLANNED_TRIP("planned-trip-flag", MarkerGlyph.PLANNED_TRIP, MapPalette::plannedTrip),
+    PHOTO("photo-square", MarkerGlyph.PHOTO, MapPalette::photo),
+    SEARCH_CENTRE("search-centre-reticle", MarkerGlyph.SEARCH_CENTRE, MapPalette::searchCentre),
+}
+
+/** [icon]'s glyph drawn in [palette]'s colours: its own role's fill and the palette's casing. */
+internal fun markerIconImage(icon: MarkerIcon, palette: MapPalette, density: Float): GlyphImage =
+    drawGlyph(icon.glyph, density, fill = icon.colour(palette), casing = palette.casing)
+
+private fun circle(cx: Float, cy: Float, r: Float) = Path().apply { addCircle(cx, cy, r, Path.Direction.CW) }
+
+private fun annulus(cx: Float, cy: Float, outer: Float, inner: Float) = Path().apply {
+    fillType = Path.FillType.EVEN_ODD
+    addCircle(cx, cy, outer, Path.Direction.CW)
+    addCircle(cx, cy, inner, Path.Direction.CW)
+}
+
+private fun rect(left: Float, top: Float, right: Float, bottom: Float) =
+    Path().apply { addRect(left, top, right, bottom, Path.Direction.CW) }
+
+private fun roundRect(left: Float, top: Float, right: Float, bottom: Float, r: Float) =
+    Path().apply { addRoundRect(RectF(left, top, right, bottom), r, r, Path.Direction.CW) }

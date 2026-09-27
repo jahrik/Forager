@@ -1158,6 +1158,9 @@ internal fun CompactMapTab(
                         onCancel = { pendingAction = null },
                         modifier = Modifier.fillMaxSize(),
                         bottomInset = centrePinConfirmBottomInset,
+                        // The map's own night (the renderMode handed to mapSlot above), so the pin
+                        // follows Night Maps (colour build C2 (e)).
+                        night = renderMode.night,
                     )
                 } else if (pickingSearchLocation) {
                     // AdvancedSearchDropdown's own "Set on map" — same overlay, same already-shown
@@ -1168,6 +1171,9 @@ internal fun CompactMapTab(
                         onCancel = onCancelSearchLocationPick,
                         modifier = Modifier.fillMaxSize(),
                         bottomInset = centrePinConfirmBottomInset,
+                        // The map's own night (the renderMode handed to mapSlot above), so the pin
+                        // follows Night Maps (colour build C2 (e)).
+                        night = renderMode.night,
                     )
                 }
             }

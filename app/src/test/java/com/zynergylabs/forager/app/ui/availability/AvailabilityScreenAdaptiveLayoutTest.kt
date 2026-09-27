@@ -38,6 +38,8 @@ import com.zynergylabs.forager.app.domain.model.SpeciesObservationCount
 import com.zynergylabs.forager.app.domain.model.TaxonFilter
 import com.zynergylabs.forager.app.ui.log.MushroomLogUiState
 import com.zynergylabs.forager.app.ui.map.MapSlot
+import com.zynergylabs.forager.app.ui.map.centrePinFillPixel
+import com.zynergylabs.forager.app.ui.theme.MapPalette
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -49,6 +51,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 /**
  * Proves the M3 adaptive-layout behavior added to [AvailabilityScreen]: a compact window keeps
@@ -309,6 +312,23 @@ class AvailabilityScreenWideWindowLayoutTest {
         composeRule.onNodeWithText("Plan a trip").assertIsDisplayed()
         composeRule.onNodeWithText("Log a find").assertIsDisplayed()
         composeRule.onNodeWithText("Drop a waypoint").assertIsDisplayed()
+    }
+
+    /**
+     * Colour build C2 (e), the medium/expanded layout's call site (`AvailabilityWideLayoutUi.kt`,
+     * `MapTab`'s picker): with Night Maps on in the screen's state, the centre pin is drawn in the
+     * night palette's centre-pin colour, via `MapTab`'s own `renderMode.night`.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun `with Night Maps on, the wide layout's centre pin is the night centre-pin colour`() {
+        setScreen(SEARCHED_STATE.copy(nightModeMaps = true, nightModeMapsLoaded = true))
+
+        composeRule.onNodeWithContentDescription("Plan a trip or log a find here").performClick()
+        composeRule.onNodeWithText("Drop a waypoint").performClick()
+        composeRule.waitForIdle()
+
+        assertEquals("#%08X".format(MapPalette.NIGHT.centrePin), "#%08X".format(composeRule.centrePinFillPixel()))
     }
 
     /**

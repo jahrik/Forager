@@ -4,14 +4,8 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import android.util.Log
 import android.view.MotionEvent
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.Path
-import android.graphics.RectF
 import android.view.Gravity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -79,7 +73,8 @@ import org.maplibre.geojson.Polygon
 /**
  * Shows the searched region as a map with a marker per real observation ([sightings]).
  *
- * [plannedTrips] draws a second, distinct marker per planned trip — a diamond, to read as
+ * [plannedTrips] draws a second, distinct marker per planned trip — a flag since colour build C2
+ * (a diamond before it; `MarkerGlyphs.kt` has every marker's silhouette), to read as
  * different from the translucent sighting dots (density of what's been observed): a planned trip
  * is a place the user chose for themselves, not derived from observation history.
  *
@@ -106,7 +101,8 @@ import org.maplibre.geojson.Polygon
  * `CircleLayer`/`LineLayer`/`SymbolLayer` in
  * [initializeOverlayLayers], with actual data pushed by [refreshOverlayData] — see that function's
  * doc comment for why the two are split. [Basemap]/[styleJsonFor] are the only pieces reused as-is;
- * everything else, including [zoomForRadiusKm]'s numbers and the colour constants, is carried over
+ * everything else, including [zoomForRadiusKm]'s numbers and (until colour build C2 replaced them
+ * with `MapPalette`'s per-role palette) the colour constants, was carried over
  * from the deleted osmdroid version deliberately (same reasoning, same visual intent), not reused
  * as code (the two rendering APIs share nothing at the type level). The one exception is the dash
  * pattern's ratio, later moved off the connector entirely and redesigned for its new home on the
@@ -175,11 +171,11 @@ fun SightingsMap(
     /**
      * Night mode: the basemap's colours inverted with hue kept (the V1 transform, `BasemapStyles.kt`'s
      * `NIGHT_RASTER_PAINT`), except Satellite, which stays day; over the offline style, the same
-     * transform applied to its own layers after it loads (`applyOfflineNightRecolour`). Sightings, area markers and every other overlay marker draw
-     * identically to day mode regardless of this flag — see [MapPalette]'s own doc comment,
-     * "Markers stay day-only, always" for why that's deliberate, not an oversight. Still drives
-     * the map's own twilight trigger and long-press override; only what those feed into markers
-     * has changed.
+     * transform applied to its own layers after it loads (`applyOfflineNightRecolour`). Every
+     * overlay marker follows it on every basemap, Satellite included: the markers draw from
+     * [MapPalette.forMode] of this flag (colour build C2), so over Satellite only the markers switch.
+     * It is the Night Maps setting and nothing else; no twilight trigger or long-press override
+     * drives it (both were replaced by the setting, `MapPreferencesRepository`).
      *
      * Not the device's dark theme, and not derived from it: see [MapPalette]'s doc comment for
      * why that was tried, measured and abandoned.
@@ -216,10 +212,9 @@ fun SightingsMap(
 ) {
     val context = LocalContext.current
 
-    // Always MapPalette.DAY, deliberately independent of nightMode — see MapPalette's own doc
-    // comment, "Markers stay day-only, always." MapPalette.NIGHT/forMode still exist and are
-    // still tested (MapPaletteTest), just not read here any more.
-    val mapPalette = MapPalette.DAY
+    // The marker palette is MapPalette.forMode(nightMode) on every basemap, Satellite included
+    // (colour build C2). It is chosen inside requestedMapStyle, below, rather than here, so that a
+    // headless test reaches it (OfflineStyleSwapTest); the style effect reads requested.palette.
     val lifecycleOwner = LocalLifecycleOwner.current
 
     val mapView = remember {
@@ -422,14 +417,13 @@ fun SightingsMap(
     // OnDidFailLoadingMapListener registered in the DisposableEffect above, never swallowed; what
     // the user should be *told* in that state is a decision the pre-build report lists and this
     // dispatch did not make.
-    LaunchedEffect(mapLibreMap, basemap, mapPalette, useOfflineTiles, nightMode, nightModeLoaded) {
+    LaunchedEffect(mapLibreMap, basemap, useOfflineTiles, nightMode, nightModeLoaded) {
         val map = mapLibreMap ?: return@LaunchedEffect
         // null until the Night Maps preference has loaded (the cold-launch gate): the effect
         // relaunches when nightModeLoaded turns true, and the first style it requests is then the
         // right one. The map shows MapLibre's own blank until then.
         val requested = requestedMapStyle(
             basemap = basemap,
-            palette = mapPalette,
             useOfflineTiles = useOfflineTiles,
             nightMode = nightMode,
             nightModeLoaded = nightModeLoaded,
@@ -441,8 +435,9 @@ fun SightingsMap(
         // CameraMode.NONE if the user had already broken tracking by panning/zooming;
         // CameraMode.TRACKING if they hadn't. Restoring exactly this, rather than always
         // re-forcing TRACKING, is the fix for a real hardware report: switching basemap (or
-        // toggling night mode, which goes through this same style-swap path everywhere but over
-        // Satellite, whose style does not change at night) was recentering the
+        // toggling night mode, which goes through this same style-swap path on every basemap:
+        // since colour build C2 the marker palette follows the toggle even over Satellite, whose
+        // basemap style stays day) was recentering the
         // map on the user's location even after they had deliberately panned away — the
         // GPS/locate-me icon is the control for that, not this one.
         val previousCameraMode = if (map.locationComponent.isLocationComponentActivated) {
@@ -462,7 +457,7 @@ fun SightingsMap(
             // fill layers are never touched. Day, or night off, restyles nothing: the style came
             // fresh from its URI.
             if (requested.useOfflineTiles && requested.night) applyOfflineNightRecolour(style)
-            initializeOverlayLayers(style, density = context.resources.displayMetrics.density, palette = mapPalette)
+            initializeOverlayLayers(style, density = context.resources.displayMetrics.density, palette = requested.palette)
             // The data+camera refresh effect below re-pushes every source right after this, keyed
             // on loadedStyle among other things — including the sighting source, with "selected"
             // baked in from whatever focusedObservationId is current at that point. Nothing here
@@ -619,10 +614,12 @@ fun SightingsMap(
  * needs the second. Layer add order is the draw order (later added draws on top), kept the same as
  * the deleted osmdroid version's overlay list order: search centre, sightings, planned trips last.
  *
- * Every marker is a plain [CircleLayer] now, day or night — see [MapPalette]'s own doc comment,
- * "Markers stay day-only, always." `docs/plans/contrast_assertions.md` archives the night-specific
- * `SymbolLayer`/icon-bitmap version this replaced, for whoever revives night-mode marker
- * differentiation later.
+ * [palette] is the Night Maps palette ([MapPalette.forMode], colour build C2), so every colour here
+ * follows the toggle. The point markers other than the sighting dot are bitmap [SymbolLayer]s, each
+ * its own silhouette (`MarkerGlyphs.kt`, [MarkerIcon]) with its casing drawn into the bitmap and its
+ * anchor at the bitmap's centre, hence `icon-anchor: center` for all of them. The sighting dot stays
+ * a [CircleLayer] whose own ring is its casing; the tracks and the offline outline are line layers
+ * ([trackLayerSpecs], [offlineRegionOutlineSpec]).
  *
  * The sighting layer's `circle-stroke-color`/`circle-stroke-width` are fixed expressions keyed on
  * each feature's own `"selected"` boolean property — see [sightingStrokeColorExpression]'s own doc
@@ -631,33 +628,24 @@ fun SightingsMap(
  * currently focused: [refreshOverlayData] bakes `"selected"` into the pushed data itself.
  */
 private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPalette) {
-    style.addImage(PLANNED_TRIP_ICON_ID, plannedTripDiamondBitmap(density, palette.plannedTrip))
+    // Every bitmap marker's image, in this palette's colours. Registered here and nowhere else.
+    MarkerIcon.entries.forEach { style.addImage(it.imageId, markerIconImage(it, palette, density).bitmap) }
 
     // Added first, so its fill sits under every point marker and line — a coverage circle covering
     // a marker would make the marker unreadable, never the other way around. Journal Stage 2d.
     style.addSource(GeoJsonSource(OFFLINE_REGION_CIRCLE_SOURCE_ID, emptyFeatureCollection()))
     style.addLayer(
         FillLayer(OFFLINE_REGION_CIRCLE_LAYER_ID, OFFLINE_REGION_CIRCLE_SOURCE_ID).withProperties(
-            PropertyFactory.fillColor(palette.areaMarkerBackground),
+            PropertyFactory.fillColor(palette.offlineRegion),
             PropertyFactory.fillOpacity(OFFLINE_REGION_CIRCLE_OPACITY),
         ),
     )
-    style.addLayer(
-        LineLayer(OFFLINE_REGION_CIRCLE_OUTLINE_LAYER_ID, OFFLINE_REGION_CIRCLE_SOURCE_ID).withProperties(
-            PropertyFactory.lineColor(palette.areaMarkerBackground),
-            PropertyFactory.lineWidth(OFFLINE_REGION_CIRCLE_OUTLINE_WIDTH_PX),
-        ),
-    )
+    // The outline is the region's casing: a dashed line in the casing colour (colour build C2 (c)).
+    addLineLayer(style, offlineRegionOutlineSpec(), palette)
 
+    // The search centre is a reticle bitmap since colour build C2 (d), replacing a filled circle.
     style.addSource(GeoJsonSource(SEARCH_CENTER_SOURCE_ID, emptyFeatureCollection()))
-    style.addLayer(
-        CircleLayer(SEARCH_CENTER_LAYER_ID, SEARCH_CENTER_SOURCE_ID).withProperties(
-            PropertyFactory.circleRadius(SEARCH_CENTER_RADIUS_PX),
-            PropertyFactory.circleColor(palette.searchCentre),
-            PropertyFactory.circleStrokeColor(Color.WHITE),
-            PropertyFactory.circleStrokeWidth(SEARCH_CENTER_STROKE_WIDTH_PX),
-        ),
-    )
+    addMarkerSymbolLayer(style, SEARCH_CENTER_LAYER_ID, SEARCH_CENTER_SOURCE_ID, MarkerIcon.SEARCH_CENTRE)
 
     style.addSource(GeoJsonSource(SIGHTING_SOURCE_ID, emptyFeatureCollection()))
     style.addLayer(
@@ -670,89 +658,54 @@ private fun initializeOverlayLayers(style: Style, density: Float, palette: MapPa
             PropertyFactory.circleRadius(SIGHTING_DOT_RADIUS_PX),
             // See sightingStrokeColorExpression's own doc comment — it keys off each feature's own
             // "selected" property, so nothing here needs seeding with the current
-            // focusedObservationId the way an id-comparison expression would. Stroke width stays a
-            // flat SIGHTING_DOT_STROKE_WIDTH_PX for every dot, selected or not — a prior widened
-            // selected-width was tried and reverted on request, to keep the highlight to colour
-            // alone (see SIGHTING_DOT_STROKE_WIDTH_PX's own doc comment for that history).
+            // focusedObservationId the way an id-comparison expression would. The width keys off the
+            // same property: the selected ring is 3dp, every other ring 1.5dp (colour build C2, an
+            // owner-approved tweak; see sightingStrokeWidthExpression).
             PropertyFactory.circleStrokeColor(sightingStrokeColorExpression(palette)),
-            PropertyFactory.circleStrokeWidth(SIGHTING_DOT_STROKE_WIDTH_PX),
+            PropertyFactory.circleStrokeWidth(sightingStrokeWidthExpression()),
             PropertyFactory.circleStrokeOpacity(SIGHTING_DOT_STROKE_OPACITY),
         ),
     )
 
-    // Breadcrumb is dashed (a short dash with round caps reads as a trail of dots —
-    // "breadcrumbs" should look like breadcrumbs). See BREADCRUMB_DASH_PATTERN's own doc comment.
+    // The breadcrumb and the kept tracks, each with its casing directly below it: see
+    // trackLayerSpecs. The breadcrumb is dashed (see BREADCRUMB_DASH_PATTERN); the kept tracks are
+    // solid (keptTracksFeatureCollection has why they are a genuine MultiLineString). The kept tracks'
+    // colour is MapPalette.keptTrack, its own role since colour build C2 (before C2 it borrowed the
+    // retired connector colour of the deleted foraging-areas feature).
     style.addSource(GeoJsonSource(BREADCRUMB_SOURCE_ID, emptyFeatureCollection()))
-    style.addLayer(
-        LineLayer(BREADCRUMB_LAYER_ID, BREADCRUMB_SOURCE_ID).withProperties(
-            PropertyFactory.lineColor(palette.breadcrumb),
-            PropertyFactory.lineWidth(BREADCRUMB_STROKE_WIDTH_PX),
-            PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
-            PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
-            PropertyFactory.lineDasharray(BREADCRUMB_DASH_PATTERN),
-        ),
-    )
-
-    // Kept tracks (Journal Stage 2d): a solid line, distinct from the live breadcrumb's dash — see
-    // keptTracksFeatureCollection's own doc comment for why this is a genuine MultiLineString, not
-    // breadcrumbPoints reshaped. connector was designed for, and is otherwise unused since, the
-    // deleted foraging-areas feature — revived here rather than adding a new, contrast-unverified
-    // colour to MapPalette.
     style.addSource(GeoJsonSource(KEPT_TRACKS_SOURCE_ID, emptyFeatureCollection()))
-    style.addLayer(
-        LineLayer(KEPT_TRACKS_LAYER_ID, KEPT_TRACKS_SOURCE_ID).withProperties(
-            PropertyFactory.lineColor(palette.connector),
-            PropertyFactory.lineWidth(KEPT_TRACK_STROKE_WIDTH_PX),
-            PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
-            PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
-        ),
-    )
+    trackLayerSpecs().forEach { addLineLayer(style, it, palette) }
 
+    // Planned trips are flags anchored at the pole foot (colour build C2 (d)).
     style.addSource(GeoJsonSource(PLANNED_TRIP_SOURCE_ID, emptyFeatureCollection()))
-    style.addLayer(
-        SymbolLayer(PLANNED_TRIP_LAYER_ID, PLANNED_TRIP_SOURCE_ID).withProperties(
-            PropertyFactory.iconImage(PLANNED_TRIP_ICON_ID),
-            PropertyFactory.iconAllowOverlap(true),
-            PropertyFactory.iconAnchor("center"),
-        ),
-    )
+    addMarkerSymbolLayer(style, PLANNED_TRIP_LAYER_ID, PLANNED_TRIP_SOURCE_ID, MarkerIcon.PLANNED_TRIP)
 
-    // Last, so a waypoint marker never sits under a planned-trip diamond if the two ever land on
-    // the same point.
-    style.addImage(WAYPOINT_ICON_ID, waypointPinBitmap(density, palette.waypoint))
+    // After planned trips, so a waypoint pin never sits under a flag if the two land on the same
+    // point. Anchored at the pin's tip.
     style.addSource(GeoJsonSource(WAYPOINT_SOURCE_ID, emptyFeatureCollection()))
-    style.addLayer(
-        SymbolLayer(WAYPOINT_LAYER_ID, WAYPOINT_SOURCE_ID).withProperties(
-            PropertyFactory.iconImage(WAYPOINT_ICON_ID),
-            PropertyFactory.iconAllowOverlap(true),
-            // Bottom, not center like the planned-trip diamond: a pin's drawn tip is what should
-            // sit on the actual coordinate, not the shape's bounding-box center.
-            PropertyFactory.iconAnchor(Property.ICON_ANCHOR_BOTTOM),
-        ),
-    )
+    addMarkerSymbolLayer(style, WAYPOINT_LAYER_ID, WAYPOINT_SOURCE_ID, MarkerIcon.WAYPOINT)
 
-    // Find and photo markers (Journal Stage 2d) — the waypoint pin's own template, reused with a
-    // different colour/shape per the dispatch's own guidance ("this is the reusable template for
-    // find and photo markers — discrete markers, not density dots"). Added last, after waypoints,
-    // for the same "never sit under a sibling point marker" reasoning the waypoint layer's own
-    // comment already gives.
-    style.addImage(FIND_ICON_ID, waypointPinBitmap(density, palette.areaMarkerBackground))
+    // Find and photo markers (Journal Stage 2d), last for the same "never sit under a sibling point
+    // marker" reasoning. Since colour build C2 each has its own silhouette and role: the find a
+    // mushroom anchored at its stem foot, the photo a rounded square with a camera, centred.
     style.addSource(GeoJsonSource(FIND_SOURCE_ID, emptyFeatureCollection()))
-    style.addLayer(
-        SymbolLayer(FIND_LAYER_ID, FIND_SOURCE_ID).withProperties(
-            PropertyFactory.iconImage(FIND_ICON_ID),
-            PropertyFactory.iconAllowOverlap(true),
-            PropertyFactory.iconAnchor(Property.ICON_ANCHOR_BOTTOM),
-        ),
-    )
+    addMarkerSymbolLayer(style, FIND_LAYER_ID, FIND_SOURCE_ID, MarkerIcon.FIND)
 
-    style.addImage(PHOTO_ICON_ID, plannedTripDiamondBitmap(density, palette.plannedTrip))
     style.addSource(GeoJsonSource(PHOTO_SOURCE_ID, emptyFeatureCollection()))
+    addMarkerSymbolLayer(style, PHOTO_LAYER_ID, PHOTO_SOURCE_ID, MarkerIcon.PHOTO)
+}
+
+/**
+ * A bitmap marker's [SymbolLayer]. Every [MarkerIcon]'s image has its anchor at its exact centre
+ * ([drawGlyph]), so `icon-anchor: center` puts the pin tip, stem foot, pole foot or centre on the
+ * feature's coordinate, with no `icon-offset`.
+ */
+private fun addMarkerSymbolLayer(style: Style, layerId: String, sourceId: String, icon: MarkerIcon) {
     style.addLayer(
-        SymbolLayer(PHOTO_LAYER_ID, PHOTO_SOURCE_ID).withProperties(
-            PropertyFactory.iconImage(PHOTO_ICON_ID),
+        SymbolLayer(layerId, sourceId).withProperties(
+            PropertyFactory.iconImage(icon.imageId),
             PropertyFactory.iconAllowOverlap(true),
-            PropertyFactory.iconAnchor("center"),
+            PropertyFactory.iconAnchor(Property.ICON_ANCHOR_CENTER),
         ),
     )
 }
@@ -794,8 +747,8 @@ private fun refreshOverlayData(
  * unit-testable. Real hardware report this fixes: that effect is keyed on `loadedStyle` (needed so
  * [refreshOverlayData] above re-runs after a basemap swap blanks the style), but with no guard, it
  * also re-ran the camera move below whenever GPS tracking wasn't active — including on a basemap
- * or night-mode swap (a night toggle reloads the style everywhere but over Satellite, since colour
- * build C1) that changed neither `region` nor `focusOverride` — which read as "changing
+ * or night-mode swap (a night toggle reloads the style on every basemap since colour build C2, over
+ * Satellite for the marker palette alone) that changed neither `region` nor `focusOverride` — which read as "changing
  * map style brought the map back to my location" even though the GPS/locate-me icon is the only
  * control meant to do that. Comparing [target] against [lastAppliedCameraTarget] — what was
  * actually last applied, not merely that the effect ran again — is what tells "the search moved"
@@ -845,7 +798,7 @@ internal fun locationIndicatorTrackingAnimationMultiplier(): Float =
  *
  * [restoreCameraMode] is what this composable's own basemap-swap effect passes to avoid a real
  * hardware-reported bug: `setStyle` (any basemap change, or a night-mode toggle, which shares this
- * same path everywhere but over Satellite) discards the LocationComponent outright, so this function has to run again on every
+ * same path on every basemap, Satellite included since colour build C2) discards the LocationComponent outright, so this function has to run again on every
  * such swap just to keep the puck visible — but always re-forcing [CameraMode.TRACKING] here, as
  * this used to do, snapped the camera back onto the user's location on every basemap switch even
  * after they had deliberately panned away, which the GPS/locate-me icon is the control for, not
@@ -1011,6 +964,109 @@ internal fun sightingStrokeColorExpression(palette: MapPalette): Expression =
     )
 
 /**
+ * The sighting layer's `circle-stroke-width`: [SIGHTING_DOT_SELECTED_STROKE_WIDTH_PX] (3dp) for the
+ * dot [sightingsFeatureCollection] marks `"selected"`, [SIGHTING_DOT_STROKE_WIDTH_PX] (1.5dp) for every
+ * other. Keyed on the same boolean property as [sightingStrokeColorExpression], for the same reason.
+ *
+ * Colour build C2, an owner-approved tweak: the highlight is colour **and** width again. Widths of
+ * 3.5 and 4.5px were tried before and reverted on request to keep the highlight to colour alone
+ * ([SIGHTING_DOT_STROKE_WIDTH_PX] has that history); the owner approved 3dp on the glyph board.
+ */
+internal fun sightingStrokeWidthExpression(): Expression =
+    Expression.switchCase(
+        Expression.get("selected"),
+        Expression.literal(SIGHTING_DOT_SELECTED_STROKE_WIDTH_PX),
+        Expression.literal(SIGHTING_DOT_STROKE_WIDTH_PX),
+    )
+
+/**
+ * One overlay [LineLayer], described without constructing it: [LineLayer] calls a native
+ * initialiser from its constructor, so a headless test cannot build one, but it can read this
+ * (`SightingsMapOverlayDataTest`). [addLineLayer] is the only thing that turns one into a layer, so
+ * what the test reads is what the map draws. Widths are MapLibre style units, which are dp.
+ */
+internal data class LineLayerSpec(
+    val layerId: String,
+    val sourceId: String,
+    /** The palette role this line is drawn in. */
+    val colour: (MapPalette) -> Int,
+    val widthDp: Float,
+    /** `line-dasharray`, in multiples of [widthDp]; `null` for a solid line. */
+    val dashPattern: List<Float>?,
+    /** Round caps and joins (the tracks); `false` leaves MapLibre's butt caps and miter joins. */
+    val roundCaps: Boolean,
+)
+
+/**
+ * The track lines, in draw order: each track's casing immediately before it, so it draws directly
+ * below it (colour build C2 (c)). A casing is the track's own line, [CASING_WIDTH_DP] wider on each
+ * side, in [MapPalette.casing], and always solid: under the dashed breadcrumb it still outlines the
+ * whole trail, so the dashes read as one path against a busy ground.
+ */
+internal fun trackLayerSpecs(): List<LineLayerSpec> {
+    fun casingFor(track: LineLayerSpec, layerId: String) = track.copy(
+        layerId = layerId,
+        colour = MapPalette::casing,
+        widthDp = track.widthDp + 2 * CASING_WIDTH_DP,
+        dashPattern = null,
+    )
+    val breadcrumb = LineLayerSpec(
+        layerId = BREADCRUMB_LAYER_ID,
+        sourceId = BREADCRUMB_SOURCE_ID,
+        colour = MapPalette::breadcrumb,
+        widthDp = BREADCRUMB_STROKE_WIDTH_PX,
+        dashPattern = BREADCRUMB_DASH_PATTERN.toList(),
+        roundCaps = true,
+    )
+    val keptTrack = LineLayerSpec(
+        layerId = KEPT_TRACKS_LAYER_ID,
+        sourceId = KEPT_TRACKS_SOURCE_ID,
+        colour = MapPalette::keptTrack,
+        widthDp = KEPT_TRACK_STROKE_WIDTH_PX,
+        dashPattern = null,
+        roundCaps = true,
+    )
+    return listOf(
+        casingFor(breadcrumb, BREADCRUMB_CASING_LAYER_ID),
+        breadcrumb,
+        casingFor(keptTrack, KEPT_TRACKS_CASING_LAYER_ID),
+        keptTrack,
+    )
+}
+
+/**
+ * The offline region's outline (colour build C2 (c)): a dashed line in [MapPalette.casing],
+ * [OFFLINE_REGION_CIRCLE_OUTLINE_WIDTH_PX] wide, dash 6dp and gap 4dp, with butt ends. The glyph
+ * board's dash pattern; the region's fill is its own role, [MapPalette.offlineRegion], at
+ * [OFFLINE_REGION_CIRCLE_OPACITY].
+ */
+internal fun offlineRegionOutlineSpec(): LineLayerSpec = LineLayerSpec(
+    layerId = OFFLINE_REGION_CIRCLE_OUTLINE_LAYER_ID,
+    sourceId = OFFLINE_REGION_CIRCLE_SOURCE_ID,
+    colour = MapPalette::casing,
+    widthDp = OFFLINE_REGION_CIRCLE_OUTLINE_WIDTH_PX,
+    dashPattern = listOf(
+        OFFLINE_REGION_OUTLINE_DASH_DP / OFFLINE_REGION_CIRCLE_OUTLINE_WIDTH_PX,
+        OFFLINE_REGION_OUTLINE_GAP_DP / OFFLINE_REGION_CIRCLE_OUTLINE_WIDTH_PX,
+    ),
+    roundCaps = false,
+)
+
+/** Adds the [LineLayer] [spec] describes, in [palette]'s colours. Its source must already exist. */
+private fun addLineLayer(style: Style, spec: LineLayerSpec, palette: MapPalette) {
+    val properties = buildList {
+        add(PropertyFactory.lineColor(spec.colour(palette)))
+        add(PropertyFactory.lineWidth(spec.widthDp))
+        if (spec.roundCaps) {
+            add(PropertyFactory.lineCap(Property.LINE_CAP_ROUND))
+            add(PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND))
+        }
+        spec.dashPattern?.let { add(PropertyFactory.lineDasharray(it.toTypedArray())) }
+    }
+    style.addLayer(LineLayer(spec.layerId, spec.sourceId).withProperties(*properties.toTypedArray()))
+}
+
+/**
  * The active track's recorded points as a single [LineString] feature, oldest first — an empty
  * [FeatureCollection] when [points] has fewer than two points (nothing recorded yet, or only the
  * first fix so far): a `LineString` needs at least two points.
@@ -1075,61 +1131,6 @@ internal fun offlineRegionCirclesFeatureCollection(regions: List<Region>): Featu
     return FeatureCollection.fromFeatures(features)
 }
 
-/**
- * A solid diamond bitmap for the planned-trip [SymbolLayer]'s `icon-image`, distinct in shape and
- * colour from the translucent sighting-dot circles, so "planned" reads as its own kind of pin
- * rather than a variant of one — same intent as the deleted osmdroid `plannedTripIcon`, redrawn
- * because MapLibre's `SymbolLayer` needs a named image registered on the [Style]
- * (`Style.addImage`) rather than a per-`Marker` `Drawable`.
- */
-private fun plannedTripDiamondBitmap(density: Float, markerColor: Int): Bitmap {
-    val sizePx = (PLANNED_TRIP_MARKER_SIZE_DP * density).toInt().coerceAtLeast(1)
-    val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(bitmap)
-
-    val diamond = Path().apply {
-        moveTo(sizePx / 2f, 0f)
-        lineTo(sizePx.toFloat(), sizePx / 2f)
-        lineTo(sizePx / 2f, sizePx.toFloat())
-        lineTo(0f, sizePx / 2f)
-        close()
-    }
-    canvas.drawPath(diamond, Paint().apply { color = markerColor; style = Paint.Style.FILL; isAntiAlias = true })
-    return bitmap
-}
-
-/**
- * A teardrop pin bitmap for the waypoint [SymbolLayer]'s `icon-image` — round head, pointed tail
- * touching the actual coordinate (see [initializeOverlayLayers]'s `iconAnchor(BOTTOM)` for why the
- * tail, not the shape's center, has to be what's anchored). A distinct amber — the "you dropped a
- * pin here" colour convention this app's other roles don't otherwise use.
- */
-private fun waypointPinBitmap(density: Float, markerColor: Int): Bitmap {
-    val widthPx = (WAYPOINT_MARKER_WIDTH_DP * density).toInt().coerceAtLeast(1)
-    val heightPx = (WAYPOINT_MARKER_HEIGHT_DP * density).toInt().coerceAtLeast(1)
-    val bitmap = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(bitmap)
-
-    val headRadius = widthPx / 2f
-    val headCenterX = widthPx / 2f
-    val headCenterY = headRadius
-    val pin = Path().apply {
-        addCircle(headCenterX, headCenterY, headRadius, Path.Direction.CW)
-    }
-    // The tail: a triangle from the circle's sides down to the bottom-center tip, unioned with
-    // the circle above so the whole pin fills as one shape.
-    pin.addPath(
-        Path().apply {
-            moveTo(headCenterX - headRadius, headCenterY)
-            lineTo(headCenterX, heightPx.toFloat())
-            lineTo(headCenterX + headRadius, headCenterY)
-            close()
-        },
-    )
-    canvas.drawPath(pin, Paint().apply { color = markerColor; style = Paint.Style.FILL; isAntiAlias = true })
-    return bitmap
-}
-
 // Source/layer ids. Fixed strings rather than generated, since every one of them is referenced by
 // name from at least two places (initializeOverlayLayers and refreshOverlayData, or a layer
 // referencing its source) and a typo needs to be a compile error, not a silently-missing layer.
@@ -1139,30 +1140,35 @@ private const val SIGHTING_SOURCE_ID = "sightings"
 private const val SIGHTING_LAYER_ID = "sightings-layer"
 private const val PLANNED_TRIP_SOURCE_ID = "planned-trips"
 private const val PLANNED_TRIP_LAYER_ID = "planned-trips-layer"
-private const val PLANNED_TRIP_ICON_ID = "planned-trip-diamond"
 private const val BREADCRUMB_SOURCE_ID = "breadcrumb-trail"
 private const val BREADCRUMB_LAYER_ID = "breadcrumb-trail-layer"
+private const val BREADCRUMB_CASING_LAYER_ID = "breadcrumb-trail-casing-layer"
 private const val WAYPOINT_SOURCE_ID = "waypoints"
 private const val WAYPOINT_LAYER_ID = "waypoints-layer"
-private const val WAYPOINT_ICON_ID = "waypoint-pin"
 
 // Journal Stage 2d.
 private const val KEPT_TRACKS_SOURCE_ID = "kept-tracks"
 private const val KEPT_TRACKS_LAYER_ID = "kept-tracks-layer"
+private const val KEPT_TRACKS_CASING_LAYER_ID = "kept-tracks-casing-layer"
 private const val FIND_SOURCE_ID = "find-markers"
 private const val FIND_LAYER_ID = "find-markers-layer"
-private const val FIND_ICON_ID = "find-pin"
 private const val PHOTO_SOURCE_ID = "photo-markers"
 private const val PHOTO_LAYER_ID = "photo-markers-layer"
-private const val PHOTO_ICON_ID = "photo-diamond"
 private const val OFFLINE_REGION_CIRCLE_SOURCE_ID = "offline-region-circles"
 private const val OFFLINE_REGION_CIRCLE_LAYER_ID = "offline-region-circles-layer"
 private const val OFFLINE_REGION_CIRCLE_OUTLINE_LAYER_ID = "offline-region-circles-outline-layer"
 
-// The overlay's colours now come from ui/theme/MapPalette.kt, derived from the active
-// ColorScheme and passed in -- see that type's doc comment for the derivation rule, and for
-// the recorded objection about deriving map colours from a theme the basemap does not follow.
-// Only non-colour geometry constants remain here.
+// The overlay's colours come from ui/theme/MapPalette.kt, hand-authored per role in a day and a
+// night variant and chosen by the Night Maps toggle (MapPalette.forMode) -- not derived from the app
+// theme; that type's doc comment has why. Only non-colour geometry constants remain here.
+
+/**
+ * The casing every marker except the sighting dot is outlined in, on each side of its fill
+ * (colour build C2 (c), the planner's call): the tracks' casing lines are this much wider on each
+ * side, and the marker bitmaps (`MarkerGlyphs.kt`) draw it into their own padding.
+ */
+internal const val CASING_WIDTH_DP = 1.5f
+
 private const val SIGHTING_DOT_OPACITY = 0.7f // ~= the deleted osmdroid version's 0xB3 alpha.
 private const val SIGHTING_DOT_RADIUS_PX = 9f
 
@@ -1173,15 +1179,12 @@ private const val SIGHTING_DOT_RADIUS_PX = 9f
 //
 // The selected dot's ring used to widen this on top of recolouring — first to 3.5px, then to
 // 4.5px alongside MapPalette.sightingDotStrokeSelected moving to a deeper blue — and both were
-// reverted on request: the highlight is colour alone now, [sightingStrokeColorExpression] against
-// this one flat width for every dot, selected or not.
+// reverted on request, leaving the highlight to colour alone. Colour build C2 widens it again, to
+// SIGHTING_DOT_SELECTED_STROKE_WIDTH_PX, as an owner-approved tweak (sightingStrokeWidthExpression).
 internal const val SIGHTING_DOT_STROKE_WIDTH_PX = 1.5f
+internal const val SIGHTING_DOT_SELECTED_STROKE_WIDTH_PX = 3f
 private const val SIGHTING_DOT_STROKE_OPACITY = 0.85f
 
-private const val PLANNED_TRIP_MARKER_SIZE_DP = 22f
-
-private const val SEARCH_CENTER_RADIUS_PX = 8f
-private const val SEARCH_CENTER_STROKE_WIDTH_PX = 2f
 
 /**
  * The offline style's night: every background, fill and line colour property of the loaded style set
@@ -1265,13 +1268,15 @@ private fun nightPropertyValue(property: String, night: StyleColourValue): Prope
 private const val SIGHTINGS_MAP_TAG = "SightingsMap"
 private const val BREADCRUMB_STROKE_WIDTH_PX = 6f
 
-private const val WAYPOINT_MARKER_WIDTH_DP = 22f
-private const val WAYPOINT_MARKER_HEIGHT_DP = 28f
 
 // Journal Stage 2d.
 private const val KEPT_TRACK_STROKE_WIDTH_PX = 6f
 private const val OFFLINE_REGION_CIRCLE_OPACITY = 0.2f
 private const val OFFLINE_REGION_CIRCLE_OUTLINE_WIDTH_PX = 1.5f
+
+// The offline outline's dash and gap, in dp (colour build C2 (c), from the glyph board §1).
+private const val OFFLINE_REGION_OUTLINE_DASH_DP = 6f
+private const val OFFLINE_REGION_OUTLINE_GAP_DP = 4f
 
 /**
  * A short dash with round line caps ([Property.LINE_CAP_ROUND], already set on the breadcrumb
