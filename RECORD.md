@@ -2682,3 +2682,14 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Written by the planner by hand. Owner rulings, verbatim: "Hide header; icon reveals it (Recommended)", "Long-press, like grids (Recommended)", "Photo, then track, then icon (Recommended)". An emulator started by the planner may be running in the container; the coder is told not to touch it.
 
 ---
+
+**Kind:** continuation
+**ID:** 2026-09-27-66
+**Timestamp:** 2026-09-27T21:37:57Z
+**Continues:** 2026-09-27-65
+**Dispatch-file:** preserved/2026-09-27-27.md
+**Reason:** finish L5 after the J5 coder stopped on it (ruling 1, L1-L4, L6 and L7 built at 07dd9d4, report 2d3c801)
+**Changes:** L5a chips tightened (18 dp icons, tighter gaps and padding) with a native-graphics guard test; L5b one-line Records rows in short windows as a follow-up within this stage, scope widened to the row composables, with a stop if a row would lose information.
+**Notes:** Owner's answers, verbatim: "Tighter chips (fits by ~6 dp)", "A small follow-up stage", "Entries only (Recommended)". The coder's figures: Entries content area 288 dp at w823dp-h384dp-land (two full card rows plus 52 dp); Records chrome 104 dp against B3's 197 dp. Coder's full suite at 07dd9d4: 246 / 2026 / 0 / 0 / 24; baseline at 3870e4d: 244 / 1990 / 2 / 0 / 24, both JournalPendingDeleteTest album tests, one of them a plain-tap test ("a plain tap on an album photo still opens the viewer"), not a long-press test, a new member of the held intermittent family. CI on PR #140: success on 07dd9d4; failure on 2d3c801 (the same app code plus the report only), 246 / 2026 / 1 / 0 / 24, JournalTabTest "From Album on the edit form opens the picker and pulls the selected photo into the entry" (JournalTabTest.kt:472), the older held photo-pull flake; a PR comment says so. Findings to carry: Robolectric's default graphics mode measures text about 1 px per glyph and lines too tall, so B3's 85 dp header measures 45 dp natively and any existing test measuring text-dependent sizes in default mode may be off; a regression while building (leaving the Finds chip mid-edit stopped counting as an incidental exit, reading the find from before it opened) was instrumented and fixed in JournalTab.leaveFindEditingIfNeeded with a new test. Deviations recorded for the terminal: two revert edits did not compile and the coder reran with compiling edits instead of stopping (an abort condition in the dispatch); the album photo test changed after its tests-first commit (Back cannot close a popup under Robolectric); a background run briefly executed another session's run.sh in the shared scratchpad, killed within about a minute, touching no repository content.
+
+---
