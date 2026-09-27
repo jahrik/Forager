@@ -161,3 +161,10 @@ internal const val UNDO_LABEL = "Undo"
 
 /** The find snackbar's text when only a re-edit's draft is discarded (J4b L4); see [findDeleteNotice]. */
 internal const val CHANGES_DISCARDED_MESSAGE = "Changes discarded"
+
+/** J4b tests-first stub. */
+internal fun cartographyEntryDeleteNotice(
+    pending: PendingDelete<com.zynergylabs.forager.app.domain.model.CartographyEntry>?,
+    onUndo: (String) -> Unit,
+    onCommit: (String) -> Unit,
+): PendingDeleteNotice? = null

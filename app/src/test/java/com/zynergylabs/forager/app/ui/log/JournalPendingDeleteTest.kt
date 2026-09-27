@@ -124,6 +124,21 @@ import com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import com.zynergylabs.forager.app.domain.model.CartographyEntry
+import com.zynergylabs.forager.app.domain.SaveCartographyEntryUseCase
+import com.zynergylabs.forager.app.domain.OfflineRegionMetadata
+import com.zynergylabs.forager.app.domain.OfflineRegionDayIndex
+import com.zynergylabs.forager.app.domain.GetTripReportOfflineRegionsUseCase
+import com.zynergylabs.forager.app.domain.GetDerivedTripUseCase
+import com.zynergylabs.forager.app.domain.GetCartographyEntryUseCase
+import com.zynergylabs.forager.app.domain.GetCartographyEntriesUseCase
+import com.zynergylabs.forager.app.domain.GetCartographyDraftEntriesUseCase
+import com.zynergylabs.forager.app.domain.DeleteCartographyEntryUseCase
+import com.zynergylabs.forager.app.domain.CreateCartographyEntryUseCase
+import com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCase
+import com.zynergylabs.forager.app.domain.CommitCartographyEntryUseCase
+import com.zynergylabs.forager.app.domain.CartographyEntryRepository
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExternalResource
@@ -166,6 +181,8 @@ class JournalPendingDeleteTest {
     private lateinit var availabilityViewModel: AvailabilityViewModel
     private lateinit var logRepository: PendingDeleteLogRepository
     private lateinit var logViewModel: MushroomLogViewModel
+    private lateinit var cartographyRepository: PendingDeleteCartographyRepository
+    private lateinit var cartographyViewModel: CartographyViewModel
     private val searchCache = InMemorySearchCacheRepository()
 
     private fun setScreen(
@@ -173,8 +190,11 @@ class JournalPendingDeleteTest {
         chip: RecordsSubTab = RecordsSubTab.WAYPOINTS,
         regionReferenceCounts: Map<Long, Int> = mapOf(7L to 2, 8L to 0),
         finds: List<MushroomLogEntry> = emptyList(),
+        cartographyEntries: List<CartographyEntry> = emptyList(),
+        openRecords: Boolean = true,
     ) {
         logRepository = PendingDeleteLogRepository(finds)
+        val trackRepository = PendingDeleteTrackRepository()
         val photoStore = PendingDeletePhotoStore
         logViewModel = MushroomLogViewModel(
             getEntries = GetMushroomLogEntriesUseCase(logRepository),
@@ -217,7 +237,6 @@ class JournalPendingDeleteTest {
             getTodaysForecast = GetTodaysForecastUseCase(PendingDeleteWeather),
             getOfflineRegionReferenceCount = { id -> regionReferenceCounts[id] ?: 0 },
         )
-        val trackRepository = PendingDeleteTrackRepository()
         trackViewModel = TrackRecordingViewModel(
             trackRepository = trackRepository,
             startTrack = StartTrackUseCase(trackRepository, currentTime = PD_TIME, idGenerator = { "track-new" }),
@@ -232,11 +251,31 @@ class JournalPendingDeleteTest {
             alertAudibility = PendingDeleteAudible,
             getWaypointReferenceCount = { id -> waypointReferenceCounts[id] ?: 0 },
         )
+        cartographyRepository = PendingDeleteCartographyRepository(cartographyEntries)
+        cartographyViewModel = CartographyViewModel(
+            getEntries = GetCartographyEntriesUseCase(cartographyRepository),
+            getDraftEntries = GetCartographyDraftEntriesUseCase(cartographyRepository),
+            createEntry = CreateCartographyEntryUseCase(cartographyRepository, now = { 1_000L }, idGenerator = { "entry-new" }),
+            saveEntry = SaveCartographyEntryUseCase(cartographyRepository, now = { 1_000L }),
+            getEntry = GetCartographyEntryUseCase(cartographyRepository),
+            commitEntry = CommitCartographyEntryUseCase(cartographyRepository, now = { 1_000L }),
+            deleteEntry = DeleteCartographyEntryUseCase(cartographyRepository),
+            getDerivedTrip = GetDerivedTripUseCase(
+                mushroomLogRepository = logRepository,
+                trackRepository = trackRepository,
+                waypointRepository = waypointRepository,
+                offlineRegionDayIndex = PendingDeleteNoRegionsDayIndex,
+            ),
+            getTripReportOfflineRegions = GetTripReportOfflineRegionsUseCase(offlineMapRepository),
+            computeTrackStatistics = ComputeTrackStatisticsUseCase(),
+            now = { 1_000L },
+        )
         composeRule.setContent {
             val hostState = remember { SnackbarHostState() }
             val track by trackViewModel.uiState.collectAsState()
             val availability by availabilityViewModel.uiState.collectAsState()
             val log by logViewModel.uiState.collectAsState()
+            val cartography by cartographyViewModel.uiState.collectAsState()
             val journalState = rememberJournalScreenState()
             Box(modifier = Modifier.fillMaxSize()) {
                 JournalTab(
@@ -261,10 +300,12 @@ class JournalPendingDeleteTest {
                     onPullPhoto = {},
                     onDeleteEntry = logViewModel::requestDeleteEntry,
                     onSaveErrorDismissed = {},
-                    cartographyUiState = CartographyUiState(),
-                    onOpenCartographyEntry = {},
+                    // What MainActivity passes: the state with a pending entry left out, and the
+                    // card's pending-delete request beside the report's own immediate delete.
+                    cartographyUiState = cartography.hidingPendingDelete(),
+                    onOpenCartographyEntry = cartographyViewModel::onOpenEntry,
                     onStartCartographyEntry = {},
-                    onCloseCartographyEntry = {},
+                    onCloseCartographyEntry = cartographyViewModel::onCloseEntry,
                     onCartographyTextChanged = {},
                     onCartographyTagsChanged = {},
                     onSetFindDecision = { _, _ -> },
@@ -273,7 +314,8 @@ class JournalPendingDeleteTest {
                     onSetOfflineRegionDecision = { _, _ -> },
                     onToggleKeptPhoto = {},
                     onFinishCartographyEntry = {},
-                    onDeleteCartographyEntry = {},
+                    onDeleteCartographyEntry = cartographyViewModel::onDeleteEntry,
+                    onRequestDeleteCartographyEntry = cartographyViewModel::requestDeleteEntry,
                     getCartographyEntryMapData = { _, _ -> PD_EMPTY_MAP_DATA },
                     getCartographyEntryOfflineRegion = { _, _ -> null },
                     getCartographyEntryCurrentLocation = { LocationResult.LocationUnavailable },
@@ -308,11 +350,17 @@ class JournalPendingDeleteTest {
                         availabilityViewModel::commitDeleteOfflineRegion,
                     ),
                     findDeleteNotice(log.pendingDelete, logViewModel::undoDeleteEntry, logViewModel::commitDeleteEntry),
+                    cartographyEntryDeleteNotice(
+                        cartography.pendingDelete,
+                        cartographyViewModel::undoDeleteEntry,
+                        cartographyViewModel::commitDeleteEntry,
+                    ),
                 ),
                 hostState = hostState,
             )
         }
         composeRule.waitForIdle()
+        if (!openRecords) return
         composeRule.onNodeWithText("Records").performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithTag(recordsFilterChipTestTag(chip)).performScrollTo().performClick()
@@ -882,6 +930,178 @@ class JournalPendingDeleteTest {
         composeRule.onNodeWithText("Waypoint deleted", substring = true).assertDoesNotExist()
         assertEquals(emptyList<String>(), waypointRepository.deletedIds)
     }
+
+    // ── J4b L2: entry cards swipe in two stages ──
+    // (`prompts/preserved/2026-09-27-23.md`.) A short swipe reveals Edit and Delete; Edit opens the
+    // entry editor; Delete, a full swipe, and the "Delete" accessibility action go through the new
+    // Cartography-entry pending holder with its Undo snackbar.
+
+    private fun entryRow(id: String) = entrySwipeTag(id)
+
+    private fun assertEditorShowsEntry(id: String) {
+        assertEquals(id, cartographyViewModel.uiState.value.editingEntry?.id)
+        composeRule.onNodeWithText("Your own account (optional)").assertIsDisplayed()
+    }
+
+    private fun closeOpenEntry() {
+        composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(ENTRIES_HOME_TAG).assertExists()
+    }
+
+    @Test
+    fun `a short swipe on an entry card leaves it open with Edit and Delete behind it, and deletes nothing`() {
+        setScreen(cartographyEntries = listOf(PD_ENTRY_A, PD_ENTRY_B), openRecords = false)
+
+        for (id in listOf(PD_ENTRY_A.id, PD_ENTRY_B.id)) {
+            shortSwipeLeft(entryRow(id), distanceDp = 110f)
+            composeRule.onNodeWithTag(twoStageSwipeEditTag(entryRow(id))).assertIsDisplayed()
+            composeRule.onNodeWithTag(twoStageSwipeDeleteTag(entryRow(id))).assertIsDisplayed()
+        }
+        composeRule.onNodeWithText("Entry deleted").assertDoesNotExist()
+        letSnackbarTimeOut()
+        assertEquals(emptyList<String>(), cartographyRepository.deletedIds)
+    }
+
+    @Test
+    fun `touching a card's revealed Edit, anywhere on it, opens that entry in the editor`() {
+        setScreen(cartographyEntries = listOf(PD_ENTRY_A, PD_ENTRY_B), openRecords = false)
+        val row = entryRow(PD_ENTRY_B.id)
+        touchAcross(
+            tag = twoStageSwipeEditTag(row),
+            before = { shortSwipeLeft(row, distanceDp = 110f) },
+            after = {
+                assertEditorShowsEntry(PD_ENTRY_B.id)
+                closeOpenEntry()
+            },
+        )
+        assertEquals(emptyList<String>(), cartographyRepository.deletedIds)
+    }
+
+    @Test
+    fun `touching a card's revealed Delete, anywhere on it, hides it and says Entry deleted, and deletes only on timeout`() {
+        setScreen(cartographyEntries = listOf(PD_ENTRY_A, PD_ENTRY_B), openRecords = false)
+        val row = entryRow(PD_ENTRY_A.id)
+        touchAcross(
+            tag = twoStageSwipeDeleteTag(row),
+            before = { shortSwipeLeft(row, distanceDp = 110f) },
+            after = {
+                composeRule.onNodeWithText("Entry deleted").assertIsDisplayed()
+                composeRule.onNodeWithTag(row).assertDoesNotExist()
+                composeRule.onNodeWithTag(entryRow(PD_ENTRY_B.id)).assertExists()
+                assertEquals(emptyList<String>(), cartographyRepository.deletedIds)
+                touchUndo()
+                composeRule.onNodeWithTag(row).assertExists()
+            },
+        )
+        letSnackbarTimeOut()
+        assertEquals("Undo deleted nothing", emptyList<String>(), cartographyRepository.deletedIds)
+
+        shortSwipeLeft(row, distanceDp = 110f)
+        composeRule.onNodeWithTag(twoStageSwipeDeleteTag(row)).performTouchInput { click(center) }
+        composeRule.waitForIdle()
+        assertEquals(emptyList<String>(), cartographyRepository.deletedIds)
+        letSnackbarTimeOut()
+        assertEquals(listOf(PD_ENTRY_A.id), cartographyRepository.deletedIds)
+    }
+
+    @Test
+    fun `a full swipe on an entry card deletes it through the same snackbar, once, on timeout`() {
+        setScreen(cartographyEntries = listOf(PD_ENTRY_A, PD_ENTRY_B), openRecords = false)
+
+        composeRule.onNodeWithTag(entryRow(PD_ENTRY_B.id)).performScrollTo().performTouchInput { swipeLeft() }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Entry deleted").assertIsDisplayed()
+        composeRule.onNodeWithTag(entryRow(PD_ENTRY_B.id)).assertDoesNotExist()
+        assertEquals(emptyList<String>(), cartographyRepository.deletedIds)
+        letSnackbarTimeOut()
+        assertEquals(listOf(PD_ENTRY_B.id), cartographyRepository.deletedIds)
+    }
+
+    @Test
+    fun `a tap on a revealed card's body closes it without opening the entry`() {
+        setScreen(cartographyEntries = listOf(PD_ENTRY_A, PD_ENTRY_B), openRecords = false)
+        val row = entryRow(PD_ENTRY_A.id)
+        shortSwipeLeft(row, distanceDp = 110f)
+        composeRule.onNodeWithTag(twoStageSwipeEditTag(row)).assertIsDisplayed()
+
+        composeRule.onNodeWithTag(row).performTouchInput { click(Offset(width * 0.15f, height * 0.5f)) }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(twoStageSwipeEditTag(row)).assertDoesNotExist()
+        assertNull(cartographyViewModel.uiState.value.editingEntry)
+        composeRule.onNodeWithTag(ENTRIES_HOME_TAG).assertExists()
+    }
+
+    @Test
+    fun `opening a second card closes the first`() {
+        setScreen(cartographyEntries = listOf(PD_ENTRY_A, PD_ENTRY_B), openRecords = false)
+        shortSwipeLeft(entryRow(PD_ENTRY_A.id), distanceDp = 110f)
+
+        shortSwipeLeft(entryRow(PD_ENTRY_B.id), distanceDp = 110f)
+
+        composeRule.onNodeWithTag(twoStageSwipeEditTag(entryRow(PD_ENTRY_B.id))).assertIsDisplayed()
+        composeRule.onNodeWithTag(twoStageSwipeEditTag(entryRow(PD_ENTRY_A.id))).assertDoesNotExist()
+    }
+
+    @Test
+    fun `a plain tap on a card still opens its report, not the editor`() {
+        setScreen(cartographyEntries = listOf(PD_ENTRY_A, PD_ENTRY_B), openRecords = false)
+        composeRule.onNodeWithTag(entryRow(PD_ENTRY_A.id)).performTouchInput { click(Offset(width * 0.3f, height * 0.5f)) }
+        composeRule.waitForIdle()
+
+        assertEquals(PD_ENTRY_A.id, cartographyViewModel.uiState.value.editingEntry?.id)
+        composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
+        composeRule.onNodeWithText("Your own account (optional)").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a card's Edit and Delete accessibility actions open the editor and pend the delete`() {
+        setScreen(cartographyEntries = listOf(PD_ENTRY_A, PD_ENTRY_B), openRecords = false)
+        fun action(id: String, label: String) = composeRule.onNodeWithTag(entryRow(id)).performScrollTo().fetchSemanticsNode()
+            .config[SemanticsActions.CustomActions].single { it.label == label }
+        assertEquals(listOf("Edit", "Delete"), composeRule.onNodeWithTag(entryRow(PD_ENTRY_A.id)).fetchSemanticsNode().config[SemanticsActions.CustomActions].map { it.label })
+
+        val edit = action(PD_ENTRY_A.id, "Edit")
+        composeRule.runOnUiThread { edit.action() }
+        composeRule.waitForIdle()
+        assertEditorShowsEntry(PD_ENTRY_A.id)
+        closeOpenEntry()
+
+        val delete = action(PD_ENTRY_B.id, "Delete")
+        composeRule.runOnUiThread { delete.action() }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Entry deleted").assertIsDisplayed()
+        assertEquals(emptyList<String>(), cartographyRepository.deletedIds)
+        letSnackbarTimeOut()
+        assertEquals(listOf(PD_ENTRY_B.id), cartographyRepository.deletedIds)
+    }
+
+    @Test
+    fun `a draft deleted from the drafts list says Draft deleted, and its Edit opens that draft`() {
+        setScreen(cartographyEntries = listOf(PD_ENTRY_A, PD_DRAFT_1, PD_DRAFT_2), openRecords = false)
+        composeRule.onNodeWithTag("entries-drafts-continue").performClick()
+        composeRule.waitForIdle()
+        val row = entryRow(PD_DRAFT_2.id)
+
+        shortSwipeLeft(row, distanceDp = 110f)
+        composeRule.onNodeWithTag(twoStageSwipeEditTag(row)).performTouchInput { click(center) }
+        composeRule.waitForIdle()
+        assertEquals(PD_DRAFT_2.id, cartographyViewModel.uiState.value.editingEntry?.id)
+        composeRule.onNodeWithText("Your own account (optional)").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
+        composeRule.waitForIdle()
+
+        shortSwipeLeft(row, distanceDp = 110f)
+        composeRule.onNodeWithTag(twoStageSwipeDeleteTag(row)).performTouchInput { click(center) }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Draft deleted").assertIsDisplayed()
+        composeRule.onNodeWithText("Entry deleted").assertDoesNotExist()
+        assertEquals(emptyList<String>(), cartographyRepository.deletedIds)
+        letSnackbarTimeOut()
+        assertEquals(listOf(PD_DRAFT_2.id), cartographyRepository.deletedIds)
+    }
 }
 
 private const val SNACKBAR_LONG_MILLIS = 10_000L
@@ -1061,4 +1281,41 @@ private object PendingDeletePhotoStore : PhotoStore {
         Result.failure(UnsupportedOperationException("photos are not part of this test's path"))
     override suspend fun delete(photo: LogPhoto): Result<Unit> =
         Result.failure(UnsupportedOperationException("photos are not part of this test's path"))
+}
+
+private val PD_ENTRY_A = CartographyEntry.draft(id = "entry-a", date = LocalDate.of(2026, 9, 20), updatedAtEpochMillis = 2_000L)
+    .copy(isDraft = false, text = "Chanterelles along the ridge")
+private val PD_ENTRY_B = CartographyEntry.draft(id = "entry-b", date = LocalDate.of(2026, 9, 14), updatedAtEpochMillis = 1_000L)
+    .copy(isDraft = false, text = "Scouting Molalla")
+private val PD_DRAFT_1 = CartographyEntry.draft(id = "draft-1", date = LocalDate.of(2026, 9, 21), updatedAtEpochMillis = 3_000L).copy(text = "Half a day")
+private val PD_DRAFT_2 = CartographyEntry.draft(id = "draft-2", date = LocalDate.of(2026, 9, 22), updatedAtEpochMillis = 4_000L).copy(text = "Rained out")
+
+/** Cartography entries in memory; every [delete] call is recorded, in order (J4b L2). */
+private class PendingDeleteCartographyRepository(initial: List<CartographyEntry>) : CartographyEntryRepository {
+    private val entries = initial.associateByTo(LinkedHashMap()) { it.id }
+    val deletedIds = mutableListOf<String>()
+
+    override suspend fun getAll(): Result<List<CartographyEntry>> =
+        Result.success(entries.values.filterNot { it.isDraft }.sortedByDescending { it.updatedAtEpochMillis })
+    override suspend fun getAllDrafts(): Result<List<CartographyEntry>> =
+        Result.success(entries.values.filter { it.isDraft }.sortedByDescending { it.updatedAtEpochMillis })
+    override suspend fun getById(id: String): Result<CartographyEntry?> = Result.success(entries[id])
+    override suspend fun save(entry: CartographyEntry): Result<Unit> {
+        entries[entry.id] = entry
+        return Result.success(Unit)
+    }
+    override suspend fun delete(id: String): Result<Unit> {
+        deletedIds += id
+        entries.remove(id)
+        return Result.success(Unit)
+    }
+    override suspend fun countEntriesReferencingTrack(trackId: String): Result<Int> = Result.success(0)
+    override suspend fun countEntriesReferencingWaypoint(waypointId: String): Result<Int> = Result.success(0)
+    override suspend fun countEntriesReferencingOfflineRegion(offlineRegionId: Long): Result<Int> = Result.success(0)
+    override suspend fun countEntriesReferencingPhoto(photoId: String): Result<Int> = Result.success(0)
+}
+
+private object PendingDeleteNoRegionsDayIndex : OfflineRegionDayIndex {
+    override suspend fun getRegionsCreatedOn(dayStartInclusiveEpochMillis: Long, dayEndExclusiveEpochMillis: Long): Result<List<OfflineRegionMetadata>> =
+        Result.success(emptyList())
 }

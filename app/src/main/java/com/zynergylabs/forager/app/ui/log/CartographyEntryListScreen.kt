@@ -123,3 +123,6 @@ internal fun CartographyEntryListScreen(
         }
     }
 }
+
+/** The test tag of an entry card's two-stage swipe row (J4b L2). */
+internal fun entrySwipeTag(entryId: String): String = "entries-swipe-$entryId"
