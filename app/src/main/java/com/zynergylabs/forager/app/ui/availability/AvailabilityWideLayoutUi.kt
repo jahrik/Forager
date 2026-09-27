@@ -331,6 +331,9 @@ private fun MapTab(
                                 },
                                 onCancel = { pendingAction = null },
                                 modifier = Modifier.fillMaxSize(),
+                                // The map's own night (the renderMode handed to mapSlot above), so
+                                // the pin follows Night Maps (colour build C2 (e)).
+                                night = renderMode.night,
                             )
                         }
                     }
