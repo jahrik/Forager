@@ -99,6 +99,7 @@ internal fun TrackExportRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .testTag(trackExportRowTag(track.id))
             .heightIn(min = 48.dp)
             .padding(vertical = Spacing.xs),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -157,6 +158,9 @@ internal fun trackSubtitle(track: Track): String {
 
 private fun formatTrackTimestamp(track: Track): String =
     DISPLAY_FORMAT.format(Instant.ofEpochMilli(track.startedAtEpochMillis).atZone(ZoneId.systemDefault()))
+
+/** The Tracks chip's row for [trackId] (J5c: the details tap is tested at several points across it). */
+internal fun trackExportRowTag(trackId: String): String = "track-row-$trackId"
 
 private val TRACK_ROW_THUMBNAIL_SIZE = 40.dp
 
