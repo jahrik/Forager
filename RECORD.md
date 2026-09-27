@@ -2747,3 +2747,14 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Written by the planner by hand. Owner rulings, verbatim: "Across app restarts (Recommended)", "Collapsible chip, bottom corner (Recommended)", "Markers, then lines, then colour (Recommended)", "Diagnostics screen (Recommended)" (the first, second and fourth apply in L0b). D58 check required before each push.
 
 ---
+
+**Kind:** continuation
+**ID:** 2026-09-27-71
+**Timestamp:** 2026-09-27T22:59:13Z
+**Continues:** 2026-09-27-70
+**Dispatch-file:** preserved/2026-09-27-30.md
+**Reason:** the first L0a coder stopped at its premise check (report 8da4905, no code) on a certain draw-order change, a conflict between stable ids and unchanged source data, and the meaning of opacity; its session then ended in a container restart, so a fresh coder builds from the owner's rulings
+**Changes:** the accepted draw-order change (sighting dots and search centre above track lines) is no longer an abort; real record ids are carried through MapOverlayContent, CartographyEntryMapData and GetCartographyEntryMapDataUseCase, and the entry map's index-generated waypoint ids are replaced, widening the file scope; opacity is a 0-1 multiplier on each layer's existing values; the offline-region outline is tappable and its fill is not; the hit test uses a finger-sized box.
+**Notes:** Owner's answers, verbatim: "Accept: markers above lines (Recommended)", "Now, in L0a (Recommended)", "Multiplier, default 100% (Recommended)", "Yes to both (Recommended)". The first coder found the pulse's line numbers stale by about +9 (SightingsMap.kt) and +21 (MapSlot.kt) after the picker fixes, with every cited behaviour still present. CI on PR #140 passed on 8da4905.
+
+---
