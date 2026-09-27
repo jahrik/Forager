@@ -20,6 +20,12 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.isPopup
+import androidx.compose.ui.test.hasAnyAncestor
 import com.zynergylabs.forager.app.domain.AppThemePreferenceRepository
 import com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCase
@@ -181,6 +187,7 @@ class JournalPendingDeleteTest {
     private lateinit var availabilityViewModel: AvailabilityViewModel
     private lateinit var logRepository: PendingDeleteLogRepository
     private lateinit var logViewModel: MushroomLogViewModel
+    private lateinit var photoStore: PendingDeletePhotoStore
     private lateinit var cartographyRepository: PendingDeleteCartographyRepository
     private lateinit var cartographyViewModel: CartographyViewModel
     private val searchCache = InMemorySearchCacheRepository()
@@ -192,10 +199,12 @@ class JournalPendingDeleteTest {
         finds: List<MushroomLogEntry> = emptyList(),
         cartographyEntries: List<CartographyEntry> = emptyList(),
         openRecords: Boolean = true,
+        photos: List<GalleryPhoto> = emptyList(),
+        photoJournalCounts: Map<String, Int> = emptyMap(),
     ) {
-        logRepository = PendingDeleteLogRepository(finds)
+        logRepository = PendingDeleteLogRepository(finds, photos)
         val trackRepository = PendingDeleteTrackRepository()
-        val photoStore = PendingDeletePhotoStore
+        photoStore = PendingDeletePhotoStore()
         logViewModel = MushroomLogViewModel(
             getEntries = GetMushroomLogEntriesUseCase(logRepository),
             getDraftEntries = GetDraftEntriesUseCase(logRepository),
@@ -212,6 +221,7 @@ class JournalPendingDeleteTest {
             deleteGalleryPhoto = DeleteGalleryPhotoUseCase(logRepository, photoStore),
             locationProvider = PendingDeleteUnusedLocationProvider,
             updatePhotoLocation = UpdatePhotoLocationUseCase(logRepository),
+            getPhotoEntryReferenceCount = { id -> photoJournalCounts[id] ?: 0 },
         )
         availabilityViewModel = AvailabilityViewModel(
             locationProvider = PendingDeleteUnusedLocationProvider,
@@ -299,6 +309,12 @@ class JournalPendingDeleteTest {
                     onRemovePhoto = {},
                     onPullPhoto = {},
                     onDeleteEntry = logViewModel::requestDeleteEntry,
+                    // J4b L1/L3: what MainActivity passes for a find tile's Edit and a photo's Delete.
+                    onOpenEntryForEditing = logViewModel::onOpenEntryForEditing,
+                    onRequestDeleteGalleryPhoto = logViewModel::requestDeleteGalleryPhoto,
+                    // What the compact scaffold passes the album: the visible state's photos and counts.
+                    galleryPhotos = log.hidingPendingDelete().galleryPhotos,
+                    galleryPhotoEntryReferenceCounts = log.cartographyEntryPhotoReferenceCounts,
                     onSaveErrorDismissed = {},
                     // What MainActivity passes: the state with a pending entry left out, and the
                     // card's pending-delete request beside the report's own immediate delete.
@@ -355,6 +371,7 @@ class JournalPendingDeleteTest {
                         cartographyViewModel::undoDeleteEntry,
                         cartographyViewModel::commitDeleteEntry,
                     ),
+                    galleryPhotoDeleteNotice(log.pendingPhotoDelete, logViewModel::undoDeleteGalleryPhoto, logViewModel::commitDeleteGalleryPhoto),
                 ),
                 hostState = hostState,
             )
@@ -1102,6 +1119,223 @@ class JournalPendingDeleteTest {
         letSnackbarTimeOut()
         assertEquals(listOf(PD_DRAFT_2.id), cartographyRepository.deletedIds)
     }
+
+    // ── J4b L1: find tiles open a long-press menu ──
+    // (The owner's "grids long-press": find tiles and album photos keep long-press.) Real
+    // long-presses at several points of each tile; the menu's items chosen by coordinate touches.
+
+    private fun findTile(date: String) = composeRule.onNodeWithText("Find on $date")
+
+    private fun menuItems() = composeRule.onAllNodes(hasClickAction() and hasAnyAncestor(isPopup()))
+
+    private fun touchMenuItem(tag: String) {
+        composeRule.onNodeWithTag(tag).assertIsDisplayed().performTouchInput { click(center) }
+        composeRule.waitForIdle()
+    }
+
+    private val tilePoints = listOf(0.25f to 0.3f, 0.5f to 0.5f, 0.75f to 0.8f)
+
+    @Test
+    fun `a long-press anywhere on a find tile opens a menu of exactly Edit and Delete`() {
+        setScreen(chip = RecordsSubTab.FINDS, finds = listOf(PD_FIND_A, PD_FIND_B))
+        for (date in listOf("2026-09-20", "2026-09-21")) {
+            for ((fx, fy) in tilePoints) {
+                findTile(date).performTouchInput { longClick(Offset(width * fx, height * fy)) }
+                composeRule.waitForIdle()
+                menuItems().assertCountEquals(2)
+                composeRule.onNodeWithTag(TILE_OPTIONS_EDIT_TAG).assert(hasText("Edit"))
+                composeRule.onNodeWithTag(TILE_OPTIONS_DELETE_TAG).assert(hasText("Delete"))
+                // Leave the menu by choosing Delete and undoing it, so every point is a fresh attempt.
+                touchMenuItem(TILE_OPTIONS_DELETE_TAG)
+                touchUndo()
+            }
+        }
+        letSnackbarTimeOut()
+        assertEquals(emptyList<String>(), logRepository.deletedIds)
+    }
+
+    @Test
+    fun `a find tile's Edit opens that find in its edit form`() {
+        setScreen(chip = RecordsSubTab.FINDS, finds = listOf(PD_FIND_A, PD_FIND_B))
+        findTile("2026-09-21").performTouchInput { longClick(Offset(width * 0.5f, height * 0.4f)) }
+        composeRule.waitForIdle()
+
+        touchMenuItem(TILE_OPTIONS_EDIT_TAG)
+
+        composeRule.onNodeWithContentDescription("Delete this entry").assertIsDisplayed()
+        val editing = logViewModel.uiState.value.editingEntry
+        assertEquals("the edit form works on a draft of that find", PD_FIND_B.id, editing?.draftOfEntryId)
+    }
+
+    @Test
+    fun `a find tile's Delete hides it, says Find deleted, and deletes it once on timeout`() {
+        setScreen(chip = RecordsSubTab.FINDS, finds = listOf(PD_FIND_A, PD_FIND_B))
+        findTile("2026-09-20").performTouchInput { longClick(Offset(width * 0.3f, height * 0.6f)) }
+        composeRule.waitForIdle()
+
+        touchMenuItem(TILE_OPTIONS_DELETE_TAG)
+
+        findTiles("2026-09-20").assertCountEquals(0)
+        findTiles("2026-09-21").assertCountEquals(1)
+        composeRule.onNodeWithText("Find deleted").assertIsDisplayed()
+        assertEquals(emptyList<String>(), logRepository.deletedIds)
+        letSnackbarTimeOut()
+        assertEquals(listOf(PD_FIND_A.id), logRepository.deletedIds)
+    }
+
+    @Test
+    fun `a find tile's Edit and Delete accessibility actions, and its long-press label`() {
+        setScreen(chip = RecordsSubTab.FINDS, finds = listOf(PD_FIND_A, PD_FIND_B))
+        val node = findTile("2026-09-20").fetchSemanticsNode()
+        assertEquals("Options for Find on 2026-09-20", node.config[SemanticsActions.OnLongClick].label)
+        assertEquals(listOf("Edit", "Delete"), node.config[SemanticsActions.CustomActions].map { it.label })
+
+        val delete = node.config[SemanticsActions.CustomActions].single { it.label == "Delete" }
+        composeRule.runOnUiThread { delete.action() }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Find deleted").assertIsDisplayed()
+        touchUndo()
+
+        val edit = findTile("2026-09-21").fetchSemanticsNode().config[SemanticsActions.CustomActions].single { it.label == "Edit" }
+        composeRule.runOnUiThread { edit.action() }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithContentDescription("Delete this entry").assertIsDisplayed()
+        assertEquals(PD_FIND_B.id, logViewModel.uiState.value.editingEntry?.draftOfEntryId)
+        assertEquals(emptyList<String>(), logRepository.deletedIds)
+    }
+
+    @Test
+    fun `a plain tap on a find tile still opens its report`() {
+        setScreen(chip = RecordsSubTab.FINDS, finds = listOf(PD_FIND_A))
+        findTile("2026-09-20").performTouchInput { click(Offset(width * 0.5f, height * 0.5f)) }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Delete this entry").assertDoesNotExist()
+        menuItems().assertCountEquals(0)
+    }
+
+    @Test
+    fun `a find tile in All has the same menu, whose Delete pends it and whose Edit opens its form under the Finds chip`() {
+        setScreen(chip = RecordsSubTab.ALL, finds = listOf(PD_FIND_A, PD_FIND_B))
+        val rowA = composeRule.onNodeWithTag(logbookRowTag(RecordType.FINDS, "find-a")).performScrollTo()
+        rowA.performTouchInput { longClick(Offset(width * 0.4f, height * 0.6f)) }
+        composeRule.waitForIdle()
+        menuItems().assertCountEquals(2)
+        touchMenuItem(TILE_OPTIONS_DELETE_TAG)
+        composeRule.onNodeWithTag(logbookRowTag(RecordType.FINDS, "find-a")).assertDoesNotExist()
+        composeRule.onNodeWithText("Find deleted").assertIsDisplayed()
+        assertEquals(emptyList<String>(), logRepository.deletedIds)
+
+        composeRule.onNodeWithTag(logbookRowTag(RecordType.FINDS, "find-b")).performScrollTo()
+            .performTouchInput { longClick(Offset(width * 0.6f, height * 0.4f)) }
+        composeRule.waitForIdle()
+        touchMenuItem(TILE_OPTIONS_EDIT_TAG)
+        composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.FINDS)).assert(androidx.compose.ui.test.isSelected())
+        composeRule.onNodeWithContentDescription("Delete this entry").assertIsDisplayed()
+        assertEquals(PD_FIND_B.id, logViewModel.uiState.value.editingEntry?.draftOfEntryId)
+    }
+
+    // ── J4b L3: album photos open a long-press menu ──
+    // Delete only: the app has no photo details or location editing screen (the J4b report cites the
+    // search), so there is no Edit to open, and none is built (the dispatch's stop condition).
+
+    private fun openAlbum() {
+        composeRule.onNodeWithTag(ENTRIES_VIEW_ALBUM_TAG).performClick()
+        composeRule.waitForIdle()
+    }
+
+    private fun photoTile(id: String) = composeRule.onNodeWithTag(albumPhotoTestTag(id))
+
+    // The corner delete button covers roughly the tile's top-end 48 dp; these points stay off it.
+    private val photoPoints = listOf(0.2f to 0.3f, 0.5f to 0.7f, 0.8f to 0.85f)
+
+    @Test
+    fun `a long-press anywhere on an album photo opens a menu of exactly Delete`() {
+        setScreen(photos = listOf(PD_PHOTO_A, PD_PHOTO_B), openRecords = false)
+        openAlbum()
+        for (id in listOf(PD_PHOTO_A.photo.id, PD_PHOTO_B.photo.id)) {
+            for ((fx, fy) in photoPoints) {
+                photoTile(id).performTouchInput { longClick(Offset(width * fx, height * fy)) }
+                composeRule.waitForIdle()
+                menuItems().assertCountEquals(1)
+                composeRule.onNodeWithTag(TILE_OPTIONS_DELETE_TAG).assert(hasText("Delete"))
+                composeRule.onNodeWithTag(TILE_OPTIONS_EDIT_TAG).assertDoesNotExist()
+                touchMenuItem(TILE_OPTIONS_DELETE_TAG)
+                touchUndo()
+            }
+        }
+        letSnackbarTimeOut()
+        assertEquals(emptyList<String>(), logRepository.deletedPhotoIds)
+        assertEquals(emptyList<String>(), photoStore.deletedPhotoIds)
+    }
+
+    @Test
+    fun `an album photo's Delete hides it and warns of its uses, and deletes its row and file only when the snackbar ends`() {
+        setScreen(photos = listOf(PD_PHOTO_A, PD_PHOTO_B), photoJournalCounts = mapOf(PD_PHOTO_A.photo.id to 2), openRecords = false)
+        openAlbum()
+        photoTile(PD_PHOTO_A.photo.id).performTouchInput { longClick(Offset(width * 0.3f, height * 0.6f)) }
+        composeRule.waitForIdle()
+
+        touchMenuItem(TILE_OPTIONS_DELETE_TAG)
+
+        photoTile(PD_PHOTO_A.photo.id).assertDoesNotExist()
+        photoTile(PD_PHOTO_B.photo.id).assertExists()
+        composeRule.onNodeWithText("Photo deleted · used in 1 find and 2 journal entries").assertIsDisplayed()
+        composeRule.mainClock.advanceTimeBy(SNACKBAR_LONG_MILLIS / 2)
+        composeRule.waitForIdle()
+        assertEquals("no row delete before the snackbar ends", emptyList<String>(), logRepository.deletedPhotoIds)
+        assertEquals("no file delete before the snackbar ends", emptyList<String>(), photoStore.deletedPhotoIds)
+        letSnackbarTimeOut()
+        assertEquals(listOf(PD_PHOTO_A.photo.id), logRepository.deletedPhotoIds)
+        assertEquals(listOf(PD_PHOTO_A.photo.id), photoStore.deletedPhotoIds)
+    }
+
+    @Test
+    fun `Undo on an album photo brings it back and deletes neither row nor file`() {
+        setScreen(photos = listOf(PD_PHOTO_A, PD_PHOTO_B), openRecords = false)
+        openAlbum()
+        photoTile(PD_PHOTO_B.photo.id).performTouchInput { longClick(Offset(width * 0.5f, height * 0.7f)) }
+        composeRule.waitForIdle()
+        touchMenuItem(TILE_OPTIONS_DELETE_TAG)
+        composeRule.onNodeWithText("Photo deleted").assertIsDisplayed()
+
+        touchUndo()
+        letSnackbarTimeOut()
+
+        photoTile(PD_PHOTO_B.photo.id).assertExists()
+        assertEquals(emptyList<String>(), logRepository.deletedPhotoIds)
+        assertEquals(emptyList<String>(), photoStore.deletedPhotoIds)
+    }
+
+    @Test
+    fun `an album photo's Delete accessibility action and long-press label, and no Edit action`() {
+        setScreen(photos = listOf(PD_PHOTO_A, PD_PHOTO_B), openRecords = false)
+        openAlbum()
+        val node = composeRule.onNode(hasAnyAncestor(hasTestTag(albumPhotoTestTag(PD_PHOTO_B.photo.id))) and hasClickAction() and hasLongClickLabel("Options for photo"))
+            .fetchSemanticsNode()
+        assertEquals(listOf("Delete"), node.config[SemanticsActions.CustomActions].map { it.label })
+
+        val delete = node.config[SemanticsActions.CustomActions].single()
+        composeRule.runOnUiThread { delete.action() }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Photo deleted").assertIsDisplayed()
+        photoTile(PD_PHOTO_B.photo.id).assertDoesNotExist()
+        letSnackbarTimeOut()
+        assertEquals(listOf(PD_PHOTO_B.photo.id), logRepository.deletedPhotoIds)
+        assertEquals(listOf(PD_PHOTO_B.photo.id), photoStore.deletedPhotoIds)
+    }
+
+    @Test
+    fun `a plain tap on an album photo still opens the viewer`() {
+        setScreen(photos = listOf(PD_PHOTO_A, PD_PHOTO_B), openRecords = false)
+        openAlbum()
+        photoTile(PD_PHOTO_A.photo.id).performTouchInput { click(Offset(width * 0.3f, height * 0.7f)) }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(PHOTO_VIEWER_TAG).assertExists()
+        menuItems().assertCountEquals(0)
+    }
 }
 
 private const val SNACKBAR_LONG_MILLIS = 10_000L
@@ -1241,15 +1475,20 @@ private object PendingDeleteTheme : AppThemePreferenceRepository {
 private val PD_FIND_A = MushroomLogEntry.draft(id = "find-a", location = null, date = LocalDate.of(2026, 9, 20)).copy(isDraft = false)
 private val PD_FIND_B = MushroomLogEntry.draft(id = "find-b", location = null, date = LocalDate.of(2026, 9, 21)).copy(isDraft = false)
 
-/** Finds kept in memory, no photos; every [delete] call is recorded, in order. */
-private class PendingDeleteLogRepository(initial: List<MushroomLogEntry>) : MushroomLogRepository {
+/**
+ * Finds kept in memory, and (J4b L3) gallery photos; every [delete] and [deletePhotoFromGallery]
+ * call is recorded, in order.
+ */
+private class PendingDeleteLogRepository(initial: List<MushroomLogEntry>, photos: List<GalleryPhoto> = emptyList()) : MushroomLogRepository {
     private val entries = initial.associateByTo(LinkedHashMap()) { it.id }
+    private val galleryPhotos = photos.associateByTo(LinkedHashMap()) { it.photo.id }
     val deletedIds = mutableListOf<String>()
+    val deletedPhotoIds = mutableListOf<String>()
 
     override suspend fun getAll(): Result<List<MushroomLogEntry>> = Result.success(entries.values.toList())
     override suspend fun getForDay(foundOnKey: String): Result<List<MushroomLogEntry>> =
         Result.success(entries.values.filter { it.foundOn.toString() == foundOnKey })
-    override suspend fun getAllPhotos(): Result<List<GalleryPhoto>> = Result.success(emptyList())
+    override suspend fun getAllPhotos(): Result<List<GalleryPhoto>> = Result.success(galleryPhotos.values.toList())
     override suspend fun save(entry: MushroomLogEntry): Result<Unit> {
         entries[entry.id] = entry
         return Result.success(Unit)
@@ -1272,15 +1511,22 @@ private class PendingDeleteLogRepository(initial: List<MushroomLogEntry>) : Mush
         Result.failure(UnsupportedOperationException("photos are not part of this test's path"))
     override suspend fun detachPhotoFromEntry(entryId: String, photoId: String): Result<Unit> =
         Result.failure(UnsupportedOperationException("photos are not part of this test's path"))
-    override suspend fun deletePhotoFromGallery(photoId: String): Result<Unit> =
-        Result.failure(UnsupportedOperationException("photos are not part of this test's path"))
+    override suspend fun deletePhotoFromGallery(photoId: String): Result<Unit> {
+        deletedPhotoIds += photoId
+        galleryPhotos.remove(photoId)
+        return Result.success(Unit)
+    }
 }
 
-private object PendingDeletePhotoStore : PhotoStore {
+/** Persists nothing; every file [delete] is recorded (J4b L3: the file delete a pending photo defers). */
+private class PendingDeletePhotoStore : PhotoStore {
+    val deletedPhotoIds = mutableListOf<String>()
     override suspend fun persist(source: PhotoSource): Result<LogPhoto> =
         Result.failure(UnsupportedOperationException("photos are not part of this test's path"))
-    override suspend fun delete(photo: LogPhoto): Result<Unit> =
-        Result.failure(UnsupportedOperationException("photos are not part of this test's path"))
+    override suspend fun delete(photo: LogPhoto): Result<Unit> {
+        deletedPhotoIds += photo.id
+        return Result.success(Unit)
+    }
 }
 
 private val PD_ENTRY_A = CartographyEntry.draft(id = "entry-a", date = LocalDate.of(2026, 9, 20), updatedAtEpochMillis = 2_000L)
@@ -1319,3 +1565,16 @@ private object PendingDeleteNoRegionsDayIndex : OfflineRegionDayIndex {
     override suspend fun getRegionsCreatedOn(dayStartInclusiveEpochMillis: Long, dayEndExclusiveEpochMillis: Long): Result<List<OfflineRegionMetadata>> =
         Result.success(emptyList())
 }
+
+private val PD_PHOTO_A = GalleryPhoto(
+    photo = LogPhoto(id = "photo-a", relativePath = "photos/none-a.jpg", createdAtEpochMillis = 1_758_300_000_000L),
+    referencingEntryIds = listOf("find-x"),
+)
+private val PD_PHOTO_B = GalleryPhoto(
+    photo = LogPhoto(id = "photo-b", relativePath = "photos/none-b.jpg", createdAtEpochMillis = 1_758_300_100_000L),
+    referencingEntryIds = emptyList(),
+)
+
+/** A node whose long-click action carries [label] (J4b: the tile's "Options for ..."). */
+private fun hasLongClickLabel(label: String): SemanticsMatcher =
+    SemanticsMatcher("long-click label is '$label'") { it.config.getOrNull(SemanticsActions.OnLongClick)?.label == label }
