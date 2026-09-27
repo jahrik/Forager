@@ -234,11 +234,22 @@ class AvailabilityScreenShortLandscapeTest {
         assertTrue("the rail lies over the map: $rail in ${mapBounds()}", rail.isInside(mapBounds()))
     }
 
-    /** Planner's added check (owner's correction): the cluster defaults to the right, the rail's side at ROTATION_90. */
+    /**
+     * Planner's added check (owner's correction). B1 relied on the cluster defaulting to the right,
+     * the rail's side at ROTATION_90. Landscape B2 (S6) defaults it to the punch-hole side, away
+     * from the rail, so (B2, S9) each test first drags the cluster to the port side — the only
+     * place it can meet the rail — and asserts it got there, then checks nothing sits under the
+     * rail. Changed from B1: the drag and the "dragged to the port side" assertion are new; the
+     * cluster-displayed assertion now also runs at ROTATION_270; assertNoControlUnderRail is
+     * unchanged.
+     */
     @Test
     fun `at ROTATION_90 no control on the map sits under the rail`() {
         setScreen(Surface.ROTATION_90)
         composeRule.onNodeWithTag(MAP_ICON_CLUSTER_TAG).assertIsDisplayed()
+        dragClusterBy(PORT_SIDE_DRAG)
+        val cluster = composeRule.onNodeWithTag(MAP_ICON_CLUSTER_TAG).getUnclippedBoundsInRoot()
+        assertTrue("the cluster $cluster was dragged to the port side, the right", cluster.centreX() > rootBounds().centreX())
 
         assertNoControlUnderRail()
     }
@@ -246,8 +257,29 @@ class AvailabilityScreenShortLandscapeTest {
     @Test
     fun `at ROTATION_270 no control on the map sits under the rail`() {
         setScreen(Surface.ROTATION_270)
+        composeRule.onNodeWithTag(MAP_ICON_CLUSTER_TAG).assertIsDisplayed()
+        dragClusterBy(-PORT_SIDE_DRAG)
+        val cluster = composeRule.onNodeWithTag(MAP_ICON_CLUSTER_TAG).getUnclippedBoundsInRoot()
+        assertTrue("the cluster $cluster was dragged to the port side, the left", cluster.centreX() < rootBounds().centreX())
 
         assertNoControlUnderRail()
+    }
+
+    /** A real long-press-then-drag on the cluster's minimise handle, the cluster's own drag affordance. */
+    private fun dragClusterBy(dx: Dp) {
+        val b = composeRule.onNodeWithTag("map-icon-bar-minimize-handle").getUnclippedBoundsInRoot()
+        val start = DpPoint((b.left + b.right) / 2, (b.top + b.bottom) / 2).toPx(this)
+        val delta = with(composeRule.density) { Offset(dx.toPx(), 0f) }
+        composeRule.onRoot().performTouchInput {
+            down(start)
+            advanceEventTime(600)
+            moveTo(start + delta)
+            advanceEventTime(50)
+            up()
+        }
+        composeRule.waitForIdle()
+        composeRule.mainClock.advanceTimeBy(2_000)
+        composeRule.waitForIdle()
     }
 
     /** The owner's point, as a check that can fail on it: hiding the rail never resizes the map. */
@@ -509,6 +541,9 @@ private val RAIL_LABELS = listOf("List", "Seasonal", "Maps", "Journal", "Tools")
 private val EDGE_SAMPLE_INSET = 4.dp
 
 private const val SAMPLE_COUNT = 8
+
+/** Far enough past the side-snap threshold (96dp) to move the cluster across the window. */
+private val PORT_SIDE_DRAG = 400.dp
 private const val MIN_SAMPLED = 4
 
 private data class DpPoint(val x: Dp, val y: Dp)
