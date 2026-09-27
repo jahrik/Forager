@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
+import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
 /**
@@ -73,6 +74,8 @@ internal fun DraftsListScreen(
     isLoading: Boolean,
     onOpenDraft: (String) -> Unit,
     onBack: () -> Unit,
+    /** The user's distance unit, for a card's track stat (J3, C1: the shared list's cards need it). */
+    distanceUnit: DistanceUnit,
     columns: Int,
     modifier: Modifier = Modifier,
 ) {
@@ -91,6 +94,7 @@ internal fun DraftsListScreen(
             isLoading = isLoading,
             onOpenEntry = onOpenDraft,
             emptyMessage = "No drafts. An entry you haven't finished shows up here.",
+            distanceUnit = distanceUnit,
             columns = columns,
             modifier = Modifier.weight(1f),
         )

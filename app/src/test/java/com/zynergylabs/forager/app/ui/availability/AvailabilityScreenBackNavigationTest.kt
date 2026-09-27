@@ -652,7 +652,7 @@ class AvailabilityScreenBackNavigationTest {
     fun `back on a clean committed Cartography entry closes without any prompt`() {
         setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(committedCartographyCard()).performClick()
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
         composeRule.onNodeWithText("Your own account (optional)").assertIsDisplayed()
@@ -668,7 +668,7 @@ class AvailabilityScreenBackNavigationTest {
     fun `back on a dirty committed Cartography entry shows the leave prompt, and Cancel keeps editing`() {
         setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(committedCartographyCard()).performClick()
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
         composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Unsaved via system back.")
@@ -689,7 +689,7 @@ class AvailabilityScreenBackNavigationTest {
     fun `Discard from the system-back leave prompt discards the edit and leaves`() {
         setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(committedCartographyCard()).performClick()
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
         composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Should not be saved.")
@@ -708,7 +708,7 @@ class AvailabilityScreenBackNavigationTest {
     fun `Save from the system-back leave prompt saves the edit and leaves, with no second dialog`() {
         setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(committedCartographyCard()).performClick()
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
         composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Saved via system back.")
@@ -720,7 +720,7 @@ class AvailabilityScreenBackNavigationTest {
 
         composeRule.onNodeWithText("Save your changes?").assertDoesNotExist()
         composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_HOME_TAG).assertIsDisplayed()
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(committedCartographyCard()).performClick()
         composeRule.onNodeWithText("Saved via system back.").assertIsDisplayed()
     }
 
@@ -734,7 +734,7 @@ class AvailabilityScreenBackNavigationTest {
     fun `backgrounding a dirty committed entry commits nothing, and resuming shows the return prompt`() {
         setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(committedCartographyCard()).performClick()
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
         composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Pending, not yet approved.")
@@ -751,7 +751,7 @@ class AvailabilityScreenBackNavigationTest {
     fun `backgrounding a clean committed entry shows no return prompt on resume`() {
         setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(committedCartographyCard()).performClick()
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
 
@@ -778,7 +778,7 @@ class AvailabilityScreenBackNavigationTest {
     fun `Continue editing on the return prompt dismisses it and leaves the pending edit exactly in place`() {
         setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(committedCartographyCard()).performClick()
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
         composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Pending, not yet approved.")
@@ -813,7 +813,7 @@ class AvailabilityScreenBackNavigationTest {
     fun `Commit on the return prompt persists the pending edit and stays on the entry`() {
         setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(committedCartographyCard()).performClick()
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
         composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Committed on return.")
@@ -830,7 +830,7 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.onNodeWithText("Committed on return.").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
         composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_HOME_TAG).assertIsDisplayed()
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(committedCartographyCard()).performClick()
         // Proves the tap actually opened the entry — see this test's own doc comment.
         composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
         composeRule.onNodeWithText("Committed on return.").assertIsDisplayed()
@@ -863,7 +863,7 @@ class AvailabilityScreenBackNavigationTest {
     fun `Save as draft on the return prompt closes the screen and moves the entry to Drafts with the edit in place`() {
         setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(committedCartographyCard()).performClick()
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
         composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Saved as draft on return.")
@@ -886,7 +886,7 @@ class AvailabilityScreenBackNavigationTest {
         // lands on Entries itself now, so no sub-tab tap is needed to get there.)
         composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
         composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_HOME_TAG).assertIsDisplayed()
-        composeRule.onNodeWithText("2026-08-01").assertDoesNotExist()
+        composeRule.onNode(committedCartographyCard()).assertDoesNotExist()
     }
 
     // --- Search-focus-and-hide dispatch, Item 2: the top search bar hides for as long as an entry
@@ -904,7 +904,7 @@ class AvailabilityScreenBackNavigationTest {
 
         // Viewing (the report screen) counts as "open," not just editing — see the gate's own doc
         // comment on why this scope was the reachable one, not a lifted VIEW/EDIT distinction.
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(committedCartographyCard()).performClick()
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertDoesNotExist()
 
         composeRule.onNodeWithContentDescription("Entry options").performClick()
@@ -947,7 +947,7 @@ class AvailabilityScreenBackNavigationTest {
     fun `backgrounding and resuming mid-edit, then closing normally, leaves the search bar visible with no dropdown open`() {
         setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(committedCartographyCard()).performClick()
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
         composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Resumed then closed.")
@@ -1105,3 +1105,10 @@ private object BackNavStubAppThemePreferenceRepository : AppThemePreferenceRepos
     override suspend fun getThemeMode(): Result<AppThemeMode> = Result.success(AppThemeMode.LIGHT)
     override suspend fun setThemeMode(mode: AppThemeMode): Result<Unit> = Result.success(Unit)
 }
+
+/**
+ * The committed entry's card or collapsed row (journal redesign J3, C1): the ISO date these tests
+ * used to find the card by is no longer on it, so they find it by the card's own tag.
+ */
+private fun committedCartographyCard(): androidx.compose.ui.test.SemanticsMatcher =
+    androidx.compose.ui.test.hasTestTag("entry-card-committed-1") or androidx.compose.ui.test.hasTestTag("entry-row-committed-1")

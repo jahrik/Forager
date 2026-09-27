@@ -21,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.DpRect
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsNotSelected
@@ -241,7 +242,7 @@ class JournalEntriesTest {
         node(SWITCH_RECORDS).assert(hasText("Records")).assertIsNotSelected()
         composeRule.onNodeWithText("Cartography").assertDoesNotExist()
         // Entries shows Cartography's content (an entry card), not Records' chips.
-        composeRule.onNodeWithText(ENTRIES_COMMITTED.date.toString()).assertExists()
+        composeRule.onNode(entryMatcher(ENTRIES_COMMITTED)).assertExists()
         node(RECORDS_CHIP_ROW).assertDoesNotExist()
     }
 
@@ -254,13 +255,13 @@ class JournalEntriesTest {
             node(SWITCH_RECORDS).assertIsSelected()
             node(SWITCH_ENTRIES).assertIsNotSelected()
             node(RECORDS_CHIP_ROW).assertExists()
-            composeRule.onNodeWithText(ENTRIES_COMMITTED.date.toString()).assertDoesNotExist()
+            composeRule.onNode(entryMatcher(ENTRIES_COMMITTED)).assertDoesNotExist()
 
             touch(SWITCH_ENTRIES, point)
             node(SWITCH_ENTRIES).assertIsSelected()
             node(SWITCH_RECORDS).assertIsNotSelected()
             node(RECORDS_CHIP_ROW).assertDoesNotExist()
-            composeRule.onNodeWithText(ENTRIES_COMMITTED.date.toString()).assertExists()
+            composeRule.onNode(entryMatcher(ENTRIES_COMMITTED)).assertExists()
         }
     }
 
@@ -338,9 +339,9 @@ class JournalEntriesTest {
 
             node(DRAFTS_LIST).assertIsDisplayed()
             node(ENTRIES_HOME).assertDoesNotExist()
-            for (draft in threeDrafts.draftEntries) composeRule.onNodeWithText(draft.date.toString()).assertExists()
+            for (draft in threeDrafts.draftEntries) composeRule.onNode(entryMatcher(draft)).assertExists()
             // The committed entry is not in the drafts list.
-            composeRule.onNodeWithText(ENTRIES_COMMITTED.date.toString()).assertDoesNotExist()
+            composeRule.onNode(entryMatcher(ENTRIES_COMMITTED)).assertDoesNotExist()
             assertEquals("Continue with several drafts opens no draft by itself", emptyList<String>(), openedCartographyIds)
 
             pressBack()
@@ -379,7 +380,7 @@ class JournalEntriesTest {
             if (composeRule.onAllNodesWithTag(DRAFTS_LIST).fetchSemanticsNodes().isEmpty()) touch(DRAFTS_CONTINUE, Offset(0.5f, 0.5f))
             node(DRAFTS_LIST).assertIsDisplayed()
 
-            composeRule.onNodeWithText(ENTRIES_DRAFT_B.date.toString()).performTouchInput { click(Offset(width * point.x, height * point.y)) }
+            composeRule.onNode(entryMatcher(ENTRIES_DRAFT_B)).performTouchInput { click(Offset(width * point.x, height * point.y)) }
             composeRule.waitForIdle()
 
             assertEquals(List(i + 1) { ENTRIES_DRAFT_B.id }, openedCartographyIds)
@@ -400,7 +401,7 @@ class JournalEntriesTest {
 
         for ((i, point) in TOUCH_SAMPLES.withIndex()) {
             node(DRAFTS_LIST).assertIsDisplayed()
-            composeRule.onNodeWithText(ENTRIES_DRAFT_C.date.toString()).performTouchInput { click(Offset(width * point.x, height * point.y)) }
+            composeRule.onNode(entryMatcher(ENTRIES_DRAFT_C)).performTouchInput { click(Offset(width * point.x, height * point.y)) }
             composeRule.waitForIdle()
             assertEquals(List(i + 1) { ENTRIES_DRAFT_C.id }, openedCartographyIds)
             composeRule.onNodeWithText(EDITOR_FIELD).assertIsDisplayed()
@@ -429,16 +430,16 @@ class JournalEntriesTest {
         setScreen(CartographyUiState(entries = listOf(ENTRIES_COMMITTED), draftEntries = listOf(ENTRIES_DRAFT_A, ENTRIES_DRAFT_B)))
         touch(DRAFTS_CONTINUE, Offset(0.5f, 0.5f))
 
-        composeRule.onNodeWithText(ENTRIES_DRAFT_A.date.toString()).performTouchInput { click(center) }
+        composeRule.onNode(entryMatcher(ENTRIES_DRAFT_A)).performTouchInput { click(center) }
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Finish entry").performClick()
         composeRule.waitForIdle()
 
         node(DRAFTS_LIST).assertIsDisplayed()
-        composeRule.onNodeWithText(ENTRIES_DRAFT_B.date.toString()).assertIsDisplayed()
-        composeRule.onNodeWithText(ENTRIES_DRAFT_A.date.toString()).assertDoesNotExist()
+        composeRule.onNode(entryMatcher(ENTRIES_DRAFT_B)).assertIsDisplayed()
+        composeRule.onNode(entryMatcher(ENTRIES_DRAFT_A)).assertDoesNotExist()
 
-        composeRule.onNodeWithText(ENTRIES_DRAFT_B.date.toString()).performTouchInput { click(center) }
+        composeRule.onNode(entryMatcher(ENTRIES_DRAFT_B)).performTouchInput { click(center) }
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Finish entry").performClick()
         composeRule.waitForIdle()
@@ -480,12 +481,12 @@ class JournalEntriesTest {
             node(VIEW_TIMELINE).assertIsOff()
             node(ALBUM).assertIsDisplayed()
             node(albumPhotoTag("p1")).assertExists()
-            composeRule.onNodeWithText(ENTRIES_COMMITTED.date.toString()).assertDoesNotExist()
+            composeRule.onNode(entryMatcher(ENTRIES_COMMITTED)).assertDoesNotExist()
 
             touch(VIEW_TIMELINE, point)
             node(VIEW_TIMELINE).assertIsOn()
             node(ALBUM).assertDoesNotExist()
-            composeRule.onNodeWithText(ENTRIES_COMMITTED.date.toString()).assertIsDisplayed()
+            composeRule.onNode(entryMatcher(ENTRIES_COMMITTED)).assertIsDisplayed()
         }
     }
 
@@ -600,7 +601,7 @@ class JournalEntriesTest {
 
     private fun bounds(tag: String): DpRect = node(tag).getUnclippedBoundsInRoot()
 
-    private fun cardBounds(entry: CartographyEntry): DpRect = composeRule.onNodeWithText(entry.date.toString()).getUnclippedBoundsInRoot()
+    private fun cardBounds(entry: CartographyEntry): DpRect = composeRule.onNode(entryMatcher(entry)).getUnclippedBoundsInRoot()
 
     private fun overlaps(a: DpRect, b: DpRect): Boolean = a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
 
@@ -625,7 +626,7 @@ class JournalEntriesTest {
         setScreen(manyEntries)
         val fab = bounds(FAB)
         val beneath = FAB_ENTRIES.filter { entry ->
-            composeRule.onAllNodesWithText(entry.date.toString()).fetchSemanticsNodes().isNotEmpty() && overlaps(cardBounds(entry), fab)
+            composeRule.onAllNodes(entryMatcher(entry)).fetchSemanticsNodes().isNotEmpty() && overlaps(cardBounds(entry), fab)
         }
         assertTrue("the setup puts a card under the floating button (fab $fab)", beneath.isNotEmpty())
 
@@ -654,7 +655,7 @@ class JournalEntriesTest {
                 val card = cardBounds(entry)
                 assertTrue("${entry.id} ends above the floating button at the end of the list: card $card, fab $fab", card.bottom <= fab.top)
 
-                composeRule.onNodeWithText(entry.date.toString()).performTouchInput { click(Offset(width * point.x, height * point.y)) }
+                composeRule.onNode(entryMatcher(entry)).performTouchInput { click(Offset(width * point.x, height * point.y)) }
                 composeRule.waitForIdle()
 
                 assertEquals(entry.id, openedCartographyIds.last())
@@ -802,6 +803,13 @@ private fun albumPhoto(id: String, day: LocalDate?, findIds: List<String> = empt
     referencingEntryIds = findIds,
 )
 
+/**
+ * An entry's card or collapsed row (journal redesign J3, C1): the ISO date these tests used to find a
+ * card by is no longer on it, so they find it by the card's own tag, whichever of the two shapes it has.
+ */
+private fun entryMatcher(entry: CartographyEntry): SemanticsMatcher =
+    hasTestTag("entry-card-${entry.id}") or hasTestTag("entry-row-${entry.id}")
+
 /** The Cartography editor's text field label: present only when an entry is open for editing. */
 private const val EDITOR_FIELD = "Your own account (optional)"
 
@@ -815,8 +823,13 @@ private val ENTRIES_DRAFT_A = CartographyEntry.draft(id = "draft-a", date = Loca
 private val ENTRIES_DRAFT_B = CartographyEntry.draft(id = "draft-b", date = LocalDate.of(2026, 8, 3), updatedAtEpochMillis = 3_000L)
 private val ENTRIES_DRAFT_C = CartographyEntry.draft(id = "draft-c", date = LocalDate.of(2026, 8, 4), updatedAtEpochMillis = 4_000L)
 
-/** Twelve committed entries: more than a 360 x 640 dp screen shows at two columns, so one sits under the floating button. */
-private val FAB_ENTRIES: List<CartographyEntry> = (1..12).map { day ->
+/**
+ * Thirty committed entries: more than a 360 x 640 dp screen shows, so one sits under the floating
+ * button. Twelve until J3 (C1): an entry with no text and nothing kept now collapses to a short row,
+ * and twelve short rows no longer filled the screen, so the "a card lies under the button" setup check
+ * failed. The count changed; every assertion stands.
+ */
+private val FAB_ENTRIES: List<CartographyEntry> = (1..30).map { day ->
     CartographyEntry.draft(id = "fab-$day", date = LocalDate.of(2026, 7, day), updatedAtEpochMillis = day.toLong()).copy(isDraft = false)
 }
 
