@@ -460,3 +460,9 @@ Asked after the pulse (`docs/audits/2026-09-27-map-layers-and-forecast-data-puls
 4. Stage scope: **Option 1, "Framework + synthetic layer"**, with the owner's addition: "This will also require an update to the seasonal forecast panel to align with the model, otherwise it will be two sources of info competing." So the framework stage builds a generic layer model (order, visibility, per-layer opacity, legend, multi-credit attribution, tap precedence), moves today's markers onto it as toggleable overlays, adds a stored-data interface for downloaded cells, and proves it with a synthetic forecast layer behind a developer flag; no real forecast data. And the Seasonal tab's forecast panel (today's point-based conditions, trip windows and fruiting-lag figures, `ui/availability/AvailabilityResultsUi.kt`) must be brought into line with the model so the two do not compete; its timing is asked separately.
 
 Stage name and place: **L0, the map layer framework**, after J5 and before M1 and J8, which become its first users. Every L0 dispatch repeats the D58 check for the forecast project's forbidden phrases, and no forecast copy lands without it.
+
+Seasonal panel timing, the owner's answer: **"With the first real forecast (Recommended)"**. The Seasonal tab's forecast panel changes in the same stage that turns on real forecast data (after the commercial-use ruling), so the map and the panel switch to the model together; until then both keep today's figures. L0 does not touch the panel.
+
+### Order, revised again
+
+J4b (done), the picker and offline-maps fix stage (running), J5, **L0**, M1, J8, then the single Journal PR. Photo editing after the central camera improvements. Real forecast data, condition layers and the Seasonal panel's alignment wait on the commercial-use ruling and on the forecast project's D55 change.
