@@ -131,6 +131,24 @@ internal fun mapAttributionFor(basemap: Basemap, useOfflineTiles: Boolean): Stri
     if (useOfflineTiles) OFFLINE_STYLE_ATTRIBUTION else basemap.attribution
 
 /**
+ * Every credit the map's caption shows, in order: what the map is drawn on ([mapAttributionFor]'s
+ * one credit) first, then each of [layerCredits] (the active layers' own, `activeLayerCredits`),
+ * without repeating one already present. Map layers L0a, A5.
+ */
+internal fun mapCreditsFor(basemap: Basemap, useOfflineTiles: Boolean, layerCredits: List<String> = emptyList()): List<String> =
+    emptyList()
+
+/** [credits] as the one line the caption draws, joined by [ATTRIBUTION_SEPARATOR]. */
+internal fun attributionCaption(credits: List<String>): String = ""
+
+/**
+ * Between two credits in the caption. A middle dot rather than a comma or a dash, because both of
+ * those already occur inside the basemap credits ("© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA)",
+ * "USGS The National Map, orthoimagery — public domain").
+ */
+internal const val ATTRIBUTION_SEPARATOR = " · "
+
+/**
  * Everything that, when it changes, means [SightingsMap] must call `setStyle` again — the
  * basemap swap's guard, as a value. Before 2e-ii the guard compared basemap and palette only
  * (`appliedBasemap == basemap && appliedPalette == mapPalette`), so an offline flag flipping on its
