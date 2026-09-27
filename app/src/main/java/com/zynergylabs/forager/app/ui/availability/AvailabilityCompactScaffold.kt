@@ -77,6 +77,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
@@ -638,7 +639,22 @@ internal fun CompactMainScaffold(
                         // Landscape B1: the Row above carries Scaffold's padding now, and this
                         // Column takes whatever the rail (if any) leaves — in portrait, all of it.
                         .weight(1f)
-                        .fillMaxHeight(),
+                        .fillMaxHeight()
+                        // Landscape B3 (P11, R9): beside the opaque rail, the tab's content — the
+                        // search bar above it included — is capped at the readable width and centred
+                        // in what the rail leaves. Once, here, not per destination. Seasonal's own
+                        // cap (SeasonalTab) is the same 640 dp, so the two compose to 640. Scrolling
+                        // stays each destination's own. Portrait and non-short windows skip this.
+                        .then(
+                            if (railBeside) {
+                                Modifier
+                                    .wrapContentWidth(Alignment.CenterHorizontally)
+                                    .widthIn(max = READABLE_CONTENT_MAX_WIDTH)
+                                    .fillMaxWidth()
+                            } else {
+                                Modifier
+                            },
+                        ),
                 ) {
                     // Map tab only: SearchEntryBar moves into CompactMapTab's own searchBarSlot
                     // instead (that call site's own doc comment), composed as a real overlay inside
