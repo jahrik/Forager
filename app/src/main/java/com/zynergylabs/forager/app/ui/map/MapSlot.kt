@@ -135,6 +135,27 @@ data class MapRenderMode(
      * unchanged.
      */
     val bottomInset: Dp = 0.dp,
+    /**
+     * Fires when the user starts moving this map's camera by touch: a pan, pinch, rotate, tilt,
+     * fling or double-tap zoom. Never for a move this app makes itself (a [MapSlot] `region`
+     * change, `focusOverride`, the first activation's ease to zoom 16, live-location tracking,
+     * the orientation reset). Picker-fixes dispatch, F1: [CentrePinLocationPicker]'s rule
+     * "follow until you touch it" needs to tell a user's pan from a programmatic camera move, and
+     * both end in the same [MapSlot] `onCameraIdle`, so the idle event alone cannot carry it.
+     *
+     * [SightingsMap] implements it with MapLibre's `addOnCameraMoveStartedListener`, keeping only
+     * `REASON_API_GESTURE` (1). Checked with `javap -c` on the pinned 13.5.0 `classes.jar`: every
+     * `onCameraMoveStarted(1)` dispatch is in a `MapGestureDetector` gesture listener (tap, move,
+     * scale, rotate, shove, fling), while `Transform`, which carries every API camera move including
+     * the location component's tracking, dispatches `REASON_API_ANIMATION` (3).
+     *
+     * A callback on [MapRenderMode], not an 11th [MapSlot] parameter, for the reason every field
+     * above gives (the Compose compiler crash at 10 declared parameters; [MapSlot] is at 9), and
+     * because a new top-level parameter or a wider `onCameraIdle` type would change every [MapSlot]
+     * implementation, about 40 files, where a defaulted field here changes none. `{}` by default, a
+     * non-capturing lambda, so every existing caller's [MapRenderMode] still compares equal.
+     */
+    val onUserCameraGesture: () -> Unit = {},
 )
 
 data class MapOverlayContent(
@@ -345,6 +366,7 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
         photoMarkers = content.photoMarkers,
         offlineRegionCircles = content.offlineRegionCircles,
         bottomInset = renderMode.bottomInset,
+        onUserCameraGesture = renderMode.onUserCameraGesture,
         modifier = modifier,
     )
 }
