@@ -193,15 +193,85 @@ class SightingsMapOverlayDataTest {
      * A different palette's own colours — not just a re-run of the test above, to rule out the
      * palette argument being silently ignored (a stub that always returned the first test's
      * expected [Expression] would still pass that one alone).
+     *
+     * Changed in colour build C2: this used [MapPalette.NIGHT], but since C2 both palettes carry the
+     * same two rings (white, and `#2196F3` selected, owner override), so NIGHT could no longer tell a
+     * palette-ignoring stub from the real function. A palette with deliberately different rings can.
      */
     @Test
     fun `sightingStrokeColorExpression carries the caller's own palette, not a hardcoded one`() {
+        val other = MapPalette.DAY.copy(sightingDotStroke = 0xFF123456.toInt(), sightingDotStrokeSelected = 0xFF654321.toInt())
         val expected = Expression.switchCase(
             Expression.get("selected"),
-            Expression.color(MapPalette.NIGHT.sightingDotStrokeSelected),
-            Expression.color(MapPalette.NIGHT.sightingDotStroke),
+            Expression.color(0xFF654321.toInt()),
+            Expression.color(0xFF123456.toInt()),
         )
-        assertEquals(expected, sightingStrokeColorExpression(palette = MapPalette.NIGHT))
+        assertEquals(expected, sightingStrokeColorExpression(palette = other))
+    }
+
+    /**
+     * Colour build C2 (owner-approved tweak): the selected ring is 3dp, the unselected 1.5dp. Expected
+     * values are literals, not the constants, so a constant drifting back is a failure here.
+     */
+    @Test
+    fun `the selected sighting ring is 3dp wide and every other ring half that`() {
+        val expected = Expression.switchCase(
+            Expression.get("selected"),
+            Expression.literal(3f),
+            Expression.literal(1.5f),
+        )
+        assertEquals(expected, sightingStrokeWidthExpression())
+    }
+
+    /**
+     * Colour build C2 (c): each track has a casing line directly below it (added immediately before it,
+     * so drawn immediately under it) on the same source, in the casing colour, 1.5dp wider on each
+     * side, solid even under the dashed breadcrumb, with the track's own round caps and joins.
+     */
+    @Test
+    fun `each track has a solid casing line directly below it, wider by the casing on each side, in the casing colour`() {
+        val specs = trackLayerSpecs()
+        val tracks = listOf(
+            Triple("breadcrumb", BREADCRUMB_DASH_PATTERN.toList(), MapPalette::breadcrumb),
+            Triple("kept track", null, MapPalette::keptTrack),
+        )
+        assertEquals("two tracks and two casings", 4, specs.size)
+        for ((name, dash, role) in tracks) {
+            val index = specs.indexOfFirst { it.colour(MapPalette.DAY) == role(MapPalette.DAY) }
+            assertTrue("$name is in the stack", index >= 0)
+            val track = specs[index]
+            assertEquals("$name night colour", role(MapPalette.NIGHT), track.colour(MapPalette.NIGHT))
+            assertEquals("$name dash", dash, track.dashPattern)
+            assertEquals("$name width", 6f, track.widthDp)
+            assertTrue("$name has a layer directly below it", index >= 1)
+            val casing = specs[index - 1]
+            assertEquals("$name casing is on the track's own source", track.sourceId, casing.sourceId)
+            assertEquals("$name casing, day", MapPalette.DAY.casing, casing.colour(MapPalette.DAY))
+            assertEquals("$name casing, night", MapPalette.NIGHT.casing, casing.colour(MapPalette.NIGHT))
+            assertEquals("$name casing width: 1.5dp each side", 9f, casing.widthDp)
+            assertEquals("$name casing is solid", null, casing.dashPattern)
+            assertTrue("$name casing has round caps", casing.roundCaps)
+            assertTrue("$name has round caps", track.roundCaps)
+        }
+        assertEquals("every layer id is distinct", specs.size, specs.map { it.layerId }.toSet().size)
+    }
+
+    /**
+     * Colour build C2 (c): the offline region's outline is a dashed line in the casing colour, 1.5dp
+     * wide, dash 6dp and gap 4dp. `line-dasharray` is in multiples of the line width, so the pattern
+     * times the width is the dash and gap in dp.
+     */
+    @Test
+    fun `the offline region's outline is a thin dashed casing line, dash 6dp and gap 4dp`() {
+        val spec = offlineRegionOutlineSpec()
+        assertEquals(MapPalette.DAY.casing, spec.colour(MapPalette.DAY))
+        assertEquals(MapPalette.NIGHT.casing, spec.colour(MapPalette.NIGHT))
+        assertEquals(1.5f, spec.widthDp)
+        val dashDp = spec.dashPattern!!.map { it * spec.widthDp }
+        assertEquals(2, dashDp.size)
+        assertEquals(6f, dashDp[0], 1e-4f)
+        assertEquals(4f, dashDp[1], 1e-4f)
+        assertTrue("butt ends, not round", !spec.roundCaps)
     }
 
     @Test
