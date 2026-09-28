@@ -786,3 +786,16 @@ The owner ruled, verbatim: **"Option A for the fix"**. The planner had offered A
 The owner ruled, verbatim: **"For icon column in short landscape: option A"**. The planner had offered A as: "Reshape the column in landscape. For example, put the record and return pill beside the icon bar instead of below it, so the column is about 264 dp tall and fits with room to spare. Nothing else moves."
 
 Carried by continuation `2026-09-28-99` of `-78`. Portrait is unchanged.
+
+### A decorations band for the rings (owner, 2026-09-28)
+
+The J8 follow-ups (terminal `2026-09-28-92`) moved the J8 marker rings into the LINES z-group, below every line. Asked whether a band is a height or a kind, the owner chose, verbatim: **"Option C: decorations to keep it separate. We can change it if the forecast layering needs changes"**.
+
+The owner's L0a ruling was "Accept: markers above lines (Recommended)". "The four groups stand as written" was the planner's restatement in `prompts/preserved/2026-09-27-30.md:14`, and the planner told the owner so. The new band does not touch "markers above lines". The bands become colour fields < areas < **decorations** < lines < markers.
+
+The planner's reading, stated to the owner:
+- **decorations holds the J8 marker rings** (finds, photos, waypoints);
+- the J8 **line halos** (track and region outline) stay in LINES, directly beneath their own lines;
+- **nothing on screen changes**.
+
+Intent `2026-09-28-100`. It can be revisited if the forecast layering needs changes.
