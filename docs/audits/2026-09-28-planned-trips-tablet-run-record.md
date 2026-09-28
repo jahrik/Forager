@@ -347,6 +347,23 @@ the app; the separation between the two flags stands in for it (at the placing z
   reading of the crop). The sightings dots draw below it, as ordered (ML:334-350).
 - **Not measured:** the zoom level itself, and any zoom beyond these.
 
+### Check 2: landscape, the Layers "Planned trips" switch off, then on
+
+- The wide Layers sheet lists "Planned trips" fourth of eight overlays (`31-r1-layers-sheet`), as
+  `MAPS_TAB_OVERLAYS` orders them (`ui/map/MapLayersSheet.kt:133-142`). Its checkable node (row
+  `[754,1091][2046,1193]`) reads `checked=true` at the start, **`false`** after my tap (`32-r1-layers-trips-off`) and
+  **`true`** after the second (`34-r1-layers-trips-on`). A second, non-checkable node shares the row's bounds.
+- The sheet covers part of the map, so each state was measured after closing it by a tap on its scrim.
+
+| State | Capture | Trip pixels in the map | Controls in the same capture | Verdict |
+|---|---|---|---|---|
+| off | `33-r1-trips-off` | **0 px** (no cluster) | the DEVICE CHECK find's `#DA02AF`: 1537 px, drawn | **no flag** |
+| on | `35-r1-trips-on` | **A 1229 px, B 1229 px**, at the same bounds as before switching (`30-r1-zoom-back`) | | **both flags back** |
+
+- **Verdict: as predicted.** Off hides both trips while the find stays; on brings both back at the same place. No
+  basemap reload was visible to me between the two (my reading of the captures; not measured).
+- **Not tested here:** whether a hidden trip still takes a tap (the pre-registration asked no such check).
+
 ## Appendix A: `prompts/preserved/2026-09-28-95.md`, verbatim
 
 At `554449b`, whole (sha256 `cfa98c46e5f3a49f8acb8b7b7bac2f5c343a10e3bb0d8ae9b439ecf5e12e2730`):
