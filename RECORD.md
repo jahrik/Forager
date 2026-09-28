@@ -3216,3 +3216,14 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner, verbatim: "The first one on the far left. Is that #202020 at 20%", then, after the planner noted it nearly vanishes over the darkest ground, "That's my pick." Written by the planner by hand.
 
 ---
+
+**Kind:** terminal
+**ID:** 2026-09-28-37
+**Timestamp:** 2026-09-28T12:56:02Z
+**Closes:** 2026-09-28-19
+**Outcome:** completed
+**Observed:** (1) Chain: -19 dispatch; -20 balance rules; the coder's stops on MapPaletteTest's solid-mark checks and on unreadable label colours; -22 and -24 (planner withdrew its own thresholds; 75c050f records the night fill as drawn with 78 pins, OFFLINE_REGION_FILL_OPACITY internal); -26 the S22 capture of #202020, #404040, #606060 (record merged at 417eef0; paused once for an account-recovery prompt; framing gates relaxed twice by the planner); -36 the owner's pick. (2) Final: tests first 2d1d783 (three tests failing against #FFFFFF with their own messages), b3e2f1c NIGHT.offlineRegion = 0xFF202020 with the owner's words in its comment, report 179b483 (docs/audits/2026-09-28-night-offline-region-completion-report.md). Pins: every-role-holds (0xFF0B0B0B to 0xFF202020); 52 as-drawn figures re-measured (extremes: ΔE 0.001 over #22201C; casing over region 1.052 over #020302); night (d) for offlineRegion 0.099 to 0.360. (3) Revert check compiled, same three tests failed, restored from a saved copy. (4) Coder's suite at b3e2f1c: 274 / 2245 / 0 / 0 / 24.
+**Deviations:** Planner errors on the way, recorded in the chain: the black-fill prediction that no floor would break; thresholds no candidate could meet; a readability rule whose inputs were not in code; a pixel-exact framing rule that GPS drift could not meet.
+**Notes:** Owner, verbatim: "The offline map region is a bit bright...", "Darker shade (Recommended)", "Not too dark since it can make it harder to read. Find a balance.", "Test it as drawn (Recommended)", "You pick from phone shots (Recommended)", "That's my pick." Device-only: the region at night on the S22 with this build, especially whether the dashed outline carries the edge over the darkest ground. Flags: searchCentre's night (d) pin still 0.099 (now loose; nearest role keptTrack at 0.159); a class-doc P50 figure measured with white; the black night casing under 3:1 on 11 of 26 clusters with no fill; the phone runs candidate 606060; Forager installed into the Dual App profile (user 95). Written by the planner by hand.
+
+---
