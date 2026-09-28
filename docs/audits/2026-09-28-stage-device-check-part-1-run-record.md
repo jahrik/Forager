@@ -1059,3 +1059,167 @@ has run a search (each dispatch forbade one, and I ran none), and the region is 
   (the first launch after the install, saved), `93-relaunch.xml` (after check 3's `am force-stop`, saved),
   `209-resume2-state.xml` (at my start) and `331-c7-bar.xml` (fresh, 20:41Z).
 - **Prediction:** pass. **Held.**
+
+## Check 8: the bar's tap: **portrait fails (the fields are under the keyboard); short landscape passes**
+
+The code premises hold at `26709b1`: one opening arms a one-shot expand of "Advanced search" and "Enter coordinates
+manually" (`ui/availability/AvailabilityCompactScaffold.kt:302-310`); the section headers read "Collapse $title" when
+open (`AvailabilitySearchUi.kt:761`); the dropdown then scrolls once, instantly, to its end, and a scroll in progress
+clears focus, which the comment says lowers the keyboard (`AvailabilitySearchUi.kt:403-425`). Nothing was typed and no
+search was run.
+
+**Portrait** (from 20:41:46Z): one real touch at (500, 132) on the bar's text.
+- `332-c8-portrait.xml`, 2 s later: "Collapse Advanced search" and "Collapse Enter coordinates manually" exist.
+  Latitude `[90,1449][275,1517]`, Longitude `[596,1449][825,1517]`, "Search this location" `[355,1646][725,1703]`.
+- The keyboard is up (`mInputShown=true`, `333-`). Its inset frame is **`[0,1396][1080,2316]`** (`334-…-windows.txt`),
+  so all three lie below its top edge. The screenshot (`332-c8-portrait-shot.png`) shows them hidden under the
+  keyboard, with "Enter coordinates manually" the last row visible. The search field holds focus (`focused="true"`).
+- **Fails** "displayed … above the keyboard if it is up". The dropdown is laid out under the keyboard, not above it: in
+  portrait everything fits the unshrunk viewport, so the one-shot scroll has nothing to scroll ("where everything fits
+  (portrait) the end is 0 and nothing moves", `AvailabilitySearchUi.kt:417-418`), no scroll runs, and nothing lowers
+  the keyboard.
+- With the keyboard lowered by a Back (`335-`), the three are shown in place.
+- **Leaving took three Backs** (20:42:30Z, 20:42:50Z, 20:44:06Z). The first lowered the keyboard. The second reached
+  the activity (`338-log-c8-backs.txt`: `onKeyDown(KEYCODE_BACK)`) but left the dropdown open with a cursor in the field
+  (`337`, a dump identical to `335`'s). The third closed it (`339`). I did not find why the second did nothing; the
+  key-up of the third logs the same `isCanceled()=true` as the second. See Flags.
+
+**Short landscape, `user_rotation` 1** (from 20:44:26Z): one real touch at (575, 141) on the bar's text.
+- `342-c8-r1-after-tap.xml`, 2.5 s later: both sections expanded; Latitude `[165,742][350,810]`, Longitude
+  `[662,742][891,810]`, "Search this location" `[421,939][791,996]`, inside the dropdown's scroll area
+  `[75,259][1136,1080]`, and "Set on map" gone off its top. **The three fields are displayed without my scrolling.**
+- **The keyboard:** shown after the tap and still shown at 0.5 s and 2.5 s (`341-`). In landscape this phone's keyboard
+  **floats**: a small window over the top middle of the screen, its inset zero-height (`[75,1080][2181,1080]`). In the
+  screenshot it covers "Recent searches" to "Enter coordinates manually" in part and the top 30 px or so of the Latitude
+  and Longitude boxes; their labels and "Search this location" are clear. `343-log-c8-r1.txt` has the keyboard shown at
+  20:44:42.964Z and no hide request from the app afterwards: **the programmatic scroll did not lower it.** The field
+  kept focus (`focused="true"`).
+- A drag down inside the dropdown at x 300, left of the keyboard, (300, 300) to (300, 1060) at 20:45:39Z: **"Set on
+  map" back in view** `[288,343][501,400]` with "Use current location" (`344-`). That drag lowered the keyboard
+  (`mInputShown=false`) and cleared the field's focus.
+- **Passes.** One Back closed the dropdown (`345-`).
+- Rotation back to 0 at 20:46:15Z.
+
+**Prediction:** "portrait passes; landscape scrolls to the fields, can be scrolled back, and the keyboard is lowered by
+the programmatic scroll". Portrait **did not hold**. Landscape held for the fields and the scroll back. The keyboard was
+**not** lowered by the programmatic scroll, only by my drag.
+
+## Settings restored and read back (20:46Z)
+
+Against the start (`06-`, `07-`, `08-`) and at the end (`346-settings-end.txt`, `347-datastore-ls-end.txt`,
+`348-map_prefs-end.pb`, `349-diag-prefs-end.pb`):
+- `user_rotation=0`, `accelerometer_rotation=0`, `font_scale=1.0` (never changed), `navigation_mode=0`,
+  `ui_night_mode=2`, location on, `location_mode=3`: **all as at the start.**
+- **Night Maps off** (`night_mode.maps = False`, as at the start). **Basemap Topographical**, as found (the Layers row
+  reads "Layers: Topographical map", `351-end-state.xml`). `map.fullscreen = False`. The offline picker's last pick is
+  byte-for-byte the start's.
+- **Diagnostics "Synthetic forecast layers" off** (`diagnostics.synthetic_forecast = False`; the panel row unchecked,
+  `255`).
+- **Every overlay on:** the seven `map.layer.*.visible` keys true. Both colour fields' keys true (they draw nothing now
+  that the switch is off). `map.layer.forecast-chanterelles-layer.opacity = 1.0`. `map.layer_order` the registry's own
+  order. None of these keys existed at the start. The app can set them but not remove them, and I may not write its
+  files, so they are left at their default values, as the second coder said.
+- The app on the Maps tab, in portrait, Forager in focus, the phone unlocked.
+- **Data:** a read-only copy at the end (`352-db-end-*`) has the start's counts in every table: entries 2 saved and 5
+  drafts, finds 2 and 1, photos 3, tracks 1 (23 points), waypoints 3, offline regions 2, cached searches 2. Nothing was
+  created, edited or deleted.
+
+## Crash reads
+
+`logcat -d -b crash` was 0 bytes at every read: `202-` (19:24Z), `263-` (after check 4), `290-` (after check 5),
+`330-` (after check 6), `350-crash-end.txt` (20:46Z). `logcat -d` at the end has 0 `FATAL EXCEPTION` lines. Forager
+ran as pid 9626 from 17:48:30Z to the end. The install is unchanged at the end (`versionName=1.0.1356+g26709b1c`,
+`lastUpdateTime` 10:17:38 PDT, `firstInstallTime` 2026-09-22 11:15:05). No new crash, no abort condition met, and no
+system or Google prompt appeared over the app at any read.
+
+## All checks
+
+| check | verdict |
+|---|---|
+| 1 Layers sheet | pass (the second coder, `5ec7a63`) |
+| 2 toggles | pass for the five with data; no-reload pass; the hidden-tap half not discriminating for Offline maps (the second coder) |
+| 3 persistence | pass (the second coder) |
+| 4 Diagnostics layers | (a) pass for the registry's markers and the track, the location puck under the cells; (b) pass; (c) pass; (d) pass in portrait and at 90, **fail at 270**; (e) collapsed pass, **expanded fail**; (f) pass; switch off, read back |
+| 5 night region | (c) pass; (a) the fill exactly as designed and the ground legible, but it lightens the darkest quarter and does not read as darker at this zoom; (b) **the outline does not carry the edge over the darkest ground** (1.08 to 1.45:1) |
+| 6 track widths | pass at 15 and above on Topographical, Street and at night; 13 and 11 **not observable** (the reticle) |
+| 7 bar text | pass |
+| 8 bar tap | **portrait fail** (fields under the keyboard); short landscape pass; the keyboard not lowered by the programmatic scroll |
+
+## One more correction
+
+Check 7 gives `331` as "fresh, 20:41Z". `snaps.log` has it at 20:40:50Z.
+
+## Decisions I made
+
+The third coder's (mine):
+1. **No record entries, and structure validated against no `kit.json`.** My standing instructions call for a sweep and
+   an intent in `RECORD.md` and for checking the dispatch's sections against `.claude/kit.json`. At this base (`48633ee`)
+   there is no `.claude/kit.json` and no checker (the owner removed them in `e136330`), and `-51` says "The kit is gone,
+   and the planner writes the record". So I wrote no record entry and treated the required-section list as empty. The
+   main checkout (`faf2f88`) still has a `kit.json` whose `device` type lists sections `-51` and `-63` lack. Deciding
+   which applies properly needed a ruling; I followed the dispatch and the base.
+2. I quoted the planner's note that came with `-63` in the Resumed section, as part of the dispatch.
+3. **Check 4 (a):** I read "every marker" as the registry's markers, and report the MapLibre location puck (under the
+   cells) beside the verdict, not as a failure. Whether the puck counts is the owner's call.
+4. **Evidence outside `124` to `200`:** for check 4 (b) and (c) I also cite my own `logcat -d` and events reads
+   (`203-`, `204-`) of the second coder's window. They are reads of that time, not re-runs. Each verdict also stands
+   on the named saved files alone, except (c)'s restored-order frame `188`, which needs `203-` to show a style load came
+   before it.
+5. **Check 4 (d):** unsure whether the pre-registration's "in portrait and at `user_rotation` 1 and 3" covered the
+   swipe, I re-ran the swipe at 90 and 270 rather than decide.
+6. **Check 4 (e):** I re-ran the collapsed case because `113`'s drag length was only in the transcript extract.
+7. **Check 4 (f):** I replaced the zoom ruler I had written before the run (the 5 km circle) when I found, before any
+   zoom step, that the reticle covers it below 7. The new ruler is the cell grid plus a scale registration, checked
+   against the grid first. I hid Finds, Photos and Waypoints for (f), and took one step from 7.10 to 6.89 as "small
+   steps across 7".
+8. **Check 5 methods:** an on/off compositing fit in place of only inside/outside samples, which I also gave; a WCAG
+   contrast ratio in 10-degree bins for the dashes; Street measured with Topographical's circle once the camera was shown
+   unchanged. The (a) and (b) wording ("partly", "no") is my reading; the pre-registration calls them observations.
+9. **Check 6 scoping:** night on Topographical only; the 13 and 11 blob comparison by day on Topographical only (it
+   turned out not observable anyway). Method choices: markers hidden; widths as sub-pixel coverage from on/off pairs;
+   profiles more than 50 px from the reticle and 26 px from other legs; the verdict resting on the one clean run, with a
+   raw pixel cut as primary evidence. I corrected my measuring tool twice after seeing results. Each correction was
+   traced to a named pixel, and the raw cut is independent of the tool, but the owner should know the figures came from
+   a third version.
+10. **Check 6:** I called 13 and 11 "not observable" rather than a failure, since the reticle, not the track, prevents
+    the reading.
+11. **Check 8 landscape:** I counted the fields as displayed with the floating keyboard over the top of the Latitude and
+    Longitude boxes, their labels clear.
+12. **Check 8 portrait:** I pressed Back a third time after reading the log, knowing a Back too many could have sent
+    the app to the background (recoverable with `am start`).
+13. To see the Diagnostics switch take effect on the map, I went List, then Maps: a navigation not in the dispatch.
+14. I did not restore the camera, which no dispatch lists; it ends where check 8 left it.
+15. Helper scripts are numbered in the evidence series (`210-` onward) so each result names the tool that made it.
+
+Carried from the second coder, which referred to a Decisions section it never wrote (its text is above, unchanged):
+16. Check 1: it read "no clickable node of the sheet" as excluding the modal's scrim, "Close sheet", which is the only
+    node in the navigation bar's frame.
+
+## Flags outside scope
+
+1. **The MapLibre location puck and its accuracy disc draw under every Forager layer:** under the colour fields (check
+   4 (a)) and under both offline region fills (check 5 (c)). They are activated with no `layerBelow` or `layerAbove`
+   (`SightingsMap.kt:1164-1189`) and are outside `MAP_LAYER_REGISTRY`. Not investigated further.
+2. **At 270 the legend chip lies over the cluster's "Start recording track" button**, which then has no node in the
+   dump. Whether a touch on the chip's right part reaches the record button is **unverified**; I avoided touching
+   there.
+3. **MapLibre's "i" attribution button lies under the system navigation bar** in portrait (`[1010,2246][1069,2305]`
+   inside `[0,2181][1080,2316]`), and at 90 under the bar on the right. Whether it can be reached is unverified.
+4. **At 90 the attribution strip runs across the cluster's bottom row** (my reading of a crop of `120`; not
+   measured).
+5. **The Diagnostics switch does not reach the map until the Maps tab is shown again**, because the Tools drawer opens
+   over the tab (`onMapShown`, `AvailabilityViewModel.kt:470-493`). Debug-only.
+6. **Returning to the Maps tab from another tab resets the camera to the location at about zoom 12** (`262`). CLAUDE.md
+   treats user-set UI state lost on a tab change as a bug unless stated otherwise; whether the camera is meant to be
+   such state is not established.
+7. **`Mbgl-NativeMapView` logs "You're calling `jumpTo` / `cancelTransitions` / `getCameraValues` after the `MapView`
+   was destroyed"** many times (for example from 19:02:00Z in `203-`): something still drives a destroyed map's camera.
+   Not investigated.
+8. **The search-centre reticle is drawn with no location set** (the bar reads "Search a location") and sits on the kept
+   track, hiding it at zoom 14 and below. What places it there is not established.
+9. **In portrait the search dropdown does not resize for the keyboard** (check 8), and it **took three Backs to leave**,
+   the second having no visible effect. Cause not found.
+10. From the second coder (check 2): **a visible offline region outline takes no tap** (`84-`, `86-`). Not
+    investigated.
+11. Tooling: the second coder's `190-zoom.py` cell-period estimate is unreliable at high zoom (it read `148` as 7.20; the
+    circle gives 12.00).
