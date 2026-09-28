@@ -1,9 +1,11 @@
-# 2026-09-28: map layers L0b (built, stopped at an abort: a revert build did not compile; one open placement question)
+# 2026-09-28: map layers L0b (built; N1 and N2 resolved; revert checks, release evidence and full suite done)
 
-**Status (2026-09-28, second coder, after a machine restart): see the last section, "Resumed after the
-machine restart".** B1 to B7 are built and pushed. The full suite has one failure, the open question N1.
-Revert checks stopped at an abort. The sections from here to that one are the first coder's report as it
-stood at `09bf96b`.
+**Status (2026-09-28, third coder, continuation `2026-09-28-11`): see the last section, "Resumed for N1
+and N2".** The finish line is met at `2e89091`. N1 is built (the legend is capped at 96 dp and scrolls). All
+20 revert checks run from this session are confirmed, none failed to compile, and the release compile
+evidence is in. The full suite is 266 classes / 2183 tests / 0 failures / 0 errors / 24 skipped.
+The section "Resumed after the machine restart" is the second coder's report, which stopped at an abort. The
+sections before it are the first coder's report as it stood at `09bf96b`. Both are left as written.
 
 Dispatch: `prompts/preserved/2026-09-28-03.md` (build, L0b coder), intent `2026-09-28-03`. Plan:
 `docs/plans/journal-redesign.md` from "Map layering framework" to the end, including "L0b rulings (owner,
@@ -722,3 +724,304 @@ finish-line suite.
 staged and working trees, over every commit message since `6235a86`, and over each pending message file. I
 ran it before every push in this session: diff hits 0, message hits 0, pending-message hits 0, including for
 this commit. The reference-class sentence and the layer names were confirmed by the grep, not by reading.
+
+## Resumed for N1 and N2 (third L0b coder, continuation `2026-09-28-11`)
+
+Written by a third coder, in the same worktree (`forager-wt/l0b`, local branch `l0b`), pushing to
+`journal-redesign` as before. Everything above this section is left as it was, apart from the title and the
+status note at the top. Paths are under `app/src/main/java/com/zynergylabs/forager/app/` unless given in full.
+
+**The continuation** (`prompts/preserved/2026-09-28-11.md`, committed at `fb04afc`). Its message, verbatim:
+
+> You are resuming dispatch 2026-09-28-03, L0b. Read these first:
+> - `prompts/preserved/2026-09-28-03.md`;
+> - the planner messages `2026-09-28-05.md` and `2026-09-28-07.md`;
+> - this file;
+> - `docs/audits/2026-09-28-map-layers-l0b-completion-report.md`, including its section "Resumed after the machine restart".
+>
+> The previous coder stopped at `338b241` with the build pushed. Work in `/home/zynergy-labs/Zynergy/forager-wt/l0b` and push to `journal-redesign` as before. Quote this message verbatim in the report.
+>
+> **N1, the owner's ruling, verbatim:** "Cap height, scroll (Recommended)".
+> - The expanded legend gets a maximum height, and its contents scroll inside it. Choose the cap so that in portrait the icon cluster fits above the chip, by Q4's display-only clamp.
+> - The failing test is not weakened: it must pass because the cap makes room.
+> - Test that the legend's contents stay reachable by scrolling.
+> - State the cap in dp in the report.
+>
+> **N2, the planner's ruling:** resume the revert checks.
+> - The R02 abort came from a badly chosen revert edit, not from the forward code. Replace R02 with a one-line edit that compiles. State the old and new edit, and record this as a deviation.
+> - Then run R03 to R16 under CLAUDE.md's runner rules. If any further revert build fails to compile, stop again.
+> - Also run the round-1 revert checks the first coder never ran, one per tests-first class.
+>
+> **Also:**
+> - **The release-compile evidence:** a release compile, and proof that no synthetic class is in its output.
+> - **Tidy the comments** in `AvailabilityCompactMapUi.kt` and the one test that still name `MapModePicker`.
+> - **Leave `MapModePicker` itself and its out-of-scope imports alone.** List them as flagged.
+> - **Your extension of the test that passed before its feature existed** stands, recorded as a deviation from the tests-first abort condition.
+> - **The full suite** from a cleared results directory, then update the completion report to the dispatch's finish line.
+>
+> No phone and no emulator: a device coder is using the phone. D58 before every push.
+
+### Base
+
+- `origin/journal-redesign` was `fb04afc` when I started. `git diff --stat 338b241 fb04afc` touches only
+  `RECORD.md`, `prompts/preserved/2026-09-28-11.md` and `prompts/preserved/2026-09-28-12.md`, so the app
+  tree was the second coder's `338b241`. I fast-forwarded `l0b` to it.
+- The kit is still absent at this base: no `.claude/kit.json` and no checkers. So, as for the two coders
+  before me, I made no record entry and did no structural validation against a kit config.
+
+### Commits (pushed to `journal-redesign`)
+
+| Commit | What |
+|---|---|
+| `035fff4` | N1, tests first: the legend-cap and scroll test, and a `LEGEND_MAX_HEIGHT` stub that was not yet applied |
+| `5cd7033` | N1: the cap applied; the legend-content test scrolls to each entry |
+| `2e89091` | Comments that still named `MapModePicker`, tidied |
+| this commit | This section |
+
+### N1: the expanded legend is capped and scrolls
+
+- **The cap is 96 dp** (`LEGEND_MAX_HEIGHT` in `ui/map/MapLayersSheet.kt`, applied as `heightIn(max = …)` on
+  the chip's `Surface`). The chip's `Column` already had a `verticalScroll`, so past the cap its contents
+  scroll inside it.
+- **How I chose 96 dp.** The numbers are the second coder's measurements at `w384dp-h823dp`, re-read in this
+  session's failing runs:
+  - the cluster is 380 dp tall, and at its highest (the search chrome) its bottom is at 601.7 dp;
+  - the chip's bottom is at 711 dp;
+  - Q4's clamp keeps `Spacing.sm` (8 dp) between them.
+  
+  That leaves 101.3 dp for the chip. 96 dp is that, rounded down.
+- **Tests first** (`035fff4`). The new test is `AvailabilityScreenMapLayersSheetTest`, "expanded, the
+  legend is capped in height and a real swipe on it scrolls the reference class into view". It:
+  - expands the chip with a real touch;
+  - asserts the chip is at most the cap tall;
+  - asserts the reference class starts out of view;
+  - swipes up on the chip twice, with real coordinate swipes;
+  - asserts the reference class is now in view, and the chip is still expanded.
+
+  At `035fff4` it failed for the stated reason: `capped at 96.0.dp (244.0.dp)`. The Q4 test failed as
+  before: `expanded: and stays above the chip (601.6667.dp <= 467.0.dp)`.
+- **After the cap** (`5cd7033`). The Q4 test, "with the cluster dragged to the bottom on the right it stops
+  above the chip, rises when the legend expands and returns when it collapses", **passes unchanged**. I did
+  not touch it. The three L0b UI classes ran 19 tests with 0 failures.
+- **Two test corrections**, both in `AvailabilityScreenMapLayersTest.kt`:
+  - *The new test*, one fix. Run against the cap, it failed at `assertIsNotDisplayed`. In the merged tree
+    the reference-class text is the whole chip, because the chip is one clickable `Surface`, and the chip is
+    always displayed. The test now finds that text in the unmerged tree. Its fail-first run at `035fff4`
+    had already stopped at the height assertion, before reaching this line.
+  - *The legend-content test*, "a tap on the chip shows the legend with each ramp's 0 and 100 percent, the
+    dates, no forecast here and the reference class, and a second tap hides it". Under the cap its later
+    entries are out of view. It now scrolls to each entry (`performScrollTo`, in the unmerged tree, since
+    the scroll sits inside the chip's merged node) before asserting it is displayed. It still asserts every
+    entry it asserted before, and its counts are unchanged. Revert check R21 shows this test bites on the
+    scroll.
+- **Device-only.** The cap was measured under Robolectric, where insets are zero. On the S22 the real
+  status bar and navigation bar take from the same 101 dp. So an expanded legend may still overlap a cluster
+  dragged to the bottom on the right. This goes on the device check's list.
+
+### Comments tidied (`2e89091`)
+
+Comments only.
+- `ui/availability/AvailabilityCompactMapUi.kt`, four places:
+  - the file header, where the historical constant name is kept and marked as removed;
+  - the panel-anchor note;
+  - the clamp note;
+  - the modal-overlay order, which now names `MapLayersSheet`.
+- `AvailabilityScreenMapIconStackTest.kt`: one section heading.
+
+### N2: the revert checks resumed
+
+**Deviation: R02's edit was replaced.**
+- Old edit: `name.endsWith(OPACITY_SUFFIX) && value is Float ->` became `… && value is Double ->`. It did
+  not compile: the smart cast fed the `Float` map one line down.
+- New edit, R02b: `name.endsWith(OPACITY_SUFFIX) && value is Float ->` becomes
+  `name.endsWith(VISIBLE_SUFFIX) && value is Float ->`. No opacity key matches any more, and the smart cast
+  is still `Float`, so it compiles.
+
+**The runner.** It is the second coder's `app/build/l0b/revert.py` and `run.sh`, unchanged. For each check it:
+- saves a copy of the file before editing it;
+- refuses to read any results if the build log has an `e: ` line, which ends the run;
+- requires the failing tests to be exactly the predicted set, with each message containing its predicted
+  fragment;
+- restores the file from the saved copy, never from git;
+- checks that the restored file's sha256 equals `HEAD`'s blob, so the forward change is still present.
+
+**The specs.**
+- `app/build/l0b/revert/checks2.json` holds R02b to R21. `checks3.json` holds R14 to R21, re-run after the
+  one runner refusal described below.
+- The spec R02 was run under is kept as `checks-v1-as-run-to-R02.json`.
+- The outputs are `revert/run2.out` and `revert/run3.out`, and each check's log is
+  `app/build/l0b/revert-<name>.log`.
+
+**Two spec changes, made before any check ran:**
+- **R09, R13 and R14 no longer predict the Q4 test's failure.** Their predictions were written while the
+  Q4 test was failing in the forward build. N1 made it pass, and none of those three edits touches the
+  clamp or the legend's height.
+- **R14's match text** had to include N1's new `heightIn` line, which sits between the two lines it
+  matched. On the first run the runner refused R14 before editing anything ("edit matches 0 times"). That
+  was not a compile failure, and the tree was untouched and clean. I fixed the match text and ran R14 to
+  R21 again.
+
+**Checks added.** The dispatch asks for "the round-1 revert checks the first coder never ran, one per
+tests-first class". Round 1 (`55114ee`) had 10 classes:
+- The 7 new classes are covered by R01 (confirmed earlier), R02b and R03 to R07.
+- The 3 re-pinned classes had no check. I added:
+  - R17, for `MapLayerRegistryTest`: the registry built without its colour fields;
+  - R18, for `MapLayerFeatureIdTest`: the same edit, checked against that class;
+  - R19, for `MapLayerStateTest`: the unavailable colour fields never hidden.
+- For N1 I added R20 (the cap removed) and R21 (the chip's scroll removed).
+
+**Every check run is confirmed, with 0 `e: ` lines, and every file was restored to `HEAD`'s blob.**
+
+| Check | Classes run | Edit | Failed (of run) | Messages, as read |
+|---|---|---|---|---|
+| R02b | `DataStoreMapLayerPreferencesTest` | opacity read under the visible suffix | 2 of 4 | `expected:<{forecast-chanterelles-layer=0.3}> but was:<{}>`, and the round-trip test's `…opacity={forecast-chanterelles-layer=0.4}…` |
+| R03 | `ForecastCellParsingTest` | range check dropped | 1 of 8 | `expected:<[0.0, 1.0]> but was:<[0.0, 1.0, 1.2, -0.1, 0.3]>` |
+| R04 | `ForecastCellLayerTest` | `applicable` filter dropped | 1 of 5 | `a cell that is not applicable draws nothing expected:<1> but was:<2>` |
+| R05 | `SyntheticForecastTest` | no cell left out | 1 of 6 | `…some of the 100 cells are left out (100)` |
+| R06 | `MapLayerPreferencesStateTest` | Move up and Move down swapped | 1 of 6 | `expected:<[forecast-chicken-of-the-woods-layer, forecast-chanterelles-layer]> but was:<[forecast-chanterelles-layer, …` |
+| R07 | `MapLegendTest` | always "N layers" | 1 of 3 | `expected:<[Test forecast: chicken of the woods (synthetic data)]> but was:<[1 layers]>` |
+| R08 | `AvailabilityViewModelMapLayersTest` | no opacity refusal | 1 of 7 | `…a multiplier from 0 to 1, not 1.2` |
+| R09 | compact sheet + short landscape | Layers row opens nothing | 10 of 16 | `map-layers-sheet` not displayed, and the nodes inside the sheet not found |
+| R10 | wide | wide control opens nothing | 2 of 3 | `map-layers-sheet` not displayed; `map-layer-switch:kept-tracks-layer` not found |
+| R11 | entry map + fullscreen | entry row opens nothing | 2 of 10 | `map-layers-sheet` not displayed, twice |
+| R12 | `CartographyEntryMapLayersTest` | shared state not passed | 2 of 2 | `expected:<false> but was:<true>`, twice |
+| R13 | compact sheet + `MapLegendTest` | legend ignores visibility | 4 of 17 | `expected:<0> but was:<1>` twice; `…but was:<[2 layers]>`; `expected:<[forecast-chanterelles-layer]> but was:<[…, forecast-chicken-of-the-woods-layer]>` |
+| R14 | the three L0b UI classes | chip `fillMaxWidth` | 3 of 19 | `all five touches reached the map expected:<5> but was:<2>`; `clear of the cluster (DpRect(left=0.0.dp, …right=735.0.dp…)`; `expected:<3> but was:<1>` |
+| R15 | `DiagnosticsSyntheticForecastSwitchTest` | toggle ignores a successful write | 2 of 4 | `expected:<On> but was:<Off>`; `ComposeTimeoutException: Condition still not satisfied after 5000 ms` |
+| R16 | `ForecastCellLayerTest` | no minimum zoom | 1 of 5 | `expected null, but was:<[ForecastBlock(south=45, west=-123)]>` |
+| R17 | `MapLayerRegistryTest` | registry without colour fields | 7 of 19 | `…but was:<[]>` on the colour-field lists; the order, kind and tap maps missing both forecast ids; `NoSuchElementException` in the base-opacity test |
+| R18 | `MapLayerFeatureIdTest` | the same | 1 of 13 | the fill-roles list expected `(forecast-chicken-of-the-woods-layer, null)` first |
+| R19 | `MapLayerStateTest` | unavailable fields never hidden | 1 of 10 | `expected:<[]> but was:<[Synthetic test data]>` |
+| R20 | compact sheet | cap removed | 2 of 14 | `expanded: and stays above the chip (601.6667.dp <= 467.0.dp)`; `capped at 96.0.dp (244.0.dp)` |
+| R21 | compact sheet | chip's `verticalScroll` removed | 2 of 14 | `Semantic Node has no parent layout with a Scroll SemanticsAction` (content test); the reference class `is not displayed`, at `AvailabilityScreenMapLayersTest.kt:412`, the check after the swipe |
+
+**Each failure is one its own edit could cause.** Every message names the property that check's edit
+removes. R20 reproduces this session's own two fail-first messages exactly. Two cases needed a closer read:
+- For R21 I checked the stack line, to make sure the swipe test failed after the swipe and not at the
+  earlier not-displayed assertion.
+- R14's `expected:<3> but was:<1>` is the wide test's three touches around the chip: a full-width chip
+  swallows two of them.
+
+After both runs `git status` was clean. The cap line and every other forward change are at `HEAD`.
+
+### Release compile evidence
+
+- **Command:** `./gradlew --offline :app:compileReleaseKotlin :app:mergeDexRelease`, with `LC_ALL=C.UTF-8`.
+  The result was BUILD SUCCESSFUL, with 0 `e: ` lines (`app/build/l0b/release.log`).
+  - Why not `assembleRelease`: it depends on `verifyReleaseNeverSignsWithDebugKeystore`
+    (`app/build.gradle.kts:405`), which needs the owner's signing identity. This machine's session does
+    not have it, so I stopped at the merged dex, which needs no signing.
+- **Kotlin class output** (`app/build/tmp/kotlin-classes/release`, 1566 classes):
+  - the `forecast` package holds only `ForecastCellStoresKt.class`, the release twin;
+  - no class name contains "synthetic" in any case.
+  - For comparison, the debug output's `forecast` package holds 12 `SyntheticForecast*` classes.
+- **Merged release dex** (`app/build/intermediates/dex/release/mergeDexRelease/classes*.dex`, 4 files), read
+  with `build-tools/37.0.0/dexdump`: 40,629 class descriptors, 2,926 of them in `com.zynergylabs.forager.app`.
+  - `SyntheticForecast` appears in 0 descriptors.
+  - `strings` over each dex finds 0 hits for `SyntheticForecast`, `debug_diagnostics_preferences` or
+    `diagnostics.synthetic_forecast`.
+  - The other 1,352 app descriptors containing "Synthetic" are all D8's `$$ExternalSyntheticLambda*` classes.
+  - The `forecast` package is only `ForecastCellStoresKt`. The diagnostics classes are the release twins
+    `DebugDiagnostics` and `DiagnosticsPanelKt`.
+- **Positive control.** A check that finds nothing only counts if it could have found something, so I ran
+  the same dexdump pipeline over the debug build's project dex (`:app:mergeProjectDexDebug`, 15 dex files).
+  It finds 15 `SyntheticForecast` descriptors there. So the release zero is a real absence, not a blind check.
+
+### Full suite
+
+- Run at `2e89091` through `run.sh`, which clears `app/build/test-results/testDebugUnitTest` first. Counts
+  are read from the JUnit XML, and the log has 0 `e: ` lines. `:app:testDebugUnitTest` ran and was not up
+  to date. The class times in the XML add up to 137 s, which fits the 2 min 26 s run.
+- **266 classes / 2183 tests / 0 failures / 0 errors / 24 skipped.**
+- Against the baseline (253 / 2112 / 0 / 0 / 24): 13 more classes and 71 more tests. That is the second
+  coder's 2182 plus this session's one test.
+- The held family (the album long-press, tap and Undo tests in `JournalPendingDeleteTest`, and
+  `JournalTabTest`'s photo pull) passed in this run.
+- Prediction 3 (70 to 140 more tests): +71, inside the range.
+
+### Finish line
+
+Against the dispatch's finish line:
+- **B1 to B7 pushed:** yes.
+- **This report:** yes.
+- **Tests first, and revert checks, each compiling:** yes. 20 checks confirmed this session, plus R01 and
+  R01b earlier. The R02 abort is recorded above, together with its replacement.
+- **The four description-pinning classes, updated and named:** yes. See the second coder's section.
+- **Release compile evidence:** yes.
+- **D58:** clean.
+- **Full suite:** 0 failures, with the held family green.
+
+### Device-only (additions)
+
+The second coder's list stands. To it add:
+- **The legend's height cap against real insets:** whether the cluster clears an expanded legend in portrait
+  once the real status bar and navigation bar take their room.
+- **A real swipe inside the expanded legend** on the phone scrolls it and does not collapse it.
+
+### Decisions I made
+
+- **The cap's value, 96 dp, and its basis.** I derived it from the Robolectric geometry at `w384dp-h823dp`,
+  which has zero insets. The ruling left the number to me ("Choose the cap so that…"). What I chose is a
+  fixed dp against one test window, not a cap computed from the live space above the chip. A computed cap
+  would hold with real insets and on shorter phones, but the dispatch asked for a number in dp. Deciding
+  properly between the two needs the device check's measurement, or the owner.
+- **The cap is on the whole chip**, collapsed label included, and not only on its expanded contents.
+  Collapsed, the chip is 36 dp, so this changes nothing there.
+- **The new test swipes twice** and checks that the chip stays expanded, so the swipe cannot pass by
+  collapsing it.
+- **The legend-content test now scrolls to each entry** (`performScrollTo`). The alternative was to leave
+  that test alone and let the cap fail it. It asserts the same entries and counts as before. I count it as
+  adapting the test to the ruled cap, not weakening it, but that reading is mine.
+- **The texts are read in the unmerged tree** in both of those tests. This is my correction to my own
+  tests-first test, made after it failed on the merged node.
+- **The spec changes before running:** R09, R13 and R14 no longer predict the Q4 test's failure, and R14's
+  match text was updated. Both were made because N1 changed the forward tree, and both were made before
+  any result was read.
+- **Which round-1 checks count as never run.** I read "one per tests-first class" as the 10 classes of
+  round 1. That gave three new checks, R17 to R19, for the re-pinned registry classes. The 7 new classes
+  were already covered by R01 to R07.
+- **R17's and R18's edit:** the registry built without its colour fields, which is the literal revert of
+  B7, rather than a single flag flip.
+- **Added R20 and R21 for N1.** No existing check covered the cap or the scroll.
+- **The release evidence stops at `mergeDexRelease`**, not a signed APK, because there is no signing
+  identity here. I added the debug-dex positive control myself.
+- **The report status names the finish line as met.** The planner re-runs the suite and writes the terminal,
+  so that verdict is the planner's to confirm.
+- **Following the dispatch over my agent definition on the record** (no sweep, intent or terminal), as the
+  two coders before me did, because the kit is absent at this base.
+- **Which test to tidy.** I read the dispatch's "the one test" as the one test the second coder flagged:
+  `AvailabilityScreenMapIconStackTest.kt`. See the flags for the other.
+
+### Deviations
+
+- **R02 was replaced by R02b.** The old and new edits are above.
+- **The test that passed before its feature existed** was extended by the second coder instead of stopping.
+  That stands, and is recorded as a deviation from the tests-first abort condition, as this continuation
+  directs. Its absence half is covered by R13, which is now confirmed: `expected:<0> but was:<1>`.
+- **F3's replacements landed a commit after the removal** (`93da312`, then `34487da`), as recorded above.
+
+### Flags outside scope
+
+- **`MapModePicker` is left alone, as directed.** It is in `ui/map/MapChrome.kt`, with no caller. It is still
+  referenced here:
+  - imported by `ui/availability/AvailabilitySettingsUi.kt:66` and `ui/availability/AvailabilityMapControlsUi.kt:78`;
+  - imported unused in `ui/availability/AvailabilityScreen.kt:312`;
+  - cited in KDoc at `AvailabilitySettingsUi.kt:331`, `AvailabilityMapControlsUi.kt:495, 498, 504, 512, 609`,
+    `AvailabilityMapOverlaysUi.kt:364, 489`, `ui/map/Basemap.kt:56`, `ui/map/MapMode.kt:15` and
+    `ui/theme/Theme.kt:157`. `AvailabilityOfflineMapsUi.kt:91` says "map mode picker".
+- **Another test's KDoc names it:** `AvailabilityScreenSettingsPanelTest.kt:76`. I left it, because the
+  dispatch named one test.
+- **`mapModePickerEnabled`**, the parameter at `CartographyEntryReportScreen.kt:418`, still carries the old
+  name. The comment at `CartographyEntryReportScreenFullscreenTest.kt:193` cites it.
+- **A fixed 96 dp cap may be too tall on a real phone**, or on any portrait window shorter than 823 dp. See
+  Device-only.
+
+### D58
+
+`app/build/l0b/d58.sh` runs `git grep -i` for the three phrases over:
+- `git diff 6235a86`, plus the staged and working trees;
+- every commit message since `6235a86`;
+- the pending message file.
+
+I ran it before each of this session's pushes, and every result was diff 0, messages 0, pending 0. That
+includes this commit.
