@@ -1223,3 +1223,9 @@ Carried from the second coder, which referred to a Decisions section it never wr
     investigated.
 11. Tooling: the second coder's `190-zoom.py` cell-period estimate is unreliable at high zoom (it read `148` as 7.20; the
     circle gives 12.00).
+
+## Citation corrections (checked against `26709b1` after writing)
+
+- Check 8 cites `AvailabilitySearchUi.kt:417-418` for "where everything fits (portrait) the end is 0 and nothing
+  moves"; it is **`:416-417`**. It cites `:403-425` for the one-shot scroll block; it is **`:402-424`**.
+- Check 4 (d) cites `AvailabilityCompactMapUi.kt:1150-1161` for the legend chip's placement; it is **`:1149-1161`**.
