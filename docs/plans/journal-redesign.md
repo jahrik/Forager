@@ -657,3 +657,11 @@ The owner, verbatim: "We should do J6 before the PR". J6, the wide tree for tabl
 5. The single Journal PR.
 
 As "Build order" says, the list-detail question goes to the owner before J6 is dispatched. A read-only J6 premise pulse, filed as `docs/audits/2026-09-28-j6-premise-pulse.md`, maps the wide tree first, so the question can be asked with real options. J6's own dispatch re-verifies after J8, since J8 touches `LogPanel.kt` for its Open-entry route.
+
+**J6's placement, revised (owner, 2026-09-28).** This supersedes the placement in the paragraph above, which stands as the record of the planner's first placement. The owner, verbatim: "J6 after the map chrome change, during phone check part 2". The order is now:
+1. J8, then J8's device check.
+2. The map-chrome dispatch (`-56` as amended by `-58`), then its device check.
+3. Stage device check Part 2 on the S22, with J6 building alongside it at the same time.
+4. The single Journal PR.
+
+J6 builds under Robolectric and takes no phone, so the two can run together, as J8 and device check Part 1 do now. The planner kept the map-chrome device check as its own step before Part 2 and stated that to the owner. Folding it into Part 2 is the alternative.
