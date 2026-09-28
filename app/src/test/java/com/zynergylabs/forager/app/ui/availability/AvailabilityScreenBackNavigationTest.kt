@@ -1006,6 +1006,41 @@ class AvailabilityScreenBackNavigationTest {
     fun `short landscape, Maps on the rail from an open day entry's editor shows the Maps search bar`() =
         checkMapsBarAfterOpenEntry(edit = true, rail = true)
 
+    /**
+     * The other half of the ruling: the entry is kept, so back on Journal it is still open (the
+     * fixture holds one entry, so "an entry open" is this one), and the Journal's search header is
+     * still hidden for it. Passes before the fix as well as after: nothing in the fix touches the
+     * entry, and this pins that it stays so.
+     */
+    private fun checkEntryKeptOnReturn(edit: Boolean, rail: Boolean) {
+        setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
+        assertRailShown(rail)
+        openCommittedDayEntry(edit)
+        touchNavItem("Maps")
+        touchNavItem("Journal")
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_HOME_TAG).assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun `portrait, a day entry left open in its report view is still open back on Journal`() =
+        checkEntryKeptOnReturn(edit = false, rail = false)
+
+    @Test
+    fun `portrait, a day entry left open in its editor is still open back on Journal`() =
+        checkEntryKeptOnReturn(edit = true, rail = false)
+
+    @Test
+    @Config(qualifiers = "w823dp-h384dp-land")
+    fun `short landscape, a day entry left open in its report view is still open back on Journal`() =
+        checkEntryKeptOnReturn(edit = false, rail = true)
+
+    @Test
+    @Config(qualifiers = "w823dp-h384dp-land")
+    fun `short landscape, a day entry left open in its editor is still open back on Journal`() =
+        checkEntryKeptOnReturn(edit = true, rail = true)
+
     @Test
     fun `the top search bar hides while editing a find, and reappears once it closes`() {
         setScreen()
