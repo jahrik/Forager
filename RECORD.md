@@ -3070,3 +3070,14 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner's rulings unchanged, verbatim: "Test it as drawn (Recommended)", "You pick from phone shots (Recommended)". Flag carried: the black night casing itself is under 3:1 on 11 of 26 night clusters, a property of the casing. Written by the planner by hand.
 
 ---
+
+**Kind:** terminal
+**ID:** 2026-09-28-25
+**Timestamp:** 2026-09-28T10:42:29Z
+**Closes:** 2026-09-28-14
+**Outcome:** completed
+**Observed:** Run record docs/audits/2026-09-28-backlog-device-check-part-b-run-record.md (pre-registered e37f8b8, results fd8eb2f), merged by the planner. Build 1.0.1192+g24589349; no crash, logcat -c never run, settings restored and read back, navigation mode unchanged. Pass: B3 drawer 1-4 at both rotations; cut-out clearance and the 640 dp cap on every non-Map destination at both rotations; J5 41, 42/31, 43, 44, 45 (chips overflow about 12 dp at 1.15 and scroll), 46 (by the coder's reading); J5c 47, 48, 53, 49's drag-to-dismiss; 34 at zoom 17.1 with fixes arriving about once a second (zoom 18 unreachable on Topographical); 35 weak; 36 could not have failed on this data (the cold start did not take); 37 completion half. Not run: item 5 and the predictive Back animation (gesture navigation), 37's leave-and-return and force-stop halves (the download finished in about 4 s). Findings: item 7, the Offline Maps picker unusable in landscape (the 480 dp map fills the 306 dp viewport; OK, the radius slider and Download unreachable; Back the only exit); the entry report in landscape opens with its map covering the column, no header row, a control cut off; 39 fewer than six whole cards (2 full-size, 4 draft cards; content area 258 dp against Robolectric's 288); 40 Back steps a single-type chip to All before hiding the revealed header, contrary to the J5 report. Planner predictions: 1 held, 2 held, 3 held, 4 held with 35 weak, 5 held.
+**Deviations:** 36 and 37 run in portrait (OK unreachable in landscape); 34 at zoom 17; the branch cut from fe0f0d7.
+**Notes:** Planner ruling on item 37: accepted as completion-only (option b); a second, larger download for the force-stop half was not judged worth it now. Created data: offline region "DEVICE CHECK 2026-09-28 B" (5 km, 244 tiles, 3.1 MB), left in place; it replaced the offline picker's remembered location. Flags carried: the snackbar and details sheet centred on the window in landscape, overlapping the rail (item 27's landscape half); the Records chip row staying hidden after Back at a list's top; a Play services screen on turning location off; inferred from code, no fixes after location is re-enabled if the app foregrounded with it off (AndroidLocationTracker.kt:71-74); the waypoint sheet's "no journal entries"; the Map tab's coordinates readout starting inside the status bar; the MapLibre error stream (42,658 lines). Written by the planner by hand.
+
+---
