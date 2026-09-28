@@ -4216,3 +4216,69 @@ Each is tested for non-intersecting bounds at 0, 90 and 270, with real-touch sam
 - -78's placement stop rule applies to all nine items.
 - The 11-shadows flag from -92 is not in scope.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-94
+**Timestamp:** 2026-09-28T23:22:21Z
+**Title:** Reproduce the missing planned-trip glyphs on the S22: up to three trips (today, future, past) created through the real UI, checked by zoom, layer switch, day and night, tap and relaunch, then deleted
+**Dispatch-file:** preserved/2026-09-28-94.md
+**Change:** No code and no install. Pre-register from the planned-trips pulse, create at most three trips mirroring the owner's, observe whether each draws in every case, name the cause the evidence supports, and delete exactly those trips. planned_trips is read back at its starting count.
+**Scope boundary:** The S22 only; never the tablet. Only the created trips; deleted at the end; settings restored. Branch device-trips; evidence outside the repository.
+**Baseline:** the build -84 leaves on the S22 (from b358a4a); planned_trips 0 at the J8 check's backup.
+**Prediction (outcome — planner):** 1. The glyph fails to draw for at least one of the three on the current build, reproducing the owner's S26 report. 2. The cause is a filter or a missing feed on the compact Maps tab, not the layer switch.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** The run record pushed with verdicts, captures, logcat, the supported cause, the trips deleted and read back. The planner merges it and writes the terminal. A fix is dispatched separately.
+**Abort conditions:** Any prompt; a locked phone; a new crash; a trip that cannot be deleted; any need to touch the owner's data or the tablet.
+**Notes:** Owner, verbatim: "I noticed there are no day/night icons for planned trips, even though they do record in the planner. The layer is available in the map layers panel though." / "They do not appear at all" / "Yes from thr S26" / "Verify it on the S22 ultra". Queued until -84 frees the S22. Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-95
+**Timestamp:** 2026-09-28T23:22:59Z
+**Title:** Reproduce the missing planned-trip glyphs on the owner's tablet (wide tree): up to three trips checked in landscape and portrait, day and night, layer on and off, then deleted
+**Dispatch-file:** preserved/2026-09-28-95.md
+**Change:** No code and no install. The -94 method on the tablet's wide tree: the map drawn after a re-run search, placement through the wide Add button and three-way dialog, landscape then portrait. The cause the evidence supports is named; exactly the created trips are deleted and read back.
+**Scope boundary:** The tablet only; never the S22. Only the created trips; the owner's settings and the existing DEVICE CHECK items untouched. Branch device-trips-tablet; evidence outside the repository.
+**Baseline:** the tablet at 1.0.1416+gd7cc9f5b; planned_trips 0 at the sanity check's database copy.
+**Prediction (outcome — planner):** 1. The wide map draws trips in landscape; the S26 symptom is specific to the compact tree. 2. In portrait the 103.5 dp strip may show none, for width alone.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** The run record pushed and trips deleted and read back; the planner merges it and writes the terminal.
+**Abort conditions:** Not exactly this tablet or a different build; a locked tablet; a new crash; a trip that cannot be deleted; any need to touch the owner's data or the S22. A prompt pauses for the owner.
+**Notes:** Owner, verbatim: "And tablet too". Runs now, while the S22 is still in use by -84. Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-96
+**Dispatch-file:** none (pulse dispatched in chat by the planner; read-only)
+**Type:** pulse
+**Outcome:** completed
+**Report:** docs/audits/2026-09-28-planned-trips-pulse.md (the planner's condensed filing, citations kept)
+**Notes:** 2026-09-28T23:32:00Z. Read at a0a54f9. It found:
+- The compact Maps tab gates planned trips on a search having set a region (AvailabilityCompactMapUi.kt:573, 641), a gate added in 7692527 (2026-08-18). Waypoints, finds, photos, tracks and regions are not gated.
+- The owner's Trip Planner line renders only in that same no-region state, which fits the report.
+- No other filter.
+- The layer and switch are wired, on by default.
+- No test covers trips reaching the compact map; the nearest one cannot fail on the gate.
+- The code comments call trips "independent of any region search".
+
+Forwarded to the tablet check (-95); named in the S22 check's (-94) launch. Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-97
+**Timestamp:** 2026-09-28T23:37:21Z
+**Title:** Planned trips drawn on the compact Maps tab whether or not a search has run (owner: option A); the unfalsifiable trip-bubble test made to read what the screen passes
+**Dispatch-file:** preserved/2026-09-28-97.md
+**Change:** Remove the hasSearched gate on plannedTrips (AvailabilityCompactMapUi.kt:641) and correct its comment. Sightings stay gated; the wide tree and the entry map are unchanged. Tests first through the real compact screen with no search, the existing trip-bubble test made falsifiable, a revert check and the full suite.
+**Scope boundary:** AvailabilityCompactMapUi.kt, tests, a completion report. Not the wide tree, sightings, the entry map, the record, index, CLAUDE.md, plans or prompts.
+**Baseline:** journal-redesign at the base named at launch (queued behind -78, and until -94 or -95 reproduces the failure).
+**Prediction (outcome — planner):** 1. One line and one comment change. 2. The suite grows by 3 to 6.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** Build, tests first, revert check, full suite, report, pushed; the planner writes the terminal; the S22 check follows.
+**Abort conditions:** No device reproduction or a different cause; a tests-first test passing at base; a non-compiling revert; a non-held failure; disk full or OOM; two failed fixes; an unruled design question.
+**Notes:** Owner, verbatim: "Option A for the fix". The cause is from the pulse (dispatch-note -96). Written by the planner by hand.
