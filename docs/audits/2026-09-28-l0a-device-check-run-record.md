@@ -488,3 +488,175 @@ evidence. `snaps.log` records each capture's UTC window and hash.
 3. **The running recording:** leave it, or have someone stop it.
 4. **Checks 5 and 7, and check 2's offline part, need a Cartography entry** with finds, photos, a kept track
    and an offline region on this phone, and none exists. This dispatch may not create one.
+
+---
+
+# Continuation 2026-09-28-06
+
+**Status: pre-registration.** This section is committed and pushed before step 1 is run. The results
+follow in later commits. The pass conditions and predictions below are not edited after this commit,
+except where a correction is marked.
+
+**Dispatch:** `prompts/preserved/2026-09-28-06.md`, continuation `2026-09-28-06` of intent `2026-09-28-02`
+(both the planner's, in `RECORD.md` at `bc64d37`).
+**Base:** `origin/journal-redesign` at `bc64d37`, merged into this branch as a fast-forward from `b1e08da`.
+`git diff --stat 2458934 bc64d37 -- app/` is empty, so the app tree is still the one in the installed build.
+**Device:** SM-S908U, serial `R5CT321008R`, `ro.build.id=BP2A.250605.031.A3`, the only device attached
+at 03:57:34Z. `wm density` 450 (1 dp = 2.8125 px), `wm size` 1080 x 2316.
+**Clock:** the machine and the phone read UTC; the phone's local time is UTC-7, so its local date is
+2026-09-27 until 07:00Z. The app's "today" is `LocalDate.now()` (`ui/log/CartographyViewModel.kt:115`,
+`ui/log/MushroomLogViewModel.kt:323`), so today's Journal day in the app is 2026-09-27 until then.
+**Evidence:** `/home/zynergy-labs/Zynergy/device-evidence/2026-09-28-l0a/`, numbered from 60 on. Nothing
+identifying goes into this file.
+
+Paths below are under `app/src/main/java/com/zynergylabs/forager/app/`; lines are at `bc64d37`.
+
+## Pre-registration
+
+### Step 1: baseline
+- **Pass condition:** `dumpsys package` shows `versionName=1.0.1192+g24589349`; `logcat -b crash -d` is read
+  now and at the end, and a Forager line that is not in the start read is a stop.
+- **Prediction:** the same build, and an empty crash buffer.
+
+### Step 2: the Return leg, while the recording is still open
+- **From the code:**
+  - `isNavigating = isReturning` (`ui/availability/AvailabilityScreen.kt:775`).
+  - The compass strip is composed only while `!isNavigating` (`ui/availability/AvailabilityCompactMapUi.kt:1001`).
+  - The navigation HUD is composed only while `isNavigating` (`:1071`). Its exit icon carries
+    `contentDescription = "Stop navigating"` (`ui/availability/NavigationHud.kt:272`).
+- **Pass condition (Return not active):** on the Maps tab, with nothing changed:
+  - a fresh dump has no node described "Stop navigating";
+  - the dump has the compass strip's heading text (a `°` reading or "Compass unavailable");
+  - the screenshot shows the strip under the search bar and no HUD panel.
+- **Stop:** if "Stop navigating" is present, the Return leg is active. I stop and report. I do not turn Return on or off.
+- **Prediction:** not active.
+
+### Step 3: stopping the owner's recording
+- **From the code:**
+  - The map's record control reads "Stop recording track" while recording (`ui/availability/AvailabilityMapControlsUi.kt:204`).
+  - Tapping it calls `trackRecordingViewModel.stopRecording()` directly (`MainActivity.kt:513-515`). No
+    dialog sits in between, and I found no keep-or-discard choice anywhere on this path.
+  - The service flushes the buffer and calls `endTrackUseCase`, which only sets `endedAt`
+    (`service/TrackRecordingService.kt:142-157`, `domain/EndTrackUseCase.kt:8-9`). So the stop keeps the track.
+  - **The stop also creates data by itself.** `stopRecording()` saves an END-designated waypoint from the last
+    gated fix, if there is one (`ui/track/TrackRecordingViewModel.kt:289-306`). `mapVisibleWaypoints` never
+    draws it on the Maps tab (`ui/availability/AvailabilityPureFunctions.kt:65-66`).
+- **The dispatch's premise:** it says "its keep choice". By the code, there is no choice, and the stop keeps.
+  The abort condition "the stop offering only discard" is therefore not expected. The same goes for any choice
+  offering discard, which I would not take.
+- **Prediction:**
+  - no dialog;
+  - the control changes to "Start recording track";
+  - the track row gets `endedAt`;
+  - one END waypoint row is added.
+
+### Step 4: creating the test data (actions, not checks)
+- **(a) Waypoint:**
+  - Maps tab add menu, then "Waypoint" (`ui/availability/AvailabilityMapControlsUi.kt:587`).
+  - The centre-pin picker places it at the camera centre (`ui/availability/AvailabilityCompactMapUi.kt:1252-1258`).
+  - Then "Name this waypoint", confirmed with "Drop waypoint" (`ui/availability/AvailabilityMapOverlaysUi.kt:184`, `:197`).
+  - Placement: the pin's tip on the search-centre reticle, so the pin overlaps it (step 5, step 6).
+- **(b) Finds:**
+  - Maps tab add menu, then "Find"; the centre pin sets the find's location (`ui/availability/AvailabilityCompactMapUi.kt:1256`).
+  - The find form's Save commits the draft (`ui/log/MushroomLogViewModel.kt:497-523`).
+  - Find 1 gets one photo from the app's own camera. A camera capture takes its coordinate from a live fix,
+    not from EXIF (`photo/FilePhotoStore.kt:133-137`).
+  - Placement: close to the waypoint, but offset so that each glyph is partly visible.
+- **(c) Track:** the one kept in step 3.
+- **(d) Offline region:**
+  - The picker opens on the device's current fix (`ui/availability/AvailabilityViewModel.kt:777-784`).
+  - The radius slider's minimum is `Region.MIN_RADIUS_KM` = 1 (`ui/availability/AvailabilityOfflineMapsUi.kt:212-218`,
+    `domain/model/Region.kt:10`). The form has a "Name (optional)" field (`:206`).
+  - A successful download also saves the picked region as the picker's remembered last region
+    (`ui/availability/AvailabilityViewModel.kt:1130`), a `map_preferences` write that I cannot undo through the UI.
+    It is recorded under Settings.
+- **(e) Journal entry:**
+  - Starting an entry keeps every one of the day's initial candidates: finds, tracks, waypoints and offline
+    regions (`ui/log/CartographyViewModel.kt:115-146`). Photos are kept one by one (`:310`).
+  - "Finish entry" commits the draft (`:322-337`; `ui/log/CartographyEntryEditScreen.kt:285`).
+  - The form has no title field, only "Your own account (optional)" and "Tags" (`ui/log/CartographyEntryEditScreen.kt:248`, `:260`).
+  - The entry map draws only the entry's kept items, and only photos attached to the entry itself
+    (`domain/GetCartographyEntryMapDataUseCase.kt`, `entry.photos`).
+
+### Step 5: check 8, the positive control (an ordinary waypoint draws on the Maps tab)
+- **From the code:**
+  - A waypoint with `designation == null` passes `mapVisibleWaypoints` (`ui/availability/AvailabilityPureFunctions.kt:66`),
+    reaches the compact map as `mapWaypoints` (`ui/availability/AvailabilityScreen.kt:778-779`, `:1392`;
+    `ui/availability/AvailabilityCompactScaffold.kt:822`), and is drawn on `waypoints-layer` (`ui/map/layers/MapLayers.kt:249`).
+  - The glyph is a teardrop 22 x 28 dp, anchored at its tip on the coordinate (`ui/map/MarkerGlyphs.kt:36`). Its head
+    is a circle of radius 11 dp, whose centre is 17 dp above the tip (`:91-92`), and it carries a ring in the casing
+    colour of radius 2 to 3.5 dp (`:103`).
+  - Colours: fill `#350560` with a white casing when Night Maps is off, and `#B97DF7` with a black casing when it is
+    on (`ui/theme/MapPalette.kt:75`, `:89`, `:93`, `:106`; chosen by `MapPalette.forMode`, `:109`).
+- **Pass condition:** a pin of that shape whose tip is at the point the app placed it. Night Maps' state is read
+  from Settings. The fill pixels in its head, between the ring and the casing, read that state's hex exactly or
+  within 2 per channel.
+- **Fail and stop:** no such pin.
+- **Prediction:** drawn, in `#350560` (Night Maps was off at the end of the first run).
+
+### Step 6: check 4, draw order on the Maps tab
+- **Pass condition (the first run's):** every pair of layers seen overlapping on screen stacks as
+  `MAP_LAYER_REGISTRY` orders them (`ui/map/layers/MapLayers.kt:211-252`, bottom to top). On the Maps tab, the relevant
+  order is breadcrumb < search centre < sighting dots < planned trips < waypoints.
+- **The test:** in an overlap, the pixels show the upper layer's own colour. For the waypoint over the reticle, the
+  pin's fill covers the reticle's black arm and ring where the two meet.
+- **Not run:**
+  - a pair that never overlaps on screen.
+  - The ruled change (dots and reticle above track lines) needs a line on the Maps tab. The breadcrumb ends with
+    the stop in step 3, and kept tracks are not drawn there at this build (`ui/availability/AvailabilityCompactMapUi.kt:598-606`).
+    So that pair is expected to be not run.
+- **Prediction:** waypoint over reticle, as the registry says. The ruled-change pair is not run.
+
+### Step 7: check 5, draw order on the entry map
+- **Pass condition:** every overlapping pair on the entry map stacks as the registry orders them. The relevant order
+  is offline fill < offline outline < kept-track casing < kept track < waypoints < finds < photos
+  (`ui/map/layers/MapLayers.kt:212-251`; the entry map's overlays are at `ui/log/CartographyEntryReportScreen.kt:355-386`).
+  The same pixel test as step 6 is used. A pair that never overlaps is not run.
+- **The zoom:**
+  - The map frames the entry's points with `GeoDistance.boundingRegion`, whose radius is at least 1 km
+    (`domain/GeoDistance.kt:132-141`). For a radius under 5 km, `zoomForRadiusKm` gives 13 (`ui/map/SightingsMap.kt:586`, `:1507-1512`).
+  - Each double-tap zooms in by one level (the MapLibre default; the zoom is inferred, not read).
+  - I will say which was used.
+- **Prediction:**
+  - at least one marker pair overlaps and stacks as the registry says;
+  - the markers draw over the offline fill;
+  - the outline may never meet a marker, because the circle's centre is at the markers, so that pair may be not run.
+
+### Step 8: check 2, offline part
+- **Pass condition:**
+  - on the entry map with offline tiles on, the caption reads exactly `Protomaps © OpenStreetMap`
+    (`map/OfflineStyle.kt:28`, chosen by `ui/map/BasemapStyles.kt:130-131`, drawn at `ui/map/SightingsMap.kt:681`), with
+    no ` · `, because no registry layer has a credit;
+  - with offline off, the caption reads the entry map's basemap credit (Topographical by default, `ui/map/MapMode.kt:36`).
+- **Also from the code:** the offline control appears only when a kept region covers at least one of the entry's
+  points (`ui/log/CartographyEntryReportScreen.kt:437-458`, `domain/GetCartographyEntryOfflineRegionUseCase.kt`).
+- **Prediction:** a match.
+
+### Step 9: check 6, an observation on the entry map
+- **What the code sets:** `visibility: visible`, the offline fill at 0.2, and lines and icons at 1
+  (`ui/map/layers/MapLayers.kt:145-149`, `:224`). The line widths are: kept track 6 dp with a 9 dp casing, and the
+  offline outline 1.5 dp dashed 6/4 dp (`ui/map/SightingsMap.kt:1374`, `:1478-1483`).
+- **The observation:** whether any overlay looks faded, missing or restyled against those values. Icon interiors
+  should read their role's hex exactly. This is not a pass.
+
+### Step 10: check 7, restated by the dispatch
+- **From the code:**
+  - Overlays take `MapPalette.forMode(nightMode)` (`ui/map/BasemapStyles.kt:207`).
+  - The offline style is recoloured before the overlays are added, only when offline tiles and night are both on
+    (`ui/map/SightingsMap.kt:527`). The recolour logs `Offline night: N colour properties recoloured, M left in day colours.` (`:1442`).
+  - Its transform is V1: `night = clamp(c + 255 - 2 * mean(r, g, b))` per channel (`ui/map/NightColour.kt:39-47`).
+- **Pass condition:** on the entry map with offline tiles on, Night Maps off and then on, both of the following:
+  - **Basemap:** night on logs the recolour line with N > 0. A flat ground sample moves from its day value to that
+    value's V1 transform, within 2 per channel.
+  - **Overlays:** each sampled overlay pixel reads its role's DAY hex with night off and its NIGHT hex with night
+    on, within 2 per channel. At least two glyphs and one line or outline are sampled.
+    - Waypoint `#350560` / `#B97DF7`, find `#DA02AF` / `#F96FAC`, photo `#C1154F` / `#E8046D`, kept track
+      `#A122F8` / `#EEA7FE`, outline (casing) `#FFFFFF` / `#000000` (`ui/theme/MapPalette.kt:74-107`).
+    - **The discriminator:** an overlay passed through V1 would read differently. For example, the waypoint's
+      `#350560` becomes `#CD9DF8` under V1, not `#B97DF7`.
+- **Restore:** Night Maps goes back to its starting value, and I read it back.
+- **Prediction:** pass.
+
+### Planner's predictions, to be scored
+1. Step 2 passes. 2. The ordinary waypoint draws. 3. At least one overlapping pair on the entry map stacks as the
+registry says. 4. The offline caption matches the code. 5. The restated check 7 passes.
