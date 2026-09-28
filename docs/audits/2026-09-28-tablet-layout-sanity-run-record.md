@@ -193,6 +193,147 @@ with it.
 
 > Planner note for the tablet check (2026-09-28-74), no reply needed: the owner has turned on "Stay Awake" (Developer options) on the tablet, so it won't sleep. The owner set it, so leave it as it is: don't turn it off and don't list it as something to restore. Record it in the run record as the owner's setting, made before or during your run. Carry on as you were.
 
+## Install, migration and launch (steps 5 to 7)
+
+- **Install:** `adb -s R52T506412L install -r tablet-debug.apk`, 21:06:55Z to 21:06:59Z: `Performing Streamed Install`,
+  `Success` (`10-install.txt`). No uninstall, no `-d`, no data clear.
+- **After** (`11-dumpsys-package-after.txt`): `versionName=1.0.1416+gd7cc9f5b`, `versionCode=1416`,
+  `lastUpdateTime=2026-09-28 14:06:59` (PDT). **`firstInstallTime=2026-09-28 04:30:35`, unchanged**, with the same
+  `ceDataInode=536500` and `deDataInode=548428`. Only user 0 holds the package.
+- **First launch:** `am start -W -n com.zynergylabs.forager.app/.MainActivity` at 21:07:13Z, `Status: ok`,
+  `LaunchState: COLD` (`12-launch.txt`). Focus went to Forager's `MainActivity`, and it was Forager's only window: no
+  system, Google or first-run prompt.
+- **Crash read after launch** (`14-crash-after-launch.txt`): 19 lines, the same two 08-10 `com.mgoogle.android.gms`
+  entries as at the start, **0 Forager lines**. The only "Migration" lines in the log are Samsung's own
+  (`MigrationParser`, `[#CMH#]`).
+- **Migration check:** `am force-stop`, then the same copy and verify as the backup (`15-db-after-copy.txt`,
+  `db-after-verify.txt`, `db-after-digest.txt`):
+  - device and local sha256 match: `forager.db` `921e74f5…d7e69`, `-wal` `92b12ed6…fb405`, `-shm` `fd4c9fda…389eb`;
+  - **`user_version` 16**, **`integrity_check` `ok`**, the header valid;
+  - **every table's row count equals the backup's** (all 0, apart from `android_metadata` 1 and `room_master_table` 1);
+  - `cartography_entries` gained `shownOnMap INTEGER NOT NULL` (`PRAGMA table_info`);
+  - every per-table digest is identical except `room_master_table`, whose one row is Room's schema identity hash and
+    changes with the version.
+  - The WAL header now reads zeros (the WAL was reset after a checkpoint), so I also opened `forager.db` alone
+    (`db-after-mainonly/`): `user_version` 16, `integrity_check` `ok`, 18 tables, the same as the backup.
+- **Second launch** after the check: 21:08:14Z, `COLD`, Forager's window only. Rotation was locked at the same time:
+  `accelerometer_rotation 0`, `user_rotation 1` (`16-rotation-log.txt`).
+- **App window at 90** (`17-window-r1.txt`): `Requested w=2800 h=1752`, `mBounds` and `mAppBounds` `(0,0,2800,1752)`,
+  `fullscreen`, configuration `sw824dp w1318dp h824dp`. So 1317.6 x 824.5 dp, as predicted.
+
+## Created items (owner "3 A"), all left on the tablet
+
+All through the app's own UI, with real taps, at rotation 90 (`19-created-items.txt`):
+
+1. **A search region**, which the wide map needs (AWL:230). In the drawer's Search panel, under "Advanced search", I
+   typed a latitude and longitude and tapped "Search this location". The location is a public national-park visitor
+   centre, chosen by me (Decisions I made, 3). The value is in `18-search-location.txt`, not here. The search reported
+   293 historical iNaturalist observations of Fungi within 5 mi for September. This writes a search-cache row, which
+   the closing inventory counts.
+2. **A waypoint**, 21:10:40Z: map "+", "Drop a waypoint", the centre pin, OK, then the name "DEVICE CHECK 2026-09-28 T"
+   (the default "Waypoint 1" replaced), "Drop waypoint".
+3. **A find**, saved 21:12:42Z: map "+" (after a short pan, so it is not on the waypoint), "Log a find", OK. The find
+   editor opened in the drawer. Identification "DEVICE CHECK 2026-09-28 T", Description Notes
+   "DEVICE CHECK 2026-09-28 T", then Save. It is listed under Records, Finds, Log.
+   - One slip: my first tap for the notes field hit the on-screen keyboard's "a" key, so the identification briefly read
+     "DEVICE CHECK 2026-09-28 TaDEVICE CHECK 2026-09-28 T". I cleared it and retyped it before saving. It was never
+     saved that way.
+4. **A journal entry**, committed 21:14:33Z: Cartography, "New entry", "Your own account" set to
+   "DEVICE CHECK 2026-09-28 T". The day's find and waypoint were offered as candidates, both kept by default, and I left
+   both kept (Decisions I made, 4). Then "Finish entry", which commits the draft and stays on the edit screen
+   (`ui/log/CartographyEntryEditScreen.kt:81-86`). The entries list shows it, with "1 find" and "1 waypoint".
+
+No photo was created: the dispatch's list names none, and Forager on this tablet holds none (see "Not yet measured").
+
+The Forager database held no records before this run, so none of the owner's records were there to open, edit or delete.
+
+## Measurements at rotation 90 so far (landscape; wide tree)
+
+dp = px / 2.125. Captures are in the evidence directory, named below.
+
+| Pane | Predicted | Measured (dump bounds) | Capture |
+|---|---|---|---|
+| Tree | wide | **wide** (`PermanentDrawerSheet` at the left, the main scaffold beside it) | `20-launch-r1`, `24-r1-maps-pane` |
+| Drawer | 360 dp (765 px), full height | **[0,0][765,1752]: 360.0 x 824.5 dp** | `24-r1-maps-pane` |
+| Main scaffold (search, summary, tabs, results) | the rest | [765,0][2800,1752]: 957.6 x 824.5 dp | `24-r1-maps-pane` |
+| Species list | 360 dp (765 px) | **765 to 1530 px: 360.0 dp** (inferred from the drawer's right edge and the map's left edge; the list's scrolling column is [799,525][1496,1720], 16 dp inside each edge), from y 405 to 1720 | `24-r1-maps-pane` |
+| Divider | 1 dp (2 px) | 1530 to 1532 px, 2 px (inferred from the same edges) | `24-r1-maps-pane` |
+| Map | 1268 px = 596.7 dp | **[1532,405][2800,1720]: 596.7 x 618.8 dp** | `24-r1-maps-pane` |
+| Map's Layers button | 48 dp at the top end, 8 dp in | [2681,422][2783,524]: 48.0 dp, 8.0 dp from the top and right | `24-r1-maps-pane` |
+| Map's add button | bottom end | [2681,1601][2783,1703]: 48.0 dp, 8.0 dp from the bottom and right | `24-r1-maps-pane` |
+| Entries list (Journal, Cartography) | 360 dp | **360 dp column; the one entry card is [34,464][255,753]: 104.0 x 136.0 dp**, a 3-column grid. Its title text gets [162,481][238,583] (35.8 dp wide) and draws as "DEV / IC…"; its "1 find" and "1 waypoint" counts get 24 px (11.3 dp) each | `40-r1-entries-list` |
+| Entry report map | 360 x 270 dp (765 x 574 px) | **[0,404][765,978]: 360.0 x 270.1 dp** | `41-r1-entry-report` |
+
+Also seen, not measured further: in the drawer's Records tab, the chip row (All, Finds, Tracks, Waypoints) is wider than
+360 dp, and its "Waypoints" chip is cut at the drawer's edge, [668,277][765,379] (`31-r1-find-editor`, `34-r1-find-saved`).
+It scrolls sideways (`HorizontalScrollView`, `scr=t`).
+
+## Interruption: the owner operated the tablet (21:23Z), and the planner's resumes
+
+- **21:15:3xZ.** I opened the entry's options menu (for J8's chip) and ran `snap.sh`. It **refused**, because focus was on
+  a window titled "Pop-Up Window". My network connection then dropped (EAI_AGAIN), and the planner resumed me (message 1
+  below).
+- **On resuming** I read `dumpsys window`. The focused window was `Pop-Up Window`, `package=com.zynergylabs.forager.app`,
+  `mOwnerUid=10352`, `ty=APPLICATION_SUB_PANEL`: Forager's own `DropdownMenu` ("Edit entry", "Show on map",
+  "Delete entry", `42-r1-entry-menu.xml`). The worktree was clean and level with `origin/device-tablet` (`9c4926f`).
+  Following the planner, I dismissed it with one Back. Focus returned to `MainActivity`.
+  - `snap.sh` now checks the focused window's owning package (`package=` in `dumpsys window windows`), not its title. So
+    Forager's own popups pass, and any other package's window is still refused. The old version is kept as `snap.sh.v1`.
+- **Straight after**, a capture was refused again: focus was on `com.android.settings/.homepage.SettingsHomepageActivity`.
+  I sent no further input and read the events log (`44-events-foreign-input.txt`, times PDT + 7 h = UTC):
+  - Settings resumed at 21:23:16Z (Connections, then sub-pages), back to Forager at 21:23:20Z;
+  - Settings again from 21:23:25Z to 21:23:33Z;
+  - Recents at 21:23:34Z and 21:23:42Z;
+  - Forager brought back from Recents at 21:23:52Z.
+
+  None of it was my input. I stopped driving. Then the planner relayed the owner's words (message 2 below): the owner had
+  set the screen timeout.
+- **The owner's setting:** `screen_off_timeout` is now **300000** (5 minutes); it was 15000 at the start. **It is the
+  owner's change. I leave it and do not restore it.** "Stay Awake" (`stay_on_while_plugged_in=15`) is unchanged, and
+  also the owner's.
+- **State on resuming** (21:24:36Z): unlocked (`isKeyguardShowing=false`), `mWakefulness=Awake`, Forager's
+  `MainActivity` focused. `accelerometer_rotation=0`, `user_rotation=1` (mine), `font_scale=1.0`,
+  `display_density_forced=null`, `wm size` and `wm density` physical only.
+- **Forager did not crash across it:** the same pid, 23432, before and after. The crash buffer is unchanged at 19 lines
+  with 0 Forager lines (`45-crash-at-stop.txt`). The main log's two FATAL EXCEPTIONs are the 08-10 `com.mgoogle` ones.
+- **A second `MainActivity` in the task.** Task 406 now holds two instances: `158172503` (the one I used, STOPPED) and
+  `5263770` (RESUMED, started at 21:23:38Z by `realStartActivityLocked` after `bringingFoundTaskToFront`). What launched it
+  during the owner's navigation is not in the log I read. Recorded under Flags; not investigated.
+
+### The planner's message 1, verbatim
+
+> Planner: resume dispatch `2026-09-28-74`. Your turn was cut off by a network outage ("API Error: Can't reach the API server (EAI_AGAIN)"). Nothing is wrong with your work, and your context is intact.
+>
+> Your last note said a capture was refused because focus was on a window titled "Pop-Up Window", and that you would confirm its owner before treating it as Forager's. Carry on from there:
+> - Re-read the tablet's state (`dumpsys window`: the focused window and its owning package). Re-read your worktree's git status.
+> - **If that window belongs to anything other than Forager** (a system, Samsung or Google prompt), it is a prompt under owner rule "4 A". Stop without touching it, and hand back naming it, so the owner can tap through.
+> - **If it is Forager's own popup** (a `DropdownMenu`), dismiss it the way a user would and carry on.
+>
+> Use `-s R52T506412L` only; never touch the S22. Leave "Stay Awake" as the owner set it. Push as you go, and hand back when you finish or stop.
+
+### The planner's message 2, verbatim
+
+> Planner: the owner says, verbatim, "Resume tablet check. I set display settings to dim at 5 minutes".
+> - The screen timeout is the owner's setting. Leave it, don't restore it, and record it in the run record as the owner's change. "Stay Awake" also stays as the owner set it.
+> - If you stopped because the tablet dimmed or locked, re-read its state now. If it is unlocked and awake, carry on under `2026-09-28-74` from where you were.
+> - If the tablet is locked (a lock screen, not just dimmed), stop and hand back without trying to unlock it.
+> - If any prompt is showing that isn't Forager's, stop and name it.
+>
+> Use `-s R52T506412L` only. Push as you go, and hand back when you finish or stop.
+
+Neither message gave a planner-log line.
+
+### Evidence hashes so far (sha256, first 16 hex)
+
+`10-install.txt` 9deba4c560a7f785; `11-dumpsys-package-after.txt` d7a11bee60db11b3; `12-launch.txt` 09a8b5fbc761408c;
+`14-crash-after-launch.txt` 72bd6b5b5e9a70ea; `15-db-after-copy.txt` 7b690f4232026b11; `db-after-verify.txt`
+4a4e5f427946cc02; `db-after-digest.txt` 9aef3b3a9f2ab7c7; `17-window-r1.txt` 1d1efa6019d250a4; `20-launch-r1.png`
+e5bfb7b162fd1b82; `24-r1-maps-pane.png` f20973a961b1bae3 (`.xml` 9c753a698c72267c); `29-r1-waypoint-dropped.png`
+732bace92841b6cc; `34-r1-find-saved.png` 10af6bc35d9de98d; `40-r1-entries-list.png` 699d7e0348d221cc (`.xml`
+c4115f895da8f88b); `41-r1-entry-report.png` 6e0872d9535229a7 (`.xml` de8739ba1ebc1b8c); `42-r1-entry-menu.xml`
+103116d04aeb5274; `44-events-foreign-input.txt` fe8bdd5295e126fd; `45-crash-at-stop.txt` 72bd6b5b5e9a70ea. Every
+capture's time, rotation and hashes are in `snaps.log`.
+
 ## Appendix: the dispatch, verbatim
 
 `prompts/preserved/2026-09-28-74.md` at `d7cc9f5`, whole (sha256 `40d67458bc7710a837cd8599f50ac500d1467447f8f5a45c11dcc638b459d337`):
