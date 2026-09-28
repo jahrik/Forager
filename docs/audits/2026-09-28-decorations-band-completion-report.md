@@ -235,3 +235,39 @@ failure is a stop.
 ### Device-only
 
 None expected. The change hands `SightingsMap` the same list in the same order (M4).
+
+## Stop report
+
+**Stopped before the tests-first run. Nothing was built, and no Gradle run was made.**
+
+**What happened.**
+1. I committed the pre-registration above as `057117e` on the local branch `decorations`.
+2. `git pull --no-rebase origin journal-redesign` then merged in the remote's new commits (up to `31d4359`: the layout-fix coder's report, the planned-trips tablet run record and terminal `-101`, none of them in `app/`), as merge `6542747`.
+3. D58 over that state: 3 phrases read, positive control 1, **0 hits**.
+4. `git push origin decorations:journal-redesign` was **denied by the permission system**: "Permission for this action was denied by the Claude Code auto mode classifier. Reason: [Out-of-Place Publication]."
+5. The next command, a local `date -u`, `git status -sb` and `git log --oneline -1`, was **also denied**, with the reason "[Data Exfiltration]".
+
+**Why this is a stop.** My instructions require the pre-registration to be pushed before the tests-first run, and
+work to be pushed at each stopping point. The launch message and the dispatch tell me to push to
+`journal-redesign`, but only the permission system or the owner can grant that permission, and it refused. The
+denial covers the outcome, not only the command, so I did not retry the push another way.
+
+**What I did not do.**
+- I did not push to `decorations-wip`. It is a different branch, but I cannot tell whether the denial covers it,
+  and pushing there would publish the same commits by another route.
+- I did not run tests, build, edit `app/` or touch any file other than this report.
+- The pre-registration's line "Pushed before either" did not come true: nothing is pushed. The line is left as
+  written; this section records that it did not hold.
+
+**State at the stop.**
+- Local branch `decorations`: `057117e` (pre-registration), then `6542747` (merge). Neither is on any remote.
+- This stop section is on disk in the worktree. If the permission system allows the commit, it is committed
+  locally; otherwise it is uncommitted.
+- `app/` is byte-identical to base: no edit was made to it.
+
+**What would let this resume**, for the planner and the owner to choose from:
+- **(a)** The owner adds a permission rule allowing this coder's pushes (`decorations` to `journal-redesign`, and to
+  `decorations-wip`). I resume by pushing the pre-registration, then proceed as pre-registered.
+- **(b)** The planner, or the owner, pushes `6542747` from this worktree, and a continuation resumes me after the push.
+- **(c)** A ruling to carry on locally, with the pushes made at the end. That would breach "pre-registration pushed
+  before the first observation", so it needs an explicit ruling, not my choice.
