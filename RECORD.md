@@ -3764,3 +3764,14 @@ The list-detail question goes to the owner next. Written by the planner by hand.
 **Reason:** the owner, verbatim: "Gablet is plugged in with USB debugging turned on".
 **Changes:** -74 launches at base d7cc9f5 (app/ identical to 99de6c2, the J8 terminal). The planner's adb read at launch showed two devices: R5CT321008R (model SM_S908U, the S22, in use by J8's device check -72) and R52T506412L (model SM_X800, product gts8pwifixx). The coder confirms the tablet's facts itself with getprop.
 **Notes:** About 3.4 GB of memory was available at launch, with the save-failure build and J8's device check both running. The coder waits for memory before its APK build. Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-76
+**Timestamp:** 2026-09-28T21:06:34Z
+**Continues:** 2026-09-28-68
+**Dispatch-file:** preserved/2026-09-28-76.md
+**Reason:** the -68 coder stopped at verification (ea60d72), because the Journal surfaces failures three ways (Toast, error-coloured text, plain text), so no single established pattern exists. It found saveErrorMessage set in 7 places with 5 existing messages, cleared on success paths but never displayed, onSaveErrorDismissed with no caller, and a dropped, unlogged failure at CartographyViewModel.kt:133.
+**Changes:** Owner: all seven messages kept verbatim. Owner: option B, a Toast hosted in JournalTab and LogPanel like the find editor's, cleared once shown or on the next successful write, with a failure raised off-screen shown when the Journal next opens. Planner: Discard success clears the message; the onStartEntry failure is logged only. Scope widens to JournalTab, LogPanel, MainActivity and the hosts between, for threading.
+**Notes:** Owner, verbatim: "For the failures, keep the messages as they are. They are specific to the action which is a feature." and "Option B for your question." The planner stated the log line to the owner beforehand. The J8 report's "never cleared" and ":664" were corrected by the coder (cleared on success paths; the line is :672). Written by the planner by hand.
