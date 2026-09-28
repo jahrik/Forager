@@ -1,4 +1,7 @@
-# Night offline-region candidates: capture run record (2026-09-28), STOPPED PARTWAY
+# Night offline-region candidates: capture run record (2026-09-28), STOPPED PARTWAY (twice)
+
+**Current status (after the resumed session, below): stopped at 11:51Z on an abort condition, framing that
+cannot be reproduced across candidates (View C only). 404040 is installed; Night Maps is still on.**
 
 Dispatch `prompts/preserved/2026-09-28-26.md` (continuation `2026-09-28-26` of intent `2026-09-28-19`).
 Phone SM-S908U, serial `R5CT321008R`. The raw evidence and every screenshot are outside the repository, in
@@ -154,3 +157,138 @@ phone. Continuing needs the owner to deal with the prompt themselves, and a fres
   investigated). This may be the recenter the `:522-531` comment describes as fixed.
 - `input motionevent` quick-zoom drags logged `GestureDetector: handleMessage LONG_PRESS` (20 in one
   run). No visible effect; not investigated.
+
+## Resumed session (third coder session, 11:33Z to 11:52Z)
+
+**The prompt pause.** The session above stopped at 11:25Z on the Google account-recovery prompt. The
+owner dealt with it on the phone. The planner's message, part of this dispatch, quoted the owner verbatim:
+"The prompt is handled now. Continue as you were". It also restated three rules: never `logcat -c`;
+stop at once on any system or Google prompt; launch with `am start`, never `monkey`. It told this
+session to take 202020's View C, then install 404040 and 606060, and take A-night, B and C on each,
+accepting a frame only if it is pixel-identical outside the circle to 202020's frame for that view. The
+planner-log line for that message was not given to this session, so it is not cited.
+
+**The `logcat -c` incident.** At 11:21Z the previous session ran `logcat -c`, clearing the default
+buffers including the crash buffer. That broke the rule that logs are read with `-d` only. The effect is
+described under "Crash reads" above. This session read logs only with `logcat -b crash -d`.
+
+**State at resume (11:33Z), read only:** Forager `MainActivity` top resumed; versionName
+`1.0.1259+g75c050f7.dirty`; `lastUpdateTime` 2026-09-28 03:46:50; `firstInstallTime` 2026-09-22 11:15:05;
+rotation 0/0; awake, no keyguard; crash buffer 0 lines; Maps tab on Topographical, no prompt
+(`logs/50-resume-state.png`).
+
+### 202020, View C
+
+- `frame.sh` then gave a View A frame that was pixel-identical to `202020-A-night.png` in all four
+  `cmp.py` regions (`logs/51-frame-202020-resume.png`).
+- `viewc.sh` from it (`logs/52-viewc-202020-resume.png`) was **not** identical to the pre-pause
+  clean View C capture `logs/46-viewc-202020-a.png`. It was shifted by exactly 3 px vertically (`offs.py`:
+  1108 differing pixels at that shift, 321 435 at zero shift).
+- A full rerun, `frame.sh` then `viewc.sh` (`logs/53-viewc-202020-r1.png`), matched `52` at zero shift.
+  Its only differences were along the dashed edge (rows about 832-884) and in the status bar.
+- The header's grid reference had moved by about 2 m since capture 46. The digits are not recorded here
+  because they locate the owner.
+- `202020-C.png` was taken from the r1 state and is identical to the r1 snap (0 differing pixels). It is
+  View C's reference.
+
+### 404040
+
+- sha256 `92d5cd8ce8260530136e64f6a7c9cfa2cdd1eda3af65b8508e9a9eeb1ebe35a8`, which matches `FACTS.txt`.
+- `adb install -r` at 11:39:26Z: "Performing Streamed Install / Success" (`logs/60-install-404040.txt`).
+- `dumpsys package` (`logs/61-package-404040.txt`): versionCode 1259, versionName
+  `1.0.1259+g75c050f7.dirty`, `lastUpdateTime` 2026-09-28 04:39:27 (phone time, PDT), `firstInstallTime`
+  2026-09-22 11:15:05 (**unchanged**), signatures `[d59f30b8]`.
+- Crash read: 0 lines (`logs/62-crash-404040.txt`).
+- Launched with `am start -n com.zynergylabs.forager.app/.MainActivity`. Rotation 0/0 afterwards. It
+  opened on the Maps tab, Topographical.
+- **View A-night:** `frame.sh`, first run. `404040-A-night.png` reads 0 differing outside the circle
+  against `202020-A-night.png`.
+- **View C:** three runs of `frame.sh` + `viewc.sh` (`logs/65-viewc-404040-r1.png`, `66-viewc-404040-r2.png`,
+  `66-viewc-404040-r3.png`). Each View A frame read 0 differing outside the circle. Each View C frame
+  landed at the **same (3, 3) px offset** from `202020-C.png` (1246 differing pixels at that shift, 86 525
+  at zero shift, 101 507 outside the circle). **Not accepted; no 404040-C shot was taken.**
+- The header's grid reference sat about 2 m from its value at 202020-C. A read-only poll every 20 s from
+  11:45:38Z to 11:51:13Z (16 reads) showed it unchanged throughout.
+- **View B:** not taken (stopped first).
+
+**Why View C does not reproduce (inference, unconfirmed).** `frame.sh` step 4 centres the camera on the
+device's fix. At View A's zoom (about 10.6, derived) a 2 m move is well under a pixel, so View A stays
+pixel-identical. `viewc.sh` then zooms four levels (16x), which turns it into about 3 px. The offset
+matched the fix changes seen (the 202020 pre- and post-pause runs, then 404040) and held steady while the
+fix held steady. That fits the explanation but has not been tested by moving the fix. Nothing points to
+the candidate builds themselves: the 202020 frame shifted too, with no install in between.
+
+**Why this is a stop.** The planner's rule is to redo until the frame is pixel-identical. While the fix
+stays put, redoing does not converge: three runs gave one stable offset. That meets the dispatch's abort
+condition "framing that cannot be reproduced across candidates", for View C. Views A and B are not
+affected.
+
+### Checker used for "outside the circle"
+
+`logs/outside.py` (sha256 `3c3546d1…842`) counts pixels that differ by more than 24 in any channel.
+- Views A and B: over the map area (0,300)-(915,1880), minus a disc of radius 415 px about (439,1254),
+  the circle measured earlier.
+- View C: rows 300-820, above the dashed edge.
+
+`cmp.py`'s left strip (x 0-40) takes in the circle's leftmost rim at x≈29-31, where the candidate fill
+blends in: 9 such pixels showed up for 404040. That is why this checker was added.
+
+Controls, both of which bite:
+- `202020-A-day` against `202020-A-night`: 855 050 differing.
+- `46-viewc-202020-a` (the 3-px-off frame) against `202020-C`: 89 079 differing.
+
+`logs/offs.py` (`ab1d8313…630`) finds the best integer shift in [-8,8]².
+
+### Shots added this session (`shots/SHA256SUMS`)
+
+| File | sha256 | Framing |
+|---|---|---|
+| `202020-C.png` | `bf903058a98b38b378dd629c290b02d76d9ba6e88cfe01affa1f9d9c3f8e37c3` | frame.sh + viewc.sh (run r1); matches run `52` apart from the dashed edge |
+| `404040-A-night.png` | `daaf64179dd5d2d3afa7f9ceb1e49089de4f7caf7355702c7791161f45fea502` | frame.sh; 0 differing outside the circle against `202020-A-night` |
+
+`logs/snaps.log` holds two "SHOT 202020-C" lines. The 11:25:17Z line is the invalid prompt capture
+described above. The 11:39:09Z line is the real shot.
+
+### Not done
+
+404040-B and 404040-C; everything on 606060; restoring Night Maps. 606060 is not installed.
+
+### State left on the phone (11:52Z)
+
+| Item | State |
+|---|---|
+| Installed | 404040 (`lastUpdateTime` 04:39:27 PDT) |
+| Night Maps | **on** (start value off), not restored |
+| Basemap | Topographical |
+| Map | at View C of 404040 run r3 |
+| Rotation | 0/0 |
+| Crash buffer | 0 lines at 11:51Z |
+| Top activity | Forager `MainActivity` |
+
+### Decisions I made (resumed session)
+
+- Treated the pre-pause capture `46` as the thing to check the first post-pause View C against. After it
+  failed, I made the two agreeing post-pause runs the reference and took `202020-C.png` from them. With
+  no `202020-C` shot yet, the planner's rule did not name a reference for View C.
+- Accepted differences along the dashed edge line as "outside the circle" noise. The edge is the circle's
+  own boundary.
+- Wrote `outside.py`, with the disc radius 415 about (439,1254) and View C's cut-off at row 820, and
+  `offs.py`. I used them as the acceptance test in place of `cmp.py`'s regions, which take in the rim.
+- Took View C before View B on 404040, to save a basemap round-trip. The order of views is not stated.
+- Polled the fix for about 6 minutes before calling the abort condition met. The length was my choice.
+- Judged the View C mismatch to meet the abort condition "framing that cannot be reproduced across
+  candidates", and stopped all phone work, including 404040-B, which would have reproduced. The
+  alternative was to go on with A and B and leave C for later.
+- Left Night Maps on and 404040 installed, rather than restoring settings on a stop, since step 4 of the
+  continuation names restoring as the last step and the capture is unfinished.
+- Left the header's grid digits out of this record as identifying.
+
+### Flags outside scope
+
+- Three ways View C could be made independent of the fix, all needing a planner or owner call:
+  - drop `frame.sh`'s final locate and pan to a fixed point instead (202020 would need reinstalling,
+    and the install order and exception do not cover that);
+  - accept a stated few-pixel offset for View C;
+  - wait for the fix to return.
+- The shift is invisible at View A's zoom, so the earlier A/B "pixel-identical" results say nothing about
+  sub-pixel camera agreement. A check at one zoom cannot see sub-pixel drift that another zoom magnifies.
