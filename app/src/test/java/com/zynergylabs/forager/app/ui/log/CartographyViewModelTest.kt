@@ -670,6 +670,72 @@ class CartographyViewModelTest {
         assertEquals(true, shownEntryRepository.getById("entry-s").getOrThrow()!!.shownOnMap)
     }
 
+    // ── J8, continuation 2026-09-28-65 (the owner: "Set it to "Changes not applied. Try again.""): a
+    // failed shownOnMap write has its own message, and the existing save failure keeps its own. ──
+
+    /** A ViewModel like [viewModel]'s, over [repository] instead of the Room one. */
+    private fun viewModelOver(repository: com.zynergylabs.forager.app.domain.CartographyEntryRepository): CartographyViewModel {
+        val mushroomLogRepository = RoomMushroomLogRepository(database.mushroomLogDao())
+        return CartographyViewModel(
+            getEntries = GetCartographyEntriesUseCase(repository),
+            getDraftEntries = GetCartographyDraftEntriesUseCase(repository),
+            createEntry = CreateCartographyEntryUseCase(repository, now = { FIXED_NOW }, idGenerator = { "entry-${nextEntryId++}" }),
+            saveEntry = SaveCartographyEntryUseCase(repository, now = { saveNow }),
+            getEntry = GetCartographyEntryUseCase(repository),
+            commitEntry = CommitCartographyEntryUseCase(repository, now = { FIXED_NOW }),
+            deleteEntry = DeleteCartographyEntryUseCase(repository),
+            getDerivedTrip = GetDerivedTripUseCase(
+                mushroomLogRepository = mushroomLogRepository,
+                trackRepository = RoomTrackRepository(database.trackDao()),
+                waypointRepository = RoomWaypointRepository(database.waypointDao()),
+                offlineRegionDayIndex = RoomOfflineRegionDayIndex(database.offlineRegionDao()),
+            ),
+            getTripReportOfflineRegions = GetTripReportOfflineRegionsUseCase(StubOfflineMapRepository),
+            computeTrackStatistics = ComputeTrackStatisticsUseCase(),
+            setShownOnMap = SetCartographyEntryShownOnMapUseCase(repository),
+            now = { FIXED_NOW },
+        )
+    }
+
+    @Test
+    fun `a failed Show or Hide on map surfaces exactly Changes not applied, Try again, in its own message, not the save one`() = runTest(dispatcher) {
+        shownEntryRepository.save(savedEntry("entry-s")).getOrThrow()
+        val failingWrite = object : com.zynergylabs.forager.app.domain.CartographyEntryRepository by shownEntryRepository {
+            override suspend fun setShownOnMap(id: String, shown: Boolean): Result<Unit> = Result.failure(IllegalStateException("write refused"))
+        }
+        val failing = viewModelOver(failingWrite)
+        failing.loadEntries()
+        advanceUntilIdle()
+
+        failing.onSetShownOnMap("entry-s", true)
+        advanceUntilIdle()
+        assertEquals("Changes not applied. Try again.", failing.uiState.value.shownOnMapErrorMessage)
+        assertEquals("the save message is not used for it", null, failing.uiState.value.saveErrorMessage)
+        assertEquals("nothing changed on screen", false, failing.uiState.value.entries.single().shownOnMap)
+
+        failing.onShownOnMapErrorDismissed()
+        assertEquals(null, failing.uiState.value.shownOnMapErrorMessage)
+    }
+
+    @Test
+    fun `a failed save still surfaces Couldn't save your changes in the save message, and never the map message`() = runTest(dispatcher) {
+        shownEntryRepository.save(savedEntry("entry-o", text = "Stored")).getOrThrow()
+        val failingSave = object : com.zynergylabs.forager.app.domain.CartographyEntryRepository by shownEntryRepository {
+            override suspend fun save(entry: com.zynergylabs.forager.app.domain.model.CartographyEntry): Result<Unit> = Result.failure(IllegalStateException("write refused"))
+        }
+        val failing = viewModelOver(failingSave)
+        failing.loadEntries()
+        advanceUntilIdle()
+        failing.onOpenEntry("entry-o")
+        advanceUntilIdle()
+        failing.onTextChanged("Edited")
+
+        failing.onSaveEntry()
+        advanceUntilIdle()
+        assertEquals("Couldn't save your changes.", failing.uiState.value.saveErrorMessage)
+        assertEquals(null, failing.uiState.value.shownOnMapErrorMessage)
+    }
+
     private fun dayStartMillis(): Long = DAY.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
 
     private companion object {

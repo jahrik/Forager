@@ -1,0 +1,626 @@
+package com.zynergylabs.forager.app.ui.availability
+
+import android.app.Application
+import android.content.ComponentName
+import androidx.activity.ComponentActivity
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.AndroidComposeTestRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.room.Room
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.rules.ActivityScenarioRule
+import com.zynergylabs.forager.app.data.local.ForagerDatabase
+import com.zynergylabs.forager.app.data.repository.RoomCartographyEntryRepository
+import com.zynergylabs.forager.app.data.repository.RoomMushroomLogRepository
+import com.zynergylabs.forager.app.data.repository.RoomOfflineRegionDayIndex
+import com.zynergylabs.forager.app.data.repository.RoomTrackRepository
+import com.zynergylabs.forager.app.data.repository.RoomWaypointRepository
+import com.zynergylabs.forager.app.domain.CartographyEntryRepository
+import com.zynergylabs.forager.app.domain.CommitCartographyEntryUseCase
+import com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCase
+import com.zynergylabs.forager.app.domain.CreateCartographyEntryUseCase
+import com.zynergylabs.forager.app.domain.DeleteCartographyEntryUseCase
+import com.zynergylabs.forager.app.domain.GetCartographyDraftEntriesUseCase
+import com.zynergylabs.forager.app.domain.GetCartographyEntriesUseCase
+import com.zynergylabs.forager.app.domain.GetCartographyEntryUseCase
+import com.zynergylabs.forager.app.domain.GetDerivedTripUseCase
+import com.zynergylabs.forager.app.domain.GetTripReportOfflineRegionsUseCase
+import com.zynergylabs.forager.app.domain.MapRecords
+import com.zynergylabs.forager.app.domain.OfflineMapRepository
+import com.zynergylabs.forager.app.domain.OfflineRegionSummary
+import com.zynergylabs.forager.app.domain.SaveCartographyEntryUseCase
+import com.zynergylabs.forager.app.domain.SetCartographyEntryShownOnMapUseCase
+import com.zynergylabs.forager.app.domain.model.CartographyEntry
+import com.zynergylabs.forager.app.domain.model.FindDecision
+import com.zynergylabs.forager.app.domain.model.LatLng
+import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
+import com.zynergylabs.forager.app.domain.model.RecordPoint
+import com.zynergylabs.forager.app.domain.model.Region
+import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.domain.model.WaypointDecision
+import com.zynergylabs.forager.app.ui.log.CartographyViewModel
+import com.zynergylabs.forager.app.ui.log.LEAVE_PROMPT_CANCEL_TEST_TAG
+import com.zynergylabs.forager.app.ui.log.LEAVE_PROMPT_DISCARD_TEST_TAG
+import com.zynergylabs.forager.app.ui.log.LEAVE_PROMPT_SAVE_TEST_TAG
+import com.zynergylabs.forager.app.ui.log.MushroomLogUiState
+import com.zynergylabs.forager.app.ui.map.JOURNAL_ENTRIES_CHIP_TAG
+import com.zynergylabs.forager.app.ui.map.JOURNAL_ENTRIES_HIDE_ALL_TAG
+import com.zynergylabs.forager.app.ui.map.MAP_BUBBLE_ENTRY_COUNT_TAG
+import com.zynergylabs.forager.app.ui.map.MAP_BUBBLE_TAG
+import com.zynergylabs.forager.app.ui.map.journalEntriesListRowTag
+import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
+import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
+import com.zynergylabs.forager.app.ui.map.layers.layerPaintFor
+import com.zynergylabs.forager.app.ui.map.mapBubbleEntryLineTag
+import java.time.LocalDate
+import kotlinx.coroutines.runBlocking
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Rule
+import org.junit.Test
+import org.junit.rules.ExternalResource
+import org.junit.rules.RuleChain
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows
+import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowToast
+
+private typealias EntriesOnMapRule = AndroidComposeTestRule<ActivityScenarioRule<ComponentActivity>, ComponentActivity>
+
+// The records: one saved find and one waypoint, each drawn by the stub map as a glyph.
+private val FIND_AT = LatLng(45.51, -122.61)
+private val FIND: MushroomLogEntry = MushroomLogEntry.draft(id = "find-1", location = FIND_AT, date = LocalDate.of(2026, 9, 12))
+    .copy(isDraft = false, ownIdentification = "Golden chanterelle")
+private val WAYPOINT = Waypoint("wp-1", 45.326, -122.634, null, "Creek pin", "", 1_000L)
+private val RECORDS = MapRecords(
+    findMarkers = listOf(RecordPoint(FIND.id, FIND_AT)),
+    photoMarkers = emptyList(),
+    trackPolylines = emptyList(),
+    offlineRegionCircles = emptyList(),
+    failures = emptyList(),
+)
+
+/** A saved entry keeping the find and the waypoint. */
+private fun entryKeepingBoth(id: String, date: LocalDate, text: String, shown: Boolean) =
+    CartographyEntry.draft(id = id, date = date, updatedAtEpochMillis = 1_000L).copy(
+        isDraft = false,
+        text = text,
+        findDecisions = listOf(FindDecision(findId = FIND.id, foundOn = date, ownIdentification = "Golden chanterelle", hasPhotos = false, kept = true)),
+        waypointDecisions = listOf(WaypointDecision(waypointId = WAYPOINT.id, name = WAYPOINT.name, lat = WAYPOINT.lat, lng = WAYPOINT.lng, kept = true)),
+        shownOnMap = shown,
+    )
+
+private val ENTRY_A_TEXT = "A walk by the creek."
+private val ENTRY_B_TEXT = "The other account."
+private val TYPED_TEXT = "An edit not saved yet."
+private fun entryA(shown: Boolean) = entryKeepingBoth("entry-a", LocalDate.of(2026, 9, 12), ENTRY_A_TEXT, shown)
+private fun entryB(shown: Boolean) = CartographyEntry.draft(id = "entry-b", date = LocalDate.of(2026, 9, 5), updatedAtEpochMillis = 1_000L)
+    .copy(isDraft = false, text = ENTRY_B_TEXT, shownOnMap = shown)
+
+private fun hostActivityRule() = object : ExternalResource() {
+    override fun before() {
+        val app = ApplicationProvider.getApplicationContext<Application>()
+        Shadows.shadowOf(app.packageManager).addActivityIfNotPresent(ComponentName(app, ComponentActivity::class.java))
+    }
+}
+
+private object EntriesOnMapNoOfflineMaps : OfflineMapRepository {
+    override suspend fun download(name: String, region: Region, onProgress: (Int, Int) -> Unit): Result<OfflineRegionSummary> =
+        Result.failure(UnsupportedOperationException("offline downloads are not exercised by these tests"))
+    override suspend fun deleteRegion(id: Long): Result<Unit> =
+        Result.failure(UnsupportedOperationException("offline downloads are not exercised by these tests"))
+    override suspend fun listRegions(): Result<List<OfflineRegionSummary>> = Result.success(emptyList())
+}
+
+/**
+ * J8, Journal entries on the main map, through the real [AvailabilityScreen] (`prompts/preserved/2026-09-28-52.md`
+ * J8-3 and J8-4, with the owner's rulings in `2026-09-28-53` and the planner's in `-64` and `-65`): the
+ * report menu's toggle, the Maps-tab chip and its list, the Layers sheet's "Journal entries" switch,
+ * a highlighted record's bubble lines and "Open entry" with the owner's prompt-first rule.
+ *
+ * The day entries go through the real [CartographyViewModel] over an in-memory [ForagerDatabase], and
+ * every assertion about the field reads the store. The Maps tab's records come from the real
+ * [AvailabilityViewModel] (`getMapRecords`), and the map is [BubbleMapSlot], which records what the
+ * map is handed and reports a glyph's feature tap as `SightingsMap` does. Every touch that a claim
+ * rests on is a real one at screen coordinates (CLAUDE.md, Testing).
+ *
+ * The compact tests ([JournalEntriesOnMapCompactTests]) run in portrait ([JournalEntriesOnMapPortraitTest])
+ * and in the short landscape window ([JournalEntriesOnMapShortLandscapeTest]), each with its glyphs placed
+ * clear of that window's chrome; [JournalEntriesOnMapWideTest] has the wide layout's own.
+ */
+internal abstract class JournalEntriesOnMapHarness {
+
+    protected val composeRule = createAndroidComposeRule<ComponentActivity>()
+
+    @get:Rule
+    val rules: RuleChain = RuleChain.outerRule(hostActivityRule()).around(composeRule)
+
+    /** Where the stub map draws the find's and the waypoint's glyphs, clear of this window's chrome. */
+    protected abstract val glyphX: Dp
+    protected abstract val glyphY: Dp
+
+    protected val map: BubbleMapSlot by lazy {
+        BubbleMapSlot(
+            listOf(
+                StubGlyph(MapLayerIds.FINDS, FIND.id, glyphX, glyphY, FIND_AT),
+                StubGlyph(MapLayerIds.WAYPOINTS, WAYPOINT.id, glyphX, glyphY + 48.dp, LatLng(WAYPOINT.lat, WAYPOINT.lng)),
+            ),
+        )
+    }
+    protected val layerPreferences = InMemoryLayerPreferences()
+    private lateinit var database: ForagerDatabase
+    private lateinit var cartographyRepository: CartographyEntryRepository
+    protected lateinit var cartographyViewModel: CartographyViewModel
+
+    /** Makes every `shownOnMap` write fail, as a full disk would. */
+    protected var failShownOnMapWrites = false
+
+    @After
+    fun closeDatabase() {
+        if (::database.isInitialized) database.close()
+    }
+
+    protected fun setScreen(vararg entries: CartographyEntry) {
+        val directExecutor = java.util.concurrent.Executor { it.run() }
+        database = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Application>(), ForagerDatabase::class.java)
+            .setQueryExecutor(directExecutor)
+            .setTransactionExecutor(directExecutor)
+            .allowMainThreadQueries()
+            .build()
+        val room = RoomCartographyEntryRepository(database.cartographyEntryDao())
+        cartographyRepository = object : CartographyEntryRepository by room {
+            override suspend fun setShownOnMap(id: String, shown: Boolean): Result<Unit> =
+                if (failShownOnMapWrites) Result.failure(IllegalStateException("write refused")) else room.setShownOnMap(id, shown)
+        }
+        runBlocking { entries.forEach { room.save(it).getOrThrow() } }
+        cartographyViewModel = CartographyViewModel(
+            getEntries = GetCartographyEntriesUseCase(cartographyRepository),
+            getDraftEntries = GetCartographyDraftEntriesUseCase(cartographyRepository),
+            createEntry = CreateCartographyEntryUseCase(cartographyRepository, now = { 1_000L }, idGenerator = { "entry-new" }),
+            saveEntry = SaveCartographyEntryUseCase(cartographyRepository, now = { 2_000L }),
+            getEntry = GetCartographyEntryUseCase(cartographyRepository),
+            commitEntry = CommitCartographyEntryUseCase(cartographyRepository, now = { 1_000L }),
+            deleteEntry = DeleteCartographyEntryUseCase(cartographyRepository),
+            getDerivedTrip = GetDerivedTripUseCase(
+                mushroomLogRepository = RoomMushroomLogRepository(database.mushroomLogDao()),
+                trackRepository = RoomTrackRepository(database.trackDao()),
+                waypointRepository = RoomWaypointRepository(database.waypointDao()),
+                offlineRegionDayIndex = RoomOfflineRegionDayIndex(database.offlineRegionDao()),
+            ),
+            getTripReportOfflineRegions = GetTripReportOfflineRegionsUseCase(EntriesOnMapNoOfflineMaps),
+            computeTrackStatistics = ComputeTrackStatisticsUseCase(),
+            setShownOnMap = SetCartographyEntryShownOnMapUseCase(cartographyRepository),
+            now = { 1_000L },
+        )
+        val availabilityViewModel = mapLayersViewModel(getMapRecords = { RECORDS }, layerPreferences = layerPreferences)
+        prepareAvailability(availabilityViewModel)
+        composeRule.setContent {
+            val uiState by availabilityViewModel.uiState.collectAsState()
+            val cartographyUiState by cartographyViewModel.uiState.collectAsState()
+            AvailabilityScreen(
+                uiState = uiState,
+                logUiState = MushroomLogUiState(entries = listOf(FIND)),
+                onUseCurrentLocation = availabilityViewModel::useCurrentLocation,
+                onManualLatChanged = availabilityViewModel::onManualLatChanged,
+                onManualLngChanged = availabilityViewModel::onManualLngChanged,
+                onSearchManualCoordinates = availabilityViewModel::searchManualCoordinates,
+                onRadiusChanged = availabilityViewModel::onRadiusChanged,
+                onMonthSelected = availabilityViewModel::onMonthSelected,
+                onMapTabSelected = availabilityViewModel::onMapTabSelected,
+                onSeasonalTabSelected = availabilityViewModel::onSeasonalTabSelected,
+                onTaxonSearchQueryChanged = availabilityViewModel::onTaxonSearchQueryChanged,
+                onTaxonSearchResultSelected = availabilityViewModel::onTaxonSearchResultSelected,
+                onDismissTaxonSuggestions = availabilityViewModel::onDismissTaxonSuggestions,
+                onReopenTaxonSuggestions = availabilityViewModel::onReopenTaxonSuggestions,
+                onPlaceTripPin = availabilityViewModel::onPlaceTripPin,
+                onDeletePlannedTrip = availabilityViewModel::onDeletePlannedTrip,
+                onRecentSearchSelected = availabilityViewModel::onRecentSearchSelected,
+                onOfflineMapLatChanged = availabilityViewModel::onOfflineMapLatChanged,
+                onOfflineMapLngChanged = availabilityViewModel::onOfflineMapLngChanged,
+                onOfflineMapRadiusChanged = availabilityViewModel::onOfflineMapRadiusChanged,
+                onOfflineMapNameChanged = availabilityViewModel::onOfflineMapNameChanged,
+                onOfflineMapsOpened = availabilityViewModel::onOfflineMapsOpened,
+                onDownloadOfflineMaps = availabilityViewModel::onDownloadOfflineMaps,
+                onDeleteOfflineRegion = availabilityViewModel::onDeleteOfflineRegion,
+                onNightModeMapsChanged = availabilityViewModel::onNightModeMapsChanged,
+                onThemeModeChanged = availabilityViewModel::onThemeModeChanged,
+                onMapFullscreenChanged = availabilityViewModel::onMapFullscreenChanged,
+                mapSlot = map.slot,
+                onMapShown = availabilityViewModel::onMapShown,
+                onMapLayerVisibilityChanged = availabilityViewModel::onMapLayerVisibilityChanged,
+                onMapLayerOpacityChanged = availabilityViewModel::onMapLayerOpacityChanged,
+                onColourFieldMoved = availabilityViewModel::onColourFieldMoved,
+                waypoints = listOf(WAYPOINT),
+                // What MainActivity passes for the day entries.
+                cartographyUiState = cartographyUiState.hidingPendingDelete(),
+                onOpenCartographyEntry = cartographyViewModel::onOpenEntry,
+                onStartCartographyEntry = cartographyViewModel::onStartEntry,
+                onCloseCartographyEntry = cartographyViewModel::onCloseEntry,
+                onCartographyTextChanged = cartographyViewModel::onTextChanged,
+                onCartographyTagsChanged = cartographyViewModel::onTagsChanged,
+                onSetFindDecision = cartographyViewModel::onSetFindDecision,
+                onSetTrackDecision = cartographyViewModel::onSetTrackDecision,
+                onSetWaypointDecision = cartographyViewModel::onSetWaypointDecision,
+                onSetOfflineRegionDecision = cartographyViewModel::onSetOfflineRegionDecision,
+                onToggleKeptPhoto = cartographyViewModel::onToggleKeptPhoto,
+                onFinishCartographyEntry = cartographyViewModel::onFinishEntry,
+                onSaveCartographyEntry = cartographyViewModel::onSaveEntry,
+                onDiscardCartographyEntryChanges = cartographyViewModel::onDiscardEntryChanges,
+                onSaveCartographyEntryAsDraft = cartographyViewModel::onSaveEntryAsDraft,
+                onDeleteCartographyEntry = cartographyViewModel::onDeleteEntry,
+                onRequestDeleteCartographyEntry = cartographyViewModel::requestDeleteEntry,
+                onSetCartographyEntryShownOnMap = cartographyViewModel::onSetShownOnMap,
+                onCartographyShownOnMapErrorDismissed = cartographyViewModel::onShownOnMapErrorDismissed,
+            )
+        }
+        composeRule.waitForIdle()
+    }
+
+    /** A hook for a layout that needs the ViewModel set up before the screen composes (the wide map needs a search). */
+    protected open fun prepareAvailability(viewModel: AvailabilityViewModel) = Unit
+
+    // ── Helpers ──
+
+    protected fun touchCentreOf(node: SemanticsNodeInteraction) {
+        node.performTouchInput { click(center) }
+        composeRule.waitForIdle()
+    }
+
+    protected fun touchCentreOf(tag: String) = touchCentreOf(composeRule.onNodeWithTag(tag))
+
+    protected fun touchAt(xDp: Dp, yDp: Dp) {
+        val at = with(composeRule.density) { Offset(xDp.toPx(), yDp.toPx()) }
+        composeRule.onRoot().performTouchInput { click(at) }
+        composeRule.waitForIdle()
+    }
+
+    /** A real touch at the centre of the nav item labelled [label], then it is selected. */
+    protected fun touchNavItem(label: String) {
+        touchCentreOf(composeRule.onNodeWithText(label))
+        composeRule.onNodeWithText(label).assertIsSelected()
+    }
+
+    protected fun stored(id: String): CartographyEntry = runBlocking { cartographyRepository.getById(id).getOrThrow()!! }
+
+    protected fun entryCard(id: String) = composeRule.onNode(hasTestTag("entry-card-$id") or hasTestTag("entry-row-$id"))
+
+    /** The Journal's Entries, then the entry's card: its report. */
+    protected fun openEntryReport(id: String, text: String) {
+        touchNavItem("Journal")
+        entryCard(id).performScrollTo().performClick()
+        composeRule.waitForIdle()
+        assertReportShowing(text)
+    }
+
+    protected fun assertReportShowing(text: String) {
+        composeRule.onNodeWithText(text).assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
+        assertEquals("the report, not the editor", 0, composeRule.onAllNodes(hasText("Your own account (optional)") and hasSetTextAction()).fetchSemanticsNodes().size)
+    }
+
+    protected fun openEntryMenu() {
+        touchCentreOf(composeRule.onNodeWithContentDescription("Entry options"))
+    }
+
+    protected fun openEditorWithUnsavedText(id: String, text: String) {
+        openEntryReport(id, text)
+        openEntryMenu()
+        composeRule.onNodeWithText("Edit entry").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNode(hasText("Your own account (optional)") and hasSetTextAction()).performTextReplacement(TYPED_TEXT)
+        composeRule.waitForIdle()
+        assertTrue("the edit is held unsaved", cartographyViewModel.uiState.value.hasUnsavedChanges)
+    }
+
+    protected fun chipShown(): Boolean = composeRule.onAllNodesWithTag(JOURNAL_ENTRIES_CHIP_TAG).fetchSemanticsNodes().isNotEmpty()
+
+    /** On the Maps tab, a real touch on the find's glyph, then on entry [id]'s date line in its bubble. */
+    protected fun openEntryFromFindBubble(id: String) {
+        touchNavItem("Maps")
+        touchCentreOf(glyphTag(FIND.id))
+        composeRule.onNodeWithTag(MAP_BUBBLE_TAG).assertIsDisplayed()
+        touchCentreOf(mapBubbleEntryLineTag(id))
+    }
+
+    protected fun haloVisible(layerId: String): Boolean =
+        layerPaintFor(MAP_LAYER_REGISTRY.single { it.id == layerId }, map.renderMode!!.layers).visible
+
+    protected val halos = listOf(
+        MapLayerIds.JOURNAL_ENTRY_REGIONS,
+        MapLayerIds.JOURNAL_ENTRY_TRACKS,
+        MapLayerIds.JOURNAL_ENTRY_WAYPOINTS,
+        MapLayerIds.JOURNAL_ENTRY_FINDS,
+        MapLayerIds.JOURNAL_ENTRY_PHOTOS,
+    )
+
+}
+
+/** The compact tree's tests, run in portrait and in the short landscape window. */
+internal abstract class JournalEntriesOnMapCompactTests : JournalEntriesOnMapHarness() {
+
+    // ── J8-3: the report menu ──
+
+    @Test
+    fun `the report menu's Show on map writes the field, the Maps tab's chip then counts the entry, and the menu offers Hide from map`() {
+        setScreen(entryA(shown = false), entryB(shown = false))
+        openEntryReport("entry-a", ENTRY_A_TEXT)
+        openEntryMenu()
+
+        touchCentreOf(composeRule.onNodeWithText("Show on map"))
+
+        assertEquals("the store has it", true, stored("entry-a").shownOnMap)
+        assertEquals("and nothing else changed", ENTRY_A_TEXT, stored("entry-a").text)
+        touchNavItem("Maps")
+        composeRule.onNodeWithTag(JOURNAL_ENTRIES_CHIP_TAG).assertIsDisplayed()
+        composeRule.onNodeWithText("1 journal entry on map").assertIsDisplayed()
+
+        touchNavItem("Journal")
+        assertReportShowing(ENTRY_A_TEXT)
+        openEntryMenu()
+        composeRule.onNodeWithText("Hide from map").assertIsDisplayed()
+        assertEquals(0, composeRule.onAllNodesWithText("Show on map").fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `a failed Show on map shows exactly Changes not applied, Try again, and changes nothing`() {
+        failShownOnMapWrites = true
+        setScreen(entryA(shown = false))
+        openEntryReport("entry-a", ENTRY_A_TEXT)
+        openEntryMenu()
+
+        touchCentreOf(composeRule.onNodeWithText("Show on map"))
+
+        assertEquals("Changes not applied. Try again.", ShadowToast.getTextOfLatestToast())
+        assertEquals(false, stored("entry-a").shownOnMap)
+        touchNavItem("Maps")
+        assertEquals("no chip", false, chipShown())
+    }
+
+    // ── J8-3: the chip ──
+
+    @Test
+    fun `the chip lists the shown entries by date, a row's Hide hides that entry, and Hide all hides the rest`() {
+        setScreen(entryA(shown = true), entryB(shown = true))
+        touchNavItem("Maps")
+        composeRule.onNodeWithText("2 journal entries on map").assertIsDisplayed()
+
+        touchCentreOf(JOURNAL_ENTRIES_CHIP_TAG)
+        composeRule.onNodeWithTag(journalEntriesListRowTag("entry-a")).assertIsDisplayed()
+        composeRule.onNodeWithText("2026-09-12").assertIsDisplayed()
+        composeRule.onNodeWithText("2026-09-05").assertIsDisplayed()
+        touchCentreOf(journalEntriesListRowTag("entry-b"))
+
+        assertEquals(false, stored("entry-b").shownOnMap)
+        assertEquals(true, stored("entry-a").shownOnMap)
+        composeRule.onNodeWithText("1 journal entry on map").assertIsDisplayed()
+
+        if (composeRule.onAllNodesWithTag(JOURNAL_ENTRIES_HIDE_ALL_TAG).fetchSemanticsNodes().isEmpty()) touchCentreOf(JOURNAL_ENTRIES_CHIP_TAG)
+        touchCentreOf(JOURNAL_ENTRIES_HIDE_ALL_TAG)
+
+        assertEquals(false, stored("entry-a").shownOnMap)
+        assertEquals("no entry is shown, so no chip", false, chipShown())
+    }
+
+    @Test
+    fun `touches all around the chip reach the map, and a touch on the chip does not`() {
+        setScreen(entryA(shown = true))
+        touchNavItem("Maps")
+        val chip = composeRule.onNodeWithTag(JOURNAL_ENTRIES_CHIP_TAG).getUnclippedBoundsInRoot()
+        val midY = (chip.top + chip.bottom) / 2
+        val midX = (chip.left + chip.right) / 2
+        val before = map.taps
+
+        listOf(
+            chip.left - 12.dp to midY,
+            chip.right + 12.dp to midY,
+            midX to chip.bottom + 12.dp,
+            chip.left - 12.dp to chip.bottom + 12.dp,
+            chip.right + 12.dp to chip.bottom + 12.dp,
+        ).forEach { (x, y) -> touchAt(x, y) }
+        assertEquals("all five touches around the chip reached the map", before + 5, map.taps)
+
+        touchAt(chip.left + 8.dp, midY)
+        assertEquals("a touch on the chip is the chip's", before + 5, map.taps)
+    }
+
+    // ── J8-3: the Layers switch ──
+
+    @Test
+    fun `the Journal entries switch hides every highlight together while the chip stays`() {
+        setScreen(entryA(shown = true))
+        touchNavItem("Maps")
+        val highlights = map.content!!.journalHighlights
+        assertEquals("the map is handed the kept find", listOf(FIND.id), highlights.findMarkers.map { it.recordId })
+        assertEquals("and the kept waypoint", listOf(WAYPOINT.id), highlights.waypointMarkers.map { it.recordId })
+        halos.forEach { assertTrue("$it drawn by default", haloVisible(it)) }
+
+        touchCentreOf(composeRule.onNodeWithContentDescription(LAYERS_ROW_DESCRIPTION))
+        touchCentreOf(composeRule.onNodeWithText("Journal entries").performScrollTo())
+
+        halos.forEach { assertEquals("$it hidden", false, haloVisible(it)) }
+        assertTrue("the find itself is still drawn", layerPaintFor(MAP_LAYER_REGISTRY.single { it.id == MapLayerIds.FINDS }, map.renderMode!!.layers).visible)
+        assertTrue("the choice is stored", "visible ${MapLayerIds.JOURNAL_ENTRY_TRACKS} false" in layerPreferences.writes)
+        assertEquals("the entry is still shown", true, stored("entry-a").shownOnMap)
+        assertTrue("and the chip stays", chipShown())
+    }
+
+    // ── J8-4: the bubble and Open entry ──
+
+    @Test
+    fun `a highlighted record's bubble names its entry by date, and a touch on the date opens that entry's report on the Journal`() {
+        setScreen(entryA(shown = true), entryB(shown = false))
+        touchNavItem("Maps")
+        touchCentreOf(glyphTag(FIND.id))
+        composeRule.onNodeWithTag(mapBubbleEntryLineTag("entry-a")).assertIsDisplayed()
+        composeRule.onNodeWithText("2026-09-12", useUnmergedTree = true).assertIsDisplayed()
+
+        touchCentreOf(mapBubbleEntryLineTag("entry-a"))
+
+        composeRule.onNodeWithText("Journal").assertIsSelected()
+        assertReportShowing(ENTRY_A_TEXT)
+        assertEquals("entry-a", cartographyViewModel.uiState.value.editingEntry?.id)
+    }
+
+    @Test
+    fun `more than three keeping entries are one line, and a date in its list opens that entry`() {
+        val day = LocalDate.of(2026, 9, 12)
+        setScreen(
+            entryKeepingBoth("entry-1", day, "First.", shown = true),
+            entryKeepingBoth("entry-2", day.minusDays(1), "Second.", shown = true),
+            entryKeepingBoth("entry-3", day.minusDays(2), "Third.", shown = true),
+            entryKeepingBoth("entry-4", day.minusDays(3), "Fourth.", shown = true),
+        )
+        touchNavItem("Maps")
+        touchCentreOf(glyphTag(FIND.id))
+        composeRule.onNodeWithTag(MAP_BUBBLE_ENTRY_COUNT_TAG).assertTextEquals("Kept in 4 journal entries")
+
+        touchCentreOf(MAP_BUBBLE_ENTRY_COUNT_TAG)
+        touchCentreOf(mapBubbleEntryLineTag("entry-3"))
+
+        composeRule.onNodeWithText("Journal").assertIsSelected()
+        assertReportShowing("Third.")
+    }
+
+    @Test
+    fun `opening an entry while another has unsaved edits asks first, and Discard keeps the stored text and opens it`() {
+        setScreen(entryA(shown = true), entryB(shown = false))
+        openEditorWithUnsavedText("entry-b", ENTRY_B_TEXT)
+
+        openEntryFromFindBubble("entry-a")
+
+        composeRule.onNodeWithTag(LEAVE_PROMPT_DISCARD_TEST_TAG).assertIsDisplayed()
+        assertEquals("nothing opened yet", "entry-b", cartographyViewModel.uiState.value.editingEntry?.id)
+        touchCentreOf(LEAVE_PROMPT_DISCARD_TEST_TAG)
+
+        assertReportShowing(ENTRY_A_TEXT)
+        assertEquals("the discarded edit never reached the store", ENTRY_B_TEXT, stored("entry-b").text)
+    }
+
+    @Test
+    fun `opening an entry while another has unsaved edits asks first, and Save stores the edit and opens it`() {
+        setScreen(entryA(shown = true), entryB(shown = false))
+        openEditorWithUnsavedText("entry-b", ENTRY_B_TEXT)
+
+        openEntryFromFindBubble("entry-a")
+
+        composeRule.onNodeWithTag(LEAVE_PROMPT_SAVE_TEST_TAG).assertIsDisplayed()
+        touchCentreOf(LEAVE_PROMPT_SAVE_TEST_TAG)
+
+        assertReportShowing(ENTRY_A_TEXT)
+        assertEquals("the saved edit is stored", TYPED_TEXT, stored("entry-b").text)
+    }
+
+    @Test
+    fun `opening an entry while another has unsaved edits, Cancel keeps the edit open and unsaved and opens nothing`() {
+        setScreen(entryA(shown = true), entryB(shown = false))
+        openEditorWithUnsavedText("entry-b", ENTRY_B_TEXT)
+
+        openEntryFromFindBubble("entry-a")
+        touchCentreOf(LEAVE_PROMPT_CANCEL_TEST_TAG)
+
+        assertEquals("entry-b", cartographyViewModel.uiState.value.editingEntry?.id)
+        assertTrue("still unsaved", cartographyViewModel.uiState.value.hasUnsavedChanges)
+        composeRule.onNode(hasText("Your own account (optional)") and hasSetTextAction()).assert(hasText(TYPED_TEXT, substring = true))
+        assertEquals(ENTRY_B_TEXT, stored("entry-b").text)
+    }
+
+    @Test
+    fun `opening an entry while an unchanged entry is open simply opens the new one, with no prompt`() {
+        setScreen(entryA(shown = true), entryB(shown = false))
+        openEntryReport("entry-b", ENTRY_B_TEXT)
+
+        openEntryFromFindBubble("entry-a")
+
+        assertEquals("no prompt", 0, composeRule.onAllNodesWithTag(LEAVE_PROMPT_SAVE_TEST_TAG).fetchSemanticsNodes().size)
+        assertReportShowing(ENTRY_A_TEXT)
+    }
+}
+
+/** Portrait, at the S22 Ultra's size; the glyphs on the left half of the map, below the chip. */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi")
+internal class JournalEntriesOnMapPortraitTest : JournalEntriesOnMapCompactTests() {
+    override val glyphX: Dp = 60.dp
+    override val glyphY: Dp = 380.dp
+}
+
+/** The short landscape window, `w823dp-h384dp`; the glyphs in the middle of the map. */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi")
+internal class JournalEntriesOnMapShortLandscapeTest : JournalEntriesOnMapCompactTests() {
+    override val glyphX: Dp = 420.dp
+    override val glyphY: Dp = 150.dp
+}
+
+/**
+ * The wide layout (`w1280dp`, as M1's wide bubble tests: at `w840dp` the map is too narrow for a
+ * bubble): the chip in the row with the taxon chip at the map's top centre, and "Open entry" into the
+ * drawer's log panel. The wide map shows only once a region is searched, so a search runs first.
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w1280dp-h900dp-mdpi")
+internal class JournalEntriesOnMapWideTest : JournalEntriesOnMapHarness() {
+    override val glyphX: Dp = 60.dp
+    override val glyphY: Dp = 300.dp
+
+    override fun prepareAvailability(viewModel: AvailabilityViewModel) {
+        viewModel.onManualLatChanged("45.5")
+        viewModel.onManualLngChanged("-122.6")
+        viewModel.searchManualCoordinates()
+    }
+
+    @Test
+    fun `on the wide layout the chip sits at the top of the map, and touches all around it reach the map`() {
+        setScreen(entryA(shown = true))
+        val chip = composeRule.onNodeWithTag(JOURNAL_ENTRIES_CHIP_TAG).assertIsDisplayed().getUnclippedBoundsInRoot()
+        val slot = composeRule.onNodeWithTag("map-slot").getUnclippedBoundsInRoot()
+        composeRule.onNodeWithText("1 journal entry on map").assertIsDisplayed()
+        assertTrue("on the map ($chip, $slot)", chip.left >= slot.left && chip.right <= slot.right && chip.top >= slot.top)
+        assertTrue("at its top ($chip, $slot)", chip.top - slot.top < 32.dp)
+        val midY = (chip.top + chip.bottom) / 2
+        val before = map.taps
+
+        touchAt(chip.left - 12.dp, midY)
+        touchAt(chip.right + 12.dp, midY)
+        touchAt((chip.left + chip.right) / 2, chip.bottom + 12.dp)
+        assertEquals("all three touches around the chip reached the map", before + 3, map.taps)
+    }
+
+    @Test
+    fun `on the wide layout a date line opens the entry's report in the drawer's log panel`() {
+        setScreen(entryA(shown = true), entryB(shown = false))
+        touchCentreOf(glyphTag(FIND.id))
+
+        touchCentreOf(mapBubbleEntryLineTag("entry-a"))
+
+        composeRule.onNodeWithText("Mushroom Log").assertExists()
+        assertReportShowing(ENTRY_A_TEXT)
+        assertEquals("entry-a", cartographyViewModel.uiState.value.editingEntry?.id)
+    }
+}

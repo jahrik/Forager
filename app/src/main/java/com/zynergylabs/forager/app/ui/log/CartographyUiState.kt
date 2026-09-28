@@ -36,6 +36,8 @@ data class CartographyUiState(
     val isLoadingCandidates: Boolean = false,
     val candidatesErrorMessage: String? = null,
     val saveErrorMessage: String? = null,
+    /** J8 tests-first stub: a failed Show on map or Hide from map; nothing sets it yet. */
+    val shownOnMapErrorMessage: String? = null,
     /**
      * A dirty flag, not a diff against a snapshot (device-check patch, Item 1): any mutation of a
      * **committed** [editingEntry] sets it, [CartographyViewModel.onSaveEntry] clears it. Only

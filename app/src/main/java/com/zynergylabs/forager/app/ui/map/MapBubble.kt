@@ -353,6 +353,8 @@ internal fun MapFeatureBubble(
     onViewPhoto: (String) -> Unit,
     onDirections: (name: String, at: LatLng) -> Unit,
     onDetails: (RecordDetailsTarget) -> Unit,
+    /** J8 tests-first stub: a keeping entry's date line would open it; not yet drawn. */
+    onOpenEntry: ((String) -> Unit)? = null,
 ) {
     MapBubbleShell(tipInBubble = tipInBubble, onDismiss = onDismiss, cardTag = MAP_BUBBLE_TAG, closeTag = MAP_BUBBLE_CLOSE_TAG) {
         when (content) {
@@ -458,4 +460,13 @@ internal const val MAP_BUBBLE_DIRECTIONS_TAG = "map-bubble-directions"
 internal const val MAP_BUBBLE_DETAILS_TAG = "map-bubble-details"
 internal const val MAP_BUBBLE_STALE_TAG = "map-bubble-stale"
 internal const val MAP_BUBBLE_CHANCE_TAG = "map-bubble-chance"
+
+/** J8: a highlighted record's bubble line for one keeping entry, by its date; a tap opens that entry. */
+internal fun mapBubbleEntryLineTag(entryId: String) = "map-bubble-entry-$entryId"
+
+/** J8: the one line, "Kept in N journal entries", that stands for more than three keeping entries. */
+internal const val MAP_BUBBLE_ENTRY_COUNT_TAG = "map-bubble-entry-count"
+
+/** J8: the untitled list of those entries' dates, opened from [MAP_BUBBLE_ENTRY_COUNT_TAG]. */
+internal const val MAP_BUBBLE_ENTRY_LIST_TAG = "map-bubble-entry-list"
 private const val MAP_BUBBLE_LOG_TAG = "MapBubble"
