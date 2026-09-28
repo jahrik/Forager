@@ -496,3 +496,7 @@ Asked before dispatching L0, verbatim answers:
 4. The synthetic layer's switch: **"Diagnostics screen (Recommended)"**: a toggle in the existing Diagnostics (debug build) screen, debug builds only, never in release.
 
 L0 runs as two sequential stages: **L0a** (the layer model, explicit z-order, visibility and opacity, tap priority, today's markers moved onto it; no new UI) and **L0b** (the Layers sheet, DataStore persistence, the legend chip, the stored-data interface for forecast cells, the synthetic layer).
+
+### Device checks per stage, on the S22 Ultra (owner, 2026-09-28)
+
+Supersedes "Device check timing (owner, 2026-09-27)" above, which stands as the record of what was decided then. The owner, verbatim: "That ruling is now stale. You have direct access to the S22 ultra now, so use that for device checks". The planner session now has the test phone (SM-S908U, serial `R5CT321008R`) attached over adb, so a stage's device-only items are checked on it when the stage closes, rather than collected for one J7 run at the end. First to run: L0a's device-only list (`docs/audits/2026-09-27-map-layers-l0a-completion-report.md`, "Device-only"). The device-only items already collected from B3, J1-J4b, the picker fix stage, J5 and J5c are not yet checked; when they run is to be confirmed with the owner, not assumed from this ruling.
