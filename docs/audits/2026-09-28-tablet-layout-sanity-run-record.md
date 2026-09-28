@@ -334,6 +334,243 @@ c4115f895da8f88b); `41-r1-entry-report.png` 6e0872d9535229a7 (`.xml` de8739ba1eb
 103116d04aeb5274; `44-events-foreign-input.txt` fe8bdd5295e126fd; `45-crash-at-stop.txt` 72bd6b5b5e9a70ea. Every
 capture's time, rotation and hashes are in `snaps.log`.
 
+## Status at the end of the run
+
+**Measured in both orientations**, with 270 checked. Everything is restored and read back, and the created items are
+left in place. The pre-registration above is unchanged. One thing is **not measured**: a photo in the viewer (see
+"Not measured"). **I do not rule on "how much of an issue".** The owner judges from the table and the captures.
+
+## After the resume: rotation 90 continued
+
+- The new front `MainActivity` (see the Interruption) started with no region: "September · Search a location" and the
+  map's "Choose a region…" message (`46-r1-resume`). I reloaded the one row under "Recent searches" ("Fungi · September",
+  "cached 17 minutes ago"). The map came back at the same bounds, `[1532,405][2800,1720]` (`48-r1-maps-pane-2`).
+  `cached_searches` still holds one row at the end, so the reload wrote no new row.
+- **J8's chip:** Mushroom Log, the entry's report, "Entry options". Forager's own menu passed `snap.sh` v2
+  (`49-r1-entry-menu-2`). Then "Show on map" (`50-r1-j8-chip`).
+- **The taxon chip:** "View on Map" on the first species row, West Coast Reishi (`51-r1-both-chips`).
+- **Glyph tap:** my find's glyph (`52-r1-glyph-bubble`); closed with its Close button.
+- **Details sheet:** Records, All, the waypoint's row (`53-r1-records-all`, `54-r1-details-sheet`); closed with Back.
+- **Album and Photo Gallery:** Album view (`55-r1-album`); Timeline view selected again after it; then the drawer's
+  "Photo Gallery" row (`56-r1-photo-gallery`).
+
+## Rotation 270
+
+- `user_rotation 3` at 21:29Z; `mCurrentRotation=ROTATION_270` (`57-window-r3.txt`).
+- The insets are the same as at 90: `statusBars` `[0,0][2800,64]` and `navigationBars` `[0,1720][2800,1752]`, no
+  `displayCutout`. The window is `Requested w=2800 h=1752`, `w1318dp h824dp`.
+- **The bars and cut-out do not differ by side,** so under the dispatch I did not measure 270 in full. One capture:
+  the map `[1532,405][2800,1720]`, both chips and the Layers and add buttons at the same bounds as at 90
+  (`58-r3-maps-pane`).
+
+## Portrait (rotation 0)
+
+- `user_rotation 0` at 21:29Z; `mCurrentRotation=ROTATION_0`. The window is `Requested w=1752 h=2800`, fullscreen,
+  configuration **`sw824dp w824dp h1318dp`** (`59-window-r0.txt`). `statusBars` `[0,0][1752,64]`, `navigationBars`
+  `[0,2768][1752,2800]`.
+- **After rotating** (`60-r0-maps-pane`, and `61-r0-maps-pane-b` 5 s later), the map strip's basemap and glyphs looked
+  blocky and pixelated in my reading of the images. The native-resolution crop `61-r0-map-crop.png` shows it, against
+  `51-r1-map-crop.png` at 90, which is crisp.
+- **A cold launch in portrait** (`am force-stop`, then `am start` at 21:30:56Z, `COLD`, one window) gives the same
+  (`63-r0-maps-pane-cold`, crop `63-r0-map-crop.png`). So it is not left over from the rotation. The report map at 360 dp
+  in the same orientation renders crisply (`66-r0-report-map-crop.png`). This is my reading of the images; the cause is
+  not determined (Flags, 1).
+- The region was reloaded from "Recent searches" after the cold launch. The taxon filter did not survive the relaunch.
+  Its portrait measurement comes from `60-r0` and `61-r0`, before the relaunch.
+- **Glyph tap in the strip:** my waypoint pin, at about (1642, 1545) px. The bubble opened, and it is **cut off at the
+  screen's right edge** (`64-r0-glyph-tap`, crop `64-r0-bubble-crop.png`). I dismissed it with Back, because its Close
+  button was off screen.
+- The Journal's entries list (`65-r0-entries-list`), the report (`66-r0-entry-report`), Records (`67-r0-records-all`),
+  the details sheet (`68-r0-details-sheet`), the album (`69-r0-album`) and the Photo Gallery panel
+  (`70-r0-photo-gallery`) were all taken in portrait.
+
+## Predicted against measured
+
+dp = px / 2.125, from dump bounds. "Inferred" marks a figure taken from neighbouring nodes, not a node of its own.
+
+| Pane | Portrait, predicted | Portrait, measured | Landscape (90), predicted | Landscape (90), measured |
+|---|---|---|---|---|
+| Tree | wide (MEDIUM, 824 dp; tall) | **wide** | wide (EXPANDED, 1318 dp; tall) | **wide** |
+| App window | 824.5 x 1317.6 dp | 1752 x 2800 px, `w824dp h1318dp` | 1317.6 x 824.5 dp | 2800 x 1752 px, `w1318dp h824dp` |
+| Drawer | 360 dp | **[0,0][765,2800]: 360.0 x 1317.6 dp** | 360 dp | **[0,0][765,1752]: 360.0 x 824.5 dp** |
+| Species list | 360 dp | **360.0 dp** (765 to 1530 px, inferred), 16 dp padding inside | 360 dp | **360.0 dp** (inferred, the same) |
+| Divider | 2 px | 1530 to 1532 px (inferred) | 2 px | 1530 to 1532 px (inferred) |
+| **Map** | **220 px = 103.5 dp** (pulse's W − 721: 103.5) | **[1532,405][1752,2768]: 103.5 x 1112.0 dp** | **1268 px = 596.7 dp** (pulse: 596.6) | **[1532,405][2800,1720]: 596.7 x 618.8 dp** |
+| Map usable (glyph tap) | the bubble opens, clipped (inferred) | **the bubble opens, cut at the screen's right edge**: [1558,1199][1752,1526], 91.3 of 280 dp visible, Close off screen; the basemap looks blocky (my reading) | opens | **opens whole**: [1976,826][2571,1149], 280.0 x 152.0 dp, with Close |
+| Taxon chip | squeezed to ≤ 87.5 dp, under or over the Layers button | **[1549,422][1735,542]: 87.5 x 56.5 dp**, text in three lines; the Layers button [1633,422][1735,524] covers its right 48 dp. The clear control's `Button` reports [0,0][0,0], and no "Show all species" node appears | top centre | **[1735,422][2229,491]: 232.5 x 32.5 dp**, clear target [2145,407][2247,509] |
+| J8's chip | squeezed the same | **[1549,551][1735,687]: 87.5 x 64.0 dp**, wrapped onto a second row, text in three lines. Alone after the cold launch: [1549,422][1735,558] | top centre, beside the taxon chip | **[2246,422][2598,524]: 165.6 x 48.0 dp**; the row [1735 to 2598] is centred on the map; 39 dp clear of the Layers button |
+| Layers button | 48 dp, top end, 8 dp in | [1633,422][1735,524]: 48.0 dp, 8 dp in | the same | [2681,422][2783,524]: 48.0 dp, 8 dp in |
+| Add button | bottom end | [1633,2649][1735,2751]; the attribution text wraps to five lines, [1545,2594][1739,2764], beside and under it | bottom end | [2681,1601][2783,1703]; the attribution is one line |
+| Journal (entries list) | 360 dp | **360 dp**; the entry card is [34,464][255,753]: **104.0 x 136.0 dp** in a 3-column grid; title "DEV / IC…" | 360 dp | the same: **104.0 x 136.0 dp** card |
+| Entry report map | 360 x 270 dp | **[0,404][765,978]: 360.0 x 270.1 dp** | 360 x 270 dp | **[0,404][765,978]: 360.0 x 270.1 dp** |
+| Details sheet | 640 dp, x 92 to 732 dp, over the drawer, list and 11 dp of map | **[196,2191][1556,2768]: 640.0 x 271.5 dp, x 92.2 to 732.2 dp**, full-window scrim; covers the drawer from 92 dp, the list and 11.3 dp of the map | 640 dp, x 339 to 979 dp | **[720,1143][2080,1720]: 640.0 x 271.5 dp, x 338.8 to 978.8 dp**; covers the drawer's last 21 dp, the list and 258 dp of the map |
+| Album | 360 dp | **[0,370][765,2768]: 360 dp**, empty ("No photos yet…") | 360 dp | **[0,370][765,1720]: 360 dp**, empty |
+| Photo in the viewer | the whole window | **not measured** (no photo) | the whole window | **not measured** (no photo) |
+| Old "Photo Gallery" panel | 360 dp | **[0,64][765,2768]: 360 dp**, empty | 360 dp | **[0,64][765,1720]: 360 dp**, empty |
+
+At 270: the same bounds as at 90 for the map and the chips (`58-r3-maps-pane`).
+
+**Pulse prediction check** (the planner's outcome prediction 2 in intent `-74`): every measured width equals the
+arithmetic to the pixel, in both orientations.
+
+## Captures, per screen
+
+All in `/home/zynergy-labs/Zynergy/device-evidence/2026-09-28-tablet-sanity/`, each with a `.png` and `.xml` of the same
+name unless marked. Times, rotation and hashes are in `snaps.log`.
+
+| Screen | Portrait (0) | Landscape (90) | 270 |
+|---|---|---|---|
+| 1. Maps and List pane after a search | `60-r0-maps-pane`, `61-r0-maps-pane-b`, `63-r0-maps-pane-cold` | `24-r1-maps-pane`, `48-r1-maps-pane-2` | `58-r3-maps-pane` |
+| 1. Both chips | `60-r0-maps-pane`, `61-r0-maps-pane-b` | `51-r1-both-chips` (J8 alone: `50-r1-j8-chip`) | `58-r3-maps-pane` |
+| 1. Glyph tap and bubble | `64-r0-glyph-tap` (crop `64-r0-bubble-crop.png`) | `52-r1-glyph-bubble` | — |
+| 1. Map rendering crops (png only) | `61-r0-map-crop.png`, `63-r0-map-crop.png` | `51-r1-map-crop.png` | — |
+| 2. Journal entries list | `65-r0-entries-list` | `40-r1-entries-list` | — |
+| 2. Entry report and its map | `66-r0-entry-report` (crop `66-r0-report-map-crop.png`) | `41-r1-entry-report` | — |
+| 3. Records | `67-r0-records-all` | `53-r1-records-all` | — |
+| 3. Details sheet | `68-r0-details-sheet` | `54-r1-details-sheet` | — |
+| 4. Album | `69-r0-album` | `55-r1-album` | — |
+| 5. Old Photo Gallery panel | `70-r0-photo-gallery` | `56-r1-photo-gallery` | — |
+
+Hashes (sha256, first 16 hex) of the captures cited above that the earlier table did not list: `50-r1-j8-chip.png`
+60924efb211084ed; `51-r1-both-chips.png` 12b12840bc41a6d9 (`.xml` a0d1aa24ad0c22ea); `52-r1-glyph-bubble.png`
+82cf4f41c51fd691; `54-r1-details-sheet.png` 836e69758b0db60b (`.xml` fb1130662c04e6d5); `55-r1-album.png`
+e86df4a99b78279a; `56-r1-photo-gallery.png` 6f5ef6467c2c4c94; `58-r3-maps-pane.png` 6a4b3de449b57531; `60-r0-maps-pane.png`
+22f9bee70238d292 (`.xml` 142fba453db82e3a); `61-r0-maps-pane-b.png` ad8a17e3778a17a5; `61-r0-map-crop.png`
+28fae750fa7edeba; `51-r1-map-crop.png` e3a26c000611baeb; `63-r0-maps-pane-cold.png` 8314d5f49b003dfd; `63-r0-map-crop.png`
+6df3f3dd2bd1fadf; `64-r0-glyph-tap.png` 63d88a62d9d00b09 (`.xml` 610a36bccbb2ce6a); `64-r0-bubble-crop.png`
+d3da4119f0c9a2c2; `65-r0-entries-list.png` 660aa4e20a27451b; `66-r0-entry-report.png` 30f4baa407e7681a (`.xml`
+fb2f6e1ce4ba1396); `66-r0-report-map-crop.png` 6fdf1f09c4659a1d; `67-r0-records-all.png` 39e37d2a37f8c923;
+`68-r0-details-sheet.png` 800e15c484a88cfa (`.xml` 8a49471e3d3b8ee0); `69-r0-album.png` 8e2058585330756e;
+`70-r0-photo-gallery.png` 341d2c61dfe7eaeb; `72-r0-after-hide.png` 48effb11d176bb64; `snaps.log` f3a0678ad6f5ad57.
+
+## Not measured: a photo in the viewer (item 4's second half)
+
+Forager on this tablet holds no photo: the album and the Photo Gallery panel are both empty, and `log_photos` is 0.
+The dispatch's test-data list names no photo. Making one would need one of these, and none is covered by the dispatch or
+the owner's "3 A":
+- **Camera**, on a DEVICE CHECK find: the camera permission is not granted, so a system prompt appears (the owner taps
+  through under "4 A"), and the picture is whatever the tablet's camera sees.
+- **Import or "From Album"**: the system photo picker, choosing one of the owner's own photos.
+- Pushing a made-up image into the tablet's shared storage and importing that: a write outside Forager.
+
+So it is recorded as **not measured**. The code prediction stands unobserved: the whole window
+(`ui/log/PhotoViewerDialog.kt:131`). It goes to the planner as a question.
+
+## Restored and read back
+
+`73-settings-end.txt`, 21:35:13Z, against `03-settings-start.txt`:
+
+| Setting | Start | Changed by me to | End (read back) |
+|---|---|---|---|
+| `accelerometer_rotation` | 1 | 0 (locked) | **1** |
+| `user_rotation` | 1 | 1, 3, 0 | **1**; display at `ROTATION_90` |
+| `font_scale` | 1.0 | not touched | 1.0 |
+| `display_density_forced` | null | not touched | null; `wm size` and `wm density` physical only |
+| `navigation_mode` | 2 | not touched | 2 |
+| `window_animation_scale` | 1.0 | not touched | 1.0 |
+| `stay_on_while_plugged_in` ("Stay Awake") | 15 | **not touched; the owner's** | 15 |
+| `screen_off_timeout` | 15000 | **not touched; the owner changed it** | 300000 (the owner's; not restored, as ruled) |
+
+App state:
+- **My entry's "Show on map" was turned off again** (21:34:5xZ). The chip disappeared (`72-r0-after-hide`), the menu reads
+  "Show on map" again, and the database has `shownOnMap=0` on the entry.
+- The taxon filter ended with the cold relaunch; no chip remains.
+- The Cartography view is back on Timeline, and the drawer is back on the search options.
+- Forager is force-stopped. At the start it was running in the background (pid 15584), with the launcher in front. At
+  the end the launcher is in front and Forager is not running.
+
+## Crash reads
+
+- **Start** (`02-crash-start.txt`), **after launch** (`14-crash-after-launch.txt`), **at the interruption**
+  (`45-crash-at-stop.txt`), **before the cold relaunch** (`62-crash-before-relaunch.txt`) and **at the end**
+  (`74-crash-end.txt`, sha256 72bd6b5b5e9a70ea, byte-identical to the others): 19 lines each, the same two 08-10
+  `com.mgoogle.android.gms:persistent` FATAL EXCEPTIONs, **0 Forager lines**.
+- The main log has no FATAL EXCEPTION naming Forager.
+- Forager's pid was stable across each stretch: 23055, then 23432 through the interruption, then the cold relaunch.
+- `logcat -c` was never run.
+
+## Closing inventory (database, read-only copy after the final `am force-stop`)
+
+`db-end-verify.txt`, `db-end-digest.txt`: copy matches the device, `integrity_check` `ok`, `user_version` 16. Rows:
+
+| Table | Rows | What |
+|---|---|---|
+| `cartography_entries` | 1 | my entry: `isDraft=0`, `shownOnMap=0`, text "DEVICE CHECK 2026-09-28 T" |
+| `cartography_entry_find_refs` | 1 | the find kept in it |
+| `cartography_entry_waypoint_refs` | 1 | the waypoint kept in it |
+| `mushroom_log_entries` | 1 | my find: `ownIdentification` and `entryNotes` "DEVICE CHECK 2026-09-28 T"; `syncStateKind=DRAFT` |
+| `waypoints` | 1 | my waypoint, named "DEVICE CHECK 2026-09-28 T" |
+| `cached_searches` | 1 | the one search (the recent-search reloads added none) |
+| `android_metadata`, `room_master_table` | 1 each | as before |
+| every other table | 0 | as before |
+
+## Decisions I made
+
+1. **No record entries; structure validated against no `kit.json`.** My standing instructions call for a sweep, an
+   intent in `RECORD.md`, and a check of the dispatch's sections against `.claude/kit.json`. At `d7cc9f5` there is no
+   `kit.json` and no checker (the owner removed them in `e136330`). `-74` says "The planner writes the record", and the
+   launch message says "you do not touch `RECORD.md`". So I wrote no record entry and treated the required-section list
+   as empty, as the Part 1 coder did.
+   - The main checkout (`faf2f88`) still has a `kit.json` whose `device` type requires "Base and state",
+     "Scope boundary", "Closed decisions", "Prediction", "Finish line and abort conditions", "Checks", "Out of scope" and
+     "Device items". `-74` has none of those headings.
+   - Deciding which applies properly needs an owner ruling. I followed the dispatch and its base.
+2. **The capture guard.** `snap.sh` refuses to capture unless Forager owns the focused window. It first checked the window
+   title, and I changed it to the owning package after Forager's own `DropdownMenu` ("Pop-Up Window") was refused. The
+   old version is kept.
+3. **The search location.** I typed coordinates for a public national-park visitor centre rather than using "Use current
+   location", which would need the location permission and so a prompt. The place is my choice; its value stays out of
+   the repository.
+4. **The entry keeps the find as well as the waypoint.** The editor offered both, kept by default. The dispatch names
+   only the waypoint ("if it can be kept"), and I left the default.
+5. **Labels:** the find carries the label in both its identification and its notes, the waypoint in its name, and the
+   entry in its text.
+6. **Showing my entry on the map** to see J8's chip, then hiding it again and reading it back. The chip exists only
+   while an entry is shown; `-72`'s rule was the model. Following the planner, I first dismissed the menu with Back and
+   then reopened it.
+7. **The taxon chip** came from "View on Map" on the first species row (West Coast Reishi).
+8. **A short pan before logging the find,** so it would not sit on the waypoint.
+9. **A cold relaunch in portrait** (`am force-stop`, `am start`), which the dispatch did not ask for. It was to tell a
+   rotation leftover from the narrow strip's own rendering. It also cleared the second `MainActivity` and the taxon
+   filter.
+10. **270 checked, not measured in full.** I read "if the tablet's cut-out or bars differ by side" as the insets
+    reported by `dumpsys window`, which match 90's.
+11. **Measurement choices:**
+    - the species list's and divider's widths are inferred from the drawer's right edge and the map's left edge (the
+      list has no node of its own in the dump);
+    - the glyph tests used my own find (90) and waypoint (portrait);
+    - in portrait I closed the bubble with Back, because its Close was off screen.
+12. **The rendering reading** ("blocky") is my reading of images, stated as such.
+13. **The photo viewer not measured,** and no photo created (above). Left for the planner rather than decided.
+14. **App UI state tidied** (Timeline view, the drawer on search options). This was not in any restore list. Forager
+    left stopped rather than running in the background as found.
+15. **After the owner's first interruption I stopped driving** until the planner's second message, rather than going on
+    with the first. The first had been written before the owner's Settings activity.
+
+## Flags outside scope
+
+Recorded, not investigated. None is ruled on here.
+
+1. **In portrait the 103.5 dp map strip renders blocky** (my reading of `61-r0-map-crop.png` and `63-r0-map-crop.png`),
+   both after a rotation and after a cold launch. The 360 dp report map in the same orientation is crisp. Cause not
+   determined.
+2. **In portrait a map bubble is cut off at the screen's right edge,** with its Close button off screen (`64-r0`).
+3. **In portrait the Layers button covers the taxon chip's right 48 dp,** and the chip's clear control does not appear
+   in the dump (its `Button` reports `[0,0][0,0]`). Whether a finger can clear the filter in portrait was **not
+   touch-tested**.
+4. **In portrait the attribution text wraps to five lines** beside and under the add button.
+5. **The Journal's entries grid in the 360 dp drawer** gives a 104 dp card, whose title reads "DEV / IC…" and whose
+   counts get 11 dp each. This matches the pulse's J9 row ("3 in a 360 dp drawer").
+6. **The Records chip row is wider than the drawer;** "Waypoints" is cut at its edge (it scrolls).
+7. **A second `MainActivity` instance** appeared in Forager's task at 21:23:38Z, during the owner's navigation. The log
+   I read does not say what launched it.
+8. The installed build's commit `ce8ddbef` is in no local clone and on no remote ref.
+9. The find reads `syncStateKind=DRAFT` in the database while the app lists it under Finds, Log. I take that field to be
+   its iNaturalist upload state (unverified).
+10. `-12`'s "no iNaturalist activity" is overridden here by `-74`, which allows a search. The search did reach
+    iNaturalist (it reported 293 observations).
+11. The standing-instruction conflict in Decisions 1.
+
 ## Appendix: the dispatch, verbatim
 
 `prompts/preserved/2026-09-28-74.md` at `d7cc9f5`, whole (sha256 `40d67458bc7710a837cd8599f50ac500d1467447f8f5a45c11dcc638b459d337`):
