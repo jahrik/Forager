@@ -764,3 +764,21 @@ the (f) frames only, Finds, Photos and Waypoints are switched off in the Layers 
 is the ruler), and a 22 px disc at the circle's centre (the 1 km region's own small circle) is left out of the fit.
 They are switched back on after (f) and read back. The quick zoom is made on open map away from the circle, so its
 first tap lands on no glyph.
+
+**(f), the zoom ruler replaced, at 19:50Z, before any (f) frame was taken.** The method above cannot measure a zoom
+below 7 on this phone. The search-centre reticle is drawn at the same centre as the 5 km circle and is not switchable
+(`MarkerGlyphs.kt:47`, ring 8 dp at its stroke's centre, 10.5 dp to the edge of its casing, arms to 13 dp plus
+casing; `MapLayers.kt:272-278`, the sightings and search centre `userToggleable = false`). At this latitude the 5 km
+circle's radius is 32.7 px at zoom 7.0, 30.5 px at 6.9 and 23.1 px at 6.5, against the reticle's 29.5 px ring casing,
+so below 7 the circle is inside the reticle. The two regions' centres are 1012 m apart, too close to be a ruler. The
+replacement, which changes no pass condition:
+- **The control frame** C (cells drawn) is measured from the cell grid, whose 0.1-degree period gives the zoom at any
+  latitude (`ForecastCellLayer.kt:35-36`; edge columns checked by eye), and from the 5 km circle's diagonal quarters
+  where it clears the reticle, as a cross-check.
+- **The below-7 frame** B is measured against C by registration: C and B each with both field switches off (C_off,
+  B_off, so no cell tint differs between them), anchored at the reticle's centre (the centroid of its pure-black
+  pixels, a fixed geographic point in both), and a one-parameter search over the scale s that best maps C_off onto
+  B_off, by mean absolute difference over the map area with the reticle, chip, cluster and credit masked. z_B = z_C +
+  log2(s). The same search on C_off against a second capture of C_off at the same camera must return s = 1 (the
+  control on the ruler itself).
+- **Draws nothing** is then B against B_off, as written above, and the control is C against C_off.
