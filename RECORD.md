@@ -3271,3 +3271,14 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner, verbatim: "Expand and auto-scroll" (the planner had recommended portrait only). Written by the planner by hand.
 
 ---
+
+**Kind:** continuation
+**ID:** 2026-09-28-42
+**Timestamp:** 2026-09-28T14:05:51Z
+**Continues:** 2026-09-28-34
+**Dispatch-file:** preserved/2026-09-28-42.md
+**Reason:** under -41 the coder built the auto-scroll as scroll-to-end (a measured scroll raced the dropdown's open animation) and updated the header-tapping tests (backup branch tracks-frame-wip-40 at 9875d8a); at 2x font (w360dp-h640dp-xhdpi) one test ran out of heap in a recomposition loop (the scroll clears focus, focus returns, each focus gain re-arms the request; the focus step inferred) and another could not reach "Use current location" because the portrait dropdown scrolled too.
+**Changes:** The request fires once per dropdown opening (showSearchDropdown false to true), never per focus gain; the auto-scroll applies wherever the coordinate fields do not fit, including portrait at large font scales (planner's extension of the owner's landscape ruling, open to the owner); the 2x-font Use-current-location test scrolls up before tapping; a stale test name renamed.
+**Notes:** Owner's ruling carried, verbatim: "Expand and auto-scroll". Written by the planner by hand.
+
+---
