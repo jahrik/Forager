@@ -68,6 +68,8 @@ import com.zynergylabs.forager.app.ui.map.layers.MapTapOutcome
 import com.zynergylabs.forager.app.ui.map.layers.mapTapOutcome
 import com.zynergylabs.forager.app.ui.map.layers.resolveTap
 import com.zynergylabs.forager.app.ui.map.layers.tappableLayerIds
+import com.zynergylabs.forager.app.ui.map.layers.TRACK_WIDTH_ZOOM_STOPS
+import com.zynergylabs.forager.app.ui.map.layers.ZoomWidthStop
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
@@ -1038,6 +1040,19 @@ internal fun shouldMoveCameraToTarget(
 ): Boolean = !isGpsTracking && target != lastAppliedCameraTarget
 
 /**
+ * Whether [request] moves the camera now: a request is applied once per id, and never while GPS
+ * tracking owns the camera (the rule [shouldMoveCameraToTarget] follows). Tests-first stub: never.
+ */
+internal fun shouldApplyCameraRequest(
+    isGpsTracking: Boolean,
+    request: MapCameraRequest?,
+    lastAppliedRequestId: String?,
+): Boolean = false
+
+/** The zoom a fitted frame opens at: [fittedZoom], capped at [maxZoom]. Tests-first stub: uncapped. */
+internal fun cappedFrameZoom(fittedZoom: Double, maxZoom: Double): Double = fittedZoom
+
+/**
  * MapLibre's own puck-movement animation runs on a fixed internal base duration
  * ([org.maplibre.android.location.LocationComponentOptions.trackingAnimationDurationMultiplier]
  * scales it, rather than taking an absolute millisecond value) — verified against the pinned
@@ -1271,7 +1286,28 @@ internal data class LineLayerSpec(
     val dashPattern: List<Float>?,
     /** Round caps and joins (the tracks); `false` leaves MapLibre's butt caps and miter joins. */
     val roundCaps: Boolean,
+    /**
+     * How this line's width follows the zoom, as fractions of [widthDp] (track widths by zoom, owner,
+     * 2026-09-28), or `null` for a constant [widthDp] at every zoom (the offline outline).
+     * [lineWidthExpression] is what turns it into the layer's `line-width`.
+     */
+    val widthByZoom: List<ZoomWidthStop>? = null,
 )
+
+/**
+ * [spec]'s width stops as (zoom, width in dp) pairs, in zoom order, or `null` when its width is a
+ * constant. Tests-first stub: always `null`.
+ */
+internal fun lineWidthStops(spec: LineLayerSpec): List<Pair<Float, Float>>? = null
+
+/**
+ * [spec]'s width in dp at [zoom], evaluated as MapLibre's linear `interpolate` does: linear between
+ * stops, the end values outside them. Tests-first stub: always [LineLayerSpec.widthDp].
+ */
+internal fun lineWidthAtZoom(spec: LineLayerSpec, zoom: Float): Float = spec.widthDp
+
+/** The `line-width` [lineLayerFor] gives [spec]'s layer. Tests-first stub: always the constant. */
+internal fun lineWidthExpression(spec: LineLayerSpec): Expression = Expression.literal(spec.widthDp)
 
 /**
  * The track lines, in draw order: each track's casing immediately before it, so it draws directly
