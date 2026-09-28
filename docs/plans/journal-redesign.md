@@ -576,3 +576,9 @@ Asked, verbatim answers:
 2. Timing: **"Right after M1 (Recommended)"**: both are built after M1 lands and before the Leaving-the-Journal fixes, since they touch the same map files M1 is changing.
 
 Revised order: M1 (running); then track widths by zoom and the entry map's opening frame; then the three Leaving-the-Journal fixes; then the two landscape bugs. The widths' zoom stops are the planner's to propose in the dispatch and the owner's to judge on the phone.
+
+### Search bar copy: "Search a location" (owner, 2026-09-28)
+
+The owner, verbatim: "the \"September · no location set\" in the search bar is accurate, but it reads awkward, like an error (especially after the user gives their permission to set their location on the map). Change it to \"September · Search a location\"", and the principle: "while bare accuracy is an easy thing to settle on, since it fulfills the honesty part, we need to go one step beyond that and give the user a spark or motivation to action based on that honesty. Like, sure that data exists, but what can they do about it? How can it be useful? In this case, they can search a location to satisfy the \"no location set\"."
+
+The string is at `ui/availability/AvailabilitySearchUi.kt:497` (the `?: "no location set"` fallback); no test pins it (`git grep` over `app/src/test`, 2026-09-28). Built with the track-width and entry-framing stage right after M1. The principle applies to every empty or missing-state string reviewed from here on, within the forecast project's fixed terms.
