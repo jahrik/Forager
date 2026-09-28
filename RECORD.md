@@ -2779,3 +2779,19 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Handoff from the cloud planner session to the planner session on the owner's computer, with the S22 Ultra attached. The owner, verbatim: "go ahead and commit all work and switch to the computer environment", then "write a handoff dispatch please". Written against origin/journal-redesign at 2458934. Before writing, nothing from the cloud session was unpushed: every local branch 0 ahead of its upstream or contained in a remote branch, no uncommitted changes in the main checkout or its 13 coder worktrees, no stashes. The cloud session unsubscribed from PR #140 so only the computer session acts on its events. Next: L0a's device-only checks, then L0b. Written by the planner by hand at 2026-09-28T02:39:41Z; no hook.
 
 ---
+
+**Kind:** intent
+**ID:** 2026-09-28-02
+**Timestamp:** 2026-09-28T03:05:00Z
+**Title:** L0a device check on the S22 Ultra: caption text, the sighting bubble on direct and near-miss taps, draw order on the Maps tab and an entry map, defaults as before, Night Maps leaving overlays alone
+**Dispatch-file:** preserved/2026-09-28-02.md
+**Change:** No code. A device coder runs L0a's device-only items (docs/audits/2026-09-27-map-layers-l0a-completion-report.md, "Device-only") on the build already installed, 1.0.1192+g24589349 (the same app tree as f62eb3e), and writes a run record. Four items are recorded as not runnable at this build rather than attempted: hidden layers excluded from queries and state-driven visibility or opacity (no caller can change the layer state yet; move to L0b's device check), the featureId hit test and the offline-circle fall-through (onFeatureTap is a no-op that logs nothing and onTap fires after it, so the two look identical; move to M1).
+**Scope boundary:** Observe and record only: no app code, tests, builds, installs, uninstalls or data clears; the only data created is one track recording, discarded. The run record on branch device-l0a-2026-09-28, raw evidence outside the repository (map screenshots show real locations). Not RECORD.md, the index, CLAUDE.md, plans or prompts.
+**Baseline:** journal-redesign at f62eb3e; phone at versionName 1.0.1192+g24589349, versionCode 1192 (planner's dumpsys read, 2026-09-28T03:00Z).
+**Prediction (outcome — planner):** 1. The caption text matches the code on all three basemaps. 2. The bubble opens on the direct tap and the near miss, not on the far tap. 3. At least one of the two draw-order checks is not run for want of overlapping data. 4. Night Maps changes no overlay colour.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** The run record pushed on device-l0a-2026-09-28 with every check's verdict, settings restored and read back, the crash log read at the end; the planner merges the branch into journal-redesign and writes the terminal.
+**Abort conditions:** A different installed build; the wrong or no device; a locked phone; any step needing an install, uninstall, data clear or data change beyond the one discarded recording; a new Forager crash; a pass condition not statable from the code; a visible change L0a was not ruled to make.
+**Notes:** Written by the planner by hand. The owner, this session: "a coder you dispatch runs the device checks, you have access to the S22 Ultra, and KVM also", and on the older backlog, "you can run them at the same time if you want, otherwise you can wait for a good time to do them". No Gradle in this dispatch so the L0b build can use the machine's 11 GB in parallel. The pulses behind it, at f62eb3e: the backlog compilation (53 items) and the L0b premise pulse (answers 2 and 7 give the not-runnable items above).
+
+---
