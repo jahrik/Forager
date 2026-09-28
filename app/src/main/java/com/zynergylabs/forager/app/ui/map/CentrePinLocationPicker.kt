@@ -18,6 +18,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -104,74 +105,128 @@ fun CentrePinLocationPicker(
     mapAspectRatio: Float? = null,
     modifier: Modifier = Modifier,
 ) {
-    // "Follow until you touch it" (owner ruling, picker-fixes dispatch F1): until the user's first
-    // touch on the map, the region handed to mapSlot, and the pin, follow the caller's region — so a
-    // picker opened before any location fix moves to the first one. After that touch, a new caller
-    // region changes neither: the find picker's region is the device's live fix, a new one about
-    // every second, and before this each one reset the pin and (tracking already ended by the pan)
-    // moved SightingsMap's camera back to the device at zoom 13 — the owner's "snaps back after
-    // every pan". The touch is MapRenderMode.onUserCameraGesture, not onCameraIdle, because the
-    // first activation's ease to zoom 16 and every region-driven camera move end in an idle too.
-    //
-    // Idle events are still never fed back into mapSlot's region argument: that would re-run
-    // SightingsMap's region-keyed camera effect, and zoomForRadiusKm, on every pan.
-    var touched by remember { mutableStateOf(false) }
-    var mapRegion by remember { mutableStateOf(region) }
-    var cameraCenter by remember { mutableStateOf(LatLng(region.lat, region.lng)) }
-    var previousRegion by remember { mutableStateOf(region) }
-    if (region != previousRegion) {
-        // Writes during composition, of state this composable owns, converging in one pass (the
-        // next pass sees region == previousRegion). Chosen over a LaunchedEffect so the map is
-        // never handed one frame of the old region after the caller's has changed.
-        val next = centrePinMapRegion(previousRegion, region, mapRegion, touched, cameraCenter)
-        previousRegion = region
-        if (!touched) cameraCenter = LatLng(next.lat, next.lng)
-        mapRegion = next
-    }
-    val onUserCameraGesture = remember { { touched = true } }
-
+    val state = rememberCentrePinState(region)
     // Fills its slot only when the map is the leftover (mapAspectRatio == null). With a ratio, the
     // map has a determinate height and this column wraps its content, so the caller gets a picker
     // whose height is the map plus its own chrome rather than one that stretches.
+    //
+    // L1 (dispatch 2026-09-28-47): the instruction, the map and the confirm row are three
+    // composables now, holding one [CentrePinState], so the offline panel can lay the same pieces
+    // out side by side in a short landscape window. This layout is unchanged.
     Column(modifier = if (mapAspectRatio == null) modifier.fillMaxSize() else modifier.fillMaxWidth()) {
-        Text(
-            "Pan the map to position the pin, then confirm.",
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-        )
-        Box(
+        CentrePinInstruction()
+        CentrePinMap(
+            state = state,
+            mapSlot = mapSlot,
+            basemap = basemap,
+            night = night,
             modifier = if (mapAspectRatio == null) {
                 Modifier.fillMaxWidth().weight(1f)
             } else {
                 Modifier.fillMaxWidth().aspectRatio(mapAspectRatio)
             },
-        ) {
-            mapSlot(
-                mapRegion,
-                MapOverlayContent(),
-                MapRenderMode(basemap, night, onUserCameraGesture = onUserCameraGesture),
-                null,
-                {},
-                {},
-                { _, _, _ -> },
-                { location -> cameraCenter = location },
-                Modifier.fillMaxSize(),
-            )
-            CentrePin(night = night, modifier = Modifier.align(Alignment.Center))
-        }
-        CentrePinConfirmRow(
-            // UI-defects dispatch, §2: this is the pin's current map position, live from
-            // onCameraIdle above — it updates continuously as the map is panned, whether or not
-            // OK has ever been pressed. "Selected:" read as a completed pick and contradicted a
-            // sibling "No location picked yet" line that reads the *confirmed* pick instead (a
-            // different piece of state — see OfflineMapsPanel's own hasValidRegion). Both lines
-            // were individually correct; only the wording claimed a selection that hadn't
-            // happened yet.
-            selectedText = "Pin at: ${"%.4f".format(cameraCenter.lat)}, ${"%.4f".format(cameraCenter.lng)}",
-            onConfirm = { onConfirm(cameraCenter) },
-            onCancel = onCancel,
         )
+        CentrePinConfirmActions(state = state, onConfirm = onConfirm, onCancel = onCancel)
     }
+}
+
+/**
+ * The picker's pin state: whether the user has touched the map, the region the map is handed, and
+ * where the camera last settled. Moved here unchanged from [CentrePinLocationPicker]'s own
+ * `remember`s (L1), so a caller can hold it across two layouts (the offline panel, stacked and
+ * side by side).
+ *
+ * "Follow until you touch it" (owner ruling, picker-fixes dispatch F1): until the user's first
+ * touch on the map, the region handed to mapSlot, and the pin, follow the caller's region — so a
+ * picker opened before any location fix moves to the first one. After that touch, a new caller
+ * region changes neither: the find picker's region is the device's live fix, a new one about
+ * every second, and before this each one reset the pin and (tracking already ended by the pan)
+ * moved SightingsMap's camera back to the device at zoom 13 — the owner's "snaps back after
+ * every pan". The touch is MapRenderMode.onUserCameraGesture, not onCameraIdle, because the
+ * first activation's ease to zoom 16 and every region-driven camera move end in an idle too.
+ *
+ * Idle events are still never fed back into mapSlot's region argument: that would re-run
+ * SightingsMap's region-keyed camera effect, and zoomForRadiusKm, on every pan.
+ */
+@Stable
+internal class CentrePinState(region: Region) {
+    var touched by mutableStateOf(false)
+        private set
+    var mapRegion by mutableStateOf(region)
+        private set
+    var cameraCenter by mutableStateOf(LatLng(region.lat, region.lng))
+        private set
+    private var previousRegion by mutableStateOf(region)
+
+    val onUserCameraGesture: () -> Unit = { touched = true }
+    val onCameraIdle: (LatLng) -> Unit = { location -> cameraCenter = location }
+
+    /**
+     * Writes during composition, of state this holder owns, converging in one pass (the next pass
+     * sees region == previousRegion). Chosen over a LaunchedEffect so the map is never handed one
+     * frame of the old region after the caller's has changed.
+     */
+    fun follow(region: Region) {
+        if (region == previousRegion) return
+        val next = centrePinMapRegion(previousRegion, region, mapRegion, touched, cameraCenter)
+        previousRegion = region
+        if (!touched) cameraCenter = LatLng(next.lat, next.lng)
+        mapRegion = next
+    }
+}
+
+/** A [CentrePinState] remembered by the caller, following [region] as [CentrePinState.follow] says. */
+@Composable
+internal fun rememberCentrePinState(region: Region): CentrePinState {
+    val state = remember { CentrePinState(region) }
+    state.follow(region)
+    return state
+}
+
+/** The picker's one instruction line, above the map in the stacked layout. */
+@Composable
+internal fun CentrePinInstruction() {
+    Text(
+        "Pan the map to position the pin, then confirm.",
+        style = MaterialTheme.typography.bodySmall,
+        modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+    )
+}
+
+/** The picker's map and its centre pin, sized by [modifier]. */
+@Composable
+internal fun CentrePinMap(state: CentrePinState, mapSlot: MapSlot, basemap: Basemap, night: Boolean, modifier: Modifier) {
+    Box(modifier = modifier) {
+        mapSlot(
+            state.mapRegion,
+            MapOverlayContent(),
+            MapRenderMode(basemap, night, onUserCameraGesture = state.onUserCameraGesture),
+            null,
+            {},
+            {},
+            { _, _, _ -> },
+            state.onCameraIdle,
+            Modifier.fillMaxSize(),
+        )
+        CentrePin(night = night, modifier = Modifier.align(Alignment.Center))
+    }
+}
+
+/** The "Pin at:" line and the OK/Cancel row under it. */
+@Composable
+internal fun CentrePinConfirmActions(state: CentrePinState, onConfirm: (LatLng) -> Unit, onCancel: () -> Unit) {
+    CentrePinConfirmRow(
+        // UI-defects dispatch, §2: this is the pin's current map position, live from
+        // onCameraIdle above — it updates continuously as the map is panned, whether or not
+        // OK has ever been pressed. "Selected:" read as a completed pick and contradicted a
+        // sibling "No location picked yet" line that reads the *confirmed* pick instead (a
+        // different piece of state — see OfflineMapsPanel's own hasValidRegion). Both lines
+        // were individually correct; only the wording claimed a selection that hadn't
+        // happened yet.
+        selectedText = "Pin at: ${"%.4f".format(state.cameraCenter.lat)}, ${"%.4f".format(state.cameraCenter.lng)}",
+        onConfirm = { onConfirm(state.cameraCenter) },
+        onCancel = onCancel,
+    )
 }
 
 /**
