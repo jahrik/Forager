@@ -258,6 +258,74 @@ pre-registration above is not edited. No planner-log line was given with it.
 - **The pulse's camera note** matches my placement plan: trips are placed at the centre pin, so each is in view when
   created; "missing" is judged only with the trip's point on screen.
 
+## Observations
+
+Everything below was written after observing. Captures are in the evidence directory; each has a `.png` and a `.xml`
+of the same name unless marked, and `snaps.log` holds each capture's time, rotation and hashes. Every input is logged
+with its time in `07-inputs.log`. "Trip pixels" are `pix.py` counts of the trip's fill colour (±16 per channel).
+
+### Corrections and a tooling fault, found before the first check
+
+- **The pulse arrived at about 23:32Z, not "23:4xZ".** The pre-registration was committed at 23:31:55Z and the pulse
+  section at 23:32:40Z. The section above is left as pushed.
+- **My first capture read a stale dump.** Copying the sanity check's `snap.sh`, my `sed` renamed only the first of the
+  two `/sdcard/tab-ui.xml` paths on its line. So `uiautomator dump` wrote a new file and `cat` read the sanity check's
+  last dump (45867 bytes, 15:34 PDT, `rotation="0"`). Caught because `10-r1-launch.xml` listed search results that the
+  screenshot did not show. That file is renamed `10-r1-launch.STALE-sanity-dump.xml` and cited for nothing. `snap.sh`
+  v3 deletes its own dump file first and refuses to read unless the dump reports success; the faulty copy is kept as
+  `snap.sh.v1-stale-bug`. Every dump cited below is v3's, and each one's `rotation` attribute and text agree with its
+  screenshot where I compared them.
+- **One unguarded read.** Opening the three-way dialog for trip B, I read one dump directly rather than through
+  `snap.sh`'s focus guard. It showed Forager's own dialog and was not saved. Every other read went through `snap.sh`.
+
+### Setup: launch and the search (landscape, rotation 90)
+
+- Rotation locked (`accelerometer_rotation 0`, `user_rotation 1`) at 23:32:49Z (`05-rotation-log.txt`).
+- `am start -W` with the launcher's own action and category at 23:32:5xZ: `Status: ok`, `LaunchState: COLD`, Forager's
+  `MainActivity` focused, no prompt (`06-launch.txt`).
+- **Wide tree, no region:** the drawer, "September · Search a location", and the map's "Choose a region in search options
+  to see mapped sightings." (`10b-r1-launch`). Premise 2 observed.
+- Recent searches, the one row "Fungi · September", "cached 1 hour ago" (`11-r1-recent-open`). **Re-run** at 23:33:5xZ;
+  it read "cached just now" afterwards and the map came up at **[1532,405][2800,1720], 596.7 x 618.8 dp**, Topographical,
+  by day (`12-r1-maps-pane`), the same bounds as the sanity check. The DEVICE CHECK waypoint sits at the map's centre, the
+  find below right.
+- **Baseline trip pixels** in the map (`13-pix-baseline-r1.txt`): `#9553A4` 2 px (basemap, at the right edge),
+  `#FA01DD` 0. **Positive control:** the same count finds the DEVICE CHECK find's `#DA02AF` at 1537 px and the waypoint's
+  `#350560` at 1620 px, each where the glyph is.
+
+### Check 0: a past date (observed)
+
+- The date dialog (`16-r1-date-dialog-A`) lists **every September date before the 28th with `enabled=false`**, the 26th
+  included, and "Today, Monday, September 28, 2026" selected. A real tap on the 26th's cell changed nothing: the next
+  dump is byte-identical (`17-r1-date-dialog-after-past-tap`, dump `ae1a3af994f534b9` both times).
+- **Verdict: as predicted. Trip C (past) cannot be created through the real UI.** Two trips were created, not three.
+
+### Trips created
+
+Through the wide route with real taps: a slow vertical pan (1200 ms, no fling), the Add button, "What would you like to
+do here?", "Plan a trip", the centre-pin picker's OK, the date dialog, "Plan trip".
+
+| Trip | Name (the default) | Date | Placed at (UTC) | Captures |
+|---|---|---|---|---|
+| **A** | Trip 1 | 2026-09-28 (today) | 23:35:1xZ | `14-r1-three-way`, `15-r1-centre-pin`, `16-r1-date-dialog-A`, `18-r1-after-A` |
+| **B** | Trip 2 | 2026-09-30 | 23:36:2xZ | `20-r1-centre-pin-B`, `21-r1-date-dialog-B`, `22-r1-date-dialog-B-sep30`, `23-r1-after-B` |
+
+- The picker's step between "Plan a trip" and the date dialog was there, as premise 3 said (`15-r1-centre-pin`).
+- The Trip Planner lists both: "Today", "Trip 1", "Sep 28", and "Trip 2", "Sep 30", each with an MGRS line and a
+  "Remove planned trip for <date>" button (`24-r1-trip-planner`).
+- **Ids and coordinates** come from the database copy after the relaunch check (below); the coordinates stay in the
+  evidence directory.
+
+### Check 1: landscape, just after creating each trip, at the placing zoom
+
+| Trip | Capture | Trip pixels near its point | Seen | Verdict |
+|---|---|---|---|---|
+| A | `18-r1-after-A` (crop `18-r1-after-A-crop.png`, png only) | **1229 px**, bounds [2163,1004][2204,1062] = 19.8 x 27.8 dp; 2 px elsewhere in the map | a purple flag, white casing, its pole foot on the map's centre point (2166, 1062) | **draws** |
+| B | `23-r1-after-B` | **1223 px** at [2163,1004][2204,1061]; A's flag **1229 px** at [2163,765][2204,823], 238 px north, the pan distance | two flags | **both draw** |
+
+The map-wide count after B is 2452 px, the two flags and nothing else (`19-pix-r1.txt`). The flag's measured size
+matches the glyph's 20 x 28 dp (MG:42). **As predicted.** Logcat is read for all checks together at the end.
+
 ## Appendix A: `prompts/preserved/2026-09-28-95.md`, verbatim
 
 At `554449b`, whole (sha256 `cfa98c46e5f3a49f8acb8b7b7bac2f5c343a10e3bb0d8ae9b439ecf5e12e2730`):
