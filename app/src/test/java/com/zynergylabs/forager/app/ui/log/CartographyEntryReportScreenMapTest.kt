@@ -441,4 +441,33 @@ class CartographyEntryReportScreenMapTest {
 
         assertEquals(listOf(waypoint), pointsAsked)
     }
+
+    /**
+     * The entry map's opening frame (owner, 2026-09-28, "Fit all kept records"; planner message
+     * 2026-09-28-35): the screen hands its map one camera request, framed on the kept track's points
+     * and the find, never the kept region, whose centre is far from both.
+     */
+    @Test
+    fun `the entry map asks to open framed on its kept track and find, never its kept region`() {
+        setScreen(
+            baseEntry,
+            CartographyEntryMapData(
+                trackPolylines = listOf(RecordPolyline("track-1", listOf(LatLng(45.20, -122.50), LatLng(45.22, -122.47)))),
+                findMarkers = listOf(RecordPoint("find-1", LatLng(45.25, -122.52))),
+                waypointMarkers = emptyList(),
+                photoMarkers = emptyList(),
+                offlineRegionCircles = listOf(RecordRegion("1", com.zynergylabs.forager.app.domain.model.Region(lat = 47.0, lng = -120.0, radiusKm = 20))),
+            ),
+        )
+
+        val request = capturedRenderMode?.cameraRequest
+        assertEquals(
+            com.zynergylabs.forager.app.domain.EntryMapFrame.Fit(
+                com.zynergylabs.forager.app.domain.model.GeoBoundingBox(north = 45.25, south = 45.20, east = -122.47, west = -122.52),
+                paddingDp = 48,
+                maxZoom = 17.0,
+            ),
+            request?.frame,
+        )
+    }
 }

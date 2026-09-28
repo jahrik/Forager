@@ -140,6 +140,7 @@ internal fun ActiveSearchSummary(
     Surface(
         onClick = onReopenTaxonSuggestions,
         color = MaterialTheme.colorScheme.surfaceVariant,
+        modifier = Modifier.testTag(WIDE_SEARCH_SUMMARY_TAG),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -479,6 +480,9 @@ internal fun SearchDropdown(
 
 /** See [SearchDropdown]'s own doc comment. */
 internal const val SEARCH_DROPDOWN_TAG = "search-dropdown"
+
+/** [ActiveSearchSummary]'s own bounds, the medium/expanded layout's search summary. */
+internal const val WIDE_SEARCH_SUMMARY_TAG = "wide-search-summary"
 
 /** See [SearchEntryBar]'s own dismiss-elsewhere scrim doc comment, at its call site. */
 internal const val SEARCH_DROPDOWN_SCRIM_TAG = "search-dropdown-scrim"
