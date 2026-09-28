@@ -4248,3 +4248,21 @@ Each is tested for non-intersecting bounds at 0, 90 and 270, with real-touch sam
 **Finish line:** The run record pushed and trips deleted and read back; the planner merges it and writes the terminal.
 **Abort conditions:** Not exactly this tablet or a different build; a locked tablet; a new crash; a trip that cannot be deleted; any need to touch the owner's data or the S22. A prompt pauses for the owner.
 **Notes:** Owner, verbatim: "And tablet too". Runs now, while the S22 is still in use by -84. Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-96
+**Dispatch-file:** none (pulse dispatched in chat by the planner; read-only)
+**Type:** pulse
+**Outcome:** completed
+**Report:** docs/audits/2026-09-28-planned-trips-pulse.md (the planner's condensed filing, citations kept)
+**Notes:** 2026-09-28T23:32:00Z. Read at a0a54f9. It found:
+- The compact Maps tab gates planned trips on a search having set a region (AvailabilityCompactMapUi.kt:573, 641), a gate added in 7692527 (2026-08-18). Waypoints, finds, photos, tracks and regions are not gated.
+- The owner's Trip Planner line renders only in that same no-region state, which fits the report.
+- No other filter.
+- The layer and switch are wired, on by default.
+- No test covers trips reaching the compact map; the nearest one cannot fail on the gate.
+- The code comments call trips "independent of any region search".
+
+Forwarded to the tablet check (-95); named in the S22 check's (-94) launch. Written by the planner by hand.
