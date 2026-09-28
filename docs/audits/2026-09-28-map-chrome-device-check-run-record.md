@@ -546,3 +546,112 @@ opaque" did not. The snackbar's first path, which I predicted would raise it, di
 
 **Captures, Topographical by day (for check 5):** `22-c1-dropdown-B`, `24-c1-drawer-B`, `34-c1c-snackbar-B` (over the
 nav band) and `43-c1c3-snackbar-fs-B` (over the map).
+
+## Check 2: separate windows over the Maps map: **every one raised shows the map through, fills 0.80; the offline region's sheet could not be raised**
+
+Relaunched at 22:49:55Z (pid 28812), then pid 31819 after a relaunch at 23:01Z (to clear the typed query). Topographical,
+Night Maps off.
+
+**2a. The details sheet from a bubble.**
+- **The offline region: not raised.** A real touch on the 1 km DEVICE CHECK region's dashed outline, (330, 1195), twice,
+  and on region B's outline, (355, 358), each opened **no bubble**. The app logged, each time, `W MapBubble: No
+  OFFLINE_REGION 1 in the host's lists; its bubble was not shown.` (and `… 2 …` for B). So the outline tap resolves to
+  the region (`ui/map/MapBubbles.kt:78`), but the bubble looks it up in `visibleOfflineRegions`
+  (`AvailabilityScreen.kt:1251`; `MapBubbles.kt:266`), which does not hold it. The Records chips agree: All counts 6
+  (2 finds, 3 waypoints, 1 track) and lists no region (`27-`). **Not run; the map-chrome question for this sheet is
+  answered by the other two, which are the same composable.** Why the list lacks both regions I did not establish; see
+  Flags.
+- **The track** (22:52Z to 22:53Z): five double-taps at (540, 1200) to about zoom 17 (`54-`), a real touch on the
+  track's line at (606, 1212) opened its bubble (`55-`), and "Details" at (150, 1098) the sheet (`56-c2-track-sheet-B`,
+  its drag handle at y 1104). Back closed it (`57-`, the bubble gone too). Camera unchanged (`54-` against `57-`,
+  slope 1.000, rms 0). "Share" was not touched.
+- **The DEVICE CHECK waypoint** (22:54Z to 22:56Z): its pin lay under the find and photo glyphs, so the Layers sheet's
+  Finds and Photos were switched off (`ltoggle.sh`, `58-`, `59-`, each read back unchecked) to uncover it, as `-72`
+  did. A touch on the pin at (553, 1000) opened its bubble (`61-`), "Details" at (390, 886) the sheet
+  (`62-c2-wpt-sheet-B`). "Directions" was not touched. Back closed it (`63-`); camera unchanged (`60-` against `63-`).
+  Finds and Photos were switched on again (`64-`, `65-`, read back checked), and `map_preferences` decodes equal to the
+  start's (`66-`).
+
+  | sheet | box | a (R, G, B) | b | rms | fill 1 − a/s | composite 1 − a |
+  |---|---|---|---|---|---|---|
+  | scrim, both | `[50,300][850,900]` | **s** = 0.679 | 18.9, 15.0, 11.9 | 0.22 | — | — |
+  | track | `[300,1290][880,1560]` | 0.138, 0.138, 0.138 | 25.9, 24.9, 23.9 | 0.26 | **0.797** | 0.862 |
+  | track | `[700,1180][1035,1260]` | 0.137 | 26.2, 24.9, 24.0 | 0.27 | 0.798 | 0.863 |
+  | track | `[600,1960][1035,2170]` | 0.134, 0.138, 0.135 | 26.4, 25.2, 24.3 | 0.20 | 0.797 to 0.803 | 0.862 to 0.866 |
+  | waypoint | `[60,1500][1020,1545]` | 0.136, 0.138, 0.138 | 26.3, 24.9, 23.9 | 0.23 | 0.797 to 0.800 | 0.862 to 0.864 |
+  | waypoint | `[700,1990][1035,2170]` | 0.134, 0.139, 0.136 | 26.4, 25.1, 24.3 | 0.22 | 0.795 to 0.803 | 0.861 to 0.866 |
+
+  The scrim is Bark at 0.32 (s 0.679, b = 0.32 × Bark). The container solved over it is (27.7, 27.4, 27.0), `#1B1B1B`.
+  **Both sheets show the map through at 0.8. Pass.** Other boxes that crossed the sheet's text gave rms 16 to 51 and
+  are not cited.
+- **An observation, not a pass condition:** the bottom 135 px of the window, `y` 2181 to 2316, the navigation bar's
+  inset, where the dump shows only the sheet's "Close sheet" dismiss node, is **flat**: (20, 19, 18) to (21, 20, 19),
+  standard deviation 0.7 per channel in `56-`, where the frame without the sheet has a spread of 21. No map shows
+  through that band while the sheet is up. What draws it (the sheet window's navigation-bar background, or Android's
+  contrast scrim for three-button navigation) I did not establish. See Flags.
+
+**2b. The trip-date dialog: shows the map through, fill 0.80. Pass.** At the same zoom-17 camera: the + disc (989, 1324)
+at 22:56:28Z; "Trip" (470, 1326) in its tile (`68-`; "Find" is `[577,1259][751,1394]` and was not touched); the pin's
+row (`69-`); its "OK" (287, 1865), which only sets the pending location; the dialog (`70-c2b-trip-dialog-B`), "Trip
+name" prefilled, today selected. **Back** dismissed it at 22:57Z (`71-`: no dialog, no pin). "Plan trip" was not
+touched.
+
+| box | a (R, G, B) | b | rms |
+|---|---|---|---|
+| dim alone, `[60,262][1020,322]` | **s** = 0.399 | 0.1 | 0.29 |
+| dialog, `[400,560][1000,640]` (right of "Select date") | 0.074 | 34.5 | 0.16 |
+| dialog, `[620,1620][880,1710]` (the empty cells after the 30th) | 0.079 | 34.1 | 0.15 |
+| dialog, `[60,1720][880,1790]` (above the buttons) | 0.079, 0.079, 0.081 | 34.0 | 0.21 |
+
+The window's dim is black at 0.60 (s 0.399, b 0). **Fill 1 − a/s = 0.797 to 0.815; composite 1 − a = 0.92.** The
+container over the dim is 42.5 per channel, `#2B2B2B`, so the picker's own cleared container adds nothing, as `-83`'s
+R13 says. The first box reads 0.815, higher than the other two; I did not establish why.
+
+**2c. The waypoint-name dialog: shows the map through, fill 0.80. Pass.** + (989, 1324); "Waypoint" (910, 1326); "OK"
+(287, 1865); the dialog (`74-c2c-wpt-dialog-B`, "Waypoint 2" prefilled, no keyboard). **Back** dismissed it (`75-`).
+"Drop waypoint" was not touched.
+
+| box | a (R, G, B) | b | rms |
+|---|---|---|---|
+| dim alone, `[50,300][850,800]` and `[50,1500][850,1850]` | **s** = 0.397 to 0.399 | 0 | 0.25-0.28 |
+| dialog, `[520,905][1020,975]` (right of its title) | 0.079, 0.079, 0.077 | 22.1 | 0.17-0.21 |
+| dialog, `[60,1200][480,1380]` | 0.078 | 22.3 | 0.38 |
+| dialog, `[60,1335][1020,1385]` | 0.076, 0.077, 0.077 | 22.1 | 0.85 |
+
+**Fill 0.801 to 0.809; composite 0.92.** Container 27.6, `#1B1B1B`. Its 4 dp shadow does not reach under these boxes.
+Camera unchanged across 2b and 2c (`71-` against `75-`).
+
+**2d. The species suggestions: over the panel, the popup's own fill 0.80 and a composite of about 0.97; over the bare
+map, 0.805. Pass.** The bar (500, 132) opened the panel with the keyboard (`76-`); `input text chanterelle` (23:00Z)
+raised the suggestions from the local index (`77-`, keyboard up); one Back lowered the keyboard and **the popup
+stayed and grew** to 15 rows, down over the panel's end, the bare map below it, the caption and the nav (`78-`).
+Nothing was chosen.
+- Against the panel alone (`76-` against `77-`, both with the keyboard): `[760,640][1040,760]` a 0.197 to 0.201, b 26.0,
+  rms 0.3; `[640,905][1040,995]` a 0.190 to 0.196, rms 0.3. **Own fill 0.80 to 0.81**, container 32.6, `#202020`.
+- Against the map alone (`75-`): the same boxes a 0.025 to 0.035, **composite 0.965 to 0.975**; `[660,1110][1040,1160]`
+  a 0.032 to 0.040, rms 0.4 to 1.2, composite 0.960 to 0.968. The owner's "1 A" stacking predicts 0.96.
+- **Overhang on the bare map** (`78-` against `75-`), `[700,1795][1040,1845]`: a 0.195, b 26.4, rms 0.21, **composite
+  0.805**, container `#202020`.
+- **Closing it took an outside touch.** Three Backs (23:00:30Z to 23:00:38Z) left the popup and the panel open, with nothing visibly
+  changed (`79-`). A touch at (60, 1830), left of the popup and below the panel, on the panel's dismiss scrim and above
+  the caption, closed both (`80-`). The query stayed in the bar, so the app was force-stopped and relaunched.
+
+**2e. The Month menu: own fill 0.80 over the panel; 0.800 over the bare map. Pass.** Relaunched (pid 31819); the map
+alone (`82-`); the bar, one Back (keyboard down), the panel alone (`83-`); a touch on the Month field (540, 876)
+opened the twelve months over the panel and past it onto the map and the nav (`84-c2e-month-B`). One Back closed the
+menu (`85-`, equal to `83-` in the menu's box), still "September"; one more closed the panel (`86-`, camera equal to
+`82-`).
+- Against the panel (`83-`): `[300,1040][880,1110]`, `[300,1480][880,1540]` a 0.198 to 0.200, b 26.0, rms 0.3: **own
+  fill 0.80**, `#202020`.
+- Over the bare map, `[300,1800][880,1890]` (`82-` and `83-` agree there): **a 0.200, composite 0.800.**
+- Over the panel against the map alone, a 0.04 to 0.06 with rms 5 to 6: the panel's own text beneath breaks the fit,
+  so I cite only that it is near the stacked 0.96.
+
+The database after check 2 (force-stop 23:02Z, `db-c2-*`): integrity ok, `user_version` 16, **every digest equal to the
+backup's**; `map_preferences` decodes equal to the start's (`89-`). Crash buffer 0 bytes, 0 `FATAL EXCEPTION` (`87-`).
+
+**Prediction:** held for every surface raised: fills 0.797 to 0.815, the stacked popups about 0.96 to 0.97. Not
+predicted: the region's bubble not opening, the sheet's opaque navigation-bar band, and the suggestions ignoring Back.
+
+**Captures, Topographical by day, for check 5:** `56-` (track sheet), `62-` (waypoint sheet), `70-` (trip dialog),
+`74-` (waypoint dialog), `77-` and `78-` (suggestions), `84-` (Month).
