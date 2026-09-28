@@ -110,7 +110,7 @@ internal class FixedForecastStore(private val groups: Set<String>) : ForecastCel
  * plain tap that reaches it (so a test can tell a touch reached the map, not a control over it), and
  * reports [shown] as the dates of the cells in view through the forecast feed, as `SightingsMap` does.
  */
-internal class RecordingMapSlot(private val shown: Map<String, ForecastCellsShown> = emptyMap()) {
+internal class LayersRecordingMapSlot(private val shown: Map<String, ForecastCellsShown> = emptyMap()) {
     var renderMode: MapRenderMode? = null
     var content: MapOverlayContent? = null
     var taps = 0

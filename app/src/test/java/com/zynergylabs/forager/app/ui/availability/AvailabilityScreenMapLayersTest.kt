@@ -9,6 +9,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasTestTag
@@ -118,7 +119,7 @@ class AvailabilityScreenMapLayersSheetTest {
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(hostActivityRule()).around(composeRule)
 
-    private val map = RecordingMapSlot(DATES)
+    private val map = LayersRecordingMapSlot(DATES)
     private lateinit var preferences: InMemoryLayerPreferences
 
     private fun setScreen(store: ForecastCellStore = AbsentForecastCellStore, stored: MapLayerPreferences = MapLayerPreferences.NONE) {
@@ -321,8 +322,13 @@ class AvailabilityScreenMapLayersSheetTest {
         assertEquals("all five touches reached the map", before + 5, map.taps)
     }
 
+    /**
+     * The absence half passes wherever no chip exists at all, so on its own it could not fail before
+     * the build; the second half (switch one on in the sheet, and the chip names it) is what fails
+     * first, and the revert check on the visible-only rule is what shows the first half bites.
+     */
     @Test
-    fun `with no colour field visible there is no legend chip`() {
+    fun `with no colour field visible there is no legend chip, and switching one on in the sheet shows it`() {
         setScreen(
             store = FixedForecastStore(BOTH_FORECAST_GROUPS),
             stored = MapLayerPreferences(
@@ -333,6 +339,14 @@ class AvailabilityScreenMapLayersSheetTest {
         )
 
         composeRule.onAllNodesWithTag(MAP_LEGEND_CHIP_TAG).assertCountEqualsZero()
+
+        openSheet()
+        composeRule.onNodeWithTag(mapLayerSwitchTag(MapLayerIds.FORECAST_CHANTERELLES)).performScrollTo().touch()
+        composeRule.waitForIdle()
+        composeRule.closeSheetByTappingOutside()
+
+        composeRule.onNodeWithTag(MAP_LEGEND_CHIP_TAG).assertIsDisplayed()
+        composeRule.onNodeWithText(CHANTERELLES_LABEL).assertIsDisplayed()
     }
 
     @Test
@@ -379,7 +393,7 @@ class AvailabilityScreenMapLayersShortLandscapeTest {
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(hostActivityRule()).around(composeRule)
 
-    private val map = RecordingMapSlot(DATES)
+    private val map = LayersRecordingMapSlot(DATES)
 
     private fun setScreen(store: ForecastCellStore) {
         val viewModel = mapLayersViewModel(store = store)
@@ -426,7 +440,7 @@ class AvailabilityScreenMapLayersWideTest {
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(hostActivityRule()).around(composeRule)
 
-    private val map = RecordingMapSlot(DATES)
+    private val map = LayersRecordingMapSlot(DATES)
     private lateinit var preferences: InMemoryLayerPreferences
 
     /** The wide map shows only once a region is searched, so a search is run first. */

@@ -343,6 +343,10 @@ internal const val DIAGNOSTICS_LOG_ROW_TAG = "diagnostics-log-row"
 internal const val DIAGNOSTICS_LOG_SHARE_TAG = "diagnostics-log-share"
 internal const val DIAGNOSTICS_LOG_TEXT_TAG = "diagnostics-log-text"
 internal const val DIAGNOSTICS_SHARE_ERROR_TAG = "diagnostics-share-error"
+
+/** Tests-first stubs (map layers L0b, B6): the "Synthetic forecast layers" toggle's label and tag. */
+internal const val SYNTHETIC_FORECAST_TOGGLE_LABEL = "Synthetic forecast layers"
+internal const val DIAGNOSTICS_SYNTHETIC_FORECAST_TAG = "diagnostics-synthetic-forecast"
 internal fun diagnosticsShareTag(file: File): String = "diagnostics-share:${file.name}"
 
 private const val TAG = "DiagnosticsPanel"

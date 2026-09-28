@@ -81,6 +81,8 @@ import com.zynergylabs.forager.app.domain.HistoricalWeatherProvider
 import com.zynergylabs.forager.app.domain.LocationProvider
 import com.zynergylabs.forager.app.domain.LocationTracker
 import com.zynergylabs.forager.app.domain.MapPreferencesRepository
+import com.zynergylabs.forager.app.domain.ForecastCellStore
+import com.zynergylabs.forager.app.forecast.forecastCellStore
 import com.zynergylabs.forager.app.domain.SundownPreferencesRepository
 import com.zynergylabs.forager.app.domain.MushroomLogRepository
 import com.zynergylabs.forager.app.domain.MushroomRepository
@@ -188,6 +190,15 @@ class AppContainer(context: Context) {
     val offlineMapRepository: OfflineMapRepository = MapLibreOfflineMapRepository(context, database.offlineRegionDao())
     val getTripReportOfflineRegionsUseCase = GetTripReportOfflineRegionsUseCase(offlineMapRepository)
     val mapPreferencesRepository: MapPreferencesRepository = DataStoreMapPreferencesRepository(context)
+
+    /**
+     * Where the map's colour fields read their cells (map layers L0b, B5 and B6): one source-set-split
+     * factory, shaped like `DebugDiagnostics.install` (planner's ruling on Q12). The debug build's is the
+     * synthetic store behind the Diagnostics switch, which also owns the one `debug_diagnostics_preferences`
+     * DataStore; the release build's reports "no forecast data" and nothing else. One instance per process,
+     * because DataStore refuses a second live instance on a file.
+     */
+    val forecastCellStore: ForecastCellStore = forecastCellStore(context)
     val unitSystemPreferenceRepository: UnitSystemPreferenceRepository = DataStoreUnitSystemPreferenceRepository(context)
     val appThemePreferenceRepository: AppThemePreferenceRepository = DataStoreAppThemePreferenceRepository(context)
     val sundownPreferencesRepository: SundownPreferencesRepository = DataStoreSundownPreferencesRepository(context)
