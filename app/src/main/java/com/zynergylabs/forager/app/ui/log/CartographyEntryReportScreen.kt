@@ -27,16 +27,21 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -78,6 +83,8 @@ import com.zynergylabs.forager.app.ui.map.SHOW_ON_MAP_LABEL
 import com.zynergylabs.forager.app.ui.map.TappedMapThing
 import com.zynergylabs.forager.app.ui.map.focusedFeature
 import com.zynergylabs.forager.app.ui.map.tappedThingOf
+import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
+import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.domain.model.RecordPoint
 import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 import java.util.UUID
@@ -385,7 +392,20 @@ internal fun CartographyEntryReportScreen(
                     IconButton(onClick = { menuExpanded = true }) {
                         Icon(Icons.Filled.MoreVert, contentDescription = "Entry options")
                     }
-                    DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                    // The menu's default container role, passed explicitly, and its content colour
+                    // pinned to the role's own (see `MapLayersSheet`), as J8's menus do.
+                    val entryMenuColor = MenuDefaults.containerColor
+                    val entryMenuContentColor = contentColorFor(MenuDefaults.containerColor)
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false },
+                        containerColor = entryMenuColor,
+                        modifier = Modifier
+                            .testTag(ENTRY_OVERFLOW_MENU_TAG)
+                            .mapChromeContainerColor(entryMenuColor)
+                            .mapChromeContentColor(entryMenuContentColor),
+                    ) {
+                      CompositionLocalProvider(LocalContentColor provides entryMenuContentColor) {
                         DropdownMenuItem(
                             text = { Text("Edit entry") },
                             leadingIcon = { Icon(Icons.Filled.Edit, contentDescription = null) },
@@ -403,6 +423,7 @@ internal fun CartographyEntryReportScreen(
                             leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null) },
                             onClick = { menuExpanded = false; confirmingDelete = true },
                         )
+                      }
                     }
                 }
             }
@@ -630,17 +651,31 @@ internal fun CartographyEntryReportScreen(
     }
 
     if (confirmingDelete) {
+        val deleteDialogColor = AlertDialogDefaults.containerColor
         AlertDialog(
             onDismissRequest = { confirmingDelete = false },
             title = { Text("Delete this entry?") },
-            text = { Text("This removes the entry and its kept selections. The finds, tracks, waypoints, and regions it kept stay in Records.") },
+            text = {
+                Text(
+                    "This removes the entry and its kept selections. The finds, tracks, waypoints, and regions it kept stay in Records.",
+                    modifier = Modifier.mapChromeContentColor(LocalContentColor.current),
+                )
+            },
             confirmButton = {
                 TextButton(onClick = { confirmingDelete = false; onDeleteEntry() }) { Text("Delete") }
             },
             dismissButton = { TextButton(onClick = { confirmingDelete = false }) { Text("Cancel") } },
+            modifier = Modifier.testTag(ENTRY_DELETE_DIALOG_TAG).mapChromeContainerColor(deleteDialogColor),
+            containerColor = deleteDialogColor,
         )
     }
 }
+
+/** The report header's overflow menu, for tests. */
+internal const val ENTRY_OVERFLOW_MENU_TAG = "entry-overflow-menu"
+
+/** The entry delete dialog, for tests. */
+internal const val ENTRY_DELETE_DIALOG_TAG = "entry-delete-dialog"
 
 /**
  * Reported verbatim per the Stage 2d dispatch's own instruction ("write the wording yourself... and

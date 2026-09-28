@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
@@ -237,6 +238,26 @@ internal val MapIconStackButtonColorLight = Cream.copy(alpha = MAP_CHROME_OVER_M
 
 /** The standing opacity for chrome floating over the map — the one value every fill here targets. */
 internal const val MAP_CHROME_OVER_MAP_ALPHA = 0.8f
+
+/**
+ * Map chrome at 80% where it covers a map (dispatch 2026-09-28-56 as amended by -58; planner message
+ * -77): the container colour a sheet, dialog, menu, drawer, snackbar or surface was given, exposed to
+ * tests the way the Layers sheet exposes its own (`MapLayersSheet`). Set on the node that is given the
+ * colour, beside its test tag.
+ */
+internal val MapChromeContainerColor = SemanticsPropertyKey<Color>("MapChromeContainerColor")
+
+/**
+ * The content colour inside the same surface: `LocalContentColor` as read inside it wherever the
+ * surface has a child to read it on, else the content colour the surface was given.
+ */
+internal val MapChromeContentColor = SemanticsPropertyKey<Color>("MapChromeContentColor")
+
+/** Marks this node with the container colour it was given ([MapChromeContainerColor]). */
+internal fun Modifier.mapChromeContainerColor(color: Color): Modifier = semantics { set(MapChromeContainerColor, color) }
+
+/** Marks this node with the content colour read inside its surface ([MapChromeContentColor]). */
+internal fun Modifier.mapChromeContentColor(color: Color): Modifier = semantics { set(MapChromeContentColor, color) }
 
 /**
  * Icon-bar-unify-container dispatch: [MapIconBar] and `TrailheadControls` now sit inside one

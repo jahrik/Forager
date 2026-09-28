@@ -62,6 +62,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -69,6 +70,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldColors
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -107,6 +109,8 @@ import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_LIGHT
 import com.zynergylabs.forager.app.ui.map.MapIconBar
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorDark
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorLight
+import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
+import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.theme.Bark
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import com.zynergylabs.forager.app.ui.theme.Spacing
@@ -587,17 +591,29 @@ internal fun SearchNotice(uiState: AvailabilityUiState) {
         }
     if (message == null) return
 
-    Surface(color = MaterialTheme.colorScheme.errorContainer) {
+    // The fill and its content colour, pinned to the fill's own role (`contentColorFor` matches a
+    // colour-scheme role exactly; see `MapLayersSheet`). The text keeps its own explicit colour.
+    val noticeColor = MaterialTheme.colorScheme.errorContainer
+    val noticeContentColor = contentColorFor(MaterialTheme.colorScheme.errorContainer)
+    Surface(
+        color = noticeColor,
+        contentColor = noticeContentColor,
+        modifier = Modifier.testTag(SEARCH_NOTICE_TAG).mapChromeContainerColor(noticeColor),
+    ) {
         Text(
             text = message,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onErrorContainer,
             modifier = Modifier
+                .mapChromeContentColor(LocalContentColor.current)
                 .fillMaxWidth()
                 .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         )
     }
 }
+
+/** [SearchNotice]'s banner, for tests. */
+internal const val SEARCH_NOTICE_TAG = "search-notice"
 
 
 /**
@@ -1115,19 +1131,34 @@ private fun SpeciesSearchControls(
             // closed anything — the only way to get rid of the list was to pick a result or
             // clear the query back below MIN_QUERY_LENGTH. Wiring the real dismiss action in
             // is the fix, not new behavior invented on top of the component.
-            ExposedDropdownMenu(expanded = suggestionsOpen, onDismissRequest = onDismissTaxonSuggestions) {
-                if (uiState.taxonSearchResults.isEmpty() && uiState.taxonSearchHasNoResults) {
-                    DropdownMenuItem(
-                        text = { Text("No matches for “${uiState.taxonSearchQuery.trim()}”") },
-                        onClick = {},
-                        enabled = false,
-                    )
-                } else {
-                    uiState.taxonSearchResults.forEach { result ->
+            // The menu's default container role, passed explicitly, and its content colour pinned to
+            // the role's own (`contentColorFor` matches a colour-scheme role exactly; see
+            // `MapLayersSheet`), as J8's menus do (`journalMenuContentColor`).
+            val suggestionsColor = MenuDefaults.containerColor
+            val suggestionsContentColor = contentColorFor(MenuDefaults.containerColor)
+            ExposedDropdownMenu(
+                expanded = suggestionsOpen,
+                onDismissRequest = onDismissTaxonSuggestions,
+                containerColor = suggestionsColor,
+                modifier = Modifier
+                    .testTag(TAXON_SUGGESTIONS_MENU_TAG)
+                    .mapChromeContainerColor(suggestionsColor)
+                    .mapChromeContentColor(suggestionsContentColor),
+            ) {
+                CompositionLocalProvider(LocalContentColor provides suggestionsContentColor) {
+                    if (uiState.taxonSearchResults.isEmpty() && uiState.taxonSearchHasNoResults) {
                         DropdownMenuItem(
-                            text = { TaxonSuggestionContent(result) },
-                            onClick = { onTaxonSearchResultSelected(result) },
+                            text = { Text("No matches for “${uiState.taxonSearchQuery.trim()}”") },
+                            onClick = {},
+                            enabled = false,
                         )
+                    } else {
+                        uiState.taxonSearchResults.forEach { result ->
+                            DropdownMenuItem(
+                                text = { TaxonSuggestionContent(result) },
+                                onClick = { onTaxonSearchResultSelected(result) },
+                            )
+                        }
                     }
                 }
             }
@@ -1162,17 +1193,36 @@ private fun MonthSelector(selectedMonth: Int, onMonthSelected: (Int) -> Unit) {
                 .fillMaxWidth()
                 .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
         )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            (1..12).forEach { month ->
-                DropdownMenuItem(
-                    text = { Text(Month.of(month).getDisplayName(TextStyle.FULL, Locale.getDefault())) },
-                    onClick = {
-                        onMonthSelected(month)
-                        expanded = false
-                    },
-                )
+        // As the species suggestions above: the default role, passed explicitly, and its content colour.
+        val monthMenuColor = MenuDefaults.containerColor
+        val monthMenuContentColor = contentColorFor(MenuDefaults.containerColor)
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            containerColor = monthMenuColor,
+            modifier = Modifier
+                .testTag(MONTH_MENU_TAG)
+                .mapChromeContainerColor(monthMenuColor)
+                .mapChromeContentColor(monthMenuContentColor),
+        ) {
+            CompositionLocalProvider(LocalContentColor provides monthMenuContentColor) {
+                (1..12).forEach { month ->
+                    DropdownMenuItem(
+                        text = { Text(Month.of(month).getDisplayName(TextStyle.FULL, Locale.getDefault())) },
+                        onClick = {
+                            onMonthSelected(month)
+                            expanded = false
+                        },
+                    )
+                }
             }
         }
     }
 }
+
+/** The species suggestions' menu ([SpeciesSearchControls]), for tests. */
+internal const val TAXON_SUGGESTIONS_MENU_TAG = "taxon-suggestions-menu"
+
+/** The Month menu ([MonthSelector]), for tests. */
+internal const val MONTH_MENU_TAG = "month-menu"
 

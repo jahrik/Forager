@@ -101,6 +101,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DividerDefaults
+import androidx.compose.material3.DrawerDefaults
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -118,6 +119,7 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.contentColorFor
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -305,6 +307,8 @@ import com.zynergylabs.forager.app.ui.map.MapIconBarMinimizeHandle
 import com.zynergylabs.forager.app.ui.map.MapIconBarRestoreHandle
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorDark
 import com.zynergylabs.forager.app.ui.map.mapIconStackBorderColor
+import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
+import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.map.mapIconClusterContainerColor
 import com.zynergylabs.forager.app.ui.map.mapIconClusterChildColor
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorLight
@@ -1801,8 +1805,18 @@ fun AvailabilityScreen(
                 // The sheet itself stays in drawerDirection, so its rounded edge faces the
                 // content and its start-side inset padding lands on the window edge it sits on.
                 // Only what is inside it goes back to the ambient direction.
-                ModalDrawerSheet {
+                // Material3's own default container role for a modal drawer, passed explicitly, and
+                // its content colour pinned to the role's own (`contentColorFor` matches a colour-scheme
+                // role exactly; see `MapLayersSheet`).
+                val drawerColor = DrawerDefaults.modalContainerColor
+                val drawerContentColor = contentColorFor(DrawerDefaults.modalContainerColor)
+                ModalDrawerSheet(
+                    modifier = Modifier.testTag(TOOLS_DRAWER_SHEET_TAG).mapChromeContainerColor(drawerColor),
+                    drawerContainerColor = drawerColor,
+                    drawerContentColor = drawerContentColor,
+                ) {
                     CompositionLocalProvider(LocalLayoutDirection provides ambientDirection) {
+                    Box(modifier = Modifier.mapChromeContentColor(LocalContentColor.current)) {
                     CompactToolsDrawerContent(
                         uiState = uiState,
                         distanceUnit = distanceUnit,
@@ -1820,6 +1834,7 @@ fun AvailabilityScreen(
                         onThemeModeChanged = onThemeModeChanged,
                         crashFileStore = crashFileStore,
                     )
+                    }
                     }
                 }
             },
@@ -1885,3 +1900,6 @@ fun AvailabilityScreen(
         camera = inAppCamera,
     )
 }
+
+/** The compact Tools drawer's sheet, for tests (map chrome at 80%, dispatch 2026-09-28-56 as amended by -58). */
+internal const val TOOLS_DRAWER_SHEET_TAG = "tools-drawer-sheet"

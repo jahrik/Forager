@@ -93,6 +93,8 @@ import androidx.compose.material.icons.filled.Map
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
@@ -146,6 +148,8 @@ import com.zynergylabs.forager.app.ui.map.MapMode
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
+import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
+import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.LocalDate
 import androidx.compose.ui.focus.FocusManager
@@ -582,7 +586,23 @@ internal fun CompactMainScaffold(
         )
         val safeAttributionBottomInset = animatedAttributionBottomInset.coerceAtLeast(0.dp)
         Scaffold(
-            snackbarHost = { SnackbarHost(logDraftSnackbarHostState) },
+            snackbarHost = {
+                // Material3's own snackbar, with its default colours passed explicitly. Its content
+                // colour is its own role (`SnackbarDefaults.contentColor`), not derived from the fill.
+                SnackbarHost(logDraftSnackbarHostState) { data ->
+                    val snackbarColor = SnackbarDefaults.color
+                    val snackbarContentColor = SnackbarDefaults.contentColor
+                    Snackbar(
+                        snackbarData = data,
+                        modifier = Modifier
+                            .testTag(COMPACT_SNACKBAR_TAG)
+                            .mapChromeContainerColor(snackbarColor)
+                            .mapChromeContentColor(snackbarContentColor),
+                        containerColor = snackbarColor,
+                        contentColor = snackbarContentColor,
+                    )
+                }
+            },
             // Fullscreen-fixes dispatch ("still shifting"): Material3's own Scaffold falls back to
             // this value's own bottom inset for its reported content padding whenever bottomBar
             // composes no content (`bottomBarHeight?.toDp() ?: insets.calculateBottomPadding()`,
@@ -1230,3 +1250,6 @@ internal val LANDSCAPE_SEARCH_MAX_WIDTH = 384.dp
 
 /** Landscape B2 (S2): how far short of the map's centre line the capped search bar ends. */
 internal val LANDSCAPE_SEARCH_CENTRE_GAP = 8.dp
+
+/** The compact scaffold's snackbar, for tests (map chrome at 80%, dispatch 2026-09-28-56 as amended by -58). */
+internal const val COMPACT_SNACKBAR_TAG = "compact-snackbar"
