@@ -866,7 +866,8 @@ internal fun CompactMainScaffold(
                                 // Passed as a slot, not composed at this call site directly, so it
                                 // renders inside CompactMapTab's own Box — see that parameter's own
                                 // doc comment for why this specific nesting is load-bearing, not
-                                // cosmetic. Empty while isEditingJournalEntry, unconditionally —
+                                // cosmetic. Empty while isEditingJournalEntry on the Journal tab (the gate's
+                                // own comment below, intent 2026-09-28-17; until then unconditionally) —
                                 // matches the bar's own old `!isEditingJournalEntry` gate from when it
                                 // lived in this scaffold's outer Column, now reproduced here since the
                                 // slot is CompactMapTab's to show or not. This is a real, device-
@@ -885,7 +886,16 @@ internal fun CompactMainScaffold(
                                 // not assumed — so sliding it is a pure translation with zero effect on
                                 // the map's own measurement, the same as the already-passing "fullscreen
                                 // does not change the map's own measured height" test already covers.
-                                searchBarSlot = if (isEditingJournalEntry) {
+                                // Intent 2026-09-28-17 (owner, "Keep entry, fix the bar (Recommended)"):
+                                // an open entry stays open across a tab change, since nothing on the
+                                // bottom nav or rail closes a Cartography entry, so "an entry is open"
+                                // alone left the Maps tab with no search bar after the user tapped Maps
+                                // from an open day entry. The gate is now "an entry is open and the
+                                // Journal tab is the one showing"; on Maps the bar shows normally. This
+                                // slot composes only in this MAP branch, where the second half is false,
+                                // so here the conjunction always resolves to the bar; it is written out
+                                // so that the rule reads as the owner ruled it, not as its consequence.
+                                searchBarSlot = if (isEditingJournalEntry && compactTab() == CompactTab.JOURNAL) {
                                     {}
                                 } else {
                                     {
