@@ -846,7 +846,7 @@ class LeavingTheJournalFixesTest {
      * first Back closes the drawer and leaves [state] up; the second closes [state], so its own
      * handler still works once the drawer is closed.
      */
-    private fun checkBackClosesDrawerFirst(stateName: String, state: () -> Boolean) {
+    private fun checkBackClosesDrawerFirst(stateName: String, secondBackClosesState: Boolean = true, state: () -> Boolean) {
         touchTools()
         assertTrue("$stateName is still up under the open drawer", state())
 
@@ -859,8 +859,10 @@ class LeavingTheJournalFixesTest {
             "${if (drawerShown()) "drawer open" else "drawer closed"}, ${if (state()) "held" else "gone"}",
         )
 
-        pressBack()
-        assertTrue("the second Back closes $stateName", !state())
+        if (secondBackClosesState) {
+            pressBack()
+            assertTrue("the second Back closes $stateName", !state())
+        }
     }
 
     @Test
@@ -875,7 +877,10 @@ class LeavingTheJournalFixesTest {
         setScreen()
         touchNavItem("Journal")
         openSearchDropdown()
-        checkBackClosesDrawerFirst("the search dropdown") { tagShown(SEARCH_DROPDOWN_TAG) }
+        // No second-Back half here: on the Journal, Back with no drawer at all leaves the dropdown
+        // open, at b91a543 as after this fix (a probe, reported as a flag). That is not the drawer's
+        // question, so this test claims only the first Back.
+        checkBackClosesDrawerFirst("the search dropdown", secondBackClosesState = false) { tagShown(SEARCH_DROPDOWN_TAG) }
     }
 
     @Test

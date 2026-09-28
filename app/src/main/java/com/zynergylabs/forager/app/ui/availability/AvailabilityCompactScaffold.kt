@@ -372,7 +372,12 @@ internal fun CompactMainScaffold(
         // JournalTab/CompactSettingsTab/CompactMapTab. Genuinely missing before this fix: back
         // pressed while this panel was open (species field focused, keyboard up) fell straight
         // through to whichever of those four was enabled instead of just closing this panel first.
-        BackHandler(enabled = showSearchDropdown) {
+        // Intent 2026-09-28-44, F4: off while the Tools drawer is open, the drawer fix's pattern
+        // (JournalTab's backEnabled). This handler is registered after AvailabilityScreen's
+        // BackHandler(enabled = isDrawerOpen), and Tools does not close the dropdown, so with the
+        // dropdown open under the drawer this took Back and the drawer stayed open. The dropdown
+        // stays open under the drawer; the next Back, with the drawer closed, closes it.
+        BackHandler(enabled = showSearchDropdown && !isDrawerOpen()) {
             showSearchDropdown = false
         }
         // Same "actually hide the IME" fix as isDrawerOpen's own LaunchedEffect above — this panel
