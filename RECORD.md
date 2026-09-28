@@ -3238,3 +3238,14 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner, verbatim: "Yes it should. Good application of my principle. Proceed with that change". Written by the planner by hand.
 
 ---
+
+**Kind:** continuation
+**ID:** 2026-09-28-39
+**Timestamp:** 2026-09-28T13:23:22Z
+**Continues:** 2026-09-28-34
+**Dispatch-file:** preserved/2026-09-28-39.md
+**Reason:** the owner extended -38 to the compact layout.
+**Changes:** On compact (portrait and short landscape), the search bar's tap opens the panel with the location controls showing, if they sit in a collapsed section today; if they already show, no change, evidenced by a test.
+**Notes:** Owner, verbatim: "Apply the same advanced search location change to portrait mode please". Written by the planner by hand.
+
+---
