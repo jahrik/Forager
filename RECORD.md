@@ -2849,3 +2849,14 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner's answers, verbatim: on the running recording, "Mine, stop & keep it"; on test data, "Yes, labelled test data (Recommended)". The first coder's flags carried for later, not investigated: the location puck drawing under the overlays after a style reload; the bubble's tail about 150 px right of the tapped dot; about 2.5 MapLibre errors a second, "getMetersPerPixelAtLatitude after the MapView was destroyed". Written by the planner by hand; the backlog check 2026-09-28-04 waits for this run.
 
 ---
+
+**Kind:** continuation
+**ID:** 2026-09-28-07
+**Timestamp:** 2026-09-28T04:12:00Z
+**Continues:** 2026-09-28-03
+**Dispatch-file:** preserved/2026-09-28-07.md
+**Reason:** the L0b coder's verification record (09bf96b, then tests first at 55114ee) found four premises that change the build's shape (F1 a second DataStore cannot open map_preferences; F2 registry colour fields would ship credited in release; F3 three popover-anchoring assertions; F4 two hosts reachable only through four files outside the scope) and asked Q2 to Q12.
+**Changes:** Owner's rulings on Q3, Q4, Q6 and Q10; planner's rulings on F1 to F4, Q2, Q5, Q7, Q8, Q9 and Q12, as preserved/2026-09-28-07.md gives them. Scope widened by F4 to ui/availability/AvailabilityCompactScaffold.kt, ui/log/JournalTab.kt, ui/log/CartographyScreen.kt and ui/log/LogPanel.kt, for parameter threading only. Predictions and finish line unchanged; prediction 2 will be wrong in part by F3.
+**Notes:** Owner's answers, verbatim: "Stays open (Recommended)", "Cluster stops above it (Recommended)", "Leave it out (Recommended)", "Translucent at 100% (Recommended)". Planner's rulings not asked of the owner, open to change: Q5 colour fields on the Maps tab only; Q8 colour fields not tappable in L0b; Q9 a minimum zoom with no new copy. **Timestamp correction:** the Timestamp fields of 2026-09-28-03 (03:40:00Z), -04 (03:55:00Z), -05 (04:35:00Z) and -06 (04:45:00Z), and the Preserved lines of their store copies, were estimated by the planner rather than read from the clock. The commits that carry them were made at 03:21:13Z (6235a86), 03:22:57Z (394d889), 03:48:04Z (50820b1) and 03:49:12Z (bc64d37); those are the correct times. 2026-09-28-02's 03:05:00Z matches its commit f18af53 (03:05:48Z). From this entry on, timestamps are read from the clock. The store copy of this message says 04:15:00Z; it was written minutes before this entry, whose time is read from the clock.
+
+---
