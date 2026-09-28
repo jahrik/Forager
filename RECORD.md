@@ -3059,3 +3059,14 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner, verbatim: "Go ahead and look into those 3 things you brought up also". Flags from docs/audits/2026-09-28-maps-search-bar-after-entry-completion-report.md. Written by the planner by hand.
 
 ---
+
+**Kind:** continuation
+**ID:** 2026-09-28-24
+**Timestamp:** 2026-09-28T10:30:52Z
+**Continues:** 2026-09-28-19
+**Dispatch-file:** preserved/2026-09-28-24.md
+**Reason:** the coder stopped with nothing committed: over the 26 nightGround clusters no candidate grey passes -22's "visible (0.02 ΔE on every cluster)" or "outline (3:1 on every cluster)", and today's #FFFFFF already fails the outline check on four (the black night casing is under 3:1 on 11 clusters with no fill at all). Figures from a Python copy of the test's helpers, checked against the class's own pins; sRGB blend assumed.
+**Changes:** The planner withdraws its own thresholds (they were not the owner's). The as-drawn test records per-cluster figures as ratchet pins instead of gating; OFFLINE_REGION_FILL_OPACITY made internal (one word in MapLayers.kt); candidates fixed at #202020, #404040, #606060 for the owner's pick from phone shots; APKs built, not pushed.
+**Notes:** Owner's rulings unchanged, verbatim: "Test it as drawn (Recommended)", "You pick from phone shots (Recommended)". Flag carried: the black night casing itself is under 3:1 on 11 of 26 night clusters, a property of the casing. Written by the planner by hand.
+
+---
