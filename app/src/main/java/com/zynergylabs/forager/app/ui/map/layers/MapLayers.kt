@@ -127,6 +127,8 @@ object MapLayerIds {
     const val WAYPOINTS = "waypoints-layer"
     const val FINDS = "find-markers-layer"
     const val PHOTOS = "photo-markers-layer"
+    const val FORECAST_CHANTERELLES = "forecast-chanterelles-layer"
+    const val FORECAST_CHICKEN_OF_THE_WOODS = "forecast-chicken-of-the-woods-layer"
 }
 
 /** Every overlay GeoJSON source id, the values `SightingsMap` has always used. */
@@ -140,6 +142,8 @@ object MapSourceIds {
     const val WAYPOINTS = "waypoints"
     const val FINDS = "find-markers"
     const val PHOTOS = "photo-markers"
+    const val FORECAST_CHANTERELLES = "forecast-chanterelles"
+    const val FORECAST_CHICKEN_OF_THE_WOODS = "forecast-chicken-of-the-woods"
 }
 
 private val LINE_OPACITY = listOf(BaseOpacity(OpacityProperty.LINE, 1f))

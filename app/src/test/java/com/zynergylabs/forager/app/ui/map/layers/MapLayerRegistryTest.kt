@@ -12,6 +12,10 @@ import org.junit.Test
  * before L0a, read at `488d361`) with the one change the owner accepted (ruling 1 on
  * `prompts/preserved/2026-09-27-30.md`): the search centre and the sighting dots move from below the
  * track lines to the markers group, above them.
+ *
+ * Map layers L0b, B7: the colour-field group, empty in L0a, now holds the two synthetic test layers,
+ * below every other layer, with their own flags (toggle, opacity slider, reorder on) and no other
+ * layer's flags changed. The assertions that pinned the empty group are updated to pin the new one.
  */
 class MapLayerRegistryTest {
 
@@ -31,7 +35,10 @@ class MapLayerRegistryTest {
         MapLayerIds.PHOTOS,
     )
 
-    private val expectedOrder = listOf(
+    /** L0b's two synthetic colour fields, bottom to top (registry order). */
+    private val colourFields = listOf(MapLayerIds.FORECAST_CHICKEN_OF_THE_WOODS, MapLayerIds.FORECAST_CHANTERELLES)
+
+    private val expectedOrder = colourFields + listOf(
         MapLayerIds.OFFLINE_REGION_FILL,
         MapLayerIds.OFFLINE_REGION_OUTLINE,
         MapLayerIds.BREADCRUMB_CASING,
@@ -52,8 +59,8 @@ class MapLayerRegistryTest {
     fun `every current layer is in the registry exactly once, and nothing else is`() {
         val ids = MAP_LAYER_REGISTRY.map { it.id }
         assertEquals("ids are unique", ids.size, ids.toSet().size)
-        assertEquals(orderBeforeL0a.toSet(), ids.toSet())
-        assertEquals(12, ids.size)
+        assertEquals((orderBeforeL0a + colourFields).toSet(), ids.toSet())
+        assertEquals(14, ids.size)
     }
 
     @Test
@@ -65,17 +72,18 @@ class MapLayerRegistryTest {
     fun `the only change from the order before L0a is the search centre and the sightings moving above every line`() {
         val moved = setOf(MapLayerIds.SEARCH_CENTRE, MapLayerIds.SIGHTINGS)
         val ids = MAP_LAYER_REGISTRY.map { it.id }
-        assertEquals("every other layer keeps its relative order", orderBeforeL0a - moved, ids - moved)
+        assertEquals("every other layer keeps its relative order", orderBeforeL0a - moved, ids - moved - colourFields.toSet())
         val lastLine = ids.indexOfLast { spec(it).zGroup == ZGroup.LINES }
         moved.forEach { assertTrue("$it draws above every line", ids.indexOf(it) > lastLine) }
     }
 
     @Test
-    fun `the groups run colour fields, areas, lines, markers, bottom to top, and the colour-field group is empty`() {
+    fun `the groups run colour fields, areas, lines, markers, bottom to top, and the colour-field group holds the two synthetic layers`() {
         val groups = MAP_LAYER_REGISTRY.map { it.zGroup }
         assertEquals("groups never step down", groups.sortedBy { it.ordinal }, groups)
         assertEquals(listOf(ZGroup.COLOUR_FIELDS, ZGroup.AREAS, ZGroup.LINES, ZGroup.MARKERS), ZGroup.entries.toList())
-        assertTrue(MAP_LAYER_REGISTRY.none { it.zGroup == ZGroup.COLOUR_FIELDS })
+        assertEquals(colourFields, MAP_LAYER_REGISTRY.filter { it.zGroup == ZGroup.COLOUR_FIELDS }.map { it.id })
+        assertEquals("one registry colour field per colour-field spec", colourFields.toSet(), COLOUR_FIELDS.map { it.layerId }.toSet())
         assertEquals(listOf(MapLayerIds.OFFLINE_REGION_FILL), MAP_LAYER_REGISTRY.filter { it.zGroup == ZGroup.AREAS }.map { it.id })
     }
 
@@ -87,6 +95,8 @@ class MapLayerRegistryTest {
     @Test
     fun `each layer's kind, renderer and source are the ones the map builds it with`() {
         val expected = mapOf(
+            MapLayerIds.FORECAST_CHICKEN_OF_THE_WOODS to Triple(LayerKind.COLOUR_FIELD, LayerRenderer.FILL, MapSourceIds.FORECAST_CHICKEN_OF_THE_WOODS),
+            MapLayerIds.FORECAST_CHANTERELLES to Triple(LayerKind.COLOUR_FIELD, LayerRenderer.FILL, MapSourceIds.FORECAST_CHANTERELLES),
             MapLayerIds.OFFLINE_REGION_FILL to Triple(LayerKind.AREA, LayerRenderer.FILL, MapSourceIds.OFFLINE_REGIONS),
             MapLayerIds.OFFLINE_REGION_OUTLINE to Triple(LayerKind.LINE, LayerRenderer.LINE, MapSourceIds.OFFLINE_REGIONS),
             MapLayerIds.BREADCRUMB_CASING to Triple(LayerKind.LINE, LayerRenderer.LINE, MapSourceIds.BREADCRUMB),
@@ -104,8 +114,12 @@ class MapLayerRegistryTest {
     }
 
     @Test
-    fun `markers and lines are tappable, casings and the offline fill are not`() {
+    fun `markers and lines are tappable, casings, the offline fill and the colour fields are not`() {
         val expected = mapOf(
+            // No cell tap in L0b (owner: the readout is M1's), and a tappable cell under every tap
+            // would stop resolveTap ever reaching its box stage for a near miss.
+            MapLayerIds.FORECAST_CHICKEN_OF_THE_WOODS to TapGroup.NONE,
+            MapLayerIds.FORECAST_CHANTERELLES to TapGroup.NONE,
             MapLayerIds.OFFLINE_REGION_FILL to TapGroup.NONE,
             MapLayerIds.OFFLINE_REGION_OUTLINE to TapGroup.LINE,
             MapLayerIds.BREADCRUMB_CASING to TapGroup.NONE,
@@ -129,6 +143,7 @@ class MapLayerRegistryTest {
             spec(MapLayerIds.SIGHTINGS).baseOpacities,
         )
         assertEquals(listOf(BaseOpacity(OpacityProperty.FILL, 0.2f)), spec(MapLayerIds.OFFLINE_REGION_FILL).baseOpacities)
+        colourFields.forEach { assertEquals(it, listOf(BaseOpacity(OpacityProperty.FILL, 0.6f)), spec(it).baseOpacities) }
         MAP_LAYER_REGISTRY.filter { it.renderer == LayerRenderer.LINE }.forEach {
             assertEquals(it.id, listOf(BaseOpacity(OpacityProperty.LINE, 1f)), it.baseOpacities)
         }
@@ -151,9 +166,23 @@ class MapLayerRegistryTest {
     }
 
     @Test
-    fun `no current layer is reorderable or carries a credit`() {
-        assertTrue(MAP_LAYER_REGISTRY.none { it.userReorderable })
-        assertTrue(MAP_LAYER_REGISTRY.none { it.credit != null })
+    fun `only the colour fields are reorderable, offer an opacity slider and carry a credit, and no other layer's flags changed`() {
+        assertEquals(colourFields, MAP_LAYER_REGISTRY.filter { it.userReorderable }.map { it.id })
+        assertEquals(colourFields, MAP_LAYER_REGISTRY.filter { it.userOpacity }.map { it.id })
+        assertEquals(colourFields.associateWith { SYNTHETIC_DATA_CREDIT }, MAP_LAYER_REGISTRY.filter { it.credit != null }.associate { it.id to it.credit })
+        assertEquals(
+            "toggleable: L0a's seven, plus the two colour fields",
+            colourFields + listOf(
+                MapLayerIds.OFFLINE_REGION_FILL,
+                MapLayerIds.BREADCRUMB,
+                MapLayerIds.KEPT_TRACKS,
+                MapLayerIds.PLANNED_TRIPS,
+                MapLayerIds.WAYPOINTS,
+                MapLayerIds.FINDS,
+                MapLayerIds.PHOTOS,
+            ),
+            MAP_LAYER_REGISTRY.filter { it.userToggleable }.map { it.id },
+        )
     }
 
     // registryProblems: each rule shown able to fail.
