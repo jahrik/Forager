@@ -177,20 +177,21 @@ data class MapRenderMode(
     val layers: MapLayersState = MapLayersState.DEFAULT,
     /**
      * Fires when a tap's winning feature is on any layer but the sighting dots (map layers L0a, A4),
-     * with that layer's id (`MapLayerIds`) and the feature's own id: the record id for a find,
-     * photo, kept track, waypoint, planned trip or offline region, and a fixed id for the search
-     * centre and the breadcrumb (`SEARCH_CENTRE_FEATURE_ID`, `BREADCRUMB_FEATURE_ID`). A sighting
-     * still goes to [MapSlot]'s `onSightingTap`, exactly as before. Which feature wins is
-     * `resolveTap`'s decision: markers, then lines, then colour fields, the topmost layer within a
-     * group.
+     * as one [MapFeatureTap]: the layer's id (`MapLayerIds`), the feature's own id (the record id
+     * for a find, photo, kept track, waypoint, planned trip or offline region; a cell's centre for a
+     * colour field), and where the tap was (M1, F1). A sighting still goes to [MapSlot]'s
+     * `onSightingTap`, exactly as before. Which feature wins is `resolveTap`'s decision: markers,
+     * then lines, then a colour-field cell only under the finger with nothing else near. The search
+     * centre and the recording trail take no taps (M1, owner's ruling 4). It also fires on every
+     * camera idle for [MapOverlayContent.focusedFeature], at that glyph's own position.
      *
-     * [MapSlot]'s `onTap` still fires after this one, as it did before L0a for a tap on any marker
-     * but a sighting, so the fullscreen map's "tap to restore chrome" is unchanged. No UI reacts to
-     * this callback yet (M1 builds the bubbles). `{ _, _ -> }` by default, a non-capturing lambda, so
-     * every existing caller's [MapRenderMode] still compares equal. Here rather than on [MapSlot]
+     * **Since M1, [MapSlot]'s `onTap` no longer fires after this one** (owner's ruling 1, "Bubble
+     * only"): a feature tap opens its bubble and nothing else, as a sighting tap always did, so a
+     * feature tap no longer restores the fullscreen chrome. `{}` by default, a non-capturing lambda,
+     * so every existing caller's [MapRenderMode] still compares equal. Here rather than on [MapSlot]
      * for the parameter-count reason [layers] gives.
      */
-    val onFeatureTap: (layerId: String, featureId: String) -> Unit = { _, _ -> },
+    val onFeatureTap: (MapFeatureTap) -> Unit = {},
     /**
      * Where this map's colour fields read their cells (map layers L0b, B5), or `null` for a map that
      * draws none: the Cartography entry map and the centre-pin pickers pass none (planner's ruling on
@@ -456,6 +457,7 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
         resumeTrackingRequestId = content.resumeTrackingRequestId,
         resetOrientationRequestId = content.resetOrientationRequestId,
         focusedObservationId = content.focusedObservationId,
+        focusedFeature = content.focusedFeature,
         trackLiveLocation = renderMode.trackLiveLocation,
         showSearchCentre = renderMode.showSearchCentre,
         useOfflineTiles = renderMode.useOfflineTiles,

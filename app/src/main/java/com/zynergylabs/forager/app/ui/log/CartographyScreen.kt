@@ -45,6 +45,7 @@ import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.PhotoSource
 import com.zynergylabs.forager.app.domain.model.Track
+import com.zynergylabs.forager.app.ui.map.MapRecordSources
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.LocalDate
@@ -169,6 +170,12 @@ internal fun CartographyScreen(
     shortWindowHeader: (@Composable ((@Composable () -> Unit)?) -> Unit)? = null,
     /** Off while the Tools drawer is open over the Journal, so Back closes the drawer (intent 2026-09-28-28); see [JournalTab]'s parameter of the same name. `true` (the default) is every other caller, unchanged. */
     backEnabled: Boolean = true,
+    /**
+     * M1: what the entry map's glyph bubbles look records up in and open (the J5c sheet's inputs, the
+     * photos, and "Open find"), threaded through to [CartographyEntryReportScreen] only; nothing here
+     * reads it. Defaulted so other callers and tests are unchanged.
+     */
+    mapBubbleSources: MapRecordSources = MapRecordSources(),
 ) {
     var mode by remember { mutableStateOf(CartographyEntryMode.VIEW) }
     val shortWindow = shortWindowHeader != null
@@ -345,6 +352,7 @@ internal fun CartographyScreen(
                     getCurrentLocation = getCurrentLocation,
                     layersState = mapLayers,
                     onLayerVisibilityChanged = onMapLayerVisibilityChanged,
+                    mapBubbleSources = mapBubbleSources,
                     onEdit = { mode = CartographyEntryMode.EDIT },
                     onDeleteEntry = { onDeleteEntry(editingEntry.id) },
                     onBack = onCloseEntry,

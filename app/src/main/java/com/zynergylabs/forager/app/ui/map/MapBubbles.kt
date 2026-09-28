@@ -138,6 +138,12 @@ data class MapRecordSources(
     /** How many journal entries keep each photo (`MushroomLogUiState.cartographyEntryPhotoReferenceCounts`). */
     val photoEntryReferenceCounts: Map<String, Int> = emptyMap(),
     val waypoints: List<Waypoint> = emptyList(),
+    /**
+     * An entry map's kept waypoints as the entry snapshotted them (real names, snapshot positions),
+     * for a waypoint whose record has since left [waypoints]: its bubble still names it, with no
+     * details action (the J5c sheet reads records, and there is none).
+     */
+    val snapshotWaypoints: List<Waypoint> = emptyList(),
     val waypointEntryReferenceCounts: Map<String, Int> = emptyMap(),
     val tracks: List<Track> = emptyList(),
     val plannedTrips: List<PlannedTrip> = emptyList(),
@@ -164,8 +170,8 @@ sealed interface MapBubbleContent {
     /** A photo: the photo, its date, and what it is attached to. */
     data class Photo(val photo: LogPhoto, val date: String, val attachedTo: String?) : MapBubbleContent
 
-    /** A waypoint: its name and MGRS; Directions and details. */
-    data class WaypointContent(val waypoint: Waypoint, val mgrs: String?) : MapBubbleContent
+    /** A waypoint: its name and MGRS; Directions, and details while its record exists ([hasDetails]). */
+    data class WaypointContent(val waypoint: Waypoint, val mgrs: String?, val hasDetails: Boolean = true) : MapBubbleContent
 
     /** A track: its title, date, distance and duration; details. */
     data class TrackContent(val trackId: String, val title: String, val date: String, val distance: String, val duration: String) : MapBubbleContent
@@ -215,9 +221,10 @@ fun mapBubbleContentFor(target: MapBubbleTarget.FeatureTarget, sources: MapRecor
                 attachedTo = photoAttachmentLine(gallery, sources),
             )
         }
-        MapBubbleKind.WAYPOINT -> sources.waypoints.firstOrNull { it.id == id }?.let { waypoint ->
-            MapBubbleContent.WaypointContent(waypoint, mgrsOf(LatLng(waypoint.lat, waypoint.lng)))
-        }
+        MapBubbleKind.WAYPOINT -> sources.waypoints.firstOrNull { it.id == id }
+            ?.let { waypoint -> MapBubbleContent.WaypointContent(waypoint, mgrsOf(LatLng(waypoint.lat, waypoint.lng))) }
+            ?: sources.snapshotWaypoints.firstOrNull { it.id == id }
+                ?.let { kept -> MapBubbleContent.WaypointContent(kept, mgrsOf(LatLng(kept.lat, kept.lng)), hasDetails = false) }
         MapBubbleKind.PLANNED_TRIP -> sources.plannedTrips.firstOrNull { it.id == id }?.let { trip ->
             // The Trip Planner row's lines (AvailabilityTripsWaypointsUi's PlannedTripRow): name,
             // date, MGRS when there is one, decimal degrees.

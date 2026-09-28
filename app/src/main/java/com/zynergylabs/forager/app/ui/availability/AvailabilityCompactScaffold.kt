@@ -140,6 +140,7 @@ import com.zynergylabs.forager.app.ui.log.JournalTab
 import com.zynergylabs.forager.app.ui.log.JournalScreenState
 import com.zynergylabs.forager.app.ui.log.MushroomLogUiState
 import com.zynergylabs.forager.app.ui.log.PendingJournalDestination
+import com.zynergylabs.forager.app.ui.map.MapRecordSources
 import com.zynergylabs.forager.app.ui.map.Basemap
 import com.zynergylabs.forager.app.ui.map.MapMode
 import com.zynergylabs.forager.app.ui.map.MapSlot
@@ -168,6 +169,10 @@ internal fun CompactMainScaffold(
     uiState: AvailabilityUiState,
     distanceUnit: DistanceUnit,
     pendingJournalDestination: () -> PendingJournalDestination?,
+    /** M1: the find a [PendingJournalDestination.VIEW_FIND] request opens; threaded to [JournalTab]. */
+    pendingJournalFindId: () -> String? = { null },
+    /** M1: what the Maps tab's glyph bubbles look records up in; threaded to [CompactMapTab]. */
+    mapBubbleSources: MapRecordSources = MapRecordSources(),
     currentTime: CurrentTimeProvider,
     mapSlot: MapSlot,
     mapIconClusterPosition: MapIconClusterPositionState,
@@ -802,6 +807,7 @@ internal fun CompactMainScaffold(
                                 mapMode = mapMode(),
                                 onMapModeSelected = { onMapModeChange(it) },
                                 mapLayers = mapLayers,
+                                bubbleSources = mapBubbleSources,
                                 onPlaceTripPin = onPlaceTripPin,
                                 // Opens straight to the log's edit form for the new entry, bypassing
                                 // Search — see DrawerPanel's own doc comment on why Log is reachable
@@ -1033,6 +1039,7 @@ internal fun CompactMainScaffold(
                                 onDeleteWaypoint = onDeleteWaypoint,
                                 waypointEntryReferenceCounts = waypointEntryReferenceCounts,
                                 pendingDestination = pendingJournalDestination(),
+                                pendingFindId = pendingJournalFindId(),
                                 onPendingDestinationConsumed = { onPendingJournalDestinationChange(null) },
                                 journalState = journalScreenState,
                                 // Intent 2026-09-28-28: while the Tools drawer is open over the
