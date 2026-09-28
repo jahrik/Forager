@@ -407,12 +407,18 @@ abstract class MapChromeCompactTests(glyphX: Dp, glyphY: Dp, glyphStep: Dp) {
         composeRule.assertSolid(TOOLS_DRAWER_SHEET_TAG, roles.drawer)
     }
 
+    /**
+     * -77, Q4: on the Maps tab with no map drawn yet (sightings loading), a surface follows the tab. A
+     * snackbar, because the Maps tab's own bottom bar or rail, and so Tools, is composed inside the map's
+     * Box and is not there while sightings load (first run of this test, through the drawer, at b019080).
+     */
     @Test
-    fun `the Tools drawer over the Maps tab while sightings load follows the tab, at the map chrome's alpha`() {
+    fun `a snackbar over the Maps tab while sightings load follows the tab, at the map chrome's alpha`() {
         state.ui = state.ui.copy(isLoadingSightings = true)
         setScreen()
-        openTab("Tools")
-        composeRule.assertOverMap(TOOLS_DRAWER_SHEET_TAG, roles.drawer, roles.onSurface)
+        state.tripStartWarning = RecordingNotice(1, "Test warning")
+        composeRule.waitForIdle()
+        composeRule.assertOverMap(COMPACT_SNACKBAR_TAG, roles.snackbar, roles.snackbarContent)
     }
 
     @Test
