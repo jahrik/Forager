@@ -703,3 +703,12 @@ Asked after the J6 premise pulse (`docs/audits/2026-09-28-j6-premise-pulse.md`, 
 3. **The narrow map on mid-size tablets is fixed as part of J6.** Beside the 360 dp drawer and the 360 dp species list, the map is about 119 dp at 840 dp and nothing at 721 dp or less. That is the pulse's arithmetic, not observed.
 
 The owner added, verbatim: "Before the J6 device check, perform a device check for a sanity test to see how much of a issue the layout sizes are." The planner places this **before J6 is dispatched**, so its measurements feed J6. It runs on the owner's tablet, because the S22 never takes the wide tree. It waits for the owner to connect the tablet and to answer the install, data and first-run-prompt questions. J6's dispatch follows it.
+
+**The sanity test is J6's device check, not a check before it (owner, 2026-09-28).** This supersedes the last paragraph of "J6 rulings" above, which placed a separate tablet check before J6 was dispatched and stands as the record of that misreading. The owner corrected it, verbatim: "Sorry, I meant, "for J6, perform a device check for a sanity test to see how much of a issue the layout sizes are. My answers otherwise are: 1 A 2 A 3 A".
+
+So:
+- There is no pre-J6 check.
+- **J6's own device check on the owner's tablet includes a layout-size sanity test.** It measures each pane's real width in both orientations: the Journal list, the detail pane, the species list, the map and an entry's own map. It checks them against the pulse's arithmetic and against J6's narrow-map fix, with screenshots for the owner to judge.
+- The rulings 1 A, 2 A and 3 A stand.
+- The questions about installing on the tablet, test data and first-run prompts wait until J6 is ready to test, when the planner tells the owner.
+- J6 can be dispatched from the plan and the pulse, and is queued as before.
