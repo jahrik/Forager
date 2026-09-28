@@ -20,7 +20,6 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -671,18 +670,25 @@ class LeavingTheJournalFixesTest {
     private fun dayEntryCard() =
         composeRule.onNode(hasTestTag("entry-card-${COMMITTED_DAY_ENTRY.id}") or hasTestTag("entry-row-${COMMITTED_DAY_ENTRY.id}"))
 
-    /** The day entry's editor is showing, not its report: the account field is there and the report's menu is not. */
+    /**
+     * The day entry's editor is showing: its editable account field is there. (Both the report and
+     * the editor carry an "Entry options" menu, so that is no marker of either.)
+     */
     private fun assertDayEntryEditorShowing(what: String) {
         assertEquals(
             "$what: the day entry's editor shows (its account field)",
             1,
             composeRule.onAllNodes(hasText("Your own account (optional)") and hasSetTextAction()).fetchSemanticsNodes().size,
         )
-        assertEquals(
-            "$what: the report view is not showing (no Entry options menu)",
-            0,
-            composeRule.onAllNodesWithContentDescription("Entry options").fetchSemanticsNodes().size,
-        )
+    }
+
+    /** The unsaved text is drawn only inside the editor's editable field, never as a report's plain text. */
+    private fun assertTypedTextOnlyInEditorField() {
+        val everywhere = composeRule.onAllNodes(hasText(TYPED_TEXT, substring = true), useUnmergedTree = true).fetchSemanticsNodes().size
+        val inField = composeRule.onAllNodes(hasText(TYPED_TEXT, substring = true) and hasSetTextAction(), useUnmergedTree = true)
+            .fetchSemanticsNodes().size
+        assertTrue("the typed text is drawn in the editor's field ($inField node(s))", inField >= 1)
+        assertEquals("the typed text is drawn nowhere but the editor's field", inField, everywhere)
     }
 
     private fun typeDayEntryTextAndRoundTrip() {
@@ -700,6 +706,7 @@ class LeavingTheJournalFixesTest {
 
         assertDayEntryEditorShowing("back on Journal")
         composeRule.onNode(hasText("Your own account (optional)") and hasSetTextAction()).assertTextContains(TYPED_TEXT)
+        assertTypedTextOnlyInEditorField()
         assertEquals("the store still holds the original text", COMMITTED_DAY_ENTRY.text, storedDayEntry(COMMITTED_DAY_ENTRY.id)?.text)
         assertEquals("the edit is still held as unsaved", true, cartographyViewModel.uiState.value.hasUnsavedChanges)
     }

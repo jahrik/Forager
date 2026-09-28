@@ -98,6 +98,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -137,6 +138,7 @@ import com.zynergylabs.forager.app.ui.log.ScreenEdge
 import com.zynergylabs.forager.app.ui.log.CartographyUiState
 import com.zynergylabs.forager.app.ui.log.InAppCameraTarget
 import com.zynergylabs.forager.app.ui.log.JournalTab
+import com.zynergylabs.forager.app.ui.log.CartographyEntryMode
 import com.zynergylabs.forager.app.ui.log.JournalScreenState
 import com.zynergylabs.forager.app.ui.log.MushroomLogUiState
 import com.zynergylabs.forager.app.ui.log.PendingJournalDestination
@@ -286,6 +288,12 @@ internal fun CompactMainScaffold(
      * extraction this file's header describes, so it is not among the 109 parameters counted there.
      */
     journalScreenState: JournalScreenState,
+    /**
+     * Intent 2026-09-28-44, F2: whether an open day entry shows its report or its editor, created in
+     * `AvailabilityScreen` beside [journalScreenState] and handed to [JournalTab]'s
+     * `CartographyScreen`, so it outlives the Journal branch. Not among the 109 either.
+     */
+    cartographyEntryModeState: MutableState<CartographyEntryMode>,
 ) {
         // SearchDropdown, under ActiveSearchSummary — see that composable's own onToggleSearch doc
         // comment. Local to this scaffold, not AvailabilityUiState: which panel is showing is a
@@ -1055,6 +1063,7 @@ internal fun CompactMainScaffold(
                                 // Journal, Back closes the drawer, so the Journal's own handlers are
                                 // off. See JournalTab's backEnabled for why off rather than outranked.
                                 backEnabled = !isDrawerOpen(),
+                                cartographyEntryModeState = cartographyEntryModeState,
                                 modifier = Modifier.fillMaxSize(),
                             )
                             // Never actually reached — CompactTab.TOOLS never becomes compactTab itself,

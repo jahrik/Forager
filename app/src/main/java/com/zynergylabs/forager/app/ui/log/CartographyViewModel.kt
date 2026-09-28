@@ -230,13 +230,26 @@ class CartographyViewModel(
      * Save/Discard path, so this branch only ever re-merges already-clean data there; it's the
      * ordinary "closed without any unsaved change" path (nothing to prompt about) that actually needs
      * it.
+     *
+     * **Enforced, not assumed (intent 2026-09-28-44, F2).** The guarantee above was true only of the
+     * paths it names: a committed entry that came back from a tab change in its report view reached
+     * this dirty from the report's back arrow, and its unsaved edit was merged into [entries], so
+     * the Entries card showed text the store never received, with nothing marked unsaved
+     * (`docs/audits/2026-09-28-leaving-the-journal-investigation.md`, Behaviour 2). A dirty committed
+     * entry is now never merged: the list keeps the stored row. On the leave prompt's Save the list
+     * is then settled by [onSaveEntry]'s own upsert when the write lands, which is what it already
+     * did when this ran first.
      */
     fun onCloseEntry() {
         val current = _uiState.value.editingEntry
+        val closingUnsavedEdit = current != null && !current.isDraft && _uiState.value.hasUnsavedChanges
+        if (closingUnsavedEdit) {
+            Log.i(TAG, "Closing entry '${current?.id}' with unsaved changes: the Entries list keeps the stored row.")
+        }
         _uiState.update { state ->
             state.copy(
                 entries = when {
-                    current == null || current.isDraft -> state.entries
+                    current == null || current.isDraft || closingUnsavedEdit -> state.entries
                     state.entries.any { it.id == current.id } -> state.entries.map { if (it.id == current.id) current else it }
                     else -> state.entries + current
                 },

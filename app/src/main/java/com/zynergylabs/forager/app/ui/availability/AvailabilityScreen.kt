@@ -274,6 +274,7 @@ import com.zynergylabs.forager.app.ui.log.CameraXInAppCamera
 import com.zynergylabs.forager.app.ui.log.InAppCameraHost
 import com.zynergylabs.forager.app.ui.log.InAppCameraSlot
 import com.zynergylabs.forager.app.ui.log.InAppCameraTarget
+import com.zynergylabs.forager.app.ui.log.CartographyEntryMode
 import com.zynergylabs.forager.app.ui.log.JournalTab
 import com.zynergylabs.forager.app.ui.log.leaveKeepsDraft
 import com.zynergylabs.forager.app.ui.log.PendingDeleteNotice
@@ -762,6 +763,12 @@ fun AvailabilityScreen(
     // the Journal tab no longer disposes it, and saveable so an Activity recreation does not either.
     // See JournalScreenState's own doc comment.
     val journalScreenState = rememberJournalScreenState()
+    // Intent 2026-09-28-44, F2 (the owner: "Return to the editor (Recommended)"): whether an open day
+    // entry shows its report or its editor. Held here beside journalScreenState for the same reason,
+    // not in it: JournalScreenState holds the places a user chose to be, and this is the state of an
+    // open entry, which the ViewModel also holds. Saveable, so a recreation (a night-mode toggle, a
+    // fold) does not bring an unsaved edit back in its report view either; the enum saves as-is.
+    val cartographyEntryModeState = rememberSaveable { mutableStateOf(CartographyEntryMode.VIEW) }
 
     // Device-check patch, Items 2/3: whether a find's camera/gallery round-trip is currently in
     // flight, reported up from whichever of JournalTab/LogPanel is composed via
@@ -1655,6 +1662,7 @@ fun AvailabilityScreen(
             onRadiusChanged = onRadiusChanged,
             onMonthSelected = onMonthSelected,
             journalScreenState = journalScreenState,
+            cartographyEntryModeState = cartographyEntryModeState,
         )
     }
 
