@@ -608,3 +608,17 @@ What the planner takes this to mean, pending the owner's answers on edge cases:
 - The icon cluster (`MapChrome.kt:233-236`) and the Layers sheet (`MapLayersSheet.kt:221`) already follow it.
 
 Before the dispatch widens, a read-only pulse inventories every surface drawn over a map (`docs/audits/2026-09-28-map-chrome-inventory-pulse.md` when filed). Edge cases the pulse surfaces, such as dialogs, text fields and drawers, go to the owner before anything is built. Dispatch `2026-09-28-56` stays queued behind J8, and it will be widened by a continuation, not rewritten.
+
+**Edge-case rulings (owner, 2026-09-28).** These were asked after the map-chrome inventory pulse (`docs/audits/2026-09-28-map-chrome-inventory-pulse.md`, read at `76a67f3`). Verbatim answers:
+1. Dialogs, pop-up menus and the snackbar over a map: **"80% over the map"**. This was chosen against the planner's recommendation to keep them solid.
+2. The Tools drawer: **"80% over Maps (Recommended)"**. It is solid over the other tabs.
+3. The accent buttons (the + disc, the record disc, the wide Add button): **"Keep them solid (Recommended)"**.
+4. The attribution caption at 0.55: **"Leave it at 55% (Recommended)"**.
+
+Planner's readings, stated to the owner, stand unless the owner overrules them:
+- Full-screen destinations the user opens stay opaque: the photo viewer, the find-over-view page and the camera. They are destinations, not chrome.
+- Scrims are unchanged.
+- The cluster's 0.6 container is unchanged, since it composites to 0.8 by design (`MapChromeAlphaTest`).
+- The five `0.8f` literals move onto `MAP_CHROME_OVER_MAP_ALPHA`, with no visible change.
+
+Dispatch `2026-09-28-56` is widened by continuation `2026-09-28-58`, and still waits for J8.
