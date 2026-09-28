@@ -3081,3 +3081,14 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Planner ruling on item 37: accepted as completion-only (option b); a second, larger download for the force-stop half was not judged worth it now. Created data: offline region "DEVICE CHECK 2026-09-28 B" (5 km, 244 tiles, 3.1 MB), left in place; it replaced the offline picker's remembered location. Flags carried: the snackbar and details sheet centred on the window in landscape, overlapping the rail (item 27's landscape half); the Records chip row staying hidden after Back at a list's top; a Play services screen on turning location off; inferred from code, no fixes after location is re-enabled if the app foregrounded with it off (AndroidLocationTracker.kt:71-74); the waypoint sheet's "no journal entries"; the Map tab's coordinates readout starting inside the status bar; the MapLibre error stream (42,658 lines). Written by the planner by hand.
 
 ---
+
+**Kind:** continuation
+**ID:** 2026-09-28-26
+**Timestamp:** 2026-09-28T10:44:57Z
+**Continues:** 2026-09-28-19
+**Dispatch-file:** preserved/2026-09-28-26.md
+**Reason:** continuation -24 completed its steps: 75c050f (the night offline fill leaves MapPaletteTest's solid-mark (a) and (c) and is recorded as drawn, 78 pins over 26 clusters; OFFLINE_REGION_FILL_OPACITY internal; variant checks all compiling and biting), coder's suite at 75c050f 267 / 2194 / 0 / 0 / 24; three candidate APKs built and not pushed (versionCode 1259, debug certificate matching the installed app's 32-bit hash d59f30b8). #606060 would break the night (d) pin for sightingDot (0.1510 against 0.155).
+**Changes:** A device coder installs the three candidates in turn with install -r (the first install on the S22 today, upgrading 1192 to 1259) and captures identical views (Topographical night, Street night, a close-up, one day reference) for the owner's pick; no judgement by the coder; last candidate left installed.
+**Notes:** Owner's rulings, verbatim: "Darker shade (Recommended)", "Not too dark since it can make it harder to read. Find a balance.", "You pick from phone shots (Recommended)". The coder's count of white's outline shortfalls is three clusters, not the four the planner's -24 said. Written by the planner by hand.
+
+---
