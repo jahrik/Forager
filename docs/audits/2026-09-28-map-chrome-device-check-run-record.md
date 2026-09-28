@@ -721,3 +721,71 @@ The database after check 3 (`db-c3-*`): integrity ok, `user_version` 16, every d
 the notice under the strip.
 
 **Captures, Topographical by day:** `90-` (nav, strip and bar), `94-` (centre-pin row), `98-` and `99-` (notice).
+
+## Check 4: the Journal: **every surface as built: 0.8 where the code says map, solid where it says none; the Offline maps sheet in portrait covers no map**
+
+Same process (pid 32618 after the 23:06:52.8Z relaunch). Journal, Records.
+
+**4a. The Records sheet from Offline maps: fill 0.80, but over the list, not the picker map.** The Records chip row was
+scrolled sideways by a drag on it and the "Offline maps" chip touched at (837, 463) (`104-`, `105-`). **The chip read
+"Offline maps 2"**, where the All count before had held no region (see 2a). The panel shows the picker map
+(`[0,815][1080,1625]`), then the pin row, name, radius, "Download Maps", and the downloaded rows. I scrolled the panel
+by two drags that started on plain text ("No location picked yet …"), never on the map, the slider, "Download Maps" or a
+row (`106-`, `107-`). With the "DEVICE CHECK" row in view (`[45,1533][1035,1907]`), the picker map was scrolled off
+the top. The rows lie about 900 px below the map's foot, and the sheet rises only to `y` about 1100, so **in portrait
+the sheet cannot lie over the picker map** (from the bounds). A touch on the row's title at (180, 1561) opened
+the sheet (`108-c4a-sheet-B`); Back closed it (`109-`, the list unchanged).
+- Scrim `[50,600][1030,1000]`: s 0.681 to 0.682, b (18.6, 14.6, 11.7). Sheet `[520,1440][1040,1520]` and
+  `[560,1610][1040,1680]`: a 0.135 to 0.137, rms 0.06 to 0.12 over the list's own text: **fill 0.799 to 0.802**,
+  composite 0.863 to 0.865. (`[620,1262][1040,1330]` has a flat ground, spread 9, and reads 0.122; not cited.)
+- **Verdict: the fill is 0.8 as built (`RecordsTab.kt:330`), and it shows the list through, not the map.** By my reading
+  of `108-`, the list's text behind the sheet's text makes both hard to read. The owner's to judge; see Flags. The
+  landscape layout, where the report's S1 infers the sheet does cover the picker map, is not in this dispatch's
+  rotation list and was not run.
+
+**4b. From All: opaque. Pass.** The chips scrolled back, "All" (165, 463) (`111-`: All now lists region "B" first,
+confirming the regions had loaded). A touch on region B's title at (400, 695) opened the sheet (`112-c4b-sheet-B`); Back
+closed it (`113-`). Scrim s 0.680 to 0.681; in the sheet, `[520,1440][1040,1520]` and `[600,1700][1040,1760]`, over list
+text with a spread of 42 to 55: **a 0.000, every pixel (27, 27, 27)**, `#1B1B1B`.
+
+**4c. The entry with a map** (`6107d76c…`, the L0a DEVICE CHECK entry; Entries, a touch at (300, 1200) at
+23:12:32Z; its report with the preview map `[0,437][1080,1247]`, `115-` and `116-` equal).
+- **Overflow menu: 0.80 over the map. Pass.** "Entry options" (967, 346) opened "Edit entry", "Show on map", "Delete
+  entry" at `[611,415][1036,865]`, over the map's top-right corner (`117-c4c-menu-B`). `[640,545][1020,600]`: a 0.201,
+  b 25.9, rms 0.3, **composite 0.80**, container `#202020`; `[640,680][1020,738]` a 0.195 to 0.197 (flat-ish ground,
+  spread 9 to 15). Back closed it (`118-`, equal to `116-`). "Show on map" and "Edit entry" were not touched.
+- **Delete dialog: 0.80 over the map. Pass.** The menu again, "Delete entry" at (860, 790) at 23:13:36.9Z; "Delete this
+  entry?" (`120-c4c-delete-dialog-B`), its top half over the map. **Back** at 23:14:12.9Z dismissed it (`121-`, equal to
+  `118-`); the entry is still there (`122-`). Dim over the map s 0.402; in the dialog over the map `[720,880][960,960]`
+  a 0.082, rms 0.1, and `[160,815][980,870]` a 0.081 to 0.082: **fill 0.796**, composite 0.92, container 42.4,
+  `#2B2B2B`. Over the report below the map, `[480,1380][940,1430]`, a 0.078: the same fill.
+
+**4d. The entry without a map** (`6380d39b…`, "Nothing kept"; its report has no map, and the dump no `SurfaceView`).
+- **Overflow menu: opaque. Pass.** Over the report's explanatory text (`[45,437][1035,722]`, ground spread 54 to 64),
+  `[640,545][1020,600]` and `[640,440][1020,470]`: **a 0.000, every pixel (32, 32, 32)**, `#202020` (`124-`).
+- **Delete dialog: opaque. Pass, read from flat ground.** The dialog (`126-`) lies below the text, over the report's
+  plain background, so no slope can be read. Instead: the ground there is (27, 27, 27) without the dialog and (11, 11,
+  11) under its dim; a 0.8 fill would show (36.6); **the dialog's pixels are all (43, 43, 43)**, `#2B2B2B` solid.
+  Back dismissed it (`127-`).
+
+## Check 2a, resumed after check 4: the offline region's details sheet: **fill 0.80. Pass.**
+
+Back on the Maps tab at 23:16:04Z (the same process, after the Offline maps panel had reloaded the region list): the
+same touch on the 1 km DEVICE CHECK region's outline at (330, 1195) now opened its bubble ("DEVICE CHECK", "Details";
+`129-`), and "Details" (150, 1081) the sheet (`130-c2a-region-sheet-B`). Back closed it (`131-`, camera equal to
+`128-`).
+- Scrim `[50,300][850,900]` s 0.679; sheet `[620,1262][1040,1330]`, `[520,1440][1040,1520]`, `[560,1610][1040,1680]`:
+  a 0.136 to 0.139, rms 0.3: **fill 0.795 to 0.800**, composite 0.862, container `#1B1B1B`.
+- So the earlier failure was the region list, not the sheet: at this launch the list the bubble reads was empty until
+  the Offline maps panel reloaded it (`AvailabilityViewModel.kt:897-905`, `:921-935`). Why the start-up load
+  (`:167`) left it empty I did not establish. See Flags.
+
+The database after check 4 (`db-c4-*`): integrity ok, `user_version` 16, **every digest equal to the backup's**;
+`map_preferences` decodes equal to the start's (`133-`), so opening the Offline maps panel stored nothing. Crash buffer
+0 bytes, 0 `FATAL EXCEPTION` (`132-`).
+
+**Prediction:** held, except that 4a's sheet covers the list, not the map, in portrait, which the pre-registration
+allowed for.
+
+**Captures:** `108-` (Records sheet from Offline maps), `112-` (from All), `117-` and `120-` (entry with a map), `124-`
+and `126-` (entry without a map), `130-` (region sheet over the Maps map).
