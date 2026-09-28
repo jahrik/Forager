@@ -4314,3 +4314,19 @@ Held for the owner: items 1, 2 (landscape), 6, 7 and 9.
 - Items 1, 2 (landscape), 6, 7 and 9 are re-measured against the new height. An item still colliding is a stop, reported with its geometry.
 - The drag and snap work on the new shape. A handle change beyond size is a stop.
 **Notes:** Items 2P, 3, 4, 5 and 8 are already building under -98. Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-100
+**Timestamp:** 2026-09-28T23:47:34Z
+**Title:** A DECORATIONS z-band between areas and lines for the J8 marker rings; the line halos stay in LINES; no visible change
+**Dispatch-file:** preserved/2026-09-28-100.md
+**Change:** Add ZGroup.DECORATIONS between AREAS and LINES and move the three J8 marker rings into it. The track and region halos stay beneath their lines. The full draw order is proved identical to base.
+**Scope boundary:** ui/map/layers/ and its tests, a completion report. Not palette values, taps, the line halos' band, the record, index, CLAUDE.md, plans or prompts.
+**Baseline:** journal-redesign e95aff8 (app/ as at bde2e98 for ui/map/layers).
+**Prediction (outcome — planner):** 1. One enum constant and three registry entries change. 2. The suite grows by 3 to 6.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** Build, tests first, revert checks, full suite, report, pushed; the planner writes the terminal.
+**Abort conditions:** Any visible change; a model change beyond the band; an unnamed tests-first test passing at base; a non-compiling revert; a non-held failure; disk full or OOM; two failed fixes; an unruled design question.
+**Notes:** Owner, verbatim: "Option C: decorations to keep it separate. We can change it if the forecast layering needs changes". The planner corrected its own earlier attribution: "The four groups stand as written" is the planner's restatement; the owner's L0a words were "Accept: markers above lines (Recommended)". Launched now beside -78 (different files), with Gradle serialised. Written by the planner by hand.
