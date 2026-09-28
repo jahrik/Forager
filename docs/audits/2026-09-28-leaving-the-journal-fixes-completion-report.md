@@ -1,14 +1,15 @@
-# Leaving the Journal: the fixes (completion report, stopped at F3)
+# Leaving the Journal: the fixes (completion report)
 
 Intent `2026-09-28-44`, dispatch `prompts/preserved/2026-09-28-44.md`. Worktree `forager-wt/leave-fixes`, branch
 `leave-fixes`, pushed to `journal-redesign`. Authority: `docs/plans/journal-redesign.md`, "Leaving the Journal: the
 owner's rulings (2026-09-28)". The kit is gone at this base, so I wrote no `RECORD.md` entry. The planner writes the
 terminal.
 
-**Status.** F1, F2 and F4 are built and pushed, each with its tests first, its revert checks and a full suite.
-**F3 is not built.** I stopped on it: removing the tab handler's close makes two routes reachable that open another
-find over the one now kept open, and no ruling says what happens to the kept one (see "F3: the question"). Nothing of
-F3 is in the tree.
+**Status (continuation `2026-09-28-45`): F1 to F4 are all built and pushed**, each with its tests first, its revert
+checks and a full suite. The final suite at `d7394a7` is 283 / 2303 / 0 / 0 / 24. I first stopped at F3 on a question
+(`2514fba`); the owner ruled, and F3 is built as ruled. See "Resumed", which replaces the stop's "F3: the question"
+section and sits before "D58". Every other section is the report as it stood at the stop, with only this status line
+changed; where F3 changed what they say (F1's viewed-find tests, the suites, the flags), "Resumed" says so.
 
 Paths are under `app/src/main/java/com/zynergylabs/forager/app/` unless given in full.
 
@@ -242,46 +243,6 @@ read from the JUnit XML.
 
 **Planner prediction 4 (the suite grows by 20 to 45):** +21, with F3 unbuilt.
 
-## F3: the question
-
-**F3 as dispatched:**
-- the tab handler no longer closes a find (`AvailabilityCompactScaffold.kt:471-473`);
-- the find's own mode and M1's `FindOverView` survive the return, as F2 did for day entries (`JournalTab.kt:289`,
-  `:319`);
-- backgrounding no longer closes it (`:402`, `:444-446`).
-
-All of that is mechanical, and I can build it.
-
-**What it opens.** Today, leaving the Journal always closes a find, so every route that opens a find starts with none
-open on the compact layout. With F3, a find can be open (viewed, or in its editor with a draft) while the user is on
-Maps. Two Maps routes then open another find over it:
-- "Log a find": `onLogFindHere` (`AvailabilityCompactScaffold.kt:748`) calls `onStartLogEntry`, and
-  `MushroomLogViewModel.onStartNewEntry` replaces `editingEntry` with a new draft.
-- A find bubble's "Open in Journal": `onOpenFind` (`AvailabilityScreen.kt:1119`) calls `onOpenLogEntry`, which
-  replaces `editingEntry`.
-
-Neither route runs the leave on the find it replaces. No committed data is lost either way, but the replaced find's
-draft ends up in one of two states:
-- **a changed re-edit or a new find:** its row stays stored, but it is missing from the in-memory Drafts list until
-  the next `loadEntries`;
-- **an unchanged re-edit:** its copy stays stored as a duplicate draft, which the leave would have deleted.
-
-**The two precedents disagree:**
-- M1's entry-map "Open find" leaves the open find first (`JournalTab.kt:546`, `leaveFindEditingIfNeeded()`).
-- The wide layout's "Log a find" replaces without a leave (`AvailabilityScreen.kt:1458`). On that layout this already
-  happens at base, because `LogPanel` stays composed.
-
-**Options:**
-- **(a)** Before either compact route opens its find, leave the open one through the F1 wrapper, as the entry map's
-  "Open find" does. The unchanged copy is deleted, a changed draft lands in Drafts, and "Saved to Drafts" is offered
-  only for a real draft.
-- **(b)** The same leave, but silent: the raw callback, no snackbar.
-- **(c)** No leave, as the wide layout does today.
-- **(d)** (a) or (b), and the wide layout's two routes too. That goes beyond F3's text, though `AvailabilityScreen.kt`
-  is in scope.
-
-**Lean:** (a), for the compact routes. I have not chosen, and nothing of F3 is built.
-
 ## Findings
 
 - **On the Journal, Back does not close the search dropdown**, with no drawer involved. A probe showed this at
@@ -314,6 +275,227 @@ For the next device check, on the S22 in portrait and in short landscape at 90 a
    add-action menu: open it, tap Tools, press Back. Expected: only the drawer closes. On Maps, a second Back closes
    the state.
 9. **Journal dropdown and Back** (Findings): with no drawer, does Back close it on the phone?
+
+## Resumed (continuation `2026-09-28-45`): F3
+
+### The question at the stop, and the ruling
+
+At the stop (`2514fba`) F3 was not built, for one reason. Keeping finds open across tabs makes two compact Maps routes
+reachable that open another find over the kept one:
+- "Log a find" (`onLogFindHere`, `AvailabilityCompactScaffold.kt:748` at the stop);
+- a bubble's "Open in Journal" (`onOpenFind`, `AvailabilityScreen.kt:1119` at the stop).
+
+Neither route ran the leave on the find it replaced. The wide layout's "Log a find" already replaced a find without a
+leave at base. I offered four options: (a) leave the kept one through the F1 wrapper first; (b) the same, silent;
+(c) no leave; (d) (a) or (b), and the wide routes too.
+
+**The planner's message**, `prompts/preserved/2026-09-28-45.md` (committed at `1fe6c17`), verbatim:
+
+> Planner message 2026-09-28-45, part of dispatch 2026-09-28-44. Quote it verbatim in your report.
+>
+> **F3: the owner's ruling on your question, option (d) with (a).** The owner answered, verbatim: "Leave the kept one first (Recommended)". The option read: "Before opening the new find, the kept one is properly left, on both compact and wide: an unchanged one closes silently; a changed one is kept as a draft with the 'Saved to Drafts' snackbar. Same as the entry map's 'Open find' does today."
+>
+> Build F3 as dispatched, with these additions:
+> - Every route that opens a find over a kept one first leaves the kept one through the F1 wrapper, on compact and wide alike. The routes are Maps' "Log a find", a bubble's "Open in Journal", and the wide layout's "Log a find" at `AvailabilityScreen.kt:1458`. The snackbar then shows only for a real draft.
+> - Tests first:
+>   - a changed kept find appears in Drafts at once after such an open;
+>   - an unchanged re-edit leaves no duplicate draft row;
+>   - a committed find that was only viewed is closed with no snackbar and nothing deleted.
+>
+> **Also rule on these, as the planner:**
+> - Keep the three tests that pass at base by design. They are labelled as guards, not tests-first.
+> - Your `onCloseEntry` direct-ViewModel test is accepted. Name it in the report as the one test that is not run through the screen, and why.
+> - The Journal-dropdown Back flag, the short-landscape Tools/picker flag and the `JournalScreenState` doc comment stay as flags. Do not fix them here.
+>
+> Then:
+> 1. revert checks for F3;
+> 2. the full suite;
+> 3. turn the report's stop section into a "Resumed" section;
+> 4. push.
+
+I merged `1fe6c17` with `git pull --no-rebase`; it touches only the store copy and `RECORD.md`.
+
+### Commits
+
+| Commit | What | Pushed to |
+|---|---|---|
+| `490a72a` | Tests first, part 1 (finds stay open): 8 tests, 8 failing at `1fe6c17` | `leave-fixes-wip` |
+| `de4a581` | Part 1: finds stay open | `leave-fixes-wip` only: the routes did not leave the kept find yet |
+| `e323501` | Tests first, part 2 (routes leave the kept find): 5 tests, 4 failing at `de4a581`, 1 guard | `leave-fixes-wip` |
+| `d7394a7` | Part 2: the routes leave the kept find | `journal-redesign`, with the three above |
+| this commit | This section | `journal-redesign` |
+
+Part 1 went only to the backup branch because, on its own, it makes the unleft routes reachable. `journal-redesign`
+never carried part 1 without part 2.
+
+### What landed
+
+**Part 1, finds stay open** (`de4a581`, the owner: "Keep finds open too (Recommended)"):
+- **The tab handler** in `CompactMainScaffold` no longer calls `leaveLogEntryEditingOfferingDiscard` when the Journal
+  is left or Tools opens over it (`:471-473` at base).
+- **The `ON_STOP` observer is removed** (`:401-421`, `:447-463` at base). It closed an open find on backgrounding.
+  Nothing is lost by not closing: a find's draft is written on every keystroke (`onEntryEdited`), and a process death
+  reloads it into Drafts. The observer's camera exception, `logPhotoAcquisitionInFlight`, now has no reader (Flags).
+- **The find's mode and M1's find over the view outlive the Journal branch.** `JournalTab`'s `mode` (`:289` at base)
+  and `findOverView` (`:319`) are now parameters, `findEntryModeState` and `findOverViewState`, held in
+  `AvailabilityScreen` and threaded through the scaffold. The mode is a `rememberSaveable`; `JournalEntryMode` went
+  from `private` to `internal` for it. `FindOverView` is plain `remember`: it survives the tab change, not a
+  recreation.
+  - Without the mode, a find left in its editor would come back in its report, drawing the draft as if saved:
+    Behaviour 2's failure, for finds.
+  - Without `findOverView`, a find opened over Entries from a bubble would come back open but hidden.
+- **The Maps search bar needed no change:** its gate already covers finds (Verification).
+- **Tools over an open find** leaves it open, and Back closes the drawer first, through the drawer fix's `backEnabled`.
+  This is the open-find-under-drawer test the drawer fix deferred.
+
+**Part 2, the routes leave the kept find first** (`d7394a7`, the owner: "Leave the kept one first (Recommended)"). When
+a find is open, three routes call `leaveLogEntryEditingOfferingDiscard()` before opening theirs:
+- compact "Log a find" (`CompactMainScaffold`'s `onLogFindHere`);
+- a bubble's "Open in Journal" (`AvailabilityScreen`'s `onOpenFind`, which serves compact and wide);
+- the wide layout's "Log a find" (`AvailabilityScreen`'s wide `onLogFindHere`, `:1458` at base).
+
+The effect follows F1's wrapper:
+- a changed kept find is in Drafts at once, with "Saved to Drafts";
+- an unchanged re-edit's copy is deleted;
+- a viewed find just closes, with no snackbar.
+
+`mapBubbleSources` moved below the wrapper, because its `onOpenFind` now calls it and a Kotlin local cannot be
+captured before it is declared. Nothing else in the block changed.
+
+### Tests
+
+`LeavingTheJournalFixesTest` grows from 21 to 34. `setScreen` now takes a map slot, so the bubble tests can use M1's
+`BubbleMapSlot` (`internal`, reused, not copied).
+
+**Tests first.** Part 1's tests were run at `1fe6c17`, part 2's at `de4a581`.
+
+| Test | Failure |
+|---|---|
+| F3 a committed find open in its report view is still open in it back on Journal … (ported, inverted) | `the find is still open expected:<find-1> but was:<null>` |
+| F3 a committed find open in its editor with a change is still in its editor … (ported, inverted) | `no "Saved to Drafts" snackbar … expected:<0> but was:<1>`: the tab change left the find, a real draft, so the F1 snackbar showed |
+| F3 short landscape, … still open after the rail's Maps and Journal | `the find is still open … but was:<null>` |
+| F3 the Maps search bar shows on Maps while a find is kept open on the Journal | `the find is kept open … but was:<null>` |
+| F3 the Tools drawer opened over an open find leaves it open, and Back closes the drawer first | `the find is still open under the drawer … but was:<null>` |
+| F3 backgrounding with a find open in its report view keeps it open … | `the find is still open … but was:<null>` |
+| F3 backgrounding with a find open in its editor with a change keeps the editor … | `the draft is still the open find expected:<draft-of-find-1> but was:<null>` |
+| F3 a find opened over Entries from a map bubble is still over Entries back on Journal | `the find is still open … but was:<null>` |
+| F3 Log a find on Maps over a changed kept find leaves it first … | `the kept find's changed draft is in Drafts at once expected:<[Changed, not saved]> but was:<[]>` |
+| F3 Log a find on Maps over an unchanged kept re-edit leaves no duplicate draft row | `expected:<[find-1, find-new]> but was:<[find-1, draft-of-find-1, find-new]>` |
+| F3 a bubble's Open in Journal over a changed kept find leaves it first … | `… in Drafts at once expected:<[Changed, not saved]> but was:<[]>` |
+| F3 wide, Log a find over a changed find open in the drawer leaves it first … (`w1280dp-h900dp`) | the same |
+
+**A fourth guard.** "F3 Log a find on Maps over a viewed committed find closes it with no snackbar and nothing deleted"
+is the ruling's third tests-first item, but it passes on the part-1 tree. Opening the new find replaces a viewed one
+whether or not it is left first, so on that tree there is nothing for it to catch. It guards that the added leave
+brings back neither the snackbar nor a delete for a viewed find, and revert check R3h shows it bites. So the class now
+has four tests that pass before their fix by design: the three from the stop, as the planner ruled to keep them, and
+this one.
+
+**Test mechanics, corrected before the commit.** The first run of the wide route test failed on setup. The wide map
+draws only after a search (`MapTab`'s `!uiState.hasSearched` branch), so there was no add button. The test now
+searches first on the real `AvailabilityViewModel` (`onManualLatChanged`, `onManualLngChanged`,
+`searchManualCoordinates`), as setup only. Run again, it failed for its stated reason.
+
+**The one test not run through the screen,** as the planner asked it be named: "F2 closing a day entry with unsaved
+changes leaves the Entries list and card on the stored text". It types through the real editor, then calls
+`cartographyViewModel.onCloseEntry()` directly. Once F2's mode fix is in, no known screen route reaches `onCloseEntry`
+with a dirty entry: the round trip that did now returns to the editor, whose Back prompts. The guard can only be driven
+at the ViewModel, and the test then reads the Entries card on the screen.
+
+**What F3 changes about F1's tests.** F1's three viewed-find tests (Maps, the rail, Tools) no longer reach the F1
+wrapper, because the tab change and Tools no longer leave a find. They still pass, and now hold because of F3, not F1.
+Revert check R3h is F1's R1a edit run again after F3. It no longer fails them, and fails the part-2 viewed-find guard
+instead. So F1's protection for a viewed find is now exercised through a route leave.
+
+**No existing test covered a find's tab-switch or `ON_STOP` close.** The suite stayed green when both were removed. The
+existing leave and backgrounding tests (`AvailabilityScreenBackNavigationTest`'s backgrounding tests at `:739` and
+`:756`) are about day entries.
+
+### Revert checks
+
+The runner and its rules are the same as above. Every check compiled (0 `e: ` lines) and every file was restored
+byte-identical. The forward change was uncommitted during the checks, and was still present afterwards: the same two
+modified files, and the route-leave line three times (grep counts 1 and 2).
+
+| Check | Edit | Failed | Verdict |
+|---|---|---|---|
+| R3a | the tab handler leaves the find again | 6 of 34: the report and editor round trips, the rail, the Maps bar, Tools, the bubble round trip | confirmed |
+| R3b | the `ON_STOP` observer restored (fully qualified, one edit) | 2 of 34: the two backgrounding tests | confirmed |
+| R3c | `JournalTab`'s mode back to a local `remember` | 1 of 34: the editor round trip (`the find's editor shows`) | confirmed |
+| R3d | `findOverView` back to a local `remember` | 1 of 34: the bubble round trip (`journal-find-over-view` not displayed) | confirmed |
+| R3e | compact "Log a find" without the leave | 2 of 34: the changed and unchanged kept finds | confirmed |
+| R3f | `onOpenFind` without the leave | 1 of 34: Open in Journal over a changed kept find | confirmed |
+| R3g | the wide "Log a find" without the leave | 1 of 34: the wide route test | confirmed |
+| R3h | F1's R1a again (`keptDraftId = left?.id`) | 4 of 34: F1's two unchanged-editor tests, and the unchanged and viewed Log a find tests | confirmed |
+
+**Why each failure belongs to its own edit.**
+- R3b fails the backgrounding tests only: in no other test does the app background.
+- R3c fails the editor round trip only. Backgrounding keeps the Journal composed, so the local `remember` survives it.
+- R3e, R3f and R3g each fail only the tests that take their own route.
+
+### Suites
+
+All runs were from a cleared results directory, with `--offline` and `LC_ALL=C.UTF-8`, and 0 `e: ` lines.
+
+| Run | Tree | Classes | Tests | Failures | Errors | Skipped |
+|---|---|---|---|---|---|---|
+| After part 1 | `de4a581`'s tree | 283 | 2298 | 0 | 0 | 24 |
+| After part 2 | `d7394a7`'s tree, before commit | 283 | 2303 | 0 | 0 | 24 |
+| Final | `d7394a7`, pushed | 283 | 2303 | 0 | 0 | 24 |
+
+**Class by class, baseline `18cc8bb` against `d7394a7`:**
+- the one new class is `LeavingTheJournalFixesTest`, 34 / 0 / 0 / 0;
+- no class is missing;
+- no other class's counts changed.
+
+**The held family** passed: `JournalPendingDeleteTest` 52 / 0 / 0 / 0 and `JournalTabTest` 17 / 0 / 0 / 0.
+
+**Planner prediction 4 (+20 to +45):** +34, **held.**
+
+### Device-only, F3
+
+1. Open a find (report), then Maps and Journal, then Tools and Back, then home and return. Expected: the find stays
+   open in its report each time, with no snackbar. With Tools, the first Back closes only the drawer.
+2. The same from the find's editor with a change. Expected: the editor comes back with the change.
+3. With a changed find open, Maps, then "Log a find". Expected: "Saved to Drafts", the change in Drafts at once, and
+   the new find open. Again with an unchanged re-edit: no snackbar, and no second draft in Drafts. Again with a viewed
+   find: no snackbar.
+4. With a changed find open, Maps, a find's bubble, then "Open in Journal". Expected: the same as step 3, and the
+   bubble's find open in its report.
+5. On a wide window: a changed find open in the drawer's log, then the map's add button and "Log a find". Expected: the
+   same as step 3.
+6. **The camera round trip from a find's editor** (Take photo, then return), now that nothing closes the find on
+   `ON_STOP`. Expected: the find is still open with the photo attached. No test ran this path after the observer's
+   removal.
+7. A find open over Entries from a bubble, then Maps and Journal. Expected: the find is over Entries, and Back returns
+   to Entries.
+
+### Decisions I made (F3)
+
+- **The order of the build:** part 1 and part 2 each tests-first, with part 1 pushed only to the backup branch.
+- **Removing the `ON_STOP` observer outright** rather than narrowing it. I left its now-unread camera plumbing
+  (`logPhotoAcquisitionInFlight`, the scaffold's `onLeaveLogEntryEditingIncidentally` parameter) in place rather than
+  editing the extraction's documented parameter list. Both are reported under Flags.
+- **Where the find state lives,** as for F2: beside `journalScreenState` in `AvailabilityScreen`. `JournalEntryMode`
+  was made `internal` for it. The mode is saveable; `FindOverView` is plain `remember`.
+- **Hoisting `findOverView` at all.** The dispatch named the mode, not the overlay. Without it, a find opened from a
+  bubble came back open but hidden.
+- **Transient flags left local:** `pickingLocationForEditingEntry` and `pullingPhotoForEditingEntry`. A find left with
+  its location or photo picker up comes back in its editor, not in the picker.
+- **The route leave is conditional on a find being open,** and uses the wrapper, not the raw callback, as ruled.
+- **Moving `mapBubbleSources`** below the wrapper.
+- **The wide test's search setup** is called on the ViewModel directly.
+- **Labelling the viewed-find route test a guard** rather than tests-first, as above.
+
+### Flags (F3)
+
+- **`logPhotoAcquisitionInFlight` is now written and never read.** `AvailabilityScreen` still sets it from the find's
+  camera round trip. The scaffold's `onLeaveLogEntryEditingIncidentally` parameter is now unused too.
+- **The earlier three flags stay flags, as ruled:** the Journal dropdown's Back, the short-landscape Tools touch on the
+  picker, and `JournalScreenState`'s doc comment. That comment now also reads against F3 in spirit: `JournalTab`'s
+  find `mode` is hoisted beside it.
+- **`JournalEntryMode`'s doc comment** (`JournalTab.kt`) says the mode is "tracked here". It is now held by the caller.
+  I added the pointer at the `mode` line, not in that comment.
 
 ## D58
 
