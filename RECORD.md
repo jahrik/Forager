@@ -3565,3 +3565,38 @@ Three premises were wrong: the editor has no map; trip planning, Set on map and 
 **Reason:** told of -64's reuse of "Couldn't save your changes." for a failed Show/Hide on map, the owner ruled verbatim: "Set it to "Changes not applied. Try again.""
 **Changes:** A failed shownOnMap write shows exactly "Changes not applied. Try again.". That covers the report menu toggle and the chip list's Hide and Hide all (the planner reads them as one write). The existing "Couldn't save your changes." is unchanged where it already appears. Tests first and a revert check. Supersedes -64's copy item only.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-66
+**Timestamp:** 2026-09-28T20:29:23Z
+**Closes:** 2026-09-28-52
+**Outcome:** completed
+**Observed:**
+1. **Stop and relaunches.** Stop report c9217b3 (scope gap S1, questions Q1 to Q4). Continuation -53 built on it; the coder and planner were lost to the EAI_AGAIN outage (-54 relaunch), and the owner's "Stop everything" (-62 relaunch). The -54 coder's uncommitted WIP was preserved untouched as 9cde9b3 on j8-wip. The -62 coder stopped on Q-A (7f41400), answered by -64 and -65.
+2. **The build.** Pushed to journal-redesign at 5874699: c7f2575, 8d2463d (tests first part 2), efa757f (the build), 0bdc0f8 (harness fix), fa751e3 (report), plus no-rebase merges of planner commits.
+   - J8-1: shownOnMap by a table-rebuilding MIGRATION_15_16, version 16 with 16.json.
+   - J8-2: five non-tappable halo layers and sources beneath their records, following -53 Q4, with region outlines included. JOURNAL_ENTRY is day #005577 and night #00DDFF: (a) 0.202/0.197, (c) 8.184/12.786, (d) 0.161 (sighting dot)/0.163 (search centre), (e) 20.09 degrees.
+   - J8-3: the report menu's Show/Hide on map for saved entries; the chip in the taxon chip's row at the taxon chip's 0.8 colours, its list at MAP_CHROME_OVER_MAP_ALPHA with opaque text; the Layers "Journal entries" switch, persisted, never writing shownOnMap.
+   - J8-4: up to three date lines, "Open entry <date>"; past three, "Kept in N journal entries" opens a list. Open entry goes to the Journal (the drawer on wide), with the existing unsaved-changes prompt first.
+   - -65: a failed shownOnMap write shows "Changes not applied. Try again." as a Toast.
+3. **Evidence.** Coder's suite 293 / 2374 / 0 / 0 / 24 from a cleared results directory, which is the baseline 285 / 2316 plus 8 classes and 58 tests. Ten revert checks confirmed, R1 being the (d) day positive control. At the push, version 15 on journal-redesign and pre-main before it, and of 110 remote branches only journal-redesign and j8-wip declare 16 afterwards. D58 zero.
+4. **Planner's suite.** At 5874699 in forager-wt/journal-redesign, test-results cleared first: 293 / 2374 / 0 / 0 / 24. All 293 XML files were newer than the run's start marker, the log has no "e:" lines, and the only commit after 5874699 in that checkout (823d802) changes nothing under app/.
+**Deviations:**
+- -62's "Do not make J8's chip 80%" was the planner's error against CLAUDE.md UX defaults, withdrawn by -64.
+- JournalHaloGlyphTest was fixed in the test, not the drawing. Its probe read density from Bitmap.getDensity() (160) and missed the image, so its "nothing there" checks never read a pixel. R4 is now its evidence.
+- MapLayerStateTest was restated under -53 Q4.
+- The (d) day row and the -65 save-failure guard pass at the stubs by construction, backed by R1 and R2.
+- The coder chose the list shape (tap a row to hide), the menu item's position (between Edit and Delete), FlowRow for the chip row, and a new failed-toggle field in CartographyUiState.kt.
+- -65 cited :636 wrongly (the WIP's own line). The existing "Couldn't save your changes." uses are :388 and :664, unchanged.
+**Notes:**
+- **Flags for the owner, asked and not yet answered:**
+  - in short landscape the chip's ruled spot overlaps the icon cluster on its default side and takes the touch there, as the taxon chip already does;
+  - Cartography's saveErrorMessage is never displayed or cleared anywhere (predates J8);
+  - a highlighted photo's bubble can say "Kept in ..." twice (all entries against shown entries);
+  - whether to start the map-chrome build while the phone is busy.
+- **Not tested:** MapLibre drawing the halos; on the wide layout, the report-menu toggle, the Layers switch and the Q1 prompt; "Hide all" with a partial failure; the Journal's own entry map drawing no highlight.
+- **Device-only (J8's device check, next):** the highlight over each basemap and at night; the chip against real insets and its 0.8 fill; the landscape chip against the cluster; the Toast; MIGRATION_15_16 on the S22's real data.
+- Next, per the plan: J8's device check once Part 1 frees the phone, then the map-chrome stage (-56, -58).
+- Written by the planner by hand.
