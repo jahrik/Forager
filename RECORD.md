@@ -3103,3 +3103,19 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Data-loss finding for the owner: behaviour 1 deletes a committed find on one tap after only viewing it. Flags: backgrounding closes a viewed find (AvailabilityCompactScaffold.kt:388, :431); the wide layout's LogPanel shares the Discard callback (AvailabilityScreen.kt:1262); entries keeping a Discarded find are unverified; keeping finds open across tabs would meet the search-bar gate at :401. Owner, verbatim: "Go ahead and look into those 3 things you brought up also". Written by the planner by hand.
 
 ---
+
+**Kind:** intent
+**ID:** 2026-09-28-28
+**Timestamp:** 2026-09-28T10:53:50Z
+**Title:** Bug fix: system Back with the Tools drawer open over an open Journal entry acts on the Journal instead of closing the drawer
+**Dispatch-file:** preserved/2026-09-28-28.md
+**Change:** Verify which BackHandler receives Back while the drawer is open over each entry state (hypothesis: the drawer's top-level handler at AvailabilityScreen.kt:982 loses to the entry's, composed later); failing tests through the real screen; then the drawer's handler takes precedence while open; Back with the drawer closed unchanged.
+**Scope boundary:** Branch journal-redesign; the Back handlers on this path and tests. Not the Leaving-the-Journal fixes ruled for after M1, the drawer's content, the held flaky tests, the record, index, CLAUDE.md, plans or prompts.
+**Baseline:** journal-redesign at the commit carrying this entry.
+**Prediction (outcome — planner):** 1. Day entry and find both affected in both views. 2. One enabled flag threaded to the Journal's handlers. 3. No existing assertion changes.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** Pushed with failing tests first, the fix, a compiling revert check, the full suite and a completion report; the planner writes the terminal.
+**Abort conditions:** A hypothesis wrong in a way that changes the fix; a failing test failing for another reason or passing; a non-compiling revert; a non-held failure; an OOM kill; two failed fixes; a design question.
+**Notes:** Owner, verbatim: "Another bug: when the tool drawer is open while you're viewing an opened journal entry, hitting the back button navigates the journal behind the tool drawer and not the drawer itself. The intended action is to close the drawer while it's open." Run beside M1's pre-build pulse; the owner may hold it until after M1. Written by the planner by hand.
+
+---
