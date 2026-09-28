@@ -1,7 +1,8 @@
 # Backlog device check, Part A (the Journal in portrait), on the S22 Ultra: run record
 
-**Status: partial; stopped on four conflicts in the dispatch (see "Needs a decision").** Results written
-after the run; the pre-registration committed at `b04dbb2`, before any item ran, is kept unchanged as the Appendix.
+**Status: complete, in two sessions.** Every item has a verdict. The first session (04:58Z to 05:22Z) stopped on four
+conflicts in the dispatch and held the items they touched; the second (09:22Z to 09:39Z), under the planner's rulings
+in `prompts/preserved/2026-09-28-12.md`, ran them. Results written after each session; the pre-registration committed at `b04dbb2`, before any item ran, is kept unchanged as the Appendix.
 
 **Continuation (dispatch `prompts/preserved/2026-09-28-12.md`, from 09:22 UTC).** The planner ruled on the four
 questions; the held items are pre-registered in Appendix C, committed before they ran. The results of this
@@ -29,27 +30,35 @@ name with sha256 in the Evidence index. No screenshot, dump, coordinate, note te
 
 ## Outcome
 
-**Status: partial, stopped on four conflicts in the dispatch.** Every item the conflicts do not touch was run, and the
+**Status: complete.** The second session ran every held item under the planner's rulings (Appendix C) and pre-registered
+them first (`e5ceee7`). It ended with the phone on the Maps tab, as it began, with no new crash, every setting read back
+at its start value, and the created data listed under Created data: five labelled drafts, one blank saved entry and one
+labelled draft find. Undo brought the saved entry back both times it was deleted.
+
+**First session (kept as written): partial, stopped on four conflicts in the dispatch.** Every item the conflicts do not touch was run, and the
 phone was left on the Maps tab, where it was found (the Journal's own state moved: on arrival it had the L0a entry's
 report open, which I closed, and it is now on Entries). The items that need this run's own entries, or whose touches would create data the Data
 section does not allow, are **held**: none of them was started, and no entry was created. See "Needs a decision".
 
+The table below carries both sessions: a held item's row now gives its second-session verdict. Items 12, 22 and 31
+are still **not run** for want of data, since the new entries add no month, no long grid and no large log.
+
 | Item | What | Verdict |
 |---|---|---|
-| 1 | Build, baseline, inventory | **pass**: `1.0.1192+g24589349`; crash buffer empty at 04:58Z and at 05:21Z |
+| 1 | Build, baseline, inventory | **pass**: `1.0.1192+g24589349`; crash buffer empty at 04:58Z, 05:21Z, 09:22Z and 09:39Z |
 | 13 | Back from a single-type chip | **pass**: Finds, then Back to All, then Back to Entries |
-| P:320 | Draft Continue | **held**: needs this run's draft (conflict 4) |
-| P:321 | The map's "Log a find" routing | **held**: opening the form persists a draft find (conflict 2) |
-| 14 | "✎ New entry" | **held** for the touches (conflict 1). Read from a dump without touching it: the label is whole, and the button clears the bottom navigation and the system bar |
+| P:320 | Draft Continue | **pass**: with one draft, Continue opened it in the editor; with five, it opened the drafts list, and Back returned to Entries |
+| P:321 | The map's "Log a find" routing | **pass**: "+", Find, the pin picker, OK, and the app was on Journal, Records, Finds, with the find form open and its location filled. Back kept the draft and showed "Saved to Drafts" |
+| 14 | "✎ New entry" | **pass**: 5 of 5 taps across it each opened a new draft (0 to 5), and the L0a card beside it opened its report. The label and the clearance were read in the first session |
 | 18 | "📷 Add photo" in the album | **pass**: 5 of 5 taps across it opened the menu; the menu is inside the window; Take photo opened the app's camera and Import the system picker. See the rotation and permission side effects under the item |
 | 8, 45 | Records chip row at 1.0 and 1.15 | **pass** at both: one-line whole labels, and the row scrolls sideways (it overflows at both scales) |
-| 15 | Drafts banner one-line fit | **held**: needs this run's draft (conflict 4) |
-| 24 | Collapsed row height | **held**: needs an entry the dispatch's title prevents (conflict 3) |
-| 30 | Two-stage swipe | **held**: needs this run's saved entry (conflict 4). RTL **not run**, as the dispatch says |
-| 29 | Night-mode toggle mid-snackbar | **held**: needs this run's saved entry (conflict 4) |
+| 15 | Drafts banner one-line fit | **pass** at 1.0, 1.15 and 1.3, with "5 unfinished entries"; at 1.3 the Continue button ends 10 px (3.6 dp) inside the banner |
+| 24 | Collapsed row height | **pass**: 48.0, 53.7 and 59.4 dp at 1.0, 1.15 and 1.3, against 64 dp. It shows the day, the weekday and "Nothing kept" |
+| 30 | Two-stage swipe | **pass**: opens 144.0 dp (405 px); a 600 px slow swipe opened it without deleting; a tap on the open row closed it and a tap on the closed row opened the entry; a full swipe deleted with a snackbar, and Undo restored it. RTL and the Waypoints scroll **not run** (dispatch; planner) |
+| 29 | Night-mode toggle mid-snackbar | **pass**: after the recreation the entry was still out of the list and the snackbar showed again; Undo brought it back |
 | 31 | Long-press on a tile near the bottom edge | **not run**: no tile reaches the bottom edge (3 album photos in one row and a half; 2 finds) |
 | 10 | Night-mode toggle on Records with a non-default chip | **pass** both ways: Journal, Records and the same chip came back |
-| 17 | Night-mode toggle on the album with the drafts list open | **not run**: the list needs two or more drafts, and the Data section allows one. The album view alone did survive a toggle |
+| 17 | Night-mode toggle on the album with the drafts list open | **pass** (second session): the Journal tab and the open drafts list came back, and Back from the list showed the Album view |
 | 20 | Seasonal after a toggle, then a new search | **pass** |
 | 9 | Chip colours (observation) | light and dark recorded, with contrast ratios. **Understory not run: this build has no Understory theme choice** |
 | 22 | Sticky header over cards in each theme | **not run**: the entries span one month |
@@ -60,7 +69,7 @@ section does not allow, are **held**: none of them was started, and no entry was
 | 28 | The region row's surface (observation) | recorded. It could not show a difference here (see the item) |
 | 47 | Details sheet top in portrait | **pass**, but the check could not fail at this data (see the item) |
 | 52 | Directions and Share from the sheet | **pass**: `com.google.android.apps.maps`, and `com.android.intentresolver` |
-| 19, 26, 32, 50 | TalkBack, partial, from dumps | **partial**: descriptions and flags recorded. Custom actions and click labels cannot be read from a dump. 26's snackbar half is **held** (it needs a delete) |
+| 19, 26, 32, 50 | TalkBack, partial, from dumps | **partial**: descriptions and flags recorded. Custom actions and click labels cannot be read from a dump. 26's snackbar half (second session): the message "Entry deleted" and a clickable "Undo"; whether it is announced is the owner's |
 | 12 | Scrolling performance | **not run**: All holds 7 records |
 | 30 "feel", 51, spoken TalkBack, folds, wide tree, Part B, 16, 25, 33 | Owner's, or superseded | **not attempted**, as the dispatch says |
 
@@ -101,7 +110,7 @@ Appendix at the end.
 - **What each Back did:** the first changed the chip and nothing else; the second changed the Journal's top tab and
   nothing else. No third Back was pressed.
 
-### Item 14: "✎ New entry": **held** (the touches); the bounds, read without a touch
+### Item 14: "✎ New entry": the bounds, read without a touch (first session; the touches are under "Second session")
 The touches are held under conflict 1. What a dump shows, without touching the button (`21-entries.xml`,
 `90-timeline-light.png`):
 - **Bounds** `[626,1753][1035,1911]`, 409 × 158 px, which is 145.4 × 56.2 dp. The label node reads "New entry" with
@@ -187,7 +196,7 @@ The screen is 384 dp wide, not 360 dp.
   says should survive (`compactTab`, `JournalScreenState`), and not J1's "back on Maps".
 - **The fold half:** not run (the S22 does not fold).
 
-**Item 17: not run.**
+**Item 17: not run in the first session; run in the second (see "Second session").**
 - **Missing data:** the drafts list opens only with two or more drafts (`CartographyScreen.kt:398-404`). The phone has none,
   and the Data section allows me one.
 - **Seen in passing:** a toggle to light at 05:18:14Z with the album open. The album view came back
@@ -363,8 +372,175 @@ TalkBack was not turned on. The fields a `uiautomator dump` writes:
 - **Missing data:** a log of 100 or more items in All. All holds 7 (`30-all-fs100.xml`: "7 records").
 - `dumpsys gfxinfo … reset` was not run.
 
-### Held: P:320, P:321, 14 (the touches), 15, 24, 29, 30
-None was started. What each needs is under "Needs a decision".
+## Second session (09:22Z to 09:39Z): the held items, under continuation 2026-09-28-12
+
+The pass conditions are those committed at `e5ceee7` before these items ran (Appendix C). At the start the phone was on
+the Maps tab, in dark mode, font scale 1.0, and the app was still process 19584. The database was byte-identical to
+the first session's end: `db-start2-raw/forager.db` has the same hash as `db-end-raw/forager.db`, as do the `-wal`
+and the `-shm`. Nothing had happened to it between the sessions. The phone's local date was 2026-09-28, so every entry
+made here is dated 2026-09-28. That day has no finds, tracks, waypoints or covering regions, so the editor offered no
+candidates.
+
+### Item 14: "✎ New entry", the touches: **pass**
+- **Bounds** in a fresh dump (`211-journal.xml`, 09:27Z): `[626,1753][1035,1911]`, the same as in the first session.
+  The dump is byte-identical to `21-entries.xml`.
+- **Five taps at y 1832:** x 636, 728, 830, 932 and 1025. That is 10 px inside the start edge, the centre, 10 px inside
+  the end edge, and two between.
+  - Each tap opened the entry editor: "Your own account (optional)", "Tags", "Photos" and "Finish entry", dated
+    2026-09-28, with an empty text field (`212-newentry-tap1.xml`, `218-newentry-tap2.xml` to `-tap5.xml`). The empty
+    field shows that each was a new draft and not a reopened one.
+  - I typed `DEVICE CHECK 2026-09-28` into each one's text field. The dumps read that string exactly
+    (`213-…`, `219-draft2-labelled.xml` to `-draft5-…`), with nothing doubled.
+  - After each draft I pressed Back twice, once to close the keyboard and once to leave the editor. Entries came back,
+    and the banner counted 1, 2, 3, 4 and then 5 unfinished entries (`215-…`, `220-entries-after-tap2.xml` to `-tap5.xml`).
+  - Tap 1 was made alone, and P:320's one-draft Continue was run before taps 2 to 5 (below).
+- **The card beside it still opens:** a tap at (300,1500) on the L0a entry's card, `[45,802][1035,1654]`, opened its
+  report. The report is dated 2026-09-27, with its map and no text field, so it is the VIEW mode (`222-card-opens.xml`).
+  Back returned to Entries (`223-…`).
+  - The card ends 99 px (35 dp) above the button, so "beside" here means above it. No card on this phone overlaps the
+    button's rows.
+- **Label and clearance:** as recorded in the first session (item 14 above), unchanged.
+
+### P:320, draft Continue: **pass**
+- **One draft** (09:29:13Z): the banner read "✎ 1 unfinished entry". "Continue ›" (the button `[516,541][780,654]`,
+  tapped at its centre) opened that draft in the editor, with its label in the text field (`216-continue-1draft.xml`).
+  Back returned to Entries (`217-…`).
+- **Five drafts** (09:31:16Z): Continue opened the full-screen list "Unfinished entries", with a "Back to Entries" arrow
+  and five cards. Each card reads 28, MON and the label (`224-continue-5drafts.xml`). Back returned to Entries, on the
+  Timeline view, with the banner and "New entry" (`225-back-from-list.xml`).
+
+### Item 17: a night-mode toggle on the album with the drafts list open: **pass**
+- **Setup:** Entries, Album view (`226-album-5drafts.xml`: Album view `checked=true`, banner showing). Continue opened
+  the drafts list (`227-album-list-open.xml`).
+- **`cmd uimode night no`** at 09:31:57Z. The focused window changed from `9b1937d` to `f014b86`, so the Activity was
+  recreated, in the same process, 19584.
+- **What came back** (`228-light-after-toggle-list.xml`): the Journal tab `selected=true`, Entries `checked=true`, and
+  the drafts list "Unfinished entries" still open, with its five cards.
+- **Back from the list** (`229-light-back-from-list.xml`): Entries, with the **Album view** `checked=true` and "Add
+  photo" showing. The tab, the view and the list all survived.
+- **Restored:** `night yes` at 09:32:23Z, then Back to the Timeline view (`231-dark-timeline2.xml`).
+- **The fold half:** not run. The S22 does not fold.
+
+### The saved entry (for 24, 30 and 29)
+- **Made** with a sixth "New entry" tap at the button's centre (830,1832) at 09:32:48Z. The editor offered no
+  candidate sections, so there was nothing to withhold (`232-saved-entry-form.xml`). The text was left blank, and
+  "Finish entry" was pressed at 09:32:59Z.
+- **The result:** the button became "Save", which shows a committed entry (`233-after-finish.xml`). Back left the
+  editor with no prompt.
+
+### Item 24: the collapsed row's height: **pass**
+- **What the collapsed row shows:** the small day numeral "28", the weekday "MON" beneath it, and "Nothing kept" beside
+  them, on one line, in a card the width of the list. There is no stats pill and no title. That matches
+  `CartographyEntryCard.kt:163-166`.
+- **Measured** (`234-timeline-with-row-fs100.xml`, `235-timeline-fs115.xml`, `235-timeline-fs13.xml`):
+
+  | Font scale | Row | Height | "28" / "MON" / "Nothing kept" text heights |
+  |---|---|---|---|
+  | 1.0 | `[45,802][1035,937]` | 135 px, **48.0 dp** (the 48 dp floor) | 24.2 / 16.0 / 16.4 dp |
+  | 1.15 | `[45,823][1035,974]` | 151 px, **53.7 dp** | 27.4 / 18.5 / 18.5 dp |
+  | 1.3 | `[45,849][1035,1016]` | 167 px, **59.4 dp** | 30.6 / 21.0 / 21.3 dp |
+
+- **Against the limit:** all three are under J3's 64 dp. At 1.3 the margin is 4.6 dp.
+- **By my reading of `235-crop-banner-row-montage.png`:** nothing is clipped or overlapping at any of the three scales.
+- **Font scale** went to 1.15 at 09:33:39Z and to 1.3 at 09:33:47Z. It was restored to 1.0 at 09:34:14Z and read back
+  as `1.0` (`236-fs-restored.xml`: the row is 48.0 dp again).
+
+### Item 15: the drafts banner's one-line fit: **pass**
+- **Same captures as item 24,** with five drafts, so the label is "✎ 5 unfinished entries".
+
+  | Font scale | Banner | Label node | "Continue ›" button |
+  |---|---|---|---|
+  | 1.0 | `[45,530][1035,665]`, 48.0 dp | `[90,569][515,626]`, 20.3 dp high | `[548,541][812,654]` |
+  | 1.15 | `[45,542][1035,677]`, 48.0 dp | `[90,577][590,643]`, 23.5 dp high | `[625,553][924,666]` |
+  | 1.3 | `[45,558][1035,693]`, 48.0 dp | `[90,588][656,664]`, 27.0 dp high | `[693,565][1025,687]` |
+
+- **One line:** at each scale the label's height is one line of text. It is the same height as the "·" and "Continue ›"
+  nodes beside it, and the banner stays 48 dp.
+- **Inside the banner:** the button sits inside it at every scale. At 1.3 its end is 10 px (3.6 dp) inside the banner's
+  end, the only tight margin.
+- **By my reading of the montage** (`221-crop-banner-fs100.png`, `235-crop-banner-row-montage.png`): one line and whole
+  at all three.
+- **Not seen:** a two-digit count ("10 unfinished entries") at 1.3, which would be about one character wider than the
+  room left. See Flags.
+
+### Item 30 (portrait): the two-stage swipe, on the saved entry's row: **pass**
+- **The partial swipe** (09:34:32Z): `input swipe 1000 870 400 870 3000`, a 600 px end-to-start drag at about 71 dp/s.
+  - The row settled **open** (`237-row-open.xml`). Edit is `[630,802][833,937]` (72.2 dp) and Delete is
+    `[833,802][1035,937]` (71.8 dp), together **405 px, 144.0 dp**, the predicted width.
+  - The content moved to end at x 630, and no snackbar showed. So a swipe of 600 px, past the open threshold at
+    about 202 px, opened the row rather than deleting it.
+- **A tap on the open row's body** at (300,870): the row closed ("Nothing kept" back at x 181, and no Edit or Delete in
+  the dump), and the entry did not open (`238-tap-open-row.xml`).
+- **A tap on the closed row** at (600,870): the entry opened, as its report, dated 2026-09-28, with no text field
+  (`239-tap-closed-row.xml`). I left it with Back.
+- **The delete** (09:35:27Z): `input swipe 1000 870 150 870 2000`, 850 px, past half-way from open to the row's width
+  (about 698 px).
+  - In a dump 3 s after the swipe ended, the row was gone from the list, and a snackbar `[34,1787][1046,1922]` read "Entry deleted", with "Undo"
+    in a clickable box `[852,1787][1023,1922]` (`241-snackbar-delete1.xml`, `.png`).
+  - The snackbar sits above the bottom navigation, whose top is at y 1956, and covers the "New entry" button's area
+    while it shows.
+- **Undo,** tapped at 09:35:32.6Z, 5 s after the swipe began. The row came back, closed, at the same bounds
+  (`242-after-undo1.xml`).
+- **The threshold itself** was not searched for. What was seen is one swipe on each side of it: 600 px opened the row,
+  and 850 px deleted it.
+- **Not run:**
+  - RTL, as the dispatch says;
+  - the Waypoints "vertical scroll on an open row", by the planner's ruling;
+  - the J5c half on Records rows, a tap on an **open** waypoint or region row. That row would first have to be swiped
+    open, and none of those rows is mine (see Decisions). The same code path (`TwoStageSwipe.kt:297-303`) was seen
+    working on my own entry's row. Item 47 in the first session saw the other half: a tap on a closed Records row opens
+    the details sheet.
+
+### Item 29: a night-mode toggle mid-snackbar: **pass**
+- **The delete** was a full swipe at 09:36:03.7Z. A dump at 09:36:08.5Z shows the snackbar, "Entry deleted" and
+  "Undo", with the row gone (`243-snackbar-before-toggle.xml`).
+- **`cmd uimode night no`** at 09:36:08.6Z. The focused window changed from `1eda140` to `368bceb`, so the Activity was
+  recreated.
+- **After the recreation** (`244-snackbar-after-toggle.xml`, `.png`, 09:36:13.6Z):
+  - the screen is in the light scheme (page `#FAF8F3`, snackbar `#322F35`);
+  - the row is still absent, and the snackbar shows again with "Undo".
+  - The XML is byte-identical to `243`, because a dump carries no colour. So the evidence that this snackbar belongs to
+    the recreated screen is the screenshot, by my reading and by those pixel values, together with the window change.
+- **Undo** was tapped at 09:36:14.1Z. The row came back (`245-after-undo2-light.xml`).
+- **Restored:** `night yes` at 09:36:42Z. The row is present in dark (`246-dark-restored.xml`).
+- **The database agreed** at about 09:36:50Z (`db-mid-raw/`): 2 saved entries and 5 drafts. The saved 2026-09-28 entry has
+  0-length text, and each draft holds the 23-character label.
+
+### Item 26, the snackbar half: **partial**
+- **From `241-snackbar-delete1.xml`:** the snackbar's text node reads "Entry deleted" and is not clickable. "Undo" is a
+  text node inside a clickable box, `[852,1787][1023,1922]`, 171 × 135 px (60.8 × 48 dp).
+- **Undo was reachable** by touch within the timeout, twice.
+- **Not seen:** whether TalkBack announces the snackbar (a dump does not show live regions), and the extended timeout
+  under an accessibility service. Both are the owner's.
+
+### P:321: the map's "Log a find" routing: **pass**
+- **Maps tab** (09:37:11Z): "Plan a trip or log a find here" (`[956,1291][1024,1359]`) opened the tile with Trip, Find
+  and Waypoint (`251-add-tile.xml`). "Find" (`[577,1259][751,1394]`) showed the centre-pin picker: "Pin marks the
+  location that will be picked", with OK `[45,1798][528,1933]` and Cancel `[551,1798][1035,1933]` (`252-picker.xml`).
+- **OK** (09:37:50Z; `253-after-ok.xml`):
+  - the Journal tab `selected=true`, the Records segment `checked=true`, and the **Finds** chip `checked=true`;
+  - the find form "Find on 2026-09-28" is open, with a "Found at …" line and "Change Location" rather than "Add
+    Location", so the location is filled. The coordinates are not recorded here;
+  - the form shows Cancel, Save and "Delete this entry".
+- **Labelled:** I typed `DEVICE CHECK 2026-09-28` into "Your own identification (optional)" (`254-find-labelled.xml`).
+- **Back** (09:38:22Z; `255-after-find-back.xml`):
+  - the form closed onto Records, Finds, on its "Log" sub-tab, with "Drafts (1)";
+  - a snackbar read "Saved to Drafts", with "Discard". **Neither Cancel nor Discard was pressed.** The snackbar had gone
+    by 09:38:30Z (`256-…`).
+- **The database** (`db-end2-raw/`, 09:38:40Z): one draft find, dated 2026-09-28, identification
+  `DEVICE CHECK 2026-09-28`, `isDraft=1`, with no `draftOfEntryId`.
+- **Returned:** Back twice (Finds to All, then Records to Entries), then the Maps tab. The phone was on the Maps tab at
+  09:39Z (`260-final2.xml`), as it was at 09:22Z.
+
+### End of the second session
+- **Crash buffer:** `logcat -b crash -d` read 0 bytes at 09:39Z (`261-crash-end2.txt`). There is no Forager crash, and the
+  process is still 19584.
+- **Build:** still `1.0.1192+g24589349` (`262-version-end2.txt`).
+- **The app's log** since 09:22Z is saved (`264-logcat-app-pid-session2.txt`, 19,026 lines).
+  - 15,272 of them are the MapLibre `getMetersPerPixelAtLatitude` lines.
+  - The other W and E lines are graphics-allocator and back-dispatcher noise, plus 5 `Mbgl-HttpRequest … Canceled`.
+  - None comes from the app's own tags.
+- `adb logcat -c` was not run, and `/sdcard/bla-ui.xml` was removed.
 
 ## Settings
 
@@ -386,6 +562,19 @@ None was started. What each needs is under "Needs a decision".
 - **The logs:** read with `-d` only; no log buffer was cleared. The app's log from this process is saved
   (`124-logcat-app-pid.txt`).
 
+### Settings, second session
+
+| Setting | Start (read 09:27:37Z, `202-settings-start2.txt`) | Changes | End (read 09:39:05Z, `263-settings-end2.txt`) |
+|---|---|---|---|
+| `settings system font_scale` | `1.0` | 1.15 at 09:33:39Z, 1.3 at 09:33:47Z, 1.0 at 09:34:14Z | `1.0` |
+| Dark mode (`cmd uimode night`; `secure ui_night_mode`) | `yes`; `2` | no 09:31:57Z, yes 09:32:23Z, no 09:36:08.6Z, yes 09:36:42Z | `yes`; `2` |
+| `settings system user_rotation` | `0` | none (the camera was not opened this session) | `0`; display `ROTATION_0` |
+| `settings system accelerometer_rotation` | `0` | none | `0` |
+| `settings secure navigation_mode` | `0` (three-button) | none | `0` |
+| Location (`secure location_mode`; `cmd location is-location-enabled`) | `3`; `true` | none | `3`; `true` |
+| App theme | System Default | none | System Default (not touched) |
+| The app's screen | the Maps tab (`210-arrival2.xml`) | — | the Maps tab, "Topographical … Night mode off." (`260-final2.xml`) |
+
 ## Created data
 
 - **No Journal entry or draft was created.** Data (a) is unused, because of the conflicts. Nothing was deleted, and no Undo was
@@ -400,6 +589,23 @@ None was started. What each needs is under "Needs a decision".
   Share. It was not shared.
 - **No photo:** `files/photos` holds the same three files, and `files/captures` is empty.
 - **DataStore files:** none has an mtime after 04:52Z. They were listed, not pulled.
+
+### Created data, second session
+
+All were made through the app's own UI, are left in place, and are dated 2026-09-28 on the phone. Read from
+`db-end2-raw/` (09:38:40Z) against `db-start2-raw/` (09:27Z):
+
+| What | How made | Label | Count |
+|---|---|---|---|
+| Journal drafts (`cartography_entries.isDraft=1`) | item 14's five taps on "New entry" | `DEVICE CHECK 2026-09-28` in the entry's text | 0 → **5** |
+| A saved Journal entry (`isDraft=0`) | a sixth "New entry", then "Finish entry" (Data (a); ruling 3) | **none**: its text is blank, as ruling 3 requires; no candidates were offered | 1 → **2** |
+| A draft find (`mushroom_log_entries.isDraft=1`) | P:321, the map's "Log a find" | `DEVICE CHECK 2026-09-28` in "Your own identification" | 0 → **1** |
+
+- The draft find carries a location, the map's centre at that moment, which is the owner's area. It has no photo.
+- **Deletes:** two, both of the saved entry, both ended in **Undo**, and both restored it (items 30 and 29). The entry is
+  present at the end.
+- **Unchanged:** saved finds 2, album photos 3, find-photo links 1, tracks 1, waypoints 3, offline regions 1,
+  `cached_searches` 2, entry photo refs 1, entry waypoint refs 3.
 
 ## Decisions I made
 
@@ -431,6 +637,32 @@ None was started. What each needs is under "Needs a decision".
 12. **Kept the database copies and the app log in the evidence directory.** They hold real locations; whether to keep them is the
     owner's call.
 
+### Decisions I made, second session
+
+13. **How many entries, and in what order.** I read the rulings as allowing the five drafts from item 14, plus Data
+    (a)'s one saved entry. So I made the saved entry with a sixth tap and used one of the five drafts as Data (a)'s
+    draft; I did not make a seventh. An alternative I rejected was finishing tap 5's draft as the saved entry, which
+    would have left four drafts and five created entries, not six. Either reading needed the planner's count to be
+    settled properly.
+14. **Labelled every draft,** not only one. Ruling 3 says "the DEVICE CHECK label on your draft only", and the general
+    rule says every item is labelled "wherever the form allows". I read "your draft only" as "not on the saved entry",
+    and labelled all five drafts.
+15. **Labelled the draft find in "Your own identification"** rather than "Description Notes", following the L0a finds'
+    labelling. The identification field is plain text, with no taxon lookup (`LogEntryDetailScreen.kt:187-193`), so no
+    iNaturalist traffic.
+16. **Made tap 1 alone** and ran P:320's one-draft Continue before taps 2 to 5, so both of Continue's paths could be
+    seen. The dispatch's order would have put the taps first.
+17. **Did not swipe open any Records row** for the J5c "tap on an open row" half. Every waypoint and region row is the
+    owner's or L0a's. A swipe open is not a delete, but a mis-swipe could be one, and deletes are allowed only on my
+    entries. I saw the same code path on my own entry's row instead. Deciding this properly needed the planner's word on
+    swiping rows I did not create.
+18. **The swipe distances and speeds:** 600 px over 3 s for the partial swipe and 850 px over 2 s for the delete. They
+    were chosen from the anchors in `TwoStageSwipe.kt` so that each lands clearly on its side of the threshold. They are
+    my method; the threshold itself was not measured.
+19. **Automated the Undo tap** (`undo.sh`: dump, find "Undo", screenshot, tap) to stay inside the snackbar's roughly
+    10 s timeout. The tap is still a real coordinate touch taken from a fresh dump.
+20. **Returned the Journal to Entries and the app to the Maps tab** at the end, to match where each session found it.
+
 ## Flags outside scope
 
 1. **Entry reference counts on screen disagree with the database.**
@@ -454,7 +686,27 @@ None was started. What each needs is under "Needs a decision".
    process's log buffer (`124-logcat-app-pid.txt`), as L0a found.
 9. **Share writes the GPX into `cache/tracks/`,** and it stays there after the share sheet is cancelled.
 
+### Flags outside scope, second session
+
+10. **The "Do Not Disturb is on …" notice shows after a recreation** in the same bottom position as the delete snackbar
+    (`246-dark-restored.xml`, `[34,1693][1046,1922]`, after item 29's Undo). If it queues in the host the delete
+    snackbar uses, it could hold a pending delete's snackbar back for its own duration (`PendingDeleteSnackbar.kt:128-131`
+    describes that queueing). In this run the delete snackbar showed first. Whether the two share a host was not
+    looked into.
+11. **The delete snackbar covers the "New entry" button** while it shows (snackbar `[34,1787][1046,1922]` over the button
+    `[626,1753][1035,1911]`). A tap there during those 10 s reaches Undo or the snackbar, not "New entry". This was
+    observed, not judged.
+12. **The drafts banner at 1.3 has 3.6 dp to spare** with a one-digit count. A two-digit count at 1.3 would probably
+    wrap, since the label has no `maxLines` (`EntriesDrafts.kt:50-54`). That was not seen: it needs ten drafts.
+13. **Each "New entry" tap persists a draft at once** (`CartographyViewModel.kt:115-146`). Opening the button and backing
+    out, as the J2 check was worded, leaves a draft behind every time. That is by design as the code reads, but it means
+    that exercising the button always creates data.
+
 ## Needs a decision
+
+**Resolved.** The planner ruled on all four in `prompts/preserved/2026-09-28-12.md` (quoted in Appendix C): 1 (a), 2 (a),
+3 (a), and 4 run, without the Waypoints scroll. Nothing from the second session needs a decision; its open points are
+under Flags. The first session's questions, as asked:
 
 The four conflicts, with the options I can see:
 
@@ -634,6 +886,120 @@ checkpointed by `sqlite3`, so their hashes are not evidence. The helpers `snap.s
 | `db-end-raw/forager.db` | `fe5d658f20a266183d92b391bd4c18e9b540a8384da49715e4d3d1f40f28c715` |
 | `db-end-raw/forager.db-shm` | `98ec6c5a66981a9065ed05fc8700ab64c3ad48b2c6ae289a53807184a6541c48` |
 | `db-end-raw/forager.db-wal` | `8a58ee765ad8cd6503535d1aa745761e616d6bb4c7ba0fdbfb33cf9feb02586c` |
+
+### Evidence index, second session
+
+Same directory. `*-crop-*`, `*-small.png` and `*-montage.png` are derived from the listed screenshots and not indexed; `db-*-query/` are working copies. `snaps.log` is hashed as it stood when this index was written.
+
+| File | sha256 |
+|---|---|
+| `200-crash-start2.txt` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `201-dumpsys-package-start2.txt` | `f7e8cc80d7bb12b05f2dbd6f837fbe2022ee9f925f80edc02d22b64e8008331a` |
+| `202-settings-start2.txt` | `7d5d38e99c12dbd9879b727a3884d328bc7ea5d3e3bc6563639ae1944c5e7671` |
+| `210-arrival2.png` | `09c21d26492a2da23e72d91228aad2b45b182443fff3763f59426cc028779989` |
+| `210-arrival2.xml` | `276a15f91037aa8b8532ab7046ed965b4d3dcf91b23b9ab91fbb77cb2719a582` |
+| `211-journal.png` | `40bb7f97d87dcdb46640eeb83fff06421c0eae88dbf2b3d5bd1d6536b1190144` |
+| `211-journal.xml` | `e392aaa91b238a261fec01a5be2c347187172b7b8e275cf5a24ec9247ea5fddf` |
+| `212-newentry-tap1.png` | `dca24d9f959ed83d62ce5e36f422ad1a40abf260679b9b4fcd5f97e6725b009f` |
+| `212-newentry-tap1.xml` | `3dcd2f2edd7fb87a95664d84460176ca676690bd4c76a864fcd29318798a6636` |
+| `213-draft1-labelled.png` | `5afec683308aaff005f4a63d41bed34d19abb15b062f6647670d1cb34602da22` |
+| `213-draft1-labelled.xml` | `9dce863b9227ab9220062573cc2faa8ae29abb9401ea99f3a51fe2a93ae92143` |
+| `214-after-back-a.xml` | `9dce863b9227ab9220062573cc2faa8ae29abb9401ea99f3a51fe2a93ae92143` |
+| `215-entries-1draft.png` | `64d9cfca368b838774c633c9c29415874cdef600ad390418e78bbb767dab7a4e` |
+| `215-entries-1draft.xml` | `12d8225aa2c7878dbaefa1946b018d842ae068a4182462c3424e0f0a685166f6` |
+| `216-continue-1draft.png` | `f25041057afd3c84ad1e60ed91748121ac8895187101e395f278f91c171f6d26` |
+| `216-continue-1draft.xml` | `dbe3b3627a5893b9801836d8e5f586ae4f921524eb94c1ecb310a3c7424931b6` |
+| `217-back-from-continue.xml` | `929331c96319e36cbbf3fb96a8190b4e4fc05af7ab9722896ec726ad54a2b02c` |
+| `218-newentry-tap2.xml` | `3dcd2f2edd7fb87a95664d84460176ca676690bd4c76a864fcd29318798a6636` |
+| `218-newentry-tap3.xml` | `3dcd2f2edd7fb87a95664d84460176ca676690bd4c76a864fcd29318798a6636` |
+| `218-newentry-tap4.xml` | `3dcd2f2edd7fb87a95664d84460176ca676690bd4c76a864fcd29318798a6636` |
+| `218-newentry-tap5.xml` | `3dcd2f2edd7fb87a95664d84460176ca676690bd4c76a864fcd29318798a6636` |
+| `219-draft2-labelled.xml` | `9dce863b9227ab9220062573cc2faa8ae29abb9401ea99f3a51fe2a93ae92143` |
+| `219-draft3-labelled.xml` | `9dce863b9227ab9220062573cc2faa8ae29abb9401ea99f3a51fe2a93ae92143` |
+| `219-draft4-labelled.xml` | `9dce863b9227ab9220062573cc2faa8ae29abb9401ea99f3a51fe2a93ae92143` |
+| `219-draft5-labelled.xml` | `9dce863b9227ab9220062573cc2faa8ae29abb9401ea99f3a51fe2a93ae92143` |
+| `220-entries-after-tap2.xml` | `2362799fff79c7c007e7763aabed663148408e54d392113784ff1131db31a09f` |
+| `220-entries-after-tap3.xml` | `e12b36783dcc00c531797f09d2194ffe74b23c8c9e35e1f7a1f4f2b2bd059d3b` |
+| `220-entries-after-tap4.xml` | `99e2e4eaa82f4fc0611c47229c5e2bd30ec30cf02a00573b1aabd3eafefd49d1` |
+| `220-entries-after-tap5.xml` | `bc26335fc952b75ef66b6b99580e635ba11bbae798dd7681fb467216d8802407` |
+| `221-banner-fs100.png` | `8f304fb0895ad84aed8e4f59e586fdf537131949eb352e2575ac0bcb41e5949e` |
+| `221-banner-fs100.xml` | `bc26335fc952b75ef66b6b99580e635ba11bbae798dd7681fb467216d8802407` |
+| `222-card-opens.xml` | `eef9254400b2081fc2ea2d5b13840e4f05835bb000cb94220b7c16eb6c18b264` |
+| `223-back-from-card.xml` | `6b77affd51a6f558900a4a6cc5dd4862510817dd0bd326c74bc5633fa463d791` |
+| `224-continue-5drafts.png` | `22a6ed5a97ecd7b66a391489ed64275d2739e96b24856568ef9a1406ca967451` |
+| `224-continue-5drafts.xml` | `75c58abccfe82fd17308ebbd65e995b95b91a8343e674cd2926a6bfe64869212` |
+| `225-back-from-list.xml` | `6b77affd51a6f558900a4a6cc5dd4862510817dd0bd326c74bc5633fa463d791` |
+| `226-album-5drafts.xml` | `df4f6d3db73abc46d0c309f12a62fe7dbef470dde1017922dcade56698f52e3c` |
+| `227-album-list-open.png` | `22a6ed5a97ecd7b66a391489ed64275d2739e96b24856568ef9a1406ca967451` |
+| `227-album-list-open.xml` | `75c58abccfe82fd17308ebbd65e995b95b91a8343e674cd2926a6bfe64869212` |
+| `228-light-after-toggle-list.png` | `bae142053f75f55940ae7ac7fe7ac35023129e32b32e6295145f6a1d9ebdd8e5` |
+| `228-light-after-toggle-list.xml` | `b3894e694b48bef41adcf11690642b27081e288ea2561a9d605c9bd03ac9bdf9` |
+| `229-light-back-from-list.png` | `003cf4d47ad7c99e8a5529e375ec02bec2574ad8be85e610190c13b1e990868d` |
+| `229-light-back-from-list.xml` | `df4f6d3db73abc46d0c309f12a62fe7dbef470dde1017922dcade56698f52e3c` |
+| `230-dark-timeline.xml` | `a3c8091cb7377fe2fb86445c3ff40640fa50a8a9c2bca5d86da7aa4db08068e0` |
+| `231-dark-timeline2.xml` | `6b77affd51a6f558900a4a6cc5dd4862510817dd0bd326c74bc5633fa463d791` |
+| `232-saved-entry-form.png` | `ede7ad8aa76d2fdd0aa7a5cea95e262a2b9eb2d39a9da1276144ed02643a2956` |
+| `232-saved-entry-form.xml` | `3dcd2f2edd7fb87a95664d84460176ca676690bd4c76a864fcd29318798a6636` |
+| `233-after-finish.png` | `94ab8d80d571388ec49965b6a621016381d26222e3f5959e4e40117d2b898520` |
+| `233-after-finish.xml` | `7d6a2e6361c626016c6eff69dec87745afef7c6911e2bd45077debe94812bce6` |
+| `234-timeline-with-row-fs100.png` | `b03efa9570f9fdfac335792a7d2d4baa6f43b0975b1506efe75adda3754cf4b3` |
+| `234-timeline-with-row-fs100.xml` | `a7250f1b45dc9ce6752688c1c42a402c9ad1554f445231ce6440785aadf45f0a` |
+| `235-timeline-fs115.png` | `19bb69388736cad63c19ee9a0d50745353570d2580c67c1961c3ee2e65d9c80f` |
+| `235-timeline-fs115.xml` | `48cd3e8192cee6f435b9a6b2e66539d51ed079934e750e9d48c690f05360c49a` |
+| `235-timeline-fs13.png` | `a4baafb69b531c6880e4444ba5afc612e9c5fa42dfa32e9c64f9845bf26f3003` |
+| `235-timeline-fs13.xml` | `83a4a7ed8dee63f3a833ceb27eb7215dfa022396fa6466d4bd0ffad2c06d4be3` |
+| `236-fs-restored.png` | `fda906ebda7336d3aab71064ab1d45a5403084c86a80e75ac42f9fcdcfcd1cdc` |
+| `236-fs-restored.xml` | `50bc440da84074f3682e0e1c888f00c75fcf440a2f9b982552f1f60014ef5597` |
+| `237-row-open.png` | `a4d6be172229e0a80935c5f66feb592dd5305fd764fb11ba2357db92c19fa5f3` |
+| `237-row-open.xml` | `3c997de17411aca395b266971bb543d9c88cd1863bf91ec7b544f32e363e7e00` |
+| `237b-row-open-png.png` | `a4d6be172229e0a80935c5f66feb592dd5305fd764fb11ba2357db92c19fa5f3` |
+| `238-tap-open-row.png` | `4edda48add7c845c58182d7f345aabf4db31437d752720e0580b9e737ba00963` |
+| `238-tap-open-row.xml` | `a7250f1b45dc9ce6752688c1c42a402c9ad1554f445231ce6440785aadf45f0a` |
+| `239-tap-closed-row.png` | `ace4d527795b14490a01ec90adbee44fb33763ad1a25aff63db3622b1c05c353` |
+| `239-tap-closed-row.xml` | `85c196a53396a2e3d15e0413b7398411274e6522840d27ea5e3bea8bd5b83205` |
+| `240-before-delete.xml` | `a7250f1b45dc9ce6752688c1c42a402c9ad1554f445231ce6440785aadf45f0a` |
+| `241-snackbar-delete1.png` | `0a506059050171c482e5966025369b8e08c8053b5ad7971b9703dade463d9325` |
+| `241-snackbar-delete1.xml` | `4c9f71e16ae11b78adffc24714957987ad5f85754817d330627e7a582e9328ff` |
+| `242-after-undo1.png` | `b2485edcde8a1d6dd8168a0f319b4190911defc1fb09a6df5c0d2365ff2963c5` |
+| `242-after-undo1.xml` | `a7250f1b45dc9ce6752688c1c42a402c9ad1554f445231ce6440785aadf45f0a` |
+| `243-snackbar-before-toggle.xml` | `4c9f71e16ae11b78adffc24714957987ad5f85754817d330627e7a582e9328ff` |
+| `244-snackbar-after-toggle.png` | `5c900c7fd3806715ca03143f1cb75ed5a7ff5fdc20b42b9be4d459d9320d5bb4` |
+| `244-snackbar-after-toggle.xml` | `4c9f71e16ae11b78adffc24714957987ad5f85754817d330627e7a582e9328ff` |
+| `245-after-undo2-light.png` | `be23e5f77d5ac018ae6d9899148555650c760e953865d6cb767cad89a89a0af8` |
+| `245-after-undo2-light.xml` | `50bc440da84074f3682e0e1c888f00c75fcf440a2f9b982552f1f60014ef5597` |
+| `246-dark-restored.png` | `7c7a9bf148e22a7579c6dcaeb52bbeb48141d97b54c5a3fa20e5d92e539f66b2` |
+| `246-dark-restored.xml` | `50bc440da84074f3682e0e1c888f00c75fcf440a2f9b982552f1f60014ef5597` |
+| `250-maps.xml` | `28e0caa89f7a952776c2eec32cca42e7a90902f39bf53d77fc7f57878d521a21` |
+| `251-add-tile.png` | `6fa9f7dcd97e42d832f73cec9c2128d3c173261d04b921b3247cc62322c627d0` |
+| `251-add-tile.xml` | `29438b7e544efff016e752ea4ee566d6d898a9c036c02a8ee3e4b04e6794023a` |
+| `252-picker.png` | `cf745cf55ac07835a89df7aa6a444787ab069452b3d46421076e68edd7a3ae6b` |
+| `252-picker.xml` | `dce13dbd40b5e4fa0790d2aae779f00745771d64b008d7b10ba3deabf9e3df7c` |
+| `253-after-ok.png` | `e125eda3e72703e443d5521621da030d32f884bc2667475888ecca26fc21cba2` |
+| `253-after-ok.xml` | `09ffda32cb0ee10c59d191bec480f268474e5428d64cf9d7f019ca6ba80ce9b2` |
+| `254-find-labelled.xml` | `0e938288b31718eee75c05283828306191da37e53b7eed1e54bbe3584679495a` |
+| `255-after-find-back.png` | `978ef41cb53fb752877575034070e65241f493f8fb9240274bfe661c8cff7cd8` |
+| `255-after-find-back.xml` | `55dde7df257f01b20ba5f9a4d9ee18fdfa6335d7e6df2eb74d90a4cb4e6434b0` |
+| `256-after-snackbar-gone.xml` | `089d3f2acb6e72e69f473c0128194d1b900301a9ddae4f6420f4535a605ab8c2` |
+| `257-journal-entries.xml` | `f61150b7fbd966430f6226c3748452f71d39d4c9b9ca6a4b62d60f87755c1c01` |
+| `260-final2.png` | `f35119a67fe110da354a36199f8470d627c8e96b784ed1f1d2c4857d22860958` |
+| `260-final2.xml` | `28e0caa89f7a952776c2eec32cca42e7a90902f39bf53d77fc7f57878d521a21` |
+| `261-crash-end2.txt` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `262-version-end2.txt` | `425b95878f3a198c34491c321e43b6c952285e034966ed8aa830ab198e003a23` |
+| `263-settings-end2.txt` | `14e12eda5e60d9d4a1347323755e1e76dd1e18f9bfcb96f162d48317636db286` |
+| `264-logcat-app-pid-session2.txt` | `a7bc4fc0c8512f30b8bfb40b159ce7af64a3730d2993fb8e4655487498d94834` |
+| `db-start2-raw/forager.db` | `fe5d658f20a266183d92b391bd4c18e9b540a8384da49715e4d3d1f40f28c715` |
+| `db-start2-raw/forager.db-shm` | `98ec6c5a66981a9065ed05fc8700ab64c3ad48b2c6ae289a53807184a6541c48` |
+| `db-start2-raw/forager.db-wal` | `8a58ee765ad8cd6503535d1aa745761e616d6bb4c7ba0fdbfb33cf9feb02586c` |
+| `db-mid-raw/forager.db` | `cd2cb2046a458578f0cd3d0c2f351de142222fe7961271cfb6eb6d470285d5c4` |
+| `db-mid-raw/forager.db-shm` | `4f07ac7be95f0d714baa991c6f67a9efe108fb04493cdc8f66e52706adfb58fd` |
+| `db-mid-raw/forager.db-wal` | `f5f7b73f45ffbc1817ba19017747991ef6b2eb152cabedc2fd909ec480d125fd` |
+| `db-end2-raw/forager.db` | `d8c365df9396a7142c8a1a1c0367e7ee4824cf905b0adc800e84751148032f16` |
+| `db-end2-raw/forager.db-shm` | `9cc8c596fdfe3d4ea2c22d5b274a009d359b9a529d331fdf14a046fe3869cf5a` |
+| `db-end2-raw/forager.db-wal` | `b8984504cc8858873564907eebdf37ff817ee7f28e11a8bde1d4aa7e799f63ea` |
+| `undo.sh` | `9807ae2d1028076749a8540b0dd9ca85c7c992582ca671e9b05cbb605965c8b6` |
+| `rowbanner.py` | `34260c02c7e6dea97242a0433df5d3ab257284b44d0051121006c53e49e014ea` |
+| `counts.sh` | `eb43d8d965e3099cba94cb11988ccd82a98de2803487e79c7982ad3e36c00f1b` |
+| `snaps.log` | `fe0fd584310fe166bd9e3420aaa1788b0a092c0e54133facf5584ed2aafefac4` |
 
 ---
 
