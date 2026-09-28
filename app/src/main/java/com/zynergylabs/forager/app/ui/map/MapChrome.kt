@@ -324,7 +324,8 @@ internal val MAP_ICON_STACK_BORDER_COLOR_LIGHT = Bark.copy(alpha = 0.4f)
  * [MaterialTheme.colorScheme.error] directly, even though every value it holds is one of those same
  * roles' own hues. See [MapIconBarAccent]'s own doc comment for the full reasoning (Material's tonal
  * inversion exists for legibility against a plain [MaterialTheme.colorScheme.surface]; these two
- * rows sit on [MapIconBar]'s own opaque bar fill instead, which already does that job, so reading
+ * rows sit on [MapIconBar]'s own bar fill instead (the cluster's 0.8 composite, see
+ * [MAP_ICON_CLUSTER_CONTAINER_ALPHA]), which already does that job, so reading
  * Material's roles directly here just reads backwards).
  */
 private fun mapIconBarAddAccent(isDarkTheme: Boolean) =
@@ -484,7 +485,8 @@ internal fun MapIconBar(
  *
  * **Owner's design for this control:** a drag box on the right side of the icon bar, at mid-height
  * — attached to the bar's own edge rather than stacked above or below its rows, rectangular (not a
- * circle/icon button), and themed the same opaque-fill-plus-hairline-border way as [MapIconBar]
+ * circle/icon button), and themed the same fill-plus-hairline-border way (the fill at
+ * [MAP_CHROME_OVER_MAP_ALPHA]) as [MapIconBar]
  * itself ([MapIconStackButtonColorDark]/[MapIconStackButtonColorLight]) so it reads as an extension
  * of the bar rather than an unrelated new control. Tapping it slides the bar (and, at the call
  * site, [TrailheadControls] alongside it — see that composable's own doc comment) away.
@@ -746,8 +748,8 @@ internal fun MapBarIconButton(
  * A single freestanding circular icon button — MEDIUM/EXPANDED's own add-trip/log-find trigger is
  * the one remaining user of the compact bar's old per-icon-circle look, now that [MapIconBar]'s
  * rows share one background instead. Kept as its own small composable rather than folded into
- * [MapBarIconButton]: a lone button floating directly over the map still needs its own opaque
- * fill plus hairline border to read against the map, the way [MapIconStackButtonColorDark]'s own
+ * [MapBarIconButton]: a lone button floating directly over the map still needs its own fill (at
+ * [MAP_CHROME_OVER_MAP_ALPHA], or the solid accent when `filled`) plus hairline border to read against the map, the way [MapIconStackButtonColorDark]'s own
  * doc comment documents — a bar row can lean on the shared bar background for that instead.
  *
  * `filled`'s own accent is [mapIconBarAddAccent], the same theme-swapped [MapIconBarAccent]

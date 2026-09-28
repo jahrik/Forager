@@ -85,6 +85,7 @@ import com.zynergylabs.forager.app.ui.map.focusedFeature
 import com.zynergylabs.forager.app.ui.map.tappedThingOf
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
+import com.zynergylabs.forager.app.ui.map.mapChromeFill
 import com.zynergylabs.forager.app.domain.model.RecordPoint
 import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 import java.util.UUID
@@ -370,6 +371,13 @@ internal fun CartographyEntryReportScreen(
     val shortWindow = isShortWindow()
     val shortWindowMapCap = (LocalConfiguration.current.screenHeightDp * SHORT_WINDOW_MAP_HEIGHT_FRACTION).dp
 
+    // Read here, above the header, rather than beside the map below (moved unchanged): whether the entry
+    // has a map decides the fill of the header's menu and of the delete dialog, which cover it (map
+    // chrome at 80%, dispatch 2026-09-28-56 as amended by -58).
+    val resolvedMapData = mapData
+    val mapRegion = resolvedMapData?.takeUnless { it.isEmpty }?.let { GeoDistance.boundingRegion(it.allPoints) }
+    val entryMapShown = resolvedMapData != null && mapRegion != null
+
     Column(modifier = modifier.fillMaxWidth()) {
         // Hidden via composition (an if, not an opacity/size-zero modifier), same convention
         // CompactMapTab's own fullscreen mode uses for its surrounding chrome — an unmounted
@@ -394,7 +402,8 @@ internal fun CartographyEntryReportScreen(
                     }
                     // The menu's default container role, passed explicitly, and its content colour
                     // pinned to the role's own (see `MapLayersSheet`), as J8's menus do.
-                    val entryMenuColor = MenuDefaults.containerColor
+                    // The menu drops from the header onto the entry's map, when it has one.
+                    val entryMenuColor = mapChromeFill(MenuDefaults.containerColor, entryMapShown)
                     val entryMenuContentColor = contentColorFor(MenuDefaults.containerColor)
                     DropdownMenu(
                         expanded = menuExpanded,
@@ -429,8 +438,6 @@ internal fun CartographyEntryReportScreen(
             }
         }
 
-        val resolvedMapData = mapData
-        val mapRegion = resolvedMapData?.takeUnless { it.isEmpty }?.let { GeoDistance.boundingRegion(it.allPoints) }
         // The opening frame (owner, 2026-09-28, "Fit all kept records"): one request per screen
         // instance, framed on the kept records and never the kept regions (entryMapFrame). Its id is
         // this instance's own token, not the entry's id, so a request is new exactly when this screen
@@ -651,7 +658,7 @@ internal fun CartographyEntryReportScreen(
     }
 
     if (confirmingDelete) {
-        val deleteDialogColor = AlertDialogDefaults.containerColor
+        val deleteDialogColor = mapChromeFill(AlertDialogDefaults.containerColor, entryMapShown)
         AlertDialog(
             onDismissRequest = { confirmingDelete = false },
             title = { Text("Delete this entry?") },

@@ -150,6 +150,7 @@ import com.zynergylabs.forager.app.ui.motion.MotionTokens
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
+import com.zynergylabs.forager.app.ui.map.mapChromeFill
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.LocalDate
 import androidx.compose.ui.focus.FocusManager
@@ -321,7 +322,7 @@ internal fun CompactMainScaffold(
         // that composable's own compassStripClearance doc comment) — recomputed here rather than
         // threaded through as a parameter, since it depends only on MaterialTheme.typography and
         // this scaffold's own LocalDensity, not on anything CompactMapTab measures live. Used below
-        // to keep SearchDropdown's own opaque panel starting below the strip rather than painting
+        // to keep SearchDropdown's own panel (filled at the map chrome's alpha) starting below the strip rather than painting
         // over it, on the Map tab specifically — the project owner's own direct ask: "have the
         // search window extend just below the compass strip to avoid overlaying it so people can
         // still track it if needed."
@@ -590,7 +591,8 @@ internal fun CompactMainScaffold(
                 // Material3's own snackbar, with its default colours passed explicitly. Its content
                 // colour is its own role (`SnackbarDefaults.contentColor`), not derived from the fill.
                 SnackbarHost(logDraftSnackbarHostState) { data ->
-                    val snackbarColor = SnackbarDefaults.color
+                    // Map chrome at 80% over the Maps tab, following the tab (planner message -77, Q4).
+                    val snackbarColor = mapChromeFill(SnackbarDefaults.color, compactTab() == CompactTab.MAP)
                     val snackbarContentColor = SnackbarDefaults.contentColor
                     Snackbar(
                         snackbarData = data,
@@ -967,8 +969,11 @@ internal fun CompactMainScaffold(
                                                 },
                                                 onDismissTaxonSuggestions = onDismissTaxonSuggestions,
                                                 onFieldFocused = { showSearchDropdown = true },
+                                                // The Maps tab's own bar, over its map (map chrome at 80%;
+                                                // owner, "1 A": its suggestions stack over the 0.8 panel).
+                                                overMap = true,
                                             )
-                                            SearchNotice(uiState)
+                                            SearchNotice(uiState, overMap = true)
                                         }
                                         }
                                     }
@@ -1228,6 +1233,8 @@ internal fun CompactMainScaffold(
                                     },
                                     expandManualCoordinatesRequested = expandManualCoordinatesRequested,
                                     onManualCoordinatesExpandConsumed = { expandManualCoordinatesRequested = false },
+                                    // Over the Maps tab's map only; on the other tabs its Month menu stays solid.
+                                    overMap = compactTab() == CompactTab.MAP,
                                 )
                             }
                         }

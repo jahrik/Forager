@@ -51,6 +51,7 @@ import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.NavigationRailItemDefaults
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
+import com.zynergylabs.forager.app.ui.map.mapChromeFill
 import com.zynergylabs.forager.app.ui.log.ScreenEdge
 
 /**
@@ -269,8 +270,10 @@ internal const val EXIT_NAVIGATION_PROMPT_KEEP_TAG = "exit-navigation-prompt-kee
 internal fun ExitNavigationPrompt(
     onExit: () -> Unit,
     onKeepNavigating: () -> Unit,
+    /** Whether a map is drawn on screen beneath the prompt: its container is then at the map chrome's alpha. */
+    overMap: Boolean = false,
 ) {
-    val dialogColor = AlertDialogDefaults.containerColor
+    val dialogColor = mapChromeFill(AlertDialogDefaults.containerColor, overMap)
     AlertDialog(
         onDismissRequest = onKeepNavigating,
         title = { Text("Exit navigation?") },

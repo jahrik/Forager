@@ -309,6 +309,7 @@ import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorDark
 import com.zynergylabs.forager.app.ui.map.mapIconStackBorderColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
+import com.zynergylabs.forager.app.ui.map.mapChromeFill
 import com.zynergylabs.forager.app.ui.map.mapIconClusterContainerColor
 import com.zynergylabs.forager.app.ui.map.mapIconClusterChildColor
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorLight
@@ -1087,15 +1088,7 @@ fun AvailabilityScreen(
     LaunchedEffect(isNavigating) {
         if (!isNavigating) showExitNavigationPrompt = false
     }
-    if (showExitNavigationPrompt) {
-        ExitNavigationPrompt(
-            onExit = {
-                showExitNavigationPrompt = false
-                onToggleReturning()
-            },
-            onKeepNavigating = { showExitNavigationPrompt = false },
-        )
-    }
+    // The prompt itself is composed below, once the window's tree is known (map chrome at 80%).
 
     // "Home": drawer closed, chrome visible, Maps tab selected, not navigating. A second back
     // press within the window actually exits; a lone press just warns. This is a single-Activity
@@ -1139,6 +1132,29 @@ fun AvailabilityScreen(
     }
     LaunchedEffect(isMapsTabShown) {
         if (isMapsTabShown) onMapShown()
+    }
+    // Map chrome at 80% (dispatch 2026-09-28-56 as amended by -58; planner message -77, Q2 and Q5): on
+    // the medium and expanded layout a map is drawn on screen when the results pane shows List or Map
+    // and its MapTab draws its map, which is exactly a searched region that is neither loading nor in
+    // error (MapTab's own branches). A surface spanning the window, or the pane, covers it then.
+    val wideResultsMapShown = (selectedTab == ResultsTab.LIST || selectedTab == ResultsTab.MAP) &&
+        uiState.region != null && !uiState.isLoadingSightings && uiState.sightingsErrorMessage == null
+    if (showExitNavigationPrompt) {
+        ExitNavigationPrompt(
+            onExit = {
+                showExitNavigationPrompt = false
+                onToggleReturning()
+            },
+            onKeepNavigating = { showExitNavigationPrompt = false },
+            // Compact: raised only on the Maps tab, and follows the tab (-77, Q4). Medium and expanded,
+            // reached only when the window changes class while navigating: over the results map when
+            // it is drawn (-77, Q5).
+            overMap = if (windowWidthClass == WindowWidthClass.COMPACT || isShortWindow) {
+                compactTab == CompactTab.MAP
+            } else {
+                wideResultsMapShown
+            },
+        )
     }
     val isShortLandscapeWindow = isShortWindow &&
         LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -1520,6 +1536,8 @@ fun AvailabilityScreen(
                     onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
                     onTaxonSearchResultSelected = onTaxonSearchResultSelected,
                     onDismissTaxonSuggestions = onDismissTaxonSuggestions,
+                    // The suggestions span the results pane, over its map when it draws one (-77, Q2).
+                    suggestionsOverMap = wideResultsMapShown,
                 )
             },
         ) { padding ->
@@ -1808,7 +1826,9 @@ fun AvailabilityScreen(
                 // Material3's own default container role for a modal drawer, passed explicitly, and
                 // its content colour pinned to the role's own (`contentColorFor` matches a colour-scheme
                 // role exactly; see `MapLayersSheet`).
-                val drawerColor = DrawerDefaults.modalContainerColor
+                // Over the Maps tab at the map chrome's alpha, following the tab (owner: "80% over Maps
+                // (Recommended)"; planner message -77, Q4); solid over the other tabs.
+                val drawerColor = mapChromeFill(DrawerDefaults.modalContainerColor, compactTab == CompactTab.MAP)
                 val drawerContentColor = contentColorFor(DrawerDefaults.modalContainerColor)
                 ModalDrawerSheet(
                     modifier = Modifier.testTag(TOOLS_DRAWER_SHEET_TAG).mapChromeContainerColor(drawerColor),

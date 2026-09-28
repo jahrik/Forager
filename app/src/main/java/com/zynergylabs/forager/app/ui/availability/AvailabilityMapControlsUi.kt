@@ -66,6 +66,7 @@ import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.ReturnToStartInfo
+import com.zynergylabs.forager.app.ui.map.MAP_CHROME_OVER_MAP_ALPHA
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_CORNER_RADIUS
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_EDGE_INSET
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_DARK
@@ -88,10 +89,10 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
 import kotlin.math.roundToInt
 
 /** Translucent background for [CompassElevationStripContent] and [SearchDropdown]'s own panel — dark-theme value. Was 0.78, one alpha step off the app's settled 80% map-chrome opacity ([MapIconStackButtonColorDark]'s own value); the map/navigation search-UI redo dispatch names 80% as the one value all map chrome shares, so this now matches rather than carrying its own near-miss. */
-internal val CompassStripBackgroundColorDark = Bark.copy(alpha = 0.8f)
+internal val CompassStripBackgroundColorDark = Bark.copy(alpha = MAP_CHROME_OVER_MAP_ALPHA)
 
 /** [CompassStripBackgroundColorDark]'s light-theme counterpart — same reasoning as [MapIconStackButtonColorLight]: picked per [com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme], independent of the map's own night mode, unverified on hardware. */
-internal val CompassStripBackgroundColorLight = Cream.copy(alpha = 0.8f)
+internal val CompassStripBackgroundColorLight = Cream.copy(alpha = MAP_CHROME_OVER_MAP_ALPHA)
 
 /** The compass strip's heading text — one of the two places a heading can appear, never both at once (the strip hides while the HUD shows). */
 internal const val COMPASS_STRIP_HEADING_TAG = "compass-strip-heading"

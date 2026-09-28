@@ -58,6 +58,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import com.zynergylabs.forager.app.ui.map.MAP_CHROME_OVER_MAP_ALPHA
 import com.zynergylabs.forager.app.ui.map.JournalEntriesMapChip
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
@@ -708,7 +709,7 @@ internal fun CompactMapTab(
                 // alone won't catch). Composition order is paint AND hit-test order for overlapping
                 // siblings in a Box, so moving this earlier guarantees the strip's own control wins
                 // any overlap on every screen size, not just typical ones — a small cosmetic cost
-                // (the strip's opaque background could cover a sliver of one icon bar row on a
+                // (the strip's background, at the map chrome's alpha, could cover a sliver of one icon bar row on a
                 // screen too short for MapIconBar's own rows to fit at all — already a degraded
                 // state before this change) traded for a control that always actually works. Still
                 // true after MapIconBar's own return-to-vehicle row was removed (see that
@@ -1227,7 +1228,7 @@ internal fun CompactMapTab(
                             selectedTab = CompactTab.MAP,
                             // 80%, the standing opacity for chrome over the map — see this bar's own
                             // containerColor doc comment.
-                            containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.8f),
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = MAP_CHROME_OVER_MAP_ALPHA),
                             isDrawerOpen = isDrawerOpen,
                             onTabSelected = onBottomNavTabSelected,
                             modifier = Modifier
@@ -1264,7 +1265,7 @@ internal fun CompactMapTab(
                             isDrawerOpen = isDrawerOpen,
                             onTabSelected = onBottomNavTabSelected,
                             portEdge = railPortEdge,
-                            containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.8f),
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = MAP_CHROME_OVER_MAP_ALPHA),
                             modifier = Modifier.onGloballyPositioned { coordinates ->
                                 onRailWidthMeasured(coordinates.size.width.toFloat())
                             },
