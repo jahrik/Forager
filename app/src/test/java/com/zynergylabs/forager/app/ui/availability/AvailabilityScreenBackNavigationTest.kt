@@ -22,6 +22,11 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.core.app.ApplicationProvider
@@ -915,6 +920,91 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_HOME_TAG).assertIsDisplayed()
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertIsDisplayed()
     }
+
+    // --- Maps search bar after an open day entry (intent 2026-09-28-17): an open Cartography entry
+    // stays open across a tab change (owner, "Keep entry, fix the bar (Recommended)"), and the Maps
+    // tab's own search bar (CompactMapTab's searchBarSlot) is hidden for it only while the Journal
+    // tab is the one showing. Before the fix the slot's gate read "an entry is open" alone, so
+    // tapping Maps with a day entry open left Maps with no search bar. The tab is changed by a real
+    // touch at the nav item's own centre, on the bottom nav in portrait and on the rail in a short
+    // landscape window; the claim is about the bar, so one touch routes, and the item is checked
+    // to be the nav's own (in the rail, or with no rail at all) and selected afterwards.
+
+    /** A real touch at the centre of the nav item labelled [label]; asserts it lands on that tab. */
+    private fun touchNavItem(label: String) {
+        val item = composeRule.onNodeWithText(label).getUnclippedBoundsInRoot()
+        val rails = composeRule.onAllNodesWithTag(COMPACT_NAVIGATION_RAIL_TAG).fetchSemanticsNodes()
+        if (rails.isNotEmpty()) {
+            val rail = composeRule.onNodeWithTag(COMPACT_NAVIGATION_RAIL_TAG).getUnclippedBoundsInRoot()
+            assertTrue(
+                "the $label item $item lies in the rail $rail",
+                item.left >= rail.left && item.right <= rail.right && item.top >= rail.top && item.bottom <= rail.bottom,
+            )
+        }
+        val x = (item.left.value + item.right.value) / 2f
+        val y = (item.top.value + item.bottom.value) / 2f
+        composeRule.onRoot().performTouchInput { click(Offset(x * density, y * density)) }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText(label).assertIsSelected()
+    }
+
+    private fun assertRailShown(expected: Boolean) {
+        assertEquals(
+            "the rail is ${if (expected) "" else "not "}the nav in this window",
+            expected,
+            composeRule.onAllNodesWithTag(COMPACT_NAVIGATION_RAIL_TAG).fetchSemanticsNodes().isNotEmpty(),
+        )
+    }
+
+    private fun assertMapsSearchBarShown(context: String) {
+        composeRule.onNodeWithText("Maps").assertIsSelected()
+        assertEquals(
+            "the Maps search bar ($ACTIVE_SEARCH_SUMMARY_TAG) is shown on the Maps tab $context",
+            1,
+            composeRule.onAllNodesWithTag(ACTIVE_SEARCH_SUMMARY_TAG).fetchSemanticsNodes().size,
+        )
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertIsDisplayed()
+    }
+
+    /** Opens the committed day entry from Journal, in its report view or, with [edit], in its editor. */
+    private fun openCommittedDayEntry(edit: Boolean) {
+        touchNavItem("Journal")
+        composeRule.onNode(committedCartographyCard()).performClick()
+        composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
+        if (edit) {
+            composeRule.onNodeWithContentDescription("Entry options").performClick()
+            composeRule.onNodeWithText("Edit entry").performClick()
+            composeRule.onNodeWithText("Your own account (optional)").assertIsDisplayed()
+        }
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertDoesNotExist()
+    }
+
+    private fun checkMapsBarAfterOpenEntry(edit: Boolean, rail: Boolean) {
+        setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
+        assertRailShown(rail)
+        assertMapsSearchBarShown("before any entry is opened")
+        openCommittedDayEntry(edit)
+        touchNavItem("Maps")
+        assertMapsSearchBarShown("with a day entry left open in ${if (edit) "its editor" else "its report view"}")
+    }
+
+    @Test
+    fun `portrait, Maps from an open day entry's report view shows the Maps search bar`() =
+        checkMapsBarAfterOpenEntry(edit = false, rail = false)
+
+    @Test
+    fun `portrait, Maps from an open day entry's editor shows the Maps search bar`() =
+        checkMapsBarAfterOpenEntry(edit = true, rail = false)
+
+    @Test
+    @Config(qualifiers = "w823dp-h384dp-land")
+    fun `short landscape, Maps on the rail from an open day entry's report view shows the Maps search bar`() =
+        checkMapsBarAfterOpenEntry(edit = false, rail = true)
+
+    @Test
+    @Config(qualifiers = "w823dp-h384dp-land")
+    fun `short landscape, Maps on the rail from an open day entry's editor shows the Maps search bar`() =
+        checkMapsBarAfterOpenEntry(edit = true, rail = true)
 
     @Test
     fun `the top search bar hides while editing a find, and reappears once it closes`() {
