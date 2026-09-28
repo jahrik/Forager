@@ -4216,3 +4216,19 @@ Each is tested for non-intersecting bounds at 0, 90 and 270, with real-touch sam
 - -78's placement stop rule applies to all nine items.
 - The 11-shadows flag from -92 is not in scope.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-94
+**Timestamp:** 2026-09-28T23:22:21Z
+**Title:** Reproduce the missing planned-trip glyphs on the S22: up to three trips (today, future, past) created through the real UI, checked by zoom, layer switch, day and night, tap and relaunch, then deleted
+**Dispatch-file:** preserved/2026-09-28-94.md
+**Change:** No code and no install. Pre-register from the planned-trips pulse, create at most three trips mirroring the owner's, observe whether each draws in every case, name the cause the evidence supports, and delete exactly those trips. planned_trips is read back at its starting count.
+**Scope boundary:** The S22 only; never the tablet. Only the created trips; deleted at the end; settings restored. Branch device-trips; evidence outside the repository.
+**Baseline:** the build -84 leaves on the S22 (from b358a4a); planned_trips 0 at the J8 check's backup.
+**Prediction (outcome — planner):** 1. The glyph fails to draw for at least one of the three on the current build, reproducing the owner's S26 report. 2. The cause is a filter or a missing feed on the compact Maps tab, not the layer switch.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** The run record pushed with verdicts, captures, logcat, the supported cause, the trips deleted and read back. The planner merges it and writes the terminal. A fix is dispatched separately.
+**Abort conditions:** Any prompt; a locked phone; a new crash; a trip that cannot be deleted; any need to touch the owner's data or the tablet.
+**Notes:** Owner, verbatim: "I noticed there are no day/night icons for planned trips, even though they do record in the planner. The layer is available in the map layers panel though." / "They do not appear at all" / "Yes from thr S26" / "Verify it on the S22 ultra". Queued until -84 frees the S22. Written by the planner by hand.
