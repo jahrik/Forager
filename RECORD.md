@@ -3444,3 +3444,19 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Reason:** the device coder (af6ff5e0d2c8390c0) died on the same outage; its last tool call ended at 18:03:18Z, mid check 4, and its error landed at 18:13:47Z. Pre-registration and install facts were pushed at 5532ff2 on device-stage-1. No verdicts were written, because its reasoning was not saved; evidence 01 to 123 survives in the device-evidence directory. Phone read at relaunch: awake, Forager in focus, user_rotation 3, accelerometer_rotation 0; Diagnostics synthetic layers left on by step 104.
 **Changes:** A fresh device coder confirms that the install is unchanged and reads crashes across the gap. It gives verdicts for checks 1 to 4 from saved evidence only where a file shows the pass condition on its own, and otherwise re-runs the item. It finishes check 4 and runs 5 to 8. It restores settings and rotation, reads them back, numbers new evidence from 124, and writes the verdicts into the existing run record without editing its pre-registration.
 **Notes:** An extract of the dead agent's commands and outputs is at device-evidence/2026-09-28-stage-check-1/prior-agent-transcript-extract.md, outside the repository. Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-56
+**Timestamp:** 2026-09-28T18:41:31Z
+**Title:** The record details sheet (waypoint, track, offline region) at the map chrome's 80% when it covers a map, solid elsewhere
+**Dispatch-file:** preserved/2026-09-28-56.md
+**Change:** RecordDetailsSheet learns that it is over a map. Every call site that covers a map says so, and the container goes to MAP_CHROME_OVER_MAP_ALPHA with the Layers sheet's content-colour and scrim treatment. Other call sites are unchanged.
+**Scope boundary:** RecordDetailsSheet.kt, the call sites that cover a map (expected MapBubble.kt), tests, a completion report. Not the Layers sheet, the bubble cards, the record, index, CLAUDE.md, plans or prompts.
+**Baseline:** the planner's J8 terminal commit on journal-redesign (queued; not launched at this timestamp).
+**Prediction (outcome — planner):** 1. Two call sites; only the map bubble's covers a map on the compact layout. 2. The suite grows by 6 to 12.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** Build, tests first through real entry points in portrait and w823dp-h384dp-land, revert check, full suite, report, pushed; the planner writes the terminal.
+**Abort conditions:** An unclassifiable call site; a tests-first test passing at base; a non-compiling revert; a non-held failure; new copy; disk full or OOM; two failed fixes; an unruled design question.
+**Notes:** Owner, verbatim: "Can you set this card at 80% opacity while over the map? In the places that aren't covering a map, they can stay solid. Same for tracks please" (sent 18:04Z and 18:05Z to the stalled planner session, which never read them; resent with two screenshots to the relaunching session). Rulings: "After J8 (Recommended)", "Yes, all three (Recommended)". Queued behind J8 because about 3 GB of memory was free with J8's Gradle running. Written by the planner by hand.
