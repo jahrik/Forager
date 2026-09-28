@@ -324,6 +324,10 @@ internal fun RecordsTab(
             staleThresholdDays = availabilityUiState.offlineStaleThresholdDays,
             getFullRecord = getFullRecord,
             onDismiss = { detailsTarget = null },
+            // Planner message 2026-09-28-77, Q1 option (b): over a map only from the Offline maps
+            // sub-tab, whose region picker map is in that panel. The wide results map beside the
+            // drawer is left to J6.
+            overMap = selectedTab == RecordsSubTab.OFFLINE_MAPS,
         )
     }
 }

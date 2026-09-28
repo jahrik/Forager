@@ -320,6 +320,8 @@ internal fun MapBubbleLayer(
             staleThresholdDays = sources.staleThresholdDays,
             getFullRecord = sources.getFullRecord,
             onDismiss = { detailsTarget = null },
+            // Opened from a bubble, which only a map's own Box composes: always over a map.
+            overMap = true,
         )
     }
     viewerPhotoId?.let { id ->

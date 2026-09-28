@@ -253,6 +253,18 @@ internal val MapChromeContainerColor = SemanticsPropertyKey<Color>("MapChromeCon
  */
 internal val MapChromeContentColor = SemanticsPropertyKey<Color>("MapChromeContentColor")
 
+/**
+ * A surface's fill for where it is shown (owner, 2026-09-28: "My idea is that nothing should fully
+ * obstruct the map view. All map chrome gets 80% opacity as a result"): its [role] at
+ * [MAP_CHROME_OVER_MAP_ALPHA] when a map is drawn on screen beneath it ([overMap]; planner message
+ * 2026-09-28-77, Q2), and the role itself, solid, where none is (owner: "In the places that aren't
+ * covering a map, they can stay solid"). Only the fill: each caller pins its content colour to the
+ * unaltered role's own, because `contentColorFor` matches a colour-scheme role exactly and a
+ * translucent fill matches none (`MapLayersSheet`).
+ */
+internal fun mapChromeFill(role: Color, overMap: Boolean): Color =
+    if (overMap) role.copy(alpha = MAP_CHROME_OVER_MAP_ALPHA) else role
+
 /** Marks this node with the container colour it was given ([MapChromeContainerColor]). */
 internal fun Modifier.mapChromeContainerColor(color: Color): Modifier = semantics { set(MapChromeContainerColor, color) }
 
