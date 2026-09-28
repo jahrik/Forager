@@ -665,3 +665,5 @@ As "Build order" says, the list-detail question goes to the owner before J6 is d
 4. The single Journal PR.
 
 J6 builds under Robolectric and takes no phone, so the two can run together, as J8 and device check Part 1 do now. The planner kept the map-chrome device check as its own step before Part 2 and stated that to the owner. Folding it into Part 2 is the alternative.
+
+**The map-chrome device check stays its own step (owner, 2026-09-28).** Told that the planner had kept the map-chrome device check as its own step before Part 2, rather than folding it into Part 2, the owner answered verbatim: "Confirm your assumption." The planner reads that as confirming it. The order in the paragraph above stands as written.
