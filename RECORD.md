@@ -3119,3 +3119,19 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner, verbatim: "Another bug: when the tool drawer is open while you're viewing an opened journal entry, hitting the back button navigates the journal behind the tool drawer and not the drawer itself. The intended action is to close the drawer while it's open." Run beside M1's pre-build pulse; the owner may hold it until after M1. Written by the planner by hand.
 
 ---
+
+**Kind:** intent
+**ID:** 2026-09-28-29
+**Timestamp:** 2026-09-28T11:03:47Z
+**Title:** M1, tap a map glyph for a bubble: tap routing, one generic bubble shell, content per kind including forecast cells, targets opened in place, on the Maps tab (compact and wide) and the entry map
+**Dispatch-file:** preserved/2026-09-28-29.md
+**Change:** B1 feature taps stop firing onTap; search centre and breadcrumb untappable; colour-field cells tappable, losing to any marker or line in the box. B2 one bubble shell from ObservationBubble on AnchoredAtScreenPoint, one bubble at a time, tail tip on the tapped point, point features re-anchored on idle. B3 content per kind (find, photo, waypoint with Directions, track, planned trip with Directions, offline region, forecast cell with the D55 readout and the reference-class sentence). B4 targets in place (the J5c sheet, the photo viewer, "Open in Journal" for finds). B5 compact, wide and entry-map hosts.
+**Scope boundary:** Branch journal-redesign; ui/map, the Maps hosts and AvailabilityScreen/Scaffold for threading and the find route, CartographyEntryReportScreen.kt, RecordDetailsSheet.kt and PhotoViewerDialog.kt for reuse, tests. Not the Leaving-the-Journal fixes, the landscape bugs, J8, Room, the Seasonal panel, the held flaky tests, the record, index, CLAUDE.md, plans or prompts.
+**Baseline:** journal-redesign at the commit carrying this entry.
+**Prediction (outcome — planner):** 1. No Room migration. 2. No tenth MapSlot parameter. 3. Sighting-bubble tests unchanged apart from the tail anchor. 4. The suite grows by 50 to 110 tests.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** B1-B5 pushed with the completion report and a device-only list; tests first, revert checks each compiling, coordinate-touch UI tests, the full suite; the planner re-runs the suite and writes the terminal.
+**Abort conditions:** A wrong premise; a tenth MapSlot parameter; a kind not looked up; a tests-first test passing at base; a non-compiling revert; a non-held failure; a bubble touch reaching the map after two attempts; an OOM kill; two failed fixes; an unruled design question.
+**Notes:** Owner's rulings, verbatim: "Bubble only (Recommended)", "Open in place (Recommended)", "Yes, same bubbles (Recommended)", "Not tappable (Recommended)"; the planner's rulings are listed in the plan's "M1 rulings" section. Premises from docs/audits/2026-09-28-m1-premise-pulse.md. Runs beside the drawer-Back fix 2026-09-28-28 and the night-fill capture on the phone. Written by the planner by hand.
+
+---
