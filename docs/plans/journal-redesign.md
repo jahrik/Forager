@@ -752,3 +752,5 @@ The build queue, one at a time:
 6. J6, after the tablet sanity check.
 
 **Night only, confirmed (owner, 2026-09-28).** The owner, verbatim: "Yes the night outline only". The white border in `-79` applies to the night outline alone. The day outline is unchanged.
+
+**The tablet photo-viewer measurement, deferred (owner, 2026-09-28).** The tablet sanity check (terminal `2026-09-28-80`) could not measure the photo viewer, because Forager on the tablet held no photo. The planner offered three options: take a camera photo, import one of the owner's, or leave it unmeasured. The owner, verbatim: "Defer it for now. I'm not near my tablet. I'll let you know when I am and we can revisit that question". It stays open until the owner raises it. It does not block J6, since the terminal cleared J6 to dispatch.
