@@ -449,3 +449,25 @@ The chip reads the shown entries whatever the switch (`AvailabilityScreen.kt:923
 - **Prediction:** held in full.
 
 Not an abort: no count mismatch, no crash, version 16.
+
+## Check 2: the report menu, and the chip's first appearance: **pass**
+
+Relaunched with `am start` at 21:09:11Z (pid 31805).
+- **Control:** the Maps tab before any entry was shown (`21-c2-maps-before.xml`/`.png`): no node with "journal entr" in
+  its text, and no chip under the compass strip.
+- **Saved entry:** Journal, Entries (`22-`): a real touch on the L0a entry's card at (300, 1200), away from "New entry",
+  opened its report, header "2026-09-27", "Entry options" at `[900,279][1035,414]` (`23-`). A touch there opened a menu
+  of exactly three rows (`24-c2-report-menu.xml`): "Edit entry" `[610,437][1035,572]`, **"Show on map"
+  `[610,572][1035,707]`**, "Delete entry" `[610,707][1035,842]`. Show on map is between Edit and Delete.
+- **Show:** a real touch on "Show on map" at 21:10:02.9Z (`25-`). The menu reopened reads "Edit entry", **"Hide from
+  map"**, "Delete entry" (`26-`); it was closed with Back (`27-`).
+- **The chip:** on the Maps tab (`28-c2-maps-chip.xml`/`.png`), a clickable node `[310,273][771,408]` whose text is
+  exactly **"1 journal entry on map"**. The camera was the same as the control's (the relaunch's opening camera), and
+  the DEVICE CHECK region's circle and the markers now carry a dark ring (by my reading; measured in check 3).
+- **Draft:** Journal, the drafts banner's "Continue ›" opened "Unfinished entries" with five DEVICE CHECK drafts (`31-`).
+  A touch on the first opened it **in the editor** ("Your own account (optional)" field, `32-`). Its "Entry options"
+  menu holds one row, **"Delete entry"**, and no "Show on map" or "Hide from map" (`33-c2-draft-menu.xml`: 0 matches).
+  Back closed the menu (`34-`), Back left the draft for the list (`35-`) and Back returned to Entries, still "5
+  unfinished entries" (`36-`). Nothing was typed or chosen.
+- Crash buffer 0 bytes after the check (`37-`); Forager pid 31805 throughout.
+- **Prediction:** held.
