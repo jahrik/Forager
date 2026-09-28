@@ -3600,3 +3600,30 @@ Three premises were wrong: the editor has no map; trip planning, Set on map and 
 - **Device-only (J8's device check, next):** the highlight over each basemap and at night; the chip against real insets and its 0.8 fill; the landscape chip against the cluster; the Toast; MIGRATION_15_16 on the S22's real data.
 - Next, per the plan: J8's device check once Part 1 frees the phone, then the map-chrome stage (-56, -58).
 - Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-67
+**Timestamp:** 2026-09-28T20:33:38Z
+**Continues:** 2026-09-28-56
+**Dispatch-file:** none (launch note; -56 and -58 govern)
+**Reason:** the owner ruled "4 A": start the map-chrome build while Part 1 holds the phone.
+**Changes:** -56 launches at base 99de6c2, as amended by -58. -59 and -60 are withdrawn (-61) and are not given to the coder. J8's chip and its lists are already at MAP_CHROME_OVER_MAP_ALPHA (terminal -66), so -58's J8 item is expected to be satisfied at base and is re-verified, not rebuilt. The worktree is forager-wt/map-chrome, branch map-chrome.
+**Notes:** Owner, verbatim: "1 A / 2 A / 3 A / 4 A" (J8's flags: the landscape overlap left to J8's device check; save failures as stage -68; both "Kept in" lines kept; map-chrome build now). Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-68
+**Timestamp:** 2026-09-28T20:33:38Z
+**Title:** Entry save failures shown: Cartography's saveErrorMessage, set but never displayed, surfaced in the app's established failure pattern with its existing string
+**Dispatch-file:** preserved/2026-09-28-68.md
+**Change:** A failed entry save shows its existing string ("Couldn't save your changes.") the way the app already surfaces comparable failures, and clears by that pattern's rule. With several patterns or none, the coder stops and reports.
+**Scope boundary:** CartographyViewModel.kt, CartographyUiState.kt, the editor and report screens and the displaying host, tests, a completion report. Not J8's shownOnMap message, other ViewModels, the record, index, CLAUDE.md, plans or prompts.
+**Baseline:** journal-redesign at the base named at launch (queued behind the map-chrome build).
+**Prediction (outcome — planner):** 1. saveErrorMessage set in two or three places and read by nothing that displays it. 2. The suite grows by 3 to 8.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** Verification, build, tests first through the editor's Save with a failing repository in portrait and w823dp-h384dp-land, revert check, full suite, report, pushed; the planner writes the terminal.
+**Abort conditions:** No single established pattern; a failure with no existing string; a tests-first test passing at base; a non-compiling revert; a non-held failure; new copy; disk full or OOM; two failed fixes; an unruled design question.
+**Notes:** Owner, verbatim: "2 A", to "Entry save failures are never shown... A fix it as a small stage of its own." The claim comes from the J8 coder's report (terminal -66); the planner has not verified it. Written by the planner by hand.

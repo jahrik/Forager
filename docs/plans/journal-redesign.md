@@ -669,3 +669,18 @@ J6 builds under Robolectric and takes no phone, so the two can run together, as 
 **The map-chrome device check stays its own step (owner, 2026-09-28).** Told that the planner had kept the map-chrome device check as its own step before Part 2, rather than folding it into Part 2, the owner answered verbatim: "Confirm your assumption." The planner reads that as confirming it. The order in the paragraph above stands as written.
 
 **J6's device check on the owner's tablet (owner, 2026-09-28).** The owner, verbatim: "When J6 is ready to test let me know. I have a tablet to use for testing". J6's device-only items run on the owner's tablet, not the S22, which has no wide window. The planner tells the owner when J6 is ready to test and does not start a tablet check unprompted. The tablet's model, build and window class are read with `getprop` and `dumpsys window` when it is connected; they are not known yet.
+
+### J8's flags: the owner's rulings (2026-09-28)
+
+Asked after J8's terminal (`2026-09-28-66`), the owner answered verbatim "1 A / 2 A / 3 A / 4 A":
+1. **The landscape chip overlap** (in short landscape the chip's ruled spot overlaps the icon cluster on its default side and takes the touch there, as the taxon chip does): **left for J8's device check to judge.** It goes on that check's list.
+2. **Entry save failures never shown** (Cartography's `saveErrorMessage` is never displayed or cleared; this predates J8): **fixed as a small stage of its own**, intent `2026-09-28-68`. Build stages run in sequence, so it queues behind the map-chrome build.
+3. **"Kept in" twice on a highlighted photo's bubble** (the existing line counts all keeping entries, J8's counts the shown ones): **keep both.**
+4. **Start the map-chrome build while the phone is busy with Part 1: yes.** The map-chrome stage (`-56` as amended by `-58`) launches now at `99de6c2`, ahead of J8's device check. It needs no phone.
+
+The order is now:
+1. The map-chrome build, and Part 1 finishing on the phone, at the same time.
+2. The save-failure stage (`-68`).
+3. J8's device check and then the map-chrome device check, each as the phone frees.
+4. Device check Part 2, with J6 alongside.
+5. The single Journal PR.
