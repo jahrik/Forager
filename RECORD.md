@@ -3732,3 +3732,24 @@ The list-detail question goes to the owner next. Written by the planner by hand.
 **Reason:** the map-chrome stage (-56, -58) stopped at verification (report dc09e53) with questions for the owner and planner, so no build is running. The save-failure stage it was queued behind can use the idle slot.
 **Changes:** -68 launches at base 7b4521f (app/ identical to 99de6c2) in forager-wt/save-failure, branch save-failure. The map-chrome stage resumes by continuation once its questions are ruled.
 **Notes:** J8's device check (-72) builds one APK at the same time, so each coder checks memory before Gradle and waits when it is short. Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-74
+**Timestamp:** 2026-09-28T20:53:37Z
+**Title:** Tablet layout sanity check before J6, on the owner's tablet: measure every wide-tree pane against the J6 pulse's arithmetic, install over the existing Forager behind a verified backup
+**Dispatch-file:** preserved/2026-09-28-74.md
+**Change:** No code.
+- Read the tablet's facts.
+- Back up and verify its Forager database.
+- Build and install -r over the existing Forager (owner "2 B").
+- Create a few "DEVICE CHECK 2026-09-28 T" items and leave them (owner "3 A").
+- Measure the drawer, list, map, report map, details sheet and viewer in each orientation against the pulse's predictions, with captures for the owner to judge.
+**Scope boundary:** The owner's tablet only; never the S22. No device-wide display changes. The owner's own records on the tablet are untouched. Run record on branch device-tablet; evidence outside the repository.
+**Baseline:** journal-redesign at the base named at launch. Queued until the owner says the tablet is connected.
+**Prediction (outcome — planner):** 1. At least one orientation takes the wide tree. 2. The measured map width matches the pulse's arithmetic within a few dp. 3. In portrait on a MEDIUM-width tablet, the map is under 150 dp or absent.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** The run record pushed with the measurement table, captures, install and backup figures and created items. The planner merges it. **J6 is not dispatched before this.**
+**Abort conditions:** Not exactly one non-S22 device; a signature mismatch; an unverifiable backup; a migration mismatch or crash; a new crash; a locked tablet; any need to touch the owner's records or the S22. A prompt pauses the run for the owner (owner "4 A").
+**Notes:** Owner, verbatim: "1 not in yet, I'll work on it and tell you / 2 B / 3 A / 4 A / Do a separate check before J6 / I'll connect the tablet for the check before J6. Do not start J6 without that sanity check". Written by the planner by hand.
