@@ -4115,3 +4115,53 @@ Each is tested for non-intersecting bounds at 0, 90 and 270, with real-touch sam
 **Reason:** the night-outline stage (-79) finished (8096984), and -70 (J8 follow-ups) is next in the build line.
 **Changes:** -70 and -87 launch at base 8096984 (app/ identical to 16e9d0d) in forager-wt/j8-follow-ups, branch j8-follow-ups. The coder is told that -79 added OFFLINE_REGION_BORDER between the region's J8 halo and its outline (halo, border, outline). -87's item 4 (marker rings below every line) must keep that order and -79's pins, or stop.
 **Notes:** The planner's suite for -79 runs at the same time; the coder waits for any running Gradle build. Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-91
+**Timestamp:** 2026-09-28T22:47:12Z
+**Closes:** 2026-09-28-79
+**Outcome:** completed
+**Observed:**
+- **Commits.** Tests first at 7d507f0 (night-outline-wip); the build at 16e9d0d; the report at 8096984, on journal-redesign.
+- **The build.**
+  - MapPalette offlineRegionBorder: white at night, transparent by day.
+  - A new non-tappable layer, OFFLINE_REGION_BORDER, between the region's J8 halo and its outline, following the Offline maps switch.
+  - offlineRegionBorderSpec in the track-casing pattern: 4.5 dp, solid, at OFFLINE_REGION_BORDER_OPACITY 0.85.
+  - The fill, the dashes and the day outline are unchanged.
+- **Figures** over Part 1's darkest night ground, sampled from frames 272 and 281:
+  - over #0E0D0A: 14.026 outside and 13.636 inside;
+  - over #010101: 14.787 and 14.409;
+  - dashes on the border: at least 14.877.
+
+  The 26 night grounds are pinned so they cannot get worse. The border falls under 3:1 on the six lightest, where the dashes are 6.7:1 or more.
+- **Other opacities, for the owner:**
+
+  | Opacity | Over #010101 |
+  |---|---|
+  | 0.35 | 3.0 |
+  | 0.5 | 5.3 |
+  | 0.7 | 9.9 |
+  | 1.0 | 20.9 |
+- **Evidence.** Tests first: 11 of 65 failed for the stated reason (4 new, 7 registry pins updated). R1 (transparent at night) and R4 (opacity 0.3, added) confirmed.
+- **Suites.** Coder at 16e9d0d: 304 / 2481 / 0 / 0 / 24. **Planner at 8096984** (app/ equal to 16e9d0d): 304 / 2481 / 0 / 0 / 24, cleared results, 0 stale, no compile errors.
+**Deviations:**
+- "Night only" is built as a colour that is transparent by day, not a layer flag.
+- The border sits above the region's J8 halo, so at night a highlighted region shows the halo 1.5 dp outside the border, with white, not cyan, in the dash gaps.
+- The unchanged-value checks are folded into tests that also need the border.
+- The Part 1 colours come from one camera position on one region.
+**Notes:**
+- **Device-only, for the owner on the S22:**
+  1. the border at night on Topographical and Street over DEVICE CHECK 2026-09-28 B: does it carry the edge, do the dashes read, and is 0.85 too bright;
+  2. no change by day;
+  3. Satellite at night;
+  4. a highlighted region at night;
+  5. the entry report map at night;
+  6. taps unchanged.
+- **Flags:**
+  - -70's item 4 meets this stage's order and pins (told in launch note -90);
+  - two long comment lines;
+  - a stale "5.85:1" in MapPaletteTest's comment;
+  - the scripts are in /tmp/night-outline, outside the repository.
+- Written by the planner by hand.
