@@ -736,6 +736,38 @@ class CartographyViewModelTest {
         assertEquals(null, failing.uiState.value.shownOnMapErrorMessage)
     }
 
+    /**
+     * Intent 2026-09-28-68, continuation 2026-09-28-76 (the planner's ruling): a successful Discard
+     * clears a save failure's message, as every other success path does, so a stale message cannot
+     * outlive it. Observable only here: the Journal's Toast clears the message the moment it shows,
+     * and the leave prompt that offers Discard is only on screen while the Journal is, so on screen
+     * the message is always gone before Discard can be touched. Through the ViewModel's own entry
+     * points, with a store that refuses the save and then reads the entry back.
+     */
+    @Test
+    fun `a successful Discard clears a save failure's message still pending`() = runTest(dispatcher) {
+        shownEntryRepository.save(savedEntry("entry-dc", text = "Stored")).getOrThrow()
+        val refusingSaves = object : com.zynergylabs.forager.app.domain.CartographyEntryRepository by shownEntryRepository {
+            override suspend fun save(entry: com.zynergylabs.forager.app.domain.model.CartographyEntry): Result<Unit> = Result.failure(IllegalStateException("write refused"))
+        }
+        val vm = viewModelOver(refusingSaves)
+        vm.loadEntries()
+        advanceUntilIdle()
+        vm.onOpenEntry("entry-dc")
+        advanceUntilIdle()
+        vm.onTextChanged("Edited")
+        vm.onSaveEntry()
+        advanceUntilIdle()
+        assertEquals("the refused save left its message", "Couldn't save your changes.", vm.uiState.value.saveErrorMessage)
+
+        vm.onDiscardEntryChanges()
+        advanceUntilIdle()
+
+        assertEquals("the Discard succeeded: the entry closed", null, vm.uiState.value.editingEntry)
+        assertEquals("the Entries list keeps the stored text", "Stored", vm.uiState.value.entries.single { it.id == "entry-dc" }.text)
+        assertEquals("and the message is cleared", null, vm.uiState.value.saveErrorMessage)
+    }
+
     private fun dayStartMillis(): Long = DAY.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
 
     private companion object {
