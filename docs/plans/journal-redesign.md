@@ -646,3 +646,14 @@ Carried by continuation `2026-09-28-60`, which supersedes `-59`.
 - The "Accent buttons" paragraph and the "Correction" paragraph above are **withdrawn**. They stay in the file only as the record of what was withdrawn.
 - Edge-case rulings 1 to 4 stand as first answered.
 - Continuation `2026-09-28-58` is the governing amendment of `-56`. Continuations `-59` and `-60` are withdrawn (continuation `2026-09-28-61`).
+
+### J6 before the Journal PR (owner, 2026-09-28)
+
+The owner, verbatim: "We should do J6 before the PR". J6, the wide tree for tablets (bringing `LogPanel` up to J1–J9), now runs before the single Journal PR. It is no longer left unscheduled at lowest priority. The planner's placement, stated to the owner, is:
+1. J8, then J8's device check.
+2. The map-chrome dispatch (`2026-09-28-56` as amended by `-58`), then its device check.
+3. Stage device check Part 2.
+4. J6.
+5. The single Journal PR.
+
+As "Build order" says, the list-detail question goes to the owner before J6 is dispatched. A read-only J6 premise pulse, filed as `docs/audits/2026-09-28-j6-premise-pulse.md`, maps the wide tree first, so the question can be asked with real options. J6's own dispatch re-verifies after J8, since J8 touches `LogPanel.kt` for its Open-entry route.
