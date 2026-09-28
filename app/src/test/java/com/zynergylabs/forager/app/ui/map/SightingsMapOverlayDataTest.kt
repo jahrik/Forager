@@ -9,6 +9,7 @@ import com.zynergylabs.forager.app.domain.model.RecordRegion
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.ui.map.layers.TRACK_WIDTH_ZOOM_STOPS
 import com.zynergylabs.forager.app.ui.theme.MapPalette
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -229,10 +230,13 @@ class SightingsMapOverlayDataTest {
     /**
      * Colour build C2 (c): each track has a casing line directly below it (added immediately before it,
      * so drawn immediately under it) on the same source, in the casing colour, 1.5dp wider on each
-     * side, solid even under the dashed breadcrumb, with the track's own round caps and joins.
+     * side at full width, solid even under the dashed breadcrumb, with the track's own round caps and
+     * joins. Since track widths by zoom (owner, 2026-09-28) those are the widths at zoom 15 and above:
+     * the track and its casing share the same zoom stops, so both thin out together
+     * (`TrackWidthByZoomTest` holds the widths at every zoom).
      */
     @Test
-    fun `each track has a solid casing line directly below it, wider by the casing on each side, in the casing colour`() {
+    fun `each track has a solid casing line directly below it, wider by the casing on each side at full width, thinning with it, in the casing colour`() {
         val specs = trackLayerSpecs()
         val tracks = listOf(
             Triple("breadcrumb", BREADCRUMB_DASH_PATTERN.toList(), MapPalette::breadcrumb),
@@ -245,13 +249,15 @@ class SightingsMapOverlayDataTest {
             val track = specs[index]
             assertEquals("$name night colour", role(MapPalette.NIGHT), track.colour(MapPalette.NIGHT))
             assertEquals("$name dash", dash, track.dashPattern)
-            assertEquals("$name width", 6f, track.widthDp)
+            assertEquals("$name width at full width", 6f, track.widthDp)
             assertTrue("$name has a layer directly below it", index >= 1)
             val casing = specs[index - 1]
             assertEquals("$name casing is on the track's own source", track.sourceId, casing.sourceId)
             assertEquals("$name casing, day", MapPalette.DAY.casing, casing.colour(MapPalette.DAY))
             assertEquals("$name casing, night", MapPalette.NIGHT.casing, casing.colour(MapPalette.NIGHT))
-            assertEquals("$name casing width: 1.5dp each side", 9f, casing.widthDp)
+            assertEquals("$name casing width at full width: 1.5dp each side", 9f, casing.widthDp)
+            assertEquals("$name thins out by the track stops", TRACK_WIDTH_ZOOM_STOPS, track.widthByZoom)
+            assertEquals("$name casing thins out with its track", track.widthByZoom, casing.widthByZoom)
             assertEquals("$name casing is solid", null, casing.dashPattern)
             assertTrue("$name casing has round caps", casing.roundCaps)
             assertTrue("$name has round caps", track.roundCaps)

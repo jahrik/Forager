@@ -125,20 +125,21 @@ import java.util.Locale
  * the screen, so this replaces that. It is deliberately outside the drawer and outside the tab
  * content: it has to be true of both tabs and visible at all times.
  *
- * Also a shortcut back into the species search that produced [AvailabilityUiState.taxonFilter]
- * when that came from a picked result: tapping it calls [onReopenTaxonSuggestions], which
- * restores and re-runs [AvailabilityUiState.lastTaxonSearchQuery] rather than making the user
- * retype it to change species. A no-op tap when nothing was ever searched (the callback itself
- * handles that), so this is unconditionally clickable rather than needing its own enabled state.
+ * **Tapping it opens the search** (owner, 2026-09-28, "Make the tap open search"): [onClick] is
+ * wired at its call site to bring the permanent drawer back to its search panel, even before any
+ * search has run, so the "Search a location" this reads before one is true here as on compact. The
+ * same tap still reopens the species search that produced [AvailabilityUiState.taxonFilter] when
+ * there was one (`AvailabilityViewModel.onReopenTaxonSuggestions`, a no-op when nothing was ever
+ * searched), as it did before.
  */
 @Composable
 internal fun ActiveSearchSummary(
     uiState: AvailabilityUiState,
     distanceUnit: DistanceUnit,
-    onReopenTaxonSuggestions: () -> Unit,
+    onClick: () -> Unit,
 ) {
     Surface(
-        onClick = onReopenTaxonSuggestions,
+        onClick = onClick,
         color = MaterialTheme.colorScheme.surfaceVariant,
         modifier = Modifier.testTag(WIDE_SEARCH_SUMMARY_TAG),
     ) {
@@ -162,11 +163,12 @@ internal fun ActiveSearchSummary(
 }
 
 /**
- * Compact's own entire top search bar, replacing the old [ActiveSearchSummary]-opens-
+ * Compact's own entire top search bar, replacing, on compact only, the old [ActiveSearchSummary]-opens-
  * [SearchDropdown] pair — map/navigation redesign dispatch D, the project owner's own direct call:
  * "the search bar at the top should be the entry field for searches," with the old read-only
- * summary-that-opens-a-second-text-field removed as the redundant "second search bar" it had
- * become. [SpeciesSearchControls]' own species field is hosted here directly — the same field
+ * summary-that-opens-a-second-text-field removed from compact as the redundant "second search bar"
+ * it had become. [ActiveSearchSummary] itself remains, on the medium/expanded layout's results pane
+ * (`AvailabilityScreen`'s `mainScaffold`), where its tap opens the drawer's search panel. [SpeciesSearchControls]' own species field is hosted here directly — the same field
  * [SearchDropdown] used to host a second copy of one tap deeper — so typing happens right where the
  * bar already reads as a search field, not behind an extra tap into a nested panel. No chevron: the
  * leading search icon [SpeciesSearchControls] itself doesn't draw, so this bar draws its own, is
@@ -498,7 +500,12 @@ private fun activeSearchSummary(uiState: AvailabilityUiState, distanceUnit: Dist
     // The radius of the search that actually ran, not the slider's pending value: moving the
     // slider doesn't re-run the search, so reporting it here would describe a search that hasn't
     // happened. Before any search there is no region, and this says so rather than implying one.
-    val where = uiState.region?.let { formatDistanceKm(it.radiusKm, distanceUnit) } ?: "no location set"
+    // Before any search there is no region, and this says so as what the user can do about it
+    // (owner, 2026-09-28: "Change it to 'September · Search a location'", so the line gives "a spark
+    // or motivation to action"). Tapping it opens the search on both layouts: compact focuses
+    // SearchEntryBar's field, which opens SearchDropdown; medium/expanded's ActiveSearchSummary
+    // brings the drawer back to its search panel.
+    val where = uiState.region?.let { formatDistanceKm(it.radiusKm, distanceUnit) } ?: "Search a location"
     // Fungi is the only category now (owner decision) — leading with its name on every search
     // would be a label with nothing left to distinguish it from. A specific searched species is
     // still worth naming up front; nothing selected leads with the month instead of a blank

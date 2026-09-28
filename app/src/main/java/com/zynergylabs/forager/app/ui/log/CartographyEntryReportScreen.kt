@@ -49,6 +49,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.CartographyEntryMapData
 import com.zynergylabs.forager.app.domain.GeoDistance
+import com.zynergylabs.forager.app.domain.entryMapFrame
 import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
@@ -66,6 +67,7 @@ import com.zynergylabs.forager.app.ui.map.MapOverlayContent
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.MapBubbleLayer
+import com.zynergylabs.forager.app.ui.map.MapCameraRequest
 import com.zynergylabs.forager.app.ui.map.MapFeatureTap
 import com.zynergylabs.forager.app.ui.map.MapRecordSources
 import com.zynergylabs.forager.app.ui.map.TappedMapThing
@@ -73,6 +75,7 @@ import com.zynergylabs.forager.app.ui.map.focusedFeature
 import com.zynergylabs.forager.app.ui.map.tappedThingOf
 import com.zynergylabs.forager.app.domain.model.RecordPoint
 import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
+import java.util.UUID
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import kotlinx.coroutines.launch
 
@@ -158,6 +161,16 @@ import kotlinx.coroutines.launch
  * region this map is framed on is a computed box midpoint, not a place the user chose, so the
  * search-centre dot the live map draws there would mark a point where nothing happened (plate
  * pulse, owner ruling on item 5; see that field's own doc comment for why it is its own flag).
+ *
+ * **The opening frame** (owner, 2026-09-28, "Fit all kept records"). The map opens on
+ * [com.zynergylabs.forager.app.domain.entryMapFrame]: the bounds of the kept tracks' points, finds,
+ * located photos and waypoints, 48 dp in and zoomed no closer than 17, or zoom 16 on one place. It
+ * reaches the map as one [MapRenderMode.cameraRequest] per screen instance, applied once, and so
+ * replaces the region's zoom-from-radius as this map's opening camera. The region above is still
+ * passed, because [MapSlot] needs one, and a locate-me pan still zooms by its radius, as before.
+ * Kept regions never count toward the frame. Before this, the region centre was in the framing, so a
+ * kept region elsewhere could pull the opening view away from the day's own records, and the
+ * zoom-from-radius stopped at 13 however small the day was.
  *
  * ## The offline-map toggle (Journal Stage 2e-i)
  *
@@ -273,6 +286,8 @@ internal fun CartographyEntryReportScreen(
     var focusOverrideTarget by remember(entry.id) { mutableStateOf<LatLng?>(null) }
     // M1: this map's one tapped thing (no sightings are drawn here, so always a glyph).
     var tapped by remember(entry.id) { mutableStateOf<TappedMapThing?>(null) }
+    // See openingCameraRequest below.
+    val openingFrameToken = remember(entry.id) { "entry-map-${entry.id}-${UUID.randomUUID()}" }
     val onFeatureTap: (MapFeatureTap) -> Unit = remember(entry.id) { { tap -> tappedThingOf(tap)?.let { tapped = it } } }
 
     val context = LocalContext.current
@@ -369,6 +384,14 @@ internal fun CartographyEntryReportScreen(
 
         val resolvedMapData = mapData
         val mapRegion = resolvedMapData?.takeUnless { it.isEmpty }?.let { GeoDistance.boundingRegion(it.allPoints) }
+        // The opening frame (owner, 2026-09-28, "Fit all kept records"): one request per screen
+        // instance, framed on the kept records and never the kept regions (entryMapFrame). Its id is
+        // this instance's own token, not the entry's id, so a request is new exactly when this screen
+        // is, and the map applies it once: the fullscreen switch, a bubble, and a find overlay's Back
+        // (M1's Q4, "exactly as it was") all keep this screen, and so keep the same request.
+        val openingCameraRequest = remember(openingFrameToken, resolvedMapData) {
+            resolvedMapData?.let(::entryMapFrame)?.let { MapCameraRequest(openingFrameToken, it) }
+        }
         if (resolvedMapData != null && mapRegion != null) {
             Box(
                 modifier = if (isMapFullscreen) {
@@ -403,6 +426,7 @@ internal fun CartographyEntryReportScreen(
                         showSearchCentre = false,
                         layers = layersState,
                         onFeatureTap = onFeatureTap,
+                        cameraRequest = openingCameraRequest,
                     ),
                     focusOverrideTarget,
                     {},

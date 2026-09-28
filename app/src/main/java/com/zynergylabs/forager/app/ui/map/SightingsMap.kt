@@ -37,6 +37,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.zynergylabs.forager.app.domain.EntryMapFrame
 import com.zynergylabs.forager.app.domain.GeoDistance
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
@@ -74,11 +75,13 @@ import com.zynergylabs.forager.app.ui.motion.MotionTokens
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng as MapLibreLatLng
+import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.location.LocationComponentActivationOptions
 import org.maplibre.android.location.LocationComponentOptions
 import org.maplibre.android.location.modes.CameraMode
 import org.maplibre.android.location.modes.RenderMode
 import org.maplibre.android.maps.MapLibreMap
+import kotlin.math.roundToInt
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.expressions.Expression
@@ -248,6 +251,8 @@ fun SightingsMap(
     focusedFeature: FocusedMapFeature? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.forecast]'s own doc comment. */
     forecast: MapForecastFeed? = null,
+    /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.cameraRequest]'s own doc comment. */
+    cameraRequest: MapCameraRequest? = null,
 ) {
     val context = LocalContext.current
 
@@ -338,6 +343,11 @@ fun SightingsMap(
     // tracking owns the camera and would make this comparison meaningless. See
     // shouldMoveCameraToTarget's own doc comment for the hardware-reported bug this closes.
     var lastAppliedCameraTarget by remember { mutableStateOf<Pair<Region, LatLng?>?>(null) }
+
+    // The id of the last MapRenderMode.cameraRequest this MapView applied (the entry map's opening
+    // frame): kept with the MapView, so a request arriving again on a later recomposition, after a
+    // fullscreen switch or a find overlay's Back, does not move the camera the user has since moved.
+    var lastAppliedCameraRequestId by remember { mutableStateOf<String?>(null) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -609,7 +619,7 @@ fun SightingsMap(
     // because MapLibre's own API separates "style ready" from "camera/property changed".
     LaunchedEffect(
         loadedStyle, region, sightings, plannedTrips, focusOverride, breadcrumbPoints, waypoints, focusedObservationId,
-        keptTrackPolylines, findMarkers, photoMarkers, offlineRegionCircles, showSearchCentre,
+        keptTrackPolylines, findMarkers, photoMarkers, offlineRegionCircles, showSearchCentre, cameraRequest,
     ) {
         val style = loadedStyle ?: return@LaunchedEffect
         val map = mapLibreMap ?: return@LaunchedEffect
@@ -629,7 +639,16 @@ fun SightingsMap(
         val isGpsTracking = map.locationComponent.isLocationComponentActivated &&
             map.locationComponent.cameraMode != CameraMode.NONE
         val target = region to focusOverride
-        if (shouldMoveCameraToTarget(isGpsTracking, target, lastAppliedCameraTarget)) {
+        // A one-shot frame (the entry map's opening frame) stands in for this target's move: the
+        // target is recorded as applied too, so the region move below does not follow it and undo it.
+        // A later target change (a locate-me pan) still moves the camera, as before.
+        val frameApplied = cameraRequest != null &&
+            shouldApplyCameraRequest(isGpsTracking, cameraRequest, lastAppliedCameraRequestId) &&
+            applyCameraFrame(map, cameraRequest.frame, context.resources.displayMetrics.density)
+        if (frameApplied) {
+            lastAppliedCameraRequestId = cameraRequest?.id
+            lastAppliedCameraTarget = target
+        } else if (shouldMoveCameraToTarget(isGpsTracking, target, lastAppliedCameraTarget)) {
             val center = MapLibreLatLng(region.lat, region.lng)
             // focusOverride pans the camera without moving the search-location marker or the
             // zoom-from-radius heuristic below, both of which stay anchored to region — see
@@ -1041,16 +1060,50 @@ internal fun shouldMoveCameraToTarget(
 
 /**
  * Whether [request] moves the camera now: a request is applied once per id, and never while GPS
- * tracking owns the camera (the rule [shouldMoveCameraToTarget] follows). Tests-first stub: never.
+ * tracking owns the camera (the rule [shouldMoveCameraToTarget] follows).
  */
 internal fun shouldApplyCameraRequest(
     isGpsTracking: Boolean,
     request: MapCameraRequest?,
     lastAppliedRequestId: String?,
-): Boolean = false
+): Boolean = !isGpsTracking && request != null && request.id != lastAppliedRequestId
 
-/** The zoom a fitted frame opens at: [fittedZoom], capped at [maxZoom]. Tests-first stub: uncapped. */
-internal fun cappedFrameZoom(fittedZoom: Double, maxZoom: Double): Double = fittedZoom
+/** The zoom a fitted frame opens at: [fittedZoom], capped at [maxZoom]. */
+internal fun cappedFrameZoom(fittedZoom: Double, maxZoom: Double): Double = minOf(fittedZoom, maxZoom)
+
+/**
+ * Moves [map]'s camera to [frame], at once rather than eased, as the region move does. A
+ * [EntryMapFrame.Fit] goes through MapLibre's own `getCameraForLatLngBounds`, with the frame's
+ * padding in px on every side, and its zoom capped by [cappedFrameZoom]. Whether that fit is right
+ * at the preview's size and at the phone's density is device-only: the native call cannot run
+ * headless. `false`, logged, when MapLibre gives no camera for the bounds (it is `@Nullable`) or
+ * rejects them, so the caller falls back to the region move instead of leaving the camera unset.
+ */
+private fun applyCameraFrame(map: MapLibreMap, frame: EntryMapFrame, density: Float): Boolean {
+    val position = when (frame) {
+        is EntryMapFrame.SinglePoint -> CameraPosition.Builder()
+            .target(MapLibreLatLng(frame.at.lat, frame.at.lng))
+            .zoom(frame.zoom)
+            .build()
+        is EntryMapFrame.Fit -> {
+            val bounds = try {
+                LatLngBounds.from(frame.bounds.north, frame.bounds.east, frame.bounds.south, frame.bounds.west)
+            } catch (e: IllegalArgumentException) {
+                Log.w(SIGHTINGS_MAP_TAG, "Camera frame bounds ${frame.bounds} rejected; falling back to the region move.", e)
+                return false
+            }
+            val paddingPx = (frame.paddingDp * density).roundToInt()
+            val fitted = map.getCameraForLatLngBounds(bounds, intArrayOf(paddingPx, paddingPx, paddingPx, paddingPx))
+            if (fitted == null) {
+                Log.w(SIGHTINGS_MAP_TAG, "No camera for bounds ${frame.bounds}; falling back to the region move.")
+                return false
+            }
+            CameraPosition.Builder(fitted).zoom(cappedFrameZoom(fitted.zoom, frame.maxZoom)).build()
+        }
+    }
+    map.cameraPosition = position
+    return true
+}
 
 /**
  * MapLibre's own puck-movement animation runs on a fixed internal base duration
@@ -1296,24 +1349,50 @@ internal data class LineLayerSpec(
 
 /**
  * [spec]'s width stops as (zoom, width in dp) pairs, in zoom order, or `null` when its width is a
- * constant. Tests-first stub: always `null`.
+ * constant: each stop's fraction of [LineLayerSpec.widthDp].
  */
-internal fun lineWidthStops(spec: LineLayerSpec): List<Pair<Float, Float>>? = null
+internal fun lineWidthStops(spec: LineLayerSpec): List<Pair<Float, Float>>? =
+    spec.widthByZoom?.sortedBy { it.zoom }?.map { it.zoom to spec.widthDp * it.fractionOfFullWidth }
 
 /**
  * [spec]'s width in dp at [zoom], evaluated as MapLibre's linear `interpolate` does: linear between
- * stops, the end values outside them. Tests-first stub: always [LineLayerSpec.widthDp].
+ * stops, the end values outside them. What [lineWidthExpression] asks the map to draw, in a form a
+ * headless test can read at any zoom.
  */
-internal fun lineWidthAtZoom(spec: LineLayerSpec, zoom: Float): Float = spec.widthDp
+internal fun lineWidthAtZoom(spec: LineLayerSpec, zoom: Float): Float {
+    val stops = lineWidthStops(spec)?.takeIf { it.isNotEmpty() } ?: return spec.widthDp
+    if (zoom <= stops.first().first) return stops.first().second
+    if (zoom >= stops.last().first) return stops.last().second
+    val upper = stops.indexOfFirst { it.first >= zoom }
+    val (z0, w0) = stops[upper - 1]
+    val (z1, w1) = stops[upper]
+    return w0 + (w1 - w0) * (zoom - z0) / (z1 - z0)
+}
 
-/** The `line-width` [lineLayerFor] gives [spec]'s layer. Tests-first stub: always the constant. */
-internal fun lineWidthExpression(spec: LineLayerSpec): Expression = Expression.literal(spec.widthDp)
+/**
+ * The `line-width` [lineLayerFor] gives [spec]'s layer: `interpolate(linear, zoom, …)` over
+ * [lineWidthStops] when it has stops (track widths by zoom, owner, 2026-09-28), the constant
+ * [LineLayerSpec.widthDp] otherwise.
+ */
+internal fun lineWidthExpression(spec: LineLayerSpec): Expression {
+    val stops = lineWidthStops(spec)?.takeIf { it.isNotEmpty() } ?: return Expression.literal(spec.widthDp)
+    return Expression.interpolate(
+        Expression.linear(),
+        Expression.zoom(),
+        *stops.map { (zoom, width) -> Expression.stop(zoom, width) }.toTypedArray(),
+    )
+}
 
 /**
  * The track lines, in draw order: each track's casing immediately before it, so it draws directly
  * below it (colour build C2 (c)). A casing is the track's own line, [CASING_WIDTH_DP] wider on each
  * side, in [MapPalette.casing], and always solid: under the dashed breadcrumb it still outlines the
  * whole trail, so the dashes read as one path against a busy ground.
+ *
+ * Each track and its casing thin out together as the map zooms out ([TRACK_WIDTH_ZOOM_STOPS], owner,
+ * 2026-09-28): the casing copies its track's stops, so the widths above are the full widths, at zoom
+ * 15 and above, and the casing keeps its ratio to its line (9 to 6) at every zoom. At zoom 11 and
+ * below that is a 3.6 dp casing over a 2.4 dp line, 0.6 dp a side, not [CASING_WIDTH_DP].
  */
 internal fun trackLayerSpecs(): List<LineLayerSpec> {
     fun casingFor(track: LineLayerSpec, layerId: String) = track.copy(
@@ -1329,6 +1408,7 @@ internal fun trackLayerSpecs(): List<LineLayerSpec> {
         widthDp = BREADCRUMB_STROKE_WIDTH_PX,
         dashPattern = BREADCRUMB_DASH_PATTERN.toList(),
         roundCaps = true,
+        widthByZoom = TRACK_WIDTH_ZOOM_STOPS,
     )
     val keptTrack = LineLayerSpec(
         layerId = KEPT_TRACKS_LAYER_ID,
@@ -1337,6 +1417,7 @@ internal fun trackLayerSpecs(): List<LineLayerSpec> {
         widthDp = KEPT_TRACK_STROKE_WIDTH_PX,
         dashPattern = null,
         roundCaps = true,
+        widthByZoom = TRACK_WIDTH_ZOOM_STOPS,
     )
     return listOf(
         casingFor(breadcrumb, BREADCRUMB_CASING_LAYER_ID),
@@ -1368,7 +1449,7 @@ internal fun offlineRegionOutlineSpec(): LineLayerSpec = LineLayerSpec(
 private fun lineLayerFor(spec: LineLayerSpec, palette: MapPalette): LineLayer {
     val properties = buildList {
         add(PropertyFactory.lineColor(spec.colour(palette)))
-        add(PropertyFactory.lineWidth(spec.widthDp))
+        add(PropertyFactory.lineWidth(lineWidthExpression(spec)))
         if (spec.roundCaps) {
             add(PropertyFactory.lineCap(Property.LINE_CAP_ROUND))
             add(PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND))
