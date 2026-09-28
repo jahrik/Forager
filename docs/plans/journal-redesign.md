@@ -641,3 +641,8 @@ So:
 - Whether the bar's 0.8 container actually shows the map through on the S22 is a device check. The screenshot cannot settle it.
 
 Carried by continuation `2026-09-28-60`, which supersedes `-59`.
+
+**Restart at the edge-case rulings (owner, 2026-09-28).** The owner sent a screenshot of the four edge-case answers as first given, verbatim: "Let's restart from this point and forget everything beyond it:". Those answers were dialogs, menus and snackbar "80% over the map", the drawer "80% over Maps (Recommended)", the accent buttons "Keep them solid (Recommended)" and the caption "Leave it at 55% (Recommended)". So:
+- The "Accent buttons" paragraph and the "Correction" paragraph above are **withdrawn**. They stay in the file only as the record of what was withdrawn.
+- Edge-case rulings 1 to 4 stand as first answered.
+- Continuation `2026-09-28-58` is the governing amendment of `-56`. Continuations `-59` and `-60` are withdrawn (continuation `2026-09-28-61`).
