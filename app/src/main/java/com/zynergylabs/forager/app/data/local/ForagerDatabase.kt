@@ -119,6 +119,14 @@ import com.zynergylabs.forager.app.BuildConfig
  * [com.zynergylabs.forager.app.domain.model.TrackPoint] for the `null` rule and the reader). Version 15 was
  * checked against every branch on `origin` (none above 14) before being claimed.
  *
+ * [version] 16 adds `shownOnMap` to `cartography_entries` via a real [MIGRATION_15_16] — J8, Journal
+ * entries on the main map (owner: "Yes, keep them"): whether a saved entry's kept records are
+ * highlighted on the Maps tab, stored with the entry because it belongs to one (CLAUDE.md, Room for
+ * data that relates). Every existing entry gets `false`. A rebuild, like 12 to 13 and 14 to 15,
+ * because the legacy fixtures declare [CartographyEntryEntity] directly. Version 16 was checked
+ * against every branch on both remotes (none above 15, no `MIGRATION_15_*`) before being claimed,
+ * and again at the final push.
+ *
  * ## Destructive fallback, debug-only (corrected 2026-08-27, ahead of beta)
  *
  * [create] used to chain `fallbackToDestructiveMigration(true)` unconditionally, "harmless" only
@@ -156,7 +164,7 @@ import com.zynergylabs.forager.app.BuildConfig
         CartographyEntryFindRefEntity::class,
         CartographyEntryPhotoRefEntity::class,
     ],
-    version = 15,
+    version = 16,
     exportSchema = true,
 )
 abstract class ForagerDatabase : RoomDatabase() {
@@ -188,6 +196,7 @@ abstract class ForagerDatabase : RoomDatabase() {
             ).addMigrations(
                 MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
                 MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15,
+                MIGRATION_15_16,
             )
             // Debug-only — see this class's own doc comment ("Destructive fallback, debug-only") for
             // why release must never wipe a database instead of crashing on a missing migration.

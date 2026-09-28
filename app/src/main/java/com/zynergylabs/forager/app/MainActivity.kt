@@ -147,6 +147,7 @@ class MainActivity : ComponentActivity() {
                     container.getDerivedTripUseCase,
                     container.getTripReportOfflineRegionsUseCase,
                     container.computeTrackStatisticsUseCase,
+                    container.setCartographyEntryShownOnMapUseCase,
                 )
             }
         }

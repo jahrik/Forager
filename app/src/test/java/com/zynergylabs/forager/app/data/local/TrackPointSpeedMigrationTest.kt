@@ -67,7 +67,7 @@ class TrackPointSpeedMigrationTest {
         }
 
         val migrated = Room.databaseBuilder(context, ForagerDatabase::class.java, dbFile.absolutePath)
-            .addMigrations(MIGRATION_14_15)
+            .addMigrations(MIGRATION_14_15, MIGRATION_15_16)
             .build()
         try {
             val repository = RoomTrackRepository(migrated.trackDao())

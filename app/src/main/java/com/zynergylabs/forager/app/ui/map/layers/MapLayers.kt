@@ -63,6 +63,8 @@ enum class PaletteRole(val colourOf: (MapPalette) -> Int) {
     WAYPOINT(MapPalette::waypoint),
     FIND(MapPalette::find),
     PHOTO(MapPalette::photo),
+    /** J8: the halo under a record kept by an entry shown on the map. */
+    JOURNAL_ENTRY(MapPalette::journalEntry),
 }
 
 /** An opacity paint property, named as MapLibre names it, and the renderer it belongs to. */
@@ -107,6 +109,13 @@ data class MapLayerSpec(
     val baseOpacities: List<BaseOpacity>,
     val stateOwnerId: String? = null,
     val credit: String? = null,
+    /**
+     * J8: the record layer this one decorates (a halo beneath it), or `null`. A decoration is drawn
+     * only while that layer is drawn as well as while its own governing state is visible (planner,
+     * continuation `2026-09-28-53`, Q4: "A record whose own overlay is switched off gets no
+     * highlight"), sits below that layer and takes no taps; [registryProblems] checks all three.
+     */
+    val drawnWith: String? = null,
 )
 
 /**
@@ -129,6 +138,13 @@ object MapLayerIds {
     const val PHOTOS = "photo-markers-layer"
     const val FORECAST_CHANTERELLES = "forecast-chanterelles-layer"
     const val FORECAST_CHICKEN_OF_THE_WOODS = "forecast-chicken-of-the-woods-layer"
+
+    // J8: the halos under records kept by an entry shown on the map, one per record kind.
+    const val JOURNAL_ENTRY_REGIONS = "journal-entry-regions-layer"
+    const val JOURNAL_ENTRY_TRACKS = "journal-entry-tracks-layer"
+    const val JOURNAL_ENTRY_WAYPOINTS = "journal-entry-waypoints-layer"
+    const val JOURNAL_ENTRY_FINDS = "journal-entry-finds-layer"
+    const val JOURNAL_ENTRY_PHOTOS = "journal-entry-photos-layer"
 }
 
 /** Every overlay GeoJSON source id, the values `SightingsMap` has always used. */
@@ -144,7 +160,21 @@ object MapSourceIds {
     const val PHOTOS = "photo-markers"
     const val FORECAST_CHANTERELLES = "forecast-chanterelles"
     const val FORECAST_CHICKEN_OF_THE_WOODS = "forecast-chicken-of-the-woods"
+
+    // J8: one source per halo layer, so a symbol layer is never fed a line.
+    const val JOURNAL_ENTRY_REGIONS = "journal-entry-regions"
+    const val JOURNAL_ENTRY_TRACKS = "journal-entry-tracks"
+    const val JOURNAL_ENTRY_WAYPOINTS = "journal-entry-waypoints"
+    const val JOURNAL_ENTRY_FINDS = "journal-entry-finds"
+    const val JOURNAL_ENTRY_PHOTOS = "journal-entry-photos"
 }
+
+/**
+ * J8: the layer whose state is the Layers sheet's "Journal entries" switch. The other four halos
+ * follow it ([MapLayerSpec.stateOwnerId]), so the one switch hides or shows every highlight together,
+ * and its stored choice persists by this id like every other overlay switch.
+ */
+const val JOURNAL_ENTRIES_SWITCH_LAYER_ID = MapLayerIds.JOURNAL_ENTRY_TRACKS
 
 private val LINE_OPACITY = listOf(BaseOpacity(OpacityProperty.LINE, 1f))
 private val ICON_OPACITY = listOf(BaseOpacity(OpacityProperty.ICON, 1f))

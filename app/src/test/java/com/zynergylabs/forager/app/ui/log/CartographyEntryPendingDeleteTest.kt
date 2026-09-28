@@ -26,6 +26,7 @@ import com.zynergylabs.forager.app.domain.GetTripReportOfflineRegionsUseCase
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.SaveCartographyEntryUseCase
+import com.zynergylabs.forager.app.domain.SetCartographyEntryShownOnMapUseCase
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.Region
 import java.time.LocalDate
@@ -94,6 +95,7 @@ class CartographyEntryPendingDeleteTest {
         ),
         getTripReportOfflineRegions = GetTripReportOfflineRegionsUseCase(NoRegionsOfflineMapRepository),
         computeTrackStatistics = ComputeTrackStatisticsUseCase(),
+        setShownOnMap = SetCartographyEntryShownOnMapUseCase(repository),
         now = { NOW },
         pendingDeleteCommitScope = pendingDeleteCommitScope ?: PendingDeleteCommitScope,
     )

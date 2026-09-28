@@ -64,8 +64,8 @@ private typealias MapLayersRule = AndroidComposeTestRule<ActivityScenarioRule<Co
 private val CHANTERELLES_LABEL = "Test forecast: chanterelles (synthetic data)"
 private val CHICKEN_LABEL = "Test forecast: chicken of the woods (synthetic data)"
 
-/** The Maps tab's seven overlay switches, in the sheet's order (the dispatch, B1). */
-private val MAPS_TAB_OVERLAY_LABELS = listOf("Finds", "Photos", "Waypoints", "Planned trips", "Recording trail", "Tracks", "Offline maps")
+/** The Maps tab's overlay switches, in the sheet's order (the dispatch, B1): seven, and J8's "Journal entries" last. */
+private val MAPS_TAB_OVERLAY_LABELS = listOf("Finds", "Photos", "Waypoints", "Planned trips", "Recording trail", "Tracks", "Offline maps", "Journal entries")
 
 private val DATES = mapOf(
     MapLayerIds.FORECAST_CHANTERELLES to ForecastCellsShown(week = MAP_LAYERS_TEST_WEEK, weatherThrough = LocalDate.of(2026, 9, 26)),
@@ -138,7 +138,7 @@ class AvailabilityScreenMapLayersSheetTest {
     }
 
     @Test
-    fun `a real touch on the Layers row opens the Layers sheet, with Map type and the Maps tab's seven overlays`() {
+    fun `a real touch on the Layers row opens the Layers sheet, with Map type and the Maps tab's eight overlays`() {
         setScreen()
 
         openSheet()
@@ -444,7 +444,8 @@ class AvailabilityScreenMapLayersShortLandscapeTest {
 
         composeRule.onNodeWithTag(MAP_LAYERS_SHEET_TAG).assertIsDisplayed()
         composeRule.onNodeWithText(CHICKEN_LABEL).performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Offline maps").performScrollTo().assertIsDisplayed()
+        // J8: "Journal entries" is the last overlay now.
+        composeRule.onNodeWithText("Journal entries").performScrollTo().assertIsDisplayed()
     }
 
     @Test

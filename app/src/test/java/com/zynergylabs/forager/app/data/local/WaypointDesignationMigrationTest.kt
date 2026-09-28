@@ -60,7 +60,7 @@ class WaypointDesignationMigrationTest {
         }
 
         val migrated = Room.databaseBuilder(context, ForagerDatabase::class.java, dbFile.absolutePath)
-            .addMigrations(MIGRATION_13_14, MIGRATION_14_15)
+            .addMigrations(MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16)
             .build()
         try {
             val repository = RoomWaypointRepository(migrated.waypointDao())

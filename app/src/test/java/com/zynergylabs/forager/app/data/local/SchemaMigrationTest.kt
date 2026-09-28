@@ -27,12 +27,12 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Every registered migration from 4→5 through 14→15, asserted against the schema files Room exports
+ * Every registered migration from 4→5 through 15→16, asserted against the schema files Room exports
  * to `app/schemas/` — not against a hand-written fixture. For each: the database is created at
  * version N **from `N.json`**, every table is seeded with a row that satisfies every NOT NULL column
  * *as `N.json` declares them*, the migration runs, [MigrationTestHelper.runMigrationsAndValidate]
  * validates the result against `N+1.json`, and the rows are asserted to have survived with the
- * specific values each migration carries or transforms. The last test runs the whole chain 4→15.
+ * specific values each migration carries or transforms. The last test runs the whole chain 4→16.
  *
  * **3→4 is not here and cannot be**: there is no `3.json` — versions 1–3 predate `exportSchema`
  * (see `ForagerDatabase`'s own history comment). `MushroomLogMigrationTest`'s `LegacyForagerDatabaseV3`
@@ -115,14 +115,25 @@ class SchemaMigrationTest {
             assertNull(db.scalar("SELECT speedMetersPerSecond FROM track_points")); assertNull(db.scalar("SELECT speedAccuracyMetersPerSecond FROM track_points"))
         }
 
+    // J8: the cartography_entries rebuild. Every seeded column is carried (assertEverySeededValueSurvived
+    // compares them all by name), both indexes come back (Room validates them against 16.json), and the
+    // new column reads 0 on the pre-existing row.
+    @Test fun `15 to 16 - the cartography_entries rebuild adds shownOnMap false, every value carried`() =
+        migrate(15, 16, MIGRATION_15_16, overrides = mapOf("cartography_entries" to mapOf("text" to "A good day.", "isDraft" to 0L, "updatedAtEpochMillis" to 1_758_000_000_000L))) { db ->
+            assertEquals("A good day.", db.scalar("SELECT text FROM cartography_entries"))
+            assertEquals(1_758_000_000_000L, db.scalar("SELECT updatedAtEpochMillis FROM cartography_entries"))
+            assertEquals(0L, db.scalar("SELECT shownOnMap FROM cartography_entries"))
+        }
+
     // ---- the whole chain ----------------------------------------------------------------------
 
-    @Test fun `4 to 15 - the full chain, validated against 15_json, every seeded value survives`() {
+    // J8: the chain now ends at 16, the current version (it ended at 15 before MIGRATION_15_16).
+    @Test fun `4 to 16 - the full chain, validated against 16_json, every seeded value survives`() {
         val name = "chain.db"
         val seeded = helper.createDatabase(name, 4).use { db -> seedEveryTable(db, 4, mapOf("mushroom_log_entries" to mapOf("lat" to 45.4301, "lng" to -122.2869))) }
-        val db = helper.runMigrationsAndValidate(name, 15, true, *ALL_MIGRATIONS)
+        val db = helper.runMigrationsAndValidate(name, 16, true, *ALL_MIGRATIONS)
         try {
-            assertEverySeededValueSurvived(db, seeded, 4, 15)
+            assertEverySeededValueSurvived(db, seeded, 4, 16)
             assertEquals(0L, db.scalar("SELECT isDraft FROM mushroom_log_entries"))
             assertEquals(1L, db.scalar("SELECT COUNT(*) FROM log_entry_photos"))
         } finally { db.close() }
@@ -204,7 +215,7 @@ class SchemaMigrationTest {
     }
 
     private companion object {
-        val ALL_MIGRATIONS = arrayOf(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15)
+        val ALL_MIGRATIONS = arrayOf(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16)
     }
 }
 

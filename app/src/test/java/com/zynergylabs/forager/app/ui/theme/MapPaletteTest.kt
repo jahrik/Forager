@@ -20,7 +20,7 @@ import kotlin.math.sqrt
  *  - **(a)** each fill's Oklab ΔE from every ground cluster of 0.5% share or more, both basemaps of
  *    the mode (board threshold 0.15);
  *  - **(c)** each fill's WCAG contrast against its own casing (threshold 3:1);
- *  - **(d)** the smallest Oklab ΔE between any two of the 11 fill roles in one mode (threshold 0.10);
+ *  - **(d)** the smallest Oklab ΔE between any two of the 12 fill roles in one mode (threshold 0.10);
  *  - **(e)** the Oklab hue difference between a role's day and night fills (threshold 30°), where both
  *    are chromatic.
  *
@@ -61,6 +61,13 @@ import kotlin.math.sqrt
  * the selected ring). The palette separates marks from the ground by Oklab distance, (a), not by a
  * luminance ratio, and the casing carries luminance separation.
  *
+ * **J8's journal-entry halo** ([MapPalette.journalEntry], day `#005577`, night `#00DDFF`) is the
+ * twelfth role, proposed by the J8 coder and measured here like the others: a grid search of sRGB in
+ * steps of 17 for the pair with the widest least margin over (a), (c) and (d), with (e) under 30°,
+ * and with the new colour farther from every existing role than that role's own pinned (d), so no
+ * existing pin moved. Its (c) is against the casing because the halo is drawn around the record's
+ * own casing. The owner judges the pair on the phone.
+ *
  * ## What this does not establish
  *
  * Legibility on a real screen. The ground is 18 tiles per basemap from one forest-heavy area (board §8),
@@ -92,6 +99,8 @@ class MapPaletteTest {
         Pin("sightingDot", a = 0.268, c = 14.159, d = 0.139), // (a) +0.787, (c) +3.720, (d) +0.390
         // Owner override. (c) is against the dot fill it rings (the ring is its own casing).
         Pin("sightingDotStrokeSelected", a = 0.231, c = 4.531, d = 0.210), // (a) +0.540, (c) +0.510, (d) +1.100
+        // J8's halo, #005577. (d) is against the sighting dot; (c) against the white casing it surrounds.
+        Pin("journalEntry", a = 0.202, c = 8.184, d = 0.161), // (a) +0.347, (c) +1.728, (d) +0.610
     )
 
     private val nightPins = listOf(
@@ -114,6 +123,8 @@ class MapPaletteTest {
         Pin("sightingDot", a = 0.097, c = 3.362, d = 0.155), // (a) -0.353, (c) +0.121, (d) +0.550
         // Owner override: the blue ring on the grey dot, 1.076:1 (glyph board §5 records it).
         Pin("sightingDotStrokeSelected", a = 0.143, c = 1.076, d = 0.169), // (a) -0.047, (c) -0.641, (d) +0.690
+        // J8's halo, #00DDFF. (d) is against the search centre; (c) against the black casing it surrounds.
+        Pin("journalEntry", a = 0.197, c = 12.786, d = 0.163), // (a) +0.313, (c) +3.262, (d) +0.630
     )
 
     /**
@@ -131,6 +142,7 @@ class MapPaletteTest {
         "breadcrumb" to 10.1, // +0.663
         "centrePin" to 14.8, // +0.507
         "sightingDotStrokeSelected" to 0.0, // +1.000, one colour in both modes
+        "journalEntry" to 20.1, // +0.330
     )
 
     /**
@@ -206,7 +218,7 @@ class MapPaletteTest {
         AsDrawnPin(0xFF537342, deltaE = 0.054, casingOverRegion = 3.093, casingOverGround = 3.898),
     )
 
-    /** The 11 fill roles (d) compares; the sighting ring and the casing are casings, not roles. */
+    /** The 12 fill roles (d) compares; the sighting ring and the casing are casings, not roles. */
     private fun fills(p: MapPalette) = mapOf(
         "waypoint" to p.waypoint,
         "find" to p.find,
@@ -219,6 +231,7 @@ class MapPaletteTest {
         "offlineRegion" to p.offlineRegion,
         "sightingDot" to p.sightingDot,
         "sightingDotStrokeSelected" to p.sightingDotStrokeSelected,
+        "journalEntry" to p.journalEntry,
     )
 
     /** What each fill is drawn against for (c): the dot its ring, the selected ring the dot, the rest the casing. */
@@ -242,6 +255,7 @@ class MapPaletteTest {
             "offlineRegion" to (0xFF0B0B0B to 0xFF202020),
             "sightingDot" to (0xFF2B2B2B to 0xFF8C8C8C),
             "sightingDotStrokeSelected" to (0xFF2196F3 to 0xFF2196F3),
+            "journalEntry" to (0xFF005577 to 0xFF00DDFF),
         )
         for ((role, pair) in expected) {
             assertEquals("DAY.$role", hex(pair.first.toInt()), hex(fills(MapPalette.DAY).getValue(role)))

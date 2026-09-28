@@ -87,6 +87,7 @@ import com.zynergylabs.forager.app.domain.PredictAvailabilityUseCase
 import com.zynergylabs.forager.app.domain.PullPhotoIntoEntryUseCase
 import com.zynergylabs.forager.app.domain.RemovePhotoFromLogEntryUseCase
 import com.zynergylabs.forager.app.domain.SaveCartographyEntryUseCase
+import com.zynergylabs.forager.app.domain.SetCartographyEntryShownOnMapUseCase
 import com.zynergylabs.forager.app.domain.SaveMushroomLogEntryUseCase
 import com.zynergylabs.forager.app.domain.SavePlannedTripUseCase
 import com.zynergylabs.forager.app.domain.SearchTaxaUseCase
@@ -256,6 +257,7 @@ class DrawerBackOverJournalTest {
             ),
             getTripReportOfflineRegions = GetTripReportOfflineRegionsUseCase(DrawerBackStubOfflineMapRepository),
             computeTrackStatistics = ComputeTrackStatisticsUseCase(),
+            setShownOnMap = SetCartographyEntryShownOnMapUseCase(cartographyRepository),
             now = { 1_000L },
         )
         val plannedTrips = DrawerBackInMemoryPlannedTripRepository()

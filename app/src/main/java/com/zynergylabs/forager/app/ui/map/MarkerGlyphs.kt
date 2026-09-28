@@ -178,6 +178,16 @@ internal fun drawGlyph(glyph: MarkerGlyph, density: Float, fill: Int, casing: In
 }
 
 /**
+ * J8: how far a journal-entry halo reaches beyond the record's own casing, on each side. The marker
+ * halos ([drawGlyphHalo]) and the line halos (`SightingsMap`'s `journalHaloLineSpecs`) both use it.
+ */
+internal const val JOURNAL_HALO_WIDTH_DP = 3f
+
+/** J8 tests-first stub: an empty image until the halo is drawn. */
+internal fun drawGlyphHalo(glyph: MarkerGlyph, density: Float, halo: Int): GlyphImage =
+    GlyphImage(Bitmap.createBitmap(2, 2, Bitmap.Config.ARGB_8888), 1, 1)
+
+/**
  * The map's bitmap markers: the `Style` image id each is registered under, its glyph, and its role.
  * `SightingsMap`'s `initializeOverlayLayers` registers exactly these, through [markerIconImage].
  */

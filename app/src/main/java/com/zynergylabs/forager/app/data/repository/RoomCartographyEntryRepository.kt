@@ -65,6 +65,10 @@ class RoomCartographyEntryRepository(
         dao.countEntriesReferencingPhoto(photoId)
     }
 
+    // J8 tests-first stub: reports "not built" until the DAO update lands.
+    override suspend fun setShownOnMap(id: String, shown: Boolean): Result<Unit> =
+        Result.failure(UnsupportedOperationException("J8 tests-first stub: setShownOnMap is not built"))
+
     private suspend fun CartographyEntryEntity.toDomain(): CartographyEntry = CartographyEntry(
         id = id,
         date = LocalDate.parse(date),
@@ -77,6 +81,7 @@ class RoomCartographyEntryRepository(
         waypointDecisions = dao.getWaypointRefs(id).map { it.toDomain() },
         offlineRegionDecisions = dao.getOfflineRegionRefs(id).map { it.toDomain() },
         photos = dao.getPhotoRefs(id).map { it.toDomain() },
+        shownOnMap = shownOnMap,
     )
 }
 
@@ -87,6 +92,7 @@ private fun CartographyEntry.toEntity(): CartographyEntryEntity = CartographyEnt
     tags = tags.joinToString(TAG_DELIMITER),
     isDraft = isDraft,
     updatedAtEpochMillis = updatedAtEpochMillis,
+    shownOnMap = shownOnMap,
 )
 
 private fun TrackDecision.toEntity(entryId: String) = CartographyEntryTrackRefEntity(

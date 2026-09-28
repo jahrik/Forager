@@ -68,6 +68,12 @@ data class MapPalette(
     val sightingDotStrokeSelected: Int,
     /** The outline every marker other than the sighting dot is drawn in: white by day, black at night. */
     val casing: Int,
+    /**
+     * J8: the halo drawn beneath a record kept by an entry shown on the map (owner: "Highlight in
+     * place"), one colour for every shown entry. Its halo sits against the record's own [casing], so
+     * `MapPaletteTest` holds it to (c) against the casing like the other fills.
+     */
+    val journalEntry: Int,
 ) {
     companion object {
 
@@ -87,6 +93,8 @@ data class MapPalette(
             sightingDotStroke = 0xFFFFFFFF.toInt(),
             sightingDotStrokeSelected = 0xFF2196F3.toInt(),
             casing = 0xFFFFFFFF.toInt(),
+            // J8 tests-first stub: no measured value yet (the casing's own colour).
+            journalEntry = 0xFFFFFFFF.toInt(),
         )
 
         val NIGHT = MapPalette(
@@ -114,6 +122,8 @@ data class MapPalette(
             sightingDotStroke = 0xFFFFFFFF.toInt(),
             sightingDotStrokeSelected = 0xFF2196F3.toInt(),
             casing = 0xFF000000.toInt(),
+            // J8 tests-first stub: no measured value yet (the casing's own colour).
+            journalEntry = 0xFF000000.toInt(),
         )
 
         fun forMode(night: Boolean): MapPalette = if (night) NIGHT else DAY

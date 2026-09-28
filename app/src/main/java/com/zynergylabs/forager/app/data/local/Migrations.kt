@@ -932,3 +932,11 @@ val MIGRATION_14_15: Migration = object : Migration(14, 15) {
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_track_points_trackId` ON `track_points` (`trackId`)")
     }
 }
+
+/**
+ * J8 tests-first stub: declared so the migration tests compile against version 16, and does nothing,
+ * so they fail on Room's validation of `cartography_entries` until the rebuild lands.
+ */
+val MIGRATION_15_16: Migration = object : Migration(15, 16) {
+    override fun migrate(db: SupportSQLiteDatabase) = Unit
+}

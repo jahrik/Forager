@@ -21,6 +21,7 @@ import com.zynergylabs.forager.app.domain.GetTripReportOfflineRegionsUseCase
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.SaveCartographyEntryUseCase
+import com.zynergylabs.forager.app.domain.SetCartographyEntryShownOnMapUseCase
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 import com.zynergylabs.forager.app.domain.model.Region
@@ -120,6 +121,7 @@ class CartographyViewModelTest {
             ),
             getTripReportOfflineRegions = GetTripReportOfflineRegionsUseCase(StubOfflineMapRepository),
             computeTrackStatistics = ComputeTrackStatisticsUseCase(),
+            setShownOnMap = SetCartographyEntryShownOnMapUseCase(cartographyEntryRepository),
             now = { FIXED_NOW },
         )
     }
@@ -597,6 +599,75 @@ class CartographyViewModelTest {
         advanceUntilIdle()
 
         assertEquals("a draft has nothing to demote — the editor must stay open", draftId, viewModel.uiState.value.editingEntry?.id)
+    }
+
+    // ── J8: onSetShownOnMap, the one handler that writes shownOnMap ──
+
+    private val shownEntryRepository get() = RoomCartographyEntryRepository(database.cartographyEntryDao())
+
+    private fun savedEntry(id: String, text: String = "A good day.") =
+        com.zynergylabs.forager.app.domain.model.CartographyEntry.draft(id = id, date = DAY, updatedAtEpochMillis = 3_000L).copy(isDraft = false, text = text)
+
+    @Test
+    fun `showing and hiding a saved entry writes shownOnMap alone and updates the listed entry at once`() = runTest(dispatcher) {
+        shownEntryRepository.save(savedEntry("entry-s")).getOrThrow()
+        viewModel.loadEntries()
+        advanceUntilIdle()
+
+        viewModel.onSetShownOnMap("entry-s", true)
+        advanceUntilIdle()
+        assertEquals(savedEntry("entry-s").copy(shownOnMap = true), shownEntryRepository.getById("entry-s").getOrThrow())
+        assertEquals(true, viewModel.uiState.value.entries.single { it.id == "entry-s" }.shownOnMap)
+        assertEquals("not an edit: the stamp is the stored one", 3_000L, viewModel.uiState.value.entries.single().updatedAtEpochMillis)
+
+        viewModel.onSetShownOnMap("entry-s", false)
+        advanceUntilIdle()
+        assertEquals(false, shownEntryRepository.getById("entry-s").getOrThrow()!!.shownOnMap)
+        assertEquals(false, viewModel.uiState.value.entries.single { it.id == "entry-s" }.shownOnMap)
+    }
+
+    @Test
+    fun `the toggle on the open entry updates it in place, keeps its unsaved edit unsaved, and a later save keeps the toggle`() = runTest(dispatcher) {
+        shownEntryRepository.save(savedEntry("entry-o", text = "Stored")).getOrThrow()
+        viewModel.loadEntries()
+        advanceUntilIdle()
+        viewModel.onOpenEntry("entry-o")
+        advanceUntilIdle()
+        viewModel.onTextChanged("Edited, not saved")
+        assertTrue(viewModel.uiState.value.hasUnsavedChanges)
+
+        viewModel.onSetShownOnMap("entry-o", true)
+        advanceUntilIdle()
+        val open = viewModel.uiState.value.editingEntry!!
+        assertEquals(true, open.shownOnMap)
+        assertEquals("the edit is still in the open entry", "Edited, not saved", open.text)
+        assertTrue("and still unsaved", viewModel.uiState.value.hasUnsavedChanges)
+        val stored = shownEntryRepository.getById("entry-o").getOrThrow()!!
+        assertEquals("the store has the toggle", true, stored.shownOnMap)
+        assertEquals("and not the unsaved edit", "Stored", stored.text)
+
+        viewModel.onSaveEntry()
+        advanceUntilIdle()
+        val saved = shownEntryRepository.getById("entry-o").getOrThrow()!!
+        assertEquals("Edited, not saved", saved.text)
+        assertEquals("saving the edit did not undo the toggle", true, saved.shownOnMap)
+    }
+
+    @Test
+    fun `a draft is never shown on the map`() = runTest(dispatcher) {
+        val draft = com.zynergylabs.forager.app.domain.model.CartographyEntry.draft(id = "entry-d", date = DAY, updatedAtEpochMillis = 3_000L)
+        shownEntryRepository.save(draft).getOrThrow()
+        shownEntryRepository.save(savedEntry("entry-s")).getOrThrow()
+        viewModel.loadEntries()
+        advanceUntilIdle()
+
+        viewModel.onSetShownOnMap("entry-d", true)
+        viewModel.onSetShownOnMap("entry-s", true)
+        advanceUntilIdle()
+        assertEquals(false, shownEntryRepository.getById("entry-d").getOrThrow()!!.shownOnMap)
+        assertEquals(false, viewModel.uiState.value.draftEntries.single().shownOnMap)
+        // The saved one beside it was shown, so the draft's refusal is the rule, not a handler that does nothing.
+        assertEquals(true, shownEntryRepository.getById("entry-s").getOrThrow()!!.shownOnMap)
     }
 
     private fun dayStartMillis(): Long = DAY.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
