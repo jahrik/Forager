@@ -697,3 +697,62 @@ registry says. 4. The offline caption matches the code. 5. The restated check 7 
   - Its details sheet (`67-track-details.xml`) reads: Started Sep 27, 2026, 7:23 PM; Ended Sep 27, 2026,
     9:02 PM; Distance 379 ft; **Duration 1h 27m**; **Points 18**. See Flags.
   - The sheet was closed with Back.
+
+### Step 4(a): the waypoint "DEVICE CHECK waypoint": **created**
+- **The path:**
+  - Maps tab add button (tap 990,1325), then "Waypoint" (898,1326): `71-add-menu`, `72-waypoint-picker`.
+  - The centre-pin picker was confirmed with OK (286,1865) **without panning**. The confirmed point is `cameraCenter`.
+  - The MapView spans [0,75][1080,2316], so its centre is (540,1195.5), where the reticle has been drawn since
+    the first run. The picker's own pin tip sits about 6.7 dp below that centre (`ui/map/CentrePinLocationPicker.kt:261`),
+    and by my reading of `72-crop-picker-x2.png` it lies just below the reticle's centre.
+  - The dialog's default name "Waypoint 1" was cleared and "DEVICE CHECK waypoint" typed. The field read back
+    exactly that (`74-waypoint-named.xml`). "Drop waypoint" was tapped at 04:06:55Z.
+- **The first two frames after it are dimmed** (`75-waypoint-dropped.png` at 04:06:57Z, `76-check8-pin.png` at 04:07:58Z,
+  `77-maps-recheck.png` at 04:10:14Z):
+  - The map area, and the caption over it, read 0.839 times their values in `63-after-stop.png` (median over 3,833
+    ground samples). The white casing reads `#D6D6D6`, and the pin's fill `#2C0451` (= `#350560` x 0.839).
+  - The bottom nav's selected pill and its text are unchanged (`#6B421A`, `#CFC9BE`), and so is the status bar.
+    So the dim lies over the map and under the app's chrome.
+  - It is not a dim layer in the window manager (both SurfaceFlinger dim layers report "hidden") and not the screen
+    timeout (600 s).
+  - It cleared on switching to Journal and back (`78-maps-after-tab-roundtrip.png`, 04:10:31Z, ratio 1.000).
+  - **No colour below is read from a dimmed frame.** The cause was not looked for (see Flags).
+
+### Step 5: check 8, the positive control: **pass**
+- **Evidence:** `78-maps-after-tab-roundtrip.png` / `.xml` (04:10:31Z), with Night Maps off (the map-mode description
+  reads "Night mode off"; `night_mode.maps` is `false` in `prefs-c2-start/`). The crop is `78-crop-pin-x4.png`.
+- **The pin is drawn:**
+  - Within 2 per channel of `#350560`: **2,003 pixels, 1,853 of them exact**. They span x 509 to 569 px (60 px,
+    about 21 dp, where the glyph's head is 22 dp) and y 1118 to 1166 px.
+  - Its casing and the ring on its head read `#FFFFFF`, the DAY casing.
+  - No pixel is within 12 of the night hex `#B97DF7`.
+  - Before the waypoint existed, `62` and `63` had 0 pixels within 12 of `#350560` in the map area.
+- **Where:** the head's centre is at about (539,1147) px. That is 17 dp (47.8 px) above (540,1195), the reticle's
+  centre and the camera centre the picker confirmed, which is where the glyph puts the head over its tip
+  (`ui/map/MarkerGlyphs.kt:36`, `:91-92`).
+- **What I could not see:** the tip itself. It is under the location puck, a `#4A90E2` dot with a white halo that draws
+  over the pin's lower triangle and the reticle's centre. See check 4.
+- So the ordinary waypoint draws, and ORIGIN's absence is the filter, not the layer.
+
+### Step 6: check 4, draw order on the Maps tab: **pass** for the one pair that overlaps; the rest **not run**
+- **Waypoint over search centre: stacks as the registry says** (`waypoints-layer` above `search-center-layer`,
+  `ui/map/layers/MapLayers.kt:231`, `:249`).
+  - In `63-after-stop.png`, before the waypoint, the reticle's upper arm at x 538 to 542 px is exactly `#000000`
+    from y 1160 to 1170, and its ring is black at y 1172 to 1176.
+  - In `78`, those same pixels are the pin's fill, `#33055C` to `#2C0450`. So the pin covers the arm and the ring's
+    top, and nothing of the reticle shows through it.
+  - The fill darkens slightly towards the puck, from `#35055F` at y 1158 to `#2C0450` at y 1170. I read that as the
+    puck's shadow lying over the pin; **unverified**.
+- **Waypoint and sighting dot: not run.** The nearest dot's ring ends at about y 1102 px, and the pin's casing begins at
+  1114, with basemap between. They do not overlap.
+- **Sighting dots and reticle: not run.** No dot overlaps the reticle.
+- **The ruled change (dots and reticle above track lines): not run.** The Maps tab has no line after the stop:
+  - the breadcrumb ended with the recording;
+  - kept tracks are not drawn on the Maps tab at this build (`ui/availability/AvailabilityCompactMapUi.kt:598-606`);
+  - there are no planned trips.
+- **Not a registry layer, recorded for the first run's flag 1: the location puck.**
+  - In `63` (before any tab change this run), the reticle's arm shows at the top of the puck's halo (y 1178, `#000000`),
+    so the reticle drew over the puck.
+  - In `78` (after the Journal round trip), the halo is white there, and the puck's blue dot covers the reticle's
+    centre and the pin's tip. So the puck drew over both.
+  - The order changed with the tab round trip.
