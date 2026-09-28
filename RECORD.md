@@ -3871,3 +3871,49 @@ The list-detail question goes to the owner next. Written by the planner by hand.
   - the search reached iNaturalist, which -74 allowed and -12 had barred.
 - All of this feeds J6, whose rulings already cover list-detail and the narrow map. **J6 may now be dispatched** (owner: "Do not start J6 without that sanity check").
 - Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-81
+**Timestamp:** 2026-09-28T22:03:05Z
+**Closes:** 2026-09-28-72
+**Outcome:** completed
+**Observed:**
+- **Record.** docs/audits/2026-09-28-j8-device-check-run-record.md, device-j8 at 47c7f98, merged by the planner. Evidence 01 to 144, including database copies holding the owner's records, is in device-evidence/2026-09-28-j8-check (outside the repository).
+- **Backup.** Taken before the install, sha256-matched to the phone for db, wal and shm. Header valid, integrity ok, user_version 15, 18 tables counted. Re-checked identical just before the install.
+- **Build and install.** Built at 99de6c2 (1.0.1389+g99de6c24, sha256 629d3225...). Certificates matched. install -r succeeded, with firstInstallTime and data inodes unchanged.
+- **Verdicts.**
+  - Check 1, **migration on the owner's real data: pass.** user_version 16, integrity ok, all 7 entries shownOnMap 0, all 18 counts equal, every row of 17 tables unchanged, room_master_table's hash moved from 15.json to 16.json.
+  - Check 2, report menu: pass.
+  - Check 3, the highlight: every drawn kept record ringed beneath its glyph, day #005577, night #00DDFF (pass); the unkept region unringed (pass). **Rings draw for the ORIGIN and END waypoints, which the map does not draw.** The map uses the filtered list (AvailabilityScreen.kt:828-829); the highlight uses the unfiltered one (:923-924). That is a defect against J8's "not drawn today, not highlighted". Marker rings also sit above every line (MapLayers.kt:236), covering parts of the track and reticle.
+  - Check 4, the chip: placement passes in portrait, at 90 and at 270, and so does the list. **The chip's fill measures 0.833 to 0.840**, which the coder infers is a 0.8 fill over the chip's own 4 dp shadow. The list's fill is 0.80. In portrait, a 25 px overlap band between the chip and the coordinate readout reaches neither control.
+  - Check 5, for the owner: **at 90 the chip covers the cluster's "Reset orientation to north"** (5 of 5 touches opened the chip); at 270 there is no overlap (442 px apart).
+  - Check 6, bubble line, Open entry and the unsaved prompt: pass. The other-entry case is untested, since only one DEVICE CHECK entry is saved.
+  - Check 7, the Layers switch: pass, persisted and restored.
+  - Check 8, the Toast: not run (needs code).
+- **Restored.** Database shownOnMap 0 on all rows, counts equal. System and app settings read back as at the start. One new DataStore key (journal-entry-tracks-layer visible, default true) remains, because the app cannot remove it. Crash buffer 0 bytes at all nine reads; no prompt appeared.
+**Deviations:**
+- The agent was cut off once by the EAI_AGAIN outage and resumed (state re-read first).
+- Checks beyond the dispatch: a phone-side sha256, a re-check just before the install, per-table row hashes.
+- The ORIGIN and END match was made by relative position (the coder's reading).
+- Zoom levels by double-tap steps.
+- The migrated copy's WAL had its first 16 header bytes zeroed. The cause is not established, and no figure depends on it.
+- The camera was not restored.
+**Notes:**
+- **Owner-judged captures:**
+  - Topographical: day 43, 47, 56; night 66b, 67.
+  - Street: day 57b; night 65b, 68b.
+  - Satellite: day 58b; night 64.
+  - Check 5: 91, 95, 107 (at 90) and 101, 103, 108 (at 270).
+- **Flags:**
+  - the ORIGIN and END rings;
+  - marker rings over lines;
+  - the chip at about 0.84 against the composite rule (the taxon chip not checked);
+  - the portrait dead touch band;
+  - the chip over the reset button at 90;
+  - in landscape, the cluster's top row over the search bar's ends (predates J8);
+  - the zeroed WAL header;
+  - the reticle with no location set, and the camera reset on returning to Maps (both recurring from Part 1).
+- These go to the owner.
+- Written by the planner by hand.
