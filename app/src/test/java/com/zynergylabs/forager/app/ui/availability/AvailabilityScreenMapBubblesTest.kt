@@ -705,6 +705,97 @@ class CartographyEntryMapBubblesTest {
     }
 }
 
+/**
+ * The entry map's opening frame (owner, 2026-09-28, "Fit all kept records"; planner message
+ * 2026-09-28-35), through the compact Journal tab with a day entry open: the map slot receives one
+ * camera request, framed on the kept find and waypoint, and no new request after the entry map goes
+ * fullscreen, a bubble opens, and an M1 "Open find" overlay opens and closes, because Back returns
+ * "exactly as it was" (M1's Q4). The slot is recomposed along the way (the count grows), so the
+ * absence of a new request is observed on recompositions that could have carried one.
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi")
+class CartographyEntryMapOpeningFrameTest {
+
+    private val composeRule = createAndroidComposeRule<ComponentActivity>()
+
+    @get:Rule
+    val rules: RuleChain = RuleChain.outerRule(hostActivityRule()).around(composeRule)
+
+    private val map = BubbleMapSlot(listOf(StubGlyph(MapLayerIds.FINDS, "find-1", 60.dp, 120.dp, LatLng(45.51, -122.61))))
+    private val received = mutableListOf<com.zynergylabs.forager.app.ui.map.MapCameraRequest?>()
+    private val recordingSlot: MapSlot = { region, content, renderMode, focusOverride, onLongPress, onTap, onSightingTap, onCameraIdle, modifier ->
+        received += renderMode.cameraRequest
+        map.slot(region, content, renderMode, focusOverride, onLongPress, onTap, onSightingTap, onCameraIdle, modifier)
+    }
+    private var log by mutableStateOf(MushroomLogUiState(entries = listOf(BUBBLE_FIND), galleryPhotos = listOf(BUBBLE_PHOTO)))
+
+    private val entry = CartographyEntry.draft(id = "entry-1", date = BUBBLE_DAY, updatedAtEpochMillis = 1_000L).copy(
+        isDraft = false,
+        text = "A wet morning on the ridge.",
+        findDecisions = listOf(FindDecision("find-1", BUBBLE_DAY, "Golden chanterelle", hasPhotos = false, kept = true)),
+        waypointDecisions = listOf(WaypointDecision("wp-gone", "Old gate", 45.4, -122.5, kept = true)),
+    )
+    private val mapData = CartographyEntryMapData(
+        trackPolylines = emptyList(),
+        findMarkers = listOf(RecordPoint("find-1", LatLng(45.51, -122.61))),
+        waypointMarkers = listOf(RecordPoint("wp-gone", LatLng(45.4, -122.5))),
+        photoMarkers = emptyList(),
+        offlineRegionCircles = emptyList(),
+    )
+
+    private fun setScreen() {
+        val store = OneCellStore()
+        val viewModel = mapLayersViewModel(store = store)
+        composeRule.setContent {
+            MapLayersTestScreen(
+                viewModel = viewModel,
+                mapSlot = recordingSlot,
+                store = store,
+                logUiState = log,
+                onOpenLogEntry = { id -> log = log.copy(editingEntry = log.entries.firstOrNull { it.id == id }) },
+                onCloseLogEntry = { log = log.copy(editingEntry = null) },
+                cartographyUiState = CartographyUiState(entries = listOf(entry), editingEntry = entry),
+                getCartographyEntryMapData = { _, _ -> mapData },
+            )
+        }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Journal").performTouchInput { click(center) }
+        composeRule.waitForIdle()
+    }
+
+    @Test
+    fun `the entry map is asked once to open on its kept records, and not again after fullscreen, a bubble and Open find with Back`() {
+        setScreen()
+        val requests = received.filterNotNull().distinct()
+        assertEquals("one request on open", 1, requests.size)
+        val request = requests.single()
+        assertEquals(
+            com.zynergylabs.forager.app.domain.EntryMapFrame.Fit(
+                com.zynergylabs.forager.app.domain.model.GeoBoundingBox(north = 45.51, south = 45.4, east = -122.5, west = -122.61),
+                paddingDp = 48,
+                maxZoom = 17.0,
+            ),
+            request.frame,
+        )
+        val compositionsOnOpen = received.size
+
+        val slot = composeRule.onNodeWithTag("map-slot").getUnclippedBoundsInRoot()
+        composeRule.touchAt(slot.right - 20.dp, slot.bottom - 20.dp)
+        composeRule.onNodeWithContentDescription("Exit fullscreen").assertExists()
+        composeRule.touchCentreOf(glyphTag("find-1"))
+        composeRule.touchCentreOf(MAP_BUBBLE_OPEN_FIND_TAG)
+        composeRule.onNodeWithTag(FIND_OVER_VIEW_TAG).assertIsDisplayed()
+        composeRule.back()
+        composeRule.onAllNodesWithTag(FIND_OVER_VIEW_TAG).assertCountEqualsZero()
+        composeRule.onNodeWithTag("map-slot").assertIsDisplayed()
+
+        assertTrue("the slot was recomposed after opening ($compositionsOnOpen, now ${received.size})", received.size > compositionsOnOpen)
+        assertEquals("no new request after the round trip", listOf(request), received.filterNotNull().distinct())
+        assertEquals("the slot still holds the same request", request, received.last())
+    }
+}
+
 private fun androidx.compose.ui.test.SemanticsNodeInteractionCollection.assertCountEqualsZero() {
     assertEquals(0, fetchSemanticsNodes().size)
 }
