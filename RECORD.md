@@ -3249,3 +3249,14 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner, verbatim: "Apply the same advanced search location change to portrait mode please". Written by the planner by hand.
 
 ---
+
+**Kind:** continuation
+**ID:** 2026-09-28-40
+**Timestamp:** 2026-09-28T13:33:14Z
+**Continues:** 2026-09-28-34
+**Dispatch-file:** preserved/2026-09-28-40.md
+**Reason:** -38 built on the wide layout (6cf0e9b; suite 280 / 2266 / 0 / 0 / 24); for -39 the coder found the compact tap already shows "Set on map" and "Use current location" at the dropdown's top (AvailabilitySearchUi.kt:413-429), with manual coordinates two collapsed sections deep, and stopped on the mixed case (evidence tests 7bfc4c7; suite 282 / 2268 / 0 / 0 / 24).
+**Changes:** On compact, the bar's tap expands both "Advanced search" and "Enter coordinates manually" once, so the coordinate fields show at once; reverses the earlier redo's choice to keep manual coordinates a tap deeper; the two evidence classes' assertions change accordingly.
+**Notes:** Owner, verbatim: "Also open manual coordinates" (the planner had recommended leaving portrait as is). Written by the planner by hand.
+
+---
