@@ -471,3 +471,35 @@ Relaunched with `am start` at 21:09:11Z (pid 31805).
   unfinished entries" (`36-`). Nothing was typed or chosen.
 - Crash buffer 0 bytes after the check (`37-`); Forager pid 31805 throughout.
 - **Prediction:** held.
+
+## A planner message received during the run, verbatim
+
+Relayed by the coordinator at about 21:22Z, after my session was cut off by a network outage in the middle of check 3's
+set-up (the last evidence file was `39-c3-sheet`). No planner-log line was given, so none is cited.
+
+> Planner: resume dispatch `2026-09-28-72`. Your turn was cut off by a network outage ("API Error: Can't reach the API server (EAI_AGAIN)"). Nothing is wrong with your work, and your context is intact.
+>
+> The planner's read at 21:22Z:
+> - `origin/device-j8` is at `2f4460d` (checks 1 and 2 pushed);
+> - evidence runs up to `39-c3-sheet`;
+> - the S22 has versionName 1.0.1389+g99de6c24, Forager in focus, user_rotation 0.
+>
+> **Before your next action:**
+> - re-read the phone's state (focus, rotation, any open sheet or menu, and which DEVICE CHECK entries have `shownOnMap` on);
+> - run `git status` in your worktree.
+>
+> Do not assume your last command completed. Then carry on from check 3. All rules of `-72` stand: DEVICE CHECK entries only; hide every one again and read it back; stop at any prompt over the app. Push after each check. Hand back when you finish or stop.
+
+**The state I read back before touching anything (21:23Z):**
+- `git status`: `device-j8` clean and level with `origin/device-j8` at `2f4460d`.
+- Phone: awake, `isKeyguardShowing=false`, Forager `MainActivity` in focus, pid 31805 (the check 2 relaunch),
+  `user_rotation=0`, `accelerometer_rotation=0`; `versionName=1.0.1389+g99de6c24`, `lastUpdateTime` 14:03:09 PDT,
+  `firstInstallTime` 2026-09-22 11:15:05, all unchanged. Crash buffer **0 bytes** (`40-crash-resume.txt`).
+- **The Layers sheet was still open** (`41-resume-state.xml` is byte-identical to `39-c3-sheet.xml`), every overlay
+  switch on, "Journal entries" on. My last command had completed: it opened the sheet and dumped it. No menu or prompt
+  was open. I closed the sheet with Back (`42-`); the chip still read "1 journal entry on map".
+- **`shownOnMap`**, read from a database copy after `am force-stop` at 21:23:34Z (`db-resume-*`; the copy matches the
+  device, integrity ok, user_version 16): **1 on `6107d76c…` (the L0a DEVICE CHECK entry) only**, 0 on the other six
+  rows. `dbdigest.py` equals the post-migration digests for all 18 tables (`shownOnMap` excluded): nothing else was
+  written.
+- The force-stop was mine, to read the database cleanly. Forager was relaunched with `am start` for check 3.
