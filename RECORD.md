@@ -2951,3 +2951,19 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Device-only for L0b's device check (report, Device-only): real layer hiding and opacity with no style reload; hidden layers excluded from tap queries (carried from L0a); the cell layer under the markers; the legend's inset placement at both rotations and in fullscreen, and whether the fixed 96 dp cap still leaves the cluster room with real insets; the sheet's insets; persistence across a force-stop; where MapLibre's "i" lands against the nav and rail. Flags carried: MapModePicker left with no caller, still imported at AvailabilitySettingsUi.kt:66 and AvailabilityMapControlsUi.kt:78 (out of scope), unused import at AvailabilityScreen.kt:312, the name in comments and in mapModePickerEnabled; the entry map's Layers button still hides while offline tiles are on. D58: zero hits over the diff since 6235a86 and every commit message. Next: L0b's device check (needs a new build installed on the S22), then M1. Written by the planner by hand.
 
 ---
+
+**Kind:** intent
+**ID:** 2026-09-28-16
+**Timestamp:** 2026-09-28T10:02:28Z
+**Title:** The Layers sheet at the map chrome's standing opacity (MAP_CHROME_OVER_MAP_ALPHA, 0.8)
+**Dispatch-file:** preserved/2026-09-28-16.md
+**Change:** The ModalBottomSheet in ui/map/MapLayersSheet.kt takes its default container colour at alpha MAP_CHROME_OVER_MAP_ALPHA; scrim and drag handle unchanged.
+**Scope boundary:** Branch journal-redesign; MapLayersSheet.kt and its test only.
+**Baseline:** journal-redesign at the commit carrying this entry; planner's suite at af846cc 266 / 2183 / 0 / 0 / 24.
+**Prediction (outcome — planner):** 1. One production line changes. 2. The suite grows by 1 or 2.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** Pushed with tests first, a compiling revert check, the full suite and a short completion report; the planner writes the terminal.
+**Abort conditions:** A wrong premise; a tests-first test passing at base; a non-compiling revert; a non-held failure; an open design question.
+**Notes:** The owner, verbatim, over a screenshot of the sheet: "Can this panel be given 80% opacity like the rest of the map chrome?" The screenshot showed the sheet over a scrim on the Street basemap, dark theme. Written by the planner by hand; runs in parallel with backlog Part B on the phone.
+
+---
