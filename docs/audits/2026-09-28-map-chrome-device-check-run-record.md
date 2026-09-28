@@ -655,3 +655,69 @@ predicted: the region's bubble not opening, the sheet's opaque navigation-bar ba
 
 **Captures, Topographical by day, for check 5:** `56-` (track sheet), `62-` (waypoint sheet), `70-` (trip dialog),
 `74-` (waypoint dialog), `77-` and `78-` (suggestions), `84-` (Month).
+
+## Check 3: in-tree surfaces: **all measured at 0.80; the search notice's first line sits under the compass strip; both chips not run**
+
+Relaunched at 23:03:4xZ (pid 32618), the opening camera, Topographical, Night Maps off.
+
+**3c. The bottom nav and 3e. the compass strip: 0.80 each. Pass.** `90-c3-normal-B`, then the cluster's Fullscreen at
+(989, 740): `91-c3-fullscreen-A`. In fullscreen the nav and the search bar are gone and the strip has moved up to
+`y` 78 to 124, so the strip's normal band (`[0,204][1080,255]`) and the nav's (`[0,1956][1080,2316]`) are bare map there,
+except the caption, which drops to the window's foot. The map did not move (`[50,400][850,900]`, slope 1.000, rms 0).
+
+| surface | box | a (R, G, B) | b | rms | composite |
+|---|---|---|---|---|---|
+| strip | `[920,208][1075,252]` (right of the readout) | 0.200 | 46.9, 37.0, 29.0 | 0.29 | **0.800** |
+| strip | `[125,208][222,252]` (between the arrow and the heading) | 0.201 | 46.8, 36.8, 28.8 | 0.27 | 0.799 |
+| nav | `[0,1962][420,1995]`, `[660,1962][1080,1995]` (above the icons) | 0.200 to 0.201 | 25.8 to 26.0 | 0.27-0.29 | **0.80** |
+| nav | `[0,2145][1080,2178]` (below the labels) | 0.199 to 0.200 | 25.9 to 26.1 | 0.29 | 0.80 |
+| nav, in the system bar's band | `[270,2190][470,2245]` | 0.200 to 0.201 | 25.9 to 26.0 | 0.27 | 0.80 |
+| search bar (not asked; in the same pair) | `[860,135][1050,185]` | 0.199 to 0.200 | 47.0, 37.0, 29.1 | 0.3 | 0.80 |
+
+Containers: the strip and the bar 0.8 × Bark exactly; the nav 32.4, `#202020` (`surfaceContainer`). The exit from
+fullscreen (23:04:3xZ, `92-`) restored the same frame (`90-` against `92-` over the nav band and the map, slope 1.000,
+rms 0). The pre-registered fullscreen reference was usable for the strip because nothing covers its band there.
+
+**3a. The centre-pin OK/Cancel row: 0.80 inside, 0.81 to 0.84 at its edges. Pass.** + (989, 1324) at 23:05:08.7Z,
+"Trip" (470, 1326), the pin and its row (`94-c3a-pinrow-B`, row drawn `y` 1775 to 1956, buttons `[45,1798][528,1933]`
+OK and `[551,1798][1035,1933]` Cancel). **Cancel** by a real touch at its centre (793, 1865) at 23:05:25.5Z: the pin
+and row gone (`95-c3a-A`), the camera unchanged.
+
+| box | a (R, G, B) | b | rms |
+|---|---|---|---|
+| inside the outlined Cancel button, `[600,1830][700,1850]` | 0.200, 0.201, 0.201 | 22.0 | 0.22 |
+| below the buttons, `[60,1936][1020,1954]` | 0.200 | 22.0 | 0.28 |
+| above the buttons, `[60,1778][1020,1796]` (the row's top edge) | 0.188, 0.189, 0.189 | 22.2 | 1.0 |
+| the row's ends, `[0,1800][42,1930]`, `[1040,1800][1078,1930]` | 0.162 to 0.187 | 22 to 26 | 2.3-3.0 |
+
+**Fill 0.80** inside (container 27.5, `#1B1B1B`). Near its edges the composite rises to 0.81 to 0.84 with a larger
+rms, which fits its 4 dp shadow reaching under the fill there; that is an inference.
+
+**3b. The search notice: 0.80. Pass on the measure, with a legibility finding.** At the opening camera (`96-`, the map
+alone): the bar, one Back for the keyboard, the panel (`97-c3b-panel`): **both coordinate fields read empty in the dump**
+(`text=""` on `[45,1381][528,1562]` and `[551,1381][1035,1562]`). "Search this location" by a real touch at (540, 1675)
+at 23:06:10.3Z: the panel closed and the notice showed, "Enter a valid latitude (-90 to 90) and longitude (-180 to
+180).", `[0,203][1080,340]` (`98-c3b-notice-B`). No search ran.
+- `[300,290][1060,336]` and `[140,290][1060,300]` (below its first line, clear of "180)."): a 0.200, b (86.0, 27.0,
+  27.0), rms 0.28. **Composite 0.80**, container (107.5, 33.8, 33.8), `#6B2222` (`errorContainer`).
+- **The notice starts at the search bar's foot (`y` 203) and the compass strip, `[0,204][1080,255]`, is drawn over it.**
+  Its first line of text lies under the strip's own readout (crop `99-c3b-notice-crop.png`). Where the two overlap, the
+  notice passes 0.197 to 0.200 of the strip-over-map ground (`[960,208][1075,252]`, rms 0.3), so the map there is
+  under two 0.8 fills, about 0.96 (inferred by multiplication; there is no frame of that band without the strip). **By
+  my reading of `98-` and `99-`, the first line is hard to read.** The owner's to judge; see Flags.
+- Cleared by `am force-stop` and `am start` at 23:06:52.8Z (`102-`: no notice).
+
+**3f. The taxon chip: not run**, as pre-registered: it needs a completed species search, which fetches from the network
+and writes `cached_searches`.
+
+**3g. J8's chip: not run**, as pre-registered: showing an entry writes `cartography_entries.shownOnMap`, and this
+dispatch forbids any data edit. `-72`'s 0.833 to 0.840 stands unmeasured here. **A question for the planner** (hand-back).
+
+The database after check 3 (`db-c3-*`): integrity ok, `user_version` 16, every digest equal to the backup's;
+`map_preferences` decodes equal to the start's (`101-`, so `map.fullscreen` is back to false). Crash buffer 0 bytes
+(`100-`).
+
+**Prediction:** the nav, strip, row and notice at 0.80: held; the row's shadow shows only at its edges. Not predicted:
+the notice under the strip.
+
+**Captures, Topographical by day:** `90-` (nav, strip and bar), `94-` (centre-pin row), `98-` and `99-` (notice).
