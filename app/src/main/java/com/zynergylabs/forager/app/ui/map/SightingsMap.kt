@@ -844,8 +844,8 @@ fun SightingsMap(
  * follows the toggle. The point markers other than the sighting dot are bitmap [SymbolLayer]s, each
  * its own silhouette (`MarkerGlyphs.kt`, [MarkerIcon]) with its casing drawn into the bitmap and its
  * anchor at the bitmap's centre, hence `icon-anchor: center` for all of them. The sighting dot stays
- * a [CircleLayer] whose own ring is its casing; the tracks and the offline outline are line layers
- * ([trackLayerSpecs], [offlineRegionOutlineSpec]).
+ * a [CircleLayer] whose own ring is its casing; the tracks, the offline outline and its night border
+ * are line layers ([trackLayerSpecs], [offlineRegionOutlineSpec], [offlineRegionBorderSpec]).
  *
  * The sighting layer's `circle-stroke-color`/`circle-stroke-width` are fixed expressions keyed on
  * each feature's own `"selected"` boolean property — see [sightingStrokeColorExpression]'s own doc
@@ -938,12 +938,13 @@ internal fun markerIconForLayer(layerId: String): MarkerIcon? = when (layerId) {
 
 /**
  * The line a line layer draws, by layer id: the offline region's dashed outline (its casing, colour
- * build C2 (c)), and the breadcrumb and kept tracks each with its casing ([trackLayerSpecs]: the
- * breadcrumb dashed, see [BREADCRUMB_DASH_PATTERN]; the kept tracks solid, see
- * [keptTracksFeatureCollection]). `null` for a layer that is not one of these.
+ * build C2 (c)) and the night border beneath it ([offlineRegionBorderSpec]), and the breadcrumb and
+ * kept tracks each with its casing ([trackLayerSpecs]: the breadcrumb dashed, see
+ * [BREADCRUMB_DASH_PATTERN]; the kept tracks solid, see [keptTracksFeatureCollection]). `null` for a
+ * layer that is not one of these.
  */
 internal fun lineSpecForLayer(layerId: String): LineLayerSpec? =
-    (listOf(offlineRegionOutlineSpec()) + trackLayerSpecs() + journalHaloLineSpecs()).singleOrNull { it.layerId == layerId }
+    (listOf(offlineRegionBorderSpec(), offlineRegionOutlineSpec()) + trackLayerSpecs() + journalHaloLineSpecs()).singleOrNull { it.layerId == layerId }
 
 /**
  * A bitmap marker's [SymbolLayer]. Every [MarkerIcon]'s image has its anchor at its exact centre
@@ -1456,6 +1457,27 @@ internal fun offlineRegionOutlineSpec(): LineLayerSpec = LineLayerSpec(
     ),
     roundCaps = false,
 )
+
+/**
+ * The border under the offline region's dashed outline (dispatch `2026-09-28-79`; owner: "The outline
+ * should have a white border", "Yes the night outline only"), built as [trackLayerSpecs] builds a
+ * track's casing: the outline's own line, [CASING_WIDTH_DP] wider on each side (4.5 dp in all, the
+ * dashes' 1.5 dp in its middle), solid, on the same source, with the outline's butt caps and constant
+ * width, in [MapPalette.offlineRegionBorder]. Solid so that the edge carries through the dashes' gaps
+ * too. At night that role is white, drawn at the registry's line opacity, so over the darkest night
+ * ground, where the black dashes alone could barely be made out (Part 1, check 5 (b)), the edge reads as
+ * a light band with the dashes along it; by day the role is fully transparent and the layer draws
+ * nothing. The registry places it directly below the outline (`MAP_LAYER_REGISTRY`).
+ */
+internal fun offlineRegionBorderSpec(): LineLayerSpec {
+    val outline = offlineRegionOutlineSpec()
+    return outline.copy(
+        layerId = MapLayerIds.OFFLINE_REGION_BORDER,
+        colour = MapPalette::offlineRegionBorder,
+        widthDp = outline.widthDp + 2 * CASING_WIDTH_DP,
+        dashPattern = null,
+    )
+}
 
 /**
  * J8: the two line halos, each [JOURNAL_HALO_WIDTH_DP] wider on each side than what it lies under, solid,

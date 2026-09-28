@@ -65,6 +65,8 @@ enum class PaletteRole(val colourOf: (MapPalette) -> Int) {
     PHOTO(MapPalette::photo),
     /** J8: the halo under a record kept by an entry shown on the map. */
     JOURNAL_ENTRY(MapPalette::journalEntry),
+    /** The night border under the offline region's dashed outline (dispatch `2026-09-28-79`). */
+    OFFLINE_REGION_BORDER(MapPalette::offlineRegionBorder),
 }
 
 /** An opacity paint property, named as MapLibre names it, and the renderer it belongs to. */
@@ -185,6 +187,18 @@ private val ICON_OPACITY = listOf(BaseOpacity(OpacityProperty.ICON, 1f))
 /** The offline region's fill opacity, today's value (Journal Stage 2d). */
 internal const val OFFLINE_REGION_FILL_OPACITY = 0.2f
 
+/**
+ * The line opacity of the border under the offline region's dashed outline (dispatch `2026-09-28-79`),
+ * white at night. The coder's proposal, for the owner to judge on the phone: the one white stroke the
+ * night map already drew is the sighting ring, at [SIGHTING_DOT_STROKE_OPACITY], 0.85, and this matches
+ * it. `MapPaletteTest` holds the figures at this value: the dispatch's target, 3:1 against Part 1's
+ * darkest night ground on both sides of the edge, as a bar, and a ratchet per night ground cluster (over
+ * the darkest, `#020302`, 14.636:1 outside the edge and 14.267:1 inside; the black dashes 14.877:1 or
+ * more against the border on every cluster). By day the border's colour is fully transparent, so this
+ * value draws nothing.
+ */
+internal const val OFFLINE_REGION_BORDER_OPACITY = 0.85f
+
 /** The sighting dot's fill opacity, today's value: about the deleted osmdroid version's 0xB3 alpha. */
 private const val SIGHTING_DOT_OPACITY = 0.7f
 
@@ -302,12 +316,18 @@ private const val COLOUR_FIELD_FILL_OPACITY = 0.6f
  *
  * **J8's five journal-entry halos** (`prompts/preserved/2026-09-28-52.md`, J8-2) each sit directly
  * below the record layer they decorate, and below that record's casing where it has one, so the halo
- * shows as a ring around the record's own outline: the offline region's under its outline, the kept
- * tracks' under their casing, and each marker's under its marker. A halo takes no taps, so M1's tap
+ * shows as a ring around the record's own outline: the offline region's under its outline's border,
+ * the kept tracks' under their casing, and each marker's under its marker. A halo takes no taps, so M1's tap
  * routing is unchanged, and it is drawn only while its record's own switch and the "Journal entries"
  * switch are both on ([MapLayerSpec.drawnWith]). The sighting dots and the search centre are not in that list, so they are not
  * toggleable here. `userOpacity` is offered for colour fields only (layer ruling 1: "each with its
  * own opacity slider"); the multiplier itself applies to any layer. Both are for L0b to confirm.
+ *
+ * **The offline outline's border** (`prompts/preserved/2026-09-28-79.md`; owner: "The outline should
+ * have a white border", "Yes the night outline only") sits directly below the outline, as a casing sits
+ * below its track, and follows the fill's switch like the outline. It takes no taps, so what a tap
+ * reaches is unchanged. Its role is white at night and fully transparent by day, so by day it draws
+ * nothing and only the night map changes.
  */
 val MAP_LAYER_REGISTRY: List<MapLayerSpec> = COLOUR_FIELDS.map(::colourField) + listOf(
     MapLayerSpec(
@@ -325,6 +345,8 @@ val MAP_LAYER_REGISTRY: List<MapLayerSpec> = COLOUR_FIELDS.map(::colourField) + 
         baseOpacities = listOf(BaseOpacity(OpacityProperty.FILL, OFFLINE_REGION_FILL_OPACITY)),
     ),
     journalHalo(MapLayerIds.JOURNAL_ENTRY_REGIONS, MapSourceIds.JOURNAL_ENTRY_REGIONS, LayerKind.LINE, LayerRenderer.LINE, decorates = MapLayerIds.OFFLINE_REGION_OUTLINE),
+    line(MapLayerIds.OFFLINE_REGION_BORDER, MapSourceIds.OFFLINE_REGIONS, PaletteRole.OFFLINE_REGION_BORDER, TapGroup.NONE, owner = MapLayerIds.OFFLINE_REGION_FILL)
+        .copy(baseOpacities = listOf(BaseOpacity(OpacityProperty.LINE, OFFLINE_REGION_BORDER_OPACITY))),
     line(MapLayerIds.OFFLINE_REGION_OUTLINE, MapSourceIds.OFFLINE_REGIONS, PaletteRole.CASING, TapGroup.LINE, owner = MapLayerIds.OFFLINE_REGION_FILL),
     line(MapLayerIds.BREADCRUMB_CASING, MapSourceIds.BREADCRUMB, PaletteRole.CASING, TapGroup.NONE, owner = MapLayerIds.BREADCRUMB),
     // M1 (owner's ruling 4, "Not tappable"): the recording trail is not a record, so it takes no taps.
