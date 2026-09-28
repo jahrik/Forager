@@ -3,6 +3,10 @@
 **Status: partial; stopped on four conflicts in the dispatch (see "Needs a decision").** Results written
 after the run; the pre-registration committed at `b04dbb2`, before any item ran, is kept unchanged as the Appendix.
 
+**Continuation (dispatch `prompts/preserved/2026-09-28-12.md`, from 09:22 UTC).** The planner ruled on the four
+questions; the held items are pre-registered in Appendix C, committed before they ran. The results of this
+second session are added below as they are run. The planner's message, quoted verbatim, is in Appendix C.
+
 **Date:** 2026-09-28, from 04:58 UTC. The phone's clock shows UTC-7, so its local date is 2026-09-27
 until 07:00Z.
 **Device:** Samsung SM-S908U, serial `R5CT321008R`, the only device attached (`adb devices -l`).
@@ -824,3 +828,111 @@ items they touch are **held**, not run, until the planner rules. Every other ite
 ### Held until the planner rules (see "Found before running")
 Item 14, P:320 (draft Continue), P:321 (the map's "Log a find"), item 15, item 24, item 30, item 29, and
 therefore any use of the entries in Data (a).
+
+---
+
+## Appendix C. Continuation 2026-09-28-12: the planner's rulings, and pre-registration of the held items
+
+### The continuation message, verbatim (`prompts/preserved/2026-09-28-12.md`, below its "verbatim prompt follows" line)
+
+> You are resuming dispatch 2026-09-28-04, Part A. Read `prompts/preserved/2026-09-28-04.md`, the launch message quoted in your run record, and this file. Then continue in `/home/zynergy-labs/Zynergy/forager-wt/device-backlog-a` on branch `device-backlog-a-2026-09-28`, at `ec3b9c0` or later. Push at every stopping point. Quote this message verbatim.
+>
+> **Planner's rulings on your four questions.** They rest on the owner's authorisation of labelled test data on the S22 ("Yes, labelled test data (Recommended)", 2026-09-28). This widens the dispatch's data rule (b) as follows, and no further. Every item you create is labelled DEVICE CHECK wherever the form allows, is left in place, and is listed in Created data.
+>
+> 1. **Item 14:** (a). Five real taps across the button's width are allowed. The drafts they create stay.
+> 2. **P:321, "Log a find":** (a). One draft find is allowed, left in place. Do not press Cancel.
+> 3. **Item 24:** (a). Make a saved entry with blank text and its candidates withheld in the form. Put the DEVICE CHECK label on your draft only. Say what the collapsed row shows.
+> 4. **Held items now run:** 15, 24 at 1.0, 1.15 and 1.3, 29, 30, 26's snackbar half, P:320, and item 17 (your new drafts make two or more).
+>    - Deletes stay limited to entries you created, and always end in Undo.
+>    - **Do not run the Waypoints "scroll on an open row" check.** The three waypoints are the owner's track waypoints plus the L0a test waypoint. Record it as not run.
+>
+> **Unchanged:**
+> - no `logcat -c`;
+> - no iNaturalist activity;
+> - no install, no Gradle, no emulator;
+> - restore every setting, including `user_rotation` after the camera.
+>
+> The L0b coder builds on this machine in parallel.
+
+The launch message for this session said: "You are the only coder on the phone." At 09:22:45Z the phone was the only
+device attached (`R5CT321008R`, `SM-S908U`, `BP2A.250605.031.A3`), unlocked (`isKeyguardShowing=false`), with
+`versionName=1.0.1192+g24589349`, and `logcat -b crash -d` returned 0 bytes. The phone's local time was then
+02:22 on 2026-09-28 (UTC-7), so an entry started now is dated 2026-09-28, not the L0a entry's day.
+
+### The plan for the created data (my reading of the rulings; see Decisions)
+- Five taps across "New entry" make five drafts. Each is labelled `DEVICE CHECK 2026-09-28` in the entry's only
+  text field ("Your own account (optional)"), which autosaves (`CartographyViewModel.kt:256-259`), then left with Back.
+- The first tap is made alone, so the one-draft Continue path (P:320) can be seen before taps 2 to 5 make it a list.
+- A sixth "New entry" makes the saved entry of Data (a): text left blank, any candidate withheld, then
+  "Finish entry" (`CartographyEntryEditScreen.kt:284-285`). It is the one entry deleted, each delete ending in Undo.
+- One draft find from the map's "Log a find", labelled `DEVICE CHECK 2026-09-28` in "Your own identification
+  (optional)" (`LogEntryDetailScreen.kt:187-193`), as the L0a finds are labelled, and left with Back. Cancel is not pressed.
+
+### Pass conditions and predictions, written before each item was looked at (code at `2458934`)
+
+**Item 14, "New entry" (J2:259-261).**
+- **Pass:** five taps at the button's vertical centre, at x both ends (10 px inside), the centre and two between,
+  from a fresh dump, each open the entry editor for a new draft ("Your own account (optional)" and "Finish entry"
+  showing; `CartographyScreen.kt:406`, `:497-505`); Back from the editor returns to Entries each time; the
+  L0a card, tapped, opens its report (the VIEW mode, `CartographyScreen.kt:458`). Label and clearance were
+  recorded in the first session.
+- **Prediction:** pass; the draft count goes 0, 1, ..., 5.
+
+**P:320, draft Continue.**
+- **Pass:** with exactly one draft, the banner's "Continue ›" opens that draft in the editor; with two or more, it
+  opens the full-screen drafts list (`CartographyScreen.kt:398-405`); Back from the list returns to Entries
+  (`:363`).
+- **Prediction:** pass for both.
+
+**Item 15, the drafts banner's one-line fit (J2:262), at font scale 1.0, 1.15 and 1.3, with five drafts.**
+- **Pass:** the label "✎ 5 unfinished entries", the "·" and the "Continue ›" button sit on one line inside the banner:
+  the label node's text is the whole string and its height is one line of `bodyMedium` at that scale, and the
+  button's bounds lie inside the banner's. The label has `weight(1f, fill = false)` and no `maxLines`
+  (`EntriesDrafts.kt:50-54`), so the failure would show as a wrap to two lines, not as an ellipsis.
+- **Prediction:** one line at all three on this 384 dp screen, tightest at 1.3.
+
+**Item 24, the collapsed row's height (J3:353-355), at 1.0, 1.15 and 1.3.**
+- **Pass:** the blank saved entry draws as `CollapsedEntryRow` (`CartographyEntryCard.kt:145-173`, chosen by
+  `isCollapsedEntry`, `:291-292`): the small day numeral and weekday and, with nothing kept, "Nothing kept", on one
+  line; the row's height is 64 dp (180 px) or less at each scale, the limit J3 names.
+- **Prediction:** about 48 dp at 1.0 (the `heightIn(min = 48.dp)` floor), rising at 1.3 but under 64 dp.
+
+**Item 30 (portrait), the two-stage swipe (J4b:323-324), on the saved entry's row.**
+- **Pass (`TwoStageSwipe.kt:183-306`):**
+  - a slow end-to-start swipe that passes the open threshold but stops short of half-way to the delete anchor
+    settles **Open**: Edit and Delete buttons show, and no snackbar;
+  - the open width is min(2 x 72 dp, 60% of the row) = 144 dp, 405 px, on a 990 px row (`:184-230`, `:332-336`);
+  - a tap on the open row's body closes it and does not open the entry (the overlay, `:297-303`);
+  - a tap on the closed row opens the entry;
+  - a swipe past half-way to the row's width deletes: the row leaves the list and a snackbar "Entry deleted" with
+    "Undo" shows; Undo brings the row back, closed (`:193-199`).
+- **Not run:** RTL (the dispatch); the Waypoints scroll on an open row (the planner's ruling).
+- **Prediction:** pass.
+
+**Item 29, a night-mode toggle mid-snackbar (J4:269-270).**
+- **Pass:** with the entry pending delete and its snackbar showing, `cmd uimode night` recreates the Activity; after
+  it, the entry is still out of the list and the snackbar shows again (`PendingDeleteSnackbar.kt:136-139`: a
+  cancelled effect reports nothing and the notice shows again); Undo then brings the entry back. The entry lost
+  after Undo is a **fail and a stop**.
+- **Prediction:** pass.
+
+**Item 26, the snackbar half (J4:264-265), from dumps.**
+- **Pass (partial, as the TalkBack items are):** a dump while the snackbar shows records its message and an "Undo"
+  node that is clickable. Whether it is announced is the owner's.
+- **Prediction:** the message "Entry deleted" and a clickable "Undo".
+
+**Item 17, a night-mode toggle on the album with the drafts list open (J2:264).**
+- **Pass:** on Entries, in the Album view, with the drafts list opened by Continue, a `cmd uimode night` toggle
+  brings back the Journal tab and the drafts list (`draftsListOpen` is `rememberSaveable`,
+  `CartographyScreen.kt:288`); Back from the list then shows the Album view (`entriesViewState`, `:392`). The fold
+  half is not run.
+- **Prediction:** pass.
+
+**P:321, the map's "Log a find" routing.**
+- **Pass:** on the Maps tab, "+" then "Find" (`AvailabilityCompactMapUi.kt:1199-1202`) shows the centre-pin picker
+  with OK and Cancel; OK (`:1256`) switches to the Journal tab, on Records, with Finds selected, and the find form
+  open with a location filled in ("Found at", not "Add Location") (`AvailabilityCompactScaffold.kt:727-735`,
+  `JournalTab.kt:291-299`, `LogEntryDetailScreen.kt:179-184`). Back leaves the form and keeps the draft
+  (`MushroomLogViewModel.kt:582-630`).
+- **Prediction:** pass, and a "Saved to Drafts" snackbar with "Discard" after Back (`AvailabilityScreen.kt:1045-1057`,
+  if the Back takes that path; unverified), whose Discard is not pressed.
