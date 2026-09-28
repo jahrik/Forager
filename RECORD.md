@@ -2769,3 +2769,13 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Terminal written by a fresh planner session resuming the paused one, on the owner's instruction; the owner's answers were given in that session. Device-only items for the consolidated J7 check (report, "Device-only"): the twelve layers' draw order on hardware, especially dots and reticle over a recording trail; explicit visibility and opacity defaults looking identical; queryRenderedFeatures returning featureId and the RectF box query; hidden layers excluded from queries; a tap inside an offline circle away from its outline falling through; the sighting bubble unchanged for direct taps; the night recolour leaving overlays alone; the caption text. D58: the coder's check over every commit's diff and message, zero hits. Next: L0b.
 
 ---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-01
+**Dispatch-file:** preserved/2026-09-28-01.md
+**Type:** handoff
+**Outcome:** issued
+**Report:** none
+**Notes:** Handoff from the cloud planner session to the planner session on the owner's computer, with the S22 Ultra attached. The owner, verbatim: "go ahead and commit all work and switch to the computer environment", then "write a handoff dispatch please". Written against origin/journal-redesign at 2458934. Before writing, nothing from the cloud session was unpushed: every local branch 0 ahead of its upstream or contained in a remote branch, no uncommitted changes in the main checkout or its 13 coder worktrees, no stashes. The cloud session unsubscribed from PR #140 so only the computer session acts on its events. Next: L0a's device-only checks, then L0b. Written by the planner by hand at 2026-09-28T02:39:41Z; no hook.
+
+---
