@@ -586,3 +586,20 @@ as Part 1 did for the other overlay keys. Every other overlay key `true`, as at 
 
 **Prediction:** rings in both colours held. "The negative controls get no ring" held for the region and could not be
 observed for the photos. I did not predict the undrawn waypoints' halos or the marker halos over the track.
+
+## Check 4: an addition to the pre-registration, written after reading the portrait bounds and before any touch
+
+In portrait the chip's clickable node is `[310,273][771,408]` (`28-`, `75-`). The compass strip's surface is drawn down
+to y 254 (pixels of `75-c3-end.png`: the strip's fill (77,67,59) through row 254, map from row 255), so the chip is
+**18 px below the strip's drawn edge**. But the strip's coordinate readout, a clickable text node, has bounds
+`[564,163][902,298]` (its 48 dp touch target), which reach **25 px into the chip's bounds** over x 564 to 771. My
+condition says "below the compass strip's bottom edge (its nodes, or its pixels if it has none)", and the strip's nodes
+and its pixels disagree here. So I add a touch test before looking further:
+- **Five real touches** in the overlap `[564,273][771,298]`, spread across it: (580, 280), (630, 293), (668, 285),
+  (715, 278), (760, 292). After each, a dump: the chip's list open ("Hide all" present) means the chip took it; the
+  readout switching between its MGRS and its decimal-degree form means the strip took it. Each is undone before the
+  next: the list closed with Back, or the readout touched again at its own centre (820, 230), outside the chip. Both
+  are view-only; neither writes data.
+- **Control:** one touch at the chip's centre (540, 340), expected to open the list.
+- **Prediction:** the chip takes all five, since the chip's row is composed after the strip (`AvailabilityCompactMapUi.kt`
+  places the row after the strip in the same `Box`); by my reading of the code, not established.
