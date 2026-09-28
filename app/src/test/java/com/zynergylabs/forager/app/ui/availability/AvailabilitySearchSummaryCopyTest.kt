@@ -185,3 +185,52 @@ class WideSearchSummaryTest {
         assertEquals("the back arrow opens it collapsed", 0, composeRule.onAllNodesWithText("Use current location").fetchSemanticsNodes().size)
     }
 }
+
+/**
+ * Continuation 2026-09-28-39 (owner: "Apply the same advanced search location change to portrait
+ * mode please"): what a real touch on the compact search bar shows today. The dropdown opens with
+ * "Set on map" and "Use current location" at its top level, displayed at once. Only the manual
+ * coordinates (Latitude, Longitude, "Search this location") sit collapsed, inside "Enter coordinates
+ * manually", inside a collapsed "Advanced search".
+ */
+private fun ComposeContentTestRule.assertCompactBarTapShowsLocationControls() {
+    setUnsearchedScreen()
+    onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performTouchInput { click(center) }
+    waitForIdle()
+
+    onNodeWithTag(SEARCH_DROPDOWN_TAG).assertIsDisplayed()
+    onNodeWithText("Use current location").assertIsDisplayed()
+    onNodeWithText("Set on map").assertIsDisplayed()
+    onNodeWithContentDescription("Expand Advanced search").assertExists()
+    assertEquals("manual coordinates are collapsed", 0, onAllNodesWithText("Latitude").fetchSemanticsNodes().size)
+}
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi")
+class CompactSearchBarLocationControlsTest {
+
+    private val composeRule = createComposeRule()
+
+    @get:Rule
+    val rules: RuleChain = RuleChain.outerRule(declareHostActivity()).around(composeRule)
+
+    @Test
+    fun `in portrait a real touch on the compact search bar shows Set on map and Use current location at once`() {
+        composeRule.assertCompactBarTapShowsLocationControls()
+    }
+}
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w823dp-h384dp-land")
+class CompactSearchBarLocationControlsShortLandscapeTest {
+
+    private val composeRule = createComposeRule()
+
+    @get:Rule
+    val rules: RuleChain = RuleChain.outerRule(declareHostActivity()).around(composeRule)
+
+    @Test
+    fun `in short landscape a real touch on the compact search bar shows Set on map and Use current location at once`() {
+        composeRule.assertCompactBarTapShowsLocationControls()
+    }
+}
