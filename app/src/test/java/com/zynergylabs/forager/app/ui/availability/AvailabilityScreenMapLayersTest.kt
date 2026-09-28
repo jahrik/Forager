@@ -9,6 +9,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyDescendant
@@ -24,6 +25,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
@@ -33,6 +35,7 @@ import com.zynergylabs.forager.app.domain.ForecastCellStore
 import com.zynergylabs.forager.app.domain.MapLayerPreferences
 import com.zynergylabs.forager.app.ui.map.Basemap
 import com.zynergylabs.forager.app.ui.map.MAP_LAYERS_SHEET_TAG
+import com.zynergylabs.forager.app.ui.map.LEGEND_MAX_HEIGHT
 import com.zynergylabs.forager.app.ui.map.MAP_LEGEND_CHIP_TAG
 import com.zynergylabs.forager.app.ui.map.mapLayerOpacityTag
 import com.zynergylabs.forager.app.ui.map.mapLayerReorderTag
@@ -380,6 +383,32 @@ class AvailabilityScreenMapLayersSheetTest {
         composeRule.onNodeWithText("2 layers").touch()
         composeRule.waitForIdle()
         assertTrue("collapsed again: back where it was (${clusterBottom()} vs $low)", abs((clusterBottom() - low).value) <= 1f)
+    }
+
+    /**
+     * N1, the owner's ruling "Cap height, scroll": the expanded legend is capped at [LEGEND_MAX_HEIGHT]
+     * and its contents scroll inside it. The last entry, the reference class, starts out of view and a
+     * real swipe on the chip brings it in; the cap is what makes room for the cluster in the test above.
+     */
+    @Test
+    fun `expanded, the legend is capped in height and a real swipe on it scrolls the reference class into view`() {
+        setScreen(store = FixedForecastStore(BOTH_FORECAST_GROUPS))
+
+        composeRule.onNodeWithTag(MAP_LEGEND_CHIP_TAG).touch()
+        composeRule.waitForIdle()
+
+        val chip = composeRule.onNodeWithTag(MAP_LEGEND_CHIP_TAG)
+        val height = chip.getUnclippedBoundsInRoot().let { it.bottom - it.top }
+        assertTrue("capped at $LEGEND_MAX_HEIGHT ($height)", height <= LEGEND_MAX_HEIGHT + 1.dp)
+        composeRule.onNodeWithText(LEGEND_REFERENCE_CLASS).assertIsNotDisplayed()
+
+        chip.performTouchInput { swipeUp(startY = bottom - 4f, endY = top + 4f, durationMillis = 400) }
+        composeRule.waitForIdle()
+        chip.performTouchInput { swipeUp(startY = bottom - 4f, endY = top + 4f, durationMillis = 400) }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText(LEGEND_REFERENCE_CLASS).assertIsDisplayed()
+        assertEquals("the swipes scrolled, and did not collapse the legend", "Hide legend", chip.fetchSemanticsNode().config[SemanticsActions.OnClick].label)
     }
 }
 
