@@ -3331,3 +3331,19 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner's rulings, verbatim: "Snackbar only for real drafts (Recommended)", "Return to the editor (Recommended)", "Keep finds open too (Recommended)", "Leave the kept one first (Recommended)". Device-only, first: the camera round trip from a find's editor, now that nothing closes the find on ON_STOP. Flags: the Journal's search dropdown ignoring Back even without the drawer; a short-landscape Tools touch closing the Log a find picker; JournalScreenState's and JournalEntryMode's doc comments; logPhotoAcquisitionInFlight written and never read, and the scaffold's onLeaveLogEntryEditingIncidentally unused; the wide LogPanel has F1 but not F2 (J6); a day entry that kept a deleted find, unverified. Next: the two landscape bugs. Written by the planner by hand.
 
 ---
+
+**Kind:** intent
+**ID:** 2026-09-28-47
+**Timestamp:** 2026-09-28T16:38:18Z
+**Title:** The two landscape bugs from backlog Part B: the Offline Maps picker side by side in short landscape (L1), and the entry report's map capped in short windows so its header and controls show (L2)
+**Dispatch-file:** preserved/2026-09-28-47.md
+**Change:** L1 in a short-landscape window the picker lays out map (full height) beside the controls (radius slider, name, OK, Download), all reachable without the map taking the drag; the map's side follows the app's landscape convention. L2 in a short window the entry report's map height is capped by a stated rule so the header row and every control fit or scroll. Portrait and wide unchanged.
+**Scope boundary:** Branch journal-redesign; the Offline Maps picker's layout, CartographyEntryReportScreen.kt and its host where needed, tests. Not J8, the other Part B flags, the held flaky tests, the record, index, CLAUDE.md, plans or prompts.
+**Baseline:** journal-redesign at the commit carrying this entry; planner's suite at de8fdd3 283 / 2303 / 0 / 0 / 24.
+**Prediction (outcome — planner):** 1. L1 is a fixed map height with no short-window branch. 2. L2 is the same kind of fixed height. 3. The suite grows by 6 to 15.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** Pushed with failing tests first through the real screens, compiling revert checks, the full suite and a completion report; the planner writes the terminal.
+**Abort conditions:** A wrong premise; a tests-first test passing at base; a non-compiling revert; a non-held failure; disk full or OOM; two failed fixes; an unruled design question.
+**Notes:** Owner, verbatim: "Side by side (Recommended)"; order "After M1 please". Evidence: docs/audits/2026-09-28-backlog-device-check-part-b-run-record.md, item 7. Written by the planner by hand.
+
+---
