@@ -3647,3 +3647,19 @@ What the pulse found:
 - Stale comments are listed, and so is a possible Back gap from isDrawerOpen set true on wide.
 
 The list-detail question goes to the owner next. Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-70
+**Timestamp:** 2026-09-28T20:40:39Z
+**Title:** One "Kept in" on a highlighted photo's bubble: the attachment line drops its journal-entry count while J8's keeping-entry lines show
+**Dispatch-file:** preserved/2026-09-28-70.md
+**Change:** While a photo's J8 keptIn is non-empty, photoAttachmentLine leaves out "Kept in N journal entries" and keeps "In ...". If that leaves nothing, the line is omitted and never shows "Not in a find or a journal entry". Otherwise unchanged.
+**Scope boundary:** ui/map/MapBubbles.kt (MapBubble.kt only if needed), tests, a completion report. Not J8's lines, other bubble kinds, the record, index, CLAUDE.md, plans or prompts.
+**Baseline:** journal-redesign at the base named at launch (queued behind -68).
+**Prediction (outcome — planner):** 1. One function changes. 2. The suite grows by 4 to 6.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** Tests first through the real bubble path, revert check, full suite, report, pushed; the planner writes the terminal.
+**Abort conditions:** A wrong premise; a tests-first test passing at base; a non-compiling revert; a non-held failure; new copy; disk full or OOM; two failed fixes; an unruled design question.
+**Notes:** Owner, verbatim: "Option B. Thanks for explaining". It supersedes J8 flag ruling 3 ("keep both", -67's notes). The planner's reading of B covers every highlighted case, not only the more-than-three case, and was stated to the owner. Written by the planner by hand.
