@@ -251,6 +251,19 @@ internal fun JournalTab(
      * tab no longer resets it. The default is only for callers that host this tab on its own (tests).
      */
     journalState: JournalScreenState = rememberJournalScreenState(),
+    /**
+     * Whether the Journal's own Back handlers may take Back: this tab's three, and through
+     * [RecordsTab] and [CartographyScreen] every one below them. The compact scaffold passes `false`
+     * while the Tools drawer is open over the Journal (intent 2026-09-28-28, the owner: "The intended
+     * action is to close the drawer while it's open"). The drawer's own handler,
+     * `AvailabilityScreen`'s `BackHandler(enabled = isDrawerOpen)`, is registered before any of these,
+     * and the most recently registered enabled handler wins, so while these were on they took Back
+     * and the drawer stayed open. Turned off, not outranked: a handler registered after these to
+     * outrank them would also outrank the drawer's own Settings step (`CompactToolsDrawerContent`),
+     * which is registered with the drawer's content. `true` (the default) is every other caller,
+     * the wide tree's [LogPanel] among them, unchanged.
+     */
+    backEnabled: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     // See LogPanel's identical effect for why this both shows and immediately clears the field.
@@ -342,7 +355,7 @@ internal fun JournalTab(
     // sub-tab-stepping BackHandler to stay out of the way while this one is live. This one's
     // condition is unchanged from before that dispatch.
     val findsSectionHasBackStack = editing != null || pickingLocationForEditingEntry || pullingPhotoForEditingEntry
-    BackHandler(enabled = findsSectionHasBackStack) {
+    BackHandler(enabled = backEnabled && findsSectionHasBackStack) {
         when {
             pickingLocationForEditingEntry -> pickingLocationForEditingEntry = false
             pullingPhotoForEditingEntry -> pullingPhotoForEditingEntry = false
@@ -359,7 +372,7 @@ internal fun JournalTab(
     // order against the handler above, which lives at the same structural level (a sibling
     // BackHandler here, not nested inside it) — see AvailabilityScreen's own outer BackHandlers for
     // why this codebase never trusts declaration order for that.
-    BackHandler(enabled = selectedTopTab == JournalTopTab.RECORDS && !findsSectionHasBackStack) {
+    BackHandler(enabled = backEnabled && selectedTopTab == JournalTopTab.RECORDS && !findsSectionHasBackStack) {
         selectedTopTab = JournalTopTab.CARTOGRAPHY
     }
 
@@ -562,6 +575,7 @@ internal fun JournalTab(
                 // J5: the L1 row (null outside a short landscape window), drawn by Entries itself
                 // with its own action; see CartographyScreen's shortWindowHeader.
                 shortWindowHeader = shortWindowHeader,
+                backEnabled = backEnabled,
             )
 
             // J5: a Column in every window, so RecordsTab keeps one place in the composition when
@@ -612,6 +626,7 @@ internal fun JournalTab(
                     // J5, L3 and L5a: in a short window the filter chips are the second row, which
                     // gets out of the way while the list scrolls, with the tighter chip spacing.
                     shortWindow = shortLandscape,
+                    backEnabled = backEnabled,
                 )
             }
         }
@@ -621,7 +636,7 @@ internal fun JournalTab(
     // Journal takes Back. Composed after both branches, so it outranks their own handlers (the most
     // recently composed enabled handler wins). Off while an entry is open: the header is hidden then
     // regardless, and Back belongs to the entry.
-    BackHandler(enabled = shortLandscape && journalState.searchHeaderRevealed && !journalEntryOpen) {
+    BackHandler(enabled = backEnabled && shortLandscape && journalState.searchHeaderRevealed && !journalEntryOpen) {
         journalState.searchHeaderRevealed = false
     }
 }

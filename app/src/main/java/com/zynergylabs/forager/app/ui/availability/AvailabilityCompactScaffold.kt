@@ -1035,6 +1035,10 @@ internal fun CompactMainScaffold(
                                 pendingDestination = pendingJournalDestination(),
                                 onPendingDestinationConsumed = { onPendingJournalDestinationChange(null) },
                                 journalState = journalScreenState,
+                                // Intent 2026-09-28-28: while the Tools drawer is open over the
+                                // Journal, Back closes the drawer, so the Journal's own handlers are
+                                // off. See JournalTab's backEnabled for why off rather than outranked.
+                                backEnabled = !isDrawerOpen(),
                                 modifier = Modifier.fillMaxSize(),
                             )
                             // Never actually reached — CompactTab.TOOLS never becomes compactTab itself,

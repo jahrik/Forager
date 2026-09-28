@@ -172,6 +172,8 @@ internal fun CartographyEntryEditScreen(
     onDeleteEntry: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Off while the Tools drawer is open over the Journal, so Back closes the drawer (intent 2026-09-28-28); see [JournalTab]'s parameter of the same name. `true` (the default) is every other caller, unchanged. */
+    backEnabled: Boolean = true,
 ) {
     var pullingPhoto by remember(entry.id) { mutableStateOf(false) }
     // Entry-photo-acquisition dispatch, Item 3: found on device — system back from this picker
@@ -185,7 +187,7 @@ internal fun CartographyEntryEditScreen(
     // codebase (the map "+" flow, the camera return, the Cartography entry, the Records sub-tab,
     // now this) — a shared navigation abstraction remains queued behind the AvailabilityScreen.kt
     // split, not attempted here.
-    BackHandler(enabled = pullingPhoto) {
+    BackHandler(enabled = backEnabled && pullingPhoto) {
         pullingPhoto = false
     }
     if (pullingPhoto) {

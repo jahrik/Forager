@@ -167,6 +167,8 @@ internal fun CartographyScreen(
      * (L6). `null` (portrait, `LogPanel`) is this screen exactly as before.
      */
     shortWindowHeader: (@Composable ((@Composable () -> Unit)?) -> Unit)? = null,
+    /** Off while the Tools drawer is open over the Journal, so Back closes the drawer (intent 2026-09-28-28); see [JournalTab]'s parameter of the same name. `true` (the default) is every other caller, unchanged. */
+    backEnabled: Boolean = true,
 ) {
     var mode by remember { mutableStateOf(CartographyEntryMode.VIEW) }
     val shortWindow = shortWindowHeader != null
@@ -212,7 +214,7 @@ internal fun CartographyScreen(
     // go-home). That fallthrough is the fix's whole point: this adds a step before go-home, it
     // never replaces it — a Journal back could never exit at all would be worse than the bug this
     // dispatch reports.
-    BackHandler(enabled = editingEntry != null) {
+    BackHandler(enabled = backEnabled && editingEntry != null) {
         requestLeaveEntry()
     }
 
@@ -329,6 +331,7 @@ internal fun CartographyScreen(
                     onDeleteEntry = { onDeleteEntry(editingEntry.id) },
                     onBack = onCloseEntry,
                     modifier = contentModifier,
+                    backEnabled = backEnabled,
                 )
             } else {
                 CartographyEntryReportScreen(
@@ -346,6 +349,7 @@ internal fun CartographyScreen(
                     onDeleteEntry = { onDeleteEntry(editingEntry.id) },
                     onBack = onCloseEntry,
                     modifier = contentModifier,
+                    backEnabled = backEnabled,
                 )
             }
         }
@@ -370,7 +374,7 @@ internal fun CartographyScreen(
         if (draftsListOpen && drafts.isEmpty()) draftsListOpen = false
     }
     val showDraftsList = draftsListOpen && drafts.isNotEmpty()
-    BackHandler(enabled = showDraftsList) { draftsListOpen = false }
+    BackHandler(enabled = backEnabled && showDraftsList) { draftsListOpen = false }
     if (showDraftsList) {
         ShortWindowFrame(shortWindowHeader, action = null, modifier = modifier) { contentModifier ->
             DraftsListScreen(
@@ -400,7 +404,7 @@ internal fun CartographyScreen(
     // handler is composed after JournalTab's, so it wins while enabled, and it is only composed
     // at this top level (no entry open, drafts list closed).
     var viewMode by entriesViewState
-    BackHandler(enabled = viewMode == EntriesViewMode.ALBUM) { viewMode = EntriesViewMode.TIMELINE }
+    BackHandler(enabled = backEnabled && viewMode == EntriesViewMode.ALBUM) { viewMode = EntriesViewMode.TIMELINE }
 
     // The banner's Continue, and in a short window the drafts chip's (J5, L3): one draft straight
     // into it, the Drafts sub-tab's open-draft path (a draft is unfinished work, so EDIT, never the

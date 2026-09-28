@@ -979,6 +979,10 @@ fun AvailabilityScreen(
     // that a medium/expanded window never changes away from its own defaults (isDrawerOpen stays
     // false there; a PermanentNavigationDrawer is never "closed"), so none of this fires on that
     // width class.
+    //
+    // The drawer opens over whatever tab is showing, and that tab's nested handlers are registered
+    // after this one, so they would win while the drawer is open. The Journal's are turned off while
+    // it is (JournalTab's backEnabled, intent 2026-09-28-28), so Back closes the drawer there.
     BackHandler(enabled = isDrawerOpen) {
         isDrawerOpen = false
     }

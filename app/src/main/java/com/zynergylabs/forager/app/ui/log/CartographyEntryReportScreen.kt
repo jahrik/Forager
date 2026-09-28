@@ -235,6 +235,8 @@ internal fun CartographyEntryReportScreen(
      */
     layersState: MapLayersState = MapLayersState.DEFAULT,
     onLayerVisibilityChanged: (String, Boolean) -> Unit = { _, _ -> },
+    /** Off while the Tools drawer is open over the Journal, so Back closes the drawer (intent 2026-09-28-28); see [JournalTab]'s parameter of the same name. `true` (the default) is every other caller, unchanged. */
+    backEnabled: Boolean = true,
 ) {
     var menuExpanded by remember(entry.id) { mutableStateOf(false) }
     var confirmingDelete by remember(entry.id) { mutableStateOf(false) }
@@ -294,7 +296,7 @@ internal fun CartographyEntryReportScreen(
 
     // Innermost enabled BackHandler wins — this codebase's own established convention. Exiting
     // fullscreen first, one pop at a time, mirrors CompactMapTab's own back-unwind chain.
-    BackHandler(enabled = isMapFullscreen) { isMapFullscreen = false }
+    BackHandler(enabled = backEnabled && isMapFullscreen) { isMapFullscreen = false }
 
     LaunchedEffect(entry.id) {
         val resolved = getMapData(entry, galleryPhotos)

@@ -172,6 +172,8 @@ internal fun RecordsTab(
      * row fixed and J1's spacing, as before.
      */
     shortWindow: Boolean = false,
+    /** Off while the Tools drawer is open over the Journal, so Back closes the drawer (intent 2026-09-28-28); see [JournalTab]'s parameter of the same name. `true` (the default) is every other caller, unchanged. */
+    backEnabled: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     var selectedTab by selectedTabState
@@ -212,7 +214,7 @@ internal fun RecordsTab(
     // own doc comment for why this can't just rely on Compose's usual nested-handler-wins ordering
     // here. From All this handler is off, so Back falls to JournalTab's Records -> Cartography step,
     // exactly what Back did from Waypoints before.
-    BackHandler(enabled = selectedTab != RecordsSubTab.ALL && !findsEditingInProgress) {
+    BackHandler(enabled = backEnabled && selectedTab != RecordsSubTab.ALL && !findsEditingInProgress) {
         selectTab(RecordsSubTab.ALL)
     }
 
