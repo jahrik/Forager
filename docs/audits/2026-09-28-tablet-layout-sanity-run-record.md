@@ -796,3 +796,280 @@ under its last bullet I carried on. No planner-log line was given with it.
    longitude, and one `log_entry_photos` row pointing the find at it. `mushroom_log_entries` is back to 1 row with its
    digest unchanged, because the committed row is the draft, a field-for-field copy of the find. One image file in
    app storage; `files/captures/` empty again afterwards.
+
+### Corrections to the pre-registration above
+
+Written after measuring; the pre-registration is left as pushed in `eda1583`.
+- The planner's relay arrived at about **22:26Z**, not "22:3xZ": the pre-registration was committed at 22:27:16Z.
+- The find bubble's lines are `MapBubble.kt:371-380`, not `:371-379`.
+
+### The camera permission prompt: answered by the owner before my first input
+
+- **I saw no prompt.** My tap on the find's Camera button (22:28:30Z, `88-camera-tap.txt`) opened the in-app camera
+  straight away, and focus stayed on Forager's `MainActivity`. `CAMERA` then read `granted=true` with `USER_SET`; at
+  22:25Z it had been `granted=false` (`76-dumpsys-package-start.txt`).
+- **The events log** (`89-events-since-2224.txt`, `89b-events-all-since-2225.txt`; tablet time is UTC−7) shows what
+  happened in between, none of it my input:
+  - 22:26:42Z: Forager was started from the launcher (task 409, a new process).
+  - 22:26:47Z: Forager requested `CAMERA`, and `GrantPermissionsActivity` opened.
+  - 22:26:49Z: it was answered with one touch and closed.
+  - 22:26:59Z: Forager's task was removed from Recents (`am_kill … remove task`).
+  - 22:27:01Z: Forager was started again from the launcher (task 410).
+
+  The owner handled the prompt before I touched Forager. This matches the relay's "If the prompt is gone and Forager is
+  in front, carry on".
+- **No photo came from the owner's session:** `files/` had no `photos/` directory at 22:28Z
+  (`90-app-files-now.txt`), and the camera I opened read "No photos yet".
+- **Two `MainActivity` instances.** My `am start -n` at 22:27:35Z added a second `MainActivity` (105319010) on top of
+  the owner's launcher-started one (78494893) in task 410 (`96-tasks.txt`). I used the top one throughout. The final
+  force-stop ended both. See Flags.
+
+### What was created (read from the database copy after the final force-stop)
+
+All at rotation 90, through the app's own UI with real taps:
+1. The drawer's Mushroom Log, then Records, then Finds, then the find ("Find on 2026-09-28"). In the drawer this opens
+   the find's edit form (`LogPanel` has no separate report step, `MushroomLogViewModel.kt:440-451`), which starts a
+   re-edit draft.
+2. Camera (22:28:30Z) opened the in-app camera (`91-r1-camera-open`). **One press of "Take photo" at 22:29:31Z**, and
+   the count read "1 photo taken" (`92-r1-after-shutter`). Back closed the camera, and the form showed one "Log photo"
+   thumbnail (`93-r1-editor-with-photo`).
+3. Save (22:29:53Z), then the back arrow. The Finds list shows the find with the photo as its cover (`95-r1-finds-after`).
+
+**Rows** (`124-created-rows.txt`, `db-p2end-verify.txt`, `db-p2end-digest.txt`; the copy matches the device's sha256;
+`integrity_check` `ok`; `user_version` 16):
+- **`log_photos`, 1 row (was 0):** id `63fa4ada-afa4-4571-8b89-02cb4ab9838b`, `relativePath`
+  `photos/63fa4ada-afa4-4571-8b89-02cb4ab9838b.jpg`, `createdAtEpochMillis` 1790634571890 (22:29:31Z, the shutter
+  press), **`latitude` and `longitude` NULL**.
+- **`log_entry_photos`, 1 row (was 0):** `entryId` `dfcf2b13-3e9a-404a-b874-f687f5374def` (the find, `isDraft=0`),
+  `photoId` `63fa4ada-…`. A join confirms that the reference points at the find and at the photo.
+- **`mushroom_log_entries`:** 1 row, **its digest unchanged** from the start copy. No draft row remains.
+- **The file:** `files/photos/63fa4ada-afa4-4571-8b89-02cb4ab9838b.jpg`, 1114083 bytes (device sha256
+  932c86edd8d3d5eb…). `files/captures/` is empty again (`126-app-files-end.txt`).
+- **Also changed, not created:** the `cached_searches` row. My reload of the recent search (Decisions 5) re-fetched it.
+  `fetchedAtEpochMillis` and `lastAccessedAtEpochMillis` moved to 22:30:53Z. Every other column, `entriesJson`
+  included, is unchanged (`125-cached-search-diff.txt`). It is still 1 row.
+- **Every other table's digest** equals the start copy's.
+
+### Measurements
+
+dp = px / 2.125, from dump bounds. Before each viewer opened, the drawer [0,0][765,H], the species list (765 to 1530 px)
+and the map were on screen behind it. The map was at [1532,405][2800,1720] at 90 and [1532,405][1752,2768] at 0
+(`101-r1-album`, `106-r1-find-editor`, `112-r0-find-editor`, `116-r0-album`), the same bounds as the first run.
+
+| | Portrait (0), predicted | Portrait (0), measured | Landscape (90), predicted | Landscape (90), measured |
+|---|---|---|---|---|
+| Viewer from the **album** (`EntriesAlbum.kt:181`) | [0,0][1752,2800], 824.5 x 1317.6 dp | **window frame [0,0][1752,2800]; root and "Full-screen photo" node [0,0][1752,2800]: 824.5 x 1317.6 dp** (`117-r0-viewer-album`, `118-r0-window-viewer-album.txt`) | [0,0][2800,1752], 1317.6 x 824.5 dp | **window frame [0,0][2800,1752]; root and photo node [0,0][2800,1752]: 1317.6 x 824.5 dp** (`102-r1-viewer-album`, `103-r1-window-viewer-album.txt`) |
+| Viewer from the **find** (its edit form's thumbnail, `LogEntryDetailScreen.kt:288`) | the same | **the same, [0,0][1752,2800]** (`113-r0-viewer-find`, `114-r0-window-viewer-find.txt`); its dump is byte-identical to the album's at 0 | the same | **the same, [0,0][2800,1752]** (`107-r1-viewer-find`, `108-r1-window-viewer-find.txt`); its dump is byte-identical to the album's at 90 |
+| Viewer from a **map bubble** | not reachable (unlocated photo) | **not reachable**: `latitude`/`longitude` NULL, so no photo marker. Not exercised on the device | not reachable | **not reachable**, the same |
+| Close control | [17,81][119,183] px | **[18,82][120,184]: 48.0 dp**, 8.5 dp from the left, 38.6 dp from the top (the 30.1 dp status bar plus 8.5 dp) | [17,81][119,183] px | **[18,82][120,184]**, the same |
+| Previous/next row | none (one photo) | none | none | none |
+
+- **The window.** At every open the viewer is its own window: `ty=APPLICATION`, `(fillxfill)`, token the activity
+  (105319010), `Requested w/h` equal to the display, and `frame` equal to `display`. It sits above the activity's
+  window, and on screen it is the whole display.
+- **Does it cover the drawer, the list and the map? Yes, entirely, in both orientations, from both routes.** The window
+  frame contains all three panes' bounds. In each capture only the photo, fitted on black, the Close control and the
+  system status bar and gesture handle are visible. None of the drawer, the list or the map shows through (my reading
+  of `102`, `107`, `113` and `117`). A uiautomator dump lists only the focused window, so the dumps alone would not show
+  what lies underneath. The window frame and the screenshots are the evidence for coverage.
+- **Status bar.** The viewer draws behind the system bars rather than hiding them: the status bar's clock and icons stay
+  visible over the black at the top (my reading of the captures). This is consistent with `decorFitsSystemWindows = false`
+  and with the controls padded inside `safeDrawing` (`PhotoViewerDialog.kt:131, 148`).
+
+**Predicted against observed:**
+1. **Whole window:** confirmed, 4 of 4 opens.
+2. **The same from every route:** confirmed for the album and the find. Each orientation's two dumps are byte-identical
+   (`c15e75925243590e` at 90, `fd04c233fa6f6ff7` at 0).
+3. **The close control:** 1 px off at each edge (predicted 17 and 81, measured 18 and 82). The size, 48 dp, is as
+   predicted.
+4. **One camera prompt:** the events log shows exactly one `CAMERA` request. It came in the owner's own session before
+   mine, and I saw none.
+5. **Unlocated photo, no map route:** confirmed from the database. The map route was not tried on the device.
+6. **The rows:** confirmed as predicted. The cache row's timestamps were not predicted; they come from my reload
+   (Decisions 5).
+
+### Captures and evidence (all in the evidence directory; times, rotation and hashes are in `snaps.log`)
+
+| Screen | Portrait (0) | Landscape (90) |
+|---|---|---|
+| Viewer from the album | `117-r0-viewer-album` (png 764a3b3bffdcfab8) | `102-r1-viewer-album` (png ccf40dcde1d2d582) |
+| Viewer from the find | `113-r0-viewer-find` (png 50e073494bebc26b) | `107-r1-viewer-find` (png d55c1755169f4035) |
+| The album before opening | `116-r0-album` | `101-r1-album` |
+| The find's form before opening | `112-r0-find-editor` (xml only) | `106-r1-find-editor` (xml only) |
+| Window frames | `114-r0-window-viewer-find.txt` a853ce086496cbcf, `118-r0-window-viewer-album.txt` 8d53c45190366412 | `103-r1-window-viewer-album.txt` a9cbc000533176e2, `108-r1-window-viewer-find.txt` 262b17e2147c3964 |
+
+Also: `91-r1-camera-open`, `92-r1-after-shutter` (png b9e70b9bfe1322bb), `93-r1-editor-with-photo`, `94-r1-saved`,
+`95-r1-finds-after` (png c5ada0a5f64969ad), `98-r1-maps-pane` (png 3783a40649580403), `111-r0-finds`.
+Text evidence: `124-created-rows.txt` 0cadc8f84ef31e38, `125-cached-search-diff.txt` d69bcf7736c2d7ec,
+`126-app-files-end.txt` aca76121b9fb8826, `db-p2end-verify.txt` c3296ca6bf9486b3, `db-p2end-digest.txt`
+71be0526ce57c7c6, `81-rotation-log.txt` 9d6b5fa56e4fbf5c, `89b-events-all-since-2225.txt` 1227e8bc96120fcd,
+`96-tasks.txt` 7b4055d2d39b685c. Sha256 prefixes of every file from 75 on are in `130-hashes.txt`.
+
+### A stray input of mine
+
+At 22:30:52Z my command that reloaded the recent search also sent one **Back** key, by a scripting error. I did not mean
+to send it. Afterwards the screen showed the reloaded list and map with no dialog (`98-r1-maps-pane`). No activity was
+finished or created (`99-events-after-stray-back.txt` holds no `wm_*_activity` line, and `99-tasks-after-stray-back.txt`
+shows the same two instances with the same one resumed). I found no effect of it, and I cannot say what, if anything,
+consumed it.
+
+### Restored and read back (`129-settings-end.txt`, 22:35:38Z, against `77-state-start.txt`)
+
+| Setting | Start | Changed by me to | End (read back) |
+|---|---|---|---|
+| `accelerometer_rotation` | 1 | 0 (locked) | **1** |
+| `user_rotation` | 1 | 1, then 0 | **1**; display at `ROTATION_90` |
+| `font_scale`, `display_density_forced`, `navigation_mode`, `window_animation_scale`, `wm size`/`density` | 1.0, null, 2, 1.0, physical | not touched | the same |
+| `stay_on_while_plugged_in` ("Stay Awake") | 15 | **not touched; the owner's** | 15 |
+| `screen_off_timeout` | 300000 | **not touched; the owner's** | 300000 |
+| `CAMERA` permission | not granted | **not touched; granted by the owner at 22:26:49Z** | granted (left as the owner set it) |
+
+App state:
+- The Cartography view is back on Timeline (`119-r0-timeline`), and the drawer is back on the search options
+  (`121-r0-search-options`).
+- Forager is force-stopped (22:34:54Z, pid 31081 before, none after). It was not running at my first reads (22:25Z).
+  The owner then started it. It is stopped now so the database could be copied (Decisions 9). The launcher is in front,
+  and the tablet is unlocked.
+- **Left in place (owner "3 A"):** the photo, its row, its reference and its file, with the other DEVICE CHECK items.
+
+### Crash reads
+
+- **Start** (`78-crash-start.txt`), **before the force-stop** (`120-crash-before-stop.txt`) and **at the end**
+  (`127-crash-end.txt`): 19 lines each, byte-identical to the first run's `74-crash-end.txt` (sha256 72bd6b5b5e9a70ea).
+  They hold the two 08-10 `com.mgoogle` FATAL EXCEPTIONs and **0 Forager lines**.
+- **Main log since 22:25Z** (`128-main-since-2225.txt`, 56097 lines): 0 `FATAL EXCEPTION` lines, and no `am_crash` or
+  `am_anr` event. Forager's pid 31081 stayed stable from the owner's 22:27:01Z start until my force-stop.
+- `logcat -c` was never run.
+
+### Decisions I made (this continuation)
+
+1. **No record entries; no required-section check against `kit.json`.** The same conflict as Decisions 1 of the first
+   run, still present:
+   - my standing instructions ask for a sweep, an intent and a structural check against `.claude/kit.json`;
+   - at `20ada3d` there is no `kit.json` and no checker (the owner removed them in `e136330`);
+   - `-86` says "The planner writes the record", and the launch message says "you do not touch `RECORD.md`".
+
+   I followed the dispatch and its base. The checkout my session started in (`faf2f88`) still has a `kit.json` whose
+   `device` type requires "Base and state", "Scope boundary", "Closed decisions", "Prediction", "Finish line and abort
+   conditions", "Checks", "Out of scope" and "Device items". `-86` has none of those headings. Deciding which applies
+   properly needs an owner ruling.
+2. **The worktree.** `device-tablet-2` is in a new worktree, `/home/zynergy-labs/Zynergy/forager-wt/device-tablet-2`,
+   rather than in my session's own worktree, which is on another branch.
+3. **Carrying on with no prompt.** There was no prompt for me to stop at, because the owner had already answered it
+   (above). I carried on under the relay.
+4. **How the photo reached the find.** The drawer's edit form, Camera, one shutter press, Back to close the camera, then
+   **Save**.
+   - Cancel would have deleted the draft together with its photo reference (`MushroomLogViewModel.kt:531`), leaving
+     the photo in the album but not on the find.
+   - The back arrow alone would have left a draft behind.
+5. **Reloading the recent search** ("Fungi · September", the first run's DEVICE CHECK search), so that the list and the
+   map were drawn behind the viewer and the coverage could be observed. The dispatch did not ask for it. It re-fetched,
+   and the cache row's two timestamps changed.
+6. **"The find" route is the edit form's thumbnail**, because a find tapped in the drawer opens for editing. I left the
+   form each time with the back arrow. An unchanged re-edit draft is deleted on that exit (`MushroomLogViewModel.kt:582`),
+   and the end copy holds no draft.
+7. **The map route was not tried on the device.** The photo has no coordinate, so there is no photo marker to tap. I
+   did not grant location or change the camera's "Save location" chip, which would have been needed to make one.
+8. **Closing the viewer** with its own Close control each time, not Back.
+9. **The force-stop at the end,** needed for a consistent database copy. It also ended the instance the owner had
+   started.
+10. **Putting the photo's and the find's ids and the photo's file name in this file.** They are random UUIDs, and I read
+    the privacy rule (no screenshot, dump, coordinate, note text, place name or photo) as not covering them.
+11. **Leaving the `CAMERA` grant in place.** It is the owner's.
+
+### Flags outside scope (this continuation)
+
+Recorded, not investigated; none is ruled on here.
+
+1. **`am start -n` stacks a second `MainActivity`** on a launcher-started task: 105319010 on top of 78494893 in task
+   410. My intent carried no action; the owner's carried `MAIN`. That a mismatch with the task's root intent is the
+   cause is inferred, not verified. The same mismatch may explain the first run's flag 7, but that is unverified.
+2. **The Timeline/Album choice did not survive.** I chose Album at 90. After a switch to Records, a rotation and a
+   return, Cartography showed Timeline again (`115-r0-album`). Which of the two reset it is not determined. CLAUDE.md's
+   UX defaults treat an unrequested reset of user-set UI state as a bug unless stated. I do not rule on it.
+3. **Tapping a recent search re-fetches from iNaturalist** rather than showing the cache: the row read "cached just now"
+   afterwards, and `fetchedAtEpochMillis` moved. The first run saw no new row, which is also true here. What changes is
+   the row's timestamps.
+4. **The camera's "Save location: On" chip** shows On while no location permission is granted. The photo was saved
+   with no coordinate, and nothing on screen said so. The code documents this as intended
+   (`MushroomLogViewModel.kt:935-944`).
+5. **The viewer leaves the status bar visible** over the photo (above). Whether that is wanted is the owner's call.
+6. The standing-instruction conflict in Decisions 1.
+
+### The dispatch, verbatim
+
+`prompts/preserved/2026-09-28-86.md` at `20ada3d`, whole (sha256
+`e859e47750cd75ebaca96ac26d76e83b3ed25f1c3e40edc2b29218a65c5d84cb`):
+
+~~~~markdown
+HEAD: ed37751 (journal-redesign)
+Target subagent: coder (Agent tool, planner session on the owner's computer)
+Type: device
+Preserved: 2026-09-28T22:21:24Z by the planner, by hand, time read from the clock.
+--- verbatim prompt follows ---
+**Type:** device
+
+# Role
+
+You are the coder for **the tablet photo-viewer measurement**, the one item the tablet sanity check could not measure (terminal `2026-09-28-80`). This dispatch's intent is `2026-09-28-86`. The planner writes the record.
+
+# The owner's ruling, verbatim
+
+"Okay I'm near the tablet. Option A is my choice for the photo viewer question".
+
+Option A, as the planner put it: "Take a camera photo on the DEVICE CHECK find. You'd tap through the camera permission prompt."
+
+# The device
+
+- Only the tablet, `R52T506412L` (`SM-X800`). Pass `-s R52T506412L` on every adb command.
+- **Never touch the S22 `R5CT321008R`**, which another coder is using.
+- Leave "Stay Awake" and the 5-minute screen timeout as the owner set them.
+
+# Rules
+
+- Never run `logcat -c`.
+- Launch with `am start`, never `monkey`.
+- Evidence stays outside the repository, in `/home/zynergy-labs/Zynergy/device-evidence/2026-09-28-tablet-sanity/`, continuing its numbering.
+- **Prompts (owner rule "4 A"):** at the camera permission prompt, or any other system prompt, stop at once without touching it. Hand back naming it; the owner taps through, and the planner resumes you.
+- **No install.** Use the build already on the tablet, `1.0.1416+gd7cc9f5b`. The photo viewer is a full-screen destination that no later stage changed. Confirm the installed version first.
+
+# What to do
+
+1. Open the find labelled "DEVICE CHECK 2026-09-28 T" and add one photo to it with the app's own camera. It shows whatever the tablet faces; the owner was told.
+   - Change nothing else on the find.
+   - Touch nothing of the owner's.
+   - Record exactly what was created: the photo row and the find's photo reference.
+2. Before measuring, write your prediction: the viewer takes the whole window (`ui/log/PhotoViewerDialog.kt:131`, the J6 pulse).
+3. Open the photo in the viewer from:
+   - the album;
+   - the find;
+   - a map bubble, if the photo is located.
+
+   In portrait and in landscape at 90, measure the viewer's bounds in dp from the dump. Say whether it covers the drawer, the list and the map, and capture it.
+4. Leave the photo on the tablet with the other DEVICE CHECK items (owner "3 A"). Restore rotation and read it back.
+
+# Report
+
+Append a section "Photo viewer (continuation, 2026-09-28-86)" to `docs/audits/2026-09-28-tablet-layout-sanity-run-record.md`. Work on a new branch `device-tablet-2` from `origin/journal-redesign`; the record is already merged there. Quote this dispatch verbatim, and push. The planner merges it. Record:
+- the device facts;
+- what was created;
+- the prediction and measurements;
+- the captures;
+- what was restored;
+- the crash reads;
+- **Decisions I made**;
+- **Flags outside scope**.
+
+# Abort conditions
+
+- not exactly the one tablet, or a different installed build;
+- a locked tablet;
+- a new crash;
+- any need to touch the owner's records or the S22.
+
+A prompt pauses the run for the owner.
+
+# Merge
+
+Not authorised.
+~~~~
