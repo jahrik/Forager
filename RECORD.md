@@ -3521,3 +3521,25 @@ Three premises were wrong: the editor has no map; trip planning, Set on map and 
 **Reason:** the owner, verbatim: "Let's restart from this point and forget everything beyond it:". That came with a screenshot of the four edge-case answers as first given, the ones -58 carries.
 **Changes:** Continuations -59 and -60 are withdrawn and are not to be given to the -56 coder. -56 as amended by -58 is the whole of the queued dispatch. The plan's "Accent buttons" and "Correction" paragraphs are marked withdrawn. Still queued behind J8; nothing launched.
 **Notes:** The owner's screenshot is outside the repository at device-evidence/2026-09-28-owner-sheet-opacity/owner-restart-point-edge-case-answers.jpg. -59 and -60 stay in the record and in prompts/preserved as withdrawn, not deleted. Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-62
+**Timestamp:** 2026-09-28T19:22:18Z
+**Continues:** 2026-09-28-52
+**Dispatch-file:** preserved/2026-09-28-62.md
+**Reason:** the owner stopped all agents ("Stop everything", about 19:10Z), then restarted at the edge-case rulings (-61) and chose "A" (relaunch both). The -54 coder had pushed ebefbc9 (tests first, stubs) to j8-wip and left 18 files uncommitted (454+/41-); it sent no hand-back.
+**Changes:** A fresh coder first commits and pushes that working tree untouched to j8-wip. It then re-establishes the tests-first failures and the version and collision checks itself, and builds J8 under -52, -53 and -54. J8's chip is not given the 80% treatment; that is for the queued -56/-58.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-63
+**Timestamp:** 2026-09-28T19:22:18Z
+**Continues:** 2026-09-28-51
+**Dispatch-file:** preserved/2026-09-28-63.md
+**Reason:** as -62: stopped by the owner, relaunch chosen as "A". The -55 coder had pushed verdicts for checks 1 to 3 (5ec7a63) and evidence to 200, mid check 4, with no hand-back. Phone at relaunch: awake, Forager in focus, user_rotation 0, accelerometer_rotation 0.
+**Changes:** A fresh device coder confirms the install and reads crashes across the gap. It gives check 4's verdicts from evidence 124 to 200 only where a file shows the pass condition, otherwise re-runs, then runs checks 5 to 8. It restores settings and reads them back, numbers new evidence from 201, and pushes after each check.
+**Notes:** Written by the planner by hand.
