@@ -2827,3 +2827,14 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Written by the planner by hand. The owner, this session, on the backlog: "you can run them at the same time if you want, otherwise you can wait for a good time to do them". Runs after 2026-09-28-02 on the phone (one coder on the phone at a time) and in parallel with the L0b build 2026-09-28-03. Held until the planner's launch message says 2026-09-28-02 has finished.
 
 ---
+
+**Kind:** continuation
+**ID:** 2026-09-28-05
+**Timestamp:** 2026-09-28T04:35:00Z
+**Continues:** 2026-09-28-03
+**Dispatch-file:** preserved/2026-09-28-05.md
+**Reason:** the owner asked the planner to read forager-forecast for what the layering is for ("Look at forager-forecast repo for details on what the layering is for"); B4 to B6 were held by a first planner message (verbatim: "Hold B4 (legend chip), B5 (forecast-cell interface) and B6 (synthetic layers), including their tests-first commits, until a second planner message releases them") while the read ran (docs/audits/2026-09-28-forager-forecast-layering-read.md, at forager-forecast 876156b).
+**Changes:** B5 keyed by group, week and 1 degree block, cells centred on 0.1 degree multiples and assigned by centre, applicable-false cells flagged or omitted and drawn as nothing; B6's two layers become chance layers in the real format for two groups, "Test forecast: chanterelles (synthetic data)" and "Test forecast: chicken of the woods (synthetic data)", the fixed term never attached to them, lowest ramp colour distinct from an empty cell; B4's expanded legend carries per layer the ramp with 0% and 100%, "Week of <week>, weather to <weather_through>", "no forecast here", and once the reference-class sentence verbatim from Forager-app SightingChance.kt:33-35 at 0172c33; no tap UI (M1). Scope boundary, predictions and finish line unchanged.
+**Notes:** Owner's answers, verbatim: "Real format, 'test data' name (Recommended)", "A second group (Recommended)", "In M1, with the bubbles (Recommended)", "Use that wording (Recommended)"; recorded in the plan, "L0b forecast-facing rulings, after reading forager-forecast (owner, 2026-09-28)". Sent to the running coder by SendMessage; written by the planner by hand.
+
+---
