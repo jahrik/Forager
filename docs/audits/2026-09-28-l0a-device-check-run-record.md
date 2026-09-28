@@ -511,6 +511,33 @@ identifying goes into this file.
 
 Paths below are under `app/src/main/java/com/zynergylabs/forager/app/`; lines are at `bc64d37`.
 
+## Outcome (updated at the end of the continuation, 04:52Z; added here, above the pre-registration, which is unchanged)
+
+**Status: complete.** Every check has a verdict. The run was **resumed after a machine restart** at 04:35Z (see "Resumed after
+a machine restart" under Results). The phone itself did not restart.
+
+| Check | What | Verdict |
+|---|---|---|
+| 1 | Build and baseline | **pass.** Build `1.0.1192+g24589349` at 03:08Z, 04:01Z, 04:35Z (after the restart) and 04:52Z. The crash buffer was empty at each read. **Caveat:** I cleared it with `logcat -c` at 04:44:28Z, so the end read covers only 04:44:28Z onwards. The gap is covered by an unchanged PID only (see Settings (continuation)) |
+| 2 | Attribution caption text | **pass.** The Maps tab: Street, Topographical and Satellite (first run). The entry map: offline on, `Protomaps © OpenStreetMap`; offline off, the Topographical credit (step 8) |
+| 3 | Sighting bubble: direct tap, near miss, far tap | **pass** on all three (first run) |
+| 4 | Draw order on the Maps tab | **pass** for waypoint over search centre, the one pair that overlaps (step 6). **Not run:** waypoint and sighting dot, and dots and reticle (no overlap); the ruled change, dots and reticle over track lines (no line on the Maps tab after the stop) |
+| 5 | Draw order on the entry map | **pass** for every pair seen overlapping (step 7): fill < outline; fill < track; fill < markers; track casing < track; track < waypoints; waypoints < finds; finds < photos. At the framing (zoom 13 by code) and at zoom 17 (measured). **Not run:** the outline against the track or any marker, which never meet |
+| 6 | Defaults look as before (an observation) | First run: sighting dots and reticle at the code's opacities. Continuation: on the entry map, every overlay is drawn, icons read their exact hex, and line widths, dashes and fill opacity match the code (step 9). Nothing faded or restyled. Not a pass: nothing earlier to compare with |
+| 7 | Night Maps, restated by `2026-09-28-06` | **pass** (step 10). With night on, the offline basemap is recoloured (57 properties logged; ground `#B7B4B0` → `#504D49`, the V1 value within 1). Each overlay reads its DAY hex with night off and its NIGHT hex with night on: waypoint, find and photo glyphs, the kept-track line, the casing. The V1-of-DAY value never appears. Restored and read back |
+| 8 | The positive control: an ordinary waypoint draws on the Maps tab | **pass** (step 5): `#350560`, 1,853 px exact, head centred 17 dp above the placed point |
+| Step 2 | The Return leg, while recording | **pass:** not active, which accounts for the hidden ORIGIN |
+| — | Hidden layers excluded from queries; state-driven visibility and opacity | **not runnable at this build**; moved to L0b. Not attempted |
+| — | `featureId` from the hit test; offline-circle fall-through | **not runnable at this build**; moved to M1. Not attempted |
+
+- **The first run's stop** (the ORIGIN pin not drawn) is resolved as the dispatch says: the filter is by design, and the
+  positive control passes.
+- **Planner's predictions for `2026-09-28-06`:** 1 held (step 2). 2 held (check 8). 3 held (check 5). 4 held (step 8). 5 held (check 7).
+- **Test data:** all created as authorised, and left on the phone (see "Created data"). The stop in step 3 also created an
+  END waypoint by itself, as the pre-registration predicted from the code.
+- **Settings:** restored and read back (see "Settings (continuation)"). The one change not undone is `logcat -c`, which
+  cannot be undone.
+
 ## Pre-registration
 
 ### Step 1: baseline
@@ -849,3 +876,358 @@ The entry in (e) kept it, so no second track was recorded.
   is the committed-entry form (`ui/log/CartographyEntryEditScreen.kt:285`, `:296`).
 - **The database** (`db-c3-entry-raw/`): one `cartography_entries` row, `date=2026-09-27`,
   `text=DEVICE CHECK 2026-09-28 (L0a)`, `isDraft=0`. The refs: finds 2, track 1, waypoints 3, offline region 1, photo 1.
+
+### Step 7: check 5, draw order on the entry map: **pass** for every pair seen overlapping; the outline's pairs **not run**
+- **The screen.** The entry's report (`134-entry-report.png` / `.xml`, 04:42Z) has its map at `[0,437][1080,1247]`, and an
+  "Offline map" switch at `[889,1278][1035,1413]`, shown because the kept region covers the entry's points.
+- **The zoom:**
+  - First, the app's own framing: 13 by the code (`ui/map/SightingsMap.kt:1507-1512`); inferred, not read.
+  - Then five double taps near the cluster (04:46:06 to 04:46:57Z, `136`, `137`) and one one-finger drag (`138-entry-panned.png`,
+    04:47:18Z). Each double tap was two `input tap` calls 0.15 s apart, and none opened fullscreen.
+  - The final view's scale is 0.149 m/px. That is measured from the ORIGIN and END pin tips, 132 px apart for their stored
+    19.7 m separation, which gives **zoom 17.0**, assuming MapLibre's 512-unit world at zoom 0 (**unverified**). So one of
+    the five double taps did not zoom.
+- **The test** (as pre-registered). In an overlap, the upper layer's own hex shows and the lower one's does not. Against the
+  offline fill (0.2 of `#0B0B0B`, `ui/map/layers/MapLayers.kt:149`, `:224`), a layer drawn under it would read
+  `0.8 × hex + 0.2 × #0B0B0B` instead of its hex. That blend was counted for every role and was 0 in every frame.
+- **The pairs**, bottom to top in the registry (`MapLayers.kt:212-251`):
+
+  | Pair (lower < upper) | Frame | What the pixels show | Verdict |
+  |---|---|---|---|
+  | offline fill < offline outline | `135` (framing, offline on) | On the fitted ring (centre (513,840), r 418 px), 3,340 px read exact `#FFFFFF`: 1,261 in the inner half (−3 to −1 px) and 1,123 in the outer half (+1 to +3). 99 read `#CECECE`, the dimmed white. The dashes' inner halves are not dimmed | **pass** |
+  | offline fill < kept track | `138` (zoom 17; the whole view lies inside the 1 km circle) | `#A122F8`: 6,964 exact; its under-fill blend `#831DC9`: 0 | **pass** |
+  | offline fill < waypoints, finds, photos | `134`, `135`, `138` | Each reads its exact hex (for example, in `138`: waypoint 4,261, find 1,740, photo 2,523), and each under-fill blend reads 0 | **pass** |
+  | kept-track casing < kept track | `138`, rows 850 and 865 | `W[593-596] TRK[597-612] W[614-617]`: the casing shows only as a border. The 6 dp core is the track's own hex | **pass** |
+  | kept track < waypoints | `138`, row 768, through the ORIGIN pin's tip | `TRK[472-473] W[475-477] WPT[479-480] W[482-484] TRK[486-495]`, and the track is unbroken one row below (row 775, `TRK[473-495]`). The pin and its casing cut the track | **pass** |
+  | waypoints < finds | `138`, columns x 530 and 540 | `TRK[709-726] W[728-730] WPT[732] W[734-736] FND[738-770]`. "DEVICE CHECK waypoint", on find 1's own point, shows only a 1 px edge above the cap, and no `#350560` pixel inside the find's glyph, where its 22 dp head lies | **pass** |
+  | finds < photos | `134` (framing), in the box where find 1's extent and the photo's intersect (x 483-542, y 809-839) | `#C1154F` 1,272 px and white 450, and **no** `#DA02AF` pixel. In `138`, columns 520 to 550: `FND[738-770] W PHO[776-837]` | **pass** |
+  | offline outline < kept track, waypoints, finds, photos | — | The outline is 1 km from all of them and never meets them on screen | **not run** |
+- By my reading of `138-crop-cluster-x3.png`: both pins' tips draw over the track, find 1's cap covers the waypoint under it,
+  and the photo covers find 1. This matches the profiles above.
+- The breadcrumb, the search centre, sightings and planned trips are not drawn on the entry map
+  (`ui/log/CartographyEntryReportScreen.kt:355-386`; `showSearchCentre = false`).
+
+### Step 8: check 2, offline part: **pass**
+- **Offline off** (`134-entry-report.xml`): the caption reads `© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA)`. That is byte-equal to
+  the Topographical `attribution` (`ui/map/Basemap.kt:161`), the entry map's default basemap.
+- **Offline on** (the switch tapped at (962,1345), 04:44:28Z; `135-entry-offline-on.xml`, switch `checked="true"`): the caption reads
+  `Protomaps © OpenStreetMap`. That is byte-equal to `OFFLINE_STYLE_ATTRIBUTION` (`map/OfflineStyle.kt:28`), with no ` · `,
+  as `mapCreditsFor` gives with no layer credits (`ui/map/BasemapStyles.kt:130-140`).
+- The same caption stayed through the zoom and both Night Maps states (`138`, `143`, `147`).
+
+### Step 9: check 6, an observation on the entry map (not a gate)
+Nothing looked faded, missing or restyled against the code's paint values:
+- **Every overlay the entry keeps is drawn:** the fill, the dashed outline, find 1, find 2 (at the framing), the photo, the
+  three waypoints, and the kept track with its casing.
+- **Icon interiors read their role's DAY hex exactly,** as the counts in step 7 show, so `icon-opacity 1` holds.
+- **The kept track's core** is 16 px across a near-vertical run (rows 850 and 865), which is 6 dp at 2.8125 px/dp. Its
+  casing spans 25 px (593 to 617), which is 9 dp. Both are as `SightingsMap.kt:1179`, `:1194` give them, at `line-opacity 1`.
+- **The outline dashes** measure 16.8 px on and 11.3 px off, which is 6.0 dp and 4.0 dp, over 20 dashes on the left of the ring
+  in `135` (`SightingsMap.kt:1216-1219`).
+- **The fill:** the basemap ground outside the circle is `#E2DFDA`, and inside it `#B7B4B0`. `0.8 × #E2DFDA + 0.2 × #0B0B0B`
+  is `#B7B5B1`, within 1 per channel, so the fill opacity is 0.2 (`MapLayers.kt:149`).
+- There is no earlier screenshot of this map, so this is not a before-and-after comparison.
+
+### Step 10: check 7, restated: **pass**
+- **The setup.** The entry map, with offline tiles on, at zoom 17 (the view of `138`).
+  - Night Maps off: `138-entry-panned.png` (04:47:18Z).
+  - Night Maps on: `143-entry-night-on.png` (04:50:20Z). It was turned on through Tools, then Settings, then "Night Maps"
+    (tap 113,1148, 04:50:17Z; `141`: `checked="true"`; `night_mode.maps` read `08 01`).
+  - Night Maps off again: `147-entry-night-off-again.png` (04:51:42Z).
+  - The Settings drawer lies over the entry, so the map and its zoom stayed put.
+- **The basemap:**
+  - `144-logcat-since-0444.txt` line 37188 reads: `21:50:18.185 … I SightingsMap: Offline night: 57 colour properties recoloured, 0 left in day colours.`
+    So N = 57 > 0, logged 1 s after the toggle.
+  - The flat ground patch (x 50-150, y 887-987 px, 10,000 px, inside the fill) reads `#B7B4B0` in every pixel with night off,
+    and `#504D49` in every pixel with night on.
+  - V1 of the day sample is `#4F4C48` (`ui/map/NightColour.kt:39-47`), and `#504D49` is within 1 per channel of it. It is
+    exactly `0.8 × V1(#E2DFDA) + 0.2 × #FFFFFF`, the recoloured ground under the night fill (`ui/theme/MapPalette.kt:101`; the day fill is `:83`).
+- **The overlays** (the pixel counts are for the map area, y 437-1190):
+
+  | Role | Expected DAY | Measured, night off (`138`) | Expected NIGHT | Measured, night on (`143`) | V1 of DAY, if recoloured (`143`) |
+  |---|---|---|---|---|---|
+  | waypoint (glyph) | `#350560` | `#350560`, 4,261 exact | `#B97DF7` | `#B97DF7`, 4,267 exact; `#350560` 0 | `#CD9DF8`: 0 |
+  | find (glyph) | `#DA02AF` | `#DA02AF`, 1,740 exact | `#F96FAC` | `#F96FAC`, 1,739 exact; `#DA02AF` 0 | `#D200A7`: 0 |
+  | photo (glyph) | `#C1154F` | `#C1154F`, 2,523 exact | `#E8046D` | `#E8046D`, 2,523 exact; `#C1154F` 0 | `#FD518B`: 0 |
+  | kept track (line) | `#A122F8` | `#A122F8`, 6,964 exact | `#EEA7FE` | `#EEA7FE`, 6,937 exact; `#A122F8` 0 | `#7900D0`: 0 |
+  | casing (glyph and track outline) | `#FFFFFF` | `#FFFFFF`, 6,326 exact (x 61-621: the casings, and white in the caption area) | `#000000` | `#000000`, 6,316 exact, x 445-621, y 688-984: the cluster only | — |
+
+- Each role's pixel extents are the same in `138` and `143`, to within 1 px.
+- With night off again (`147`), every count is identical to `138`.
+- So the overlays draw their palette's own NIGHT colours, and not the basemap's V1 recolour of their DAY colours.
+- **Restored:** Night Maps was unchecked at 04:51:39Z (`146`: `checked="false"`). `map_preferences.preferences_pb` is then
+  byte-identical to its read at resume (sha256 `17127fa1…`, both).
+
+## Created data (all still on the phone, as authorised)
+
+| Item | Created | Where the app shows it |
+|---|---|---|
+| Waypoint "DEVICE CHECK waypoint" | 04:06:55Z, previous coder, step 4(a) | the Maps tab (step 5); Journal, Records, Waypoints (3); the entry's Waypoints list and map |
+| Find "DEVICE CHECK find 1", own identification and notes "DEVICE CHECK find 1", with one camera photo | 04:17:52Z, previous coder, step 4(b) | Journal, Records, Finds; the entry's Finds list and map. The photo is in the entry's Photos, on its map, and in the Album |
+| Find "DEVICE CHECK find 2", own identification and notes "DEVICE CHECK find 2", no photo | 04:19:50Z, previous coder, step 4(b) | Journal, Records, Finds; the entry's Finds list and map (at the framing) |
+| The camera photo (`log_photos` row `5206066b…`, 1,841,146 bytes in `files/photos/`) | 04:16:32Z (`createdAtEpochMillis`), previous coder | as above. **Not pulled off the phone** |
+| Offline region "DEVICE CHECK", 1 km ("1 mi"), 17 tiles, 0.3 MB | about 04:22:06Z, previous coder, step 4(d) | Journal, Records, Offline maps; the entry's Offline Regions list and map circle |
+| Track (the owner's recording, stopped and kept in step 3; 18 points in the app, 23 rows) | stopped 04:02:25Z | Journal, Records, Tracks; the entry's Tracks list and map |
+| END waypoint "End · Sep 27, 9:02 PM", created by the stop itself, not asked for | 04:02:25Z, step 3 | Records, Waypoints; the entry's Waypoints list and map |
+| Journal entry, `date=2026-09-27`, text "DEVICE CHECK 2026-09-28 (L0a)", committed; it keeps the two finds, the track, three waypoints (ORIGIN, END, DEVICE CHECK), the region and the photo | 04:41:44Z, this coder, step 4(e) | Journal, Entries, SEPTEMBER 2026, day 27 (`133-entries-list.xml`) |
+| `map_preferences` keys `offline_map.last_picked_lat`, `_lng` and `_radius_km`, a side effect of the download | 04:22Z | not shown. It is where the offline picker would reopen |
+
+- Nothing else was created, and nothing existing was edited or deleted.
+- The end database copy (`db-c3-end-raw/`, 04:52:22Z) is byte-identical to the copy taken just after the entry was
+  finished (`db-c3-entry-raw/`). Its counts: `cartography_entries` 1; finds refs 2, track refs 1, waypoint refs 3,
+  region refs 1, photo refs 1; `mushroom_log_entries` 2; `log_photos` 3; `log_entry_photos` 1; `offline_regions` 1;
+  `waypoints` 3; `tracks` 1; `track_points` 23; `planned_trips` 0; `cached_searches` 1.
+
+## Settings (continuation)
+
+| Setting | Start (read) | Changes | End (read) |
+|---|---|---|---|
+| `settings system accelerometer_rotation` / `user_rotation` / `font_scale`, `secure ui_night_mode` | `0` / `0` / `1.0` / `2` (first run, 03:10Z) | none | `0` / `0` / `1.0` / `2` (04:52Z) |
+| Night Maps (`night_mode.maps`) | `false` (`prefs-c2-start/`; `140-settings.xml` unchecked) | on at 04:50:17Z, off at 04:51:39Z | `false`: `146-settings-nightmaps-off.xml` unchecked; its dump is byte-identical to `140`; `prefs-c3-end/` is identical to `prefs-c3-resume/`; the Maps tab reads "Night mode off" (`148-maps-final.xml`) |
+| Map fullscreen (`map.fullscreen`) | `false` | none | `false` (same file); the "Fullscreen" button is in `148` |
+| Maps tab map mode (session) | Topographical | none | Topographical (`148`: "Map mode: Topographical … Night mode off.") |
+| The offline picker's remembered region (`offline_map.last_picked_*`) | absent | added by the download in 4(d) | **present.** It cannot be removed through the UI; see Created data |
+| Entry map: offline switch, zoom (session state, `remember(entry.id)`, `CartographyEntryReportScreen.kt:238`) | off, the framing | on and zoomed, for steps 7 to 10 | left as they were when I went to the Maps tab. They are not persisted |
+| Track recording (the owner's) | running | stopped and kept in step 3, as authorised | stopped; "Start recording track" (`148`) |
+| **The phone's log buffers** | the default set holds main, system, crash and kernel (`logcat -g`) | **cleared by me at 04:44:28Z with `logcat -c`.** A mistake: see Decisions and Flags | cannot be restored |
+
+- `/sdcard/l0a-ui.xml` was removed at the end (`ls`: no such file).
+- **The crash log at the end** (`150-crash-end-c3.txt`, 04:52:22Z) is empty, but it covers only 04:44:28Z onwards, because of the clear.
+  - For 04:35:38Z to 04:44:28Z the crash buffer itself is lost. It had read empty at 04:35:38Z.
+  - What covers that gap is the app's PID: 19584 at 04:35Z, 04:44Z and 04:52Z, the same process as in the first run. A fatal
+    Forager crash would have ended it. That is inference, not a crash-log read.
+  - The build is unchanged at the end (`151-dumpsys-package-end-c3.txt`: `versionName=1.0.1192+g24589349`).
+
+## Decisions I made (resumed part)
+1. **I did not merge `origin/journal-redesign` again.** The dispatch says to merge it first. The previous coder did, at
+   `bc64d37`, and the planner's resume message asked only for `origin/device-l0a-2026-09-28`, which was level.
+   `journal-redesign` is now at `f7e219a` and carries L0b app code (`fe07702`). Merging it would have left this branch's app
+   tree unlike the installed build, and the citations out of date. The planner should decide whether the branch needs it
+   before merging.
+2. **I followed the dispatch, not my agent definition, on the record.** No sweep, intent or terminal, and no `RECORD.md`.
+   The dispatch says the kit is gone and the planner writes the record, and `.claude/kit.json` and the checkers do not exist
+   at this base. That resolves a conflict between two instructions, which is the planner's to confirm.
+3. **The entry's name.** The form has no name or title field, so "DEVICE CHECK 2026-09-28 (L0a)" went into "Your own account
+   (optional)", its only free-text field. The entry's date is the phone's local 2026-09-27. I kept the dispatch's text
+   unchanged rather than writing the local date into it.
+4. **The track's own ORIGIN and END waypoints stayed kept** in the entry, as the app kept them on start. Withholding them was
+   possible. I took "keeping everything from (a) to (d)" as not requiring it, and the kept track is (c).
+5. **Which photo to attach.** The three Album tiles could not be told apart by eye. I tapped the third on a prediction from
+   the row scan order, which the code does not fix (`MushroomLogDao.kt:43`, no `ORDER BY`), then confirmed the attached id in
+   the database. Had it been wrong, I would have had to remove it from my own entry.
+6. **Methods:**
+   - how the double taps were made (two concurrent `input tap` calls) and how far to zoom (about 17);
+   - the under-fill blend as the discriminator for every pair with the fill;
+   - a grid-searched circle for the outline test;
+   - the ground patch inside the fill, with the fill blend modelled, for check 7's basemap half;
+   - the kept track as check 7's line (the outline was off screen at zoom 17).
+7. **The layout.** The updated Outcome table goes at the opening of this section, ahead of the pre-registration, which is
+   not edited. The first run's text, including its Status line, is left as it was written.
+8. **Not decided, done by mistake:** `adb logcat -c` at 04:44:28Z. I meant to isolate the recolour log line, and did not check
+   which buffers it clears. It cleared the phone's main, system and crash buffers, which are not the run's to clear, and it
+   weakens the end crash read (see Settings). The right way was `logcat -T <time>`, which reads from a time without
+   deleting anything.
+
+## Flags outside scope (continuation)
+1. **The radius label rounds 1 km to "1 mi".** `formatDistanceKm` rounds `radiusKm × 0.621` to a whole mile
+   (`domain/model/DistanceUnit.kt:58-61`), so the minimum 1 km region reads "1 mi" in the picker, the region row and the
+   entry, where it is about 0.6 mi. Not investigated.
+2. **The Records track details against the database** (the previous coder's step 3 "See Flags"):
+   - the sheet reads "Points 18", but `track_points` holds 23 rows for the track;
+   - it reads "Duration 1h 27m", but `endedAt − startedAt` is 5,918.9 s, about 1 h 39 min.
+   - Perhaps points excluded at the read seam, and a duration measured between kept points (`domain/isNetworkProviderFix`
+     is named in `GetCartographyEntryMapDataUseCase.kt`). **Unverified; not looked into.**
+3. **A dim over the map after the waypoint was dropped** (the previous coder's step 4(a) "See Flags"): 0.839 times the map's
+   values, under the app's chrome, cleared by a tab round trip. Cause not looked for.
+4. **The location puck's order against the reticle changed** after a tab round trip (step 6). It is not a registry layer.
+5. **The test finds are iNaturalist-unsynced** (`syncStateKind=DRAFT`). If the owner later syncs, two "DEVICE CHECK" finds,
+   one with a photo, could be uploaded. Not checked whether any sync is automatic.
+6. **Evidence file problems:**
+   - `112-offline-download-6.xml` to `-9.xml` are 0 bytes on disk, although `snaps.log` lists a non-empty hash for each: lost
+     in the machine restart (inferred).
+   - The previous coder's numbering reused 90 and 91 (`90-find1-notes-fixed2.*`, `91-find1-ready.*`) beside the first run's
+     `90-crash-end.txt` and `91-dumpsys-package-end.txt`. The names differ, so nothing was overwritten.
+7. **The phone's log buffers were cleared by this run** (Decisions 8). Anyone reading the phone's logcat for times before
+   04:44:28Z will find nothing.
+8. **The Journal's "today" is the phone's local date,** so an entry made before 07:00Z on 2026-09-28 is dated 2026-09-27.
+   That is why the entry's date and its name differ.
+
+## Evidence index (continuation)
+All files are in `/home/zynergy-labs/Zynergy/device-evidence/2026-09-28-l0a/`. They show or hold real locations and stay
+outside the repository. The first run's files are indexed above. `90-crash-end.txt` and `91-dumpsys-package-end.txt` are the
+first run's, and are not repeated here.
+
+| File | sha256 |
+|---|---|
+| `60-dumpsys-package-start.txt` | `87753366640a22eb039046c0e10dea6f5a3eeb4e2e380c3e4d7eaed5e9a4549f` |
+| `61-crash-start.txt` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `62-step2-maps-recording.png` | `0ae8b1b09753039c8180488b6e1f92755942546b77c28d6a1d6f2d8098e7dd33` |
+| `62-step2-maps-recording.xml` | `4d2ddfb52de7f37392d7109f056beea1dfcee8a057c13cc4f5b5834382bf17ff` |
+| `63-after-stop.png` | `350b23ed7c165a3442a99037637ef00f776e6a0ab38556002617b1bb2af9e53d` |
+| `63-after-stop.xml` | `c6edb85a1a4ada71204f8ea6b7be917f49a87d09daa674d0c5772d582031a40e` |
+| `64-journal.png` | `f133db675fb6462349cfd1f68c9c2013510949f62332708dae3c0859be0ddeeb` |
+| `64-journal.xml` | `c6edb85a1a4ada71204f8ea6b7be917f49a87d09daa674d0c5772d582031a40e` |
+| `65-journal.png` | `3fc696099ddbd5723ad4d48be333b6f453eed588dee1c02edcd92229b65578f0` |
+| `65-journal.xml` | `998494ca9e25e8d1879cc2272356a12e17b936dbb488d97f6dda0f241d730b4d` |
+| `66-records-tracks.png` | `417621c415260aa8496396c1678fd6dc1b19f44bbf59dc51489c6e5336cc0f6f` |
+| `66-records-tracks.xml` | `777a822e5adebd1293b37a528286dbf97ccd2062f45f586469cc34b55c681eea` |
+| `67-track-details.png` | `e0bc566ca6f42f3193da63a3a52cf84d96d7f9bba8ce43cedd5244ba438b261e` |
+| `67-track-details.xml` | `192c0a41f84c36d11984cd3cffa2e342bfcb8d0c538f42518b3ad608db71b5f0` |
+| `68-sheet-closed.xml` | `777a822e5adebd1293b37a528286dbf97ccd2062f45f586469cc34b55c681eea` |
+| `70-maps.xml` | `c6edb85a1a4ada71204f8ea6b7be917f49a87d09daa674d0c5772d582031a40e` |
+| `71-add-menu.png` | `15563b213f39ccc876207c3379ea5ab01eab33564a4991de4a24143f5a667556` |
+| `71-add-menu.xml` | `29438b7e544efff016e752ea4ee566d6d898a9c036c02a8ee3e4b04e6794023a` |
+| `72-crop-picker-x2.png` | `56d4ea3eff3779d824d81a5b85dec0ba9353eafcfefa42417c5763f11a710673` |
+| `72-waypoint-picker.png` | `6843eca6d4c47fa6b589a30dea9731c60bafab21d9cf07d14fa87dbf523f7842` |
+| `72-waypoint-picker.xml` | `7ff6b3a112509af0a830a38eb4e824317b322ac6378f83ec47a0079c12c4f617` |
+| `73-waypoint-name.png` | `6c22f280255d4d93eb8e1625d9387d4733e1adf237ff5ddf2f07b9b56d099077` |
+| `73-waypoint-name.xml` | `340193c85d97eff84ff36190dcd20d46be970f1380fac6a49992fd975e598a2b` |
+| `74-waypoint-named.png` | `1da0f3634bcdc7256cb52cc0fa54b1b16fa20192c3d55476f0f4478db57fde22` |
+| `74-waypoint-named.xml` | `c8ddd51e3b0268e94e860eda5cd4cc4876f67565dcb4a99a1a97edda2b15d190` |
+| `75-crop-pin-x4.png` | `399d431b89c6c0a054b5a026899a9f856987e41216374fd34e981b79d21e258d` |
+| `75-waypoint-dropped.png` | `297fe9d1bf143f8bfe806f0415e3de773b73237fcd9c2c948b43c8128e382ad5` |
+| `75-waypoint-dropped.xml` | `6044bfdc98a10c4dad9581a11df9bc3667513f10f117eb1de0357d45b6fed672` |
+| `76-check8-pin.png` | `15aa41a042d88f869f331bfcb02ac821b94e923e0f6e7e6288f505e310947e92` |
+| `76-check8-pin.xml` | `a21fff49510e90af095e2ddd1829726f2c15b535a21b4217681e079c4ba19665` |
+| `77-maps-recheck.png` | `38c81b7ec438d9d1d17368f79ad15344d8a598c4660ef06e44e52e9c74228d99` |
+| `78-crop-pin-x4.png` | `d3fd01528b88f975efe98b7728a37e0c20f9fbeac38b00d1c6f2fe4fabee7982` |
+| `78-maps-after-tab-roundtrip.png` | `9fb96b9bc7c2b9368b90daee6b8730958bc2c3492e603febf8a37b9e52e43f02` |
+| `78-maps-after-tab-roundtrip.xml` | `d16e43898309931094c003f3ec6b19d0e5369e677276f3c46a0bd5d49274e4de` |
+| `80-add-menu-2.xml` | `29438b7e544efff016e752ea4ee566d6d898a9c036c02a8ee3e4b04e6794023a` |
+| `81-find-picker.png` | `aa6982da9ee1b8f4a66dc3861d92776dafbe0126d6d4f17f019b875ee159b639` |
+| `81-find-picker.xml` | `2aa34f8a9716b399a21b9b83971cf74c034a5ff84ab9f54ab00f72516caaa10c` |
+| `82-find-form.png` | `4727a4a5890fca106381f6b9f924b9384abf66009783b573202e1ee492cc22de` |
+| `82-find-form.xml` | `a17fb120bcc6fee56410ad4b8c1175c3dbd09e181d1c66f7e610e5a88babc8e0` |
+| `83-find1-ident.xml` | `41e4a398c4ce6357450ab5810d5e3cf86f47d40556840813554e79ed1b6f5be2` |
+| `84-find1-notes.png` | `17cca16257d025301cc327ebe4bf57d479d4e0856cff99f536e423f7548ab320` |
+| `84-find1-notes.xml` | `d0ab5a34e4a7ef087a1ceb1c8d4e326b80a9be2aacd80ffbc84a69300b3039fd` |
+| `85-find1-ident-fixed.xml` | `41e4a398c4ce6357450ab5810d5e3cf86f47d40556840813554e79ed1b6f5be2` |
+| `86-find1-kb-closed.png` | `a2f20b33a89c78bd453434399d51f32b116c425efe35b2572e3c1f99cc2956e1` |
+| `86-find1-kb-closed.xml` | `41e4a398c4ce6357450ab5810d5e3cf86f47d40556840813554e79ed1b6f5be2` |
+| `87-find1-notes.png` | `e8fcd436a87ad25ba663b7100558913f01fd379b64b97f9968a2d0c68c7dd055` |
+| `87-find1-notes.xml` | `d1f7558cb7d2cc9ca29d84b456048d45d8252d6cf1424c3e7c1470f874848ddf` |
+| `88-find1-before-camera.png` | `90cb9b631b13dbe803df8e99c7d57cb80c946efe70f145930d3c3440852215cb` |
+| `88-find1-before-camera.xml` | `1d8f655ad6e1816b45d7f10618ce522299dbaf8d93a0b6e2613eaad514536684` |
+| `89-find1-notes-fixed.png` | `f104a66dc5db64a75b7b50dbdb4525cff8ea9f1dc9379553937f7851f9db4d4c` |
+| `89-find1-notes-fixed.xml` | `0aa8de99416a51df125eaab621e085cdc1a569e1b31d410a9895f4159488445a` |
+| `90-find1-notes-fixed2.png` | `79cf5fb4430796e44dbe8ca7286937dd30c97dfe288db08d24c6cf9e6b8d27a1` |
+| `90-find1-notes-fixed2.xml` | `d1f7558cb7d2cc9ca29d84b456048d45d8252d6cf1424c3e7c1470f874848ddf` |
+| `91-find1-ready.png` | `7922931d83765407d6d575205f8b8eab5831969c8cacc8df49dd3ee9f6b1d597` |
+| `91-find1-ready.xml` | `e37acba38797b1bbe259228093e88532d80e4e9386853163abff608eb933dff8` |
+| `92-camera-open.png` | `274d32954feb24beb3e1370aa72953f3abd53059742544900ee16da2a742d360` |
+| `92-camera-open.xml` | `b577d5a174b52e530567ba17306f4817fc710880746bdfff259a58e673f4916a` |
+| `93-after-shutter.xml` | `8c654ae7cf33dd0c8d8b8b1d49e34122e4794d6d737e599697199c6dd1015376` |
+| `94-find1-with-photo.xml` | `57d4ad6a513d5d4d34843100af7c7d38bebce0ab58693b5e2aedcec2e4de9da2` |
+| `95-find1-portrait.xml` | `abc6b74c4f05d94af03e819b9c23a61c83a45256d16ef688040f81c2a5e80c05` |
+| `96-find1-saved.xml` | `1cfc13d1f7eb3a2d71b9df323890a6e50713dedecb8d6dc85b48b55b9c7b69f6` |
+| `97-maps-before-find2.xml` | `f0f7f00c7fbdf625990f16fa5c4d18df2fa82bcc9ed1874eeabcb24b0471231f` |
+| `98-add-menu-3.xml` | `29438b7e544efff016e752ea4ee566d6d898a9c036c02a8ee3e4b04e6794023a` |
+| `99-find2-picker.png` | `7bb10460ab69913b0e427e3b434a51a5bac959e4bbdcb4fa1f357d21d80c5b42` |
+| `99-find2-picker.xml` | `7b11b02faff5516227ee97ada08698bb60d0256b9ff92dfa81defa2b68c0a7dd` |
+| `100-find2-panned.png` | `13ce8ac4a388723ebb40b41975938630bd6e05cd9ddb7225ce63796b1717bd03` |
+| `101-find2-form.xml` | `e4b69d6f948943b03884cf000dfc14cd118876aa6c7dfd2b8fbff95e5d086a9d` |
+| `102-find2-ident.xml` | `5448062f27311f27905b770c64ea8b7e7dffe364ec19946b0cb56054b0119501` |
+| `103-find2-notes.xml` | `36ec8f5f8a84feaf7171d4f7fae86a0de9b62758fc1670b2fb9672502dfc4175` |
+| `104-find2-ready.xml` | `c49a8e4c4566366c0cca955887a7bc6cc4a6c8f75d79073d7f990e1417e1d7ee` |
+| `105-find2-saved.xml` | `55216de2f37337ba6a5e66a3e2709a3548b082bf4c1f595fe044b0d64f5f36b7` |
+| `106-chips-scrolled.xml` | `5bc8d4017c2ae700e71af0d9ef37e6567da43a636690eb3413ad85450ae33b35` |
+| `107-offline-panel.png` | `0dda92190f49e21d95e08489ccca616fbccab4286c75ad264adb41022c6be319` |
+| `107-offline-panel.xml` | `977bfe8334a4289fe91d3167cfba672672cd82ff980e5557467168bdbf2af5ed` |
+| `108-offline-form.xml` | `b04b151b87f2c3aae5d237acebf5c433e8b2197b29c3c9162e16e890224a21ab` |
+| `109-crop-slider.png` | `d999ebc4ba01819ca87ebb644aa342a91113b4eb7e6aa7dbff263fcd0c18a274` |
+| `109-offline-radius.png` | `65fcecc2f7efeed521329f8336169539e62bab09b56975ec520553f996944834` |
+| `109-offline-radius.xml` | `b04b151b87f2c3aae5d237acebf5c433e8b2197b29c3c9162e16e890224a21ab` |
+| `110-offline-radius-min.png` | `39ab199c7646b9af8adfe08f001a879fd9c51f99065132e0ff049af1834f315a` |
+| `110-offline-radius-min.xml` | `8f569e3da950e670f61d29d26ff0909e4e9ffba77182bed5357b6ddcf20c8ff8` |
+| `111-offline-named.xml` | `946c5497ca49cb44746d373b806a294aef6e5c9fbd367ef60ea37cc84c9aff70` |
+| `112-offline-download-1.xml` | `e131a13989ae147a1b401e47713e4d5bd9e98b4308520830319ca8a6f0ba7912` |
+| `112-offline-download-2.xml` | `e131a13989ae147a1b401e47713e4d5bd9e98b4308520830319ca8a6f0ba7912` |
+| `112-offline-download-3.xml` | `e131a13989ae147a1b401e47713e4d5bd9e98b4308520830319ca8a6f0ba7912` |
+| `112-offline-download-4.xml` | `e131a13989ae147a1b401e47713e4d5bd9e98b4308520830319ca8a6f0ba7912` |
+| `112-offline-download-5.xml` | `e131a13989ae147a1b401e47713e4d5bd9e98b4308520830319ca8a6f0ba7912` |
+| `112-offline-download-6.xml` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `112-offline-download-7.xml` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `112-offline-download-8.xml` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `112-offline-download-9.xml` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `120-dumpsys-package-resume.txt` | `55539ed39e04f0249203eb7258f063c0e0caad37d2d8cc73c4adb3b171dc4ddb` |
+| `121-crash-resume.txt` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `122-resume-screen.png` | `8828f6644d6d89aef1dfbd9160a2046c3a796ac6163533b081348790d56feecf` |
+| `122-resume-screen.xml` | `e131a13989ae147a1b401e47713e4d5bd9e98b4308520830319ca8a6f0ba7912` |
+| `123-offline-list-scrolled.png` | `3646806e27310cd2211960eb3f4bbcf05e196b33c3c6fe784708ef423de3ef65` |
+| `123-offline-list-scrolled.xml` | `6f639d5573cfa272579082547edde3e3ab51969d6fdf774fc11ac3f57060658d` |
+| `124-entries-tab.png` | `4c07039d778831ed93f04b8eae3fd6b8c6445dc2c1f8ec776834aff40496efc9` |
+| `124-entries-tab.xml` | `ec350fafef11141585bb64c79cd67898ee86d406b074ed027ddaf54c44a70168` |
+| `125-entry-new.png` | `82a1a9c1c49de7e408d0076d2f73e7a825c528c215177f4f1ed071747ad2b6f2` |
+| `125-entry-new.xml` | `1e526a8845499dbca2a1794f2b2fee282d475332860ad461c5295b25377b4191` |
+| `126-entry-named.png` | `92f8e045d7b2c2bc7058a4dfa3ce1febb3c9f85a15fc5142f7de9163f8fb06e9` |
+| `126-entry-named.xml` | `7094a068d967e962c6b2e22900a85342340b610afc4f1612aebb383a15836397` |
+| `127-entry-kb-closed.png` | `c5766427f7b8f11546545efadb9967d2a6484f39d40c7e4a99b09ace7d4c214e` |
+| `127-entry-kb-closed.xml` | `7094a068d967e962c6b2e22900a85342340b610afc4f1612aebb383a15836397` |
+| `128-photo-picker.png` | `75460a91475fa9d278c533f20080014dfc49f6f4afd1123acd7bb9301aa586d3` |
+| `128-photo-picker.xml` | `44cf0275b34428a8e18d5cefeaba082764ab4dff4e275b10c4b83926873a7d05` |
+| `129-entry-photo-added.png` | `895ea87eb20508fce8df323a80124f7aa9dda1b0d655f20a9017de87742fd857` |
+| `129-entry-photo-added.xml` | `836381f566b0fd4b185a7e90c352aebc1b384c4a67d0ea008e4f7db0771da660` |
+| `130-entry-scrolled.png` | `615f4e43bf815e62448c0576202786032fea964ac662079b8a1b3054f00ac781` |
+| `130-entry-scrolled.xml` | `87047848335d8c41978b3a304db0986b8f4e7cd65dff0027a481cb7095383682` |
+| `131-entry-bottom.png` | `3ce4f427b3fbb84546f0de930ca7dd8b30a4bafd5b712861edde043b29b8e579` |
+| `131-entry-bottom.xml` | `5727471c8a176b30b40ad94c5391f6ff550dc7ee15fdad0817289167be60ee5f` |
+| `132-entry-finished.png` | `056e0cc86f29c038e13e0122d828cefc2feab081a457e7f2e49870820a7bae99` |
+| `132-entry-finished.xml` | `29c3129891aed1e3ab4dd2a1570cd3e6546fb5e1cf471107ff9363d10b67d1ca` |
+| `133-entries-list.png` | `fd72bd4e838798422e1f9cdb6f513cb661ce7887a6f5303975610cc89b0f38e0` |
+| `133-entries-list.xml` | `a113e284b338f0a56dcb6d786a1abbc9b8f1bbb9504a8dab664f30eb7ab23da1` |
+| `134-entry-report.png` | `99037f3d8fa043e64e059f8cef1b9f9409edc50da94f7d4ae27dbb0b23aa23b8` |
+| `134-entry-report.xml` | `eef9254400b2081fc2ea2d5b13840e4f05835bb000cb94220b7c16eb6c18b264` |
+| `135-entry-offline-on.png` | `6238692d29c8e9deef2433b32c9dd1c907cbf56c336d56c77300959ffb6f4380` |
+| `135-entry-offline-on.xml` | `cfbaf2b6800fc70f2f6391b4da8618bce5cd49896ae927fe71399ffbb12e7e1f` |
+| `136-entry-dtap1.png` | `798d43437b3cf338f1b92af80333463523025ddf9d01372619a3e177e0fa14b5` |
+| `136-entry-dtap1.xml` | `cfbaf2b6800fc70f2f6391b4da8618bce5cd49896ae927fe71399ffbb12e7e1f` |
+| `137-entry-dtap5.png` | `a1762fec03566340fa84391c37272475e326d582f6a782a203011cadacb05328` |
+| `137-entry-dtap5.xml` | `cfbaf2b6800fc70f2f6391b4da8618bce5cd49896ae927fe71399ffbb12e7e1f` |
+| `138-crop-cluster-x3.png` | `66635b37e81e3f9210d4837170659bd323cf320539bcbdaf11a30da9e25cabeb` |
+| `138-entry-panned.png` | `f2b84d9611c2b67acd980798701376ba58b6aa833a709925bb2b42ebfb9ed3fa` |
+| `138-entry-panned.xml` | `cfbaf2b6800fc70f2f6391b4da8618bce5cd49896ae927fe71399ffbb12e7e1f` |
+| `139-tools.png` | `2c3c04d89885e628736a13f3dd58c1208049cfee2e6c7f59e5028859a6240bea` |
+| `139-tools.xml` | `41fb762bae523e558c9a0c6cb0b5e73913ffbf9daacdda95cf1c0d188fda9075` |
+| `140-settings.png` | `9f1c0956ae61c40b4377b14988fbabfaee86c3703759528dcc9604b369e21a80` |
+| `140-settings.xml` | `53cbb94f709ab52015f6b8dbf2eab0c8ebfa21fbda289c2f184838482c9cec3c` |
+| `141-settings-nightmaps-on.xml` | `5e09480a188e128979c625d14acf0e05bdeba991dccbc1f9750de5fddba9b980` |
+| `142-drawer-closed.xml` | `cfbaf2b6800fc70f2f6391b4da8618bce5cd49896ae927fe71399ffbb12e7e1f` |
+| `143-entry-night-on.png` | `0dfa430fd6ef1e4215254bba393b778a5a635361f1411bb7ee6ee968cf1c9656` |
+| `143-entry-night-on.xml` | `cfbaf2b6800fc70f2f6391b4da8618bce5cd49896ae927fe71399ffbb12e7e1f` |
+| `144-logcat-since-0444.txt` | `617a44d3f8224cd52b20e5129bdcdd63f4a8db1b4dcc85cd912ec76bebbd361c` |
+| `145-settings-2.xml` | `5e09480a188e128979c625d14acf0e05bdeba991dccbc1f9750de5fddba9b980` |
+| `146-settings-nightmaps-off.xml` | `53cbb94f709ab52015f6b8dbf2eab0c8ebfa21fbda289c2f184838482c9cec3c` |
+| `147-entry-night-off-again.png` | `f2576f117d1fa50981de987e7fe25fbf63295a47aa267f15dd6e8aa3e0416f7b` |
+| `147-entry-night-off-again.xml` | `cfbaf2b6800fc70f2f6391b4da8618bce5cd49896ae927fe71399ffbb12e7e1f` |
+| `148-maps-final.png` | `8049e30164769dffe765a1ab07234bde6d05ad3d5be207d4aad66a7e195b9bd6` |
+| `148-maps-final.xml` | `2edc27e4718de1fe0318c21a4c12ce558c4006bee0d7afbb4873121d2b392dc1` |
+| `150-crash-end-c3.txt` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `151-dumpsys-package-end-c3.txt` | `55108046233d4ebeec8ece914949550bb1f099ee1aa153a1300ea6921de9be0b` |
+| `prefs-c2-start/camera_grid_preferences.preferences_pb` | `24b68c2ca7f4d89670aca701dce54732474102c3bab4d5dc82e69a95c23a1a91` |
+| `prefs-c2-start/camera_orientation_preferences.preferences_pb` | `534e5373fbfcdfadf22ea42cb110d8897721c33d5a01b5982b8d673523fc1a30` |
+| `prefs-c2-start/map_preferences.preferences_pb` | `1974b87e8fa152a27d23ef36932d97970a602f5d6c2799190194247fbeb6cecc` |
+| `prefs-c2-start/photo_location_preferences.preferences_pb` | `10ffcfd37b998d56d264dc329e80b0cb336a25d0b952115aeeef75d012955593` |
+| `db-c2-start-raw/forager.db` | `50f1e45eccdd5e7edaeedf2be9e1dd7437c110071c5df53e55e221a228d2a0f3` |
+| `db-c2-start-raw/forager.db-shm` | `fe014b5fd04a12b88213ec8631609e5d2374f4662539c247d60fbb0b5d3e4bed` |
+| `db-c2-start-raw/forager.db-wal` | `560d30dffc033ca0c686a4055d34441b10a2b46314424cfc04e739902f3b6eae` |
+| `db-c2-afterstop-raw/forager.db` | `50f1e45eccdd5e7edaeedf2be9e1dd7437c110071c5df53e55e221a228d2a0f3` |
+| `db-c2-afterstop-raw/forager.db-shm` | `617bf593b875d3e70a15fc0a549b204207ed700acd24c04f724565a6099b0430` |
+| `db-c2-afterstop-raw/forager.db-wal` | `3b4bb4796ea6ed9c907558c018175ee029774d5087b9deda15fccd88c029fca3` |
+| `db-c3-resume-raw/forager.db` | `a49b7dd613ab4cc85dfc18255585116e4e3b1ba442ab485e1bdff5943694947c` |
+| `db-c3-resume-raw/forager.db-shm` | `8e3938fdb51d2df16db9308381a5e81ed549025b09d092066325b07d1d87fcee` |
+| `db-c3-resume-raw/forager.db-wal` | `7523ed59fdeeb07bd33aa0acbea9d01a452baf6b894c9063ca2f2583dd36bb70` |
+| `prefs-c3-resume/camera_grid_preferences.preferences_pb` | `24b68c2ca7f4d89670aca701dce54732474102c3bab4d5dc82e69a95c23a1a91` |
+| `prefs-c3-resume/camera_orientation_preferences.preferences_pb` | `534e5373fbfcdfadf22ea42cb110d8897721c33d5a01b5982b8d673523fc1a30` |
+| `prefs-c3-resume/map_preferences.preferences_pb` | `17127fa1a9ac05cbb242ab4233a0f6d054cecbd3fc6f2516ebca3a13d33af137` |
+| `prefs-c3-resume/photo_location_preferences.preferences_pb` | `10ffcfd37b998d56d264dc329e80b0cb336a25d0b952115aeeef75d012955593` |
+| `db-c3-entry-raw/forager.db` | `fe5d658f20a266183d92b391bd4c18e9b540a8384da49715e4d3d1f40f28c715` |
+| `db-c3-entry-raw/forager.db-shm` | `aef8d7281136dcace2a31ffaabab6d3da2261ff1d8e953982854458c195c0f7e` |
+| `db-c3-entry-raw/forager.db-wal` | `0778bf5245c0c6acede3ed544617fce3295a1ee320d6a7366bb601a6e6420cff` |
+| `db-c3-end-raw/forager.db` | `fe5d658f20a266183d92b391bd4c18e9b540a8384da49715e4d3d1f40f28c715` |
+| `db-c3-end-raw/forager.db-shm` | `aef8d7281136dcace2a31ffaabab6d3da2261ff1d8e953982854458c195c0f7e` |
+| `db-c3-end-raw/forager.db-wal` | `0778bf5245c0c6acede3ed544617fce3295a1ee320d6a7366bb601a6e6420cff` |
+| `prefs-c3-end/camera_grid_preferences.preferences_pb` | `24b68c2ca7f4d89670aca701dce54732474102c3bab4d5dc82e69a95c23a1a91` |
+| `prefs-c3-end/camera_orientation_preferences.preferences_pb` | `534e5373fbfcdfadf22ea42cb110d8897721c33d5a01b5982b8d673523fc1a30` |
+| `prefs-c3-end/map_preferences.preferences_pb` | `17127fa1a9ac05cbb242ab4233a0f6d054cecbd3fc6f2516ebca3a13d33af137` |
+| `prefs-c3-end/photo_location_preferences.preferences_pb` | `10ffcfd37b998d56d264dc329e80b0cb336a25d0b952115aeeef75d012955593` |
+| `snaps.log` (at the end of this run) | `4afd8f05e8fd87a8b5303d06f61188ea4fb2ea2026df194fd03511c1f22bf99e` |
