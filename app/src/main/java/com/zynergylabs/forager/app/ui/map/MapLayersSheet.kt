@@ -370,6 +370,9 @@ internal val LEGEND_ATTRIBUTION_CLEARANCE: Dp = 32.dp
 /** The widest the expanded legend grows; the reference class wraps inside it. */
 private val LEGEND_MAX_WIDTH = 280.dp
 
+/** The tallest the expanded legend grows (N1); stub, not yet applied. */
+internal val LEGEND_MAX_HEIGHT: Dp = 96.dp
+
 /** Each ramp's drawn width in the expanded legend. */
 private val LEGEND_RAMP_WIDTH = 160.dp
 
