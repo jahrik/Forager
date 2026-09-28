@@ -674,3 +674,200 @@ build, a revert check and another suite. `df` showed 13 GB free before the run, 
 - **I ran the full suite before the ruling**, so that (a) needs nothing further.
 
 **Flags outside scope:** none new.
+
+## Continuations `2026-09-28-40` to `-42`: the compact search bar opens the manual coordinates
+
+**The messages**, verbatim.
+
+`prompts/preserved/2026-09-28-40.md` (committed at `450f758`):
+
+> Planner message 2026-09-28-40, part of dispatch 2026-09-28-34. Quote it verbatim in your report.
+>
+> **The owner's ruling on your -39 question, option (c).** The planner asked: "In portrait, the tap already shows 'Set on map' and 'Use current location'; only manual latitude/longitude entry is hidden (two sections deep). What should the portrait tap do?" The owner answered, verbatim: "Also open manual coordinates".
+>
+> **Build.**
+> - On compact, in portrait and in short landscape, tapping the search bar opens the dropdown with both "Advanced search" and "Enter coordinates manually" expanded, so Latitude, Longitude and "Search this location" show at once.
+> - Use the same one-time expand request as -38. Each section's own state stays its own afterwards, so a collapse the user makes stands.
+> - Every other way into the dropdown is unchanged.
+> - Update the comment at `AvailabilitySearchUi.kt:413-429` to record that the owner reversed the earlier choice to keep manual coordinates a tap deeper, with the owner's words.
+>
+> **Tests.**
+> - Update the two evidence classes from `7bfc4c7`. Their "Advanced search collapsed" and "Latitude absent" assertions become "expanded" and "displayed". Report each old and new assertion.
+> - Tests first: they fail at your head for that reason.
+> - One revert check, then the full suite, then the report section.
+>
+> Scope and the rest are as in -38 and -39.
+
+`prompts/preserved/2026-09-28-41.md` (`e3bd1b9`):
+
+> This is planner message 2026-09-28-41, part of dispatch 2026-09-28-34. Quote it verbatim in your report.
+>
+> **Q1, short landscape: the owner's ruling, verbatim: "Expand and auto-scroll".**
+>
+> - In `w823dp-h384dp-land`, the bar's tap expands both sections, then scrolls the dropdown so that Latitude, Longitude and "Search this location" are visible. This pushes "Set on map", "Use current location" and the radius out of view; the owner chose that.
+> - The scroll happens once, on the tap. It is animated only if the dropdown's existing scrolling already animates.
+> - The user can still scroll back up.
+> - Portrait needs no scroll: the fields already fit there.
+> - The landscape test asserts all three fields are displayed after the tap, without scrolling in the test.
+>
+> **Q2, the planner's ruling: yes.**
+>
+> - Update the existing tests that tap "Advanced search" and then "Enter coordinates manually", which are now open after the tap. Do it in the same commit as the build.
+> - Covered: the 12 in `AvailabilityScreenTripPlanningFlowTest`, `AvailabilityScreenWaypointFlowTest` and `AvailabilityScreenBackNavigationTest`, and any of the same pattern in `AvailabilityScreenLayoutTest`, `AvailabilityScreenConditionsMonthTest` and `AvailabilityScreenMapIconStackTest` that run on compact.
+> - Rewrite `AvailabilityScreenLayoutTest` "Test 5" to the owner's new rule.
+> - Report every changed test by name, with its old and new steps. This is behaviour the owner ruled on, so it does not count as weakening, but nothing is skipped or deleted.
+> - Wide-layout tests that tap these headers are left as they are, unless they fail.
+>
+> **Pushing.** First push your local build commit `b9fdb51` to a backup branch, `git push origin b9fdb51:refs/heads/tracks-frame-wip-40`, so it is not held only locally. Push nothing broken to `journal-redesign`. Push there once the affected classes pass.
+>
+> Then:
+> 1. Run one revert check.
+> 2. Run the full suite.
+> 3. Write the -40/-41 report section.
+
+`prompts/preserved/2026-09-28-42.md` (`b08fd63`):
+
+> Planner message 2026-09-28-42, part of dispatch 2026-09-28-34. Quote it verbatim in your report.
+>
+> **Q2: yes.**
+> - The expand-and-scroll request fires once per opening of the dropdown, meaning when `showSearchDropdown` goes from false to true. It never fires on a focus gain.
+> - That is the ruling's "once, on the tap". This fix is authorised as a direct implementation of the ruling, not as a third guess.
+> - Its test: at 2x font, a user's (test's) scroll up after the auto-scroll stays put, with no loop. The OOM test must pass inside its normal time.
+> - Record whether a real device refocuses the field after `clearFocus()`. That is device-only.
+>
+> **Q1: (a), by the planner.**
+> - The auto-scroll applies wherever the fields do not fit: short landscape, and portrait at large font scales. The owner's aim, when choosing auto-scroll for landscape, was that the fields be visible after the tap, and the same condition holds at 2x font.
+> - Where they fit, the scroll maximum is 0, so nothing moves.
+> - Update the 2x-font "Use current location" test: after the tap, scroll up to the button, then tap it. Report it.
+> - Rename "…reachable without expanding advanced search" to match the new behaviour, and report the old and new names.
+> - This is the planner's extension of the owner's ruling; it is recorded for the owner to overturn.
+>
+> Then:
+> - the affected classes;
+> - one revert check;
+> - the full suite;
+> - the report section;
+> - push to `journal-redesign` once they pass.
+>
+> Keep the backup branch current until then.
+
+### What happened, in order
+
+1. **Tests first (`2e46367`, run `tf40`, pushed):** 3 tests, 3 failures, each `could not find any node … 'Collapse
+   Advanced search'`, 0 `e: ` lines.
+2. **Build, first cut (`b9fdb51`):** expands both sections on the tap.
+   - It failed short landscape: the fields sat below a 263 dp dropdown. A throwaway probe measured Latitude at
+     581 dp against a bottom edge at 384 dp.
+   - It also broke 12 header-tapping tests.
+   - I stopped. The commit was held locally, then pushed to the backup branch `tracks-frame-wip-40` as `-41`
+     instructed.
+3. **The auto-scroll (`-41`).**
+   - Fix 1, a measured scroll, failed: the measurement raced the dropdown's opening animation (instrumented:
+     `btn=0.0`, `vp=150`).
+   - Fix 2, scroll to the end, showed the fields but looped at 2x font. The recomposer ran for 547 s until an
+     `OutOfMemoryError`.
+   - Instrumented again: each time a scroll cleared the field's focus and the focus came back, the request was
+     re-armed. I stopped (backup `9875d8a`).
+4. **The ruled fix (`-42`, `5d2af90`).** The request is armed once per opening of the dropdown, by a `LaunchedEffect`
+   on `showSearchDropdown` going to `true` (`AvailabilityCompactScaffold.kt`). It is never armed on a focus gain.
+
+### What landed
+
+- **The expand.** `SearchDropdown` takes `expandManualCoordinatesRequested` / `onManualCoordinatesExpandConsumed`.
+  - "Advanced search" expands on the request without clearing it, because the inner section is composed only once
+    the outer one is open.
+  - "Enter coordinates manually" expands, clears the request, and arms the scroll.
+  - Each section's expanded state stays its own, so a collapse the user makes stands.
+  - The dropdown's only way in is the bar's field. Both `onFieldFocused` sites (`AvailabilityCompactScaffold.kt`) are
+    that tap, so there is no other way into the dropdown to leave unchanged.
+- **The auto-scroll.** Once, after the inner section opens, `scrollState.scrollTo(scrollState.maxValue)`.
+  - "Search this location" is the dropdown's last control, so the end is the least scroll that shows it, with
+    Latitude and Longitude above it.
+  - Where everything fits, the maximum is 0 and nothing moves.
+  - It is instant, not animated: nothing in this dropdown scrolled programmatically before.
+  - The user can scroll back up, and it stays put (the 2x-font test below).
+  - By the planner's `-42` extension it applies wherever the fields do not fit: short landscape, and portrait at 2x
+    font.
+  - A programmatic scroll counts as a scroll in progress, so the dropdown's existing "scrolling dismisses the
+    keyboard" effect lowers the keyboard too.
+- **The comment at the location row** (`AvailabilitySearchUi.kt`, formerly `:413-429`) records the owner's reversal,
+  with the words "Also open manual coordinates".
+
+### Tests changed, by name, old and new
+
+- **Evidence helper** (`AvailabilitySearchSummaryCopyTest.kt`, from `7bfc4c7`):
+  - old: `"Expand Advanced search"` exists, and `"Latitude"` is absent;
+  - new: `"Collapse Advanced search"` and `"Collapse Enter coordinates manually"` exist, and `"Latitude"`,
+    `"Longitude"` and `"Search this location"` are each displayed.
+  - Its new `topButtonsInView` parameter is false in landscape, where "Set on map" and "Use current location" are
+    asserted to exist rather than to be displayed (the owner chose to push them out of view).
+- **Renamed:**
+  - "in portrait a real touch on the compact search bar shows Set on map and Use current location at once" became
+    "…shows Set on map, Use current location and the manual coordinates at once";
+  - "in short landscape a real touch … shows Set on map and Use current location at once" became "in short landscape
+    a real touch on the compact search bar scrolls the dropdown once to show the manual coordinates at once".
+- **New:** "in portrait the user's own collapse of the manual coordinates stands after the tap expanded them".
+- **`searchAReferenceRegion`** in `AvailabilityScreenTripPlanningFlowTest` (6 tests), `AvailabilityScreenWaypointFlowTest`
+  (4), `AvailabilityScreenBackNavigationTest` (2) and `AvailabilityScreenMapIconStackTest`:
+  - old: tap the bar, tap "Advanced search", tap "Enter coordinates manually", type;
+  - new: tap the bar, type.
+- **`AvailabilityScreenConditionsMonthTest`:** `openSearchDropdownToAdvancedSearch()` and
+  `openSearchDropdownToManualCoordinates()` no longer tap either header; both just open the bar.
+- **`AvailabilityScreenLayoutTest` "Test 5":**
+  - old: "Search this location is reachable inside Advanced search", which tapped both headers and scrolled;
+  - new: "the search bar's tap opens the manual coordinates, and Search this location shows without scrolling", which
+    asserts both "Collapse" icons and "Search this location" displayed, with no header tapped and no scroll in the
+    test.
+  - It runs on all three configurations (small dense phone, large phone, 2x font).
+- **`AvailabilityScreenLayoutTest`, renamed:** "search radius, month, and the location row are reachable without
+  expanding advanced search" became "search radius, month, and the location row are reachable after the bar's tap
+  beside the expanded Advanced search, not duplicated in it".
+  - Its header tap (which would now collapse the section) became an assertion that "Collapse Advanced search" exists.
+  - "Advanced search" gets `performScrollTo()` before its displayed assertion.
+  - Its per-label `performScrollTo()` steps are the scroll up after the auto-scroll. At 2x font they now stay put:
+    0.143 s, where the loop ran 547 s before the out-of-memory error.
+- **`AvailabilityScreenLayoutTest` "the drawer's Use current location button calls onUseCurrentLocation":**
+  - old: `onNodeWithText("Use current location").performClick()`;
+  - new: `.performScrollTo().performClick()`. At 2x font the tap scrolls the button out of view, so the test scrolls
+    back to it first, as a user would.
+- **Left as it is:** the `@Ignore`d `MapIconStackTest` test at `:2251`, which is skipped and taps only "Advanced search".
+
+### Checks
+
+- **Affected classes (`b42`):** 13 classes, 234 tests, 0 failures, 22 skipped (all pre-existing `@Ignore`s, the same
+  22 as in `b41`), 0 `e: ` lines.
+- **Revert check R18** (the auto-scroll made a no-op, `scrollTo(scrollState.value)`): it compiled, and it failed
+  exactly the 2 predicted tests:
+  - the short-landscape evidence test, with `'Latitude' … is not displayed`;
+  - the 2x-font Test 5, with `'Search this location' … is not displayed`.
+  It was restored to HEAD's blob, `git status` was clean afterwards, and the forward line was still present.
+  **Confirmed.**
+- **Not covered by a revert check:** the once-per-opening arming. Reverting it would re-create the 547 s loop and use
+  the same heap beside the planner's suite. The 0.143 s pass is the evidence that the arming bites. The tests-first
+  runs for the other changed tests are `tf40` and `b41`/`b41b` (above).
+- **Full suite:** at `5d2af90`, from a cleared results directory, `LC_ALL=C.UTF-8`, counts from the JUnit XML, 0 `e: ` lines:
+  **282 / 2269 / 0 / 0 / 24**. That is `-39`'s 282 / 2268 plus the one new portrait test. The 13 GB free and 3 GB
+  of available memory held beside the planner's suite..
+
+### Device-only
+
+- **Refocus after `clearFocus()`.** Whether a real device refocuses the search field after the dropdown's scroll calls
+  `clearFocus()`, as Robolectric appeared to, is unverified (recorded as `-42` asks). The once-per-opening arming
+  makes the answer harmless either way.
+- The auto-scroll and the keyboard in short landscape and at large font on the S22: the fields showing, the keyboard
+  lowered, and the scroll back up.
+
+### Decisions I made
+
+- **The outer section expands without clearing the request**, and the inner one clears it.
+- **Scroll to the end**, instant, after one frame.
+- **The probes:** two temporary instrumentations and one throwaway layout probe test, each removed by restoring from a
+  saved copy (the probe test was deleted).
+- **R18 targets the auto-scroll**, not the arming, for the heap reason above.
+- **The landscape helper asserts existence** of the top buttons rather than displayed.
+- **I added `performScrollTo()`** before the location-row test's "Advanced search" assertion.
+
+### Flags outside scope
+
+- `SearchDropdown`'s own KDoc and the `-38` wide section still describe "Advanced search" in the drawer as collapsed
+  by default. That remains true on every way in except the taps these continuations changed.
