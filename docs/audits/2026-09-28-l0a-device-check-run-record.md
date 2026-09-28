@@ -822,3 +822,30 @@ registry says. 4. The offline caption matches the code. 5. The restated check 7 
 - **The side effect predicted in the pre-registration happened:**
   - `map_preferences.preferences_pb` went from 45 to 170 bytes. It gained `offline_map.last_picked_lat`, `_lng` and `_radius_km`.
   - Its first 45 bytes, holding `map.fullscreen` and `night_mode.maps`, both `false`, are unchanged (`prefs-c3-resume/`).
+
+### Step 4(c): the track: the one kept in step 3
+The entry in (e) kept it, so no second track was recorded.
+
+### Step 4(e): the Journal day entry: **created** (04:39 to 04:42Z)
+- **The path:** Journal, Entries (`124-entries-tab.xml`: "No entries yet"), then "New entry" (tap 881,1832, 04:39:06Z).
+  - This persists a draft with every one of the day's candidates kept (`ui/log/CartographyViewModel.kt:115-146`).
+  - The form's date reads **2026-09-27**, the phone's local date (UTC-7), as the pre-registration expected.
+- **The name.** The form has no name or title field. "DEVICE CHECK 2026-09-28 (L0a)" went into its only free-text
+  field, "Your own account (optional)" (`126-entry-named.xml`, read back exactly). See Decisions.
+- **Kept by the app on start, all left kept** (`125-entry-new.xml`, `130-entry-scrolled.xml`, each row offering "Withhold"):
+  - finds "DEVICE CHECK find 1" and "DEVICE CHECK find 2";
+  - track "Recorded track", "379 ft · 1h 27m";
+  - waypoints "Start · Sep 27, 7:23 PM" (ORIGIN), "End · Sep 27, 9:02 PM" (END) and "DEVICE CHECK waypoint";
+  - offline region "DEVICE CHECK".
+  - The track's own Start and End waypoints were kept by the app's default, and I did not withhold them. See Decisions.
+- **The photo.** Photos are not kept on start; each is attached by a toggle (`:310`).
+  - "Add a photo from the Album" showed three unlabelled tiles (`128-photo-picker.png`), in the order of an unordered
+    `SELECT * FROM log_photos` (`data/local/MushroomLogDao.kt:43`).
+  - By my reading of the image, all three show the same desk scene, so the image could not tell them apart. I predicted
+    that the third was the new photo, from its place in the row scan, and tapped it (287,1275, 04:41:01Z).
+  - **Verified in the database** (`db-c3-photo-query/`): `cartography_entry_photo_refs` holds exactly one row, for
+    `5206066b…`, find 1's photo. The owner's two older photos were not attached.
+- **Finished.** "Finish entry" was tapped (540,1798, 04:41:44Z). The button became "Save" (`132-entry-finished.xml`), which
+  is the committed-entry form (`ui/log/CartographyEntryEditScreen.kt:285`, `:296`).
+- **The database** (`db-c3-entry-raw/`): one `cartography_entries` row, `date=2026-09-27`,
+  `text=DEVICE CHECK 2026-09-28 (L0a)`, `isDraft=0`. The refs: finds 2, track 1, waypoints 3, offline region 1, photo 1.
