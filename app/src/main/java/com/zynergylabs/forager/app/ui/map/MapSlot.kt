@@ -5,6 +5,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.zynergylabs.forager.app.domain.EntryMapFrame
 import com.zynergylabs.forager.app.domain.ForecastCellStore
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
@@ -199,7 +200,21 @@ data class MapRenderMode(
      * reason [layers] gives.
      */
     val forecast: MapForecastFeed? = null,
+    /**
+     * A one-shot camera frame (the entry map's opening frame, owner, 2026-09-28), or `null` for none.
+     * [SightingsMap] applies a request once per [MapCameraRequest.id], after which the user's pan and
+     * zoom stand: the same request arriving again on a later recomposition (returning from a find
+     * overlay or a bubble target) does not move the camera. Here rather than on [MapSlot] for the
+     * parameter-count reason [layers] gives.
+     */
+    val cameraRequest: MapCameraRequest? = null,
 )
+
+/**
+ * A camera frame to apply once: [id] names the request, so a map that has applied it does not
+ * apply it again, and [frame] is where the camera goes.
+ */
+data class MapCameraRequest(val id: String, val frame: EntryMapFrame)
 
 /**
  * What a map needs to draw its colour fields from stored cells (map layers L0b, B5): the store, the
