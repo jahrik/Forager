@@ -694,3 +694,12 @@ What that means, as the planner stated it to the owner:
 - Entries not shown on the map are not counted while the photo is highlighted.
 
 Carried by intent `2026-09-28-70`, queued behind `-68`.
+
+### J6 rulings (owner, 2026-09-28)
+
+Asked after the J6 premise pulse (`docs/audits/2026-09-28-j6-premise-pulse.md`, read at `14ea159`), the owner answered verbatim "1 A / 2 A / 3 A":
+1. **Layout: list-detail.** The planner offered: "The list stays in the left column, and whatever you open (an entry's report, a find, the editor) opens in the big area on the right while it's open." That is how Gmail, Keep and Samsung Notes work on tablets, and it gives an entry's own map real room.
+2. **The old "Photo Gallery" panel is removed.** Only the album remains, as on the phone.
+3. **The narrow map on mid-size tablets is fixed as part of J6.** Beside the 360 dp drawer and the 360 dp species list, the map is about 119 dp at 840 dp and nothing at 721 dp or less. That is the pulse's arithmetic, not observed.
+
+The owner added, verbatim: "Before the J6 device check, perform a device check for a sanity test to see how much of a issue the layout sizes are." The planner places this **before J6 is dispatched**, so its measurements feed J6. It runs on the owner's tablet, because the S22 never takes the wide tree. It waits for the owner to connect the tablet and to answer the install, data and first-run-prompt questions. J6's dispatch follows it.
