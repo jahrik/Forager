@@ -595,3 +595,16 @@ After the J8 premise pulse (`docs/audits/2026-09-28-j8-premise-pulse.md`), which
 6. Geometry: **"Live records (Recommended)"**: the highlight follows the live waypoint and region positions; a kept record since deleted is simply not highlighted.
 
 Earlier J8 rulings stand: content "Kept tracks, Kept waypoints, Kept finds, Offline-map outlines"; more than one entry may show at once; "Yes, keep them" in Room. Planner's rulings: the migration rebuilds `cartography_entries` in the pattern of 12 to 13 and 14 to 15 (the legacy fixtures declare the entity directly, `Migrations.kt:899-906`); the highlight colour is one new palette role, day and night, proposed by the planner and measured in `MapPaletteTest`, for the owner to judge on the phone.
+
+### Map chrome at 80%, nothing fully obstructs the map (owner, 2026-09-28)
+
+The owner first asked about one sheet, verbatim: "Can you set this card at 80% opacity while over the map? In the places that aren't covering a map, they can stay solid. Same for tracks please". That came with screenshots of the waypoint and track details sheets opened from a map bubble. The owner then gave rulings: **"After J8 (Recommended)"** for the timing and **"Yes, all three (Recommended)"** for including the offline-region sheet. The planner queued it as intent `2026-09-28-56`.
+
+The owner then widened it to a principle, verbatim: "My idea is that nothing should fully obstruct the map view. All map chrome gets 80% opacity as a result."
+
+What the planner takes this to mean, pending the owner's answers on edge cases:
+- Every surface drawn over a map is at `MAP_CHROME_OVER_MAP_ALPHA` (0.8, `ui/map/MapChrome.kt:239`). That covers bars, strips, chips, clusters, rails, legends, bubbles, sheets, drawers and menus.
+- The same component shown where it covers no map stays solid, as in the owner's first message.
+- The icon cluster (`MapChrome.kt:233-236`) and the Layers sheet (`MapLayersSheet.kt:221`) already follow it.
+
+Before the dispatch widens, a read-only pulse inventories every surface drawn over a map (`docs/audits/2026-09-28-map-chrome-inventory-pulse.md` when filed). Edge cases the pulse surfaces, such as dialogs, text fields and drawers, go to the owner before anything is built. Dispatch `2026-09-28-56` stays queued behind J8, and it will be widened by a continuation, not rewritten.
