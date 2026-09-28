@@ -126,6 +126,11 @@ import com.zynergylabs.forager.app.ui.log.SAVE_CONFIRM_TEST_TAG
 import com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag
 import com.zynergylabs.forager.app.ui.map.CENTRE_PIN_CONFIRM_ROW_TAG
 import com.zynergylabs.forager.app.ui.map.MapSlot
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.unit.dp
+import com.zynergylabs.forager.app.ui.log.FIND_OVER_VIEW_TAG
+import com.zynergylabs.forager.app.ui.map.MAP_BUBBLE_OPEN_FIND_TAG
+import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import java.io.File
 import java.time.LocalDate
 import java.time.LocalTime
@@ -192,7 +197,7 @@ class LeavingTheJournalFixesTest {
         photoFile.delete()
     }
 
-    private fun setScreen() {
+    private fun setScreen(mapSlot: MapSlot = LeaveFixStubMapSlot) {
         // Direct executors, as CartographyViewModelTest does: Room's suspend calls then complete on
         // the calling thread, so a ViewModel write has landed by the time waitForIdle returns.
         val directExecutor = java.util.concurrent.Executor { it.run() }
@@ -346,7 +351,7 @@ class LeavingTheJournalFixesTest {
                 onRequestDeleteCartographyEntry = cartographyViewModel::requestDeleteEntry,
                 onRequestDeleteGalleryPhoto = logViewModel::requestDeleteGalleryPhoto,
                 compassProvider = LeaveFixFakeCompassProvider,
-                mapSlot = LeaveFixStubMapSlot,
+                mapSlot = mapSlot,
             )
         }
         composeRule.waitForIdle()
@@ -940,6 +945,152 @@ class LeavingTheJournalFixesTest {
 
         assertEquals("the drawer did not open", false, drawerShown())
         assertEquals("the menu was dismissed by the touch", false, tagShown(ADD_ACTION_TILE_TAG))
+    }
+
+    // ── F3: a find open in view or edit is still open back on the Journal ──
+
+    private fun findReportShowing(): Boolean =
+        composeRule.onAllNodesWithContentDescription("Back to your log").fetchSemanticsNodes().isNotEmpty() &&
+            composeRule.onAllNodes(hasText("Your own identification (optional)") and hasSetTextAction()).fetchSemanticsNodes().isEmpty()
+
+    private fun findEditorShowing(): Boolean =
+        composeRule.onAllNodes(hasText("Your own identification (optional)") and hasSetTextAction()).fetchSemanticsNodes().isNotEmpty()
+
+    /** Ported from the investigation's report-view Behaviour 3 test, its assertion inverted. */
+    @Test
+    fun `F3 a committed find open in its report view is still open in it back on Journal, with no snackbar and nothing deleted`() {
+        setScreen()
+        openFindReport()
+
+        touchNavItem("Maps")
+        assertNoSavedToDraftsSnackbar("leaving a viewed find for Maps")
+        touchNavItem("Journal")
+
+        assertEquals("the find is still open", COMMITTED_FIND.id, logViewModel.uiState.value.editingEntry?.id)
+        assertTrue("the find's report shows", findReportShowing())
+        composeRule.onNodeWithText("Your own identification: Chanterelle").assertIsDisplayed()
+        assertNothingDeletedAndNoDraft("the round trip")
+    }
+
+    /** Ported from the investigation's editor Behaviour 3 test, its assertion inverted. */
+    @Test
+    fun `F3 a committed find open in its editor with a change is still in its editor back on Journal, the change held`() {
+        setScreen()
+        openFindEditor()
+        typeFindIdentification("Changed, not saved")
+
+        touchNavItem("Maps")
+        assertNoSavedToDraftsSnackbar("leaving the editor for Maps")
+        touchNavItem("Journal")
+
+        assertEquals("the draft is still the open find", DRAFT_OF_FIND_ID, logViewModel.uiState.value.editingEntry?.id)
+        assertTrue("the find's editor shows", findEditorShowing())
+        composeRule.onNode(hasText("Your own identification (optional)") and hasSetTextAction()).assertTextContains("Changed, not saved")
+        assertEquals("Changed, not saved", storedFinds().single { it.id == DRAFT_OF_FIND_ID }.ownIdentification)
+        assertCommittedFindIntact()
+    }
+
+    @Test
+    @Config(qualifiers = "w823dp-h384dp-land")
+    fun `F3 short landscape, a committed find open in its report view is still open after the rail's Maps and Journal`() {
+        setScreen()
+        assertRailShown(true)
+        openFindReport()
+
+        touchNavItem("Maps")
+        touchNavItem("Journal")
+
+        assertEquals("the find is still open", COMMITTED_FIND.id, logViewModel.uiState.value.editingEntry?.id)
+        assertTrue("the find's report shows", findReportShowing())
+        assertNothingDeletedAndNoDraft("the round trip")
+    }
+
+    @Test
+    fun `F3 the Maps search bar shows on Maps while a find is kept open on the Journal`() {
+        setScreen()
+        openFindReport()
+
+        touchNavItem("Maps")
+
+        assertEquals("the find is kept open", COMMITTED_FIND.id, logViewModel.uiState.value.editingEntry?.id)
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertIsDisplayed()
+    }
+
+    /** The open-find-under-drawer test the drawer fix (intent 2026-09-28-28) deferred. */
+    @Test
+    fun `F3 the Tools drawer opened over an open find leaves it open, and Back closes the drawer first`() {
+        setScreen()
+        openFindReport()
+
+        touchTools()
+        assertEquals("the find is still open under the drawer", COMMITTED_FIND.id, logViewModel.uiState.value.editingEntry?.id)
+        assertNoSavedToDraftsSnackbar("opening Tools over a viewed find")
+
+        pressBack()
+        assertEquals(
+            "after Back with the drawer open: expected the drawer closed and the find held; " +
+                "drawer open = ${drawerShown()}, find open = ${logViewModel.uiState.value.editingEntry?.id}",
+            "drawer closed, ${COMMITTED_FIND.id}",
+            "${if (drawerShown()) "drawer open" else "drawer closed"}, ${logViewModel.uiState.value.editingEntry?.id}",
+        )
+        assertTrue("the find's report shows", findReportShowing())
+
+        pressBack()
+        assertEquals("the second Back closes the find", null, logViewModel.uiState.value.editingEntry)
+        assertNothingDeletedAndNoDraft("closing the find")
+    }
+
+    @Test
+    fun `F3 backgrounding with a find open in its report view keeps it open, with no snackbar and nothing deleted`() {
+        setScreen()
+        openFindReport()
+
+        backgroundThenResume()
+
+        assertEquals("the find is still open", COMMITTED_FIND.id, logViewModel.uiState.value.editingEntry?.id)
+        assertTrue("the find's report shows", findReportShowing())
+        assertNoSavedToDraftsSnackbar("backgrounding with a viewed find")
+        assertNothingDeletedAndNoDraft("backgrounding with a viewed find")
+    }
+
+    @Test
+    fun `F3 backgrounding with a find open in its editor with a change keeps the editor, the change held`() {
+        setScreen()
+        openFindEditor()
+        typeFindIdentification("Changed, not saved")
+
+        backgroundThenResume()
+
+        assertEquals("the draft is still the open find", DRAFT_OF_FIND_ID, logViewModel.uiState.value.editingEntry?.id)
+        assertTrue("the find's editor shows", findEditorShowing())
+        composeRule.onNode(hasText("Your own identification (optional)") and hasSetTextAction()).assertTextContains("Changed, not saved")
+        assertCommittedFindIntact()
+    }
+
+    private val bubbleMap = BubbleMapSlot(listOf(StubGlyph(MapLayerIds.FINDS, COMMITTED_FIND.id, 60.dp, 160.dp, LatLng(45.33, -122.63))))
+
+    /** Maps, the find's glyph, its bubble's "Open in Journal" (M1): the find opens in its report over the Journal. */
+    private fun openFindInJournalFromMaps() {
+        touchNavItem("Maps")
+        composeRule.onNodeWithTag(glyphTag(COMMITTED_FIND.id)).performTouchInput { click(center) }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(MAP_BUBBLE_OPEN_FIND_TAG).performTouchInput { click(center) }
+        composeRule.waitForIdle()
+    }
+
+    @Test
+    fun `F3 a find opened over Entries from a map bubble is still over Entries back on Journal`() {
+        setScreen(mapSlot = bubbleMap.slot)
+        openFindInJournalFromMaps()
+        composeRule.onNodeWithTag(FIND_OVER_VIEW_TAG).assertIsDisplayed()
+        assertEquals(COMMITTED_FIND.id, logViewModel.uiState.value.editingEntry?.id)
+
+        touchNavItem("Maps")
+        touchNavItem("Journal")
+
+        assertEquals("the find is still open", COMMITTED_FIND.id, logViewModel.uiState.value.editingEntry?.id)
+        composeRule.onNodeWithTag(FIND_OVER_VIEW_TAG).assertIsDisplayed()
+        composeRule.onNodeWithText("Your own identification: Chanterelle").assertIsDisplayed()
     }
 
     private companion object {
