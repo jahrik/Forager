@@ -3178,3 +3178,19 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner's rulings in the plan's "M1 rulings" and continuation -30. Copy the coder chose, for the owner's review: "View photo", "Details", "Directions", "Uncertainty X% to Y%", driver "label: value", "Date unknown", the photo attachment wording. Device-only (report): the native hit test per kind and cells at the point stage; the offline circle's interior falling through; the tail at screen edges; bubbles against real insets; re-anchoring on pan, zoom and rotate; a feature tap not restoring fullscreen chrome; Directions hand-off; the find overlay on the S22. Flags: the sighting bubble has no running UI test; a find opened over the Journal then left by a tab change takes the incidental-exit path (the Leaving-the-Journal stage). The planner freed disk by deleting app/build in seven finished, clean, pushed worktrees (sheet-alpha, search-bar-fix, drawer-back, leave-journal, l0b, night-region, m1): 66 MB to 1.3 GB free. The night-fill capture record (continuation -26) merged in the same push. Next: track widths by zoom, the entry map's opening frame and the search-bar copy. Written by the planner by hand.
 
 ---
+
+**Kind:** intent
+**ID:** 2026-09-28-34
+**Timestamp:** 2026-09-28T12:22:42Z
+**Title:** Track widths by zoom (T1), the entry map's opening frame on its kept records (T2), and "Search a location" in the search bar (T3)
+**Dispatch-file:** preserved/2026-09-28-34.md
+**Change:** T1 track and casing line widths as zoom interpolations (today's width at z15 and above, 40% at z11 and below, casing ratio kept), stops defined once beside the layer specs. T2 the entry map fits the bounds of its kept tracks, finds, located photos and waypoints on open (48 dp padding, zoom capped at 17, a single point at 16, regions only if nothing else), once, not re-framed on return from an M1 overlay. T3 the fallback at AvailabilitySearchUi.kt:497 from "no location set" to "Search a location".
+**Scope boundary:** Branch journal-redesign; ui/map/layers, SightingsMap.kt, a MapRenderMode camera field if needed, CartographyEntryReportScreen.kt, a pure domain helper, AvailabilitySearchUi.kt:497, tests. Not the Leaving-the-Journal fixes, the landscape bugs, J8, the night-fill value, Room, the held flaky tests, the record, index, CLAUDE.md, plans or prompts.
+**Baseline:** journal-redesign at the commit carrying this entry; planner's suite at ace13cf 274 / 2245 / 0 / 0 / 24.
+**Prediction (outcome — planner):** 1. The entry map opens at a fixed or last-known camera today. 2. Four line layers change, casing ratio kept. 3. The suite grows by 15 to 35.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** Pushed with tests first, compiling revert checks, the full suite and a completion report; the planner writes the terminal.
+**Abort conditions:** A wrong premise; a tenth MapSlot parameter; a tests-first test passing at base; a non-compiling revert; a non-held failure; disk full or OOM; two failed fixes; an unruled design question.
+**Notes:** Owner's words and rulings in the plan's two sections of 2026-09-28 ("Fit all kept records (Recommended)", "Right after M1 (Recommended)"; the copy change and its principle). The width stops are the planner's proposal for the owner to judge on the phone. Written by the planner by hand.
+
+---
