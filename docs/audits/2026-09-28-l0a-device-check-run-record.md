@@ -660,3 +660,40 @@ Paths below are under `app/src/main/java/com/zynergylabs/forager/app/`; lines ar
 ### Planner's predictions, to be scored
 1. Step 2 passes. 2. The ordinary waypoint draws. 3. At least one overlapping pair on the entry map stacks as the
 registry says. 4. The offline caption matches the code. 5. The restated check 7 passes.
+
+## Results (written as the run goes; the Outcome table comes last)
+
+### Step 1: baseline: **pass**
+- `60-dumpsys-package-start.txt` (04:01:16Z): `versionCode=1192`, `versionName=1.0.1192+g24589349`,
+  `lastUpdateTime=2026-09-27 19:18:29`. This is the same as the first run.
+- `61-crash-start.txt` (04:01:16Z): empty.
+- The screen was awake, with no keyguard (`isKeyguardShowing=false`). `MainActivity` had focus. The process was
+  PID 19584, the same as in the first run. `TrackRecordingService` had been in the foreground for 1 h 37 min.
+
+### Step 2: the Return leg: **pass** (not active)
+- `62-step2-maps-recording.png` / `.xml` (04:01:58Z), on the Maps tab, with nothing touched before them.
+- The dump has **no** "Stop navigating" node. It has the strip's heading text `267° W`, the "Stop recording
+  track" control, and a return control described with a bearing and a distance.
+- By my reading of the screenshot, the strip sits under the search bar, and no HUD panel is on screen.
+- The Return leg is not active, which accounts for the hidden ORIGIN (`ui/availability/AvailabilityPureFunctions.kt:65-66`).
+  The pin was not drawn in this screenshot either.
+
+### Step 3: the owner's recording, stopped and kept: **done, as predicted**
+- **The tap:** a real tap at (990,1498) at 04:02:25Z, the centre of the "Stop recording track" node `[956,1471][1024,1525]`.
+- **After (`63-after-stop.png` / `.xml`, 04:02:28Z):**
+  - no dialog and no snackbar;
+  - the control reads "Start recording track";
+  - the return control reads "Return to vehicle — start recording first";
+  - `TrackRecordingService` is no longer listed.
+- **No keep choice was offered, because none exists** (see the pre-registration). The stop kept the track.
+- **The database copy after the stop (`db-c2-afterstop-raw/`):**
+  - the track has `endedAt` set, 5918.9 s after its start;
+  - `track_points` has 23 rows;
+  - **one END waypoint was added** by the stop, "End · Sep 27, 9:02 PM", linked to the track;
+  - the ORIGIN waypoint is unchanged.
+- **What the app shows** (Journal, Records):
+  - The Tracks chip read 0 until it was opened, because it reloads only on opening (`ui/log/RecordsTab.kt:189`).
+  - After opening, the row (`66-records-tracks.xml`) reads "Sep 27, 2026, 7:23 PM", "18 points".
+  - Its details sheet (`67-track-details.xml`) reads: Started Sep 27, 2026, 7:23 PM; Ended Sep 27, 2026,
+    9:02 PM; Distance 379 ft; **Duration 1h 27m**; **Points 18**. See Flags.
+  - The sheet was closed with Back.
