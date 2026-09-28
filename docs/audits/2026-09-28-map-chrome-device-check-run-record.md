@@ -789,3 +789,62 @@ allowed for.
 
 **Captures:** `108-` (Records sheet from Offline maps), `112-` (from All), `117-` and `120-` (entry with a map), `124-`
 and `126-` (entry without a map), `130-` (region sheet over the Maps map).
+
+## Check 5: legibility captures, for the owner: **82 captures across the six combinations; the look is the owner's**
+
+"By day" is Night Maps off and "at night" Night Maps on (the app's own map setting, Tools, Settings, "Night Maps"), as
+`-72` read the same words; the app theme stayed dark throughout (`uimode night` yes, the app's Night Mode on "System
+Default"). The basemap is the Layers sheet's map type. **The basemap is not persisted**: a relaunch always opened on
+Topographical (tested at 23:27Z: Street set, force-stop, relaunch, "Layers: Topographical map"). Night Maps is persisted
+(`night_mode.maps`).
+
+**Method.** One script, `pass.sh`, run once per combination on a fresh process at the Maps tab's opening camera, touching
+only the coordinates checks 1 to 4 had used. Before every touch that sits near a data-changing control (the + tile's
+"Find", the pin's "OK", "Delete entry", "Search this location", the draft tile) it reads a fresh dump and stops if the
+expected text is not at the expected bounds. After every capture it checks that the focused window belongs to Forager
+and that the phone is unlocked. Dialogs and sheets are closed with Back; the popups with Back or the outside touch of
+check 2d. `setmap.sh` and `setnight.sh` change the map type and Night Maps through the app's own UI, each read back.
+- The first night run stopped itself at 23:22:17.9Z on its focus check, because the entry menu's popup is a separate
+  window titled "Pop-Up Window" (owner Forager). The check was corrected to read the focused window's owning package; I
+  closed the menu with Back, relaunched, and ran the combination again from the start. That is the only stop in 286
+  logged steps. No system or Google prompt appeared.
+
+**The captures** (`c5-<basemap>-<day|night>-NN-<surface>.png`; hashes in `c5-captures-sha256.txt`; contact sheets
+`c5-sheet-*.png`). Each combination has the same 13 surfaces, plus the Layers sheet itself where the basemap was changed
+through it:
+
+| NN | surface | NN | surface |
+|---|---|---|---|
+| 00 | Layers sheet (Street and Satellite only) | 07 | trip-date dialog |
+| 01 | Maps tab: bottom nav, compass strip, search bar | 08 | waypoint-name dialog |
+| 02 | search dropdown | 09 | species suggestions (keyboard down, overhanging the map) |
+| 03 | Month menu | 10 | search notice |
+| 04 | Tools drawer | 11 | compact snackbar ("Saved to Drafts", over the nav band) |
+| 05 | offline region's details sheet | 12 | entry overflow menu over the entry map |
+| 06 | centre-pin OK/Cancel row | 13 | entry delete dialog over the entry map |
+
+| | by day | at night |
+|---|---|---|
+| Topographical | `c5-topo-day-01` to `-13` | `c5-topo-night-01` to `-13` |
+| Street | `c5-street-day-00` to `-13` | `c5-street-night-00` to `-13` |
+| Satellite | `c5-satellite-day-00` to `-13` | `c5-satellite-night-00` to `-13` |
+
+The Topographical-by-day frames of checks 1 to 4 (`22-`, `24-`, `34-`/`43-`, `56-`, `62-`, `70-`, `74-`, `77-`/`78-`, `84-`,
+`90-`, `94-`, `98-`/`99-`, `108-`, `112-`, `117-`, `120-`, `130-`) are the measured ones; the `c5-topo-day` set repeats
+them at one camera for comparison with the other five.
+
+**What I noticed, for the owner to weigh, by my reading of the frames only (no rulings):**
+- **The entry map follows neither the basemap nor Night Maps.** In all six combinations the entry report's preview map
+  (`-12`, `-13`) is the same Topographical-by-day rendering, so those two surfaces were only ever seen over that one map.
+- **The search notice's first line** sits under the compass strip in all six (`-10`), as in check 3b.
+- **The Offline maps sheet** lies over the list, not a map, in portrait (check 4a), so its legibility does not change
+  with the basemap and it is not in the per-combination set; `108-` is its capture.
+- Over the stacked panels the popups read nearly solid, as the owner's "1 A" expects; where they overhang the map
+  (`-09`, the last rows), the map shows through.
+- Satellite by day and Topographical at night are the darkest grounds; the Bark and `#202020` fills over them read as
+  near-solid dark panels in the thumbnails. Whether that is enough separation is the owner's call.
+
+**Restored and read back after check 5:** a force-stop; `map_preferences` decodes equal to the start's (`151-`, so
+Night Maps is off again); the next launch opens on Topographical. The database (`db-c5-*`): integrity ok,
+`user_version` 16, **every digest equal to the backup's**, after the snackbar path's six more runs. Crash buffer 0
+bytes, 0 `FATAL EXCEPTION` (`150-`).
