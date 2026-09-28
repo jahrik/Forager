@@ -3705,3 +3705,30 @@ The list-detail question goes to the owner next. Written by the planner by hand.
   - a visible offline-region outline takes no tap.
 - **Next:** the fails and flags go to the owner. The phone is free, so J8's device check runs next, per the plan.
 - Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-72
+**Timestamp:** 2026-09-28T20:51:50Z
+**Title:** J8's device check on the S22: MIGRATION_15_16 on the owner's real data behind a verified backup, the report-menu toggle, the highlight's look (owner-judged), the chip against real insets, the landscape chip against the cluster (owner-judged), bubble lines and Open entry, the Layers switch
+**Dispatch-file:** preserved/2026-09-28-72.md
+**Change:** No code. A verified database backup first. Then build J8 at 99de6c2, install -r over the v15 debug build, confirm the migration (user_version 16, integrity ok, row counts equal), and run J8's device-only items on labelled DEVICE CHECK entries only, restoring each.
+**Scope boundary:** Observe and record. shownOnMap is toggled only on DEVICE CHECK entries and restored. No other data is created, edited or deleted. Run record on branch device-j8; evidence outside the repository.
+**Baseline:** journal-redesign 99de6c2 (J8 terminal; planner suite 293 / 2374 / 0 / 0 / 24); phone at the Part 1 build, database version 15.
+**Prediction (outcome — planner):** 1. The migration keeps every row, and shownOnMap reads false. 2. The toggle, chip, lines, Open entry and switch pass. 3. The landscape overlap reproduces at 90 or 270. 4. At least one basemap makes the highlight hard to read, for the owner to judge.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** The run record pushed with every verdict, the backup and migration figures, settings and shownOnMap restored and read back, and crash reads. The planner merges it and writes the terminal.
+**Abort conditions:** A backup that cannot be verified; an install needing uninstall, -d or a clear; a signature mismatch; a migration crash, a version other than 16 or a row-count mismatch; a new crash; any prompt over the app; a locked phone; an unstatable pass condition; any need to touch the owner's own entries.
+**Notes:** Debug builds chain fallbackToDestructiveMigration(true) (ForagerDatabase.kt:202-205). MIGRATION_15_16 is registered, so a failure should throw rather than wipe. The backup is still required, because the phone holds the owner's records. The owner ruled the landscape overlap "1 A" (judged here). The failed-write Toast cannot be forced without code and is recorded as not run. Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-73
+**Timestamp:** 2026-09-28T20:51:50Z
+**Continues:** 2026-09-28-68
+**Dispatch-file:** none (launch note; -68 governs)
+**Reason:** the map-chrome stage (-56, -58) stopped at verification (report dc09e53) with questions for the owner and planner, so no build is running. The save-failure stage it was queued behind can use the idle slot.
+**Changes:** -68 launches at base 7b4521f (app/ identical to 99de6c2) in forager-wt/save-failure, branch save-failure. The map-chrome stage resumes by continuation once its questions are ruled.
+**Notes:** J8's device check (-72) builds one APK at the same time, so each coder checks memory before Gradle and waits when it is short. Written by the planner by hand.
