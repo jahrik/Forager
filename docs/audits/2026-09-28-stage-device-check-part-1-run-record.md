@@ -296,3 +296,56 @@ phone when it arrived, and carried on.
     keys but not remove them, and I may not write to its files, so "restored" for them means their default values
     (overlays true, Diagnostics false), read back. See Settings.
 
+## Additions to the pre-registration, written after the relaunch and before each item was run
+
+These are written at about 19:05Z, after reading the first coder's saved evidence for checks 1 to 4 and before
+touching the phone. They add methods and one discriminator. They change no pass condition above.
+
+**Check 2, no style reload: a log discriminator, re-run.** The pre-registration's own rule applies to its visual
+half: the control's burst (`35-rec-basemap-street.raw`, a basemap change with the sheet open) shows no blank or
+re-tiling (the box's pixel spread stays at 29 to 30 through all 322 frames), so screenshots cannot tell a reload from
+none here. Its log half needs a named marker. The marker: in the app's own log (`logcat -d --pid`, read afterwards), a
+`SensorManager` `unregisterListener` then `registerListener` (Rotation Vector) within 3 s of the tap. Why it marks a
+style load: `SightingsMap`'s `setStyle` callback re-activates the location component on every new style
+(`activateLiveLocationIfPermitted`, `ui/map/SightingsMap.kt:616`, run when `trackLiveLocation` is true, as on the Maps
+tab), and the component re-registers its compass sensor. That link is my inference from the code, so the controls must
+show it. Tile requests (`Mbgl-HttpRequest`) are counted too, but are not decisive: a basemap change fetches a different
+source's tiles, and a reload of the same basemap might fetch none.
+- **Controls:** two basemap changes with the sheet open, Topographical to Street and back.
+- **Toggles:** Finds, Tracks and Offline maps, each switched off and on again, six toggles.
+- **Pass:** both controls show the sensor pair, and no toggle window does. If either control lacks the pair, the check
+  cannot discriminate and I say so.
+- **Prediction:** pass.
+
+**Check 4, "the track draws over the cells": method.** At a zoom where the kept track's line is at least 10 px wide,
+the same camera is captured with both colour fields on and then with both fields' switches off in the sheet (then
+switched back on). Pass: the track's stroke pixels, and the find, photo and waypoint glyph pixels, are equal in the two
+frames within 3 per channel, while the ground beside them differs. Prediction: pass.
+
+**Check 4, the opacity slider: method.** With the sheet open over the map, the chanterelles slider is dragged from 100%
+to about 30%, and the screen is captured with the sheet still open. The map shows through the sheet (20% of it, check
+1), so a patch of plain sheet fill over a chanterelle cell is compared with two frames taken before the drag (the noise
+floor). Pass: the patch changes by more than 3 per channel, against a floor of about 1, with the sheet never closed.
+The slider is then dragged back to 100% and `map.layer.<id>.opacity` is read back. Prediction: pass.
+
+**Check 4, the reorder: method.** A place where both fields draw is found first: its colour differs from each field
+drawn alone. The chanterelles handle is dragged down one row (so chicken of the woods is on top), the sheet closed, and
+the place captured; then a basemap change, and the place captured again. Pass: the place's colour is unchanged (within 3
+per channel) before the basemap change and changes after it. If no place with both fields can be found, the check
+cannot discriminate and I say so. The order is then restored, with a second basemap change back to Topographical, and
+read back. Prediction: pass.
+
+**Check 4, the legend at 270: expanding it safely.** At `user_rotation` 3 the collapsed chip lies over the cluster's
+"Start recording track" button (see the verdict), so a touch on the chip is made only left of the cluster's column
+(x below 2083 px), never inside it. A touch reaching the record button would create a recording, which this dispatch
+forbids. Pass: as the pre-registration's legend condition, with its height at most 270 px.
+
+**Check 4, the minimum zoom: method.** The zoom is measured from the 5 km region's drawn circle, by the
+pre-registration's formula. Frames are taken zooming out in small steps across 7. Pass: a frame at a measured zoom
+above 7 draws cells (the control), and a frame at a measured zoom below 7 draws none, with no cell tint anywhere in
+the map. Prediction: pass.
+
+**Checks 5 to 8** run on the pre-registration's conditions above. One method is fixed now for check 5 (c): markers
+inside the region are compared with the same camera with the Offline maps overlay switched off; their pixels must be
+equal within 3 per channel. For check 6, the zoom above 15 is measured from the kept track's own bounding box, about
+39 x 19 m (the data inventory), and at 13 and 11 from the 1 km region's circle.
