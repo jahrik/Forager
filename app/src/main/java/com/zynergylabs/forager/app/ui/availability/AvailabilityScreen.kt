@@ -275,6 +275,8 @@ import com.zynergylabs.forager.app.ui.log.InAppCameraHost
 import com.zynergylabs.forager.app.ui.log.InAppCameraSlot
 import com.zynergylabs.forager.app.ui.log.InAppCameraTarget
 import com.zynergylabs.forager.app.ui.log.CartographyEntryMode
+import com.zynergylabs.forager.app.ui.log.FindOverView
+import com.zynergylabs.forager.app.ui.log.JournalEntryMode
 import com.zynergylabs.forager.app.ui.log.JournalTab
 import com.zynergylabs.forager.app.ui.log.leaveKeepsDraft
 import com.zynergylabs.forager.app.ui.log.PendingDeleteNotice
@@ -769,6 +771,11 @@ fun AvailabilityScreen(
     // open entry, which the ViewModel also holds. Saveable, so a recreation (a night-mode toggle, a
     // fold) does not bring an unsaved edit back in its report view either; the enum saves as-is.
     val cartographyEntryModeState = rememberSaveable { mutableStateOf(CartographyEntryMode.VIEW) }
+    // Intent 2026-09-28-44, F3 ("Keep finds open too (Recommended)"): an open find's mode, and M1's
+    // find over the view, held here for the same reason. The mode saves as its enum. FindOverView is
+    // plain remember: it survives the tab change the ruling is about, not a recreation.
+    val findEntryModeState = rememberSaveable { mutableStateOf(JournalEntryMode.REPORT) }
+    val findOverViewState = remember { mutableStateOf<FindOverView?>(null) }
 
     // Device-check patch, Items 2/3: whether a find's camera/gallery round-trip is currently in
     // flight, reported up from whichever of JournalTab/LogPanel is composed via
@@ -1663,6 +1670,8 @@ fun AvailabilityScreen(
             onMonthSelected = onMonthSelected,
             journalScreenState = journalScreenState,
             cartographyEntryModeState = cartographyEntryModeState,
+            findEntryModeState = findEntryModeState,
+            findOverViewState = findOverViewState,
         )
     }
 
