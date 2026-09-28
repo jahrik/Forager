@@ -2860,3 +2860,13 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner's answers, verbatim: "Stays open (Recommended)", "Cluster stops above it (Recommended)", "Leave it out (Recommended)", "Translucent at 100% (Recommended)". Planner's rulings not asked of the owner, open to change: Q5 colour fields on the Maps tab only; Q8 colour fields not tappable in L0b; Q9 a minimum zoom with no new copy. **Timestamp correction:** the Timestamp fields of 2026-09-28-03 (03:40:00Z), -04 (03:55:00Z), -05 (04:35:00Z) and -06 (04:45:00Z), and the Preserved lines of their store copies, were estimated by the planner rather than read from the clock. The commits that carry them were made at 03:21:13Z (6235a86), 03:22:57Z (394d889), 03:48:04Z (50820b1) and 03:49:12Z (bc64d37); those are the correct times. 2026-09-28-02's 03:05:00Z matches its commit f18af53 (03:05:48Z). From this entry on, timestamps are read from the clock. The store copy of this message says 04:15:00Z; it was written minutes before this entry, whose time is read from the clock.
 
 ---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-08
+**Dispatch-file:** preserved/2026-09-28-08.md
+**Type:** handoff
+**Outcome:** issued
+**Report:** none
+**Notes:** Written at 2026-09-28T04:12:54Z (read from the clock). The owner's commercial-use ruling, verbatim: "I'll be selling the app, but that particular feature will be free. What license do you recommend?", then "Commercial-safe model. I'll get an open-meteo subscription for their service". Recorded for this repository in the plan ("Commercial use: the owner's ruling (2026-09-28)"); the handoff carries it to forager-forecast, whose D29 and D22 it answers, for the owner to take there. Open-Meteo's move to subscriber endpoints is recorded as needed before release, not scheduled. **Correction to 2026-09-28-07:** its store copy's Preserved line (04:15:00Z) was an estimate and is later than the entry's own clock-read Timestamp (04:12:00Z), so that entry's note that the store copy "was written minutes before this entry" is wrong about the stated time; the store copy was written at about 04:11Z, just before its commit ad5026b. Written by the planner by hand.
+
+---
