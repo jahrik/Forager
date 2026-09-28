@@ -3460,3 +3460,20 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Finish line:** Build, tests first through real entry points in portrait and w823dp-h384dp-land, revert check, full suite, report, pushed; the planner writes the terminal.
 **Abort conditions:** An unclassifiable call site; a tests-first test passing at base; a non-compiling revert; a non-held failure; new copy; disk full or OOM; two failed fixes; an unruled design question.
 **Notes:** Owner, verbatim: "Can you set this card at 80% opacity while over the map? In the places that aren't covering a map, they can stay solid. Same for tracks please" (sent 18:04Z and 18:05Z to the stalled planner session, which never read them; resent with two screenshots to the relaunching session). Rulings: "After J8 (Recommended)", "Yes, all three (Recommended)". Queued behind J8 because about 3 GB of memory was free with J8's Gradle running. Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-57
+**Dispatch-file:** none (pulse dispatched in chat by the planner; read-only)
+**Type:** pulse
+**Outcome:** completed
+**Report:** docs/audits/2026-09-28-map-chrome-inventory-pulse.md (the planner's condensed filing of the hand-back, citations kept)
+**Notes:** 2026-09-28T18:55:30Z. Read at 76a67f3. The owner's principle, verbatim: "My idea is that nothing should fully obstruct the map view. All map chrome gets 80% opacity as a result." The pulse found:
+- four map surfaces and about 35 items drawn over them;
+- fifteen items already at 80%, five of them through 0.8 literals rather than the constant;
+- opaque items over a map: the details sheet, the centre-pin confirm row, the search notice, the wide Layers and Add buttons, and the accent discs;
+- dialogs, popups, the snackbar and the Tools drawer on Material3 defaults;
+- the attribution caption at 0.55;
+- a code comment saying a translucent Surface outside the map's Box shipped opaque on a device.
+Three premises were wrong: the editor has no map; trip planning, Set on map and the HUD have no map of their own; the drawer is in-tree. Edge cases go to the owner before -56 widens. Written by the planner by hand.
