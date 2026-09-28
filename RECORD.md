@@ -3488,3 +3488,14 @@ Three premises were wrong: the editor has no map; trip planning, Set on map and 
 **Reason:** the owner widened the request to a principle, verbatim: "My idea is that nothing should fully obstruct the map view. All map chrome gets 80% opacity as a result." The principle went into CLAUDE.md UX defaults (c166bda) and the plan (3212a19). The inventory pulse (dispatch-note -57, 35f05c9) found the items, and the owner ruled the edge cases.
 **Changes:** -56 widens from the details sheet to all map chrome at MAP_CHROME_OVER_MAP_ALPHA where it covers a map, and solid elsewhere. That covers the details sheet, the centre-pin confirm row, the search notice over the map, the wide Layers button, dialogs, pop-up menus, the snackbar, the Tools drawer over Maps, and J8's chip. Unchanged: accent discs, the attribution caption, scrims, the cluster's 0.6 container, and full-screen destinations. The five 0.8f literals move onto the constant. A call site that cannot tell whether it covers a map is a stop. Still queued behind J8.
 **Notes:** Owner, verbatim: "80% over the map" (dialogs, menus, snackbar; against the planner's recommendation), "80% over Maps (Recommended)" (drawer), "Keep them solid (Recommended)" (accent buttons), "Leave it at 55% (Recommended)" (attribution). Planner's readings (full-screen destinations, scrims, the cluster container, the literal consolidation) were stated to the owner. Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-59
+**Timestamp:** 2026-09-28T19:07:31Z
+**Continues:** 2026-09-28-56
+**Dispatch-file:** preserved/2026-09-28-59.md
+**Reason:** the owner reversed -58's ruling 3 on the accent buttons, verbatim: "Have the colored buttons be at 80% opacity also".
+**Changes:** The + disc, the record disc while recording and the wide Add button go to 80% over the map. The discs sit on 0.8-composite fills, so the target is 0.8 overall with the fill beneath not stacked under the disc, proved headless. A mechanism that would change shape, touch targets or layout is a stop. -58's ruling 3 is superseded, not deleted; the plan keeps both. Still queued behind J8.
+**Notes:** Asked how the stacked discs reach 80%, the owner answered "[No preference]". The planner chose true 80% overall, from CLAUDE.md's layered-fill line (c166bda), over the disc's own fill at 0.8, which would composite to about 0.96 and look unchanged. Written by the planner by hand.
