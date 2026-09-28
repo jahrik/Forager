@@ -1,5 +1,11 @@
 # 2026-09-28: track widths by zoom (T1), the entry map's opening frame (T2), the search-bar copy (T3)
 
+**Status (continuation `2026-09-28-35`): built. See the last section, "Resumed".** T1, T2 and T3 are built and
+pushed. They went tests first (20 failing at the stubs, each for its stated reason), then through 16 revert checks,
+all of which compiled and were restored from saved copies, and all of which are confirmed (R02 after one fragment
+correction, stated below). The full suite at `da5ad1b` is 280 / 2265 / 0 / 0 / 24. The sections before "Resumed" are the
+stop report as it stood at `3d3d3c3`, left as written.
+
 **Status: stopped at verification, before writing any code or test.** T2 relies on a premise that a standing
 owner ruling contradicts: that an entry keeping only offline regions has a map to frame. The dispatch lists both
 "a wrong premise" and "an unruled design question" as abort conditions. Details are in Q1. T1 and T3 have no
@@ -205,3 +211,291 @@ To that list I would add the breadcrumb's dots shrinking with the width (T1 abov
 
 `git grep -i` for the three phrases in `prompts/preserved/2026-09-28-03.md`, run over this report and this commit's
 message before the push, returned 0 hits.
+
+## Resumed (continuation `2026-09-28-35`)
+
+Written by the same coder, in the same worktree (`forager-wt/tracks-frame`, local branch `tracks-frame`), pushing to
+`journal-redesign`. Paths are under `app/src/main/java/com/zynergylabs/forager/app/` unless given in full. Line
+numbers are at `99eba9d`.
+
+**The continuation** (`prompts/preserved/2026-09-28-35.md`, committed at `e535ef2`), verbatim:
+
+> This is planner message 2026-09-28-35, part of dispatch 2026-09-28-34. Quote it verbatim in your report. It answers the stop you pushed at `3d3d3c3`. Build T1, T2 and T3 with the changes below.
+>
+> - **Q1: option (c), by the planner.** Your stop is right. The owner's standing plate-pulse ruling, "a green circle with nothing in it is not a day" (`docs/audits/2026-09-07-cartography-plate-renderer-pulse.md:567-571`), means a regions-only entry has no map (`CartographyEntryReportScreen.kt:371`). The dispatch's regions clause was the planner's error. The gate stays. The frame covers kept tracks, finds, located photos and waypoints only, and regions never count towards it. The "regions only" test asserts that there is nothing to frame, and the "regions plus a find" test asserts that the frame is the find alone. This keeps the owner's "Fit all kept records" and the standing ruling together.
+> - **T2's mechanism:** your proposal is accepted:
+>   - a pure helper in `domain/EntryMapFrame.kt`;
+>   - a one-shot camera request with an id on `MapRenderMode`, applied through `getCameraForLatLngBounds` and capped at z17;
+>   - "a single point" meaning that all points are in the same place.
+>
+>   It replaces the old `boundingRegion`/`zoomForRadiusKm` path for the entry map only.
+> - **T3, wide layout: the owner's ruling,** verbatim "Make the tap open search (Recommended)". On the wide layout, tapping the search summary opens the search panel even before any search has run, so "Search a location" is true on both layouts. Scope widens to `AvailabilityScreen.kt` at the wide summary's tap (`:1426`) and to `AvailabilityViewModel.kt` where needed. Include a coordinate-touch test on the wide summary. Also fix the stale `ActiveSearchSummary` KDoc (`AvailabilitySearchUi.kt:163-169`).
+> - **T1:** as written. Pinned test `SightingsMapOverlayDataTest:235-259` is updated and reported.
+> - **Disk:** the owner freed space, and there is now about 13 GB free. Keep checking `df` before each run.
+>
+> Everything else in the dispatch stands.
+
+The coordinator also relayed that a network outage (EAI_AGAIN) had stopped me mid-work, and the owner's "Try again".
+The uncommitted stubs were intact, and I pushed them straight away as `104b17a`, before the tests existed.
+
+### Base
+
+- I pulled with `git pull --no-rebase` to `e535ef2`. Later pushes merged the planner's commits three times
+  (`39f258b`, `403a86f`, `da5ad1b`).
+- One of those merges brought in another stage's app change: the night offline-region fill, `ui/theme/MapPalette.kt`
+  and `MapPaletteTest.kt` (`b3e2f1c`, intent `2026-09-28-19`). It does not overlap any file I touched. That stage's own
+  suite at `b3e2f1c` was 274 / 2245 / 0 / 0 / 24, the same as the dispatch's baseline at `ace13cf`. `git diff ace13cf
+  e535ef2 -- app` is empty, so the app tree I started from is the baseline's.
+- Disk had 13 GB free before every Gradle run (`df -h /`, printed by the run script).
+
+### Commits (pushed to `journal-redesign`)
+
+| Commit | What |
+|---|---|
+| `104b17a` | WIP stubs for T1 and T2, pushed after the outage and not compiled on their own (they compiled with `f9e06b0`) |
+| `f9e06b0` | Tests first: 6 new classes and 1 new test in an existing class, 20 failing, plus the `WIDE_SEARCH_SUMMARY_TAG` stub |
+| `99eba9d` | The build: T1, T2 and T3, and the pinned test update |
+| this commit | This section |
+
+### Tests first (`f9e06b0`, run `tf1`)
+
+8 classes, 64 tests, **20 failures**, 0 errors, 0 `e: ` lines. Every new test failed. Every other test in those
+classes passed. Each failure message, as read from the JUnit XML:
+
+- `TrackWidthByZoomTest`, 6 of 6:
+  - the stops: `expected:<[ZoomWidthStop(zoom=11.0, fractionOfFullWidth=0.4), ZoomWidthStop(zoom=15.0,
+    fractionOfFullWidth=1.0)]> but was:<[]>`;
+  - `breadcrumb has zoom stops`;
+  - `breadcrumb at zoom 5 expected:<2.4> but was:<6.0>`;
+  - `the widths do change with zoom. Actual: 6.0`;
+  - `expected:<["interpolate", ["linear"], ["zoom"], 11.0, 2.4, 15.0, 6.0]> but was:<6.0>`;
+  - `the kept track thins out`.
+- `EntryMapFrameTest`, 6 of 6: each is `expected:<Fit(…)>` or `expected:<SinglePoint(…)> but was:<null>`.
+- `MapCameraRequestTest`, 3 of 3: `never applied`; a bare `AssertionError` (the first `assertTrue`); `expected:<17.0>
+  but was:<19.3>`.
+- `CartographyEntryReportScreenMapTest`, the new test: `expected:<Fit(bounds=GeoBoundingBox(north=45.25, south=45.2,
+  east=-122.47, west=-122.52), paddingDp=48, maxZoom=17.0)> but was:<null>`.
+- `CartographyEntryMapOpeningFrameTest`: `one request on open expected:<1> but was:<0>`.
+- `CompactSearchBarCopyTest` and `WideSearchSummaryTest`'s copy test: `… contains 'September · Search a location'
+  (ignoreCase: false) is not displayed!`.
+- `WideSearchSummaryTest`'s touch test: `the Settings panel has closed after a touch at 368.0.dp expected:<0> but
+  was:<1>`. The first point is 8 dp inside the summary's left edge, which sits past the 360 dp permanent drawer.
+
+**Absence tests carry positive halves**, as M1 did. "Regions only", "nothing kept", "the outline stays constant", "the
+same id is not reapplied" and "GPS tracking applies nothing" each hold at a stub that does nothing. So each one first
+asserts a case that the stub fails: the same regions with a waypoint, one located photo, the kept track thinning, a
+new id, and the same request with no tracking.
+
+### What landed (`99eba9d`)
+
+**T1, track widths by zoom.**
+- **The stops**, defined once as data beside the layer specs: `TRACK_WIDTH_ZOOM_STOPS` (`ui/map/layers/TrackWidthByZoom.kt:23`),
+  `ZoomWidthStop(11f, 0.4f)` and `ZoomWidthStop(15f, 1f)`.
+  - At zoom 15 and above: breadcrumb and kept tracks 6 dp, their casings 9 dp.
+  - At zoom 11 and below: 2.4 dp and 3.6 dp.
+  - Linear in between; at zoom 13, for example, 4.2 dp and 6.3 dp.
+  - A tweak is one edit to that list.
+- **The spec.** `LineLayerSpec` gains `widthByZoom` (`ui/map/SightingsMap.kt`, `null` by default). Both tracks set it
+  (`:1411`, `:1420`). `casingFor` copies its track, so each casing carries the same stops and keeps the 9 : 6 ratio at
+  every zoom. That is 0.6 dp a side at zoom 11, not `CASING_WIDTH_DP`, as the dispatch's wording gives.
+- **The layer.** `lineLayerFor` draws `lineWidthExpression(spec)` (`:1452`), which is `interpolate(linear, zoom, stop(11,
+  …), stop(15, …))` (`:1377`), or the constant when a spec has no stops. The offline outline is unchanged at 1.5 dp.
+- `lineWidthStops` (`:1354`) is the pure stop list.
+- `lineWidthAtZoom` (`:1362`) is a headless model of MapLibre's linear `interpolate`, used by the tests to read widths at
+  any zoom. It has no production caller. What it models (clamping outside the stops) is my reading of MapLibre's
+  documented behaviour; I have not run it against the renderer.
+- **Planned trips are points** (`plannedTripsFeatureCollection`), so four line layers change. **Prediction 2 held.**
+- **The pinned test, by name:** `SightingsMapOverlayDataTest` "each track has a solid casing line directly below it,
+  wider by the casing on each side, in the casing colour" became "… wider by the casing on each side at full width,
+  thinning with it, in the casing colour".
+  - Its 6 dp and 9 dp now read "at full width".
+  - It gained two assertions: the track carries `TRACK_WIDTH_ZOOM_STOPS`, and its casing carries the same stops.
+  - The offline outline's test is unchanged.
+
+**T2, the entry map's opening frame.**
+- **`entryMapFrame`** (`domain/EntryMapFrame.kt:48`) works on `CartographyEntryMapData.drawablePoints` only: kept
+  tracks' points, finds, located photos and waypoints. **Regions never count** (Q1 (c)). It returns:
+  - `null` when there is nothing, where the screen still shows no map, as before;
+  - `SinglePoint(at, zoom = 16)` when every point is the same place;
+  - otherwise `Fit(bounds, paddingDp = 48, maxZoom = 17)`, the bounds being the plain min/max box.
+- **`MapRenderMode.cameraRequest`** (`ui/map/MapSlot.kt:210`) carries a `MapCameraRequest(id, frame)`. `SightingsMapSlot`
+  passes it on. This is **no tenth `MapSlot` parameter**, so that abort condition was not met.
+- **`SightingsMap`** keeps `lastAppliedCameraRequestId` with its `MapView` (`:350`). In the camera effect (`:645`), a
+  request whose id is new (`shouldApplyCameraRequest`, `:1065`) is applied by `applyCameraFrame` (`:1082`):
+  - a `SinglePoint` goes to its point at 16;
+  - a `Fit` goes through `getCameraForLatLngBounds(bounds, padding px ×4)`, with the zoom capped by `cappedFrameZoom`
+    (`:1072`).
+  - The target is then marked applied, so the region move does not follow and undo it.
+  - If MapLibre returns no camera (the method is `@Nullable`) or rejects the bounds, it logs a `Log.w` and falls back
+    to the old region move.
+- **The screen** (`ui/log/CartographyEntryReportScreen.kt`) builds one request per screen instance (`:392`). Its id is
+  a token remembered per entry (`:290`). The screen passes it at `:429`.
+  - The fullscreen switch, a bubble and an M1 find overlay all keep the same screen, so the same request, which is
+    applied once.
+  - The region is still passed, because `MapSlot` needs one. It no longer sets the opening camera, but a locate-me pan
+    still zooms by its radius, as before.
+- **Fullscreen and the preview** share one request. It is applied at whatever size the `MapView` has when the style
+  first loads, which on opening is the 4:3 preview. Entering fullscreen does not re-fit.
+- **Landscape:** whether a rotation recreates this screen, which would mean a new token and a re-fit, is unverified.
+  It is a device item.
+
+**T3, the search copy and the wide tap.**
+- **The copy.** The no-region fallback is `"Search a location"` (`ui/availability/AvailabilitySearchUi.kt:508`; the
+  line moved from `:497` because of the added comment). The month prefix and the `" · "` separator are unchanged.
+- **The wide tap.** `ActiveSearchSummary`'s tap (`AvailabilityScreen.kt`, the `mainScaffold` call, around `:1433`) sets
+  `drawerPanel = DrawerPanel.Search` and then calls `onReopenTaxonSuggestions()`, as before. The parameter is renamed
+  `onClick`, and the summary carries `WIDE_SEARCH_SUMMARY_TAG` (`:144`).
+- **`AvailabilityViewModel.kt` is not changed.** Nothing there was needed.
+- **KDocs:**
+  - `ActiveSearchSummary`'s now describes the new tap;
+  - `SearchEntryBar`'s (`:163-169`) now says the summary was replaced on compact only and remains on medium/expanded.
+- **Other "no location" strings** (flags only, unchanged): `AvailabilityOfflineMapsUi.kt:198`, and
+  `res/values/strings.xml:18` `log_entry_no_location`.
+
+**Tests, by name** (all new except the three noted):
+- `ui/map/TrackWidthByZoomTest` (6): the stops; each line and casing at 11 and 15; hold outside and linear inside;
+  the 1.5 ratio at every half zoom from 8 to 18; the expression; the outline constant.
+- `domain/EntryMapFrameTest` (6), the dispatch's six cases: tracks only; mixed kinds; single point (one, and three
+  records at one place); regions only (nothing); regions plus a find (the find alone, and two finds fitted); nothing
+  (and an empty track).
+- `ui/map/MapCameraRequestTest` (3): applied once per id; no request or GPS tracking applies nothing; zoom cap.
+- `CartographyEntryReportScreenMapTest` "the entry map asks to open framed on its kept track and find, never its kept
+  region": through the real screen with a capturing slot.
+- `CartographyEntryMapOpeningFrameTest` (in `AvailabilityScreenMapBubblesTest.kt`), through the compact Journal tab
+  with a day entry open and a stub slot.
+  - The slot receives one request, framed on the kept find and waypoint.
+  - The test then enters fullscreen by a real touch, opens the find's bubble and "Open find", and presses Back.
+  - After that, the slot has been recomposed (the count grew) and holds the same request, with no new one.
+- `CompactSearchBarCopyTest` (1) and `WideSearchSummaryTest` (2), through the real `AvailabilityScreen`.
+  - Both pin "September · Search a location" before any search.
+  - The wide test makes a real coordinate touch at three points across the summary's bounds (8 dp in from the left,
+    the centre, 8 dp in from the right). Each touch starts from the Settings panel and must bring back the search
+    panel ("Advanced search" shown, "Back to search options" gone). All three must reach the summary (its callback
+    count is 3).
+- **Confirmed: no existing test pinned "no location set"** (`git grep -n "no location set" -- app/src/test`, nothing).
+
+### Revert checks
+
+- **The runner** is `app/build/tf/revert.py`, with specs from `make_checks.py` in `revert/checks.json`. For each
+  check it:
+  1. checks the file equals HEAD's blob;
+  2. saves a copy;
+  3. applies one edit, which must match exactly once;
+  4. runs the 8 affected classes through `run.sh`, which clears the results and refuses to read them on any `e: `
+     line;
+  5. requires the exact predicted failing set, each failure's message containing its fragment;
+  6. restores from the saved copy, never from git;
+  7. checks the file's sha256 against HEAD's blob again.
+- The forward change was committed (`99eba9d`) before any check ran, so the "restore" cannot discard it.
+- **All 16 compiled (0 `e: ` lines in every log), every file was restored to HEAD's blob, and `git status` was clean
+  after each run.**
+- Output: `revert/run1.out`, `report-all.json`, and `revert-R*.log`.
+
+| Check | Edit | Failed | Message, as read | Verdict |
+|---|---|---|---|---|
+| R01 | zoom-11 stop at 100% | 5 of 64 | `breadcrumb width at zoom 11 expected:<2.4> but was:<6.0>`; the expression `but was:<[… 11.0, 6.0, 15.0, 6.0]>` | Confirmed |
+| R02 | casings without stops | 4 of 64 | `breadcrumb casing has zoom stops`; `… at zoom 8.0 expected:<1.5> but was:<3.7499998>`; the pinned test's `casing thins out with its track … but was:<null>` | Confirmed on re-run (below) |
+| R03 | the interpolation's input not the zoom | 1 of 64 | `but was:<["interpolate", ["linear"], 0.0, 11.0, 2.4, 15.0, 6.0]>` | Confirmed |
+| R04 | evaluator flat between stops | 1 of 64 | `breadcrumb at zoom 13, halfway expected:<4.2> but was:<2.4>` | Confirmed |
+| R05 | regions counted (`allPoints`) | 3 of 64 | `expected null, but was:<SinglePoint(at=LatLng(lat=47.0, lng=-120.0)…`; two `but was:<Fit(…north=47.0…` | Confirmed |
+| R06 | one place fitted, not centred | 4 of 64 | zero-area `Fit`s where `SinglePoint`s were expected | Confirmed |
+| R07 | padding 24 | 3 of 64 | `paddingDp=24` in the pure, screen and UI tests | Confirmed |
+| R08 | zoom cap 20 | 3 of 64 | `maxZoom=20.0`, the same three | Confirmed |
+| R09 | single point at 15 | 1 of 64 | `but was:<SinglePoint(…zoom=15.0)>` | Confirmed |
+| R10 | id ignored | 1 of 64 | `already applied` | Confirmed |
+| R11 | applied under GPS tracking | 1 of 64 | bare `AssertionError` on the tracking assert | Confirmed |
+| R12 | zoom uncapped | 1 of 64 | `expected:<17.0> but was:<19.3>` | Confirmed |
+| R13 | token new on every recomposition | 1 of 64 | `no new request after the round trip expected:<[MapCameraRequest(id=entry-map-entry-1-b6e6…` | Confirmed |
+| R14 | the screen sends no request | 2 of 64 | the screen test `but was:<null>`; `one request on open expected:<1> but was:<0>` | Confirmed |
+| R15 | the old copy | 2 of 64 | `'September · Search a location' … is not displayed` ×2 | Confirmed |
+| R16 | the wide tap does not switch the panel | 1 of 64 | `the Settings panel has closed after a touch at 368.0.dp expected:<0> but was:<1>` | Confirmed |
+
+- **R02, stated plainly.** The first run failed exactly the predicted 4 tests, for the edit's reason, but my fragment
+  said `but was:<3.75>`, and 9 / 2.4 in float arithmetic prints `3.7499998`. I corrected the fragment after reading
+  the result and re-ran R02 alone (`revert/run2-R02.out`, `report-R02.json`): compiled, 4 failures, all fragments
+  matching, restored, clean.
+- **Each failure is one its own edit could cause.** Two I read closely:
+  - R13's request id changed between open and the round trip, while the one-request-on-open assertion still passed.
+    So the test catches a token lost on recomposition, not just a missing one.
+  - R03's message shows the interpolation's input replaced and the stops intact.
+- **Not covered by any revert check:**
+  - `lineLayerFor` drawing the expression, and `applyCameraFrame`: both native, so device-only;
+  - the region move's suppression after a frame, which is inside `SightingsMap`'s effect and cannot run under
+    Robolectric;
+  - `onReopenTaxonSuggestions` still firing on the wide tap. It is counted in the wide test, but it is also the
+    original behaviour, so no edit was needed to show that the count bites.
+
+### Suite
+
+- **Full suite at `da5ad1b`** (the pushed head: `99eba9d` merged with the planner's docs), run with `LC_ALL=C.UTF-8`
+  from a cleared results directory, counts from the JUnit XML, 0 `e: ` lines: **280 classes / 2265 tests / 0 failures
+  / 0 errors / 24 skipped.** Class times sum to 131 s. The held family (`JournalPendingDeleteTest`'s album tests,
+  `JournalTabTest`'s photo pull) passed.
+- **Against the baseline** (the planner's 274 / 2245 / 0 / 0 / 24 at `ace13cf`, whose app tree is this base's, and the
+  night-region stage's same count at `b3e2f1c`): +6 classes and +20 tests. That is exactly this build's additions:
+  - `TrackWidthByZoomTest` 6, `EntryMapFrameTest` 6, `MapCameraRequestTest` 3, `CartographyEntryMapOpeningFrameTest`
+    1, `CompactSearchBarCopyTest` 1 and `WideSearchSummaryTest` 2, which are six new classes and 19 tests;
+  - one new test in `CartographyEntryReportScreenMapTest`.
+  I did not run a baseline of my own at base.
+- **Predictions:**
+  - 1 (a fixed or last-known camera) **missed**: the camera was the bounding region's centre at a zoom from its
+    radius (verification above);
+  - 2 (four line layers, casing ratio kept) **held**;
+  - 3 (+15 to +35 tests) **held** at +20.
+
+### Device-only
+
+- **The widths' look across zooms,** on Topographical, Street and at night. This includes the breadcrumb's dots and
+  gaps shrinking with its width, and whether 40% at zoom 11 reads well.
+- **An entry opening framed on the S22,** in the preview, in fullscreen and in landscape.
+  - Whether `getCameraForLatLngBounds` gives the right fit at the preview's measured size when the style first loads.
+  - Whether rotation recreates the screen and so re-fits.
+  - That the view stands after panning, then opening and closing a find.
+- **The new copy on both layouts,** and on the wide layout the tap bringing the drawer back to its search panel.
+
+### Decisions I made
+
+- **The WIP push.** After the outage I pushed uncompiled stubs (`104b17a`) to the shared branch, so CI may have run on a
+  commit I had not compiled. I have not checked CI.
+- **The absence-test halves,** folded as M1 did (above), rather than stubs that throw.
+- **Names:**
+  - `EntryMapFrame.SinglePoint` (the mechanism said "Point");
+  - `ZoomWidthStop`, `TRACK_WIDTH_ZOOM_STOPS`, `TrackWidthByZoom.kt`;
+  - `MapCameraRequest(id: String, …)`;
+  - `WIDE_SEARCH_SUMMARY_TAG`;
+  - `ActiveSearchSummary`'s parameter renamed `onClick`.
+- **The request id is a per-screen-instance token** (`entry-map-<entry id>-<UUID>`), not the entry's id. This lets the
+  UI test tell a lost screen from a kept one (R13). The accepted mechanism said "an id", not which.
+- **Stops live on the spec** (`LineLayerSpec.widthByZoom`), and the casing inherits them through `copy`, rather than a
+  separate casing ratio.
+- **`lineWidthAtZoom`,** a headless model of MapLibre's interpolation, exists for the tests only.
+- **The frame replaces the region move on open.** The region move is suppressed for that target, not run first and
+  then overridden.
+- **The fallback when MapLibre gives no camera** is a logged region move.
+- **The wide tap keeps `onReopenTaxonSuggestions()`** after switching the panel. The ruling says the tap opens search;
+  I kept the old species-reopen as well rather than drop it.
+- **No `AvailabilityViewModel.kt` change** was needed.
+- **The antimeridian** is not handled: min/max bounds, as `boundingRegion` already does.
+- **The wide test's "search panel open" marker** is the "Advanced search" header with the Settings back arrow gone.
+- **The report shape:** a status line on top and this "Resumed" section, with the stop sections left as written, as M1
+  did.
+
+### Flags outside scope
+
+- **Stale KDocs in `domain/GetCartographyEntryMapDataUseCase.kt` and `domain/GeoDistance.kt`.**
+  `CartographyEntryMapData.allPoints` still says it is "what `GeoDistance.boundingRegion` fits the camera to", and
+  `boundingRegion`'s KDoc calls itself the entry map's camera framing. Both are only partly true now: they give the
+  region, but no longer the opening camera. Neither file is in scope beyond a pure helper, so I have not changed them.
+- **On the wide layout the drawer's location controls sit inside the collapsed "Advanced search" section**
+  (`CollapsibleSection`, collapsed by default). The tap brings the search panel back, but searching a location takes
+  one more tap to expand it. Nothing was built for this.
+- **When the wide drawer already shows its search panel,** the tap has nothing further to open. The panel is already
+  on screen.
+- `ActiveSearchSummary`'s and `SearchEntryBar`'s KDocs are fixed. The KDoc of `SearchDropdown`'s neighbour at
+  `AvailabilitySearchUi.kt` ("see [ActiveSearchSummary]'s own doc comment on why that quick panel is gone") still reads
+  as if the summary were gone; I left it.
+
+### D58
+
+Before every push I ran `git grep -i`-equivalent counts for the three phrases over the staged diff and over each
+commit message, `104b17a`, `f9e06b0`, `99eba9d` and this commit. Every count was 0.
