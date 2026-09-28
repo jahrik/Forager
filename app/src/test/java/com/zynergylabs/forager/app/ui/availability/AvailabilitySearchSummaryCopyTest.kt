@@ -187,11 +187,10 @@ class WideSearchSummaryTest {
 }
 
 /**
- * Continuation 2026-09-28-39 (owner: "Apply the same advanced search location change to portrait
- * mode please"): what a real touch on the compact search bar shows today. The dropdown opens with
- * "Set on map" and "Use current location" at its top level, displayed at once. Only the manual
- * coordinates (Latitude, Longitude, "Search this location") sit collapsed, inside "Enter coordinates
- * manually", inside a collapsed "Advanced search".
+ * Continuations 2026-09-28-39 and -40: what a real touch on the compact search bar shows. The
+ * dropdown opens with "Set on map" and "Use current location" at its top level, and, since the
+ * owner's "Also open manual coordinates" (-40), with "Advanced search" and "Enter coordinates
+ * manually" both expanded, so Latitude, Longitude and "Search this location" show at once.
  */
 private fun ComposeContentTestRule.assertCompactBarTapShowsLocationControls() {
     setUnsearchedScreen()
@@ -201,8 +200,11 @@ private fun ComposeContentTestRule.assertCompactBarTapShowsLocationControls() {
     onNodeWithTag(SEARCH_DROPDOWN_TAG).assertIsDisplayed()
     onNodeWithText("Use current location").assertIsDisplayed()
     onNodeWithText("Set on map").assertIsDisplayed()
-    onNodeWithContentDescription("Expand Advanced search").assertExists()
-    assertEquals("manual coordinates are collapsed", 0, onAllNodesWithText("Latitude").fetchSemanticsNodes().size)
+    onNodeWithContentDescription("Collapse Advanced search").assertExists()
+    onNodeWithContentDescription("Collapse Enter coordinates manually").assertExists()
+    onNodeWithText("Latitude").assertIsDisplayed()
+    onNodeWithText("Longitude").assertIsDisplayed()
+    onNodeWithText("Search this location").assertIsDisplayed()
 }
 
 @RunWith(RobolectricTestRunner::class)
@@ -215,8 +217,21 @@ class CompactSearchBarLocationControlsTest {
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity()).around(composeRule)
 
     @Test
-    fun `in portrait a real touch on the compact search bar shows Set on map and Use current location at once`() {
+    fun `in portrait a real touch on the compact search bar shows Set on map, Use current location and the manual coordinates at once`() {
         composeRule.assertCompactBarTapShowsLocationControls()
+    }
+
+    /** Continuation 2026-09-28-40: after the tap's one-time expand, a collapse the user makes stands. */
+    @Test
+    fun `in portrait the user's own collapse of the manual coordinates stands after the tap expanded them`() {
+        composeRule.assertCompactBarTapShowsLocationControls()
+
+        composeRule.onNodeWithContentDescription("Collapse Enter coordinates manually").performTouchInput { click(center) }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithContentDescription("Expand Enter coordinates manually").assertIsDisplayed()
+        assertEquals("collapsed by the user", 0, composeRule.onAllNodesWithText("Latitude").fetchSemanticsNodes().size)
+        composeRule.onNodeWithContentDescription("Collapse Advanced search").assertExists()
     }
 }
 
@@ -230,7 +245,7 @@ class CompactSearchBarLocationControlsShortLandscapeTest {
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity()).around(composeRule)
 
     @Test
-    fun `in short landscape a real touch on the compact search bar shows Set on map and Use current location at once`() {
+    fun `in short landscape a real touch on the compact search bar shows Set on map, Use current location and the manual coordinates at once`() {
         composeRule.assertCompactBarTapShowsLocationControls()
     }
 }
