@@ -124,6 +124,7 @@ import com.zynergylabs.forager.app.ui.log.MushroomLogViewModel
 import com.zynergylabs.forager.app.ui.log.RecordsSubTab
 import com.zynergylabs.forager.app.ui.log.SAVE_CONFIRM_TEST_TAG
 import com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag
+import com.zynergylabs.forager.app.ui.map.CENTRE_PIN_CONFIRM_ROW_TAG
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import java.io.File
 import java.time.LocalDate
@@ -819,6 +820,121 @@ class LeavingTheJournalFixesTest {
         composeRule.onNodeWithTag(ENTRIES_HOME_TAG).assertIsDisplayed()
         dayEntryCard().assert(hasText(COMMITTED_DAY_ENTRY.text, substring = true))
         assertEquals(COMMITTED_DAY_ENTRY.text, storedDayEntry(COMMITTED_DAY_ENTRY.id)?.text)
+    }
+
+    // ── F4: Back with the Tools drawer open closes the drawer, over the search dropdown and the Map tab's own states ──
+
+    private fun tagShown(tag: String): Boolean = composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
+
+    private fun drawerShown(): Boolean = runCatching { composeRule.onNodeWithText("Trip Planner").assertIsDisplayed() }.isSuccess
+
+    private fun openSearchDropdown() {
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
+        composeRule.mainClock.advanceTimeBy(2_000)
+        composeRule.waitForIdle()
+        assertTrue("the search dropdown is open", tagShown(SEARCH_DROPDOWN_TAG))
+    }
+
+    private fun openAddActionMenu() {
+        composeRule.onNodeWithContentDescription("Plan a trip or log a find here").performClick()
+        composeRule.waitForIdle()
+        assertTrue("the add-action menu is open", tagShown(ADD_ACTION_TILE_TAG))
+    }
+
+    /**
+     * Tools by a real touch over the open [state], then Back through the Activity's dispatcher: the
+     * first Back closes the drawer and leaves [state] up; the second closes [state], so its own
+     * handler still works once the drawer is closed.
+     */
+    private fun checkBackClosesDrawerFirst(stateName: String, state: () -> Boolean) {
+        touchTools()
+        assertTrue("$stateName is still up under the open drawer", state())
+
+        pressBack()
+
+        assertEquals(
+            "after Back with the drawer open over $stateName: expected the drawer closed and $stateName held; " +
+                "drawer open = ${drawerShown()}, $stateName held = ${state()}",
+            "drawer closed, held",
+            "${if (drawerShown()) "drawer open" else "drawer closed"}, ${if (state()) "held" else "gone"}",
+        )
+
+        pressBack()
+        assertTrue("the second Back closes $stateName", !state())
+    }
+
+    @Test
+    fun `F4 portrait, Back with the drawer open over the search dropdown on Maps closes the drawer first`() {
+        setScreen()
+        openSearchDropdown()
+        checkBackClosesDrawerFirst("the search dropdown") { tagShown(SEARCH_DROPDOWN_TAG) }
+    }
+
+    @Test
+    fun `F4 portrait, Back with the drawer open over the search dropdown on the Journal closes the drawer first`() {
+        setScreen()
+        touchNavItem("Journal")
+        openSearchDropdown()
+        checkBackClosesDrawerFirst("the search dropdown") { tagShown(SEARCH_DROPDOWN_TAG) }
+    }
+
+    @Test
+    @Config(qualifiers = "w823dp-h384dp-land")
+    fun `F4 short landscape, Back with the drawer open from the rail over the search dropdown closes the drawer first`() {
+        setScreen()
+        assertRailShown(true)
+        openSearchDropdown()
+        checkBackClosesDrawerFirst("the search dropdown") { tagShown(SEARCH_DROPDOWN_TAG) }
+    }
+
+    @Test
+    fun `F4 portrait, Back with the drawer open over the search dropdown's Set on map picker closes the drawer first`() {
+        setScreen()
+        openSearchDropdown()
+        composeRule.onNodeWithText("Set on map").performScrollTo().performClick()
+        composeRule.waitForIdle()
+        assertTrue("the Set on map picker is up", tagShown(CENTRE_PIN_CONFIRM_ROW_TAG))
+        checkBackClosesDrawerFirst("the Set on map picker") { tagShown(CENTRE_PIN_CONFIRM_ROW_TAG) }
+    }
+
+    @Test
+    fun `F4 portrait, Back with the drawer open over the Map tab's Log a find picker closes the drawer first`() {
+        setScreen()
+        openAddActionMenu()
+        composeRule.onNodeWithText("Find").performClick()
+        composeRule.waitForIdle()
+        assertTrue("the Log a find picker is up", tagShown(CENTRE_PIN_CONFIRM_ROW_TAG))
+        checkBackClosesDrawerFirst("the Log a find picker") { tagShown(CENTRE_PIN_CONFIRM_ROW_TAG) }
+    }
+
+    @Test
+    @Config(qualifiers = "w823dp-h384dp-land")
+    fun `F4 short landscape, Back with the drawer open from the rail over the add-action menu closes the drawer first`() {
+        setScreen()
+        assertRailShown(true)
+        openAddActionMenu()
+        checkBackClosesDrawerFirst("the add-action menu") { tagShown(ADD_ACTION_TILE_TAG) }
+    }
+
+    /**
+     * A proof, not a tests-first test (it holds at base): in portrait the add-action menu cannot be
+     * open under the drawer, because the menu's scrim covers the bottom nav, so a real touch on
+     * Tools dismisses the menu and never opens the drawer. The Map tab's handler therefore cannot be
+     * enabled by the menu under the drawer in portrait.
+     */
+    @Test
+    fun `F4 portrait, a real touch on Tools with the add-action menu open dismisses the menu and opens no drawer`() {
+        setScreen()
+        openAddActionMenu()
+
+        val item = composeRule.onNodeWithText("Tools").getUnclippedBoundsInRoot()
+        val x = (item.left.value + item.right.value) / 2f
+        val y = (item.top.value + item.bottom.value) / 2f
+        composeRule.onRoot().performTouchInput { click(Offset(x * density, y * density)) }
+        composeRule.waitForIdle()
+
+        assertEquals("the drawer did not open", false, drawerShown())
+        assertEquals("the menu was dismissed by the touch", false, tagShown(ADD_ACTION_TILE_TAG))
     }
 
     private companion object {
