@@ -622,3 +622,7 @@ Planner's readings, stated to the owner, stand unless the owner overrules them:
 - The five `0.8f` literals move onto `MAP_CHROME_OVER_MAP_ALPHA`, with no visible change.
 
 Dispatch `2026-09-28-56` is widened by continuation `2026-09-28-58`, and still waits for J8.
+
+**Accent buttons, superseding edge-case ruling 3 (owner, 2026-09-28).** Ruling 3 above ("Keep them solid (Recommended)") stands as the record of what was decided then. The owner then reversed it, verbatim: "Have the colored buttons be at 80% opacity also". That covers the + disc, the record disc while recording, and the wide Add button.
+
+The + disc sits on the icon bar and the record disc on the control pill. Both are already 0.8 composites, so a disc at 0.8 on top would stack to about 0.96. Asked how the discs should reach 80%, the owner answered "[No preference]". The planner ruled **true 80% overall**: the map shows through each disc as much as through the rest of the chrome. The fill beneath is not stacked under the disc, which follows CLAUDE.md's rule that layered fills composite to 0.8 rather than each carrying it. The wide Add button sits straight on the map, so its own fill at 0.8 is already 0.8 overall. Carried by continuation `2026-09-28-59` of `-56`.
