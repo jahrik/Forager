@@ -512,6 +512,9 @@ class MainActivity : ComponentActivity() {
                     onSaveCartographyEntry = cartographyViewModel::onSaveEntry,
                     onDiscardCartographyEntryChanges = cartographyViewModel::onDiscardEntryChanges,
                     onSaveCartographyEntryAsDraft = cartographyViewModel::onSaveEntryAsDraft,
+                    // Intent 2026-09-28-68: a failed entry save's Toast, hosted by the Journal, clears
+                    // the message once shown (continuation 2026-09-28-76).
+                    onCartographySaveErrorDismissed = cartographyViewModel::onSaveErrorDismissed,
                     onDeleteCartographyEntry = cartographyViewModel::onDeleteEntry,
                     onRequestDeleteCartographyEntry = cartographyViewModel::requestDeleteEntry,
                     // J8-3: the entry report's Show or Hide on map and the Maps-tab chip's Hide and Hide
