@@ -78,6 +78,20 @@ import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import com.zynergylabs.forager.app.ui.map.layers.layerPaintFor
 import com.zynergylabs.forager.app.ui.map.mapBubbleEntryLineTag
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.hasAnyAncestor
+import com.zynergylabs.forager.app.domain.HighlightedRecord
+import com.zynergylabs.forager.app.domain.HighlightedRecordKind
+import com.zynergylabs.forager.app.domain.MapLayerPreferences
+import com.zynergylabs.forager.app.domain.model.GalleryPhoto
+import com.zynergylabs.forager.app.domain.model.PhotoAttachment
+import com.zynergylabs.forager.app.domain.model.WaypointDesignation
+import com.zynergylabs.forager.app.ui.map.FEATURE_ID_PROPERTY
+import com.zynergylabs.forager.app.ui.map.journalHighlightFeatureCollections
+import com.zynergylabs.forager.app.ui.map.layers.JOURNAL_ENTRIES_SWITCH_LAYER_ID
+import com.zynergylabs.forager.app.ui.map.layers.MapSourceIds
+import com.zynergylabs.forager.app.ui.track.formatRecordTimestamp
 import java.time.LocalDate
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -167,15 +181,27 @@ internal abstract class JournalEntriesOnMapHarness {
     protected abstract val glyphX: Dp
     protected abstract val glyphY: Dp
 
+    /** Glyphs the stub map draws besides the find's and the waypoint's (the J8 follow-ups draw a photo's). */
+    protected open val extraGlyphs: List<StubGlyph> get() = emptyList()
+
     protected val map: BubbleMapSlot by lazy {
         BubbleMapSlot(
             listOf(
                 StubGlyph(MapLayerIds.FINDS, FIND.id, glyphX, glyphY, FIND_AT),
                 StubGlyph(MapLayerIds.WAYPOINTS, WAYPOINT.id, glyphX, glyphY + 48.dp, LatLng(WAYPOINT.lat, WAYPOINT.lng)),
-            ),
+            ) + extraGlyphs,
         )
     }
     protected val layerPreferences = InMemoryLayerPreferences()
+
+    /**
+     * What the screen is handed, set before [setScreen]: the saved records the Maps tab draws
+     * (`getMapRecords`), every waypoint (as `MainActivity` passes them; the screen picks the ones its map
+     * draws) and the Journal's state. The find and the waypoint above by default.
+     */
+    protected var screenRecords: MapRecords = RECORDS
+    protected var screenWaypoints: List<Waypoint> = listOf(WAYPOINT)
+    protected var screenLog: MushroomLogUiState = MushroomLogUiState(entries = listOf(FIND))
     private lateinit var database: ForagerDatabase
     private lateinit var cartographyRepository: CartographyEntryRepository
     protected lateinit var cartographyViewModel: CartographyViewModel
@@ -220,14 +246,14 @@ internal abstract class JournalEntriesOnMapHarness {
             setShownOnMap = SetCartographyEntryShownOnMapUseCase(cartographyRepository),
             now = { 1_000L },
         )
-        val availabilityViewModel = mapLayersViewModel(getMapRecords = { RECORDS }, layerPreferences = layerPreferences)
+        val availabilityViewModel = mapLayersViewModel(getMapRecords = { screenRecords }, layerPreferences = layerPreferences)
         prepareAvailability(availabilityViewModel)
         composeRule.setContent {
             val uiState by availabilityViewModel.uiState.collectAsState()
             val cartographyUiState by cartographyViewModel.uiState.collectAsState()
             AvailabilityScreen(
                 uiState = uiState,
-                logUiState = MushroomLogUiState(entries = listOf(FIND)),
+                logUiState = screenLog,
                 onUseCurrentLocation = availabilityViewModel::useCurrentLocation,
                 onManualLatChanged = availabilityViewModel::onManualLatChanged,
                 onManualLngChanged = availabilityViewModel::onManualLngChanged,
@@ -258,7 +284,7 @@ internal abstract class JournalEntriesOnMapHarness {
                 onMapLayerVisibilityChanged = availabilityViewModel::onMapLayerVisibilityChanged,
                 onMapLayerOpacityChanged = availabilityViewModel::onMapLayerOpacityChanged,
                 onColourFieldMoved = availabilityViewModel::onColourFieldMoved,
-                waypoints = listOf(WAYPOINT),
+                waypoints = screenWaypoints,
                 // What MainActivity passes for the day entries.
                 cartographyUiState = cartographyUiState.hidingPendingDelete(),
                 onOpenCartographyEntry = cartographyViewModel::onOpenEntry,
@@ -675,5 +701,186 @@ internal class JournalEntriesOnMapWideTest : JournalEntriesOnMapHarness() {
         composeRule.onNodeWithText("Mushroom Log").assertExists()
         assertReportShowing(ENTRY_A_TEXT)
         assertEquals("entry-a", cartographyViewModel.uiState.value.editingEntry?.id)
+    }
+}
+
+// ── J8 follow-ups (dispatch 2026-09-28-70, widened by continuation 2026-09-28-87) ──
+
+private val KEPT_PHOTO_AT = LatLng(BUBBLE_PHOTO.photo.latitude!!, BUBBLE_PHOTO.photo.longitude!!)
+private val ORIGIN_WAYPOINT = Waypoint("wp-origin", 45.40, -122.70, null, "Track start", "", 1_000L, designation = WaypointDesignation.ORIGIN)
+private val END_WAYPOINT = Waypoint("wp-end", 45.41, -122.71, null, "Track end", "", 1_000L, designation = WaypointDesignation.END)
+
+/** A saved entry that keeps only [BUBBLE_PHOTO], attached to it (J8 highlights an entry's attached photos). */
+private fun entryKeepingPhoto(id: String, date: LocalDate, text: String, shown: Boolean) =
+    CartographyEntry.draft(id = id, date = date, updatedAtEpochMillis = 1_000L).copy(
+        isDraft = false,
+        text = text,
+        photos = listOf(PhotoAttachment(BUBBLE_PHOTO.photo.id, attachedAtEpochMillis = 1_000L)),
+        shownOnMap = shown,
+    )
+
+/**
+ * The J8 follow-ups through the real [AvailabilityScreen], as the J8 tests above, in portrait at the
+ * S22 Ultra's size:
+ * - item 1 (`-70`; the owner, "Option B"): while a photo's bubble shows J8's keeping-entry lines, its
+ *   attachment line leaves out its "Kept in" part, and is left out when nothing else is left; with no
+ *   highlight, or the "Journal entries" switch off, the line is as it was;
+ * - item 2 (`-87`): the rings are computed from the waypoints the map draws, so an ORIGIN or END
+ *   waypoint the map does not draw gets none.
+ *
+ * The photo is [BUBBLE_PHOTO], drawn by the stub map below the find and the waypoint. The album's count
+ * of the entries keeping it (`MushroomLogUiState.cartographyEntryPhotoReferenceCounts`, loaded by the
+ * Journal's own ViewModel in the app) is set by each test to the number of saved entries it stores
+ * keeping the photo, shown on the map or not.
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi")
+internal class JournalEntriesOnMapFollowUpsTest : JournalEntriesOnMapHarness() {
+    override val glyphX: Dp = 60.dp
+    override val glyphY: Dp = 380.dp
+    override val extraGlyphs: List<StubGlyph> get() = listOf(StubGlyph(MapLayerIds.PHOTOS, BUBBLE_PHOTO.photo.id, glyphX, glyphY + 96.dp, KEPT_PHOTO_AT))
+
+    private val photoDate = formatRecordTimestamp(BUBBLE_PHOTO.photo.createdAtEpochMillis!!)
+    private val day = LocalDate.of(2026, 9, 12)
+
+    /** The Maps tab draws the photo, which [findIds] use and [entryCount] saved entries keep in all. */
+    private fun drawThePhoto(findIds: List<String>, entryCount: Int) {
+        screenRecords = RECORDS.copy(photoMarkers = listOf(RecordPoint(BUBBLE_PHOTO.photo.id, KEPT_PHOTO_AT)))
+        screenLog = MushroomLogUiState(
+            entries = listOf(FIND),
+            galleryPhotos = listOf(GalleryPhoto(BUBBLE_PHOTO.photo, referencingEntryIds = findIds)),
+            cartographyEntryPhotoReferenceCounts = mapOf(BUBBLE_PHOTO.photo.id to entryCount),
+        )
+    }
+
+    /** On the Maps tab, a real touch on the photo's glyph: its bubble. */
+    private fun openPhotoBubble() {
+        touchNavItem("Maps")
+        touchCentreOf(glyphTag(BUBBLE_PHOTO.photo.id))
+        composeRule.onNodeWithTag(MAP_BUBBLE_TAG).assertIsDisplayed()
+    }
+
+    /** Every line of text on the bubble, top to bottom, as drawn (each [Text] once). */
+    private fun bubbleTexts(): List<String> =
+        composeRule.onAllNodes(hasAnyAncestor(hasTestTag(MAP_BUBBLE_TAG)) and SemanticsMatcher.keyIsDefined(SemanticsProperties.Text), useUnmergedTree = true)
+            .fetchSemanticsNodes()
+            .flatMap { node -> node.config[SemanticsProperties.Text].map { it.text } }
+
+    // ── Item 1: one "Kept in" ──
+
+    @Test
+    fun `a highlighted photo in a find, kept by up to three shown entries, says In the find and its date lines, with no Kept in`() {
+        drawThePhoto(findIds = listOf(FIND.id), entryCount = 2)
+        setScreen(
+            entryKeepingPhoto("entry-a", day, "Shown on the map.", shown = true),
+            entryKeepingPhoto("entry-b", day.minusDays(7), "Not shown.", shown = false),
+        )
+
+        openPhotoBubble()
+
+        assertEquals(listOf(photoDate, "In Golden chanterelle", "2026-09-12", "View photo"), bubbleTexts())
+    }
+
+    @Test
+    fun `a highlighted photo kept by more than three shown entries has exactly one Kept in line, the tappable count`() {
+        drawThePhoto(findIds = listOf(FIND.id), entryCount = 5)
+        setScreen(
+            entryKeepingPhoto("entry-1", day, "First.", shown = true),
+            entryKeepingPhoto("entry-2", day.minusDays(1), "Second.", shown = true),
+            entryKeepingPhoto("entry-3", day.minusDays(2), "Third.", shown = true),
+            entryKeepingPhoto("entry-4", day.minusDays(3), "Fourth.", shown = true),
+            entryKeepingPhoto("entry-5", day.minusDays(4), "Not shown.", shown = false),
+        )
+
+        openPhotoBubble()
+
+        val texts = bubbleTexts()
+        assertEquals("one Kept in line on the bubble: $texts", listOf("Kept in 4 journal entries"), texts.filter { "Kept in" in it })
+        composeRule.onNodeWithTag(MAP_BUBBLE_ENTRY_COUNT_TAG).assertTextEquals("Kept in 4 journal entries")
+        assertEquals(listOf(photoDate, "In Golden chanterelle", "Kept in 4 journal entries", "View photo"), texts)
+    }
+
+    @Test
+    fun `a highlighted photo in no find has no attachment line, and never says it is not in a journal entry`() {
+        drawThePhoto(findIds = emptyList(), entryCount = 1)
+        setScreen(entryKeepingPhoto("entry-a", day, "Shown on the map.", shown = true))
+
+        openPhotoBubble()
+
+        val texts = bubbleTexts()
+        assertEquals("never the not-attached line: $texts", emptyList<String>(), texts.filter { it == "Not in a find or a journal entry" })
+        assertEquals(listOf(photoDate, "2026-09-12", "View photo"), texts)
+    }
+
+    /**
+     * "Not highlighted: exactly as today" is pinned here, on the way to the highlighted case, so this
+     * test fails at base on the highlighted half: the not-highlighted half cannot, since it pins a line
+     * this item leaves as it was.
+     */
+    @Test
+    fun `a photo not highlighted keeps its whole line, and once its entry is shown on the map the line drops its Kept in`() {
+        drawThePhoto(findIds = listOf(FIND.id), entryCount = 1)
+        setScreen(entryKeepingPhoto("entry-a", day, "Shown later.", shown = false))
+        openPhotoBubble()
+        assertEquals("not highlighted: as it was", listOf(photoDate, "In Golden chanterelle · Kept in 1 journal entry", "View photo"), bubbleTexts())
+
+        // Shown on the map from its report, as a user does it (J8-3).
+        openEntryReport("entry-a", "Shown later.")
+        openEntryMenu()
+        touchCentreOf(composeRule.onNodeWithText("Show on map"))
+        assertEquals(true, stored("entry-a").shownOnMap)
+        openPhotoBubble()
+
+        assertEquals("highlighted", listOf(photoDate, "In Golden chanterelle", "2026-09-12", "View photo"), bubbleTexts())
+    }
+
+    /**
+     * "Switch off: exactly as today", pinned on the way to the switch being turned on, for the reason the
+     * test above gives. The switch starts off as a stored choice, restored as every overlay switch is,
+     * and is turned on in the Layers sheet with the bubble open, which re-reads its lines.
+     */
+    @Test
+    fun `with the Journal entries switch off the photo keeps its whole line, and turned on the line drops its Kept in`() {
+        layerPreferences.stored = MapLayerPreferences.NONE.copy(visibility = mapOf(JOURNAL_ENTRIES_SWITCH_LAYER_ID to false))
+        drawThePhoto(findIds = listOf(FIND.id), entryCount = 2)
+        setScreen(
+            entryKeepingPhoto("entry-a", day, "Shown on the map.", shown = true),
+            entryKeepingPhoto("entry-b", day.minusDays(7), "Not shown.", shown = false),
+        )
+        openPhotoBubble()
+        assertEquals("switch off: as it was", listOf(photoDate, "In Golden chanterelle · Kept in 2 journal entries", "View photo"), bubbleTexts())
+
+        touchCentreOf(composeRule.onNodeWithContentDescription(LAYERS_ROW_DESCRIPTION))
+        touchCentreOf(composeRule.onNodeWithText("Journal entries").performScrollTo())
+
+        assertTrue("the switch is on", "visible $JOURNAL_ENTRIES_SWITCH_LAYER_ID true" in layerPreferences.writes)
+        assertEquals("switch on", listOf(photoDate, "In Golden chanterelle", "2026-09-12", "View photo"), bubbleTexts())
+    }
+
+    // ── Item 2: no ring on a waypoint the map does not draw ──
+
+    @Test
+    fun `an ORIGIN and an END waypoint kept by a shown entry get no ring, and an ordinary kept waypoint still does`() {
+        screenWaypoints = listOf(WAYPOINT, ORIGIN_WAYPOINT, END_WAYPOINT)
+        setScreen(
+            CartographyEntry.draft(id = "entry-a", date = day, updatedAtEpochMillis = 1_000L).copy(
+                isDraft = false,
+                text = "Kept all three.",
+                waypointDecisions = screenWaypoints.map { WaypointDecision(waypointId = it.id, name = it.name, lat = it.lat, lng = it.lng, kept = true) },
+                shownOnMap = true,
+            ),
+        )
+        touchNavItem("Maps")
+
+        val content = map.content!!
+        assertEquals("the map draws the ordinary waypoint alone (not navigating)", listOf(WAYPOINT.id), content.waypoints.map { it.id })
+        assertEquals("rings on the waypoints the map draws", listOf(WAYPOINT.id), content.journalHighlights.waypointMarkers.map { it.recordId })
+        val ringSource = journalHighlightFeatureCollections(content.journalHighlights).getValue(MapSourceIds.JOURNAL_ENTRY_WAYPOINTS)
+        assertEquals("what the ring layer's source is fed", listOf(WAYPOINT.id), ringSource.features()!!.map { it.getStringProperty(FEATURE_ID_PROPERTY) })
+        assertEquals(
+            "keeping-entry lines for the drawn waypoint only",
+            listOf(HighlightedRecord(HighlightedRecordKind.WAYPOINT, WAYPOINT.id)),
+            content.journalHighlights.keptIn.keys.filter { it.kind == HighlightedRecordKind.WAYPOINT },
+        )
     }
 }
