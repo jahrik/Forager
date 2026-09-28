@@ -102,6 +102,14 @@ import com.zynergylabs.forager.app.ui.map.layers.COLOUR_FIELDS
 import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
 import com.zynergylabs.forager.app.ui.map.layers.mapLegendFor
 import com.zynergylabs.forager.app.ui.map.MapOverlayContent
+import com.zynergylabs.forager.app.ui.map.MapBubbleLayer
+import com.zynergylabs.forager.app.ui.map.MapBubbleTarget
+import com.zynergylabs.forager.app.ui.map.MapFeatureTap
+import com.zynergylabs.forager.app.ui.map.MapRecordSources
+import com.zynergylabs.forager.app.ui.map.TappedMapThing
+import com.zynergylabs.forager.app.ui.map.focusedFeature
+import com.zynergylabs.forager.app.ui.map.focusedObservationId
+import com.zynergylabs.forager.app.ui.map.tappedThingOf
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.rememberTrueHeading
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
@@ -337,15 +345,21 @@ internal fun CompactMapTab(
      * tab draws (see [MapLayersControls]). Defaulted so any other caller is unchanged.
      */
     mapLayers: MapLayersControls = MapLayersControls(),
+    /**
+     * M1: what this tab's glyph bubbles look records up in, and the targets they open (the J5c
+     * details sheet's inputs, the photos, and "Open in Journal"). See [MapRecordSources]. Defaulted,
+     * so another caller gets bubbles with nothing to find: each closes at once, with a logged line.
+     */
+    bubbleSources: MapRecordSources = MapRecordSources(),
 ) {
     var showActionMenu by remember { mutableStateOf(false) }
     var showLayersSheet by remember { mutableStateOf(false) }
     var pendingAction by remember { mutableStateOf<PendingMapAction?>(null) }
     var pendingTripLocation by remember { mutableStateOf<LatLng?>(null) }
     var pendingWaypointLocation by remember { mutableStateOf<LatLng?>(null) }
-    var tappedSighting by remember { mutableStateOf<Sighting?>(null) }
-    var tappedSightingScreenPosition by remember { mutableStateOf(Offset.Zero) }
-    var tappedSightingBearingDeg by remember { mutableStateOf(0f) }
+    // M1 (planner's ruling: one bubble at a time): the one tapped thing, a sighting or any glyph.
+    var tapped by remember { mutableStateOf<TappedMapThing?>(null) }
+    val onFeatureTap: (MapFeatureTap) -> Unit = remember { { tap -> tappedThingOf(tap)?.let { tapped = it } } }
     // See MapOverlayContent.resumeTrackingRequestId's own doc comment — incremented alongside the
     // existing onLocateMe() call below, not instead of it: that call still drives the compass
     // strip's own one-shot position/elevation text, this drives the map's live GPS camera puck.
@@ -621,7 +635,8 @@ internal fun CompactMapTab(
                         waypoints = waypoints,
                         resumeTrackingRequestId = resumeTrackingRequestId,
                         resetOrientationRequestId = resetOrientationRequestId,
-                        focusedObservationId = tappedSighting?.observationId,
+                        focusedObservationId = tapped.focusedObservationId,
+                        focusedFeature = tapped.focusedFeature,
                         // Map layers L0b, B2 (owner: "Every saved record"): every saved find with a
                         // location, every ended track, every located album photo and every offline
                         // region, pending deletes left out, each visible by default.
@@ -630,21 +645,19 @@ internal fun CompactMapTab(
                         photoMarkers = mapLayers.records.photoMarkers,
                         offlineRegionCircles = mapLayers.records.offlineRegionCircles,
                     ),
-                    renderMode,
+                    renderMode.copy(onFeatureTap = onFeatureTap),
                     focusOverride,
                     {},
-                    // Tapping the map restores chrome while fullscreen — decision #5 — AND, now,
-                    // dismisses the observation bubble below regardless of fullscreen state (a plain
-                    // tap elsewhere on the map is its whole dismiss gesture, see ObservationBubble's
-                    // own doc comment). Harmless to clear when nothing is showing.
+                    // Tapping the map restores chrome while fullscreen — decision #5 — AND dismisses
+                    // the bubble below regardless of fullscreen state (a plain tap on empty map is
+                    // its dismiss gesture). Since M1 a tap on a glyph is not a plain tap (owner's
+                    // ruling 1, "Bubble only"), so it opens its bubble and does neither.
                     {
                         if (isFullscreen) onToggleFullscreen()
-                        tappedSighting = null
+                        tapped = null
                     },
                     { sighting, screenPosition, bearingDeg ->
-                        tappedSighting = sighting
-                        tappedSightingScreenPosition = screenPosition
-                        tappedSightingBearingDeg = bearingDeg
+                        tapped = TappedMapThing(MapBubbleTarget.SightingTarget(sighting), screenPosition, bearingDeg)
                     },
                     { location -> cameraCenter = location },
                     Modifier.fillMaxSize(),
@@ -653,38 +666,27 @@ internal fun CompactMapTab(
                 // exact nesting (a direct sibling of the map's own AndroidView content, inside
                 // this Box) is what makes its translucency actually work.
                 searchBarSlot()
-                tappedSighting?.let { sighting ->
-                    // minY = compassStripClearance, a real measurement of the strip's own type
-                    // style — not a hardcoded touch-target constant and not 0 — the strip is
-                    // composed after this in the same Box (deliberately, so its own controls win
-                    // any overlap — see CompactMapTab's own doc comment above MapIconBar), and is
-                    // full-width/flush against the map's top edge. A marker tapped near the map's
-                    // own top edge would otherwise anchor a bubble underneath that strip's band: its
-                    // own taps (including the close icon's) would never reach this composable,
-                    // silently swallowed by the strip's own Surface the exact way CLAUDE.md's
-                    // "Known pitfalls" already documents for this app's map overlays — the same
-                    // class of miss that entry warns visual review alone won't catch, this time
-                    // guarded against directly rather than only caught by this bubble's own
-                    // close-icon interaction test. See compassStripClearance's own doc comment for
-                    // why it is a one-time text measurement rather than the strip's real measured
-                    // layout height.
-                    AnchoredAtScreenPoint(
-                        anchorPx = tappedSightingScreenPosition,
-                        bearingDeg = tappedSightingBearingDeg,
-                        minY = topInset + compassStripClearance,
-                        modifier = Modifier.fillMaxSize(),
-                    ) { arrowAngleDeg ->
-                        ObservationBubble(
-                            sighting = sighting,
-                            onViewOnINaturalist = {
-                                launchINaturalistObservation(context, sighting.observationId)
-                                tappedSighting = null
-                            },
-                            onDismiss = { tappedSighting = null },
-                            arrowAngleDeg = arrowAngleDeg,
-                        )
-                    }
-                }
+                // minY = compassStripClearance, a real measurement of the strip's own type style: the
+                // strip is composed after this in the same Box (so its own controls win any overlap)
+                // and is full-width against the map's top edge, so a glyph tapped near the top would
+                // otherwise anchor a bubble under that strip's band, where its taps (the close button's
+                // included) would never reach it (CLAUDE.md, the Surface pitfall). See
+                // compassStripClearance's own comment for why it is a one-time text measurement.
+                //
+                // Back closes the bubble (M1), except while something above the map owns Back: the
+                // Tools drawer (intent 2026-09-28-28's precedence), the add menu or a picker.
+                MapBubbleLayer(
+                    tapped = tapped,
+                    onDismiss = { tapped = null },
+                    sources = bubbleSources,
+                    forecast = renderMode.forecast,
+                    onViewSightingOnINaturalist = { sighting ->
+                        launchINaturalistObservation(context, sighting.observationId)
+                        tapped = null
+                    },
+                    minY = topInset + compassStripClearance,
+                    backEnabled = !isDrawerOpen && pendingAction == null && !pickingSearchLocation && !showActionMenu,
+                )
                 // MapIconBar composed *before* CompassElevationStrip now, not after — field-test
                 // dispatch item 2 gave the strip a real touch target at its own far right edge, the
                 // same horizontal column MapIconBar's CenterEnd alignment already claims.

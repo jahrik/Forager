@@ -66,6 +66,14 @@ import com.zynergylabs.forager.app.ui.map.layers.COLOUR_FIELDS
 import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
 import com.zynergylabs.forager.app.ui.map.layers.mapLegendFor
 import com.zynergylabs.forager.app.ui.map.MapOverlayContent
+import com.zynergylabs.forager.app.ui.map.MapBubbleLayer
+import com.zynergylabs.forager.app.ui.map.MapBubbleTarget
+import com.zynergylabs.forager.app.ui.map.MapFeatureTap
+import com.zynergylabs.forager.app.ui.map.MapRecordSources
+import com.zynergylabs.forager.app.ui.map.TappedMapThing
+import com.zynergylabs.forager.app.ui.map.focusedFeature
+import com.zynergylabs.forager.app.ui.map.focusedObservationId
+import com.zynergylabs.forager.app.ui.map.tappedThingOf
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.theme.Spacing
@@ -109,6 +117,8 @@ internal fun CombinedResultsPane(
      * Maps tab draws (see [MapLayersControls]). Defaulted so other callers are unchanged.
      */
     mapLayers: MapLayersControls = MapLayersControls(),
+    /** M1: see [CompactMapTab]'s parameter of the same name. */
+    bubbleSources: MapRecordSources = MapRecordSources(),
 ) {
     Row(modifier = modifier.fillMaxHeight()) {
         ListTab(
@@ -133,6 +143,7 @@ internal fun CombinedResultsPane(
             taxonFilter = taxonFilter,
             onClearTaxonFilter = onClearTaxonFilter,
             mapLayers = mapLayers,
+            bubbleSources = bubbleSources,
             modifier = Modifier.weight(1f).fillMaxHeight(),
         )
     }
@@ -204,6 +215,7 @@ private fun MapTab(
     taxonFilter: Long?,
     onClearTaxonFilter: () -> Unit,
     mapLayers: MapLayersControls,
+    bubbleSources: MapRecordSources,
     modifier: Modifier = Modifier,
 ) {
     var showActionMenu by remember { mutableStateOf(false) }
@@ -236,9 +248,9 @@ private fun MapTab(
             val region = uiState.region
             if (region != null) {
                 var cameraCenter by remember(region) { mutableStateOf(LatLng(region.lat, region.lng)) }
-                var tappedSighting by remember { mutableStateOf<Sighting?>(null) }
-                var tappedSightingScreenPosition by remember { mutableStateOf(Offset.Zero) }
-                var tappedSightingBearingDeg by remember { mutableStateOf(0f) }
+                // M1: the one tapped thing, as on the compact Maps tab.
+                var tapped by remember { mutableStateOf<TappedMapThing?>(null) }
+                val onFeatureTap: (MapFeatureTap) -> Unit = remember { { tap -> tappedThingOf(tap)?.let { tapped = it } } }
                 val context = LocalContext.current
                 Column(modifier = modifier.fillMaxWidth()) {
                     // "View on Map" from a List-tab row: limits the map to one species' sightings
@@ -267,45 +279,37 @@ private fun MapTab(
                                 plannedTrips = uiState.plannedTrips,
                                 breadcrumbPoints = breadcrumbPoints,
                                 waypoints = waypoints,
-                                focusedObservationId = tappedSighting?.observationId,
+                                focusedObservationId = tapped.focusedObservationId,
+                                focusedFeature = tapped.focusedFeature,
                                 // Map layers L0b, B2: every saved record, as on the compact Maps tab.
                                 keptTrackPolylines = mapLayers.records.trackPolylines,
                                 findMarkers = mapLayers.records.findMarkers,
                                 photoMarkers = mapLayers.records.photoMarkers,
                                 offlineRegionCircles = mapLayers.records.offlineRegionCircles,
                             ),
-                            renderMode,
+                            renderMode.copy(onFeatureTap = onFeatureTap),
                             null,
                             {},
-                            // A plain tap elsewhere on the map is what dismisses the bubble below —
-                            // see ObservationBubble's own doc comment for why this replaced a modal
-                            // AlertDialog. Harmless to clear when nothing is showing.
-                            { tappedSighting = null },
+                            // A plain tap on empty map is what dismisses the bubble below. Harmless to
+                            // clear when nothing is showing.
+                            { tapped = null },
                             { sighting, screenPosition, bearingDeg ->
-                                tappedSighting = sighting
-                                tappedSightingScreenPosition = screenPosition
-                                tappedSightingBearingDeg = bearingDeg
+                                tapped = TappedMapThing(MapBubbleTarget.SightingTarget(sighting), screenPosition, bearingDeg)
                             },
                             { location -> cameraCenter = location },
                             Modifier.fillMaxSize(),
                         )
-                        tappedSighting?.let { sighting ->
-                            AnchoredAtScreenPoint(
-                                anchorPx = tappedSightingScreenPosition,
-                                bearingDeg = tappedSightingBearingDeg,
-                                modifier = Modifier.fillMaxSize(),
-                            ) { arrowAngleDeg ->
-                                ObservationBubble(
-                                    sighting = sighting,
-                                    onViewOnINaturalist = {
-                                        launchINaturalistObservation(context, sighting.observationId)
-                                        tappedSighting = null
-                                    },
-                                    onDismiss = { tappedSighting = null },
-                                    arrowAngleDeg = arrowAngleDeg,
-                                )
-                            }
-                        }
+                        MapBubbleLayer(
+                            tapped = tapped,
+                            onDismiss = { tapped = null },
+                            sources = bubbleSources,
+                            forecast = renderMode.forecast,
+                            onViewSightingOnINaturalist = { sighting ->
+                                launchINaturalistObservation(context, sighting.observationId)
+                                tapped = null
+                            },
+                            backEnabled = !showActionMenu && pendingAction == null,
+                        )
                         mapTaxonFilterLabel?.let { label ->
                             TaxonMapFilterChip(
                                 label = label,

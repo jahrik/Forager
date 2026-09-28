@@ -280,6 +280,8 @@ import com.zynergylabs.forager.app.ui.log.rememberJournalScreenState
 import com.zynergylabs.forager.app.ui.log.LogPanel
 import com.zynergylabs.forager.app.ui.log.MushroomLogUiState
 import com.zynergylabs.forager.app.ui.log.PendingJournalDestination
+import com.zynergylabs.forager.app.ui.map.MapRecordSources
+import com.zynergylabs.forager.app.ui.map.OPEN_IN_JOURNAL_LABEL
 import com.zynergylabs.forager.app.ui.log.PhotoGalleryScreen
 import com.zynergylabs.forager.app.ui.map.Basemap
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker
@@ -939,6 +941,8 @@ fun AvailabilityScreen(
     // why it stays a single-purpose token rather than a shared navigation type. One instance covers
     // both window classes: only whichever of LogPanel/JournalTab is actually composed reads it.
     var pendingJournalDestination by remember { mutableStateOf<PendingJournalDestination?>(null) }
+    // M1: the find a PendingJournalDestination.VIEW_FIND request opens, cleared with the request.
+    var pendingJournalFindId by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(isDrawerOpen) {
         if (isDrawerOpen) {
             drawerState.open()
@@ -1087,6 +1091,41 @@ fun AvailabilityScreen(
     LaunchedEffect(isMapsTabShown) {
         if (isMapsTabShown) onMapShown()
     }
+    // M1 (B3, B4): what the Maps tab's glyph bubbles look records up in, and the J5c sheet's inputs,
+    // all already in hand here. A find's "Open in Journal" opens the find in its report over whatever
+    // the Journal was showing (PendingJournalDestination.VIEW_FIND), so the saved Records chip and top
+    // tab are never changed (planner's ruling on F3, continuation 2026-09-28-30). Compact: the
+    // Journal tab. Medium and expanded: the drawer's LogPanel (owner, Q3: "Open drawer to the find").
+    // Checked against the Maps search-bar gate (AvailabilityCompactScaffold's isEditingJournalEntry):
+    // the find opens as the Journal tab comes up, where that gate hides the header as it does for any
+    // open find; the Maps tab's own bar is gated on the Journal showing, so it is unaffected.
+    val usesCompactTree = windowWidthClass == WindowWidthClass.COMPACT || isShortWindow
+    val mapBubbleSources = MapRecordSources(
+        finds = logUiState.entries,
+        galleryPhotos = logUiState.galleryPhotos,
+        photoEntryReferenceCounts = logUiState.cartographyEntryPhotoReferenceCounts,
+        waypoints = waypoints,
+        waypointEntryReferenceCounts = waypointEntryReferenceCounts,
+        tracks = tracks,
+        plannedTrips = uiState.plannedTrips,
+        offlineRegions = uiState.visibleOfflineRegions,
+        distanceUnit = uiState.distanceUnit,
+        staleThresholdDays = uiState.offlineStaleThresholdDays,
+        nowEpochMillis = currentTime::nowEpochMillis,
+        getFullRecord = getFullRecord,
+        onOpenFind = { findId ->
+            pendingJournalFindId = findId
+            pendingJournalDestination = PendingJournalDestination.VIEW_FIND
+            onOpenLogEntry(findId)
+            if (usesCompactTree) {
+                compactTab = CompactTab.JOURNAL
+            } else {
+                drawerPanel = DrawerPanel.Log
+                isDrawerOpen = true
+            }
+        },
+        openFindLabel = OPEN_IN_JOURNAL_LABEL,
+    )
     val isShortLandscapeWindow = isShortWindow &&
         LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val portEdge = currentWindowPortEdge()
@@ -1254,6 +1293,7 @@ fun AvailabilityScreen(
                     mapLayers = mapLayersControls.stored,
                     onMapLayerVisibilityChanged = mapLayersControls.onVisibilityChanged,
                     onOpenEntryForEditing = onOpenLogEntryForEditing,
+                    onOpenEntryForReport = onOpenLogEntry,
                     onCloseEntry = onCloseLogEntry,
                     onEntryChanged = onLogEntryChanged,
                     onSaveEntry = onSaveLogEntry,
@@ -1319,7 +1359,11 @@ fun AvailabilityScreen(
                     onDeleteWaypoint = onDeleteWaypoint,
                     waypointEntryReferenceCounts = waypointEntryReferenceCounts,
                     pendingDestination = pendingJournalDestination,
-                    onPendingDestinationConsumed = { pendingJournalDestination = null },
+                    pendingFindId = pendingJournalFindId,
+                    onPendingDestinationConsumed = {
+                        pendingJournalDestination = null
+                        pendingJournalFindId = null
+                    },
                 )
             }
 
@@ -1419,6 +1463,7 @@ fun AvailabilityScreen(
                         mapMode = mapMode,
                         onMapModeSelected = { mapMode = it },
                         mapLayers = mapLayersControls,
+                        bubbleSources = mapBubbleSources,
                         onPlaceTripPin = onPlaceTripPin,
                         onLogFindHere = onLogFindHere,
                         breadcrumbPoints = breadcrumbPoints,
@@ -1503,7 +1548,12 @@ fun AvailabilityScreen(
             onUseCurrentLocation = onUseCurrentLocation,
             onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
             onTaxonSearchResultSelected = onTaxonSearchResultSelected,
-            onPendingJournalDestinationChange = { pendingJournalDestination = it },
+            onPendingJournalDestinationChange = {
+                pendingJournalDestination = it
+                if (it == null) pendingJournalFindId = null
+            },
+            pendingJournalFindId = { pendingJournalFindId },
+            mapBubbleSources = mapBubbleSources,
             onStartLogEntry = onStartLogEntry,
             onViewSpeciesOnMap = onViewSpeciesOnMap,
             onMapModeChange = { mapMode = it },

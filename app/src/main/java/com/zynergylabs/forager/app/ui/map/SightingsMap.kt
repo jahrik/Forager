@@ -64,6 +64,8 @@ import com.zynergylabs.forager.app.ui.map.layers.withUnavailableColourFieldsHidd
 import com.zynergylabs.forager.app.domain.ForecastCellsResult
 import com.zynergylabs.forager.app.ui.map.layers.layerPaintFor
 import com.zynergylabs.forager.app.ui.map.layers.orderedLayers
+import com.zynergylabs.forager.app.ui.map.layers.MapTapOutcome
+import com.zynergylabs.forager.app.ui.map.layers.mapTapOutcome
 import com.zynergylabs.forager.app.ui.map.layers.resolveTap
 import com.zynergylabs.forager.app.ui.map.layers.tappableLayerIds
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
@@ -173,9 +175,9 @@ import org.maplibre.geojson.Polygon
  * against [SIGHTING_LAYER_ID] in the click listener below) and calls out with the matching
  * [Sighting]. Since map layers L0a every other tappable layer is queried too and the winner is
  * chosen by `resolveTap` (markers, then lines, then colour fields; the topmost layer within a
- * group); a winner that is not a sighting goes to [onFeatureTap] with its layer id and the
- * `featureId` property the pure builders write ([FEATURE_ID_PROPERTY]). Nothing shows a popup for
- * those yet (M1 builds the bubbles).
+ * group); a winner that is not a sighting goes to [onFeatureTap] with its layer id, the
+ * `featureId` property the pure builders write ([FEATURE_ID_PROPERTY]) and where it was tapped, and
+ * since M1 nothing else fires for it (`mapTapOutcome`): the caller shows its bubble.
  */
 @Composable
 fun SightingsMap(
@@ -239,7 +241,9 @@ fun SightingsMap(
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.layers]'s own doc comment. */
     layersState: MapLayersState = MapLayersState.DEFAULT,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.onFeatureTap]'s own doc comment. */
-    onFeatureTap: (layerId: String, featureId: String) -> Unit = { _, _ -> },
+    onFeatureTap: (MapFeatureTap) -> Unit = {},
+    /** See [com.zynergylabs.forager.app.ui.map.MapOverlayContent.focusedFeature]'s own doc comment. */
+    focusedFeature: FocusedMapFeature? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.forecast]'s own doc comment. */
     forecast: MapForecastFeed? = null,
 ) {
@@ -296,6 +300,13 @@ fun SightingsMap(
     // at tap time, so a caller-side dismissal (which only ever changes this parameter, never reaches
     // the click listener below) is visible here too.
     val currentFocusedObservationId by rememberUpdatedState(focusedObservationId)
+    // M1 (F2): the point feature a caller's bubble is showing, and the lists it is looked up in, read
+    // fresh on every camera idle for the reason currentFocusedObservationId is.
+    val currentFocusedFeature by rememberUpdatedState(focusedFeature)
+    val currentPlannedTrips by rememberUpdatedState(plannedTrips)
+    val currentWaypoints by rememberUpdatedState(waypoints)
+    val currentFindMarkers by rememberUpdatedState(findMarkers)
+    val currentPhotoMarkers by rememberUpdatedState(photoMarkers)
     var mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
     // The Style instance from the most recently completed setStyle callback. Distinct from
     // "which style is currently applied" (appliedStyle, below) because this is what the data
@@ -383,30 +394,38 @@ fun SightingsMap(
                     },
                     drawOrder = drawOrder,
                 )
-                if (winner != null && winner.layerId == SIGHTING_LAYER_ID) {
-                    // The sighting path as before L0a: the dot's observationId looked back up in the
-                    // current list, the bubble anchored at the tap point, onTap when the id no longer
-                    // resolves.
-                    val tappedSighting = winner.featureId?.toLongOrNull()
-                        ?.let { id -> currentSightings.firstOrNull { it.observationId == id } }
-                    if (tappedSighting != null) {
-                        currentOnSightingTap(tappedSighting, Offset(screenPoint.x, screenPoint.y), map.cameraPosition.bearing.toFloat())
-                    } else {
-                        currentOnTap()
-                    }
-                } else {
-                    if (winner != null) {
-                        val featureId = winner.featureId
-                        if (featureId != null) {
-                            currentOnFeatureTap(winner.layerId, featureId)
+                // M1 (owner's ruling 1, "Bubble only"): a feature tap opens its bubble and nothing
+                // else, as a sighting tap already did; only a tap on nothing tappable is a plain
+                // onTap (mapTapOutcome).
+                when (val outcome = mapTapOutcome(winner)) {
+                    is MapTapOutcome.OnSighting -> {
+                        // The sighting path as before L0a: the dot's observationId looked back up in
+                        // the current list, the bubble anchored at the tap point, onTap when the id no
+                        // longer resolves.
+                        val tappedSighting = outcome.observationId
+                            ?.let { id -> currentSightings.firstOrNull { it.observationId == id } }
+                        if (tappedSighting != null) {
+                            currentOnSightingTap(tappedSighting, Offset(screenPoint.x, screenPoint.y), map.cameraPosition.bearing.toFloat())
                         } else {
-                            Log.w(SIGHTINGS_MAP_TAG, "Tapped a feature on ${winner.layerId} with no $FEATURE_ID_PROPERTY; no feature tap reported.")
+                            currentOnTap()
                         }
                     }
-                    // Still fires after a feature tap, as it did before L0a for a tap on any marker
-                    // but a sighting: the fullscreen map's "tap to restore chrome"
-                    // (MapRenderMode.onFeatureTap's doc comment).
-                    currentOnTap()
+                    is MapTapOutcome.OnFeature -> currentOnFeatureTap(
+                        MapFeatureTap(
+                            layerId = outcome.layerId,
+                            featureId = outcome.featureId,
+                            screenPoint = Offset(screenPoint.x, screenPoint.y),
+                            bearingDeg = map.cameraPosition.bearing.toFloat(),
+                            at = LatLng(latLng.latitude, latLng.longitude),
+                        ),
+                    )
+                    is MapTapOutcome.UnidentifiedFeature -> {
+                        // Logged, never silent: a feature with no id cannot name its record, so no
+                        // bubble can show, and the tap is taken as a plain one.
+                        Log.w(SIGHTINGS_MAP_TAG, "Tapped a feature on ${outcome.layerId} with no $FEATURE_ID_PROPERTY; taken as a plain tap.")
+                        currentOnTap()
+                    }
+                    MapTapOutcome.Plain -> currentOnTap()
                 }
                 // false: unconsumed, matching the deleted osmdroid MapEventsOverlay's
                 // singleTapConfirmedHelper — a plain tap isn't meant to swallow the event.
@@ -458,6 +477,18 @@ fun SightingsMap(
                         val screenPoint = map.projection.toScreenLocation(MapLibreLatLng(sighting.lat, sighting.lng))
                         currentOnSightingTap(sighting, Offset(screenPoint.x, screenPoint.y), map.cameraPosition.bearing.toFloat())
                     }
+                // M1 (F2): the same for a point feature's bubble. Its glyph's own position is re-found
+                // in the lists this map draws (focusedFeaturePosition) and reported as a feature tap
+                // at that point, so the caller's bubble follows the glyph. A record no longer drawn
+                // is not re-fired, and a dismissed bubble has no focusedFeature, so nothing revives it.
+                currentFocusedFeature?.let { focus ->
+                    focusedFeaturePosition(focus, currentPlannedTrips, currentWaypoints, currentFindMarkers, currentPhotoMarkers)?.let { at ->
+                        val glyph = map.projection.toScreenLocation(MapLibreLatLng(at.lat, at.lng))
+                        currentOnFeatureTap(
+                            MapFeatureTap(focus.layerId, focus.featureId, Offset(glyph.x, glyph.y), map.cameraPosition.bearing.toFloat(), at),
+                        )
+                    }
+                }
             }
             // MapLibre's own tap-to-reveal attribution control defaults to bottom-start — the same
             // corner this composable's own always-visible Basemap.attribution caption occupies (see

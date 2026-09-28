@@ -2,6 +2,12 @@ package com.zynergylabs.forager.app.ui.log
 
 import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.platform.testTag
+import com.zynergylabs.forager.app.ui.map.MapRecordSources
+import com.zynergylabs.forager.app.ui.map.OPEN_FIND_LABEL
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -127,6 +133,12 @@ internal fun LogPanel(
      * in the ViewModel rather than being composed here from two calls.
      */
     onOpenEntryForEditing: (String) -> Unit,
+    /**
+     * M1: opens a find without starting an edit (`MushroomLogViewModel.onOpenEntry`), for the find
+     * shown in its report over this panel. The default opens it for editing, as this panel always
+     * did, so a caller that does not pass it gets the edit form under the report.
+     */
+    onOpenEntryForReport: (String) -> Unit = onOpenEntryForEditing,
     onCloseEntry: () -> Unit,
     onEntryChanged: (MushroomLogEntry) -> Unit,
     onSaveEntry: () -> Unit,
@@ -198,6 +210,8 @@ internal fun LogPanel(
     waypointEntryReferenceCounts: Map<String, Int> = emptyMap(),
     /** See this composable's own doc comment — Stage 2d. `null` (the default) is a no-op, so every other caller of this panel is unaffected. */
     pendingDestination: PendingJournalDestination? = null,
+    /** M1: the find a [PendingJournalDestination.VIEW_FIND] request opens over this panel. */
+    pendingFindId: String? = null,
     /** Fires once [pendingDestination] has been applied, so `AvailabilityScreen` clears its own copy and is ready for the next request. */
     onPendingDestinationConsumed: () -> Unit = {},
     modifier: Modifier = Modifier,
@@ -232,11 +246,31 @@ internal fun LogPanel(
     // for the fuller reasoning.
     var recordsPendingSubTab by remember { mutableStateOf<RecordsSubTab?>(null) }
 
+    // M1: a find opened from a map bubble, over this panel (FindOverView), in its report: this panel
+    // has no report step of its own (its gallery opens a find to edit), so the report the owner asked
+    // for (Q3, "Open drawer to the find") is shown here, and its Edit goes on into the edit form.
+    var findOverView by remember { mutableStateOf<FindOverView?>(null) }
+    var findOverViewReport by remember { mutableStateOf(true) }
+    LaunchedEffect(findOverView, editing?.id) {
+        findOverView = nextFindOverView(findOverView, editing?.id)
+    }
+    val findOverViewVisible = editing != null && findOverView.let { it != null && (it.shown || editing.id == it.findId) }
+    fun openFindOverView(findId: String) {
+        findOverViewReport = true
+        findOverView = FindOverView(findId)
+    }
+
     LaunchedEffect(pendingDestination) {
         when (pendingDestination) {
             PendingJournalDestination.EDIT_NEW_FIND -> {
                 selectedTopTab = JournalTopTab.RECORDS
                 recordsPendingSubTab = RecordsSubTab.FINDS
+                onPendingDestinationConsumed()
+            }
+            // M1, the Maps tab's "Open in Journal" on the wide layout: the caller has opened the find
+            // and this panel; the find shows over it, which keeps its top tab and Records chip.
+            PendingJournalDestination.VIEW_FIND -> {
+                pendingFindId?.let(::openFindOverView)
                 onPendingDestinationConsumed()
             }
             null -> Unit
@@ -349,7 +383,29 @@ internal fun LogPanel(
         }
     }
 
-    Column(modifier = modifier.fillMaxWidth()) {
+    // M1: the entry map's bubbles, as JournalTab builds them; "Open find" opens the find over the entry.
+    val entryMapBubbleSources = MapRecordSources(
+        finds = uiState.entries,
+        galleryPhotos = galleryPhotos,
+        photoEntryReferenceCounts = galleryPhotoEntryReferenceCounts,
+        waypoints = waypoints,
+        waypointEntryReferenceCounts = waypointEntryReferenceCounts,
+        tracks = tracks,
+        offlineRegions = availabilityUiState.visibleOfflineRegions,
+        distanceUnit = distanceUnit,
+        staleThresholdDays = availabilityUiState.offlineStaleThresholdDays,
+        nowEpochMillis = currentTime::nowEpochMillis,
+        getFullRecord = getFullRecord,
+        onOpenFind = { id ->
+            leaveFindEditingIfNeeded()
+            openFindOverView(id)
+            onOpenEntryForReport(id)
+        },
+        openFindLabel = OPEN_FIND_LABEL,
+    )
+
+    Box(modifier = modifier.fillMaxWidth()) {
+    Column(modifier = Modifier.fillMaxWidth()) {
         LogHeader(onBack = onBackToSearch)
 
         SecondaryTabRow(selectedTabIndex = selectedTopTab.ordinal) {
@@ -409,6 +465,7 @@ internal fun LogPanel(
                 // at once") — see CartographyScreen's own doc comment.
                 columns = EXPANDED_GRID_COLUMNS,
                 modifier = Modifier.weight(1f),
+                mapBubbleSources = entryMapBubbleSources,
             )
 
             JournalTopTab.RECORDS -> RecordsTab(
@@ -434,13 +491,48 @@ internal fun LogPanel(
                 tracks = tracks,
                 onTracksOpened = onTracksOpened,
                 getFullRecord = getFullRecord,
-                findsContent = findsSection,
+                // M1: while a find is open over the panel, the Finds slot under it draws nothing.
+                findsContent = { if (findOverView == null) findsSection() },
                 onFindsTabLeft = ::leaveFindEditingIfNeeded,
                 findsEditingInProgress = findsSectionHasBackStack,
                 pendingSubTab = recordsPendingSubTab,
                 onPendingSubTabConsumed = { recordsPendingSubTab = null },
             )
         }
+    }
+
+    // M1: the find opened from a map bubble, over the panel: its report first, then (after Edit) the
+    // Finds section's own edit form and pickers. Opaque, and its Back handler is composed after
+    // everything under it, so Back unwinds the find first and then leaves the view as it was.
+    if (findOverViewVisible) {
+        val open = editing!!
+        BackHandler {
+            when {
+                pickingLocationForEditingEntry -> pickingLocationForEditingEntry = false
+                pullingPhotoForEditingEntry -> pullingPhotoForEditingEntry = false
+                findOverViewReport -> onCloseEntry()
+                else -> onLeaveEditingIncidentally()
+            }
+        }
+        Surface(modifier = Modifier.fillMaxSize().testTag(FIND_OVER_VIEW_TAG)) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                if (findOverViewReport) {
+                    LogEntryReportScreen(
+                        entry = open,
+                        onEdit = {
+                            findOverViewReport = false
+                            onOpenEntryForEditing(open.id)
+                        },
+                        onDeleteEntry = { onDeleteEntry(open.id) },
+                        onBack = onCloseEntry,
+                        modifier = Modifier.weight(1f),
+                    )
+                } else {
+                    findsSection()
+                }
+            }
+        }
+    }
     }
 }
 

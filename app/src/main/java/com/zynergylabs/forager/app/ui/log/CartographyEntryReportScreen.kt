@@ -65,6 +65,13 @@ import com.zynergylabs.forager.app.ui.map.MapLayersSheet
 import com.zynergylabs.forager.app.ui.map.MapOverlayContent
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.map.MapSlot
+import com.zynergylabs.forager.app.ui.map.MapBubbleLayer
+import com.zynergylabs.forager.app.ui.map.MapFeatureTap
+import com.zynergylabs.forager.app.ui.map.MapRecordSources
+import com.zynergylabs.forager.app.ui.map.TappedMapThing
+import com.zynergylabs.forager.app.ui.map.focusedFeature
+import com.zynergylabs.forager.app.ui.map.tappedThingOf
+import com.zynergylabs.forager.app.domain.model.RecordPoint
 import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import kotlinx.coroutines.launch
@@ -237,6 +244,13 @@ internal fun CartographyEntryReportScreen(
     onLayerVisibilityChanged: (String, Boolean) -> Unit = { _, _ -> },
     /** Off while the Tools drawer is open over the Journal, so Back closes the drawer (intent 2026-09-28-28); see [JournalTab]'s parameter of the same name. `true` (the default) is every other caller, unchanged. */
     backEnabled: Boolean = true,
+    /**
+     * M1 (owner: "Yes, same bubbles"): what this map's glyph bubbles look records up in and open, from
+     * [CartographyScreen]'s caller. Its find action is "Open find" (owner, Q4), which opens the find
+     * over this entry so Back returns to it as it was. Defaulted, so another caller's bubbles find
+     * nothing and close with a logged line.
+     */
+    mapBubbleSources: MapRecordSources = MapRecordSources(),
 ) {
     var menuExpanded by remember(entry.id) { mutableStateOf(false) }
     var confirmingDelete by remember(entry.id) { mutableStateOf(false) }
@@ -257,6 +271,9 @@ internal fun CartographyEntryReportScreen(
     // The one-shot camera pan a locate-me tap resolves to — see this file's own doc comment,
     // "Fullscreen," for why this is a plain LatLng?, never the main map's tracking token.
     var focusOverrideTarget by remember(entry.id) { mutableStateOf<LatLng?>(null) }
+    // M1: this map's one tapped thing (no sightings are drawn here, so always a glyph).
+    var tapped by remember(entry.id) { mutableStateOf<TappedMapThing?>(null) }
+    val onFeatureTap: (MapFeatureTap) -> Unit = remember(entry.id) { { tap -> tappedThingOf(tap)?.let { tapped = it } } }
 
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -367,25 +384,16 @@ internal fun CartographyEntryReportScreen(
                     mapRegion,
                     MapOverlayContent(
                         // The kept waypoint's own id (map layers L0a: the map's tap reports it through
-                        // MapRenderMode.onFeatureTap), with its snapshot's coordinate. Name and note
-                        // are placeholders, as they have been since Stage 2d: this map draws the pin
-                        // only, and what it draws is unchanged.
-                        waypoints = resolvedMapData.waypointMarkers.map { marker ->
-                            Waypoint(
-                                id = marker.recordId,
-                                lat = marker.at.lat,
-                                lng = marker.at.lng,
-                                altitude = null,
-                                name = "Waypoint",
-                                note = "",
-                                createdAtEpochMillis = 0L,
-                            )
-                        },
+                        // MapRenderMode.onFeatureTap), with its snapshot's coordinate. Since M1 its
+                        // name is the entry's own snapshot of it (entryMapWaypoints), no longer a
+                        // placeholder, so its bubble names it; what the pin draws is unchanged.
+                        waypoints = entryMapWaypoints(entry, resolvedMapData.waypointMarkers),
                         keptTrackPolylines = resolvedMapData.trackPolylines,
                         findMarkers = resolvedMapData.findMarkers,
                         photoMarkers = resolvedMapData.photoMarkers,
                         offlineRegionCircles = resolvedMapData.offlineRegionCircles,
                         resetOrientationRequestId = resetOrientationRequestId,
+                        focusedFeature = tapped.focusedFeature,
                     ),
                     MapRenderMode(
                         basemap = entryMapMode.basemap,
@@ -394,6 +402,7 @@ internal fun CartographyEntryReportScreen(
                         useOfflineTiles = useOfflineTiles,
                         showSearchCentre = false,
                         layers = layersState,
+                        onFeatureTap = onFeatureTap,
                     ),
                     focusOverrideTarget,
                     {},
@@ -402,10 +411,31 @@ internal fun CartographyEntryReportScreen(
                     // No matching tap-to-exit: exiting is the Return row / back button only, so a
                     // stray tap while reading the fullscreen map never dismisses the chrome
                     // by surprise.
-                    { if (!isMapFullscreen) isMapFullscreen = true },
+                    //
+                    // M1: a tap on empty map while a bubble shows closes the bubble and does nothing
+                    // else; a tap on a glyph opens its bubble and is not a plain tap at all.
+                    {
+                        if (tapped != null) {
+                            tapped = null
+                        } else if (!isMapFullscreen) {
+                            isMapFullscreen = true
+                        }
+                    },
                     { _, _, _ -> },
                     {},
                     Modifier.fillMaxSize(),
+                )
+
+                // M1: the same bubbles as the Maps tab (owner's ruling 3), with the entry's own
+                // snapshot names for a kept waypoint no longer in Records. Back closes the bubble
+                // before it leaves fullscreen: this layer's handler is composed after this screen's.
+                MapBubbleLayer(
+                    tapped = tapped,
+                    onDismiss = { tapped = null },
+                    sources = mapBubbleSources.copy(snapshotWaypoints = entryMapWaypoints(entry, resolvedMapData.waypointMarkers)),
+                    forecast = null,
+                    onViewSightingOnINaturalist = { tapped = null },
+                    backEnabled = backEnabled && !showLayersSheet,
                 )
 
                 if (isMapFullscreen) {
@@ -583,6 +613,23 @@ private const val OFFLINE_TOGGLE_LABEL = "Offline map"
  * as a surprise the first time they flip this switch.
  */
 private const val OFFLINE_TOGGLE_CAPTION = "Offline maps show shapes only — no place names, road names, or icons."
+
+/**
+ * The entry map's waypoint pins (M1): each resolved marker, named by the entry's own snapshot of that
+ * waypoint (`CartographyEntry.waypointDecisions`), which is what the entry's text lists too. A marker
+ * the entry has no decision for keeps the placeholder name it always had.
+ */
+internal fun entryMapWaypoints(entry: CartographyEntry, markers: List<RecordPoint>): List<Waypoint> = markers.map { marker ->
+    Waypoint(
+        id = marker.recordId,
+        lat = marker.at.lat,
+        lng = marker.at.lng,
+        altitude = null,
+        name = entry.waypointDecisions.firstOrNull { it.waypointId == marker.recordId }?.name ?: "Waypoint",
+        note = "",
+        createdAtEpochMillis = 0L,
+    )
+}
 
 /** Lets tests distinguish "the map section rendered" from "nothing resolved, no map section at all" without depending on [mapSlot]'s own real content — see this file's own doc comment, "No map section at all while loading, or if nothing resolved." */
 internal const val CARTOGRAPHY_MAP_TEST_TAG = "cartography-entry-map"

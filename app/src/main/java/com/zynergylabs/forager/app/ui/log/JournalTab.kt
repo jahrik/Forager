@@ -23,6 +23,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.Surface
+import com.zynergylabs.forager.app.ui.map.MapRecordSources
+import com.zynergylabs.forager.app.ui.map.OPEN_FIND_LABEL
 import com.zynergylabs.forager.app.domain.CartographyEntryMapData
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.LocationResult
@@ -242,6 +246,8 @@ internal fun JournalTab(
     waypointEntryReferenceCounts: Map<String, Int> = emptyMap(),
     /** See this composable's own doc comment, "The map '+' routing bug" — Stage 2d. `null` (the default) is a no-op, so every other caller of this tab is unaffected. */
     pendingDestination: PendingJournalDestination? = null,
+    /** M1: the find a [PendingJournalDestination.VIEW_FIND] request opens over the Journal. */
+    pendingFindId: String? = null,
     /** Fires once [pendingDestination] has been applied, so [AvailabilityScreen] clears its own copy and is ready for the next request. */
     onPendingDestinationConsumed: () -> Unit = {},
     /**
@@ -309,12 +315,27 @@ internal fun JournalTab(
     // only exists in the composition once selectedTopTab has already become RECORDS.
     var recordsPendingSubTab by remember { mutableStateOf<RecordsSubTab?>(null) }
 
+    // M1: a find opened from a map bubble, shown over whatever the Journal was showing (FindOverView).
+    var findOverView by remember { mutableStateOf<FindOverView?>(null) }
+    LaunchedEffect(findOverView, editing?.id) {
+        findOverView = nextFindOverView(findOverView, editing?.id)
+    }
+    val findOverViewVisible = editing != null && findOverView.let { it != null && (it.shown || editing.id == it.findId) }
+
     LaunchedEffect(pendingDestination) {
         when (pendingDestination) {
             PendingJournalDestination.EDIT_NEW_FIND -> {
                 selectedTopTab = JournalTopTab.RECORDS
                 mode = JournalEntryMode.EDIT
                 recordsPendingSubTab = RecordsSubTab.FINDS
+                onPendingDestinationConsumed()
+            }
+            // M1, the Maps tab's "Open in Journal": the caller has already asked the ViewModel to
+            // open the find; it shows in its report over the Journal, which keeps its top tab and its
+            // saved Records chip (planner's ruling on F3), and Back returns to them.
+            PendingJournalDestination.VIEW_FIND -> {
+                pendingFindId?.let { findOverView = FindOverView(it) }
+                mode = JournalEntryMode.REPORT
                 onPendingDestinationConsumed()
             }
             null -> Unit
@@ -355,7 +376,7 @@ internal fun JournalTab(
     // sub-tab-stepping BackHandler to stay out of the way while this one is live. This one's
     // condition is unchanged from before that dispatch.
     val findsSectionHasBackStack = editing != null || pickingLocationForEditingEntry || pullingPhotoForEditingEntry
-    BackHandler(enabled = backEnabled && findsSectionHasBackStack) {
+    fun unwindFindsSection() {
         when {
             pickingLocationForEditingEntry -> pickingLocationForEditingEntry = false
             pullingPhotoForEditingEntry -> pullingPhotoForEditingEntry = false
@@ -363,6 +384,7 @@ internal fun JournalTab(
             editing != null -> onCloseEntry()
         }
     }
+    BackHandler(enabled = backEnabled && findsSectionHasBackStack) { unwindFindsSection() }
 
     // Back-nav-and-save-flow dispatch, Item 1: Records → Cartography is the next layer out once
     // Finds has nothing left to unwind — Cartography is the left tab and the entry point, so this
@@ -505,7 +527,32 @@ internal fun JournalTab(
         null
     }
 
-    Column(modifier = modifier.fillMaxSize()) {
+    // M1: the entry map's bubbles (owner: "Yes, same bubbles"), from the lists this tab already holds.
+    // "Open find" opens the find over the day entry, which stays composed under it, so Back returns to
+    // the same entry, view and scroll (owner, Q4: "Open find, Back returns").
+    val entryMapBubbleSources = MapRecordSources(
+        finds = uiState.entries,
+        galleryPhotos = galleryPhotos,
+        photoEntryReferenceCounts = galleryPhotoEntryReferenceCounts,
+        waypoints = waypoints,
+        waypointEntryReferenceCounts = waypointEntryReferenceCounts,
+        tracks = tracks,
+        offlineRegions = availabilityUiState.visibleOfflineRegions,
+        distanceUnit = distanceUnit,
+        staleThresholdDays = availabilityUiState.offlineStaleThresholdDays,
+        nowEpochMillis = currentTime::nowEpochMillis,
+        getFullRecord = getFullRecord,
+        onOpenFind = { id ->
+            leaveFindEditingIfNeeded()
+            mode = JournalEntryMode.REPORT
+            findOverView = FindOverView(id)
+            onOpenEntry(id)
+        },
+        openFindLabel = OPEN_FIND_LABEL,
+    )
+
+    Box(modifier = modifier.fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxSize()) {
         // Journal redesign J2, T1 (plan J1): one single-choice segmented button replaces the
         // SecondaryTabRow that used to sit here, so the Journal's top level no longer reads as a
         // second tab row stacked on the bottom bar. Only the on-screen label changed: the
@@ -576,6 +623,7 @@ internal fun JournalTab(
                 // with its own action; see CartographyScreen's shortWindowHeader.
                 shortWindowHeader = shortWindowHeader,
                 backEnabled = backEnabled,
+                mapBubbleSources = entryMapBubbleSources,
             )
 
             // J5: a Column in every window, so RecordsTab keeps one place in the composition when
@@ -607,7 +655,9 @@ internal fun JournalTab(
                     tracks = tracks,
                     onTracksOpened = onTracksOpened,
                     getFullRecord = getFullRecord,
-                    findsContent = findsSection,
+                    // M1: while a find is open over the view, the Finds slot under it draws nothing,
+                    // so the find is composed once, in the overlay.
+                    findsContent = { if (findOverView == null) findsSection() },
                     finds = uiState.entries,
                     // The All logbook's find tap: RecordsTab has already selected the Finds chip; this
                     // opens the report there, exactly as the Finds gallery's own tile does.
@@ -630,6 +680,17 @@ internal fun JournalTab(
                 )
             }
         }
+    }
+
+    // M1: the find opened from a map bubble, over the view (FindOverView). An opaque Surface, so no
+    // touch reaches the view under it, and its own Back handler, composed after everything under it,
+    // so Back unwinds the find first (a picker, the edit form, then the report) and only then the view.
+    if (findOverViewVisible) {
+        BackHandler(enabled = backEnabled) { unwindFindsSection() }
+        Surface(modifier = Modifier.fillMaxSize().testTag(FIND_OVER_VIEW_TAG)) {
+            Column(modifier = Modifier.fillMaxSize()) { findsSection() }
+        }
+    }
     }
 
     // J5 (owner's ruling 1): Back puts a brought-up search header away before anything else in the
@@ -716,7 +777,17 @@ private enum class JournalEntryMode { REPORT, EDIT }
 internal enum class PendingJournalDestination {
     /** Land in Records → Finds, editing the entry [MushroomLogViewModel.onStartNewEntry] just created. */
     EDIT_NEW_FIND,
+
+    /**
+     * M1: show the find the caller has just opened (`onOpenEntry`, with its id passed beside this) in
+     * its report, over whatever the Journal is showing, without changing the top tab or the Records
+     * chip; Back returns to them ([FindOverView]). The Maps tab's "Open in Journal".
+     */
+    VIEW_FIND,
 }
+
+/** The find shown over the Journal ([FindOverView]). */
+internal const val FIND_OVER_VIEW_TAG = "journal-find-over-view"
 
 /**
  * A find opened from a map bubble over whatever the Journal was showing (M1; continuation
