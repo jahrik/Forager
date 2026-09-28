@@ -33,6 +33,12 @@ import org.junit.Test
  * below their casing. It takes no taps, follows the fill's switch and draws at its own base opacity.
  * No other layer moved; the assertions that pin the registry's contents are re-pinned with it added,
  * and its own rules are a new test below.
+ *
+ * J8 follow-ups, item 4 (continuation `2026-09-28-87`; the owner, "1 A", to "Move marker rings below
+ * all lines"): the three marker rings (waypoints, finds, photos) move from directly below their own
+ * markers to below every line, so no ring covers a kept track, the recording trail, the offline
+ * outline or another line. The region's halo, border and outline keep their order. The full order and
+ * the halos' own placement are re-pinned, and the rings' rule is a new test below.
  */
 class MapLayerRegistryTest {
 
@@ -55,13 +61,17 @@ class MapLayerRegistryTest {
     /** L0b's two synthetic colour fields, bottom to top (registry order). */
     private val colourFields = listOf(MapLayerIds.FORECAST_CHICKEN_OF_THE_WOODS, MapLayerIds.FORECAST_CHANTERELLES)
 
-    /** J8's five halos, bottom to top (registry order). */
-    private val journalHalos = listOf(
-        MapLayerIds.JOURNAL_ENTRY_REGIONS,
-        MapLayerIds.JOURNAL_ENTRY_TRACKS,
+    /** J8's three marker rings, bottom to top (registry order). */
+    private val markerRings = listOf(
         MapLayerIds.JOURNAL_ENTRY_WAYPOINTS,
         MapLayerIds.JOURNAL_ENTRY_FINDS,
         MapLayerIds.JOURNAL_ENTRY_PHOTOS,
+    )
+
+    /** J8's five halos, bottom to top (registry order): the marker rings below every line (J8 follow-ups, item 4). */
+    private val journalHalos = markerRings + listOf(
+        MapLayerIds.JOURNAL_ENTRY_REGIONS,
+        MapLayerIds.JOURNAL_ENTRY_TRACKS,
     )
 
     /** The night border under the offline outline (dispatch `2026-09-28-79`). */
@@ -69,6 +79,9 @@ class MapLayerRegistryTest {
 
     private val expectedOrder = colourFields + listOf(
         MapLayerIds.OFFLINE_REGION_FILL,
+        MapLayerIds.JOURNAL_ENTRY_WAYPOINTS,
+        MapLayerIds.JOURNAL_ENTRY_FINDS,
+        MapLayerIds.JOURNAL_ENTRY_PHOTOS,
         MapLayerIds.JOURNAL_ENTRY_REGIONS,
         MapLayerIds.OFFLINE_REGION_BORDER,
         MapLayerIds.OFFLINE_REGION_OUTLINE,
@@ -80,12 +93,21 @@ class MapLayerRegistryTest {
         MapLayerIds.SEARCH_CENTRE,
         MapLayerIds.SIGHTINGS,
         MapLayerIds.PLANNED_TRIPS,
-        MapLayerIds.JOURNAL_ENTRY_WAYPOINTS,
         MapLayerIds.WAYPOINTS,
-        MapLayerIds.JOURNAL_ENTRY_FINDS,
         MapLayerIds.FINDS,
-        MapLayerIds.JOURNAL_ENTRY_PHOTOS,
         MapLayerIds.PHOTOS,
+    )
+
+    /** Every line layer, bottom to top as J8 and `-79` left them: halos, the night border, casings and lines. */
+    private val lineLayers = listOf(
+        MapLayerIds.JOURNAL_ENTRY_REGIONS,
+        MapLayerIds.OFFLINE_REGION_BORDER,
+        MapLayerIds.OFFLINE_REGION_OUTLINE,
+        MapLayerIds.BREADCRUMB_CASING,
+        MapLayerIds.BREADCRUMB,
+        MapLayerIds.JOURNAL_ENTRY_TRACKS,
+        MapLayerIds.KEPT_TRACKS_CASING,
+        MapLayerIds.KEPT_TRACKS,
     )
 
     private fun spec(id: String) = MAP_LAYER_REGISTRY.single { it.id == id }
@@ -244,16 +266,18 @@ class MapLayerRegistryTest {
     }
 
     @Test
-    fun `each journal halo sits directly below what it decorates, in the JOURNAL_ENTRY role, and is drawn only with that record`() {
+    fun `each journal halo sits below what it decorates, a line's directly below its casing and a marker's ring below every line, in the JOURNAL_ENTRY role, and is drawn only with that record`() {
         val ids = MAP_LAYER_REGISTRY.map { it.id }
-        // halo to (the record layer it decorates, the layer it sits directly below: the record's casing, for a line with one)
+        // halo to (the record layer it decorates, the layer it sits directly below: the record's casing,
+        // for a line with one; for a marker's ring, the lowest line, since item 4 of the J8 follow-ups
+        // put the three rings below every line, in the order waypoints, finds, photos)
         val expected = mapOf(
             // -79: the offline outline's casing is its night border, so the region's halo sits below that.
             MapLayerIds.JOURNAL_ENTRY_REGIONS to (MapLayerIds.OFFLINE_REGION_OUTLINE to MapLayerIds.OFFLINE_REGION_BORDER),
             MapLayerIds.JOURNAL_ENTRY_TRACKS to (MapLayerIds.KEPT_TRACKS to MapLayerIds.KEPT_TRACKS_CASING),
-            MapLayerIds.JOURNAL_ENTRY_WAYPOINTS to (MapLayerIds.WAYPOINTS to MapLayerIds.WAYPOINTS),
-            MapLayerIds.JOURNAL_ENTRY_FINDS to (MapLayerIds.FINDS to MapLayerIds.FINDS),
-            MapLayerIds.JOURNAL_ENTRY_PHOTOS to (MapLayerIds.PHOTOS to MapLayerIds.PHOTOS),
+            MapLayerIds.JOURNAL_ENTRY_WAYPOINTS to (MapLayerIds.WAYPOINTS to MapLayerIds.JOURNAL_ENTRY_FINDS),
+            MapLayerIds.JOURNAL_ENTRY_FINDS to (MapLayerIds.FINDS to MapLayerIds.JOURNAL_ENTRY_PHOTOS),
+            MapLayerIds.JOURNAL_ENTRY_PHOTOS to (MapLayerIds.PHOTOS to MapLayerIds.JOURNAL_ENTRY_REGIONS),
         )
         assertEquals(
             "only the halos decorate another layer",
@@ -262,9 +286,43 @@ class MapLayerRegistryTest {
         )
         expected.forEach { (halo, pair) ->
             assertEquals("$halo is directly below ${pair.second}", ids.indexOf(pair.second) - 1, ids.indexOf(halo))
+            assertTrue("$halo is below ${pair.first}, what it decorates", ids.indexOf(halo) < ids.indexOf(pair.first))
             assertEquals(halo, PaletteRole.JOURNAL_ENTRY, spec(halo).paletteRole)
         }
         assertEquals(journalHalos, MAP_LAYER_REGISTRY.filter { it.paletteRole == PaletteRole.JOURNAL_ENTRY }.map { it.id })
+    }
+
+    /**
+     * J8 follow-ups, item 4 (continuation `2026-09-28-87`; the owner, "1 A"): the three marker rings sit
+     * below every line layer [lineLayers] names, in the registry and in the order the map draws them
+     * ([orderedLayers] with the default state), so a ring covers no line, and below every other marker,
+     * the search-centre reticle included. Each ring is still below its own marker, still takes no taps,
+     * and the registry has no problems. The rings sit in the lines band, at its bottom: the bands, their
+     * order and [registryProblems] are unchanged, and the rings stay symbol layers.
+     */
+    @Test
+    fun `every marker ring draws below every line, still below its own marker, and takes no taps`() {
+        val rings = MAP_LAYER_REGISTRY.filter { it.drawnWith != null && it.kind == LayerKind.MARKER }
+        assertEquals("the three marker rings", markerRings, rings.map { it.id })
+        assertEquals("every line layer", lineLayers, MAP_LAYER_REGISTRY.filter { it.kind == LayerKind.LINE }.map { it.id })
+        val otherMarkers = MAP_LAYER_REGISTRY.filter { it.kind == LayerKind.MARKER && it.drawnWith == null }.map { it.id }
+        assertTrue("the search centre is among the other markers", MapLayerIds.SEARCH_CENTRE in otherMarkers)
+        val drawOrder = orderedLayers(MAP_LAYER_REGISTRY, MapLayersState.DEFAULT)
+        listOf("registry" to MAP_LAYER_REGISTRY.map { it.id }, "draw order" to drawOrder.map { it.id }).forEach { (name, ids) ->
+            rings.forEach { ring ->
+                (lineLayers + otherMarkers).forEach { above ->
+                    assertTrue("$name: ${ring.id} (${ids.indexOf(ring.id)}) is below $above (${ids.indexOf(above)})", ids.indexOf(ring.id) < ids.indexOf(above))
+                }
+                assertTrue("$name: ${ring.id} is below its own marker ${ring.drawnWith}", ids.indexOf(ring.id) < ids.indexOf(ring.drawnWith))
+            }
+        }
+        rings.forEach { ring ->
+            assertEquals("${ring.id} in the lines band, at its bottom", ZGroup.LINES, ring.zGroup)
+            assertEquals("${ring.id} still a symbol", LayerRenderer.SYMBOL, ring.renderer)
+            assertEquals("${ring.id} takes no taps", TapGroup.NONE, ring.tapGroup)
+            assertFalse("${ring.id} is not a tap target", ring.id in tappableLayerIds(drawOrder))
+        }
+        assertEquals(emptyList<String>(), registryProblems(MAP_LAYER_REGISTRY))
     }
 
     /**
