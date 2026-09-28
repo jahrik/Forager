@@ -3010,3 +3010,14 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner, verbatim, over a Night Maps screenshot: "The offline map region is a bit bright, it takes away from the night maps we just built. Maybe either bring the color to a darker shade, or reduce the opacity."; asked, "Darker shade (Recommended)". Written by the planner by hand; runs beside the search-bar fix 2026-09-28-17.
 
 ---
+
+**Kind:** continuation
+**ID:** 2026-09-28-20
+**Timestamp:** 2026-09-28T10:24:22Z
+**Continues:** 2026-09-28-19
+**Dispatch-file:** preserved/2026-09-28-20.md
+**Reason:** the owner qualified the ruling after dispatch, verbatim: "Not too dark since it can make it harder to read. Find a balance."
+**Changes:** The target is no longer pure black: a dark neutral grey for NIGHT.offlineRegion at the unchanged 0.2, chosen as the darkest grey that keeps every night label-on-ground contrast inside the region at 90% or more of outside (never lower where outside is under 4.5:1) and keeps the region at least 0.02 Oklab ΔE from plain ground; a test encoding those rules; the table reported. Scope and finish line unchanged; prediction 2 now concerns these rules.
+**Notes:** Planner's criteria, not the owner's; the thresholds (90%, 0.02 ΔE) are the planner's choice, open to change after the owner sees it on the phone. Written by the planner by hand.
+
+---
