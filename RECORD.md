@@ -4165,3 +4165,54 @@ Each is tested for non-intersecting bounds at 0, 90 and 270, with real-touch sam
   - a stale "5.85:1" in MapPaletteTest's comment;
   - the scripts are in /tmp/night-outline, outside the repository.
 - Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-92
+**Timestamp:** 2026-09-28T23:18:43Z
+**Closes:** 2026-09-28-70
+**Outcome:** completed
+**Observed:**
+- **Commits.** Tests first at 50133b2 (j8-follow-ups-wip); items at 5880eaa, b8eb392, cd52841 and bde2e98; the report at 6980b62, on journal-redesign.
+- **The four items.**
+  1. photoAttachmentLine drops "Kept in" while keeping-entry lines show, and returns null rather than "Not in a find or a journal entry".
+  2. journalHighlights uses mapWaypoints, the map's own list (AvailabilityScreen.kt:937-938).
+  3. shadowElevation removed from JournalEntriesMapChip and TaxonMapFilterChip.
+  4. The journal halos move to ZGroup.LINES, with the marker rings listed right after the offline fill, below every line. -79's order and pins are untouched; ZGroup, registryProblems and orderedLayers are unchanged.
+- **Evidence.**
+  - Tests first: 11 of 55 failed as predicted, each for its stated reason.
+  - Revert checks R1, R1b, R2, R3a, R3b and R4 confirmed. R4 shows the band, not the list order, moves the draw order.
+  - Coder's suite at bde2e98: 306 / 2490 / 0 / 0 / 24.
+- **Planner's suite** at 6980b62 (app/ equal to bde2e98): 306 / 2490 / 0 / 0 / 24, cleared, 0 stale, no compile errors.
+**Deviations:**
+- **Item 4 was built, not stopped.** The coder read a z-group as a height, not a kind, so the rings in LINES do not change the model. The other reading is the owner's L0a ruling "The four groups stand as written", which would make this a model change. Options (a) as built, (b) the areas band, (c) a decorations band **are put to the owner.** Undoing (a) is one line, three registry entries and three pins.
+- The item 1 and 2 guard cases are folded into failing tests.
+- The six new screen tests ran in portrait only.
+- D58 was not run before the wip pushes of the build commits; the later check covered them.
+**Notes:**
+- **Device-only:**
+  1. the photo bubble's lines;
+  2. no rings on ORIGIN and END, and whether an ORIGIN being navigated to shows one;
+  3. both chips re-measured against 0.8 (the taxon chip never measured), and whether they still read as separate from the map without a shadow;
+  4. rings under tracks, the outline and border, the reticle and a highlighted track's cyan halo, for the owner to judge;
+  5. taps unchanged.
+- **Flags:**
+  - **11 other translucent map surfaces carry a shadow**, and by the composite rule each would read above its fill. Held for the map-chrome device check's measurements: MapChrome.kt:173, 441, 783; MapLayersSheet.kt:464; AvailabilityMapControlsUi.kt:194, 577; AvailabilityCompactMapUi.kt:968; AvailabilityMapOverlaysUi.kt:220; CentrePinLocationPicker.kt:305; MapBubble.kt:208; AvailabilityWideLayoutUi.kt:188.
+  - The album "Kept in" count can lag.
+  - -70's and -87's line references were stale (JournalEntriesOnMap.kt:50-61; MapLayers.kt:253).
+- Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-93
+**Timestamp:** 2026-09-28T23:18:43Z
+**Continues:** 2026-09-28-78
+**Dispatch-file:** none (launch note; -78 as amended by -88 governs)
+**Reason:** J8 follow-ups closed (terminal -92), so -78 (Part 1's layout fixes) is next in the build line.
+**Changes:** -78 and -88 launch at the base named in the launch message, in forager-wt/layout-fixes, branch layout-fixes.
+- J8 follow-ups removed the chips' shadow and moved the rings, and -79 added the region border. Re-verify every file:line.
+- -78's placement stop rule applies to all nine items.
+- The 11-shadows flag from -92 is not in scope.
+**Notes:** Written by the planner by hand.
