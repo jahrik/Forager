@@ -3824,3 +3824,50 @@ The list-detail question goes to the owner next. Written by the planner by hand.
 **Finish line:** Build, tests first, revert check, full suite, report, pushed; the planner writes the terminal; the look goes to the owner on the S22.
 **Abort conditions:** Needing to change the fill or the day outline; a tests-first test passing at base; a non-compiling revert; a non-held failure; disk full or OOM; two failed fixes; an unruled design question.
 **Notes:** Owner, verbatim: "3 A rework the outline only. The fill color and opacity is fine as is. The outline should have a white border". Night only is the planner's reading, stated to the owner. Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-80
+**Timestamp:** 2026-09-28T21:39:56Z
+**Closes:** 2026-09-28-74
+**Outcome:** completed
+**Observed:**
+- **Record.** docs/audits/2026-09-28-tablet-layout-sanity-run-record.md, device-tablet at 41deb7d (predictions first at 9c4926f), merged by the planner. Evidence is in device-evidence/2026-09-28-tablet-sanity.
+- **Device.** SM-X800, Android 16 (X800XXSBEZE1), 824.5×1317.6 dp at density 340, gesture navigation, no cut-out.
+- **Install.** Installed was 1.0.1279+gce8ddbef, debuggable (ce8ddbef is on no ref). Certificates matched. The backup verified, and every user table was empty. install -r gave 1.0.1416+gd7cc9f5b. The migration left user_version 16, integrity ok and counts equal.
+- **Created and left:** a waypoint, a find and a saved entry labelled "DEVICE CHECK 2026-09-28 T", plus one search-cache row.
+- **Measured** (dump bounds, dp), all equal to the J6 pulse's arithmetic:
+
+  | | Portrait (MEDIUM, wide tree) | Landscape at 90 (EXPANDED) |
+  |---|---|---|
+  | Drawer | 360 | 360 |
+  | Map | 103.5 × 1112 | 596.7 × 618.8 |
+  | Glyph bubble | 280 wide, clipped: 91 dp visible, Close off screen | whole |
+  | Taxon chip | 87.5 wide, text on 3 lines, 48 dp of it under the Layers button | 232.5 |
+  | J8 chip | pushed to a second row | beside the taxon chip, 39 dp clear of Layers |
+  | Report map | 360 × 270.1 | 360 × 270.1 |
+  | Details sheet (640 × 271.5) | covers the drawer, the list and 11 dp of the map | covers 21 dp of the drawer, the list and 258 dp of the map |
+  | Entries | 3 columns of 104 dp cards, titles truncated | same |
+
+  Bounds at 270 equal those at 90.
+- **Restored.** Rotation read back. The entry's shownOnMap is off again. "Stay Awake" and the 300 s screen timeout were left as the owner set them. Crash buffer: no Forager lines.
+**Deviations:**
+- The photo viewer was **not measured**: the tablet's Forager had no photo. The question is put to the owner.
+- A cold relaunch in portrait, added to rule out rotation leftovers.
+- 270 checked against 90 but not measured in full.
+- The species list width inferred from neighbouring edges.
+- Settings came to the front during 21:23:16 to 21:23:52Z with no agent input (the owner was changing the display timeout), and a second MainActivity appeared in Forager's task, cause unknown.
+- The agent was cut off once by the EAI_AGAIN outage and resumed.
+**Notes:**
+- **Flags:**
+  - the portrait 103.5 dp map strip renders blocky (the agent's reading; the 360 dp report map is crisp);
+  - the portrait bubble is clipped with Close off screen;
+  - the portrait taxon chip is covered by the Layers button, with its clear control missing from the dump;
+  - the portrait attribution wraps to 5 lines;
+  - the 3-column entry grid truncates titles in 360 dp;
+  - the Records chip row is cut at the drawer edge (it scrolls);
+  - the find reads syncStateKind=DRAFT;
+  - the search reached iNaturalist, which -74 allowed and -12 had barred.
+- All of this feeds J6, whose rulings already cover list-detail and the narrow map. **J6 may now be dispatched** (owner: "Do not start J6 without that sanity check").
+- Written by the planner by hand.
