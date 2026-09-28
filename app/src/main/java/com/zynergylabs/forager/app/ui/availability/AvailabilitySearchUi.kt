@@ -127,7 +127,9 @@ import java.util.Locale
  *
  * **Tapping it opens the search** (owner, 2026-09-28, "Make the tap open search"): [onClick] is
  * wired at its call site to bring the permanent drawer back to its search panel, even before any
- * search has run, so the "Search a location" this reads before one is true here as on compact. The
+ * search has run, so the "Search a location" this reads before one is true here as on compact. It
+ * opens that panel with "Advanced search" expanded, so the location controls show at once (owner,
+ * continuation 2026-09-28-38: "Yes it should"; see [SearchControls]' `expandAdvancedSearchRequested`). The
  * same tap still reopens the species search that produced [AvailabilityUiState.taxonFilter] when
  * there was one (`AvailabilityViewModel.onReopenTaxonSuggestions`, a no-op when nothing was ever
  * searched), as it did before.
@@ -608,6 +610,15 @@ internal fun SearchControls(
      * instead of two" reasoning [includeAdvancedSearch] already documents for Advanced Search.
      */
     includeRecentSearches: Boolean = true,
+    /**
+     * A one-shot request to open "Advanced search" expanded, so its location controls show without
+     * another tap (owner, 2026-09-28, continuation 2026-09-28-38: "Yes it should"). `true` only after
+     * the medium/expanded search summary's tap; the section expands once and calls
+     * [onAdvancedSearchExpandConsumed], and from then on the user's own expand and collapse stand.
+     * Every other way into this panel passes nothing and opens it as it always has, collapsed.
+     */
+    expandAdvancedSearchRequested: Boolean = false,
+    onAdvancedSearchExpandConsumed: () -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -635,7 +646,11 @@ internal fun SearchControls(
         }
         if (includeAdvancedSearch) {
             if (includeRecentSearches) HorizontalDivider()
-            CollapsibleSection(title = "Advanced search") {
+            CollapsibleSection(
+                title = "Advanced search",
+                expandRequested = expandAdvancedSearchRequested,
+                onExpandRequestConsumed = onAdvancedSearchExpandConsumed,
+            ) {
                 RegionControls(
                     uiState = uiState,
                     distanceUnit = distanceUnit,
@@ -671,9 +686,22 @@ internal fun SearchControls(
 // molecule a second time.
 internal fun CollapsibleSection(
     title: String,
+    /**
+     * When `true`, the section expands once and [onExpandRequestConsumed] is called, so the request
+     * is gone before the user can touch the section again; the expanded state itself stays this
+     * section's own, as before. See [SearchControls]' `expandAdvancedSearchRequested`.
+     */
+    expandRequested: Boolean = false,
+    onExpandRequestConsumed: () -> Unit = {},
     content: @Composable ColumnScope.() -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    LaunchedEffect(expandRequested) {
+        if (expandRequested) {
+            expanded = true
+            onExpandRequestConsumed()
+        }
+    }
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier

@@ -910,6 +910,9 @@ fun AvailabilityScreen(
     // comment. mapMode above is still session-local; see the observation in that same doc comment.
     val distanceUnit = uiState.distanceUnit
     var drawerPanel by remember { mutableStateOf(DrawerPanel.Search) }
+    // The medium/expanded search summary's one-shot "open Advanced search" (continuation 2026-09-28-38);
+    // see SearchControls' expandAdvancedSearchRequested.
+    var expandAdvancedSearchRequested by remember { mutableStateOf(false) }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val context = LocalContext.current
 
@@ -1229,6 +1232,8 @@ fun AvailabilityScreen(
                         onRecentSearchSelected(summary)
                     },
                     currentTime = currentTime,
+                    expandAdvancedSearchRequested = expandAdvancedSearchRequested,
+                    onAdvancedSearchExpandConsumed = { expandAdvancedSearchRequested = false },
                 )
                 // Sticky footer rows: the log is the newer of the two pre-existing ones, placed
                 // above Settings so it isn't the last thing in the sheet — see
@@ -1431,6 +1436,10 @@ fun AvailabilityScreen(
                     distanceUnit,
                     onClick = {
                         drawerPanel = DrawerPanel.Search
+                        // Continuation 2026-09-28-38 (owner: "Yes it should"): straight to the
+                        // location controls, with "Advanced search" open. A one-shot request that
+                        // the section consumes, so a later collapse by the user stands.
+                        expandAdvancedSearchRequested = true
                         onReopenTaxonSuggestions()
                     },
                 )
