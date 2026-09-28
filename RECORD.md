@@ -2967,3 +2967,19 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** The owner, verbatim, over a screenshot of the sheet: "Can this panel be given 80% opacity like the rest of the map chrome?" The screenshot showed the sheet over a scrim on the Street basemap, dark theme. Written by the planner by hand; runs in parallel with backlog Part B on the phone.
 
 ---
+
+**Kind:** intent
+**ID:** 2026-09-28-17
+**Timestamp:** 2026-09-28T10:09:24Z
+**Title:** Bug fix: the Maps-tab search bar missing after switching to Maps with a Journal day entry open
+**Dispatch-file:** preserved/2026-09-28-17.md
+**Change:** Failing tests first through the real bottom nav (portrait) and rail (short landscape); then the Maps-tab searchBarSlot's gate (AvailabilityCompactScaffold.kt:888-890, isEditingJournalEntry at :401) becomes "an entry is open and the Journal tab is showing"; the open entry stays open across the tab change; the find-in-view-mode route checked and covered if it exists.
+**Scope boundary:** Branch journal-redesign; AvailabilityCompactScaffold.kt (AvailabilityScreen.kt only if needed) and tests. Not the entry's state, the app-wide header, fullscreen, J5's rule, MapLayersSheet.kt, the held flaky tests, the record, index, CLAUDE.md, plans or prompts.
+**Baseline:** journal-redesign at the commit carrying this entry; planner's suite at af846cc 266 / 2183 / 0 / 0 / 24.
+**Prediction (outcome — planner):** 1. The failing test fails in both orientations for the stated reason. 2. The fix changes one condition. 3. No existing assertion changes.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** Pushed with the failing test, the fix, a compiling revert check, the full suite and a completion report; the planner writes the terminal.
+**Abort conditions:** The diagnosis wrong at base; the failing test failing for another reason or passing; a non-compiling revert; a non-held failure; an OOM kill; two failed fixes on one symptom; an unruled design question.
+**Notes:** Owner, verbatim: "Found a bug also: when moving from journal entry map to the main map, the search bar disappears", "The last screenshot shows it", "It's missing in landscape also"; ruling, "Keep entry, fix the bar (Recommended)". Diagnosis by a read-only pulse at 955cc58 (reported to the planner; its findings are in the dispatch file): the gate dates from 1cea45b and is in build 2458934 too; L0b is not the cause. Written by the planner by hand.
+
+---
