@@ -36,7 +36,13 @@ data class CartographyUiState(
     val isLoadingCandidates: Boolean = false,
     val candidatesErrorMessage: String? = null,
     val saveErrorMessage: String? = null,
-    /** J8 tests-first stub: a failed Show on map or Hide from map; nothing sets it yet. */
+    /**
+     * J8: a failed write of an entry's `shownOnMap` (the report menu's Show or Hide on map, the chip
+     * list's Hide and Hide all), exactly [SHOWN_ON_MAP_FAILED_MESSAGE] (continuation `2026-09-28-65`).
+     * Its own field, not [saveErrorMessage], so that failure's text and the save failures' own texts
+     * never share one slot. `AvailabilityScreen` shows it as a Toast on every tab, since the chip is on
+     * the Maps tab, and clears it through `CartographyViewModel.onShownOnMapErrorDismissed`.
+     */
     val shownOnMapErrorMessage: String? = null,
     /**
      * A dirty flag, not a diff against a snapshot (device-check patch, Item 1): any mutation of a
@@ -68,3 +74,6 @@ data class CartographyUiState(
         )
     }
 }
+
+/** The owner's text for a failed Show or Hide on map (continuation `2026-09-28-65`, verbatim). */
+const val SHOWN_ON_MAP_FAILED_MESSAGE = "Changes not applied. Try again."

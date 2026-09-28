@@ -11,6 +11,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -25,6 +26,8 @@ import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.JournalEntryOnMap
+import com.zynergylabs.forager.app.ui.theme.Bark
+import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
 /** The Maps-tab chip (J8-3). */
@@ -55,13 +58,22 @@ private var SemanticsPropertyReceiver.journalMenuContainerColor by JournalMenuCo
 internal val JournalMenuContentColor = SemanticsPropertyKey<Color>("JournalMenuContentColor")
 private var SemanticsPropertyReceiver.journalMenuContentColor by JournalMenuContentColor
 
-/** J8 tests-first stub: Material3's default menu container, opaque. */
+/**
+ * A J8 menu over the map, the chip's list and a bubble's list of keeping entries: Material3's own
+ * default menu container role (`MenuDefaults.containerColor`) at [MAP_CHROME_OVER_MAP_ALPHA] (the
+ * owner's edge-case ruling 1 for menus over a map, "80% over the map"; planner, continuation
+ * `2026-09-28-64`), as the Layers sheet puts its own sheet role at that alpha (`MapLayersSheet`).
+ */
 @Composable
-internal fun journalMenuContainerColor(): Color = MenuDefaults.containerColor
+internal fun journalMenuContainerColor(): Color = MenuDefaults.containerColor.copy(alpha = MAP_CHROME_OVER_MAP_ALPHA)
 
-/** J8 tests-first stub: not pinned, so the ambient content colour. */
+/**
+ * A J8 menu's content colour: the default menu role's own content colour, opaque. Pinned to the
+ * unaltered role for the reason the Layers sheet gives: `contentColorFor` matches a colour-scheme role
+ * exactly, and given the container at 80% it matches none and falls back to `LocalContentColor`.
+ */
 @Composable
-internal fun journalMenuContentColor(): Color = LocalContentColor.current
+internal fun journalMenuContentColor(): Color = contentColorFor(MenuDefaults.containerColor)
 
 /** Marks a J8 menu's content with its colours, for tests. */
 internal fun Modifier.journalMenuColours(container: Color, content: Color): Modifier =
@@ -71,9 +83,19 @@ internal fun Modifier.journalMenuColours(container: Color, content: Color): Modi
     }
 
 /**
- * J8 tests-first stub: the chip with Material3's default surface colours, not yet placed on any map.
- * Its text is [journalEntriesChipLabel]; a tap lists [entries] by date, each row hiding its entry, with
- * "Hide all" last.
+ * The Maps-tab chip (J8-3; owner: "Top, by the species chip (Recommended)"): how many saved entries are
+ * shown on the map ([journalEntriesChipLabel]), composed only while at least one is. A tap lists them by
+ * the report header's date ([journalEntryDateLabel]), one row each, whose tap hides that entry ("Hide"),
+ * with "Hide all" last; hiding writes `shownOnMap` through the host's callbacks and never touches the
+ * Layers sheet's "Journal entries" switch.
+ *
+ * Its fill is the taxon chip's own colour source, [MapIconStackButtonColorDark] and
+ * [MapIconStackButtonColorLight] at [MAP_CHROME_OVER_MAP_ALPHA], with the taxon chip's content colours
+ * (planner's Q-A ruling, continuation `2026-09-28-64`, under CLAUDE.md's UX default that new map chrome
+ * starts at 80%), so the row reads as one. The list is a menu over the map at the same alpha
+ * ([journalMenuContainerColor]). The chip is a [Surface] sized to its text and the list a popup, so
+ * nothing here takes a touch outside the pill itself (CLAUDE.md, the Surface pitfall); a host places it
+ * in a row bounded to its content.
  */
 @Composable
 internal fun JournalEntriesMapChip(
@@ -83,8 +105,9 @@ internal fun JournalEntriesMapChip(
     modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val container = MaterialTheme.colorScheme.surface
-    val content = MaterialTheme.colorScheme.onSurface
+    val isDarkTheme = LocalForagerDarkTheme.current
+    val container = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight
+    val content = if (isDarkTheme) Color.White else Bark
     Box(modifier = modifier) {
         Surface(
             onClick = { expanded = true },

@@ -157,7 +157,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import com.zynergylabs.forager.app.domain.GetJournalEntryHighlightsUseCase
 import com.zynergylabs.forager.app.domain.GridMode
+import com.zynergylabs.forager.app.ui.map.layers.JOURNAL_ENTRIES_SWITCH_LAYER_ID
 import kotlinx.coroutines.launch
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -565,9 +567,13 @@ fun AvailabilityScreen(
      * given it (J6 owns the wide tree).
      */
     onRequestDeleteCartographyEntry: ((String) -> Unit)? = null,
-    /** J8 tests-first stub: shows or hides a saved entry on the Maps tab; not yet passed on. */
+    /**
+     * J8-3: shows or hides a saved entry on the Maps tab (`CartographyViewModel.onSetShownOnMap`): the
+     * entry report's "Show on map" and "Hide from map", on both trees, and the Maps-tab chip's "Hide"
+     * and "Hide all". Defaulted, so the many tests of this screen that never show an entry are unchanged.
+     */
     onSetCartographyEntryShownOnMap: (entryId: String, shown: Boolean) -> Unit = { _, _ -> },
-    /** J8 tests-first stub: clears the failed Show/Hide on map message; not yet read. */
+    /** Clears [cartographyUiState]'s `shownOnMapErrorMessage` once its Toast has shown (J8, continuation `2026-09-28-65`). */
     onCartographyShownOnMapErrorDismissed: () -> Unit = {},
     /**
      * An album photo's long-press Delete (J4b L3): a *pending* delete with Undo
@@ -904,15 +910,29 @@ fun AvailabilityScreen(
             )
         }
     }
+    val mapRecordsDrawn = uiState.mapRecords.withoutPending(
+        findId = logUiState.pendingDelete?.item?.id,
+        photoId = logUiState.pendingPhotoDelete?.item?.photo?.id,
+        offlineRegionId = uiState.pendingOfflineRegionDelete?.item?.id?.toString(),
+    )
+    // J8-2 (owner: "Highlight in place", "Live records", "Saved entries only"): the saved entries shown
+    // on the map and the records they keep, among the records the Maps tab draws. cartographyUiState is
+    // what MainActivity passes, with a pending entry delete already left out (hidingPendingDelete), and
+    // its entries are the saved ones; the use case holds the draft rule itself as well. Only the Maps
+    // tab reads this: every other map draws no highlight.
+    val journalHighlights = remember(cartographyUiState.entries, mapRecordsDrawn, waypoints) {
+        GetJournalEntryHighlightsUseCase()(cartographyUiState.entries, mapRecordsDrawn, waypoints)
+    }
     val mapLayersControls = MapLayersControls(
         stored = uiState.mapLayers,
         availableColourFields = availableColourFieldGroups.keys,
         cellsShown = forecastCellsShown.filterKeys { it in availableColourFieldGroups },
-        records = uiState.mapRecords.withoutPending(
-            findId = logUiState.pendingDelete?.item?.id,
-            photoId = logUiState.pendingPhotoDelete?.item?.photo?.id,
-            offlineRegionId = uiState.pendingOfflineRegionDelete?.item?.id?.toString(),
-        ),
+        records = mapRecordsDrawn,
+        journalHighlights = journalHighlights,
+        // J8-3: the chip's list. Hiding writes shownOnMap for each entry, one write each; the Layers
+        // sheet's "Journal entries" switch is a separate, display-only choice and is never touched here.
+        onHideJournalEntry = { id -> onSetCartographyEntryShownOnMap(id, false) },
+        onHideAllJournalEntries = { journalHighlights.shownEntries.forEach { onSetCartographyEntryShownOnMap(it.entryId, false) } },
         legendExpanded = mapLegendExpanded,
         onLegendExpandedChange = { mapLegendExpanded = it },
         onVisibilityChanged = onMapLayerVisibilityChanged,
@@ -966,6 +986,8 @@ fun AvailabilityScreen(
     var pendingJournalDestination by remember { mutableStateOf<PendingJournalDestination?>(null) }
     // M1: the find a PendingJournalDestination.VIEW_FIND request opens, cleared with the request.
     var pendingJournalFindId by remember { mutableStateOf<String?>(null) }
+    // J8-4: the day entry a PendingJournalDestination.VIEW_ENTRY request opens, cleared with the request.
+    var pendingJournalEntryId by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(isDrawerOpen) {
         if (isDrawerOpen) {
             drawerState.open()
@@ -1222,7 +1244,38 @@ fun AvailabilityScreen(
             }
         },
         openFindLabel = OPEN_IN_JOURNAL_LABEL,
+        // J8-4: a highlighted record's keeping entries, while the Layers sheet's "Journal entries"
+        // switch shows the highlights; with it off no record is highlighted, so no bubble names one.
+        journalEntriesKeeping = if (drawnMapLayers.stateOf(JOURNAL_ENTRIES_SWITCH_LAYER_ID).visible) journalHighlights.keptIn else emptyMap(),
+        // J8-4, the owner's Q1 ruling ("Open in Journal, prompt first (Recommended)"): switches to the
+        // Journal (compact) or opens the drawer's LogPanel (wide, as M1's find route does) with the
+        // entry in its report on Entries, the one top-tab change opening it requires; the saved Records
+        // chip is untouched. The Journal side (CartographyScreen's openEntryRequest) asks the existing
+        // "Save your changes?" first when another entry is open in its editor with unsaved changes, and
+        // just closes an unchanged one. A find kept open on the Journal is left first through the one
+        // wrapper, as M1's find route does (F3), since it would otherwise show over the entry.
+        onOpenEntry = { entryId ->
+            if (logUiState.editingEntry != null) leaveLogEntryEditingOfferingDiscard()
+            pendingJournalEntryId = entryId
+            pendingJournalDestination = PendingJournalDestination.VIEW_ENTRY
+            if (usesCompactTree) {
+                compactTab = CompactTab.JOURNAL
+            } else {
+                drawerPanel = DrawerPanel.Log
+                isDrawerOpen = true
+            }
+        },
     )
+
+    // J8, continuation 2026-09-28-65 (the owner: "Set it to "Changes not applied. Try again.""): a failed
+    // Show or Hide on map, from the Journal's report or the Maps tab's chip, told on whichever tab is up,
+    // as a Toast like the Journal's own save failures, then cleared.
+    LaunchedEffect(cartographyUiState.shownOnMapErrorMessage) {
+        cartographyUiState.shownOnMapErrorMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            onCartographyShownOnMapErrorDismissed()
+        }
+    }
 
     // Workstream L4c pre-work: corrects this comment's own claim, found stale by the L4 close-out
     // pulse (2026-08-25). This has exactly one call site — the `PermanentNavigationDrawer` medium+
@@ -1407,10 +1460,13 @@ fun AvailabilityScreen(
                     waypointEntryReferenceCounts = waypointEntryReferenceCounts,
                     pendingDestination = pendingJournalDestination,
                     pendingFindId = pendingJournalFindId,
+                    pendingEntryId = pendingJournalEntryId,
                     onPendingDestinationConsumed = {
                         pendingJournalDestination = null
                         pendingJournalFindId = null
+                        pendingJournalEntryId = null
                     },
+                    onSetCartographyEntryShownOnMap = onSetCartographyEntryShownOnMap,
                 )
             }
 
@@ -1614,9 +1670,14 @@ fun AvailabilityScreen(
             onTaxonSearchResultSelected = onTaxonSearchResultSelected,
             onPendingJournalDestinationChange = {
                 pendingJournalDestination = it
-                if (it == null) pendingJournalFindId = null
+                if (it == null) {
+                    pendingJournalFindId = null
+                    pendingJournalEntryId = null
+                }
             },
             pendingJournalFindId = { pendingJournalFindId },
+            pendingJournalEntryId = { pendingJournalEntryId },
+            onSetCartographyEntryShownOnMap = onSetCartographyEntryShownOnMap,
             mapBubbleSources = mapBubbleSources,
             onStartLogEntry = onStartLogEntry,
             onViewSpeciesOnMap = onViewSpeciesOnMap,

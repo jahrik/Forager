@@ -604,7 +604,10 @@ class CartographyViewModel(
      *
      * A draft is never shown on the map (owner: "Saved entries only"): a call for one is refused and
      * logged. So is an id this ViewModel has not loaded. A failed write changes nothing on screen and is
-     * logged, with the same [CartographyUiState.saveErrorMessage] a failed save sets.
+     * logged, and sets its own [CartographyUiState.shownOnMapErrorMessage], exactly
+     * [SHOWN_ON_MAP_FAILED_MESSAGE] (the owner, continuation `2026-09-28-65`: "Set it to "Changes not
+     * applied. Try again.""), never [CartographyUiState.saveErrorMessage], which keeps its own text for
+     * the failures that set it.
      */
     fun onSetShownOnMap(id: String, shown: Boolean) {
         val state = _uiState.value
@@ -633,14 +636,16 @@ class CartographyViewModel(
                 },
                 onFailure = { error ->
                     Log.w(TAG, "Couldn't ${if (shown) "show" else "hide"} entry '$id' on the map.", error)
-                    _uiState.update { it.copy(saveErrorMessage = "Couldn't save your changes.") }
+                    _uiState.update { it.copy(shownOnMapErrorMessage = SHOWN_ON_MAP_FAILED_MESSAGE) }
                 },
             )
         }
     }
 
-    /** J8 tests-first stub: does nothing yet. */
-    fun onShownOnMapErrorDismissed() = Unit
+    /** Clears [CartographyUiState.shownOnMapErrorMessage] once its Toast has shown (`AvailabilityScreen`). */
+    fun onShownOnMapErrorDismissed() {
+        _uiState.update { it.copy(shownOnMapErrorMessage = null) }
+    }
 
     fun onSaveErrorDismissed() {
         _uiState.update { it.copy(saveErrorMessage = null) }

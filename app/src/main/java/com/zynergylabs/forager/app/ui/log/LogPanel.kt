@@ -212,8 +212,12 @@ internal fun LogPanel(
     pendingDestination: PendingJournalDestination? = null,
     /** M1: the find a [PendingJournalDestination.VIEW_FIND] request opens over this panel. */
     pendingFindId: String? = null,
+    /** J8-4: the day entry a [PendingJournalDestination.VIEW_ENTRY] request opens in this panel. */
+    pendingEntryId: String? = null,
     /** Fires once [pendingDestination] has been applied, so `AvailabilityScreen` clears its own copy and is ready for the next request. */
     onPendingDestinationConsumed: () -> Unit = {},
+    /** J8-3: the entry report's "Show on map" and "Hide from map", threaded to [CartographyScreen]. `null` offers neither. */
+    onSetCartographyEntryShownOnMap: ((entryId: String, shown: Boolean) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     // Same one-shot-per-transition Toast shape as CompactMapTab's startRecordingErrorMessage
@@ -246,6 +250,9 @@ internal fun LogPanel(
     // for the fuller reasoning.
     var recordsPendingSubTab by remember { mutableStateOf<RecordsSubTab?>(null) }
 
+    // J8-4: a VIEW_ENTRY request's entry, staged for CartographyScreen as JournalTab stages it.
+    var entryOpenRequest by remember { mutableStateOf<String?>(null) }
+
     // M1: a find opened from a map bubble, over this panel (FindOverView), in its report: this panel
     // has no report step of its own (its gallery opens a find to edit), so the report the owner asked
     // for (Q3, "Open drawer to the find") is shown here, and its Edit goes on into the edit form.
@@ -271,6 +278,13 @@ internal fun LogPanel(
             // and this panel; the find shows over it, which keeps its top tab and Records chip.
             PendingJournalDestination.VIEW_FIND -> {
                 pendingFindId?.let(::openFindOverView)
+                onPendingDestinationConsumed()
+            }
+            // J8-4, the Maps tab's "Open entry" on the wide layout (the drawer, as M1's find route):
+            // the entry opens on this panel's Entries, in its report, through CartographyScreen.
+            PendingJournalDestination.VIEW_ENTRY -> {
+                selectedTopTab = JournalTopTab.CARTOGRAPHY
+                entryOpenRequest = pendingEntryId
                 onPendingDestinationConsumed()
             }
             null -> Unit
@@ -466,6 +480,9 @@ internal fun LogPanel(
                 columns = EXPANDED_GRID_COLUMNS,
                 modifier = Modifier.weight(1f),
                 mapBubbleSources = entryMapBubbleSources,
+                openEntryRequest = entryOpenRequest,
+                onOpenEntryRequestConsumed = { entryOpenRequest = null },
+                onSetShownOnMap = onSetCartographyEntryShownOnMap,
             )
 
             JournalTopTab.RECORDS -> RecordsTab(

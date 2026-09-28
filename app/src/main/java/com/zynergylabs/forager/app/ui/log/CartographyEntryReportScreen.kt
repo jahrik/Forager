@@ -24,6 +24,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
@@ -60,6 +61,7 @@ import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.model.formatDistanceKm
+import com.zynergylabs.forager.app.ui.map.HIDE_FROM_MAP_LABEL
 import com.zynergylabs.forager.app.ui.map.MapBarIconButton
 import com.zynergylabs.forager.app.ui.map.MapIconBar
 import com.zynergylabs.forager.app.ui.map.MapMode
@@ -72,6 +74,7 @@ import com.zynergylabs.forager.app.ui.map.MapBubbleLayer
 import com.zynergylabs.forager.app.ui.map.MapCameraRequest
 import com.zynergylabs.forager.app.ui.map.MapFeatureTap
 import com.zynergylabs.forager.app.ui.map.MapRecordSources
+import com.zynergylabs.forager.app.ui.map.SHOW_ON_MAP_LABEL
 import com.zynergylabs.forager.app.ui.map.TappedMapThing
 import com.zynergylabs.forager.app.ui.map.focusedFeature
 import com.zynergylabs.forager.app.ui.map.tappedThingOf
@@ -269,6 +272,13 @@ internal fun CartographyEntryReportScreen(
      * nothing and close with a logged line.
      */
     mapBubbleSources: MapRecordSources = MapRecordSources(),
+    /**
+     * J8-3 (owner: "Entry report menu (Recommended)"): with it, a saved entry's menu offers "Show on
+     * map" or, while it is shown, "Hide from map", writing its `shownOnMap` with the new value. A draft
+     * is never shown on the map (owner: "Saved entries only"), so its menu offers neither; nor does any
+     * caller that passes `null` (the default).
+     */
+    onSetShownOnMap: ((shown: Boolean) -> Unit)? = null,
 ) {
     var menuExpanded by remember(entry.id) { mutableStateOf(false) }
     var confirmingDelete by remember(entry.id) { mutableStateOf(false) }
@@ -381,6 +391,13 @@ internal fun CartographyEntryReportScreen(
                             leadingIcon = { Icon(Icons.Filled.Edit, contentDescription = null) },
                             onClick = { menuExpanded = false; onEdit() },
                         )
+                        if (!entry.isDraft && onSetShownOnMap != null) {
+                            DropdownMenuItem(
+                                text = { Text(if (entry.shownOnMap) HIDE_FROM_MAP_LABEL else SHOW_ON_MAP_LABEL) },
+                                leadingIcon = { Icon(Icons.Filled.Map, contentDescription = null) },
+                                onClick = { menuExpanded = false; onSetShownOnMap(!entry.shownOnMap) },
+                            )
+                        }
                         DropdownMenuItem(
                             text = { Text("Delete entry") },
                             leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null) },

@@ -514,6 +514,10 @@ class MainActivity : ComponentActivity() {
                     onSaveCartographyEntryAsDraft = cartographyViewModel::onSaveEntryAsDraft,
                     onDeleteCartographyEntry = cartographyViewModel::onDeleteEntry,
                     onRequestDeleteCartographyEntry = cartographyViewModel::requestDeleteEntry,
+                    // J8-3: the entry report's Show or Hide on map and the Maps-tab chip's Hide and Hide
+                    // all, and the Toast of a failed one (continuation 2026-09-28-65).
+                    onSetCartographyEntryShownOnMap = cartographyViewModel::onSetShownOnMap,
+                    onCartographyShownOnMapErrorDismissed = cartographyViewModel::onShownOnMapErrorDismissed,
                     onRequestDeleteGalleryPhoto = mushroomLogViewModel::requestDeleteGalleryPhoto,
                     getCartographyEntryMapData = { entry, photos -> container.getCartographyEntryMapDataUseCase(entry, photos) },
                     getCartographyEntryOfflineRegion = { entry, points -> container.getCartographyEntryOfflineRegionUseCase(entry, points) },

@@ -427,26 +427,47 @@ internal abstract class JournalEntriesOnMapCompactTests : JournalEntriesOnMapHar
         assertEquals("no entry is shown, so no chip", false, chipShown())
     }
 
+    /**
+     * Clears the map around the chip of other chrome before the touches below. A no-op where nothing
+     * else is there; the short landscape window moves the icon cluster (see its override).
+     */
+    protected open fun clearTheChipsSurroundings() = Unit
+
     @Test
     fun `touches all around the chip reach the map, and a touch on the chip does not`() {
         setScreen(entryA(shown = true))
         touchNavItem("Maps")
+        clearTheChipsSurroundings()
         val chip = composeRule.onNodeWithTag(JOURNAL_ENTRIES_CHIP_TAG).getUnclippedBoundsInRoot()
         val midY = (chip.top + chip.bottom) / 2
         val midX = (chip.left + chip.right) / 2
+        val points = listOf(
+            chip.left - 6.dp to midY,
+            chip.right + 6.dp to midY,
+            midX to chip.bottom + 6.dp,
+            chip.left - 6.dp to chip.bottom + 6.dp,
+            chip.right + 6.dp to chip.bottom + 6.dp,
+        )
+        // Each touch lands on the map and on no other chrome, or it could not tell the chip's own
+        // footprint from something else's: checked here, so a point on other chrome fails the test
+        // instead of passing or failing it for the wrong reason.
+        val slot = composeRule.onNodeWithTag("map-slot").getUnclippedBoundsInRoot()
+        val chrome = listOf(MAP_ICON_CLUSTER_TAG, SEARCH_ENTRY_BAR_TAG, COMPACT_NAVIGATION_RAIL_TAG, "compass-elevation-strip")
+            .flatMap { tag -> composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().map { tag to it.boundsInRoot } }
+        points.forEach { (x, y) ->
+            assertTrue("($x, $y) is on the map $slot", x > slot.left && x < slot.right && y > slot.top && y < slot.bottom)
+            chrome.forEach { (tag, px) ->
+                val b = with(composeRule.density) { androidx.compose.ui.unit.DpRect(px.left.toDp(), px.top.toDp(), px.right.toDp(), px.bottom.toDp()) }
+                assertTrue("($x, $y) is clear of $tag $b", x < b.left || x > b.right || y < b.top || y > b.bottom)
+            }
+        }
         val before = map.taps
 
-        listOf(
-            chip.left - 12.dp to midY,
-            chip.right + 12.dp to midY,
-            midX to chip.bottom + 12.dp,
-            chip.left - 12.dp to chip.bottom + 12.dp,
-            chip.right + 12.dp to chip.bottom + 12.dp,
-        ).forEach { (x, y) -> touchAt(x, y) }
-        assertEquals("all five touches around the chip reached the map", before + 5, map.taps)
+        points.forEach { (x, y) -> touchAt(x, y) }
+        assertEquals("all five touches around the chip reached the map", before + points.size, map.taps)
 
-        touchAt(chip.left + 8.dp, midY)
-        assertEquals("a touch on the chip is the chip's", before + 5, map.taps)
+        touchAt(chip.left + 4.dp, midY)
+        assertEquals("a touch on the chip is the chip's", before + points.size, map.taps)
     }
 
     // ── J8-3: the Layers switch ──
@@ -576,6 +597,31 @@ internal class JournalEntriesOnMapPortraitTest : JournalEntriesOnMapCompactTests
 internal class JournalEntriesOnMapShortLandscapeTest : JournalEntriesOnMapCompactTests() {
     override val glyphX: Dp = 420.dp
     override val glyphY: Dp = 150.dp
+
+    /**
+     * In a short landscape window the chip sits under the search bar on the punch-hole side, where the
+     * icon cluster also sits by default (Landscape B2, S3 and S6), so nothing around the chip is map
+     * until the cluster moves. A real drag of the cluster's handle takes it to the port side, as a
+     * user does (the B2 tests' own drag).
+     */
+    override fun clearTheChipsSurroundings() {
+        val handle = composeRule.onNodeWithTag("map-icon-bar-minimize-handle").getUnclippedBoundsInRoot()
+        val start = with(composeRule.density) { Offset(((handle.left + handle.right) / 2).toPx(), ((handle.top + handle.bottom) / 2).toPx()) }
+        val delta = with(composeRule.density) { Offset(400.dp.toPx(), 0f) }
+        composeRule.onRoot().performTouchInput {
+            down(start)
+            advanceEventTime(600)
+            moveTo(start + delta)
+            advanceEventTime(50)
+            up()
+        }
+        composeRule.waitForIdle()
+        composeRule.mainClock.advanceTimeBy(2_000)
+        composeRule.waitForIdle()
+        val cluster = composeRule.onNodeWithTag(MAP_ICON_CLUSTER_TAG).getUnclippedBoundsInRoot()
+        val chip = composeRule.onNodeWithTag(JOURNAL_ENTRIES_CHIP_TAG).getUnclippedBoundsInRoot()
+        assertTrue("the cluster $cluster is off the chip's side now ($chip)", cluster.left > chip.right + 24.dp)
+    }
 }
 
 /**

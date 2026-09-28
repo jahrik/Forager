@@ -26,6 +26,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -57,6 +58,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import com.zynergylabs.forager.app.ui.map.JournalEntriesMapChip
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -649,6 +651,8 @@ internal fun CompactMapTab(
                         findMarkers = mapLayers.records.findMarkers,
                         photoMarkers = mapLayers.records.photoMarkers,
                         offlineRegionCircles = mapLayers.records.offlineRegionCircles,
+                        // J8-2: the shown entries' kept records, highlighted under their own glyphs.
+                        journalHighlights = mapLayers.journalHighlights,
                     ),
                     renderMode.copy(onFeatureTap = onFeatureTap),
                     focusOverride,
@@ -1076,10 +1080,17 @@ internal fun CompactMapTab(
                 // "Show all species" tap silently swallowed the same way a bubble anchored there
                 // would. topInset itself (see this composable's own doc comment) clears whatever
                 // chrome floats above the strip too — SearchEntryBar, on the Map tab.
-                mapTaxonFilterLabel?.let { label ->
-                    TaxonMapFilterChip(
-                        label = label,
-                        onClear = onClearTaxonFilter,
+                //
+                // J8-3 (owner: "Top, by the species chip (Recommended)"): the journal-entries chip sits in
+                // the row with the taxon chip, after it, at the same place in each window. A FlowRow sized
+                // to its chips (it draws nothing and takes no touches itself, so the map keeps every touch
+                // around them: CLAUDE.md, the Surface pitfall), so two chips wider than the room wrap to a
+                // second line instead of running off the screen. It holds whichever chips there are.
+                val shownJournalEntries = mapLayers.journalHighlights.shownEntries
+                if (mapTaxonFilterLabel != null || shownJournalEntries.isNotEmpty()) {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
                         modifier = if (punchHoleEdge != null && landscapeSearchWidth != null) {
                             // Landscape B2 (S3): directly under the search bar (the strip is in
                             // the rail corner now, not under the bar), in a column the bar's own
@@ -1096,7 +1107,16 @@ internal fun CompactMapTab(
                                 .padding(controlsPadding)
                                 .padding(top = topInset + compassStripClearance + Spacing.sm)
                         },
-                    )
+                    ) {
+                        mapTaxonFilterLabel?.let { label -> TaxonMapFilterChip(label = label, onClear = onClearTaxonFilter) }
+                        if (shownJournalEntries.isNotEmpty()) {
+                            JournalEntriesMapChip(
+                                entries = shownJournalEntries,
+                                onHide = mapLayers.onHideJournalEntry,
+                                onHideAll = mapLayers.onHideAllJournalEntries,
+                            )
+                        }
+                    }
                 }
 
                 // Navigation HUD stage one. Composed after the cluster (so its own exit wins any
