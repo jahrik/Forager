@@ -392,6 +392,16 @@ Night Maps is the drawer's Settings checkbox (`CheckBox [35,930][137,1032]`, `ch
 - The bubble is translucent and opens to the left of the flag, partly over it (my reading of `41-r1-tap-B`).
 - One touch per flag, at a point I chose on its glyph; the edges of the glyph were not sampled.
 
+### Check 5a: landscape, a tab round trip
+
+- On the wide tree, List and Maps are one pane (AS:1576-1577), so the round trip that takes the map away is Maps,
+  Seasonal, Maps. In `43-r1-seasonal` the dump holds no map node.
+- Back on Maps (`44-r1-maps-after-seasonal`), the map was rebuilt with its camera on the search centre: the DEVICE CHECK
+  waypoint is at its first position (`#350560`, [2143,1004][2188,1060], as in `12-r1-maps-pane`). **A draws** at
+  [2163,1242][2204,1300] (1229 px) and **B** at [2163,1480][2204,1538] (1229 px): 238 and 476 px south of the centre,
+  the two pans. One more cluster under 20 px is basemap noise (2 px, as at the baseline).
+- **Verdict: as predicted.**
+
 ## Appendix A: `prompts/preserved/2026-09-28-95.md`, verbatim
 
 At `554449b`, whole (sha256 `cfa98c46e5f3a49f8acb8b7b7bac2f5c343a10e3bb0d8ae9b439ecf5e12e2730`):
