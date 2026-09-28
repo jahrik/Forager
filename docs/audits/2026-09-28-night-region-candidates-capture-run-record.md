@@ -1,8 +1,9 @@
 # Night offline-region candidates: capture run record (2026-09-28), STOPPED PARTWAY (twice)
 
-**Current status (after the fourth session's second part, at the end): stopped at 12:06Z on an abort condition.
-606060's View C has a best shift of (3,6), which is above the planner's 5 px limit. 606060 is installed; Night Maps
-is still on; the basemap is Topographical. Taken: every view except 606060-B and 606060-C.**
+**Current status (after the fourth session's third part, at the end): finished at 12:20Z. Every view is taken for all
+three candidates. 606060 is installed; Night Maps is restored to off and the basemap is Topographical, both read back.
+606060-B is mis-framed (it ended at maximum zoom) and was not retaken, because the planner said once. See the third
+part.**
 
 Dispatch `prompts/preserved/2026-09-28-26.md` (continuation `2026-09-28-26` of intent `2026-09-28-19`).
 Phone SM-S908U, serial `R5CT321008R`. The raw evidence and every screenshot are outside the repository, in
@@ -515,3 +516,85 @@ The abort came before step 3. As left at 12:07Z:
   still `installed=true`.
 - View C, as framed by `frame.sh`'s final locate step, depends on the fix to a few metres. As long as the fix
   drifts, any rule based on shift will keep hitting this.
+
+## Fourth coder session, third part (12:10Z to 12:21Z): gate withdrawn, last two shots, settings restored
+
+**Planner message, part of this dispatch, quoted verbatim.** It was relayed by the coordinator. No planner-log line
+was given, so none is cited.
+
+> This is a planner message and part of the dispatch; quote it verbatim in the run record. The framing gate is **withdrawn** for the remaining two shots. The owner is picking by eye, and the three A-night frames already match.
+>
+> 1. Take 606060-B, then 606060-C, with the same recipes, each **once**. There is no acceptance gate. Record each one's best shift and residual as information only.
+> 2. Restore Night Maps to off and read it back in Settings. Read the basemap back as Topographical.
+> 3. Leave 606060 installed.
+> 4. Push the run record.
+>
+> These still stop the run: a prompt over the app, a crash, or anything needing an install, an uninstall or a data clear. Final message: the shot list, grouped by view.
+
+`fg.sh` passed before and after every step, so no prompt appeared. The crash buffer read 0 lines after each shot
+and after the restore. Nothing needed an install, an uninstall or a data clear.
+
+### 606060-B (taken once, information only): mis-framed
+
+`basemap.sh Street` read back "Layers: Street map". I then ran `frame.sh` once (clamp capture
+`frame-clamp-606060-street-a`) and took `shots/606060-B.png` straight after it.
+- Against `202020-B`: `offs.py` over the full map area, 611 211 differing at (0,0), with the best at (0,-8), the
+  edge of its window (609 681). `outside_shift.py` A: 553 240 of 904 723 at (0,0) (61%), and 553 946 at (0,-8).
+- **The shot does not show View B's framing.** Looked at by eye, it is at close zoom. The region's circle is not in
+  view, but the location marker, its accuracy disc and a recorded track are. This matches failure 1 or 3 in the
+  first part of this record ("ended at maximum zoom").
+- The clamp capture is pixel-identical to 202020's Street clamp (`offs.py` 0 at (0,0)). So the run went wrong
+  after the clamp, at or after the first locate step. That fits failure 1's `FIRST_ACTIVATION_ZOOM` explanation, but
+  this is unconfirmed.
+- **Not retaken**, since the planner said once. The shot is kept under its name, flagged here. It is not
+  comparable with 202020-B and 404040-B.
+
+### 606060-C (taken once, information only)
+
+`basemap.sh Topographical` read back "Layers: Topographical map". Then `frame.sh` (clamp `frame-clamp-606060-C-once`)
+and `viewc.sh`, and `shots/606060-C.png` straight after. Against `202020-C`, the best shift was (3,6): 66 181 differing
+over the full area and 9464 over rows 300-820. `outside_shift.py` C at (3,6) gave 14 968 of 475 800 (3.1%). That is
+the same shift and residual as the earlier aborted run `85-viewc-606060-r1`.
+
+### Settings restored and read back
+
+- Night Maps: Tools, then Settings (`logs/92-settings-before`). "Night Maps" read checked (on). One tap on its toggle
+  (113,1148), and it read **unchecked (off)** (`logs/93-nightmaps-off`). That matches its start value. I closed the
+  menu with its "Close navigation menu" area.
+- Basemap: Maps tab, "Layers: Topographical map" (`logs/94-after-restore`). That matches its start value.
+- Rotation 0/0. `map.fullscreen` was not touched this session.
+
+### Phone state at the end (12:21Z)
+
+606060 is installed (`lastUpdateTime` 05:03:58 PDT, `firstInstallTime` 2026-09-22 11:15:05, unchanged). Night Maps
+is off. The basemap is Topographical. Rotation is 0/0. The crash buffer has 0 lines. Forager is on top, with no
+keyguard. The Dual App profile (user 95) still has Forager installed, and nothing was done about it.
+
+### Final shot table (`shots/SHA256SUMS`)
+
+| View | File | sha256 | Shift, residual against the 202020 reference |
+|---|---|---|---|
+| A-day | `202020-A-day.png` | `8c13cc78…89d7` | reference |
+| A-night | `202020-A-night.png` | `7cf318d9…4026` | reference |
+| A-night | `404040-A-night.png` | `daaf6417…a502` | (0,0), 0 |
+| A-night | `606060-A-night.png` | `e9e05183…4c25` | (0,0), 0 |
+| B | `202020-B.png` | `746bf664…ad80c` | reference |
+| B | `404040-B.png` | `760be278…a826` | (0,0), 0 |
+| B | `606060-B.png` | `1dc99e2e034f437f50ca069298bfff0e18843d8fc71426587be276fefb5e4e78` | **mis-framed**: best (0,-8), 61% differing (information only) |
+| C | `202020-C.png` | `bf903058…37c3` | reference |
+| C | `404040-C.png` | `a6eeb0d1…d4d5` | (3,3), 1919 of 475 800 (0.40%) |
+| C | `606060-C.png` | `d9f4683b81626553b1cd460bfdca4cc5e71141ea5ea7f33df26937032e8cbc90` | (3,6), 14 968 of 475 800 (3.1%) (information only) |
+
+### Decisions I made (third part)
+
+- Kept the mis-framed 606060-B as taken instead of retaking it, reading "once" literally. A retake needs Night Maps
+  on again and a planner go-ahead.
+- Took each shot straight after its recipe, without the separate check snap used before, since there was no gate.
+- Reached Settings by the Tools tab (981,2068) and "Settings" (506,2113), a route read from the node dumps.
+- Deleted my own scratchpad composites that showed the owner's area (`bcmp.png`, `diff-C.png`, `left.png`). They
+  were never in any repository.
+
+### Flags outside scope
+
+- 606060-B shows the known intermittent max-zoom failure of `frame.sh`. Its cause is still undetermined (failure 3
+  above).
