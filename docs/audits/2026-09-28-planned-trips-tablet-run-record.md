@@ -326,6 +326,27 @@ do here?", "Plan a trip", the centre-pin picker's OK, the date dialog, "Plan tri
 The map-wide count after B is 2452 px, the two flags and nothing else (`19-pix-r1.txt`). The flag's measured size
 matches the glyph's 20 x 28 dp (MG:42). **As predicted.** Logcat is read for all checks together at the end.
 
+### Check 1z: landscape, zoomed in and out
+
+Zoom in by double-tap on empty ground (two taps 150 ms apart; 90 ms apart did not register, `25-r1-zoom-in-1`, where
+nothing moved). Zoom out by MapLibre's double-tap-and-drag, sent as `input motionevent`. The zoom level is not read from
+the app; the separation between the two flags stands in for it (at the placing zoom, 238 px).
+
+| Capture | Separation (px) | Relative zoom | A | B |
+|---|---|---|---|---|
+| `23-r1-after-B` (placing zoom) | 238 | 0 | 1229 px, 19.8 x 27.8 dp | 1223 px |
+| `26-r1-zoom-in-2` | 477 | +1 | 1229 px | 1229 px |
+| `27-r1-zoom-in-3` | 954 | +2 | 1229 px | 1229 px |
+| `28-r1-zoom-out-1` | 506 | about +1.1 | 1154 px | 1194 px |
+| `29-r1-zoom-out-2` (crop `29-r1-zoom-out-2-crop.png`, map `29-r1-zoom-out-2-map.png`) | about 0 | far out, the whole valley | **one cluster, 844 px**: the two flags drawn on top of each other | (same) |
+| `30-r1-zoom-back` | 235 | about 0 | 1229 px | 1229 px |
+
+- **Verdict: both draw at every zoom tried, as predicted.** The icon keeps its screen size (19.8 x 27.8 dp) at every
+  zoom. At the far zoom-out (`29`) the two flags coincide, and the DEVICE CHECK find's and waypoint's glyphs, which
+  the registry draws above planned trips (ML:350-356), cover part of the pennant. The flag stays visible there (my
+  reading of the crop). The sightings dots draw below it, as ordered (ML:334-350).
+- **Not measured:** the zoom level itself, and any zoom beyond these.
+
 ## Appendix A: `prompts/preserved/2026-09-28-95.md`, verbatim
 
 At `554449b`, whole (sha256 `cfa98c46e5f3a49f8acb8b7b7bac2f5c343a10e3bb0d8ae9b439ecf5e12e2730`):
