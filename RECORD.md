@@ -3499,3 +3499,14 @@ Three premises were wrong: the editor has no map; trip planning, Set on map and 
 **Reason:** the owner reversed -58's ruling 3 on the accent buttons, verbatim: "Have the colored buttons be at 80% opacity also".
 **Changes:** The + disc, the record disc while recording and the wide Add button go to 80% over the map. The discs sit on 0.8-composite fills, so the target is 0.8 overall with the fill beneath not stacked under the disc, proved headless. A mechanism that would change shape, touch targets or layout is a stop. -58's ruling 3 is superseded, not deleted; the plan keeps both. Still queued behind J8.
 **Notes:** Asked how the stacked discs reach 80%, the owner answered "[No preference]". The planner chose true 80% overall, from CLAUDE.md's layered-fill line (c166bda), over the disc's own fill at 0.8, which would composite to about 0.96 and look unchanged. Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-60
+**Timestamp:** 2026-09-28T19:09:44Z
+**Continues:** 2026-09-28-56
+**Dispatch-file:** preserved/2026-09-28-60.md
+**Reason:** -59 rested on a planner misreading. The planner's question named the + disc, the record disc and the wide Add button, and the owner's "Have the colored buttons be at 80% opacity also" was recorded against those. The owner meant the bottom tab bar, verbatim: "The bottom colored buttons", "Leave the map icon bar alone", and, with a screenshot circling the tab bar, "These buttons at the bottom must be 80% opacity".
+**Changes:** Supersedes -59 in full. The accent buttons stay solid (-58 ruling 3 stands again). The bottom tab bar's selected-tab indicator, Material3's default and solid (AvailabilityNavigationUi.kt:167-170), goes to 0.8 composite over the map, with the bar's fill not stacked under it. The bar's container is already 0.8 at AvailabilityCompactMapUi.kt:1210. The rail gets the same treatment in short landscape (planner's reading). Whether the bar's 0.8 shows the map on the S22 is listed as a device item. Still queued behind J8; nothing launched.
+**Notes:** The misreading was the planner's. -59 stays in the record as superseded, not deleted. The owner stopped all agents just before this ("Stop everything"). The J8 relaunch (-54) and the device relaunch (-55) were already killed, with no hand-back from either, and the phone and the j8 worktree were left unchecked. Written by the planner by hand.

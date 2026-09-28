@@ -626,3 +626,18 @@ Dispatch `2026-09-28-56` is widened by continuation `2026-09-28-58`, and still w
 **Accent buttons, superseding edge-case ruling 3 (owner, 2026-09-28).** Ruling 3 above ("Keep them solid (Recommended)") stands as the record of what was decided then. The owner then reversed it, verbatim: "Have the colored buttons be at 80% opacity also". That covers the + disc, the record disc while recording, and the wide Add button.
 
 The + disc sits on the icon bar and the record disc on the control pill. Both are already 0.8 composites, so a disc at 0.8 on top would stack to about 0.96. Asked how the discs should reach 80%, the owner answered "[No preference]". The planner ruled **true 80% overall**: the map shows through each disc as much as through the rest of the chrome. The fill beneath is not stacked under the disc, which follows CLAUDE.md's rule that layered fills composite to 0.8 rather than each carrying it. The wide Add button sits straight on the map, so its own fill at 0.8 is already 0.8 overall. Carried by continuation `2026-09-28-59` of `-56`.
+
+**Correction: the "colored buttons" are the bottom tab bar (owner, 2026-09-28).** This supersedes the "Accent buttons" paragraph above, which stands as the record of the planner's misreading.
+- The planner's edge-case question 3 named the + disc, the record disc and the wide Add button, and the owner's "Have the colored buttons be at 80% opacity also" was recorded against those.
+- The owner then clarified, verbatim: "The bottom colored buttons", "Leave the map icon bar alone", and, with a screenshot circling the bottom tab bar (List, Seasonal, Maps, Journal, Tools): "These buttons at the bottom must be 80% opacity".
+
+So:
+- The accent discs and the wide Add button **stay solid**. Edge-case ruling 3 stands again, and the icon bar and control pill are untouched.
+- **The bottom tab bar's buttons go to 80% over the map.**
+  - The bar's own container is already `surfaceContainer` at a literal 0.8 (`AvailabilityCompactMapUi.kt:1210`).
+  - The selected tab's highlight (the brown pill behind Maps) is Material3's default indicator colour, solid. Only the icon and label colours are overridden (`AvailabilityNavigationUi.kt:167-170`). The highlight goes to 80% over the map.
+  - Icons and labels stay opaque, as UX defaults require.
+- The planner applies the same to the navigation rail, which stands in for the bar in short landscape. That is the planner's reading, stated to the owner.
+- Whether the bar's 0.8 container actually shows the map through on the S22 is a device check. The screenshot cannot settle it.
+
+Carried by continuation `2026-09-28-60`, which supersedes `-59`.
