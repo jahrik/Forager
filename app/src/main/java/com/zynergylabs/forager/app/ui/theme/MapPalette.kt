@@ -11,8 +11,8 @@ package com.zynergylabs.forager.app.ui.theme
  * Each marker kind has its own role, so no two kinds share a colour: [waypoint], [find], [plannedTrip],
  * [photo], [keptTrack], [breadcrumb], the centre-pin picker's [centrePin], [searchCentre],
  * [offlineRegion], [sightingDot] and J8's [journalEntry] halo, plus the two rings drawn on the sighting dot
- * ([sightingDotStroke], [sightingDotStrokeSelected]) and the [casing] every other marker is outlined
- * in. Before C2 the find pin shared the offline region's colour and the photo marker the planned
+ * ([sightingDotStroke], [sightingDotStrokeSelected]), the [casing] every other marker is outlined
+ * in, and the night border under the offline region's dashed outline ([offlineRegionBorder]). Before C2 the find pin shared the offline region's colour and the photo marker the planned
  * trip's; colour told them apart only by shape, and in the find pin's case not even that.
  *
  * ## Hand-authored, not derived
@@ -74,6 +74,16 @@ data class MapPalette(
      * `MapPaletteTest` holds it to (c) against the casing like the other fills.
      */
     val journalEntry: Int,
+    /**
+     * The border under the offline region's dashed outline (dispatch `2026-09-28-79`): a solid line in
+     * the track casing's pattern, so that at night the region's edge carries over the darkest ground,
+     * where the black dashes alone measured 1.08:1 to 1.45:1 on the phone (Part 1, check 5 (b)). The
+     * owner: "The outline should have a white border", and, for night only, "Yes the night outline
+     * only". Its opacity is the registry's (`OFFLINE_REGION_BORDER_OPACITY`), not this colour's alpha,
+     * except by day, when this colour is fully transparent so the layer draws nothing and the day
+     * outline is exactly as it was. `MapPaletteTest` holds its figures against the night ground.
+     */
+    val offlineRegionBorder: Int,
 ) {
     companion object {
 
@@ -96,6 +106,8 @@ data class MapPalette(
             // J8's halo: a deep blue-teal, proposed by the J8 coder and measured in MapPaletteTest
             // (see that test's class doc); the owner judges it on the phone.
             journalEntry = 0xFF005577.toInt(),
+            // Night only (owner: "Yes the night outline only"): fully transparent, so it draws nothing.
+            offlineRegionBorder = 0x00FFFFFF,
         )
 
         val NIGHT = MapPalette(
@@ -125,6 +137,9 @@ data class MapPalette(
             casing = 0xFF000000.toInt(),
             // J8's halo at night: a cyan in the day colour's hue family (20.1° apart), measured the same way.
             journalEntry = 0xFF00DDFF.toInt(),
+            // Owner: "The outline should have a white border". Opaque white here; drawn at the
+            // registry's line opacity, 0.85, the coder's proposal, for the owner to judge on the phone.
+            offlineRegionBorder = 0xFFFFFFFF.toInt(),
         )
 
         fun forMode(night: Boolean): MapPalette = if (night) NIGHT else DAY
