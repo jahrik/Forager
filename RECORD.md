@@ -2811,3 +2811,19 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Written by the planner by hand. The owner's rulings this session, recorded in the plan ("L0b rulings (owner, 2026-09-28)" and "Ruling 3 clarified"), verbatim: "Also show all finds etc.", "On by default", "Saved entries only (Recommended)" then "Every saved record (Recommended)", "Same sheet (Recommended)", "Bottom-right, above the 'i' (Recommended)", "Debug-only source (Recommended)", "Two synthetic layers (Recommended)", "One stage". Planner choices not ruled by the owner, open to change: the sheet's copy (labels, "Layers: <basemap> map. Choose the map type and overlays."), the synthetic layer names and the "Synthetic test data" credit, the key names, drag-to-reorder with TalkBack move actions (Gaia and CalTopo convention). Premises from docs/audits/2026-09-28-l0b-premise-pulse.md. Runs in parallel with the device check 2026-09-28-02, which uses no Gradle.
 
 ---
+
+**Kind:** intent
+**ID:** 2026-09-28-04
+**Timestamp:** 2026-09-28T03:55:00Z
+**Title:** Backlog device check, Part A: the Journal in portrait on the S22 Ultra (items from J1-J4b, J5c and the plan's J7 lines, per docs/audits/2026-09-28-device-backlog-compilation.md)
+**Dispatch-file:** preserved/2026-09-28-04.md
+**Change:** No code. A device coder runs the portrait Journal items of the compiled backlog on the installed build 1.0.1192+g24589349 (which contains every stage up to J5c), after the L0a device check has finished: Back from a Records chip, draft Continue, the map's Log a find routing, the New entry and Add photo buttons, the chip row and banner at font scales 1.0, 1.15 and 1.3, the two-stage swipe with Undo, night-mode toggles, Seasonal reload, theme and real-data observations, the details sheet in portrait, Directions and Share hand-offs, accessibility descriptions from dumps, scroll performance if the log is large. Owner-only items (feel, ripple, TalkBack speech, fold, the wide tree) and the superseded items 16, 25 and 33 are recorded, not attempted. Part B (landscape, the Maps drawer, the pickers) is a later dispatch.
+**Scope boundary:** Observe and record only; the only data created is one saved Journal entry and one draft titled DEVICE CHECK 2026-09-28, left in place; deletes only on that entry and always undone; no photo taken or imported. Run record on branch device-backlog-a-2026-09-28, raw evidence outside the repository. Not the record, index, CLAUDE.md, plans or prompts.
+**Baseline:** journal-redesign at the commit carrying this entry; phone at 1.0.1192+g24589349.
+**Prediction (outcome — planner):** 1. Back goes chip, All, Entries. 2. The chip row scrolls sideways at 1.15 rather than clipping. 3. At least four items not run for want of data. 4. No crash.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** The run record pushed on device-backlog-a-2026-09-28 with every item's verdict, settings restored and read back, the crash log read at the end, created data listed; the planner merges and writes the terminal.
+**Abort conditions:** A different installed build; the wrong or no device; a locked phone; the L0a device check not finished; an install, uninstall, data clear or data beyond the one entry and one draft; Undo failing to restore; a new Forager crash; a pass condition not statable before looking.
+**Notes:** Written by the planner by hand. The owner, this session, on the backlog: "you can run them at the same time if you want, otherwise you can wait for a good time to do them". Runs after 2026-09-28-02 on the phone (one coder on the phone at a time) and in parallel with the L0b build 2026-09-28-03. Held until the planner's launch message says 2026-09-28-02 has finished.
+
+---
