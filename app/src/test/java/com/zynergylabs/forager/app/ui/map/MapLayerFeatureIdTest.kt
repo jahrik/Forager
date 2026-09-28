@@ -171,8 +171,13 @@ class MapLayerFeatureIdTest {
             listOf(MapLayerIds.SIGHTINGS to PaletteRole.SIGHTING_DOT),
             MAP_LAYER_REGISTRY.filter { it.renderer == LayerRenderer.CIRCLE }.map { it.id to it.paletteRole },
         )
+        // Map layers L0b: the two colour fields are fills too, coloured by their own ramps (no role).
         assertEquals(
-            listOf(MapLayerIds.OFFLINE_REGION_FILL to PaletteRole.OFFLINE_REGION),
+            listOf(
+                MapLayerIds.FORECAST_CHICKEN_OF_THE_WOODS to null,
+                MapLayerIds.FORECAST_CHANTERELLES to null,
+                MapLayerIds.OFFLINE_REGION_FILL to PaletteRole.OFFLINE_REGION,
+            ),
             MAP_LAYER_REGISTRY.filter { it.renderer == LayerRenderer.FILL }.map { it.id to it.paletteRole },
         )
     }

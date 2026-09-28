@@ -110,8 +110,11 @@ class MapLayerStateTest {
     )
 
     @Test
-    fun `the real registry adds no credit`() {
-        assertEquals(emptyList<String>(), activeLayerCredits(MAP_LAYER_REGISTRY, MapLayersState.DEFAULT))
+    fun `the real registry adds no credit while no colour field has data`() {
+        // Map layers L0b: the synthetic colour fields carry a credit, and they are hidden in the
+        // state the map gets whenever the store has no data for them (always, in a release build).
+        val noForecastData = withUnavailableColourFieldsHidden(MapLayersState.DEFAULT, MAP_LAYER_REGISTRY, available = emptySet())
+        assertEquals(emptyList<String>(), activeLayerCredits(MAP_LAYER_REGISTRY, noForecastData))
     }
 
     @Test

@@ -8,8 +8,13 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
 import com.zynergylabs.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
+import com.zynergylabs.forager.app.domain.MapLayerPreferences
+import com.zynergylabs.forager.app.domain.MapLayerPreferencesRepository
 import com.zynergylabs.forager.app.domain.MapPreferencesRepository
 import com.zynergylabs.forager.app.domain.model.Region
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 
 /**
@@ -26,9 +31,13 @@ import kotlinx.coroutines.flow.first
  * [DataStoreMapPreferencesRepository] avoids that without losing anything real production code
  * depends on, since nothing else in this app ever constructs a second one against the same file.
  */
-class DataStoreMapPreferencesRepository(context: Context) : MapPreferencesRepository {
+class DataStoreMapPreferencesRepository(
+    context: Context,
+    scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
+) : MapPreferencesRepository, MapLayerPreferencesRepository {
 
     private val dataStore = PreferenceDataStoreFactory.create(
+        scope = scope,
         produceFile = { context.applicationContext.preferencesDataStoreFile(DATA_STORE_NAME) },
     )
 
@@ -71,6 +80,15 @@ class DataStoreMapPreferencesRepository(context: Context) : MapPreferencesReposi
     override suspend fun setMapFullscreen(fullscreen: Boolean): Result<Unit> = runCatchingCancellable {
         dataStore.edit { prefs -> prefs[KEY_MAP_FULLSCREEN] = fullscreen }
     }
+
+    // Tests-first stubs (map layers L0b, B3).
+    override suspend fun getMapLayerPreferences(): Result<MapLayerPreferences> = Result.failure(NotImplementedError("L0b B3"))
+
+    override suspend fun setLayerVisible(layerId: String, visible: Boolean): Result<Unit> = Result.failure(NotImplementedError("L0b B3"))
+
+    override suspend fun setLayerOpacity(layerId: String, opacity: Float): Result<Unit> = Result.failure(NotImplementedError("L0b B3"))
+
+    override suspend fun setLayerOrder(layerIds: List<String>): Result<Unit> = Result.failure(NotImplementedError("L0b B3"))
 
     private companion object {
         const val DATA_STORE_NAME = "map_preferences"
