@@ -2267,7 +2267,8 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNodeWithText("Cancel").assertIsDisplayed()
     }
 
-    // ── Expanded-panels dispatch: MapModePicker/AddActionTile follow the bar's live position ──
+    // ── Expanded-panels dispatch: AddActionTile follows the bar's live position (the map mode ──
+    // ── popover did too, until map layers L0b replaced it with the Layers sheet)             ──
 
     /** [MapIconBar]'s layers row, as it reads at this file's default basemap (Topographical). */
     private val layersRowDescription = "Layers: Topographical map. Choose the map type and overlays."

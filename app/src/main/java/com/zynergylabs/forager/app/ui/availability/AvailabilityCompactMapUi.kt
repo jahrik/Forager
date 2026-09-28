@@ -4,7 +4,8 @@ package com.zynergylabs.forager.app.ui.availability
 // AvailabilityScreen.kt. Five blocks, lines of the file as of 3bd0efe: 3324-3354
 // (MapIconClusterPositionState, rememberMapIconClusterPositionState), 3356-4420 (CompactMapTab),
 // 4422-4434 (CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR), 4442-4443 (MAP_ICON_CLUSTER_TAG) and 5005-5006
-// (MAP_MODE_PICKER_COMPACT_ANCHOR_OFFSET). Same package as Stages A to E, so every same-package
+// (MAP_MODE_PICKER_COMPACT_ANCHOR_OFFSET, since removed with the popover it anchored: map layers L0b
+// replaced it with the Layers sheet). Same package as Stages A to E, so every same-package
 // reference resolves unchanged. Pure move: no signature, name or body changed. Three widenings,
 // private -> internal: rememberMapIconClusterPositionState, called from AvailabilityScreen.kt (and
 // as CompactMapTab's parameter default here); MapIconClusterPositionState with it, since that
@@ -802,10 +803,12 @@ internal fun CompactMapTab(
                     }
                     return offsetPx.coerceIn(maxUpwardOffsetPx, maxOf(maxUpwardOffsetPx, maxDownwardOffsetPx))
                 }
-                // Expanded-panels dispatch: where MapModePicker and AddActionTile below anchor —
-                // the bar's live position, not its default one. Both panels align to the same
-                // edge the bar is on (mapIconBarSideAlignment) and are inset from it by the bar's
-                // own MAP_ICON_BAR_EDGE_INSET, so a panel's outer edge lands exactly on the bar's
+                // Expanded-panels dispatch: where AddActionTile below anchors — the bar's live
+                // position, not its default one. (The map mode popover anchored here too until map
+                // layers L0b replaced it with the Layers sheet, a bottom sheet with no anchor.)
+                // Panels align to the same edge the bar is on (mapIconBarSideAlignment) and are
+                // inset from it by the bar's own MAP_ICON_BAR_EDGE_INSET, so a panel's outer edge
+                // lands exactly on the bar's
                 // outer edge on either side (the same overlap the old fixed CenterEnd/-Spacing.sm
                 // pair produced on the right, now mirrored on the left with a positive inset).
                 // The vertical term is the bar's own drag offset (the same px
@@ -854,10 +857,10 @@ internal fun CompactMapTab(
                 // bar's own measured top and bottom edges both stay on screen now, not just "at
                 // least one touch target's worth of it". The old downward bound (bar centre no
                 // further than MIN_TOUCH_TARGET above the Box's bottom) let the bar's last two
-                // rows — layers and add, the very rows MapModePicker and AddActionTile anchor
-                // to — leave the screen at the bottom of the drag range, which would have carried
-                // both panels off with them once they followed the bar. Symmetric with Item 4's
-                // own upward bound: the bar's bottom edge, once centered then shifted by the
+                // rows — layers and add, the rows the map mode popover (since replaced by the
+                // Layers sheet) and AddActionTile anchored to — leave the screen at the bottom of
+                // the drag range, which would have carried both panels off with them once they
+                // followed the bar. Symmetric with Item 4's own upward bound: the bar's bottom edge, once centered then shifted by the
                 // offset, is (mapContentBoxHeightPx + mapIconClusterHeightPx) / 2 + offset — solved
                 // for the largest offset that keeps it at or above the lowest reachable edge
                 // (the nav's top outside fullscreen, this Box's bottom in it — the nav is drawn
@@ -1155,7 +1158,7 @@ internal fun CompactMapTab(
                 // Fullscreen-fixes dispatch, Item 1 (third design). Composed here — after the
                 // ambient chrome above (MapIconBar/CompassElevationStrip/TrailheadControls/
                 // TaxonMapFilterChip, none of which reach this bar's own bottom band) but *before*
-                // the modal overlays below (AddActionTile/MapModePicker/CentrePinLocationPickerOverlay)
+                // the modal overlays below (AddActionTile/MapLayersSheet/CentrePinLocationPickerOverlay)
                 // — deliberately, not composed last: this Box now extends the full screen height in
                 // both fullscreen states (CompactMapTab's own doc comment), so those modals'
                 // fillMaxSize() content now reaches all the way down into this bar's own screen
