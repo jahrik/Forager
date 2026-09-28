@@ -3357,3 +3357,14 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** 2026-09-28T16:41:48Z. The owner, verbatim: "Have the coder file this away, this is an audit from another session, unrelated to this work." Another planner session's Forager Navigator plan status audit filed byte for byte (sha256 37fb09c2bda714da21ef3350aa7b0452a43e6a17a34a4d640622fda204f7581b) on its own branch off pre-main, not on journal-redesign; its proposed index row appended with a File cell added by planner ruling (the index declares three columns); a dated pointer added to the Navigator row in docs/plans/README.md. No pull request, no merge: how it reaches pre-main is the owner's call. The audit's five open owner decisions (FieldTrip, walking time versus the plan's ETA cut, offline paths, tracks leaving the phone, off-track alert conditions) were not acted on. Written by the planner by hand.
 
 ---
+
+**Kind:** continuation
+**ID:** 2026-09-28-49
+**Timestamp:** 2026-09-28T16:54:38Z
+**Continues:** 2026-09-28-47
+**Dispatch-file:** preserved/2026-09-28-49.md
+**Reason:** the coder stopped at verification (c2ca9d9, merged 10571b5; nothing in app/ built): both causes are fixed 4:3 map heights (CentrePinLocationPicker.kt:146, 480 dp in a 280 dp viewport; CartographyEntryReportScreen.kt:400, 480 dp in a 272 dp slot, drawn over the header), neither inset-dependent; L1's "all reachable without scrolling" cannot hold at 384 dp (controls ~540 dp against ~264 dp), and the map's side was unsettled by the landscape plan.
+**Changes:** L1's controls side pins OK (with its Cancel) and Download at the bottom, the rest scrolling above (owner); the map on the punch-hole side, controls by the rail, following P8, P9 and P12 (planner); L2 built as dispatched.
+**Notes:** Owner, verbatim: "Pin OK/Download, rest scrolls (Recommended)". Flags carried: the offline panel's Cancel does nothing (AvailabilityOfflineMapsUi.kt:180-183); the find picker's map short in landscape. Written by the planner by hand.
+
+---
