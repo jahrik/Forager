@@ -3627,3 +3627,39 @@ Three premises were wrong: the editor has no map; trip planning, Set on map and 
 **Finish line:** Verification, build, tests first through the editor's Save with a failing repository in portrait and w823dp-h384dp-land, revert check, full suite, report, pushed; the planner writes the terminal.
 **Abort conditions:** No single established pattern; a failure with no existing string; a tests-first test passing at base; a non-compiling revert; a non-held failure; new copy; disk full or OOM; two failed fixes; an unruled design question.
 **Notes:** Owner, verbatim: "2 A", to "Entry save failures are never shown... A fix it as a small stage of its own." The claim comes from the J8 coder's report (terminal -66); the planner has not verified it. Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-69
+**Dispatch-file:** none (pulse dispatched in chat by the planner; read-only)
+**Type:** pulse
+**Outcome:** completed
+**Report:** docs/audits/2026-09-28-j6-premise-pulse.md (the planner's condensed filing, citations kept)
+**Notes:** 2026-09-28T20:35:05Z. Read at 14ea159. The planner moved the shared checkout to 5874699 mid-read to run J8's suite; the pulse caught it and re-checked every citation at 14ea159 through git show. That is recorded as a planner error in the filing.
+
+What the pulse found:
+- The wide tree is MEDIUM or EXPANDED and not short. The S22 never takes it.
+- The Journal is a 360 dp permanent-drawer panel whose opens replace the list; there is no list-detail anywhere in it.
+- The gap table shows J1, J10, J4b, find report and "+", track thumbnails, album delete and F2/F3 missing or unwired on wide. Two M1 routes are parallel copies.
+- The old Photo Gallery panel still exists.
+- The map beside the results is 119 dp at 840 dp and nothing at 721 dp or less. No MEDIUM test exists.
+- Stale comments are listed, and so is a possible Back gap from isDrawerOpen set true on wide.
+
+The list-detail question goes to the owner next. Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-70
+**Timestamp:** 2026-09-28T20:40:39Z
+**Title:** One "Kept in" on a highlighted photo's bubble: the attachment line drops its journal-entry count while J8's keeping-entry lines show
+**Dispatch-file:** preserved/2026-09-28-70.md
+**Change:** While a photo's J8 keptIn is non-empty, photoAttachmentLine leaves out "Kept in N journal entries" and keeps "In ...". If that leaves nothing, the line is omitted and never shows "Not in a find or a journal entry". Otherwise unchanged.
+**Scope boundary:** ui/map/MapBubbles.kt (MapBubble.kt only if needed), tests, a completion report. Not J8's lines, other bubble kinds, the record, index, CLAUDE.md, plans or prompts.
+**Baseline:** journal-redesign at the base named at launch (queued behind -68).
+**Prediction (outcome — planner):** 1. One function changes. 2. The suite grows by 4 to 6.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** Tests first through the real bubble path, revert check, full suite, report, pushed; the planner writes the terminal.
+**Abort conditions:** A wrong premise; a tests-first test passing at base; a non-compiling revert; a non-held failure; new copy; disk full or OOM; two failed fixes; an unruled design question.
+**Notes:** Owner, verbatim: "Option B. Thanks for explaining". It supersedes J8 flag ruling 3 ("keep both", -67's notes). The planner's reading of B covers every highlighted case, not only the more-than-three case, and was stated to the owner. Written by the planner by hand.
