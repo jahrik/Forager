@@ -432,3 +432,25 @@ only, for the tablet); the save-failure Toast (needs a forced write failure).
 `user_rotation` 0, `accelerometer_rotation` 0; Night Maps off; basemap Topographical; `map.fullscreen` false; every
 overlay as found; `font_scale` 1.0 (not planned to change); the app left in focus on the Maps tab in portrait, as found.
 The final database read (above) closes the run.
+
+## Check 1c, an addition to the pre-registration, written after its first attempt (22:44Z) and before its second
+
+**The premise was wrong.** Switching tabs no longer leaves an open find: since intent `-44`'s F3, the bottom nav's
+handler keeps the find open on the Journal (`AvailabilityCompactScaffold.kt:457-464`, the comment on
+`onBottomNavTabSelected`). I missed that comment when I wrote the path above. On the phone, the draft find opened in its
+editor (`30-`), and the Maps item at 22:44:0xZ brought up the Maps tab with **no snackbar** (`31-c1c-snackbar-B`, a
+screenshot 0.9 s after the touch and a dump after it; `32-` 7 s later). The draft find is still open on the Journal.
+
+**The second path.** The editor's own exits still call the snackbar wrapper: its back arrow is `onBack =
+onLeaveEditingIncidentally` (`ui/log/JournalTab.kt:506`), and the Journal's BackHandler runs the same
+(`JournalTab.kt:436`, `:439`), which is `leaveLogEntryEditingOfferingDiscard` (`AvailabilityCompactScaffold.kt:1005`;
+`AvailabilityScreen.kt:1212-1231`). That is the same `onLeaveEditingIncidentally` branch as above (UI state only), so by
+the code it writes nothing either. The snackbar then shows over the Journal, where it is solid; its host is the compact
+Scaffold's, shared by every tab, and its colour follows `compactTab()` (`:597`).
+- **Raise:** Journal; one system Back in the find's editor; then, at once, the Maps item. **B** is a screenshot as soon
+  as the Maps tab shows with the snackbar; **A** the same camera after it has timed out. No other touch until it has
+  gone: after the tab change the snackbar may sit over the nav, and its **Discard** must not be touched.
+- **Pass:** the snackbar is in B over the Maps map, and the fit as pre-registered. Then the database read: every digest
+  equal to the backup's, or abort.
+- If this snackbar does not reach the Maps tab either, **1c is not run** (no other snackbar is available without a data
+  change), and I say so.
