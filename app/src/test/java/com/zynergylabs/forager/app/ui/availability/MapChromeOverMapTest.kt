@@ -321,6 +321,20 @@ abstract class MapChromeCompactTests(glyphX: Dp, glyphY: Dp, glyphStep: Dp) {
         composeRule.assertOverMap(TRIP_DATE_DIALOG_TAG, roles.datePicker, roles.onSurface)
     }
 
+    /**
+     * The picker inside the dialog paints its own container (material3 1.5.0-alpha26), which would stack
+     * on the dialog's to about 0.96; over a map it is clear, so the dialog's one fill is what the map
+     * shows through (CLAUDE.md, UX defaults: layered fills composite). Added after the forward change,
+     * with the picker's seam; its evidence is a revert check, not a tests-first run.
+     */
+    @Test
+    fun `the trip date dialog's picker draws no fill of its own over the dialog's`() {
+        setScreen()
+        openChooserAndPick("Trip")
+        composeRule.touchText("OK")
+        assertEquals("trip-date-picker: container", Color.Transparent, composeRule.colourOn(TRIP_DATE_PICKER_TAG, MapChromeContainerColor))
+    }
+
     @Test
     fun `the search notice over the Maps tab's map is at the map chrome's alpha`() {
         state.ui = state.ui.copy(errorMessage = "Test notice")
@@ -677,6 +691,14 @@ class MapChromeWideTest {
         openChooserAndPick("Plan a trip")
         composeRule.touchText("OK")
         composeRule.assertOverMap(TRIP_DATE_DIALOG_TAG, roles.datePicker, roles.onSurface)
+    }
+
+    @Test
+    fun `on the wide layout the trip date dialog's picker draws no fill of its own over the dialog's`() {
+        setScreen()
+        openChooserAndPick("Plan a trip")
+        composeRule.touchText("OK")
+        assertEquals("trip-date-picker: container", Color.Transparent, composeRule.colourOn(TRIP_DATE_PICKER_TAG, MapChromeContainerColor))
     }
 
     @Test
