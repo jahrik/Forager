@@ -896,3 +896,61 @@ is lightest.
 - **Restore:** Offline maps on, basemap back to Topographical, Night Maps off, each read back.
 - **Prediction** (the pre-registration's): darker with ground legible; the outline weak or invisible over the darkest
   ground; markers unchanged.
+
+## Check 5: the night offline region: **(c) pass; (a) and (b) observations as below**
+
+Run from 19:55Z. Night Maps on at 19:56:11Z (`266`: the checkbox checked; `267-` `night_mode.maps = True`). Returning to
+the Maps tab had put the camera back on the location at about zoom 12 (`262`, before Night Maps; see Flags), so two
+quick zooms out on open map brought the whole 5 km circle on screen with the markers inside it (`270`).
+
+- **Frames, Topographical:** `271` overlay on, `272` Offline maps off (only that switch changed,
+  `272-…-sheet-after.xml`), `273` on again: `271` against `273` max 0 over the map. **Street:** `280` (the basemap
+  switched in the sheet, `280-…-sheet-after.xml`), `281` off, `282` on again: max 0. The markers sit in exactly the same
+  pixels in `271` and `280` (4635 glyph px, the same centroid and bounds), so the camera did not move between them.
+- **The circle:** `275-region-edge.py` fits the region's edge from where the overlay changes pixels (`274-` is that
+  mask): centre (600.5, 1255.7), radius **426.6 px**, rms 1.7 px over 131 rays, about zoom 10.7. Only one circle
+  shows: the 1 km region lies inside it, round the markers. On Street the same fit is poor (rms 15.4), because more of
+  the night ground there is near `#1E1E1E`, where the fill changes nothing; with the camera shown unchanged, Street's
+  measurements use the Topographical fit.
+
+**(a) Darker, with the ground legible.**
+- **The fill is exactly the designed one.** `276-fill-fit.py` over the interior (the markers, the 1 km region, the
+  dash band and the chrome masked): Topographical **k 0.800, c 6.00** in every channel, rms 0.28, over 91,480 px;
+  Street k 0.794 to 0.801, c 5.82 to 6.25, rms 0.26 to 0.29. Predicted 0.8 and 6.4.
+- **The ground stays legible, by the numbers:** its local contrast inside is **0.800** of the same ground with the
+  overlay off (median over 2263 windows on Topographical, 1720 on Street; p10 to p90 0.794 to 0.807). By my reading of
+  the 2x crops (`278-`, `283-`), the ground's detail inside reads the same as outside.
+- **The pre-registration's inside/outside samples** agree: Topographical, 9 same-ground pairs, inside (28.3, 32.6,
+  18.4) against 0.8 x outside + 6.4 = (28.5, 32.7, 18.5); Street, 58 pairs, (48.1, 69.8, 39.6) against (48.6, 70.2,
+  40.0), outside (52.7, 79.8, 42.0).
+- **But "reads darker" holds only for part of the ground.** With c = 6, ground whose brightest channel is under 30 is
+  made *lighter* by the fill, by at most 6 levels. That is **23%** of the region's interior on Topographical and 25% on
+  Street at this camera (`277-dash.py`). By my reading of the whole frames (`271`, `280`), the region does **not**
+  read as a distinctly darker area at this zoom: I cannot see the fill's edge as a step in tone anywhere, only the
+  dashes where they show.
+
+**(b) Does the dashed outline carry the edge over the darkest ground?** `277-dash.py`, per 10-degree bin of the circle
+(26 bins clear of the chrome), gives the dash pixels' mean relative luminance against the brighter side's ground:
+- **Topographical:** over the darkest ground the edge crosses (the lower arc, 70 to 120 degrees, ground outside
+  relative luminance 0.006 to 0.023), **1.08:1 to 1.21:1**. Over the lightest (230 to 300 degrees), 2.07:1 to 2.37:1.
+- **Street:** darkest, **1.28:1 to 1.45:1**; lightest, up to 2.65:1.
+- **By my reading** of the 2x crops, overlay on beside overlay off (`278-` and `279-` Topographical, `283-` Street):
+  where the dashes cross green vegetation or grey road lines they read plainly. Across the near-black patches between,
+  they are black on near-black and I can barely make them out. Over the lightest arc they read plainly. **So no: over
+  the darkest ground the outline does not carry the edge,** and at this zoom nothing else does. This is what the palette
+  comment says was told to the owner when `#202020` was picked ("Over that ground only the dashed casing marks the
+  edge; how well it does is unverified on a screen", `MapPalette.kt:101-110`). This is the screen answer.
+
+**(c) Markers inside the region: pass.** `211-over-under.py`, overlay off against on, interior pixels: photo glyph
+1625 px, find glyph 1521 px, their black casing 427 px, max difference **0** on both basemaps (the ground beside them
+differs, median 9 and 7). The reticle's 2 dp stroke is too thin for the 5 x 5 interior test at this zoom. **The
+location puck is under both region fills:** its blue (74, 144, 226) reads (58, 103, 156) with the overlay on, against
+0.64 x v + 10.8 = (58, 103, 155) for two stacked 0.2 fills (it is inside the 1 km region too), on both basemaps. That
+is the same as check 4 (a); it is not a registry marker.
+
+**Restored and read back:** Topographical (`284-…-sheet-after.xml`), Offline maps on, Night Maps off at 20:03:36Z
+(`287`: unchecked; `288-` `night_mode.maps = False`). Crash buffer 0 bytes (`290-`, 20:03:52Z); Forager still pid 9626.
+
+**Prediction:** "darker with ground legible; the outline weak or invisible over the darkest ground; markers unchanged".
+The outline and markers **held**. "Darker" held only in part: the fill is exactly as designed, but it lightens the
+darkest quarter of the ground and does not read as a darker area at this zoom.
