@@ -595,3 +595,82 @@ reading, and nothing was OOM-killed.
   panel (the section's local `remember` inside the panel's `when` branch). CLAUDE.md's UX default ("what the user has
   set survives navigating away and back") would call that a bug. I left it as it is, because the message keeps every
   other way into the panel unchanged.
+
+## Continuation `2026-09-28-39`: the compact search bar (stopped at a question, no production change)
+
+**The message** (`prompts/preserved/2026-09-28-39.md`, committed at `c0ed318`), verbatim:
+
+> Planner message 2026-09-28-39, part of dispatch 2026-09-28-34. Quote it verbatim in your report. It widens -38 to the compact layout.
+>
+> The owner, verbatim: "Apply the same advanced search location change to portrait mode please".
+>
+> **First, verify.** On the compact layout, in portrait and in short landscape, check what tapping the search bar shows, and whether the location controls sit inside a collapsed "Advanced search" section or similar. Give file:line.
+>
+> **Then build or report:**
+> - If the controls sit in a collapsed section, apply -38's rule on compact too: tapping the search bar opens the panel with that section expanded, so the location controls show at once. Every other way into the panel is unchanged, and the user's own choice inside the panel is never overwritten.
+> - If the location controls already show at once on compact, change nothing. Report it with the evidence of a test that shows they are displayed after the tap.
+>
+> **Tests:**
+> - tests first, with a coordinate touch on the compact search bar in portrait, asserting that a location control is displayed;
+> - the same in `w823dp-h384dp-land`;
+> - a revert check;
+> - the full suite;
+> - a short section added to the report.
+>
+> **Scope:** the compact search panel's expand state, and the files -38 named, plus the compact scaffold if the bar's tap lives there.
+
+**Verification.** The compact bar's tap focuses the species field (`SearchEntryBar`, `ACTIVE_SEARCH_SUMMARY_TAG`), and
+`AvailabilityCompactScaffold.kt` then shows `SearchDropdown` (`showSearchDropdown`, `:293`). `SearchDropdown`
+(`AvailabilitySearchUi.kt:365`) lays out:
+
+- **At its top level, displayed at once** (`:413-429`): a row with "Set on map" and "Use current location". A comment
+  there records that the search-UI redo moved them *out of* "Advanced search" for exactly this reason: "a control
+  reached for on nearly every search doesn't belong a tap deeper".
+- Also at the top level: the radius slider and the month (`:431-441`).
+- A collapsed "Recent searches" (`:444`).
+- **A collapsed "Advanced search"** (`:455`). It holds only a second collapsed section, "Enter coordinates manually"
+  (`:456`), and that holds the manual coordinates: Latitude, Longitude and "Search this location".
+
+**Evidence** (`7bfc4c7`, run `v39`, 2 tests, 0 failures, 0 `e: ` lines): `CompactSearchBarLocationControlsTest`
+(`w384dp-h823dp-xxhdpi`) and `CompactSearchBarLocationControlsShortLandscapeTest` (`w823dp-h384dp-land`). Each makes
+a real touch at the centre of the compact bar, then asserts:
+- the dropdown is displayed;
+- "Use current location" and "Set on map" are displayed;
+- "Advanced search" is collapsed (its "Expand" icon exists);
+- Latitude is absent.
+
+These pass at head because they describe today's behaviour. No revert check was run, since nothing was changed.
+
+**Why I stopped.** The message has two branches, and compact is neither exactly.
+- On wide, "Advanced search" holds all the location controls, so expanding it showed "Use current location" and
+  Latitude together.
+- On compact, the main location controls already show at once, and "Advanced search" holds only the manual-coordinate
+  entry, behind a second collapsed header.
+- So "the location controls already show at once" is true of "Set on map" and "Use current location", and false of
+  the coordinate fields. Choosing between the branches is a design decision I haven't been given.
+
+The options I can see:
+- **(a) Change nothing.** The controls a location search needs show at once already, and the tests above are the
+  evidence. This is the message's second branch, reading "the location controls" as "Set on map" and "Use current
+  location".
+- **(b) Expand "Advanced search" only**, the literal `-38` rule. It would show just the "Enter coordinates manually"
+  header, which is still collapsed, so no new control becomes visible.
+- **(c) Expand "Advanced search" and "Enter coordinates manually" together**, so Latitude, Longitude and "Search this
+  location" show at once. This uses the same one-shot request as `-38`, consumed by both sections. It also puts the
+  manual coordinates first in view on every tap, which the redo's comment above deliberately kept a tap deeper as "the
+  one location path most searches don't need to override".
+- **Lean:** (a). The owner's principle ("a spark … to action") is met by the two buttons already at the top of the
+  dropdown.
+
+**Suite** for `-38` and `-39` together, at `7bfc4c7`, from a cleared results directory, `LC_ALL=C.UTF-8`, counts from
+the JUnit XML, 0 `e: ` lines: **282 / 2268 / 0 / 0 / 24**. That is `-38`'s 280 / 2266 plus the two evidence
+classes. This run stands as the combined suite if (a) is the ruling. If the ruling is (b) or (c), there will be a
+build, a revert check and another suite. `df` showed 13 GB free before the run, and available memory was 3 GB.
+
+**Decisions I made**
+- **I treated the mixed case as a stop.** I built nothing, rather than picking a branch.
+- **I wrote and committed the evidence tests anyway.** They are the second branch's proof, and they record today's
+  behaviour either way.
+- **I ran the full suite before the ruling**, so that (a) needs nothing further.
+
+**Flags outside scope:** none new.
