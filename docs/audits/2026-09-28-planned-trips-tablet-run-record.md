@@ -260,6 +260,10 @@ pre-registration above is not edited. No planner-log line was given with it.
 
 ## Observations
 
+**Status at the end of the run (23:51Z): complete.** Every check was run; the two trips created are deleted and read
+back; every setting is restored and read back. The status line at the top of this file describes the moment the
+pre-registration was pushed and is left as it was.
+
 Everything below was written after observing. Captures are in the evidence directory; each has a `.png` and a `.xml`
 of the same name unless marked, and `snaps.log` holds each capture's time, rotation and hashes. Every input is logged
 with its time in `07-inputs.log`. "Trip pixels" are `pix.py` counts of the trip's fill colour (±16 per channel).
@@ -468,6 +472,163 @@ Both lie on the search centre's longitude, south of it (A nearer), as the two ve
 - **Verdict P2: as predicted.** In portrait the switch, night and tap behave as in landscape. The bubble is cut off at
   the screen's right edge with its Close control off screen, as the sanity check found for a waypoint (its Flag 2).
 - Night Maps is back **off** (`checked=false` in `65-r0-day-again`); Planned trips is back **on**.
+
+### Logcat (read with `-d` only; `logcat -c` never run)
+
+- **Crash buffer** at the start, before the relaunch, after the checks and at the end (`02`, `45`, `70`, `80`): each
+  sha256 `72bd6b5b5e9a70ea`, the same 19 lines with the two 08-10 `com.mgoogle` FATAL EXCEPTIONs and **0 Forager lines**.
+- **Main log** (`71-main-log.txt`, then `81-main-log-end.txt`), Forager's two processes of this run (pid 7372 from the
+  first launch, 9930 from the relaunch; 4348 lines, `72-forager-pid-lines.txt`):
+  - "Couldn't load planned trips.", "Couldn't save the planned trip." and "Couldn't delete the planned trip."
+    (AVM:815, 830, 844): **0 lines**;
+  - `SightingsMap` (a missing native layer, SM:875; a layer not in the loaded style, SM:987; a failed style load,
+    SM:387): **0 lines**;
+  - FATAL or `AndroidRuntime`: 0;
+  - the only `AvailabilityViewModel` warnings: **"Couldn't read offline regions."** once per process start, with
+    `MapLibreConfigurationException: Using MapView requires calling MapLibre.getInstance(...) before inflating or
+    creating the view.` Not trip-related (Flags, 1). `73-trip-layer-lines.txt` holds them.
+  - MapLibre's `Mbgl-HttpRequest` lines are tile fetches (73 successes, cancellations as the camera moved). Their URLs
+    hold tile coordinates and stay in the evidence directory.
+
+### Deleted, and read back
+
+- Back in landscape (`user_rotation 1` at 23:49:12Z), the drawer's Trip Planner listed **exactly the two trips**
+  (`76-r1-trip-planner-before-delete`).
+- **A deleted** with "Remove planned trip for 2026-09-28" at 23:49:4xZ: the list shows only Trip 2 and the map one flag
+  (`77-r1-after-delete-A`). **B deleted** with "Remove planned trip for 2026-09-30" at 23:49:5xZ: "No trips planned yet.
+  Tap the add button on the map to plan one." and **0 trip pixels** in the map (`78-r1-after-delete-B`).
+- `am force-stop` at 23:50:2xZ (pid 9930, none after; `82-force-stop-end.txt`), then the end copy (`db-end-*`): device
+  and local sha256 match, `integrity_check` `ok`, `user_version` 16, **`planned_trips` 0, and neither id present**.
+  **Every table's row count equals the start's.** Every table's digest equals the start's except `cached_searches`,
+  whose one row differs only in `fetchedAtEpochMillis` and `lastAccessedAtEpochMillis` (`83-cache-row-diff.txt`), from
+  my two re-runs of the search. The DEVICE CHECK items are untouched.
+
+### Restored and read back (`85-settings-end.txt`, 23:50:44Z, against `03-settings-start.txt`)
+
+| Setting | Start | Changed by me to | End (read back) |
+|---|---|---|---|
+| `accelerometer_rotation` | 1 | 0 | **1** |
+| `user_rotation` | 1 | 1, 0, 1 | **1**; display at `ROTATION_90` |
+| `font_scale`, `display_density_forced`, `navigation_mode`, `window_animation_scale`, `wm size`/`density` | 1.0, null, 2, 1.0, physical | not touched | the same |
+| `stay_on_while_plugged_in` ("Stay Awake") | 15 | **not touched; the owner's** | 15 |
+| `screen_off_timeout` | 300000 | **not touched; the owner's** | 300000 |
+| `CAMERA` | granted, `USER_SET` | **not touched; the owner's** | granted (`86-package-end.txt`) |
+| Planned trips switch (in the app) | on (default; no preference file) | off, on (landscape and portrait) | **on**; `map.layer.planned-trips-layer.visible` = true in `map_preferences.preferences_pb` |
+| Night Maps (in the app) | off (default; no preference file) | on, off (landscape and portrait) | **off**; `night_mode.maps` = false in the same file |
+
+- **One file is new:** `files/datastore/map_preferences.preferences_pb` (68 bytes) now holds those two keys at their
+  default values (`84-datastore-end.txt`, `ds-map_preferences.preferences_pb`). At the start the directory did not
+  exist (Decisions I made, 4).
+- The drawer is back on the search options with Recent searches, Advanced search and Trip Planner collapsed
+  (`79-r1-final-state`). Forager is force-stopped, as it was not running at the start; the launcher is in front; the
+  tablet is unlocked. The installed build is unchanged (`1.0.1416+gd7cc9f5b`, same `lastUpdateTime`).
+
+## The cause the evidence supports
+
+**On this tablet's wide tree, the symptom did not reproduce.** Both trips drew as flags in every case where the
+searched map was up and a trip's point was on screen: landscape and portrait, zoomed in and out, day and night, after a
+tab round trip and after a relaunch. A tap opened each one's bubble. The planner's outcome prediction 1 holds for its
+first half (observed). On prediction 2, the strip showed both trips whenever their points lay inside it (observed).
+
+A trip was absent from the tablet's map in exactly three conditions, each observed:
+1. **no search:** there is no map at all, only "Choose a region in search options to see mapped sightings."
+   (`10b-r1-launch`, `48-r1-relaunch`; read: AWL:229-233). This is not specific to trips;
+2. **the Planned trips switch off** (`33-r1-trips-off`, `60-r0-trips-off`);
+3. **the trip's point off the visible ground**, which in the portrait strip happens after a small pan or zoom
+   (`56-r0-zoom-back`; the arithmetic for its position is inferred from the zoom, and the pan that brought both back is
+   observed).
+
+**Read:** nothing between the database and the flag filters trips on the wide tree: the DAO selects every row
+(`PlannedTripDao.kt:11`, the pulse's citation), the use case only sorts (`GetPlannedTripsUseCase.kt:20-25`), the wide
+map passes the list unchanged (AWL:281), and the source gets one point per trip (SM:1030, 1530-1535). The compact Maps
+tab differs in one place: it hands the map an empty list unless a search has set a region
+(`AvailabilityCompactMapUi.kt:640` at `d7cc9f5`).
+
+**Inferred, not tested here:** the layer, the glyph, both palettes, the switch and the tap query are the same code on
+both trees (`SightingsMap`, `MAP_LAYER_REGISTRY`, `MarkerGlyphs`), and none of them dropped a trip on this tablet. So
+if the owner's S26 shows no trip at all, the difference on its compact tree is the `hasSearched` gate at
+`AvailabilityCompactMapUi.kt:640`, or a condition this run did not reach. That is `-94`'s check to make; this run
+cannot confirm it. Two things not tried here could also hide a trip on any tree: a trip far from the searched region,
+off the opening view (the pulse's camera note), and a trip under the waypoint, find or photo glyphs, which draw above
+it. The second was seen only as partial cover at a far zoom-out (`29-r1-zoom-out-2`).
+
+## Not tested
+
+- **The compact tree and the owner's S26.** Neither was touched. The owner's report is about the compact tree.
+- **A past-dated trip:** it cannot be created through the UI (check 0), so whether one that already exists draws was
+  not observed. Read: no date filter anywhere on the path, so predicted to draw.
+- A trip far from the search region; basemaps other than Topographical (Street, Satellite); night on any other
+  basemap.
+- Whether a hidden trip still takes a tap.
+- The tab round trip and the relaunch in portrait (both were run in landscape only).
+- Only one touch per flag per orientation, at a point I chose; the glyph's edges were not sampled.
+- The zoom level itself; the flags' separation stood in for it.
+
+## Evidence
+
+All in `/home/zynergy-labs/Zynergy/device-evidence/2026-09-28-planned-trips-tablet/`. `99-hashes.txt` (sha256
+`067e81c7f8333851`) holds the first 16 hex of the sha256 of all 197 other files. Among them: `snaps.log`
+`7e5c0c7093222287`, `07-inputs.log` `9c6980a1416acbc9`, `19-pix-r1.txt` `f4dbbaa7460e904c`, `52-pix-r0.txt`
+`d6be8812f4f77f57`, `73-trip-layer-lines.txt` `a7380ebd00f6dd40`, `trips-created.txt` `7d9df35f73b8f745`,
+`db-end-verify.txt` `c3296ca6bf9486b3`, `db-end-digest.txt` `aab33226598816e9`, `85-settings-end.txt`
+`5cfcad3c312f9462`, `80-crash-end.txt` `72bd6b5b5e9a70ea`.
+
+## Decisions I made
+
+1. **Where D58's phrases come from:** forager-forecast's `docs/planning/DECISIONS.md` row D58, as earlier reports at
+   this base name it. Neither dispatch names it.
+2. **Trip coordinates in the evidence directory** (`trips-created.txt`), not in this file, to meet both `-94`'s
+   "record" and `-04`'s privacy rule. If the two were meant to conflict, the planner rules.
+3. **Placement and dates:** a slow vertical pan before each trip, so each sat clear of the DEVICE CHECK items and on
+   the search centre's longitude (which kept both inside the portrait strip at the opening view); today and
+   **2026-09-30**, the owner's future date, for "a few days ahead".
+4. **The in-app settings' restore leaves a preference file** holding the defaults, where none existed. Removing it
+   would need clearing app data or deleting a file of the app's, neither of which I have leave to do.
+5. **The worktree** at `/home/zynergy-labs/Zynergy/forager-wt/device-trips-tablet`, not my session's own.
+6. **No force-stop at the start;** Forager was not running.
+7. **An objective glyph measure** (`pix.py`, `flags.py`) beside my reading of each capture. The dispatch asks for
+   captures only.
+8. **The launch intent:** `am start -W -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -n …`, with
+   the launcher's action and category, because the sanity check's Flag 1 (photo-viewer continuation) inferred that a
+   bare `-n` stacks a second `MainActivity`. Only one instance was seen in this run; I did not check `dumpsys activity`
+   for it.
+9. **A real tap on a disabled past date,** to test with a finger what the dump said.
+10. **The relaunch check ran before the portrait checks,** so that its force-stop gave the database copy with the ids
+    early. The relaunch was not repeated at the end.
+11. **The tab round trip went through Seasonal,** because List and Maps are one pane on this tree.
+12. **Zoom by gestures sent over adb** (double-tap; double-tap-and-drag as motion events), with the flags' separation
+    standing in for the zoom level.
+13. **Portrait scope:** draw, zoom, switch, night and tap; not the tab round trip or relaunch.
+14. **How each bubble and sheet was closed:** the bubble's Close in landscape; a plain tap on empty map in portrait,
+    where Close is off screen; the Layers sheet by a tap on its scrim. "Directions" was never tapped.
+15. **Fixing my copied `snap.sh`** (v3) after it read a stale dump, and keeping the faulty copy and the stale file
+    marked.
+16. **Tidying app UI state** not on any restore list: the drawer's sections collapsed and the drawer back on search
+    options; Forager left stopped.
+17. **Reading the app's preference file** through `run-as`, to read the two restored values back.
+18. **Leaving my `/sdcard/trips-tab-ui.xml`** (the last uiautomator dump) in the tablet's shared storage, as the
+    earlier tablet runs left theirs. Deleting it was not in the dispatch (Flags, 5).
+
+## Flags outside scope
+
+Recorded, not investigated; none is ruled on here.
+
+1. **"Couldn't read offline regions." at every start-up,** logged by `AvailabilityViewModel` with a
+   `MapLibreConfigurationException` ("Using MapView requires calling MapLibre.getInstance(...) before inflating or
+   creating the view."). The trace runs from `AvailabilityViewModel.loadOfflineRegions` (AVM:923) through
+   `MapLibreOfflineMapRepository.listRegions`/`offlineManager` to `initializeMapLibre` and `FileSource.setResourcesCachePath`
+   (`MapLibreStorage.kt:58, 94`). The tablet holds no offline region, so the effect on the list is not visible here.
+2. **At a far zoom the trip flag sits under the waypoint and find glyphs,** which the registry draws above planned
+   trips (ML:350-356). Partial cover was seen (`29-r1-zoom-out-2`); a trip exactly under another record was not tried.
+3. **Portrait, from the sanity check, seen again for trips:** the strip renders blocky, and a trip's bubble is cut off
+   at the screen's right edge with its Close control off screen (`66`, `68`).
+4. **The date picker allows no past date,** so the owner's Sep 26 trip was created on or before Sep 26 and has since
+   passed. That a past trip draws is read from the code, not observed anywhere yet.
+5. **Stale dump files in the tablet's shared storage.** `/sdcard/tab-ui.xml` (the sanity check's, 15:34 PDT) and
+   `/sdcard/trips-tab-ui.xml` (mine) remain. The first one is what my faulty script read. Any later run that copies a
+   helper script should expect it.
+6. **The owner's S26 symptom** is not reproduced by this run. The one trip-specific difference between the trees in the
+   code is the compact tab's `hasSearched` gate (`AvailabilityCompactMapUi.kt:640`); that is `-94`'s to observe.
 
 ## Appendix A: `prompts/preserved/2026-09-28-95.md`, verbatim
 
