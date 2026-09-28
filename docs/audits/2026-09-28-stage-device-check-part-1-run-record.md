@@ -954,3 +954,32 @@ is the same as check 4 (a); it is not a registry marker.
 **Prediction:** "darker with ground legible; the outline weak or invisible over the darkest ground; markers unchanged".
 The outline and markers **held**. "Darker" held only in part: the fill is exactly as designed, but it lightens the
 darkest quarter of the ground and does not read as a darker area at this zoom.
+
+## Check 6: methods, written before it was run (after the second relaunch)
+
+The pre-registration's pass condition and data limit stand, as does the second coder's addition on measuring the
+zoom. The code premises hold at `26709b1`: the kept track is 6 dp (`KEPT_TRACK_STROKE_WIDTH_PX = 6f`,
+`SightingsMap.kt:1702`, used as `widthDp`, `:1417`), its casing the same line plus 1.5 dp a side, 9 dp
+(`casingFor`, `:1398-1401`; `CASING_WIDTH_DP`, `:1598`), both through `lineWidthExpression` (`:1377-1384`) over
+`TRACK_WIDTH_ZOOM_STOPS` (`ui/map/layers/TrackWidthByZoom.kt:23-26`). The casing is `MapPalette.casing`, white by day
+and black at night.
+
+- **Set-up:** Finds, Photos and Waypoints off for the whole check, since their glyphs sit on the track; Tracks and
+  Offline maps on. Restored and read back at the end.
+- **Widths, from a Tracks on/off pair at one camera** (the Layers sheet, only that switch changed): across a straight
+  run of the track, profiles perpendicular to it. The drawn width is the sum over the profile of each pixel's coverage,
+  (on - off) over (casing - off) projected per pixel, 1 where the pixel is the line's own colour; the line width is the
+  sum of each pixel's share of line colour against casing colour. Both are sub-pixel, and neither depends on the ground
+  beside the track except through the off frame.
+- **At 15 and above** the widths do not depend on zoom, so the zoom only has to be shown to be 15 or more: from the
+  track's drawn extent against its bounding box in metres (from the read-only DB copy, not printed), which gives a
+  lower bound. Pass: 16.9 +/- 1 px and 25.3 +/- 1 px.
+- **At about 13 and 11**, the zoom from the 1 km circle (`214-circle-zoom.py`), and the track's drawn footprint (the
+  on/off difference) against the two models: its bounding box in px, from the DB, plus the thinned casing, or plus the
+  unthinned 9 dp.
+- **Topographical, Street, and night** (Night Maps on, Topographical), each at 15 and above. The blob comparison at 13
+  and 11 is made on Topographical by day only. That is my scoping of the pre-registration's "on Topographical, Street,
+  and at night", which I read as applying to the width check, where the three differ in the casing's contrast; the
+  blob's size does not depend on the basemap.
+- **Prediction** (the pre-registration's): pass at 15 and above; at 11 the blob favours the thinned model; at 13 it may
+  not discriminate.
