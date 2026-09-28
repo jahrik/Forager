@@ -1049,3 +1049,13 @@ defaults, `night_mode.maps = False`. Crash buffer 0 bytes (`330-`, 20:39:51Z); F
 **Prediction:** "pass at 15+; the blob comparison favours the thinned model at 11; at 13 it may not discriminate". The
 first part **held**. The blob could not be seen at either zoom, which the prediction did not foresee: the reticle, not
 the track's size, is the limit.
+
+## Check 7: the compact bar with no location set: **pass**
+
+The code premise holds at `26709b1`: `activeSearchSummary` gives "Search a location" when `uiState.region` is null and
+joins it after the month with " · " (`ui/availability/AvailabilitySearchUi.kt:545-563`, the line at `:557`). No coder
+has run a search (each dispatch forbade one, and I ran none), and the region is not restored at start.
+- The bar's text node reads exactly **"September · Search a location"** (`[164,98][835,166]`) in `10-arrival.xml`
+  (the first launch after the install, saved), `93-relaunch.xml` (after check 3's `am force-stop`, saved),
+  `209-resume2-state.xml` (at my start) and `331-c7-bar.xml` (fresh, 20:41Z).
+- **Prediction:** pass. **Held.**
