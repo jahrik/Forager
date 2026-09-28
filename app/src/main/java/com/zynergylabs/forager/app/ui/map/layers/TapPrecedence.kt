@@ -36,10 +36,21 @@ fun tapWinner(hits: List<TapHit>, drawOrder: List<MapLayerSpec>): TapHit? {
 
 /**
  * A tap resolved in two stages: [pointHits], what lies exactly under the tap point, decides when any
- * of it is tappable; only when none is does [boxHits] run (the finger-sized box, [TAP_BOX_DP]).
+ * marker or line is there; only when none is does [boxHits] run (the finger-sized box, [TAP_BOX_DP]).
+ *
+ * **Colour fields (M1).** A cell lies under nearly every tap, so it is held back until both stages
+ * have found no marker or line: it wins only when it is under the finger and nothing else is at the
+ * point or in the box (planner's M1 ruling, "a group that loses to any marker or line within the
+ * box", and the ruling on Q5: a cell counts only at the point stage and never wins through the box,
+ * so a tap on an empty cell beside a scored one reads out nothing).
  */
-fun resolveTap(pointHits: List<TapHit>, boxHits: () -> List<TapHit>, drawOrder: List<MapLayerSpec>): TapHit? =
-    tapWinner(pointHits, drawOrder) ?: tapWinner(boxHits(), drawOrder)
+fun resolveTap(pointHits: List<TapHit>, boxHits: () -> List<TapHit>, drawOrder: List<MapLayerSpec>): TapHit? {
+    val cellLayers = drawOrder.filter { it.tapGroup == TapGroup.COLOUR_FIELD }.mapTo(HashSet()) { it.id }
+    val (pointCells, pointOthers) = pointHits.partition { it.layerId in cellLayers }
+    return tapWinner(pointOthers, drawOrder)
+        ?: tapWinner(boxHits().filterNot { it.layerId in cellLayers }, drawOrder)
+        ?: tapWinner(pointCells, drawOrder)
+}
 
 /**
  * What one resolved tap does (M1; owner's ruling 1, "Bubble only"): a sighting goes to
@@ -56,4 +67,9 @@ sealed interface MapTapOutcome {
 }
 
 /** [winner]'s [MapTapOutcome]; see that type. */
-fun mapTapOutcome(winner: TapHit?): MapTapOutcome = MapTapOutcome.Plain // Tests-first stub.
+fun mapTapOutcome(winner: TapHit?): MapTapOutcome = when {
+    winner == null -> MapTapOutcome.Plain
+    winner.layerId == MapLayerIds.SIGHTINGS -> MapTapOutcome.OnSighting(winner.featureId?.toLongOrNull())
+    winner.featureId == null -> MapTapOutcome.UnidentifiedFeature(winner.layerId)
+    else -> MapTapOutcome.OnFeature(winner.layerId, winner.featureId)
+}

@@ -323,13 +323,16 @@ class MapBubblesTest {
     }
 
     @Test
-    fun `unclamped, the bubble sits up and left of the anchor with the tip on it`() {
+    fun `unclamped, the bubble sits above and to the left of the anchor with the tip on it`() {
         val anchor = Offset(600f, 900f)
         val placement = place(anchor)
         assertTipOnAnchor(anchor, placement)
         assertInBox(placement)
-        assertTrue("above the anchor", placement.topLeftY + 150 <= 900)
-        assertTrue("left of the anchor", placement.topLeftX + 300 <= 600)
+        // The card is the placed bubble less the tail's 24 px margin on every side.
+        assertTrue("the card is above the anchor (${placement.topLeftY})", placement.topLeftY + 150 - 24 <= 900)
+        // The tail leaves the card's bottom edge (a wide card at 135 degrees), so the card's centre,
+        // not its whole width, is left of the anchor.
+        assertTrue("the card's centre is left of the anchor (${placement.topLeftX})", placement.topLeftX + 150 < 600)
     }
 
     @Test

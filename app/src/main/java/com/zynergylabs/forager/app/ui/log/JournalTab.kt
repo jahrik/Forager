@@ -734,4 +734,9 @@ internal data class FindOverView(val findId: String, val shown: Boolean = false)
  * once the asked-for find is open, kept while any find stays open (starting an edit swaps the open
  * id to its draft row), and gone once none is. A request whose find never opened stays waiting.
  */
-internal fun nextFindOverView(state: FindOverView?, openFindId: String?): FindOverView? = state // Tests-first stub.
+internal fun nextFindOverView(state: FindOverView?, openFindId: String?): FindOverView? = when {
+    state == null -> null
+    !state.shown -> if (openFindId == state.findId) state.copy(shown = true) else state
+    openFindId == null -> null
+    else -> state
+}
