@@ -1162,21 +1162,24 @@ private fun SpeciesSearchControls(
                 containerColor = suggestionsColor,
                 modifier = Modifier
                     .testTag(TAXON_SUGGESTIONS_MENU_TAG)
-                    .mapChromeContainerColor(suggestionsColor)
-                    .mapChromeContentColor(suggestionsContentColor),
+                    .mapChromeContainerColor(suggestionsColor),
             ) {
                 CompositionLocalProvider(LocalContentColor provides suggestionsContentColor) {
+                    // The content colour as read inside the menu, on its first row, for tests.
+                    val readInside = Modifier.mapChromeContentColor(LocalContentColor.current)
                     if (uiState.taxonSearchResults.isEmpty() && uiState.taxonSearchHasNoResults) {
                         DropdownMenuItem(
                             text = { Text("No matches for “${uiState.taxonSearchQuery.trim()}”") },
                             onClick = {},
                             enabled = false,
+                            modifier = readInside,
                         )
                     } else {
-                        uiState.taxonSearchResults.forEach { result ->
+                        uiState.taxonSearchResults.forEachIndexed { index, result ->
                             DropdownMenuItem(
                                 text = { TaxonSuggestionContent(result) },
                                 onClick = { onTaxonSearchResultSelected(result) },
+                                modifier = if (index == 0) readInside else Modifier,
                             )
                         }
                     }
@@ -1223,10 +1226,11 @@ private fun MonthSelector(selectedMonth: Int, onMonthSelected: (Int) -> Unit, ov
             containerColor = monthMenuColor,
             modifier = Modifier
                 .testTag(MONTH_MENU_TAG)
-                .mapChromeContainerColor(monthMenuColor)
-                .mapChromeContentColor(monthMenuContentColor),
+                .mapChromeContainerColor(monthMenuColor),
         ) {
             CompositionLocalProvider(LocalContentColor provides monthMenuContentColor) {
+                // The content colour as read inside the menu, on its first row, for tests.
+                val readInside = Modifier.mapChromeContentColor(LocalContentColor.current)
                 (1..12).forEach { month ->
                     DropdownMenuItem(
                         text = { Text(Month.of(month).getDisplayName(TextStyle.FULL, Locale.getDefault())) },
@@ -1234,6 +1238,7 @@ private fun MonthSelector(selectedMonth: Int, onMonthSelected: (Int) -> Unit, ov
                             onMonthSelected(month)
                             expanded = false
                         },
+                        modifier = if (month == 1) readInside else Modifier,
                     )
                 }
             }

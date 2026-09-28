@@ -411,14 +411,15 @@ internal fun CartographyEntryReportScreen(
                         containerColor = entryMenuColor,
                         modifier = Modifier
                             .testTag(ENTRY_OVERFLOW_MENU_TAG)
-                            .mapChromeContainerColor(entryMenuColor)
-                            .mapChromeContentColor(entryMenuContentColor),
+                            .mapChromeContainerColor(entryMenuColor),
                     ) {
                       CompositionLocalProvider(LocalContentColor provides entryMenuContentColor) {
                         DropdownMenuItem(
                             text = { Text("Edit entry") },
                             leadingIcon = { Icon(Icons.Filled.Edit, contentDescription = null) },
                             onClick = { menuExpanded = false; onEdit() },
+                            // The content colour as read inside the menu, for tests.
+                            modifier = Modifier.mapChromeContentColor(LocalContentColor.current),
                         )
                         if (!entry.isDraft && onSetShownOnMap != null) {
                             DropdownMenuItem(
