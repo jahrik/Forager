@@ -66,6 +66,7 @@ import com.zynergylabs.forager.app.ui.map.MapOverlayContent
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.mapIconBarRowAnchorOffset
+import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import kotlinx.coroutines.launch
 
@@ -226,6 +227,9 @@ internal fun CartographyEntryReportScreen(
     onDeleteEntry: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Tests-first stubs (map layers L0b): the shared layer choices, and the sheet's overlay switch. */
+    layersState: MapLayersState = MapLayersState.DEFAULT,
+    onLayerVisibilityChanged: (String, Boolean) -> Unit = { _, _ -> },
 ) {
     var menuExpanded by remember(entry.id) { mutableStateOf(false) }
     var confirmingDelete by remember(entry.id) { mutableStateOf(false) }

@@ -61,13 +61,45 @@ class ForecastCellLayerTest {
     }
 
     @Test
-    fun `a view asks for the blocks its cells can reach, and for nothing past the operating limit`() {
+    fun `a view asks for the blocks its cells can reach`() {
         // Cells reach 0.05 degree past their centres, so a view whose south edge is 45.02 still shows
         // the cells centred on 45.0 (block 45) but none centred on 44.9 (block 44).
-        assertEquals(setOf(ForecastBlock(45, -123)), forecastBlocksToRequest(south = 45.02, west = -122.98, north = 45.5, east = -122.3))
+        assertEquals(setOf(ForecastBlock(45, -123)), forecastBlocksToRequest(zoom = 10.0, south = 45.02, west = -122.98, north = 45.5, east = -122.3))
         // A north edge of 45.96 shows the cells centred on 46.0, which are in block 46.
-        assertEquals(setOf(ForecastBlock(45, -123), ForecastBlock(46, -123)), forecastBlocksToRequest(south = 45.02, west = -122.98, north = 45.96, east = -122.3))
-        assertNull("a 10-degree view touches 121 blocks, over the limit of $MAX_FORECAST_BLOCKS", forecastBlocksToRequest(south = 40.0, west = -125.0, north = 50.0, east = -115.0))
+        assertEquals(
+            setOf(ForecastBlock(45, -123), ForecastBlock(46, -123)),
+            forecastBlocksToRequest(zoom = 10.0, south = 45.02, west = -122.98, north = 45.96, east = -122.3),
+        )
+    }
+
+    /**
+     * The planner's ruling on Q9 (message 3): below a minimum zoom the colour fields request nothing
+     * and draw nothing, and the zoom is chosen so the count stays bounded. At [MIN_FORECAST_ZOOM] a
+     * 1280 by 800 dp map (a tablet's whole window, larger than any map pane this app lays out) sees at
+     * most 360 / (512 * 2^7) degrees per dp: 7.03 by 4.39 degrees at the equator, where a Mercator view
+     * spans the most latitude. [MAX_FORECAST_BLOCKS] stays as a backstop for a tilted camera, whose
+     * visible area zoom alone does not bound.
+     */
+    @Test
+    fun `below the minimum zoom nothing is requested, and at it even a tablet-sized view stays under the backstop`() {
+        val view = { zoom: Double -> forecastBlocksToRequest(zoom = zoom, south = 45.02, west = -122.98, north = 45.5, east = -122.3) }
+        assertNull(view(MIN_FORECAST_ZOOM - 0.01))
+        assertEquals(setOf(ForecastBlock(45, -123)), view(MIN_FORECAST_ZOOM))
+
+        val degreesPerDp = 360.0 / (512 * Math.pow(2.0, MIN_FORECAST_ZOOM))
+        val worstCase = forecastBlocksToRequest(
+            zoom = MIN_FORECAST_ZOOM,
+            // Just inside a block edge, so the half cell past each side reaches one more block.
+            south = 0.95,
+            west = 0.95,
+            north = 0.95 + 800 * degreesPerDp,
+            east = 0.95 + 1280 * degreesPerDp,
+        )
+        assertEquals("a 1280 by 800 dp map at zoom 7, placed to touch the most blocks: 6 by 9", 54, worstCase?.size)
+        assertNull(
+            "a tilted camera's far larger view is still refused by the backstop",
+            forecastBlocksToRequest(zoom = MIN_FORECAST_ZOOM, south = 40.0, west = -125.0, north = 50.0, east = -115.0),
+        )
     }
 
     @Test

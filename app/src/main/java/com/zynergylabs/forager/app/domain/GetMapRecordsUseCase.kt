@@ -23,6 +23,9 @@ data class MapRecords(
     val offlineRegionCircles: List<RecordRegion>,
     val failures: List<MapRecordReadFailure>,
 ) {
+    /** Tests-first stub for the planner's ruling on Q7 (message 3). */
+    fun withoutPending(findId: String?, photoId: String?, offlineRegionId: String?): MapRecords = this
+
     companion object {
         val NONE = MapRecords(emptyList(), emptyList(), emptyList(), emptyList(), emptyList())
     }

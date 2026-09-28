@@ -77,14 +77,13 @@ class GetMapRecordsUseCaseTest {
     }
 
     @Test
-    fun `a track that resolves to zero points gives no polyline, and every other track in Records draws with its id`() = runTest {
+    fun `a track that resolves to zero points gives no polyline, and every ended track in Records draws with its id`() = runTest {
         val records = useCase(
             tracks = Result.success(
                 listOf(
                     track("walked", listOf(point(45.1, -122.1), point(45.2, -122.2))),
                     track("every-point-excluded", emptyList()),
-                    // Records lists the track being recorded too ("Still recording"), so it draws.
-                    track("recording", listOf(point(45.3, -122.3)), endedAt = null),
+                    track("one-point", listOf(point(45.4, -122.4))),
                 ),
             ),
         )()
@@ -92,10 +91,50 @@ class GetMapRecordsUseCaseTest {
         assertEquals(
             listOf(
                 RecordPolyline("walked", listOf(LatLng(45.1, -122.1), LatLng(45.2, -122.2))),
-                RecordPolyline("recording", listOf(LatLng(45.3, -122.3))),
+                RecordPolyline("one-point", listOf(LatLng(45.4, -122.4))),
             ),
             records.trackPolylines,
         )
+    }
+
+    /**
+     * The owner's ruling on Q6 (planner message 3 on dispatch 2026-09-28-03): "Leave it out". A track
+     * with no end time is being recorded; the Recording trail layer draws it, and it joins Tracks once
+     * it has ended.
+     */
+    @Test
+    fun `the track being recorded is left out of Tracks until it has ended`() = runTest {
+        val recording = track("recording", listOf(point(45.3, -122.3), point(45.31, -122.31)), endedAt = null)
+
+        val whileRecording = useCase(tracks = Result.success(listOf(recording)))()
+        assertEquals(emptyList<RecordPolyline>(), whileRecording.trackPolylines)
+        assertEquals("leaving it out is not a failure", emptyList<MapRecordReadFailure>(), whileRecording.failures)
+
+        val ended = useCase(tracks = Result.success(listOf(recording.copy(endedAtEpochMillis = 9_000L))))()
+        assertEquals(listOf("recording"), ended.trackPolylines.map { it.recordId })
+    }
+
+    /**
+     * The planner's ruling on Q7 (message 3): a record in its Undo window leaves the map at once, as it
+     * leaves Records. The pending ids live in the ViewModels (one per kind, J4), so the screen drops
+     * them from the records it hands the map.
+     */
+    @Test
+    fun `a find, photo or offline region with a pending delete is left out, and nothing else is`() = runTest {
+        val records = useCase(
+            entries = Result.success(listOf(find("kept", LatLng(45.5, -122.5)), find("deleting", LatLng(45.6, -122.6)))),
+            photos = Result.success(listOf(photo("kept", 45.4, -122.4), photo("deleting", 45.3, -122.3))),
+            tracks = Result.success(listOf(track("walked", listOf(point(45.1, -122.1))))),
+            regions = Result.success(listOf(region(7L, 45.0, -122.0, 10), region(8L, 46.0, -121.0, 10))),
+        )()
+
+        val visible = records.withoutPending(findId = "deleting", photoId = "deleting", offlineRegionId = "8")
+
+        assertEquals(listOf("kept"), visible.findMarkers.map { it.recordId })
+        assertEquals(listOf("kept"), visible.photoMarkers.map { it.recordId })
+        assertEquals(listOf("7"), visible.offlineRegionCircles.map { it.recordId })
+        assertEquals(records.trackPolylines, visible.trackPolylines)
+        assertEquals("nothing pending: nothing left out", records, records.withoutPending(null, null, null))
     }
 
     @Test

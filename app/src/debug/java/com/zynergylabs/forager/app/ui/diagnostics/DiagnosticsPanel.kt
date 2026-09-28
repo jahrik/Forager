@@ -121,6 +121,8 @@ internal fun DiagnosticsPanel(
     log: DiagnosticsLog,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Tests-first stub (map layers L0b, B6): the "Synthetic forecast layers" switch. */
+    syntheticForecastSwitch: com.zynergylabs.forager.app.forecast.SyntheticForecastSwitch? = null,
 ) {
     var viewingLog by remember { mutableStateOf(false) }
     if (viewingLog) {

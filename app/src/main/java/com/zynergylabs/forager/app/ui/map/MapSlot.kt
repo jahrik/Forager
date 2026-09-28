@@ -5,6 +5,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.zynergylabs.forager.app.domain.ForecastCellStore
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.domain.model.RecordPoint
@@ -13,7 +14,9 @@ import com.zynergylabs.forager.app.domain.model.RecordRegion
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.ui.map.layers.ForecastCellsShown
 import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
+import java.time.LocalDate
 
 /**
  * Everything [MapSlot] draws on top of the basemap, bundled into one value rather than one
@@ -188,6 +191,28 @@ data class MapRenderMode(
      * for the parameter-count reason [layers] gives.
      */
     val onFeatureTap: (layerId: String, featureId: String) -> Unit = { _, _ -> },
+    /**
+     * Where this map's colour fields read their cells (map layers L0b, B5), or `null` for a map that
+     * draws none: the Cartography entry map and the centre-pin pickers pass none (planner's ruling on
+     * Q5: colour fields on the Maps tab only). Here rather than on [MapSlot] for the parameter-count
+     * reason [layers] gives.
+     */
+    val forecast: MapForecastFeed? = null,
+)
+
+/**
+ * What a map needs to draw its colour fields from stored cells (map layers L0b, B5): the store, the
+ * week to ask it for, which colour-field layers the store has data for (by layer id, with each one's
+ * group), and a callback with the dates of the cells now drawn, which the host's legend shows.
+ *
+ * [SightingsMap] asks [store] for the blocks touching the visible area whenever the camera goes idle,
+ * the same path a downloaded store will use, and again after every style load.
+ */
+data class MapForecastFeed(
+    val store: ForecastCellStore,
+    val week: LocalDate,
+    val groupsByLayer: Map<String, String>,
+    val onCellsShown: (Map<String, ForecastCellsShown>) -> Unit = {},
 )
 
 data class MapOverlayContent(
@@ -413,6 +438,7 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
         onUserCameraGesture = renderMode.onUserCameraGesture,
         layersState = renderMode.layers,
         onFeatureTap = renderMode.onFeatureTap,
+        forecast = renderMode.forecast,
         modifier = modifier,
     )
 }
