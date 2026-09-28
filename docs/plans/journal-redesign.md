@@ -725,3 +725,28 @@ So:
 - The tablet sanity check is intent `2026-09-28-74`. It launches when the owner says the tablet is connected.
 - **J6 is not dispatched until that check's run record is in.**
 - J6's own tablet check after the build stands as well.
+
+### Map-chrome questions, Part 1's fails, and the night outline (owner, 2026-09-28)
+
+The owner answered verbatim "1 A / 2 A fix all / 3 A rework the outline only. The fill color and opacity is fine as is. The outline should have a white border":
+1. **The species-suggestions and Month menus stay stacked.** They sit on the 0.8 search panel, and each is at `MAP_CHROME_OVER_MAP_ALPHA` on its own over the Maps tab. Over the panel the two layers compose to about 0.96. This is the owner's exception to CLAUDE.md's composite line for these two menus. The planner's other answers to the map-chrome coder's stop, stated to the owner and not overruled, are carried by continuation `2026-09-28-77`:
+   - "covers a map" means a map is drawn on screen beneath the surface;
+   - the Records details sheet is at 0.8 from the Offline maps sub-tab, and its wide case is left to J6;
+   - on the Maps tab with no map yet drawn, surfaces follow the tab;
+   - the exit prompt on wide follows the same rule.
+2. **All six of Part 1's layout fails and flags are fixed in one stage**, intent `2026-09-28-78`:
+   - the legend chip over the record button at 270;
+   - the cluster over the expanded legend;
+   - the portrait search dropdown under the keyboard;
+   - the map camera resetting on a tab round trip;
+   - MapLibre's "i" under the nav bar;
+   - the attribution strip across the cluster at 90.
+3. **The night offline region: the outline only is reworked, with a white border.** The fill's colour and opacity stay as they are. The planner reads this as night only, since the question was the night region; the day outline is unchanged. Intent `2026-09-28-79`.
+
+The build queue, one at a time:
+1. the save-failure fix (running);
+2. the map-chrome stage (resumed);
+3. `-70`, one "Kept in";
+4. `-78`;
+5. `-79`;
+6. J6, after the tablet sanity check.
