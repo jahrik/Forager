@@ -78,6 +78,7 @@ import com.zynergylabs.forager.app.ui.map.MapBubbleShell
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
+import com.zynergylabs.forager.app.ui.map.mapChromeFill
 import com.zynergylabs.forager.app.ui.theme.Bark
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import com.zynergylabs.forager.app.ui.theme.Spacing
@@ -132,11 +133,17 @@ internal fun TripDatePickerDialog(
         },
     )
     var name by remember { mutableStateOf(defaultName) }
-    // The dialog's and the picker's own default colours, passed explicitly. The dialog gives its surface
-    // `contentColorFor` of its container, which matches a colour-scheme role exactly (see
-    // `MapLayersSheet`), so the content colour is pinned to the default container's own.
-    val dialogColors = DatePickerDefaults.colors()
-    val pickerColors = DatePickerDefaults.colors()
+    // Raised only after a centre-pin pick on a map (compact and wide): always over a map. The dialog's
+    // default container at the map chrome's alpha. The picker paints its own container too
+    // (material3 1.5.0-alpha26, `DateEntryContainer`'s background), which would stack to 0.96 over the
+    // dialog's; it is left clear, so the dialog's one fill is what the map shows through (CLAUDE.md,
+    // UX defaults: layered fills composite to the map chrome's value, they do not each carry it). The
+    // dialog gives its surface `contentColorFor` of its container, which matches a colour-scheme role
+    // exactly (see `MapLayersSheet`), so the content colour is pinned to the default container's own.
+    val dialogColors = DatePickerDefaults.colors(
+        containerColor = mapChromeFill(DatePickerDefaults.colors().containerColor, overMap = true),
+    )
+    val pickerColors = DatePickerDefaults.colors(containerColor = Color.Transparent)
     val dialogContentColor = contentColorFor(DatePickerDefaults.colors().containerColor)
     DatePickerDialog(
         onDismissRequest = onDismiss,
@@ -196,8 +203,9 @@ internal fun WaypointNameDialog(defaultName: String, onConfirm: (String) -> Unit
     // AddActionTile -> this dialog alone is fine; TripDatePickerDialog's own text field, reached
     // through this exact same scaffold, is fine). The one structural difference from
     // TripDatePickerDialog left once AlertDialog vs. plain Dialog was ruled out is this property.
-    // The surface's fill and its content colour, pinned to the fill's own role (see `MapLayersSheet`).
-    val dialogColor = MaterialTheme.colorScheme.surface
+    // Raised only after a centre-pin pick on a map (compact and wide): always over a map. The fill at the
+    // map chrome's alpha, and its content colour pinned to the fill's own role (see `MapLayersSheet`).
+    val dialogColor = mapChromeFill(MaterialTheme.colorScheme.surface, overMap = true)
     val dialogContentColor = contentColorFor(MaterialTheme.colorScheme.surface)
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(

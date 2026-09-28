@@ -69,6 +69,7 @@ import com.zynergylabs.forager.app.ui.map.MapLegendChip
 import com.zynergylabs.forager.app.ui.map.layersButtonDescription
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
+import com.zynergylabs.forager.app.ui.map.mapChromeFill
 import com.zynergylabs.forager.app.ui.map.layers.COLOUR_FIELDS
 import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
 import com.zynergylabs.forager.app.ui.map.layers.mapLegendFor
@@ -174,7 +175,10 @@ private fun MapModeToggle(mapMode: MapMode, onClick: () -> Unit, modifier: Modif
     // is 24dp and Spacing.sm padding is 8dp a side, which wrapped to a 40dp circle — under M3's
     // 48x48dp minimum touch target, a real miss found by auditing this file's tap targets against
     // that rule, not a hypothetical one.
-    val buttonColor = MaterialTheme.colorScheme.surface
+    // Always over the wide map. Alpha only (planner message 2026-09-28-77): a fill that is no longer
+    // exactly `colorScheme.surface` no longer takes Material3's tonal-elevation tint, and that is
+    // reported rather than compensated for.
+    val buttonColor = mapChromeFill(MaterialTheme.colorScheme.surface, overMap = true)
     Surface(
         onClick = onClick,
         shape = CircleShape,
@@ -471,7 +475,8 @@ private fun ThreeWayActionDialog(
     onDropWaypoint: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val dialogColor = AlertDialogDefaults.containerColor
+    // Raised only from the Add button over the wide map: always over a map.
+    val dialogColor = mapChromeFill(AlertDialogDefaults.containerColor, overMap = true)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("What would you like to do here?") },

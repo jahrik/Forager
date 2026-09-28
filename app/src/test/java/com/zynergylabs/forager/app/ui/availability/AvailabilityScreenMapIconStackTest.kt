@@ -2178,10 +2178,10 @@ class AvailabilityScreenMapIconStackTest {
      *
      * **Must tap below [SearchDropdown]'s own bottom edge, not the scrim's own geometric centre.**
      * [SEARCH_DROPDOWN_SCRIM_TAG]'s own node is `fillMaxSize()`, so its centre sits well inside
-     * [SearchDropdown]'s own (opaque, composed-after-the-scrim, so on top per this file's own
+     * [SearchDropdown]'s own (filled, composed-after-the-scrim, so on top per this file's own
      * composition-order rule) bounds — a plain `performTouchInput { click() }` on the scrim node
      * lands there and gets absorbed by [SearchDropdown] itself before it ever reaches the scrim's
-     * own `detectTapGestures`, the same "opaque background blocks every touch within its bounds"
+     * own `detectTapGestures`, the same "background blocks every touch within its bounds"
      * rule [SearchDropdown]'s own doc comment already documents. A real point past that panel's own
      * bottom edge, still within the scrim's `fillMaxSize()`, is what actually exercises dismiss.
      */

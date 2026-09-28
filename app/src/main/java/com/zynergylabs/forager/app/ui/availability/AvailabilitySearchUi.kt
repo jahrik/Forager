@@ -335,7 +335,7 @@ internal fun SearchEntryBar(
  *    `horizontalScroll` is exactly the pointer-handler-with-nothing-to-scroll shape that rule bans
  *    for a thin decorative strip, though not a concern for this panel's own remaining content, none
  *    of which scrolls horizontally). This whole panel is a different case regardless: rule 1's
- *    opaque [background] already blocks every touch within its bounds from reaching the map
+ *    [background] (at the map chrome's alpha, so the map shows through it) already blocks every touch within its bounds from reaching the map
  *    underneath, so once opened it behaves like the drawer's own [SearchControls] sheet, not like
  *    the compass strip — and on the smallest
  *    supported phone (`w360dp-h640dp-xhdpi`), fully expanding Advanced search *and* Enter
