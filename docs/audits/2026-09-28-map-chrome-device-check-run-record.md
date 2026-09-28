@@ -438,7 +438,7 @@ The final database read (above) closes the run.
 **The premise was wrong.** Switching tabs no longer leaves an open find: since intent `-44`'s F3, the bottom nav's
 handler keeps the find open on the Journal (`AvailabilityCompactScaffold.kt:457-464`, the comment on
 `onBottomNavTabSelected`). I missed that comment when I wrote the path above. On the phone, the draft find opened in its
-editor (`30-`), and the Maps item at 22:44:0xZ brought up the Maps tab with **no snackbar** (`31-c1c-snackbar-B`, a
+editor (`30-`), and the Maps item at 22:44:05Z brought up the Maps tab with **no snackbar** (`31-c1c-snackbar-B`, a
 screenshot 0.9 s after the touch and a dump after it; `32-` 7 s later). The draft find is still open on the Journal.
 
 **The second path.** The editor's own exits still call the snackbar wrapper: its back arrow is `onBack =
@@ -454,3 +454,95 @@ Scaffold's, shared by every tab, and its colour follows `compactTab()` (`:597`).
   equal to the backup's, or abort.
 - If this snackbar does not reach the Maps tab either, **1c is not run** (no other snackbar is available without a data
   change), and I say so.
+
+# Verdicts
+
+## Check 0: the first launch, the database and crashes: **pass**
+
+- `am start` at 22:40:44.8Z (`15-launch.txt`); pid 25721, `MainActivity` in focus; no system or Google prompt. By
+  22:40:53Z the Maps tab had drawn the stored records (both DEVICE CHECK region circles and the markers, `16-first-launch`,
+  by my reading), so the database had been opened.
+- Crash reads: `logcat -d -b crash` **0 bytes** (`17-`); `logcat -d`, 319,588 lines, **0** `FATAL EXCEPTION` (`18-`).
+- `am force-stop` at 22:41:09Z; `dbcopy.sh db-launch`: copy matches the device. `db-launch-verify.txt`: header valid,
+  WAL magic valid, **integrity ok, `user_version` 16**, the same 18 tables with **the backup's counts**, and
+  `db-launch-digest.txt` **equal to the backup's for all 18 tables**: the launch wrote nothing.
+- **Prediction:** held.
+
+## Check 1: the three surfaces outside the map's Box: **all three show the map through, at 0.8**
+
+Relaunched at 22:41:18.9Z (pid 26049), the opening camera about zoom 12 on Topographical, Night Maps off. Every figure
+below is `alpha.py` over the named frames; "composite" is `1 − a`.
+
+**1a. The search dropdown: shows the map through, at 0.8. Pass.**
+- A `20-c1-maps-A` (22:41:27Z); a real touch on the bar's text at (500, 132) at 22:41:36Z opened the panel with the
+  keyboard up (`21-`, `mInputShown=true`); one Back lowered the keyboard and left the panel open (`22-c1-dropdown-B`,
+  `mInputShown=false`). The panel's scroll area is `[0,250][1080,1787]`. Nothing typed, no row chosen.
+- Fits, A = `20-`, B = `22-`:
+
+  | box (inside the panel, clear of text) | a (R, G, B) | composite | intercept b | rms | ground spread |
+  |---|---|---|---|---|---|
+  | `[430,1010][940,1130]` (right of "Recent searches") | 0.200, 0.200, 0.201 | **0.800** | 47.0, 37.0, 28.9 | 0.28 | 37-39 |
+  | `[450,465][880,610]` (right of the radius label) | 0.194, 0.195, 0.194 | 0.805 | 47.7, 37.8, 30.2 | 1.5-2.9 | 40-49 |
+  | `[60,1715][880,1780]` (below "Search this location") | 0.193 | 0.807 | 47.8, 38.0, 30.3 | 1.3-2.5 | 31-42 |
+  | control, map below the panel, `[300,1800][1000,1895]` | 1.000 | — | 0 | 0.00 | 23-34 |
+
+  The container solved from the clean box, b / (1 − a), is (58.8, 46.3, 36.2): **Bark (59, 46, 36)** at 0.8. The other
+  two boxes read 0.805 and 0.807 with a larger rms; something small in them (the slider's track shadow or the region
+  circle's dashes) is my guess, not established.
+- By my reading of `22-` the map's roads, river and contours read clearly through the panel.
+- One Back closed it (22:42:18Z, `23-`); the camera had not moved (`20-` against `23-`, slope 1.000, rms 0).
+
+**1b. The Tools drawer: shows the map through; fill 0.80, composite 0.863. Pass.**
+- A `23-`; the nav's "Tools" at (981, 2068) at 22:42:30Z; B `24-c1-drawer-B`. The sheet is `[0,0][1013,2316]` (360 dp),
+  the scrim takes the rest, `x ≥ 1013`. Nothing inside was touched; Back closed it (`25-`, camera unchanged: slope 1.000,
+  rms 0 against `23-`).
+- Fits, A = `23-`, B = `24-`:
+
+  | box | a (R, G, B) | b | rms |
+  |---|---|---|---|
+  | scrim alone `[1020,400][1076,900]` | **s** = 0.677, 0.679, 0.676 | 19.2, 14.9, 12.3 | 0.33 |
+  | scrim alone `[1020,1200][1076,1850]` | 0.677, 0.679, 0.676 | 19.2, 14.9, 12.4 | 0.35 |
+  | sheet `[50,400][850,900]` | 0.137, 0.136, 0.137 | 26.0, 25.1, 24.0 | 0.27-0.30 |
+  | sheet `[50,1250][850,1800]` | 0.137, 0.137, 0.137 | 26.0, 25.0, 24.0 | 0.28 |
+
+  The scrim is Bark at 0.32 as predicted: s 0.68, and b_s = 0.32 × Bark (18.9, 14.7, 11.5). **Fill alpha 1 − a/s =
+  0.797 to 0.800; composite 1 − a = 0.863 to 0.864.** The container solved over the scrim is (27.7, 27.7, 27.0), which is
+  `#1B1B1B`. There is no map box outside the drawer and its scrim, so the camera check is `23-` against `25-`.
+
+**1c. The compact snackbar: shows the map through, composite 0.80 to 0.82 over the map. Pass, by the second path.**
+- **First path, 22:43Z to 22:44Z: no snackbar**, as the addition above records (`26-` to `32-`). Its premise was wrong.
+- **Second path** (22:45:27Z to 22:45:53Z): Journal (the draft find still open in its editor, `33-`, a dump identical to
+  `30-`); **one Back** at 22:45:38.7Z; the Maps item at 22:45:39.3Z. `34-c1c-snackbar-B` (screenshot 0.9 s after the
+  touch): **"Saved to Drafts" with "Discard" over the Maps tab**, at the bottom of the window, `y` 2147 to 2282, over
+  the lower part of the app's nav and under the system navigation bar's buttons (the system bar is a separate window
+  above the app). `35-` (7 s later): gone, the camera unchanged (`[50,300][850,900]`, slope 1.000, rms 0). Discard was
+  never touched.
+  - There its ground is the nav's own 0.8 fill over the map, so the ground's spread is only 4 to 8: under the 8 I
+    pre-registered, so **not a reading by my own rule**. For the record: `[100,2152][800,2182]` fits a = 0.199, 0.198,
+    0.201, rms 0.41.
+- **Third run, for a readable ground** (22:47Z to 22:48Z): relaunched (pid 27726), the same path to the editor
+  (`38-` to `42-`), Back at 22:48:01.3Z, Maps at 22:48:01.8Z, then **Fullscreen** at (989, 740) at 22:48:02.4Z, so the
+  nav slid away while the snackbar showed. `43-c1c3-snackbar-fs-B` 1 s later: the snackbar straight over the map (the
+  attribution caption and the map's lines visible through it, by my reading). `44-c1c3-fs-A` after it had gone,
+  fullscreen, the same camera (`[50,300][850,900]` slope 1.000, rms 0).
+
+  | box (inside the snackbar, clear of its text, "Discard" and the system bar's buttons) | a (R, G, B) | composite | b | rms | spread |
+  |---|---|---|---|---|---|
+  | `[420,2152][800,2205]` | 0.195, 0.196, 0.186 | **0.804 to 0.814** | 181.6, 176.4, 185.3 | 2.0-2.1 | 21-31 |
+  | `[580,2152][800,2255]` | 0.181, 0.179, 0.187 | 0.813 to 0.821 | 185.6, 180.9, 186.5 | 2.1-2.2 | 29-35 |
+  | `[40,2152][76,2276]` | 0.181, 0.184, 0.184 | 0.816 to 0.819 | 183.9, 178.6, 185.7 | 2.3-2.7 | 64-78 |
+
+  The container solved from the first box is (225.6, 219.4, 227.6), within 5 per channel of Material3's baseline dark
+  `inverseSurface` `#E6E0E9` (230, 224, 233), which I take from Material3's tokens, not read at this version. The
+  slightly higher composite and rms than the panels', and the colour a little darker than the token, are consistent
+  with the snackbar's own shadow under its fill, as J8's chip showed; that is an inference.
+- **The database** after the second path (force-stop 22:46:47Z, `db-c1c-*`) and after the third and the fullscreen
+  exit (22:49Z, `db-c1end-*`): integrity ok, `user_version` 16, **every digest equal to the backup's**. Neither path
+  wrote anything. `map.fullscreen` read back `False` after the exit (`46-`).
+- Crash buffer 0 bytes (`36-`, `47-`).
+
+**Prediction for check 1:** mine, "all three show the map through at 0.8", **held**; the planner's "at least one renders
+opaque" did not. The snackbar's first path, which I predicted would raise it, did not.
+
+**Captures, Topographical by day (for check 5):** `22-c1-dropdown-B`, `24-c1-drawer-B`, `34-c1c-snackbar-B` (over the
+nav band) and `43-c1c3-snackbar-fs-B` (over the map).
