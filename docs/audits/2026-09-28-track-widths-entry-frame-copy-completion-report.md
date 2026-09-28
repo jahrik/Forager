@@ -508,3 +508,90 @@ new id, and the same request with no tracking.
 
 Before every push I ran `git grep -i`-equivalent counts for the three phrases over the staged diff and over each
 commit message, `104b17a`, `f9e06b0`, `99eba9d` and this commit. Every count was 0.
+
+## Continuation `2026-09-28-38`: the wide summary opens "Advanced search" expanded
+
+**The message** (`prompts/preserved/2026-09-28-38.md`, committed at `163cae1`), verbatim:
+
+> Planner message 2026-09-28-38, part of dispatch 2026-09-28-34. Quote it verbatim in your report.
+>
+> The owner ruled on your flag. On the wide layout, the location controls sit inside the collapsed "Advanced search" section, so searching a location takes one more tap after the summary tap. The planner asked: "Should the wide tap open straight to the location controls?" The owner answered, verbatim: "Yes it should. Good application of my principle. Proceed with that change".
+>
+> **Build.**
+> - On the wide layout, tapping the search summary opens the search panel with "Advanced search" **expanded**, so the location controls can be seen and used without another tap.
+> - Opening the panel any other way stays as it is today.
+> - If the expanded state is stored anywhere, the tap sets it; it must not overwrite a choice the user made while they are inside the panel (CLAUDE.md UX defaults).
+> - If "the location controls" and "Advanced search" are not the same thing in code, stop and report.
+>
+> **Tests.**
+> - Tests first: extend your wide coordinate-touch test so it asserts that a location control is displayed after the tap. It must fail at your current head for that reason.
+> - One revert check under the runner rules.
+> - The full suite, from a cleared results directory.
+> - Update the completion report with a short section.
+>
+> **Scope:** the wide search panel's expand state, reached from `AvailabilityScreen.kt` and `AvailabilitySearchUi.kt`, plus tests. Nothing else.
+>
+> Push to `journal-redesign` as before. Note that the planner is running a suite in its own worktree at the same time: check `df`, and stop if a build is OOM-killed.
+
+**The stop condition does not apply.** In the medium/expanded drawer, the location controls are direct children of
+the "Advanced search" section: "Use current location", Latitude and Longitude, "Search this location" and the radius
+(`RegionControls` inside `SearchControls`' "Advanced search" `CollapsibleSection`, `AvailabilitySearchUi.kt`). There is
+no further collapsible between them and that header. The section also holds the month selector.
+
+**Where the expanded state lives.** It was stored nowhere outside the section: a local `remember` in
+`CollapsibleSection`. That state is dropped whenever the drawer leaves its search panel, which is why the Settings back
+arrow always opens the panel collapsed.
+
+**What landed** (`16b3baa` tests first, `6cf0e9b` build):
+- A one-shot request:
+  - `AvailabilityScreen` holds `expandAdvancedSearchRequested`.
+  - Only the summary's tap sets it, beside `drawerPanel = DrawerPanel.Search`.
+  - The drawer's `SearchControls` passes it to the "Advanced search" section's new `expandRequested` parameter.
+  - The section expands once in a `LaunchedEffect` and calls `onExpandRequestConsumed`, which clears the request.
+- The expanded state stays the section's own. So a collapse the user makes afterwards stands, and every other way
+  into the panel (the Settings back arrow, the app bar's drawer icon, a first open) passes no request and opens it
+  collapsed, as before.
+- The compact dropdown's call and the other `SearchControls` caller (`AvailabilitySettingsUi.kt:605`) pass nothing,
+  so the defaults leave them unchanged.
+- `ActiveSearchSummary`'s KDoc now says the tap opens the panel with the section expanded.
+
+**Tests first** (`16b3baa`, run `tf38`, `WideSearchSummaryTest` at `d64b7ca` plus the test file): 3 tests,
+**2 failures**, 0 `e: ` lines.
+- The extended coordinate-touch test failed because "Use current location" was not displayed after the touch. It now
+  also asserts "Latitude".
+- A new test failed at the same assertion: "the summary's tap expands Advanced search, the user's own collapse
+  stands, and the back arrow opens it collapsed as before".
+- The copy test passed.
+- This version of the test library words a missing node as "is not displayed!", as it did for the copy in `tf1`.
+
+**The build** (`6cf0e9b`, run `b38`): `WideSearchSummaryTest`, `CompactSearchBarCopyTest`,
+`AvailabilityScreenWideWindowLayoutTest` and `CompactToolsDrawerTest` ran 25 tests with 0 failures.
+
+**The revert check, R17.** I removed `expandAdvancedSearchRequested = true` from the tap, using the same runner over
+the same 8 classes. It compiled with 0 `e: ` lines. It failed exactly the 2 predicted tests (65 tests in the run), both
+with `'Use current location' (ignoreCase: false) is not displayed`. The file was restored from its saved copy to
+HEAD's blob, `git status` was clean afterwards, and the forward line was still present. **Confirmed.**
+- Not covered by a revert check: the request being consumed, so that the back arrow still opens the panel collapsed.
+  The new test asserts it, but I ran only the one check the message asked for.
+
+**Suite** at `6cf0e9b`, from a cleared results directory, `LC_ALL=C.UTF-8`, counts from the JUnit XML, 0 `e: ` lines:
+**280 / 2266 / 0 / 0 / 24**. That is one test more than at `da5ad1b` (the new test) and no new class. The planner's
+suite was running in parallel. `df` showed 13 GB free before each run, available memory was 3 GB at the lowest
+reading, and nothing was OOM-killed.
+
+**Device-only:** the tap opening the drawer's search panel with its location controls showing, on a wide window.
+
+**Decisions I made**
+- **The mechanism.** A one-shot request consumed by the section, not the expanded state hoisted to the screen.
+  Hoisting it would have kept the section open across a trip to Settings and back, and that would have changed another
+  way into the panel. The message asks for that to stay as it is today.
+- **The summary tap re-expands the section every time**, even if the user collapsed it earlier. I read the tap as a
+  new request to search, not as overwriting a choice made inside the panel.
+- **Only the one revert check was run**, as asked.
+- **The test's markers** are "Use current location" and "Latitude".
+
+**Flags outside scope**
+- Today, "Advanced search" and the other drawer sections forget a user's expand whenever the drawer leaves its search
+  panel (the section's local `remember` inside the panel's `when` branch). CLAUDE.md's UX default ("what the user has
+  set survives navigating away and back") would call that a bug. I left it as it is, because the message keeps every
+  other way into the panel unchanged.
