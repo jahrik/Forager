@@ -503,3 +503,86 @@ set-up (the last evidence file was `39-c3-sheet`). No planner-log line was given
   rows. `dbdigest.py` equals the post-migration digests for all 18 tables (`shownOnMap` excluded): nothing else was
   written.
 - The force-stop was mine, to read the database cleanly. Forager was relaunched with `am start` for check 3.
+
+## Check 3: the highlight: **halos drawn in place and beneath their own glyphs (pass); two halos drawn for waypoints the map does not draw (fail against J8's own rule); marker halos lie over the kept track (not as I pre-registered); the look is the owner's**
+
+Relaunched with `am start` at 21:24:11Z (pid 5297) after the resume read-back. Pairs are the same camera with the
+Layers sheet's "Journal entries" switch on, off and on again (`jtoggle.sh`, which opens the sheet from the Layers row,
+taps the switch's row, reads its checked state back and closes the sheet with Back; each toggle is in `snaps.log`).
+`halo.py` compares an on frame with an off frame over the map left of the cluster; `over-under.py` is Part 1's
+`211-over-under.py`, copied unchanged. The zooms are not measured: "about 12" is the relaunch's opening camera, "17" is
+five double-tap steps from it (OpenTopoMap's maximum, `ui/map/Basemap.kt`), and Satellite clamps to its maximum, 15.
+
+**(i) Rings in the halo colour round the kept records: pass.**
+- About zoom 12, Topographical, day (`43-` on, `44-` off, `45-` on again): **32,188 px** change between on and off,
+  **26,159** of them within 6 per channel of `#005577`. They form two blobs: a ring on the 1 km DEVICE CHECK region's
+  circle `[319,975][759,1415]` and one round the markers `[485,1102][614,1238]`. On against on-again differs by 498 px,
+  all of it in four small blobs at the location puck, which pulses; so the camera did not move.
+- Zoom 17, Topographical, day (`47-`, `48-`, `49-`; crops side by side in `50-c3-z17-crops-on-off-on.png`): the track
+  carries a ring on each side of its white casing, and the markers carry theirs (by my reading of `50-`).
+- The one kept find away from the cluster (135 m east, "DEVICE CHECK find 2" by the L0a record) at zoom 15 carries a ring
+  of 2,247 px of `#005577` by day on Satellite (`58b-`) and about 2,205 px of `#00DDFF` at night on Satellite, Street and
+  Topographical (`64-`, `65b-`, `66b-`), counted in the same 130 x 120 px box.
+- Night, Street, zoom 17 (`68b-` on, `69-` off, `70-` on again): **20,641 px** change, **16,720** within 6 of
+  `#00DDFF`.
+
+**(ii) Each halo is beneath its own record: pass. Every record's pixels unchanged, as I pre-registered it: not held.**
+- Photo glyph `#C1154F`: **0 of 637** interior pixels change between `48-` (off) and `47-` (on).
+- With Finds and Photos switched off to uncover the waypoint pin (`51-` on, `52-` off, `53-` on again; crops in
+  `54-c3-z17-wpt-only-crops.png`): waypoint pin `#350560`, **0 of 1,287** interior pixels change.
+- **But the kept track's own line is covered in places:** 886 of its 4,733 interior `#A122F8` pixels change in the same
+  pair, and **822** of those read `#005577` in the on frame, in `[497,1054][584,1205]`, where the waypoint halos lie.
+  Likewise 76 of 210 find-cap pixels change in `47-`/`48-`, where the photo's halo lies over the find. The marker halos
+  are in `ZGroup.MARKERS` (`MapLayers.kt:236`, `if (kind == LayerKind.MARKER) ZGroup.MARKERS`), above every line, so a
+  marker's halo is under its own marker and over the track and over the markers below it in the stack. The search-centre
+  reticle (a black crosshair, drawn with no location set; Part 1's flag 8) is covered the same way (`54-`, middle crop
+  against the outer two).
+- So my condition "each record's own glyph or line pixels are equal in the two frames" does not hold for the track and
+  the find where they overlap other kept markers. The dispatch's words, "beneath their own glyphs and lines", do hold for
+  every halo. Which reading J8 intended is not mine to rule.
+
+**(iii) The negative controls.**
+- The 5 km region "DEVICE CHECK 2026-09-28 B", which the entry does not keep: **no ring**. No changed pixel lies on its
+  outline in `43-`/`44-` (both blobs are on the 1 km circle and the markers). **Pass.**
+- The two photos the entry does not keep: **not observable.** From the database copy (`55-c3-record-offsets.txt`,
+  offsets in metres only), all three photos lie within about 1 m of each other, two of them at the same point, so the
+  kept photo's glyph and halo cover the other two.
+
+**(iv) A finding: halos drawn for two waypoints the map does not draw.**
+- In `51-`/`53-` (on) two pin-shaped halos, one about 55 px left of and above the visible pin and one below it over the
+  reticle, have **no waypoint glyph over them**. In `52-` (off) only one pin is drawn, and in no frame is there a second
+  or third pin (a search for `#350560` finds one stray pixel in `48-` and none in `47-`).
+- Their places match the entry's other two kept waypoints. From the database copy, the ORIGIN waypoint lies 8.0 m west
+  and 5.8 m north of the DEVICE CHECK waypoint, and the END waypoint 2.4 m east and 10.7 m south. At the measured scale
+  those put the pins' heads where the two halos are. That match is my inference.
+- The code agrees. The Maps tab draws `mapWaypoints` (`ui/availability/AvailabilityScreen.kt:828-829`), which is
+  `mapVisibleWaypoints`: waypoints with no designation only, and an origin only while it is the navigation target
+  (`ui/availability/AvailabilityPureFunctions.kt:59-66`). The highlight is computed from the unfiltered `waypoints`
+  (`AvailabilityScreen.kt:923-924`). The use case's own doc says its `waypoints` are "the waypoints the Maps tab draws"
+  (`domain/GetJournalEntryHighlightsUseCase.kt:50`).
+- So on this phone **a halo draws where no record is drawn**, which is what the J8 report quotes the dispatch as ruling
+  out: "a kept record that is not drawn today ... is not highlighted"
+  (`docs/audits/2026-09-28-j8-entries-on-map-completion-report.md:143-145`). **A fail against that rule, by my reading**,
+  and it reaches every entry that keeps a track's ORIGIN or END waypoint. Not investigated further, and nothing
+  changed. See Flags.
+
+**Captures for the owner (the colours are the owner's to judge; I do not rule on the look):**
+
+| basemap | day `#005577` | night `#00DDFF` |
+|---|---|---|
+| Topographical | `43-c3-z12-on.png` (about 12, the region's ring); `47-c3-z17-on.png`, `56-c3-z17-all-on.png` (17) | `66b-c3-topo-night-z15.png` (15); `67-c3-topo-night-z17.png` (17) |
+| Street | `57b-c3-street-day.png` (17) | `65b-c3-street-night-z15.png` (15); `68b-c3-street-night-z17.png` (17) |
+| Satellite | `58b-c3-satellite-day.png` (15) | `64-c3-satellite-night.png` (15) |
+
+The same cameras with the switch off: `44-`, `48-`, `52-` (Finds and Photos off), `69-`. Crops: `50-`, `54-`. By my
+reading only, and for the owner to weigh: the day colour is dark against the dark Satellite ground (`58b-`).
+
+**Restored and read back** (`74-map_prefs-after-c3.pb`, `75-c3-end.xml`): Finds and Photos on (`56a-`, `56-`); basemap
+Topographical (`71-`; the Layers row reads "Layers: Topographical map"); Night Maps on at 21:32:58Z (`61-`, `62-`) and
+off at 21:36:10Z (`73-`), `night_mode.maps = False`; "Journal entries" on, `map.layer.journal-entry-tracks-layer.visible
+= True`. That key did not exist at the start; the app can set it but not remove it, so it is left at its default value,
+as Part 1 did for the other overlay keys. Every other overlay key `true`, as at the start. Crash buffer 0 bytes
+(`76-`); pid 5297 throughout.
+
+**Prediction:** rings in both colours held. "The negative controls get no ring" held for the region and could not be
+observed for the photos. I did not predict the undrawn waypoints' halos or the marker halos over the track.
