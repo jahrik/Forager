@@ -547,3 +547,22 @@ From `docs/audits/2026-09-28-leaving-the-journal-investigation.md` (13 character
 2. A day entry left in its editor: **"Return to the editor (Recommended)"**: returning to the Journal reopens it in its editor with the unsaved changes; the report view never draws unsaved edits as if saved; leaving the editor by Back with unsaved changes asks Save or Discard.
 3. Finds across a tab change: **"Keep finds open too (Recommended)"**: a find open in view or edit is still open on return, as day entries now are; the Maps search bar stays visible (the gate at `AvailabilityCompactScaffold.kt:401` must not hide it for a find open on another tab).
 4. Order: **"M1 first"**: M1 is built next; these three fixes follow, then the two landscape bugs from backlog Part B (the Offline Maps picker unusable in landscape; the entry report's layout in landscape).
+
+### M1 rulings (owner and planner, 2026-09-28)
+
+After the M1 premise pulse (`docs/audits/2026-09-28-m1-premise-pulse.md`), the owner's verbatim answers:
+
+1. Tap result: **"Bubble only (Recommended)"**: a glyph tap opens its bubble and nothing else; `onTap` no longer fires after a feature tap, as sighting taps already behave (settles terminal `2026-09-27-72` Deviations 3).
+2. Bubble tap: **"Open in place (Recommended)"**: waypoints, tracks and offline maps open the J5c details sheet on the Maps tab; a photo opens the photo viewer in place; a find's bubble has "Open in Journal", which switches to the Journal with that find open.
+3. Entry map: **"Yes, same bubbles (Recommended)"**.
+4. Non-records: **"Not tappable (Recommended)"**: the search-centre reticle and the live recording trail stop taking taps.
+
+Planner's rulings, not asked, open to change:
+- one generic bubble shell, reusing `AnchoredAtScreenPoint`, with one bubble on screen at a time (a single tapped-thing state that includes sightings);
+- the tail's tip always lands on the tapped feature: when the clamp moves the bubble, the tail moves with the anchor, not with the bubble;
+- the anchor is the tap point, re-projected on camera idle for point features;
+- forecast cells become tappable (the forecast acceptance "a tapped cell shows the same numbers as the scoring table") in a group that loses to any marker or line within the box, so the owner's "point, then box" rule stands;
+- the cell bubble looks the cell up by re-querying the store by group, week and block, not by parsing the id;
+- a waypoint bubble offers Directions only (In-app Navigate deferred);
+- a planned trip's bubble shows what its Trip Planner row shows, with Directions, and opens nothing further (there is no trip target);
+- bubble content per kind starts from what that record's row or sheet already shows.
