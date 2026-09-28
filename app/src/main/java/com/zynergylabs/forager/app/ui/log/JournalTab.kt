@@ -198,6 +198,13 @@ internal fun JournalTab(
     onDiscardCartographyEntryChanges: () -> Unit = {},
     /** The backgrounding-return prompt's "Save as draft" option — pending-edit-and-fixes dispatch, Item 1. See [CartographyScreen]'s own lifecycle-observer doc comment. */
     onSaveCartographyEntryAsDraft: () -> Unit = {},
+    /**
+     * Clears [CartographyUiState.saveErrorMessage] once its Toast (below) has shown, the day entries'
+     * counterpart of [onSaveErrorDismissed] (intent `2026-09-28-68`, continuation `2026-09-28-76`).
+     * The default is only for callers that host this on its own (tests); `AvailabilityScreen` passes
+     * `CartographyViewModel.onSaveErrorDismissed`.
+     */
+    onCartographySaveErrorDismissed: () -> Unit = {},
     onDeleteCartographyEntry: (String) -> Unit,
     /**
      * An entry card's Delete (journal redesign J4b L2: the revealed Delete, a full swipe, or the
