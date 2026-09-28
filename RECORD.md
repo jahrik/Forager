@@ -3309,3 +3309,14 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner's rulings, verbatim, in the plan's "Leaving the Journal" section; order "M1 first". F4 from the drawer fix's flags (terminal 2026-09-28-31). Written by the planner by hand.
 
 ---
+
+**Kind:** continuation
+**ID:** 2026-09-28-45
+**Timestamp:** 2026-09-28T16:07:19Z
+**Continues:** 2026-09-28-44
+**Dispatch-file:** preserved/2026-09-28-45.md
+**Reason:** F1 (b5359cd, pushed alone), F2 (b91a543) and F4 (0b4fc9c) built with tests first and 9 revert checks, report 2514fba; suite 283 / 2290 / 0 / 0 / 24. F3 stopped: with finds kept open, Maps' "Log a find" and a bubble's "Open in Journal" would open another find over the kept one without leaving it (no committed data lost; a changed draft missing from Drafts until reload; an unchanged re-edit leaving a duplicate draft row), and the existing precedents disagree.
+**Changes:** Every route that opens a find over a kept one leaves the kept one first through the F1 wrapper, compact and wide, the snackbar only for a real draft; tests first for the three outcomes.
+**Notes:** Owner, verbatim: "Leave the kept one first (Recommended)". F1 also closed a second data-loss path found by its tests (a stale Discard deleting a find saved within the snackbar's 4 s). Written by the planner by hand.
+
+---
