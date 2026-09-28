@@ -242,7 +242,7 @@ here.
   fullscreen, so the tab cannot be left from there at all — the tab
   handler's explicit exit holds an invariant rather than resetting anything
   the user could still be relying on.
-
+- **Nothing fully obstructs the map view.** The owner, 2026-09-28, verbatim: "My idea is that nothing should fully obstruct the map view. All map chrome gets 80% opacity as a result." Every surface drawn over a map has its fill at `MAP_CHROME_OVER_MAP_ALPHA` (0.8, `ui/map/MapChrome.kt`): bars, strips, chips, clusters, rails, legends, bubbles, sheets, drawers and menus. Layered fills composite to that value; they do not each carry it (`MapChromeAlphaTest`). The content colour stays opaque, as on the Layers sheet (`MapLayersSheet.kt`). The same component shown where it covers no map stays solid (owner: "In the places that aren't covering a map, they can stay solid"). New map chrome starts at 80%, and an opaque surface over a map is a bug unless the owner has stated an exception for that case. Edge cases such as dialogs, text fields and drawers are ruled one by one and recorded in `docs/plans/journal-redesign.md`, under "Map chrome at 80%, nothing fully obstructs the map". This bullet is one line, in place of a blank line, so that line 253 does not move.
 ## Documentation
 
 - Record why a non-obvious decision was made and what alternative was
