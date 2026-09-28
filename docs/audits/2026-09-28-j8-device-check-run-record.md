@@ -668,3 +668,37 @@ Crash buffer 0 bytes after checks 4 and 5 (`106-`); pid 5297 throughout. `user_r
 `accelerometer_rotation` 0.
 
 **Prediction:** place and list held. "The fill reads 0.80 within 0.02" did not hold, as measured.
+
+## Check 5: the landscape chip against the icon cluster (owner-judged, "1 A"): **overlap at 90, where the chip takes every touch; no overlap at 270. Reported, not ruled.**
+
+The cluster at its default place after the relaunch; nothing was dragged.
+
+**At 90** (`91-c4-r90.xml`/`.png`, `95-`; crop `107-c5-r90-overlap-crop.png`, 2x):
+- The chip's node is `[75,236][536,371]` and its pill is drawn at x 76-535, y 258-350.
+- The cluster's column is x 98-233 on the same (left) side. Its rows, 135 px tall with 11 px gaps as in portrait, are
+  "Fullscreen" `[98,118][233,253]` and **"Reset orientation to north" `[98,264][233,399]`**. The dump shows that button
+  only as a 28 px sliver, `[98,371][233,399]`, and "Fullscreen" cut to `[98,118][233,236]`, because the chip's node
+  covers the rest; the reset row's full bounds are my inference from the row pitch. At 270, where nothing covers them,
+  the same rows read `[2083,118][2218,253]` and `[2083,264][2218,399]`.
+- **Overlap:** the chip's node over the cluster is `[98,236][233,371]`, 135 x 135 px. That is the bottom 17 px of
+  Fullscreen and the reset button's top 107 px. The drawn pill over the cluster is `[98,264][233,350]`, the reset
+  button only. In the crop the reset button's arrow is hidden under the pill, and only its lower edge shows below it.
+- **Controls under the overlap:** the reset button, which only turns the map to north, and Fullscreen, which changes the
+  view mode and stores it. Neither creates or changes data. I kept the touches inside the drawn pill and below
+  Fullscreen's bottom edge (y 253).
+- **Five real touches** at (110, 275), (140, 300), (165, 330), (200, 285) and (225, 340), spread across the pill over the
+  reset button (`93-c5-r90-touch-1` to `-5`, 21:49:12Z to 21:49:31Z). **Each opened the chip's list (5 of 5)**, and each
+  list was closed with Back. So where they overlap the chip takes the touch, and the reset button can be reached only
+  on its 28 px sliver below the chip, which I did not touch. Afterwards the screen's dump was byte-identical to the one
+  before (`94-` against `91-`), and the map had not left north-up or gone fullscreen.
+
+**At 270** (`101-c4-r270.xml`/`.png`, `103-`; crop `108-c5-r270-crop.png`): the chip's node is `[1180,236][1641,371]` and
+the cluster's column x 2083-2218, on the right, the cut-out side. **No overlap: 442 px between them.** The chip sits at the
+search bar's start, which is the bar's left end on this side, and the cluster sits at its right end. No touch test,
+since there is no overlap.
+
+**Captures for the owner:** `91-c4-r90.png`, `95-c4-r90-chip-a.png`, `107-c5-r90-overlap-crop.png` (90);
+`101-c4-r270.png`, `103-c4-r270-chip-a.png`, `108-c5-r270-crop.png` (270). **I do not rule on this.**
+
+**Prediction:** "the overlap reproduces at 90 and at 270, and a touch in it opens the chip's list" held at 90 and did
+not hold at 270, where there is no overlap.
