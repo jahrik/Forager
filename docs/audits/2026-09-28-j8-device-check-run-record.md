@@ -603,3 +603,68 @@ and its pixels disagree here. So I add a touch test before looking further:
 - **Control:** one touch at the chip's centre (540, 340), expected to open the list.
 - **Prediction:** the chip takes all five, since the chip's row is composed after the strip (`AvailabilityCompactMapUi.kt`
   places the row after the strip in the same `Box`); by my reading of the code, not established.
+
+## Check 4: the chip against real insets: **place pass (portrait, 90, 270); list pass; fill 0.83 to 0.84 by my measure, not the pre-registered 0.78 to 0.82**
+
+Bounds are from dumps; the drawn edges from screenshot pixels; the system-bar frames from `dumpsys window` (`77-` portrait,
+`92-` at 90, `102-` at 270). Each chip node is 135 px (48 dp) tall, its minimum touch target; the pill drawn inside it
+is about 92 px (33 dp).
+
+| | chip node | pill drawn | what it sits under | bars and cut-out | verdict |
+|---|---|---|---|---|---|
+| portrait (`75-`, `83-`) | `[310,273][771,408]` | x 310-770, y 294-385 | strip drawn to y 254: pill 40 px below it; centred (node centre 540.5, window 540) | status and cut-out `[0,0][1080,75]`, nav `[0,2181][1080,2316]`: clear | **pass** |
+| 90 (`91-`, `95-`) | `[75,236][536,371]` | x 76-535, y 258-350 | search bar drawn x 75-1135, bottom 211: pill 47 px below; start 76 against the bar's 75 | cut-out `[0,0][75,1080]` left, status `[0,0][2316,84]`, nav `[2181,0][2316,1080]` right: clear | **pass** |
+| 270 (`101-`, `103-`) | `[1180,236][1641,371]` | x 1180-1640, y 257-348 | bar drawn x 1181-2240, bottom 211: pill 46 px below; start 1180 against the bar's 1181 | nav `[0,0][135,1080]` left, status, cut-out `[2241,0][2316,1080]` right: clear | **pass** |
+
+The punch-hole side is the left at 90 and the right at 270, and the chip is on it both times, at the bar's start (its left
+edge), as `AvailabilityCompactMapUi.kt:1094-1103` places it. The search bar's `EditText` node starts right of its search
+icon (x 194 at 90, 1299 at 270), so I took the bar's start from its drawn fill.
+
+**The portrait touch-target band (the addition above).** The coordinate readout's node reaches y 298 and the chip's node
+starts at y 273. Five real touches in that band, at (580, 280), (630, 293), (668, 285), (715, 278) and (760, 292)
+(`79-c4-touch-2` to `-6`, `snaps.log` 21:44:32Z to 21:44:51Z), reached **neither**: the chip's list did not open and the
+readout did not switch form. Each was followed by a touch on the readout at its own centre (820, 230), which switched
+it every time (MGRS, decimal, MGRS, and so on in the dumps), so the readout's own control works. The chip's centre
+(540, 340; `79-c4-touch-1`) and its pill's top edge (540, 300; `81-`) opened the list. So the 25 px where the two touch
+targets overlap belongs to neither control; what took those touches (the map, presumably, since nothing visible
+happened) is not established. The readout was left in its MGRS form, as found (`82-`). The pill itself is 40 px clear
+of the strip.
+
+**The list: pass, at all three rotations.** A real touch on the chip opens a list of exactly two rows: "2026-09-27"
+with a trailing "Hide", and "Hide all" (`84-` portrait, `96-` at 90, `104-` at 270). Both actions work: **"Hide"** in
+portrait at 21:46:46Z and at 270 at 21:51:30Z, and **"Hide all"** at 90 at 21:49:58Z, each removed the chip (0 matches
+in `86-`, `97-`, `105-`). After each, the report's menu offered "Show on map" again, and "Show on map" re-showed the
+entry (21:47:59Z, 21:50:42Z).
+
+**The fill.** Part 1's `alpha.py`, fitting the chip frame against the same camera after the chip was hidden, over two
+strips inside the pill above and below its text, clear of the edges:
+
+| | slope a (per channel) | 1 - a | intercept b (R, G, B) | pair |
+|---|---|---|---|---|
+| portrait, above | 0.167 | 0.833 | 47.0, 37.0, 29.0 | `83-`/`86-` |
+| portrait, below | 0.160 | 0.840 | 47.0, 37.0, 29.0 | |
+| 90, above | 0.165-0.167 | 0.834 | 46.8, 36.7, 29.1 | `95-`/`97-` |
+| 90, below | 0.163 | 0.837 | 46.8, 36.9, 28.8 | |
+| 270, above | 0.165-0.166 | 0.834 | 47.1, 37.0, 29.1 | `103-`/`105-` |
+| 270, below | 0.161-0.162 | 0.839 | 46.9, 36.9, 29.0 | |
+
+rms 0.67 to 1.25. The camera did not move within any pair: slope 1.000, rms 0 in boxes away from the chip and the
+halos (`83-`/`86-`, `95-`/`97-`, and at 270 two boxes clear of the region's ring, which the Hide also removed). The
+controls `83-`/`85-` (both with the chip) give slope 1.000 in the chip box.
+- **By the pre-registered measure, opacity 1 - a is 0.833 to 0.840, outside 0.78 to 0.82. Not held.** The container
+  colour solved that way, b / (1 - a), is (56.4, 44.4, 34.8) in portrait, within 3 of `Bark` (59, 46, 36).
+- **What the figures fit better, by my reading:** every intercept equals 0.8 x `Bark` (47.2, 36.8, 28.8) to within 0.4
+  per channel, at all three rotations. That is what a fill of exactly 0.8 gives if the ground under the pill reaches it
+  at 0.83 of its brightness. The chip has a 4 dp shadow (`JournalEntriesChip.kt:123`), and the ground just outside the
+  pill is darkened by it: slope 0.962 in the 8 px above the pill and 0.944 in the 12 px below (`83-`/`86-`), deeper
+  below, as a shadow is. So I read it as a fill at 0.8 of `Bark` over the chip's own shadow, which takes about 17% of
+  the ground's light first. That is an inference from the fits, not a measurement of the shadow under the pill.
+  Whether 83 to 84% of the ground hidden meets "80%" is the owner's.
+- **The list's fill (an observation, the J8 report's device-only item):** `84-`/`85-`, `96-`/`95-` and `104-`/`103-`
+  (open against closed), a box inside the list clear of its text: slope 0.191 to 0.202, so 0.80 to 0.81, and the
+  container colour b / (1 - a) = 31.3 to 32.7 per channel, which is `#202020` (32).
+
+Crash buffer 0 bytes after checks 4 and 5 (`106-`); pid 5297 throughout. `user_rotation` back to 0,
+`accelerometer_rotation` 0.
+
+**Prediction:** place and list held. "The fill reads 0.80 within 0.02" did not hold, as measured.
