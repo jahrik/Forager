@@ -212,3 +212,87 @@ coordinates manually" both expanded, once per opening (`AvailabilityCompactScaff
 `user_rotation` 0 and `accelerometer_rotation` 0; `font_scale` 1.0 (not planned to change); Night Maps off; the basemap as
 found; the Diagnostics switch off (read back); every overlay switch on (the default, read back from `map_preferences`);
 the app left on the Maps tab.
+
+# Resumed (continuation `2026-09-28-55`), written after the relaunch
+
+Everything above this heading is the first coder's, byte for byte as pushed at `5532ff2`: the install facts, the data
+inventory, and the pass conditions and predictions written before any check was looked at. I have not edited it. Its
+"Status: pre-registration only" line describes that commit; the outcome is in the sections below. Anything I add to a
+pass condition is added here, marked as written after the relaunch.
+
+**Who:** a fresh device coder, replacing the first one, which died at 18:03Z on a network outage mid check 4. I started
+at 18:37Z. **Record:** the kit is absent at this base, and the planner writes the record (its continuation entry
+`2026-09-28-55` is in `RECORD.md` at `367c32f`). I do not touch `RECORD.md`.
+
+## The continuation, verbatim
+
+From `prompts/preserved/2026-09-28-55.md` at `367c32f`, below its "verbatim prompt follows" line:
+
+> **Type:** device (continuation `2026-09-28-55` of dispatch `2026-09-28-51`)
+>
+> # Why you exist
+>
+> The device coder running dispatch `2026-09-28-51` died at 18:03Z on a network outage ("API Error: Can't reach the API server (EAI_AGAIN)"), in the middle of check 4. The planner session that ran it died with it. You replace that coder.
+>
+> **What it left, checked by the planner at relaunch:**
+> - Branch `device-stage-1` (worktree `/home/zynergy-labs/Zynergy/forager-wt/device-stage-1`), pushed at `5532ff2`. That commit holds `docs/audits/2026-09-28-stage-device-check-part-1-run-record.md` with the install facts and the pass conditions and predictions it wrote **before** looking. Those stand as written: do not edit them. If you need a new pass condition or prediction, append it and mark it as written after the relaunch.
+> - **No verdicts were written.** It reasoned in blocks that were not saved, so its judgements are lost. What survives is its evidence: `/home/zynergy-labs/Zynergy/device-evidence/2026-09-28-stage-check-1/`, files `01` to `123`, `snaps.log`, `toggle-times.txt` and its helper scripts (`snap.sh`, `nodes.py`, `toggle.sh`, `dtap.sh`, `diffimg.py`, `alpha.py`).
+> - An extract of its transcript: `prior-agent-transcript-extract.md` in that directory, with every command and its truncated output. It is model output. Use it to find which evidence file shows what; cite the evidence files, not the extract.
+> - **The phone's state at relaunch** (planner's read, 18:3xZ): awake; Forager `MainActivity` in focus; `user_rotation` 3; `accelerometer_rotation` 0. From its last commands: Diagnostics "Synthetic forecast layers" was switched **on** (step 104), and the Tracks and Finds overlays were toggled during check 2. Read the full state back yourself before you touch anything. The starting values are in `06-settings-start.txt` and `07-datastore-ls-start.txt`, and those are what you restore to.
+>
+> # What governs
+>
+> Read `prompts/preserved/2026-09-28-51.md` in full. Every rule in it binds you, especially the standing rules (no `logcat -c`, `am start` not `monkey`, stop at any prompt over the app, evidence outside the repository) and the abort conditions. Quote this message verbatim in the run record, in a "Resumed" section.
+>
+> # What you do
+>
+> 1. **Before anything else,** confirm the installed build is still the one the pre-registration records: versionName, versionCode, `lastUpdateTime` and `firstInstallTime` from `dumpsys package`. Also do a crash read (`logcat -d -b crash`) covering the gap since 18:03Z. A mismatch or a new Forager crash is an abort.
+> 2. **Checks 1 to 4 already run.** For each item, give a verdict from the saved evidence **only where a named evidence file shows the pass condition on its own.** Where it does not (the judgement was in the lost reasoning, or the evidence is ambiguous), re-run that item and say so. For each verdict, list whether it came from saved evidence or from a re-run, and name the files.
+> 3. **Finish check 4:** a reorder applies at the next style load; cells draw nothing below the minimum zoom; then turn the Diagnostics switch **off** and read it back.
+> 4. **Run checks 5 to 8** as `-51` sets them out.
+> 5. **Restore and read back** every setting `-51` names, the overlay toggles, and rotation (`user_rotation` and `accelerometer_rotation` back to their starting values).
+> 6. **Number new evidence from `124` onward.**
+> 7. **Write the verdicts into the existing run record,** with the sections `-51` requires. Push `device-stage-1`; the planner merges it.
+>
+> # Merge
+>
+> Not authorised.
+
+## A coordinator message received during the run, verbatim
+
+Relayed by the coordinator at about 18:45Z. No planner-log line was given, so none is cited. I was not waiting on the
+phone when it arrived, and carried on.
+
+> The owner says: "S22 is ready for your device check." If you stopped or were waiting on the phone (locked, a prompt, anything else), read its state again now and carry on under dispatch 2026-09-28-55. If the reason you stopped still holds, report it instead. If you weren't waiting, carry on as you were. Commit and push the run record as you go.
+
+## Step 1 of the continuation: the build and the crash read across the gap (before any touch)
+
+- **Base:** `git fetch` at 18:36Z: `origin/device-stage-1` at `5532ff2`, the worktree clean and at the same commit.
+  `origin/journal-redesign` at `367c32f`, carrying `-55`.
+- **Device:** `adb devices -l` lists `R5CT321008R` (SM-S908U) only.
+- **Installed build, 18:37:02Z** (`124-dumpsys-package-resume.txt`): `versionName=1.0.1356+g26709b1c`,
+  `versionCode=1356`, `lastUpdateTime=2026-09-28 10:17:38` (phone time, PDT), user 0's
+  `firstInstallTime=2026-09-22 11:15:05`, `ceDataInode=2495587`, `deDataInode=2494123`. **All identical** to
+  `05-dumpsys-package-after.txt`, the pre-registration's install facts. Not an abort.
+- **Crash read:**
+  - `logcat -d -b crash`: **0 bytes** (`125-crash-resume.txt`, 18:37Z). It was 0 bytes at 17:16Z (`02-`) and at
+    17:48Z (`92-`).
+  - The main and system buffers (`126-log-resume.txt`, `logcat -d`) run from 12:41Z to 18:37Z, so they cover the gap
+    since 18:03Z: **0** `FATAL EXCEPTION` lines. The events buffer starts at 18:05:52Z and holds no `am_crash` or
+    `am_anr` line.
+  - Forager's process, pid 9626, was started at 17:48:30Z by check 3's relaunch (`126-`: `Start proc 9626`) and was
+    still running at 18:37Z (`pidof`). It did not die across the gap.
+  - **No new Forager crash.** Not an abort.
+- **Phone and app state at 18:37:42Z**, read before any touch (`127-settings-resume.txt`, `128-datastore-ls-resume.txt`,
+  `129-map_prefs-resume.pb`, `130-diag-prefs-resume.pb`, decoded by `pbprefs.py` with coordinates redacted):
+  - awake (`mWakefulness=Awake`); `isKeyguardShowing=false`; focus `com.zynergylabs.forager.app/.MainActivity`;
+  - `user_rotation=3`, `accelerometer_rotation=0`, `font_scale=1.0`, `navigation_mode=0`, `ui_night_mode=2`,
+    location on, `location_mode=3`;
+  - `map_preferences`: `map.fullscreen=false`, `night_mode.maps=false`, the offline picker's last pick, and the seven
+    `map.layer.*.visible` keys, **all true**;
+  - `debug_diagnostics_preferences`: `diagnostics.synthetic_forecast=true` (the first coder's step 104).
+  - This matches the planner's read at relaunch. **Two differences from the start** (`06-`, `07-`, `08-`): the seven
+    `map.layer.*` keys now exist where there were none, and the Diagnostics file now exists. The app can set these
+    keys but not remove them, and I may not write to its files, so "restored" for them means their default values
+    (overlays true, Diagnostics false), read back. See Settings.
+
