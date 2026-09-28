@@ -370,7 +370,7 @@ class AvailabilityScreenSettingsPanelTest {
         assertEquals(AppThemeMode.LIGHT, capturedThemeMode)
     }
 
-    private val mapModeContentDescription = "Map mode: Topographical. Choose Street, Topographical, or Satellite. Night mode off."
+    private val mapModeContentDescription = "Layers: Topographical map. Choose the map type and overlays."
 
     /**
      * Was "...renders over the map's own top-right corner", asserting `iconBounds.top` strictly
@@ -420,7 +420,7 @@ class AvailabilityScreenSettingsPanelTest {
     }
 
     @Test
-    fun `tapping the quick-fire icon opens the map mode picker, and a chip there changes the basemap`() {
+    fun `tapping the quick-fire icon opens the Layers sheet, and a chip there changes the basemap while the sheet stays open`() {
         setScreen()
         assertEquals(Basemap.OPEN_TOPO_MAP, capturedBasemap)
 
@@ -429,13 +429,10 @@ class AvailabilityScreenSettingsPanelTest {
         composeRule.waitForIdle()
 
         assertEquals(Basemap.OSM_STANDARD, capturedBasemap)
-        // The picker dismisses itself on selection, so a second chip isn't on screen until the icon
-        // (now reflecting Street) is tapped again.
-        composeRule.onAllNodesWithText("Satellite").assertCountEquals(0)
-
-        composeRule.onNodeWithContentDescription(
-            "Map mode: Street. Choose Street, Topographical, or Satellite. Night mode off.",
-        ).performClick()
+        // Map layers L0b (owner's ruling on Q3, "Stays open"): the sheet stays open on a map-type
+        // tap, so the other chips are still on screen. Before L0b the picker closed itself here and
+        // this asserted Satellite's count was 0.
+        composeRule.onAllNodesWithText("Satellite").assertCountEquals(1)
         composeRule.onNodeWithText("Satellite").assertIsDisplayed().performClick()
         composeRule.waitForIdle()
 
