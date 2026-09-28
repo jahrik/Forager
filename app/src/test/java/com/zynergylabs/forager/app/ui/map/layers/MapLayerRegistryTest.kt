@@ -114,19 +114,20 @@ class MapLayerRegistryTest {
     }
 
     @Test
-    fun `markers and lines are tappable, casings, the offline fill and the colour fields are not`() {
+    fun `record markers, lines and colour fields are tappable, casings, the offline fill, the search centre and the recording trail are not`() {
         val expected = mapOf(
-            // No cell tap in L0b (owner: the readout is M1's), and a tappable cell under every tap
-            // would stop resolveTap ever reaching its box stage for a near miss.
-            MapLayerIds.FORECAST_CHICKEN_OF_THE_WOODS to TapGroup.NONE,
-            MapLayerIds.FORECAST_CHANTERELLES to TapGroup.NONE,
+            // M1 (planner's ruling): cells are tappable in their own group, which resolveTap ranks
+            // after both of its stages, so a near miss on a line or marker still reaches the box.
+            MapLayerIds.FORECAST_CHICKEN_OF_THE_WOODS to TapGroup.COLOUR_FIELD,
+            MapLayerIds.FORECAST_CHANTERELLES to TapGroup.COLOUR_FIELD,
             MapLayerIds.OFFLINE_REGION_FILL to TapGroup.NONE,
             MapLayerIds.OFFLINE_REGION_OUTLINE to TapGroup.LINE,
             MapLayerIds.BREADCRUMB_CASING to TapGroup.NONE,
-            MapLayerIds.BREADCRUMB to TapGroup.LINE,
+            // M1 (owner's ruling 4, "Not tappable"): the recording trail and the search centre.
+            MapLayerIds.BREADCRUMB to TapGroup.NONE,
             MapLayerIds.KEPT_TRACKS_CASING to TapGroup.NONE,
             MapLayerIds.KEPT_TRACKS to TapGroup.LINE,
-            MapLayerIds.SEARCH_CENTRE to TapGroup.MARKER,
+            MapLayerIds.SEARCH_CENTRE to TapGroup.NONE,
             MapLayerIds.SIGHTINGS to TapGroup.MARKER,
             MapLayerIds.PLANNED_TRIPS to TapGroup.MARKER,
             MapLayerIds.WAYPOINTS to TapGroup.MARKER,

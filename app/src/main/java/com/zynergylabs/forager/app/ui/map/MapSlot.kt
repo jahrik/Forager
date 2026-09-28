@@ -215,6 +215,25 @@ data class MapForecastFeed(
     val onCellsShown: (Map<String, ForecastCellsShown>) -> Unit = {},
 )
 
+/**
+ * One feature tap, as [MapRenderMode.onFeatureTap] reports it (M1, F1 accepted by the planner): the
+ * layer and the feature's own id, as before, plus where the tap was, so a bubble can be anchored on
+ * it and a colour field's cell looked up by block. [screenPoint] is in the map slot's own
+ * coordinates, as `onSightingTap`'s is; [bearingDeg] is the camera's bearing; [at] is the tapped
+ * map position. For a point feature re-anchored at a camera idle ([MapOverlayContent.focusedFeature]),
+ * [screenPoint] and [at] are the glyph's own.
+ */
+data class MapFeatureTap(
+    val layerId: String,
+    val featureId: String,
+    val screenPoint: Offset,
+    val bearingDeg: Float,
+    val at: LatLng,
+)
+
+/** A point feature a caller is showing a bubble for, by layer and feature id (M1, F2): see [MapOverlayContent.focusedFeature]. */
+data class FocusedMapFeature(val layerId: String, val featureId: String)
+
 data class MapOverlayContent(
     val sightings: List<Sighting> = emptyList(),
     val plannedTrips: List<PlannedTrip> = emptyList(),
@@ -264,6 +283,16 @@ data class MapOverlayContent(
      * and the camera-idle listener has nothing left to re-fire for.
      */
     val focusedObservationId: Long? = null,
+    /**
+     * M1 (F2): the point feature, if any, the caller is showing a bubble for, generalising
+     * [focusedObservationId] to finds, photos, waypoints and planned trips. On every camera idle the
+     * map re-projects that glyph's own position and reports it through [MapRenderMode.onFeatureTap],
+     * so the bubble stays on its glyph across a pan, zoom or rotate. `null` once the caller has
+     * dismissed the bubble, for the reason [focusedObservationId] gives: a dismissal must not be
+     * undone by the next idle. Lines, regions and cells are never focused here; their bubbles keep
+     * the tap point (planner's M1 ruling).
+     */
+    val focusedFeature: FocusedMapFeature? = null,
     /**
      * Journal Stage 2d: a Cartography entry's kept tracks, one [RecordPolyline] per track, each oldest
      * point first — a genuine `MultiLineString`, not [breadcrumbPoints] concatenated. A single

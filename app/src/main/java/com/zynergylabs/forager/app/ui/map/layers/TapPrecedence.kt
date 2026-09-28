@@ -40,3 +40,20 @@ fun tapWinner(hits: List<TapHit>, drawOrder: List<MapLayerSpec>): TapHit? {
  */
 fun resolveTap(pointHits: List<TapHit>, boxHits: () -> List<TapHit>, drawOrder: List<MapLayerSpec>): TapHit? =
     tapWinner(pointHits, drawOrder) ?: tapWinner(boxHits(), drawOrder)
+
+/**
+ * What one resolved tap does (M1; owner's ruling 1, "Bubble only"): a sighting goes to
+ * `onSightingTap` (the host's plain `onTap` when its id no longer resolves, as before); any other
+ * winner with an id goes to `onFeatureTap` and **nothing else**, as sighting taps already behave; a
+ * tap on nothing tappable is a plain `onTap`. A winner with no id cannot name its record: it is
+ * logged and treated as a plain tap.
+ */
+sealed interface MapTapOutcome {
+    data class OnSighting(val observationId: Long?) : MapTapOutcome
+    data class OnFeature(val layerId: String, val featureId: String) : MapTapOutcome
+    data class UnidentifiedFeature(val layerId: String) : MapTapOutcome
+    data object Plain : MapTapOutcome
+}
+
+/** [winner]'s [MapTapOutcome]; see that type. */
+fun mapTapOutcome(winner: TapHit?): MapTapOutcome = MapTapOutcome.Plain // Tests-first stub.
