@@ -1,8 +1,521 @@
 # Backlog device check, Part B (landscape, the Maps drawer and the pickers), on the S22 Ultra: run record
 
-**Status: in progress (10:25Z).** Run so far: steps 1 to 3, item 7's find picker and offline picker, 34, 35, 39 to 44 and 31. Still to run: 45, 46, 7's entry preview, J5c 47 to 49 and 53, 36, 37, and the end reads. Results are written at the end; the evidence is in the directory named below. The pre-registration, pushed at `e37f8b8` before any item ran, follows unchanged.
+**Status: complete, with one half-item not run and one question for the planner.** The session ran from 09:45Z to 10:37Z.
+Every item has a verdict. The pre-registration was pushed at `e37f8b8` before any item ran. It is kept unchanged as the
+Appendix. One deviation from it is recorded: item 37's force-stop half could not be run (see "Needs a decision").
 
-**Pre-registration (as pushed at `e37f8b8`).** Nothing below had been run when it was written. This file is committed and pushed before any item
+**Date:** 2026-09-28, 09:45Z to 10:37Z.
+**Device:** Samsung SM-S908U, serial `R5CT321008R`, the only device attached (`adb devices -l`).
+`ro.build.id=BP2A.250605.031.A3`.
+**Build under test:** `versionName=1.0.1192+g24589349`, `versionCode=1192`, at the start (`01-dumpsys-package-start.txt`, 09:46Z) and
+at the end (`223-version-end.txt`, 10:36Z). Nothing installed; no Gradle, no emulator.
+**Dispatch:** `prompts/preserved/2026-09-28-14.md`. Part A's `2026-09-28-04.md` and `2026-09-28-12.md` apply except where it
+differs. The intent is `2026-09-28-14` in `RECORD.md`, the planner's; I did not touch `RECORD.md`. No planner message
+arrived during the run.
+**Base:** `fe0f0d7`, the commit the dispatch names. By the time the worktree was added, `origin/journal-redesign` had
+moved to `af846cc`, the L0b coder's merge of `fe0f0d7` with its completion report (one docs file). This branch is cut
+from `fe0f0d7` (see Decisions).
+**Code citations** are at the installed build's commit `2458934`.
+**Evidence:** `/home/zynergy-labs/Zynergy/device-evidence/2026-09-28-backlog-b/`, outside the repository, indexed with sha256 in
+its own `evidence-index.md` (hashed below). No screenshot, dump, coordinate, note text, place name or photo is in this
+file. Where the screenshots show the owner's map area, photos or coordinates, they stay in that directory.
+**dp to px:** `wm density` 450, so 1 dp = 2.8125 px. The landscape window is 2316 x 1080 px, 823.5 x 384 dp (the
+configuration reads `w823dp h384dp`).
+**Navigation mode:** `navigation_mode=0`, three-button, unchanged throughout.
+
+## Outcome
+
+| Item | What | Verdict |
+|---|---|---|
+| 1 | Build, baseline, rotation facts | **pass**: build as dispatched; crash buffer empty at 09:46Z and 10:36Z; rotation facts below |
+| B3 1 | Drawer on the right at ROTATION_90, clear of the bar, rounded edge to the map | **pass** |
+| B3 2 | Scrim tap closes, and it reopens, at both rotations | **pass**: 5 of 5 at 90, 6 of 6 at 270 |
+| B3 3 | Swipe closes while open; no swipe-to-open while closed | **pass** at both rotations |
+| B3 4 | Rotating 90 to 270, and 270 to 90, with the drawer open | **pass**: it stays open and moves to the new port edge |
+| B3 5 | Predictive back | **not run**: gesture navigation |
+| B3 6, J5 38, L8 | No control in the cut-out inset; the cap and centring | **pass** at both rotations, on every non-Map destination; the column is 640.0 dp, margins 41 and 40 px |
+| 7 | Landscape picker maps (observation) | offline picker **not usable in landscape**: once scrolled, the map fills the viewport and its OK row cannot be reached by a drag. Find picker usable but short (640 x 128.7 dp). Entry report: the map covers the whole column with no header |
+| 39 | Height table and card count | recorded; **fewer than six whole cards**: 2 whole with full-size cards, 4 whole with the short draft cards |
+| 40 | Header reveal and dismissal; dropdown closing with the header (observation) | recorded. The icon reveals and hides it. **Back does not always hide it first**: on a single-type chip the first Back steps the chip to All |
+| 41 | Hide-on-scroll on a slightly taller list (observation) | recorded: a 150 px drag hides the chip row and a 150 px drag back returns it |
+| 42 | Long-press on a sideways card near the bottom edge | **pass**: menu inside the window; dismissed with Back |
+| 31 | Long-press on a tile near the bottom edge | **pass**, on the L0a find tile |
+| 43 | Import from the L1 row, turning while the picker is up | **pass** |
+| 44 | Rotating with an entry open in its editor, both ways; mid-find-edit | **pass** for both; the rows are unchanged in the database |
+| 45 | Chips at font scale 1.0 and 1.15 in landscape | **pass**: fit at 1.0; overflow by about 12 dp at 1.15, and the row scrolls |
+| 46 | 18 dp chip icons (observation) | legible, by my reading |
+| 47 | Details sheet insets at both rotations | **pass** |
+| 48 | Sheet actions below the fold; content scrolls | **pass** for the track sheet; the waypoint sheet's Directions shows without scrolling |
+| 49 | Drag-to-dismiss | a drag down from the handle **dismissed** it. The predictive Back animation is **not run** |
+| 53 | Rotating with the sheet open | **pass** |
+| 34 | Find picker: zoom in, pan, wait 10 s | **pass at zoom 17.1**, the basemap's ceiling. Zoom 18 cannot be reached on Topographical. adb cannot pinch; double taps were used |
+| 35 | First-fix follow | **pass, weakly**: the untouched pin moved with the first new fix, by 1e-4 degree. The check cannot show a move from elsewhere (see the item) |
+| 36 | Offline picker after a slow first fix | run, but **the precondition was not produced**: the cold-start command returned 0 and GPS fixes kept arriving each second. Nothing moved after the pan; the slider kept the pan and re-zoomed; OK showed the panned point |
+| 37 | Download kept while the list is reopened; force-stop mid-download | **completion half pass**. The leave-and-return half and the force-stop half **not run**: the one download allowed finished in about 4 s. No force-stop was sent |
+| Owner items | Feel, animation, TalkBack speech, predictive back and gesture navigation, the wide tree, folds | **not attempted** |
+
+**The planner's predictions:**
+1. "The drawer passes 1 to 4 at ROTATION_90": **held**.
+2. "No control lies within the cut-out inset at either rotation": **held**.
+3. "Fewer than six whole cards show in the landscape Entries list": **held**. The Entries list holds only two entries, so the count was made on the drafts list (item 39).
+4. "Fixes are arriving, and 35 passes": **held**, with 35's weakness stated.
+5. "No crash": **held**. The crash buffer read 0 bytes at the start and the end. The app stayed process 19584 throughout.
+
+## Step 1: build, baseline, rotation facts: **pass**
+- **Crash buffer:** 0 bytes at 09:46:16Z (`02-crash-start.txt`) and at 10:36:49Z (`222-crash-end.txt`), read with `-d`.
+  `logcat -c` was never run.
+- **Rotation facts** (`11-window-displays-r1.txt`, `-r3.txt`, `11-window-r1.txt`, `-r3.txt`), with `accelerometer_rotation 0`:
+
+  | | ROTATION_90 (`user_rotation 1`) | ROTATION_270 (`user_rotation 3`) |
+  |---|---|---|
+  | Window | 2316 x 1080 px, 823.5 x 384 dp, `mOverlappingWithCutout=false` | the same |
+  | Status bar | `[0,0][2316,84]`: 84 px, 29.9 dp | the same |
+  | 3-button bar | `[2181,0][2316,1080]`: right edge, 135 px, 48.0 dp | `[0,0][135,1080]`: left edge |
+  | Cut-out inset | left, 75 px (26.7 dp); bounding rect `(0,512)-(75,568)` | right, 75 px; bounding rect `(2241,512)-(2316,568)` |
+  | Charger port | right edge, **inferred** | left edge, **inferred** |
+
+- **The port's edge is inferred, not read.** Android reports no port position. The inference is `portEdgeFor`
+  (`ui/adaptive/PortEdge.kt:29-33`, the natural-orientation bottom edge), and it agrees with the 3-button bar's side
+  here. The cut-out's side is read from `displayCutout` (`sideHint=LEFT` at 90, `RIGHT` at 270).
+
+## Step 2: the B3 Maps tools drawer
+**Item 1 (ROTATION_90): pass.**
+- **Tools** on the rail (the rail is `[1956,84][2316,1080]`: 225 px, 80 dp, of rail, plus the bar's 135 px) opened the sheet
+  (`21-drawer-open-r1.xml`, `.png`).
+- **The sheet** spans x 1303 to 2316: 1013 px, 360 dp, against the right edge. Its scrim, "Close navigation menu",
+  is `[0,0][1303,1080]`.
+- **Clear of the bar:** every node inside it ends at x 2181 or less, the 3-button bar's left edge. That covers "Trip Planner",
+  its expand icon, the search-options close and Settings. The sheet's own inset padding puts its content beside the bar.
+  The sheet's background runs under the bar.
+- **Rounded edge:** by my reading of `21-crop-top-edge.png`, the sheet's top-left corner is rounded, facing the map.
+
+**Item 2: pass at both rotations.**
+- **At 90** (`drawer_cycle.sh`; `22-r1-scrim*-closed.xml`, `-reopened.xml`):
+  - five scrim taps, at (60,150), (650,110), (1250,540), (650,1000) and (300,700), spread across the scrim;
+  - each closed the drawer: no scrim node in the next dump;
+  - Tools reopened it each time.
+  - The map mode read the same after the taps, so no tap reached a map control under the scrim.
+- **At 270:**
+  - the sheet is `[0,0]` to x 1013, and its scrim is `[1013,0][2316,1080]`;
+  - one scrim tap at (1700,600) closed it (`27-r3-closed.xml`);
+  - then five cycles, at (1100,150), (1700,110), (2200,300), (1700,1000) and (1400,700): each closed, and each reopened
+    (`28-r3-*`).
+
+**Item 3: pass at both rotations.**
+- **At 90:**
+  - `swipe 1600 600 2250 600 300` (towards the sheet's edge) closed it (`23-r1-swipe-close.xml`);
+  - with it closed, `swipe 1940 600 1200 600 300`, from beside the rail across the map, did not open it (`24-…`: no scrim).
+  - The map image changed across 81% of a sampled region between `20-maps-r1.png` and `24-…png`. That is consistent with a
+    pan, but the two captures are minutes apart, so the swipe alone is not proven to be the cause.
+- **At 270:**
+  - `swipe 700 600 150 600 300` closed it;
+  - `swipe 380 600 1100 600 300` did not open it (`29-r3-*`).
+
+**Item 4: pass, both ways.**
+- **90 to 270 with the drawer open** (`25`, `26-r3-after-turn.xml`, `.png`):
+  - the drawer is still open, now `[0 … 1013]` on the left (port) edge, with its content from x 135, beside the bar;
+  - by my reading of `26-r3-after-turn-small.png`, its rounded edge faces right, to the map;
+  - the focused window stayed `42e6367`, so the Activity was not recreated.
+- **270 to 90** (`30`, `31-r1-after-turn.xml`): still open, back on the right. A scrim tap then closed it (`32`).
+
+**Item 5:** not run (gesture navigation).
+
+## Step 3: cut-out clearance and the cap (B3 6, J5 38, L8): **pass**
+`cutout.py` lists every clickable, focusable, checkable or scrollable node outside the rail, and flags any that overlaps the cut-out band. The band is x 0 to 75 at 90 and x 2241 to 2316 at 270.
+
+| Destination | ROTATION_90 violations | ROTATION_270 violations | Dumps |
+|---|---|---|---|
+| List | 0 | 0 | `40-list-r1`, `50-list-r3` |
+| Seasonal | 0 | 0 | `41`, `51` |
+| Journal, Entries, Timeline | 0 | 0 | `42-journal-r1`, `54-timeline-r3` |
+| Journal, Entries, Album | 0 | 0 | `43-album-r1`, `53-entries-r3` |
+| Journal, Records: All, Finds, Tracks, Waypoints, Offline maps | 0 on each | 0 on each | `44`, `45-r1-chip-*`, `55-r3-chip-*` (each chip's `checked` confirmed) |
+
+- **The L1 row** at 90: the switch is `[161,84][744,219]`, 30 px (10.7 dp) inside the column's start at x 116; its
+  icons end at x 1871. At 270, the switch starts at x 446 and the icons end at x 2156. Neither is near the cut-out.
+- **The cap and centring:**
+  - the content column is `[116 … 1916]` at 90 and `[401 … 2201]` at 270, both 1800 px, **640.0 dp**, on every destination;
+  - at 90, the margins are 116 − 75 = 41 px to the cut-out inset and 1956 − 1916 = 40 px to the rail;
+  - at 270, they are 401 − 360 = 41 px to the rail and 2241 − 2201 = 40 px to the cut-out inset;
+  - so the column is centred in what is left, within 1 px.
+- **Not a cut-out finding, noted:** the app-wide search field's node starts at y 74, 10 px above the status bar's bottom
+  (y 84), on List at 90 (`40-list-r1.xml`). The same 10 px was in Part A's portrait dumps. It is the text field's node, and
+  whether anything drawn sits there was not judged.
+
+## Step 4: item 7, the landscape picker maps (observation)
+- **The Offline Maps picker** (Records, Offline maps, at 270; `60` to `64`):
+  - **On open:** the map node is `[401,605][2201,1080]`, 169 dp of its 480 dp showing. It is 640 x 480 dp (4:3 by width,
+    `AvailabilityOfflineMapsUi.kt:174-186`, `:269`).
+  - **Scrolling:** two drags on the instruction text scrolled the panel; the Records chip row hid on the scroll. Then the
+    map filled the whole viewport, `[401,219][2201,1080]`, 306 dp tall (`62`, `63-small.png`).
+  - **Stuck:** no part of the panel outside the map was left to drag. A vertical drag on the map panned the map (75% of
+    its pixels changed), and the panel did not move. **So OK, the name, the radius and "Download Maps" cannot be reached
+    by a finger in landscape once the panel is scrolled that far.**
+  - **The way out:** Back left the chip for All (`64`).
+  - **Not usable in landscape, by this reading.** Items 36 and 37 were therefore run in portrait (see Decisions).
+- **The find picker** (the draft find's "Change Location", at 270; `73-findpicker-r3.xml`):
+  - its map is `[401,468][2201,830]`, **640 x 128.7 dp**;
+  - its "Pin at:" line, OK and Cancel are below it, all on screen;
+  - the Records chip row stays above the form, which is part of why the map is short;
+  - **usable, but short**, by my reading.
+- **The entry map preview** (the L0a entry's report, at 270 and at 90; `170` to `175`):
+  - the report came up with its map covering the whole content column, from y 65 (19 px into the status bar) to the
+    bottom, 640 x 361 dp showing, with **no header row**: no "Back to Cartography" and no "Entry options" in the dump;
+  - a clickable node at the bottom right, `[2010,1037][2156,1080]`, is cut off by the window's bottom, with 15 dp of it showing;
+  - by the code, the header row is left out only when `isMapFullscreen` is true (`CartographyEntryReportScreen.kt:310`);
+  - I opened it twice with a single tap on the card, and it came up this way both times, and the same at 90;
+  - Back returned straight to Entries;
+  - **why it opens like this was not investigated** (see Flags).
+
+## Step 5: J5 items 39 to 46, the Journal in landscape
+**39: the height table (at 270; `100`, `104`, `105`), and the card count.**
+
+| Measure | Device (px) | Device (dp) | Robolectric, J5 (dp) |
+|---|---|---|---|
+| Status bar | 0-84 | 0-29.9 | 0 |
+| L1 row | 84-219 | 29.9-77.9 (48.0) | 0-48 |
+| L3 row (drafts chip, view toggle) | 219-354 | 77.9-125.9 (48.0) | 52-92 toggle |
+| Content area | 354-1080 | **258.1 dp** | 288 |
+| Month header "SEPTEMBER 2026" | 377-434 | | |
+| First card row (the L0a card) | 480-844 | 170.7-300.1 (129.4 tall) | 140-228 |
+
+- **How many cards show:** the Entries list has two entries, a 48 dp collapsed row and the L0a card, both whole.
+  - **The drafts list** (Continue, "✎ 5 drafts ›"; `105-drafts-list-r3.xml`, `105-small.png`) has five short draft cards, 249 px
+    (88.5 dp) tall on a 272 px pitch. Four are whole, in two rows ending at y 1001, and the fifth shows 56 px of 249.
+  - With cards the size of the L0a card (129.4 dp), the 213 dp from the first row's top to the window's bottom holds one whole
+    row, which is **2 whole cards**.
+  - **Six whole cards (P:327) does not hold on this phone** with either card size. The planner's prediction 3 held.
+
+**40: the header (observation).**
+- **Reveal:** on Records, the L1 row's Search icon brought the app-wide header up, `[520,74][2178,209]` at 270, and the L1 row
+  moved down to 212-347. The icon became "Hide search" (`130`).
+- **The icon hides it:** on Entries, "Hide search" hid the header (`140`).
+- **Back hides it, but not always first:**
+  - on Entries, one run hid it with the first Back (`143` to `144`);
+  - in another, the first Back after a reveal had no visible effect, and the second hid it (`139`, `141`, `142`). I did not find
+    why;
+  - **on the Finds chip, the first Back stepped the chip to All, with the header still up, and the second Back hid it**
+    (`135` to `137`). The J5 report says the header's `BackHandler` "outranks" the Records one (`journal-j5-completion-report.md:85`).
+    Here it did not.
+- **The dropdown:**
+  - with the header revealed on Finds, a tap on the search field opened the dropdown (radius, month, recent searches) and the
+    keyboard (`131`);
+  - the "Hide search" icon was then covered, and not in the dump, so the icon could not hide the header with the dropdown open;
+  - Back 1 closed the keyboard, and Back 2 showed no visible change (the dropdown covers the chips, so a chip change could not
+    be seen);
+  - after Back 3, the dropdown and the header were both gone, and the chip read **All**, not Finds (`132` to `134`);
+  - so the dropdown did close when the header hid, as J5's `LaunchedEffect` intends (`AvailabilityCompactScaffold.kt:701-702`);
+  - that one of those Backs stepped the chip under the dropdown is **inferred** from the before and after states.
+  - Nothing was chosen in the dropdown, and the search still reads "September · 5 mi".
+- **The feel is the owner's.**
+
+**41: hide-on-scroll (observation).**
+- **Which list:** no list here is only slightly taller than its viewport. Waypoints ends 7 px short of the window (`112`),
+  and the drafts list and Entries have no hiding row. I used the **Finds gallery** (the Log sub-tab). Its tiles in landscape
+  are 843 px (300 dp) square, two to a row, so the list overflows by about 113 dp, inferred from the tile width.
+- **What happened** (`114` to `116`):
+  - a slow 150 px drag up hid the chip row, and the Log | Drafts tabs moved from 376-511 to 219-354;
+  - a 150 px drag down brought it back.
+- **Seen in passing:** after Back from the scrolled Offline maps panel to All, the chip row stayed hidden with All at its
+  top (`64` to `66`). A drag down on a list already at its top consumes nothing, so it did not return the row. It came back
+  only after a drag up and then a drag down (`67`). See Flags.
+
+**42 and 31: long-presses near the bottom edge: pass.**
+- **42, a sideways card** (`120`, `121`):
+  - the lowest draft card, `[446,1024][1290,1080]` (partly off the bottom), was held 800 ms at (868,1052);
+  - its Edit and Delete menu opened at `[446,568][761,838]`, inside the window and clear of the bar and the status bar;
+  - Back dismissed it, and the drafts list stayed (`122`).
+- **31, a tile:**
+  - the L0a "DEVICE CHECK find 1" tile in Records, Finds, `[1313,556][2156,…]`, which runs past the bottom edge, was held
+    800 ms at (1734,1040);
+  - its menu opened at `[1313,263][1628,533]`, inside the window;
+  - Back dismissed it (`125`, `126`).
+- **Not used:** the album's bottom-row tiles, `[446,874]…` at 270. They are the owner's photos, not test data (see Decisions).
+
+**43: Import with a turn while the picker is up: pass** (`150` to `157`).
+- **The route:** Album view, the L1 row's photo button (`[2021,84][2156,219]`), then its menu, "Take photo" and "Import", then
+  Import at 10:24:02Z.
+- **The picker:** `com.google.android.photopicker/com.android.photopicker.MainActivity` was top-resumed.
+- **The turns:** `user_rotation` 3 to 1, then 1 to 3. The picker stayed top-resumed through both. This order is the
+  reverse of the pre-registration's 1 to 3 to 1, since the phone was at 270 when the item began.
+- **Back, and a permission prompt:**
+  - Back cancelled the picker, and behind it was a permission prompt, "Allow Forager to access photos …", with "Allow limited
+    access", "Allow all" and "Don't allow";
+  - it was dismissed with Back, choosing none;
+  - `ACCESS_MEDIA_LOCATION` and `READ_MEDIA_VISUAL_USER_SELECTED` read `granted=false` with the same flags as at the start (the
+    two permission blocks' md5s match).
+- **Back on the app:** the Album view, three tiles; `files/photos` still holds 3 files and `files/captures` is empty. Nothing
+  was imported.
+
+**44: rotating with an entry open in its editor: pass, both entries, both ways.**
+- **The draft find**, opened from Records, Finds, Drafts (1) (`70` to `72`):
+  - turned 3 to 1 and 1 to 3;
+  - the form stayed open after each: "Find on 2026-09-28", "Change Location" and the identification field reading the
+    DEVICE CHECK label;
+  - the focused window stayed `42e6367`.
+- **The blank saved entry,** opened through its row's long-press menu, then Edit (`101` to `103`):
+  - the editor shows its date, 2026-09-28, both text fields empty, and no "Finish entry", so it is the committed entry;
+  - turned 3 to 1 and 1 to 3, it stayed open with both fields empty, and the window stayed the same;
+  - Back left it with no prompt (`104`).
+  - The pre-registration named "Save" as a marker; no "Save" is on screen in this editor, so the date, the blank text and
+    the missing "Finish entry" were used instead.
+- **The database:** nothing was typed in either. The md5 of the draft find's row, the blank entry's row and every
+  `cartography_entries` row is the same at `db-start` (10:04Z), `db-after-find`, `db-after-editor` and `db-end` (`rows.sh`).
+
+**45: the chips in landscape at 1.0 and 1.15: pass** (at 270; `160`, `161`, `162`).
+
+| Chip | 1.0 (dp) | 1.15 (dp) |
+|---|---|---|
+| All 7 | 79.6 | 82.8 |
+| Finds 2 | 98.1 | 105.2 |
+| Tracks 1 | 104.9 | 113.4 |
+| Waypoints 3 | 133.0 | 146.1 |
+| Offline maps 1 | 147.9 | 164.3 |
+
+- **At 1.0,** the last chip ends at x 2064, inside the 640 dp column (x 2201), so the row fits.
+- **At 1.15,** it ends at x 2200, past the row's end padding. A swipe on the row moved it to end at x 2167 (`162`), so the
+  row overflows by about 12 dp and scrolls.
+- **By my reading of `161-chips-fs115-r3-crop-chips.png`,** every label and count is whole on one line. Each chip keeps a 48 dp
+  touch height.
+- Font scale went to 1.15 at 10:25:14Z and back to 1.0 at about 10:26Z, read back `1.0`.
+
+**46: the 18 dp chip icons (observation).**
+- The short-window metrics set Material's 18 dp chip icon (`RecordsFilterChips.kt:140`, `FilterChipDefaults.IconSize`).
+- The drawn glyphs measure roughly 11 to 17 dp across inside that box, from `160-chips-fs100-r3.png`. It is a crude
+  pixel-extent measure.
+- **By my reading of the 2x crop `160-chips-x2.png`,** in dark, each icon is legible: the list, the leaf, the track line, the
+  pin and the folded map.
+
+## Step 6: J5c items 47, 48, 49 and 53, the details sheet in landscape
+**47: pass.**
+- **The waypoint sheet** ("DEVICE CHECK waypoint"; `181` at 90, `182` at 270) is `[258 … 2058]`, 640 dp, centred on the window.
+  - At 90, it ends 123 px short of the bar (x 2181) and starts 183 px past the cut-out inset (x 75).
+  - At 270, it starts 123 px past the bar (x 135) and ends 183 px short of the cut-out inset (x 2241).
+  - Its drag-handle box starts at y 314, below the status bar.
+- **The track sheet** (at 270; `185`) is taller. Its drag-handle box is `[1091,84][1226,219]`, starting exactly at the status
+  bar's bottom, y 84.
+- **Noted:** the sheet is centred on the window, not on the content column. So it overlaps the rail by 102 px at both
+  rotations (x 258 against the rail's 360 at 270, and x 2058 against 1956 at 90). The rail is under the scrim then.
+
+**48: pass for the track sheet.**
+- **The track sheet:** on open, its actions start at y 1043, cut off by the window's bottom (`185`).
+- **A slow 350 px drag up** inside the sheet scrolled its content, and "Share" came fully on screen at `[303,900][621,1035]`
+  (`186`). Share was not pressed.
+- **The waypoint sheet's** "Directions" is on screen when it opens (`[303,900][707,1035]`), since its content is short.
+
+**49:** a drag from the handle, `swipe 1158 381 1158 1060 500`, **dismissed the waypoint sheet** (`183`: no "Close sheet").
+
+**53: pass.** With the waypoint sheet open, `user_rotation` 1 to 3 at 10:29:30Z. The sheet was still open on the same
+waypoint, with the same bounds (`182`).
+
+## Step 7: picker items 34, 35 and 36
+**The fix-arrival control: pass** (`74-foragerfix-1.txt`, `74-dumpsys-location.txt`, 10:05Z).
+- **The log:** `logcat -d -s ForagerFix` shows a GPS fix about every second, at 11 to 12 m accuracy (1,921 gps and 111 network
+  lines in the buffer).
+- **The gate:** GPS fixes at that accuracy pass the live-fix gate, `LIVE_FIX_MAX_ACCURACY_METERS = 50f` (`LiveFixGate.kt:68`).
+  Network fixes at 100 m do not.
+- **The service:** `dumpsys location` lists the app's requests at `@+1s0ms` on its providers.
+
+**35: pass, weakly.**
+- **The first try went wrong:**
+  - location off at 10:06:07Z raised a Google Play services screen, "No location access"
+    (`com.google.android.gms/.location.settings.LocationOffWarningActivity`), on top of the app (`76`, `78`);
+  - I dismissed it with Back, choosing none of its buttons (`79`).
+- **The second try:**
+  - location off at 10:08:48Z raised no such screen, so the Back I sent for it left the find form instead;
+  - the draft was kept, "Drafts (1)", and no Discard was pressed (`80`, `81`);
+  - I reopened the draft and its picker with location still off (`82`, `83`).
+- **Location off:** four reads over 13 s gave the same "Pin at:" (`83-pinwatch-locoff.txt`).
+- **Location on** at 10:09:52.6Z:
+  - the first fixes came at 10:09:54.4Z (network, 15 m) and 10:09:59.2Z (gps);
+  - the untouched pin moved by 1 × 1e-4 degree of longitude, about 8 m, by the 10:09:59Z read, and then held for 55 s while fixes
+    kept arriving (`84-pinwatch-locon.txt`, `84-foragerfix-after-on.txt`: 61 gps, 5 network).
+- **Why this is weak, as pre-registered:** `liveFix` kept the last fix while location was off, so the picker opened at the
+  device already. What was seen is an untouched picker following a new fix by GPS jitter. A move from a stale place to the
+  device could not be produced in this process.
+
+**34: pass at zoom 17.1, not 18.**
+- **adb cannot pinch:** `input motionevent` takes one pointer. Double taps were used instead, sent as two `input tap`
+  processes 0.08 to 0.12 s apart.
+- **The zoom was measured from a slow `motionevent` pan of 900 px (320 dp)** and the change in "Pin at:" longitude, as
+  zoom = log2(360 × 320 / (512 × Δlng)) (`zoomcalc.py`):
+  - about 13.1 at the start, which is `zoomForRadiusKm(1)`, 13;
+  - 14.12 after one double tap (`87`, `88`);
+  - 17.10 after four more (`89`, `90`);
+  - two further double taps changed nothing: the map images were pixel-identical (`93`, `94`).
+- **Zoom 17 is the ceiling:** the picker draws on the Topographical basemap, OpenTopoMap, whose `maxZoom` is 17
+  (`ui/map/Basemap.kt:155`, set with `setMaxZoomPreference`, `SightingsMap.kt:516`). **The source's "about 18" cannot be
+  reached on this basemap.** I did not change the map mode (see Decisions).
+- **The pan:** at 17.1, a pan of 900 px moved the pin 16 × 1e-4 degree of longitude (`91` to `92`, 10:12:47Z). Its opening point
+  lies 125 × 1e-4 degree of longitude away (about 1 km), from all the pans together.
+- **10 s later** (`93`, 10:13:00Z) **and 33 s later** (`95`):
+  - "Pin at:" is unchanged, and the map area is pixel-identical to the capture just after the pan (0 changed pixels);
+  - 14 GPS fixes at 12 to 15 m arrived in the first 13 s, and 82 more after that.
+- So the view did not drop to zoom 13 and did not return to the device, with fixes arriving. The picker was left with its
+  own **Cancel** (`96`), and the draft find's row is unchanged.
+
+**36: run, but the check could not have failed.**
+- **Where:** in **portrait**, because the landscape panel's OK row cannot be reached (item 7).
+- **The cold start:** `cmd location providers send-extra-command gps delete_aiding_data` at 10:31:47.8Z returned 0. But GPS
+  fixes kept arriving every second at 13 to 14 m, with no gap. **No cold start took effect,** and the offline picker's first
+  fix also races the network provider (`AndroidLocationProvider.kt:23-52`).
+- **The pan:** the chip was opened, and a slow pan followed 0.6 s later. It moved the pin by −65 and +92 × 1e-4 degree
+  (`192`, `194`). For 20 s after, "Pin at:" and the map were unchanged (`195`, `196`: 0 changed pixels).
+- **The radius slider** (`197` to `201`):
+  - from 1 mi to 3 mi (5 km), the pin was kept and the map did not change (39 px). That radius is in the same zoom band,
+    13 for up to 5 km (`SightingsMap.kt:1507-1508`);
+  - to 6 mi (about 10 km), the pin was kept and the map re-zoomed (69% of the visible strip changed);
+  - back to 3 mi, then OK: "Download region:" equals "Pin at:" exactly.
+- **Verdict:** the parts after the fix pass. The slow-first-fix precondition was not produced.
+
+## Step 8: item 37: the completion half **pass**; the reopen half and the force-stop half **not run**
+- **The download:** the pick from item 36, 3 mi (5 km), estimated "~248 tiles", named `DEVICE CHECK 2026-09-28 B`
+  (`202-named.xml`). "Download Maps" was tapped at 10:35:23Z.
+- **It finished at once:** the first status read, at 10:35:26Z, already showed no "Downloading" line, and "No location picked
+  yet", the post-success state (`210`, `211`). The Room row's `createdAtEpochMillis` is 10:35:27.5Z, so the download took
+  about 4 s.
+- **So two halves could not be run:**
+  - there was no time to leave the chip and return while it ran;
+  - **no force-stop was sent,** since `am force-stop` after completion would test nothing, and the dispatch allows one
+    download only.
+- **The completion half: pass.**
+  - The chip reads "Offline maps 2".
+  - The list shows "DEVICE CHECK 2026-09-28 B", "3 mi … — 244 tiles, 3.1 MB — downloaded just now", under the L0a region,
+    with a tile budget of 261 / 6000 (`214`).
+  - Room `offline_regions` holds id 2 with `radiusKm=5` (`db-after-download`).
+  - MapLibre's `mbgl-offline.db` holds region 2 with 244 tiles, beside region 1's 17 (`mbgl-after1/`, read from a copy).
+- **Needs a decision:** see below.
+
+## Settings
+
+| Setting | Start (09:46Z, `03-settings-start.txt`) | Changes | End (10:36:49Z, `224-settings-end.txt`) |
+|---|---|---|---|
+| `system accelerometer_rotation` | `0` | none | `0` |
+| `system user_rotation` | `0` | 1, 3 and back, many times; 0 at 10:30Z for items 36 and 37 | `0`; display `ROTATION_0` |
+| `system font_scale` | `1.0` | 1.15 at 10:25:14Z, 1.0 at about 10:26Z | `1.0` |
+| Location (`cmd location`; `secure location_mode`) | `true`; `3` | off 10:06:07Z, on 10:06:54Z; off 10:08:48Z, on 10:09:52.6Z | `true`; `3` |
+| `secure navigation_mode` | `0` | none | `0` |
+| Dark mode (`cmd uimode night`; `secure ui_night_mode`) | `yes`; `2` | none | `yes`; `2` |
+| GPS aiding data | — | `delete_aiding_data` requested once, 10:31:47.8Z (it had no visible effect) | — |
+| App permissions (`ACCESS_MEDIA_LOCATION`, `READ_MEDIA_VISUAL_USER_SELECTED`) | `granted=false`, flags as listed | the prompt was dismissed with Back | the same (`156`) |
+| The app's screen | the Maps tab (`10-arrival.xml`) | — | the Maps tab, "Map mode: Topographical … Night mode off." (`221-final.xml`) |
+| The Journal's Entries view (app state) | Timeline | Album at item 43 | **Album**, not restored |
+| The offline picker's remembered pick (`map_preferences`) | the L0a region | overwritten by the new download (`setLastPickedRegion`, `AvailabilityViewModel.kt:1133`; the file's mtime is 10:35Z) | the new region's centre and radius |
+
+- `/sdcard/blb-ui.xml`, the dump file this run wrote, was removed (`ls`: no such file).
+- **The app log** for PID 19584 is saved (`225-logcat-app-pid.txt`). It was read with `-d` only.
+  - This session's slice holds 48,753 lines, 42,658 of them the MapLibre `getMetersPerPixelAtLatitude` errors.
+  - The other W and E lines are graphics-allocator noise, 34 `Mbgl-LocationComponent`, 32 `Mbgl-HttpRequest` and 17
+    `WindowOnBackDispatcher` lines.
+  - None of them is a Forager exception.
+
+## Created data
+All of it is left in place. Read from `db-end` (10:36Z) against `db-start` (10:04Z):
+
+| What | How | Label |
+|---|---|---|
+| Offline region, 5 km (shown as "3 mi"), 244 tiles, 3.1 MB; Room `offline_regions` id 2, MapLibre region 2 | item 37's one download, in portrait | `DEVICE CHECK 2026-09-28 B` |
+
+- **No draft find was created:** item 44's mid-find-edit and items 34 and 35 used the existing DEVICE CHECK draft find,
+  whose row is unchanged.
+- **The side effect in Settings:** the offline picker's remembered pick now points at the new region.
+- **Unchanged:** saved entries 2, drafts 5, saved finds 2, draft finds 1, photos 3, tracks 1, waypoints 3,
+  `cached_searches` 2.
+- **Nothing was deleted.** No Cancel or Discard was pressed on the draft find, and no Delete was chosen in any menu.
+
+## Decisions I made
+1. **Cut the branch from `fe0f0d7`, not from the moved `origin/journal-redesign` (`af846cc`).**
+   - The dispatch names "the commit carrying this file", and its `git worktree add` line assumed that commit was the tip.
+   - When the tip moved, they disagreed. The difference is one L0b docs file and no app code.
+   - Deciding this properly needed the planner to say which of the two it meant.
+2. **Proceeded without the kit's record steps,** as Part A did. `.claude/kit.json` does not exist at this base, and the
+   dispatch says the planner owns `RECORD.md`.
+3. **Put the evidence in `…/device-evidence/2026-09-28-backlog-b/`,** by analogy with Part A's directory. The dispatch
+   inherits Part A's directory rule but names no Part B directory.
+4. **Ran items 36 and 37 in portrait.** The landscape offline panel's OK row cannot be reached by a finger (item 7).
+   Neither source item names an orientation.
+5. **Ran 34 at zoom 17.1, the basemap's ceiling, rather than switching the map mode to Street** (OSM, `maxZoom` 19) to reach
+   18. Changing the map mode was not among the settings I may change. Deciding it properly needs the planner's word on
+   whether 34 must run at 18.
+6. **The substitute for a pinch:** double taps, as two `input tap` processes about 0.1 s apart. The zoom was measured
+   from the pin's change over a pan of known length, which is my method.
+7. **Used the existing draft find** for 34, 35 and 44's mid-find-edit, instead of creating the one extra draft find the
+   dispatch allows. Opening a new draft has no DB write on leave (`MushroomLogViewModel.kt:582-630`); the row's md5 is
+   unchanged.
+8. **For 31, used the L0a find tile, not the album's bottom-row tiles,** which are the owner's photos.
+9. **For 41, used the Finds gallery,** since no list here is only slightly taller than the window.
+10. **For 39, counted cards on the drafts list,** because the Entries list holds two entries.
+11. **Dismissed the Play services "No location access" screen and the photo-permission prompt with Back,** choosing none of
+    their buttons.
+12. **Did not send the one allowed force-stop after the download had finished,** since it would test nothing. See
+    "Needs a decision".
+13. **The download's size:** 3 mi (5 km), about 248 tiles, chosen to last long enough to leave and return. It did not.
+    "Small" was my reading.
+14. **Left the Journal's Entries on the Album view** at the end, rather than going back to restore Timeline.
+
+## Flags outside scope
+1. **The landscape Offline Maps panel traps the user.** Once scrolled so that its 480 dp map fills the 306 dp viewport, no
+   drag reaches OK, the name, the slider or Download. Back is the only way out (item 7).
+2. **The entry report opens in landscape with its map covering the column and no header row,** and a control cut off at the
+   bottom-right edge. It also draws 19 px into the status bar (item 7). The cause was not investigated; whether it is
+   `isMapFullscreen` or something else is **unverified**.
+3. **Back with the header revealed on a single-type chip steps the chip before hiding the header,** against the J5 report's
+   stated order. On Entries, one run needed two Backs (item 40).
+4. **The Records chip row can stay hidden** after Back lands on a list at its top. A drag down cannot bring it back, since
+   hide-on-scroll reads consumed scroll. If that list could not scroll at all, it would be **inferred** to stay hidden (item 41).
+5. **The find picker's map is 128.7 dp tall in landscape,** partly because the Records chip row stays above the form.
+6. **The "Saved to Drafts" snackbar is centred on the window in landscape,** `[242,911][1998,1046]` at 270, so it overlaps
+   the rail and its Tools item (`97`). This is J4 item 27's landscape half, which neither part's dispatch ran.
+7. **The details sheet overlaps the rail by 102 px** at both rotations, being centred on the window, not the column.
+8. **Turning location off raised a Play services "No location access" screen once** (not the second time). A user turning
+   location off mid-picker lands in another app's screen.
+9. **Inferred from the code, not run:** the live-fix collection registers only providers enabled when it starts
+   (`AndroidLocationTracker.kt:71-74`), and it is not restarted while it is still active. So a process that comes to the
+   foreground with location off might get no fixes after location is turned on, until it next leaves the foreground. This
+   run turned location off and on with the collection already registered, which does not test that case.
+10. **The details sheet still reads "Used in: no journal entries"** for the DEVICE CHECK waypoint (`182-small.png`), as Part A
+    flagged.
+11. **The Map tab's MGRS/coordinates readout node** starts at y 43, inside the status bar's 84 px, at 90 (`20-maps-r1.xml`).
+    It is on the Map tab, which step 3 excludes.
+12. **The MapLibre error stream continues:** 42,658 `getMetersPerPixelAtLatitude` lines in this session.
+
+## Needs a decision
+**Item 37's force-stop half.**
+- A 244-tile download finished in about 4 s, so neither "leave and return while it runs" nor "force-stop mid-download" could
+  be done. The dispatch allows one download and one force-stop, and the one download is used.
+- The options I can see:
+  - (a) allow a second, larger download, labelled and left in place or cleaned up by the orphan path. Roughly 2,000 tiles
+    or more, within the 6,000 budget (261 used), would likely give 30 s or more (inferred from 244 tiles in about 4 s);
+  - (b) accept 37 as completion-only;
+  - (c) throttle the network during a download, which needs a setting not on the list.
+
+## Premises that were wrong
+- **"Pinch in to about 18"** (PF:301-304, dispatch step 7): the Topographical basemap stops at 17.
+- **"36 is not run if a cold GPS start cannot be forced from adb":** the command exists and returns 0, but GPS kept fixing
+  every second. And a slow fix would not make the offline picker's first fix slow, since that fix races the network provider.
+- **"37: force-stop mid-download"** with "one small offline-region download": a small download here finishes before a
+  force-stop can be sent.
+- **"How many cards show" in the landscape Entries list:** the list holds two entries.
+- **B3x "at 640 dp":** confirmed. The column is 640.0 dp on every destination.
+
+## Evidence index
+Every capture, log and database copy is listed with its sha256 in `evidence-index.md` in the evidence directory (328 files).
+That file's own sha256 is given below. Derived crops, downscaled copies and `*-query/` working copies are not indexed. The
+helpers `snap.sh`, `nodes.py`, `cutout.py`, `drawer_cycle.sh`, `pinwatch.sh`, `pindelta.py`, `pan.sh`, `zoomcalc.py`,
+`dbcopy.sh`, `rows.sh` and `dlstat.sh` are in the directory and in the index. `snaps.log` records each capture's UTC window
+and hash prefix.
+
+| File | sha256 |
+|---|---|
+| `evidence-index.md` | `e579e3dcf3eb54594d651250d01e603894df8998ae8aeaef030b49f90642310a` |
+
+---
+
+# Appendix: the pre-registration, unchanged from `e37f8b8`
+
+# Backlog device check, Part B (landscape, the Maps drawer and the pickers), on the S22 Ultra: run record
+
+**Status: pre-registration only.** Nothing below has been run yet. This file is committed and pushed before any item
 is looked at, so the order of prediction and observation is checkable. Results are added in a later commit; this
 section is kept unchanged as the Appendix.
 
