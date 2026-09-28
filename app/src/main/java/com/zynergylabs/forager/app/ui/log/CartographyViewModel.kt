@@ -639,6 +639,9 @@ class CartographyViewModel(
         }
     }
 
+    /** J8 tests-first stub: does nothing yet. */
+    fun onShownOnMapErrorDismissed() = Unit
+
     fun onSaveErrorDismissed() {
         _uiState.update { it.copy(saveErrorMessage = null) }
     }

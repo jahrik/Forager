@@ -62,6 +62,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.zynergylabs.forager.app.domain.JournalEntryHighlights
 import com.zynergylabs.forager.app.domain.MapRecords
 import com.zynergylabs.forager.app.ui.map.layers.COLOUR_FIELDS
 import com.zynergylabs.forager.app.ui.map.layers.ColourFieldMove
@@ -175,6 +176,12 @@ data class MapLayersControls(
     val onVisibilityChanged: (layerId: String, visible: Boolean) -> Unit = { _, _ -> },
     val onOpacityChanged: (layerId: String, opacity: Float) -> Unit = { _, _ -> },
     val onColourFieldMoved: (layerId: String, move: ColourFieldMove) -> Unit = { _, _ -> },
+    /** J8 tests-first stub: the shown entries' highlights, not yet read by either host. */
+    val journalHighlights: JournalEntryHighlights = JournalEntryHighlights.NONE,
+    /** J8 tests-first stub: the chip list's "Hide" for one entry, not yet read. */
+    val onHideJournalEntry: (entryId: String) -> Unit = {},
+    /** J8 tests-first stub: the chip list's "Hide all", not yet read. */
+    val onHideAllJournalEntries: () -> Unit = {},
 ) {
     /** The colour fields the sheet lists: the ones with data, top of the draw order first. */
     val listedColourFields: List<ColourFieldSpec>

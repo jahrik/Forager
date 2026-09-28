@@ -565,6 +565,10 @@ fun AvailabilityScreen(
      * given it (J6 owns the wide tree).
      */
     onRequestDeleteCartographyEntry: ((String) -> Unit)? = null,
+    /** J8 tests-first stub: shows or hides a saved entry on the Maps tab; not yet passed on. */
+    onSetCartographyEntryShownOnMap: (entryId: String, shown: Boolean) -> Unit = { _, _ -> },
+    /** J8 tests-first stub: clears the failed Show/Hide on map message; not yet read. */
+    onCartographyShownOnMapErrorDismissed: () -> Unit = {},
     /**
      * An album photo's long-press Delete (J4b L3): a *pending* delete with Undo
      * (`MushroomLogViewModel.requestDeleteGalleryPhoto`), for the compact tree's album only. `null`
