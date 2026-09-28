@@ -214,8 +214,11 @@ internal fun MapLayersSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     // Material3's own default container role for a sheet (`BottomSheetDefaults.ContainerColor`,
-    // `colorScheme.surfaceContainerLow` in material3 1.5.0-alpha26, SheetDefaults.kt:522).
-    val containerColor = BottomSheetDefaults.ContainerColor
+    // `colorScheme.surfaceContainerLow` in material3 1.5.0-alpha26, SheetDefaults.kt:522), at the map
+    // chrome's standing opacity (owner: "Can this panel be given 80% opacity like the rest of the map
+    // chrome?"). The scrim stays Material3's default, `colorScheme.scrim` (Bark in both themes,
+    // Theme.kt) at 0.32 alpha (SheetDefaults.kt:529), so the map reads through both.
+    val containerColor = BottomSheetDefaults.ContainerColor.copy(alpha = MAP_CHROME_OVER_MAP_ALPHA)
     // The content colour is pinned to the default's own (`contentColorFor` of the unaltered
     // container role, `onSurface`), because `contentColorFor` matches a colour-scheme role exactly:
     // given a container at any other alpha it matches none and falls back to `LocalContentColor`.
