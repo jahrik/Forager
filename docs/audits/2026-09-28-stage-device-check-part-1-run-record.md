@@ -757,3 +757,10 @@ on/off comparison at a frame measured above 7, which must differ over the cells.
 each pair and read back. Code: below `MIN_FORECAST_ZOOM` the effect requests no block and sets each field's source
 empty at the next camera idle (`ui/map/SightingsMap.kt:684-705`); the legend chip stays (`ForecastCellLayer.kt:15-24`).
 Prediction: pass.
+
+**(f), one method detail added at 19:42Z, before any (f) frame.** At zoom 7.5 the 5 km circle is about 50 px in radius
+and the find and photo glyphs cover its upper half, their white outlines indistinguishable from its white dashes. For
+the (f) frames only, Finds, Photos and Waypoints are switched off in the Layers sheet (Offline maps stays on: the circle
+is the ruler), and a 22 px disc at the circle's centre (the 1 km region's own small circle) is left out of the fit.
+They are switched back on after (f) and read back. The quick zoom is made on open map away from the circle, so its
+first tap lands on no glyph.
