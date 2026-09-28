@@ -171,6 +171,10 @@ internal fun CompactMainScaffold(
     pendingJournalDestination: () -> PendingJournalDestination?,
     /** M1: the find a [PendingJournalDestination.VIEW_FIND] request opens; threaded to [JournalTab]. */
     pendingJournalFindId: () -> String? = { null },
+    /** J8-4: the day entry a [PendingJournalDestination.VIEW_ENTRY] request opens; threaded to [JournalTab]. */
+    pendingJournalEntryId: () -> String? = { null },
+    /** J8-3: the entry report's "Show on map" and "Hide from map"; threaded to [JournalTab]. */
+    onSetCartographyEntryShownOnMap: (entryId: String, shown: Boolean) -> Unit = { _, _ -> },
     /** M1: what the Maps tab's glyph bubbles look records up in; threaded to [CompactMapTab]. */
     mapBubbleSources: MapRecordSources = MapRecordSources(),
     currentTime: CurrentTimeProvider,
@@ -1033,7 +1037,9 @@ internal fun CompactMainScaffold(
                                 waypointEntryReferenceCounts = waypointEntryReferenceCounts,
                                 pendingDestination = pendingJournalDestination(),
                                 pendingFindId = pendingJournalFindId(),
+                                pendingEntryId = pendingJournalEntryId(),
                                 onPendingDestinationConsumed = { onPendingJournalDestinationChange(null) },
+                                onSetCartographyEntryShownOnMap = onSetCartographyEntryShownOnMap,
                                 journalState = journalScreenState,
                                 // Intent 2026-09-28-28: while the Tools drawer is open over the
                                 // Journal, Back closes the drawer, so the Journal's own handlers are

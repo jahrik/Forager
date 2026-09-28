@@ -176,11 +176,16 @@ data class MapLayersControls(
     val onVisibilityChanged: (layerId: String, visible: Boolean) -> Unit = { _, _ -> },
     val onOpacityChanged: (layerId: String, opacity: Float) -> Unit = { _, _ -> },
     val onColourFieldMoved: (layerId: String, move: ColourFieldMove) -> Unit = { _, _ -> },
-    /** J8 tests-first stub: the shown entries' highlights, not yet read by either host. */
+    /**
+     * J8: the saved entries shown on the map and the records they keep (`GetJournalEntryHighlightsUseCase`),
+     * which each host hands its map (`MapOverlayContent.journalHighlights`) and whose
+     * [JournalEntryHighlights.shownEntries] its chip lists. The halos follow the "Journal entries"
+     * switch through the registry; the chip does not.
+     */
     val journalHighlights: JournalEntryHighlights = JournalEntryHighlights.NONE,
-    /** J8 tests-first stub: the chip list's "Hide" for one entry, not yet read. */
+    /** J8-3: the chip list's "Hide" for one entry: writes that entry's `shownOnMap` false. */
     val onHideJournalEntry: (entryId: String) -> Unit = {},
-    /** J8 tests-first stub: the chip list's "Hide all", not yet read. */
+    /** J8-3: the chip list's "Hide all": writes `shownOnMap` false for every shown entry. */
     val onHideAllJournalEntries: () -> Unit = {},
 ) {
     /** The colour fields the sheet lists: the ones with data, top of the draw order first. */

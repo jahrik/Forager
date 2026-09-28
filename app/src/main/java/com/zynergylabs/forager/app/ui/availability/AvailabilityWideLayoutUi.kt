@@ -15,6 +15,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -54,6 +55,7 @@ import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPickerOverlay
+import com.zynergylabs.forager.app.ui.map.JournalEntriesMapChip
 import com.zynergylabs.forager.app.ui.map.MIN_TOUCH_TARGET
 import com.zynergylabs.forager.app.ui.map.MapFloatingIconButton
 import com.zynergylabs.forager.app.ui.map.MapMode
@@ -286,6 +288,8 @@ private fun MapTab(
                                 findMarkers = mapLayers.records.findMarkers,
                                 photoMarkers = mapLayers.records.photoMarkers,
                                 offlineRegionCircles = mapLayers.records.offlineRegionCircles,
+                                // J8-2: the shown entries' kept records, highlighted as on the compact Maps tab.
+                                journalHighlights = mapLayers.journalHighlights,
                             ),
                             renderMode.copy(onFeatureTap = onFeatureTap),
                             null,
@@ -310,12 +314,25 @@ private fun MapTab(
                             },
                             backEnabled = !showActionMenu && pendingAction == null,
                         )
-                        mapTaxonFilterLabel?.let { label ->
-                            TaxonMapFilterChip(
-                                label = label,
-                                onClear = onClearTaxonFilter,
+                        // J8-3, the wide layout's equivalent placement: the journal-entries chip in the row
+                        // with the taxon chip, after it, where the taxon chip sits here (the map's top centre).
+                        // A FlowRow sized to its chips, as on the compact Maps tab.
+                        val shownJournalEntries = mapLayers.journalHighlights.shownEntries
+                        if (mapTaxonFilterLabel != null || shownJournalEntries.isNotEmpty()) {
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
                                 modifier = Modifier.align(Alignment.TopCenter).padding(Spacing.sm),
-                            )
+                            ) {
+                                mapTaxonFilterLabel?.let { label -> TaxonMapFilterChip(label = label, onClear = onClearTaxonFilter) }
+                                if (shownJournalEntries.isNotEmpty()) {
+                                    JournalEntriesMapChip(
+                                        entries = shownJournalEntries,
+                                        onHide = mapLayers.onHideJournalEntry,
+                                        onHideAll = mapLayers.onHideAllJournalEntries,
+                                    )
+                                }
+                            }
                         }
                         MapModeToggle(
                             mapMode = mapMode,

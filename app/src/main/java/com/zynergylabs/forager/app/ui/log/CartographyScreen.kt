@@ -187,6 +187,18 @@ internal fun CartographyScreen(
      * default, local and unsaved, is for callers that host this screen on its own (`LogPanel`, tests).
      */
     entryModeState: MutableState<CartographyEntryMode> = remember { mutableStateOf(CartographyEntryMode.VIEW) },
+    /**
+     * J8-4, the Maps tab's "Open entry" (the owner's Q1 ruling, "Open in Journal, prompt first
+     * (Recommended)"): an entry to open in its report, handed down once by `JournalTab` or `LogPanel`,
+     * which [onOpenEntryRequestConsumed] clears. An entry open in its editor with unsaved changes gets
+     * the existing "Save your changes?" first, and the requested one opens only after Save or Discard;
+     * Cancel keeps the edit open and opens nothing. Any other open entry (a report, an unchanged editor,
+     * a draft) just closes first. `null` (the default) is every other caller, unchanged.
+     */
+    openEntryRequest: String? = null,
+    onOpenEntryRequestConsumed: () -> Unit = {},
+    /** J8-3: the report menu's "Show on map" and "Hide from map" for a saved entry. `null` (the default) offers neither. */
+    onSetShownOnMap: ((entryId: String, shown: Boolean) -> Unit)? = null,
 ) {
     var mode by entryModeState
     val shortWindow = shortWindowHeader != null
@@ -218,11 +230,61 @@ internal fun CartographyScreen(
 
     val editingEntry = uiState.editingEntry
 
+    // J8-4: the entry an "Open entry" request is waiting to open while the leave prompt is answered,
+    // and whether it was answered with Save or Discard (both close the open entry: Save at once,
+    // Discard once its reload lands), as against Cancel, which drops the request.
+    var pendingOpenEntryId by rememberSaveable { mutableStateOf<String?>(null) }
+    var leavePromptResolved by rememberSaveable { mutableStateOf(false) }
+
     fun requestLeaveEntry() {
+        // A leave the user starts themselves is not the request's: it no longer waits on this prompt.
+        pendingOpenEntryId = null
+        leavePromptResolved = false
         if (mode == CartographyEntryMode.EDIT && editingEntry != null && !editingEntry.isDraft && uiState.hasUnsavedChanges) {
             confirmingLeaveEntry = true
         } else {
             onCloseEntry()
+        }
+    }
+
+    fun openEntryInReport(id: String) {
+        mode = CartographyEntryMode.VIEW
+        onOpenEntry(id)
+    }
+
+    // J8-4, the Maps tab's "Open entry" (see openEntryRequest): consumed at once, then either opened
+    // or held behind the existing leave prompt. Never a silent drop of an unsaved edit: the only path
+    // that closes a dirty committed entry here is that prompt's own Save or Discard.
+    LaunchedEffect(openEntryRequest) {
+        val requested = openEntryRequest ?: return@LaunchedEffect
+        onOpenEntryRequestConsumed()
+        val open = uiState.editingEntry
+        when {
+            open == null -> openEntryInReport(requested)
+            open.id == requested && mode == CartographyEntryMode.VIEW -> Unit
+            mode == CartographyEntryMode.EDIT && !open.isDraft && uiState.hasUnsavedChanges -> {
+                pendingOpenEntryId = requested
+                leavePromptResolved = false
+                confirmingLeaveEntry = true
+            }
+            else -> {
+                onCloseEntry()
+                openEntryInReport(requested)
+            }
+        }
+    }
+    LaunchedEffect(pendingOpenEntryId, editingEntry == null, confirmingLeaveEntry, leavePromptResolved) {
+        val pending = pendingOpenEntryId ?: return@LaunchedEffect
+        when {
+            // Saved or discarded, and closed: the requested entry opens now.
+            editingEntry == null -> {
+                pendingOpenEntryId = null
+                leavePromptResolved = false
+                openEntryInReport(pending)
+            }
+            // Cancelled (or the dialog dismissed): the edit stays open and unsaved, and nothing opens.
+            !confirmingLeaveEntry && !leavePromptResolved -> pendingOpenEntryId = null
+            else -> Unit
         }
     }
 
@@ -340,8 +402,8 @@ internal fun CartographyScreen(
                     onAcquirePhoto = onAcquirePhotoForEntry,
                     onAcquisitionInFlightChanged = { inFlight -> photoAcquisitionInFlight = inFlight },
                     onFinish = onFinishEntry,
-                    onSave = onSaveEntry,
-                    onDiscardChanges = onDiscardEntryChanges,
+                    onSave = { leavePromptResolved = true; onSaveEntry() },
+                    onDiscardChanges = { leavePromptResolved = true; onDiscardEntryChanges() },
                     showReturnPrompt = showReturnPrompt,
                     onContinueEditing = { showReturnPrompt = false },
                     onCommit = { showReturnPrompt = false; onSaveEntry() },
@@ -364,6 +426,7 @@ internal fun CartographyScreen(
                     layersState = mapLayers,
                     onLayerVisibilityChanged = onMapLayerVisibilityChanged,
                     mapBubbleSources = mapBubbleSources,
+                    onSetShownOnMap = onSetShownOnMap?.let { set -> { shown: Boolean -> set(editingEntry.id, shown) } },
                     onEdit = { mode = CartographyEntryMode.EDIT },
                     onDeleteEntry = { onDeleteEntry(editingEntry.id) },
                     onBack = onCloseEntry,

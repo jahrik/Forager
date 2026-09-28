@@ -18,10 +18,13 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -45,10 +48,13 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.ForecastCell
+import com.zynergylabs.forager.app.domain.JournalEntryOnMap
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.ui.availability.ObservationBubble
@@ -294,6 +300,7 @@ internal fun MapBubbleLayer(
                             onViewPhoto = { id -> onDismiss(); viewerPhotoId = id },
                             onDirections = { name, at -> onDismiss(); launchDirections(context, name, at) },
                             onDetails = { details -> onDismiss(); detailsTarget = details },
+                            onOpenEntry = sources.onOpenEntry?.let { open -> { id: String -> onDismiss(); open(id) } },
                         )
                     }
                 }
@@ -353,7 +360,10 @@ internal fun MapFeatureBubble(
     onViewPhoto: (String) -> Unit,
     onDirections: (name: String, at: LatLng) -> Unit,
     onDetails: (RecordDetailsTarget) -> Unit,
-    /** J8 tests-first stub: a keeping entry's date line would open it; not yet drawn. */
+    /**
+     * J8-4: opens a keeping entry (owner's Q1 ruling, "Open in Journal, prompt first"). With it, a
+     * highlighted record's bubble draws its keeping entries ([KeptInEntries]); `null` draws none.
+     */
     onOpenEntry: ((String) -> Unit)? = null,
 ) {
     MapBubbleShell(tipInBubble = tipInBubble, onDismiss = onDismiss, cardTag = MAP_BUBBLE_TAG, closeTag = MAP_BUBBLE_CLOSE_TAG) {
@@ -366,6 +376,7 @@ internal fun MapFeatureBubble(
                         content.date?.let { BubbleLine(it) }
                     }
                 }
+                KeptInEntries(content.keptIn, onOpenEntry)
                 onOpenFind?.let { open -> BubbleActions { BubbleAction(openFindLabel, MAP_BUBBLE_OPEN_FIND_TAG) { open(content.findId) } } }
             }
             is MapBubbleContent.Photo -> {
@@ -376,11 +387,13 @@ internal fun MapFeatureBubble(
                         content.attachedTo?.let { BubbleLine(it) }
                     }
                 }
+                KeptInEntries(content.keptIn, onOpenEntry)
                 BubbleActions { BubbleAction("View photo", MAP_BUBBLE_VIEW_PHOTO_TAG) { onViewPhoto(content.photo.id) } }
             }
             is MapBubbleContent.WaypointContent -> {
                 BubbleTitle(content.waypoint.name)
                 content.mgrs?.let { BubbleLine(it) }
+                KeptInEntries(content.keptIn, onOpenEntry)
                 BubbleActions {
                     BubbleAction("Directions", MAP_BUBBLE_DIRECTIONS_TAG) { onDirections(content.waypoint.name, LatLng(content.waypoint.lat, content.waypoint.lng)) }
                     if (content.hasDetails) {
@@ -392,6 +405,7 @@ internal fun MapFeatureBubble(
                 BubbleTitle(content.title)
                 BubbleLine(content.date)
                 BubbleLine("${content.distance} · ${content.duration}")
+                KeptInEntries(content.keptIn, onOpenEntry)
                 BubbleActions { BubbleAction("Details", MAP_BUBBLE_DETAILS_TAG) { onDetails(RecordDetailsTarget.TrackDetails(content.trackId)) } }
             }
             is MapBubbleContent.Trip -> {
@@ -410,6 +424,7 @@ internal fun MapFeatureBubble(
                     }
                 }
                 BubbleLine("${content.radius} · ${content.size}")
+                KeptInEntries(content.keptIn, onOpenEntry)
                 BubbleActions { BubbleAction("Details", MAP_BUBBLE_DETAILS_TAG) { onDetails(RecordDetailsTarget.OfflineRegionDetails(content.regionId)) } }
             }
             is MapBubbleContent.Cell -> {
@@ -423,6 +438,67 @@ internal fun MapFeatureBubble(
                     style = MaterialTheme.typography.bodySmall,
                     color = LocalContentColor.current.copy(alpha = 0.7f),
                 )
+            }
+        }
+    }
+}
+
+/**
+ * J8-4, a highlighted record's keeping entries (owner's Q2 ruling, "Tap a date line"; planner's Q3,
+ * the report header's date form): up to three, one line each showing its date, whose tap opens that
+ * entry, labelled "Open entry <date>" for TalkBack; past three, one line, "Kept in N journal entries",
+ * whose tap opens an untitled list of their dates, each opening its entry. Nothing for a record no
+ * shown entry keeps, or without [onOpenEntry] (every map but the Maps tab). The list is a menu over the
+ * map at the map chrome's opacity ([journalMenuContainerColor]).
+ */
+@Composable
+private fun KeptInEntries(keptIn: List<JournalEntryOnMap>, onOpenEntry: ((String) -> Unit)?) {
+    val open = onOpenEntry ?: return
+    when (val lines = keptInEntriesLines(keptIn)) {
+        null -> Unit
+        is KeptInEntriesLines.Dates -> lines.lines.forEach { line ->
+            TextButton(
+                onClick = { open(line.entryId) },
+                contentPadding = PaddingValues(horizontal = Spacing.sm),
+                modifier = Modifier
+                    .testTag(mapBubbleEntryLineTag(line.entryId))
+                    .semantics { contentDescription = line.accessibilityLabel },
+            ) {
+                Text(line.date, style = MaterialTheme.typography.labelMedium)
+            }
+        }
+        is KeptInEntriesLines.Count -> {
+            var expanded by remember { mutableStateOf(false) }
+            Box {
+                TextButton(
+                    onClick = { expanded = true },
+                    contentPadding = PaddingValues(horizontal = Spacing.sm),
+                    modifier = Modifier.testTag(MAP_BUBBLE_ENTRY_COUNT_TAG),
+                ) {
+                    Text(lines.label, style = MaterialTheme.typography.labelMedium)
+                }
+                val container = journalMenuContainerColor()
+                val content = journalMenuContentColor()
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    containerColor = container,
+                    modifier = Modifier.testTag(MAP_BUBBLE_ENTRY_LIST_TAG).journalMenuColours(container, content),
+                ) {
+                    lines.entries.forEach { line ->
+                        DropdownMenuItem(
+                            text = { Text(line.date) },
+                            onClick = {
+                                expanded = false
+                                open(line.entryId)
+                            },
+                            colors = MenuDefaults.itemColors(textColor = content),
+                            modifier = Modifier
+                                .testTag(mapBubbleEntryLineTag(line.entryId))
+                                .semantics { contentDescription = line.accessibilityLabel },
+                        )
+                    }
+                }
             }
         }
     }

@@ -249,8 +249,12 @@ internal fun JournalTab(
     pendingDestination: PendingJournalDestination? = null,
     /** M1: the find a [PendingJournalDestination.VIEW_FIND] request opens over the Journal. */
     pendingFindId: String? = null,
+    /** J8-4: the day entry a [PendingJournalDestination.VIEW_ENTRY] request opens. */
+    pendingEntryId: String? = null,
     /** Fires once [pendingDestination] has been applied, so [AvailabilityScreen] clears its own copy and is ready for the next request. */
     onPendingDestinationConsumed: () -> Unit = {},
+    /** J8-3: the entry report's "Show on map" and "Hide from map", threaded to [CartographyScreen]. `null` offers neither. */
+    onSetCartographyEntryShownOnMap: ((entryId: String, shown: Boolean) -> Unit)? = null,
     /**
      * The Journal's user-set UI state (top tab, Records selection), hoisted and saveable — journal
      * redesign J1, S1; see [JournalScreenState]. `AvailabilityScreen` creates it above the
@@ -336,6 +340,10 @@ internal fun JournalTab(
     // only exists in the composition once selectedTopTab has already become RECORDS.
     var recordsPendingSubTab by remember { mutableStateOf<RecordsSubTab?>(null) }
 
+    // J8-4: the same kind of local latch for a VIEW_ENTRY request: CartographyScreen only exists in the
+    // composition once selectedTopTab is CARTOGRAPHY, so the entry is staged here and handed to it.
+    var entryOpenRequest by remember { mutableStateOf<String?>(null) }
+
     // M1: a find opened from a map bubble, shown over whatever the Journal was showing (FindOverView).
     var findOverView by findOverViewState
     LaunchedEffect(findOverView, editing?.id) {
@@ -357,6 +365,13 @@ internal fun JournalTab(
             PendingJournalDestination.VIEW_FIND -> {
                 pendingFindId?.let { findOverView = FindOverView(it) }
                 mode = JournalEntryMode.REPORT
+                onPendingDestinationConsumed()
+            }
+            // J8-4, the Maps tab's "Open entry": the entry opens on Entries, in its report, through
+            // CartographyScreen's openEntryRequest (which asks first over an unsaved edit).
+            PendingJournalDestination.VIEW_ENTRY -> {
+                selectedTopTab = JournalTopTab.CARTOGRAPHY
+                entryOpenRequest = pendingEntryId
                 onPendingDestinationConsumed()
             }
             null -> Unit
@@ -646,6 +661,9 @@ internal fun JournalTab(
                 backEnabled = backEnabled,
                 mapBubbleSources = entryMapBubbleSources,
                 entryModeState = cartographyEntryModeState,
+                openEntryRequest = entryOpenRequest,
+                onOpenEntryRequestConsumed = { entryOpenRequest = null },
+                onSetShownOnMap = onSetCartographyEntryShownOnMap,
             )
 
             // J5: a Column in every window, so RecordsTab keeps one place in the composition when
@@ -806,6 +824,14 @@ internal enum class PendingJournalDestination {
      * chip; Back returns to them ([FindOverView]). The Maps tab's "Open in Journal".
      */
     VIEW_FIND,
+
+    /**
+     * J8-4: open the day entry whose id is passed beside this in its report, on Entries, the one
+     * top-tab change opening it requires (the saved Records chip is untouched). The Maps tab's "Open
+     * entry" (owner's Q1 ruling, "Open in Journal, prompt first"); [CartographyScreen]'s
+     * `openEntryRequest` asks first when another entry is open in its editor with unsaved changes.
+     */
+    VIEW_ENTRY,
 }
 
 /** The find shown over the Journal ([FindOverView]). */
