@@ -870,3 +870,29 @@ top at 1747, a gap of **17 px** between the clickable bounds, the same as `113`.
 **Prediction:** "draws and slider pass; the reorder passes at the basemap change; the legend clears the 'i', the rail
 and the nav; the cluster-over-expanded-legend clamp is the likely failure". **Held**, except that nothing predicted the
 legend lying over the cluster at 270, or the puck under the cells.
+
+## Check 5: methods, written before it was run (after the second relaunch)
+
+The pre-registration's conditions stand, with the second coder's addition for (c). The code premises hold at
+`26709b1`: night fill `#202020` (`ui/theme/MapPalette.kt:111`) at 0.2 (`MapLayers.kt:153`); the outline dashed in
+`MapPalette.casing` (`SightingsMap.kt:1430-1444`), `#000000` at night (`MapPalette.kt:116`) and `#FFFFFF` by day
+(`:89`), 1.5 dp wide, 6 dp dashes and 4 dp gaps (`:1703-1707`). At night the Topographical and Street rasters take the
+V1 paint, lightness inverted and hue kept (`BasemapStyles.kt:27-70`), so the darkest night ground is where the day map
+is lightest.
+
+- **Set-up:** Night Maps on in Settings, read back (`night_mode.maps = true`). The Maps tab at a zoom where most of the
+  5 km circle is on screen with the markers at its centre. Topographical first, then Street.
+- **(a) darker, ground legible:** the same camera with the Offline maps overlay on and then off. Over the region's
+  interior (markers, reticle, dashes and chrome masked), a per-channel line fit, on = k x off + c. The fill predicts
+  k = 0.8 and c = 0.2 x 32 = 6.4. Legibility is my reading of a 2x crop, backed by the ground's local contrast inside
+  (the standard deviation of luminance over 9 x 9 px windows) with the overlay on, as a share of the same with it off:
+  the fill predicts 0.8. The pre-registration's inside/outside sample is also given.
+- **(b) the dashes over the darkest ground:** the circle fitted to the dash pixels (the pixels that go dark when the
+  overlay goes on, on the circle). The ground along the circle is read from the overlay-off frame, and the darkest arc
+  it crosses is found. There, and on the lightest arc for comparison, the dash's luminance against the ground beside it
+  is given as a contrast ratio, with a 2x crop and my reading of whether the dashes can be seen.
+- **(c) markers:** each marker's interior pixels (5 px in from any edge of its colour) in the overlay-on frame against
+  the overlay-off frame, equal within 3 per channel.
+- **Restore:** Offline maps on, basemap back to Topographical, Night Maps off, each read back.
+- **Prediction** (the pre-registration's): darker with ground legible; the outline weak or invisible over the darkest
+  ground; markers unchanged.
