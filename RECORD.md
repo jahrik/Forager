@@ -2913,3 +2913,30 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner's authorisation, verbatim: "Yes, labelled test data (Recommended)". Written by the planner by hand.
 
 ---
+
+**Kind:** terminal
+**ID:** 2026-09-28-13
+**Timestamp:** 2026-09-28T09:43:39Z
+**Closes:** 2026-09-28-04
+**Outcome:** completed
+**Observed:** Run record docs/audits/2026-09-28-backlog-device-check-part-a-run-record.md (pre-registrations b04dbb2 and e5ceee7, results ec3b9c0 and 803c2a6), merged into journal-redesign by the planner. Build 1.0.1192+g24589349 on SM-S908U (384 dp wide, 3-button navigation); no crash in either session, logcat -c never run, settings restored and read back. Pass: 13 (chip, Back to All, Back to Entries), 14, 18, 8/45 (chip row scrolls at 1.0 and 1.15), 15 and 24 at font scales 1.0/1.15/1.3, 30 (two-stage swipe, 144 dp open, delete and Undo), 29, 10, 17, 20, 47 (could not have failed on this data), 52, P:320, P:321. Partial: TalkBack items 19/26/32/50 (descriptions from dumps; speech is the owner's). Observations: 9 (light/dark hex and contrast), 11, 19, 21, 23, 28. Not run: 12, 22, 31 (data), Understory (not offered by this build), RTL, Waypoints scroll on an open row (planner ruling), taps on open Records rows the coder did not create.
+**Deviations:** none against the continuation's rulings; item order changed (tap 1 alone before the other four) so Continue could be seen with one draft.
+**Notes:** Created data left on the phone, all labelled DEVICE CHECK 2026-09-28: five Journal drafts, one blank-text saved entry keeping nothing, one draft find. Findings to carry, not investigated: four selected-chip labels below 4.5:1 (Finds both themes, Tracks light, Waypoints dark) and selected All and Finds sharing a fill; the offline-map stat pill the card's own colour; Import's media-location prompt hidden behind the picker; closing the in-app camera leaving user_rotation changed; album-photo and waypoint journal-entry badges disagreeing with the database; a Do Not Disturb notice in the delete snackbar's position; the delete snackbar covering New entry; every New entry tap saving a draft at once; the MapLibre error stream. Part B (landscape, Maps drawer, pickers) not yet dispatched. Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-14
+**Timestamp:** 2026-09-28T09:44:23Z
+**Title:** Backlog device check, Part B: landscape, the Maps drawer and the pickers on the S22 Ultra
+**Dispatch-file:** preserved/2026-09-28-14.md
+**Change:** No code. The landscape and picker items of the compiled backlog on the installed build 1.0.1192+g24589349: B3 drawer items 1-4, cut-out clearance on every destination at both rotations (B3 6, J5 38/L8), landscape picker maps (7), J5 39-46, J5c 47-49 and 53, picker 34-37 with the fix-arrival control first. Gesture-navigation items, feel, TalkBack speech, the wide tree and folds are recorded, not attempted.
+**Scope boundary:** Observe and record; data created only as one more draft find and one small offline download, labelled and left in place; one force-stop mid-download; no navigation-mode change. Run record on branch device-backlog-b-2026-09-28, raw evidence outside the repository.
+**Baseline:** journal-redesign at the commit carrying this entry; phone at 1.0.1192+g24589349.
+**Prediction (outcome — planner):** 1. The drawer passes 1-4 at ROTATION_90. 2. No control in the cut-out inset at either rotation. 3. Fewer than six whole landscape Entries cards. 4. Fixes arrive and 35 passes. 5. No crash.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** The run record pushed with every verdict, settings including rotation restored and read back, the crash log read at the end, created data listed; the planner merges and writes the terminal.
+**Abort conditions:** Part A's (2026-09-28-04 and -12) plus a navigation-mode change being needed, or a download that cannot be stopped or cleaned up without deleting data.
+**Notes:** Written by the planner by hand after Part A closed (terminal 2026-09-28-13). Runs in parallel with the L0b build continuation 2026-09-28-11, which does not use the phone.
+
+---
