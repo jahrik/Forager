@@ -364,6 +364,21 @@ the app; the separation between the two flags stands in for it (at the placing z
   basemap reload was visible to me between the two (my reading of the captures; not measured).
 - **Not tested here:** whether a hidden trip still takes a tap (the pre-registration asked no such check).
 
+### Check 3: landscape, by day and at night
+
+Night Maps is the drawer's Settings checkbox (`CheckBox [35,930][137,1032]`, `checked=false` at the start,
+`36-r1-settings`). Toggling it reloads the style (item 8 of the code path).
+
+| State | Capture | `#9553A4` (day fill) | `#FA01DD` (night fill) | Seen | Verdict |
+|---|---|---|---|---|---|
+| day (before) | `35-r1-trips-on` | A 1229, B 1229 px | — | purple flags, white casing | draw |
+| **night** (checkbox `true`) | `37-r1-night` (crop `37-r1-night-crop.png`) | **0 px** | **A 1229, B 1229 px**, same bounds | magenta flags, black casing, on the dimmed basemap | **both draw** |
+| day again (checkbox `false`) | `38-r1-day-again` | **A 1229, B 1229 px** | 0 px | purple flags | **both draw** |
+
+- **Verdict: as predicted,** in the night palette's colour (`MapPalette.kt:104`) and back in the day colour after the
+  second style reload.
+- Night Maps is back **off** and read back as `checked=false` in the dump.
+
 ## Appendix A: `prompts/preserved/2026-09-28-95.md`, verbatim
 
 At `554449b`, whole (sha256 `cfa98c46e5f3a49f8acb8b7b7bac2f5c343a10e3bb0d8ae9b439ecf5e12e2730`):
