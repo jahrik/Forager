@@ -22,15 +22,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DragHandle
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.contentColorFor
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -51,6 +54,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsPropertyKey
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
@@ -79,6 +84,20 @@ import kotlin.math.roundToInt
 
 /** The sheet, for tests. */
 internal const val MAP_LAYERS_SHEET_TAG = "map-layers-sheet"
+
+/**
+ * The colour the sheet's container is given, on the sheet's own node ([MAP_LAYERS_SHEET_TAG]), for
+ * tests: the value passed to `ModalBottomSheet`'s `containerColor`, which Material3 draws as is.
+ */
+internal val MapLayersSheetContainerColor = SemanticsPropertyKey<Color>("MapLayersSheetContainerColor")
+private var SemanticsPropertyReceiver.mapLayersSheetContainerColor by MapLayersSheetContainerColor
+
+/**
+ * The content colour the sheet provides to what it holds (`LocalContentColor` as read inside the
+ * sheet), on the sheet's content column, for tests.
+ */
+internal val MapLayersSheetContentColor = SemanticsPropertyKey<Color>("MapLayersSheetContentColor")
+private var SemanticsPropertyReceiver.mapLayersSheetContentColor by MapLayersSheetContentColor
 
 /** One overlay switch row, by registry layer id. */
 internal fun mapLayerSwitchTag(layerId: String) = "map-layer-switch:$layerId"
@@ -194,13 +213,24 @@ internal fun MapLayersSheet(
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    // Material3's own default container role for a sheet (`BottomSheetDefaults.ContainerColor`,
+    // `colorScheme.surfaceContainerLow` in material3 1.5.0-alpha26, SheetDefaults.kt:522).
+    val containerColor = BottomSheetDefaults.ContainerColor
+    // The content colour is pinned to the default's own (`contentColorFor` of the unaltered
+    // container role, `onSurface`), because `contentColorFor` matches a colour-scheme role exactly:
+    // given a container at any other alpha it matches none and falls back to `LocalContentColor`.
+    val contentColor = contentColorFor(BottomSheetDefaults.ContainerColor)
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        modifier = Modifier.testTag(MAP_LAYERS_SHEET_TAG),
+        modifier = Modifier.testTag(MAP_LAYERS_SHEET_TAG).semantics { mapLayersSheetContainerColor = containerColor },
+        containerColor = containerColor,
+        contentColor = contentColor,
     ) {
+        val providedContentColor = LocalContentColor.current
         Column(
             modifier = Modifier
+                .semantics { mapLayersSheetContentColor = providedContentColor }
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = Spacing.lg)
