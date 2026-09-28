@@ -3543,3 +3543,14 @@ Three premises were wrong: the editor has no map; trip planning, Set on map and 
 **Reason:** as -62: stopped by the owner, relaunch chosen as "A". The -55 coder had pushed verdicts for checks 1 to 3 (5ec7a63) and evidence to 200, mid check 4, with no hand-back. Phone at relaunch: awake, Forager in focus, user_rotation 0, accelerometer_rotation 0.
 **Changes:** A fresh device coder confirms the install and reads crashes across the gap. It gives check 4's verdicts from evidence 124 to 200 only where a file shows the pass condition, otherwise re-runs, then runs checks 5 to 8. It restores settings and reads them back, numbers new evidence from 201, and pushes after each check.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-64
+**Timestamp:** 2026-09-28T19:42:57Z
+**Continues:** 2026-09-28-52
+**Dispatch-file:** preserved/2026-09-28-64.md
+**Reason:** the -62 coder stopped before building (report 7f41400 on journal-redesign; the stopped coder's WIP preserved untouched as 9cde9b3 on j8-wip). Its stop was on Q-A: -62's "Do not make J8's chip 80%" contradicted CLAUDE.md UX defaults, and the taxon chip in the same row is already at MAP_CHROME_OVER_MAP_ALPHA. It also asked Q-B: MapPaletteTest's (d) day row passes at the stubs. Verification held: version 15 on both branches, no collision across 110 remote branches.
+**Changes:** Q-A: the chip takes the taxon chip's colour source at 0.8, and the chip's list container goes to 0.8 with opaque content (the owner's ruling 1, "80% over the map"). Both are tests first, and a list component that cannot take a colour is a stop. -62's line is withdrawn as the planner's error. Q-B: accepted, backed by a positive-control revert check. The reused "Couldn't save your changes." is accepted as not new copy. MapLayerStateTest is restated to -53's Q4.
+**Notes:** The -62 error was the planner's: it was written with -56/-58's scope in mind and missed that the owner's standing rule already governs new chrome. Written by the planner by hand.
