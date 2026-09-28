@@ -1,0 +1,414 @@
+# J8 device check (Journal entries on the main map), on the S22 Ultra: run record
+
+**Status: pre-registration only.** The app has not been launched on this build and no app screen has been looked at.
+This file is committed and pushed before the first launch, which is what runs the migration, so the order of
+prediction and observation can be checked. Results are added in later commits, and this section is kept unchanged.
+
+**Date:** 2026-09-28, from 20:56Z.
+**Dispatch:** `prompts/preserved/2026-09-28-72.md` (sha256 `1afe2f34…ccd88252`), committed at `8dbfd14`; its intent is
+`2026-09-28-72` in `RECORD.md`, the planner's. The kit is absent at this base (no `.claude/`, no checkers; the owner
+removed it in `e136330`), and the dispatch says the planner writes the record, so I write no record entry. The standing
+rules, data rules and abort conditions of `2026-09-28-51.md` apply, and through it the phone, evidence, privacy and
+settings rules of `-04` and `-12`.
+**Base:** `git fetch` at 20:56Z: `origin/journal-redesign` at `d7cc9f5`, one planner commit past the dispatch's
+`8dbfd14` (intent `-74`, the tablet check, and a plan line; `RECORD.md`, `docs/plans/` and one store copy only).
+Branch `device-j8`, worktree `/home/zynergy-labs/Zynergy/forager-wt/device-j8`, cut from `d7cc9f5`, upstream unset so
+nothing can push to `journal-redesign`.
+**The APK is built at `99de6c2`,** J8's terminal, as the dispatch says. `git diff --stat 99de6c2 d7cc9f5` over `app/`,
+`build.gradle.kts`, `settings.gradle.kts`, `gradle/`, `gradle.properties`, `gradlew`, `data/` and `server/` is empty,
+so the code is the same at the branch head. **Code citations** are at `99de6c2` (identical under `app/` at `d7cc9f5`).
+Paths are under `app/src/main/java/com/zynergylabs/forager/app/` unless given in full.
+**Evidence:** `/home/zynergy-labs/Zynergy/device-evidence/2026-09-28-j8-check/`, outside the repository. No screenshot,
+dump, coordinate, note text, place name or photo goes into this file.
+**Device:** SM-S908U, serial `R5CT321008R`, named with `-s` on every call. `adb devices -l` also lists a second device,
+`R52T506412L` (SM-X800, the tablet, for `-74`); it is never addressed. `ro.build.id=BP2A.250605.031.A3`. Unlocked
+(`isKeyguardShowing=false`), awake. `wm size` 1080 x 2316, `wm density` 450, so 1 dp = 2.8125 px.
+
+## The dispatch, verbatim
+
+From `prompts/preserved/2026-09-28-72.md` at `8dbfd14`, below its "verbatim prompt follows" line:
+
+> **Type:** device
+>
+> # Role
+>
+> You are the coder for **J8's device check on the S22 Ultra** (`R5CT321008R`; touch no other device). You observe and record. You change no app code. This dispatch's intent is `2026-09-28-72`. The planner writes the record.
+>
+> Read first:
+> - `CLAUDE.md`;
+> - `prompts/preserved/2026-09-28-51.md`. Its standing rules, data rules and abort conditions apply in full unless this dispatch changes them.
+> - the J8 completion report, `docs/audits/2026-09-28-j8-entries-on-map-completion-report.md`, its device-only list above all;
+> - the Part 1 run record, `docs/audits/2026-09-28-stage-device-check-part-1-run-record.md`, for how this phone behaves and for the helper scripts in `device-evidence/2026-09-28-stage-check-1/`.
+>
+> # Standing rules, restated
+>
+> - Never run `adb logcat -c`; read with `-d` only.
+> - Launch with `am start`, never `monkey`.
+> - **If any system or Google prompt appears over the app, stop at once.** Do not tap it, dismiss it or capture it.
+> - Evidence stays outside the repository, in `/home/zynergy-labs/Zynergy/device-evidence/2026-09-28-j8-check/`.
+>
+> # The database: backup first, because this install migrates the owner's real data
+>
+> The phone runs a debug build at database version 15, and it holds the owner's own records. J8 brings `MIGRATION_15_16`. **Debug builds chain `fallbackToDestructiveMigration(true)`** (`data/local/ForagerDatabase.kt:202-205`), so a debug build that finds no migration path wipes the database rather than failing. The path is registered, so a failure should throw rather than wipe. The owner's records are still not to be bet on that reading.
+>
+> 1. **Before installing:**
+>    - `am force-stop` the app.
+>    - Copy `forager.db` and any `-wal`/`-shm` files out through `run-as` (`exec-out run-as com.zynergylabs.forager.app cat databases/...`) into the evidence directory.
+>    - **Verify the copy on this machine:** sha256; the SQLite header; `PRAGMA integrity_check` returning `ok`; `PRAGMA user_version` = 15; and row counts for every table. Record them all.
+>    - **If any of that fails, stop.**
+> 2. **Build** a debug APK from `origin/journal-redesign` at `99de6c2` (J8's terminal; `app/` is identical at `7b4521f`) in a new worktree, `/home/zynergy-labs/Zynergy/forager-wt/device-j8`, with `./gradlew --offline assembleDebug` and `LC_ALL=C.UTF-8`. Check `df` and free memory first. Another coder may be running Gradle: if under 2.5 GB is available, wait. Record sha256, versionName, versionCode and the certificate digest.
+> 3. **Install with `install -r` only.** Never uninstall, clear data or use `-d`. Confirm `firstInstallTime` is unchanged.
+> 4. **Launch,** then read crashes (`logcat -d -b crash` and `FATAL EXCEPTION`). **After the migration:**
+>    - force-stop and copy the database out again;
+>    - confirm `user_version` = 16, `integrity_check` = `ok`, and `cartography_entries` has a `shownOnMap` column that is false on every row;
+>    - confirm **every table's row count equals the backup's**.
+>
+>    **A count mismatch, a crash, or a version other than 16 is an abort. Report it at once, and restore nothing without the owner.**
+>
+> # Data rule for this check
+>
+> - Toggle `shownOnMap` **only on entries labelled "DEVICE CHECK"**. Never on the owner's own entries.
+> - Every entry you show, you hide again before you finish, and you read it back.
+> - Otherwise `-51`'s rules stand: create, edit and delete nothing else, and restore every setting you change.
+>
+> # The checks, cheapest first
+>
+> For each check, write the pass condition from the J8 report and the code (file:line) and your prediction before you look. Push those first, then the verdict and the evidence.
+>
+> 1. **Migration on real data:** as in 4 above.
+> 2. **Report menu:** a saved DEVICE CHECK entry's report menu offers "Show on map", placed between Edit and Delete; a draft's does not. Showing it makes the Maps-tab chip appear, reading "1 journal entry on map" in the singular.
+> 3. **The highlight:** the entry's kept records are highlighted in place, beneath their own glyphs and lines. Capture Topographical, Street and night, with the other basemaps if present. **The owner judges the colours**: day `#005577`, night `#00DDFF`. Report and capture; do not rule on the look.
+> 4. **The chip against real insets:** portrait, 90 and 270. It sits under the compass strip (portrait) or under the search bar (landscape), clear of the system bars, at 0.8 (measure the fill as Part 1 did). Its list shows the entry's date, "Hide" and "Hide all".
+> 5. **The landscape chip against the icon cluster.** The owner ruled that this overlap is for this check to judge: "1 A". At 90 and 270, measure the chip's and the cluster's bounds, and whether a real touch where they overlap reaches the chip or the cluster. **Report and capture; do not rule.**
+> 6. **Bubble lines:** a highlighted record's bubble shows the entry's date line, "Open entry <date>" to TalkBack. Tapping it opens that entry's report in the Journal. With an entry open in its editor and unsaved, you would get the unsaved-changes prompt; **do not create unsaved edits on the owner's entries**. Test the prompt only on a DEVICE CHECK entry, and Discard it.
+> 7. **The Layers "Journal entries" switch** hides all highlights while the chip stays. It persists across `am force-stop` and relaunch. Restore it.
+> 8. **The failed-write Toast** ("Changes not applied. Try again."): **not run.** It cannot be forced on the device without changing app code. Record it as not run.
+>
+> # Report
+>
+> Write `docs/audits/2026-09-28-j8-device-check-run-record.md` on branch `device-j8`, in the Part 1 record's format. Commit and push after each check. The planner merges it.
+>
+> Record:
+> - the backup's and the migration's figures;
+> - the install facts;
+> - every verdict;
+> - the owner-judged captures, named;
+> - the settings and `shownOnMap` values restored and read back;
+> - the crash reads;
+> - **Decisions I made**;
+> - **Flags outside scope**.
+>
+> # Abort conditions
+>
+> - a backup that cannot be made or verified;
+> - an install needing uninstall, `-d` or a data clear;
+> - a signature mismatch;
+> - a migration crash, a version other than 16, or any row-count mismatch;
+> - a new Forager crash;
+> - any prompt over the app;
+> - a locked phone;
+> - a pass condition you cannot state from the code;
+> - any need to touch the owner's own entries.
+>
+> # Merge
+>
+> Not authorised.
+
+## The launch message, verbatim
+
+The planner's message that launched me. The store copy above governs over it.
+
+> This is planner dispatch `2026-09-28-72`, **J8's device check on the S22 Ultra** (`R5CT321008R`). Its store copy is committed at `prompts/preserved/2026-09-28-72.md` on `origin/journal-redesign` at `8dbfd14`. Fetch it, read it in full and quote it verbatim in your run record; the file governs over this message.
+>
+> **The one thing to hold above everything else:** this install migrates the owner's real database. Debug builds chain `fallbackToDestructiveMigration(true)` (`data/local/ForagerDatabase.kt:202-205`).
+> - Before installing, force-stop the app, copy `forager.db` and any `-wal`/`-shm` out through `run-as`, and verify the copy on this machine: sha256, the SQLite header, `PRAGMA integrity_check` = ok, `user_version` = 15, and every table's row count.
+> - **If any of that fails, stop.**
+> - After the migration: `user_version` 16, integrity ok, `shownOnMap` false on every row, and every row count equal to the backup's. Otherwise abort, report at once, and restore nothing without the owner.
+>
+> Toggle `shownOnMap` **only on entries labelled "DEVICE CHECK"**, never on the owner's own entries. Hide every one again, and read them back.
+>
+> The standing rules of `-51` apply in full:
+> - no `logcat -c`;
+> - `am start`, not `monkey`;
+> - **stop at once at any system or Google prompt over the app**;
+> - evidence outside the repository, in `/home/zynergy-labs/Zynergy/device-evidence/2026-09-28-j8-check/`.
+>
+> **Build and push:**
+> - Build the APK from `99de6c2` in a new worktree, `/home/zynergy-labs/Zynergy/forager-wt/device-j8`, on branch `device-j8` from `origin/journal-redesign`.
+> - Another coder (the save-failure build) runs Gradle on this machine. Check free memory before `assembleDebug`, and wait if under 2.5 GB is available.
+> - Push the run record after each check.
+> - The planner merges it and writes the record. You do not touch `RECORD.md`. Merge is not authorised.
+>
+> When you finish or stop, hand back a report: the backup and migration figures, install facts, every verdict, the owner-judged captures by name, what was restored and read back, crash reads, decisions you made, and flags.
+
+## Before the install (no app screen looked at)
+
+### The phone at the start (20:57Z)
+
+- **Installed:** `versionName=1.0.1356+g26709b1c`, `versionCode=1356`, `lastUpdateTime=2026-09-28 10:17:38` (phone time,
+  PDT), user 0's `firstInstallTime=2026-09-22 11:15:05`, `ceDataInode=2495587`, `deDataInode=2494123`
+  (`01-dumpsys-package-start.txt`). That is Part 1's build, as the dispatch says. Forager was running as pid 9626
+  (Part 1's process) with `MainActivity` in focus.
+- **Crash buffer:** `logcat -d -b crash`, **0 bytes** (`02-crash-start.txt`).
+- **Settings** (`03-settings-start.txt`): `font_scale=1.0`, `accelerometer_rotation=0`, `user_rotation=0`,
+  `navigation_mode=0` (three-button), `location_mode=3`, `cmd uimode night`: yes. Screen timeout 600000 ms and
+  `stay_on_while_plugged_in=15`.
+- **App settings** (`05-map_prefs-start.pb`, `06-diag-prefs-start.pb`, decoded by `pbprefs.py`, coordinates redacted):
+  `map.fullscreen=false`, `night_mode.maps=false` (Night Maps off), the offline picker's last pick, the seven overlay
+  keys and both colour fields' keys `true`, `forecast-chanterelles` opacity 1.0, `map.layer_order` the registry's
+  order, `diagnostics.synthetic_forecast=false`. There is no `journal-entry-*` key.
+- `databases/` holds `forager.db`, `forager.db-wal` and `forager.db-shm` only (`04-app-files-start.txt`).
+
+### The database backup (20:57Z)
+
+- `am force-stop com.zynergylabs.forager.app` at 20:57:42Z; `pidof` then empty (`07-force-stop-time.txt`).
+- `dbcopy.sh db-backup`: the device's own `sha256sum` of each file through `run-as`, then a byte copy of each through
+  `exec-out run-as … cat` into `db-backup-raw/`, then the local sha256. **They match**:
+
+  | file | bytes | sha256 (device = local) |
+  |---|---|---|
+  | `forager.db` | 229376 | `d8c365df9396a7142c8a1a1c0367e7ee4824cf905b0adc800e84751148032f16` |
+  | `forager.db-wal` | 469712 | `4151cbe6810fea12ae3f379787077102e3f555a84e893aed0594b70e57860174` |
+  | `forager.db-shm` | 32768 | `95544d10b0b47e1c117847ba0dfff85787ecce20cddb8bcbfaec9a006e80b0da` |
+
+  `db-backup-raw/` is never opened by SQLite and is now read-only (`chmod a-w`). Opening a WAL database replays and can
+  checkpoint the WAL, so every query runs on a second copy, `db-backup-query/`.
+- **Verified on this machine** (`dbverify.sh`, `db-backup-verify.txt`), SQLite 3.50.6:
+  - header: `53514c69746520666f726d6174203300` ("SQLite format 3\0"), page size 4096, write/read version 2/2 (WAL);
+    the WAL's magic `377f0682`, a valid WAL header;
+  - `PRAGMA integrity_check`: **ok**;
+  - `PRAGMA user_version`: **15**;
+  - row counts for every table in `sqlite_master`:
+
+  | table | rows | table | rows |
+  |---|---|---|---|
+  | `android_metadata` | 1 | `log_entry_photos` | 1 |
+  | `cached_searches` | 2 | `log_photos` | 3 |
+  | `cartography_entries` | 7 | `mushroom_log_entries` | 3 |
+  | `cartography_entry_find_refs` | 2 | `offline_regions` | 2 |
+  | `cartography_entry_offline_region_refs` | 1 | `planned_trips` | 0 |
+  | `cartography_entry_photo_refs` | 1 | `room_master_table` | 1 |
+  | `cartography_entry_track_refs` | 1 | `sqlite_sequence` | 1 |
+  | `cartography_entry_waypoint_refs` | 3 | `track_points` | 23 |
+  | | | `tracks` | 1 |
+  | | | `waypoints` | 3 |
+
+  18 tables. Beyond the dispatch, `dbdigest.py` records a sha256 over each table's rows (sorted, every column but
+  `cartography_entries.shownOnMap`), printing no content (`db-backup-digest.txt`), so a later copy can be compared
+  row for row and not only by count.
+- **Nothing failed, so no stop.**
+- **Re-checked just before the install** (21:03:01Z): the app still not running, and the device's sha256 of all three
+  files still equal to the backup's (`12-pre-install-device-sha256.txt`). The backup is the database the install met.
+
+### Data inventory (read from `db-backup-query/`, counts and labels only)
+
+Entries 2 saved and 5 drafts; finds 3 (`mushroom_log_entries`); photos 3; tracks 1 (23 points); waypoints 3; offline
+regions 2; planned trips 0; cached searches 2 (`08-entries-inventory.txt`). By label (`text LIKE '%DEVICE CHECK%'`):
+- **`6107d76c…`, saved, dated 2026-09-27, labelled** (the L0a entry, "DEVICE CHECK 2026-09-28 (L0a)" in the L0a run
+  record). It keeps, every ref `kept=1`, 2 finds, 1 track, 3 waypoints and 1 offline region, and has 1 photo attached.
+  **This is the only saved DEVICE CHECK entry, and the only entry whose `shownOnMap` I will change.**
+- `6380d39b…`, saved, dated 2026-09-28, blank text, **not labelled** (Part A's item 24 entry, made with blank text on the
+  planner's ruling). Not touched.
+- Five drafts dated 2026-09-28, each labelled `DEVICE CHECK 2026-09-28` (Part A's item 14). Used only for check 2's draft
+  half: opened, its menu read, left with Back, nothing typed.
+
+### Build
+
+- Memory before Gradle: 3367 MB available (`free -m`), above the 2.5 GB floor; a Gradle daemon and a Kotlin daemon from
+  other sessions were resident. `/` had 9.6 GB free.
+- `LC_ALL=C.UTF-8 ./gradlew --offline assembleDebug` in the worktree, detached at `99de6c2` with a clean tree:
+  **BUILD SUCCESSFUL in 1m 1s**, exit 0, **0** `e: ` lines (`09-build.log`). The worktree then went back to
+  `device-j8`, clean.
+- **APK** (`j8-debug.apk`, a copy of `app/build/outputs/apk/debug/app-debug.apk`; `10-apk-facts.txt`): sha256
+  `629d32256e1d4352b9159d1166ada66687e94f0985e92813c13fada2dd9807a3`; `versionName=1.0.1389+g99de6c24`,
+  `versionCode=1389` (`aapt2 dump badging`), no `.dirty`; signer `CN=Android Debug, O=Android, C=US`, certificate
+  SHA-256 `cb2f6da502c3fe7bea8db747414bed47cbc8350944cf8291e9b09806c94f1626`.
+- **The installed APK**, pulled read-only (`installed-before.apk`, `11-installed-before-cert.txt`): sha256
+  `9bdc0f9c…a56f7d735`, which is Part 1's `stage1-debug.apk` byte for byte, `versionCode=1356`, certificate SHA-256
+  `cb2f6da5…94f1626`. **Same certificate: no signature mismatch.** 1389 is above 1356, so `-r` needs no `-d`.
+
+### Install
+
+- `adb -s R5CT321008R install -r j8-debug.apk` at 21:03:08Z: `Success` (`13-install.txt`). No uninstall, no `-d`, no data
+  clear.
+- **After** (`14-dumpsys-package-after.txt`): `versionName=1.0.1389+g99de6c24`, `versionCode=1389`, `lastUpdateTime`
+  14:03:09 PDT, user 0's `firstInstallTime=2026-09-22 11:15:05`, **unchanged**, with the same `ceDataInode`/`deDataInode`.
+  User 95 is listed as before.
+- The app was not running after the install; the launcher had focus.
+- The device's sha256 of all three database files after the install still equals the backup's
+  (`15-post-install-device-sha256.txt`): the install did not open the database. The migration runs at the first launch.
+
+# Pre-registration: pass conditions and predictions, written before the first launch
+
+Every touch is a real `adb shell input` touch at coordinates from a fresh dump or screenshot. The app is launched only
+with `am start -n com.zynergylabs.forager.app/.MainActivity`. If any system or Google prompt appears over the app, I stop
+without touching it. Verdicts that rest on my reading of an image say so. Rotations are set with
+`settings put system user_rotation` (1 = 90, 3 = 270) with `accelerometer_rotation` 0, as Part 1 did.
+
+## Check 1: the migration on real data
+
+Code: `ForagerDatabase.version = 16` (`data/local/ForagerDatabase.kt:167`); `MIGRATION_15_16` registered
+(`:196-200`, the list at `:199`); `fallbackToDestructiveMigration(true)` only when `isDebug` (`:203-205`).
+`MIGRATION_15_16` (`data/local/Migrations.kt:952-978`) creates `cartography_entries_new` with `shownOnMap INTEGER NOT
+NULL`, copies `id, date, text, tags, isDraft, updatedAtEpochMillis` and writes `0` for `shownOnMap` from every old row,
+drops the old table, renames the new one, and recreates `index_cartography_entries_date` and
+`index_cartography_entries_isDraft`. No `AUTOINCREMENT`, so `sqlite_sequence` is not touched.
+- **Method:** `am start`, then wait until the Maps tab has drawn records (the map records come from Room, so the
+  database has been opened), or 30 s. Crash reads: `logcat -d -b crash` and `FATAL EXCEPTION` in `logcat -d`. Then
+  `am force-stop`, and `dbcopy.sh db-migrated` and `dbverify.sh db-migrated`, exactly as for the backup.
+- **Pass:**
+  - the copy's sha256 equals the device's for every file;
+  - the header is "SQLite format 3\0";
+  - `PRAGMA integrity_check` = `ok`;
+  - `PRAGMA user_version` = **16**;
+  - `PRAGMA table_info(cartography_entries)` lists `shownOnMap`, `INTEGER`, not null, and
+    `SELECT COUNT(*) FROM cartography_entries WHERE shownOnMap <> 0` = **0** of 7 rows;
+  - the same 18 tables, each with **exactly the backup's row count** (table above);
+  - no crash line and no Forager `FATAL EXCEPTION`.
+- **Also recorded, not pass conditions:** both indexes exist; `dbdigest.py` per table against the backup's (every
+  table's rows equal, `cartography_entries` compared without `shownOnMap`; `room_master_table` is expected to differ,
+  since its identity hash is the schema's).
+- **Abort (the dispatch's):** a count mismatch, a crash, or a version other than 16. **Reported at once, and nothing
+  restored without the owner.** If the copy reads version 15 with every file byte-identical to the backup, the database
+  was not opened and the migration has not run; I report that at once too rather than decide it myself.
+- **Prediction:** pass: version 16, integrity ok, 7 of 7 rows `shownOnMap = 0`, every count equal, every digest equal
+  but `room_master_table`'s.
+
+## Check 2: the report menu, and the chip's first appearance
+
+Code: the report's "Entry options" menu (`ui/log/CartographyEntryReportScreen.kt:384-407`): "Edit entry" (`:389-393`),
+then, only `if (!entry.isDraft && onSetShownOnMap != null)`, "Show on map" or, while shown, "Hide from map" with the map
+icon (`:394-400`; labels `ui/map/JournalEntriesOnMap.kt:8`, `:11`), then "Delete entry" (`:401-405`). A saved entry
+opens in the report from Entries (`ui/log/CartographyScreen.kt:554`); a draft opens in the editor
+(`CartographyScreen.kt:465`, `:474`), whose own "Entry options" menu holds "Delete entry" only
+(`ui/log/CartographyEntryEditScreen.kt:225-235`). The write sets `shownOnMap` alone (`data/local/CartographyEntryDao.kt:82-83`).
+The chip is composed only while an entry is shown (`ui/availability/AvailabilityCompactMapUi.kt:1089-1090`,
+`:1111-1117`) and reads `journalEntriesChipLabel` (`JournalEntriesOnMap.kt:23-24`): "1 journal entry on map" for one.
+- **Pass (saved):** on the Journal, Entries, a real touch on the L0a entry's card opens its report (header
+  "2026-09-27"); a touch on "Entry options" opens a menu whose dump holds exactly three items, top to bottom "Edit
+  entry", "Show on map", "Delete entry", with "Show on map" between the other two by bounds.
+- **Pass (draft):** a DEVICE CHECK draft opened from the drafts banner opens in the editor; its "Entry options" menu's
+  dump holds "Delete entry" and **no** "Show on map" or "Hide from map". The menu is closed with Back and the draft left
+  with Back, nothing typed and nothing chosen. (Opening a draft writes nothing: `CartographyViewModel.onOpenEntry`,
+  `ui/log/CartographyViewModel.kt:171-212`, writes only a recomputed track snapshot, and the drafts keep no track.)
+- **Pass (show):** "Show on map" touched on the L0a entry's menu; the menu then offers "Hide from map" in its place; on
+  the Maps tab a chip's dump text is exactly **"1 journal entry on map"**. Before the touch, the Maps tab has no such
+  chip (the control).
+- **Prediction:** pass.
+
+## Check 3: the highlight (owner-judged look)
+
+Code: five halo layers, each directly below what it decorates, taking no taps, in `PaletteRole.JOURNAL_ENTRY`
+(`ui/map/layers/MapLayers.kt:324` region outline, `:329` kept track, `:351` waypoints, `:353` finds, `:355` photos;
+`journalHalo`, `:229-245`). Colours `MapPalette` day `0xFF005577` (`ui/theme/MapPalette.kt:98`) and night `0xFF00DDFF`
+(`:127`), at opacity 1 (`MapLayers.kt:179-180`). Line halos are 3 dp wider each side than what they lie under: the
+region's outline, and the track's casing, thinning with zoom as the track does (`ui/map/SightingsMap.kt:1467-1489`);
+marker halos are the glyph grown by 1.5 + 3 dp (`ui/map/MarkerGlyphs.kt:184-199`). Only the kept records of saved,
+shown entries among what the Maps tab draws are highlighted (`ui/availability/AvailabilityScreen.kt:923-925`). Night
+Maps puts the markers on the night palette on every basemap, Satellite included (`ui/map/BasemapStyles.kt:162-166`).
+- **Pass (in place, beneath):** at one camera framing the kept records, two frames with the Layers sheet's "Journal
+  entries" switch on and then off (the sheet closed each time; the camera does not move). In the on frame a ring whose
+  unblended middle pixels read the halo colour within 6 per channel surrounds each kept record drawn there; each
+  record's own glyph or line pixels are equal in the two frames within 3 per channel (so the halo is under them). The
+  records the entry does not keep (offline region "DEVICE CHECK 2026-09-28 B" and the two photos not attached to it)
+  get no ring: equal in the two frames within 3 per channel (the negative control). The switch is restored on and read
+  back. By pixel comparison, with my reading of the frames stated.
+- **Captures for the owner, named in the verdict:** Topographical, Street and Satellite (the Layers sheet's third map
+  type, USGS, zoom 15 at most), each by day and with Night Maps on. **The owner judges the colours; I do not rule on the
+  look.** Night Maps is restored off and the basemap to Topographical, each read back.
+- **Prediction:** pass, rings in `#005577` by day and `#00DDFF` at night; at least one basemap where the owner may find
+  the ring hard to read (the planner's prediction 4). I do not judge that.
+
+## Check 4: the chip against real insets, its fill, and its list
+
+Code: the chip sits in a `FlowRow` after the taxon chip (`AvailabilityCompactMapUi.kt:1089-1119`). Portrait:
+`TopCenter`, top padding `topInset + compassStripClearance + 8 dp` (`:1104-1108`; the clearance is the strip's
+label-line height, `:621-625`). Short landscape, when the punch-hole side and the search bar's width are known:
+`TopStart` or `TopEnd` on the punch-hole side, top padding `topInset + 8 dp`, in a column the search bar's width with
+the chip at its start (`:1094-1103`). Fill: `MapIconStackButtonColorDark` or `Light`, `Bark #3B2E24` or
+`Cream #EDE3D0` at 0.8 (`ui/map/MapChrome.kt:233-239`; `ui/map/JournalEntriesChip.kt:108-123`), content white or Bark,
+shadow 4 dp. The list: a `DropdownMenu` at `MenuDefaults.containerColor` x 0.8 (`JournalEntriesChip.kt:68`,
+`:133-137`; dark `SurfaceContainerDark #202020`, light `#F4EFE2`, `ui/theme/Color.kt:135`, `:141`), one row per
+shown entry with its date and a trailing "Hide", a divider, and "Hide all" (`:140-161`).
+- **Pass (place), portrait:** the chip's bounds (dump) lie wholly below the compass strip's bottom edge (its nodes, or
+  its pixels if it has none), centred on the window within 3 px, and outside the status bar, navigation bar and
+  cut-out frames from `dumpsys window`.
+- **Pass (place), 90 and 270:** the chip's top is at or below the search bar's bottom, its start edge within 3 px of the
+  bar's start edge, on the punch-hole side, and outside the system-bar and cut-out frames.
+- **Pass (fill, 0.8), portrait, 90 and 270:** Part 1's method (`alpha.py`): a frame with the chip, then the same camera
+  after the chip is gone, fitted per channel over a box inside the chip clear of its text and edges. Opacity is 1 minus
+  the slope; pass is **0.78 to 0.82**, with the container colour solved from the intercept within 3 per channel of
+  `Bark` (dark theme) or `Cream` (light). The chip is removed by its own list: **"Hide"** in portrait and at 270,
+  **"Hide all"** at 90, each a real touch, so both actions are exercised. Each re-show is "Show on map" from the
+  Journal. A camera move between the two frames voids the pair, and I say so.
+- **Pass (list):** a real touch on the chip opens a list whose dump holds "2026-09-27", "Hide" and "Hide all", and no
+  other row. Recorded beyond the dispatch, from the J8 report's device-only list: the list's own fill, by the same fit
+  between the list open and closed with Back (an observation; expected 0.8 of `#202020` in the dark theme).
+- **Prediction:** place passes in all three; the fill reads 0.80 within 0.02; the list passes.
+
+## Check 5: the landscape chip against the icon cluster (owner-judged, "1 A")
+
+Code: the chip's landscape place is above (Check 4). The J8 report's finding 1: at the default the cluster is on the
+punch-hole side too, and the chip's row is composed after the cluster, so where they overlap the chip is drawn over it
+and takes the touch.
+- **Measured, at 90 and 270:** the chip's bounds; the cluster's container bounds and each of its controls' bounds
+  (dump); their intersection, or the gap if none.
+- **The touch:** where they overlap, I first name every cluster control whose bounds contain the overlap. If each of
+  them only moves the view (for example "Reset orientation to north", zoom or locate), I make real touches at no fewer
+  than three points spread across the overlap, and after each read whether the chip's list opened or the cluster
+  control acted (dump, and for a bearing reset the compass). If any of them would create or change data (the record
+  button above all, which the data rule forbids), **I do not touch there**, and record it as not run with the control
+  named.
+- **Captures** at both rotations, named. **Report and capture; I do not rule.**
+- **Prediction:** the overlap reproduces at 90 and at 270 (the planner's prediction 3), and a touch in it opens the
+  chip's list.
+
+## Check 6: the bubble's entry line, Open entry, and the unsaved-changes prompt
+
+Code: a highlighted record's bubble lists each shown entry keeping it, up to three, as a `TextButton` showing the date
+in the report header's form with the content description "Open entry <date>" (`ui/map/MapBubble.kt:455-468`;
+`JournalEntriesOnMap.kt:27`, `:30`), only on the Maps tab and only while the switch shows the highlights
+(`AvailabilityScreen.kt:1249`). A tap switches the compact tree to the Journal with `VIEW_ENTRY`
+(`AvailabilityScreen.kt:1257-1266`), and `CartographyScreen` opens the entry in its report (`:258-274`). If a saved
+entry is open in its editor with unsaved changes, it asks "Save your changes?" first (`:265-269`;
+`CartographyEntryEditScreen.kt:317-339`, with Save, Discard and Cancel), and Save or Discard then opens the request
+(`CartographyScreen.kt:276-285`). Typing in a saved entry's editor writes nothing until Save
+(`CartographyViewModel.kt:664-679`); Discard reloads the stored row (`:446-471`); backgrounding while dirty saves
+nothing and shows "Welcome back" on return (`CartographyScreen.kt:347-362`).
+- **Pass (line):** a real touch on a DEVICE CHECK record the entry keeps (a DEVICE CHECK find, or the DEVICE CHECK
+  waypoint) opens its bubble, whose dump holds a node with text "2026-09-27" and content description
+  **"Open entry 2026-09-27"**. What TalkBack speaks is the owner's; TalkBack is not turned on.
+- **Pass (open):** a real touch on that line puts the Journal in front with the L0a entry's report open (header
+  "2026-09-27", "Entry options").
+- **Pass (prompt), on the L0a entry only:** its report, "Edit entry", one character typed into "Your own account";
+  the Maps tab by its navigation item; the same record's bubble; its date line. The Journal comes up with "Save your
+  changes?" (Save, Discard, Cancel). A real touch on **Discard**. Then the L0a entry's report is open, and its text
+  node has the length it had before the typing (I compare lengths and a hash, and quote nothing). The typed character
+  is never saved: the final database copy's `cartography_entries` digest must equal the backup's.
+- If "Welcome back" ever appears I choose "Continue editing" and say so. Nothing else is typed anywhere.
+- **Prediction:** pass.
+
+## Check 7: the Layers sheet's "Journal entries" switch
+
+Code: "Journal entries" is the last Maps-tab overlay (`ui/map/MapLayersSheet.kt:133-141`), on layer
+`journal-entry-tracks-layer` (`MapLayers.kt:177`), the state owner of the other four halos (`:243`); it persists by
+layer id as `map.layer.journal-entry-tracks-layer.visible` (`data/repository/DataStoreMapPreferencesRepository.kt:124-126`).
+The chip reads the shown entries whatever the switch (`AvailabilityScreen.kt:923-935`; `AvailabilityCompactMapUi.kt:1089`).
+- **Pass (hides, chip stays):** switch off: at one camera, every kept record's ring is gone (its pixels equal, within
+  3 per channel, to the same place in a frame taken with the entry hidden or the switch's own off frame from check 3),
+  while the chip's dump still reads "1 journal entry on map".
+- **Pass (persists):** `am force-stop`, `am start`: the sheet shows "Journal entries" off, `map_preferences` holds
+  `map.layer.journal-entry-tracks-layer.visible = false`, no ring is drawn, and the chip is there.
+- **Restored:** switched on, the rings back, and the key read back `true`.
+- **Prediction:** pass.
+
+## Check 8: the failed-write Toast
+
+**Not run**, as the dispatch says: it cannot be forced on the device without changing app code.
+
+## Settings and data to restore
+
+- `shownOnMap` false on the L0a entry, read back from a final database copy (force-stop, `dbcopy.sh`, `dbverify.sh`):
+  `shownOnMap = 0` on all 7 rows, user_version 16, integrity ok, every count equal to the backup's.
+- `user_rotation` 0 and `accelerometer_rotation` 0; `font_scale` 1.0 (not planned to change); Night Maps off; basemap
+  Topographical; every overlay on, "Journal entries" included; the app left on the Maps tab, in portrait.
