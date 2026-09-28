@@ -129,8 +129,12 @@ class CartographyViewModel(
                     )
                     // The stamped copy is the one to keep -- see SaveCartographyEntryUseCase's own
                     // doc comment. A failed save still opens the entry as decided: the next
-                    // persist retries, and the user must not lose the day's candidates.
-                    val saved = saveEntry(decided).getOrElse { decided }
+                    // persist retries, and the user must not lose the day's candidates. Logged
+                    // and not shown (intent 2026-09-28-68, the planner's ruling in -76).
+                    val saved = saveEntry(decided).getOrElse { error ->
+                        Log.w(TAG, "Couldn't save new entry '${draft.id}' with its day's candidates kept; it opens with them kept, unsaved.", error)
+                        decided
+                    }
                     _uiState.update {
                         it.copy(
                             editingEntry = saved,
@@ -459,6 +463,8 @@ class CartographyViewModel(
                             candidatesForEditingEntry = null,
                             candidateOfflineRegionsForEditingEntry = emptyList(),
                             hasUnsavedChanges = false,
+                            // As every other success path does (the planner's ruling in -76).
+                            saveErrorMessage = null,
                         )
                     }
                 },
@@ -647,6 +653,12 @@ class CartographyViewModel(
         _uiState.update { it.copy(shownOnMapErrorMessage = null) }
     }
 
+    /**
+     * Clears [CartographyUiState.saveErrorMessage] once its Toast has shown. The Toast is hosted by the
+     * Journal, `JournalTab` and `LogPanel`, as the find editor's is (intent 2026-09-28-68, the owner's
+     * "Option B" in continuation -76), so a message set while the Journal is not on screen waits here
+     * until it next opens. Every success path also clears it.
+     */
     fun onSaveErrorDismissed() {
         _uiState.update { it.copy(saveErrorMessage = null) }
     }

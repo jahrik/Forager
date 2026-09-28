@@ -182,6 +182,13 @@ internal fun LogPanel(
     onDiscardCartographyEntryChanges: () -> Unit = {},
     /** The backgrounding-return prompt's "Save as draft" option — pending-edit-and-fixes dispatch, Item 1. See [CartographyScreen]'s own lifecycle-observer doc comment. */
     onSaveCartographyEntryAsDraft: () -> Unit = {},
+    /**
+     * Clears [CartographyUiState.saveErrorMessage] once its Toast (below) has shown, the day entries'
+     * counterpart of [onSaveErrorDismissed] (intent `2026-09-28-68`, continuation `2026-09-28-76`).
+     * The default is only for callers that host this on its own (tests); `AvailabilityScreen` passes
+     * `CartographyViewModel.onSaveErrorDismissed`.
+     */
+    onCartographySaveErrorDismissed: () -> Unit = {},
     onDeleteCartographyEntry: (String) -> Unit,
     /** [CartographyEntryReportScreen]'s own map, Stage 2d — see that composable's doc comment. */
     getCartographyEntryMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData,
@@ -233,6 +240,13 @@ internal fun LogPanel(
         uiState.saveErrorMessage?.let {
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
             onSaveErrorDismissed()
+        }
+    }
+    // Intent 2026-09-28-68, continuation 2026-09-28-76: the day entries' counterpart, as JournalTab's.
+    LaunchedEffect(cartographyUiState.saveErrorMessage) {
+        cartographyUiState.saveErrorMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            onCartographySaveErrorDismissed()
         }
     }
 

@@ -266,6 +266,8 @@ internal fun CompactMainScaffold(
     onSaveCartographyEntry: () -> Unit,
     onDiscardCartographyEntryChanges: () -> Unit,
     onSaveCartographyEntryAsDraft: () -> Unit,
+    /** Clears `CartographyUiState.saveErrorMessage` once [JournalTab]'s Toast of it has shown (intent `2026-09-28-68`). */
+    onCartographySaveErrorDismissed: () -> Unit,
     onDeleteCartographyEntry: (String) -> Unit,
     /** J4b L2: an Entries card's swipe Delete (pending, with Undo); see [JournalTab]. */
     onRequestDeleteCartographyEntry: ((String) -> Unit)? = null,
@@ -1034,6 +1036,7 @@ internal fun CompactMainScaffold(
                                 onSaveCartographyEntry = onSaveCartographyEntry,
                                 onDiscardCartographyEntryChanges = onDiscardCartographyEntryChanges,
                                 onSaveCartographyEntryAsDraft = onSaveCartographyEntryAsDraft,
+                                onCartographySaveErrorDismissed = onCartographySaveErrorDismissed,
                                 onDeleteCartographyEntry = onDeleteCartographyEntry,
                                 onRequestDeleteCartographyEntry = onRequestDeleteCartographyEntry,
                                 onRequestDeleteGalleryPhoto = onRequestDeleteGalleryPhoto,

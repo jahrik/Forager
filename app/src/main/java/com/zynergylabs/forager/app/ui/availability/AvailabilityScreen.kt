@@ -581,6 +581,12 @@ fun AvailabilityScreen(
     /** Clears [cartographyUiState]'s `shownOnMapErrorMessage` once its Toast has shown (J8, continuation `2026-09-28-65`). */
     onCartographyShownOnMapErrorDismissed: () -> Unit = {},
     /**
+     * Clears [cartographyUiState]'s `saveErrorMessage` once its Toast has shown. That Toast is hosted
+     * by the Journal itself, [JournalTab] (compact) and [LogPanel] (wide), not here, so this is
+     * threaded to them (intent `2026-09-28-68`, continuation `2026-09-28-76`).
+     */
+    onCartographySaveErrorDismissed: () -> Unit = {},
+    /**
      * An album photo's long-press Delete (J4b L3): a *pending* delete with Undo
      * (`MushroomLogViewModel.requestDeleteGalleryPhoto`), for the compact tree's album only. `null`
      * (the default) leaves the photos without the menu.
@@ -1453,6 +1459,7 @@ fun AvailabilityScreen(
                     onSaveCartographyEntry = onSaveCartographyEntry,
                     onDiscardCartographyEntryChanges = onDiscardCartographyEntryChanges,
                     onSaveCartographyEntryAsDraft = onSaveCartographyEntryAsDraft,
+                    onCartographySaveErrorDismissed = onCartographySaveErrorDismissed,
                     onDeleteCartographyEntry = onDeleteCartographyEntry,
                     getCartographyEntryMapData = getCartographyEntryMapData,
                     getCartographyEntryOfflineRegion = getCartographyEntryOfflineRegion,
@@ -1742,6 +1749,7 @@ fun AvailabilityScreen(
             onSaveCartographyEntry = onSaveCartographyEntry,
             onDiscardCartographyEntryChanges = onDiscardCartographyEntryChanges,
             onSaveCartographyEntryAsDraft = onSaveCartographyEntryAsDraft,
+            onCartographySaveErrorDismissed = onCartographySaveErrorDismissed,
             onDeleteCartographyEntry = onDeleteCartographyEntry,
             onRequestDeleteCartographyEntry = onRequestDeleteCartographyEntry,
             onRequestDeleteGalleryPhoto = onRequestDeleteGalleryPhoto,

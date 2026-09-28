@@ -1,6 +1,8 @@
 # Entry save failures shown: completion report (dispatch `2026-09-28-68`)
 
-**Status: stopped at verification step 3, before any test or code.** The survey found more than one
+**Status (updated on resumption): built by continuation `2026-09-28-76`; see "Resumed" at the end.** The sections before it are the stop report as filed at `ea60d72`, unchanged.
+
+**Status at the stop: stopped at verification step 3, before any test or code.** The survey found more than one
 established way the Journal surfaces a failed save or delete. The dispatch's abort list includes "no single
 established pattern (stop and report the options)", so the options are set out below for the owner, and
 none has been chosen. Nothing in `app/` changed. This report is the only file this dispatch has
@@ -329,3 +331,293 @@ When you finish or stop, hand back a report: what landed with hashes, verificati
   host is not composed when it is set.
 - **The spec says all strings go in `strings.xml`** (`docs/error-presentation-spec.md`, Wording rules).
   Every failure string here is a Kotlin literal. Not in scope.
+
+## Resumed (continuation `2026-09-28-76`): built
+
+**Status: built and verified.** Continuation `2026-09-28-76` answered the stop above. The owner chose
+option 1 ("Option B": a Toast hosted in the Journal, like the find editor's) and kept every
+message. The planner ruled that a successful Discard clears the message, and that `onStartEntry`'s
+dropped failure is logged only. Everything in `-76` is built:
+- the tests were written first and seen failing for their stated reasons;
+- six revert checks were confirmed;
+- the full suite ran from a cleared results directory;
+- the work is pushed.
+
+An API outage ("EAI_AGAIN") cut the session once, after the threading edit. The planner's resume
+message is quoted below. The edit was checked whole with `git status` and `git diff --stat`, then
+committed to `save-failure-wip` and pushed before anything else was done.
+
+### Commits
+
+| Commit | What | Where pushed |
+|---|---|---|
+| `9e2cfde` | The dismiss callback threaded from `MainActivity` to `JournalTab` and `LogPanel`. It is inert: parameters only, nothing reads it. | `save-failure-wip` |
+| `ac8f45e` | Tests first: `EntrySaveFailureShownTest.kt` (3 classes, 31 tests) and one `CartographyViewModelTest` test. Failing on purpose. | `save-failure-wip` |
+| `fa5aa9e` | The build: the two Toast hosts, the Discard clear, and the log line. | `save-failure-wip`, then `journal-redesign` |
+| this report's commit | This section. | `journal-redesign` |
+
+### What changed (file:line at `fa5aa9e`, under `app/src/main/java/com/zynergylabs/forager/app/`)
+
+- **Hosting.** `ui/log/JournalTab.kt:317-322` (compact tree) and `ui/log/LogPanel.kt:246-251` (wide tree)
+  each add a `LaunchedEffect(cartographyUiState.saveErrorMessage)`.
+  - It shows the message as `Toast.LENGTH_SHORT`, then calls `onCartographySaveErrorDismissed()`.
+  - It sits beside the find editor's own effect and takes the same form.
+- **Threading.** The dismiss callback runs from `MainActivity.kt:517`
+  (`cartographyViewModel::onSaveErrorDismissed`) to the Journal hosts:
+  - `ui/availability/AvailabilityScreen.kt:583` (parameter), then `:1442` (to `LogPanel`) and `:1730` (to
+    the compact scaffold);
+  - `ui/availability/AvailabilityCompactScaffold.kt:265`, then `:1014` (to `JournalTab`);
+  - `JournalTab.kt:207` and `LogPanel.kt:191`.
+
+  Nothing else in those files changed.
+- **Messages.** All seven existing messages, verbatim, set at `ui/log/CartographyViewModel.kt:352`,
+  `:392`, `:434`, `:473`, `:494`, `:579` and `:684` (they were `:348` to `:672` at `8dbfd14`).
+  `git diff 8dbfd14 fa5aa9e -- app/src/main` adds and removes no user-facing string. The only new
+  string literal is the log line below.
+- **Discard.** `onDiscardEntryChanges`'s success path now sets `saveErrorMessage = null`
+  (`CartographyViewModel.kt:466-467`).
+- **`onStartEntry`.** The failure is now logged with
+  `Log.w(TAG, "Couldn't save new entry '${draft.id}' with its day's candidates kept; it opens with them kept, unsaved.", error)`
+  (`CartographyViewModel.kt:134-137`). The entry still opens with the candidates kept, and nothing is shown.
+- **Doc comment.** `onSaveErrorDismissed` gained one (`CartographyViewModel.kt:656-662`).
+
+### When the message clears (the find editor's rule, now the entries' too)
+
+- **Right after its Toast has shown.** The host calls `onSaveErrorDismissed`. A `Toast` has no dismiss
+  callback, so "dismissed" means "shown", as `docs/audits/2026-08-22-error-presentation-handoff.md:83`
+  records for the find.
+- **On the next successful write.** This covers the seven success paths that already cleared it, plus
+  Discard now.
+- **Not on leaving the editor.** `onCloseEntry` does not touch it, as before. A message set while the
+  Journal is not composed stays in the ViewModel and shows the next time `JournalTab` or `LogPanel`
+  composes.
+
+### Tests (`app/src/test/java/com/zynergylabs/forager/app/ui/availability/EntrySaveFailureShownTest.kt`)
+
+- **Harness.**
+  - The real `AvailabilityScreen` and the real `CartographyViewModel`, over an in-memory `ForagerDatabase`.
+  - The database sits behind `SaveFailureRefusingRepository`, a Room delegate that refuses saves,
+    deletes or reads on demand. It records every refusal, and can hold a save until released (a slow
+    disk).
+  - `MainActivity`'s day-entry wiring is reproduced, including the new callback and the entry's
+    `pendingDeleteNotices`.
+  - Every action is the user's own, a real touch at the control's centre.
+  - Each test first asserts the exact refused call its action made, so a missing Toast cannot come
+    from an action that never ran.
+- **Windows.**
+  - Portrait `w384dp-h823dp-xxhdpi` and short landscape `w823dp-h384dp-land-xxhdpi` go through `JournalTab`.
+  - The wide window `w1280dp-h900dp-mdpi` goes through the drawer's `LogPanel`.
+- **Every window (9 tests each):**
+  1. The editor's Save, then its confirmation: "Couldn't save your changes."
+  2. Typing in a draft (autosave): "Couldn't save your changes."
+  3. Finish entry: "Couldn't finish that entry."
+  4. The return prompt's Save as draft, after a real ON_STOP and ON_RESUME: "Couldn't save that as a draft."
+  5. The leave prompt's Discard, with the stored entry unreadable: "Couldn't discard those changes."
+  6. The report's Delete, then its confirmation: "Couldn't delete that entry."
+  7. The same refusal twice shows twice. This is the user-visible effect of clearing.
+  8. A Save still in flight when the user leaves the Journal is refused off screen. Nothing shows,
+     the message waits, and it shows once the Journal reopens.
+  9. `onStartEntry`'s refused second save is logged: one `WARN` with the refusal's own throwable,
+     naming the entry. No Toast, no message, and the new entry still opens.
+  - Tests 1 to 6 each assert exactly one Toast, with exactly the text, and the message `null` after it.
+- **Compact windows only (2 tests each):** a card's Delete refused when its Undo snackbar ends ("Couldn't
+  delete that entry.", the `:579` path).
+  - One test ends the snackbar with the Journal showing. The other ends it on the Maps tab, and the
+    message shows once the Journal reopens.
+  - Card delete is portrait's full swipe and the short window's long-press menu.
+  - The wide `LogPanel` has no card delete: `AvailabilityScreen` does not give it
+    `onRequestDeleteCartographyEntry`. So the `:579` path is covered in the compact tree only.
+- **`CartographyViewModelTest`, one test:** a successful Discard clears a pending message. This is
+  tested at ViewModel level, through its public entry points, on purpose.
+  - On screen, the Journal's Toast clears the message the moment it shows.
+  - The leave prompt that offers Discard is only on screen while the Journal is.
+  - So no screen path can reach a successful Discard with a message still pending.
+- **Count:** 32 new tests (11 + 11 + 9 + 1). The planner predicted the suite would grow by 3 to 8. That
+  was for `-68`'s narrower scope, before `-76` widened it to seven actions, three windows, off-screen
+  and log tests.
+
+### Tests first: seen failing for the stated reason
+
+State at the time: the base plus `9e2cfde`'s inert parameters, needed so the tests compile.
+- **Run `tf1`:** 4 classes, 54 tests, 32 failed, 0 compile errors.
+  - 28 failed for the stated reason:
+    - "Toasts shown expected:<1> but was:<0>" (`<2>` for the twice test);
+    - "one log line for the refused save … expected:<1> but was:<0>";
+    - "and the message is cleared expected:<null> but was:<Couldn't save your changes.>".
+  - **The 4 compact card-delete tests failed for a different reason:** "the delete reached the store
+    and was refused expected:<[delete entry-saved]> but was:<[]>". The failure did not match the
+    prediction, so the test was at fault. My harness had not reproduced `MainActivity`'s
+    `pendingDeleteNotices` (`MainActivity.kt:580-606` at `fa5aa9e`), so no Undo snackbar ran and no delete was
+    ever made.
+- **The fix, in the harness only:** the notice now comes from `cartographyEntryDeleteNotice`, as
+  `MainActivity` builds it.
+- **Run `tf2`, the two compact classes:** 22 of 22 failed. All 22, including the 4, failed for the
+  stated reason.
+- **The wide class and the ViewModel test** were not re-run after the fix. Their `tf1` failures were all
+  the stated reason. The fix adds a notice built from `pendingDelete`, which is `null` throughout the
+  wide tests (they make no card delete), so the list stays empty as before.
+- With `fa5aa9e`: run `impl1`, 4 classes, 54 tests, 0 failed.
+
+### Revert checks
+
+Runner: `/tmp/claude-1000/save-failure/revert/revert.py`. For each check it:
+- saves a copy of the file and applies one edit whose old text occurs exactly once;
+- clears the results and runs the named classes;
+- refuses the results if the build log has any `e: ` line;
+- reads the XML, keyed by class and test, and counts stale XML;
+- restores the file from the saved copy and compares it byte for byte;
+- then checks that `git diff HEAD` is empty, so the forward change, committed at `fa5aa9e`, is still
+  what the tree holds.
+
+All six checks built with 0 compile-error lines, 0 stale XML files, a byte-identical restore and an
+empty `git diff HEAD`. Each one's failures are exactly its predicted set, with messages specific to
+its own edit.
+
+| Check | One-line edit | Classes run | Result |
+|---|---|---|---|
+| R1 | `JournalTab`: `saveErrorMessage?.let` becomes `?.takeIf { false }?.let` | 3 screen classes | CONFIRMED, 20 of 31: every compact Toast test, "Toasts shown expected:<1> but was:<0>" (twice test: `<2>` … `<0>`). The wide tests and the log tests pass. |
+| R2 | The same edit in `LogPanel` | 3 screen classes | CONFIRMED, 8 of 31: the wide Toast tests only. |
+| R3 | `JournalTab`: `onCartographySaveErrorDismissed()` becomes `Unit` | 2 compact classes | CONFIRMED, 20 of 22: "cleared once shown expected null, but was:<…>", with each message's own text. The twice test fails with "Toasts shown expected:<2> but was:<1>". |
+| R4 | `onDiscardEntryChanges`: the `saveErrorMessage = null` line removed | `CartographyViewModelTest` and 3 screen classes | CONFIRMED, 1 of 54: the Discard test, "expected:<null> but was:<Couldn't save your changes.>". |
+| R5 | `onStartEntry`: the `Log.w` line removed | 3 screen classes | CONFIRMED, 3 of 31: the three log tests, "expected:<1> but was:<0>". |
+| R6 | `LogPanel`: `onCartographySaveErrorDismissed()` becomes `Unit` | wide class | CONFIRMED, 8 of 9: as R3, for the wide tree. |
+
+`-76` asked for at least one check on the hosting and one on the Discard clear. R1 and R2 check the
+hosting and R4 the Discard clear. R3, R5 and R6 are extra.
+
+### Full suite
+
+- **Run `full1`, at `fa5aa9e`:** `./gradlew --offline :app:testDebugUnitTest`, from a results directory
+  cleared just before. **296 classes / 2406 tests / 0 failures / 0 errors / 24 skipped.**
+- **The build log:** 0 `e: ` lines. `:app:testDebugUnitTest` executed; it was not taken from the build
+  cache or left up to date. The XML is fresh: the directory was cleared first, and the summed suite
+  time is 165 s.
+- **Against the planner's base figure** (`293 / 2374 / 0 / 0 / 24`): +3 classes and +32 tests, which are
+  the three new window classes and the 32 new tests. The skipped count is unchanged at 24.
+- **Merge afterwards:** `3e4ee3e` merged the remote's `fda3158`, `9c7d0a5` and `de22474` (records,
+  plans and prompts only). `git diff fa5aa9e 3e4ee3e -- app` is empty, so the suite ran on the same
+  `app/` that is pushed.
+
+### Not tested
+
+- **What the phone shows.** `ShadowToast` records that `show()` was called with the text. It says
+  nothing about whether the Toast is visible, how long it stays, or whether it can be read on the phone.
+- **A real slow disk.** The off-screen case uses a save held open by the test. How long a real write
+  can take, and how often it happens after the user has left the Journal, is not known.
+- **A Toast raised while the app is in the background.** A failure can land during ON_STOP, for
+  example a pending delete committed when the ViewModel is cleared (`onCleared` logs its own failure
+  and sets no message). In that case the Toast would come from a stopped activity. Not exercised.
+- **The wide tree's card delete.** It does not exist, so its failure cannot be shown there (the pulse's
+  gap table, J6's scope).
+
+### Device-only, listed not run
+
+The Toast for each of the seven messages on the S22, in portrait and in landscape at 90 and 270:
+legible, on screen long enough to read, and not hidden by the keyboard or the icon cluster.
+Also on the S22: a failure raised off screen (a card's Delete, then Maps before the Undo snackbar
+ends, on a store that refuses) showing when the Journal opens. A refused write cannot be forced on the
+device without code, so this needs a debug hook or a full-disk setup, which is for the owner to decide.
+
+### D58
+
+The three phrases were checked before each push, over the diff since `8dbfd14`, the staged and
+untracked files, this report and every commit message since `8dbfd14`. Every push had zero hits.
+
+### Verbatim: planner message `2026-09-28-76` (store copy at `fda3158`)
+
+````text
+HEAD: c6e736d (journal-redesign)
+Target subagent: the save-failure coder (SendMessage), continuing dispatch 2026-09-28-68 after its stop at ea60d72
+Type: continuation
+Preserved: 2026-09-28T21:06:34Z by the planner, by hand, time read from the clock.
+--- verbatim message follows ---
+Planner message `2026-09-28-76`, part of dispatch `2026-09-28-68`. Quote it verbatim in your report. It answers your stop at `ea60d72`. **Build it.**
+
+**The owner's rulings, verbatim:**
+- "For the failures, keep the messages as they are. They are specific to the action which is a feature."
+- "Option B for your question." Option B, as the planner put it to the owner: "The same pop-up, but only while the Journal is open. A failure that happens elsewhere waits until you next open the Journal." That is your option 1: a Toast hosted like the find editor's.
+
+**What to build:**
+- **All seven failures show**, each with its existing message verbatim: `CartographyViewModel.kt:348`, `:388`, `:430`, `:467`, `:488`, `:573` and `:672` at `8dbfd14`. No wording changes.
+- **Host** the Toast in `JournalTab` (compact) and `LogPanel` (wide), the way the find editor's is hosted (`JournalTab.kt:300-305`, `LogPanel.kt:232-237`).
+- **Dismissal:** call the existing `onSaveErrorDismissed` (`:650-652`) once it has shown, threading the callback from `MainActivity`. The message clears once shown or on the next successful write. A failure raised while the Journal is not on screen shows when the Journal next opens.
+- **Planner's ruling:** `onDiscardEntryChanges`'s success path (`:450-464`) clears `saveErrorMessage`, as every other success path does. A stale message must not survive a successful Discard. Record it in the report.
+- **Planner's ruling:** log the dropped failure in `onStartEntry` (`CartographyViewModel.kt:133`, `saveEntry(decided).getOrElse { decided }`), following CLAUDE.md's rule that a fallback is logged when it fires. Log only: no UI and no message. The planner told the owner, who did not object.
+
+**Scope** widens to `JournalTab.kt`, `LogPanel.kt` and `MainActivity.kt`, plus any host in between that the callback must pass through. It is for threading and hosting only, with no other behaviour change.
+
+**Tests first**, each seen failing at base for its stated reason, through the real entry points with a failing repository:
+- each of the seven actions shows its own message, exactly (a parametrised test is fine);
+- the message clears after it has shown;
+- a failure raised while the Journal is off screen shows when the Journal next opens;
+- Discard success clears a pending message;
+- the `onStartEntry` failure is logged and shows nothing.
+
+Cover portrait, `w823dp-h384dp-land` and a wide window for `LogPanel`.
+
+**Everything else in `-68` stands:** a revert check (at least one on the hosting, one on the Discard clear), the full suite from a cleared results directory, D58, the report (append a "Resumed" section to your stop report), and no merge.
+````
+
+### Verbatim: the planner's summary of `-76`, as received
+
+````text
+This is planner message `2026-09-28-76`, part of dispatch `2026-09-28-68`. **Build it.** The full text is at `prompts/preserved/2026-09-28-76.md` on `origin/journal-redesign` at `fda3158`. Fetch it, read it in full and quote it verbatim; the file governs over this summary.
+
+- **Owner, verbatim:** "For the failures, keep the messages as they are. They are specific to the action which is a feature." All seven messages show, each verbatim.
+- **Owner, "Option B":** your option 1, a Toast hosted in `JournalTab` and `LogPanel` like the find editor's, calling `onSaveErrorDismissed` (threaded from `MainActivity`). It clears once shown or on the next successful write. A failure raised off-screen shows when the Journal next opens.
+- **Planner's rulings:**
+  - a successful Discard clears the message;
+  - the dropped failure in `onStartEntry` (`:133`) gets a log line only, with no UI.
+- **Scope** widens to `JournalTab`, `LogPanel`, `MainActivity` and the hosts between them, for threading only.
+- **Tests first** through the real entry points, in portrait, `w823dp-h384dp-land` and a wide window. Then the revert checks, the full suite and a "Resumed" section in your report.
+
+Check memory before Gradle: two device coders are on this machine. Hand back when you finish or stop.
+````
+
+### Verbatim: the planner's resume message after the outage
+
+````text
+Planner: resume continuation `2026-09-28-76` of `2026-09-28-68`. Your turn was cut off by a network outage ("API Error: Can't reach the API server (EAI_AGAIN)"). Nothing is wrong with your work, and your context is intact. Your last note was "Now the inert threading (stub) edits in main."
+
+Before your next action:
+- run `git status` and `git diff --stat` in your worktree, and check that your last edit is present and whole;
+- do not assume your last command completed.
+
+If you have uncommitted work you would not want to lose to another outage, commit it to `save-failure-wip` and push it before continuing ("Push before you tidy"). Then carry on. Before any Gradle run, check that no other Gradle build is running (the map-chrome coder shares the machine) and that 2.5 GB is free. Hand back when you finish or stop.
+````
+
+### Decisions I made (resumed)
+
+- **The new parameter's default is `{}`.** `JournalTab`, `LogPanel` and `AvailabilityScreen` take
+  `onCartographySaveErrorDismissed: () -> Unit = {}`, so the 7 test files that call `JournalTab` or
+  `LogPanel` directly needed no change. This follows the sibling Cartography parameters and J8's
+  `onCartographyShownOnMapErrorDismissed`. The cost: a caller that forgets it gets a Toast whose
+  message never clears. The one production path passes it, and R3 and R6 catch its loss. The compact
+  scaffold, which has only one caller, takes it with no default.
+- **Tests first had to compile first.** `9e2cfde` threads inert parameters, which the J8 coder also did
+  ("tests first, stubs in main"). So the failing run was at the base plus parameters, not at `8dbfd14`
+  itself.
+- **Test design.** The planner did not specify how to test, so I chose:
+  - one new class file with three window classes, and explicit test methods rather than a
+    parametrised runner;
+  - the drafts' autosave, typed twice, as the "clears after it has shown" case;
+  - a held-open save as the off-screen case in all three windows, plus the card delete on the Maps tab
+    in the compact tree;
+  - the wide window at `w1280dp-h900dp-mdpi`, as J8 used.
+- **The Discard check is at ViewModel level**, for the reason given above.
+- **The log line's wording** is mine: a developer log, not user-facing copy.
+- **I added a doc comment** to `CartographyViewModel.onSaveErrorDismissed`.
+- **Revert checks R3, R5 and R6** go beyond the two `-76` asked for.
+- **I fixed my own harness after `tf1`** (the missing `pendingDeleteNotices`) and re-ran only the compact
+  classes to see the four fail for the stated reason.
+
+### Flags outside scope (resumed)
+
+- **The wide tree's `LogPanel` has no card delete for entries**, so the `:579` failure path cannot arise
+  there. This is a known gap (J6), recorded here as the reason that path is tested in the compact tree only.
+- **`CartographyViewModel.onCleared`** (`:591-601` at `fa5aa9e`) commits a pending delete after the
+  ViewModel is gone. A failure there is logged only and cannot be shown. Unchanged; noted because it
+  is the one entry-delete failure no Toast covers.
+- **The scaffold's header comment**, which lists "every parameter this extraction created"
+  (the comment opening at `AvailabilityCompactScaffold.kt:20`), does not name the new parameter. Later additions such as
+  `onRequestDeleteCartographyEntry` are not named there either, so I left it alone.

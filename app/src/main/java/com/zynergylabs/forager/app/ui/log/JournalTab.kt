@@ -198,6 +198,13 @@ internal fun JournalTab(
     onDiscardCartographyEntryChanges: () -> Unit = {},
     /** The backgrounding-return prompt's "Save as draft" option — pending-edit-and-fixes dispatch, Item 1. See [CartographyScreen]'s own lifecycle-observer doc comment. */
     onSaveCartographyEntryAsDraft: () -> Unit = {},
+    /**
+     * Clears [CartographyUiState.saveErrorMessage] once its Toast (below) has shown, the day entries'
+     * counterpart of [onSaveErrorDismissed] (intent `2026-09-28-68`, continuation `2026-09-28-76`).
+     * The default is only for callers that host this on its own (tests); `AvailabilityScreen` passes
+     * `CartographyViewModel.onSaveErrorDismissed`.
+     */
+    onCartographySaveErrorDismissed: () -> Unit = {},
     onDeleteCartographyEntry: (String) -> Unit,
     /**
      * An entry card's Delete (journal redesign J4b L2: the revealed Delete, a full swipe, or the
@@ -301,6 +308,16 @@ internal fun JournalTab(
         uiState.saveErrorMessage?.let {
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
             onSaveErrorDismissed()
+        }
+    }
+    // Intent 2026-09-28-68, continuation 2026-09-28-76 (the owner: "Option B"): a day entry's failed
+    // save, Finish, Save as draft, Discard or delete, told the same way as the find's just above and
+    // cleared once shown. Hosted here, not in AvailabilityScreen, so a failure raised while the
+    // Journal is not on screen waits in the ViewModel and shows when the Journal next opens.
+    LaunchedEffect(cartographyUiState.saveErrorMessage) {
+        cartographyUiState.saveErrorMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            onCartographySaveErrorDismissed()
         }
     }
 
