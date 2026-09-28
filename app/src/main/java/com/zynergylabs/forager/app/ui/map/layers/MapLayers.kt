@@ -150,7 +150,7 @@ private val LINE_OPACITY = listOf(BaseOpacity(OpacityProperty.LINE, 1f))
 private val ICON_OPACITY = listOf(BaseOpacity(OpacityProperty.ICON, 1f))
 
 /** The offline region's fill opacity, today's value (Journal Stage 2d). */
-private const val OFFLINE_REGION_FILL_OPACITY = 0.2f
+internal const val OFFLINE_REGION_FILL_OPACITY = 0.2f
 
 /** The sighting dot's fill opacity, today's value: about the deleted osmdroid version's 0xB3 alpha. */
 private const val SIGHTING_DOT_OPACITY = 0.7f
