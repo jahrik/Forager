@@ -126,6 +126,9 @@ data class MapLayerSpec(
 object MapLayerIds {
     const val OFFLINE_REGION_FILL = "offline-region-circles-layer"
     const val OFFLINE_REGION_OUTLINE = "offline-region-circles-outline-layer"
+
+    // The night border under the offline outline's dashes (dispatch 2026-09-28-79).
+    const val OFFLINE_REGION_BORDER = "offline-region-circles-border-layer"
     const val SEARCH_CENTRE = "search-center-layer"
     const val SIGHTINGS = "sightings-layer"
     const val BREADCRUMB_CASING = "breadcrumb-trail-casing-layer"

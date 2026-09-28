@@ -1,6 +1,10 @@
 package com.zynergylabs.forager.app.ui.map.layers
 
+import com.zynergylabs.forager.app.ui.theme.MapPalette
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -22,6 +26,13 @@ import org.junit.Test
  * taking no taps, all following the one "Journal entries" switch. No other layer moved; the assertions
  * that pinned the registry's contents are re-pinned with the five added, and the halos' own rules are
  * new tests below.
+ *
+ * The night outline border (`prompts/preserved/2026-09-28-79.md`; owner: "The outline should have a
+ * white border", "Yes the night outline only"): one line layer directly below the offline outline, in
+ * the track casing's pattern, so the region's halo now sits below it as the kept tracks' halo sits
+ * below their casing. It takes no taps, follows the fill's switch and draws at its own base opacity.
+ * No other layer moved; the assertions that pin the registry's contents are re-pinned with it added,
+ * and its own rules are a new test below.
  */
 class MapLayerRegistryTest {
 
@@ -53,9 +64,13 @@ class MapLayerRegistryTest {
         MapLayerIds.JOURNAL_ENTRY_PHOTOS,
     )
 
+    /** The night border under the offline outline (dispatch `2026-09-28-79`). */
+    private val nightBorder = listOf(MapLayerIds.OFFLINE_REGION_BORDER)
+
     private val expectedOrder = colourFields + listOf(
         MapLayerIds.OFFLINE_REGION_FILL,
         MapLayerIds.JOURNAL_ENTRY_REGIONS,
+        MapLayerIds.OFFLINE_REGION_BORDER,
         MapLayerIds.OFFLINE_REGION_OUTLINE,
         MapLayerIds.BREADCRUMB_CASING,
         MapLayerIds.BREADCRUMB,
@@ -79,8 +94,8 @@ class MapLayerRegistryTest {
     fun `every current layer is in the registry exactly once, and nothing else is`() {
         val ids = MAP_LAYER_REGISTRY.map { it.id }
         assertEquals("ids are unique", ids.size, ids.toSet().size)
-        assertEquals((orderBeforeL0a + colourFields + journalHalos).toSet(), ids.toSet())
-        assertEquals(19, ids.size)
+        assertEquals((orderBeforeL0a + colourFields + journalHalos + nightBorder).toSet(), ids.toSet())
+        assertEquals(20, ids.size)
     }
 
     @Test
@@ -92,7 +107,7 @@ class MapLayerRegistryTest {
     fun `the only change from the order before L0a is the search centre and the sightings moving above every line`() {
         val moved = setOf(MapLayerIds.SEARCH_CENTRE, MapLayerIds.SIGHTINGS)
         val ids = MAP_LAYER_REGISTRY.map { it.id }
-        assertEquals("every other layer keeps its relative order", orderBeforeL0a - moved, ids - moved - colourFields.toSet() - journalHalos.toSet())
+        assertEquals("every other layer keeps its relative order", orderBeforeL0a - moved, ids - moved - colourFields.toSet() - journalHalos.toSet() - nightBorder.toSet())
         val lastLine = ids.indexOfLast { spec(it).zGroup == ZGroup.LINES }
         moved.forEach { assertTrue("$it draws above every line", ids.indexOf(it) > lastLine) }
     }
@@ -119,6 +134,7 @@ class MapLayerRegistryTest {
             MapLayerIds.FORECAST_CHANTERELLES to Triple(LayerKind.COLOUR_FIELD, LayerRenderer.FILL, MapSourceIds.FORECAST_CHANTERELLES),
             MapLayerIds.OFFLINE_REGION_FILL to Triple(LayerKind.AREA, LayerRenderer.FILL, MapSourceIds.OFFLINE_REGIONS),
             MapLayerIds.OFFLINE_REGION_OUTLINE to Triple(LayerKind.LINE, LayerRenderer.LINE, MapSourceIds.OFFLINE_REGIONS),
+            MapLayerIds.OFFLINE_REGION_BORDER to Triple(LayerKind.LINE, LayerRenderer.LINE, MapSourceIds.OFFLINE_REGIONS),
             MapLayerIds.BREADCRUMB_CASING to Triple(LayerKind.LINE, LayerRenderer.LINE, MapSourceIds.BREADCRUMB),
             MapLayerIds.BREADCRUMB to Triple(LayerKind.LINE, LayerRenderer.LINE, MapSourceIds.BREADCRUMB),
             MapLayerIds.KEPT_TRACKS_CASING to Triple(LayerKind.LINE, LayerRenderer.LINE, MapSourceIds.KEPT_TRACKS),
@@ -148,6 +164,8 @@ class MapLayerRegistryTest {
             MapLayerIds.FORECAST_CHANTERELLES to TapGroup.COLOUR_FIELD,
             MapLayerIds.OFFLINE_REGION_FILL to TapGroup.NONE,
             MapLayerIds.OFFLINE_REGION_OUTLINE to TapGroup.LINE,
+            // -79: the night border is decoration under the outline, as a casing is under its track.
+            MapLayerIds.OFFLINE_REGION_BORDER to TapGroup.NONE,
             MapLayerIds.BREADCRUMB_CASING to TapGroup.NONE,
             // M1 (owner's ruling 4, "Not tappable"): the recording trail and the search centre.
             MapLayerIds.BREADCRUMB to TapGroup.NONE,
@@ -170,14 +188,15 @@ class MapLayerRegistryTest {
     }
 
     @Test
-    fun `base opacities are today's values - the sighting fill 0_7 and ring 0_85, the offline fill 0_2, everything else 1`() {
+    fun `base opacities are today's values - the sighting fill 0_7 and ring 0_85, the offline fill 0_2, the night border 0_85, everything else 1`() {
         assertEquals(
             listOf(BaseOpacity(OpacityProperty.CIRCLE, 0.7f), BaseOpacity(OpacityProperty.CIRCLE_STROKE, 0.85f)),
             spec(MapLayerIds.SIGHTINGS).baseOpacities,
         )
         assertEquals(listOf(BaseOpacity(OpacityProperty.FILL, 0.2f)), spec(MapLayerIds.OFFLINE_REGION_FILL).baseOpacities)
         colourFields.forEach { assertEquals(it, listOf(BaseOpacity(OpacityProperty.FILL, 0.6f)), spec(it).baseOpacities) }
-        MAP_LAYER_REGISTRY.filter { it.renderer == LayerRenderer.LINE }.forEach {
+        assertEquals(listOf(BaseOpacity(OpacityProperty.LINE, 0.85f)), spec(MapLayerIds.OFFLINE_REGION_BORDER).baseOpacities)
+        MAP_LAYER_REGISTRY.filter { it.renderer == LayerRenderer.LINE && it.id != MapLayerIds.OFFLINE_REGION_BORDER }.forEach {
             assertEquals(it.id, listOf(BaseOpacity(OpacityProperty.LINE, 1f)), it.baseOpacities)
         }
         MAP_LAYER_REGISTRY.filter { it.renderer == LayerRenderer.SYMBOL }.forEach {
@@ -186,13 +205,14 @@ class MapLayerRegistryTest {
     }
 
     @Test
-    fun `a casing follows its own track's state, the offline outline follows the fill, and the halos follow the Journal entries switch`() {
+    fun `a casing follows its own track's state, the offline outline and its border follow the fill, and the halos follow the Journal entries switch`() {
         val owners = MAP_LAYER_REGISTRY.filter { it.stateOwnerId != null }.associate { it.id to it.stateOwnerId }
         assertEquals(
             mapOf(
                 MapLayerIds.BREADCRUMB_CASING to MapLayerIds.BREADCRUMB,
                 MapLayerIds.KEPT_TRACKS_CASING to MapLayerIds.KEPT_TRACKS,
                 MapLayerIds.OFFLINE_REGION_OUTLINE to MapLayerIds.OFFLINE_REGION_FILL,
+                MapLayerIds.OFFLINE_REGION_BORDER to MapLayerIds.OFFLINE_REGION_FILL,
                 MapLayerIds.JOURNAL_ENTRY_REGIONS to JOURNAL_ENTRIES_SWITCH_LAYER_ID,
                 MapLayerIds.JOURNAL_ENTRY_WAYPOINTS to JOURNAL_ENTRIES_SWITCH_LAYER_ID,
                 MapLayerIds.JOURNAL_ENTRY_FINDS to JOURNAL_ENTRIES_SWITCH_LAYER_ID,
@@ -228,7 +248,8 @@ class MapLayerRegistryTest {
         val ids = MAP_LAYER_REGISTRY.map { it.id }
         // halo to (the record layer it decorates, the layer it sits directly below: the record's casing, for a line with one)
         val expected = mapOf(
-            MapLayerIds.JOURNAL_ENTRY_REGIONS to (MapLayerIds.OFFLINE_REGION_OUTLINE to MapLayerIds.OFFLINE_REGION_OUTLINE),
+            // -79: the offline outline's casing is its night border, so the region's halo sits below that.
+            MapLayerIds.JOURNAL_ENTRY_REGIONS to (MapLayerIds.OFFLINE_REGION_OUTLINE to MapLayerIds.OFFLINE_REGION_BORDER),
             MapLayerIds.JOURNAL_ENTRY_TRACKS to (MapLayerIds.KEPT_TRACKS to MapLayerIds.KEPT_TRACKS_CASING),
             MapLayerIds.JOURNAL_ENTRY_WAYPOINTS to (MapLayerIds.WAYPOINTS to MapLayerIds.WAYPOINTS),
             MapLayerIds.JOURNAL_ENTRY_FINDS to (MapLayerIds.FINDS to MapLayerIds.FINDS),
@@ -244,6 +265,35 @@ class MapLayerRegistryTest {
             assertEquals(halo, PaletteRole.JOURNAL_ENTRY, spec(halo).paletteRole)
         }
         assertEquals(journalHalos, MAP_LAYER_REGISTRY.filter { it.paletteRole == PaletteRole.JOURNAL_ENTRY }.map { it.id })
+    }
+
+    /**
+     * Dispatch `2026-09-28-79`: the night border is part of the outline's layer group, directly below
+     * the outline and above the region's halo (the kept tracks' order: halo, casing, line). It takes no
+     * taps, so what a tap reaches is unchanged; it is not offered on its own and follows the fill's
+     * switch, hiding with it; and it draws at [OpacityProperty.LINE] 0.85, in a role that is opaque
+     * white at night and fully transparent by day.
+     */
+    @Test
+    fun `the offline outline's night border sits directly below the outline and above the region's halo, takes no taps and follows the fill`() {
+        val border = MAP_LAYER_REGISTRY.singleOrNull { it.id == MapLayerIds.OFFLINE_REGION_BORDER }
+        assertNotNull("no border layer under the offline outline in the registry", border)
+        val ids = MAP_LAYER_REGISTRY.map { it.id }
+        assertEquals("directly below the outline", ids.indexOf(MapLayerIds.OFFLINE_REGION_OUTLINE) - 1, ids.indexOf(border!!.id))
+        assertEquals("directly above the region's halo", ids.indexOf(MapLayerIds.JOURNAL_ENTRY_REGIONS) + 1, ids.indexOf(border.id))
+        assertEquals(ZGroup.LINES, border.zGroup)
+        assertEquals(TapGroup.NONE, border.tapGroup)
+        assertFalse("not a tap target", border.id in tappableLayerIds(orderedLayers(MAP_LAYER_REGISTRY, MapLayersState.DEFAULT)))
+        assertEquals(MapLayerIds.OFFLINE_REGION_FILL, border.stateOwnerId)
+        assertFalse(border.userToggleable)
+        assertFalse(border.userOpacity)
+        assertFalse(border.userReorderable)
+        assertNull("a casing, not a decoration", border.drawnWith)
+        assertEquals(listOf(BaseOpacity(OpacityProperty.LINE, 0.85f)), border.baseOpacities)
+        val fillHidden = MapLayersState(layers = mapOf(MapLayerIds.OFFLINE_REGION_FILL to LayerState(visible = false)))
+        assertFalse("hides with the Offline maps switch", layerPaintFor(border, fillHidden).visible)
+        assertEquals("opaque white at night", "#FFFFFFFF", "#%08X".format(border.paletteRole!!.colourOf(MapPalette.NIGHT)))
+        assertEquals("fully transparent by day", 0, border.paletteRole!!.colourOf(MapPalette.DAY) ushr 24)
     }
 
     @Test

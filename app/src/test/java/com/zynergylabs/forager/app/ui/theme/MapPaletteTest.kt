@@ -1,8 +1,12 @@
 package com.zynergylabs.forager.app.ui.theme
 
+import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
+import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import com.zynergylabs.forager.app.ui.map.layers.OFFLINE_REGION_FILL_OPACITY
+import com.zynergylabs.forager.app.ui.map.layers.OpacityProperty
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.fail
 import org.junit.Test
 import kotlin.math.abs
@@ -67,6 +71,15 @@ import kotlin.math.sqrt
  * and with the new colour farther from every existing role than that role's own pinned (d), so no
  * existing pin moved. Its (c) is against the casing because the halo is drawn around the record's
  * own casing. The owner judges the pair on the phone.
+ *
+ * **The night outline's border** (`prompts/preserved/2026-09-28-79.md`; owner: "The outline should have
+ * a white border", "Yes the night outline only") is a line under the offline region's dashed outline at
+ * night, white at its registry opacity, so that the edge carries over the darkest night ground, where
+ * the black dashes alone measured 1.08:1 to 1.45:1 on the phone (Part 1, check 5 (b)). It is not a fill
+ * role and has no (a) to (e) pin. Its figures are held the same way as the rest: a ratchet per night
+ * ground cluster in [nightOfflineBorderPins], and the dispatch's target, 3:1 over Part 1's darkest night
+ * ground ([part1DarkestNightGround]), asserted as a bar because it passes. The coder proposed the
+ * values; the owner judges them on the phone.
  *
  * ## What this does not establish
  *
@@ -218,6 +231,67 @@ class MapPaletteTest {
         AsDrawnPin(0xFF537342, deltaE = 0.054, casingOverRegion = 3.093, casingOverGround = 3.898),
     )
 
+    /**
+     * Part 1's darkest night ground (`docs/audits/2026-09-28-stage-device-check-part-1-run-record.md`,
+     * check 5 (b)), read from its overlay-off frames (`272-topo-night-off.png`, `281-street-night-off.png`,
+     * outside the repository) along its fitted edge circle, centre (600.5, 1255.7), radius 426.6 px:
+     * `#0E0D0A`, the mean plain ground 7 to 13 px outside the edge in the darkest 10-degree bin
+     * (Topographical, 70 to 80 degrees, relative luminance 0.0061, the run record's "0.006"); and
+     * `#010101`, the darkest single pixel within 13 px of the edge on either basemap. The border's
+     * target is 3:1 against both (dispatch `2026-09-28-79`).
+     */
+    private val part1DarkestNightGround = listOf(0xFF0E0D0A, 0xFF010101).map { it.toInt() }
+
+    /**
+     * One night ground cluster's figures for the offline outline's border, each floored to three
+     * decimals: the border composited over the plain ground outside the edge, as its WCAG contrast with
+     * that ground ([outside]); the same over the region's composite inside the edge ([inside]); and the
+     * black dash against the border, on the weaker of the two sides ([dash]).
+     */
+    private data class BorderPin(val ground: Long, val outside: Double, val inside: Double, val dash: Double)
+
+    /** One ground's border figures as measured, unfloored: [BorderPin]'s three, before the pin. */
+    private data class BorderFigures(val outside: Double, val inside: Double, val dash: Double)
+
+    /**
+     * The night border at `#FFFFFF` and line opacity 0.85 (the coder's proposal, dispatch
+     * `2026-09-28-79`), over every [nightGround] cluster in its order, with the fill at `#202020` and
+     * [OFFLINE_REGION_FILL_OPACITY] 0.2. Ratchets: each is asserted not to get worse. The border is
+     * under 3:1 against its ground on the six lightest clusters (lowest `#C2D076`, 1.553 outside), where
+     * the black dashes are 6.6:1 or more against the plain ground (`nightOfflineRegionAsDrawn`). Over the
+     * darkest cluster, `#020302`, it is 14.636 outside and 14.267 inside, and over `#22201C`, where the
+     * fill all but vanishes, 12.078 and 12.069. The dash is 14.877:1 or more against the border on every
+     * cluster.
+     */
+    private val nightOfflineBorderPins = listOf(
+        BorderPin(0xFF4E6012, outside = 5.573, inside = 6.599, dash = 16.507),
+        BorderPin(0xFF627524, outside = 4.211, inside = 5.245, dash = 16.962),
+        BorderPin(0xFF334801, outside = 7.866, inside = 8.647, dash = 16.060),
+        BorderPin(0xFF798936, outside = 3.257, inside = 4.192, dash = 17.276),
+        BorderPin(0xFF879A45, outside = 2.697, inside = 3.534, dash = 17.594),
+        BorderPin(0xFF9CA754, outside = 2.297, inside = 3.081, dash = 17.916),
+        BorderPin(0xFF59490A, outside = 6.915, inside = 7.816, dash = 16.309),
+        BorderPin(0xFF465208, outside = 6.672, inside = 7.650, dash = 16.354),
+        BorderPin(0xFF2A2D01, outside = 10.718, inside = 11.025, dash = 15.705),
+        BorderPin(0xFFAEBC65, outside = 1.869, inside = 2.544, dash = 18.276),
+        BorderPin(0xFFC2D076, outside = 1.553, inside = 2.151, dash = 18.725),
+        BorderPin(0xFF666319, outside = 5.059, inside = 6.058, dash = 16.727),
+        BorderPin(0xFF323701, outside = 9.474, inside = 10.056, dash = 15.844),
+        BorderPin(0xFF4B3A04, outside = 8.431, inside = 9.195, dash = 16.048),
+        BorderPin(0xFFA49047, outside = 2.715, inside = 3.561, dash = 17.582),
+        BorderPin(0xFF7F752A, outside = 3.883, inside = 4.890, dash = 17.072),
+        BorderPin(0xFF020302, outside = 14.636, inside = 14.267, dash = 14.877),
+        BorderPin(0xFFBEA964, outside = 2.071, inside = 2.799, dash = 18.077),
+        BorderPin(0xFF2E5CFA, outside = 4.228, inside = 5.316, dash = 16.700),
+        BorderPin(0xFF446835, outside = 5.155, inside = 6.146, dash = 16.628),
+        BorderPin(0xFF5C7D4A, outside = 3.903, inside = 4.910, dash = 17.096),
+        BorderPin(0xFF173E48, outside = 8.818, inside = 9.483, dash = 15.942),
+        BorderPin(0xFF3C512B, outside = 6.866, inside = 7.776, dash = 16.254),
+        BorderPin(0xFF1F342E, outside = 10.020, inside = 10.424, dash = 15.802),
+        BorderPin(0xFF22201C, outside = 12.078, inside = 12.069, dash = 15.598),
+        BorderPin(0xFF537342, outside = 4.414, inside = 5.439, dash = 16.827),
+    )
+
     /** The 12 fill roles (d) compares; the sighting ring and the casing are casings, not roles. */
     private fun fills(p: MapPalette) = mapOf(
         "waypoint" to p.waypoint,
@@ -355,6 +429,65 @@ class MapPaletteTest {
         }
         if (failures.isNotEmpty()) {
             fail("Night offline region as drawn, fill ${hex(fill)} at $opacity:\n  " + failures.joinToString("\n  "))
+        }
+    }
+
+    /**
+     * The night outline's border (dispatch `2026-09-28-79`), as drawn: white at the border layer's
+     * registry opacity over the ground either side of the edge, the plain ground outside and the
+     * region's composite inside. The dispatch's target is asserted as a bar over Part 1's darkest
+     * night ground: 3:1 for the border against the ground it lies on, on both sides, and 3:1 for the
+     * black dashes against the border, so that they still read as dashes. Every night ground cluster's
+     * figures are ratchets ([nightOfflineBorderPins]). The fill is pinned first: the border does not
+     * change it (owner: "The fill color and opacity is fine as is").
+     */
+    @Test
+    fun `the night outline border holds 3 to 1 over Part 1's darkest night ground, and its figures over every night ground cluster`() {
+        assertEquals("NIGHT.offlineRegion is unchanged", "#202020", hex(MapPalette.NIGHT.offlineRegion))
+        assertEquals("the fill's opacity is unchanged", 0.2f, OFFLINE_REGION_FILL_OPACITY, 0f)
+        val spec = MAP_LAYER_REGISTRY.singleOrNull { it.id == MapLayerIds.OFFLINE_REGION_BORDER }
+        assertNotNull("no border layer under the offline outline in the registry", spec)
+        val border = spec!!.paletteRole!!.colourOf(MapPalette.NIGHT)
+        assertEquals("the border is opaque white at night", "#FFFFFFFF", "#%08X".format(border))
+        val opacity = spec.baseOpacities.single { it.property == OpacityProperty.LINE }.base.toDouble()
+        val dash = MapPalette.NIGHT.casing
+        val fillOpacity = OFFLINE_REGION_FILL_OPACITY.toDouble()
+
+        fun figures(ground: Int): BorderFigures {
+            val region = composite(MapPalette.NIGHT.offlineRegion, ground, fillOpacity)
+            val overGround = composite(border, ground, opacity)
+            val overRegion = composite(border, region, opacity)
+            return BorderFigures(
+                outside = contrastRatio(overGround, ground),
+                inside = contrastRatio(overRegion, region),
+                dash = minOf(contrastRatio(dash, overGround), contrastRatio(dash, overRegion)),
+            )
+        }
+
+        val failures = mutableListOf<String>()
+        for (ground in part1DarkestNightGround) {
+            val f = figures(ground)
+            if (f.outside < 3.0) failures += "Part 1 ground %s: border outside is %.4f:1, target 3:1".format(hex(ground), f.outside)
+            if (f.inside < 3.0) failures += "Part 1 ground %s: border inside is %.4f:1, target 3:1".format(hex(ground), f.inside)
+            if (f.dash < 3.0) failures += "Part 1 ground %s: dash on border is %.4f:1, target 3:1".format(hex(ground), f.dash)
+        }
+        assertEquals(
+            "one border pin per night ground cluster, in order",
+            nightGround.map { hex(it) },
+            nightOfflineBorderPins.map { hex(it.ground.toInt()) },
+        )
+        for (pin in nightOfflineBorderPins) {
+            val f = figures(pin.ground.toInt())
+            listOf(
+                Triple("border outside", f.outside, pin.outside),
+                Triple("border inside", f.inside, pin.inside),
+                Triple("dash on border", f.dash, pin.dash),
+            ).forEach { (name, value, pinned) ->
+                if (floor3(value) < pinned) failures += "ground %s: %s is %.4f:1, pinned at %.3f".format(hex(pin.ground.toInt()), name, value, pinned)
+            }
+        }
+        if (failures.isNotEmpty()) {
+            fail("Night outline border, ${hex(border)} at $opacity:\n  " + failures.joinToString("\n  "))
         }
     }
 

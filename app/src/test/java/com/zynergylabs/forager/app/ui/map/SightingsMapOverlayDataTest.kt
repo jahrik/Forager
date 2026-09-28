@@ -9,10 +9,13 @@ import com.zynergylabs.forager.app.domain.model.RecordRegion
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import com.zynergylabs.forager.app.ui.map.layers.TRACK_WIDTH_ZOOM_STOPS
 import com.zynergylabs.forager.app.ui.theme.MapPalette
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.maplibre.android.style.expressions.Expression
@@ -281,6 +284,49 @@ class SightingsMapOverlayDataTest {
         assertEquals(6f, dashDp[0], 1e-4f)
         assertEquals(4f, dashDp[1], 1e-4f)
         assertTrue("butt ends, not round", !spec.roundCaps)
+    }
+
+    /**
+     * Dispatch `2026-09-28-79` (owner: "The outline should have a white border"; "Yes the night outline
+     * only"): at night the offline region's dashed outline has a border line beneath it, in the track
+     * casing's pattern: the outline's own line, [CASING_WIDTH_DP] wider on each side, solid, on the same
+     * source, with the outline's caps and its constant width, in opaque white. Its opacity is the
+     * registry's (`MapLayerRegistryTest`), and its figures against the night ground are in
+     * `MapPaletteTest`.
+     */
+    @Test
+    fun `at night the offline outline has a solid white border beneath it, the casing width wider on each side`() {
+        val border = lineSpecForLayer(MapLayerIds.OFFLINE_REGION_BORDER)
+        assertNotNull("no border line is built under the offline outline", border)
+        val outline = offlineRegionOutlineSpec()
+        assertEquals("on the outline's own source", outline.sourceId, border!!.sourceId)
+        assertEquals("opaque white at night", "#FFFFFFFF", "#%08X".format(border.colour(MapPalette.NIGHT)))
+        assertEquals("the casing width wider on each side", outline.widthDp + 2 * CASING_WIDTH_DP, border.widthDp, 0f)
+        assertEquals("4.5 dp in all", 4.5f, border.widthDp, 0f)
+        assertNull("solid, so the edge carries through the dashes' gaps", border.dashPattern)
+        assertNull("a constant width, like the outline", border.widthByZoom)
+        assertEquals("the outline's caps", outline.roundCaps, border.roundCaps)
+    }
+
+    /**
+     * Dispatch `2026-09-28-79`: the border is night only, and the day outline does not change. By day
+     * the border's colour is fully transparent, so it draws nothing, and the outline is still the white
+     * dashed casing line, 1.5 dp, dash 6 dp and gap 4 dp, with butt ends.
+     */
+    @Test
+    fun `by day the offline outline is unchanged and its border draws nothing`() {
+        val border = lineSpecForLayer(MapLayerIds.OFFLINE_REGION_BORDER)
+        assertNotNull("no border line is built under the offline outline", border)
+        assertEquals("fully transparent by day", 0, border!!.colour(MapPalette.DAY) ushr 24)
+        val outline = offlineRegionOutlineSpec()
+        assertEquals("the day outline is white", "#FFFFFFFF", "#%08X".format(outline.colour(MapPalette.DAY)))
+        assertEquals(1.5f, outline.widthDp, 0f)
+        val dashDp = outline.dashPattern!!.map { it * outline.widthDp }
+        assertEquals(2, dashDp.size)
+        assertEquals(6f, dashDp[0], 1e-4f)
+        assertEquals(4f, dashDp[1], 1e-4f)
+        assertTrue("butt ends, not round", !outline.roundCaps)
+        assertNull("a constant width", outline.widthByZoom)
     }
 
     @Test
