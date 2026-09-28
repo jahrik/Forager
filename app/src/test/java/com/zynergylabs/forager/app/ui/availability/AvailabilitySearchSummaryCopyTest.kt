@@ -13,6 +13,7 @@ import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -151,7 +152,36 @@ class WideSearchSummaryTest {
 
             assertEquals("the Settings panel has closed after a touch at $x", 0, composeRule.onAllNodesWithContentDescription("Back to search options").fetchSemanticsNodes().size)
             composeRule.onNodeWithText("Advanced search").assertIsDisplayed()
+            // Continuation 2026-09-28-38 (owner: "Yes it should"): the location controls show at once.
+            composeRule.onNodeWithText("Use current location").assertIsDisplayed()
+            composeRule.onNodeWithText("Latitude").assertIsDisplayed()
         }
         assertEquals("each touch reached the summary", points.size, reopened)
+    }
+
+    /**
+     * Continuation 2026-09-28-38: only the summary's tap expands "Advanced search". A collapse the
+     * user makes inside the panel afterwards stands, and the other way back into the panel, the
+     * Settings back arrow, opens it collapsed as it always has.
+     */
+    @Test
+    fun `the summary's tap expands Advanced search, the user's own collapse stands, and the back arrow opens it collapsed as before`() {
+        composeRule.setUnsearchedScreen()
+        val summary = composeRule.onNodeWithTag(WIDE_SEARCH_SUMMARY_TAG).getUnclippedBoundsInRoot()
+        openSettingsPanel()
+
+        touchAt((summary.left + summary.right) / 2, (summary.top + summary.bottom) / 2)
+        composeRule.onNodeWithText("Use current location").assertIsDisplayed()
+
+        composeRule.onNodeWithContentDescription("Collapse Advanced search").performTouchInput { click(center) }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithContentDescription("Expand Advanced search").assertIsDisplayed()
+        assertEquals("collapsed by the user", 0, composeRule.onAllNodesWithText("Use current location").fetchSemanticsNodes().size)
+
+        openSettingsPanel()
+        composeRule.onNodeWithContentDescription("Back to search options").performTouchInput { click(center) }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithContentDescription("Expand Advanced search").assertIsDisplayed()
+        assertEquals("the back arrow opens it collapsed", 0, composeRule.onAllNodesWithText("Use current location").fetchSemanticsNodes().size)
     }
 }
