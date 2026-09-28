@@ -242,6 +242,12 @@ private fun line(id: String, sourceId: String, role: PaletteRole, tapGroup: TapG
  * J8: a journal-entry halo under [decorates], in [PaletteRole.JOURNAL_ENTRY], taking no taps, and
  * following the "Journal entries" switch ([JOURNAL_ENTRIES_SWITCH_LAYER_ID]); the switch's own layer
  * is the one halo not following another. See [MapLayerSpec.drawnWith].
+ *
+ * Every halo is in the lines band, a marker's ring included (J8 follow-ups, continuation
+ * `2026-09-28-87`, item 4; the owner, "1 A", to "Move marker rings below all lines"): the registry lists
+ * the three rings at that band's bottom, so no ring covers a line. A ring is still a symbol layer below
+ * its own marker. The bands, their order and [registryProblems] are unchanged; a ring left in the
+ * markers band could not sit below a line.
  */
 private fun journalHalo(id: String, sourceId: String, kind: LayerKind, renderer: LayerRenderer, decorates: String): MapLayerSpec {
     val switch = id == JOURNAL_ENTRIES_SWITCH_LAYER_ID
@@ -250,7 +256,7 @@ private fun journalHalo(id: String, sourceId: String, kind: LayerKind, renderer:
         kind = kind,
         renderer = renderer,
         sourceId = sourceId,
-        zGroup = if (kind == LayerKind.MARKER) ZGroup.MARKERS else ZGroup.LINES,
+        zGroup = ZGroup.LINES,
         paletteRole = PaletteRole.JOURNAL_ENTRY,
         userToggleable = switch,
         userOpacity = false,
@@ -314,10 +320,15 @@ private const val COLOUR_FIELD_FILL_OPACITY = 0.6f
  * waypoints, tracks, planned trips, offline maps, journal entries); photos are counted with finds as
  * part of an entry.
  *
- * **J8's five journal-entry halos** (`prompts/preserved/2026-09-28-52.md`, J8-2) each sit directly
- * below the record layer they decorate, and below that record's casing where it has one, so the halo
- * shows as a ring around the record's own outline: the offline region's under its outline's border,
- * the kept tracks' under their casing, and each marker's under its marker. A halo takes no taps, so M1's tap
+ * **J8's five journal-entry halos** (`prompts/preserved/2026-09-28-52.md`, J8-2) each sit below the
+ * record layer they decorate, so the halo shows as a ring around the record's own outline. The two line
+ * halos sit directly below their record's casing: the offline region's under its outline's border, the
+ * kept tracks' under their casing. The three marker rings (waypoints, finds, photos) sit below every
+ * line, at the bottom of the lines band (J8 follow-ups, continuation `2026-09-28-87`, item 4; the owner,
+ * "1 A", to "Move marker rings below all lines"), so a ring never covers a track, the offline outline or
+ * any other line. J8 had put each directly under its own marker, above every line and the search-centre
+ * reticle, and continuation `-87` reports rings covering parts of a kept track and of the reticle. A
+ * halo takes no taps, so M1's tap
  * routing is unchanged, and it is drawn only while its record's own switch and the "Journal entries"
  * switch are both on ([MapLayerSpec.drawnWith]). The sighting dots and the search centre are not in that list, so they are not
  * toggleable here. `userOpacity` is offered for colour fields only (layer ruling 1: "each with its
@@ -344,6 +355,10 @@ val MAP_LAYER_REGISTRY: List<MapLayerSpec> = COLOUR_FIELDS.map(::colourField) + 
         tapGroup = TapGroup.NONE,
         baseOpacities = listOf(BaseOpacity(OpacityProperty.FILL, OFFLINE_REGION_FILL_OPACITY)),
     ),
+    // J8 follow-ups, item 4 (the owner, "1 A"): the three marker rings, below every line.
+    journalHalo(MapLayerIds.JOURNAL_ENTRY_WAYPOINTS, MapSourceIds.JOURNAL_ENTRY_WAYPOINTS, LayerKind.MARKER, LayerRenderer.SYMBOL, decorates = MapLayerIds.WAYPOINTS),
+    journalHalo(MapLayerIds.JOURNAL_ENTRY_FINDS, MapSourceIds.JOURNAL_ENTRY_FINDS, LayerKind.MARKER, LayerRenderer.SYMBOL, decorates = MapLayerIds.FINDS),
+    journalHalo(MapLayerIds.JOURNAL_ENTRY_PHOTOS, MapSourceIds.JOURNAL_ENTRY_PHOTOS, LayerKind.MARKER, LayerRenderer.SYMBOL, decorates = MapLayerIds.PHOTOS),
     journalHalo(MapLayerIds.JOURNAL_ENTRY_REGIONS, MapSourceIds.JOURNAL_ENTRY_REGIONS, LayerKind.LINE, LayerRenderer.LINE, decorates = MapLayerIds.OFFLINE_REGION_OUTLINE),
     line(MapLayerIds.OFFLINE_REGION_BORDER, MapSourceIds.OFFLINE_REGIONS, PaletteRole.OFFLINE_REGION_BORDER, TapGroup.NONE, owner = MapLayerIds.OFFLINE_REGION_FILL)
         .copy(baseOpacities = listOf(BaseOpacity(OpacityProperty.LINE, OFFLINE_REGION_BORDER_OPACITY))),
@@ -373,11 +388,8 @@ val MAP_LAYER_REGISTRY: List<MapLayerSpec> = COLOUR_FIELDS.map(::colourField) + 
         ),
     ),
     marker(MapLayerIds.PLANNED_TRIPS, MapSourceIds.PLANNED_TRIPS, PaletteRole.PLANNED_TRIP, toggleable = true),
-    journalHalo(MapLayerIds.JOURNAL_ENTRY_WAYPOINTS, MapSourceIds.JOURNAL_ENTRY_WAYPOINTS, LayerKind.MARKER, LayerRenderer.SYMBOL, decorates = MapLayerIds.WAYPOINTS),
     marker(MapLayerIds.WAYPOINTS, MapSourceIds.WAYPOINTS, PaletteRole.WAYPOINT, toggleable = true),
-    journalHalo(MapLayerIds.JOURNAL_ENTRY_FINDS, MapSourceIds.JOURNAL_ENTRY_FINDS, LayerKind.MARKER, LayerRenderer.SYMBOL, decorates = MapLayerIds.FINDS),
     marker(MapLayerIds.FINDS, MapSourceIds.FINDS, PaletteRole.FIND, toggleable = true),
-    journalHalo(MapLayerIds.JOURNAL_ENTRY_PHOTOS, MapSourceIds.JOURNAL_ENTRY_PHOTOS, LayerKind.MARKER, LayerRenderer.SYMBOL, decorates = MapLayerIds.PHOTOS),
     marker(MapLayerIds.PHOTOS, MapSourceIds.PHOTOS, PaletteRole.PHOTO, toggleable = true),
 )
 
