@@ -452,6 +452,23 @@ Both lie on the search centre's longitude, south of it (A nearer), as the two ve
 - The planner's prediction 2, "In portrait the 103.5 dp strip may show none, for width alone": **it showed both** when
   their points were in the strip, and none when they were not.
 
+### Portrait P2: the switch, night and tap
+
+| Case | Captures | Result | Verdict |
+|---|---|---|---|
+| Planned trips **off** | `58-r0-layers-sheet` (row `[230,2139][1522,2241]`, `checked=true`), `59-r0-layers-trips-off` (`false`), `60-r0-trips-off` | **no trip cluster** (15 px in 6 specks of under 20 px, the strip's noise, as in `57`); the waypoint draws (1110 px) | **no flag** |
+| Planned trips **on** | `61-r0-layers-trips-on` (`true`), `62-r0-trips-on` | A 734 px at [1580,1193][1621,1238], B 746 px at [1580,1386][1621,1431] | **both draw** |
+| **Night** (Night Maps `true`) | `63-r0-settings`, `64-r0-night` (crop `64-r0-night-crop.png`) | `#FA01DD`: 684 and 684 px at the same places; day colour: specks only | **both draw**, magenta with black casing |
+| **Day again** (Night Maps `false`) | `65-r0-day-again` | `#9553A4`: 734 and 746 px; `#FA01DD` 0 | **both draw** |
+| **Tap A** (its pennant, (1606, 1205)) | `66-r0-tap-A` | "Trip 1", "Sep 28", MGRS and decimal-degrees lines, "Directions"; the lines run to x 1752, the screen's edge, and **no "Close" node** is in the dump | **opens, cut off at the right edge** |
+| **Tap B** (its pole, (1583, 1415)) | `68-r0-tap-B` | "Trip 2", "Sep 30", the same lines, "Directions"; no "Close" node; the bubble covers A's flag while open | **opens, cut off at the right edge** |
+
+- Each portrait bubble was dismissed with a plain tap on empty map at (1700, 2300), the dismissal AWL:297-299 wires;
+  afterwards no trip name is in the dump and both flags draw (`67-r0-A-dismissed`, dump only; `69-r0-B-dismissed`).
+- **Verdict P2: as predicted.** In portrait the switch, night and tap behave as in landscape. The bubble is cut off at
+  the screen's right edge with its Close control off screen, as the sanity check found for a waypoint (its Flag 2).
+- Night Maps is back **off** (`checked=false` in `65-r0-day-again`); Planned trips is back **on**.
+
 ## Appendix A: `prompts/preserved/2026-09-28-95.md`, verbatim
 
 At `554449b`, whole (sha256 `cfa98c46e5f3a49f8acb8b7b7bac2f5c343a10e3bb0d8ae9b439ecf5e12e2730`):
