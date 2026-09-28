@@ -174,7 +174,11 @@ internal fun TripDatePickerDialog(
                         .fillMaxWidth()
                         .padding(horizontal = Spacing.lg),
                 )
-                DatePicker(state = datePickerState, colors = pickerColors)
+                DatePicker(
+                    state = datePickerState,
+                    colors = pickerColors,
+                    modifier = Modifier.testTag(TRIP_DATE_PICKER_TAG).mapChromeContainerColor(pickerColors.containerColor),
+                )
             }
         }
     }
@@ -182,6 +186,9 @@ internal fun TripDatePickerDialog(
 
 /** [TripDatePickerDialog], for tests. */
 internal const val TRIP_DATE_DIALOG_TAG = "trip-date-dialog"
+
+/** The date picker inside [TripDatePickerDialog], for tests: its own container colour, clear over a map. */
+internal const val TRIP_DATE_PICKER_TAG = "trip-date-picker"
 
 /** [WaypointNameDialog]'s surface, for tests. */
 internal const val WAYPOINT_NAME_DIALOG_TAG = "waypoint-name-dialog"
