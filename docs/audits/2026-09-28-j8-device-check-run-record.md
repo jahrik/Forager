@@ -763,3 +763,136 @@ On the Maps tab at its opening camera, about zoom 12:
 ## Check 8: the failed-write Toast: **not run**
 
 As the dispatch says: it cannot be forced on the device without changing app code.
+
+## Settings and data restored and read back (21:59Z to 22:00Z)
+
+- **`shownOnMap`:** the L0a entry was hidden with the chip's own "Hide" at 21:59:11Z (`134-`), and the chip was gone
+  (`135-`). From the final database copy, taken after `am force-stop` at 21:59:45Z (`db-end-*`; the copy matches the
+  device; `forager.db` 229376 bytes `e88effc0…61af7c93`, `-wal` 466944 bytes `55db76e4…0286e85`... see
+  `db-end-local-sha256.txt`):
+  - header "SQLite format 3\0", WAL magic `377f0682`, **integrity ok**, **user_version 16**;
+  - **`shownOnMap = 0` on all 7 rows**, the L0a entry `6107d76c…` included;
+  - **every one of the 18 tables has the backup's row count**;
+  - `dbdigest.py` equals the post-migration digests for **all 18 tables**, and the backup's for 17 (all but
+    `room_master_table`, the schema hash). No row changed anywhere except `shownOnMap`, so the character typed and
+    discarded in check 6 never reached the database, and no edit stamp moved.
+- **System settings** (`138-settings-end.txt`), identical to the start (`03-`): `font_scale=1.0` (never changed),
+  `accelerometer_rotation=0`, `user_rotation=0`, `navigation_mode=0`, `location_mode=3`, night mode yes.
+- **App settings:** `map_preferences` (`139-`) is the start's (`05-`) plus one key,
+  `map.layer.journal-entry-tracks-layer.visible = True`, the switch's default. The app can write that key but not remove
+  it, and I may not write the app's files. `night_mode.maps = False`; basemap Topographical (the Layers row); every
+  overlay `true`; `debug_diagnostics_preferences` byte-identical to the start (`140-`). The coordinate readout is in its
+  MGRS form, as found.
+- **The app:** relaunched with `am start` at the end (pid 17613), in focus on the Maps tab, in portrait, with no chip
+  (`141-`), since Forager was in focus at the start. The phone is unlocked. The camera was not restored; no list names
+  it.
+- **The database copies stay** in the evidence directory: the verified pre-install backup (`db-backup-raw/`, read-only),
+  the post-migration copy, the resume copy and the end copy. They hold the owner's records and are outside the
+  repository. I restored nothing to the phone, and nothing needed restoring.
+
+## Crash reads
+
+`logcat -d -b crash` was **0 bytes** at every read: `02-` (start), `18-` (after the migration), `37-` (check 2), `40-`
+(the resume), `76-` (check 3), `106-` (checks 4 and 5), `124-` (check 6), `133-` (check 7), `142-crash-end.txt`
+(22:00Z). `logcat -d` at the end (`143-`) has **0** `FATAL EXCEPTION` lines, and the events buffer has no Forager
+`am_crash` or `am_anr`. Forager's pids were 31050 (the migration launch), 31805 (check 2), 5297 (checks 3 to 7) and
+16639 (check 7's relaunch). Every change of pid was a force-stop of mine. At the end the install is unchanged:
+`versionName=1.0.1389+g99de6c24`, `lastUpdateTime` 14:03:09 PDT, `firstInstallTime` 2026-09-22 11:15:05, the same
+data inodes (`144-`). No system or Google prompt appeared over the app at any read. No abort condition was met.
+
+## All checks
+
+| check | verdict |
+|---|---|
+| 1 migration on real data | **pass**: version 16, integrity ok, 7 of 7 rows `shownOnMap = 0`, all 18 counts equal, 17 of 18 digests equal (the 18th is the schema hash) |
+| 2 report menu and chip | **pass**: "Show on map" between Edit and Delete; none on a draft; "1 journal entry on map" |
+| 3 highlight | rings in `#005577`/`#00DDFF` round every drawn kept record, each beneath its own glyph (**pass**); region B has no ring (**pass**); unkept photos **not observable**; **halos drawn for the undrawn ORIGIN and END waypoints (fail against J8's own rule, by my reading)**; marker halos lie over the kept track and the markers below them (**not as I pre-registered**); captures named for the owner |
+| 4 chip against insets | place **pass** in portrait, at 90 and at 270; list **pass**; fill **0.833 to 0.840**, not the pre-registered 0.78 to 0.82 (my reading: 0.8 of `Bark` over its own shadow); list fill 0.80 of `#202020`; the portrait touch-target band reaches neither control |
+| 5 landscape chip and cluster | at 90 the chip covers the cluster's "Reset orientation to north" and takes 5 of 5 touches; at 270 no overlap (442 px apart). For the owner |
+| 6 bubble line, Open entry, prompt | **pass**: "Open entry 2026-09-27"; Open entry lands on the report; "Save your changes?" then Discard, nothing saved |
+| 7 Layers switch | **pass**: hides every ring, chip stays, persists across force-stop, restored |
+| 8 failed-write Toast | **not run** (needs code) |
+
+## Decisions I made
+
+1. **No record entries, and no section check against a `kit.json`.** My standing instructions call for a sweep and an
+   intent in `RECORD.md` and for checking the dispatch's sections against `.claude/kit.json`. At this base there is no
+   `.claude/` and no checker; the owner removed them in `e136330`. The dispatch and the launch message say the planner
+   writes the record. So I wrote no record entry and did not touch `RECORD.md`. The main checkout's `kit.json`
+   (`faf2f88`) lists `device` sections this dispatch does not have by those names: Base and state, Scope boundary,
+   Closed decisions, Prediction, Finish line and abort conditions, Checks, Out of scope, Device items. Which config
+   applies needed a ruling; I followed the dispatch and the base, as Part 1's coders did.
+2. **The build commit.** I built detached at `99de6c2`, then switched the worktree to `device-j8`, which is cut from
+   `origin/journal-redesign` at `d7cc9f5`. The dispatch names both "99de6c2" and "from origin/journal-redesign". The
+   code is identical; only the versionName and versionCode differ (1389 here against 1415 or more at the head).
+3. **The branch's upstream.** `git worktree add -b` set `device-j8` to track `origin/journal-redesign`. I unset that,
+   so a bare push could not reach `journal-redesign`, and pushed with `-u origin device-j8`.
+4. **Database checks beyond the dispatch:**
+   - the device's own sha256 compared with the copy's;
+   - a second verification just before the install;
+   - per-table row digests;
+   - read-only raw copies, with every query run on a second copy.
+5. **The resume force-stop** at 21:23Z, to read `shownOnMap` from a clean copy as the planner asked, and the relaunch
+   after it.
+6. **Check 2's order:** I touched "Show on map" before the draft half, since the menu was open. The pre-registration
+   listed the draft half first.
+7. **Check 3's extra steps, not pre-registered:**
+   - Finds and Photos switched off and on again to uncover the waypoint pin;
+   - relative positions in metres computed from the database copy (local only) to match the two unexplained halos to
+     the ORIGIN and END waypoints;
+   - that match, and calling the result a fail against the rule the J8 report quotes, are my reading;
+   - the zooms are taken from double-tap steps, not measured;
+   - Satellite counted as "the other basemap", and night captured on all three basemaps.
+8. **Check 3, my own condition (ii):** I recorded it as not held for the track and the find, and left to the owner and
+   planner whether J8 meant "beneath its own record" or "beneath every record".
+9. **Check 4's additions:**
+   - the touch-band test, written before touching;
+   - the readout "undo" touch after each band touch;
+   - the list's fill, measured from the J8 report's device-only list and beyond the dispatch;
+   - the shadow reading of the fill figures, an inference;
+   - the bar's start taken from its drawn fill, not its `EditText` node.
+10. **Check 5:** I kept the touches inside the drawn pill and below Fullscreen, and inferred the reset button's full
+    bounds from the row pitch and the 270 dump.
+11. **Check 6:**
+    - "DEVICE CHECK find 2" as the record to tap;
+    - the character `x`, typed at the end of the field;
+    - one Back to lower the keyboard.
+    
+    The L0a entry is the only saved DEVICE CHECK entry, so it was both the dirty entry and the requested one. Only the
+    "same entry requested while dirty" path of the prompt was exercised; a different requested entry was not, because
+    the data rule leaves no second entry to use.
+12. **Check 7:** the "hidden" reference for the ring pixels is `21-`, the frame from before the entry was ever shown.
+13. **The final hide** used the chip's "Hide", not the report menu.
+14. **The end state:**
+    - the switch's new key is left at its default;
+    - the camera is not restored;
+    - the app was relaunched so that it is in focus, as found;
+    - the database copies are kept outside the repository.
+
+## Flags outside scope
+
+1. **Halos for waypoints the map does not draw.** The highlight is computed from all waypoints
+   (`AvailabilityScreen.kt:923-924`), while the map draws `mapVisibleWaypoints`, which drops ORIGIN and END waypoints
+   unless navigating (`:828-829`; `AvailabilityPureFunctions.kt:59-66`). So an entry keeping a track's origin or end
+   waypoint draws a pin-shaped ring with no pin in it (`51-`/`53-` against `52-`). The use case's own doc assumes the
+   drawn list (`GetJournalEntryHighlightsUseCase.kt:50`). Not fixed.
+2. **Marker halos are in the markers' z-group** (`MapLayers.kt:236`), above every line. They cover parts of the kept
+   track (822 of its interior pixels in `51-`), the search-centre reticle, and markers lower in the stack.
+3. **The chip passes 16 to 17% of the ground, not 20%,** at every rotation. By my reading this is its 4 dp shadow under
+   a 0.8 fill. The taxon chip shares the fill (`MapChrome.kt:233-239`), and whether it has the same shadow was not
+   checked. The list measures 0.80.
+4. **Portrait:** the chip's and the coordinate readout's 48 dp touch targets overlap by 25 px, and touches there reach
+   neither.
+5. **At 90 the chip covers the cluster's "Reset orientation to north".** Only a 28 px sliver of the button stays
+   reachable.
+6. **In landscape the cluster's top row (Fullscreen) lies over the search bar's end:** over the search icon at 90 (crop
+   `107-`) and over the bar's right end at 270 (`101-`). This predates J8. Not investigated.
+7. **The migrated database's WAL header had its first 16 bytes zero.** The mechanism is not established; no figure
+   depended on it. The end copy's WAL header is valid.
+8. **Part 1's flags recur:**
+   - the search-centre reticle is drawn with no location set (`52-`);
+   - returning to the Maps tab put the camera back at the opening one each time (for example `119-`, re-zoomed to
+     exactly `112-`'s camera).
+9. **The location puck's stacking against the halos and the track** looked different between frames, above the track
+   in `48-` and under the ORIGIN halo in `57b-`. By my reading only; not investigated.
+10. **A second device is attached,** `R52T506412L` (SM-X800, the tablet for `-74`). I never addressed it.
