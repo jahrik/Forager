@@ -3917,3 +3917,81 @@ The list-detail question goes to the owner next. Written by the planner by hand.
   - the reticle with no location set, and the camera reset on returning to Maps (both recurring from Part 1).
 - These go to the owner.
 - Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-82
+**Timestamp:** 2026-09-28T22:19:04Z
+**Closes:** 2026-09-28-68
+**Outcome:** completed
+**Observed:**
+- **Stop and restarts.** Stop report ea60d72: no single failure pattern; saveErrorMessage is set in 7 places and never displayed. Rulings in -76. The coder was resumed once after the EAI_AGAIN outage and pushed its WIP first.
+- **Commits.** Pushed to journal-redesign: 9e2cfde (inert threading), ac8f45e (tests first), fa5aa9e (the build), 41ae2d3 (report).
+- **The build.**
+  - A LaunchedEffect Toast in JournalTab.kt:317-322 and LogPanel.kt:246-251, dismissed through onCartographySaveErrorDismissed, threaded from MainActivity.
+  - All seven existing messages verbatim (CartographyViewModel.kt:352, 392, 434, 473, 494, 579, 684), with no string added or removed.
+  - Discard success clears the message (:466-467).
+  - onStartEntry's failure is a Log.w (:134-137).
+- **Evidence.**
+  - EntrySaveFailureShownTest: 31 tests across portrait, w823dp-h384dp-land and w1280dp, plus 1 ViewModel test.
+  - Tests first: tf1 had 28 of 32 fail for the stated reason; 4 failed from a harness gap (pendingDeleteNotices), which was fixed, and tf2 had all 22 compact tests fail for the stated reason.
+  - Six revert checks confirmed (R1 to R6).
+  - Coder's suite at fa5aa9e: 296 / 2406 / 0 / 0 / 24.
+- **Planner's suite.** At b358a4a, which contains fa5aa9e's app/ plus the map-chrome stage: 304 / 2477 / 0 / 0 / 24, from a cleared results directory, all 304 XML files fresh, no compile errors. The planner did not run a separate suite at fa5aa9e. Its first queued run self-matched its own wait pattern and was stopped before starting.
+**Deviations:**
+- The tests-first runs were at the base plus the inert threading, which the tests need to compile.
+- The Discard clear is tested at ViewModel level, since on screen the Toast clears first.
+- 32 tests against a predicted 3 to 8, because -76 widened the scope.
+- The callback defaults to {} in three composables.
+**Notes:**
+- **Device-only:** each message as a Toast on the S22 (legible, long enough, clear of the keyboard and cluster); an off-screen failure shown on the Journal's next open. A refused write cannot be forced on the device without a debug hook (the owner's call).
+- **Flags:**
+  - the wide tree has no card delete (J6);
+  - onCleared's pending-delete commit failure is log-only;
+  - messages are hardcoded, not in strings.xml (docs/error-presentation-spec.md).
+- Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-83
+**Timestamp:** 2026-09-28T22:19:04Z
+**Closes:** 2026-09-28-56
+**Outcome:** completed
+**Observed:**
+- **Stop and restarts.** Stop report dc09e53 (S1 to S3, Q1 to Q5), rulings in -77, one resume after the EAI_AGAIN outage. -59 and -60 were withdrawn by -61 and not used.
+- **Commits.** On journal-redesign by b358a4a: b019080 (tests first, explicit default colours and semantics keys), a5f2786 and 852dac9 (mapChromeFill(role, overMap), overMap flags, the four 0.8f literal sites onto the constant, stale comments), 53c670e, d2a9cff (the date picker's container cleared inside the trip dialog), 5f69550 (the menus' content read inside), b358a4a (report).
+- **As built.**
+  - **Always 0.8:** the bubble's details sheet, the centre-pin row, the wide Layers button, and the trip-date, waypoint-name and three-way dialogs.
+  - **Records sheet:** 0.8 from Offline maps only.
+  - **Follows the Maps tab:** the search notice, snackbar, Tools drawer, and Month menu.
+  - **Species suggestions:** follow the tab on compact; 0.8 on wide when the results map is drawn.
+  - **Exit prompt:** follows the tab on compact, the drawn map on wide.
+  - **Entry menu and delete dialog:** 0.8 when the entry has a map.
+  - **J8's chip and lists:** already at 0.8.
+  - **Unchanged:** the accent buttons and the 0.55 caption.
+- **Evidence.**
+  - 8 classes and 71 tests through the real AvailabilityScreen (dark theme).
+  - Tests first: 43 of 68 failed. 41 failed on the alpha; 2 were unreachable (no nav while loading), were moved to a snackbar, and then failed on the alpha. The 25 guards passed at base and are backed by revert checks.
+  - 16 revert checks confirmed.
+  - Coder's suite at 6e36122: 304 / 2477.
+- **Planner's suite.** At b358a4a: 304 / 2477 / 0 / 0 / 24, cleared, 0 stale, no compile errors.
+**Deviations:**
+- R3 shows that several content-colour checks cannot fail, because onBackground equals onSurface in both schemes. They are reported, not removed.
+- Q3 was built literally: the two menus are 0.8 only over the Maps tab, so they stay solid on Journal, Records, Offline maps, which has a map.
+- The wide Layers button loses its tonal tint when translucent (computed: dark #272926 to #1B1B1B, light #E9EAE4 to #FAF8F3), left as -77 said.
+- The date picker's own container was cleared so the trip dialog composites to 0.8 (the CLAUDE.md layered rule).
+- Only the dark theme was tested.
+**Notes:**
+- **Device-only, for the map-chrome device check (next on the S22):**
+  1. whether the map shows through the search dropdown, Tools drawer and compact snackbar, which sit outside the map's Box (the AvailabilityCompactMapUi.kt:326-341 warning);
+  2. whether it shows through the sheets, dialogs and menus;
+  3. legibility over every basemap and at night;
+  4. the untinted wide Layers button on the tablet.
+- **Flags:**
+  - the compact Maps tab has no nav while sightings load;
+  - J8's menus expose the content colour as passed;
+  - MapModePicker is dead;
+  - the search dropdown is 0.8 on every tab.
+- Written by the planner by hand.
