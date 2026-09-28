@@ -1,8 +1,8 @@
 # Night offline-region candidates: capture run record (2026-09-28), STOPPED PARTWAY (twice)
 
-**Current status (after the fourth session, at the end): stopped at 11:56Z with a question for the planner. Under
-the planner's relaxed View C rule, it is unclear whether 404040's View C "matches" at its shift. No phone
-action was taken in that session. 404040 is installed; Night Maps is still on.**
+**Current status (after the fourth session's second part, at the end): stopped at 12:06Z on an abort condition.
+606060's View C has a best shift of (3,6), which is above the planner's 5 px limit. 606060 is installed; Night Maps
+is still on; the basemap is Topographical. Taken: every view except 606060-B and 606060-C.**
 
 Dispatch `prompts/preserved/2026-09-28-26.md` (continuation `2026-09-28-26` of intent `2026-09-28-19`).
 Phone SM-S908U, serial `R5CT321008R`. The raw evidence and every screenshot are outside the repository, in
@@ -396,3 +396,122 @@ No touch, install, launch or setting change was made this session.
   `--user` has also installed the candidate builds into Samsung's Dual App profile. Nothing was done about it.
   Removing it would be an uninstall, which this dispatch forbids. The owner or planner decides.
 - The rule's "matches" will run into the same question on 606060's View C, and on any View A or B that shifts.
+
+## Fourth coder session, second part (12:00Z to 12:08Z): the 1% rule, then an abort on 606060 View C
+
+**Planner message, part of this dispatch, quoted verbatim.** It was relayed by the coordinator. No planner-log line
+was given, so it is not cited.
+
+> This is a planner message and part of the dispatch. Quote it verbatim in the run record.
+>
+> At the best whole-pixel shift, where that shift is at most 5 px on each axis, a frame is accepted when `outside_shift.py` counts **at most 1% of the compared pixels** as differing. The fixed overlays are included in that count, so do not mask them. Record the shift and the residual count for each accepted shot.
+>
+> By that rule, 404040 View C at (3,3) with 1919 of 475 800 differing (0.40%) is accepted. Take it from whichever of runs 65 or 66 is cleanest, and say which one you used.
+>
+> A residual above 1%, a shift above 5 px, or a prompt appearing over the app is still an abort.
+>
+> Then continue as before:
+> 1. Take 404040's View B.
+> 2. Install 606060, running the same checks as for the others. Take its A-night, B and C views.
+> 3. Restore Night Maps to off and the basemap to Topographical, and read both back.
+> 4. Leave 606060 installed.
+> 5. Push the run record.
+>
+> Your final message lists the shots in order, grouped by view, with no judgement of which looks best.
+>
+> The Dual App profile is noted as a flag for the owner; do nothing about it.
+
+**Prompt check.** Before and after every phone step, `logs/fg.sh` (sha256 `a27386f2…5361`, read only) confirmed that
+Forager `MainActivity` was the top resumed activity and that no keyguard was showing. Every read passed. No prompt
+appeared.
+
+### 404040-C (accepted under the 1% rule)
+
+The three runs are equal on the rule's measure: `outside_shift.py` C at (3,3) gives 1919 of 475 800 for each. I
+used **`66-viewc-404040-r3`** because it has the lowest `offs.py` count over the full map area at (3,3): 3571,
+against 3782 for r2 and 4018 for r1. `shots/404040-C.png` is a byte-identical copy of that capture (`cmp`), not a
+new screencap. The phone was still at that frame, but I did not re-capture it.
+
+### 404040-B
+
+`basemap.sh Street` read back "Layers: Street map". Then `frame.sh` ran (clamp `frame-clamp-404040-street-a`),
+followed by the check capture `70-frameB-404040-a`. Against `202020-B`, the best shift was (0,0) and
+`outside_shift.py` A gave 0 of 904 723. `shots/404040-B.png` was taken from the same state. Checked against the
+snap it gives 0 at (0,0). Then `basemap.sh Topographical` read back "Layers: Topographical map".
+
+### 606060
+
+- sha256 `4f42b8fe26847d1f2b25b4cf843010d777cf6f453895e50d56521b763eb09e92`, which matches `FACTS.txt`.
+- `adb install -r` at 12:03:57Z: "Performing Streamed Install / Success" (`logs/80-install-606060.txt`).
+- `dumpsys package` (`logs/81-package-606060.txt`): versionCode 1259, versionName `1.0.1259+g75c050f7.dirty`,
+  `lastUpdateTime` 2026-09-28 05:03:58 (PDT), `firstInstallTime` (user 0) 2026-09-22 11:15:05 (**unchanged**),
+  signatures `[d59f30b8]`.
+- Crash read: 0 lines (`logs/82-crash-606060.txt`). At 12:07Z: 0 lines again.
+- Launched with `am start -n com.zynergylabs.forager.app/.MainActivity`. Rotation 0/0 afterwards. It opened on the
+  Maps tab, Topographical (`logs/83-launch-606060`).
+- **A-night:** `frame.sh` first run (`logs/84-frameA-606060-r1`). Against `202020-A-night`, the best shift was (0,0),
+  with 0 of 904 723 outside the circle. That count also shows Night Maps was still on after the install: day against
+  night reads 855 050. `shots/606060-A-night.png` gives 0 against the snap.
+- **C: abort.** `viewc.sh` from that frame (`logs/85-viewc-606060-r1`). Against `202020-C`, `offs.py` best is
+  **(3,6)** over both the full map area (65 735 differing) and rows 300-820 (9464). A widened search over
+  [-15,15]² finds the same best. At (3,6), `outside_shift.py` C gives 14 968 of 475 800 (3.1%). **The y shift is
+  above 5 px** and the residual is above 1%, both abort conditions under the rule. No 606060-C shot was taken, and
+  there was no rerun, since the planner said not to wait for the fix to drift back.
+- **B:** not taken. The abort came first.
+
+**Fix drift, from the header grid reference** (differences only; the digits locate the owner and are not recorded).
+Relative to 202020-C's run r1: capture 46 +1 m E, +1 m N; 404040-C (r3) -2 m E, +2 m N; 606060 A-night and C
+-1 m E, +4 m N. That fits the (3,3) and (3,6) View C shifts, and the (0,+3) shift for 46, through the mechanism
+recorded in the resumed session: the locate step centres on the fix, and View C's 16x zoom magnifies the
+difference. This is inferred and not tested. The build itself is not implicated: 606060's View A frame matches at
+(0,0).
+
+### Shots, all sessions (`shots/SHA256SUMS`)
+
+| File | sha256 | Shift, residual (outside circle) |
+|---|---|---|
+| `202020-A-day.png` | `8c13cc78bc61294d0f266368c076b3789d6573c43252bad8ecb79afc07c389d7` | reference (day) |
+| `202020-A-night.png` | `7cf318d95464ed327ce24f98d77ec30990fe9478d6500993c8f36784c29b4026` | reference |
+| `404040-A-night.png` | `daaf64179dd5d2d3afa7f9ceb1e49089de4f7caf7355702c7791161f45fea502` | (0,0), 0 of 904 723 |
+| `606060-A-night.png` | `e9e051835b214d905d38190887fbf01b0720d54f8445eb9e3db18d27b0344c25` | (0,0), 0 of 904 723 |
+| `202020-B.png` | `746bf66462ba2cacab617f12f4c882e15dad80ac26d2129a42e5a45014cad80c` | reference |
+| `404040-B.png` | `760be278d9156cb5352eb77e1d47a60dcab4d37d19b00c2c67d14586dce7a826` | (0,0), 0 of 904 723 |
+| `202020-C.png` | `bf903058a98b38b378dd629c290b02d76d9ba6e88cfe01affa1f9d9c3f8e37c3` | reference |
+| `404040-C.png` | `a6eeb0d1a4f400b21f61c5e8d7226722dadb0b861900de181d78a451452ed4d5` | (3,3), 1919 of 475 800 (0.40%), from run r3 |
+
+Not taken: 606060-B and 606060-C.
+
+### Settings: not restored
+
+The abort came before step 3. As left at 12:07Z:
+
+| Item | State |
+|---|---|
+| Installed | 606060 (`lastUpdateTime` 05:03:58 PDT), `firstInstallTime` unchanged |
+| Night Maps | **on** (start value off). Inferred from the A-night comparison, not read from Settings |
+| Basemap | Topographical (read back via `basemap.sh` before the install; the app relaunched on Topographical) |
+| Map | at 606060 View C (run r1) |
+| Rotation | 0 / 0 |
+| Crash buffer | 0 lines |
+| Top activity | Forager `MainActivity`, no keyguard |
+
+### Decisions I made (second part)
+
+- Chose r3 as "cleanest" by the full-area `offs.py` count, since the rule's own measure ties all three runs.
+- Copied r3's capture into `shots/` rather than taking a new screencap.
+- Took `404040-B` from a single `frame.sh` run after the basemap switch. 202020-B had two identical runs; I
+  judged the reference comparison (0 differing) to be enough.
+- Switched back to Topographical before installing 606060, although the basemap is session-only.
+- Called the abort on the first 606060 View C run without a rerun. The rule names a shift above 5 px as an abort,
+  and the planner ruled out waiting for drift.
+- Left Night Maps on after the abort instead of restoring it, as the earlier stops did. Restoring it is the
+  planner's step 3, which comes after the captures.
+- Ran the widened [-15,15]² search and the header-drift comparison as diagnostics. Neither was asked for.
+- Wrote `logs/fg.sh` as the prompt check.
+
+### Flags outside scope
+
+- Dual App profile (user 95): as flagged above. Per the planner, nothing was done. After the 606060 install it is
+  still `installed=true`.
+- View C, as framed by `frame.sh`'s final locate step, depends on the fix to a few metres. As long as the fix
+  drifts, any rule based on shift will keep hitting this.
