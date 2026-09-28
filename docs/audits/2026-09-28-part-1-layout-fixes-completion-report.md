@@ -679,3 +679,349 @@ covering the commit message, is in the hand-back.
 6. **The upward clamp limit is bounded by the downward fallback distance** (`AvailabilityCompactMapUi.kt:811-812`,
    `coerceIn(-fallbackDownwardOffsetPx, 0f)`). That ties how high the cluster may be dragged to how far down it could
    go. It does not bind in item 2's case by my arithmetic. Noted, not investigated.
+
+
+# Resumed (planner messages `2026-09-28-98` and `2026-09-28-99`)
+
+Everything above this heading is as pushed at `b0fb443` (merged at `70cdaba`), and I have not edited it. The stop it
+records was answered by two planner messages. This section is written after merging `e95aff8`, before any test is
+written or run, and is pushed before the first Gradle run.
+
+## The planner's messages, verbatim
+
+### `2026-09-28-98`, from `prompts/preserved/2026-09-28-98.md` at `e95aff8` (sha256 `ce66b27b…d46e`), below its "verbatim message follows" line
+
+> Planner message `2026-09-28-98`, part of dispatch `2026-09-28-78` as amended by `-88`. Quote it verbatim in your report. It answers your stop at `b0fb443`.
+>
+> **Build items 2 (portrait), 3, 4, 5 and 8 now.** Items 1, 2 (landscape), 6, 7 and 9 wait for the owner's ruling on the landscape cluster. The planner has put your options A to E to the owner. Do not build them yet.
+>
+> **Your Decision 1** is accepted: the stop covered the whole dispatch. From here, each item is built or held on its own.
+>
+> **Item 2 (portrait): build it.** Your Decision 4 is confirmed by the planner. The owner's Q4 ruling ("the cluster moves up when the legend expands") covers the cluster rising above centre while the legend is expanded. That is not "changing how the cluster drags"; it is the ruled response to the legend. Use a viewport short enough for the test to fail at base, and say which.
+>
+> **Item 3: build it**, including the timing problem you found. The fields must end up visible above the keyboard, not scrolled off the bottom. Mark it device-only.
+>
+> **Item 4, the camera surviving a tab round trip: build it.** Planner's rulings under CLAUDE.md's UX defaults ("What the user has set survives navigating away and back within a session"):
+> - The scope widens to `ui/map/MapSlot.kt`, and to `MapRenderMode` and `SightingsMapSlot` for carrying the camera.
+> - On return, restore exactly the camera the user left: target, zoom, bearing and tilt. Restore the tracking mode they left too: following if they were following, not following if they had panned away.
+> - Do not run the first-activation zoom-in or the region move on return.
+> - Within a session only; nothing persists across a restart.
+> - Tests first with a stub map for the wiring. MapLibre applying the camera is device-only.
+>
+> **Item 5, MapLibre's "i": build portrait and landscape.**
+> - The scope widens to `ui/map/MapSlot.kt` for the end inset.
+> - Planner's ruling for fullscreen: the "i" follows the attribution caption's own edge treatment. It belongs with the caption.
+>
+> Mark it device-only.
+>
+> **Item 8, the portrait dead band: build it.**
+> - The scope widens to `ui/map/JournalEntriesChip.kt` and `AvailabilityMapControlsUi.kt` (the readout).
+> - Every point in the band must reach exactly one control, without moving either control. Adjust touch targets only.
+> - Tests first with a stub map that takes pointer input, so the test can fail at base, and several real touches across the band.
+>
+> **Held for the owner:** items 1, 2 in landscape, 6, 7 and 9.
+>
+> **Everything else in `-78` and `-88` stands:** tests first, revert checks per item, the full suite, the device-only list, no new copy, and a "Resumed" section in your report.
+>
+> **Sharing the machine:** the planned-trips fix (`-97`) may launch while you work. It changes `AvailabilityCompactMapUi.kt:641` and its comment only. Merge its pushes with `--no-rebase`, keeping both sides' intent. Before each Gradle run, check that no other Gradle build is running and that 2.5 GB is free.
+
+### `2026-09-28-99`, from `prompts/preserved/2026-09-28-99.md` at `e95aff8` (sha256 `f5784119…abc`), below its "verbatim message follows" line
+
+> Planner message `2026-09-28-99`, part of dispatch `2026-09-28-78`, as amended by `-88` and `-98`. Quote it verbatim in your report. It releases the held items: 1, 2 in landscape, 6, 7 and 9.
+>
+> **The owner's ruling, verbatim:** "For icon column in short landscape: option A". Option A, as the planner put it to the owner: "Reshape the column in landscape. For example, put the record and return pill beside the icon bar instead of below it, so the column is about 264 dp tall and fits with room to spare. Nothing else moves."
+>
+> **Build:**
+> - **In short landscape only,** lay the ControlPill beside the MapIconBar instead of below it. The cluster's height becomes the icon bar's (about 264 dp), not 380 dp.
+> - **Portrait is unchanged.** Nothing else moves: the search bar, J8's chip, the legend, the caption, the rail and the cluster's side and drag all stay as ruled.
+> - **Details are yours to propose and state:** which side of the bar the pill sits on, its vertical alignment, and the gap between them.
+>   - **The planner's lean:** the pill on the bar's inboard side (towards the screen's centre), bottom-aligned to the bar. The bar's edge then stays at the screen edge where it is today, and the record button stays near the bottom where a thumb finds it.
+>   - If you choose otherwise, say why.
+> - **The drag and snap** must work on the new shape, with both handles. If the reshaped cluster needs a handle or drag change beyond its new size, stop and report.
+> - **Then re-measure items 1, 2 (landscape), 6, 7 and 9** against the new height, at rotations 90 and 270, using `-78`'s bounds tests.
+>   - If an item still collides because of room (the map area is about 354 dp, so about 90 dp is spare), **stop on that item and report its geometry.** Do not move the other chrome.
+>   - Item 7 (J8's chip over "Reset orientation to north") may still overlap on width. If it does, report it, with your option E, rather than choosing.
+>
+> **Tests first** at `w823dp-h384dp-land`, both rotations pinned:
+> - the cluster fits the map area;
+> - none of the chip, search bar, legend or caption intersects it, whether the legend is collapsed or expanded;
+> - the pill's controls are still reachable by real coordinate touches, sampled across their bounds.
+>
+> Add revert checks, the full suite, and the device items: the reshaped cluster on the S22 at 90 and 270, with thumb reach judged by the owner.
+>
+> **Everything else in `-78`, `-88` and `-98` stands.**
+
+### The coordinator's relay of `-98`, as delivered to me
+
+> This is planner message `2026-09-28-98`, part of dispatch `2026-09-28-78` as amended by `-88`. The full text is at `prompts/preserved/2026-09-28-98.md` on `origin/journal-redesign` at `2f3c21a`. Fetch it, read it in full and quote it verbatim; the file governs over this summary.
+>
+> **Build now:**
+> - **Item 2, portrait only.** The Q4 ruling covers the cluster rising above centre when the legend expands. Use a viewport short enough to fail at base.
+> - **Item 3,** including your scroll-timing finding. Device-only.
+> - **Item 4.** Scope widens to `MapSlot.kt`, `MapRenderMode` and `SightingsMapSlot`. On return, restore target, zoom, bearing, tilt and the tracking mode the user left, with no first-activation zoom-in or region move. Within a session only. Test the wiring with a stub map.
+> - **Item 5, portrait and landscape.** Scope widens to `MapSlot.kt`. In fullscreen the "i" follows the caption's own edge treatment. Device-only.
+> - **Item 8.** Scope widens to `JournalEntriesChip.kt` and `AvailabilityMapControlsUi.kt`, touch targets only. Every point in the band reaches exactly one control. Use a stub map that takes pointer input, and several real touches across the band.
+>
+> **Held for the owner's landscape-cluster ruling:** items 1, 2 in landscape, 6, 7 and 9.
+>
+> **Everything else in `-78` and `-88` stands:** tests first, a revert check per item, the full suite, the device-only list, and a "Resumed" section.
+>
+> **Sharing the machine:** the planned-trips fix (`-97`) may run alongside you, changing only `AvailabilityCompactMapUi.kt:641` and its comment. Merge its pushes with `--no-rebase`. Before Gradle, check that no other build is running and that 2.5 GB is free. Hand back when you finish or stop.
+>
+> Address this before completing your current task.
+
+### The coordinator's relay of `-99`, as delivered to me
+
+> This is planner message `2026-09-28-99`, part of dispatch `2026-09-28-78` as amended by `-88` and `-98`. The full text is at `prompts/preserved/2026-09-28-99.md` on `origin/journal-redesign` at `e95aff8`. Fetch it, read it in full and quote it verbatim; the file governs.
+>
+> **The owner's ruling, verbatim:** "For icon column in short landscape: option A". That means reshaping the cluster in short landscape only: the ControlPill sits beside the MapIconBar instead of below it, so the cluster is about 264 dp tall. Portrait is unchanged, and nothing else moves.
+>
+> - **Placement details are yours to propose and state.** The planner's lean: the pill on the bar's inboard side, bottom-aligned.
+> - **Drag and snap** must work on the new shape. A handle change beyond its size is a stop.
+> - **Then re-measure items 1, 2 (landscape), 6, 7 and 9** at 90 and 270. An item that still collides for lack of room is a stop, reported with its geometry. For item 7, report the width overlap with option E; don't choose.
+> - **Tests first** at `w823dp-h384dp-land`, both rotations: the cluster fits; the chip, bar, legend and caption don't intersect it; real touches across the pill's controls reach them.
+> - **Carry on with `-98`'s items** as you were. Hand back when you finish or stop.
+>
+> Address this before completing your current task.
+
+The two relays each end with a line the harness adds ("Address this before completing your current task."). I quote
+them as delivered. The files govern.
+
+## What I read these as
+
+- **Built now:** items 2 (portrait), 3, 4, 5 (portrait and landscape) and 8 (`-98`). The landscape reshape follows the
+  owner's ruling "For icon column in short landscape: option A" (`-99`).
+- **Re-measured after the reshape:** items 1, 2 (landscape), 6, 7 and 9, at 90 and 270. An item that still collides
+  for lack of room is a stop on that item, reported with its geometry. For item 7, a width overlap is reported with
+  option E.
+- **Scope widened by the planner:**
+  - `ui/map/MapSlot.kt` (`MapRenderMode`, `SightingsMapSlot`), for items 4 and 5;
+  - `ui/map/JournalEntriesChip.kt` and `ui/availability/AvailabilityMapControlsUi.kt`, touch targets only, for item 8.
+- These widenings and the item 4 and 5 design answers are planner rulings on questions I raised in the stop report,
+  not owner rulings. I read them as the planner "ruling on a question you raised". See Decisions.
+
+## The design I will build (stated before building, as `-99` asks for the reshape)
+
+**Reshape (option A), short landscape only.**
+- The cluster container's content becomes a Row of MapIconBar and ControlPill (inside `TrailheadControls`) instead of
+  the Column (`AvailabilityCompactMapUi.kt:979-1027`). Portrait keeps the Column untouched.
+- **The pill's side is the bar's inboard side,** towards the screen's centre, the planner's lean. The bar keeps the
+  screen edge, so the minimise handle, which straddles the container's outer edge at the bar's mid-height, is
+  unchanged. On the left side the order is bar then pill; on the right, pill then bar.
+- **Vertical alignment:** bottom, the planner's lean. The record button stays low, where a thumb reaches.
+- **Gap:** `CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR` (`Spacing.sm`, 8 dp, `:1407`), the same gap portrait has between
+  them.
+- **Size:** the container is 264 dp tall (the bar's height) and 104 dp wide (48 + 8 + 48).
+- **A consequence I am stating, not choosing:** the container stays one Surface with one fill and border
+  (`:962-977`), as the portrait gap is today (`:1395-1406`). So the space above the bottom-aligned pill, 56 dp wide by
+  156 dp tall, is container fill and takes touches instead of the map. The owner can judge it on the S22.
+- **Drag, snap and the handles are unchanged.** They read the container's measured height (`:465`, `:974-976`) and
+  the bar's measured centre (`:382`, `:1004-1006`). With the bar in a Row, `boundsInParent` is still relative to the
+  container's content, so both keep their meaning. If a test shows a handle or drag needs more than that, I stop.
+
+**Item 2 (portrait).**
+- Q4's legend bound may lift the cluster above centre (`clampMapIconBarVerticalOffset`, `:794-817`).
+- When the legend's bound, less `Spacing.sm`, is above the centred cluster's bottom, the downward limit becomes that
+  bound's (negative) offset instead of 0 (`:801`).
+- The upward limit is widened only as far as that lift needs, and never past the dropdown's top. Where the two
+  conflict, the dropdown bound wins, as at `:816`.
+- The nav bound's floor and every case without a legend are unchanged.
+
+**Item 3.**
+- The portrait dropdown's cap subtracts the larger of the nav band and the IME's bottom inset, on the Maps tab only
+  (`AvailabilityCompactScaffold.kt:1202-1208`). Other tabs already shrink with the IME through `safeDrawing` (`:634`
+  against `:636`).
+- In `SearchDropdown`, the one-shot scroll to the end (`AvailabilitySearchUi.kt:500-510`) keeps the end in view each
+  time the viewport's size changes (`ScrollState.viewportSize`), until the user drags the dropdown
+  (`ScrollState.interactionSource`, a `DragInteraction.Start`) or it closes.
+- Content growing inside the viewport (a section the user opens) does not re-scroll, because that changes the maximum
+  and not the viewport.
+- The one-shot is still armed once per opening, as `-42` ruled.
+
+**Item 4.**
+- A plain class `MapCameraMemory`, whose `saved` field is deliberately not Compose state, so a camera idle recomposes
+  nothing. It holds a `MapCameraSnapshot`: target, zoom, bearing, tilt, `following` (the location component tracking),
+  and the region target the map last moved to (`lastAppliedCameraTarget`, `SightingsMap.kt:348`).
+- It is remembered in `AvailabilityScreen` beside the cluster's holder (`:877`), threaded through `CompactMainScaffold`
+  to `CompactMapTab`, and handed to the map on `MapRenderMode.cameraMemory`. `SightingsMapSlot` forwards it.
+- `SightingsMap` writes the snapshot on every camera idle (`:465-505`).
+- On a new `MapView`'s first style load, if a snapshot exists, `SightingsMap` does three things:
+  - sets the camera to it;
+  - sets `lastAppliedCameraTarget` to the snapshot's, so an unchanged target makes no region move (`:655-664`), while
+    a new search still moves the camera;
+  - activates the location component with the saved mode (TRACKING if following, NONE if not), which skips the
+    first-activation zoom-in (`:1207-1209`).
+- Session only; nothing is stored. The restore decision is a pure function, `cameraRestoreFor`, in `SightingsMap.kt`.
+
+**Item 5.**
+- `SightingsMap` sets MapLibre's attribution margins to its defaults plus, at the bottom, `bottomInset` (the caption's
+  own, already animated to 0 in fullscreen, `AvailabilityCompactScaffold.kt:585-590`), and at the "i"'s end side a new
+  `MapRenderMode.attributionEndInset`.
+- The scaffold sets that end inset to the rail's measured width when the rail is on the "i"'s end side (the right in
+  a left-to-right layout) outside fullscreen, and 0 otherwise, animated like the bottom inset.
+- In fullscreen both are 0: the caption's own edge treatment, per `-98`.
+- **At 270 the end side is the punch-hole side.** The end inset is then 0 and the "i" stays where it is, in the
+  cut-out band. Padding it inboard of the cut-out would put it under the cluster's column, against "clear the
+  cluster". See Decisions.
+- The margin arithmetic is a pure function, `attributionMarginsPx`.
+
+**Item 8.**
+- In `JournalEntriesMapChip` the chip's clickable moves outside its minimum-interactive box, so the whole 48 dp box
+  is the chip's own bounds: a direct hit, which wins over the map (`JournalEntriesChip.kt:112-127`).
+- The pill is drawn exactly as before, with its ripple clipped to the pill. The tagged node's bounds (the 48 dp box)
+  are unchanged.
+- The readout is not changed. Every point of the band is inside the chip's box, so the chip alone takes it.
+
+## Pre-registration: tests, pass conditions and predictions
+
+Every screen test drives the real `AvailabilityScreen` with real coordinate touches. Rotation is pinned with
+`ShadowDisplay.setRotation`, and the test asserts that the screen saw it, as `AvailabilityScreenLandscapeB2Test.kt:103-122`
+does. "Base" below means `e95aff8` plus an inert API added in the tests-first commit so the tests compile:
+- `MapCameraMemory` and `MapCameraSnapshot`;
+- `MapRenderMode.cameraMemory` (default null) and `MapRenderMode.attributionEndInset` (default 0 dp);
+- `cameraRestoreFor`, returning null (no restore, today's behaviour);
+- `attributionMarginsPx`, returning the defaults unchanged.
+
+None of it is read by production code until the build.
+
+**Geometry assumed for the predictions** (Robolectric, zero insets):
+- MapIconBar is 264 dp and ControlPill 108 dp (`MapChrome.kt:437-477`, `AvailabilityMapControlsUi.kt:178-227`), so
+  the portrait cluster is 380 dp.
+- The nav is 80 dp (`NavigationBar`, `AvailabilityNavigationUi.kt:149`).
+- The legend's bottom is `bottomInset + 32 dp`. Collapsed it is about 36 dp tall; expanded it is capped at 96 dp
+  (`MapLayersSheet.kt:418`, `:432`, `:460-478`).
+- The search bar is `searchBarHeight`, about 45 dp (`AvailabilityCompactScaffold.kt:352`). The dropdown's top is
+  about 61 dp.
+
+### A. `LayoutFixesLegendPortraitTest`, `w384dp-h740dp-xxhdpi`, `ROTATION_0` (item 2)
+
+- **T2.** With the forecast fields on, the legend collapsed and the cluster at its default place, the cluster's
+  bounds do not intersect the legend chip's. Then, after a real touch expands the legend, the same holds. Then, after
+  a touch collapses it, the cluster is back where it started, within 1 dp.
+- **Why `h740dp`:** by the geometry above, the centred cluster ends at about 560 dp and the expanded legend starts at
+  about 532 dp, so it overlaps at base. The collapsed legend starts at about 592 dp, so it clears at base. The lift
+  the fix needs, about 36 dp, fits under the dropdown's top.
+- **Predicted at base:** the collapsed half passes; the expanded half **fails**, with the cluster's bottom about
+  28 dp below the legend's top. The cause is the floor at `:801`.
+
+### B. `LayoutFixesPortraitTest`, `w384dp-h823dp-xxhdpi` (the S22's portrait size), `ROTATION_0` (items 4 and 8)
+
+- **T4.** On the Maps tab the map stub is handed `renderMode.cameraMemory`. The test writes a snapshot into it
+  (target, zoom 15.5, bearing 30, tilt 10, not following), then makes real touches on the nav's "List" and then
+  "Maps". After the round trip, the map is handed a memory holding that same snapshot.
+  - **Predicted at base: fails**, "expected the snapshot but was null": nothing hands the map a memory, and none
+    survives the tab change.
+- **T8 (six tests, one touch each).** A saved entry is shown on the map (so J8's chip shows) and a live fix is set (so
+  the coordinate readout shows). The map stub takes pointer input and counts taps, as the real `AndroidView` does.
+  - **The band** is the chip's tagged bounds intersected with the readout's touch area: the readout text's own bounds,
+    extended to 48 dp tall about its centre, which is Compose's minimum touch target.
+  - A guard in each test: the band must be at least 2 dp in each direction, or the test fails and says so.
+  - One real touch per test, at six points spread across the band: x at 1/6, 1/2 and 5/6 of its width, and y at 1 dp
+    below its top and 1 dp above its bottom.
+  - **Pass:** exactly one of these happens, and the map's tap count does not change:
+    - the chip's list opened ("Hide all" is present);
+    - the readout switched to its decimal form.
+  - **Predicted at base: all six fail, with the map taking the tap and neither control reacting.** This rests on my
+    partial reading of `HitTestResult` (the map's direct hit beats both expanded hits). If any of the six passes at
+    base, that prediction is wrong and I stop.
+
+### C. `LayoutFixesShortLandscapeTest`, `w823dp-h384dp-land`, `ROTATION_90` and `ROTATION_270` (reshape, items 9 and 5)
+
+Each test below runs at both rotations.
+- **TR1, the cluster fits.** The cluster's height is at most the MapIconBar rows' span plus 8 dp plus 1 dp, and at
+  most the map's height. The "Return to vehicle" button is 48 dp tall (within 0.5) and lies inside the cluster's
+  bounds.
+  - **Predicted at base: fails.** The cluster is about 368 dp, squeezed to the window, and the return button about
+    36 dp.
+- **TR2, the pill sits beside the bar, inboard and bottom-aligned.**
+  - At 90 (cluster on the left) the pill's left edge is at or right of the bar rows' right edge; at 270, its right edge
+    is at or left of their left edge.
+  - The pill's bottom equals the bar's bottom (the add row's bottom plus 4 dp), within 1 dp.
+  - **Predicted at base: fails** (the pill is below the bar).
+- **TR3, guard: the pill's controls are reachable.** With recording on, so the return button is enabled, five real
+  touches spread across each of the record and return buttons' bounds each reach it (their callbacks count 5 each).
+  - **Predicted at base: passes.** The squeezed return button still takes touches within its own bounds.
+  - A guard, backed by a revert check that covers the pill with a touch-consuming layer.
+- **TR4, the snap keeps the shape.** A long-press drag of 200 dp towards the far edge on the minimise handle snaps the
+  cluster to the other side, and the pill is then inboard of the bar there.
+  - **Predicted at base: fails** (the pill is below the bar).
+- **TR5, the drag works on the new shape.** A long-press drag of 40 dp down on the minimise handle moves the cluster
+  down by 40 dp (within 1). A touch on the minimise handle then minimises the cluster, and a touch on the restore handle
+  brings it back.
+  - **Predicted at base: fails on the move.** The squeezed cluster has about 8 dp of room.
+- **T9, item 9.** The search bar's bounds and the cluster's do not intersect.
+  - **Predicted at base: fails**: the cluster's top is at about 8 dp, the bar's bottom at about 45 dp.
+  - **After the build, predicted to pass under Robolectric,** with the cluster's top at about 60 dp.
+  - **On the S22 the margin is about 0 px by my arithmetic:** a 354 dp map area puts the cluster's top at about
+    210.7 px against the bar's drawn bottom at 211 px. So item 9 on the phone is device-only.
+- **T5, item 5 wiring.** The map is handed `attributionEndInset` equal to the rail's measured width at 90, 0 at 270,
+  and 0 at 90 in fullscreen (after a real touch on "Fullscreen").
+  - **Predicted at base:** fails at 90 outside fullscreen (0 against about 80 dp). The 270 and fullscreen halves pass;
+    they are guards.
+
+### D. `LayoutFixesLandscapeHeldTest`, the same window, both rotations (items 7 and 1 and 2 in landscape)
+
+These are the re-measurements `-99` asks for. The ones predicted to still fail after the build are stop evidence. They
+stay on `layout-fixes-wip`, not in `journal-redesign`'s suite, and their figures go into this report.
+- **T7.** J8's chip does not intersect the cluster.
+  - **Predicted:** fails at 90 at base and **still after the build**. The chip spans about 53-101 dp in y from x 0,
+    and the cluster about 60-324 dp from x 8, so the chip overlaps the cluster's first row across the bar's width. That
+    is item 7's stop, with option E.
+  - Passes at 270 (a guard).
+- **T1.** Neither the collapsed nor the expanded legend intersects the cluster.
+  - **Predicted:** passes at 90 (a guard). Fails at 270 at base and **still after the build**. The collapsed legend
+    starts at about 316 dp against the cluster's bottom at about 324 dp. There is no room to lift it: the dropdown's
+    top at about 61 dp is below the centred cluster's top at 60 dp. That is item 1's and item 2 (landscape)'s stop.
+
+### E. `SearchDropdownKeyboardTest`, a component test of `SearchDropdown` in a Box whose height the test sets (item 3)
+
+- **T3a.** The dropdown opens with the one-shot request at a height where everything fits (800 dp), then the height
+  drops to 360 dp, as a rising keyboard would shrink it. "Latitude", "Longitude" and "Search this location" are then
+  displayed.
+  - **Predicted at base: fails.** The one-shot ran while everything fitted and does not run again, so the fields are
+    scrolled off the bottom.
+- **T3b, guard.** After the pin, the user's real drag down brings "Set on map" into view. A later height change, 360
+  to 420 and back to 360 dp, leaves "Set on map" displayed.
+  - **Predicted at base: passes** (nothing re-scrolls at base).
+  - Backed by a revert check that removes the drag disarm.
+- **The IME cap itself cannot be seen by Robolectric**, since the IME inset is zero. It is device-only, and no test
+  claims it.
+
+### F. `LayoutFixesMapHelpersTest`, plain JVM (items 4 and 5)
+
+- **T4u.** `cameraRestoreFor`:
+  - on a new map (no previous camera mode) with a snapshot that was following, it restores its target, zoom, bearing,
+    tilt and applied target with TRACKING;
+  - with one not following, the same with NONE;
+  - with no snapshot, or with a previous camera mode (a style swap on a live map), no restore.
+  - **Predicted at base: the two restore cases fail** (null); the two no-restore cases pass.
+- **T5u.** `attributionMarginsPx`: in a left-to-right layout the end inset goes to the right margin; in a right-to-left
+  layout, to the left; the bottom inset is added to the bottom margin.
+  - **Predicted at base: fails** (the defaults come back unchanged).
+
+### Revert checks planned (one per built item with a test)
+
+Each check restores from a copy saved before editing, checks the build log for compile errors, and confirms the forward
+change afterwards.
+
+| check | revert | should fail |
+|---|---|---|
+| R2 | the floor at `:801` restored | T2 (expanded half) |
+| R3a | the viewport re-pin removed (one-shot only) | T3a |
+| R3b | the drag disarm removed | T3b |
+| R4 | `CompactMapTab` hands the map a memory it remembers itself, not the hoisted one | T4 |
+| R4u | `cameraRestoreFor` back to null | T4u |
+| R5 | the scaffold's end inset back to 0 | T5 at 90 |
+| R5u | `attributionMarginsPx` back to the defaults | T5u |
+| R8 | the chip's clickable back inside its minimum-interactive box | T8 |
+| RA | landscape back to the Column | TR1, TR2, TR4, TR5, T9 |
+| RA-g | a touch-consuming layer over the pill | TR3 |
+
+### Device-only, by construction
+
+- the IME cap and when the scroll lands (item 3);
+- the attribution margins MapLibre applies (item 5);
+- the camera MapLibre restores and the tracking mode (item 4);
+- the caption against the reshaped cluster (item 6: the caption is inside `SightingsMap`, which no screen test
+  composes);
+- every figure that depends on the S22's status bar, nav bar and cut-out (items 1, 7 and 9 margins).
