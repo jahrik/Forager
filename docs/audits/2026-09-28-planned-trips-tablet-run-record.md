@@ -402,6 +402,30 @@ Night Maps is the drawer's Settings checkbox (`CheckBox [35,930][137,1032]`, `ch
   the two pans. One more cluster under 20 px is basemap noise (2 px, as at the baseline).
 - **Verdict: as predicted.**
 
+### Check 5b: landscape, a force-stop and relaunch; the trips' ids
+
+- **Crash buffer before the stop** (`45-crash-before-stop.txt`): sha256 `72bd6b5b5e9a70ea`, the start's.
+- `am force-stop` at 23:43:1xZ, pid 7372 before, none after (`46-force-stop.txt`).
+- **Database copy** (`db-trips-*`): device and local sha256 match, `integrity_check` `ok`, `user_version` 16,
+  **`planned_trips` 2**. Against the start's digests, only two tables differ: `planned_trips` (the two trips) and
+  `cached_searches`, whose one row changed only `fetchedAtEpochMillis` and `lastAccessedAtEpochMillis` (my re-run of the
+  search; it is still 1 row). Every other table's digest is unchanged (`db-trips-digest.txt`).
+
+**The trips created** (coordinates in `trips-created.txt` in the evidence directory):
+
+| Trip | id | name | date |
+|---|---|---|---|
+| A | `6378dc98-ff18-47a3-800a-34c2412d5e76` | Trip 1 | 2026-09-28 |
+| B | `9dd22e20-c7c2-473f-aead-edfe78773717` | Trip 2 | 2026-09-30 |
+
+Both lie on the search centre's longitude, south of it (A nearer), as the two vertical pans put them.
+
+- **Relaunch:** `am start -W` with the launcher's action and category, `COLD`, no prompt (`47-relaunch.txt`). The app
+  came up with no region and the map's "Choose a region…" message (`48-r1-relaunch`).
+- The recent search re-run (`49-r1-recent-open2`, then `50-r1-maps-after-relaunch`): **A 1229 px at
+  [2163,1242][2204,1300] and B 1229 px at [2163,1480][2204,1538]**, the waypoint at its search-centre position.
+- **Verdict: as predicted, both draw after a relaunch.**
+
 ## Appendix A: `prompts/preserved/2026-09-28-95.md`, verbatim
 
 At `554449b`, whole (sha256 `cfa98c46e5f3a49f8acb8b7b7bac2f5c343a10e3bb0d8ae9b439ecf5e12e2730`):
