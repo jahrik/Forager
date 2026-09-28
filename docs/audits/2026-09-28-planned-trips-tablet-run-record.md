@@ -222,6 +222,42 @@ filter.
 7. **An objective glyph measure** (`pix.py`) alongside my reading of each screenshot. The dispatch asks for screenshots
    and dumps only.
 
+## The planned-trips pulse's findings (received after the pre-registration was pushed in `e5cb48a`)
+
+Forwarded by the planner at about 23:4xZ, before any Forager screen was opened. Appended as written; the
+pre-registration above is not edited. No planner-log line was given with it.
+
+### The planner's message, verbatim
+
+> The planned-trips pulse is back. Its findings, read at `a0a54f9`, are for your pre-registration. If you have already pushed your predictions, append these as written after the pulse; do not edit what you pushed.
+>
+> - **Compact tree:** planned trips are handed to the map only after a search has set a region: `AvailabilityCompactMapUi.kt:573` `val hasSearched = uiState.region != null`, and `:641` `plannedTrips = if (hasSearched) uiState.plannedTrips else emptyList()`. Waypoints, finds, photos, tracks and regions are not gated.
+> - **Wide tree:** there is no map until a search (`AvailabilityWideLayoutUi.kt:239-243`). After a search it passes `uiState.plannedTrips` with no gate (`:291`). So on your tablet, the pulse predicts trips **do** draw once the searched map is up.
+> - **No other filter:** none by date, month, taxon or region radius (DAO `PlannedTripDao.kt:11`, use case `GetPlannedTripsUseCase.kt:20-25`). `SavePlannedTripUseCase.kt:31` refuses a date before today, so your past trip may not be creatable. Record it if so.
+> - **The layer:** `planned-trips-layer`, in the MARKERS group, a flag glyph (`MarkerGlyphs.kt:231`), day `#9553A4` and night `#FA01DD`. It has no zoom limit, is on by default, and the switch is wired (`MapLayersSheet.kt:137` to `SightingsMap.kt:968`).
+> - **Camera:** it opens at zoom 12 for the default 8 km radius (`SightingsMap.kt:1809-1814`), so a trip may sit outside the opening view. Pan or zoom out before calling one missing.
+>
+> Carry on. The tablet only, and fix nothing.
+
+### The pulse against the installed build, and against my predictions
+
+- **Its lines are at `a0a54f9`; the tablet runs `d7cc9f5`.** I read each cited line at `a0a54f9` and it says what the
+  pulse says. Between `d7cc9f5` and `a0a54f9`, `AvailabilityWideLayoutUi.kt` and `SightingsMap.kt` change only map-chrome
+  colours, test tags and the offline region's night border, and `AvailabilityCompactMapUi.kt` 7 lines;
+  `SavePlannedTripUseCase.kt`, `GetPlannedTripsUseCase.kt` and `PlannedTripDao.kt` do not change. **So its findings hold
+  for the installed build,** at shifted lines: the wide gate AWL:229-233 (pulse :239-243), the hand-over AWL:281 (pulse
+  :291), the visibility setter SM:967 (pulse :968), `zoomForRadiusKm` SM:1787-1792 (pulse :1809-1814), the compact gate
+  `AvailabilityCompactMapUi.kt:640` (pulse :641).
+- **Agreement with my pre-registration:** the same wide path with no gate after the search, no date or other filter, no
+  past trip creatable, a flag on by default with no zoom limit and a wired switch. The pulse adds the DAO's unfiltered
+  query (`SELECT * FROM planned_trips`, `PlannedTripDao.kt:11`), which I had not read, and the opening zoom, which I had
+  read (SM:1787-1792) but not stated.
+- **A citation error of mine, found by the pulse's line.** My pre-registration cites the past-date refusal as
+  `domain/SavePlannedTripUseCase.kt:27-29`. It is **:31-33** at `d7cc9f5` (and at `a0a54f9`). I had numbered that file
+  after removing its import lines. No other citation in the pre-registration was numbered that way.
+- **The pulse's camera note** matches my placement plan: trips are placed at the centre pin, so each is in view when
+  created; "missing" is judged only with the trip's point on screen.
+
 ## Appendix A: `prompts/preserved/2026-09-28-95.md`, verbatim
 
 At `554449b`, whole (sha256 `cfa98c46e5f3a49f8acb8b7b7bac2f5c343a10e3bb0d8ae9b439ecf5e12e2730`):
