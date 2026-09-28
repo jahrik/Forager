@@ -647,3 +647,240 @@ commit's message before the push. There were zero hits.
 The launch message also carried a planner's note, marked "not part of the store copy". Verbatim:
 
 > Planner's note (not part of the store copy): the only other agent on this machine is the device coder on the phone, which does not build. Check `df` and free memory before each Gradle run. Commit and push at every natural stopping point, so another stop or outage costs nothing. When you finish or stop, hand back a report as the dispatch requires: what landed with hashes, verification, evidence, suite counts, and what was not tested.
+
+## Resumed and built (continuations `2026-09-28-64` and `2026-09-28-65`): J8
+
+**Status: J8-1 to J8-4 built, and pushed to `journal-redesign` (the push commit is named in the hand-back).**
+- The build is on `9cde9b3`.
+- Tests-first part 2 is `8d2463d`, and every test in it failed at its stubs, with one exception stated below.
+- 10 revert checks were confirmed.
+- The full suite ran from a cleared results directory: **293 classes, 2374 tests, 0 failures, 0 errors, 24 skipped**. That is the planner's `285 / 2316 / 0 / 0 / 24` plus J8's 8 classes and 58 tests exactly.
+- The collision check was re-run at the final push.
+
+The same third coder writes this, continuing after the planner answered the stop above with `-64` (Q-A (a), Q-B (a)) and then `-65` (the owner's text for a failed toggle). Both are quoted verbatim at the end. Paths are under `app/src/main/java/com/zynergylabs/forager/app/` unless given in full.
+
+### What landed on `j8`
+
+| Commit | What |
+|---|---|
+| `9cde9b3` | The stopped coder's WIP, kept whole (see the stop section). |
+| `f5a42b4`, `64f6e19`, `864488b` | Merges of `origin/journal-redesign` (planner commits only; never a rebase). |
+| `c7f2575` | Fixes the halo-ring test's probe (below) and restates `MapLayerStateTest` under `-53` Q4, as `-64` asked. |
+| `8d2463d` | Tests first, part 2: stubs in main, and the failing tests for the chip, its colours, the bubble lines, Open entry with `-53` Q1, and `-65`. |
+| `efa757f` | The build: the chip, the report menu, the bubble lines, Open entry, and the toggle's own message. |
+| `0bdc0f8` | Screen-test harness: touches go to the app's own window (the R10 finding, below). |
+
+### What was built
+
+**J8-1, Room** (the WIP, unchanged):
+- The column, and `MIGRATION_15_16` as a rebuild: an explicit column list, `0` for every row, and both indexes recreated.
+- Version 16, with `16.json`. The build regenerates the schema file and `git status` stayed clean, so the committed file is the generated one.
+- A one-column DAO `UPDATE`. The repository's `setShownOnMap` fails when no row is stored.
+
+**J8-2, the highlight** (the WIP, with the test fix below):
+- `GetJournalEntryHighlightsUseCase` covers saved and shown entries only, and draws on the live geometry the Maps tab already draws.
+- There are five halo layers and five sources, each layer directly below its record (the tracks' halo below their casing), with `TapGroup.NONE`.
+- `drawnWith` enforces `-53` Q4 in `layerPaintFor`. `registryProblems` rejects a halo decorating a missing layer, sitting above what it decorates, or taking taps.
+- **Offline-region outlines are highlighted too**, with a solid halo under the dashed outline in the same colour, as `-52` asked me to state.
+- **Palette, `JOURNAL_ENTRY`: day `#005577`, night `#00DDFF`.** I re-derived the figures myself with a replica of `MapPaletteTest`'s own maths (`/tmp/claude-1000/j8r/pal.py`), and they match the pins exactly:
+
+| Figure | Day `#005577` | Night `#00DDFF` |
+|---|---|---|
+| (a) distance from the nearest ground cluster | 0.202 | 0.197 |
+| (c) contrast against the casing | 8.184 (white) | 12.786 (black) |
+| (d) distance from the nearest role | 0.161 (sighting dot) | 0.163 (search centre) |
+
+  (e) is 20.09° between day and night, and its pin is 20.1°. The owner judges the pair on the phone.
+
+**J8-3, the toggles:**
+- **Report menu.** "Show on map" or "Hide from map" appears for a saved entry, between "Edit entry" and "Delete entry", with the map icon. It is threaded through `CartographyScreen`, `JournalTab`, `LogPanel`, the compact scaffold and `MainActivity`. A draft's menu offers neither.
+- **Chip.** `JournalEntriesMapChip` (`ui/map/JournalEntriesChip.kt`) reads "N journal entries on map", or "1 journal entry on map", and is composed only while an entry is shown.
+  - A tap lists the shown entries by date. Each row reads the date and "Hide", and a tap on the row hides that entry. "Hide all" comes last.
+  - The chip takes the taxon chip's colour source at 80% with its content colours (`-64` Q-A). The list is the default menu role at `MAP_CHROME_OVER_MAP_ALPHA` with the role's content colour, opaque.
+  - It sits in a `FlowRow` with the taxon chip, after it. The row is sized to its chips, draws nothing and takes no touches itself. In portrait it is under the compass strip. In a short landscape window it is under the search bar at the bar's start. **On the wide layout it is at the map's top centre, where the wide taxon chip sits** (`ui/availability/AvailabilityWideLayoutUi.kt`).
+- **Layers switch.** "Journal entries" comes last in the Maps tab's overlays and is not in the entry map's. It is the state owner of the halos, and it persists by layer id through the existing overlay persistence. It never writes `shownOnMap`.
+
+**J8-4, bubble and Open entry:**
+- A highlighted record's bubble gets one date line per keeping entry, up to three, in the report header's form (for example `2026-09-12`), with TalkBack label "Open entry <date>".
+- Past three there is one line, "Kept in N journal entries" (the photo bubble's wording), over an untitled list of dates at 80%.
+- The lines appear only while the Layers switch shows the highlights, and only on the Maps tab.
+- "Open entry" switches to the Journal (compact) or opens the drawer's `LogPanel` (wide), goes to Entries and opens the entry in its report, through `PendingJournalDestination.VIEW_ENTRY` and `CartographyScreen`'s `openEntryRequest`.
+  - An entry open in its editor with unsaved changes gets the existing "Save your changes?" first. Save or Discard then opens the requested entry. Cancel keeps the edit open and unsaved, and opens nothing.
+  - An unchanged open entry just closes.
+  - A find kept open on the Journal is left first through the one wrapper, as M1's find route does.
+
+**`-65`.** A failed `shownOnMap` write, from any of the four actions, sets its own `CartographyUiState.shownOnMapErrorMessage`, exactly `Changes not applied. Try again.` (`SHOWN_ON_MAP_FAILED_MESSAGE`). `AvailabilityScreen` shows it as a Toast on every tab and then clears it. `saveErrorMessage` and its existing texts are unchanged.
+
+### The halo-ring test was wrong, not the drawing
+
+Earlier this report says `drawGlyphHalo` in the WIP failed the ring test. That was a test bug.
+- The test's `Bitmap.at` helper multiplied by a bare `density`. Inside a `Bitmap` extension, that name resolves to the receiver's `Bitmap.getDensity()`, which a temporary probe measured at 160, not the test's 3f.
+- So every probe landed off the image. The ring assertion read 0 against a halo that the same probe, at the test's own density, read as `#FF005577` at the ring point.
+- The two "nothing there" assertions passed without reading a pixel.
+- Its failure at the stubs was therefore not for its stated reason either: it would have read 0 from any image. That is CLAUDE.md's family of a check that could not see its data. What caught it was the WIP failing on a halo that the probe showed was drawn.
+- `c7f2575` names the test's own density. Its evidence is now R4, a build with the ring's stroke removed, which fails at the ring point.
+
+### Tests first, part 2 (`8d2463d`)
+
+**The stubs.** Each is a declaration with no J8 behaviour:
+- the chip composable, with Material3's default opaque surface and menu colours and an unpinned (ambient) menu content colour, and not placed on any map;
+- the bubble's `onOpenEntry`, which draws no lines;
+- the new `MapLayersControls` fields, which no host reads;
+- the new `AvailabilityScreen` callbacks, unused;
+- `shownOnMapErrorMessage`, which nothing sets.
+
+**Run at the stubs:** 6 classes, 62 tests, **30 failures, each at the piece that is missing**:
+- the 22 compact screen tests, in portrait and in `w823dp-h384dp-land`, fail on no menu item, no chip, no date line, or empty highlights;
+- the 2 wide screen tests;
+- the 5 chip and bubble tests (container alpha 1.0; no line);
+- the `-65` toggle test (the message is `null`).
+
+The `-65` save guard ("a failed save still surfaces Couldn't save your changes") **passes at the stubs by construction**, because what it pins is the existing behaviour. It does not compile at the pre-stub base, which is the same shape as the (d) day row, so its evidence is revert check R2.
+
+**The (d) day row** passed at the stubs because the white placeholder is far from every day role, more than 0.161 from each. At the pre-stub base it does not compile. As `-64` rules, the positive control R1 is what makes it evidence.
+
+### Revert checks
+
+The runner is my copy of the previous coder's `revert.py`, which I read before using. For each check it:
+- saves a copy of the file before the edit and restores from that copy in a `finally`;
+- compares the restored file byte for byte;
+- clears the results directory before each run;
+- refuses the results on any compile-error line;
+- confirms a check only when the failing set equals the prediction and each message has its predicted fragment.
+
+`git status` was clean after every check. The spec and logs are in `app/build/j8r/revert/`.
+
+| Check | Edit | Predicted | Result |
+|---|---|---|---|
+| R1 (`-64` positive control) | day `journalEntry` `#0D4860`, 0.113 from the sighting dot; its (a), (c) and (e) still pass | the hex pin and the (d) day row fail, naming `journalEntry` | **Confirmed**: "DAY.journalEntry is 0.1130 from sightingDot, pinned at 0.161" |
+| R2 (`-65` guard) | a save failure writes the map message instead | "a failed save still surfaces…" | **Confirmed**: `expected:<Couldn't save your changes.> but was:<null>` |
+| R3 (`-65`) | the toggle's failure goes back to the save message | the ViewModel test and the screen Toast test | **Confirmed**: both `expected:<Changes not applied. Try again.> but was:<null>` |
+| R4 (the ring) | the halo's stroke pass removed | the ring test | **Confirmed**: "WAYPOINT: the halo draws its colour there" |
+| R5 (WIP addition 1) | the finds halo source fed the photos | "each halo source receives…" | **Confirmed**: `journal-entry-finds=[photo-1]` |
+| R6 (WIP addition 2) | the track halo forgets the casing's width | "each line halo is the halo width wider…" | **Confirmed**: "track halo at 8.0 expected:<6.0> but was:<4.8>" |
+| R7 (WIP addition 3) | the waypoint halo drawn in the waypoint colour | the halo-icon test and `MapLayerFeatureIdTest`'s symbol-layer colour check | **Confirmed**, both |
+| R8 (`-53` Q1) | Open entry skips the prompt, so a dirty entry just closes | Discard, Save and Cancel tests | **Confirmed**, each at its prompt button; the unchanged-entry test still passed |
+| R9 | the four halos stop following the switch | two switch tests and the registry's state-owner test | **Confirmed**, "journal-entry-regions-layer hidden …" |
+| R10 (the Surface pitfall) | the chip's row made full-width and consuming every touch | "touches all around the chip…", on its count | First run a **mismatch**; after `0bdc0f8`, **confirmed**: `expected:<5> but was:<0>` |
+
+The R10 mismatch was real data about the test, not a pass.
+- On the first run the test did fail, but through `onRoot()` finding two roots: a sample touch reached the chip, whose list opened in a popup window of its own.
+- The harness now touches the app's own window (the first root), so a touch that lands on the chip counts as a miss.
+- The forward suite passed before and after that change.
+
+### Suites
+
+- The full suite from a cleared results directory at `0bdc0f8`: **293 / 2374 / 0 / 0 / 24**. The run took 3 minutes and the test task executed; the classes and tests were counted from the JUnit XML.
+- Against the planner's `285 / 2316 / 0 / 0 / 24` at `df49c06`, J8 adds 8 classes and 58 tests, and the counts agree exactly: 2 migration, 1 schema, 5 use case, 5 ViewModel, 11 `JournalEntriesOnMapTest`, 3 halo glyph, 2 registry, 5 chip, and 24 screen tests.
+- Later commits are this report and plan-only merges, so no code changed after the suite.
+- Prediction 4 (+40 to +90): **held**, at +58.
+
+### Verification at the final push
+
+The result of the re-check at the push is in the hand-back, together with the push commit.
+
+### Findings
+
+1. **In a short landscape window the chip's spot lies over the icon cluster.**
+   - The placement is ruled: under the search bar, which is the taxon chip's spot. At its default the cluster is on the same punch-hole side (Landscape B2 S6).
+   - With Robolectric's geometry (zero insets), the chip was at `[8,61 – 40,93]` dp and the cluster's "Reset orientation to north" button at `[8,64 – 56,112]` dp.
+   - The chip is composed after the cluster, so where they overlap the chip takes the touch.
+   - The taxon chip has the same overlap today, while a taxon filter is on.
+   - I built the placement as ruled. The landscape chip-touch test first drags the cluster to the port side, as a user can, and now checks that each sample point is map and no other chrome.
+   - How it looks and behaves on the S22 is a device item. The placement is the owner's to revisit.
+2. **Cartography's `saveErrorMessage` has no reader in the UI** (pre-existing). Nothing shows it or clears it, so "Couldn't save your changes." and the other entry save failures are never shown to the user. `-65`'s "the existing save failure still surfaces its own string" holds at the state level only. This is CLAUDE.md, Errors, and not fixed here.
+3. `-65` cites `CartographyViewModel.kt:636` as an existing use of "Couldn't save your changes." At `9cde9b3` that line was the WIP's toggle failure, the one `-65` replaces. The existing uses were `:388` and `:664`, and they are unchanged.
+4. **A highlighted photo's bubble can say "Kept in" twice.** It shows its existing attachment line, "Kept in N journal entries" counting every entry, and past three shown keepers J8's own line counting the shown entries.
+5. **Robolectric measures text at a fraction of its device width.** The chip was 32 dp wide in tests. Chip geometry in the tests is therefore not the device's, and a chip narrower than 48 dp gets touch-target expansion that a device chip would not.
+
+### Device-only
+
+- The highlight's look over each basemap and at night.
+- The chip against real insets, and its 80% fill and the list's over each basemap.
+- The landscape chip against the cluster (finding 1).
+- The failed-toggle Toast.
+- The migration on the S22's real data.
+
+### Not tested
+
+- **MapLibre drawing the halos.** The screen tests use a stub map. The halo layers, sources, images and line specs are tested headlessly (the registry, `lineSpecForLayer`, `markerIconForLayer`, `journalHighlightFeatureCollections`, the halo bitmaps), and `SightingsMap`'s `initializeOverlayLayers` builds from those, but no test ran it.
+- **On the wide layout:** the report menu toggle, the Layers switch and the `-53` Q1 prompt. The wide tests cover the chip's placement and touches, and a date line opening the report in the drawer.
+- **"Hide all" when one of several writes fails.** Each write reports its own failure, and nothing retries.
+- The entry map drawing no highlight is by construction: it passes no `journalHighlights`, and no test asserts it.
+
+### Predictions
+
+1. Version 15 and no collision: **held** at the base, and re-checked at the push (hand-back).
+2. No tenth `MapSlot` parameter: **held**. The highlights are a field on `MapOverlayContent`.
+3. Five layers and five sources: wrong by design, as `-53` recorded.
+4. Suite growth: **held**, at +58.
+
+### Decisions I made
+
+- **Following the dispatch on the record.** No sweep, intent or terminal. The kit is absent at the base, and the planner writes the record.
+- **The halo test.** I fixed the test rather than the drawing. The failure did not match its stated reason, and a probe showed the drawing was right (CLAUDE.md, "fix the check first").
+- **The stub design for part 2.** Default Material colours with an unpinned content colour, and the chip written but not placed. This made the pins fail on the actual colours and the screen tests on the missing placement.
+- **The `-65` guard.** I kept it as its own test that passes at the stubs, backed by R2, rather than folding it into the failing test.
+- **The chip list's rows.** Each is one menu item, the date with "Hide" at its end, and a tap anywhere on the row hides that entry. There is a divider before "Hide all". The list stays open after one of several is hidden, and closes on the last or on "Hide all". No new copy.
+- **The report menu item.** Between Edit and Delete, with `Icons.Filled.Map` in both states.
+- **The bubble lines.** Text buttons after the record's lines and before its actions. The count line opens a menu anchored to it. The list items carry "Open entry <date>" too.
+- **The 80% rule for the bubble's count list.** I applied the owner's menu ruling to it as well; `-64` names only the chip's list.
+- **Placement.** A `FlowRow` rather than a `Row`, so two chips wrap instead of running off the screen, with the J8 chip after the taxon chip. On the wide layout, the taxon chip's spot at top centre.
+- **Open entry:**
+  - it leaves a kept-open find first (M1's F3 route);
+  - it does nothing when the requested entry is already open in its report;
+  - a waiting request is dropped when the user starts a leave themselves;
+  - a request waiting on a failed Discard stays until the entry closes.
+- **The failed-toggle message.** A new field in `CartographyUiState.kt`, a file `-53`'s S1 does not list, because `-65` says to split the two messages. It is shown by `AvailabilityScreen`, so it appears on the Maps tab, where the chip is.
+- **Computing the highlights.** In `AvailabilityScreen` from state it already holds, by calling the headless use case, rather than in a ViewModel.
+- **The keeping entries.** Empty while the Layers switch is off.
+- **The landscape chip-touch test.** It drags the cluster to the port side first and validates its own sample points.
+- **The harness change `0bdc0f8`**, made after the R10 mismatch.
+- **The ten revert checks and their edits.** For R1, the colour `#0D4860`, chosen so that only the hex pin and (d) day can fail.
+- **The screen-test classes are `internal`**, because they expose `internal` test fixtures.
+
+### Flags outside scope
+
+Findings 1 to 5 above. Beyond those:
+- The previous coders' runner copies stay in `app/build/j8/` and `/tmp/claude-1000/j8/`.
+- My runs and logs are in `app/build/j8r/` and `/tmp/claude-1000/j8r/`.
+
+### D58
+
+I ran `git grep -i` for the three phrases named in `prompts/preserved/2026-09-28-03.md` over `git diff 48633ee` and over every commit message since `48633ee`: zero hits. The only hits in the whole tree are the two store copies that state the rule itself (`2026-09-27-29.md` and `2026-09-28-03.md`), which were already present at the base.
+
+### Verbatim: continuation `2026-09-28-64`
+
+> Planner message `2026-09-28-64`, part of dispatch `2026-09-28-52`. Quote it verbatim in your report. It answers Q-A and Q-B from your stop at `7f41400` (WIP `9cde9b3`), plus the two open items you raised. **Build J8.**
+>
+> **Q-A, the chip's fill: (a), by the planner.**
+> - `-62`'s line "Do not make J8's chip 80%, and do not change any fill for it" is **withdrawn as the planner's error**. It contradicted CLAUDE.md, UX defaults (the owner's rule, `c166bda`), and the taxon chip in the same row is already at `MAP_CHROME_OVER_MAP_ALPHA`, as the inventory pulse recorded.
+> - The chip takes the taxon chip's colour source (`MapIconStackButtonColor*`, `MapChrome.kt:233-239`), not a new literal.
+> - **The chip's list** is new map chrome too. The owner's edge-case ruling 1 for menus over a map is verbatim "80% over the map" (`docs/plans/journal-redesign.md`). Put its container at `MAP_CHROME_OVER_MAP_ALPHA`, with the content colour opaque, as the Layers sheet does (`MapLayersSheet.kt:221-231`).
+> - If the Material3 component you chose for the list cannot take a container colour at `1.5.0-alpha26`, stop and report. Do not swap components to get one.
+> - Tests first: pin both the chip's and the list's container alpha, and the opaque content colour, each seen failing at the stubs.
+>
+> **Q-B, the (d) day row: (a), by the planner.**
+> - Accept it. Back it with a positive control: a revert check that sets the day `journalEntry` colour inside 0.161 of the sighting dot and confirms that the (d) day row fails with a message naming `journalEntry`.
+> - In the report, state that the row passed at the stubs, and why: the white placeholder is far from every day role.
+> - At the pre-stub base the row does not compile, so `-52`'s abort is not met. The positive control is what makes the row evidence.
+>
+> **Your two open items.**
+> - **"Couldn't save your changes."** (`CartographyViewModel.kt:636`) for a failed toggle is accepted as not new copy. It is an existing string used verbatim for the same meaning, a write that failed. The planner will tell the owner, who may overrule it.
+> - **`MapLayerStateTest`, "no other layer changes":** restate it so it asserts `-53`'s Q4 explicitly. The finds halo hides with Finds, and nothing else changes. Record it in the report as a changed expectation under that ruling, not as a weakened assertion.
+>
+> **What stands.** `JournalHaloGlyphTest`'s WAYPOINT ring failure is yours to diagnose. CLAUDE.md's two-failed-fixes rule applies. Everything else in `-52`, `-53`, `-54` and `-62` stands: build on `9cde9b3`; tests first for everything not yet covered, including `-53`'s Q1 tests; revert checks, including on the WIP's own three test additions; the full suite from a cleared results directory; the collision re-check at your final push; and the report.
+
+### Verbatim: continuation `2026-09-28-65`
+
+> Planner message `2026-09-28-65`, part of dispatch `2026-09-28-52`. Quote it verbatim in your report. It **supersedes one item of `-64`**: the reuse of "Couldn't save your changes." for a failed toggle.
+>
+> **The owner's ruling, verbatim:** "Set it to "Changes not applied. Try again.""
+>
+> - When a write of `shownOnMap` fails, the message is exactly `Changes not applied. Try again.`, with no other text. That covers the report menu's "Show on map" / "Hide from map", the chip list's "Hide" and "Hide all", and any other path that writes the field.
+> - The planner reads "it" as every `shownOnMap` write, since they are one write. The owner was asked about the toggle.
+> - Do not change "Couldn't save your changes." where it already exists (`CartographyViewModel.kt:636` and anywhere else). The new string is for the `shownOnMap` failure only. If the existing code routes both failures through one message state, split them with no behaviour change to the existing one.
+> - Tests first: a failed `shownOnMap` write surfaces exactly this string, and the existing save failure still surfaces its own string. Include a revert check.
+> - D58 applies as usual.
+>
+> Everything else in `-64` stands.
