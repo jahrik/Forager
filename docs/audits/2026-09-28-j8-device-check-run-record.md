@@ -768,8 +768,8 @@ As the dispatch says: it cannot be forced on the device without changing app cod
 
 - **`shownOnMap`:** the L0a entry was hidden with the chip's own "Hide" at 21:59:11Z (`134-`), and the chip was gone
   (`135-`). From the final database copy, taken after `am force-stop` at 21:59:45Z (`db-end-*`; the copy matches the
-  device; `forager.db` 229376 bytes `e88effc0…61af7c93`, `-wal` 466944 bytes `55db76e4…0286e85`... see
-  `db-end-local-sha256.txt`):
+  device; `forager.db` 229376 bytes `e88effc0…61af7c93`, `-wal` 466944 bytes `55db76e4…31ea95c3`, `-shm` 32768 bytes
+  `671c73ad…80286e85`, in full in `db-end-local-sha256.txt`):
   - header "SQLite format 3\0", WAL magic `377f0682`, **integrity ok**, **user_version 16**;
   - **`shownOnMap = 0` on all 7 rows**, the L0a entry `6107d76c…` included;
   - **every one of the 18 tables has the backup's row count**;
