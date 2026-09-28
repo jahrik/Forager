@@ -3347,3 +3347,13 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner, verbatim: "Side by side (Recommended)"; order "After M1 please". Evidence: docs/audits/2026-09-28-backlog-device-check-part-b-run-record.md, item 7. Written by the planner by hand.
 
 ---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-48
+**Dispatch-file:** none (dispatched in chat by the planner; docs only)
+**Type:** filing
+**Outcome:** completed
+**Report:** docs/audits/2026-09-28-navigator-plan-status-audit.md on branch navigator-audit at 5f46c4d (parent 352b708, origin/pre-main)
+**Notes:** 2026-09-28T16:41:48Z. The owner, verbatim: "Have the coder file this away, this is an audit from another session, unrelated to this work." Another planner session's Forager Navigator plan status audit filed byte for byte (sha256 37fb09c2bda714da21ef3350aa7b0452a43e6a17a34a4d640622fda204f7581b) on its own branch off pre-main, not on journal-redesign; its proposed index row appended with a File cell added by planner ruling (the index declares three columns); a dated pointer added to the Navigator row in docs/plans/README.md. No pull request, no merge: how it reaches pre-main is the owner's call. The audit's five open owner decisions (FieldTrip, walking time versus the plan's ETA cut, offline paths, tracks leaving the phone, off-track alert conditions) were not acted on. Written by the planner by hand.
+
+---
