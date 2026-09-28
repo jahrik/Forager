@@ -379,6 +379,19 @@ Night Maps is the drawer's Settings checkbox (`CheckBox [35,930][137,1032]`, `ch
   second style reload.
 - Night Maps is back **off** and read back as `checked=false` in the dump.
 
+### Check 4: landscape, a real tap on each flag
+
+| Trip | Touch | Capture | Bubble (dump) | Verdict |
+|---|---|---|---|---|
+| A | its pennant, (2056, 547) | `39-r1-tap-A` | "Trip 1", "Sep 28", an MGRS line, a decimal-degrees line, "Directions", "Close" | **opens** |
+| B | its pole, (2034, 808) | `41-r1-tap-B` | "Trip 2", "Sep 30", an MGRS line, a decimal-degrees line, "Directions", "Close" | **opens** |
+
+- **Verdict: as predicted** (`MapBubble.kt:411-417`). Each bubble was closed with its own Close button; afterwards the
+  dump holds no trip name and both flags draw (`40-r1-A-closed`, dump only; `42-r1-B-closed`). "Directions" was never
+  tapped.
+- The bubble is translucent and opens to the left of the flag, partly over it (my reading of `41-r1-tap-B`).
+- One touch per flag, at a point I chose on its glyph; the edges of the glyph were not sampled.
+
 ## Appendix A: `prompts/preserved/2026-09-28-95.md`, verbatim
 
 At `554449b`, whole (sha256 `cfa98c46e5f3a49f8acb8b7b7bac2f5c343a10e3bb0d8ae9b439ecf5e12e2730`):
