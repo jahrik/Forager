@@ -23,8 +23,25 @@ data class MapRecords(
     val offlineRegionCircles: List<RecordRegion>,
     val failures: List<MapRecordReadFailure>,
 ) {
-    /** Tests-first stub for the planner's ruling on Q7 (message 3). */
-    fun withoutPending(findId: String?, photoId: String?, offlineRegionId: String?): MapRecords = this
+    /**
+     * These records without the find, the album photo and the offline region whose deletes are in
+     * their Undo window (planner's ruling on Q7, message 3 on dispatch 2026-09-28-03): the map leaves
+     * them out at once, as Records does, and they come back on Undo. The pending ids live in the
+     * ViewModels' pending-delete slots (J4: one per kind), so the screen passes them here; a `null` id
+     * means nothing of that kind is pending. Tracks have no pending-delete slot, so they are untouched.
+     */
+    fun withoutPending(findId: String?, photoId: String?, offlineRegionId: String?): MapRecords {
+        if (findId == null && photoId == null && offlineRegionId == null) return this
+        return copy(
+            findMarkers = if (findId == null) findMarkers else findMarkers.filterNot { it.recordId == findId },
+            photoMarkers = if (photoId == null) photoMarkers else photoMarkers.filterNot { it.recordId == photoId },
+            offlineRegionCircles = if (offlineRegionId == null) {
+                offlineRegionCircles
+            } else {
+                offlineRegionCircles.filterNot { it.recordId == offlineRegionId }
+            },
+        )
+    }
 
     companion object {
         val NONE = MapRecords(emptyList(), emptyList(), emptyList(), emptyList(), emptyList())
@@ -43,13 +60,14 @@ data class MapRecords(
  * that resolves to zero points gives no polyline, and a photo with no coordinate gives nothing. A find
  * with no location gives nothing, as it does there.
  *
- * **The track being recorded is drawn too.** Records lists it (as "Still recording"), and the ruling
- * names every track in Records. Kept tracks draw above the breadcrumb in the registry, so while
- * recording, the kept-track copy as of the last reload lies over the dashed trail; that is reported in
- * the L0b completion report as the owner's to confirm, not decided here.
+ * **The track being recorded is left out** (owner's ruling on Q6, "Leave it out (Recommended)"): a
+ * track with no end time is being recorded, and the "Recording trail" layer already draws it; it joins
+ * Tracks once it has ended. Drawing it here too would lay a solid copy, as of the last reload, over the
+ * dashed trail, since kept tracks draw above the breadcrumb in the registry.
  *
- * **A record with a pending delete is drawn until the delete commits.** The pending state lives in the
- * ViewModels (J4); this reads the repositories. Also reported, not decided here.
+ * **A record with a pending delete** is left out by the screen through [MapRecords.withoutPending]
+ * (planner's ruling on Q7): the pending state lives in the ViewModels (J4), and this reads the
+ * repositories.
  *
  * **A failed read is not silent.** That kind is empty and named in [MapRecords.failures], and the
  * caller logs it (CLAUDE.md, Errors); the other kinds still draw. This is not the entry map's policy of
@@ -82,6 +100,7 @@ class GetMapRecordsUseCase(
             RecordPoint(gallery.photo.id, LatLng(lat, lng))
         }
         val trackPolylines = getTracks().orFailure(MapRecordKind.TRACKS).mapNotNull { track ->
+            if (track.endedAtEpochMillis == null) return@mapNotNull null
             track.points.takeIf { it.isNotEmpty() }?.let { points -> RecordPolyline(track.id, points.map { LatLng(it.lat, it.lng) }) }
         }
         val offlineRegionCircles = offlineMapRepository.listRegions().orFailure(MapRecordKind.OFFLINE_REGIONS).map {

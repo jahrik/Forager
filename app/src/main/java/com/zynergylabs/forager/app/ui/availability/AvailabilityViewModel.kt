@@ -45,7 +45,15 @@ import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.PendingDeleteSlot
 import com.zynergylabs.forager.app.ui.log.PendingDeleteCommitScope
+import com.zynergylabs.forager.app.domain.ForecastAvailability
+import com.zynergylabs.forager.app.domain.MapRecordKind
+import com.zynergylabs.forager.app.domain.isoWeekStart
 import com.zynergylabs.forager.app.ui.map.layers.ColourFieldMove
+import com.zynergylabs.forager.app.ui.map.layers.LayerState
+import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
+import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
+import com.zynergylabs.forager.app.ui.map.layers.moveColourField
+import com.zynergylabs.forager.app.ui.map.layers.restoreMapLayersState
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -164,6 +172,7 @@ class AvailabilityViewModel(
         loadLockCameraToPortrait()
         loadMapFullscreenPreference()
         loadThemeModePreference()
+        loadMapLayerPreferences()
         // The compass strip's live coordinates are NOT started here any more. Construction-time
         // collection ran on viewModelScope, which cancels at onCleared() -- Activity destruction,
         // not stop -- so the OS listener stayed registered while the app was backgrounded and
@@ -460,22 +469,107 @@ class AvailabilityViewModel(
     }
 
     /**
+     * The Maps tab was shown (map layers L0b, B2 and B5): `AvailabilityScreen` calls this every time
+     * the tab comes into view, compact or wide, which is this data's freshness mechanism. It reloads
+     * every saved record the tab draws ([getMapRecords]), so a find saved on the Journal tab is on the
+     * map the next time the map is shown, and asks the forecast store which groups it has data for in
+     * this ISO week. A kind whose read failed is logged here and drawn as absent; the other kinds still
+     * draw (CLAUDE.md, Errors).
+     */
+    fun onMapShown() {
+        viewModelScope.launch {
+            val records = getMapRecords()
+            records.failures.forEach { failure ->
+                errorLog.w(TAG, "Couldn't load ${mapRecordKindLabel(failure.kind)} for the map.", failure.error)
+            }
+            _uiState.update { it.copy(mapRecords = records) }
+        }
+        viewModelScope.launch {
+            val week = isoWeekStart(today())
+            val groups = when (val availability = forecastCellStore.availability(week)) {
+                ForecastAvailability.NoForecastData -> emptySet()
+                is ForecastAvailability.Groups -> availability.groups
+            }
+            _uiState.update { it.copy(forecastWeek = week, forecastGroups = groups) }
+        }
+    }
+
+    /**
+     * The Layers sheet switched [layerId] (map layers L0b, B1 and B3): shown at once, then stored. A
+     * failed write is logged; the choice still holds for this session.
+     */
+    fun onMapLayerVisibilityChanged(layerId: String, visible: Boolean) {
+        _uiState.update { state ->
+            state.copy(mapLayers = state.mapLayers.withLayer(layerId) { it.copy(visible = visible) })
+        }
+        storeLayerChoice { mapLayerPreferencesRepository.setLayerVisible(layerId, visible) }
+    }
+
+    /**
+     * The Layers sheet's opacity slider moved for [layerId]: the L0a multiplier, 0 to 1. A value
+     * outside that range is refused and logged, never clamped (CLAUDE.md, Errors; `LayerState`'s own
+     * rule), and nothing is stored.
+     */
+    fun onMapLayerOpacityChanged(layerId: String, opacity: Float) {
+        if (!(opacity in 0f..1f)) {
+            errorLog.w(
+                TAG,
+                "Refused a map layer opacity of $opacity for $layerId: outside 0 to 1.",
+                IllegalArgumentException("opacity $opacity"),
+            )
+            return
+        }
+        _uiState.update { state ->
+            state.copy(mapLayers = state.mapLayers.withLayer(layerId) { it.copy(opacity = opacity) })
+        }
+        storeLayerChoice { mapLayerPreferencesRepository.setLayerOpacity(layerId, opacity) }
+    }
+
+    /**
+     * The Layers sheet moved a colour field one place ("Move up", "Move down", or a step of its drag
+     * handle). The whole colour-field order is stored, bottom to top. A move past either end changes
+     * nothing and stores nothing. The map draws the new order at its next style load (terminal
+     * `2026-09-27-72`, Deviations 4).
+     */
+    fun onColourFieldMoved(layerId: String, move: ColourFieldMove) {
+        val before = _uiState.value.mapLayers
+        val after = moveColourField(before, MAP_LAYER_REGISTRY, layerId, move)
+        if (after == before) return
+        _uiState.update { it.copy(mapLayers = after) }
+        storeLayerChoice { mapLayerPreferencesRepository.setLayerOrder(after.reorderableOrder) }
+    }
+
+    private fun storeLayerChoice(write: suspend () -> Result<Unit>) {
+        viewModelScope.launch {
+            write().onFailure { error -> errorLog.w(TAG, "Couldn't store a map layer choice.", error) }
+        }
+    }
+
+    /**
+     * The stored layer choices, at start (map layers L0b, B3). Every stored choice the registry does
+     * not allow is refused, logged one by one, and left at its default (`restoreMapLayersState`); a
+     * failed read is logged and leaves every layer at its default ("On by default").
+     */
+    private fun loadMapLayerPreferences() {
+        viewModelScope.launch {
+            mapLayerPreferencesRepository.getMapLayerPreferences().fold(
+                onSuccess = { stored ->
+                    val restored = restoreMapLayersState(stored, MAP_LAYER_REGISTRY)
+                    restored.rejected.forEach { line ->
+                        errorLog.w(TAG, "Refused a stored map layer choice: $line", IllegalStateException(line))
+                    }
+                    _uiState.update { it.copy(mapLayers = restored.state) }
+                },
+                onFailure = { error -> errorLog.w(TAG, "Couldn't read the map layer choices.", error) },
+            )
+        }
+    }
+
+    /**
      * Called when the map tab becomes visible. Sightings are fetched lazily, only for the
      * region+month+filter actually being viewed, rather than on every list search, since a
      * map view the user never opens shouldn't cost an extra API call.
      */
-    /** Tests-first stub (map layers L0b, B2 and B5). */
-    fun onMapShown() {}
-
-    /** Tests-first stub (map layers L0b, B3). */
-    fun onMapLayerVisibilityChanged(layerId: String, visible: Boolean) {}
-
-    /** Tests-first stub (map layers L0b, B3). */
-    fun onMapLayerOpacityChanged(layerId: String, opacity: Float) {}
-
-    /** Tests-first stub (map layers L0b, B1 and B3). */
-    fun onColourFieldMoved(layerId: String, move: ColourFieldMove) {}
-
     fun onMapTabSelected() {
         val state = _uiState.value
         val region = state.region ?: return
@@ -1276,6 +1370,18 @@ class AvailabilityViewModel(
         const val SEARCH_DEBOUNCE_MS = 300L
         const val TAG = "AvailabilityViewModel"
     }
+}
+
+/** [MapLayersState] with [layerId]'s state changed by [change]. */
+private fun MapLayersState.withLayer(layerId: String, change: (LayerState) -> LayerState): MapLayersState =
+    copy(layers = layers + (layerId to change(stateOf(layerId))))
+
+/** How a failed kind reads in the log line: "Couldn't load tracks for the map." */
+private fun mapRecordKindLabel(kind: MapRecordKind): String = when (kind) {
+    MapRecordKind.FINDS -> "finds"
+    MapRecordKind.PHOTOS -> "photos"
+    MapRecordKind.TRACKS -> "tracks"
+    MapRecordKind.OFFLINE_REGIONS -> "offline regions"
 }
 
 /**

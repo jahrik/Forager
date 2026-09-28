@@ -13,12 +13,22 @@ import org.maplibre.geojson.Point
 import org.maplibre.geojson.Polygon
 
 /**
- * The most 1-degree blocks the map asks the store for at one camera idle (map layers L0b, B5): an
- * explicit operating limit (CLAUDE.md, Architecture), chosen by the L0b coder. The synthetic store gives
- * cells for any block, 100 each, so a continent-wide view would build tens of thousands of polygons on
- * every idle. At 64 blocks (6,400 cells at most) a phone sees cells from zoom 5 or so inward. Past it
- * the map requests nothing and each colour field draws empty, logged when the view crosses the limit.
- * Whether the owner wants a message there is open.
+ * Below this camera zoom the colour fields request nothing and draw nothing (planner's ruling on Q9,
+ * message 3 on dispatch 2026-09-28-03: an explicit operating limit, CLAUDE.md). Chosen so the count of
+ * blocks one camera idle asks for stays bounded: at zoom 7 a map sees 360 / (512 * 2^7) = 0.0055 degree
+ * per dp, so even a 1280 by 800 dp window (larger than any map pane this app lays out) spans 7.03 by
+ * 4.39 degrees at the equator, where a Mercator view spans the most latitude, and touches at most 9 by 6
+ * = **54 blocks** (5,400 cells a layer) however it is placed (`ForecastCellLayerTest`). A phone in
+ * portrait at zoom 7 sees about 2 by 4.5 degrees. No new copy: the legend still shows while a field is
+ * on, and the field is simply empty until the user zooms in.
+ */
+internal const val MIN_FORECAST_ZOOM = 7.0
+
+/**
+ * A backstop beside [MIN_FORECAST_ZOOM]: the most 1-degree blocks one camera idle asks for. Zoom alone
+ * does not bound a tilted camera's visible area, so a view past this many blocks requests nothing and
+ * each colour field draws empty, and `SightingsMap` logs it. Above the 54 blocks the zoom limit allows
+ * for a flat camera.
  */
 internal const val MAX_FORECAST_BLOCKS = 64
 
@@ -26,16 +36,15 @@ internal const val MAX_FORECAST_BLOCKS = 64
 private const val CELL_HALF_DEGREES = 0.05
 
 /**
- * The blocks whose cells can show in the view from ([south], [west]) to ([north], [east]), or `null`
- * when that is more than [MAX_FORECAST_BLOCKS]. A cell is in view when its square overlaps the view, so
- * its centre can be up to half a cell outside it; the centres that can be in view are the tenths from
- * `south - 0.05` to `north + 0.05`, and the blocks are the ones holding those (a cell belongs to the
- * block holding its centre).
+ * The blocks whose cells can show in the view from ([south], [west]) to ([north], [east]) at camera
+ * [zoom], or `null` when nothing is to be requested: below [MIN_FORECAST_ZOOM], or more than
+ * [MAX_FORECAST_BLOCKS]. A cell is in view when its square overlaps the view, so its centre can be up to
+ * half a cell outside it; the centres that can be in view are the tenths from `south - 0.05` to
+ * `north + 0.05`, and the blocks are the ones holding those (a cell belongs to the block holding its
+ * centre).
  */
-/** Tests-first stub for the planner's ruling on Q9 (message 3): a minimum zoom. */
-internal const val MIN_FORECAST_ZOOM = 7.0
-
 internal fun forecastBlocksToRequest(zoom: Double, south: Double, west: Double, north: Double, east: Double): Set<ForecastBlock>? {
+    if (zoom < MIN_FORECAST_ZOOM) return null
     fun firstTenth(degrees: Double) = ceil((degrees - CELL_HALF_DEGREES) * 10 - EPSILON) / 10
     fun lastTenth(degrees: Double) = floor((degrees + CELL_HALF_DEGREES) * 10 + EPSILON) / 10
     val blocks = ForecastBlock.touching(
