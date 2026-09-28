@@ -2994,3 +2994,19 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner, verbatim: "Can this panel be given 80% opacity like the rest of the map chrome?" Device-only: how the sheet reads over Street, Topographical, Satellite and night on a real screen, the light theme, the scrim beneath. Flag: the other map sheets remain opaque. Written by the planner by hand.
 
 ---
+
+**Kind:** intent
+**ID:** 2026-09-28-19
+**Timestamp:** 2026-09-28T10:23:37Z
+**Title:** The offline region's night fill, darker: MapPalette.NIGHT.offlineRegion from white to black at the same 20%
+**Dispatch-file:** preserved/2026-09-28-19.md
+**Change:** One palette value (MapPalette.kt:101, 0xFFFFFFFF to 0xFF000000); doc comment records why; tests first on the value and on the fill layer receiving it; contrast-floor tests re-run.
+**Scope boundary:** Branch journal-redesign; ui/theme/MapPalette.kt, palette-pinning tests and the new test. Not the day palette, the fill opacity, the outline, other roles, the basemap recolour, the held flaky tests, the record, index, CLAUDE.md, plans or prompts.
+**Baseline:** journal-redesign at the commit carrying this entry; suite at 8026a7e 267 / 2185 / 0 / 0 / 24 (coder's).
+**Prediction (outcome — planner):** 1. One production value changes. 2. No contrast floor breaks. 3. At most one existing test pins the old literal.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** Pushed with tests first, a compiling revert check, the full suite and a completion report; the planner writes the terminal.
+**Abort conditions:** A wrong premise; a broken contrast floor; a tests-first test passing at base; a non-compiling revert; a non-held failure; an OOM kill; an open design question.
+**Notes:** Owner, verbatim, over a Night Maps screenshot: "The offline map region is a bit bright, it takes away from the night maps we just built. Maybe either bring the color to a darker shade, or reduce the opacity."; asked, "Darker shade (Recommended)". Written by the planner by hand; runs beside the search-bar fix 2026-09-28-17.
+
+---
