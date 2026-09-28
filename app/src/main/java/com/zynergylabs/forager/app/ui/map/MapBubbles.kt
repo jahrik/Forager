@@ -179,7 +179,10 @@ sealed interface MapBubbleContent {
     /** A find: its identification or "Find on <date>", the date when the title is the identification, and its cover photo. */
     data class Find(val findId: String, val title: String, val date: String?, val coverPhotoPath: String?, val keptIn: List<JournalEntryOnMap> = emptyList()) : MapBubbleContent
 
-    /** A photo: the photo, its date, and what it is attached to. */
+    /**
+     * A photo: the photo, its date, and what it is attached to; [attachedTo] is `null` when the bubble's
+     * keeping-entry lines ([keptIn]) leave that line nothing to say (see `photoAttachmentLine`).
+     */
     data class Photo(val photo: LogPhoto, val date: String, val attachedTo: String?, val keptIn: List<JournalEntryOnMap> = emptyList()) : MapBubbleContent
 
     /** A waypoint: its name and MGRS; Directions, and details while its record exists ([hasDetails]). */
@@ -230,11 +233,12 @@ fun mapBubbleContentFor(target: MapBubbleTarget.FeatureTarget, sources: MapRecor
             )
         }
         MapBubbleKind.PHOTO -> sources.galleryPhotos.firstOrNull { it.photo.id == id }?.let { gallery ->
+            val keepingEntries = keptIn(HighlightedRecordKind.PHOTO)
             MapBubbleContent.Photo(
                 photo = gallery.photo,
                 date = gallery.photo.createdAtEpochMillis?.let(::formatRecordTimestamp) ?: PHOTO_DATE_UNKNOWN,
-                attachedTo = photoAttachmentLine(gallery, sources),
-                keptIn = keptIn(HighlightedRecordKind.PHOTO),
+                attachedTo = photoAttachmentLine(gallery, sources, keepingEntriesShown = keepingEntries.isNotEmpty()),
+                keptIn = keepingEntries,
             )
         }
         MapBubbleKind.WAYPOINT -> sources.waypoints.firstOrNull { it.id == id }
@@ -287,8 +291,14 @@ private fun mgrsOf(location: LatLng): String? = (MgrsConverter.convert(location)
  * What a photo is attached to, from the facts the album's two badges read: the saved finds that use
  * it ([GalleryPhoto.referencingEntryIds], kept to the finds in [MapRecordSources.finds], so a draft
  * find does not count, as the find badge does not) and how many journal entries keep it.
+ *
+ * While the bubble shows J8's keeping-entry lines ([keepingEntriesShown]), the line leaves out its
+ * "Kept in" part, so "Kept in" is said once, by J8's lines (dispatch `2026-09-28-70`; the owner:
+ * "Option B"). The two counts differ: this one is every entry keeping the photo, J8's only the entries
+ * shown on the map. With nothing else left the line is left out (`null`), so a photo a shown entry
+ * keeps is never called "Not in a find or a journal entry".
  */
-private fun photoAttachmentLine(gallery: GalleryPhoto, sources: MapRecordSources): String {
+private fun photoAttachmentLine(gallery: GalleryPhoto, sources: MapRecordSources, keepingEntriesShown: Boolean): String? {
     val finds = gallery.referencingEntryIds.mapNotNull { id -> sources.finds.firstOrNull { it.id == id } }
     val entries = sources.photoEntryReferenceCounts[gallery.photo.id] ?: 0
     val parts = buildList {
@@ -297,9 +307,13 @@ private fun photoAttachmentLine(gallery: GalleryPhoto, sources: MapRecordSources
             1 -> add("In ${finds.single().ownIdentification?.takeIf { it.isNotBlank() } ?: findDateLabel(finds.single())}")
             else -> add("In ${finds.size} finds")
         }
-        if (entries > 0) add("Kept in ${journalEntryCountLabel(entries)}")
+        if (entries > 0 && !keepingEntriesShown) add("Kept in ${journalEntryCountLabel(entries)}")
     }
-    return if (parts.isEmpty()) PHOTO_NOT_ATTACHED else parts.joinToString(" · ")
+    return when {
+        parts.isNotEmpty() -> parts.joinToString(" · ")
+        keepingEntriesShown -> null
+        else -> PHOTO_NOT_ATTACHED
+    }
 }
 
 private const val PHOTO_DATE_UNKNOWN = "Date unknown"
