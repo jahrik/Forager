@@ -684,3 +684,13 @@ The order is now:
 3. J8's device check and then the map-chrome device check, each as the phone frees.
 4. Device check Part 2, with J6 alongside.
 5. The single Journal PR.
+
+**J8 flag 3 revised: one "Kept in" on a highlighted photo (owner, 2026-09-28).** This supersedes ruling 3 in "J8's flags" above ("keep both"), which stands as the record of that answer. After the planner explained the case, the owner answered verbatim: "Option B. Thanks for explaining". The planner had offered B as: "When a photo is highlighted, drop the first line's count and keep only the tappable one."
+
+What that means, as the planner stated it to the owner:
+- When a photo's bubble shows J8's keeping-entry lines, its attachment line leaves out its "Kept in N journal entries" part and keeps its "In ..." part.
+- If nothing is left, the line is left out, and never falls back to "Not in a find or a journal entry".
+- Unhighlighted photos are unchanged.
+- Entries not shown on the map are not counted while the photo is highlighted.
+
+Carried by intent `2026-09-28-70`, queued behind `-68`.
