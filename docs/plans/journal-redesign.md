@@ -750,3 +750,5 @@ The build queue, one at a time:
 4. `-78`;
 5. `-79`;
 6. J6, after the tablet sanity check.
+
+**Night only, confirmed (owner, 2026-09-28).** The owner, verbatim: "Yes the night outline only". The white border in `-79` applies to the night outline alone. The day outline is unchanged.
