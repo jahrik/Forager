@@ -176,8 +176,19 @@ internal fun CartographyScreen(
      * reads it. Defaulted so other callers and tests are unchanged.
      */
     mapBubbleSources: MapRecordSources = MapRecordSources(),
+    /**
+     * Whether the open entry shows its report or its editor ([mode]). Intent 2026-09-28-44, F2 (the
+     * owner: "Return to the editor (Recommended)"): `JournalTab` passes state held in
+     * `AvailabilityScreen`, above the `when (compactTab)` branch this screen is composed in, so an
+     * entry left in its editor comes back in its editor, with its leave prompt, and a report never
+     * draws an unsaved edit as if it were saved. It was a plain `remember` here, so every return to
+     * the Journal reset it to [CartographyEntryMode.VIEW] while the unsaved edit stayed open in the
+     * ViewModel (`docs/audits/2026-09-28-leaving-the-journal-investigation.md`, Behaviour 2). The
+     * default, local and unsaved, is for callers that host this screen on its own (`LogPanel`, tests).
+     */
+    entryModeState: MutableState<CartographyEntryMode> = remember { mutableStateOf(CartographyEntryMode.VIEW) },
 ) {
-    var mode by remember { mutableStateOf(CartographyEntryMode.VIEW) }
+    var mode by entryModeState
     val shortWindow = shortWindowHeader != null
 
     // The album's Take photo / Import. Held here, above every branch, rather than inside the album

@@ -15,6 +15,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -270,6 +271,13 @@ internal fun JournalTab(
      * the wide tree's [LogPanel] among them, unchanged.
      */
     backEnabled: Boolean = true,
+    /**
+     * Whether an open day entry shows its report or its editor, handed to [CartographyScreen]
+     * (intent 2026-09-28-44, F2; see that screen's parameter of the same name). The compact scaffold
+     * passes state held in `AvailabilityScreen`, so the mode outlives this tab. The default is only
+     * for callers that host this tab on its own (tests).
+     */
+    cartographyEntryModeState: MutableState<CartographyEntryMode> = remember { mutableStateOf(CartographyEntryMode.VIEW) },
     modifier: Modifier = Modifier,
 ) {
     // See LogPanel's identical effect for why this both shows and immediately clears the field.
@@ -624,6 +632,7 @@ internal fun JournalTab(
                 shortWindowHeader = shortWindowHeader,
                 backEnabled = backEnabled,
                 mapBubbleSources = entryMapBubbleSources,
+                entryModeState = cartographyEntryModeState,
             )
 
             // J5: a Column in every window, so RecordsTab keeps one place in the composition when
