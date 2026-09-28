@@ -3043,3 +3043,19 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner's answers, verbatim: "Test it as drawn (Recommended)", "You pick from phone shots (Recommended)". The owner's earlier words: "Not too dark since it can make it harder to read. Find a balance." Written by the planner by hand.
 
 ---
+
+**Kind:** intent
+**ID:** 2026-09-28-23
+**Timestamp:** 2026-09-28T10:28:41Z
+**Title:** Investigation: leaving the Journal with a find or day entry open (Saved to Drafts and Discard on a viewed committed find; editor mode and unsaved edits across a tab round trip; finds closed on the tab switch)
+**Dispatch-file:** preserved/2026-09-28-23.md
+**Change:** No production change. Characterisation tests through the real screen that pin today's behaviour, on branch leave-journal-investigation only, and a report with each behaviour's code path, data-loss risk and the fix options.
+**Scope boundary:** Tests and the report on leave-journal-investigation; no production code; not journal-redesign; not the held flaky tests, the record, index, CLAUDE.md, plans or prompts.
+**Baseline:** journal-redesign at the commit carrying this entry.
+**Prediction (outcome — planner):** 1. The Discard snackbar appears for a viewed committed find. 2. Unsaved day-entry edits are lost on the round trip. 3. The find closes on the tab switch and returns to the list. All three are the flagging coder's reading, unverified.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** Report and tests pushed on leave-journal-investigation with a full suite; the planner merges only the report, and the owner rules on fixes.
+**Abort conditions:** A production change needed to exercise a behaviour; an OOM kill; an open design question beyond which fix.
+**Notes:** Owner, verbatim: "Go ahead and look into those 3 things you brought up also". Flags from docs/audits/2026-09-28-maps-search-bar-after-entry-completion-report.md. Written by the planner by hand.
+
+---
