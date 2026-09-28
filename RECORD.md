@@ -4266,3 +4266,19 @@ Each is tested for non-intersecting bounds at 0, 90 and 270, with real-touch sam
 - The code comments call trips "independent of any region search".
 
 Forwarded to the tablet check (-95); named in the S22 check's (-94) launch. Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-97
+**Timestamp:** 2026-09-28T23:37:21Z
+**Title:** Planned trips drawn on the compact Maps tab whether or not a search has run (owner: option A); the unfalsifiable trip-bubble test made to read what the screen passes
+**Dispatch-file:** preserved/2026-09-28-97.md
+**Change:** Remove the hasSearched gate on plannedTrips (AvailabilityCompactMapUi.kt:641) and correct its comment. Sightings stay gated; the wide tree and the entry map are unchanged. Tests first through the real compact screen with no search, the existing trip-bubble test made falsifiable, a revert check and the full suite.
+**Scope boundary:** AvailabilityCompactMapUi.kt, tests, a completion report. Not the wide tree, sightings, the entry map, the record, index, CLAUDE.md, plans or prompts.
+**Baseline:** journal-redesign at the base named at launch (queued behind -78, and until -94 or -95 reproduces the failure).
+**Prediction (outcome — planner):** 1. One line and one comment change. 2. The suite grows by 3 to 6.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** Build, tests first, revert check, full suite, report, pushed; the planner writes the terminal; the S22 check follows.
+**Abort conditions:** No device reproduction or a different cause; a tests-first test passing at base; a non-compiling revert; a non-held failure; disk full or OOM; two failed fixes; an unruled design question.
+**Notes:** Owner, verbatim: "Option A for the fix". The cause is from the pulse (dispatch-note -96). Written by the planner by hand.
