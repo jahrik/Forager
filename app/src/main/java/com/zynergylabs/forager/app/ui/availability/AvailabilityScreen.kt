@@ -930,9 +930,12 @@ fun AvailabilityScreen(
     // on the map and the records they keep, among the records the Maps tab draws. cartographyUiState is
     // what MainActivity passes, with a pending entry delete already left out (hidingPendingDelete), and
     // its entries are the saved ones; the use case holds the draft rule itself as well. Only the Maps
-    // tab reads this: every other map draws no highlight.
-    val journalHighlights = remember(cartographyUiState.entries, mapRecordsDrawn, waypoints) {
-        GetJournalEntryHighlightsUseCase()(cartographyUiState.entries, mapRecordsDrawn, waypoints)
+    // tab reads this: every other map draws no highlight. The waypoints are the ones this map draws,
+    // mapWaypoints, not every waypoint (J8 follow-ups, continuation 2026-09-28-87, item 2): an ORIGIN
+    // waypoint the map is not navigating to, and any END waypoint, is not drawn, so it gets no ring,
+    // by J8's rule that a record not drawn is not highlighted.
+    val journalHighlights = remember(cartographyUiState.entries, mapRecordsDrawn, mapWaypoints) {
+        GetJournalEntryHighlightsUseCase()(cartographyUiState.entries, mapRecordsDrawn, mapWaypoints)
     }
     val mapLayersControls = MapLayersControls(
         stored = uiState.mapLayers,
