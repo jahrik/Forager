@@ -3379,3 +3379,19 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner, verbatim: "Side by side (Recommended)", "Pin OK/Download, rest scrolls (Recommended)". Planner: the map on the punch-hole side (P8, P9, P12); L2 built. Device-only: both screens at rotations 90 and 270 with real insets; the map surviving a turn mid-pick; L2's opening frame at the smaller preview; a bubble taller than the preview; the Part B cut-off control. Flags: "Pan the map below" and "pan the map above and tap OK." read wrong side by side (copy, for the owner); the offline panel's Cancel does nothing; RTL could swap the sides. Next: J8's pre-build pass. Written by the planner by hand.
 
 ---
+
+**Kind:** intent
+**ID:** 2026-09-28-51
+**Timestamp:** 2026-09-28T17:14:06Z
+**Title:** Stage device check Part 1 on the S22: L0b, the night offline region, track widths by zoom and the search copy and taps, on a fresh build of journal-redesign
+**Dispatch-file:** preserved/2026-09-28-51.md
+**Change:** No code. Build a debug APK from the head, install -r over candidate 606060 (database version checked first), run the device-only items of the L0b, night-region and T1-T3 reports, write a run record.
+**Scope boundary:** Observe and record; toggles and settings restored; no data created, edited or deleted; run record on branch device-stage-1, evidence outside the repository.
+**Baseline:** journal-redesign at the commit carrying this entry (planner's suite at df49c06 285 / 2316 / 0 / 0 / 24); phone at 1.0.1259+g75c050f7.dirty.
+**Prediction (outcome — planner):** 1. The install upgrades cleanly with the database at version 15. 2. The Layers sheet, toggles and persistence pass. 3. At least one legend or sheet inset item fails or needs a ruling on the real phone. 4. The dashed outline is weak over the darkest ground.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** The run record pushed with every verdict, settings restored and read back, crash reads; the planner merges it and writes the terminal. Part 2 (M1, entry framing, Leaving-the-Journal, landscape fixes) follows.
+**Abort conditions:** An install needing uninstall, -d or a data clear; a database change with no migration; a signature mismatch; a new crash; any prompt over the app; a locked phone; a pass condition not statable from the code.
+**Notes:** The owner's ruling "Device checks per stage, on the S22 Ultra (owner, 2026-09-28)" lapsed after L0a; the planner told the owner and catches up in two parts. Written by the planner by hand.
+
+---
