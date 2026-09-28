@@ -72,6 +72,7 @@ import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -409,6 +410,18 @@ internal fun SearchDropdown(
             LaunchedEffect(scrollState.isScrollInProgress) {
                 if (scrollState.isScrollInProgress) focusManager.clearFocus()
             }
+            // Continuation 2026-09-28-41 (owner, short landscape: "Expand and auto-scroll"): once the
+            // bar's tap has opened the manual coordinates, the dropdown scrolls once to its end.
+            // "Search this location" is its last control, so the end is the least scroll that shows
+            // it with Latitude and Longitude just above; where everything fits (portrait) the end is
+            // 0 and nothing moves. Not measured from positions: the dropdown opens with an animation,
+            // and positions read mid-animation were stale (btn 0 px, viewport 150 px, instrumented
+            // run). ScrollState clamps its value as the viewport grows, so the view stays at the end.
+            // Instant, not animated: nothing in this dropdown scrolled programmatically before, so
+            // there was no animation to match. The user can scroll back up. A programmatic scroll
+            // counts as a scroll in progress, so the effect above also lowers the keyboard, which in
+            // a short window is what lets the fields be seen at all.
+            var scrollToCoordinatesPending by remember { mutableStateOf(false) }
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -472,8 +485,19 @@ internal fun SearchDropdown(
                     CollapsibleSection(
                         title = "Enter coordinates manually",
                         expandRequested = expandManualCoordinatesRequested,
-                        onExpandRequestConsumed = onManualCoordinatesExpandConsumed,
+                        onExpandRequestConsumed = {
+                            onManualCoordinatesExpandConsumed()
+                            scrollToCoordinatesPending = true
+                        },
                     ) {
+                        if (scrollToCoordinatesPending) {
+                            LaunchedEffect(Unit) {
+                                // One frame, so these fields have been laid out and measured.
+                                withFrameNanos { }
+                                scrollState.scrollTo(scrollState.maxValue)
+                                scrollToCoordinatesPending = false
+                            }
+                        }
                         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                             OutlinedTextField(
                                 value = uiState.manualLatText,
@@ -490,7 +514,10 @@ internal fun SearchDropdown(
                                 singleLine = true,
                             )
                         }
-                        OutlinedButton(onClick = onSearchManualCoordinates, modifier = Modifier.fillMaxWidth()) {
+                        OutlinedButton(
+                            onClick = onSearchManualCoordinates,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
                             Text("Search this location")
                         }
                     }

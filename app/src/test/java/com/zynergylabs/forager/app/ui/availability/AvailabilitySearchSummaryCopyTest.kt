@@ -192,14 +192,21 @@ class WideSearchSummaryTest {
  * owner's "Also open manual coordinates" (-40), with "Advanced search" and "Enter coordinates
  * manually" both expanded, so Latitude, Longitude and "Search this location" show at once.
  */
-private fun ComposeContentTestRule.assertCompactBarTapShowsLocationControls() {
+private fun ComposeContentTestRule.assertCompactBarTapShowsLocationControls(topButtonsInView: Boolean = true) {
     setUnsearchedScreen()
     onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performTouchInput { click(center) }
     waitForIdle()
 
     onNodeWithTag(SEARCH_DROPDOWN_TAG).assertIsDisplayed()
-    onNodeWithText("Use current location").assertIsDisplayed()
-    onNodeWithText("Set on map").assertIsDisplayed()
+    if (topButtonsInView) {
+        onNodeWithText("Use current location").assertIsDisplayed()
+        onNodeWithText("Set on map").assertIsDisplayed()
+    } else {
+        // Short landscape (owner, continuation 2026-09-28-41, "Expand and auto-scroll"): the
+        // dropdown has scrolled them out of view to show the coordinates; they are still in it.
+        onNodeWithText("Use current location").assertExists()
+        onNodeWithText("Set on map").assertExists()
+    }
     onNodeWithContentDescription("Collapse Advanced search").assertExists()
     onNodeWithContentDescription("Collapse Enter coordinates manually").assertExists()
     onNodeWithText("Latitude").assertIsDisplayed()
@@ -245,7 +252,7 @@ class CompactSearchBarLocationControlsShortLandscapeTest {
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity()).around(composeRule)
 
     @Test
-    fun `in short landscape a real touch on the compact search bar shows Set on map, Use current location and the manual coordinates at once`() {
-        composeRule.assertCompactBarTapShowsLocationControls()
+    fun `in short landscape a real touch on the compact search bar scrolls the dropdown once to show the manual coordinates at once`() {
+        composeRule.assertCompactBarTapShowsLocationControls(topButtonsInView = false)
     }
 }

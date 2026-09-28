@@ -629,42 +629,26 @@ abstract class AvailabilityScreenLayoutTest {
     }
 
     /**
-     * **Test 5 — "Enter coordinates manually" is the one control still actually gated behind
-     * Advanced search.**
+     * **Test 5 — the manual coordinates are open on the search bar's tap** (owner, 2026-09-28,
+     * continuation 2026-09-28-40: "Also open manual coordinates", reversing the earlier rule that
+     * "Enter coordinates manually" was the one control still gated behind Advanced search).
      *
-     * Map/navigation redesign dispatch C, item 1 moved this content out of the drawer entirely,
-     * into [SearchDropdown]'s own "Advanced search" section. Dispatch D then promoted radius and
-     * month out to this surface's own top level; the map/navigation search-UI redo dispatch promoted
-     * "Set on map" and "Use current location" out too, into their own top-level Location row —
-     * leaving manual coordinates (lat/lng fields + "Search this location") as the only thing left
-     * actually nested inside Advanced search. `performScrollTo()` before each assertion, same as
-     * the drawer sheet this replaces: fully expanding Advanced search genuinely doesn't fit
-     * `w360dp-h640dp-xhdpi`'s own [SearchDropdown] share of the screen (measured — the earlier
-     * "no scroll modifier" version of this dropdown went from failing on "Search this location" to
-     * failing on "Month" the moment [SearchDropdown]'s `Column` gained a `verticalScroll`, proving
-     * the content really does extend past the fold rather than being genuinely absent), so
-     * [SearchDropdown] carries the same `weight(1f)`-bounded scroll [SearchControls] does — see that
-     * composable's own doc comment for why this is safe over the map despite Understory rule 2.
-     *
-     * `performScrollTo()` before the *tap on* "Enter coordinates manually" too, not just before
-     * the assertion below — confirmed only at 2x font scale (`AvailabilityScreenLayoutAtLarge
-     * FontScaleTest`): a semantic [performClick] normally reaches its node regardless of scroll
-     * position, but that header's own [CollapsibleSection] never toggled to expanded there without
-     * scrolling to it first (its own leading icon stayed "Expand", not "Collapse" — confirmed via a
-     * semantics-tree dump, not assumed), the promoted content above it having pushed it far enough
-     * down the scrolled column to expose the gap.
+     * The bar's tap opens [SearchDropdown] with "Advanced search" and "Enter coordinates manually"
+     * both expanded, and where the fields do not fit, scrolls the dropdown once so they show
+     * (continuation 2026-09-28-41, "Expand and auto-scroll"). So "Search this location" is asserted
+     * displayed with no header tapped and no `performScrollTo()` in the test, on every
+     * configuration this class runs under, the 2x font scale included.
      */
     @Test
-    fun `Search this location is reachable inside Advanced search`() {
+    fun `the search bar's tap opens the manual coordinates, and Search this location shows without scrolling`() {
         setScreen(SEARCHED_STATE)
 
         openSearchDropdown()
-        composeRule.onNodeWithText("Advanced search").performClick()
-        composeRule.waitForIdle()
-        composeRule.onNodeWithText("Enter coordinates manually").performScrollTo().performClick()
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithText("Search this location").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Collapse Advanced search").assertExists()
+        composeRule.onNodeWithContentDescription("Collapse Enter coordinates manually").assertExists()
+        composeRule.onNodeWithText("Search this location").assertIsDisplayed()
     }
 
     /**
@@ -672,9 +656,10 @@ abstract class AvailabilityScreenLayoutTest {
      * ("Set on map"/"Use current location") all now live at [SearchDropdown]'s own top level.
      * Unlike manual coordinates (the test above), these must be reachable *without* expanding
      * "Advanced search" at all, which is the whole point of promoting them; asserting them in the
-     * same test as the still-nested "Search this location" (which does expand that section)
-     * wouldn't actually prove that. "Set on map"/"Use current location" are asserted absent from
-     * a *second* expand of Advanced search too — moved, not duplicated.
+     * same test as the still-nested "Search this location" wouldn't actually prove that.
+     * "Set on map"/"Use current location" are asserted once each with Advanced search expanded —
+     * moved, not duplicated. Since continuation 2026-09-28-40 the bar's tap opens Advanced search
+     * already expanded, so the count is taken without tapping its header (a tap would collapse it).
      */
     @Test
     fun `search radius, month, and the location row are reachable without expanding advanced search`() {
@@ -693,10 +678,9 @@ abstract class AvailabilityScreenLayoutTest {
         ).forEach { label ->
             composeRule.onNodeWithText(label).performScrollTo().assertIsDisplayed()
         }
-        composeRule.onNodeWithText("Advanced search").assertIsDisplayed()
+        composeRule.onNodeWithText("Advanced search").performScrollTo().assertIsDisplayed()
 
-        composeRule.onNodeWithText("Advanced search").performClick()
-        composeRule.waitForIdle()
+        composeRule.onNodeWithContentDescription("Collapse Advanced search").assertExists()
         composeRule.onAllNodesWithText("Set on map").assertCountEquals(1)
         composeRule.onAllNodesWithText("Use current location").assertCountEquals(1)
     }
