@@ -3205,3 +3205,14 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner, verbatim: "Make the tap open search (Recommended)". Disk: the owner deleted ~/.config/Claude/vm_bundles; 13 GB free. Written by the planner by hand.
 
 ---
+
+**Kind:** continuation
+**ID:** 2026-09-28-36
+**Timestamp:** 2026-09-28T12:34:28Z
+**Continues:** 2026-09-28-19
+**Dispatch-file:** preserved/2026-09-28-36.md
+**Reason:** the capture (continuation -26, record merged at 417eef0) gave matched night views of #202020, #404040 and #606060 on the S22; the owner picked from a side-by-side.
+**Changes:** NIGHT.offlineRegion becomes #202020; pins re-measured; the completion report covering -19 to -36.
+**Notes:** Owner, verbatim: "The first one on the far left. Is that #202020 at 20%", then, after the planner noted it nearly vanishes over the darkest ground, "That's my pick." Written by the planner by hand.
+
+---
