@@ -53,6 +53,7 @@ package com.zynergylabs.forager.app.ui.availability
 // behaviour change." The getter pattern and the ResultsTab widening are the planner's rulings on
 // this build's two stops, quoted in RECORD.md intent 2026-09-27-21.
 
+import com.zynergylabs.forager.app.ui.map.MapLayersControls
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
@@ -171,6 +172,12 @@ internal fun CompactMainScaffold(
     mapSlot: MapSlot,
     mapIconClusterPosition: MapIconClusterPositionState,
     mapRenderMode: MapRenderMode,
+    /**
+     * Map layers L0b: the Maps tab's Layers sheet, legend and saved records ([MapLayersControls]),
+     * threaded to [CompactMapTab], and the shared layer choices threaded to the Journal's entry map.
+     * Nothing here reads it.
+     */
+    mapLayers: MapLayersControls,
     mapMode: () -> MapMode,
     isNightMode: Boolean,
     isRecording: Boolean,
@@ -794,7 +801,7 @@ internal fun CompactMainScaffold(
                                 renderMode = mapRenderMode.copy(bottomInset = safeAttributionBottomInset),
                                 mapMode = mapMode(),
                                 onMapModeSelected = { onMapModeChange(it) },
-                                isNightMode = isNightMode,
+                                mapLayers = mapLayers,
                                 onPlaceTripPin = onPlaceTripPin,
                                 // Opens straight to the log's edit form for the new entry, bypassing
                                 // Search — see DrawerPanel's own doc comment on why Log is reachable
@@ -946,6 +953,8 @@ internal fun CompactMainScaffold(
                                 deviceLocation = uiState.liveFix?.let { LatLng(it.lat, it.lng) },
                                 basemap = basemap,
                                 night = isNightMode,
+                                mapLayers = mapLayers.stored,
+                                onMapLayerVisibilityChanged = mapLayers.onVisibilityChanged,
                                 onOpenEntry = onOpenLogEntry,
                                 onCloseEntry = onCloseLogEntry,
                                 onStartEntry = onStartLogEntry,

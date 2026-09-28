@@ -48,6 +48,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -61,6 +62,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -90,11 +92,17 @@ import com.zynergylabs.forager.app.ui.map.mapIconStackBorderColor
 import com.zynergylabs.forager.app.ui.map.mapIconClusterContainerColor
 import com.zynergylabs.forager.app.ui.map.mapIconClusterChildColor
 import com.zynergylabs.forager.app.ui.map.MapMode
-import com.zynergylabs.forager.app.ui.map.MapModePicker
+import com.zynergylabs.forager.app.ui.map.LEGEND_ATTRIBUTION_CLEARANCE
+import com.zynergylabs.forager.app.ui.map.MAPS_TAB_OVERLAYS
+import com.zynergylabs.forager.app.ui.map.MapLayersControls
+import com.zynergylabs.forager.app.ui.map.MapLayersSheet
+import com.zynergylabs.forager.app.ui.map.MapLegendChip
+import com.zynergylabs.forager.app.ui.map.layers.COLOUR_FIELDS
+import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
+import com.zynergylabs.forager.app.ui.map.layers.mapLegendFor
 import com.zynergylabs.forager.app.ui.map.MapOverlayContent
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.rememberTrueHeading
-import com.zynergylabs.forager.app.ui.map.mapIconBarRowAnchorOffset
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.theme.Spacing
@@ -196,7 +204,6 @@ internal fun CompactMapTab(
     uiState: AvailabilityUiState,
     mapSlot: MapSlot,
     renderMode: MapRenderMode,
-    isNightMode: Boolean,
     /**
      * The icon cluster's position — vertical memory, displayed offset, side — held by the caller
      * so it survives leaving and returning to this tab. See [MapIconClusterPositionState]. The
@@ -324,9 +331,14 @@ internal fun CompactMapTab(
      */
     searchBarSlot: @Composable () -> Unit = {},
     modifier: Modifier = Modifier,
+    /**
+     * Map layers L0b: the Layers sheet's choices and callbacks, the legend and every saved record this
+     * tab draws (see [MapLayersControls]). Defaulted so any other caller is unchanged.
+     */
+    mapLayers: MapLayersControls = MapLayersControls(),
 ) {
     var showActionMenu by remember { mutableStateOf(false) }
-    var showMapModePicker by remember { mutableStateOf(false) }
+    var showLayersSheet by remember { mutableStateOf(false) }
     var pendingAction by remember { mutableStateOf<PendingMapAction?>(null) }
     var pendingTripLocation by remember { mutableStateOf<LatLng?>(null) }
     var pendingWaypointLocation by remember { mutableStateOf<LatLng?>(null) }
@@ -441,6 +453,11 @@ internal fun CompactMapTab(
     // be tappable outside fullscreen; they have to stay above the nav's own top edge. Read as 0
     // while fullscreen, where the nav has slid off entirely.
     var mapBottomNavHeightPx by remember { mutableStateOf(0f) }
+    // Map layers L0b (owner's ruling on Q4, "Cluster stops above it"): the legend chip's current top
+    // edge, in this tab's content Box's own coordinates, or null while no chip is shown. Measured live,
+    // so the cluster's clamp follows the chip's height as it expands and collapses.
+    var legendChipTopPx by remember { mutableStateOf<Float?>(null) }
+    var mapContentBoxTopInRootPx by remember { mutableStateOf(0f) }
     // Landscape B1 (Resolution R18): with no bottom bar composed, its last measured height would
     // otherwise stay behind as a phantom bottom band for the cluster's drag clamp and the
     // centre-pin confirm row — onGloballyPositioned stops firing once the bar is gone.
@@ -591,6 +608,7 @@ internal fun CompactMapTab(
                     // doc comment.
                     .onGloballyPositioned { coordinates ->
                         mapContentBoxHeightPx = coordinates.size.height.toFloat()
+                        mapContentBoxTopInRootPx = coordinates.positionInRoot().y
                     },
             ) {
                 mapSlot(
@@ -603,6 +621,13 @@ internal fun CompactMapTab(
                         resumeTrackingRequestId = resumeTrackingRequestId,
                         resetOrientationRequestId = resetOrientationRequestId,
                         focusedObservationId = tappedSighting?.observationId,
+                        // Map layers L0b, B2 (owner: "Every saved record"): every saved find with a
+                        // location, every ended track, every located album photo and every offline
+                        // region, pending deletes left out, each visible by default.
+                        keptTrackPolylines = mapLayers.records.trackPolylines,
+                        findMarkers = mapLayers.records.findMarkers,
+                        photoMarkers = mapLayers.records.photoMarkers,
+                        offlineRegionCircles = mapLayers.records.offlineRegionCircles,
                     ),
                     renderMode,
                     focusOverride,
@@ -746,11 +771,18 @@ internal fun CompactMapTab(
                 // holds its own copy, and nothing re-runs the effect more often to paper over it.
                 val currentIsFullscreen by rememberUpdatedState(isFullscreen)
                 val currentDropdownTopPx by rememberUpdatedState(dropdownTopPx)
+                // Map layers L0b (Q4): the chip's top, only while the chip is on the cluster's side
+                // (it sits at the bottom-end corner), less a gap, as a further lowest edge for the
+                // cluster. Display-only, like the nav's: the remembered position is never changed.
+                val legendClusterGapPx = with(compassStripDensity) { Spacing.sm.toPx() }
+                val legendBoundPx = legendChipTopPx?.takeIf { !isMapIconBarOnLeftSide }?.let { it - legendClusterGapPx }
+                val currentLegendBoundPx by rememberUpdatedState(legendBoundPx)
                 // See the comment on the LaunchedEffect below for both bounds' derivations.
                 fun clampMapIconBarVerticalOffset(offsetPx: Float): Float {
                     // The lowest edge the bar may reach: this Box's own bottom in fullscreen, the
                     // nav's own top edge otherwise (mapBottomNavHeightPx's own doc comment).
-                    val bottomBoundPx = mapContentBoxHeightPx - (if (currentIsFullscreen) 0f else mapBottomNavHeightPx)
+                    val navBoundPx = mapContentBoxHeightPx - (if (currentIsFullscreen) 0f else mapBottomNavHeightPx)
+                    val bottomBoundPx = currentLegendBoundPx?.let { minOf(it, navBoundPx) } ?: navBoundPx
                     val fallbackDownwardOffsetPx = (bottomBoundPx - mapContentBoxHeightPx / 2f - mapIconBarVerticalDragMarginPx).coerceAtLeast(0f)
                     val maxDownwardOffsetPx = if (mapIconClusterHeightPx > 0f) {
                         (bottomBoundPx - (mapContentBoxHeightPx + mapIconClusterHeightPx) / 2f).coerceAtLeast(0f)
@@ -848,7 +880,7 @@ internal fun CompactMapTab(
                 // mapIconBarUserChosenOffsetPx's own doc comment. Not keyed on the memory itself:
                 // a drag snaps the displayed value directly and is never animated.
                 val mapIconBarOffsetSpec = MotionTokens.navigationMotionSpec<Float>()
-                LaunchedEffect(mapIconClusterHeightPx, mapContentBoxHeightPx, mapBottomNavHeightPx, isFullscreen, landscapeCluster) {
+                LaunchedEffect(mapIconClusterHeightPx, mapContentBoxHeightPx, mapBottomNavHeightPx, isFullscreen, landscapeCluster, legendBoundPx) {
                     val targetPx = clampMapIconBarVerticalOffset(mapIconBarUserChosenOffsetPx)
                     if (targetPx != mapIconBarDisplayedOffsetPx.value) {
                         mapIconBarDisplayedOffsetPx.animateTo(targetPx, mapIconBarOffsetSpec)
@@ -942,8 +974,7 @@ internal fun CompactMapTab(
                                     },
                                     onResetOrientation = { resetOrientationRequestId++ },
                                     mapMode = mapMode,
-                                    onOpenMapModePicker = { showMapModePicker = true },
-                                    isNightMode = isNightMode,
+                                    onOpenLayers = { showLayersSheet = true },
                                     onAdd = {
                                         // No location to grab any more — the button just opens
                                         // the menu; the location comes from
@@ -1097,6 +1128,30 @@ internal fun CompactMapTab(
                     )
                 }
 
+                // Map layers L0b, B4 (owner's ruling 5, "Bottom-right, above the 'i'"): the legend chip,
+                // shown only while a colour field is visible. In the bottom-end corner, above MapLibre's
+                // "i" (LEGEND_ATTRIBUTION_CLEARANCE) and above the nav in portrait (renderMode.bottomInset,
+                // the attribution caption's own inset: the nav's height, or the system bar's in
+                // fullscreen), and inside controlsPadding, so it stays clear of the landscape rail on
+                // either edge. The cluster keeps clear of it through its clamp above (Q4). Composed
+                // with the ambient chrome, before the nav and the modal overlays. Its placement depends
+                // on real insets Robolectric reports as zero: device-only.
+                mapLegendFor(renderMode.layers, MAP_LAYER_REGISTRY, COLOUR_FIELDS, mapLayers.cellsShown)?.let { legend ->
+                    DisposableEffect(Unit) { onDispose { legendChipTopPx = null } }
+                    MapLegendChip(
+                        legend = legend,
+                        expanded = mapLayers.legendExpanded,
+                        onExpandedChange = mapLayers.onLegendExpandedChange,
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(controlsPadding)
+                            .padding(end = Spacing.sm, bottom = renderMode.bottomInset + LEGEND_ATTRIBUTION_CLEARANCE)
+                            .onGloballyPositioned { coordinates ->
+                                legendChipTopPx = coordinates.positionInRoot().y - mapContentBoxTopInRootPx
+                            },
+                    )
+                }
+
                 // Fullscreen-fixes dispatch, Item 1 (third design). Composed here — after the
                 // ambient chrome above (MapIconBar/CompassElevationStrip/TrailheadControls/
                 // TaxonMapFilterChip, none of which reach this bar's own bottom band) but *before*
@@ -1218,23 +1273,22 @@ internal fun CompactMapTab(
                     growsFrom = if (isMapIconBarOnLeftSide) Alignment.BottomStart else Alignment.BottomEnd,
                 )
 
-                MapModePicker(
-                    visible = showMapModePicker,
-                    mapMode = mapMode,
-                    onModeSelected = onMapModeSelected,
-                    onDismiss = { showMapModePicker = false },
-                    // Expanded-panels dispatch: same live anchoring as AddActionTile above — the
-                    // bar's side and drag offset (mapIconBarPanelAnchorOffset), plus this panel's
-                    // own row. MapModePicker itself is unchanged (shared with the Cartography
-                    // entry map); only what this caller feeds it moved from static to live.
-                    anchor = mapIconBarSideAlignment,
-                    anchorOffset = DpOffset(
-                        x = mapIconBarPanelAnchorOffset.x,
-                        y = mapIconBarPanelAnchorOffset.y + MAP_MODE_PICKER_COMPACT_ANCHOR_OFFSET,
-                    ),
-                    // Landscape B1: the cluster's frame, as for AddActionTile above.
-                    modifier = Modifier.padding(controlsPadding),
-                )
+                // Map layers L0b, B1: the Layers sheet, in place of the basemap-only popover this row
+                // used to open. A modal bottom sheet in its own window, so it needs no anchor to the
+                // cluster and no padding for the rail.
+                if (showLayersSheet) {
+                    MapLayersSheet(
+                        mapMode = mapMode,
+                        onMapModeSelected = onMapModeSelected,
+                        overlays = MAPS_TAB_OVERLAYS,
+                        colourFields = mapLayers.listedColourFields,
+                        state = mapLayers.stored,
+                        onVisibilityChanged = mapLayers.onVisibilityChanged,
+                        onOpacityChanged = mapLayers.onOpacityChanged,
+                        onColourFieldMoved = mapLayers.onColourFieldMoved,
+                        onDismiss = { showLayersSheet = false },
+                    )
+                }
 
                 // Owner finding on device: the OK/Cancel row sat under the app's nav (and under
                 // Android's own navigation bar in fullscreen), because this Box spans the full
@@ -1323,9 +1377,6 @@ private val CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR = Spacing.sm
 
 /** The cluster container's own `Surface` — what tests measure the cluster's real extent by (icon-bar-unify-container dispatch). */
 internal const val MAP_ICON_CLUSTER_TAG = "map-icon-cluster"
-
-/** [MapIconBar]'s layers ("Map Mode") row is its 4th of 5 — see [mapIconBarRowAnchorOffset]. */
-private val MAP_MODE_PICKER_COMPACT_ANCHOR_OFFSET = mapIconBarRowAnchorOffset(rowIndexFromTop = 4)
 
 /** Landscape B2 (S4): the navigation HUD's width cap in the rail-side top corner. */
 private val LANDSCAPE_HUD_MAX_WIDTH = 360.dp

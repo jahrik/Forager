@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.log
 
+import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 import com.zynergylabs.forager.app.ui.adaptive.isShortWindow
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -133,6 +134,13 @@ internal fun JournalTab(
     basemap: Basemap,
     /** Night mode for the location picker this hosts, and the Records tab's Offline Maps picker — see [CentrePinLocationPicker]. */
     night: Boolean = false,
+    /**
+     * Map layers L0b (owner's ruling 4, "Same sheet"): the layer choices the Maps tab and the entry map
+     * share, and the entry map's Layers-sheet switch. Threaded through to `CartographyEntryReportScreen`
+     * only; nothing here reads them. Defaulted so other callers and tests are unchanged.
+     */
+    mapLayers: MapLayersState = MapLayersState.DEFAULT,
+    onMapLayerVisibilityChanged: (layerId: String, visible: Boolean) -> Unit = { _, _ -> },
     onOpenEntry: (String) -> Unit,
     onCloseEntry: () -> Unit,
     onStartEntry: (LatLng?, LocalDate) -> Unit,
@@ -515,6 +523,8 @@ internal fun JournalTab(
                 distanceUnit = distanceUnit,
                 mapSlot = mapSlot,
                 night = night,
+                mapLayers = mapLayers,
+                onMapLayerVisibilityChanged = onMapLayerVisibilityChanged,
                 getMapData = getCartographyEntryMapData,
                 getCoveringOfflineRegion = getCartographyEntryOfflineRegion,
                 getCurrentLocation = getCartographyEntryCurrentLocation,

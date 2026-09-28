@@ -82,6 +82,8 @@ import com.zynergylabs.forager.app.domain.LocationProvider
 import com.zynergylabs.forager.app.domain.LocationTracker
 import com.zynergylabs.forager.app.domain.MapPreferencesRepository
 import com.zynergylabs.forager.app.domain.ForecastCellStore
+import com.zynergylabs.forager.app.domain.GetMapRecordsUseCase
+import com.zynergylabs.forager.app.domain.MapLayerPreferencesRepository
 import com.zynergylabs.forager.app.forecast.forecastCellStore
 import com.zynergylabs.forager.app.domain.SundownPreferencesRepository
 import com.zynergylabs.forager.app.domain.MushroomLogRepository
@@ -189,7 +191,11 @@ class AppContainer(context: Context) {
 
     val offlineMapRepository: OfflineMapRepository = MapLibreOfflineMapRepository(context, database.offlineRegionDao())
     val getTripReportOfflineRegionsUseCase = GetTripReportOfflineRegionsUseCase(offlineMapRepository)
-    val mapPreferencesRepository: MapPreferencesRepository = DataStoreMapPreferencesRepository(context)
+    // One instance for both interfaces (map layers L0b, planner's ruling on F1): DataStore refuses a
+    // second live instance on `map_preferences`, so the layer choices live in this same class.
+    private val dataStoreMapPreferencesRepository = DataStoreMapPreferencesRepository(context)
+    val mapPreferencesRepository: MapPreferencesRepository = dataStoreMapPreferencesRepository
+    val mapLayerPreferencesRepository: MapLayerPreferencesRepository = dataStoreMapPreferencesRepository
 
     /**
      * Where the map's colour fields read their cells (map layers L0b, B5 and B6): one source-set-split
@@ -246,6 +252,15 @@ class AppContainer(context: Context) {
     val recordTrackPointsUseCase = RecordTrackPointsUseCase(trackRepository)
     val endTrackUseCase = EndTrackUseCase(trackRepository)
     val getTracksUseCase = GetTracksUseCase(trackRepository)
+
+    // Map layers L0b, B2: every saved record the Maps tab draws, through the read paths the Journal
+    // and Records already use.
+    val getMapRecordsUseCase = GetMapRecordsUseCase(
+        getFinds = getMushroomLogEntriesUseCase,
+        getTracks = getTracksUseCase,
+        getPhotos = getGalleryPhotosUseCase,
+        offlineMapRepository = offlineMapRepository,
+    )
     val computeTrackStatisticsUseCase = ComputeTrackStatisticsUseCase()
     val computeReturnToStartUseCase = ComputeReturnToStartUseCase()
     val detectOffTrackUseCase = DetectOffTrackUseCase()

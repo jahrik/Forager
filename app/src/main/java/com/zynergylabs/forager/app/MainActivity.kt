@@ -82,6 +82,9 @@ class MainActivity : ComponentActivity() {
                     setAutoSaveLocationToPhotos = container.photoLocationPreferenceRepository::setAutoSaveLocationToPhotos,
                     getLockCameraToPortrait = container.cameraOrientationPreferenceRepository::getLockCameraToPortrait,
                     setLockCameraToPortrait = container.cameraOrientationPreferenceRepository::setLockCameraToPortrait,
+                    getMapRecords = { container.getMapRecordsUseCase() },
+                    mapLayerPreferencesRepository = container.mapLayerPreferencesRepository,
+                    forecastCellStore = container.forecastCellStore,
                 )
             }
         }
@@ -448,6 +451,11 @@ class MainActivity : ComponentActivity() {
                     onLockCameraToPortraitChanged = viewModel::onLockCameraToPortraitChanged,
                     onThemeModeChanged = viewModel::onThemeModeChanged,
                     onMapFullscreenChanged = viewModel::onMapFullscreenChanged,
+                    onMapShown = viewModel::onMapShown,
+                    onMapLayerVisibilityChanged = viewModel::onMapLayerVisibilityChanged,
+                    onMapLayerOpacityChanged = viewModel::onMapLayerOpacityChanged,
+                    onColourFieldMoved = viewModel::onColourFieldMoved,
+                    forecastCellStore = container.forecastCellStore,
                     // Journal redesign J4: a find whose delete is pending (Undo snackbar up) is left
                     // out of the lists the screen gets.
                     logUiState = logUiState.hidingPendingDelete(),

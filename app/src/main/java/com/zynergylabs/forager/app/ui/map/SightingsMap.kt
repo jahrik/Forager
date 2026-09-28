@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -57,6 +58,10 @@ import com.zynergylabs.forager.app.ui.map.layers.OpacityValue
 import com.zynergylabs.forager.app.ui.map.layers.TAP_BOX_DP
 import com.zynergylabs.forager.app.ui.map.layers.TapHit
 import com.zynergylabs.forager.app.ui.map.layers.activeLayerCredits
+import com.zynergylabs.forager.app.ui.map.layers.COLOUR_FIELDS
+import com.zynergylabs.forager.app.ui.map.layers.ForecastCellsShown
+import com.zynergylabs.forager.app.ui.map.layers.withUnavailableColourFieldsHidden
+import com.zynergylabs.forager.app.domain.ForecastCellsResult
 import com.zynergylabs.forager.app.ui.map.layers.layerPaintFor
 import com.zynergylabs.forager.app.ui.map.layers.orderedLayers
 import com.zynergylabs.forager.app.ui.map.layers.resolveTap
@@ -268,7 +273,20 @@ fun SightingsMap(
     // Read by the click listener (the draw order the tap precedence ranks against) and by each
     // style load (the order the layers are added in): both were registered or launched before a
     // later state change could otherwise reach them.
-    val currentLayersState by rememberUpdatedState(layersState)
+    //
+    // Map layers L0b (B5, and the planner's ruling on F2): the state this map draws with is the one
+    // it is given with every colour field its forecast feed does not name hidden. So a map with no
+    // feed (the Cartography entry map, the centre-pin pickers, any map in a release build, whose store
+    // never has data) never draws, credits or hit-tests a colour field, whatever the stored choice
+    // says; the stored choice is not changed.
+    val drawnLayersState = remember(layersState, forecast?.groupsByLayer) {
+        withUnavailableColourFieldsHidden(layersState, MAP_LAYER_REGISTRY, forecast?.groupsByLayer?.keys.orEmpty())
+    }
+    val currentLayersState by rememberUpdatedState(drawnLayersState)
+    val currentForecast by rememberUpdatedState(forecast)
+    // Counts camera idles (map layers L0b, B5): the colour fields' cell feed below is keyed on it, so
+    // the store is asked for the blocks in view each time the camera goes idle.
+    var cameraIdleCount by remember { mutableIntStateOf(0) }
     // Read inside the click listener below (registered once, see that DisposableEffect's own
     // comment) so a tapped dot resolves against whichever sightings list is current, not whichever
     // one was in scope the moment the listener was registered.
@@ -410,6 +428,7 @@ fun SightingsMap(
             // via getCameraPosition() inside the callback, not received as a parameter the way
             // addOnMapLongClickListener's latLng is.
             map.addOnCameraIdleListener {
+                cameraIdleCount++
                 // CameraPosition.target is declared `LatLng?` in the pinned SDK itself (verified via
                 // javap: the vendor's own constructor carries an org.jetbrains.annotations.Nullable
                 // on this parameter) — null before the map has finished laying out a first camera
@@ -596,9 +615,59 @@ fun SightingsMap(
     // loaded style's own layers — no setStyle, so nothing is rebuilt. Keyed on loadedStyle as well,
     // so a freshly loaded style gets the current state; initializeOverlayLayers has already built
     // each layer with it, so for that case this re-sets the same values.
-    LaunchedEffect(loadedStyle, layersState) {
+    LaunchedEffect(loadedStyle, drawnLayersState) {
         val style = loadedStyle ?: return@LaunchedEffect
-        MAP_LAYER_REGISTRY.forEach { spec -> applyLayerPaint(style, layerPaintFor(spec, layersState)) }
+        MAP_LAYER_REGISTRY.forEach { spec -> applyLayerPaint(style, layerPaintFor(spec, drawnLayersState)) }
+    }
+
+    // Colour-field cells (map layers L0b, B5): each time the camera goes idle, and after every style
+    // load (a basemap change and a night-mode change both reload the style, which drops every source,
+    // and initializeOverlayLayers re-adds the cell sources empty), the store is asked for the blocks
+    // touching the visible area, per colour field the feed names, for the feed's week. That is the same
+    // path a downloaded store will use. Below MIN_FORECAST_ZOOM, or past the MAX_FORECAST_BLOCKS
+    // backstop, nothing is requested and each field draws empty (planner's ruling on Q9). A field the
+    // store has no data for draws empty too. What the drawn cells say about their dates goes back to
+    // the host for the legend (MapForecastFeed.onCellsShown). Keyed on the feed's store, week and
+    // groups rather than the feed itself, whose callback is a new lambda on every recomposition.
+    LaunchedEffect(loadedStyle, forecast?.store, forecast?.week, forecast?.groupsByLayer, cameraIdleCount) {
+        val style = loadedStyle ?: return@LaunchedEffect
+        val map = mapLibreMap ?: return@LaunchedEffect
+        val feed = forecast
+        val blocks = feed?.takeIf { it.groupsByLayer.isNotEmpty() }?.let {
+            val zoom = map.cameraPosition.zoom
+            val bounds = map.projection.visibleRegion.latLngBounds
+            forecastBlocksToRequest(zoom, bounds.latitudeSouth, bounds.longitudeWest, bounds.latitudeNorth, bounds.longitudeEast)
+                .also { requested ->
+                    if (requested == null && zoom >= MIN_FORECAST_ZOOM) {
+                        Log.w(SIGHTINGS_MAP_TAG, "The view touches more than $MAX_FORECAST_BLOCKS forecast blocks; no cells requested.")
+                    }
+                }
+        }
+        val shown = mutableMapOf<String, ForecastCellsShown>()
+        COLOUR_FIELDS.forEach { field ->
+            val group = feed?.groupsByLayer?.get(field.layerId)
+            val cells = if (feed == null || group == null || blocks == null) {
+                emptyList()
+            } else {
+                when (val result = feed.store.cells(group, feed.week, blocks)) {
+                    ForecastCellsResult.NoForecastData -> emptyList()
+                    is ForecastCellsResult.Cells -> {
+                        if (result.rejectedCount > 0) {
+                            Log.w(SIGHTINGS_MAP_TAG, "${result.rejectedCount} forecast feature(s) for $group were rejected and are not drawn.")
+                        }
+                        result.cells
+                    }
+                }
+            }
+            val source = style.getSourceAs<GeoJsonSource>(field.sourceId)
+            if (source == null) {
+                Log.w(SIGHTINGS_MAP_TAG, "The ${field.sourceId} source is not in the loaded style; its cells were not drawn.")
+            } else {
+                source.setGeoJson(forecastCellsFeatureCollection(cells))
+            }
+            forecastCellsShownOf(cells)?.let { shown[field.layerId] = it }
+        }
+        currentForecast?.onCellsShown?.invoke(shown)
     }
 
     // Re-engages GPS camera tracking on demand — the map redesign's GPS/locate-me icon, tapped
@@ -680,7 +749,7 @@ fun SightingsMap(
         // A list of credits since map layers L0a (A5): the basemap's, then each visible layer's own
         // (none of today's layers has one, so the text is exactly what it always was).
         Text(
-            text = attributionCaption(mapCreditsFor(basemap, useOfflineTiles, activeLayerCredits(MAP_LAYER_REGISTRY, layersState))),
+            text = attributionCaption(mapCreditsFor(basemap, useOfflineTiles, activeLayerCredits(MAP_LAYER_REGISTRY, drawnLayersState))),
             style = MaterialTheme.typography.labelSmall,
             color = ComposeColor.White,
             modifier = Modifier
@@ -763,6 +832,11 @@ private fun initializeOverlayLayers(
  */
 private fun nativeLayerFor(spec: MapLayerSpec, palette: MapPalette): Layer? {
     markerIconForLayer(spec.id)?.let { return markerSymbolLayer(spec.id, spec.sourceId, it) }
+    // A colour field (map layers L0b): a fill whose colour is its ramp on each cell's chance. Its
+    // opacity is the registry's (a base of 0.6, owner's ruling on Q10), set with the rest of its paint.
+    COLOUR_FIELDS.firstOrNull { it.layerId == spec.id }?.let { field ->
+        return FillLayer(spec.id, spec.sourceId).withProperties(PropertyFactory.fillColor(colourFieldFillColour(field.ramp)))
+    }
     lineSpecForLayer(spec.id)?.let { return lineLayerFor(it, palette) }
     return when (spec.id) {
         // Lowest of all (the areas group), so a coverage circle never covers a marker or a line.

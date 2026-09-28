@@ -46,7 +46,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.CartographyEntryMapData
 import com.zynergylabs.forager.app.domain.GeoDistance
@@ -61,11 +60,11 @@ import com.zynergylabs.forager.app.domain.model.formatDistanceKm
 import com.zynergylabs.forager.app.ui.map.MapBarIconButton
 import com.zynergylabs.forager.app.ui.map.MapIconBar
 import com.zynergylabs.forager.app.ui.map.MapMode
-import com.zynergylabs.forager.app.ui.map.MapModePicker
+import com.zynergylabs.forager.app.ui.map.ENTRY_MAP_OVERLAYS
+import com.zynergylabs.forager.app.ui.map.MapLayersSheet
 import com.zynergylabs.forager.app.ui.map.MapOverlayContent
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.map.MapSlot
-import com.zynergylabs.forager.app.ui.map.mapIconBarRowAnchorOffset
 import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import kotlinx.coroutines.launch
@@ -227,7 +226,13 @@ internal fun CartographyEntryReportScreen(
     onDeleteEntry: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    /** Tests-first stubs (map layers L0b): the shared layer choices, and the sheet's overlay switch. */
+    /**
+     * Map layers L0b (owner's ruling 4, "Same sheet"): the layer choices this map shares with the Maps
+     * tab, and its Layers sheet's overlay switch. The sheet lists only what this map draws
+     * ([ENTRY_MAP_OVERLAYS]) and no colour field: this map passes no forecast feed (planner's ruling
+     * on Q5), so `SightingsMap` hides every colour field here whatever the stored choice. Its geometry
+     * still comes only from [getMapData] (`GetCartographyEntryMapDataUseCase`).
+     */
     layersState: MapLayersState = MapLayersState.DEFAULT,
     onLayerVisibilityChanged: (String, Boolean) -> Unit = { _, _ -> },
 ) {
@@ -244,7 +249,7 @@ internal fun CartographyEntryReportScreen(
     // AvailabilityScreen's own mapMode.
     var entryMapMode by remember(entry.id) { mutableStateOf(MapMode.DEFAULT) }
     var isMapFullscreen by remember(entry.id) { mutableStateOf(false) }
-    var showMapModePicker by remember(entry.id) { mutableStateOf(false) }
+    var showLayersSheet by remember(entry.id) { mutableStateOf(false) }
     // See MapOverlayContent.resetOrientationRequestId's own doc comment.
     var resetOrientationRequestId by remember(entry.id) { mutableStateOf(0) }
     // The one-shot camera pan a locate-me tap resolves to — see this file's own doc comment,
@@ -386,6 +391,7 @@ internal fun CartographyEntryReportScreen(
                         trackLiveLocation = false,
                         useOfflineTiles = useOfflineTiles,
                         showSearchCentre = false,
+                        layers = layersState,
                     ),
                     focusOverrideTarget,
                     {},
@@ -407,9 +413,8 @@ internal fun CartographyEntryReportScreen(
                         onLocateMe = onLocateMe,
                         onResetOrientation = { resetOrientationRequestId++ },
                         mapMode = entryMapMode,
-                        onOpenMapModePicker = { showMapModePicker = true },
+                        onOpenLayers = { showLayersSheet = true },
                         onAdd = {}, // Unused — fifthRow below replaces this row entirely.
-                        isNightMode = night,
                         mapModePickerEnabled = !useOfflineTiles,
                         // A toggle, not a momentary action like the default add row this replaces —
                         // MapIconBar has no fifth-row concept for a second map surface to reuse
@@ -427,14 +432,19 @@ internal fun CartographyEntryReportScreen(
                         },
                         modifier = Modifier.align(Alignment.CenterEnd).padding(Spacing.sm),
                     )
-                    MapModePicker(
-                        visible = showMapModePicker,
-                        mapMode = entryMapMode,
-                        onModeSelected = { entryMapMode = it },
-                        onDismiss = { showMapModePicker = false },
-                        anchor = Alignment.CenterEnd,
-                        anchorOffset = DpOffset(x = -Spacing.sm, y = mapIconBarRowAnchorOffset(rowIndexFromTop = 4)),
-                    )
+                    if (showLayersSheet) {
+                        MapLayersSheet(
+                            mapMode = entryMapMode,
+                            onMapModeSelected = { entryMapMode = it },
+                            overlays = ENTRY_MAP_OVERLAYS,
+                            colourFields = emptyList(),
+                            state = layersState,
+                            onVisibilityChanged = onLayerVisibilityChanged,
+                            onOpacityChanged = { _, _ -> },
+                            onColourFieldMoved = { _, _ -> },
+                            onDismiss = { showLayersSheet = false },
+                        )
+                    }
                 }
             }
 

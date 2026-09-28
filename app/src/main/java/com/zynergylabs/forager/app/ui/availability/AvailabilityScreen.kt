@@ -301,6 +301,12 @@ import com.zynergylabs.forager.app.ui.map.mapIconClusterChildColor
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorLight
 import com.zynergylabs.forager.app.ui.map.MapMode
 import com.zynergylabs.forager.app.ui.map.layers.ColourFieldMove
+import com.zynergylabs.forager.app.ui.map.layers.COLOUR_FIELDS
+import com.zynergylabs.forager.app.ui.map.layers.ForecastCellsShown
+import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
+import com.zynergylabs.forager.app.ui.map.layers.withUnavailableColourFieldsHidden
+import com.zynergylabs.forager.app.ui.map.MapForecastFeed
+import com.zynergylabs.forager.app.ui.map.MapLayersControls
 import com.zynergylabs.forager.app.domain.AbsentForecastCellStore
 import com.zynergylabs.forager.app.domain.ForecastCellStore
 import com.zynergylabs.forager.app.ui.map.MapModePicker
@@ -708,7 +714,14 @@ fun AvailabilityScreen(
      * [PendingDeleteSnackbarEffects]. Empty by default, so no other caller changes.
      */
     pendingDeleteNotices: List<PendingDeleteNotice> = emptyList(),
-    /** Tests-first stubs (map layers L0b): the Maps tab shown, and the Layers sheet's three changes. */
+    /**
+     * Map layers L0b. [onMapShown] runs every time the Maps tab comes into view (compact: the Maps
+     * bottom-nav tab; medium and expanded: the List and Map pane, which always shows the map), which
+     * is how the saved records and the forecast availability stay fresh (the dispatch, B2:
+     * `AvailabilityViewModel.onMapShown`). The next three are the Layers sheet's changes, and
+     * [forecastCellStore] is where the Maps tab's colour fields read their cells (the app's one store,
+     * `AppContainer.forecastCellStore`). All defaulted, so no other caller changes.
+     */
     onMapShown: () -> Unit = {},
     onMapLayerVisibilityChanged: (String, Boolean) -> Unit = { _, _ -> },
     onMapLayerOpacityChanged: (String, Float) -> Unit = { _, _ -> },
@@ -846,7 +859,51 @@ fun AvailabilityScreen(
     // nightModeLoaded: the cold-launch gate (colour build C1) — the map loads no style until the
     // preference read above has landed, so a night user's first style is the night one. Only this
     // map gets it; see MapRenderMode.nightModeLoaded for why the others keep the default.
-    val mapRenderMode = MapRenderMode(basemap = basemap, night = isNightMode, nightModeLoaded = uiState.nightModeMapsLoaded)
+    // Map layers L0b (B1 to B5). The colour fields with data this week (the store's answer, from
+    // onMapShown), the state the map draws with (the user's choices with every colour field that has
+    // no data hidden, so a release build never draws, lists, credits or legends one: planner's ruling
+    // on F2), the forecast feed the map reads its cells through, and every saved record with the
+    // pending deletes left out (planner's ruling on Q7). The legend's expanded flag is held here, above
+    // the tab, so it survives leaving the Maps tab and coming back (CLAUDE.md, UX defaults).
+    var mapLegendExpanded by rememberSaveable { mutableStateOf(false) }
+    var forecastCellsShown by remember { mutableStateOf<Map<String, ForecastCellsShown>>(emptyMap()) }
+    val availableColourFieldGroups = COLOUR_FIELDS.filter { it.group in uiState.forecastGroups }.associate { it.layerId to it.group }
+    val drawnMapLayers = withUnavailableColourFieldsHidden(uiState.mapLayers, MAP_LAYER_REGISTRY, availableColourFieldGroups.keys)
+    val forecastWeek = uiState.forecastWeek
+    val forecastFeed = remember(forecastCellStore, forecastWeek, availableColourFieldGroups) {
+        if (forecastWeek == null || availableColourFieldGroups.isEmpty()) {
+            null
+        } else {
+            MapForecastFeed(
+                store = forecastCellStore,
+                week = forecastWeek,
+                groupsByLayer = availableColourFieldGroups,
+                onCellsShown = { forecastCellsShown = it },
+            )
+        }
+    }
+    val mapLayersControls = MapLayersControls(
+        stored = uiState.mapLayers,
+        availableColourFields = availableColourFieldGroups.keys,
+        cellsShown = forecastCellsShown.filterKeys { it in availableColourFieldGroups },
+        records = uiState.mapRecords.withoutPending(
+            findId = logUiState.pendingDelete?.item?.id,
+            photoId = logUiState.pendingPhotoDelete?.item?.photo?.id,
+            offlineRegionId = uiState.pendingOfflineRegionDelete?.item?.id?.toString(),
+        ),
+        legendExpanded = mapLegendExpanded,
+        onLegendExpandedChange = { mapLegendExpanded = it },
+        onVisibilityChanged = onMapLayerVisibilityChanged,
+        onOpacityChanged = onMapLayerOpacityChanged,
+        onColourFieldMoved = onColourFieldMoved,
+    )
+    val mapRenderMode = MapRenderMode(
+        basemap = basemap,
+        night = isNightMode,
+        nightModeLoaded = uiState.nightModeMapsLoaded,
+        layers = drawnMapLayers,
+        forecast = forecastFeed,
+    )
     // Persisted via the ViewModel/DataStore — see AvailabilityUiState.distanceUnit's own doc
     // comment. mapMode above is still session-local; see the observation in that same doc comment.
     val distanceUnit = uiState.distanceUnit
@@ -1013,6 +1070,19 @@ fun AvailabilityScreen(
     // compact tree swaps its bottom bar for a navigation rail on the charger-port edge — see
     // compactMainScaffold's own showRail. portEdge is only read while showRail is true.
     val isShortWindow = isShortWindow()
+    // Map layers L0b, B2: the Maps tab's freshness mechanism. Whenever the Maps tab comes into view
+    // (compact, the Maps bottom-nav tab, the same layout test as below; medium and expanded, the List
+    // and Map pane, whose map is always on screen) the saved records reload and the forecast store is
+    // asked again, so a find saved on the Journal tab, or the Diagnostics switch turned on, shows the
+    // next time the map is shown.
+    val isMapsTabShown = if (windowWidthClass == WindowWidthClass.COMPACT || isShortWindow) {
+        compactTab == CompactTab.MAP
+    } else {
+        selectedTab == ResultsTab.MAP || selectedTab == ResultsTab.LIST
+    }
+    LaunchedEffect(isMapsTabShown) {
+        if (isMapsTabShown) onMapShown()
+    }
     val isShortLandscapeWindow = isShortWindow &&
         LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val portEdge = currentWindowPortEdge()
@@ -1177,6 +1247,8 @@ fun AvailabilityScreen(
                     deviceLocation = uiState.liveFix?.let { LatLng(it.lat, it.lng) },
                     basemap = basemap,
                     night = isNightMode,
+                    mapLayers = mapLayersControls.stored,
+                    onMapLayerVisibilityChanged = mapLayersControls.onVisibilityChanged,
                     onOpenEntryForEditing = onOpenLogEntryForEditing,
                     onCloseEntry = onCloseLogEntry,
                     onEntryChanged = onLogEntryChanged,
@@ -1342,6 +1414,7 @@ fun AvailabilityScreen(
                         renderMode = mapRenderMode,
                         mapMode = mapMode,
                         onMapModeSelected = { mapMode = it },
+                        mapLayers = mapLayersControls,
                         onPlaceTripPin = onPlaceTripPin,
                         onLogFindHere = onLogFindHere,
                         breadcrumbPoints = breadcrumbPoints,
@@ -1393,6 +1466,7 @@ fun AvailabilityScreen(
             mapSlot = mapSlot,
             mapIconClusterPosition = mapIconClusterPosition,
             mapRenderMode = mapRenderMode,
+            mapLayers = mapLayersControls,
             mapMode = { mapMode },
             isNightMode = isNightMode,
             isRecording = isRecording,
