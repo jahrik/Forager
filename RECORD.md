@@ -3995,3 +3995,30 @@ The list-detail question goes to the owner next. Written by the planner by hand.
   - MapModePicker is dead;
   - the search dropdown is 0.8 on every tab.
 - Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-84
+**Timestamp:** 2026-09-28T22:19:56Z
+**Title:** The map-chrome device check on the S22: does the map show through each surface on a real screen (the dropdown, drawer and snackbar outside the map's Box first), with composite alphas measured and legibility captures for the owner
+**Dispatch-file:** preserved/2026-09-28-84.md
+**Change:** No code. Back up and verify the database. Build b358a4a and install -r. For every map-chrome surface over the Maps map and the Journal, measure whether the map shows through and the composite alpha, at 0, 90 and 270. Capture legibility over every basemap by day and night.
+**Scope boundary:** The S22 only; never the tablet. Every dialog cancelled; no data created, edited or deleted; settings restored. Run record on branch device-chrome; evidence outside the repository.
+**Baseline:** journal-redesign b358a4a (planner suite 304 / 2477 / 0 / 0 / 24); phone at J8's build, database version 16.
+**Prediction (outcome — planner):** 1. The separate windows (sheets, dialogs, menus) show the map through at about 0.8. 2. At least one of the dropdown, drawer and snackbar renders opaque, as the old comment warns. 3. The bottom nav and compass strip read 0.8, as before.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** The run record pushed with alphas, captures, restores and crash reads. The planner merges it and writes the terminal.
+**Abort conditions:** An unverifiable backup; uninstall, -d or a clear; a signature mismatch; a database change; a new crash; any prompt; a locked phone; any data change; touching the tablet.
+**Notes:** The next S22 step in the owner's order ("J8's device check, then the map-chrome device check"). Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-85
+**Timestamp:** 2026-09-28T22:19:56Z
+**Continues:** 2026-09-28-79
+**Dispatch-file:** none (launch note; -79 governs)
+**Reason:** the build slot is free, since the save-failure and map-chrome stages are closed (terminals -82 and -83). -70 (J8 follow-ups) and -78 (layout fixes) wait on the owner's answers about marker rings over lines and the chip over the reset button at 90. -79 depends on neither.
+**Changes:** -79 launches at base 5049dfc (app/ identical to b358a4a) in forager-wt/night-outline, branch night-outline. It runs beside the map-chrome device check (-84), which builds one APK; each checks for other Gradle builds first.
+**Notes:** The owner confirmed "Yes the night outline only". Written by the planner by hand.
