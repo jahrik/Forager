@@ -265,6 +265,250 @@ commit's message. There were zero hits.
 - **The wide Layers button's tint question** (build notes) also applies to any other `Surface` on `surface`
   with tonal elevation that later goes translucent.
 
+# Resumed and built (planner message 2026-09-28-77)
+
+The planner answered the stop with message `2026-09-28-77` (`prompts/preserved/2026-09-28-77.md` at `9c7d0a5`). A
+coordinator message summarised it, and a second one resumed the stage after a network outage. All three are quoted
+verbatim at the end of this report. The stage is built, tested first, revert-checked and suite-checked, and it is
+pushed to `journal-redesign` at `6e36122`.
+
+## What landed
+
+On `map-chrome`, first parent, pushed to `record-sheet-alpha-wip` at each step. `journal-redesign` received `89f9d15`
+and then `6e36122`, each after a full suite on that commit.
+
+| Commit | What |
+|---|---|
+| `b019080` | **Tests first.** Every surface passes its Material3 default colour explicitly, pins its content colour, and exposes both through `MapChromeContainerColor` and `MapChromeContentColor` (`ui/map/MapChrome.kt`), with test tags where it had none. Nothing drawn changes. Also adds `MapChromeOverMapTest.kt`. |
+| `a5f2786` | Forward change, part 1: `mapChromeFill(role, overMap)` in `MapChrome.kt`, `RecordDetailsSheet`'s `overMap` and its two call sites, the centre-pin confirm row, and the search notice and the two search menus' parameters. |
+| `53c670e` | Test fix: the Q4 case goes through a snackbar, not the drawer. See "Tests first". |
+| `852dac9` | Forward change, part 2: every remaining call site, the four `0.8f` literals moved onto `MAP_CHROME_OVER_MAP_ALPHA`, and the stale "opaque" comments corrected. |
+| `89f9d15` | `git pull --no-rebase` of `journal-redesign` (the save-failure stage `-68`/`-76`). It merged cleanly. Full suite, then pushed to `journal-redesign`. |
+| `d2a9cff` | A seam and two tests for the date picker's own clear container. See "Added after the forward change". |
+| `5f69550` | The three menus' content colour is now read inside them, on their first row. Before this, the value was passed in, which a test could not fail. Semantics only. |
+| `6e36122` | `git pull --no-rebase` of `journal-redesign`. The incoming commits were records, runs and plans, with no `app/` change. Full suite, then pushed to `journal-redesign`. |
+
+## What each surface does now
+
+"0.8" means its default role at `MAP_CHROME_OVER_MAP_ALPHA`, through `mapChromeFill`, with the content colour pinned to
+the unaltered role's own.
+
+| Surface | 0.8 when | Solid when | Role |
+|---|---|---|---|
+| Details sheet from a bubble (`MapBubble.kt`) | always: M1, M2 and M3 | never | `BottomSheetDefaults.ContainerColor` |
+| Details sheet from Records (`RecordsTab.kt`) | the Offline maps sub-tab (-77 Q1 (b)), compact and in the wide drawer | All, Tracks, Waypoints | same |
+| Centre-pin confirm row | always (it sits only in a map's own Box) | never | `surface` |
+| Search notice | the Maps tab's own (`overMap = true` at its call site in the map's Box) | other tabs, wide | `errorContainer` |
+| Wide Layers button | always | never | `surface`, alpha only (see below) |
+| Trip date dialog | always. The picker inside has a clear container, so the dialog's one fill composites to 0.8 | never | `DatePickerDefaults.colors().containerColor` |
+| Waypoint name dialog | always | never | `surface` |
+| Three-way action dialog | always | never | `AlertDialogDefaults.containerColor` |
+| Exit-navigation prompt | compact: the Maps tab. Wide: the results map drawn (-77 Q5) | wide with no map drawn | same |
+| Entry delete dialog | the entry has a map | no map | same |
+| Entry overflow menu | the entry has a map | no map | `MenuDefaults.containerColor` |
+| Species suggestions | compact: the Maps tab's bar. Wide: the results map drawn | other compact tabs; wide before a search | same |
+| Month menu | the search panel opened on the Maps tab | other tabs; the wide drawer (beside the map, unchanged) | same |
+| Snackbar (compact) | the Maps tab, following the tab (-77 Q4) | other tabs | `SnackbarDefaults.color` |
+| Tools drawer | over the Maps tab, following the tab | other tabs | `DrawerDefaults.modalContainerColor` |
+| J8's chip, its list and the bubble's count list | unchanged, already 0.8 | — | — |
+
+The wide rule is `wideResultsMapShown` (`AvailabilityScreen.kt`): List or Map selected, a searched region, not
+loading, no error. Those are exactly the branches in which `MapTab` draws its map.
+
+The exit prompt's composition moved below the window-class declarations so it can read them. Nothing else about it
+changed.
+
+These are unchanged, as `-58` says: the accent discs and the wide Add button, the 0.55 caption, every scrim, the
+cluster's 0.6 container, and the full-screen destinations. `MapModePicker` stays, flagged.
+
+**The wide Layers button's elevation tint drops.** This is computed, not measured on a screen. Material3 applies the
+tonal-elevation tint only when the fill equals `colorScheme.surface` (`ColorSchemeKt.applyTonalElevation`, read with
+`javap`). The formula is surfaceTint at `(4.5 ln(e + 1) + 2) / 100`, which is 0.0824 at 3 dp, composited over surface.
+The app sets no `surfaceTint`, so it is `primary`.
+- Dark: the button was `#272926` and is now `#1B1B1B` at 0.8.
+- Light: it was `#E9EAE4` and is now `#FAF8F3` at 0.8.
+
+As -77 says, this is reported and not compensated.
+
+## Tests
+
+`app/src/test/java/com/zynergylabs/forager/app/ui/availability/MapChromeOverMapTest.kt` has eight classes and 71
+tests. Each test drives the real `AvailabilityScreen` in `ForagerTheme(darkTheme = true)`, and compares against the
+roles read in the same composition.
+- `MapChromeCompactTests` has 19 methods, run in `w384dp-h823dp-xxhdpi` and `w823dp-h384dp-land-xxhdpi`.
+- `MapChromeEntryReportTests` has 5, run in the same two windows.
+- `MapChromeRecordsTests` has 4, run in portrait, short landscape and `w840dp-h1024dp-mdpi`.
+- `MapChromeWideTest` has 11, at `w1280dp-h900dp-mdpi`.
+
+Entry points:
+- a real touch on a stub glyph and the bubble's Details;
+- the + disc and its chooser, with OK;
+- typing in the search field;
+- the Month field;
+- a Records row;
+- the report's overflow button and Delete entry;
+- Back while navigating.
+
+Tabs, the Records switch and chips are semantic clicks, as setup. Over a map, a test asserts three things: the
+container's alpha is 0.8, its RGB is the role's, and the content colour inside equals the role's content colour and is
+opaque. Elsewhere, a test asserts that the container is the role, solid.
+
+### Tests first
+
+The first run was at `b019080` from a cleared results directory, with no compile errors: 68 tests, 43 failures. I had
+predicted 43 failures, on "container alpha expected:<0.8> but was:<1.0>", and 25 guards passing by construction.
+- 41 failed for that reason.
+- 2 failed for a reason I had not predicted, "the Tools drawer over the Maps tab while sightings load", once in each
+  window. The failure was "could not find any node … 'Tools'". While sightings load, the Maps tab's bottom bar and rail
+  are absent, because they are composed inside the map's Box. So the drawer cannot be opened there. The test was
+  wrong, not the build.
+  - I replaced it with a snackbar raised while sightings load, in `53c670e`.
+  - I re-ran it at `b019080` with the corrected test file (the file saved to a copy first, the tree restored after,
+    `git status` clean). Both failed on "compact-snackbar: container alpha expected:<0.8> but was:<1.0>".
+- The 25 guards passed, as predicted: the solid-elsewhere cases on the List tab, entries without a map, the Records
+  sub-tabs other than Offline maps, and wide with no map. A guard can only pass by finding its surface, because the
+  helper requires exactly one node that carries the key. The revert checks below make the guards evidence.
+
+### Added after the forward change
+
+Neither of these is a tests-first result.
+- **The picker's clear container** (`d2a9cff`): one compact method, run in both windows, and one wide method. Their
+  evidence is R13.
+- **The menus' inside read** (`5f69550`): this made their content checks able to fail. The evidence is R15.
+
+### Forward runs
+
+- `852dac9`: the eight classes, plus `MapChromeAlphaTest` and `MapLayersSheetTest`, 87 of 87. The filter also matched
+  `AvailabilityScreenMapLayersSheetTest`.
+- `d2a9cff`: three classes, 49 of 49.
+- `5f69550`: five classes, 59 of 59.
+
+### Revert checks (runner rules)
+
+My runner (`/tmp/claude-1000/mc/revert.py`) does the following for each check:
+- saves a copy of the file and makes one edit;
+- clears the results directory and runs the eight classes;
+- refuses the results on any compile-error line, or on XML older than the run's start;
+- restores the file from the saved copy, never from git;
+- confirms the file is byte-identical to the copy and the tree is clean;
+- confirms only when the failing set equals the prediction and each message carries the predicted fragment.
+
+Every check below was confirmed, and every restore was identical with a clean tree. Each check ran 71 tests. Colour
+values are rounded to three places from the JUnit messages, and the names in brackets are mine.
+
+| Check | Mechanism | Edit | Failed (as predicted) | Message |
+|---|---|---|---|---|
+| R1 | window sheet | bubble call site `overMap = true` → `false` | 9: the three kinds × 2 windows, entry map × 2, wide | "record-details-sheet: container alpha expected:<0.8> but was:<1.0>" |
+| R2 | window sheet (guards) | Records `overMap = selectedTab == OFFLINE_MAPS` → `true` | 9: the three solid sub-tab cases × 3 windows | "…expected:<1.0> but was:<0.8>" |
+| R3 | sheet content pin | `contentColor = contentColor,` removed | **0, as predicted**. See below. | — |
+| R4 | dialog | three-way `overMap = true` → `false` | 1 | "three-way-action-dialog: container alpha expected:<0.8> but was:<1.0>" |
+| R5 | dialog, wide rule | the exit prompt's wide branch → `true` | 1: wide with no map | "exit-navigation-prompt: container alpha expected:<1.0> but was:<0.8>" |
+| R6 | popup (guard) | Month's `overMap = compactTab() == MAP` → `true` | 2: List tab × 2 | "month-menu: … expected:<1.0> but was:<0.8>" |
+| R7 | popup | the Maps bar's `overMap = true` → `false` | 2: suggestions on Maps × 2 | "taxon-suggestions-menu: container alpha expected:<0.8> but was:<1.0>" |
+| R8 | drawer | `compactTab == MAP` → `!=` | 4: Maps and List × 2 | "tools-drawer-sheet: container alpha expected:" |
+| R9 | drawer content pin | `drawerContentColor = drawerContentColor,` removed | 2 | "tools-drawer-sheet: content colour expected:<Color(0.929, 0.890, 0.816, 1.0)> but was:<Color(0.0, 0.0, 0.0, 1.0)>" (Cream; black, the default outside any Scaffold) |
+| R10 | in-tree surface | confirm row `overMap = true` → `false` | 3: compact × 2, wide | "centre-pin-confirm-row: container alpha expected:<0.8> but was:<1.0>" |
+| R11 | snackbar (guard) | `compactTab() == MAP` → `true` | 2: List tab × 2 | "compact-snackbar: … expected:<1.0> but was:<0.8>" |
+| R12 | entry map rule (guards) | `entryMapShown = …` → `true` | 4: menu and dialog without a map × 2 | "…container alpha expected:<1.0> but was:<0.8>" |
+| R13 | picker clear | `colors(containerColor = Color.Transparent)` → `colors()` | 3 | "trip-date-picker: container expected:<Color(0,0,0,0)> but was:<Color(0.169, 0.169, 0.169, 1.0)>" |
+| R14 | in-tree surface | `SearchNotice(uiState, overMap = true)` → `SearchNotice(uiState)` | 2 | "search-notice: container alpha expected:<0.8> but was:<1.0>" |
+| R15 | menu content | the suggestions' provider → `LocalContentColor.current` | 2 | "taxon-suggestions-menu: content colour expected:<Color(0.929, 0.890, 0.816, 1.0)> but was:<Color(1.0, 1.0, 1.0, 1.0)>" (Cream, the role's; White, the bar's) |
+| R16 | notice content pin | `contentColor = noticeContentColor,` removed | 2 | "search-notice: content colour expected:<Color(0.961, 0.863, 0.863, 1.0)> but was:<Color(0.929, 0.890, 0.816, 1.0)>" (`onErrorContainer`; the Scaffold's Cream) |
+
+**R3, and which content checks can fail.** R3's build recompiled (`compileDebugKotlin` executed) and 71 of 71 passed.
+- Every call site of the details sheet sits inside a `Scaffold`, whose content colour is `onBackground`.
+- `onBackground` equals `onSurface` in both of the app's schemes: Cream in dark, Bark in light (`Theme.kt`).
+- So without the pin, the fallback is the same colour, and the sheet's content assertion cannot fail in this app.
+- The same holds for the centre-pin row, the waypoint dialog, the date dialog and the entry menu. Each sits under a
+  `Scaffold`'s content colour.
+- The alert dialogs and the snackbar are given explicit content roles by Material3, so they have no pin to lose.
+- The content checks that can fail are the drawer's (R9), the species suggestions' and the Month menu's (R15; they
+  sit under the bar's White or Bark), and the notice's (R16).
+- The pins stay, as the Layers sheet's does. They are correct, and a change of scheme would make them matter.
+
+## Suites
+
+Each suite ran from a cleared results directory with `./gradlew --offline :app:testDebugUnitTest`. Each had no compile
+errors, and no XML was older than the run's start.
+- `852dac9`: **301 / 2442 / 0 / 0 / 24**.
+- `89f9d15` (after merging the save-failure stage): **304 / 2474 / 0 / 0 / 24**.
+- `6e36122` (final): **304 / 2477 / 0 / 0 / 24**. This is the J8 baseline, 293 / 2374, plus:
+  - this stage: 8 classes and 71 tests;
+  - the save-failure stage, merged in: 3 classes, 31 `EntrySaveFailureShown*` tests, and 1 more `CartographyViewModelTest`.
+- The held family, `JournalPendingDeleteTest` and `JournalTabTest`, passed in every suite.
+- Before every Gradle run, `/tmp/claude-1000/mc/free.sh` checked that no other `GradleWorkerMain` or wrapper was
+  running and that at least 2.5 GB was available. Once the machine was busy with the save-failure build, and I waited
+  for it.
+
+## Predictions
+
+- `-58` 2, "the suite grows by 25 to 50": **did not hold**. It grew by 71 tests, because the dispatch asked for
+  portrait and short landscape across every compact item, and three windows for Records.
+- `-56` 2, "6 to 12": superseded by `-58`.
+
+## Not tested
+
+- **The light theme.** Every test composes the dark theme. The roles are read from the theme, but no light run exists.
+- **The wide exit prompt through a real window-class change.** The test composes the wide window with navigation
+  already on and presses Back.
+- **Whether any fill shows the map on a real screen.** Robolectric reports the colour a surface was given, not what
+  the device composites.
+- **The date picker's other colours over a map**, such as the selected day and the headline. The test checks only its
+  container.
+- **The scrims.** They are unchanged and not asserted.
+
+## Device-only (listed, not run: no phone in this stage)
+
+1. **Surfaces outside the map's Box first**, for the comment at `AvailabilityCompactMapUi.kt:326-341`: the search
+   dropdown, the Tools drawer over Maps, and the compact snackbar, which the `Scaffold` hosts outside the map's Box.
+   Does the map show through each on the S22?
+2. **The separate windows over the map**: the details sheet, the three dialogs, the exit prompt and delete dialog, the
+   three menus. Does translucency reach the map?
+3. **Legibility** of each surface over Street, Topographical and Satellite, and at night. The owner judges.
+4. **The wide Layers button** without its tint, on a tablet.
+
+## Decisions I made
+
+- **The Q3 menus on the Journal tab.** -77 says the two menus are 0.8 "when they open over the Maps tab" and solid
+  "on tabs with no map". The Journal's Records → Offline maps panel is a tab with a map beneath the search panel, and
+  neither phrase names it. I built the first phrase literally: 0.8 only on the Maps tab, so on that Journal panel the
+  menus stay solid.
+- **The wide species suggestions** at 0.8 when the results map is drawn. This is my Q3 note, read under the Q2 ruling.
+- **The exit prompt's wide rule** is "the map is drawn" (`wideResultsMapShown`), which is -77 Q5's wording. The
+  compact tree follows the tab, which is Q4.
+- **The date picker's own container is clear** inside the dialog, so that the dialog composites to 0.8. I did this
+  under CLAUDE.md's layered-fill rule, since the owner's stacking exception names only the two menus.
+- **Moving the exit prompt's composition** below the window-class declarations, rather than duplicating
+  `currentWindowWidthClass()` there.
+- **The test design**:
+  - one file of abstract classes run per window;
+  - the dark theme only;
+  - static screen state for the wide suggestions, where the top bar's field has no tag, and typing for the compact
+    ones;
+  - replacing the unreachable drawer-while-loading test with a snackbar.
+- **Guards passing at base.** The abort condition "a tests-first test passing at base" I read as covering tests
+  predicted to fail, because the dispatch itself asks for solid-elsewhere assertions, which pass at base by
+  construction. J8 and the Layers stage did the same. They are backed by R2, R5, R6, R8, R11 and R12.
+- **Tightening the menus' content seam after the fact** (`5f69550`), once I saw it could not fail.
+- **Stating which content checks can fail (R3)** rather than removing the ones that cannot.
+- **The record.** As in the stop: no record entries. I used the dispatch's WIP branch for unverified commits, and
+  pushed to `journal-redesign` only after a full suite.
+
+## Flags outside scope
+
+- **While sightings load, the compact Maps tab has no bottom bar or rail.** They live inside the map's Box, so Tools
+  and the tabs cannot be reached until loading ends (first tests-first run). This was not examined further.
+- **The J8 bubble's and chip's menus** already take their content colour as passed, not as read. This is J8's seam.
+- **`MapModePicker`** (`ui/map/MapChrome.kt:127` at base) is still dead code.
+- **The search dropdown** is still at 0.8 on every tab, left as -77 says.
+- **The sheet's content assertion cannot fail in this app's schemes** (R3). The same applies to four other surfaces'
+  content assertions.
+
+## D58
+
+Before each push I ran a case-insensitive grep for the three phrases D58 forbids over the whole diff since `de22474`
+and every commit message. There were zero hits each time, and again over this section before its push.
+
 ---
 
 ## The governing texts, verbatim
@@ -496,4 +740,68 @@ Quote `-56`, `-58` and this message verbatim in your completion report.
 The planner writes the record. You do not touch `RECORD.md`, `docs/audits/README.md`, `CLAUDE.md`, `docs/plans/` or `prompts/`. Merge is not authorised.
 
 When you finish or stop, hand back a report as the dispatch requires: what landed with hashes, verification, evidence, suite counts, revert checks, what was not tested, device-only items, decisions you made and flags.
+````
+
+### `prompts/preserved/2026-09-28-77.md` (planner message -77), whole file at `9c7d0a5`
+
+````text
+HEAD: fda3158 (journal-redesign)
+Target subagent: the map-chrome coder (SendMessage), continuing dispatch 2026-09-28-56 (as amended by -58) after its stop at dc09e53
+Type: continuation
+Preserved: 2026-09-28T21:13:53Z by the planner, by hand, time read from the clock.
+--- verbatim message follows ---
+Planner message `2026-09-28-77`, part of dispatch `2026-09-28-56` as amended by `-58`. Quote it verbatim in your report. It answers your stop at `dc09e53` (S1 to S3, Q1 to Q5). **Build it.**
+
+**Q3, S2 and S3, the popups over the search panel. The owner's ruling, verbatim: "1 A".** Option A, as put to the owner: "Leave them stacked. It's the simplest. They look almost solid over the panel and 80% where they overhang the map."
+- The species suggestions (`AvailabilitySearchUi.kt:1118`) and the Month menu (`:1165`) each get `MAP_CHROME_OVER_MAP_ALPHA` on their own when they open over the Maps tab, and they stack over the 0.8 panel.
+- On tabs with no map they stay solid.
+- This is the owner's exception to CLAUDE.md's composite line, for these two menus only.
+
+**Q2, what "covers a map" means. Planner's ruling, stated to the owner and not overruled:** a map is drawn on screen beneath the surface. This is your classifying reading. The owner's "In the places that aren't covering a map, they can stay solid" allows solid there; it does not require it. So you do not measure bounds.
+
+**Q1 and S1, the Records details sheet. Planner's ruling, stated and not overruled:** your option (b).
+- 0.8 when it opens from the Offline maps sub-tab, whose picker map is in that panel.
+- Solid from the other sub-tabs.
+- The wide case, option (c), is **left to J6**, which rebuilds the wide Journal as list-detail (owner's J6 ruling "1 A"). Do not thread `LogPanel`.
+
+**Q4, the Maps tab with no map drawn yet** (loading or error). Planner's ruling, stated and not overruled: surfaces **follow the tab**, 0.8 on the Maps tab.
+
+**Q5, the exit prompt on a wide window.** Planner's ruling, stated and not overruled: it follows the same rule, 0.8 when a map is on screen.
+
+**Your flags:**
+- The search dropdown at 0.8 on every compact tab is out of scope; leave it.
+- The wide Layers button: change alpha only. If a translucent colour drops its tonal-elevation tint, report it rather than compensating.
+- Leave `MapModePicker` flagged, not deleted.
+
+**Everything else in `-56` and `-58` stands:** tests first through the real entry points, revert checks per mechanism, the full suite, the device-only list, and the report (append a "Resumed" section to your stop report). The accent buttons and the 0.55 caption stay as `-58` says.
+
+**Sharing the machine.** Before each Gradle run, check that no other Gradle build is running from another worktree (`pgrep -af GradleWorkerMain`, `pgrep -af 'gradlew'`) and that at least 2.5 GB is available. Wait if either fails. The save-failure coder and two device coders are on this machine.
+````
+
+### The coordinator's message relaying -77
+
+````text
+This is planner message `2026-09-28-77`, part of dispatch `2026-09-28-56` as amended by `-58`. **Build it.** The full text is at `prompts/preserved/2026-09-28-77.md` on `origin/journal-redesign` at `9c7d0a5`. Fetch it, read it in full and quote it verbatim; the file governs over this summary.
+
+- **Q3, S2, S3 (owner, verbatim "1 A"):** the species suggestions and the Month menu are each at `MAP_CHROME_OVER_MAP_ALPHA` on the Maps tab, stacking over the 0.8 search panel. On tabs with no map they stay solid. This is the owner's exception for these two menus only.
+- **Q2 (planner):** "covers a map" means a map is drawn on screen beneath the surface. Do not measure bounds.
+- **Q1, S1 (planner):** option (b). The Records details sheet is at 0.8 from the Offline maps sub-tab and solid from the others. The wide case is left to J6; do not thread `LogPanel`.
+- **Q4 (planner):** follow the tab.
+- **Q5 (planner):** the same rule as everywhere else.
+- **Flags:** leave the search dropdown as it is. On the wide Layers button, change alpha only, and report if the elevation tint drops. `MapModePicker` stays flagged.
+- **Everything else in `-56` and `-58` stands:** tests first through real entry points, revert checks per mechanism, the full suite, the device-only list, and a "Resumed" section in your report.
+
+**Before every Gradle run:** check that no other Gradle build is running from another worktree (`pgrep -af GradleWorkerMain`), and that at least 2.5 GB is available. Wait if either fails. The save-failure coder is building now. Hand back when you finish or stop.
+````
+
+### The coordinator's message resuming -77 after the outage
+
+````text
+Planner: resume continuation `2026-09-28-77` of `2026-09-28-56`. Your turn was cut off by a network outage ("API Error: Can't reach the API server (EAI_AGAIN)"). Nothing is wrong with your work, and your context is intact.
+
+Before your next action:
+- run `git status` and `git diff --stat` in your worktree, and check that your last edit is present and whole;
+- do not assume your last command completed.
+
+If you have uncommitted work, commit it to `record-sheet-alpha-wip` and push it before continuing. Then carry on under `-77`. Before any Gradle run, check that no other Gradle build is running (the save-failure coder shares the machine) and that 2.5 GB is free. Hand back when you finish or stop.
 ````
