@@ -3260,3 +3260,14 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner, verbatim: "Also open manual coordinates" (the planner had recommended leaving portrait as is). Written by the planner by hand.
 
 ---
+
+**Kind:** continuation
+**ID:** 2026-09-28-41
+**Timestamp:** 2026-09-28T13:41:52Z
+**Continues:** 2026-09-28-34
+**Dispatch-file:** preserved/2026-09-28-41.md
+**Reason:** under -40 the coder pushed tests first (2e46367, three failing for the stated reason) and committed the build locally (b9fdb51, not pushed): portrait passes, but in w823dp-h384dp-land the expanded coordinate fields land about 200 to 340 dp below the 384 dp window's edge, and 12 existing tests that tap the two headers now fail (they collapse sections that are already open).
+**Changes:** In short landscape the tap expands both sections and scrolls the dropdown to the coordinate fields once (owner); the existing header-tapping tests on compact, including AvailabilityScreenLayoutTest "Test 5", are updated to the new rule in the build's commit and reported by name (planner); b9fdb51 pushed to a backup branch before any further work.
+**Notes:** Owner, verbatim: "Expand and auto-scroll" (the planner had recommended portrait only). Written by the planner by hand.
+
+---
