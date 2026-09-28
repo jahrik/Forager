@@ -192,8 +192,39 @@ private fun line(id: String, sourceId: String, role: PaletteRole, tapGroup: TapG
 )
 
 /**
- * Today's overlay layers, bottom to top. The colour-field group is empty in L0a (L0b adds the
- * synthetic layer).
+ * A colour field's registry entry (map layers L0b, B7): switchable, with an opacity slider, reorderable,
+ * credited while visible, and not tappable (the owner ruled the cell readout M1's; and a tappable cell
+ * under nearly every tap would keep `resolveTap` from ever reaching its box stage for a near miss on a
+ * line or marker). Its colours come from its own data, through [ColourFieldSpec.ramp], so no palette role.
+ *
+ * Base fill opacity [COLOUR_FIELD_FILL_OPACITY], the value L0a's own tests used for a colour field
+ * (`TapPrecedenceTest`, `MapLayerStateTest`): at the default 100% the basemap still shows through, and two
+ * stacked fields both read. The slider multiplies it, as it does every layer's base (L0a ruling 3).
+ */
+private fun colourField(field: ColourFieldSpec) = MapLayerSpec(
+    id = field.layerId,
+    kind = LayerKind.COLOUR_FIELD,
+    renderer = LayerRenderer.FILL,
+    sourceId = field.sourceId,
+    zGroup = ZGroup.COLOUR_FIELDS,
+    paletteRole = null,
+    userToggleable = true,
+    userOpacity = true,
+    userReorderable = true,
+    tapGroup = TapGroup.NONE,
+    baseOpacities = listOf(BaseOpacity(OpacityProperty.FILL, COLOUR_FIELD_FILL_OPACITY)),
+    credit = SYNTHETIC_DATA_CREDIT,
+)
+
+/** A colour field's base fill opacity; see [colourField]. */
+private const val COLOUR_FIELD_FILL_OPACITY = 0.6f
+
+/**
+ * Today's overlay layers, bottom to top. The colour-field group holds L0b's two synthetic test layers
+ * ([COLOUR_FIELDS], in that list's order: chanterelles drawn on top by default), below every other layer,
+ * so a cell never covers a marker, a line or an offline region. A release build lists them too, as data,
+ * but its store never has data for them, so they are hidden in every state a map is given
+ * (`withUnavailableColourFieldsHidden`) and never offered, drawn or credited.
  *
  * Within each group the order is the one `SightingsMap` drew before L0a, and the reasons recorded
  * there still hold: the offline region's fill is lowest, so a coverage circle never covers a
@@ -212,7 +243,7 @@ private fun line(id: String, sourceId: String, role: PaletteRole, tapGroup: TapG
  * toggleable here. `userOpacity` is offered for colour fields only (layer ruling 1: "each with its
  * own opacity slider"); the multiplier itself applies to any layer. Both are for L0b to confirm.
  */
-val MAP_LAYER_REGISTRY: List<MapLayerSpec> = listOf(
+val MAP_LAYER_REGISTRY: List<MapLayerSpec> = COLOUR_FIELDS.map(::colourField) + listOf(
     MapLayerSpec(
         id = MapLayerIds.OFFLINE_REGION_FILL,
         kind = LayerKind.AREA,
