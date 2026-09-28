@@ -39,6 +39,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.zynergylabs.forager.app.domain.EntryMapFrame
 import com.zynergylabs.forager.app.domain.GeoDistance
+import com.zynergylabs.forager.app.domain.JournalEntryHighlights
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.domain.model.RecordPoint
@@ -253,6 +254,8 @@ fun SightingsMap(
     forecast: MapForecastFeed? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.cameraRequest]'s own doc comment. */
     cameraRequest: MapCameraRequest? = null,
+    /** See [com.zynergylabs.forager.app.ui.map.MapOverlayContent.journalHighlights]'s own doc comment. */
+    journalHighlights: JournalEntryHighlights = JournalEntryHighlights.NONE,
 ) {
     val context = LocalContext.current
 
@@ -619,13 +622,13 @@ fun SightingsMap(
     // because MapLibre's own API separates "style ready" from "camera/property changed".
     LaunchedEffect(
         loadedStyle, region, sightings, plannedTrips, focusOverride, breadcrumbPoints, waypoints, focusedObservationId,
-        keptTrackPolylines, findMarkers, photoMarkers, offlineRegionCircles, showSearchCentre, cameraRequest,
+        keptTrackPolylines, findMarkers, photoMarkers, offlineRegionCircles, showSearchCentre, cameraRequest, journalHighlights,
     ) {
         val style = loadedStyle ?: return@LaunchedEffect
         val map = mapLibreMap ?: return@LaunchedEffect
         refreshOverlayData(
             style, region, sightings, plannedTrips, breadcrumbPoints, waypoints, focusedObservationId,
-            keptTrackPolylines, findMarkers, photoMarkers, offlineRegionCircles, showSearchCentre,
+            keptTrackPolylines, findMarkers, photoMarkers, offlineRegionCircles, showSearchCentre, journalHighlights,
         )
 
         // Once the live-location "puck" is actively tracking (the default once permission is
@@ -926,6 +929,10 @@ internal fun markerIconForLayer(layerId: String): MarkerIcon? = when (layerId) {
     WAYPOINT_LAYER_ID -> MarkerIcon.WAYPOINT
     FIND_LAYER_ID -> MarkerIcon.FIND
     PHOTO_LAYER_ID -> MarkerIcon.PHOTO
+    // J8: the journal-entry halos under the three marker kinds.
+    MapLayerIds.JOURNAL_ENTRY_WAYPOINTS -> MarkerIcon.WAYPOINT_JOURNAL_HALO
+    MapLayerIds.JOURNAL_ENTRY_FINDS -> MarkerIcon.FIND_JOURNAL_HALO
+    MapLayerIds.JOURNAL_ENTRY_PHOTOS -> MarkerIcon.PHOTO_JOURNAL_HALO
     else -> null
 }
 
@@ -936,7 +943,7 @@ internal fun markerIconForLayer(layerId: String): MarkerIcon? = when (layerId) {
  * [keptTracksFeatureCollection]). `null` for a layer that is not one of these.
  */
 internal fun lineSpecForLayer(layerId: String): LineLayerSpec? =
-    (listOf(offlineRegionOutlineSpec()) + trackLayerSpecs()).singleOrNull { it.layerId == layerId }
+    (listOf(offlineRegionOutlineSpec()) + trackLayerSpecs() + journalHaloLineSpecs()).singleOrNull { it.layerId == layerId }
 
 /**
  * A bitmap marker's [SymbolLayer]. Every [MarkerIcon]'s image has its anchor at its exact centre
@@ -1016,6 +1023,7 @@ private fun refreshOverlayData(
     photoMarkers: List<RecordPoint>,
     offlineRegionCircles: List<RecordRegion>,
     showSearchCentre: Boolean,
+    journalHighlights: JournalEntryHighlights,
 ) {
     style.getSourceAs<GeoJsonSource>(SEARCH_CENTER_SOURCE_ID)?.setGeoJson(searchCentreOverlay(region, showSearchCentre))
     style.getSourceAs<GeoJsonSource>(SIGHTING_SOURCE_ID)?.setGeoJson(sightingsFeatureCollection(sightings, focusedObservationId))
@@ -1026,6 +1034,10 @@ private fun refreshOverlayData(
     style.getSourceAs<GeoJsonSource>(FIND_SOURCE_ID)?.setGeoJson(pointsFeatureCollection(findMarkers))
     style.getSourceAs<GeoJsonSource>(PHOTO_SOURCE_ID)?.setGeoJson(pointsFeatureCollection(photoMarkers))
     style.getSourceAs<GeoJsonSource>(OFFLINE_REGION_CIRCLE_SOURCE_ID)?.setGeoJson(offlineRegionCirclesFeatureCollection(offlineRegionCircles))
+    // J8: the halos under the shown entries' kept records.
+    journalHighlightFeatureCollections(journalHighlights).forEach { (sourceId, collection) ->
+        style.getSourceAs<GeoJsonSource>(sourceId)?.setGeoJson(collection)
+    }
 }
 
 /**
@@ -1443,6 +1455,50 @@ internal fun offlineRegionOutlineSpec(): LineLayerSpec = LineLayerSpec(
         OFFLINE_REGION_OUTLINE_GAP_DP / OFFLINE_REGION_CIRCLE_OUTLINE_WIDTH_PX,
     ),
     roundCaps = false,
+)
+
+/**
+ * J8: the two line halos, each [JOURNAL_HALO_WIDTH_DP] wider on each side than what it lies under, solid,
+ * in [MapPalette.journalEntry]: the offline region's under its 1.5 dp dashed outline (so the halo reads
+ * through the dashes' gaps too), and the kept tracks' under their casing, thinning with the zoom in step
+ * with the track and its casing ([TRACK_WIDTH_ZOOM_STOPS]), so at every zoom the halo keeps its ratio to
+ * the line. Round joins, so the ring stays smooth round a track's bends and the region's circle.
+ */
+internal fun journalHaloLineSpecs(): List<LineLayerSpec> {
+    val outline = offlineRegionOutlineSpec()
+    val keptTrack = trackLayerSpecs().single { it.layerId == KEPT_TRACKS_LAYER_ID }
+    return listOf(
+        LineLayerSpec(
+            layerId = MapLayerIds.JOURNAL_ENTRY_REGIONS,
+            sourceId = MapSourceIds.JOURNAL_ENTRY_REGIONS,
+            colour = MapPalette::journalEntry,
+            widthDp = outline.widthDp + 2 * JOURNAL_HALO_WIDTH_DP,
+            dashPattern = null,
+            roundCaps = true,
+        ),
+        LineLayerSpec(
+            layerId = MapLayerIds.JOURNAL_ENTRY_TRACKS,
+            sourceId = MapSourceIds.JOURNAL_ENTRY_TRACKS,
+            colour = MapPalette::journalEntry,
+            widthDp = keptTrack.widthDp + 2 * CASING_WIDTH_DP + 2 * JOURNAL_HALO_WIDTH_DP,
+            dashPattern = null,
+            roundCaps = true,
+            widthByZoom = keptTrack.widthByZoom,
+        ),
+    )
+}
+
+/**
+ * J8: what each halo source receives, by source id, from [highlights]: the same pure builders the
+ * records' own sources use, so a halo feature carries its record's id and geometry exactly as the
+ * record's does. A plain function so a headless test reads what the sources get.
+ */
+internal fun journalHighlightFeatureCollections(highlights: JournalEntryHighlights): Map<String, FeatureCollection> = mapOf(
+    MapSourceIds.JOURNAL_ENTRY_REGIONS to offlineRegionCirclesFeatureCollection(highlights.offlineRegionCircles),
+    MapSourceIds.JOURNAL_ENTRY_TRACKS to keptTracksFeatureCollection(highlights.trackPolylines),
+    MapSourceIds.JOURNAL_ENTRY_WAYPOINTS to pointsFeatureCollection(highlights.waypointMarkers),
+    MapSourceIds.JOURNAL_ENTRY_FINDS to pointsFeatureCollection(highlights.findMarkers),
+    MapSourceIds.JOURNAL_ENTRY_PHOTOS to pointsFeatureCollection(highlights.photoMarkers),
 )
 
 /** The [LineLayer] [spec] describes, in [palette]'s colours. Its source must already exist when it is added. */

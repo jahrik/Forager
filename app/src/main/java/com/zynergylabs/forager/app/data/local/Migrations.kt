@@ -934,9 +934,45 @@ val MIGRATION_14_15: Migration = object : Migration(14, 15) {
 }
 
 /**
- * J8 tests-first stub: declared so the migration tests compile against version 16, and does nothing,
- * so they fail on Room's validation of `cartography_entries` until the rebuild lands.
+ * Adds `shownOnMap` to `cartography_entries` — J8, Journal entries on the main map (owner: "Yes, keep
+ * them", stored with the entry). Every existing row gets `0`: nothing was shown on the map before
+ * this version, so "not shown" is the honest value, and it is written explicitly rather than left to
+ * a column default, as [MIGRATION_8_9] writes `isDraft`.
+ *
+ * A full rebuild rather than `ALTER TABLE ... ADD COLUMN`, for the reason [MIGRATION_12_13] records:
+ * [CartographyEntryEntity] is declared directly by the `LegacyForagerDatabaseV12` to `V15` fixtures, so
+ * their generated tables already carry the column and an `ADD COLUMN` would fail against them; the
+ * explicit source column list below never names it, so a leaked one is ignored. The four ref tables
+ * hold `entryId` as a plain column with no constraint on this table, so rebuilding it underneath them
+ * needs no cascade handling, and both indexes are recreated because `DROP TABLE` takes them with it.
+ * Verified by `SchemaMigrationTest` (15 to 16 against `16.json`, and the chain from 4),
+ * `CartographyEntryShownOnMapMigrationTest` from a real version-15 file, and every existing migration
+ * test with this appended to its chain.
  */
 val MIGRATION_15_16: Migration = object : Migration(15, 16) {
-    override fun migrate(db: SupportSQLiteDatabase) = Unit
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE `cartography_entries_new` (
+            `id` TEXT NOT NULL,
+            `date` TEXT NOT NULL,
+            `text` TEXT NOT NULL,
+            `tags` TEXT NOT NULL,
+            `isDraft` INTEGER NOT NULL,
+            `updatedAtEpochMillis` INTEGER NOT NULL,
+            `shownOnMap` INTEGER NOT NULL,
+            PRIMARY KEY(`id`))
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            INSERT INTO `cartography_entries_new` (`id`, `date`, `text`, `tags`, `isDraft`, `updatedAtEpochMillis`, `shownOnMap`)
+            SELECT `id`, `date`, `text`, `tags`, `isDraft`, `updatedAtEpochMillis`, 0 FROM `cartography_entries`
+            """.trimIndent(),
+        )
+        db.execSQL("DROP TABLE `cartography_entries`")
+        db.execSQL("ALTER TABLE `cartography_entries_new` RENAME TO `cartography_entries`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_cartography_entries_date` ON `cartography_entries` (`date`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_cartography_entries_isDraft` ON `cartography_entries` (`isDraft`)")
+    }
 }

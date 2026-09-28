@@ -10,7 +10,7 @@ package com.zynergylabs.forager.app.ui.theme
  *
  * Each marker kind has its own role, so no two kinds share a colour: [waypoint], [find], [plannedTrip],
  * [photo], [keptTrack], [breadcrumb], the centre-pin picker's [centrePin], [searchCentre],
- * [offlineRegion] and [sightingDot], plus the two rings drawn on the sighting dot
+ * [offlineRegion], [sightingDot] and J8's [journalEntry] halo, plus the two rings drawn on the sighting dot
  * ([sightingDotStroke], [sightingDotStrokeSelected]) and the [casing] every other marker is outlined
  * in. Before C2 the find pin shared the offline region's colour and the photo marker the planned
  * trip's; colour told them apart only by shape, and in the find pin's case not even that.
@@ -93,8 +93,9 @@ data class MapPalette(
             sightingDotStroke = 0xFFFFFFFF.toInt(),
             sightingDotStrokeSelected = 0xFF2196F3.toInt(),
             casing = 0xFFFFFFFF.toInt(),
-            // J8 tests-first stub: no measured value yet (the casing's own colour).
-            journalEntry = 0xFFFFFFFF.toInt(),
+            // J8's halo: a deep blue-teal, proposed by the J8 coder and measured in MapPaletteTest
+            // (see that test's class doc); the owner judges it on the phone.
+            journalEntry = 0xFF005577.toInt(),
         )
 
         val NIGHT = MapPalette(
@@ -122,8 +123,8 @@ data class MapPalette(
             sightingDotStroke = 0xFFFFFFFF.toInt(),
             sightingDotStrokeSelected = 0xFF2196F3.toInt(),
             casing = 0xFF000000.toInt(),
-            // J8 tests-first stub: no measured value yet (the casing's own colour).
-            journalEntry = 0xFF000000.toInt(),
+            // J8's halo at night: a cyan in the day colour's hue family (20.1° apart), measured the same way.
+            journalEntry = 0xFF00DDFF.toInt(),
         )
 
         fun forMode(night: Boolean): MapPalette = if (night) NIGHT else DAY

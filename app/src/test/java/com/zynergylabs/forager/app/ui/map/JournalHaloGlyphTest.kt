@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.ui.map
 
 import android.graphics.Bitmap
 import android.graphics.Color
+import com.zynergylabs.forager.app.ui.theme.MapPalette
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -82,6 +83,23 @@ class JournalHaloGlyphTest {
                 0,
                 Color.alpha(haloImage.bitmap.at(haloImage, x + dir.first * beyond, y + dir.second * beyond)),
             )
+        }
+    }
+
+    @Test
+    fun `each halo icon is its record's glyph drawn as a halo in the journal-entry colour, day and night`() {
+        val halos = mapOf(
+            MarkerIcon.WAYPOINT_JOURNAL_HALO to MarkerGlyph.WAYPOINT,
+            MarkerIcon.FIND_JOURNAL_HALO to MarkerGlyph.FIND,
+            MarkerIcon.PHOTO_JOURNAL_HALO to MarkerGlyph.PHOTO,
+        )
+        assertEquals(MarkerIcon.entries.filter { it.halo }.toSet(), halos.keys)
+        for (palette in listOf(MapPalette.DAY, MapPalette.NIGHT)) {
+            for ((icon, glyph) in halos) {
+                assertEquals("$icon glyph", glyph, icon.glyph)
+                val image = markerIconImage(icon, palette, density)
+                assertTrue("$icon is the halo of its glyph in ${palette.journalEntry}", image.bitmap.sameAs(drawGlyphHalo(glyph, density, palette.journalEntry).bitmap))
+            }
         }
     }
 }

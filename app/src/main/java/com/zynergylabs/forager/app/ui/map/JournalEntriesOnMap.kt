@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.ui.map
 
 import com.zynergylabs.forager.app.domain.JournalEntryOnMap
+import com.zynergylabs.forager.app.ui.log.journalEntryCountLabel
 import java.time.LocalDate
 
 /** The report menu's item for an entry not shown on the map (J8, the dispatch's copy). */
@@ -18,11 +19,12 @@ const val HIDE_JOURNAL_ENTRY_LABEL = "Hide"
 /** The chip list's action for every entry (J8, the dispatch's copy). */
 const val HIDE_ALL_JOURNAL_ENTRIES_LABEL = "Hide all"
 
-/** J8 tests-first stub: no chip text yet. */
-fun journalEntriesChipLabel(count: Int): String = ""
+/** The Maps-tab chip's text (J8, the dispatch's pattern): "N journal entries on map", singular for one. */
+fun journalEntriesChipLabel(count: Int): String =
+    if (count == 1) "1 journal entry on map" else "$count journal entries on map"
 
-/** J8 tests-first stub: no date form yet. */
-fun journalEntryDateLabel(date: LocalDate): String = ""
+/** An entry's date as the Journal's report header shows it (planner, Q3: `2026-09-12`). */
+fun journalEntryDateLabel(date: LocalDate): String = date.toString()
 
 /** A bubble date line's accessibility label (owner's Q2 ruling, "Tap a date line"). */
 fun openEntryAccessibilityLabel(date: String): String = "Open entry $date"
@@ -39,5 +41,24 @@ sealed interface KeptInEntriesLines {
     data class Count(val label: String, val entries: List<EntryLine>) : KeptInEntriesLines
 }
 
-/** J8 tests-first stub: no entry lines yet. */
-fun keptInEntriesLines(entries: List<JournalEntryOnMap>): KeptInEntriesLines? = null
+/**
+ * What a highlighted record's bubble says about [entries], the shown entries that keep it (owner's Q2
+ * ruling, "Tap a date line"): nothing for none; one date line each for up to three; past three, one
+ * line, "Kept in N journal entries" — the photo bubble's own wording and plural
+ * ([journalEntryCountLabel]) — over the list of their dates.
+ */
+fun keptInEntriesLines(entries: List<JournalEntryOnMap>): KeptInEntriesLines? {
+    if (entries.isEmpty()) return null
+    val lines = entries.map { entry ->
+        val date = journalEntryDateLabel(entry.date)
+        EntryLine(entry.entryId, date, openEntryAccessibilityLabel(date))
+    }
+    return if (lines.size <= MAX_ENTRY_DATE_LINES) {
+        KeptInEntriesLines.Dates(lines)
+    } else {
+        KeptInEntriesLines.Count("Kept in ${journalEntryCountLabel(lines.size)}", lines)
+    }
+}
+
+/** The most keeping entries a bubble lists one by one (the dispatch: "Where there are more than three, show a count"). */
+private const val MAX_ENTRY_DATE_LINES = 3

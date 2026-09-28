@@ -7,6 +7,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.EntryMapFrame
 import com.zynergylabs.forager.app.domain.ForecastCellStore
+import com.zynergylabs.forager.app.domain.JournalEntryHighlights
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.domain.model.RecordPoint
@@ -362,6 +363,12 @@ data class MapOverlayContent(
      * [RecordPolyline], [RecordRegion]), written into its map feature so a tap can name the record.
      */
     val offlineRegionCircles: List<RecordRegion> = emptyList(),
+    /**
+     * J8: the records kept by the entries shown on the map, highlighted in place by the five
+     * journal-entry halo layers under their own records (`GetJournalEntryHighlightsUseCase`, live
+     * geometry only). Only the Maps tab sets it; every other map draws no highlight.
+     */
+    val journalHighlights: JournalEntryHighlights = JournalEntryHighlights.NONE,
 )
 
 /**
@@ -486,6 +493,7 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
         onFeatureTap = renderMode.onFeatureTap,
         forecast = renderMode.forecast,
         cameraRequest = renderMode.cameraRequest,
+        journalHighlights = content.journalHighlights,
         modifier = modifier,
     )
 }

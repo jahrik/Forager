@@ -177,7 +177,8 @@ class MarkerGlyphsTest {
             MarkerIcon.PHOTO to MarkerGlyph.PHOTO,
             MarkerIcon.SEARCH_CENTRE to MarkerGlyph.SEARCH_CENTRE,
         )
-        assertEquals(MarkerIcon.entries.toSet(), glyphs.keys)
+        // J8's three halo icons have their own test (JournalHaloGlyphTest); every marker icon is here.
+        assertEquals(MarkerIcon.entries.filterNot { it.halo }.toSet(), glyphs.keys)
         assertEquals("every image id is distinct", MarkerIcon.entries.size, MarkerIcon.entries.map { it.imageId }.toSet().size)
         for (palette in listOf(MapPalette.DAY, MapPalette.NIGHT)) {
             val roles = mapOf(

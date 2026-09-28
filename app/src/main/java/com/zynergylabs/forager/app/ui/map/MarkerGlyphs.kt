@@ -183,25 +183,68 @@ internal fun drawGlyph(glyph: MarkerGlyph, density: Float, fill: Int, casing: In
  */
 internal const val JOURNAL_HALO_WIDTH_DP = 3f
 
-/** J8 tests-first stub: an empty image until the halo is drawn. */
-internal fun drawGlyphHalo(glyph: MarkerGlyph, density: Float, halo: Int): GlyphImage =
-    GlyphImage(Bitmap.createBitmap(2, 2, Bitmap.Config.ARGB_8888), 1, 1)
+/**
+ * J8: [glyph]'s halo — its fill parts grown by [CASING_WIDTH_DP] plus [JOURNAL_HALO_WIDTH_DP] on each
+ * side, all in [halo] — drawn under the glyph's own marker so that a ring [JOURNAL_HALO_WIDTH_DP] wide
+ * shows around the marker's casing. Laid out as [drawGlyph] lays out a marker: padded symmetrically
+ * round the anchor by the glyph's farthest extent, the halo's reach and a 1dp margin, so the anchor is
+ * the bitmap's exact centre and `icon-anchor: center` puts halo and marker on the same coordinate.
+ */
+internal fun drawGlyphHalo(glyph: MarkerGlyph, density: Float, halo: Int): GlyphImage {
+    val reach = CASING_WIDTH_DP + JOURNAL_HALO_WIDTH_DP
+    val pad = reach + GLYPH_MARGIN_DP
+    val halfWidthPx = ceil((max(glyph.anchorXDp, glyph.widthDp - glyph.anchorXDp) + pad) * density).toInt()
+    val halfHeightPx = ceil((max(glyph.anchorYDp, glyph.heightDp - glyph.anchorYDp) + pad) * density).toInt()
+    val bitmap = Bitmap.createBitmap(2 * halfWidthPx, 2 * halfHeightPx, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    canvas.translate(halfWidthPx - glyph.anchorXDp * density, halfHeightPx - glyph.anchorYDp * density)
+    canvas.scale(density, density)
+    // The fill and a stroke over its outline, as two passes, for the reason drawGlyph gives.
+    val haloFill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = halo; style = Paint.Style.FILL }
+    val haloStroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = halo
+        style = Paint.Style.STROKE
+        strokeWidth = 2 * reach
+        strokeJoin = Paint.Join.ROUND
+        strokeCap = Paint.Cap.ROUND
+    }
+    glyph.parts().filter { it.paint == GlyphPaint.FILL }.forEach {
+        canvas.drawPath(it.path, haloFill)
+        canvas.drawPath(it.path, haloStroke)
+    }
+    return GlyphImage(bitmap, halfWidthPx, halfHeightPx)
+}
 
 /**
  * The map's bitmap markers: the `Style` image id each is registered under, its glyph, and its role.
  * `SightingsMap`'s `initializeOverlayLayers` registers exactly these, through [markerIconImage].
  */
-internal enum class MarkerIcon(val imageId: String, val glyph: MarkerGlyph, val colour: (MapPalette) -> Int) {
+internal enum class MarkerIcon(
+    val imageId: String,
+    val glyph: MarkerGlyph,
+    val colour: (MapPalette) -> Int,
+    /** J8: a journal-entry halo image ([drawGlyphHalo]) rather than a marker. */
+    val halo: Boolean = false,
+) {
     WAYPOINT("waypoint-pin", MarkerGlyph.WAYPOINT, MapPalette::waypoint),
     FIND("find-mushroom", MarkerGlyph.FIND, MapPalette::find),
     PLANNED_TRIP("planned-trip-flag", MarkerGlyph.PLANNED_TRIP, MapPalette::plannedTrip),
     PHOTO("photo-square", MarkerGlyph.PHOTO, MapPalette::photo),
     SEARCH_CENTRE("search-centre-reticle", MarkerGlyph.SEARCH_CENTRE, MapPalette::searchCentre),
+
+    // J8: the halos under the three marker kinds an entry keeps.
+    WAYPOINT_JOURNAL_HALO("waypoint-journal-halo", MarkerGlyph.WAYPOINT, MapPalette::journalEntry, halo = true),
+    FIND_JOURNAL_HALO("find-journal-halo", MarkerGlyph.FIND, MapPalette::journalEntry, halo = true),
+    PHOTO_JOURNAL_HALO("photo-journal-halo", MarkerGlyph.PHOTO, MapPalette::journalEntry, halo = true),
 }
 
-/** [icon]'s glyph drawn in [palette]'s colours: its own role's fill and the palette's casing. */
+/** [icon]'s glyph drawn in [palette]'s colours: its own role's fill and the palette's casing, or, for a halo, its halo. */
 internal fun markerIconImage(icon: MarkerIcon, palette: MapPalette, density: Float): GlyphImage =
-    drawGlyph(icon.glyph, density, fill = icon.colour(palette), casing = palette.casing)
+    if (icon.halo) {
+        drawGlyphHalo(icon.glyph, density, halo = icon.colour(palette))
+    } else {
+        drawGlyph(icon.glyph, density, fill = icon.colour(palette), casing = palette.casing)
+    }
 
 private fun circle(cx: Float, cy: Float, r: Float) = Path().apply { addCircle(cx, cy, r, Path.Direction.CW) }
 

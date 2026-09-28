@@ -65,9 +65,9 @@ class RoomCartographyEntryRepository(
         dao.countEntriesReferencingPhoto(photoId)
     }
 
-    // J8 tests-first stub: reports "not built" until the DAO update lands.
-    override suspend fun setShownOnMap(id: String, shown: Boolean): Result<Unit> =
-        Result.failure(UnsupportedOperationException("J8 tests-first stub: setShownOnMap is not built"))
+    override suspend fun setShownOnMap(id: String, shown: Boolean): Result<Unit> = runCatchingCancellable {
+        if (dao.setShownOnMap(id, shown) == 0) throw NoSuchElementException("No Cartography entry '$id' to show or hide on the map.")
+    }
 
     private suspend fun CartographyEntryEntity.toDomain(): CartographyEntry = CartographyEntry(
         id = id,

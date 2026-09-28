@@ -8,6 +8,7 @@ import com.zynergylabs.forager.app.domain.ForecastCellsResult
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
 import com.zynergylabs.forager.app.domain.HighlightedRecord
+import com.zynergylabs.forager.app.domain.HighlightedRecordKind
 import com.zynergylabs.forager.app.domain.JournalEntryOnMap
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
@@ -215,6 +216,8 @@ sealed interface MapBubbleContent {
  */
 fun mapBubbleContentFor(target: MapBubbleTarget.FeatureTarget, sources: MapRecordSources): MapBubbleContent? {
     val id = target.featureId
+    // J8: the shown entries keeping this record, when it is highlighted; empty otherwise.
+    fun keptIn(kind: HighlightedRecordKind) = sources.journalEntriesKeeping[HighlightedRecord(kind, id)].orEmpty()
     return when (target.kind) {
         MapBubbleKind.FIND -> sources.finds.firstOrNull { it.id == id }?.let { find ->
             val identification = find.ownIdentification?.takeIf { it.isNotBlank() }
@@ -223,6 +226,7 @@ fun mapBubbleContentFor(target: MapBubbleTarget.FeatureTarget, sources: MapRecor
                 title = identification ?: findDateLabel(find),
                 date = if (identification != null) findDateLabel(find) else null,
                 coverPhotoPath = find.photos.firstOrNull()?.relativePath,
+                keptIn = keptIn(HighlightedRecordKind.FIND),
             )
         }
         MapBubbleKind.PHOTO -> sources.galleryPhotos.firstOrNull { it.photo.id == id }?.let { gallery ->
@@ -230,10 +234,11 @@ fun mapBubbleContentFor(target: MapBubbleTarget.FeatureTarget, sources: MapRecor
                 photo = gallery.photo,
                 date = gallery.photo.createdAtEpochMillis?.let(::formatRecordTimestamp) ?: PHOTO_DATE_UNKNOWN,
                 attachedTo = photoAttachmentLine(gallery, sources),
+                keptIn = keptIn(HighlightedRecordKind.PHOTO),
             )
         }
         MapBubbleKind.WAYPOINT -> sources.waypoints.firstOrNull { it.id == id }
-            ?.let { waypoint -> MapBubbleContent.WaypointContent(waypoint, mgrsOf(LatLng(waypoint.lat, waypoint.lng))) }
+            ?.let { waypoint -> MapBubbleContent.WaypointContent(waypoint, mgrsOf(LatLng(waypoint.lat, waypoint.lng)), keptIn = keptIn(HighlightedRecordKind.WAYPOINT)) }
             ?: sources.snapshotWaypoints.firstOrNull { it.id == id }
                 ?.let { kept -> MapBubbleContent.WaypointContent(kept, mgrsOf(LatLng(kept.lat, kept.lng)), hasDetails = false) }
         MapBubbleKind.PLANNED_TRIP -> sources.plannedTrips.firstOrNull { it.id == id }?.let { trip ->
@@ -255,6 +260,7 @@ fun mapBubbleContentFor(target: MapBubbleTarget.FeatureTarget, sources: MapRecor
                 date = formatRecordTimestamp(track.startedAtEpochMillis),
                 distance = formatDistanceMeters(stats.distanceMeters, sources.distanceUnit),
                 duration = formatTrackDuration(stats.durationMillis),
+                keptIn = keptIn(HighlightedRecordKind.TRACK),
             )
         }
         MapBubbleKind.OFFLINE_REGION -> id.toLongOrNull()?.let { regionId -> sources.offlineRegions.firstOrNull { it.id == regionId } }?.let { region ->
@@ -264,6 +270,7 @@ fun mapBubbleContentFor(target: MapBubbleTarget.FeatureTarget, sources: MapRecor
                 radius = formatDistanceKm(region.region.radiusKm, sources.distanceUnit),
                 size = offlineRegionSizeLabel(region),
                 stale = isOfflineRegionStale(region.createdAtEpochMillis, sources.nowEpochMillis(), sources.staleThresholdDays),
+                keptIn = keptIn(HighlightedRecordKind.OFFLINE_REGION),
             )
         }
         MapBubbleKind.FORECAST_CELL -> null
