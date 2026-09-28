@@ -4104,3 +4104,14 @@ Each is tested for non-intersecting bounds at 0, 90 and 270, with real-touch sam
   - the viewer leaves the status bar visible.
 - The tablet sanity check is now complete. J6 needs nothing more from it.
 - Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-90
+**Timestamp:** 2026-09-28T22:43:50Z
+**Continues:** 2026-09-28-70
+**Dispatch-file:** none (launch note; -70 as widened by -87 governs)
+**Reason:** the night-outline stage (-79) finished (8096984), and -70 (J8 follow-ups) is next in the build line.
+**Changes:** -70 and -87 launch at base 8096984 (app/ identical to 16e9d0d) in forager-wt/j8-follow-ups, branch j8-follow-ups. The coder is told that -79 added OFFLINE_REGION_BORDER between the region's J8 halo and its outline (halo, border, outline). -87's item 4 (marker rings below every line) must keep that order and -79's pins, or stop.
+**Notes:** The planner's suite for -79 runs at the same time; the coder waits for any running Gradle build. Written by the planner by hand.
