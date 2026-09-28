@@ -194,9 +194,9 @@ class AvailabilityScreenTripPlanningFlowTest {
      * one call reach the real, live button again.
      */
     private fun searchAReferenceRegion() {
+        // The bar's tap opens "Advanced search" and "Enter coordinates manually" expanded (owner,
+        // continuation 2026-09-28-40, "Also open manual coordinates"), so no header is tapped here.
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
-        composeRule.onNodeWithText("Advanced search").performClick()
-        composeRule.onNodeWithText("Enter coordinates manually").performClick()
         composeRule.onNodeWithText("Latitude").performTextReplacement("45.326")
         composeRule.onNodeWithText("Longitude").performTextReplacement("-122.634")
         composeRule.onNodeWithText("Search this location").performScrollTo().performClick()
