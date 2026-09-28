@@ -756,3 +756,69 @@ registry says. 4. The offline caption matches the code. 5. The restated check 7 
   - In `78` (after the Journal round trip), the halo is white there, and the puck's blue dot covers the reticle's
     centre and the pin's tip. So the puck drew over both.
   - The order changed with the tab round trip.
+
+### Resumed after a machine restart (04:35Z)
+- **What happened.** The previous coder on this continuation was stopped by a restart of the machine,
+  not of the phone. Its last recorded result is step 6 above (`4b368ab`). Its evidence runs on to
+  `112-offline-download-9.xml` (04:23:11Z, `snaps.log`), so it had gone further than it recorded.
+  This part is written by the coder who resumed the run.
+- **The phone did not restart.** Uptime was 542,553 s (about 6.3 days) at 04:35:04Z. `MainActivity` still
+  had focus, in the same process (PID 19584) as both earlier runs. There was no keyguard, and the screen was awake.
+- **The new baseline:**
+  - `120-dumpsys-package-resume.txt` (04:35:38Z): `versionName=1.0.1192+g24589349`, `versionCode=1192`,
+    `lastUpdateTime=2026-09-27 19:18:29`, as before.
+  - `121-crash-resume.txt` (04:35:38Z): empty.
+- **Lost on the machine side.** `112-offline-download-6.xml` to `-9.xml` are 0 bytes on disk, although `snaps.log`
+  lists each with the same non-empty sha256 as `-1` to `-5` (`e131a139…`). I read that as writes lost in the
+  restart before they were flushed; **unverified**. The first five, and the fresh `122-resume-screen.xml`, hash to that
+  same value, so nothing on screen changed in that time. From here on, the snapshot helper runs `sync` before
+  it logs a hash.
+- **The base.** The branch was level with `origin/device-l0a-2026-09-28` at `4b368ab`. `origin/journal-redesign`
+  is now at `f7e219a`, which carries L0b app code (`fe07702`). I did **not** merge it, so that the app tree in this
+  branch, and the line citations above (at `bc64d37`), stay those of the installed build. See Decisions.
+- **The inventory before creating anything** (`db-c3-resume-raw/`, read with `run-as cat`; the UI in `122`, `123`):
+  - The two finds were already saved, and find 1 already had its photo. The offline region had already been
+    downloaded. They are recorded below as 4(b) and 4(d), from the previous coder's evidence and this read. None was
+    created a second time.
+  - Rows since the step 3 read (`db-c2-afterstop-raw/`): `mushroom_log_entries` 0 → 2, `log_photos` 2 → 3,
+    `log_entry_photos` 0 → 1, `offline_regions` 0 → 1, and `waypoints` 2 → 3 (the step 4(a) waypoint).
+  - `cartography_entries` is still 0, so step 4(e) had not been started. `track_points` is still 23, and `tracks` 1.
+  - No partial or duplicate item was found. `files/captures/` is empty, and `files/photos/` holds three files:
+    the two from before the first run and the new one. The photo was listed, not pulled.
+
+### Step 4(b): the two finds: **created** (by the previous coder; recorded on resume)
+- **Find 1, "DEVICE CHECK find 1":**
+  - The path: Maps add menu, then "Find"; the picker (`81-find-picker.xml`, 04:12:55Z); the form (`82-find-form.xml`).
+  - "DEVICE CHECK find 1" went into both "Your own identification (optional)" and "Description Notes" (`91-find1-ready.xml`).
+    **The species or placeholder** is that text, typed as the own identification. No species was picked.
+  - **The photo:** the form's "Camera" opened the app's camera (`92-camera-open.xml`). One shutter gave "1 photo taken"
+    (`93-after-shutter.xml`). The form then showed a "Log photo" thumbnail (`94-find1-with-photo.xml`).
+  - "Save" was tapped. The saved view reads "Your own identification: DEVICE CHECK find 1", with the photo, and the
+    Finds chip went from 0 to 1 (`96-find1-saved.xml`, 04:17:52Z).
+  - The database has the row with `isDraft=0`, and one `log_entry_photos` link to the new `log_photos` row.
+    `syncStateKind` is `DRAFT`, which is the iNaturalist upload state, not a draft entry.
+- **Find 2, "DEVICE CHECK find 2":** the same path, with the picker panned before OK (`100-find2-panned.png`), and no photo.
+  Saved at 04:19:50Z (`105-find2-saved.xml`, Finds chip 2). `isDraft=0`.
+- **Where they sit, as offsets from the waypoint (no coordinates):**
+  - find 1 is on the waypoint's own point (0.0 m);
+  - find 2 is 135 m east;
+  - find 1's photo is 0.7 m from the waypoint, taken from a live fix;
+  - the kept track's 23 points are 0.4 to 26.8 m from it.
+
+### Step 4(d): the offline region "DEVICE CHECK": **created** (by the previous coder; recorded on resume)
+- **The path:**
+  - the Journal's Records tab, then the "Offline maps" chip (`106`, `107-offline-panel.xml`);
+  - the radius slider at its minimum (`110-offline-radius-min.xml`), and the name "DEVICE CHECK" typed (`111-offline-named.xml`);
+  - "Download Maps", at about 04:22:06Z (the row's `createdAtEpochMillis`).
+- **Finished.**
+  - By 04:22:12Z (`112-offline-download-1.xml`), the chip read "Offline maps 1" and the list held "DEVICE CHECK", with
+    no progress indicator. That list shows completed regions only, and the status line renders nothing on success
+    (`ui/availability/AvailabilityOfflineMapsUi.kt:292-303`, `:388-410`).
+  - It was re-read on resume (`123-offline-list-scrolled.xml`, 04:36Z): "1 mi around ‹coordinates› — **17 tiles, 0.3 MB** —
+    downloaded 14 minutes ago".
+  - The database row: `radiusKm=1`, `minZoom=10.0`, `maxZoom=15.0`, `isEntryCapture=0`. Its centre is 0.7 m from the waypoint.
+- **The radius label reads "1 mi" for 1 km,** because `formatDistanceKm` rounds `1 × 0.621` to a whole mile
+  (`domain/model/DistanceUnit.kt:58-61`). See Flags.
+- **The side effect predicted in the pre-registration happened:**
+  - `map_preferences.preferences_pb` went from 45 to 170 bytes. It gained `offline_map.last_picked_lat`, `_lng` and `_radius_km`.
+  - Its first 45 bytes, holding `map.fullscreen` and `night_mode.maps`, both `false`, are unchanged (`prefs-c3-resume/`).
