@@ -370,7 +370,15 @@ internal val LEGEND_ATTRIBUTION_CLEARANCE: Dp = 32.dp
 /** The widest the expanded legend grows; the reference class wraps inside it. */
 private val LEGEND_MAX_WIDTH = 280.dp
 
-/** The tallest the expanded legend grows (N1); stub, not yet applied. */
+/**
+ * The tallest the legend grows; past it, its contents scroll inside it (N1, the owner's ruling "Cap
+ * height, scroll (Recommended)"). Chosen so that in portrait the icon cluster still fits above the
+ * expanded chip by Q4's display-only clamp: at `w384dp-h823dp` the cluster is 380 dp tall and can rise
+ * no higher than the search chrome (its bottom then at 601.7 dp), the chip's bottom is at 711 dp and the
+ * clamp keeps `Spacing.sm` between them, which leaves 101.3 dp; 96 dp is that, rounded down. It is
+ * measured under Robolectric's zero insets: on a device the real status and navigation bars take from
+ * the same room, so whether the cluster clears the expanded chip there is device-only.
+ */
 internal val LEGEND_MAX_HEIGHT: Dp = 96.dp
 
 /** Each ramp's drawn width in the expanded legend. */
@@ -386,7 +394,8 @@ private val LEGEND_RAMP_WIDTH = 160.dp
  * colour field is today (`ColourFieldSpec`'s doc comment).
  *
  * **Bounded to its content** (CLAUDE.md, the Surface pitfall): nothing inside fills its parent, and its
- * width is capped, so the map around it keeps its touches. The caller composes it only for a non-null
+ * width and height are capped ([LEGEND_MAX_HEIGHT]: past it the contents scroll), so the map around it
+ * keeps its touches. The caller composes it only for a non-null
  * [legend], so it draws nothing while no colour field is visible.
  */
 @Composable
@@ -406,6 +415,7 @@ internal fun MapLegendChip(
         border = BorderStroke(1.dp, if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT),
         modifier = modifier
             .widthIn(max = LEGEND_MAX_WIDTH)
+            .heightIn(max = LEGEND_MAX_HEIGHT)
             .testTag(MAP_LEGEND_CHIP_TAG)
             .clickable(onClickLabel = if (expanded) "Hide legend" else "Show legend") { onExpandedChange(!expanded) },
     ) {
