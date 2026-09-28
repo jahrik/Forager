@@ -4038,3 +4038,41 @@ The list-detail question goes to the owner next. Written by the planner by hand.
 **Finish line:** The appended section pushed; the planner merges it and writes the terminal.
 **Abort conditions:** Not exactly the one tablet or a different build; a locked tablet; a new crash; any need to touch the owner's records or the S22. A prompt pauses for the owner.
 **Notes:** Owner, verbatim: "Okay I'm near the tablet. Option A is my choice for the photo viewer question". The owner was told that the photo shows whatever the camera faces. Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-87
+**Timestamp:** 2026-09-28T22:26:01Z
+**Continues:** 2026-09-28-70
+**Dispatch-file:** preserved/2026-09-28-87.md
+**Reason:** J8's device check (terminal -81) found three things:
+- rings on the ORIGIN and END waypoints the map does not draw;
+- the chip at 0.833 to 0.840 over the map;
+- marker rings above every line.
+
+The owner ruled "1 A" (rings below lines).
+**Changes:** -70 widens into J8 follow-ups:
+1. -70's one "Kept in";
+2. the highlight uses the map's own filtered waypoint list (planner, a defect against J8's rule);
+3. the chips' total is 0.8 under CLAUDE.md's composite rule (planner), the taxon chip checked;
+4. marker rings below every line (owner), stopping if the z-group model forbids it.
+
+The report is renamed j8-follow-ups. Still queued behind -79.
+**Notes:** Owner, verbatim: "1 A / 2 A / 3 A leave for now, I'll review on device with full colors". Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-88
+**Timestamp:** 2026-09-28T22:26:01Z
+**Continues:** 2026-09-28-78
+**Dispatch-file:** preserved/2026-09-28-88.md
+**Reason:** J8's device check found three overlaps. The owner ruled "2 A" (fix them in the layout-fix stage).
+**Changes:** -78 adds three items:
+- 7: the chip over the cluster's reset button at 90;
+- 8: the portrait dead band between the chip and the coordinate readout;
+- 9: the landscape cluster row over the search bar's ends.
+
+Each is tested for non-intersecting bounds at 0, 90 and 270, with real-touch sampling for the band. -78's placement stop rule applies. Still queued behind -70.
+**Notes:** Owner ruling 3 ("leave for now, I'll review on device with full colors"): the J8 highlight colours stand, and the owner's on-device review stays open. Written by the planner by hand.
