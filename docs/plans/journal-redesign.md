@@ -754,3 +754,20 @@ The build queue, one at a time:
 **Night only, confirmed (owner, 2026-09-28).** The owner, verbatim: "Yes the night outline only". The white border in `-79` applies to the night outline alone. The day outline is unchanged.
 
 **The tablet photo-viewer measurement, deferred (owner, 2026-09-28).** The tablet sanity check (terminal `2026-09-28-80`) could not measure the photo viewer, because Forager on the tablet held no photo. The planner offered three options: take a camera photo, import one of the owner's, or leave it unmeasured. The owner, verbatim: "Defer it for now. I'm not near my tablet. I'll let you know when I am and we can revisit that question". It stays open until the owner raises it. It does not block J6, since the terminal cleared J6 to dispatch.
+
+### J8 device check: the owner's rulings (2026-09-28)
+
+Asked after J8's device check (terminal `2026-09-28-81`), the owner answered verbatim "1 A / 2 A / 3 A leave for now, I'll review on device with full colors":
+1. **Marker rings move below every line,** so a ring never covers a kept track or other line. This joins `-70`, which becomes **J8 follow-ups** (continuation `2026-09-28-87`), together with the two planner-ruled J8 defects:
+   - rings on the ORIGIN and END waypoints the map does not draw;
+   - the chip reading about 0.84 against the composite rule.
+2. **The chip covering the cluster's reset button at 90 is fixed.** So are the portrait dead touch band between the chip and the coordinate readout, and the cluster's top row over the search bar's ends in landscape. These join `-78` (continuation `2026-09-28-88`).
+3. **The highlight colours** (day `#005577`, night `#00DDFF`) **stand for now.** The owner will review them on the device in full colour; that stays open.
+
+Build line, one at a time:
+1. `-79`, the night outline (running);
+2. `-70`, J8 follow-ups;
+3. `-78`, the layout fixes;
+4. J6.
+
+The map-chrome device check (`-84`) and the tablet photo-viewer check (`-86`) run on the devices meanwhile.

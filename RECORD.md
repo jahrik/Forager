@@ -4038,3 +4038,69 @@ The list-detail question goes to the owner next. Written by the planner by hand.
 **Finish line:** The appended section pushed; the planner merges it and writes the terminal.
 **Abort conditions:** Not exactly the one tablet or a different build; a locked tablet; a new crash; any need to touch the owner's records or the S22. A prompt pauses for the owner.
 **Notes:** Owner, verbatim: "Okay I'm near the tablet. Option A is my choice for the photo viewer question". The owner was told that the photo shows whatever the camera faces. Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-87
+**Timestamp:** 2026-09-28T22:26:01Z
+**Continues:** 2026-09-28-70
+**Dispatch-file:** preserved/2026-09-28-87.md
+**Reason:** J8's device check (terminal -81) found three things:
+- rings on the ORIGIN and END waypoints the map does not draw;
+- the chip at 0.833 to 0.840 over the map;
+- marker rings above every line.
+
+The owner ruled "1 A" (rings below lines).
+**Changes:** -70 widens into J8 follow-ups:
+1. -70's one "Kept in";
+2. the highlight uses the map's own filtered waypoint list (planner, a defect against J8's rule);
+3. the chips' total is 0.8 under CLAUDE.md's composite rule (planner), the taxon chip checked;
+4. marker rings below every line (owner), stopping if the z-group model forbids it.
+
+The report is renamed j8-follow-ups. Still queued behind -79.
+**Notes:** Owner, verbatim: "1 A / 2 A / 3 A leave for now, I'll review on device with full colors". Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-88
+**Timestamp:** 2026-09-28T22:26:01Z
+**Continues:** 2026-09-28-78
+**Dispatch-file:** preserved/2026-09-28-88.md
+**Reason:** J8's device check found three overlaps. The owner ruled "2 A" (fix them in the layout-fix stage).
+**Changes:** -78 adds three items:
+- 7: the chip over the cluster's reset button at 90;
+- 8: the portrait dead band between the chip and the coordinate readout;
+- 9: the landscape cluster row over the search bar's ends.
+
+Each is tested for non-intersecting bounds at 0, 90 and 270, with real-touch sampling for the band. -78's placement stop rule applies. Still queued behind -70.
+**Notes:** Owner ruling 3 ("leave for now, I'll review on device with full colors"): the J8 highlight colours stand, and the owner's on-device review stays open. Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-89
+**Timestamp:** 2026-09-28T22:38:54Z
+**Closes:** 2026-09-28-86
+**Outcome:** completed
+**Observed:**
+- **Record.** The "Photo viewer (continuation, 2026-09-28-86)" section of docs/audits/2026-09-28-tablet-layout-sanity-run-record.md: predictions eda1583, results 49c81be on device-tablet-2, merged by the planner. Evidence 75 to 130 in device-evidence/2026-09-28-tablet-sanity.
+- **Device and build.** SM-X800 at 1.0.1416+gd7cc9f5b, no install.
+- **The prompt.** The owner answered the CAMERA request before the agent tapped Camera (the events log shows a request at 22:26:47Z, answered at 22:26:49Z), so the agent saw no prompt.
+- **Created, and left with the DEVICE CHECK items:** one photo (log_photos 1 row, with no coordinate) linked to the DEVICE CHECK find (log_entry_photos 1 row). The find's digest is unchanged. The cache row's timestamps moved, from a search reload.
+- **Measured.** The viewer is its own APPLICATION window equal to the display: 824.5 × 1317.6 dp in portrait and 1317.6 × 824.5 dp at 90. Album and find routes gave identical results. The drawer, list and map are fully covered, and the status bar stays visible. The map route was unreachable (no coordinate).
+- **Restored and crashes.** Rotation read back 1/1. Stay Awake, the 5-minute timeout and the CAMERA grant were left as the owner's. Crash buffer unchanged from the first run (0 Forager lines); no FATAL EXCEPTION.
+**Deviations:**
+- The agent sent one stray Back through a scripting error, with no effect found.
+- The find was saved (not cancelled) to keep the photo reference.
+- The recent search was reloaded, which re-fetched from iNaturalist.
+**Notes:**
+- **Flags:**
+  - am start -n added a second MainActivity on top of the owner's instance (cause unverified; it may explain the first run's flag 7);
+  - on the wide tree the Timeline/Album view choice reset after a Records switch and rotation (J10 state on LogPanel, which J6 threads);
+  - a recent search re-fetches rather than reading the cache;
+  - the camera's "Save location: On" shows with no location permission and saves no coordinate, silently (documented as intended);
+  - the viewer leaves the status bar visible.
+- The tablet sanity check is now complete. J6 needs nothing more from it.
+- Written by the planner by hand.
