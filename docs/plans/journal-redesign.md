@@ -566,3 +566,13 @@ Planner's rulings, not asked, open to change:
 - a waypoint bubble offers Directions only (In-app Navigate deferred);
 - a planned trip's bubble shows what its Trip Planner row shows, with Directions, and opens nothing further (there is no trip target);
 - bubble content per kind starts from what that record's row or sheet already shows.
+
+### Track widths by zoom and the entry map's opening frame (owner, 2026-09-28)
+
+The owner, verbatim, over Maps-tab and entry-map screenshots: "At some point in zooming out, the tracks get muddied up from the thickness + distance. Can we have the track lines thin out as we zoom out?" and "When opening an entry, the user expects to see their tracks on the map, maybe the last tracks they recorded. But instead they're greeted with a blank map as shown. Can the entry map open to their last recorded track location, zoomed in to where you see in the next photo?"
+
+Asked, verbatim answers:
+1. Framing: **"Fit all kept records (Recommended)"**: the entry map opens framed to everything the entry keeps (tracks, finds, photos, waypoints), as close as fits them; offline-region circles are left out of the framing unless the entry keeps nothing else.
+2. Timing: **"Right after M1 (Recommended)"**: both are built after M1 lands and before the Leaving-the-Journal fixes, since they touch the same map files M1 is changing.
+
+Revised order: M1 (running); then track widths by zoom and the entry map's opening frame; then the three Leaving-the-Journal fixes; then the two landscape bugs. The widths' zoom stops are the planner's to propose in the dispatch and the owner's to judge on the phone.
