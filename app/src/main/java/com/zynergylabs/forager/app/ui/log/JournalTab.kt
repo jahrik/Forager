@@ -310,6 +310,16 @@ internal fun JournalTab(
             onSaveErrorDismissed()
         }
     }
+    // Intent 2026-09-28-68, continuation 2026-09-28-76 (the owner: "Option B"): a day entry's failed
+    // save, Finish, Save as draft, Discard or delete, told the same way as the find's just above and
+    // cleared once shown. Hosted here, not in AvailabilityScreen, so a failure raised while the
+    // Journal is not on screen waits in the ViewModel and shows when the Journal next opens.
+    LaunchedEffect(cartographyUiState.saveErrorMessage) {
+        cartographyUiState.saveErrorMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            onCartographySaveErrorDismissed()
+        }
+    }
 
     // REPORT for an entry opened from the gallery (there's something to compile a report from and
     // no reason to assume an edit is wanted), EDIT for one just started (nothing to report yet, so

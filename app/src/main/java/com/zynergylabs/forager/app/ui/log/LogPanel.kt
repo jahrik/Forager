@@ -242,6 +242,13 @@ internal fun LogPanel(
             onSaveErrorDismissed()
         }
     }
+    // Intent 2026-09-28-68, continuation 2026-09-28-76: the day entries' counterpart, as JournalTab's.
+    LaunchedEffect(cartographyUiState.saveErrorMessage) {
+        cartographyUiState.saveErrorMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            onCartographySaveErrorDismissed()
+        }
+    }
 
     var pickingLocationForEditingEntry by remember { mutableStateOf(false) }
     // Same shape as pickingLocationForEditingEntry, for LogEntryDetailScreen's "From Album" button
