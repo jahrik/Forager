@@ -98,7 +98,17 @@ data class MapPalette(
             breadcrumb = 0xFFB228F8.toInt(),
             centrePin = 0xFFA656A0.toInt(),
             searchCentre = 0xFFDEDEDE.toInt(),
-            offlineRegion = 0xFFFFFFFF.toInt(),
+            // The owner's pick, 2026-09-28, drawn at the fill layer's 0.2 opacity like the day fill. It was
+            // #FFFFFF, which read lighter than the night ground. Asked whether to darken it or lower its
+            // opacity, the owner chose "Darker shade (Recommended)", then qualified it: "Not too dark
+            // since it can make it harder to read. Find a balance." Black was dropped for that reason,
+            // and the owner chose "You pick from phone shots (Recommended)". Three dark greys were built
+            // and shot on the S22 at night, #202020, #404040 and #606060 (capture record
+            // docs/audits/2026-09-28-night-region-candidates-capture-run-record.md). The owner picked
+            // #202020, the darkest, after being told it nearly vanishes over the darkest night ground
+            // (0.001 Oklab ΔE as drawn over #22201C, per MapPaletteTest): "That's my pick." Over that
+            // ground only the dashed casing marks the edge; how well it does is unverified on a screen.
+            offlineRegion = 0xFF202020.toInt(),
             // The owner's "a mute grey color"; the exact grey is the planner's pick.
             sightingDot = 0xFF8C8C8C.toInt(),
             sightingDotStroke = 0xFFFFFFFF.toInt(),
