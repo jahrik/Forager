@@ -2838,3 +2838,14 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner's answers, verbatim: "Real format, 'test data' name (Recommended)", "A second group (Recommended)", "In M1, with the bubbles (Recommended)", "Use that wording (Recommended)"; recorded in the plan, "L0b forecast-facing rulings, after reading forager-forecast (owner, 2026-09-28)". Sent to the running coder by SendMessage; written by the planner by hand.
 
 ---
+
+**Kind:** continuation
+**ID:** 2026-09-28-06
+**Timestamp:** 2026-09-28T04:45:00Z
+**Continues:** 2026-09-28-02
+**Dispatch-file:** preserved/2026-09-28-06.md
+**Reason:** the first L0a device coder stopped at an abort condition (run record b1e08da, merged at 027cb28; checks 1-3 pass): the phone's one waypoint, the open recording's ORIGIN, was not drawn on the Maps tab. A read-only trace (docs/audits/2026-09-28-l0a-origin-waypoint-trace.md) found it hidden by design by mapVisibleWaypoints (AvailabilityPureFunctions.kt:65-66), identical before L0a: a wrong premise in the planner's dispatch, which had cited the path without tracing it to the map. The phone also had no entry map, offline region or overlapping data, and the dispatch's check 7 pass condition contradicted the code (overlays use MapPalette.forMode(nightMode), BasemapStyles.kt:207).
+**Changes:** the Return leg's state confirmed on device while the recording is still open; the owner's recording stopped and kept; labelled DEVICE CHECK test data created through the app UI (a waypoint, two finds one with a camera photo, the kept track, one small offline region, a saved day entry keeping them); a positive control added (an ordinary waypoint draws on the Maps tab); checks 4, 5, 2 (offline part) and 6 re-run with that data; check 7 restated to the code (overlays take their DAY or NIGHT palette hex, not the basemap's recolour). Scope widened only by the owner's authorisations below; finish line unchanged.
+**Notes:** Owner's answers, verbatim: on the running recording, "Mine, stop & keep it"; on test data, "Yes, labelled test data (Recommended)". The first coder's flags carried for later, not investigated: the location puck drawing under the overlays after a style reload; the bubble's tail about 150 px right of the tapped dot; about 2.5 MapLibre errors a second, "getMetersPerPixelAtLatitude after the MapView was destroyed". Written by the planner by hand; the backlog check 2026-09-28-04 waits for this run.
+
+---
