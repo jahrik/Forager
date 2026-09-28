@@ -412,3 +412,40 @@ The chip reads the shown entries whatever the switch (`AvailabilityScreen.kt:923
   `shownOnMap = 0` on all 7 rows, user_version 16, integrity ok, every count equal to the backup's.
 - `user_rotation` 0 and `accelerometer_rotation` 0; `font_scale` 1.0 (not planned to change); Night Maps off; basemap
   Topographical; every overlay on, "Journal entries" included; the app left on the Maps tab, in portrait.
+
+# Verdicts
+
+## Check 1: the migration on real data: **pass**
+
+- **Launch:** `am start -n …/.MainActivity` at 21:07:41.8Z (`16-launch.txt`); pid 31050, `MainActivity` in focus. No
+  system or Google prompt over the app. By 21:07:50Z the Maps tab had drawn the stored records (finds, photos and both
+  offline region circles, `17-first-launch.png`, by my reading), so the database had been opened.
+- **Crash reads** at 21:08Z: `logcat -d -b crash` **0 bytes** (`18-crash-after-launch.txt`); `logcat -d`, 331,486 lines
+  from 10:13Z, **0** `FATAL EXCEPTION` (`19-log-after-launch.txt`).
+- `am force-stop` at 21:08:16Z, `pidof` empty (`20-force-stop-after-launch.txt`). `dbcopy.sh db-migrated`: the device's
+  and the local sha256 **match** for all three files (`db-migrated-device-sha256.txt`, `db-migrated-local-sha256.txt`):
+  `forager.db` 229376 bytes `e88effc0…61af7c93`, `forager.db-wal` 466944 bytes `79359a6b…3cf0dd00`, `forager.db-shm`
+  32768 bytes `fd4c9fda…b8549389eb`. `db-migrated-raw/` is read-only.
+- **Verified** (`db-migrated-verify.txt`):
+  - header "SQLite format 3\0", page size 4096, WAL mode;
+  - `PRAGMA integrity_check`: **ok**;
+  - `PRAGMA user_version`: **16**;
+  - `cartography_entries` has `shownOnMap`, `INTEGER`, not null (column 6), and `COUNT(*) = 7`, rows with
+    `shownOnMap <> 0` **0**, rows with it null 0;
+  - **the same 18 tables with exactly the backup's counts**: android_metadata 1, cached_searches 2, cartography_entries
+    7, find_refs 2, offline_region_refs 1, photo_refs 1, track_refs 1, waypoint_refs 3, log_entry_photos 1, log_photos 3,
+    mushroom_log_entries 3, offline_regions 2, planned_trips 0, room_master_table 1, sqlite_sequence 1, track_points 23,
+    tracks 1, waypoints 3.
+- **Also recorded:** both indexes, `index_cartography_entries_date` and `index_cartography_entries_isDraft`, exist,
+  with the primary key's autoindex. `dbdigest.py` (`db-migrated-digest.txt`) equals the backup's for **17 of 18**
+  tables row for row, `cartography_entries` compared without `shownOnMap`. The one that differs is
+  `room_master_table`, as predicted: its identity hash went from `59205bd8e5811737f6e5d12fe330140f` to
+  `b8e97e83e4139dbf92f791836dde6002`, which are the `identityHash` values of the exported `15.json` and `16.json`.
+- **One thing I did not predict:** the migrated copy's WAL has its first 16 header bytes zero (magic, format, page size
+  and checkpoint sequence), the rest of it not zero. A WAL with no valid magic is empty to SQLite, so the database is
+  what `forager.db` holds, and the digests above were computed from exactly that. It matches SQLite resetting the WAL
+  after a checkpoint, but which step on the phone did it (the migration's own transaction, Room, or Android's WAL
+  handling) I have not established. It changes no figure above.
+- **Prediction:** held in full.
+
+Not an abort: no count mismatch, no crash, version 16.
