@@ -3194,3 +3194,14 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner's words and rulings in the plan's two sections of 2026-09-28 ("Fit all kept records (Recommended)", "Right after M1 (Recommended)"; the copy change and its principle). The width stops are the planner's proposal for the owner to judge on the phone. Written by the planner by hand.
 
 ---
+
+**Kind:** continuation
+**ID:** 2026-09-28-35
+**Timestamp:** 2026-09-28T12:33:54Z
+**Continues:** 2026-09-28-34
+**Dispatch-file:** preserved/2026-09-28-35.md
+**Reason:** the coder stopped at verification (3d3d3c3, nothing under app/ changed): T2's regions-only clause conflicted with the owner's standing plate-pulse ruling that a regions-only entry has no map (CartographyEntryReportScreen.kt:371), a planner error; and on the wide layout the search summary's tap does not open the search before a search has run (AvailabilityViewModel.kt:385-388), so the new copy would not be true there. Prediction 1 missed: the entry map opens at GeoDistance.boundingRegion of all points including region centres, at zoomForRadiusKm (ceiling 13), not a fixed or last-known camera.
+**Changes:** Regions never count toward the entry frame (planner, keeping the standing ruling); the coder's T2 mechanism accepted; on the wide layout the summary's tap opens the search (owner), widening scope to AvailabilityScreen.kt:1426 and AvailabilityViewModel.kt; the stale ActiveSearchSummary KDoc fixed.
+**Notes:** Owner, verbatim: "Make the tap open search (Recommended)". Disk: the owner deleted ~/.config/Claude/vm_bundles; 13 GB free. Written by the planner by hand.
+
+---
