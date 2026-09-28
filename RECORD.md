@@ -3422,3 +3422,25 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner, verbatim: "Open in Journal, prompt first (Recommended)", "Tap a date line (Recommended)". Written by the planner by hand.
 
 ---
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-54
+**Timestamp:** 2026-09-28T18:35:14Z
+**Continues:** 2026-09-28-52
+**Dispatch-file:** preserved/2026-09-28-54.md
+**Reason:** the J8 coder (af88cba6d7867af98) died at 18:09:18Z on "API Error: Can't reach the API server (EAI_AGAIN)", about 13 minutes after continuation -53 reached it, and the planner session that ran it (session_01FvDtK5LcShCXshLP7V54Bt) died on the same outage and could not resume it. Worktree j8 clean at 3656e21; no code or test had been written.
+**Changes:** A fresh coder replaces it. It re-runs -52's verification at its own base, then builds under -52 as amended by -53. It appends a Resumed section to the existing completion report. Pointers to the dead coder's runner copies, palette scripts and an extract of its transcript are given as leads to re-check, not results.
+**Notes:** Relaunched by a new planner session on the owner's instruction ("pick it back up and resume the work where the agents need attention"). The transcript extract is outside the repository at /tmp/claude-1000/j8/prior-coder-transcript-extract.md. Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-55
+**Timestamp:** 2026-09-28T18:35:14Z
+**Continues:** 2026-09-28-51
+**Dispatch-file:** preserved/2026-09-28-55.md
+**Reason:** the device coder (af6ff5e0d2c8390c0) died on the same outage; its last tool call ended at 18:03:18Z, mid check 4, and its error landed at 18:13:47Z. Pre-registration and install facts were pushed at 5532ff2 on device-stage-1. No verdicts were written, because its reasoning was not saved; evidence 01 to 123 survives in the device-evidence directory. Phone read at relaunch: awake, Forager in focus, user_rotation 3, accelerometer_rotation 0; Diagnostics synthetic layers left on by step 104.
+**Changes:** A fresh device coder confirms that the install is unchanged and reads crashes across the gap. It gives verdicts for checks 1 to 4 from saved evidence only where a file shows the pass condition on its own, and otherwise re-runs the item. It finishes check 4 and runs 5 to 8. It restores settings and rotation, reads them back, numbers new evidence from 124, and writes the verdicts into the existing run record without editing its pre-registration.
+**Notes:** An extract of the dead agent's commands and outputs is at device-evidence/2026-09-28-stage-check-1/prior-agent-transcript-extract.md, outside the repository. Written by the planner by hand.
