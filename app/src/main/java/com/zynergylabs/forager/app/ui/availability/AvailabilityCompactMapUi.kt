@@ -494,7 +494,12 @@ internal fun CompactMapTab(
     // the deepest registered handler it exited navigation before fullscreen, the drawer or the
     // search dropdown unwound — see AvailabilityScreen's own back chain, where navigation now sits
     // as the last step before exit and raises a prompt rather than exiting.
-    BackHandler(enabled = pendingAction != null || pickingSearchLocation || showActionMenu) {
+    // Intent 2026-09-28-44, F4: off while the Tools drawer is open, the drawer fix's pattern
+    // (JournalTab's backEnabled). Registered after AvailabilityScreen's drawer handler, this took
+    // Back from the drawer over the centre-pin pickers and, in a short window where the menu's scrim
+    // leaves the rail clear, over the add-action menu. Each stays up under the drawer; the next Back
+    // unwinds it as before.
+    BackHandler(enabled = !isDrawerOpen && (pendingAction != null || pickingSearchLocation || showActionMenu)) {
         when {
             pendingAction != null -> pendingAction = null
             pickingSearchLocation -> onCancelSearchLocationPick()
