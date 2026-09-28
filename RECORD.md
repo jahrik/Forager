@@ -3021,3 +3021,14 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Planner's criteria, not the owner's; the thresholds (90%, 0.02 ΔE) are the planner's choice, open to change after the owner sees it on the phone. Written by the planner by hand.
 
 ---
+
+**Kind:** terminal
+**ID:** 2026-09-28-21
+**Timestamp:** 2026-09-28T10:24:47Z
+**Closes:** 2026-09-28-17
+**Outcome:** completed
+**Observed:** (1) On journal-redesign: 5d247a6 (four failing tests in AvailabilityScreenBackNavigationTest, report view and editor, portrait bottom nav and w823dp-h384dp-land rail, real touches; at base 31 tests / 4 failures, each "the Maps search bar (active-search-summary) is shown on the Maps tab with a day entry left open in its report view|its editor expected:<1> but was:<0>"); 35a99ad (the one condition: searchBarSlot = if (isEditingJournalEntry && compactTab() == CompactTab.JOURNAL)); b828624 (four pins: the entry still open back on Journal); report 7b30a04 (docs/audits/2026-09-28-maps-search-bar-after-entry-completion-report.md); merges 79b4d9e, b932b19. (2) The find route: not a second route; the tab handler clears any open find (MushroomLogViewModel.onLeaveEditingIncidentally, :582), read from code. (3) Revert check compiled, the four bar tests failed with their messages, the pins passed, file restored from a saved copy. (4) Coder's suite at b828624: 267 / 2193 / 0 / 0 / 24; not re-run by the planner (the night-region coder is building on this machine). Predictions 1-3 held.
+**Deviations:** The gate as dispatched is always true where the slot is built (it is built only inside the Maps branch, :774, :782), so the Journal half of the condition is inert; kept as dispatched, noted in a code comment. No base suite by the coder.
+**Notes:** Owner's ruling, verbatim: "Keep entry, fix the bar (Recommended)". Flags for the owner: a day entry left open in its editor comes back in its report view (CartographyScreen.kt:171, mode is a plain remember), and whether unsaved edits survive is unverified; an open find is closed by the tab switch even in its report view; leaveLogEntryEditingOfferingDiscard (AvailabilityScreen.kt:1124-1136) appears, from reading only, to show "Saved to Drafts" with Discard for a committed find that was only viewed, and what Discard then does is unverified. Device-only: the route on the S22 in both orientations, including from the entry map's own fullscreen. Written by the planner by hand.
+
+---
