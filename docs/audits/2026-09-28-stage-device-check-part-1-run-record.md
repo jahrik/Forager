@@ -983,3 +983,69 @@ and black at night.
   blob's size does not depend on the basemap.
 - **Prediction** (the pre-registration's): pass at 15 and above; at 11 the blob favours the thinned model; at 13 it may
   not discriminate.
+
+## Check 6: track widths by zoom: **pass at 15 and above on Topographical, Street and at night; 13 and 11 not observable**
+
+Run from 20:06Z. Finds, Photos and Waypoints off (`291-…-sheet-after.xml`). Double taps at the track brought the camera
+to the map's maximum zoom: two more at 20:07:59Z changed nothing (`293` has the same 9615 track pixels as `292`).
+
+**The zoom at the width frames: 17.0.** From the DB copy the track spans 19.3 m east-west and 38.4 m north-south. Its
+line-colour extent, 144 x 274 px, less one line width, matches zoom 17.0 on both axes; `296-widths.py`'s centreline fit
+gives 17.085 (mean distance of line pixels to the fitted centreline 4.10 px, about what a 17 px line gives). Either way
+it is well above 15, which is all the width check needs.
+
+**The widths, by a raw pixel cut** (the primary evidence; no tool involved). Row y 1290 crosses a straight run of the
+track at x about 624, whose direction is within 1.6 degrees of vertical (cos 0.9996). With the Tracks overlay on
+against off at the same camera:
+- **Drawn (casing) width:** the casing's edge pixels cover 0.48 (x 610) and 0.87 (x 635) of their pixel, with 24 full
+  pixels between: **25.35 px**, against 25.31 (9 dp).
+- **Line width:** the line-to-casing mixes are 0.258 (x 614) and 0.647 (x 631), with 16 full pixels between:
+  **16.91 px**, against 16.88 (6 dp).
+- **Day and night give the same pixels.** At night the casing is black and the line (238, 167, 254). The coverage of
+  each edge pixel is the same by day and at night to 0.01 (x 610: 0.48 and 0.49; x 635: 0.867 and 0.874; x 614: 0.258
+  both). The drawn geometry does not change with the palette.
+
+**The widths, by `296-widths.py`** (third version; see below), perpendicular profiles over the run's middle, keeping
+only profiles more than 50 px from the reticle, more than 26 px from any other leg of the track, with the ground
+beside them the same in both frames:
+- **Topographical** (`298-c6-topo-on-c`/`297-c6-topo-off-a`): 5 profiles, line **16.89 to 16.90 px**, drawn **25.34 to
+  25.36 px**.
+- **Street** (`301-c6-street-on-b`/`302-c6-street-off-c`): the same 5, the same figures. They are identical to
+  Topographical's by construction: the measure is each pixel's coverage, which does not depend on the ground, and the
+  track's pixels are the same.
+- **Night** (Night Maps on at 20:25:07Z, `306`/`307-` read back; `308-c6-night-on-b`/`309-c6-night-off-b`): 2
+  profiles (fewer pass the contrast floor on dark ground), line **16.90 px**, drawn **25.36 px**.
+- **Thin, said so:** the clean profiles all lie on one run of the track about 25 px long. With the other-leg rule
+  off, 39 profiles pass on two runs. The same run gives 16.88 to 16.94 and 25.31 to 25.42 over 19 profiles. The other,
+  near the track's southern end and within 26 px of another leg, reads wider (line 17.2 to 18.5, drawn 25.7 to 27.6),
+  falling steadily along its length, which is that leg's casing entering the profile.
+- **The tool was corrected twice, each time from a specific pixel, before these figures.** Version 1 read drawn
+  54.6 px: it counted as track any pixel whose share of line colour against white exceeded 0.5, and the blue-grey
+  ground inside the location accuracy disc scores 0.63. Version 2 read drawn 26.0 px at night only: at the casing's
+  outer edge a half-covered black pixel, (14, 18, 22), lies 7 levels from the black end of the black-to-line segment
+  and was counted as fully covered. Version 3 explains each changed pixel either as casing over its own ground or as line
+  over casing, whichever fits. The raw cut above does not depend on any of this.
+- **The ground frames also needed care:** the location puck, its compass triangle and its accuracy disc draw under
+  the track (checks 4 and 5) and change from frame to frame, so the first on/off pair (`293`/`294`) had a different
+  disc under the track. Pairs were taken in runs (`297-`, `298-`, `302-`, `303-`, `309-`, `310-`) and the best ranked
+  by `300-nearband.py`; each profile is also checked on its own ground.
+
+**At about 13 and 11: not observable.** The search-centre reticle is drawn on the track (markers above lines) and does
+not move with the location puck (the puck wandered round it between frames). At these zooms it covers the track:
+- **13.54** (1 km circle, rms 1.3 px, `317`): 33 track-coloured pixels on the screen. With Tracks toggled (`318`,
+  `319`), the only changes near the reticle are slivers inside the ring's quarters and the puck's own movement
+  (`320-crop-c6-z13-on-off-diff.png`). The blob the check needs measures 31 x 43 px thinned or 37 x 49 unthinned here,
+  so its edge falls under the ring and its casing, 15.5 to 29.5 px from the centre.
+- **11.99** (rms 1.0, `321`): no track pixel; toggling changes 6 pixels near the reticle (`322`, `323`,
+  `324-crop-…`).
+- **10.94** (rms 1.1, `325`): toggling changes **0** pixels within 50 px of the reticle (`326`, `327`).
+- The pre-registration expected the blob check to be weak at these zooms. With this data it cannot be made at all: not
+  a pass, not a fail. With these zooms by day, the check's scoping to day for 13 and 11 made no difference.
+
+**Restored and read back:** Topographical (`304`), Night Maps off at 20:35:04Z (`314`, `315-`), Finds, Photos and
+Waypoints on (`328-…-sheet-after.xml`); `329-` has every overlay and both fields true, the order and opacity at their
+defaults, `night_mode.maps = False`. Crash buffer 0 bytes (`330-`, 20:39:51Z); Forager still pid 9626.
+
+**Prediction:** "pass at 15+; the blob comparison favours the thinned model at 11; at 13 it may not discriminate". The
+first part **held**. The blob could not be seen at either zoom, which the prediction did not foresee: the reticle, not
+the track's size, is the limit.
