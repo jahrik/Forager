@@ -736,3 +736,30 @@ double-tap steps at (560, 1190) brought the view to about zoom 15 (`112-c6-z15.p
     digest.
 - Crash buffer 0 bytes (`124-`); pid 5297 throughout.
 - **Prediction:** held.
+
+## Check 7: the Layers sheet's "Journal entries" switch: **pass**
+
+On the Maps tab at its opening camera, about zoom 12:
+- **Off hides the rings; the chip stays.** At 21:57:15Z the switch went from checked to unchecked (`126-c7-off`, read
+  back from the sheet's dump).
+  - Between `125-` (on) and `126-` (off), **31,732 px** change, **26,172** of them `#005577` in the on frame (the region's
+    ring and the markers' rings). In `126-` **no pixel** within 6 of `#005577` is left in the map box.
+  - Of the 26,172 ring pixels, 25,082 equal, within 3 per channel, the frame taken before the entry was ever shown
+    (`21-`, 21:09Z). The rest differ in small blobs at the markers and the location puck, none of them `#005577`.
+  - The chip's node still reads **"1 journal entry on map"** in `126-`.
+  - `map_preferences` holds `map.layer.journal-entry-tracks-layer.visible = False` (`127-`).
+- **Persists.** `am force-stop` at 21:57:38Z (`pidof` empty), then `am start` (pid 16639):
+  - the chip is there (`128-`);
+  - no `#005577` pixel in the map (`128-`), and 26,031 of the 26,172 ring pixels equal the pre-restart off frame `126-`;
+  - `map_preferences` still `False` (`129-`);
+  - the sheet's "Journal entries" row reads unchecked (`130-`, `[45,1978][1035,2113]` `checked=false`), and Back closed
+    it.
+- **Restored** at 21:58:31Z (`131-c7-on-restored`, read back checked). 31,749 px change against `128-`, 26,196 of them
+  `#005577`, in the same two blobs as before. The key reads `True` (`132-`).
+- Crash buffer 0 bytes (`133-`), and 0 `FATAL EXCEPTION` in `logcat -d`. The relaunch is the only process change: pid
+  5297 until my force-stop, then 16639.
+- **Prediction:** held.
+
+## Check 8: the failed-write Toast: **not run**
+
+As the dispatch says: it cannot be forced on the device without changing app code.
