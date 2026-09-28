@@ -3092,3 +3092,14 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner's rulings, verbatim: "Darker shade (Recommended)", "Not too dark since it can make it harder to read. Find a balance.", "You pick from phone shots (Recommended)". The coder's count of white's outline shortfalls is three clusters, not the four the planner's -24 said. Written by the planner by hand.
 
 ---
+
+**Kind:** terminal
+**ID:** 2026-09-28-27
+**Timestamp:** 2026-09-28T10:48:38Z
+**Closes:** 2026-09-28-23
+**Outcome:** completed
+**Observed:** Branch leave-journal-investigation at a89b240 (4 commits on ef8cb38): LeavingTheJournalInvestigationTest, 13 tests through the real AvailabilityScreen with the real MushroomLogViewModel and CartographyViewModel, in-memory Room and a real FilePhotoStore, tab changes by real bottom-nav and rail touches, each pinning today's behaviour. Report docs/audits/2026-09-28-leaving-the-journal-investigation.md, copied onto journal-redesign by the planner; the tests stay on the branch pending the owner's rulings. (1) Viewing a committed find and leaving the Journal shows "Saved to Drafts" with Discard (AvailabilityScreen.kt:1124-1136; the tab handler ignores mode, AvailabilityCompactScaffold.kt:457-459); Discard runs onDeleteEntry (MainActivity.kt:477) and deletes the committed find's row and its photo references, no Undo; the album photo row and file remain. In the editor with no change the snackbar shows but Discard does nothing; with a change Discard deletes only the draft. (2) A day entry left in its editor returns in its report view (CartographyScreen.kt:171); unsaved text or keep/withhold changes live only in ViewModel memory, drawn as if saved; the back arrow closes with no prompt and CartographyViewModel.onCloseEntry (:234-254) merges the dirty entry into the in-memory list contrary to its doc comment; the edit is lost on reload (inferred). (3) An open find is closed by the tab switch in both views; a changed find is kept as a draft. Coder's suite on 9b828da's tree: 2206 / 0 / 0 / 24. Planner predictions 1-3 held.
+**Deviations:** The coder's first push (f1996a1) went out before its D58 check; the check run straight after over that commit found zero hits. No revert checks (no production change permitted); preconditions asserted instead. MainActivity's callbacks copied into the fixture rather than launching MainActivity.
+**Notes:** Data-loss finding for the owner: behaviour 1 deletes a committed find on one tap after only viewing it. Flags: backgrounding closes a viewed find (AvailabilityCompactScaffold.kt:388, :431); the wide layout's LogPanel shares the Discard callback (AvailabilityScreen.kt:1262); entries keeping a Discarded find are unverified; keeping finds open across tabs would meet the search-bar gate at :401. Owner, verbatim: "Go ahead and look into those 3 things you brought up also". Written by the planner by hand.
+
+---
