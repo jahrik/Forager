@@ -4300,3 +4300,17 @@ Forwarded to the tablet check (-95); named in the S22 check's (-94) launch. Writ
 
 Held for the owner: items 1, 2 (landscape), 6, 7 and 9.
 **Notes:** Planner's rulings, stated to the owner. -97 may run beside it on the same file (line 641 only). Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-99
+**Timestamp:** 2026-09-28T23:43:10Z
+**Continues:** 2026-09-28-78
+**Dispatch-file:** preserved/2026-09-28-99.md
+**Reason:** the owner ruled on -78's held items (the landscape cluster, 380 dp in about 354 dp), verbatim: "For icon column in short landscape: option A".
+**Changes:**
+- In short landscape the ControlPill sits beside the MapIconBar (planner's lean: inboard side, bottom-aligned; the coder proposes). The cluster is about 264 dp tall, portrait unchanged, and nothing else moves.
+- Items 1, 2 (landscape), 6, 7 and 9 are re-measured against the new height. An item still colliding is a stop, reported with its geometry.
+- The drag and snap work on the new shape. A handle change beyond size is a stop.
+**Notes:** Items 2P, 3, 4, 5 and 8 are already building under -98. Written by the planner by hand.

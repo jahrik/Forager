@@ -780,3 +780,9 @@ The owner ruled, verbatim: **"Option A for the fix"**. The planner had offered A
 - The fix is intent `2026-09-28-97`. It is queued until device check `-94` (S22) or `-95` (tablet) reproduces the failure, and behind the layout fixes (`-78`), which edit the same file.
 - Sightings stay gated on a search.
 - The wide tree draws no map at all before a search (`AvailabilityWideLayoutUi.kt:239-243`). That is a layout question for J6, not part of this fix.
+
+**The icon cluster in short landscape (owner, 2026-09-28).** The layout-fix coder found one cause behind five items. In short landscape the icon cluster (the 264 dp MapIconBar, an 8 dp gap and the 108 dp ControlPill, 380 dp in all) is taller than the S22's map area (about 354 dp), so it collides with the bar, chip, legend and caption on its side (stop report `b0fb443`).
+
+The owner ruled, verbatim: **"For icon column in short landscape: option A"**. The planner had offered A as: "Reshape the column in landscape. For example, put the record and return pill beside the icon bar instead of below it, so the column is about 264 dp tall and fits with room to spare. Nothing else moves."
+
+Carried by continuation `2026-09-28-99` of `-78`. Portrait is unchanged.
