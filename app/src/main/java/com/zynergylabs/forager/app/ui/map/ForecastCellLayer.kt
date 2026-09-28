@@ -77,7 +77,7 @@ internal fun forecastCellsFeatureCollection(cells: List<ForecastCell>): FeatureC
             )
             Feature.fromGeometry(Polygon.fromLngLats(listOf(ring))).apply {
                 addNumberProperty(CHANCE_PROPERTY, cell.chance)
-                addStringProperty(FEATURE_ID_PROPERTY, "${cell.centre.lat},${cell.centre.lng}")
+                addStringProperty(FEATURE_ID_PROPERTY, forecastCellFeatureId(cell))
             }
         },
     )

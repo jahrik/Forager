@@ -161,7 +161,7 @@ private const val SIGHTING_DOT_OPACITY = 0.7f
  */
 private const val SIGHTING_DOT_STROKE_OPACITY = 0.85f
 
-private fun marker(id: String, sourceId: String, role: PaletteRole, toggleable: Boolean) = MapLayerSpec(
+private fun marker(id: String, sourceId: String, role: PaletteRole, toggleable: Boolean, tapGroup: TapGroup = TapGroup.MARKER) = MapLayerSpec(
     id = id,
     kind = LayerKind.MARKER,
     renderer = LayerRenderer.SYMBOL,
@@ -171,7 +171,7 @@ private fun marker(id: String, sourceId: String, role: PaletteRole, toggleable: 
     userToggleable = toggleable,
     userOpacity = false,
     userReorderable = false,
-    tapGroup = TapGroup.MARKER,
+    tapGroup = tapGroup,
     baseOpacities = ICON_OPACITY,
 )
 
@@ -193,9 +193,11 @@ private fun line(id: String, sourceId: String, role: PaletteRole, tapGroup: TapG
 
 /**
  * A colour field's registry entry (map layers L0b, B7): switchable, with an opacity slider, reorderable,
- * credited while visible, and not tappable (the owner ruled the cell readout M1's; and a tappable cell
- * under nearly every tap would keep `resolveTap` from ever reaching its box stage for a near miss on a
- * line or marker). Its colours come from its own data, through [ColourFieldSpec.ramp], so no palette role.
+ * credited while visible, and tappable in [TapGroup.COLOUR_FIELD] since M1 (the cell readout bubble).
+ * L0b left it untappable because a tappable cell under nearly every tap kept `resolveTap` from reaching
+ * its box stage for a near miss on a line or marker; M1's `resolveTap` holds cells back until both
+ * stages find nothing else, so that rule still stands. Its colours come from its own data, through
+ * [ColourFieldSpec.ramp], so no palette role.
  *
  * Base fill opacity [COLOUR_FIELD_FILL_OPACITY], the value L0a's own tests used for a colour field
  * (`TapPrecedenceTest`, `MapLayerStateTest`): at the default 100% the basemap still shows through, and two
@@ -211,7 +213,7 @@ private fun colourField(field: ColourFieldSpec) = MapLayerSpec(
     userToggleable = true,
     userOpacity = true,
     userReorderable = true,
-    tapGroup = TapGroup.NONE,
+    tapGroup = TapGroup.COLOUR_FIELD,
     baseOpacities = listOf(BaseOpacity(OpacityProperty.FILL, COLOUR_FIELD_FILL_OPACITY)),
     credit = SYNTHETIC_DATA_CREDIT,
 )
@@ -260,10 +262,12 @@ val MAP_LAYER_REGISTRY: List<MapLayerSpec> = COLOUR_FIELDS.map(::colourField) + 
     ),
     line(MapLayerIds.OFFLINE_REGION_OUTLINE, MapSourceIds.OFFLINE_REGIONS, PaletteRole.CASING, TapGroup.LINE, owner = MapLayerIds.OFFLINE_REGION_FILL),
     line(MapLayerIds.BREADCRUMB_CASING, MapSourceIds.BREADCRUMB, PaletteRole.CASING, TapGroup.NONE, owner = MapLayerIds.BREADCRUMB),
-    line(MapLayerIds.BREADCRUMB, MapSourceIds.BREADCRUMB, PaletteRole.BREADCRUMB, TapGroup.LINE, owner = null),
+    // M1 (owner's ruling 4, "Not tappable"): the recording trail is not a record, so it takes no taps.
+    line(MapLayerIds.BREADCRUMB, MapSourceIds.BREADCRUMB, PaletteRole.BREADCRUMB, TapGroup.NONE, owner = null),
     line(MapLayerIds.KEPT_TRACKS_CASING, MapSourceIds.KEPT_TRACKS, PaletteRole.CASING, TapGroup.NONE, owner = MapLayerIds.KEPT_TRACKS),
     line(MapLayerIds.KEPT_TRACKS, MapSourceIds.KEPT_TRACKS, PaletteRole.KEPT_TRACK, TapGroup.LINE, owner = null),
-    marker(MapLayerIds.SEARCH_CENTRE, MapSourceIds.SEARCH_CENTRE, PaletteRole.SEARCH_CENTRE, toggleable = false),
+    // M1 (owner's ruling 4, "Not tappable"): the search-centre reticle is not a record either.
+    marker(MapLayerIds.SEARCH_CENTRE, MapSourceIds.SEARCH_CENTRE, PaletteRole.SEARCH_CENTRE, toggleable = false, tapGroup = TapGroup.NONE),
     MapLayerSpec(
         id = MapLayerIds.SIGHTINGS,
         kind = LayerKind.MARKER,
