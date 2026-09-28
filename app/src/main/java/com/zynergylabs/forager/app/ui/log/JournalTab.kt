@@ -278,6 +278,17 @@ internal fun JournalTab(
      * for callers that host this tab on its own (tests).
      */
     cartographyEntryModeState: MutableState<CartographyEntryMode> = remember { mutableStateOf(CartographyEntryMode.VIEW) },
+    /**
+     * Intent 2026-09-28-44, F3 (the owner: "Keep finds open too (Recommended)"): an open find's
+     * report-or-editor mode ([mode]) and M1's find over the view ([FindOverView]), held by the caller.
+     * Both were plain `remember` here, so while a find stayed open in the ViewModel across a tab
+     * change, it came back in its report whatever mode it was left in, and a find opened over the
+     * view from a map bubble came back hidden under it. The compact scaffold passes state held in
+     * `AvailabilityScreen`, above the Journal branch; the defaults are for callers that host this tab
+     * on its own (tests).
+     */
+    findEntryModeState: MutableState<JournalEntryMode> = remember { mutableStateOf(JournalEntryMode.REPORT) },
+    findOverViewState: MutableState<FindOverView?> = remember { mutableStateOf(null) },
     modifier: Modifier = Modifier,
 ) {
     // See LogPanel's identical effect for why this both shows and immediately clears the field.
@@ -294,7 +305,9 @@ internal fun JournalTab(
     // reporting first would just be an empty screen between creation and the form the user is there
     // for). Reset to REPORT whenever a *different* entry becomes the open one, so returning to an
     // entry after editing shows the freshly-recompiled report rather than staying in edit mode.
-    var mode by remember { mutableStateOf(JournalEntryMode.REPORT) }
+    // Intent 2026-09-28-44, F3: held by the caller (findEntryModeState), so a find left in its
+    // editor comes back in its editor.
+    var mode by findEntryModeState
     // J4b L1: a find tile's long-press Edit, straight into the edit form (EDIT mode, as a draft opens
     // and as the report's own Edit switches to). onOpenEntryForEditing opens and starts editing in one
     // critical section, the call LogPanel already uses; null means the tiles offer Delete only.
@@ -324,7 +337,7 @@ internal fun JournalTab(
     var recordsPendingSubTab by remember { mutableStateOf<RecordsSubTab?>(null) }
 
     // M1: a find opened from a map bubble, shown over whatever the Journal was showing (FindOverView).
-    var findOverView by remember { mutableStateOf<FindOverView?>(null) }
+    var findOverView by findOverViewState
     LaunchedEffect(findOverView, editing?.id) {
         findOverView = nextFindOverView(findOverView, editing?.id)
     }
@@ -772,7 +785,7 @@ internal fun journalSwitchTestTag(tab: JournalTopTab): String = when (tab) {
  * too, once the user backs out of editing it without filling anything in — REPORT stays correct for
  * that case where "does it have data" would not).
  */
-private enum class JournalEntryMode { REPORT, EDIT }
+internal enum class JournalEntryMode { REPORT, EDIT }
 
 /**
  * A one-shot request to open a specific place inside the Journal destination, made from outside it

@@ -96,7 +96,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
@@ -104,9 +103,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -139,6 +135,8 @@ import com.zynergylabs.forager.app.ui.log.CartographyUiState
 import com.zynergylabs.forager.app.ui.log.InAppCameraTarget
 import com.zynergylabs.forager.app.ui.log.JournalTab
 import com.zynergylabs.forager.app.ui.log.CartographyEntryMode
+import com.zynergylabs.forager.app.ui.log.FindOverView
+import com.zynergylabs.forager.app.ui.log.JournalEntryMode
 import com.zynergylabs.forager.app.ui.log.JournalScreenState
 import com.zynergylabs.forager.app.ui.log.MushroomLogUiState
 import com.zynergylabs.forager.app.ui.log.PendingJournalDestination
@@ -294,6 +292,9 @@ internal fun CompactMainScaffold(
      * `CartographyScreen`, so it outlives the Journal branch. Not among the 109 either.
      */
     cartographyEntryModeState: MutableState<CartographyEntryMode>,
+    /** Intent 2026-09-28-44, F3: an open find's mode and M1's find over the view, handed to [JournalTab]; see its parameters. Not among the 109. */
+    findEntryModeState: MutableState<JournalEntryMode>,
+    findOverViewState: MutableState<FindOverView?>,
 ) {
         // SearchDropdown, under ActiveSearchSummary — see that composable's own onToggleSearch doc
         // comment. Local to this scaffold, not AvailabilityUiState: which panel is showing is a
@@ -398,27 +399,14 @@ internal fun CompactMainScaffold(
         // CompactMapTab itself, which enters and leaves composition on every bottom-nav switch.
         LaunchedEffect(Unit) { onLocateMe() }
 
-        // Workstream L4b-R: backgrounding the app while a log entry is open is "leaving without
-        // answering" — persists the draft, never commits (see MushroomLogViewModel's own doc
-        // comment on the three exits). Deliberately calls the *raw* callback, never the
-        // Snackbar-offering wrapper below: the home button (or any other way of backgrounding)
-        // blows straight through any in-app prompt with no window to show one at all, so this
-        // defaults straight to "saved to Drafts," silently, with no discard offer attempted.
-        // Mirrors SightingsMap's own DisposableEffect(lifecycleOwner)/LifecycleEventObserver
-        // pattern — the one existing precedent in this codebase for hooking ON_STOP/ON_PAUSE, since
-        // neither MainActivity nor this composable had any lifecycle observer before this.
-        // rememberUpdatedState keeps the observer (registered once per lifecycleOwner) reading the
-        // *current* tab/entry state and callback rather than whatever was current the moment it was
-        // registered.
-        val lifecycleOwner = LocalLifecycleOwner.current
-        val latestOnLeaveEditingIncidentally by rememberUpdatedState(onLeaveLogEntryEditingIncidentally)
-        val latestIsJournalEditing by rememberUpdatedState(compactTab() == CompactTab.JOURNAL && logUiState.editingEntry != null)
-        // Device-check patch, Items 2/3: suppresses this same incidental-exit call while the open
-        // find's own camera/gallery round-trip is this app's own doing, not the user backgrounding
-        // it — see PhotoAcquisitionLaunchers.isAcquisitionInFlight's own doc comment for the full
-        // trace of why conflating the two was silently closing the find (and losing the photo with
-        // it) on every camera capture.
-        val latestPhotoAcquisitionInFlight by rememberUpdatedState(logPhotoAcquisitionInFlight())
+        // Intent 2026-09-28-44, F3 (the owner: "Keep finds open too (Recommended)"): backgrounding no
+        // longer closes an open find. This was an ON_STOP observer here (Workstream L4b-R) calling the
+        // raw onLeaveLogEntryEditingIncidentally whenever a find was open on the Journal, in its report
+        // or its editor, with the camera round trip excepted (logPhotoAcquisitionInFlight). A find open
+        // in view or edit is now still open when the user returns, as a day entry already was. Nothing
+        // is lost by not closing: a find's draft is written on every keystroke (onEntryEdited), and a
+        // process death reloads it into Drafts. The observer is removed rather than gated, so the
+        // camera exception it needed has no reader here any more (reported).
 
         // Search-focus-and-hide dispatch, Item 2's own hide condition (SearchEntryBar call sites
         // below) — "any entry open" (view or edit), not "specifically editing": from here,
@@ -444,23 +432,6 @@ internal fun CompactMainScaffold(
         // "entering a fresh edit" direction of Item 1 (as opposed to "returned to") was never
         // exercised by any test either way and is not built — see this dispatch's own report for the
         // reasoning on leaving it out rather than guessing at a shape that avoids the same race.
-        // Pending-edit-and-fixes dispatch, Item 1: this observer no longer touches Cartography at
-        // all — it used to call onSaveCartographyEntry here on a dirty committed entry, silently
-        // committing an edit the user never approved just because the app backgrounded. Backgrounding
-        // is not consent to save (owner decision): CartographyScreen now owns its own lifecycle
-        // observer for exactly this, holding the pending edit in ViewModel memory on ON_STOP (no
-        // call at all) and prompting Continue editing/Commit/Save as draft on ON_RESUME instead — see
-        // that composable's own doc comment for the full reasoning, including why it's self-contained
-        // there rather than threaded through here.
-        DisposableEffect(lifecycleOwner) {
-            val observer = LifecycleEventObserver { _, event ->
-                if (event == Lifecycle.Event.ON_STOP) {
-                    if (latestIsJournalEditing && !latestPhotoAcquisitionInFlight) latestOnLeaveEditingIncidentally()
-                }
-            }
-            lifecycleOwner.lifecycle.addObserver(observer)
-            onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-        }
 
         // Workstream L4b-R2: every *in-app* incidental exit (back arrow inside the edit form, the
         // journal tab's own BackHandler, switching to another bottom-nav tab, and — via the shared
@@ -473,17 +444,11 @@ internal fun CompactMainScaffold(
         // dismissed or ignored one leaves the draft exactly where that call already put it (owner
         // decision, 2026-08-25: Gmail-drafts-style).
         val onBottomNavTabSelected: (CompactTab) -> Unit = { tab ->
-            // Workstream L4b: switching away from Journal while an entry is open is
-            // "leaving without answering" — the same incidental-exit auto-save as
-            // the edit form's own back arrow or the app backgrounding (see
-            // MushroomLogViewModel's own doc comment on the three exits). Checked
-            // before compactTab actually changes, so this only fires on a genuine
-            // tab switch, never on tapping the already-selected Journal tab again.
-            // Also correct for Tools, below, since that never sets compactTab at
-            // all — tab != CompactTab.JOURNAL is still true when tab is TOOLS.
-            if (compactTab() == CompactTab.JOURNAL && tab != CompactTab.JOURNAL && logUiState.editingEntry != null) {
-                leaveLogEntryEditingOfferingDiscard()
-            }
+            // Intent 2026-09-28-44, F3 (the owner: "Keep finds open too (Recommended)"): switching
+            // away from the Journal, or opening Tools over it, no longer leaves an open find. It
+            // called leaveLogEntryEditingOfferingDiscard here (Workstream L4b), so a find open in
+            // view or edit was closed, where a day entry stayed open. The find is now still open on
+            // return, in the mode it was in (JournalTab's findEntryModeState).
             if (tab == CompactTab.TOOLS) {
                 // CompactTab.TOOLS's own doc comment: opens the drawer as an
                 // overlay over whatever tab is already showing, rather than
@@ -1069,6 +1034,8 @@ internal fun CompactMainScaffold(
                                 // off. See JournalTab's backEnabled for why off rather than outranked.
                                 backEnabled = !isDrawerOpen(),
                                 cartographyEntryModeState = cartographyEntryModeState,
+                                findEntryModeState = findEntryModeState,
+                                findOverViewState = findOverViewState,
                                 modifier = Modifier.fillMaxSize(),
                             )
                             // Never actually reached — CompactTab.TOOLS never becomes compactTab itself,
