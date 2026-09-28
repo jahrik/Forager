@@ -3368,3 +3368,14 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner, verbatim: "Pin OK/Download, rest scrolls (Recommended)". Flags carried: the offline panel's Cancel does nothing (AvailabilityOfflineMapsUi.kt:180-183); the find picker's map short in landscape. Written by the planner by hand.
 
 ---
+
+**Kind:** terminal
+**ID:** 2026-09-28-50
+**Timestamp:** 2026-09-28T17:13:14Z
+**Closes:** 2026-09-28-47
+**Outcome:** completed
+**Observed:** (1) Stop report c2ca9d9 (causes: fixed 4:3 map heights at CentrePinLocationPicker.kt:146 and CartographyEntryReportScreen.kt:400, neither inset-dependent); under continuation -49: tests first 3fc7bfe (LandscapeOfflinePickerTest 8, LandscapeEntryReportTest 5, through the real AvailabilityScreen at w823dp-h384dp-land, both rotations pinned with ShadowDisplay; every tests-first test failed for its predicted reason, four guards passing by design), build 62d1d1d (L1 side by side in a short landscape window, map full height on the punch-hole side by currentWindowPortEdge(), controls by the rail, OK/Cancel with "Pin at" and Download pinned, the rest scrolling; the picker refactored into a state holder with the public signature unchanged and the map as movable content; L2 the report map capped at 40% of the window height in any short window, 153.6 dp at 384 dp), report df49c06 (docs/audits/2026-09-28-landscape-picker-and-report-completion-report.md). (2) Revert checks: three, all compiling, each failing with its base messages. (3) Suites: coder at 62d1d1d 285 / 2316 / 0 / 0 / 24; planner at df49c06, results cleared, LC_ALL=C.UTF-8, counts from JUnit XML: 285 2316 0 0 24 (classes / tests / failures / errors / skipped). Predictions: 1 and 2 held; 3 held (+13).
+**Deviations:** The slider test changed after its tests-first commit (fixed drags overshot); the reverted build reproduced its base failure. Movable content for the map added beyond the dispatch, untested.
+**Notes:** Owner, verbatim: "Side by side (Recommended)", "Pin OK/Download, rest scrolls (Recommended)". Planner: the map on the punch-hole side (P8, P9, P12); L2 built. Device-only: both screens at rotations 90 and 270 with real insets; the map surviving a turn mid-pick; L2's opening frame at the smaller preview; a bubble taller than the preview; the Part B cut-off control. Flags: "Pan the map below" and "pan the map above and tap OK." read wrong side by side (copy, for the owner); the offline panel's Cancel does nothing; RTL could swap the sides. Next: J8's pre-build pass. Written by the planner by hand.
+
+---
