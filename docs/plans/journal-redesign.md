@@ -771,3 +771,12 @@ Build line, one at a time:
 4. J6.
 
 The map-chrome device check (`-84`) and the tablet photo-viewer check (`-86`) run on the devices meanwhile.
+
+### Planned trips on the map: the owner's ruling (2026-09-28)
+
+The owner reported that planned trips never appear on the Maps tab ("They do not appear at all", on the S26). The planned-trips pulse (`docs/audits/2026-09-28-planned-trips-pulse.md`) traced it to a gate on the compact Maps tab, added in `7692527` (2026-08-18): `plannedTrips = if (hasSearched) uiState.plannedTrips else emptyList()` (`AvailabilityCompactMapUi.kt:641`).
+
+The owner ruled, verbatim: **"Option A for the fix"**. The planner had offered A as: "Always draw saved trips, like waypoints and finds, whether or not a search has run."
+- The fix is intent `2026-09-28-97`. It is queued until device check `-94` (S22) or `-95` (tablet) reproduces the failure, and behind the layout fixes (`-78`), which edit the same file.
+- Sightings stay gated on a search.
+- The wide tree draws no map at all before a search (`AvailabilityWideLayoutUi.kt:239-243`). That is a layout question for J6, not part of this fix.
