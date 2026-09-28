@@ -717,3 +717,21 @@ internal enum class PendingJournalDestination {
     /** Land in Records → Finds, editing the entry [MushroomLogViewModel.onStartNewEntry] just created. */
     EDIT_NEW_FIND,
 }
+
+/**
+ * A find opened from a map bubble over whatever the Journal was showing (M1; continuation
+ * `2026-09-28-30`: the owner's "Open find, Back returns" and "Open drawer to the find", and the
+ * planner's ruling that the Maps route must not overwrite the saved Records filter). [findId] is the
+ * find asked for; [shown] turns true once the ViewModel has opened it (opening is asynchronous,
+ * `MushroomLogViewModel.onOpenEntry`), and the overlay then stays until no find is open any more
+ * (Back, the report's own back arrow, a save or a delete), which leaves the view under it exactly as
+ * it was: the same top tab, the same Records chip, the same day entry and its scroll.
+ */
+internal data class FindOverView(val findId: String, val shown: Boolean = false)
+
+/**
+ * [state] after the open find becomes [openFindId] (`MushroomLogUiState.editingEntry?.id`): shown
+ * once the asked-for find is open, kept while any find stays open (starting an edit swaps the open
+ * id to its draft row), and gone once none is. A request whose find never opened stays waiting.
+ */
+internal fun nextFindOverView(state: FindOverView?, openFindId: String?): FindOverView? = state // Tests-first stub.

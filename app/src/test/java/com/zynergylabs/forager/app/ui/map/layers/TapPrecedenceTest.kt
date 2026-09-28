@@ -17,13 +17,15 @@ class TapPrecedenceTest {
     private fun hit(layerId: String, featureId: String? = "id-$layerId") = TapHit(layerId, featureId)
 
     @Test
-    fun `every marker and line is queried, never a casing or the offline fill`() {
+    fun `every record marker, line and colour field is queried, never a casing, the offline fill, the search centre or the recording trail`() {
+        // M1 (owner's ruling 4, "Not tappable"): the search centre and the recording trail left the
+        // list; the colour fields joined it (planner's M1 ruling: cells are tappable).
         assertEquals(
             listOf(
+                MapLayerIds.FORECAST_CHICKEN_OF_THE_WOODS,
+                MapLayerIds.FORECAST_CHANTERELLES,
                 MapLayerIds.OFFLINE_REGION_OUTLINE,
-                MapLayerIds.BREADCRUMB,
                 MapLayerIds.KEPT_TRACKS,
-                MapLayerIds.SEARCH_CENTRE,
                 MapLayerIds.SIGHTINGS,
                 MapLayerIds.PLANNED_TRIPS,
                 MapLayerIds.WAYPOINTS,
@@ -57,8 +59,10 @@ class TapPrecedenceTest {
 
     @Test
     fun `within the lines the layer drawn on top wins`() {
-        assertEquals(hit(MapLayerIds.KEPT_TRACKS), tapWinner(listOf(hit(MapLayerIds.KEPT_TRACKS), hit(MapLayerIds.BREADCRUMB)), order))
-        assertEquals(hit(MapLayerIds.BREADCRUMB), tapWinner(listOf(hit(MapLayerIds.OFFLINE_REGION_OUTLINE), hit(MapLayerIds.BREADCRUMB)), order))
+        // M1: the recording trail is no longer a line a tap lands on, so the two tappable lines left
+        // are compared (kept tracks draw above the offline outline).
+        assertEquals(hit(MapLayerIds.KEPT_TRACKS), tapWinner(listOf(hit(MapLayerIds.OFFLINE_REGION_OUTLINE), hit(MapLayerIds.KEPT_TRACKS)), order))
+        assertEquals(hit(MapLayerIds.KEPT_TRACKS), tapWinner(listOf(hit(MapLayerIds.KEPT_TRACKS), hit(MapLayerIds.OFFLINE_REGION_OUTLINE)), order))
     }
 
     @Test
@@ -71,6 +75,8 @@ class TapPrecedenceTest {
     @Test
     fun `hits only on untappable or unknown layers win nothing, and no hits win nothing`() {
         assertNull(tapWinner(listOf(hit(MapLayerIds.BREADCRUMB_CASING), hit(MapLayerIds.OFFLINE_REGION_FILL), hit("not-a-layer")), order))
+        // M1 (owner's ruling 4): the search centre and the recording trail take no taps.
+        assertNull(tapWinner(listOf(hit(MapLayerIds.SEARCH_CENTRE), hit(MapLayerIds.BREADCRUMB)), order))
         assertNull(tapWinner(emptyList(), order))
     }
 
@@ -91,7 +97,7 @@ class TapPrecedenceTest {
         )
         val withField = orderedLayers(listOf(field) + MAP_LAYER_REGISTRY, MapLayersState.DEFAULT)
         assertEquals(hit("field"), tapWinner(listOf(hit("field"), hit(MapLayerIds.OFFLINE_REGION_FILL)), withField))
-        assertEquals(hit(MapLayerIds.BREADCRUMB), tapWinner(listOf(hit("field"), hit(MapLayerIds.BREADCRUMB)), withField))
+        assertEquals(hit(MapLayerIds.KEPT_TRACKS), tapWinner(listOf(hit("field"), hit(MapLayerIds.KEPT_TRACKS)), withField))
     }
 
     // resolveTap: the point decides, the box only when the point has nothing tappable.
@@ -106,11 +112,74 @@ class TapPrecedenceTest {
 
     @Test
     fun `with nothing tappable under the point the box decides`() {
-        assertEquals(hit(MapLayerIds.BREADCRUMB), resolveTap(emptyList(), { listOf(hit(MapLayerIds.BREADCRUMB)) }, order))
+        assertEquals(hit(MapLayerIds.KEPT_TRACKS), resolveTap(emptyList(), { listOf(hit(MapLayerIds.KEPT_TRACKS)) }, order))
         assertEquals(
-            hit(MapLayerIds.BREADCRUMB),
-            resolveTap(listOf(hit(MapLayerIds.OFFLINE_REGION_FILL)), { listOf(hit(MapLayerIds.BREADCRUMB)) }, order),
+            hit(MapLayerIds.KEPT_TRACKS),
+            resolveTap(listOf(hit(MapLayerIds.OFFLINE_REGION_FILL)), { listOf(hit(MapLayerIds.KEPT_TRACKS)) }, order),
         )
+    }
+
+    // M1: colour-field cells are tappable, but a cell wins only when it is under the finger and
+    // neither the point nor the 48 dp box finds a marker or a line (planner's ruling on Q5).
+
+    private val cell = hit(MapLayerIds.FORECAST_CHANTERELLES, "45.5,-122.6")
+
+    @Test
+    fun `a cell under the finger with nothing else near wins`() {
+        assertEquals(cell, resolveTap(listOf(cell), { listOf(cell) }, order))
+    }
+
+    // Each test below first shows the cell winning alone, so it can only pass once cells are
+    // tappable; the second half is the precedence the ruling adds.
+
+    @Test
+    fun `a line in the box beats the cell under the finger`() {
+        assertEquals(cell, resolveTap(listOf(cell), { listOf(cell) }, order))
+        assertEquals(hit(MapLayerIds.KEPT_TRACKS), resolveTap(listOf(cell), { listOf(cell, hit(MapLayerIds.KEPT_TRACKS)) }, order))
+    }
+
+    @Test
+    fun `a marker in the box beats the cell under the finger`() {
+        assertEquals(cell, resolveTap(listOf(cell), { listOf(cell) }, order))
+        assertEquals(hit(MapLayerIds.WAYPOINTS), resolveTap(listOf(cell), { listOf(hit(MapLayerIds.WAYPOINTS), cell) }, order))
+    }
+
+    @Test
+    fun `at the edge of a cell area a cell only in the box never wins`() {
+        // Inside the scored area the cell under the finger wins; one step past it the finger is on an
+        // empty cell and the box reaches a scored one, which must not win.
+        assertEquals(cell, resolveTap(listOf(cell), { listOf(cell) }, order))
+        assertNull(resolveTap(emptyList(), { listOf(cell) }, order))
+        assertNull(resolveTap(listOf(hit(MapLayerIds.OFFLINE_REGION_FILL)), { listOf(cell) }, order))
+    }
+
+    @Test
+    fun `a marker under the finger still wins without the box being queried, with a cell under it too`() {
+        assertEquals(cell, resolveTap(listOf(cell), { listOf(cell) }, order))
+        var boxQueries = 0
+        val winner = resolveTap(listOf(cell, hit(MapLayerIds.FINDS)), { boxQueries++; emptyList() }, order)
+        assertEquals(hit(MapLayerIds.FINDS), winner)
+        assertEquals(0, boxQueries)
+    }
+
+    // mapTapOutcome: what a resolved tap fires (owner's M1 ruling 1, "Bubble only").
+
+    @Test
+    fun `a feature tap is a feature tap and nothing else`() {
+        assertEquals(MapTapOutcome.OnFeature(MapLayerIds.WAYPOINTS, "wp-1"), mapTapOutcome(hit(MapLayerIds.WAYPOINTS, "wp-1")))
+        assertEquals(MapTapOutcome.OnFeature(MapLayerIds.FORECAST_CHANTERELLES, "45.5,-122.6"), mapTapOutcome(cell))
+    }
+
+    @Test
+    fun `a sighting tap names its observation, and nothing tapped is a plain tap`() {
+        assertEquals(MapTapOutcome.OnSighting(42L), mapTapOutcome(hit(MapLayerIds.SIGHTINGS, "42")))
+        assertEquals(MapTapOutcome.OnSighting(null), mapTapOutcome(hit(MapLayerIds.SIGHTINGS, null)))
+        assertEquals(MapTapOutcome.Plain, mapTapOutcome(null))
+    }
+
+    @Test
+    fun `a feature with no id is reported as unidentified`() {
+        assertEquals(MapTapOutcome.UnidentifiedFeature(MapLayerIds.FINDS), mapTapOutcome(hit(MapLayerIds.FINDS, null)))
     }
 
     @Test
