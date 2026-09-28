@@ -24,7 +24,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.JournalEntryOnMap
 import com.zynergylabs.forager.app.ui.theme.Bark
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
@@ -96,6 +95,12 @@ internal fun Modifier.journalMenuColours(container: Color, content: Color): Modi
  * ([journalMenuContainerColor]). The chip is a [Surface] sized to its text and the list a popup, so
  * nothing here takes a touch outside the pill itself (CLAUDE.md, the Surface pitfall); a host places it
  * in a row bounded to its content.
+ *
+ * No shadow (J8 follow-ups, continuation `2026-09-28-87`, item 3; the planner's ruling, "Layered fills
+ * composite to that value; they do not each carry it"): a `Surface` shadow is drawn beneath its fill, so
+ * under this translucent fill the shadow added to the 0.8. J8's device check measured the chip at 0.833
+ * to 0.840 on the S22 and put that down to its 4 dp shadow; that is an inference, re-measured on the
+ * device. The taxon chip beside it has no shadow either.
  */
 @Composable
 internal fun JournalEntriesMapChip(
@@ -120,7 +125,6 @@ internal fun JournalEntriesMapChip(
             shape = RoundedCornerShape(percent = 50),
             color = container,
             contentColor = content,
-            shadowElevation = 4.dp,
         ) {
             Text(
                 journalEntriesChipLabel(entries.size),

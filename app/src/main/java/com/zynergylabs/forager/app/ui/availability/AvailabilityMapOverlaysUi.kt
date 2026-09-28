@@ -327,6 +327,12 @@ internal fun ObservationBubble(
  * `mapTaxonFilterLabel` for why it isn't read from [AvailabilityForecast] directly). Same
  * theme-aware, 80%-opacity fill as [ObservationBubble]/`MapIconBar`/`MapModePicker` — one visual
  * language for every control floating over the map.
+ *
+ * No shadow (J8 follow-ups, continuation `2026-09-28-87`, item 3; the planner's ruling, "Layered fills
+ * composite to that value; they do not each carry it"): a `Surface` shadow is drawn beneath its fill,
+ * so under this translucent fill the shadow would add to the 0.8. This chip had J8's chip's 4 dp shadow,
+ * which J8's device check inferred took that chip to 0.833 to 0.840 on the S22; this one was not
+ * measured. Both are re-measured on the device.
  */
 @Composable
 internal fun TaxonMapFilterChip(label: String, onClear: () -> Unit, modifier: Modifier = Modifier) {
@@ -336,7 +342,6 @@ internal fun TaxonMapFilterChip(label: String, onClear: () -> Unit, modifier: Mo
         shape = RoundedCornerShape(percent = 50),
         color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
         contentColor = if (isDarkTheme) Color.White else Bark,
-        shadowElevation = 4.dp,
     ) {
         Row(
             modifier = Modifier.padding(start = Spacing.md, end = Spacing.xs, top = Spacing.xs, bottom = Spacing.xs),
