@@ -290,17 +290,19 @@ class AvailabilityScreenMapLayersSheetTest {
         composeRule.onNodeWithTag(MAP_LEGEND_CHIP_TAG).touch()
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithText(CHANTERELLES_LABEL).assertIsDisplayed()
-        composeRule.onNodeWithText(CHICKEN_LABEL).assertIsDisplayed()
+        // The expanded legend is capped and scrolls (N1), so each entry is scrolled to before it is
+        // checked as displayed, in the unmerged tree: the scroll sits inside the chip's one merged node.
+        composeRule.onNodeWithText(CHANTERELLES_LABEL, useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText(CHICKEN_LABEL, useUnmergedTree = true).performScrollTo().assertIsDisplayed()
         // Counted in the unmerged tree: the chip is one clickable Surface, so the merged tree folds
         // every text inside it into the chip's own node, and a merged count sees one node however
         // many ramps it holds.
         assertEquals(2, composeRule.onAllNodesWithText("0%", useUnmergedTree = true).fetchSemanticsNodes().size)
         assertEquals(2, composeRule.onAllNodesWithText("100%", useUnmergedTree = true).fetchSemanticsNodes().size)
-        composeRule.onNodeWithText("Week of 2026-09-28, weather to 2026-09-26").assertIsDisplayed()
-        composeRule.onNodeWithText("Week of 2026-09-28, weather to 2026-09-25").assertIsDisplayed()
+        composeRule.onNodeWithText("Week of 2026-09-28, weather to 2026-09-26", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Week of 2026-09-28, weather to 2026-09-25", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
         assertEquals(2, composeRule.onAllNodesWithText(LEGEND_NO_FORECAST_HERE, useUnmergedTree = true).fetchSemanticsNodes().size)
-        composeRule.onNodeWithText(LEGEND_REFERENCE_CLASS).assertIsDisplayed()
+        composeRule.onNodeWithText(LEGEND_REFERENCE_CLASS, useUnmergedTree = true).performScrollTo().assertIsDisplayed()
         assertEquals("Hide legend", composeRule.onNodeWithTag(MAP_LEGEND_CHIP_TAG).fetchSemanticsNode().config[SemanticsActions.OnClick].label)
 
         composeRule.onNodeWithText("2 layers").touch()
@@ -400,14 +402,14 @@ class AvailabilityScreenMapLayersSheetTest {
         val chip = composeRule.onNodeWithTag(MAP_LEGEND_CHIP_TAG)
         val height = chip.getUnclippedBoundsInRoot().let { it.bottom - it.top }
         assertTrue("capped at $LEGEND_MAX_HEIGHT ($height)", height <= LEGEND_MAX_HEIGHT + 1.dp)
-        composeRule.onNodeWithText(LEGEND_REFERENCE_CLASS).assertIsNotDisplayed()
+        composeRule.onNodeWithText(LEGEND_REFERENCE_CLASS, useUnmergedTree = true).assertIsNotDisplayed()
 
         chip.performTouchInput { swipeUp(startY = bottom - 4f, endY = top + 4f, durationMillis = 400) }
         composeRule.waitForIdle()
         chip.performTouchInput { swipeUp(startY = bottom - 4f, endY = top + 4f, durationMillis = 400) }
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithText(LEGEND_REFERENCE_CLASS).assertIsDisplayed()
+        composeRule.onNodeWithText(LEGEND_REFERENCE_CLASS, useUnmergedTree = true).assertIsDisplayed()
         assertEquals("the swipes scrolled, and did not collapse the legend", "Hide legend", chip.fetchSemanticsNode().config[SemanticsActions.OnClick].label)
     }
 }
