@@ -2881,3 +2881,13 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Written by the planner by hand. Open for the owner: whether the two test finds (one with a photo) can sync to iNaturalist; not checked. Flags carried, not investigated: the location puck's stacking changing after a style reload or tab switch; the bubble's tail about 150 px right of its dot; about 2.5 MapLibre errors a second after the MapView is destroyed; a 1 km offline radius labelled "1 mi" (DistanceUnit.kt:58-61 rounds to whole miles); the Records track sheet showing 18 points and 1h 27m against 23 stored points and about 1h 39m. Next on the phone: backlog Part A (2026-09-28-04).
 
 ---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-10
+**Dispatch-file:** none
+**Type:** owner answer
+**Outcome:** recorded
+**Report:** none
+**Notes:** 2026-09-28T04:58:51Z. Closes the open item in terminal 2026-09-28-09 on whether the two DEVICE CHECK test finds could sync to iNaturalist. The owner, verbatim: "No they could not sync to inaturalist on their own". The finds stay on the phone as test data. Written by the planner by hand.
+
+---
