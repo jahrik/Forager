@@ -3032,3 +3032,14 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner's ruling, verbatim: "Keep entry, fix the bar (Recommended)". Flags for the owner: a day entry left open in its editor comes back in its report view (CartographyScreen.kt:171, mode is a plain remember), and whether unsaved edits survive is unverified; an open find is closed by the tab switch even in its report view; leaveLogEntryEditingOfferingDiscard (AvailabilityScreen.kt:1124-1136) appears, from reading only, to show "Saved to Drafts" with Discard for a committed find that was only viewed, and what Discard then does is unverified. Device-only: the route on the S22 in both orientations, including from the entry map's own fullscreen. Written by the planner by hand.
 
 ---
+
+**Kind:** continuation
+**ID:** 2026-09-28-22
+**Timestamp:** 2026-09-28T10:27:52Z
+**Continues:** 2026-09-28-19
+**Dispatch-file:** preserved/2026-09-28-22.md
+**Reason:** the night-region coder stopped before any change (worktree clean at 75c9115): MapPaletteTest's solid-mark checks (a) distance from night ground and (c) contrast against the black casing, pinned at MapPaletteTest.kt:93, fail for every darker candidate including black (the planner's prediction 2 was wrong); and continuation -20's rule 2 needs label colours that are baked into the raster tiles, while the offline vector style has no label layers.
+**Changes:** The offline fill leaves MapPaletteTest's (a) and (c) and is tested as drawn (composited at 0.2 over each nightGround cluster: at least 0.02 Oklab ΔE from plain ground; night casing at least 3:1 over the composite); rule 2 withdrawn; five greys computed, three passing candidates built as debug APKs outside the repository (not pushed), with signing facts; then a device capture and the owner's pick; the chosen value committed in a later continuation.
+**Notes:** Owner's answers, verbatim: "Test it as drawn (Recommended)", "You pick from phone shots (Recommended)". The owner's earlier words: "Not too dark since it can make it harder to read. Find a balance." Written by the planner by hand.
+
+---
