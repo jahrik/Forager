@@ -101,7 +101,7 @@ import com.zynergylabs.forager.app.domain.model.TaxonFilter
 import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
 import com.zynergylabs.forager.app.domain.model.WeatherSeries
 import com.zynergylabs.forager.app.ui.map.CENTRE_PIN_CONFIRM_ROW_TAG
-import com.zynergylabs.forager.app.ui.map.MAP_MODE_PICKER_TAG
+import com.zynergylabs.forager.app.ui.map.MAP_LAYERS_SHEET_TAG
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.centrePinFillPixel
 import com.zynergylabs.forager.app.ui.theme.MapPalette
@@ -1014,7 +1014,7 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNodeWithContentDescription("Fullscreen").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Reset orientation to north").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Center on my location").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Map mode: Topographical. Choose Street, Topographical, or Satellite. Night mode off.").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Layers: Topographical map. Choose the map type and overlays.").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Plan a trip or log a find here").assertIsDisplayed()
     }
 
@@ -2269,8 +2269,8 @@ class AvailabilityScreenMapIconStackTest {
 
     // ── Expanded-panels dispatch: MapModePicker/AddActionTile follow the bar's live position ──
 
-    /** [MapIconBar]'s layers row, as it reads at this file's default (Topographical, night mode off). */
-    private val layersRowDescription = "Map mode: Topographical. Choose Street, Topographical, or Satellite. Night mode off."
+    /** [MapIconBar]'s layers row, as it reads at this file's default basemap (Topographical). */
+    private val layersRowDescription = "Layers: Topographical map. Choose the map type and overlays."
 
     /** [MapIconBar]'s add row. */
     private val addRowDescription = "Plan a trip or log a find here"
@@ -2314,7 +2314,8 @@ class AvailabilityScreenMapIconStackTest {
      * now is* — the panel's own outer edge lands on the bar's own outer edge on whichever side the
      * bar is on, and the panel is vertically centred on the row that opened it — and *fully on
      * screen*, checked against the root's own real bounds. The panel is measured by its own
-     * `Surface` ([MAP_MODE_PICKER_TAG]/[ADD_ACTION_TILE_TAG]), not by its chips: under
+     * `Surface` ([ADD_ACTION_TILE_TAG]; the map mode picker's own tag went with the picker, map
+     * layers L0b), not by its chips: under
      * Robolectric's near-zero-width fonts each chip is under 48dp wide, so Material's
      * `minimumInteractiveComponentSize` wrapper pads it out and the chip's own semantics bounds
      * stop a font-dependent ~6dp short of the panel's real edge (measured, not assumed — see
@@ -2409,36 +2410,31 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     /**
-     * The dispatch's own bug, reproduced then disproven for [MapModePicker] on the default (right)
-     * edge: the bar is dragged to the bottom of its range, the picker opened by a real touch on
-     * the layers row *at its new position*, then checked against where the bar now is (see
-     * [assertPanelAnchoredToBar]) — previously it opened at the bar's old, centred position. A real
-     * touch on the "Street" chip then proves the panel's own buttons are tappable where it
-     * landed: the layers row's own contentDescription reflects the new mode.
+     * Map layers L0b (planner's ruling on F3): the popover these two tests used to anchor-check is
+     * gone, replaced by the Layers sheet, which is a modal bottom sheet with no anchor to the bar. What
+     * still holds, and what these check with real touches, is that the layers row opens it from
+     * wherever the bar has been dragged, on either edge, and that the sheet's map-type chips work: a
+     * touch on "Street" changes the row's description. The sheet is its own window, so the touch on
+     * the chip is through the chip's own node rather than the app's root.
      */
     @Test
-    fun `with the bar dragged to the bottom on the right, the map mode picker opens beside the layers row and its chips are tappable`() {
+    fun `with the bar dragged to the bottom on the right, a real touch on the layers row opens the Layers sheet and its map types work`() {
         setScreen()
 
         dragIconBarHandle(tag = "map-icon-bar-minimize-handle", dyDp = 2000.dp)
         composeRule.onRoot().performTouchInput { click(centerOfContentDescription(layersRowDescription)) }
         composeRule.waitForIdle()
 
-        assertPanelAnchoredToBar(
-            panelTag = MAP_MODE_PICKER_TAG,
-            openedFromRow = layersRowDescription,
-            onLeftSide = false,
-        )
-
-        composeRule.onRoot().performTouchInput { click(centerOfText("Street")) }
+        composeRule.onNodeWithTag(MAP_LAYERS_SHEET_TAG).assertIsDisplayed()
+        composeRule.onNodeWithText("Street").performTouchInput { click() }
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithContentDescription("Map mode: Street. Choose Street, Topographical, or Satellite. Night mode off.").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Layers: Street map. Choose the map type and overlays.").assertIsDisplayed()
     }
 
-    /** [MapModePicker], left edge — the horizontal case the dispatch asked to confirm, not assume: one drag snaps the bar left and drops it to the bottom of its range. */
+    /** The same on the left edge: one drag snaps the bar left and drops it to the bottom of its range. */
     @Test
-    fun `with the bar dragged to the bottom on the left, the map mode picker opens beside the layers row and its chips are tappable`() {
+    fun `with the bar dragged to the bottom on the left, a real touch on the layers row opens the Layers sheet and its map types work`() {
         setScreen()
         val fullscreenLeftBefore = composeRule.onNodeWithContentDescription("Fullscreen").getUnclippedBoundsInRoot().left
 
@@ -2453,16 +2449,11 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onRoot().performTouchInput { click(centerOfContentDescription(layersRowDescription)) }
         composeRule.waitForIdle()
 
-        assertPanelAnchoredToBar(
-            panelTag = MAP_MODE_PICKER_TAG,
-            openedFromRow = layersRowDescription,
-            onLeftSide = true,
-        )
-
-        composeRule.onRoot().performTouchInput { click(centerOfText("Street")) }
+        composeRule.onNodeWithTag(MAP_LAYERS_SHEET_TAG).assertIsDisplayed()
+        composeRule.onNodeWithText("Street").performTouchInput { click() }
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithContentDescription("Map mode: Street. Choose Street, Topographical, or Satellite. Night mode off.").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Layers: Street map. Choose the map type and overlays.").assertIsDisplayed()
     }
 
     /**
