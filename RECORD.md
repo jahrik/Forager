@@ -2983,3 +2983,14 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner, verbatim: "Found a bug also: when moving from journal entry map to the main map, the search bar disappears", "The last screenshot shows it", "It's missing in landscape also"; ruling, "Keep entry, fix the bar (Recommended)". Diagnosis by a read-only pulse at 955cc58 (reported to the planner; its findings are in the dispatch file): the gate dates from 1cea45b and is in build 2458934 too; L0b is not the cause. Written by the planner by hand.
 
 ---
+
+**Kind:** terminal
+**ID:** 2026-09-28-18
+**Timestamp:** 2026-09-28T10:14:19Z
+**Closes:** 2026-09-28-16
+**Outcome:** completed
+**Observed:** (1) On journal-redesign: 05d68c3 (tests first; the sheet passes its Material3 defaults explicitly, containerColor BottomSheetDefaults.ContainerColor = colorScheme.surfaceContainerLow and a pinned contentColor, with two semantics seams; test 1 failed "container alpha expected:<0.8> but was:<1.0>"), 8026a7e (containerColor at alpha MAP_CHROME_OVER_MAP_ALPHA), report 82ec64e (docs/audits/2026-09-28-layers-sheet-alpha-completion-report.md), merge e3471bf. Scrim unchanged: colorScheme.scrim (Bark) at 0.32. (2) Revert checks R1 (alpha removed) and R2 (content-colour pin removed), both compiling, each failing with its own message, restored from saved copies. (3) Coder's suite at 8026a7e, results cleared: 267 / 2185 / 0 / 0 / 24. The planner did not re-run it, to avoid a second Gradle run beside the search-bar coder's build on this 11 GB machine; to be re-run with the next stage close. (4) Predictions: 1 held for 8026a7e, which depends on 05d68c3's 31 lines; 2 held (+2).
+**Deviations:** The content colour was pinned to onSurface, which the dispatch did not name: without it a translucent container makes contentColorFor fall back to LocalContentColor. Visible colour unchanged.
+**Notes:** Owner, verbatim: "Can this panel be given 80% opacity like the rest of the map chrome?" Device-only: how the sheet reads over Street, Topographical, Satellite and night on a real screen, the light theme, the scrim beneath. Flag: the other map sheets remain opaque. Written by the planner by hand.
+
+---
