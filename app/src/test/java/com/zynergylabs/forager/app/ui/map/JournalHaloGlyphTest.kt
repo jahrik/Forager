@@ -41,10 +41,16 @@ class JournalHaloGlyphTest {
         MarkerGlyph.PHOTO to Triple(0f, -11f, 0f to -1f),
     )
 
-    /** The pixel [dxDp], [dyDp] from the anchor; transparent when that lies outside the image. */
+    /**
+     * The pixel [dxDp], [dyDp] from the anchor; transparent when that lies outside the image.
+     *
+     * The test's own [density], named explicitly: inside a `Bitmap` extension a bare `density` is the
+     * receiver's `Bitmap.getDensity()` (a dpi, 160 and up), which put every probe off the image, so the
+     * ring assertion read 0 and the two "nothing there" assertions passed without reading a pixel.
+     */
     private fun Bitmap.at(image: GlyphImage, dxDp: Float, dyDp: Float): Int {
-        val px = (image.anchorXPx + dxDp * density).roundToInt()
-        val py = (image.anchorYPx + dyDp * density).roundToInt()
+        val px = (image.anchorXPx + dxDp * this@JournalHaloGlyphTest.density).roundToInt()
+        val py = (image.anchorYPx + dyDp * this@JournalHaloGlyphTest.density).roundToInt()
         return if (px in 0 until width && py in 0 until height) getPixel(px, py) else 0
     }
 

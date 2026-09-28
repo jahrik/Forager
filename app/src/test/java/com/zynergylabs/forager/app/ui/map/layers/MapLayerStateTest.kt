@@ -50,11 +50,17 @@ class MapLayerStateTest {
         assertEquals(listOf(OpacityValue(OpacityProperty.FILL, 0f)), paint.opacities)
     }
 
+    // J8 (planner, continuation 2026-09-28-53, Q4: "A record whose own overlay is switched off gets no
+    // highlight"; restated under continuation 2026-09-28-64): hiding a record layer now also hides the
+    // journal-entry halo drawn with it. The expectation changed with that ruling: the finds halo is named
+    // and asserted hidden, and every other layer is still asserted unchanged, as before.
     @Test
-    fun `a hidden layer's visible flag is false and no other layer changes`() {
+    fun `a hidden layer's visible flag is false, the journal halo drawn with it hides too, and no other layer changes`() {
         val state = MapLayersState(layers = mapOf(MapLayerIds.FINDS to LayerState(visible = false)))
         assertFalse(paint(MapLayerIds.FINDS, state).visible)
-        MAP_LAYER_REGISTRY.filter { it.id != MapLayerIds.FINDS }.forEach {
+        assertTrue("the finds halo is shown by default", paint(MapLayerIds.JOURNAL_ENTRY_FINDS, MapLayersState.DEFAULT).visible)
+        assertFalse("the finds halo hides with Finds (-53, Q4)", paint(MapLayerIds.JOURNAL_ENTRY_FINDS, state).visible)
+        MAP_LAYER_REGISTRY.filter { it.id != MapLayerIds.FINDS && it.id != MapLayerIds.JOURNAL_ENTRY_FINDS }.forEach {
             assertEquals(it.id, layerPaintFor(it, MapLayersState.DEFAULT), layerPaintFor(it, state))
         }
     }
