@@ -1,7 +1,8 @@
 # Night offline-region candidates: capture run record (2026-09-28), STOPPED PARTWAY (twice)
 
-**Current status (after the resumed session, below): stopped at 11:51Z on an abort condition, framing that
-cannot be reproduced across candidates (View C only). 404040 is installed; Night Maps is still on.**
+**Current status (after the fourth session, at the end): stopped at 11:56Z with a question for the planner. Under
+the planner's relaxed View C rule, it is unclear whether 404040's View C "matches" at its shift. No phone
+action was taken in that session. 404040 is installed; Night Maps is still on.**
 
 Dispatch `prompts/preserved/2026-09-28-26.md` (continuation `2026-09-28-26` of intent `2026-09-28-19`).
 Phone SM-S908U, serial `R5CT321008R`. The raw evidence and every screenshot are outside the repository, in
@@ -292,3 +293,106 @@ described above. The 11:39:09Z line is the real shot.
   - wait for the fix to return.
 - The shift is invisible at View A's zoom, so the earlier A/B "pixel-identical" results say nothing about
   sub-pixel camera agreement. A check at one zoom cannot see sub-pixel drift that another zoom magnifies.
+
+## Fourth coder session (11:53Z to 11:57Z): stopped on a question, no phone action
+
+**Planner message, part of this dispatch, quoted verbatim.** The planner-log line for it was not given to this
+session, so it is not cited.
+
+> **Planner message, part of the dispatch. Quote it verbatim in the run record.** The previous coder stopped on "framing that cannot be reproduced across candidates": 404040's View C sat at a steady (3,3) px offset from `202020-C`, which it attributed to about 2 m of GPS drift, magnified at View C's zoom. The planner is relaxing its own abort rule, because these shots exist only for the owner to compare fill colour by eye.
+>
+> - **A frame is accepted if** `offs.py` finds its best whole-pixel shift against the 202020 reference for that view is **at most 5 px in each axis**, and, at that shift, it matches outside the circle as `outside.py` measures.
+> - **Record each accepted shot's shift** in the run record.
+> - **Do not reinstall 202020.** Do not chase the fix, and do not wait for it to drift back.
+> - A larger offset, or a mismatch that remains after the shift, is still an abort. So is any prompt appearing over the app.
+>
+> The standing rules still apply: never `adb logcat -c`, launch with `am start` only (never `monkey`), and `install -r` only.
+>
+> **Phone state at 11:52Z:**
+> - installed: 404040;
+> - Night Maps: **on** (its start value was off);
+> - basemap: Topographical;
+> - rotation: 0/0.
+>
+> **Continue:**
+> 1. Take 404040 View C again under the rule above; its runs `65`/`66` may already qualify. Then take 404040 View B.
+> 2. Install 606060 with the same checks as before: sha256 against `FACTS.txt`, `firstInstallTime` unchanged, and a crash read. Then take views A-night, B and C.
+> 3. Restore Night Maps to **off** and the basemap to Topographical, then read both back.
+> 4. Leave 606060 installed.
+> 5. Update the run record and push it to your branch.
+>
+> **Final message:** list the shot paths in the order 202020, 404040, 606060, grouped by view (A-night, B, C, plus 202020's A-day). Give no judgement of which looks best. You are the only coder on the phone.
+
+### Applying the rule to the existing 404040 View C runs (offline, no phone action)
+
+`outside.py` takes no shift, so the rule's "at that shift" cannot be run with it unchanged. I wrote
+`logs/outside_shift.py` (sha256 `81c7d7d28fbadbba8b1c71bfb432f24d9640a5ae58e1791f128cb934ca9f35d6`). It keeps
+`outside.py`'s regions and its >24 threshold and compares ref(x,y) with new(x+dx,y+dy), the convention `offs.py`
+reports. Pixels whose shifted position falls off the image count as differing. Self-check: `202020-C` against
+itself at (0,0) gives 0. At (0,0) it gives 101 507 against `66-viewc-404040-r3`, the same as `outside.py`.
+
+Reference `shots/202020-C.png`, View C region (rows 300-820):
+
+| Run | `offs.py` full map area, best | `offs.py` rows 300-820, best | `outside_shift.py` C at best shift |
+|---|---|---|---|
+| `65-viewc-404040-r1` | (3,3), 4018 differing | (3,3), 1246 | **1919** of 475 800 |
+| `66-viewc-404040-r2` | (3,3), 3782 | (3,3), 1246 | **1919** |
+| `66-viewc-404040-r3` | (3,3), 3571 | (3,3), 1246 | **1919** |
+
+The shift is within the rule's 5 px in each axis. At that shift, 1919 pixels still differ outside the circle.
+
+**Where the 1919 sit** (a diff map, looked at, kept only in the session scratchpad): 1070 are in columns 0-24,
+mostly the left-edge handle overlay, which is fixed on screen and so is misaligned by any x-shift of the map. The
+rest are thin fringes along roads and building outlines, spread over the whole region. That is consistent with
+the true offset not being a whole number of pixels, but this is inferred, not measured.
+
+**Control, same fill colour, known whole-pixel offset:** `46-viewc-202020-a` against `202020-C` gives
+`offs.py` best (0,+3), and `outside_shift.py` at (0,+3) leaves **66** differing. (That run's first attempt used
+(0,-3) and gave 121 709. It was a sign error on my side: `offs.py` had been run with 46 as the reference. It is
+recorded here so the figure is not misread later.)
+
+**Why this is a stop, not an accept or an abort.** The rule accepts a frame that "matches outside the circle as
+`outside.py` measures" at its shift, and calls "a mismatch that remains after the shift" an abort. `outside.py`
+gives a count, not a verdict. Every acceptance in this record so far has meant 0 differing. At a nonzero shift,
+0 cannot be reached, because fixed overlays move against the map. The rule does not say what count is a match, so
+choosing a tolerance would be deciding it myself. Options I can see:
+1. accept with a stated tolerance (1919 of 475 800 is 0.40%; the same-colour control is 66, 0.014%);
+2. accept only if the residual is shown to be overlay and sub-pixel fringes, for example by masking the fixed
+   overlays, and state the count after masking;
+3. treat 1919 as a remaining mismatch, which is an abort under the rule.
+
+Phone work after this is unaffected by the answer only for View B (the View A frames still read 0 at (0,0):
+`64-frameA-404040-r1` against `66-frameA-404040-r3`, and `66-frameA-404040-r3` against `202020-A-night`, both 0
+of 904 723). I did not take 404040-B either: the planner's order is C and then B, and an abort on C would stop B.
+
+### Phone state (read only, 11:55:58Z)
+
+| Item | State |
+|---|---|
+| Top resumed | Forager `MainActivity` |
+| Installed | 404040, versionName `1.0.1259+g75c050f7.dirty`, `lastUpdateTime` 2026-09-28 04:39:27 (PDT) |
+| `firstInstallTime` (user 0) | 2026-09-22 11:15:05, unchanged |
+| Night Maps | on (not read this session; unchanged since the planner's 11:52Z state, since nothing was touched) |
+| Rotation | 0 / 0 |
+| Keyguard | not showing |
+| Crash buffer (`logcat -b crash -d`) | 0 lines |
+
+No touch, install, launch or setting change was made this session.
+
+### Decisions I made (fourth session)
+
+- Wrote `outside_shift.py` to apply `outside.py` "at that shift". The shift convention, and counting pixels
+  shifted off the image as differing, are mine.
+- Ran `offs.py` over View C's rows 300-820 as well as its default full map area. The rule does not say which
+  region `offs.py` uses. Both gave (3,3).
+- Treated "matches" as undetermined for a nonzero count, and stopped to ask instead of picking a tolerance.
+- Did not take 404040-B before the answer, though it would likely pass under the rule.
+
+### Flags outside scope
+
+- **Dual App profile.** `pm list users` shows user 95, `DUAL_APP`. In `logs/00-package-start.txt` Forager is
+  `installed=false` for user 95. In `logs/11-package-202020.txt` (after the first `install -r`) and
+  `logs/61-package-404040.txt` it is `installed=true` (stopped, never launched). So `adb install -r` without
+  `--user` has also installed the candidate builds into Samsung's Dual App profile. Nothing was done about it.
+  Removing it would be an uninstall, which this dispatch forbids. The owner or planner decides.
+- The rule's "matches" will run into the same question on 606060's View C, and on any View A or B that shifts.
