@@ -289,11 +289,14 @@ class AvailabilityScreenMapLayersSheetTest {
 
         composeRule.onNodeWithText(CHANTERELLES_LABEL).assertIsDisplayed()
         composeRule.onNodeWithText(CHICKEN_LABEL).assertIsDisplayed()
-        assertEquals(2, composeRule.onAllNodesWithText("0%").fetchSemanticsNodes().size)
-        assertEquals(2, composeRule.onAllNodesWithText("100%").fetchSemanticsNodes().size)
+        // Counted in the unmerged tree: the chip is one clickable Surface, so the merged tree folds
+        // every text inside it into the chip's own node, and a merged count sees one node however
+        // many ramps it holds.
+        assertEquals(2, composeRule.onAllNodesWithText("0%", useUnmergedTree = true).fetchSemanticsNodes().size)
+        assertEquals(2, composeRule.onAllNodesWithText("100%", useUnmergedTree = true).fetchSemanticsNodes().size)
         composeRule.onNodeWithText("Week of 2026-09-28, weather to 2026-09-26").assertIsDisplayed()
         composeRule.onNodeWithText("Week of 2026-09-28, weather to 2026-09-25").assertIsDisplayed()
-        assertEquals(2, composeRule.onAllNodesWithText(LEGEND_NO_FORECAST_HERE).fetchSemanticsNodes().size)
+        assertEquals(2, composeRule.onAllNodesWithText(LEGEND_NO_FORECAST_HERE, useUnmergedTree = true).fetchSemanticsNodes().size)
         composeRule.onNodeWithText(LEGEND_REFERENCE_CLASS).assertIsDisplayed()
         assertEquals("Hide legend", composeRule.onNodeWithTag(MAP_LEGEND_CHIP_TAG).fetchSemanticsNode().config[SemanticsActions.OnClick].label)
 

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -20,6 +21,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -36,7 +38,9 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import com.zynergylabs.forager.app.ForagerApplication
 import com.zynergylabs.forager.app.diagnostics.DiagnosticsLog
+import com.zynergylabs.forager.app.forecast.SyntheticForecastSwitch
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.io.File
 import java.time.Instant
@@ -72,10 +76,15 @@ import kotlinx.coroutines.withContext
  * `res/xml/file_paths.xml`, which is where `photos/` becomes shareable — the release provider
  * config is untouched and still never exposes it, as its own comment promises.
  *
- * ## Read-only, and off the thread it is measuring
+ * ## Read-only, but for one switch, and off the thread it is measuring
  *
- * Nothing here deletes, clears, renames or writes to the directories it lists; the only write
- * anywhere is the log's own, elsewhere. The listing and the log read happen on `Dispatchers.IO`,
+ * Nothing here deletes, clears, renames or writes to the directories it lists; the log's own
+ * write is elsewhere. **One write since map layers L0b (B6):** the panel's first row is the
+ * "Synthetic forecast layers" toggle, which stores one boolean in its own debug-only DataStore file
+ * (`debug_diagnostics_preferences`, key `diagnostics.synthetic_forecast`) through the app's one
+ * [SyntheticForecastSwitch], the synthetic forecast store `AppContainer.forecastCellStore` holds in
+ * a debug build. Turned on, the Maps tab's colour fields draw synthetic cells the next time the map
+ * is shown. The panel still writes nothing it lists. The listing and the log read happen on `Dispatchers.IO`,
  * and so does `FileProvider.getUriForFile` (it canonicalises the path, a disk read). That is not
  * fastidiousness: the StrictMode policy this same dispatch installs is on the main thread, so a
  * panel that listed a directory on main would write its own violations into the log it exists to
@@ -92,7 +101,23 @@ internal fun DiagnosticsPanel(onBack: () -> Unit, modifier: Modifier = Modifier)
         log = DiagnosticsLog.forContext(context),
         onBack = onBack,
         modifier = modifier,
+        syntheticForecastSwitch = remember(context) { appSyntheticForecastSwitch(context) },
     )
+}
+
+/**
+ * The app's one synthetic forecast switch: the debug build's `AppContainer.forecastCellStore`, reached
+ * through the application's container (planner's ruling on Q12), so the panel signature the release
+ * twin shares does not change. `null`, and logged, if the container's store is not that store, which
+ * would mean the source-set split is wired wrong; the toggle row is then absent rather than inert.
+ */
+private fun appSyntheticForecastSwitch(context: Context): SyntheticForecastSwitch? {
+    val store = (context.applicationContext as? ForagerApplication)?.container?.forecastCellStore
+    val switch = store as? SyntheticForecastSwitch
+    if (switch == null) {
+        Log.w(TAG, "The app's forecast store is not the synthetic store; the Synthetic forecast layers toggle is not shown.")
+    }
+    return switch
 }
 
 /** The Settings panel's row into this panel. Draws its own divider above so the release twin, which draws nothing, leaves no orphaned rule behind. */
@@ -121,8 +146,8 @@ internal fun DiagnosticsPanel(
     log: DiagnosticsLog,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    /** Tests-first stub (map layers L0b, B6): the "Synthetic forecast layers" switch. */
-    syntheticForecastSwitch: com.zynergylabs.forager.app.forecast.SyntheticForecastSwitch? = null,
+    /** The "Synthetic forecast layers" toggle's switch (map layers L0b, B6); no toggle row when `null`. */
+    syntheticForecastSwitch: SyntheticForecastSwitch? = null,
 ) {
     var viewingLog by remember { mutableStateOf(false) }
     if (viewingLog) {
@@ -156,6 +181,7 @@ internal fun DiagnosticsPanel(
                 .padding(horizontal = Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
+            syntheticForecastSwitch?.let { SyntheticForecastRow(it) }
             shareError?.let { message ->
                 Text(message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.testTag(DIAGNOSTICS_SHARE_ERROR_TAG))
             }
@@ -166,6 +192,45 @@ internal fun DiagnosticsPanel(
             DirectorySection(title = "$CAPTURES_DIRECTORY/", files = current.captures, onShare = { share(it, "image/jpeg") })
         }
     }
+}
+
+/**
+ * The panel's first toggle, "Synthetic forecast layers" (map layers L0b, B6). Shows what is stored,
+ * read when the panel opens; a touch writes the other value and shows it once the write has landed. A
+ * read that fails is logged and shown as off, which is also how the store treats it; a write that
+ * fails is logged and leaves the toggle showing what is stored.
+ */
+@Composable
+private fun SyntheticForecastRow(switch: SyntheticForecastSwitch) {
+    var enabled by remember(switch) { mutableStateOf<Boolean?>(null) }
+    LaunchedEffect(switch) {
+        enabled = switch.isEnabled().getOrElse { error ->
+            Log.w(TAG, "Couldn't read the synthetic forecast switch; showing it off.", error)
+            false
+        }
+    }
+    val current = enabled ?: return
+    val scope = rememberCoroutineScope()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .toggleable(value = current, role = Role.Switch) { wanted ->
+                scope.launch {
+                    switch.setEnabled(wanted).fold(
+                        onSuccess = { enabled = wanted },
+                        onFailure = { error -> Log.w(TAG, "Couldn't store the synthetic forecast switch.", error) },
+                    )
+                }
+            }
+            .testTag(DIAGNOSTICS_SYNTHETIC_FORECAST_TAG),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(SYNTHETIC_FORECAST_TOGGLE_LABEL, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        Switch(checked = current, onCheckedChange = null)
+    }
+    HorizontalDivider()
 }
 
 @Composable
@@ -344,7 +409,7 @@ internal const val DIAGNOSTICS_LOG_SHARE_TAG = "diagnostics-log-share"
 internal const val DIAGNOSTICS_LOG_TEXT_TAG = "diagnostics-log-text"
 internal const val DIAGNOSTICS_SHARE_ERROR_TAG = "diagnostics-share-error"
 
-/** Tests-first stubs (map layers L0b, B6): the "Synthetic forecast layers" toggle's label and tag. */
+/** The "Synthetic forecast layers" toggle's label and tag (map layers L0b, B6). */
 internal const val SYNTHETIC_FORECAST_TOGGLE_LABEL = "Synthetic forecast layers"
 internal const val DIAGNOSTICS_SYNTHETIC_FORECAST_TAG = "diagnostics-synthetic-forecast"
 internal fun diagnosticsShareTag(file: File): String = "diagnostics-share:${file.name}"

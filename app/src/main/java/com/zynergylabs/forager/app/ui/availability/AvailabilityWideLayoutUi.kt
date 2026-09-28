@@ -57,7 +57,14 @@ import com.zynergylabs.forager.app.ui.map.CentrePinLocationPickerOverlay
 import com.zynergylabs.forager.app.ui.map.MIN_TOUCH_TARGET
 import com.zynergylabs.forager.app.ui.map.MapFloatingIconButton
 import com.zynergylabs.forager.app.ui.map.MapMode
-import com.zynergylabs.forager.app.ui.map.MapModePicker
+import com.zynergylabs.forager.app.ui.map.MAPS_TAB_OVERLAYS
+import com.zynergylabs.forager.app.ui.map.MapLayersControls
+import com.zynergylabs.forager.app.ui.map.MapLayersSheet
+import com.zynergylabs.forager.app.ui.map.MapLegendChip
+import com.zynergylabs.forager.app.ui.map.layersButtonDescription
+import com.zynergylabs.forager.app.ui.map.layers.COLOUR_FIELDS
+import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
+import com.zynergylabs.forager.app.ui.map.layers.mapLegendFor
 import com.zynergylabs.forager.app.ui.map.MapOverlayContent
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
@@ -97,6 +104,11 @@ internal fun CombinedResultsPane(
     onClearTaxonFilter: () -> Unit,
     onViewOnMap: (Long) -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * Map layers L0b: the Layers sheet's choices and callbacks, the legend and the saved records the
+     * Maps tab draws (see [MapLayersControls]). Defaulted so other callers are unchanged.
+     */
+    mapLayers: MapLayersControls = MapLayersControls(),
 ) {
     Row(modifier = modifier.fillMaxHeight()) {
         ListTab(
@@ -120,6 +132,7 @@ internal fun CombinedResultsPane(
             onDropWaypoint = onDropWaypoint,
             taxonFilter = taxonFilter,
             onClearTaxonFilter = onClearTaxonFilter,
+            mapLayers = mapLayers,
             modifier = Modifier.weight(1f).fillMaxHeight(),
         )
     }
@@ -132,7 +145,8 @@ private val COMBINED_PANE_LIST_WIDTH = 360.dp
  * The quick-fire icon overlaid on the map's own top-right corner — not the app bar, not Settings —
  * because which [MapMode] the map is in is a during-the-walk decision made often, unlike anything
  * that used to live in Settings (deleted; see [MapMode]'s own doc comment for what superseded it).
- * A tap opens [MapModePicker] rather than instantly cycling modes, now that there are three to
+ * A tap opens the Layers sheet (map layers L0b, B1; `MapLayersSheet`), which replaced the basemap-only
+ * picker; a picker rather than instantly cycling modes, since there are three to
  * choose from instead of two — "toggle the two" stopped being the whole rule once Satellite joined
  * Street/Topographical.
  */
@@ -154,7 +168,7 @@ private fun MapModeToggle(mapMode: MapMode, onClick: () -> Unit, modifier: Modif
         Box(contentAlignment = Alignment.Center) {
             Icon(
                 imageVector = Icons.Filled.Layers,
-                contentDescription = "Map mode: ${mapMode.label}. Choose Street, Topographical, or Satellite.",
+                contentDescription = layersButtonDescription(mapMode),
             )
         }
     }
@@ -189,10 +203,11 @@ private fun MapTab(
     /** See [AvailabilityScreen]'s own `mapTaxonFilter` doc comment — "View on Map" from a List-tab row. */
     taxonFilter: Long?,
     onClearTaxonFilter: () -> Unit,
+    mapLayers: MapLayersControls,
     modifier: Modifier = Modifier,
 ) {
     var showActionMenu by remember { mutableStateOf(false) }
-    var showMapModePicker by remember { mutableStateOf(false) }
+    var showLayersSheet by remember { mutableStateOf(false) }
     var pendingAction by remember { mutableStateOf<PendingMapAction?>(null) }
     var pendingTripLocation by remember { mutableStateOf<LatLng?>(null) }
     var pendingWaypointLocation by remember { mutableStateOf<LatLng?>(null) }
@@ -253,6 +268,11 @@ private fun MapTab(
                                 breadcrumbPoints = breadcrumbPoints,
                                 waypoints = waypoints,
                                 focusedObservationId = tappedSighting?.observationId,
+                                // Map layers L0b, B2: every saved record, as on the compact Maps tab.
+                                keptTrackPolylines = mapLayers.records.trackPolylines,
+                                findMarkers = mapLayers.records.findMarkers,
+                                photoMarkers = mapLayers.records.photoMarkers,
+                                offlineRegionCircles = mapLayers.records.offlineRegionCircles,
                             ),
                             renderMode,
                             null,
@@ -295,15 +315,34 @@ private fun MapTab(
                         }
                         MapModeToggle(
                             mapMode = mapMode,
-                            onClick = { showMapModePicker = true },
+                            onClick = { showLayersSheet = true },
                             modifier = Modifier.align(Alignment.TopEnd).padding(Spacing.sm),
                         )
-                        MapModePicker(
-                            visible = showMapModePicker,
-                            mapMode = mapMode,
-                            onModeSelected = onMapModeSelected,
-                            onDismiss = { showMapModePicker = false },
-                        )
+                        if (showLayersSheet) {
+                            MapLayersSheet(
+                                mapMode = mapMode,
+                                onMapModeSelected = onMapModeSelected,
+                                overlays = MAPS_TAB_OVERLAYS,
+                                colourFields = mapLayers.listedColourFields,
+                                state = mapLayers.stored,
+                                onVisibilityChanged = mapLayers.onVisibilityChanged,
+                                onOpacityChanged = mapLayers.onOpacityChanged,
+                                onColourFieldMoved = mapLayers.onColourFieldMoved,
+                                onDismiss = { showLayersSheet = false },
+                            )
+                        }
+                        // Map layers L0b, B4 (owner's ruling 5): the legend chip in the bottom-right
+                        // corner, stacked above the add button below, its right edge on the button's.
+                        mapLegendFor(renderMode.layers, MAP_LAYER_REGISTRY, COLOUR_FIELDS, mapLayers.cellsShown)?.let { legend ->
+                            MapLegendChip(
+                                legend = legend,
+                                expanded = mapLayers.legendExpanded,
+                                onExpandedChange = mapLayers.onLegendExpandedChange,
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .padding(end = Spacing.sm, bottom = Spacing.sm + MIN_TOUCH_TARGET + Spacing.sm),
+                            )
+                        }
                         // MEDIUM/EXPANDED's own trigger for the three-way menu — CompactMapTab has
                         // MapIconBar's own add row to repurpose for this; this window class has no
                         // icon bar at all, so this is new here rather than reused. Same icon, same

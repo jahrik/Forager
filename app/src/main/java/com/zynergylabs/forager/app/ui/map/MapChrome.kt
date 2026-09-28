@@ -346,7 +346,8 @@ internal fun MapIconBar(
     onLocateMe: () -> Unit,
     onResetOrientation: () -> Unit,
     mapMode: MapMode,
-    onOpenMapModePicker: () -> Unit,
+    /** Opens the Layers sheet (map layers L0b, B1), which replaced the basemap-only `MapModePicker`. */
+    onOpenLayers: () -> Unit,
     onAdd: () -> Unit,
     modifier: Modifier = Modifier,
     /**
@@ -356,14 +357,6 @@ internal fun MapIconBar(
      * lighter fill that composites back to 80% over its cluster container.
      */
     fillColor: Color = Color.Unspecified,
-    /**
-     * Night mode as it currently resolves — Settings' "Night Maps" checkbox
-     * ([AvailabilityUiState.nightModeMaps]), shown here in slot 4's content description so the
-     * state is readable rather than merely visible. No longer toggleable from this bar directly
-     * (a long-press here used to hold it; that control moved to Settings — see
-     * [com.zynergylabs.forager.app.domain.MapPreferencesRepository.getNightModeMaps]'s own doc comment).
-     */
-    isNightMode: Boolean = false,
     /**
      * Whether slot 4 (map mode) is present at all — fullscreen-maps dispatch: the Cartography entry
      * map's own offline-tiles toggle needs this row gone while offline tiles are in use, since
@@ -436,16 +429,13 @@ internal fun MapIconBar(
                 onClick = onLocateMe,
             )
             if (mapModePickerEnabled) {
+                // Map layers L0b, B1: the Layers sheet. The old description's night clause ("Night
+                // mode on/off") went with it: the picker never had a night control, and Night Maps
+                // is Settings' checkbox.
                 MapBarIconButton(
                     icon = Icons.Filled.Layers,
-                    contentDescription = buildString {
-                        append("Map mode: ${mapMode.label}. Choose Street, Topographical, or Satellite.")
-                        // Appended rather than replacing the tap description: the button still
-                        // primarily opens the map mode picker, and a reader needs to know night mode
-                        // is on — now toggled from Settings' "Night Maps" checkbox, not from here.
-                        append(if (isNightMode) " Night mode on." else " Night mode off.")
-                    },
-                    onClick = onOpenMapModePicker,
+                    contentDescription = layersButtonDescription(mapMode),
+                    onClick = onOpenLayers,
                 )
             }
             fifthRow(isDarkTheme)

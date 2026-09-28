@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.log
 
+import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -110,6 +111,13 @@ internal fun LogPanel(
     basemap: Basemap,
     /** Night mode for the location picker this hosts, and the Records tab's Offline Maps picker — see [CentrePinLocationPicker]. */
     night: Boolean = false,
+    /**
+     * Map layers L0b (owner's ruling 4, "Same sheet"): the layer choices the Maps tab and the entry map
+     * share, and the entry map's Layers-sheet switch. Threaded through to `CartographyEntryReportScreen`
+     * only; nothing here reads them. Defaulted so other callers and tests are unchanged.
+     */
+    mapLayers: MapLayersState = MapLayersState.DEFAULT,
+    onMapLayerVisibilityChanged: (layerId: String, visible: Boolean) -> Unit = { _, _ -> },
     /**
      * Opens a row and, if it's a committed entry, immediately begins editing it — one atomic
      * ViewModel operation ([MushroomLogViewModel.onOpenEntryForEditing]), not this composable
@@ -376,6 +384,8 @@ internal fun LogPanel(
                 distanceUnit = distanceUnit,
                 mapSlot = mapSlot,
                 night = night,
+                mapLayers = mapLayers,
+                onMapLayerVisibilityChanged = onMapLayerVisibilityChanged,
                 getMapData = getCartographyEntryMapData,
                 getCoveringOfflineRegion = getCartographyEntryOfflineRegion,
                 getCurrentLocation = getCartographyEntryCurrentLocation,

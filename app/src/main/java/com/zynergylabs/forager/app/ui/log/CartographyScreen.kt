@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.log
 
+import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -99,6 +100,13 @@ internal fun CartographyScreen(
     distanceUnit: DistanceUnit,
     mapSlot: MapSlot,
     night: Boolean,
+    /**
+     * Map layers L0b (owner's ruling 4, "Same sheet"): the layer choices the Maps tab and the entry map
+     * share, and the entry map's Layers-sheet switch. Threaded through to [CartographyEntryReportScreen]
+     * only; nothing here reads them. Defaulted so other callers and tests are unchanged.
+     */
+    mapLayers: MapLayersState = MapLayersState.DEFAULT,
+    onMapLayerVisibilityChanged: (layerId: String, visible: Boolean) -> Unit = { _, _ -> },
     getMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData,
     getCoveringOfflineRegion: suspend (CartographyEntry, List<LatLng>) -> OfflineRegionSummary?,
     /** See [CartographyEntryReportScreen]'s own doc comment, "Fullscreen." */
@@ -332,6 +340,8 @@ internal fun CartographyScreen(
                     getMapData = getMapData,
                     getCoveringOfflineRegion = getCoveringOfflineRegion,
                     getCurrentLocation = getCurrentLocation,
+                    layersState = mapLayers,
+                    onLayerVisibilityChanged = onMapLayerVisibilityChanged,
                     onEdit = { mode = CartographyEntryMode.EDIT },
                     onDeleteEntry = { onDeleteEntry(editingEntry.id) },
                     onBack = onCloseEntry,
