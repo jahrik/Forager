@@ -485,6 +485,7 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
         layersState = renderMode.layers,
         onFeatureTap = renderMode.onFeatureTap,
         forecast = renderMode.forecast,
+        cameraRequest = renderMode.cameraRequest,
         modifier = modifier,
     )
 }

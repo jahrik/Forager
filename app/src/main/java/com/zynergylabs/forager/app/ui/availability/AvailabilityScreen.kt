@@ -1423,7 +1423,17 @@ fun AvailabilityScreen(
                     // out under the status or navigation bar.
                     .padding(padding),
             ) {
-                ActiveSearchSummary(uiState, distanceUnit, onReopenTaxonSuggestions = onReopenTaxonSuggestions)
+                // The summary's tap opens the search (owner, 2026-09-28, "Make the tap open search"):
+                // the permanent drawer comes back to its search panel from whichever panel it shows,
+                // even before any search, and the last species query is reopened as before.
+                ActiveSearchSummary(
+                    uiState,
+                    distanceUnit,
+                    onClick = {
+                        drawerPanel = DrawerPanel.Search
+                        onReopenTaxonSuggestions()
+                    },
+                )
                 SearchNotice(uiState)
 
                 SecondaryTabRow(selectedTabIndex = selectedTab.ordinal) {
