@@ -1,8 +1,7 @@
 # Backlog device check, Part A (the Journal in portrait), on the S22 Ultra: run record
 
-**Status: pre-registration.** This section is committed and pushed before any item below is run on the
-phone (the baseline reads of item 1 excepted). The results follow in later commits. The pass conditions
-and predictions are not edited after this commit, except where a correction is marked.
+**Status: partial; stopped on four conflicts in the dispatch (see "Needs a decision").** Results written
+after the run; the pre-registration committed at `b04dbb2`, before any item ran, is kept unchanged as the Appendix.
 
 **Date:** 2026-09-28, from 04:58 UTC. The phone's clock shows UTC-7, so its local date is 2026-09-27
 until 07:00Z.
@@ -24,7 +23,619 @@ name with sha256 in the Evidence index. No screenshot, dump, coordinate, note te
 `[0,2181][1080,2316]` (135 px, 48 dp); the status bar is `[0,0][1080,75]`; the cut-out is `Rect(512, 0 - 568, 75)`
 (`11-dumpsys-window.txt`).
 
-## Planner's launch message (quoted; part of the dispatch)
+## Outcome
+
+**Status: partial, stopped on four conflicts in the dispatch.** Every item the conflicts do not touch was run, and the
+phone was left on the Maps tab, where it was found (the Journal's own state moved: on arrival it had the L0a entry's
+report open, which I closed, and it is now on Entries). The items that need this run's own entries, or whose touches would create data the Data
+section does not allow, are **held**: none of them was started, and no entry was created. See "Needs a decision".
+
+| Item | What | Verdict |
+|---|---|---|
+| 1 | Build, baseline, inventory | **pass**: `1.0.1192+g24589349`; crash buffer empty at 04:58Z and at 05:21Z |
+| 13 | Back from a single-type chip | **pass**: Finds, then Back to All, then Back to Entries |
+| P:320 | Draft Continue | **held**: needs this run's draft (conflict 4) |
+| P:321 | The map's "Log a find" routing | **held**: opening the form persists a draft find (conflict 2) |
+| 14 | "✎ New entry" | **held** for the touches (conflict 1). Read from a dump without touching it: the label is whole, and the button clears the bottom navigation and the system bar |
+| 18 | "📷 Add photo" in the album | **pass**: 5 of 5 taps across it opened the menu; the menu is inside the window; Take photo opened the app's camera and Import the system picker. See the rotation and permission side effects under the item |
+| 8, 45 | Records chip row at 1.0 and 1.15 | **pass** at both: one-line whole labels, and the row scrolls sideways (it overflows at both scales) |
+| 15 | Drafts banner one-line fit | **held**: needs this run's draft (conflict 4) |
+| 24 | Collapsed row height | **held**: needs an entry the dispatch's title prevents (conflict 3) |
+| 30 | Two-stage swipe | **held**: needs this run's saved entry (conflict 4). RTL **not run**, as the dispatch says |
+| 29 | Night-mode toggle mid-snackbar | **held**: needs this run's saved entry (conflict 4) |
+| 31 | Long-press on a tile near the bottom edge | **not run**: no tile reaches the bottom edge (3 album photos in one row and a half; 2 finds) |
+| 10 | Night-mode toggle on Records with a non-default chip | **pass** both ways: Journal, Records and the same chip came back |
+| 17 | Night-mode toggle on the album with the drafts list open | **not run**: the list needs two or more drafts, and the Data section allows one. The album view alone did survive a toggle |
+| 20 | Seasonal after a toggle, then a new search | **pass** |
+| 9 | Chip colours (observation) | light and dark recorded, with contrast ratios. **Understory not run: this build has no Understory theme choice** |
+| 22 | Sticky header over cards in each theme | **not run**: the entries span one month |
+| 11 | The All list with real data (observation) | recorded. Long region *names* **not run** (the one name is short) |
+| 19 | Badges at a tile (observation) | recorded. **The journal-entry badge is missing** on the one photo the L0a entry keeps |
+| 21 | Cards with real data (observation) | recorded. The offline-map stat's pill is invisible on the card, in both themes |
+| 23 | Thumbnails at 56 and 40 dp (observation) | both measured at their sizes and legible, by my reading |
+| 28 | The region row's surface (observation) | recorded. It could not show a difference here (see the item) |
+| 47 | Details sheet top in portrait | **pass**, but the check could not fail at this data (see the item) |
+| 52 | Directions and Share from the sheet | **pass**: `com.google.android.apps.maps`, and `com.android.intentresolver` |
+| 19, 26, 32, 50 | TalkBack, partial, from dumps | **partial**: descriptions and flags recorded. Custom actions and click labels cannot be read from a dump. 26's snackbar half is **held** (it needs a delete) |
+| 12 | Scrolling performance | **not run**: All holds 7 records |
+| 30 "feel", 51, spoken TalkBack, folds, wide tree, Part B, 16, 25, 33 | Owner's, or superseded | **not attempted**, as the dispatch says |
+
+- **No new Forager crash.** `logcat -b crash -d` was empty at the start (`02-crash-start.txt`, 04:58Z) and at the end
+  (`121-crash-end.txt`, 05:21:55Z). The app kept one process, PID 19584, throughout, the same one as in L0a.
+  `adb logcat -c` was not run.
+- **Every setting is back at its start value** (see Settings). One setting not on the dispatch's list changed as a
+  side effect and was restored: `user_rotation` (see item 18 and Decisions).
+- **The app's data:** unchanged, except for one new `cached_searches` row from item 20's search and one GPX file in
+  the app's cache from item 52's Share (see Created data).
+- **Planner's predictions:**
+  1. Held: Back went from a chip to All, then to Entries.
+  2. Held: the row scrolls sideways at 1.15 (and at 1.0); nothing clips.
+  3. Held: at least four items are not run for want of data (12, 22, 31, 17), and parts of 11 and 9. One of 11, 19
+     and 28 was not wholly unrun: each was run on the data there is.
+  4. Held: no crash.
+
+## Items
+
+The pass conditions are those committed at `b04dbb2` before the items ran. They are repeated, unchanged, in the
+Appendix at the end.
+
+### Item 1: build, baseline, inventory: **pass**
+- `01-dumpsys-package-start.txt` (04:58Z): `versionCode=1192`, `versionName=1.0.1192+g24589349`,
+  `lastUpdateTime=2026-09-27 19:18:29`, `firstInstallTime=2026-09-22 11:15:05`. The same at the end
+  (`122-dumpsys-package-end.txt`).
+- `02-crash-start.txt` is empty (0 bytes), so there was no Forager line at the start.
+- The inventory is above. The phone was awake, unlocked (`isKeyguardShowing=false`), with `MainActivity` in focus on the
+  Maps tab.
+
+### Item 13: Back from a single-type chip: **pass**
+- **Start:** Journal, Records (the L0a run had left it on the Offline maps chip, `22-records-all.xml`). I tapped the
+  Finds chip at (455,463), inside its bounds `[309,396][602,531]`. `23-chip-finds.xml`: Finds `checked=true`.
+- **Back 1** (`input keyevent KEYCODE_BACK`, 05:05:36Z). `24-after-back1.xml`: still on Records (the Records segment
+  `checked=true`), and **All** `checked=true`, Finds `checked=false`.
+- **Back 2** (05:05:41Z). `25-after-back2.xml`: **Entries** `checked=true`, with the timeline and "New entry" showing.
+  Its dump is byte-identical to `21-entries.xml`, the Entries screen before Records was opened.
+- **What each Back did:** the first changed the chip and nothing else; the second changed the Journal's top tab and
+  nothing else. No third Back was pressed.
+
+### Item 14: "✎ New entry": **held** (the touches); the bounds, read without a touch
+The touches are held under conflict 1. What a dump shows, without touching the button (`21-entries.xml`,
+`90-timeline-light.png`):
+- **Bounds** `[626,1753][1035,1911]`, 409 × 158 px, which is 145.4 × 56.2 dp. The label node reads "New entry" with
+  bounds `[784,1804][979,1861]`, inside the button's.
+- **The label is whole, by my reading of `90-timeline-light.png`:** a pencil icon and "New entry", with no ellipsis.
+  The code draws `Icons.Filled.Edit` and "New entry" (`CartographyScreen.kt:497-505`); the "✎" in the dispatch is
+  that icon, not a character in the label.
+- **Clearance:** its bottom (y 1911) is 45 px (16 dp) above the bottom navigation's top (y 1956), and 270 px (96 dp)
+  above the system navigation bar's top (y 2181; `11-dumpsys-window.txt`, `navigationBars frame=[0,2181][1080,2316]`,
+  three-button navigation). So it clears both in portrait. It was not checked in gesture navigation, which the
+  dispatch does not allow me to switch to.
+- **"The card beside it still opens":** the phone has one card, `[45,645][1035,1497]`, which ends 256 px above the
+  button, so no card sits beside it. That half lacks data.
+
+### Item 18: "📷 Add photo" in the album: **pass**
+- **Label** (`80-album.xml`, `80-crop-addphoto.png`): the button is `[622,1753][1035,1911]`, 413 × 158 px, which is
+  146.8 × 56.2 dp. Its text node reads "Add photo" whole, `[780,1804][979,1861]`. By my reading of the crop, a
+  camera-plus icon and "Add photo", nothing cut off. The "📷" in the dispatch is the `AddAPhoto` icon
+  (`EntriesAlbum.kt:204`).
+- **Five taps across it,** at y 1832 and x 632, 724, 828, 932 and 1025 px: both ends (10 px inside each edge), the
+  centre, and two between. Each opened the menu, "Take photo" at `[758,1499][968,1556]` and "Import" at
+  `[758,1634][892,1691]` (`81-addphoto-tap1.xml` to `-tap5.xml`). Each was closed with Back before the next, and the
+  album stayed open (`81-addphoto-after.xml`: Album view `checked=true`, no menu).
+- **The menu stays on screen:** its popup is `[622,1437][1002,1753]`, inside the window `[0,0][1080,2316]`, above the
+  button, and 428 px above the navigation bar.
+- **Take photo** (05:16:17Z): the app's own camera opened (`82-camera.xml`: "Flash off", "Timer off", "Take photo",
+  "No photos yet"), in the window of `MainActivity`. Left with Back. No photo was taken: `files/photos` still holds the
+  same three files, and `files/captures` is empty.
+- **A side effect of the camera: the phone was left in landscape.** The camera window follows the sensor, and the phone
+  lies in a landscape pose (as in the 2026-09-26 strip run). After Back, the display stayed at `ROTATION_90`, and
+  `settings get system user_rotation` read **1**, where it read 0 at the start (`03-settings-start.txt`). I restored it
+  with `settings put system user_rotation 0` at 05:17:00Z. The display returned to `ROTATION_0` (`84-portrait-restored.xml`).
+  `user_rotation` is not on the dispatch's list of settings I may change; see Decisions.
+- **Import** (05:17:14Z): the system photo picker opened, `com.google.android.photopicker/com.android.photopicker.MainActivity`
+  (`dumpsys activity activities`, topResumedActivity). Left with Back, nothing picked.
+- **A second side effect: a permission prompt.** Behind the picker was the system prompt "Allow Forager to access photos
+  and videos on this device?", from `com.google.android.permissioncontroller` (`87-permission-dialog.xml`). This is the
+  `ACCESS_MEDIA_LOCATION` request the app fires with every Import (`PhotoAcquisitionLaunchers.kt:131-138`). I dismissed it
+  with Back, choosing none of its buttons. `dumpsys package` read `ACCESS_MEDIA_LOCATION: granted=false` with the same
+  flags before and after, with no `USER_SET` flag added. See Decisions.
+- **Clears the gesture bar:** the same clearance as "New entry": 45 px above the bottom navigation and 270 px above the
+  system bar.
+
+### Items 8 (portrait half) and 45 (portrait): the chip row at 1.0 and 1.15: **pass**
+The screen is 384 dp wide, not 360 dp.
+
+| Chip | Width at 1.0 (px / dp) | Width at 1.15 (px / dp) |
+|---|---|---|
+| All 7 | 241 / 85.7 | 250 / 88.9 |
+| Finds 2 | 293 / 104.2 | 313 / 111.3 |
+| Tracks 1 | 312 / 110.9 | 336 / 119.5 |
+| Waypoints 3 | 391 / 139.0 | 428 / 152.2 |
+| Offline maps 1 | 433 / 154.0 | 479 / 170.3 |
+| Row content, with 8 dp gaps and 16 dp ends | 657.8 dp | 706.2 dp |
+
+- **Sources:** 1.0: `30-all-fs100.xml`, `31-chips-scrolled-fs100.xml`. 1.15: `34-chips-start-fs115.xml`, `33-chips-end-fs115.xml`.
+- **One line and whole, by my reading of the crops:** at both scales each label and its count sit on one line, and none is
+  ellipsized (`30-…-crop-chips.png`, `31-…-crop-chips.png`, `34-33-crop-chips-fs115.png`). Each label's text node is
+  one line high: 57 px (20.3 dp) at 1.0, 66 px (23.5 dp) at 1.15. Each chip's touch height stays 135 px (48 dp).
+- **It scrolls, and nothing clips:** at both scales the row overflows 384 dp by about 274 dp and 322 dp. At 1.0, Waypoints
+  started at x 960, partly off screen (`30`). One swipe on the row, from (1000,463) to (150,463), brought Offline maps
+  fully on screen, ending at x 1035 with the row's 16 dp end padding after it (`31`). At 1.15 the same swipe did the
+  same (`33`), and a swipe back returned All to x 45 (`34`). So the 25 dp overflow Robolectric found at 1.15 is a scroll
+  on the device, and the row overflows at 1.0 too.
+- The font scale change recreated the Activity, and the Journal came back on Records, All (`32-all-fs115.xml`).
+- Font scale was restored to 1.0 at 05:07:10Z (`35-after-fs-restore.xml`).
+
+### Item 31: long-press on a tile near the bottom edge: **not run**
+- **Missing data:** a grid long enough that a tile sits near the bottom edge.
+- The album holds 3 photos, in one row of one tile and one of two, ending at y 1353 (`80-album.xml`). The lowest
+  Finds tile ends at y 1235, and the bottom navigation starts at 1956.
+
+### Items 10 and 17: night-mode toggles
+**Item 10: pass.**
+- **Setup:** Records, with the Offline maps chip selected (`50-dark-offline.xml`), in dark mode.
+- **`cmd uimode night no`** at 05:10:40Z. The focused window changed from `dc4446e` to `a5c4c5e` (`dumpsys window`), so
+  the Activity was recreated. It was the same process, PID 19584.
+  - `51-light-after-toggle.xml`: the Journal tab `selected=true`, Records `checked=true`, **Offline maps** `checked=true`.
+- **Back to dark,** with the **Tracks** chip selected. `cmd uimode night yes` at 05:11:53Z; the window changed to
+  `658f58e`.
+  - `53-dark-after-toggle.xml`: the Journal, Records, and Tracks `checked=true`.
+- **What came back, both times:** the bottom-navigation tab, the Journal's top tab and the chip. That is what the code
+  says should survive (`compactTab`, `JournalScreenState`), and not J1's "back on Maps".
+- **The fold half:** not run (the S22 does not fold).
+
+**Item 17: not run.**
+- **Missing data:** the drafts list opens only with two or more drafts (`CartographyScreen.kt:398-404`). The phone has none,
+  and the Data section allows me one.
+- **Seen in passing:** a toggle to light at 05:18:14Z with the album open. The album view came back
+  (`89-album-light.xml`: Album view `checked=true`). This is not item 17, since the drafts list was not open.
+
+### Item 20: Seasonal after a night-mode toggle, then a new search: **pass**
+- **Seasonal in dark,** at 05:19Z (`100-seasonal.xml`). The pattern reads "Estimate from 129 observations …" and "Based on
+  129 of 139 total observations …".
+- **The toggles:**
+  - `night no` at 05:19:50Z. Seasonal is still the selected tab (`sel=true`), with the same pattern (`101-seasonal-light.xml`).
+  - `night yes` at 05:19:56Z: the same again (`102-seasonal-dark.xml`).
+  - So the tab survived both recreations, with its content.
+- **A new search.** I opened the search options and changed the month from September to August (05:20:34Z), then closed them.
+  - The header read "August · 5 mi". Seasonal showed a new pattern: "Estimate from 78 observations …", "Based on 78 of 89 …"
+    (`107-seasonal-after-close.xml`). So Seasonal reloaded for the new key.
+  - The loading state was not caught: my first read came after the dropdown closed.
+- **Restored:** the month was set back to September at 05:21:27Z. The header reads "September · 5 mi", and the pattern is
+  129 of 139 again (`110-seasonal-restored.xml`).
+- **The searches' side effect:** `cached_searches` went from 1 row to 2 (see Created data).
+
+### Items 9 and 22: theme observations
+**The app's theme choices at this build** are Light, Dark and System Default (`41-settings.xml`; `domain/model/AppThemeMode.kt`).
+The app was on **System Default**, and I left it there. Light and dark were reached with `cmd uimode night`.
+**There is no Understory choice.** The Understory colours are the Light and Dark schemes themselves
+(`ui/theme/Color.kt:48` onwards). So the third theme was **not run**; see "Premises that were wrong".
+
+**Item 9: chip fill against label, read from the screenshots** (`chipcol.py`; the most common pixel colour in the chip's
+fill band, and the dominant far colour in its text box). The ratios are WCAG contrast (`contrast.py`). Evidence:
+`50-dark-*.png`, `52-light-*.png`, and the montages `50-dark-chips-montage.png` and `52-light-chips-montage.png`.
+
+| Chip | Dark, selected: fill / label (ratio) | Light, selected: fill / label (ratio) | Unselected, icon on the page |
+|---|---|---|---|
+| All | `#6B421A` / `#F6DFC8` (6.74) | `#F6DFC8` / `#3A2008` (11.73) | icon `#A8CBA0` dark, `#2E5339` light |
+| Finds | `#6B421A` / `#E5A76B` (**4.16**) | `#F6DFC8` / `#A2612C` (**3.81**) | icon `#E5A76B` (8.26 on `#1B1B1B`), `#A2612C` (4.62 on `#FAF8F3`) |
+| Tracks | `#2B4763` / `#A8C4E4` (5.35) | `#D7E3F2` / `#3B6EA5` (**4.08**) | icon `#A8C4E4` (9.58), `#3B6EA5` (5.00) |
+| Waypoints | `#3D5A40` / `#A8CBA0` (**4.28**) | `#D9E8D2` / `#2E5339` (6.81) | icon `#A8CBA0` (9.61), `#2E5339` (8.20) |
+| Offline maps | `#373737` / `#CFC9BE` (7.23) | `#E2DCCC` / `#5B5347` (5.53) | icon `#CFC9BE`, `#5B5347` |
+| Unselected (any) | page `#1B1B1B` / label `#CFC9BE` (10.46) | page `#FAF8F3` / label `#5B5347` (7.13) | outline, no fill |
+
+- **Below 4.5:1, WCAG AA for normal text:** four selected pairs, bold in the table. The chip label is Material's
+  `labelLarge`, 14 sp, which is not large text. They are dark Finds 4.16 and Waypoints 4.28, and light Finds 3.81 and
+  Tracks 4.08.
+- **Too close to read?** By my reading of the montages, none is unreadable. The light selected Finds label
+  (`#A2612C` on `#F6DFC8`) is the weakest to my eye.
+- **All and Finds share one selected fill,** `#6B421A` in dark and `#F6DFC8` in light. Selected, they differ only in label
+  and icon colour. An observation, not judged.
+
+**Item 22: not run.** It needs entries in two or more months, and every entry is in 2026-09. One sticky header, "SEPTEMBER 2026",
+is drawn (`21-entries.xml`, `[45,542][1035,599]`). With one card, there was nothing to scroll under it.
+
+### Items 11, 19, 21, 23 and 28: real-data observations
+No content is quoted. The sizes are from the dumps.
+
+**11: the All list** (`30-all-fs100.xml`, `30-all-fs100-half.png`, dark, font 1.0).
+- **One day header, then the rows.**
+- **The two find tiles sit two to a row:**
+  - `[45,667][528,1235]` and `[551,667][1035,1236]`, each 483 × 568 px (171.7 × 202 dp), with 23 px (8 dp) between them;
+  - one shows its photo, and the other the no-photo placeholder;
+  - each has a caption line.
+- **The type badges:**
+  - 79 px (28.1 dp) circles;
+  - on the tiles, 11 px (3.9 dp) in from the tile's top-start corner, over the photo's corner. By my reading, they cover
+    nothing but the corner of the image, and not the caption;
+  - on the region and waypoint rows, a badge sits in front of the row, vertically centred;
+  - the descriptions are "Find", "Offline map" and "Waypoint".
+- **The region row** is `[45,1259][1035,1678]`, 419 px (149 dp) tall:
+  - its title is short, so the long-*name* wrap **lacks data**;
+  - its status text wraps to 7 lines (2 for the summary and 5 for the "Ready to zoom 15" note), which is what makes it tall.
+- **The waypoint row** is a card, 217 px (77 dp).
+- **Nothing looked wrong by my reading,** beyond the region row's height. That height comes from a long fixed note, not from
+  a name.
+
+**19: badges at a tile** (`80-album.xml`, `89-album-light.xml`; `80-89-badge-crops.png`).
+- **The tile** is 325 × 325 px, which is 115.6 dp at 384 dp, not the 107 dp the source assumed for 360 dp. The gap is 3 dp.
+- **The badge:**
+  - one badge shows, "Attached to a find", `[56,859][118,921]`: 62 px (22.0 dp), 11 px (3.9 dp) in from the bottom-start corner;
+  - its colours are `#6B421A` with an `#E5A76B` icon in dark, and `#F6DFC8` with `#A2612C` in light;
+  - by my reading it is clear over the photo's light-grey corner in both themes.
+- **The entry badge is missing.** This photo is the one the L0a entry keeps: `cartography_entry_photo_refs` holds 1 row, for this
+  photo, with the entry `isDraft=0`. By the code, the photo should also carry the journal-entry badge
+  (`EntriesAlbum.kt:264-268`, `:303-312`), and it does not, in either theme. I did not look for the cause; see Flags.
+- **The other two photos** carry no badge, as expected (no links).
+- **"Over dark photos"** lacks data: the only badged photo's corner is light.
+
+**21: cards with real data** (`21-crop-card-dark.png`, `90-crop-card-light.png`; the one card is the L0a entry).
+- **The card** is `[45,645][1035,1497]`, 990 × 852 px (352 × 303 dp).
+- **The day numeral** sits beside a title that wraps to two lines, and nothing overlaps.
+- **Species and stats:**
+  - two species chips, one per line;
+  - the stats wrap to two lines: finds and track, then waypoints and offline maps.
+- **The hero** is `[45,645][1035,1039]`, 394 px (140.1 dp) tall and full width. By my reading, it looks slightly soft but not
+  blurred; the photo is a close shot and is itself soft.
+- **The offline-map stat has no visible pill.** Its container is `surfaceContainerHighest` (`RecordTypeStyle.kt:46`), and the card's
+  colour is the same:
+  - `#373737` on `#373737` in dark;
+  - `#E2DCCC` on `#E2DCCC` in light.
+  - So "1 offline map" reads as bare text where the other three stats sit in pills (see Flags).
+- **A long timeline:** not seen. There is one card.
+
+**23: thumbnails.**
+- **The card thumbnail** is `[854,1062][1012,1220]`, 158 px (56.2 dp). Its stroke is `#A8C4E4` on the card's `#373737`, 6.62:1
+  in dark, and `#3B6EA5` on `#E2DCCC`, 3.87:1 in light.
+- **The Tracks row thumbnail** is `[45,564][158,677]`, 113 px (40.2 dp). Its stroke is `#A8C4E4` on `#1B1B1B`, 9.58:1
+  (`53-crop-track-row-x2.png`).
+- **Legibility:** by my reading, both show the track's shape clearly at their sizes. The light card's 3.87:1 is the weakest,
+  and still readable to my eye.
+
+**28: the region row's surface** (`70-offline-scrolled.png`, `30-all-fs100.png`).
+- **The colours match:** the region row's background and the list's background read the same, `#1B1B1B` (86% of the row's pixels;
+  the rest is text), in the Offline maps chip and in All.
+- **Why no difference could show:** the swipe row paints its content on `surface` (`TwoStageSwipe.kt`, the content `Box`), and in
+  portrait the list behind it is also `surface`. So the case the source asks about, a region row on some other surface, does not
+  occur on this screen.
+- **A check that could not fail here:** recorded as an observation, not a pass.
+
+### Item 47 (portrait half): the details sheet's top: **pass**, on data that could not fail it
+- **Opened** by a tap on a row's body, for each of the three types:
+
+  | Row type | Evidence | Sheet top (y) | Drag handle |
+  |---|---|---|---|
+  | Track | `60-track-sheet.xml`, `60-track-sheet-small.png` | 1042 px | `[495,1104][585,1115]` |
+  | Waypoint | `65-waypoint-sheet.xml` | about 1415 px (its handle's touch box starts there) | — |
+  | Region | `71-region-sheet.xml` | about 1210 px | — |
+
+- **Each top is far below** the status bar and the cut-out, which end at y 75. Each sheet's bottom is at y 2181, the top of the
+  navigation bar.
+- **Dismissed** with Back each time (`63-sheet-dismissed.xml`: no drag handle).
+- **What the check could not see:** every sheet is shorter than half the screen here, so its top never comes near the status bar.
+  Whether the sheet's top respects the status-bar inset when its content is tall enough to reach it was not exercised. That needs a
+  record with more fields than these, or a short window (Part B).
+
+### Item 52: Directions and Share from the details sheet: **pass**
+- **Share,** from the track's sheet (05:12:37Z). The system share sheet opened:
+  `com.android.intentresolver/.ChooserActivityLauncher`, titled "1 item", with a `.gpx` file (`61-share-sheet.png`). It was left
+  with Back, and no target was touched. The sheet lists contacts and apps. Nothing was shared, to iNaturalist or anywhere.
+- **Directions,** from the "DEVICE CHECK waypoint" sheet (05:13:45Z). Google Maps opened,
+  `com.google.android.apps.maps/com.google.android.maps.MapsActivity`, on a place card for the waypoint (`66-directions-small.png`,
+  by my reading). No route or navigation was started.
+  - Leaving Maps took two Backs. The first closed its place card (`67-after-directions-back.xml`, still Maps). The second returned to
+    Forager with the sheet still open (`68-after-directions-back2.xml`).
+
+### Items 19, 26, 32 and 50: TalkBack, partial, from dumps
+TalkBack was not turned on. The fields a `uiautomator dump` writes:
+
+| Control | content-desc / text | clickable | long-clickable | Dump |
+|---|---|---|---|---|
+| Entries \| Records segments | text "Entries" / "Records"; `checked` marks the selected one | yes (the unselected one) | no | `21`, `22` |
+| Timeline / Album toggles | "Timeline view" / "Album view", `checked` | yes | no | `21`, `80` |
+| Records chips | text label and count, `checked` | yes | no | `30` |
+| "New entry" button | text "New entry" | yes | no | `21` |
+| "Add photo" button and its menu | text "Add photo"; items "Take photo", "Import" | yes | no | `80`, `81-*` |
+| Album photo tile | "Log photo" | yes | **yes** | `80` |
+| Album badge | "Attached to a find" | no | no | `80` |
+| Find tile in All | its caption; photo "Log photo"; badge "Find" | yes | **yes** | `30` |
+| Region row in All | its name and status text; badge "Offline map" | yes | no | `30` |
+| Waypoint row | its name and grid text; badge "Waypoint"; button "Directions to <its name>" | yes | no | `30`, `64` |
+| Track row | its time; button "Share track recorded <its time>" | yes | no | `53` |
+| Entry card | text children only | yes | no | `21` |
+| Details sheet | "Drag handle" (clickable and long-clickable); scrim "Close sheet" | — | — | `60` |
+
+- **Not readable from a dump**, so recorded from the code only, **unverified on the device:**
+  - the two-stage rows' custom actions "Edit" and "Delete" (`TwoStageSwipe.kt`, `customActions`);
+  - the long-press menus' long-click label "Options for photo" (`EntriesAlbum.kt:258`) and its siblings;
+  - the rows' click label "Details for <name>" (`RecordDetailsSheet.kt:113-116`);
+  - the tiles' "Open full screen" click label (`EntriesAlbum.kt:252`, `:260`);
+  - `uiautomator` does not write any of these.
+- **Consistent with the code:** the entry card and the region and waypoint rows show `long-clickable=false`. That fits the code,
+  which gives them custom actions rather than a long-click.
+- **Item 26's snackbar half** ("announced, Undo reachable") needs a delete: **held** (conflict 4).
+- **Whether TalkBack speaks any of this correctly** is the owner's to judge.
+
+### Item 12: scrolling performance: **not run**
+- **Missing data:** a log of 100 or more items in All. All holds 7 (`30-all-fs100.xml`: "7 records").
+- `dumpsys gfxinfo … reset` was not run.
+
+### Held: P:320, P:321, 14 (the touches), 15, 24, 29, 30
+None was started. What each needs is under "Needs a decision".
+
+## Settings
+
+| Setting | Start (read) | Changes | End (read) |
+|---|---|---|---|
+| `settings system font_scale` | `1.0` (04:58Z) | 1.15 at 05:06:27Z; 1.0 at 05:07:10Z | `1.0` (05:21:55Z) |
+| Dark mode (`cmd uimode night`; `secure ui_night_mode`) | `yes`; `2` | no 05:10:40, yes 05:11:53, no 05:18:14, yes 05:19:32, no 05:19:50, yes 05:19:56 | `yes`; `2` |
+| `settings system user_rotation` (not on the dispatch's list) | `0` | **1**, a side effect of the in-app camera (read just after the camera closed, about 05:16:40Z); set back to 0 by me at 05:17:00Z | `0` |
+| `settings system accelerometer_rotation` | `0` | none | `0` |
+| `settings secure navigation_mode` | `0` (three-button) | none, and not allowed | `0` |
+| Location (`secure location_mode`; `cmd location is-location-enabled`) | `3`; `true` | none | `3` |
+| App theme (Settings, Night Mode) | System Default (`41-settings.xml`) | none | System Default (not re-read after 05:08Z; nothing touched it) |
+| Search month (session state, not a setting) | September | August at 05:20:34Z, September at 05:21:27Z | September (`110-seasonal-restored.xml`) |
+| `ACCESS_MEDIA_LOCATION` (a permission) | `granted=false`, flags `USER_SENSITIVE_WHEN_GRANTED\|USER_SENSITIVE_WHEN_DENIED` | the prompt was dismissed with Back | the same, read at 05:18Z |
+| The app's screen at the end | the Maps tab, Topographical, Night Maps off (`10-arrival.xml`) | — | the Maps tab, "Map mode: Topographical … Night mode off." (`120-final.xml`) |
+
+- **Location was not changed.** No item needed it.
+- **`/sdcard/bla-ui.xml`,** the dump file this run wrote, was removed at the end (`ls`: no such file).
+- **The logs:** read with `-d` only; no log buffer was cleared. The app's log from this process is saved
+  (`124-logcat-app-pid.txt`).
+
+## Created data
+
+- **No Journal entry or draft was created.** Data (a) is unused, because of the conflicts. Nothing was deleted, and no Undo was
+  needed.
+- **The database,** compared start (`db-start-raw/`, 04:59Z) to end (`db-end-raw/`, 05:21Z):
+  - every counted table is unchanged: entries 1, finds 2, photos 3, find-photo links 1, tracks 1, track points 23, waypoints 3,
+    regions 1, planned trips 0, entry find refs 2, entry photo refs 1;
+  - the only difference is **`cached_searches`, 1 row to 2.** Item 20's August search added a row, and the September search
+    refreshed the existing one (`lastAccessedAtEpochMillis` changed).
+  - `forager.db` is byte-identical at the two reads; the changes are in the `-wal`.
+- **One file in the app's cache:** `cache/tracks/forager-track-2026-09-27-192346.gpx` (8,739 bytes, 05:12Z), written by item 52's
+  Share. It was not shared.
+- **No photo:** `files/photos` holds the same three files, and `files/captures` is empty.
+- **DataStore files:** none has an mtime after 04:52Z. They were listed, not pulled.
+
+## Decisions I made
+
+1. **Proceeded without the kit's record steps and its structural validation.** My agent definition asks for a sweep, an intent
+   and a terminal in `RECORD.md`, and validation against `.claude/kit.json`. `.claude/` does not exist at `46186bb`, and the
+   dispatch says the planner writes the record. I followed the dispatch. Deciding it properly needs a ruling on whether the
+   agent definition's record steps bind on this branch.
+2. **Ran the unaffected items and held the rest,** instead of stopping the whole run at the first conflict. I also ran them out
+   of the dispatch's cheapest-first order: steps 3, 4 and 7 to 10 were skipped over. The choice was based on this: the conflicts
+   touch only items that need my own entries or the find form, and the phone is free now.
+3. **Restored `user_rotation` from 1 to 0.** It is not on the dispatch's list of settings I may change. The camera changed it,
+   and without restoring it the rest of a portrait run could not go on. I read the restore as undoing my own side effect.
+   Deciding it properly needs the planner's word on whether side-effect restores of unlisted settings are allowed.
+4. **Dismissed the `ACCESS_MEDIA_LOCATION` prompt with Back,** choosing neither Allow nor Don't allow. Back was the answer that
+   changed the least (flags unchanged). The prompt is not in the dispatch.
+5. **The "new search" for item 20** was a month change, September to August and back. I chose it because it is restorable and
+   changes one key. It added a `cached_searches` row, which the Data section does not list.
+6. **Treated item 9's "Understory" as absent at this build,** from the Settings screen and `AppThemeMode.kt`. I did not go
+   looking for another switch.
+7. **Used system dark mode, not the app's theme setting,** for light and dark, since the app is on System Default. So no app
+   setting was changed.
+8. **Recorded item 47 as a pass** while saying it could not have failed on this data. I could equally have called it an
+   observation.
+9. **Recorded item 14's non-touch half** (label, clearance) from a dump, without any tap on the button.
+10. **The methods.** Five taps 10 px inside each end of the "Add photo" button. The colour sampling by most-common pixel in fixed
+    bands, and WCAG contrast. Which rows to tap for the sheets: the L0a waypoint, the owner's track, and the L0a region. The
+    track sheet's Share, rather than a region's, since only tracks have Share.
+11. **Wrote the pass conditions before running** and pushed them at `b04dbb2`, so their order is checkable.
+12. **Kept the database copies and the app log in the evidence directory.** They hold real locations; whether to keep them is the
+    owner's call.
+
+## Flags outside scope
+
+1. **Entry reference counts on screen disagree with the database.**
+   - The waypoint sheet for "DEVICE CHECK waypoint" reads "Used in: no journal entries" (`65-waypoint-sheet.xml`), but
+     `cartography_entry_waypoint_refs` holds one row for it.
+   - The album photo the L0a entry keeps has no journal-entry badge (item 19).
+   - Both counts are loaded in memory. This process (PID 19584) has run since 02:18Z, before the L0a entry was committed at
+     04:41Z. So the counts may never have been reloaded. That is **unverified**; I did not look.
+2. **The offline-map stat's pill is invisible on entry cards** in both themes. Its container colour is the card's colour (item 21).
+3. **Four selected-chip label pairs fall below 4.5:1** (item 9), and the light card thumbnail is 3.87:1 (item 23).
+4. **Opening the in-app camera changed `user_rotation` from 0 to 1 and left the app in landscape** after Back, with auto-rotate off.
+5. **Import's permission prompt is hidden behind the picker.** It appears only after the picker is left (item 18).
+6. **A "Do Not Disturb is on … Notifications are off for Forager" notice** is in the dumps after each recreation (e.g. `32`, `53`,
+   `90`, `100`). It was not visible in the matching screenshot `90-timeline-light.png`, so it may be transient. Not looked into.
+7. **Back with the Settings drawer open may act on the Journal beneath.**
+   - The Journal was on Records, All before I opened Tools, then Settings (05:08Z).
+   - After one Back, a tap that I believe reopened Settings, and a scrim tap to close the drawer, the Journal was on Entries
+     (`45-state.xml`).
+   - One reading is that the Back stepped the Journal from Records to Entries under the drawer. **Unverified.**
+8. **The MapLibre error stream continues:** 17,124 `getMetersPerPixelAtLatitude after the MapView was destroyed` lines in this
+   process's log buffer (`124-logcat-app-pid.txt`), as L0a found.
+9. **Share writes the GPX into `cache/tracks/`,** and it stays there after the share sheet is cancelled.
+
+## Needs a decision
+
+The four conflicts, with the options I can see:
+
+1. **Item 14's five touches.** Each tap on "New entry" persists a new draft that keeps the day's candidates
+   (`CartographyViewModel.kt:115-146`). The options:
+   - (a) allow five drafts, and say what happens to four of them (they cannot be deleted under the Data section);
+   - (b) one real tap, with the other four points checked by a press-and-cancel `motionevent` (DOWN inside, MOVE outside, UP),
+     which shows the ripple without clicking. That is weaker evidence, and my own method;
+   - (c) one tap only, so "across its width" is not run;
+2. **P:321, "Log a find".** Opening the form persists a draft find (`MushroomLogViewModel.kt:323-338`), and Back keeps it
+   (`:582-630`). The options:
+   - (a) allow one draft find, left in place;
+   - (b) allow the form's Cancel, which deletes that draft (`:531-552`). That is a delete outside Data (a);
+   - (c) check the routing only up to the location picker, and back out before its OK (no find is created, but the routing to the
+     Finds form is then not seen);
+   - (d) not run.
+3. **Item 24 and the title.** A row collapses only with blank text, no hero and no kept track (`CartographyEntryCard.kt:291-292`).
+   The form's only text field is the entry's text. The options:
+   - (a) the saved entry's text left blank, not titled, with its track and photos withheld in the form (the form offers "Withhold");
+   - (b) as (a), but made after 07:00Z, when the phone's date is 2026-09-28 and the day has no candidates, so nothing needs
+     withholding;
+   - (c) titled as the dispatch says, and item 24 not run.
+   - Either way, the draft can carry the title.
+4. **Once 1 and 3 are ruled,** the held items 15, 24 (at 1.0, 1.15, 1.3), 30, 29, 26's snackbar half and P:320 need one draft and
+   one saved entry. Also for 30: the Waypoints chip has three rows, so the "vertical scroll on an open row" check can run. Opening a
+   row is not a delete, but a missed swipe could delete an owner's waypoint and need an Undo. Deletes are allowed only on my entry.
+   Should that check run?
+
+## Premises that were wrong
+
+- **"Understory" as a theme to switch to** (the dispatch's "App settings" and item 14 of its list, "Items 9 and 22"): this build offers Light, Dark and System
+  Default only.
+- **"Save nothing" for "Log a find"** (item 3): opening the form saves a draft find.
+- **"Open it and back out" for "✎ New entry"** (item 4): opening it saves a draft, so backing out leaves one, and five touches
+  leave five.
+- **"Uses your empty saved entry"** (item 8) together with the title in (a): an entry titled in the only text field does not collapse.
+- **"360 dp"** (several sources): the phone is 384 dp wide.
+
+## Evidence index
+
+All in `/home/zynergy-labs/Zynergy/device-evidence/2026-09-28-backlog-a/`. They show real locations, contacts and photos, and stay
+outside the repository. `snaps.log` records each capture's UTC window and hash. `*-crop-*`, `*-small.png`, `*-half.png` and the
+montages are derived from the screenshots listed, and are not indexed. `db-start-query/` and `db-end-query/` are working copies,
+checkpointed by `sqlite3`, so their hashes are not evidence. The helpers `snap.sh`, `nodes.py`, `colours.py`, `chipcol.py` and
+`contrast.py` are there too.
+
+| File | sha256 |
+|---|---|
+| `01-dumpsys-package-start.txt` | `a7ec33665d91a62f3c2d9ef78054bcac1c7e5e1e509b292999ac646402feb69a` |
+| `02-crash-start.txt` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `03-settings-start.txt` | `8c11f9209981b7b525d964a997f27b65b6be11f5f9fc8d5fce432dc8e633ff36` |
+| `10-arrival.png` | `cfa9d379829b0f367a75b502a628b2feb6df281f28d36bebc5fb723386376a51` |
+| `10-arrival.xml` | `74df0852f6db752b04d6d8cb6ddf5c3750ca70657530971faa9faf2f19cd3858` |
+| `100-seasonal.png` | `db0d411b187077d99169ba8ab290681844fa96fcc94b3fa57caf4502f69c4fb1` |
+| `100-seasonal.xml` | `145f5259cc0d381944d0898bd7dd0c1a13fb601a76bf0de55904a133e60b1fa2` |
+| `101-seasonal-light.png` | `e695944c72f3f4da380bebd4e2e96f7ff24336798414a7ca13ab726622a816c6` |
+| `101-seasonal-light.xml` | `145f5259cc0d381944d0898bd7dd0c1a13fb601a76bf0de55904a133e60b1fa2` |
+| `102-seasonal-dark.png` | `cd595efd6f99cc0a0b116106bc30303e1bb54a1fc7aa5a2b5831d137aad62c5c` |
+| `102-seasonal-dark.xml` | `145f5259cc0d381944d0898bd7dd0c1a13fb601a76bf0de55904a133e60b1fa2` |
+| `103-search-open.png` | `ad55f941b8f73ed03bb23d51a8e436207d88947679724210aecbe998a8721d74` |
+| `103-search-open.xml` | `db036f6b33546f42126df2800695ebdecbd1871cf1da03d6fd81d2b9869aec17` |
+| `104-month-menu.xml` | `fc6193bca3d36fc36156e5d0999d2c51b9a0b7198d46e564da5e8f2e6fd458b1` |
+| `105-after-august.png` | `4d69d42ea539a778a470fafbdd7524b5552af965a9952a8e51344e6cc5f43f2d` |
+| `105-after-august.xml` | `4b690a784a5df6d39ee22eee89da2d1c5515d1d00ea6427c36556c0cdaa3fdb9` |
+| `106-august-later.png` | `4d69d42ea539a778a470fafbdd7524b5552af965a9952a8e51344e6cc5f43f2d` |
+| `106-august-later.xml` | `4b690a784a5df6d39ee22eee89da2d1c5515d1d00ea6427c36556c0cdaa3fdb9` |
+| `107-seasonal-after-close.png` | `266db1359ef336276d8de09c7835aa12e3ddb0855064e793b1d8faaa59cabce8` |
+| `107-seasonal-after-close.xml` | `a638d4f9468671e638f030df573aacbabf68ffc96030104e62846032ae8db71a` |
+| `108-month-menu2.xml` | `fc6193bca3d36fc36156e5d0999d2c51b9a0b7198d46e564da5e8f2e6fd458b1` |
+| `109-month-menu3.xml` | `22d6fc892f19aab0ca40ec0151c44fbb355376ccfd4f596ffd286bfd0202ffca` |
+| `11-dumpsys-window.txt` | `6db29fd894a31dbc6c6facee2e40baf9c79318a759921b0eb92d41ba0288eae3` |
+| `110-seasonal-restored.png` | `fc086ce7ad2c91e14abd8277b65def1a3d35ca841ae65fe08ea777bcfe402b79` |
+| `110-seasonal-restored.xml` | `eddf5b5eb3713531996bb712ffc83588882e70733972e2473cda079ebfa10609` |
+| `120-final.png` | `c08a498b07a3f425a84842415c2e0d3b3505fbeb88174ee3a8b45c4a711d63d3` |
+| `120-final.xml` | `cc024f327cb10d9cb0e0c886d3c6bc987fdac72467b4c0d3e041dbab594af323` |
+| `121-crash-end.txt` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `122-dumpsys-package-end.txt` | `d9dee23c9f0802a7aa70f26aa4fe94d5106d855c28b2fabf09e583141d3426e1` |
+| `123-settings-end.txt` | `e01cf967ceff03effdc46be77e30e54cca4d9d2e16df0b332df926ad8d68bc2a` |
+| `124-logcat-app-pid.txt` | `8d26f9e89cd9dd14d985068d0f342abd995bf5567a04aff272bc9052dcbb7b0d` |
+| `20-journal.png` | `dbcab2eca68fcd3307a57b323923465961d3396c7f91f09c95a885846aa08d22` |
+| `20-journal.xml` | `eef9254400b2081fc2ea2d5b13840e4f05835bb000cb94220b7c16eb6c18b264` |
+| `21-entries.png` | `50bcda1cf6ab64634db3d8a2de7f38495128089f45c41fe59e2227450c58c452` |
+| `21-entries.xml` | `e392aaa91b238a261fec01a5be2c347187172b7b8e275cf5a24ec9247ea5fddf` |
+| `22-records-all.png` | `ef221fcba6ebe92ab33bca471504818de84d8f52ea516ff346ff3e6acc0e32e4` |
+| `22-records-all.xml` | `9549b0782d5611d114db08ed57b56314b0863fee3da4824a4befed5716f529c8` |
+| `23-chip-finds.xml` | `8ec70a3f613f2df629fd0b3b2f112dcbce33ec5683615648e3ded583c46409fb` |
+| `24-after-back1.png` | `72b09d0866cf8308c60607a448d663dfe893a9d8ebead667671a14c75c938fa1` |
+| `24-after-back1.xml` | `ee2898cd219fd21bc54e241513304570432aea263d9a7daad03a57d048fb3cb3` |
+| `25-after-back2.png` | `50bcda1cf6ab64634db3d8a2de7f38495128089f45c41fe59e2227450c58c452` |
+| `25-after-back2.xml` | `e392aaa91b238a261fec01a5be2c347187172b7b8e275cf5a24ec9247ea5fddf` |
+| `30-all-fs100.png` | `72b09d0866cf8308c60607a448d663dfe893a9d8ebead667671a14c75c938fa1` |
+| `30-all-fs100.xml` | `ee2898cd219fd21bc54e241513304570432aea263d9a7daad03a57d048fb3cb3` |
+| `31-chips-scrolled-fs100.png` | `5b161a44452f26c36a7f66cfb0c98389f6de58338c525f98e33a3f509ee912da` |
+| `31-chips-scrolled-fs100.xml` | `54059657c2abd776bfabea7c60c5436dd2db8511fd8df69082600984c903c7d9` |
+| `32-all-fs115.png` | `53480ac647a9f73d9d88c5395685515b4f2410b3b67b3d749afbf752d7448a99` |
+| `32-all-fs115.xml` | `6be1d7d8e2e69a992114e0f24ce9d912dac45d2cab6ef684eb5116e606d95d3d` |
+| `33-chips-end-fs115.png` | `5b9aae986f85878560f517d454104c50a71b298abab68c137ac63fcf181da766` |
+| `33-chips-end-fs115.xml` | `1d4029cd5d2ffc62b671846562fed054ebbed0121fa179c746341109c45f5f02` |
+| `34-chips-start-fs115.png` | `6db7d429a50abd6d47b4dbfdd3ac92d6842a6ff8f57f8f1b531cca811890dcc1` |
+| `34-chips-start-fs115.xml` | `57f2f40eddfaa98123a48d640fb854d39b8440aa92ca687381d0fac7597d9896` |
+| `35-after-fs-restore.png` | `0cdf9aab24dddb4b175374215a2806032afee8a392b45c77d0d23ca5c41c393b` |
+| `35-after-fs-restore.xml` | `cbfd0f9fed722f95f9d088e73dd05bf418330a4cbe44fa01309abd85cc2e8337` |
+| `40-tools.xml` | `41fb762bae523e558c9a0c6cb0b5e73913ffbf9daacdda95cf1c0d188fda9075` |
+| `41-settings.png` | `378e5acf64ad04e65259df2015adc132cb0d13811dc74b30a92b68644b4f6eb3` |
+| `41-settings.xml` | `53cbb94f709ab52015f6b8dbf2eab0c8ebfa21fbda289c2f184838482c9cec3c` |
+| `42-back-journal.xml` | `53cbb94f709ab52015f6b8dbf2eab0c8ebfa21fbda289c2f184838482c9cec3c` |
+| `43-state.xml` | `53cbb94f709ab52015f6b8dbf2eab0c8ebfa21fbda289c2f184838482c9cec3c` |
+| `44-state.png` | `82d458b1442457929d938546f82d948991809e232b94b10013baa5d5c2d3a086` |
+| `45-state.xml` | `e392aaa91b238a261fec01a5be2c347187172b7b8e275cf5a24ec9247ea5fddf` |
+| `50-dark-all.png` | `9f9d8218b29234386a42ff9ec6004a307e5dade96f75cc8dc99d3a68e84598c1` |
+| `50-dark-finds.png` | `bb97495f8445f8e315a0dd1dc3369fea8b4859c8ad93267cacf17716510dc18f` |
+| `50-dark-finds.xml` | `8ec70a3f613f2df629fd0b3b2f112dcbce33ec5683615648e3ded583c46409fb` |
+| `50-dark-offline.png` | `aed2648a1bbdbcb1730e954171db6bc5c410269ac4a79292c056d7f418c344bd` |
+| `50-dark-offline.xml` | `3304b707f514b7df260d79396dc3f0482adea283407e4d373e1ab7ac854860d5` |
+| `50-dark-scrolled.xml` | `79dd72ecf0122612745ca3243a6b24ba5acce7695b6edeb69d817d248450e391` |
+| `50-dark-tracks.png` | `889e9f83a0a58211b7dba4af5879df822a4dd3dc944bcf0e9c803c39008a417c` |
+| `50-dark-tracks.xml` | `2021e3bbd8ebf1476ce2a103110fbd842f43c231b9a60a5c6b58ef2d9ff90541` |
+| `50-dark-waypoints.png` | `4a53e8a9552dac9afcd11b49d27135cb7dc7a78bca8e56a1e3e4334adb705062` |
+| `50-dark-waypoints.xml` | `6c84f58d26a0d7724678675aee7b26c3e28b8dc0675ad5008f26c089db340bf8` |
+| `51-light-after-toggle.png` | `f0fd170e5052995c669d7788f58b47351ad7bf00ff899fde28f2268c83cac190` |
+| `51-light-after-toggle.xml` | `0d2b08d972fcbc95baa9947b5720d29600a8385b0db4873b1abc30426830870d` |
+| `52-light-all.png` | `71963edbf8211b0fd99b4cb7bb9a61dffbcdd0df927dc8ceef4744d163112475` |
+| `52-light-all.xml` | `85bb0b8b6e6fd6493bc6b5f4dbb5f2133d2ac9d57bcabbe9511f4fed56602fba` |
+| `52-light-finds.png` | `32931180112408dd5869ed226cf15632d590e6292c6f304feee42a723a361f14` |
+| `52-light-finds.xml` | `8ec70a3f613f2df629fd0b3b2f112dcbce33ec5683615648e3ded583c46409fb` |
+| `52-light-offline.png` | `f0fd170e5052995c669d7788f58b47351ad7bf00ff899fde28f2268c83cac190` |
+| `52-light-tracks.png` | `e583b92001c5781103085a6f567792dce5739e37336216ef36b5eb57f553ef99` |
+| `52-light-tracks.xml` | `2021e3bbd8ebf1476ce2a103110fbd842f43c231b9a60a5c6b58ef2d9ff90541` |
+| `52-light-waypoints.png` | `31f678c066f49b37bbb5831e614333f6aa5a05f6f65714312e3a75ec2d14d36b` |
+| `53-dark-after-toggle.png` | `9654431556ceeffbc5f3a517ab543666717221f414a6c1147e4ca0f438f0f3cc` |
+| `53-dark-after-toggle.xml` | `b9055a2c7485f8090e28fd53350e8576339682c4ac3130b92dba7958ee8823e9` |
+| `60-track-sheet.png` | `979909deea3781edc9668b53dc38a3a1be5d80d68e3a88cfcd22da5510b08189` |
+| `60-track-sheet.xml` | `192c0a41f84c36d11984cd3cffa2e342bfcb8d0c538f42518b3ad608db71b5f0` |
+| `61-share-sheet.png` | `cdb89eb6845a9c12c554a4a897d9aa4730f3c3b66edc1e2481af738e461833ad` |
+| `61-share-sheet.xml` | `6a4109a74abcbe002b4b1bdec14f6069eb1abd93541c977d571cf3a87a1c8fca` |
+| `62-after-share-back.xml` | `192c0a41f84c36d11984cd3cffa2e342bfcb8d0c538f42518b3ad608db71b5f0` |
+| `63-sheet-dismissed.xml` | `2021e3bbd8ebf1476ce2a103110fbd842f43c231b9a60a5c6b58ef2d9ff90541` |
+| `64-waypoints.png` | `04c0d5d9e79323d18a320d51557f187c783feab83f91f8193afba174ce9892ff` |
+| `64-waypoints.xml` | `6c84f58d26a0d7724678675aee7b26c3e28b8dc0675ad5008f26c089db340bf8` |
+| `65-waypoint-sheet.png` | `a05e1c8fd80424a22ca322cbf2c19197e2bb0bfacd815af97c2f1ca51dab0036` |
+| `65-waypoint-sheet.xml` | `408da6e6674821d715ba9ed9fcbc00b5194a193ffcecab7e28e24990e2315621` |
+| `66-directions.png` | `cdfadb95fe111db842bf5a62cad1b4dd3fdc87490f60ed83704ae0991a4f8dc3` |
+| `67-after-directions-back.xml` | `0dec3b145a28c1eb6c2c16f3674876b7f341532733e0423ddab45e1b14def2bc` |
+| `67b-maps-state.png` | `58db28cde2a579fcc01b2216591fc1cee976aaed6684d5968d6a2539c638ebee` |
+| `68-after-directions-back2.xml` | `408da6e6674821d715ba9ed9fcbc00b5194a193ffcecab7e28e24990e2315621` |
+| `69-offline-list.png` | `8e8bcd962621dfaf501967f82974acdb501a2216d21485b6b9b4823ba77937e7` |
+| `69-offline-list.xml` | `3304b707f514b7df260d79396dc3f0482adea283407e4d373e1ab7ac854860d5` |
+| `70-offline-scrolled.png` | `549e857698ffa222ca7f90841541a4979c83abf69f1bfa492d7becc0363dafec` |
+| `70-offline-scrolled.xml` | `118271d44a699b479c08dd90d443fc5867ad3e1ebb65c9792aac3c85ab0a6605` |
+| `71-region-sheet.png` | `dc6fae413868828de70485919d853775e38b7bbd3389636bae2526dd64cb8ddd` |
+| `71-region-sheet.xml` | `074f3f931d0b69d3db0459222995570ed8efc5cd275e737c38640e50e41c0aca` |
+| `80-album.png` | `6b6312e71f4c4c446797cc0966e01d9734e04a33d18a1afa3e0b02c2ac6289c0` |
+| `80-album.xml` | `8352fec5617721686af4ceccfc0e9c583a60fe81c53d3c85aaf3132cb68d9a99` |
+| `81-addphoto-after.xml` | `8352fec5617721686af4ceccfc0e9c583a60fe81c53d3c85aaf3132cb68d9a99` |
+| `81-addphoto-tap1.xml` | `69ff2c6b8af78a2faf1448af0514a0ab4e51dd2b856faaac4af903d36274dd5a` |
+| `81-addphoto-tap2.xml` | `69ff2c6b8af78a2faf1448af0514a0ab4e51dd2b856faaac4af903d36274dd5a` |
+| `81-addphoto-tap3.xml` | `69ff2c6b8af78a2faf1448af0514a0ab4e51dd2b856faaac4af903d36274dd5a` |
+| `81-addphoto-tap4.xml` | `69ff2c6b8af78a2faf1448af0514a0ab4e51dd2b856faaac4af903d36274dd5a` |
+| `81-addphoto-tap5.xml` | `69ff2c6b8af78a2faf1448af0514a0ab4e51dd2b856faaac4af903d36274dd5a` |
+| `82-camera.png` | `9a421063411d7d9a344aef66a2cac659c52dc33a6097308ec5c439e5b57debbd` |
+| `82-camera.xml` | `b577d5a174b52e530567ba17306f4817fc710880746bdfff259a58e673f4916a` |
+| `83-after-camera.xml` | `f7e8f9dbf61c9a1092713b1f9452a6aaf8f2b4418ac11ab37323ba5b5048f195` |
+| `84-portrait-restored.xml` | `8352fec5617721686af4ceccfc0e9c583a60fe81c53d3c85aaf3132cb68d9a99` |
+| `85-picker.png` | `7908cb7229c19bba1e7396cc4b19e03cb0bf8b431cedbbe96991d98ed2fd067e` |
+| `86-after-picker.xml` | `da053ef36e44ed996b8860bc03504e87cbc51ae6cf5df46b7aef9a1af4e70ac4` |
+| `87-permission-dialog.png` | `0669efa718415d0968d96e06a34c1a2f81d57919fead195fba15b5666bf83811` |
+| `87-permission-dialog.xml` | `da053ef36e44ed996b8860bc03504e87cbc51ae6cf5df46b7aef9a1af4e70ac4` |
+| `88-after-perm-back.xml` | `8352fec5617721686af4ceccfc0e9c583a60fe81c53d3c85aaf3132cb68d9a99` |
+| `89-album-light.png` | `725b72e5947e885294357e51c2373591ca70e56d85d0ed55b0f53b073e99c4b4` |
+| `89-album-light.xml` | `4079b4006210a66eeb32681f2146f16fb87a77043be2744c95d7842dfef9c637` |
+| `90-timeline-light.png` | `c40a2f8ebc974cbaa3f79363e6ce74ff0f169510ace93c448c38cc611bb864b7` |
+| `90-timeline-light.xml` | `f8f529884239f48b13f8b7e5cf964d98482fcc1fe753d5ebf26fd7bc2486102f` |
+| `snaps.log` | `2a73eaac0982851215636e2e191883dc225c5123db830c9db7175082acce08bf` |
+| `db-start-raw/forager.db` | `fe5d658f20a266183d92b391bd4c18e9b540a8384da49715e4d3d1f40f28c715` |
+| `db-start-raw/forager.db-shm` | `aef8d7281136dcace2a31ffaabab6d3da2261ff1d8e953982854458c195c0f7e` |
+| `db-start-raw/forager.db-wal` | `0778bf5245c0c6acede3ed544617fce3295a1ee320d6a7366bb601a6e6420cff` |
+| `db-end-raw/forager.db` | `fe5d658f20a266183d92b391bd4c18e9b540a8384da49715e4d3d1f40f28c715` |
+| `db-end-raw/forager.db-shm` | `98ec6c5a66981a9065ed05fc8700ab64c3ad48b2c6ae289a53807184a6541c48` |
+| `db-end-raw/forager.db-wal` | `8a58ee765ad8cd6503535d1aa745761e616d6bb4c7ba0fdbfb33cf9feb02586c` |
+
+---
+
+# Appendix (unchanged from `b04dbb2`, except that four headings gained an "Appendix" prefix)
+
+## Appendix A. Planner's launch message (quoted; part of the dispatch)
 
 > **Changes since the dispatch was written.** Each is a planner message and part of the dispatch; quote them in your report.
 >
@@ -46,7 +657,7 @@ record merged at `8e4fe67`. The phone is free, and you are the only coder on it.
 machine in parallel, so: no Gradle, no emulator, no install." `git ls-remote origin device-l0a-2026-09-28` reads
 `ecf429a`, the commit `8e4fe67` merged.
 
-## Inventory (read-only, 04:59Z, before any item)
+## Appendix A. Inventory (read-only, 04:59Z, before any item)
 
 Read from a byte copy of the app's database (`adb exec-out run-as … cat databases/forager.db`, `-wal`, `-shm`
 into `db-start-raw/`, queried only as a second copy in `db-start-query/`). Counts only.
@@ -68,7 +679,7 @@ into `db-start-raw/`, queried only as a second copy in `db-start-query/`). Count
 All of the finds, the region, one waypoint and the entry are the L0a test data; the track and its two waypoints
 are the owner's, kept by L0a.
 
-## Found before running: four conflicts in the dispatch (stop-and-ask; see "Needs a decision")
+## Appendix A. Found before running: four conflicts in the dispatch (stop-and-ask; see "Needs a decision")
 
 Reading the code before the items turned up four places where the dispatch cannot be followed as written. The
 items they touch are **held**, not run, until the planner rules. Every other item is run.
@@ -92,7 +703,7 @@ items they touch are **held**, not run, until the planner rules. Every other ite
 
 ---
 
-## Pre-registration: pass conditions and predictions, written before each item was looked at
+## Appendix B. Pre-registration: pass conditions and predictions, written before each item was looked at
 
 ### Item 1: build, baseline, inventory
 - **Pass:** `versionName=1.0.1192+g24589349`; `logcat -b crash -d` read at the start and at the end, a new
