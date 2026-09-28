@@ -607,3 +607,153 @@ none is cited.
     keys that did not exist at the start (the overlay and forecast keys, the opacity and the order), each at its
     default value. The app can set these keys but not remove them, and I may not write to its files, so, as the
     second coder said, "restored" for them means their default values, read back.
+
+## Check 4: what the saved evidence shows, read before any touch
+
+The second coder ran check 4 from `137` to `200` and wrote no verdict. I re-read its files myself; nothing below is
+taken from its reasoning, which is lost, or from the transcript extract, except where one line says so. New scripts
+and crops are numbered from `210`: `210-rows.py` (each Layers-sheet row's checked state, from the clickable row node
+that carries it), `211-over-under.py`, `212-shift.py`, `213-fit.py`, `214-circle-zoom.py`, `215-patch.py` and
+`216-swap-predict.py`, each described in its own header. Two of my own reads, `203-log-resume2.txt` (`logcat -d`) and
+`204-events-resume2.txt` (the events buffer), cover the second coder's window. They are logs of that window, not
+re-runs, and I say where a verdict leans on them.
+
+**One tool of the second coder's is unreliable, found now.** `190-zoom.py`'s cell-period estimate reads `148` as zoom
+7.20. `148` shows the 1 km region's circle about 420 px across and a single cell edge on each axis, so the period is
+wider than the screen and the autocorrelation locked onto the street grid. `214-circle-zoom.py` on the same frame (the 1
+km circle's white dashes, the glyphs masked) gives **12.00**, rms 1.0 px. I use `190-zoom.py`'s cell estimate only
+where the cells are small and I have checked its edge columns by eye (`209`: 73 px, edges at x 237, 309, 383, 455, so
+about 7.5).
+
+### (a) Both fields draw, below the markers: **pass for the markers and the track; the location puck draws under the cells** (saved evidence)
+
+- **Both ramps draw at zoom 7 or more.** `148` (zoom 12.00, above) with both switches on: a teal cell top left, mean
+  (71, 149, 151), and orange cells below, mean (172, 107, 63). By my reading, with those samples.
+- **Markers and the track over the cells.** Two pairs, each the same camera with both field switches on and then off
+  (the sheet dumps `152-sheet-before`/`-after` and `156-`/`158-sheet` show only the two field switches changing, read
+  with `210-rows.py`). `212-shift.py` puts both pairs at offset (0, 0), so the camera did not move. `211-over-under.py`
+  takes each glyph colour's interior pixels in the fields-off frame and compares them with the fields-on frame:
+  - `153` against `151` (every overlay on, Street-level zoom inside one cell): the track `#A122F8`, 4606 px, max
+    difference **0**; the photo glyph, 1625 px, **0**; the find glyph, 1328 px, **0**. The ground within 30 px of them
+    differs by a median of 88, and 93% of it by more than 3.
+  - `157` against `159` (Finds and Photos off, so the waypoint pin is not covered): the track, 5201 px, **0**; the
+    waypoint pin, 1698 px, **0**; its black crosshair, **0**. The ground: median 88.
+- **The location puck is under the cells.** In the same pair its blue bearing triangle is (51, 96, 148) with the fields
+  off and (105, 69, 61) with them on. `213-fit.py` fits the cells' compositing on the ground around it (per channel,
+  on = k x off + c, over 95,692 px) and predicts that a pixel of the triangle's colour lying **under** the cells would
+  read (102, 66, 63). It reads (105, 69, 61), within 3 per channel. The same fit predicts (151, 36, 112) for the track
+  if it were under, and the track reads its own `#A122F8`. The puck is MapLibre's `LocationComponent`, activated with
+  no `layerBelow` or `layerAbove` (`activateLiveLocationIfPermitted`, `ui/map/SightingsMap.kt:1164-1189`), and it is
+  not in `MAP_LAYER_REGISTRY`, so the registry's promise that the fields sit "below every other layer"
+  (`ui/map/layers/MapLayers.kt:224-228`) does not reach it. Whether it counts as a "marker" in this check is not mine to
+  rule. See Decisions and Flags.
+
+### (b) The opacity slider is live: **pass** (saved evidence)
+
+- The drag at 18:57:33Z (`snaps.log`) did not move the slider: `163` still reads 100%, and its dump is byte-identical
+  to `162`'s. The tap at 18:58:02.664Z took it to **27%** (`165-slider-after-tap.xml`), and `165` was captured 1.07 s
+  later, with the sheet open.
+- `215-patch.py`, four patches of plain sheet fill between the rows, each against `162-slider-before-1`: `162-…-2` and
+  `163`, **0.0** per channel (the floor); `165` (27%), **+6 G and +8.5 B** in every patch, the map behind the sheet
+  losing orange; `166` (still 27%), the same; `169` (back to 100%), **0.0 to 0.3**. The camera is unchanged
+  throughout, since `169` returns to the floor.
+- The sheet never closed: every dump from `162` to `169` is the sheet, and `204-` shows the sheet's window (`62cfd9`)
+  holding focus without a break from 18:57:14.05Z to 19:00:18.56Z, across all of them. That second part leans on my log
+  read; the verdict stands on `165` alone, the change seen with the sheet open 1.07 s after the tap.
+- Stored: `167-map_prefs-after-slider.pb` `map.layer.forecast-chanterelles-layer.opacity = 0.2699…`,
+  `170-…-slider-restored.pb` `1.0`. The slider was moved by a tap, not a drag.
+
+### (c) A reorder applies at the next style load: **pass** (saved evidence)
+
+- Sheet order read with `210-rows.py`: `179` chanterelles on top (the default), `180` chicken of the woods on top after
+  the drag at 19:02:33.743Z, `184` the same after the basemap changes and back on Topographical. `181-` stores
+  `map.layer_order = forecast-chanterelles-layer,forecast-chicken-of-the-woods-layer` (bottom to top, so chicken of the
+  woods on top).
+- `183-blocks.py` (the second coder's) classes 40 x 40 px blocks from `175` (both), `176` (chanterelles alone) and
+  `177` (chicken of the woods alone), and compares a frame with `175`:
+  - `178` (both, again): 415 both-blocks, max **0.2**;
+  - `182`, after the reorder with the sheet closed, before any basemap change: max **1.0**, none over 3. **Unchanged.**
+  - `185`, after Street at 19:03:16.977Z and Topographical at 19:03:20.555Z (`snaps.log`): **all 415** both-blocks
+    changed, median **72.4**; the single-field blocks max 0.6. **Changed.**
+- It is the swapped stacking, not just a different one. With each fill at 0.6 (`MapLayers.kt:222`), a pixel under both
+  fields satisfies E = A - 0.6 x (Xc - Xk) whatever the ground, A being `175` and Xc, Xk the single-field frames.
+  `216-swap-predict.py` over the both-blocks: `185` matches within 3 per channel at **91.3%** of 10,375 px (median error
+  0.6); `182` at 0.3% (median 72.6).
+- The two basemap changes were style loads: `203-` shows Forager (pid 9626) re-registering its compass sensor at
+  19:03:17.336Z and 19:03:20.935Z, the marker the second coder established (18:52 controls, check 2), and none at the
+  reorder drag. This leans on my log read.
+- **Restored:** `187` chanterelles on top again; `189-` stores `forecast-chicken-of-the-woods-layer,
+  forecast-chanterelles-layer`, the registry's own order. `188` equals `175` in every block (max 0.8). `snaps.log`
+  records no basemap change between `187` and `188`, but `203-` shows two more style loads at 19:03:51.113Z and
+  19:03:54.697Z, inside the sheet's window of 19:03:45.5Z to 19:03:58.6Z (`204-`), so `188` followed a style load. No
+  style load since 19:03:54.7Z is in `203-`, so the map draws the default order now.
+
+### (d) The legend chip: **pass in portrait and at 90; fail at 270** (saved evidence), with the swipe at 90 and 270 to re-run
+
+Bounds from the dumps (clickable node; its scroll area in brackets); system bars from check 1's `dumpsys window`
+reads (`12-`, `14-`, `17-`); the "i" is MapLibre's "Attribution icon" node.
+
+| | chip collapsed | expanded | cluster (rows) | rail or nav | "i" |
+|---|---|---|---|---|---|
+| portrait (`144`, `111`) | `[842,1747][1057,1882]` | `[269,1596][1057,1866]` | x 922-1057, y 673-1718 | app nav y 1956-2181 | `[1010,2246][1069,2305]` |
+| 90 (`120`, `121`) | `[1718,871][1933,1006]` | `[1145,720][1933,990]` | x 98-233 (left) | rail x 1956-2181 | `[2246,1010][2305,1069]` |
+| 270 (`123`, `140`, `141`) | `[2003,871][2218,1006]` | `[1430,720][2218,990]` | x 2083-2218 (right) | rail x 135-360 | `[2246,1010][2305,1069]` |
+
+- **Portrait, collapsed:** below the cluster's last row by 29 px, above the nav, above the "i". Clear. (It sits below
+  the cluster, not right of it: in portrait the cluster is on the chip's own edge.)
+- **90:** right of the cluster, 23 px left of the rail, above the "i" (1006 against 1010). Clear, collapsed and
+  expanded.
+- **270: fails.** The collapsed chip lies across the cluster's column. `123` and `140` have **no "Start recording
+  track" node** (at 90 it is `[132,916][200,970]`), and my crop of `123` shows the chip drawn over the record button,
+  whose white dot shows through it. Expanded (`141`), the legend cuts the "Plan a trip" row at y 720 and covers the
+  record row. The chip is placed `BottomEnd` whatever the rotation (`AvailabilityCompactMapUi.kt:1150-1161`), and at 270
+  the cluster is on the right, the side the chip is on.
+- **Expand, cap, collapse:** a touch expands it in all three (`111`, `121`, `141`), to exactly **270 px** (96 dp) in
+  each, the scroll area `scrollable=true`; a second touch collapses it (`118`, `122`, `143`).
+- **Scroll:** portrait only. `115` to `117`, three swipes inside the expanded legend, move its content up (the
+  chanterelles label from y 1698 to 1596 and off, then chicken of the woods, then the explanatory note), with the same
+  270 px bounds, still expanded. At 90 and 270 no swipe was made. **Re-run** (below).
+- The portrait "i" is under the system navigation bar (`[0,2181][1080,2316]`) and at 90 under the bar on the right; see
+  Flags. The chip clears it either way.
+
+### (e) The cluster stops above the chip: **expanded, fail** (saved evidence); **collapsed, to re-run**
+
+- **Expanded, portrait:** `114` (the cluster dragged low, then the legend expanded) and `111` (not dragged) both put
+  the cluster at its centred position, top row 673, and its last row at `[922,1583][1057,1596]`: 13 px of a 135 px row
+  showing, and no "Return to vehicle" node in either dump. The expanded legend's top is 1596, so the **overlap is
+  122 px** (1718 - 1596). The code accounts for it: the clamp's lowest edge is the chip's top less `Spacing.sm`, but
+  the downward limit is floored at the centred position (`maxDownwardOffsetPx … coerceAtLeast(0f)`, and the clamp's
+  upper end `maxOf(maxUpwardOffsetPx, maxDownwardOffsetPx)`, `AvailabilityCompactMapUi.kt:785-811`), so a chip that
+  leaves no room below the centred cluster is overlapped rather than cleared. That reading of the code is mine.
+- **At 270** the cluster, at the position `123` shows, is already overlapped by the collapsed chip (see (d)).
+- **Collapsed, portrait:** `113` has the cluster 12 px lower than `112`, its last row ending at 1730 against the chip's
+  top at 1747: **17 px**. That this was the lowest the cluster could go rests on the drag's length (y 1032 to 2150),
+  which only the transcript extract records. A file does not show it on its own, so **re-run**.
+
+### (f) Below the minimum zoom, cells draw nothing: **not shown by the saved evidence; re-run**
+
+`191` to `199` all draw cells. Their cells are about 150 px (`191`) down to about 75 px (`199`) across, zoom about 8.5
+down to 7.5; none is below 7. The second coder's last quick zoom (`199`) is where the owner's stop found it.
+
+## Additions for the check 4 re-runs, written before they were run (after the second relaunch)
+
+**(d) Scroll at 90 and 270.** At `user_rotation` 1, then 3: a touch expands the chip; a swipe up inside the expanded
+legend; a dump; a second touch collapses it. At 270 every touch on the legend is made left of x 2083, never over the
+cluster's column, as the second coder's rule says (a touch reaching the record button would create a recording). Pass:
+after the swipe, the legend is still expanded (270 px, `scrollable=true`) and its first text node has moved up.
+Prediction: pass at both (the chip's code does not depend on rotation).
+
+**(e) Collapsed.** In portrait, with the chip collapsed, the cluster's drag handle ("Hide map controls") is dragged
+with `input motionevent` from its centre to y 2150, as the second coder did. Pass: the cluster's last row ends above
+the chip's top. The gap is recorded. The cluster is then dragged back up to its centred position (top row 673) and
+read back. Prediction: pass, about 17 px, as `113`.
+
+**(f) Minimum zoom: method.** Pan so the 5 km region is on the map, then quick-zoom out (`197-qzoom2.sh`, a one-finger
+double-tap-and-drag) in small steps across 7, measuring each frame's zoom from the 5 km circle with
+`214-circle-zoom.py`. "Draws nothing" is measured, not read by eye: at a frame measured below 7, the same camera with
+both field switches off in the Layers sheet must equal it over the map (`211`/`212`-style: offset (0, 0), and the map
+area outside the chip, the credit line and the sheet's own trace equal within 3 per channel). The control is the same
+on/off comparison at a frame measured above 7, which must differ over the cells. The switches are put back on after
+each pair and read back. Code: below `MIN_FORECAST_ZOOM` the effect requests no block and sets each field's source
+empty at the next camera idle (`ui/map/SightingsMap.kt:684-705`); the legend chip stays (`ForecastCellLayer.kt:15-24`).
+Prediction: pass.
