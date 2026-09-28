@@ -474,3 +474,136 @@ Offline maps, whose control failed.**
   - The stored keys are all true afterwards (`99-map_prefs-all-on.pb`).
 - **Prediction:** held.
 
+
+# Resumed again (continuation `2026-09-28-63`), written after the second relaunch
+
+Everything above this heading is as pushed at `5ec7a63`, byte for byte: the first coder's pre-registration, and the
+second coder's Resumed section, its additions and its verdicts for checks 1 to 3. I have not edited any of it.
+
+**Who:** a third device coder, replacing the second, which the owner stopped at about 19:10Z ("Stop everything") part
+way through check 4. It sent no hand-back, and wrote no check 4 verdict. I started at 19:23Z. **Record:** the kit is
+absent at this base, and the planner writes the record (continuation entry `2026-09-28-63` in `RECORD.md` at
+`48633ee`). I do not touch `RECORD.md`.
+
+## The continuation `-63`, verbatim
+
+From `prompts/preserved/2026-09-28-63.md` at `48633ee` (sha256
+`415c8550aad4b0a5eca663f18993e416a8d5c52d8abdab9caa9153dc8a66a2b2`), below its "verbatim prompt follows" line:
+
+> **Type:** device (continuation `2026-09-28-63` of dispatch `2026-09-28-51`)
+>
+> # Why you exist
+>
+> The device coder relaunched by `-55` was stopped at about 19:10Z when the owner said "Stop everything". It was part-way through check 4. The owner has since told the planner to relaunch it ("A": relaunch both). You replace it.
+>
+> **What it left, as the planner read it at relaunch:**
+> - Branch `device-stage-1`, pushed at `5ec7a63`:
+>   - `e99ea0c`, the Resumed section (build unchanged, no crash across the gap);
+>   - `01158c6`, pass-condition additions written before its re-runs;
+>   - `5ec7a63`, verdicts for checks 1 to 3. It recorded 1 as a pass, 2 as a pass with the Offline maps tap half not discriminating, and 3 as a pass.
+>
+>   Those stand as written. Do not edit them.
+> - Evidence `124` to `200` in `/home/zynergy-labs/Zynergy/device-evidence/2026-09-28-stage-check-1/`. The last files (`192` to `200`, "qz") look like check 4's minimum-zoom item. That is the planner's inference from the file names, not a finding.
+> - It sent no hand-back. Any verdict it reached after `5ec7a63` is not written.
+> - **The phone at relaunch** (the planner's read): awake; Forager `MainActivity` in focus; `user_rotation` 0; `accelerometer_rotation` 0. The Diagnostics switch and the overlays are unknown. Read the full state back yourself before touching anything, and compare it with `06-settings-start.txt` and `07-datastore-ls-start.txt`.
+>
+> # What governs
+>
+> In full: `prompts/preserved/2026-09-28-51.md`, then `-55`. Every rule and abort condition in them binds you. Quote `-55` and this message verbatim in a second "Resumed" section of the run record.
+>
+> # What you do
+>
+> 1. Confirm the install is unchanged, and read crashes (`logcat -d -b crash`) across the gap since 19:07Z. A mismatch or a new Forager crash is an abort.
+> 2. **Check 4.** Give verdicts from the saved evidence (`124` to `200`) only where a named file shows the pass condition on its own. Otherwise re-run the item. Then finish check 4, turn the Diagnostics switch **off**, and read it back.
+> 3. **Run checks 5 to 8** as `-51` sets them out.
+> 4. **Restore and read back** everything `-51` and `-55` name.
+> 5. **Number new evidence from `201`.**
+> 6. **Commit and push the run record after each check,** not only at the end.
+>
+> # Merge
+>
+> Not authorised.
+
+## The continuation `-55`, verbatim, as `-63` requires
+
+From `prompts/preserved/2026-09-28-55.md` at `48633ee` (sha256
+`0b9dd8cac1fedfe207f4cba68d2f6f09f337157a04e4d6cf4f798ddf730608a1`; the file is unchanged since `367c32f`), below its
+"verbatim prompt follows" line. It is identical to the quote in the first Resumed section (a `diff` of the two gives
+nothing).
+
+> **Type:** device (continuation `2026-09-28-55` of dispatch `2026-09-28-51`)
+>
+> # Why you exist
+>
+> The device coder running dispatch `2026-09-28-51` died at 18:03Z on a network outage ("API Error: Can't reach the API server (EAI_AGAIN)"), in the middle of check 4. The planner session that ran it died with it. You replace that coder.
+>
+> **What it left, checked by the planner at relaunch:**
+> - Branch `device-stage-1` (worktree `/home/zynergy-labs/Zynergy/forager-wt/device-stage-1`), pushed at `5532ff2`. That commit holds `docs/audits/2026-09-28-stage-device-check-part-1-run-record.md` with the install facts and the pass conditions and predictions it wrote **before** looking. Those stand as written: do not edit them. If you need a new pass condition or prediction, append it and mark it as written after the relaunch.
+> - **No verdicts were written.** It reasoned in blocks that were not saved, so its judgements are lost. What survives is its evidence: `/home/zynergy-labs/Zynergy/device-evidence/2026-09-28-stage-check-1/`, files `01` to `123`, `snaps.log`, `toggle-times.txt` and its helper scripts (`snap.sh`, `nodes.py`, `toggle.sh`, `dtap.sh`, `diffimg.py`, `alpha.py`).
+> - An extract of its transcript: `prior-agent-transcript-extract.md` in that directory, with every command and its truncated output. It is model output. Use it to find which evidence file shows what; cite the evidence files, not the extract.
+> - **The phone's state at relaunch** (planner's read, 18:3xZ): awake; Forager `MainActivity` in focus; `user_rotation` 3; `accelerometer_rotation` 0. From its last commands: Diagnostics "Synthetic forecast layers" was switched **on** (step 104), and the Tracks and Finds overlays were toggled during check 2. Read the full state back yourself before you touch anything. The starting values are in `06-settings-start.txt` and `07-datastore-ls-start.txt`, and those are what you restore to.
+>
+> # What governs
+>
+> Read `prompts/preserved/2026-09-28-51.md` in full. Every rule in it binds you, especially the standing rules (no `logcat -c`, `am start` not `monkey`, stop at any prompt over the app, evidence outside the repository) and the abort conditions. Quote this message verbatim in the run record, in a "Resumed" section.
+>
+> # What you do
+>
+> 1. **Before anything else,** confirm the installed build is still the one the pre-registration records: versionName, versionCode, `lastUpdateTime` and `firstInstallTime` from `dumpsys package`. Also do a crash read (`logcat -d -b crash`) covering the gap since 18:03Z. A mismatch or a new Forager crash is an abort.
+> 2. **Checks 1 to 4 already run.** For each item, give a verdict from the saved evidence **only where a named evidence file shows the pass condition on its own.** Where it does not (the judgement was in the lost reasoning, or the evidence is ambiguous), re-run that item and say so. For each verdict, list whether it came from saved evidence or from a re-run, and name the files.
+> 3. **Finish check 4:** a reorder applies at the next style load; cells draw nothing below the minimum zoom; then turn the Diagnostics switch **off** and read it back.
+> 4. **Run checks 5 to 8** as `-51` sets them out.
+> 5. **Restore and read back** every setting `-51` names, the overlay toggles, and rotation (`user_rotation` and `accelerometer_rotation` back to their starting values).
+> 6. **Number new evidence from `124` onward.**
+> 7. **Write the verdicts into the existing run record,** with the sections `-51` requires. Push `device-stage-1`; the planner merges it.
+>
+> # Merge
+>
+> Not authorised.
+
+## The planner's note that came with `-63`, verbatim
+
+It came with the launch message and is marked there as not part of the store copy. No planner-log line was given, so
+none is cited.
+
+> Planner's note (not part of the store copy): a J8 build coder runs Gradle on this machine at the same time. It does not use the phone, and you need no build. The owner said earlier "S22 is ready for your device check". If any prompt appears over the app, stop at once, as `-51` says. When you finish or stop, hand back a report as the dispatch requires.
+
+## Step 1 of `-63`: the build and the crash read across the gap (before any touch)
+
+- **Base:** `git fetch` at 19:23Z: `origin/device-stage-1` at `5ec7a63`, the worktree clean and at the same commit.
+  `origin/journal-redesign` at `48633ee`, carrying `-63`. The app code in the worktree is `26709b1`'s (`git diff --stat
+  26709b1 HEAD -- app/` is empty), so code citations stay at `26709b1`.
+- **Device:** `adb devices -l` lists `R5CT321008R` (SM_S908U) only.
+- **Installed build, 19:24:12Z** (`201-dumpsys-package-resume2.txt`): `versionName=1.0.1356+g26709b1c`,
+  `versionCode=1356`, `lastUpdateTime=2026-09-28 10:17:38` (PDT), user 0's `firstInstallTime=2026-09-22 11:15:05`,
+  `ceDataInode=2495587`, `deDataInode=2494123`; user 95 unchanged. **All identical** to `124-` and `05-`. Not an abort.
+- **Crash read:**
+  - `logcat -d -b crash`: **0 bytes** (`202-crash-resume2.txt`, 19:24:18Z).
+  - `logcat -d` (`203-log-resume2.txt`): the system buffer runs from 13:25:39Z and the main buffer from 18:55:46Z, both
+    to 19:24:21Z, so both cover the gap since 19:07Z. **0** `FATAL EXCEPTION` lines. Its `AndroidRuntime` lines are
+    `uiautomator` shell processes (uid 2000), not the app. The events buffer (`204-events-resume2.txt`) starts at
+    18:53:31Z and holds no `am_crash` or `am_anr` line.
+  - Forager's process is still pid 9626, started at 17:48:30Z (check 3's relaunch), still running at 19:24Z (`pidof`);
+    `203-` has no later `Start proc` or `Killing` line for the app.
+  - **No new Forager crash.** Not an abort.
+- **Phone and app state at 19:24:36Z**, read before any touch (`205-settings-resume2.txt`,
+  `206-datastore-ls-resume2.txt`, `207-map_prefs-resume2.pb`, `208-diag-prefs-resume2.pb`, decoded by `pbprefs.py`
+  with coordinates redacted; the screen as `209-resume2-state`):
+  - awake (`mWakefulness=Awake`); `isKeyguardShowing=false`; focus `com.zynergylabs.forager.app/.MainActivity`; no
+    window over it; the keyboard not shown;
+  - `user_rotation=0`, `accelerometer_rotation=0`, `font_scale=1.0`, `navigation_mode=0`, `ui_night_mode=2`, location
+    on, `location_mode=3`: **all equal to the start** (`06-`);
+  - `map_preferences`: `map.fullscreen=false`, `night_mode.maps=false`, the offline picker's last pick; the seven
+    overlay `visible` keys all true; both forecast fields' `visible` keys true;
+    `map.layer.forecast-chanterelles-layer.opacity = 1.0`; `map.layer_order =
+    forecast-chicken-of-the-woods-layer,forecast-chanterelles-layer`. The stored order is bottom to top
+    (`moveColourField`, `ui/map/layers/MapLayerPreferencesState.kt:62-73`), and this one equals the registry's own
+    (`COLOUR_FIELDS`, `ui/map/layers/ColourFields.kt:42`, chicken of the woods first, so chanterelles on top), which is
+    what an empty store gives (`restoreMapLayersState`, `:16-18`, `orderedLayers`, `ui/map/layers/MapLayers.kt:331-343`);
+  - `debug_diagnostics_preferences`: `diagnostics.synthetic_forecast=true`. **The switch is still on.**
+  - The screen: the Maps tab in portrait on Topographical ("Layers: Topographical map."), cells drawn, the legend chip
+    collapsed ("2 layers"), the compact bar reading "September · Search a location".
+  - **Differences from the start** (`06-`, `07-`, `08-`): the Diagnostics switch (on, to be turned off); the stored
+    keys that did not exist at the start (the overlay and forecast keys, the opacity and the order), each at its
+    default value. The app can set these keys but not remove them, and I may not write to its files, so, as the
+    second coder said, "restored" for them means their default values, read back.
