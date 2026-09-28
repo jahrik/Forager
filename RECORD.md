@@ -3146,3 +3146,24 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner's answers, verbatim: "Open drawer to the find (Recommended)", "Open find, Back returns (Recommended)". Written by the planner by hand.
 
 ---
+
+**Kind:** terminal
+**ID:** 2026-09-28-31
+**Timestamp:** 2026-09-28T11:19:34Z
+**Closes:** 2026-09-28-28
+**Outcome:** completed
+**Observed:** (1) On journal-redesign: failing tests ea19a5b (DrawerBackOverJournalTest, six tests through the real AvailabilityScreen and ViewModels over in-memory Room, the drawer opened by a real touch on Tools; all six failed at base, "drawer open = true, Journal state held = false": day entry report and editor in portrait and on the short-landscape rail, the Records Finds chip, the Entries album view); the fix 42d9d3d (one flag, backEnabled on JournalTab, !isDrawerOpen() from the compact scaffold, threaded to all nine Journal Back handlers, default true so the wide tree and drawer-closed Back are unchanged; disabling rather than outranking keeps the drawer's own Settings step); report and merge c63c070 (docs/audits/2026-09-28-drawer-back-completion-report.md). (2) Hypothesis confirmed: the drawer's handler (AvailabilityScreen.kt:982) registered before the Journal's; CartographyScreen.kt:215 took Back. (3) Five revert checks, all compiling, each failing only its handler's tests, restored from saved copies. (4) Existing Back, J5 short-window and drawer classes unchanged: 9 classes, 159 tests, 0 failures. Suites: baseline 05424b6 267 / 2194 / 0 / 0 / 24; after 42d9d3d 268 / 2200 / 0 / 0 / 24 (coder's; the planner did not re-run with M1 building). Predictions: 1 wrong (a find cannot be open under the drawer: tapping Tools closes it, AvailabilityCompactScaffold.kt:457-459), 2 and 3 held.
+**Deviations:** The find cases test the Records Finds chip instead of an open find, since finds close on the tab-level Tools tap today; planner accepts this. When the Leaving-the-Journal fix keeps finds open, that stage adds the open-find-under-drawer test. Five threaded handlers are untested (a find's back stack, the short-landscape search header, the drafts list, the entry map in fullscreen, the pull-photo picker).
+**Notes:** Owner, verbatim: "The intended action is to close the drawer while it's open." Flags: opening Tools over a viewed committed find shows the no-Undo Discard (the ruled-for-after-M1 fix covers it); the search dropdown (AvailabilityCompactScaffold.kt:353), the Map tab (AvailabilityCompactMapUi.kt:483) and possibly CompactSettingsTab may register after the drawer's handler (unverified); the wide onLogFindHere sets isDrawerOpen (AvailabilityScreen.kt:1393); the comment at AvailabilityScreen.kt:961-967 is now partly stale. Device-only: the route on the S22 in portrait and at rotations 90 and 270. Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-32
+**Dispatch-file:** none
+**Type:** device pause
+**Outcome:** paused
+**Report:** docs/audits/2026-09-28-night-region-candidates-capture-run-record.md on branch night-region-capture-2026-09-28 at 4d4e899 (not yet merged)
+**Notes:** 2026-09-28T11:28:15Z. The capture for continuation 2026-09-28-26 (resumed once after a permission-checker outage) stopped at 11:25Z when Google Play services showed an account-recovery prompt for the owner's Google account over the app; the coder did not answer or dismiss it, and a read-only check found both buttons untouched. The owner has been asked to check the phone and the account; all phone work is paused until the owner says it is clear. State: candidate 202020 installed (404040 and 606060 not), Night Maps left on (start value off), rotation 0/0, three shots taken (202020 A-day, A-night, B); one capture showing the prompt and account details moved to logs/INVALID-202020-C-attempt-prompt-overlay.png outside the repository, not to be shown or copied. The coder ran adb logcat -c at 11:21Z (cleared the crash buffer; it had read 0 just before), against the rule carried from 2026-09-28-04/-12. Written by the planner by hand.
+
+---
