@@ -1,6 +1,8 @@
 # Backlog device check, Part B (landscape, the Maps drawer and the pickers), on the S22 Ultra: run record
 
-**Status: pre-registration only.** Nothing below has been run yet. This file is committed and pushed before any item
+**Status: in progress (10:25Z).** Run so far: steps 1 to 3, item 7's find picker and offline picker, 34, 35, 39 to 44 and 31. Still to run: 45, 46, 7's entry preview, J5c 47 to 49 and 53, 36, 37, and the end reads. Results are written at the end; the evidence is in the directory named below. The pre-registration, pushed at `e37f8b8` before any item ran, follows unchanged.
+
+**Pre-registration (as pushed at `e37f8b8`).** Nothing below had been run when it was written. This file is committed and pushed before any item
 is looked at, so the order of prediction and observation is checkable. Results are added in a later commit; this
 section is kept unchanged as the Appendix.
 
