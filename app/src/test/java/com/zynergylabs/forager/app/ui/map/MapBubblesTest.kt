@@ -192,6 +192,15 @@ class MapBubblesTest {
     }
 
     @Test
+    fun `an entry map's kept waypoint gone from Records is named from the entry's snapshot, with no details`() {
+        val kept = Waypoint("wp-gone", 45.4, -122.5, null, "Old gate", "", 0L)
+        val content = mapBubbleContentFor(target(MapBubbleKind.WAYPOINT, MapLayerIds.WAYPOINTS, "wp-gone"), sources.copy(snapshotWaypoints = listOf(kept)))
+        assertEquals(MapBubbleContent.WaypointContent(kept, (MgrsConverter.convert(LatLng(45.4, -122.5)) as MgrsCoordinate.Grid).value, hasDetails = false), content)
+        // A waypoint still in Records is the record, with details, even when a snapshot exists too.
+        assertEquals(true, (mapBubbleContentFor(target(MapBubbleKind.WAYPOINT, MapLayerIds.WAYPOINTS, "wp-1"), sources.copy(snapshotWaypoints = listOf(kept))) as MapBubbleContent.WaypointContent).hasDetails)
+    }
+
+    @Test
     fun `a track shows its title, date, distance and duration`() {
         val stats = ComputeTrackStatisticsUseCase()(track.points)
         assertEquals(
