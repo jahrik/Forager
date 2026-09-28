@@ -15,6 +15,7 @@ import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -23,6 +24,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -294,9 +296,14 @@ internal abstract class JournalEntriesOnMapHarness {
 
     protected fun touchCentreOf(tag: String) = touchCentreOf(composeRule.onNodeWithTag(tag))
 
+    /**
+     * A real touch at [xDp], [yDp] on the app's own window. The first root, not `onRoot()`: a touch that
+     * lands on the chip opens its list in a popup window of its own, and `onRoot()` then finds two roots
+     * and throws, so the test would error instead of counting that touch as one that missed the map.
+     */
     protected fun touchAt(xDp: Dp, yDp: Dp) {
         val at = with(composeRule.density) { Offset(xDp.toPx(), yDp.toPx()) }
-        composeRule.onRoot().performTouchInput { click(at) }
+        composeRule.onAllNodes(isRoot()).onFirst().performTouchInput { click(at) }
         composeRule.waitForIdle()
     }
 
