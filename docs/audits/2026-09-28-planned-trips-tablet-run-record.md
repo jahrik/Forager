@@ -426,6 +426,32 @@ Both lie on the search centre's longitude, south of it (A nearer), as the two ve
   [2163,1242][2204,1300] and B 1229 px at [2163,1480][2204,1538]**, the waypoint at its search-centre position.
 - **Verdict: as predicted, both draw after a relaunch.**
 
+### Portrait (rotation 0): P1, does a trip draw in the 103.5 dp strip, and zoom
+
+- `user_rotation 0` at 23:44:17Z, `ROTATION_0` (`05-rotation-log.txt`). The map is **[1532,405][1752,2768], 103.5 x
+  1112.0 dp** (`51-r0-maps`), the sanity check's bounds.
+- **The camera kept its centre across the rotation:** the waypoint, on the search centre, sits at the strip's centre
+  height (y 1537 to 1584 against a centre of 1586). Item 9 of the code path was an inference; this is the observation.
+- **The strip renders blocky,** as the sanity check found (its Flag 1). Every glyph's colour count falls there: the
+  waypoint's from 1620 to 1173 px, the flags' from 1229 to about 700 to 750 px, and their measured height from 27.8 to
+  about 22 dp. So in portrait a flag "draws" by my reading of the capture plus a cluster of its colour where the flag
+  is. The counts are not compared with landscape.
+
+| Capture | Where the trips are | Trip clusters | Seen | Verdict |
+|---|---|---|---|---|
+| `51-r0-maps` (crop `51-r0-strip-crop.png`) | the placing zoom; on the centre's longitude | A 734 px at [1639,1773][1680,1818], B 743 px at [1639,2008][1680,2054] | both flags, blocky like the basemap | **both draw** |
+| `53-r0-zoom-in` | +1 (separation 472 px) | 725 and 1179 px | | **both draw** |
+| `54-r0-zoom-out` | below the placing zoom (194 px) | 688 and 977 px | | **both draw** |
+| `55-r0-zoom-out-far` (strip `55-r0-strip.png`) | far out | one cluster, 1704 px, 49 dp tall: the two flags touching | both, beside the waypoint and the find | **both draw** |
+| `56-r0-zoom-back` (strip `56-r0-strip.png`) | two zoom-ins about a point 65 px east of them: by arithmetic about 1445 px, **west of the strip's left edge** (1532) | **none** (5 px noise) | the find and sightings to their east, no flag | **off the strip's ground** |
+| `57-r0-panned` | after a 195 px slow pan to the right | 693 and 704 px at x 1580 to 1620 | both flags | **both draw** |
+
+- **Verdict P1, as predicted:** a trip whose point is inside the 103.5 dp strip draws there, at every zoom tried. The
+  one capture with no flag (`56`) is one where the trips' points lay west of the strip by the zoom arithmetic, and a
+  pan brought both back (`57`). **The strip hides a trip only by showing less ground.** A flag (19.8 dp wide) fits in it.
+- The planner's prediction 2, "In portrait the 103.5 dp strip may show none, for width alone": **it showed both** when
+  their points were in the strip, and none when they were not.
+
 ## Appendix A: `prompts/preserved/2026-09-28-95.md`, verbatim
 
 At `554449b`, whole (sha256 `cfa98c46e5f3a49f8acb8b7b7bac2f5c343a10e3bb0d8ae9b439ecf5e12e2730`):
