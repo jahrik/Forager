@@ -7,6 +7,8 @@ import com.zynergylabs.forager.app.domain.ForecastCellStore
 import com.zynergylabs.forager.app.domain.ForecastCellsResult
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
+import com.zynergylabs.forager.app.domain.HighlightedRecord
+import com.zynergylabs.forager.app.domain.JournalEntryOnMap
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.LatLng
@@ -154,6 +156,15 @@ data class MapRecordSources(
     val getFullRecord: suspend (String) -> Result<List<TrackPointRecord>> = { Result.success(emptyList()) },
     val onOpenFind: ((String) -> Unit)? = null,
     val openFindLabel: String = OPEN_IN_JOURNAL_LABEL,
+    /**
+     * J8: for each record highlighted on this map, the shown entries that keep it
+     * (`JournalEntryHighlights.keptIn`), while the "Journal entries" switch shows the highlights;
+     * empty on a map with no highlights (the entry map) and while the switch is off. A bubble names
+     * these entries and opens one through [onOpenEntry].
+     */
+    val journalEntriesKeeping: Map<HighlightedRecord, List<JournalEntryOnMap>> = emptyMap(),
+    /** J8: opens a keeping entry in its report (owner's Q1 ruling, "Open in Journal, prompt first"); `null` offers no entry lines. */
+    val onOpenEntry: ((String) -> Unit)? = null,
 )
 
 /** The Maps tab's find action (owner's M1 ruling 2). */
@@ -165,22 +176,22 @@ const val OPEN_FIND_LABEL = "Open find"
 /** What one bubble says, per kind (B3): each starts from what that record's row, sheet or card already shows, kept short. */
 sealed interface MapBubbleContent {
     /** A find: its identification or "Find on <date>", the date when the title is the identification, and its cover photo. */
-    data class Find(val findId: String, val title: String, val date: String?, val coverPhotoPath: String?) : MapBubbleContent
+    data class Find(val findId: String, val title: String, val date: String?, val coverPhotoPath: String?, val keptIn: List<JournalEntryOnMap> = emptyList()) : MapBubbleContent
 
     /** A photo: the photo, its date, and what it is attached to. */
-    data class Photo(val photo: LogPhoto, val date: String, val attachedTo: String?) : MapBubbleContent
+    data class Photo(val photo: LogPhoto, val date: String, val attachedTo: String?, val keptIn: List<JournalEntryOnMap> = emptyList()) : MapBubbleContent
 
     /** A waypoint: its name and MGRS; Directions, and details while its record exists ([hasDetails]). */
-    data class WaypointContent(val waypoint: Waypoint, val mgrs: String?, val hasDetails: Boolean = true) : MapBubbleContent
+    data class WaypointContent(val waypoint: Waypoint, val mgrs: String?, val hasDetails: Boolean = true, val keptIn: List<JournalEntryOnMap> = emptyList()) : MapBubbleContent
 
     /** A track: its title, date, distance and duration; details. */
-    data class TrackContent(val trackId: String, val title: String, val date: String, val distance: String, val duration: String) : MapBubbleContent
+    data class TrackContent(val trackId: String, val title: String, val date: String, val distance: String, val duration: String, val keptIn: List<JournalEntryOnMap> = emptyList()) : MapBubbleContent
 
     /** A planned trip: what its Trip Planner row shows; Directions. */
     data class Trip(val trip: PlannedTrip, val date: String, val mgrs: String?, val coordinates: String) : MapBubbleContent
 
     /** An offline region: its name, radius, size, and whether it is stale; details. */
-    data class Region(val regionId: Long, val name: String, val radius: String, val size: String, val stale: Boolean) : MapBubbleContent
+    data class Region(val regionId: Long, val name: String, val radius: String, val size: String, val stale: Boolean, val keptIn: List<JournalEntryOnMap> = emptyList()) : MapBubbleContent
 
     /**
      * A forecast cell (the L0b forecast-facing rulings: chance, uncertainty, top drivers and data

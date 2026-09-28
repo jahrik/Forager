@@ -29,6 +29,14 @@ data class CartographyEntryEntity(
     val tags: String,
     val isDraft: Boolean,
     val updatedAtEpochMillis: Long,
+    /**
+     * J8: whether the entry's kept records are highlighted on the Maps tab — see
+     * [com.zynergylabs.forager.app.domain.model.CartographyEntry.shownOnMap]. Added by `MIGRATION_15_16`,
+     * which writes `0` for every existing row; not indexed, since it is read with the rows the Entries
+     * feed already loads, never queried on its own. No SQL default, like [isDraft] (`MIGRATION_8_9`):
+     * every write goes through this entity, which always carries it.
+     */
+    val shownOnMap: Boolean,
 ) {
     companion object {
         const val TAG_DELIMITER: String = "␟"

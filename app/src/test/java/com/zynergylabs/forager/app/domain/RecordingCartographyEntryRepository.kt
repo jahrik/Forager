@@ -40,4 +40,7 @@ internal class RecordingCartographyEntryRepository(
     override suspend fun countEntriesReferencingOfflineRegion(offlineRegionId: Long): Result<Int> = error("not used by these tests")
 
     override suspend fun countEntriesReferencingPhoto(photoId: String): Result<Int> = error("not used by these tests")
+
+    // J8: not used by these tests; the interface gained it.
+    override suspend fun setShownOnMap(id: String, shown: Boolean): Result<Unit> = error("not used by these tests")
 }

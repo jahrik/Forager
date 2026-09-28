@@ -14,6 +14,7 @@ import com.zynergylabs.forager.app.domain.GetDerivedTripUseCase
 import com.zynergylabs.forager.app.domain.GetTripReportOfflineRegionsUseCase
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.SaveCartographyEntryUseCase
+import com.zynergylabs.forager.app.domain.SetCartographyEntryShownOnMapUseCase
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.DerivedTrip
 import com.zynergylabs.forager.app.domain.model.FindDecision
@@ -69,6 +70,8 @@ class CartographyViewModel(
     private val getDerivedTrip: GetDerivedTripUseCase,
     private val getTripReportOfflineRegions: GetTripReportOfflineRegionsUseCase,
     private val computeTrackStatistics: ComputeTrackStatisticsUseCase,
+    /** J8: writes an entry's [CartographyEntry.shownOnMap] — see [onSetShownOnMap]. */
+    private val setShownOnMap: SetCartographyEntryShownOnMapUseCase,
     /** Injected so a test can fix when a photo attachment is stamped — same reasoning as every other `now`/`currentTime` provider in this codebase. */
     private val now: () -> Long = System::currentTimeMillis,
     /**
@@ -590,6 +593,9 @@ class CartographyViewModel(
             }
         }
     }
+
+    /** J8 tests-first stub: does nothing until the handler is built. */
+    fun onSetShownOnMap(id: String, shown: Boolean) = Unit
 
     fun onSaveErrorDismissed() {
         _uiState.update { it.copy(saveErrorMessage = null) }

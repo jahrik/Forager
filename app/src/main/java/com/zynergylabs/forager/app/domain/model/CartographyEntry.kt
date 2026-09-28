@@ -71,6 +71,15 @@ data class CartographyEntry(
      * action with no opposite ("withhold") to record. Attached or not attached is the whole state.
      */
     val photos: List<PhotoAttachment> = emptyList(),
+    /**
+     * Whether this entry's kept records are highlighted on the Maps tab (J8, owner: "Yes, keep them",
+     * stored in Room with the entry). Only a saved entry is ever highlighted (owner: "Saved entries
+     * only"), so on a draft this is carried but read by nothing. `false` by default and for every
+     * entry that existed before `MIGRATION_15_16`. Written only by
+     * [com.zynergylabs.forager.app.domain.CartographyEntryRepository.setShownOnMap], never as a side
+     * effect of editing the entry; read by [com.zynergylabs.forager.app.domain.GetJournalEntryHighlightsUseCase].
+     */
+    val shownOnMap: Boolean = false,
 ) {
     companion object {
         /** A freshly-started, undecided entry for [date] — every decision list empty, [isDraft] always `true`. Mirrors [MushroomLogEntry.draft]'s own shape: persisted immediately by its use case, not held only in memory. */

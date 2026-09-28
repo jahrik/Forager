@@ -100,6 +100,7 @@ import com.zynergylabs.forager.app.domain.PullPhotoIntoEntryUseCase
 import com.zynergylabs.forager.app.domain.RecordTrackPointsUseCase
 import com.zynergylabs.forager.app.domain.RemovePhotoFromLogEntryUseCase
 import com.zynergylabs.forager.app.domain.SaveCartographyEntryUseCase
+import com.zynergylabs.forager.app.domain.SetCartographyEntryShownOnMapUseCase
 import com.zynergylabs.forager.app.domain.SaveMushroomLogEntryUseCase
 import com.zynergylabs.forager.app.domain.SavePlannedTripUseCase
 import com.zynergylabs.forager.app.domain.SearchCacheRepository
@@ -241,6 +242,8 @@ class AppContainer(context: Context) {
     val getCartographyEntryUseCase = GetCartographyEntryUseCase(cartographyEntryRepository)
     val commitCartographyEntryUseCase = CommitCartographyEntryUseCase(cartographyEntryRepository)
     val deleteCartographyEntryUseCase = DeleteCartographyEntryUseCase(cartographyEntryRepository)
+    // J8: the report menu's "Show on map" and the Maps-tab chip's "Hide" write shownOnMap through this.
+    val setCartographyEntryShownOnMapUseCase = SetCartographyEntryShownOnMapUseCase(cartographyEntryRepository)
     val getEntryReferenceCountUseCase = GetEntryReferenceCountUseCase(cartographyEntryRepository)
 
     // Phase 1a of the Forager Navigator plan (docs/plans/forager-navigator-plan.md) — track

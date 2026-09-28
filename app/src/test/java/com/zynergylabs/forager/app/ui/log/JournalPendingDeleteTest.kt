@@ -134,6 +134,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.SaveCartographyEntryUseCase
+import com.zynergylabs.forager.app.domain.SetCartographyEntryShownOnMapUseCase
 import com.zynergylabs.forager.app.domain.OfflineRegionMetadata
 import com.zynergylabs.forager.app.domain.OfflineRegionDayIndex
 import com.zynergylabs.forager.app.domain.GetTripReportOfflineRegionsUseCase
@@ -279,6 +280,7 @@ class JournalPendingDeleteTest {
             ),
             getTripReportOfflineRegions = GetTripReportOfflineRegionsUseCase(offlineMapRepository),
             computeTrackStatistics = ComputeTrackStatisticsUseCase(),
+            setShownOnMap = SetCartographyEntryShownOnMapUseCase(cartographyRepository),
             now = { 1_000L },
         )
         composeRule.setContent {
@@ -1587,6 +1589,8 @@ private class PendingDeleteCartographyRepository(initial: List<CartographyEntry>
     override suspend fun countEntriesReferencingWaypoint(waypointId: String): Result<Int> = Result.success(0)
     override suspend fun countEntriesReferencingOfflineRegion(offlineRegionId: Long): Result<Int> = Result.success(0)
     override suspend fun countEntriesReferencingPhoto(photoId: String): Result<Int> = Result.success(0)
+    // J8: the interface gained it; nothing in this class shows an entry on the map.
+    override suspend fun setShownOnMap(id: String, shown: Boolean): Result<Unit> = error("not used by these tests")
 }
 
 private object PendingDeleteNoRegionsDayIndex : OfflineRegionDayIndex {

@@ -16,6 +16,12 @@ import org.junit.Test
  * Map layers L0b, B7: the colour-field group, empty in L0a, now holds the two synthetic test layers,
  * below every other layer, with their own flags (toggle, opacity slider, reorder on) and no other
  * layer's flags changed. The assertions that pinned the empty group are updated to pin the new one.
+ *
+ * J8 (`prompts/preserved/2026-09-28-52.md`, J8-2): five journal-entry halos, each directly below the
+ * record layer it decorates (below its casing, for a line with one), in the new `JOURNAL_ENTRY` role,
+ * taking no taps, all following the one "Journal entries" switch. No other layer moved; the assertions
+ * that pinned the registry's contents are re-pinned with the five added, and the halos' own rules are
+ * new tests below.
  */
 class MapLayerRegistryTest {
 
@@ -38,18 +44,32 @@ class MapLayerRegistryTest {
     /** L0b's two synthetic colour fields, bottom to top (registry order). */
     private val colourFields = listOf(MapLayerIds.FORECAST_CHICKEN_OF_THE_WOODS, MapLayerIds.FORECAST_CHANTERELLES)
 
+    /** J8's five halos, bottom to top (registry order). */
+    private val journalHalos = listOf(
+        MapLayerIds.JOURNAL_ENTRY_REGIONS,
+        MapLayerIds.JOURNAL_ENTRY_TRACKS,
+        MapLayerIds.JOURNAL_ENTRY_WAYPOINTS,
+        MapLayerIds.JOURNAL_ENTRY_FINDS,
+        MapLayerIds.JOURNAL_ENTRY_PHOTOS,
+    )
+
     private val expectedOrder = colourFields + listOf(
         MapLayerIds.OFFLINE_REGION_FILL,
+        MapLayerIds.JOURNAL_ENTRY_REGIONS,
         MapLayerIds.OFFLINE_REGION_OUTLINE,
         MapLayerIds.BREADCRUMB_CASING,
         MapLayerIds.BREADCRUMB,
+        MapLayerIds.JOURNAL_ENTRY_TRACKS,
         MapLayerIds.KEPT_TRACKS_CASING,
         MapLayerIds.KEPT_TRACKS,
         MapLayerIds.SEARCH_CENTRE,
         MapLayerIds.SIGHTINGS,
         MapLayerIds.PLANNED_TRIPS,
+        MapLayerIds.JOURNAL_ENTRY_WAYPOINTS,
         MapLayerIds.WAYPOINTS,
+        MapLayerIds.JOURNAL_ENTRY_FINDS,
         MapLayerIds.FINDS,
+        MapLayerIds.JOURNAL_ENTRY_PHOTOS,
         MapLayerIds.PHOTOS,
     )
 
@@ -59,8 +79,8 @@ class MapLayerRegistryTest {
     fun `every current layer is in the registry exactly once, and nothing else is`() {
         val ids = MAP_LAYER_REGISTRY.map { it.id }
         assertEquals("ids are unique", ids.size, ids.toSet().size)
-        assertEquals((orderBeforeL0a + colourFields).toSet(), ids.toSet())
-        assertEquals(14, ids.size)
+        assertEquals((orderBeforeL0a + colourFields + journalHalos).toSet(), ids.toSet())
+        assertEquals(19, ids.size)
     }
 
     @Test
@@ -72,7 +92,7 @@ class MapLayerRegistryTest {
     fun `the only change from the order before L0a is the search centre and the sightings moving above every line`() {
         val moved = setOf(MapLayerIds.SEARCH_CENTRE, MapLayerIds.SIGHTINGS)
         val ids = MAP_LAYER_REGISTRY.map { it.id }
-        assertEquals("every other layer keeps its relative order", orderBeforeL0a - moved, ids - moved - colourFields.toSet())
+        assertEquals("every other layer keeps its relative order", orderBeforeL0a - moved, ids - moved - colourFields.toSet() - journalHalos.toSet())
         val lastLine = ids.indexOfLast { spec(it).zGroup == ZGroup.LINES }
         moved.forEach { assertTrue("$it draws above every line", ids.indexOf(it) > lastLine) }
     }
@@ -109,12 +129,18 @@ class MapLayerRegistryTest {
             MapLayerIds.WAYPOINTS to Triple(LayerKind.MARKER, LayerRenderer.SYMBOL, MapSourceIds.WAYPOINTS),
             MapLayerIds.FINDS to Triple(LayerKind.MARKER, LayerRenderer.SYMBOL, MapSourceIds.FINDS),
             MapLayerIds.PHOTOS to Triple(LayerKind.MARKER, LayerRenderer.SYMBOL, MapSourceIds.PHOTOS),
+            // J8: one source per halo, so a symbol layer is never fed a line.
+            MapLayerIds.JOURNAL_ENTRY_REGIONS to Triple(LayerKind.LINE, LayerRenderer.LINE, MapSourceIds.JOURNAL_ENTRY_REGIONS),
+            MapLayerIds.JOURNAL_ENTRY_TRACKS to Triple(LayerKind.LINE, LayerRenderer.LINE, MapSourceIds.JOURNAL_ENTRY_TRACKS),
+            MapLayerIds.JOURNAL_ENTRY_WAYPOINTS to Triple(LayerKind.MARKER, LayerRenderer.SYMBOL, MapSourceIds.JOURNAL_ENTRY_WAYPOINTS),
+            MapLayerIds.JOURNAL_ENTRY_FINDS to Triple(LayerKind.MARKER, LayerRenderer.SYMBOL, MapSourceIds.JOURNAL_ENTRY_FINDS),
+            MapLayerIds.JOURNAL_ENTRY_PHOTOS to Triple(LayerKind.MARKER, LayerRenderer.SYMBOL, MapSourceIds.JOURNAL_ENTRY_PHOTOS),
         )
         assertEquals(expected, MAP_LAYER_REGISTRY.associate { it.id to Triple(it.kind, it.renderer, it.sourceId) })
     }
 
     @Test
-    fun `record markers, lines and colour fields are tappable, casings, the offline fill, the search centre and the recording trail are not`() {
+    fun `record markers, lines and colour fields are tappable, casings, the offline fill, the search centre, the recording trail and the journal halos are not`() {
         val expected = mapOf(
             // M1 (planner's ruling): cells are tappable in their own group, which resolveTap ranks
             // after both of its stages, so a near miss on a line or marker still reaches the box.
@@ -133,6 +159,12 @@ class MapLayerRegistryTest {
             MapLayerIds.WAYPOINTS to TapGroup.MARKER,
             MapLayerIds.FINDS to TapGroup.MARKER,
             MapLayerIds.PHOTOS to TapGroup.MARKER,
+            // J8: a halo takes no taps, so M1's tap routing is unchanged.
+            MapLayerIds.JOURNAL_ENTRY_REGIONS to TapGroup.NONE,
+            MapLayerIds.JOURNAL_ENTRY_TRACKS to TapGroup.NONE,
+            MapLayerIds.JOURNAL_ENTRY_WAYPOINTS to TapGroup.NONE,
+            MapLayerIds.JOURNAL_ENTRY_FINDS to TapGroup.NONE,
+            MapLayerIds.JOURNAL_ENTRY_PHOTOS to TapGroup.NONE,
         )
         assertEquals(expected, MAP_LAYER_REGISTRY.associate { it.id to it.tapGroup })
     }
@@ -154,13 +186,17 @@ class MapLayerRegistryTest {
     }
 
     @Test
-    fun `a casing follows its own track's state, and the offline outline follows the fill`() {
+    fun `a casing follows its own track's state, the offline outline follows the fill, and the halos follow the Journal entries switch`() {
         val owners = MAP_LAYER_REGISTRY.filter { it.stateOwnerId != null }.associate { it.id to it.stateOwnerId }
         assertEquals(
             mapOf(
                 MapLayerIds.BREADCRUMB_CASING to MapLayerIds.BREADCRUMB,
                 MapLayerIds.KEPT_TRACKS_CASING to MapLayerIds.KEPT_TRACKS,
                 MapLayerIds.OFFLINE_REGION_OUTLINE to MapLayerIds.OFFLINE_REGION_FILL,
+                MapLayerIds.JOURNAL_ENTRY_REGIONS to JOURNAL_ENTRIES_SWITCH_LAYER_ID,
+                MapLayerIds.JOURNAL_ENTRY_WAYPOINTS to JOURNAL_ENTRIES_SWITCH_LAYER_ID,
+                MapLayerIds.JOURNAL_ENTRY_FINDS to JOURNAL_ENTRIES_SWITCH_LAYER_ID,
+                MapLayerIds.JOURNAL_ENTRY_PHOTOS to JOURNAL_ENTRIES_SWITCH_LAYER_ID,
             ),
             owners,
         )
@@ -172,10 +208,11 @@ class MapLayerRegistryTest {
         assertEquals(colourFields, MAP_LAYER_REGISTRY.filter { it.userOpacity }.map { it.id })
         assertEquals(colourFields.associateWith { SYNTHETIC_DATA_CREDIT }, MAP_LAYER_REGISTRY.filter { it.credit != null }.associate { it.id to it.credit })
         assertEquals(
-            "toggleable: L0a's seven, plus the two colour fields",
+            "toggleable: L0a's seven, plus the two colour fields, plus J8's Journal entries switch",
             colourFields + listOf(
                 MapLayerIds.OFFLINE_REGION_FILL,
                 MapLayerIds.BREADCRUMB,
+                JOURNAL_ENTRIES_SWITCH_LAYER_ID,
                 MapLayerIds.KEPT_TRACKS,
                 MapLayerIds.PLANNED_TRIPS,
                 MapLayerIds.WAYPOINTS,
@@ -184,6 +221,42 @@ class MapLayerRegistryTest {
             ),
             MAP_LAYER_REGISTRY.filter { it.userToggleable }.map { it.id },
         )
+    }
+
+    @Test
+    fun `each journal halo sits directly below what it decorates, in the JOURNAL_ENTRY role, and is drawn only with that record`() {
+        val ids = MAP_LAYER_REGISTRY.map { it.id }
+        // halo to (the record layer it decorates, the layer it sits directly below: the record's casing, for a line with one)
+        val expected = mapOf(
+            MapLayerIds.JOURNAL_ENTRY_REGIONS to (MapLayerIds.OFFLINE_REGION_OUTLINE to MapLayerIds.OFFLINE_REGION_OUTLINE),
+            MapLayerIds.JOURNAL_ENTRY_TRACKS to (MapLayerIds.KEPT_TRACKS to MapLayerIds.KEPT_TRACKS_CASING),
+            MapLayerIds.JOURNAL_ENTRY_WAYPOINTS to (MapLayerIds.WAYPOINTS to MapLayerIds.WAYPOINTS),
+            MapLayerIds.JOURNAL_ENTRY_FINDS to (MapLayerIds.FINDS to MapLayerIds.FINDS),
+            MapLayerIds.JOURNAL_ENTRY_PHOTOS to (MapLayerIds.PHOTOS to MapLayerIds.PHOTOS),
+        )
+        assertEquals(
+            "only the halos decorate another layer",
+            expected.mapValues { it.value.first },
+            MAP_LAYER_REGISTRY.filter { it.drawnWith != null }.associate { it.id to it.drawnWith },
+        )
+        expected.forEach { (halo, pair) ->
+            assertEquals("$halo is directly below ${pair.second}", ids.indexOf(pair.second) - 1, ids.indexOf(halo))
+            assertEquals(halo, PaletteRole.JOURNAL_ENTRY, spec(halo).paletteRole)
+        }
+        assertEquals(journalHalos, MAP_LAYER_REGISTRY.filter { it.paletteRole == PaletteRole.JOURNAL_ENTRY }.map { it.id })
+    }
+
+    @Test
+    fun `registryProblems names a decoration of a missing layer, one above what it decorates, and one that takes taps`() {
+        fun halo(id: String, decorates: String, tap: TapGroup = TapGroup.NONE) = layer(id, ZGroup.LINES).copy(tapGroup = tap, drawnWith = decorates)
+        val missing = registryProblems(listOf(halo("h", decorates = "nowhere")))
+        assertTrue(missing.toString(), missing.any { "h" in it && "nowhere" in it })
+        val above = registryProblems(listOf(layer("rec", ZGroup.LINES), halo("h", decorates = "rec")))
+        assertTrue(above.toString(), above.any { "h" in it && "rec" in it && "below" in it })
+        val tappable = registryProblems(listOf(halo("h", decorates = "rec", tap = TapGroup.LINE), layer("rec", ZGroup.LINES)))
+        assertTrue(tappable.toString(), tappable.any { "h" in it && "taps" in it })
+        // The same shapes, correct, have no problems: each rule above failed on its own fault.
+        assertEquals(emptyList<String>(), registryProblems(listOf(halo("h", decorates = "rec"), layer("rec", ZGroup.LINES))))
     }
 
     // registryProblems: each rule shown able to fail.
