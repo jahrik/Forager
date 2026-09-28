@@ -375,6 +375,16 @@ internal fun SearchDropdown(
     onMonthSelected: (Int) -> Unit,
     onSetOnMap: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * A one-shot request to open "Advanced search" and its "Enter coordinates manually" expanded, so
+     * Latitude, Longitude and "Search this location" show at once (owner, 2026-09-28, continuation
+     * 2026-09-28-40: "Also open manual coordinates"). `true` after the compact search bar's tap. The
+     * outer section expands without consuming it, since the inner one is composed only once the outer
+     * is open; the inner one expands and calls [onManualCoordinatesExpandConsumed]. Each section's own
+     * expanded state stays its own afterwards, so a collapse the user makes stands.
+     */
+    expandManualCoordinatesRequested: Boolean = false,
+    onManualCoordinatesExpandConsumed: () -> Unit = {},
 ) {
     val isDarkTheme = LocalForagerDarkTheme.current
     CompositionLocalProvider(LocalContentColor provides if (isDarkTheme) Color.White else Bark) {
@@ -413,8 +423,12 @@ internal fun SearchDropdown(
                 // current location" promoted out of "Advanced search" up to the drawer's own top
                 // level, same reasoning radius/month already got (a control reached for on nearly
                 // every search doesn't belong a tap deeper). Removed from Advanced search entirely,
-                // not duplicated — Advanced search now holds only "Enter coordinates manually", the
-                // one location path most searches don't need to override. These are actions, not
+                // not duplicated — Advanced search now holds only "Enter coordinates manually".
+                // That redo kept the manual coordinates a tap deeper, as "the one location path most
+                // searches don't need to override"; the owner reversed that on 2026-09-28
+                // (continuation 2026-09-28-40): "Also open manual coordinates". The search bar's tap
+                // now opens both sections below once (expandManualCoordinatesRequested), so the
+                // coordinates show at once; the user's own collapse afterwards stands. These are actions, not
                 // selections: OutlinedButton/Button, not FilterChip, so they never read as members
                 // of the category-chip row (now in SearchEntryBar, above this drawer entirely).
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -454,8 +468,12 @@ internal fun SearchDropdown(
                 }
 
                 HorizontalDivider()
-                CollapsibleSection(title = "Advanced search") {
-                    CollapsibleSection(title = "Enter coordinates manually") {
+                CollapsibleSection(title = "Advanced search", expandRequested = expandManualCoordinatesRequested) {
+                    CollapsibleSection(
+                        title = "Enter coordinates manually",
+                        expandRequested = expandManualCoordinatesRequested,
+                        onExpandRequestConsumed = onManualCoordinatesExpandConsumed,
+                    ) {
                         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                             OutlinedTextField(
                                 value = uiState.manualLatText,
