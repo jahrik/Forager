@@ -5,6 +5,8 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
 import com.zynergylabs.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
@@ -30,6 +32,10 @@ import kotlinx.coroutines.flow.first
  * class, so deleting the backing file between tests couldn't reset it. One instance per
  * [DataStoreMapPreferencesRepository] avoids that without losing anything real production code
  * depends on, since nothing else in this app ever constructs a second one against the same file.
+ *
+ * [scope] is DataStore's own default scope unless a caller passes one. A test passes one so it can
+ * cancel it: DataStore closes its file when its scope completes, which is the only way to open a second
+ * reader on the file and check what a restart would read (`DataStoreMapLayerPreferencesTest`).
  */
 class DataStoreMapPreferencesRepository(
     context: Context,
@@ -81,14 +87,51 @@ class DataStoreMapPreferencesRepository(
         dataStore.edit { prefs -> prefs[KEY_MAP_FULLSCREEN] = fullscreen }
     }
 
-    // Tests-first stubs (map layers L0b, B3).
-    override suspend fun getMapLayerPreferences(): Result<MapLayerPreferences> = Result.failure(NotImplementedError("L0b B3"))
+    /**
+     * Map layers L0b, B3: the layer choices live in this same file and this same [dataStore], under
+     * `map.layer` keys keyed by registry id. The same instance, not a second repository with its own
+     * `PreferenceDataStoreFactory.create`, because DataStore refuses a second live instance on one file
+     * ("There are multiple DataStores active for the same file"; see
+     * `DataStorePhotoLocationPreferenceRepositoryTest`), so this class implements both interfaces and
+     * `AppContainer` hands the one instance out as each.
+     *
+     * Every key under [LAYER_KEY_PREFIX] is read back by its name: `map.layer.<id>.visible` (boolean)
+     * and `map.layer.<id>.opacity` (float). The order is one string, [KEY_LAYER_ORDER], the ids joined
+     * by [LAYER_ORDER_SEPARATOR]; registry ids never contain one. Nothing here checks a value against
+     * the registry: `restoreMapLayersState` does, and reports what it refuses.
+     */
+    override suspend fun getMapLayerPreferences(): Result<MapLayerPreferences> = runCatchingCancellable {
+        val prefs = dataStore.data.first().asMap()
+        val visibility = mutableMapOf<String, Boolean>()
+        val opacity = mutableMapOf<String, Float>()
+        prefs.forEach { (key, value) ->
+            val name = key.name
+            if (!name.startsWith(LAYER_KEY_PREFIX)) return@forEach
+            when {
+                name.endsWith(VISIBLE_SUFFIX) && value is Boolean ->
+                    visibility[name.removePrefix(LAYER_KEY_PREFIX).removeSuffix(VISIBLE_SUFFIX)] = value
+                name.endsWith(OPACITY_SUFFIX) && value is Float ->
+                    opacity[name.removePrefix(LAYER_KEY_PREFIX).removeSuffix(OPACITY_SUFFIX)] = value
+            }
+        }
+        val order = prefs[KEY_LAYER_ORDER]?.let { it as? String }
+            ?.split(LAYER_ORDER_SEPARATOR)
+            ?.filter { it.isNotEmpty() }
+            .orEmpty()
+        MapLayerPreferences(visibility = visibility, opacity = opacity, order = order)
+    }
 
-    override suspend fun setLayerVisible(layerId: String, visible: Boolean): Result<Unit> = Result.failure(NotImplementedError("L0b B3"))
+    override suspend fun setLayerVisible(layerId: String, visible: Boolean): Result<Unit> = runCatchingCancellable {
+        dataStore.edit { prefs -> prefs[booleanPreferencesKey("$LAYER_KEY_PREFIX$layerId$VISIBLE_SUFFIX")] = visible }
+    }
 
-    override suspend fun setLayerOpacity(layerId: String, opacity: Float): Result<Unit> = Result.failure(NotImplementedError("L0b B3"))
+    override suspend fun setLayerOpacity(layerId: String, opacity: Float): Result<Unit> = runCatchingCancellable {
+        dataStore.edit { prefs -> prefs[floatPreferencesKey("$LAYER_KEY_PREFIX$layerId$OPACITY_SUFFIX")] = opacity }
+    }
 
-    override suspend fun setLayerOrder(layerIds: List<String>): Result<Unit> = Result.failure(NotImplementedError("L0b B3"))
+    override suspend fun setLayerOrder(layerIds: List<String>): Result<Unit> = runCatchingCancellable {
+        dataStore.edit { prefs -> prefs[KEY_LAYER_ORDER] = layerIds.joinToString(LAYER_ORDER_SEPARATOR) }
+    }
 
     private companion object {
         const val DATA_STORE_NAME = "map_preferences"
@@ -98,5 +141,12 @@ class DataStoreMapPreferencesRepository(
         val KEY_STALE_THRESHOLD_DAYS = intPreferencesKey("offline_map.stale_threshold_days")
         val KEY_NIGHT_MODE_MAPS = booleanPreferencesKey("night_mode.maps")
         val KEY_MAP_FULLSCREEN = booleanPreferencesKey("map.fullscreen")
+
+        // Map layers L0b, B3: per-layer keys are built from the registry id at use.
+        const val LAYER_KEY_PREFIX = "map.layer."
+        const val VISIBLE_SUFFIX = ".visible"
+        const val OPACITY_SUFFIX = ".opacity"
+        val KEY_LAYER_ORDER = stringPreferencesKey("map.layer_order")
+        const val LAYER_ORDER_SEPARATOR = ","
     }
 }
