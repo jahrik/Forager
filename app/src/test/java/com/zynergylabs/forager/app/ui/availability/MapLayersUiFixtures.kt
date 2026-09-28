@@ -70,6 +70,12 @@ import com.zynergylabs.forager.app.ui.map.layers.ForecastCellsShown
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import com.zynergylabs.forager.app.domain.CartographyEntryMapData
+import com.zynergylabs.forager.app.domain.model.CartographyEntry
+import com.zynergylabs.forager.app.domain.model.GalleryPhoto
+import com.zynergylabs.forager.app.domain.model.Track
+import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.ui.log.CartographyUiState
 
 /**
  * Shared fixtures for the Layers-sheet and legend screen tests (map layers L0b): a real
@@ -138,9 +144,12 @@ internal fun mapLayersViewModel(
     layerPreferences: MapLayerPreferencesRepository = InMemoryLayerPreferences(),
     store: ForecastCellStore = AbsentForecastCellStore,
     errorLog: ErrorLog = ErrorLog { _, _, _ -> },
+    // M1: records the ViewModel loads at start, for the bubbles' lookups.
+    plannedTrips: List<PlannedTrip> = emptyList(),
+    offlineRegions: List<OfflineRegionSummary> = emptyList(),
 ): AvailabilityViewModel {
     val searchCache = InMemorySearchCacheRepository()
-    val plannedTripRepository = MapLayersUiPlannedTripRepository()
+    val plannedTripRepository = MapLayersUiPlannedTripRepository(plannedTrips)
     return AvailabilityViewModel(
         locationProvider = MapLayersUiLocationProvider,
         locationTracker = MapLayersUiLocationTracker,
@@ -158,7 +167,7 @@ internal fun mapLayersViewModel(
             MapLayersUiHistoricalWeatherProvider,
             ComputeFruitingLagDistributionUseCase(),
         ),
-        offlineMapRepository = MapLayersUiOfflineMapRepository,
+        offlineMapRepository = MapLayersUiOfflineMapRepository(offlineRegions),
         errorLog = errorLog,
         mapPreferencesRepository = MapLayersUiMapPreferencesRepository,
         unitSystemPreferenceRepository = MapLayersUiUnitSystemPreferenceRepository,
@@ -178,6 +187,13 @@ internal fun MapLayersTestScreen(
     mapSlot: MapSlot,
     store: ForecastCellStore,
     logUiState: MushroomLogUiState = MushroomLogUiState(),
+    // M1: the records the glyph bubbles look up, and the find routes.
+    waypoints: List<Waypoint> = emptyList(),
+    tracks: List<Track> = emptyList(),
+    onOpenLogEntry: (String) -> Unit = {},
+    onCloseLogEntry: () -> Unit = {},
+    cartographyUiState: CartographyUiState = CartographyUiState(),
+    getCartographyEntryMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData = { _, _ -> CartographyEntryMapData(emptyList(), emptyList(), emptyList(), emptyList(), emptyList()) },
 ) {
     val uiState by viewModel.uiState.collectAsState()
     AvailabilityScreen(
@@ -214,6 +230,12 @@ internal fun MapLayersTestScreen(
         onMapLayerOpacityChanged = viewModel::onMapLayerOpacityChanged,
         onColourFieldMoved = viewModel::onColourFieldMoved,
         forecastCellStore = store,
+        waypoints = waypoints,
+        tracks = tracks,
+        onOpenLogEntry = onOpenLogEntry,
+        onCloseLogEntry = onCloseLogEntry,
+        cartographyUiState = cartographyUiState,
+        getCartographyEntryMapData = getCartographyEntryMapData,
     )
 }
 
@@ -264,19 +286,19 @@ private object MapLayersUiHistoricalWeatherProvider : HistoricalWeatherProvider 
         Result.failure(UnsupportedOperationException("the seasonal pattern is not exercised by these tests"))
 }
 
-private class MapLayersUiPlannedTripRepository : PlannedTripRepository {
-    private val trips = mutableMapOf<String, PlannedTrip>()
+private class MapLayersUiPlannedTripRepository(initial: List<PlannedTrip> = emptyList()) : PlannedTripRepository {
+    private val trips = initial.associateByTo(mutableMapOf()) { it.id }
     override suspend fun getAll(): Result<List<PlannedTrip>> = Result.success(trips.values.toList())
     override suspend fun save(trip: PlannedTrip): Result<Unit> = Result.success(Unit).also { trips[trip.id] = trip }
     override suspend fun delete(id: String): Result<Unit> = Result.success(Unit).also { trips.remove(id) }
 }
 
-private object MapLayersUiOfflineMapRepository : OfflineMapRepository {
+private class MapLayersUiOfflineMapRepository(private val regions: List<OfflineRegionSummary>) : OfflineMapRepository {
     override suspend fun download(name: String, region: Region, onProgress: (Int, Int) -> Unit): Result<OfflineRegionSummary> =
         Result.failure(UnsupportedOperationException("offline downloads are not exercised by these tests"))
     override suspend fun deleteRegion(id: Long): Result<Unit> =
         Result.failure(UnsupportedOperationException("offline downloads are not exercised by these tests"))
-    override suspend fun listRegions(): Result<List<OfflineRegionSummary>> = Result.success(emptyList())
+    override suspend fun listRegions(): Result<List<OfflineRegionSummary>> = Result.success(regions)
 }
 
 private object MapLayersUiAppThemePreferenceRepository : AppThemePreferenceRepository {
