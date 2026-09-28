@@ -662,7 +662,7 @@ abstract class AvailabilityScreenLayoutTest {
      * already expanded, so the count is taken without tapping its header (a tap would collapse it).
      */
     @Test
-    fun `search radius, month, and the location row are reachable without expanding advanced search`() {
+    fun `search radius, month, and the location row are reachable after the bar's tap beside the expanded Advanced search, not duplicated in it`() {
         setScreen(SEARCHED_STATE)
 
         openSearchDropdown()
@@ -800,7 +800,9 @@ abstract class AvailabilityScreenLayoutTest {
         setScreen(SEARCHED_STATE, onUseCurrentLocation = { callCount++ })
 
         openSearchDropdown()
-        composeRule.onNodeWithText("Use current location").performClick()
+        // Continuation 2026-09-28-42: where the manual coordinates do not fit (2x font), the bar's
+        // tap scrolls the dropdown to them, so scroll back up to the button first, as a user would.
+        composeRule.onNodeWithText("Use current location").performScrollTo().performClick()
 
         assertTrue("onUseCurrentLocation should have been called exactly once", callCount == 1)
     }
