@@ -179,20 +179,28 @@ class LandscapeOfflinePickerTest {
 
     private fun checkSliderByScrolling(rotation: Int) {
         setScreen(rotation)
-        // Real drags upward on the controls side's scrolling part, which is not the map.
+        // Real drags upward on the controls side's scrolling part, which is not the map, a short
+        // one at a time until the slider lies wholly inside that part (at most eight).
         val mapRect = bounds(mapNode())
-        repeat(4) {
-            val area = bounds(composeRule.onNodeWithTag(L1_CONTROLS_SCROLL_TAG))
-            assertTrue(
-                "the drag starts off the map: controls $area, map $mapRect",
-                area.left >= mapRect.right || area.right <= mapRect.left,
-            )
-            val x = ((area.left + area.right) / 2).value
-            val from = (area.top + (area.bottom - area.top) * 0.85f).value
-            val to = (area.top + (area.bottom - area.top) * 0.1f).value
+        fun area() = bounds(composeRule.onNodeWithTag(L1_CONTROLS_SCROLL_TAG))
+        fun sliderInArea(): Boolean {
+            val a = area()
+            val r = bounds(slider())
+            return r.top >= a.top && r.bottom <= a.bottom
+        }
+        var drags = 0
+        while (!sliderInArea() && drags < 8) {
+            val a = area()
+            assertTrue("the drag starts off the map: controls $a, map $mapRect", a.left >= mapRect.right || a.right <= mapRect.left)
+            val x = ((a.left + a.right) / 2).value
+            val from = (a.top + (a.bottom - a.top) * 0.7f).value
+            val to = (a.top + (a.bottom - a.top) * 0.4f).value
             composeRule.onRoot().performTouchInput { swipe(Offset(x * density, from * density), Offset(x * density, to * density), 400) }
             composeRule.waitForIdle()
+            drags++
         }
+        assertTrue("the controls side was scrolled by a real drag ($drags)", drags > 0)
+        assertTrue("the slider ${bounds(slider())} lies wholly in the scrolling part ${area()} after $drags drags", sliderInArea())
         slider().assertIsDisplayed()
         val sliderRect = bounds(slider())
         assertWhollyInWindow("the slider", sliderRect)

@@ -44,6 +44,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
@@ -77,6 +79,9 @@ import com.zynergylabs.forager.app.domain.model.RecordPoint
 import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 import java.util.UUID
 import com.zynergylabs.forager.app.ui.theme.Spacing
+import com.zynergylabs.forager.app.ui.adaptive.isShortWindow
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import kotlinx.coroutines.launch
 
 /**
@@ -344,6 +349,10 @@ internal fun CartographyEntryReportScreen(
         entry.waypointDecisions.none { it.kept } &&
         entry.offlineRegionDecisions.none { it.kept }
 
+    // L2: read once here, so the map's Modifier below is the only thing that changes with it.
+    val shortWindow = isShortWindow()
+    val shortWindowMapCap = (LocalConfiguration.current.screenHeightDp * SHORT_WINDOW_MAP_HEIGHT_FRACTION).dp
+
     Column(modifier = modifier.fillMaxWidth()) {
         // Hidden via composition (an if, not an opacity/size-zero modifier), same convention
         // CompactMapTab's own fullscreen mode uses for its surrounding chrome — an unmounted
@@ -396,6 +405,9 @@ internal fun CartographyEntryReportScreen(
             Box(
                 modifier = if (isMapFullscreen) {
                     Modifier.fillMaxWidth().weight(1f)
+                } else if (shortWindow) {
+                    // L2 (dispatch 2026-09-28-47): see shortWindowEntryMapHeight.
+                    Modifier.fillMaxWidth().shortWindowEntryMapHeight(shortWindowMapCap)
                 } else {
                     Modifier.fillMaxWidth().aspectRatio(4f / 3f)
                 }.testTag(CARTOGRAPHY_MAP_TEST_TAG),
@@ -656,6 +668,41 @@ internal fun entryMapWaypoints(entry: CartographyEntry, markers: List<RecordPoin
 }
 
 /** Lets tests distinguish "the map section rendered" from "nothing resolved, no map section at all" without depending on [mapSlot]'s own real content — see this file's own doc comment, "No map section at all while loading, or if nothing resolved." */
+/**
+ * L2 (dispatch `prompts/preserved/2026-09-28-47.md`; the device evidence is
+ * `docs/audits/2026-09-28-backlog-device-check-part-b-run-record.md`, item 7). **The rule:** in a
+ * short window (under 480 dp tall, `isShortWindow`, whatever the orientation) the entry map's
+ * preview is 4:3 by its width, as everywhere else, but never taller than this fraction of the
+ * window's height: 40%, which is **153.6 dp** in the S22 Ultra's 384 dp landscape window.
+ *
+ * Why a cap was needed at all: in the 640 dp landscape column a 4:3 map is 480 dp tall, taller than
+ * the whole window. `aspectRatio` measures it at 480 dp regardless, and Compose centres an oversized
+ * child on its slot, so the map was drawn about 104 dp above its own slot, over the header row, and
+ * the offline row and the text below got no height at all.
+ *
+ * Why 40%: what else must fit beside it in that window, measured headless at `w823dp-h384dp-land`:
+ * the Journal's 48 dp short-window row and the report's 64 dp header row take 112 dp of the 384, so
+ * a 154 dp map leaves about 118 dp for the offline-map row (about 64 dp on a device) and the start
+ * of the scrolling text. Half the window (192 dp) would leave the text about 16 dp once the offline
+ * row shows. Rejected: capping the width too, to keep 4:3 (205 x 154 dp), which wastes the column
+ * for no gain, since a tap still opens the fullscreen map.
+ */
+internal const val SHORT_WINDOW_MAP_HEIGHT_FRACTION = 0.4f
+
+/**
+ * L2's map box: the full width it is given, and a height of 3/4 of that width, but no more than
+ * [cap] and never more than the incoming constraints allow, so the box can never be measured taller
+ * than its slot (the overflow `aspectRatio` produced). A layout modifier rather than `heightIn` on
+ * `aspectRatio`, because `aspectRatio` falls back to its unconstrained size when nothing satisfies
+ * the constraints, which is the overflow itself.
+ */
+private fun Modifier.shortWindowEntryMapHeight(cap: Dp): Modifier = layout { measurable, constraints ->
+    val width = constraints.maxWidth
+    val height = minOf(width * 3 / 4, cap.roundToPx()).coerceIn(constraints.minHeight, constraints.maxHeight)
+    val placeable = measurable.measure(Constraints.fixed(width, height))
+    layout(width, height) { placeable.place(0, 0) }
+}
+
 internal const val CARTOGRAPHY_MAP_TEST_TAG = "cartography-entry-map"
 
 /** Lets tests select the offline-map [Switch] directly, rather than relying on an untagged toggleable-semantics query. */

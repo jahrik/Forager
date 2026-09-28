@@ -22,6 +22,20 @@ package com.zynergylabs.forager.app.ui.availability
 //   OfflineRegionsSection. It is a different function, not a reference to the one here — a grep
 //   coincidence, not a dependency.
 
+import android.content.res.Configuration
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.runtime.movableContentOf
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.testTag
+import com.zynergylabs.forager.app.ui.adaptive.currentWindowPortEdge
+import com.zynergylabs.forager.app.ui.adaptive.isShortWindow
+import com.zynergylabs.forager.app.ui.log.ScreenEdge
+import com.zynergylabs.forager.app.ui.map.CentrePinConfirmActions
+import com.zynergylabs.forager.app.ui.map.CentrePinInstruction
+import com.zynergylabs.forager.app.ui.map.CentrePinMap
+import com.zynergylabs.forager.app.ui.map.rememberCentrePinState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -142,112 +156,95 @@ internal fun OfflineMapsPanel(
     val defaultCenter = uiState.offlineMapPickerDefaultCenter ?: OFFLINE_MAP_PICKER_DEFAULT_CENTER
     val now = currentTime.nowEpochMillis()
 
-    // The whole panel scrolls as one unit now that OfflineRegionsSection's list has no bound on
-    // its own length — a fixed-aspect-ratio picker map (below) plus a growing region list can
-    // exceed whatever height this panel's own parent hands it (Modifier.weight(1f) from the drawer
-    // sheet's Column, the same pattern SearchControls already uses for its own scroll in that same
-    // parent), so verticalScroll here is meaningful rather than a no-op: weight(1f) gives a bounded,
-    // not infinite, height to scroll within.
-    Column(modifier = modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
+    val pickerRegion = Region(
+        lat = pickedLat ?: defaultCenter.lat,
+        lng = pickedLng ?: defaultCenter.lng,
+        radiusKm = uiState.offlineMapRadiusKm,
+    )
+    // One pin for both layouts below (L1): turning the phone swaps the layout, not the pin.
+    val pinState = rememberCentrePinState(pickerRegion)
+    // The map moves between the two layouts rather than being composed twice: a second mapSlot call
+    // would tear down and rebuild the MapView on every turn (the same guarantee
+    // CartographyEntryReportScreen's fullscreen relies on), losing the camera the pin reads.
+    val pickerMap = remember(pinState, mapSlot) {
+        movableContentOf { night: Boolean, mapModifier: Modifier ->
+            // Basemap.OPEN_TOPO_MAP: the pin this file's header comment names for Stage 2e-ii.
+            CentrePinMap(state = pinState, mapSlot = mapSlot, basemap = Basemap.OPEN_TOPO_MAP, night = night, modifier = mapModifier)
+        }
+    }
+    // Nothing to cancel back to: this panel had no confirm step before this picker
+    // existed either — the offlineMapLatText/offlineMapLngText fields just keep
+    // whatever they already held (blank, or a prior confirmed pick).
+    val confirmActions: @Composable () -> Unit = {
+        CentrePinConfirmActions(state = pinState, onConfirm = onRegionPicked, onCancel = {})
+    }
+    val instruction: @Composable () -> Unit = {
         Text(
             "Offline downloads cover the continental United States with vector map data. " +
                 "Pan the map below to position the pin, then tap OK to choose where to download.",
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         )
-
-        val pickerRegion = Region(
-            lat = pickedLat ?: defaultCenter.lat,
-            lng = pickedLng ?: defaultCenter.lng,
-            radiusKm = uiState.offlineMapRadiusKm,
+    }
+    val details: @Composable ColumnScope.() -> Unit = {
+        Text(
+            if (hasValidRegion) {
+                "Download region: ${"%.4f".format(pickedLat)}, ${"%.4f".format(pickedLng)}"
+            } else {
+                "No location picked yet — pan the map above and tap OK."
+            },
+            style = MaterialTheme.typography.bodySmall,
         )
-        // A fixed aspect ratio, not weight(1f): the picker map used to claim all leftover space in
-        // an unscrolled panel, but a panel that now scrolls as a whole has no "leftover space" for
-        // weight to resolve against.
-        //
-        // The ratio is handed to the picker rather than applied to a Box around it (map-pan
-        // dispatch, §2b). Wrapping the whole picker constrained the instruction line and the
-        // OK/Cancel row too, leaving the map itself as the remainder: measured 360x146dp inside a
-        // 360x270dp box on a 360dp phone, a 2.5:1 letterbox rather than the 4:3 the constant
-        // reads as. Constraining the map viewport makes it 360x270dp and lets the picker's own
-        // chrome add its height below — see CentrePinLocationPicker.mapAspectRatio.
-        CentrePinLocationPicker(
-            mapSlot = mapSlot,
-            region = pickerRegion,
-            basemap = Basemap.OPEN_TOPO_MAP,
-            night = isNightMode,
-            onConfirm = onRegionPicked,
-            // Nothing to cancel back to: this panel had no confirm step before this picker
-            // existed either — the offlineMapLatText/offlineMapLngText fields just keep
-            // whatever they already held (blank, or a prior confirmed pick).
-            onCancel = {},
-            mapAspectRatio = MAP_PICKER_ASPECT_RATIO,
+
+        OutlinedTextField(
+            value = uiState.offlineMapNameText,
+            onValueChange = onOfflineMapNameChanged,
+            label = { Text("Name (optional)") },
+            singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            Text(
-                if (hasValidRegion) {
-                    "Download region: ${"%.4f".format(pickedLat)}, ${"%.4f".format(pickedLng)}"
-                } else {
-                    "No location picked yet — pan the map above and tap OK."
-                },
-                style = MaterialTheme.typography.bodySmall,
-            )
+        Text("Radius: ${formatDistanceKm(uiState.offlineMapRadiusKm, distanceUnit)}", style = MaterialTheme.typography.bodyMedium)
+        Slider(
+            value = uiState.offlineMapRadiusKm.toFloat(),
+            onValueChange = { onOfflineMapRadiusChanged(it.toInt()) },
+            // The offline radius has its own ceiling, sized to the tile budget — not the search
+            // radius's Region.MAX_RADIUS_KM it used to share. See OfflineMapRepository.MAX_RADIUS_KM
+            // for the arithmetic (two-data-corrections dispatch, Part B).
+            valueRange = Region.MIN_RADIUS_KM.toFloat()..OfflineMapRepository.MAX_RADIUS_KM.toFloat(),
+            steps = OfflineMapRepository.MAX_RADIUS_KM - Region.MIN_RADIUS_KM - 1,
+        )
 
-            OutlinedTextField(
-                value = uiState.offlineMapNameText,
-                onValueChange = onOfflineMapNameChanged,
-                label = { Text("Name (optional)") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
+        // So the tile budget is discovered here, while there's still time to pick a smaller
+        // radius, rather than only on a refused download — a user should not discover the
+        // ceiling at a trailhead.
+        // Against the zoom the deployed source actually serves (SERVED_MAX_ZOOM, now equal to
+        // MAX_ZOOM; the min inside is kept as the seam for their next divergence) — see
+        // OfflineMapRepository.SERVED_MAX_ZOOM (tile-estimate dispatch; two-data-corrections dispatch).
+        val estimatedTiles = estimateServedOfflineTileCount(pickerRegion)
+        val remainingBudget = OfflineMapRepository.TILE_COUNT_LIMIT - uiState.offlineRegions.sumOf { it.tileCount }
+        val exceedsBudget = estimatedTiles > remainingBudget
+        Text(
+            if (exceedsBudget) {
+                "~$estimatedTiles tiles — exceeds your remaining budget of $remainingBudget"
+            } else {
+                "~$estimatedTiles tiles"
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = if (exceedsBudget) MaterialTheme.colorScheme.error else Color.Unspecified,
+        )
 
-            Text("Radius: ${formatDistanceKm(uiState.offlineMapRadiusKm, distanceUnit)}", style = MaterialTheme.typography.bodyMedium)
-            Slider(
-                value = uiState.offlineMapRadiusKm.toFloat(),
-                onValueChange = { onOfflineMapRadiusChanged(it.toInt()) },
-                // The offline radius has its own ceiling, sized to the tile budget — not the search
-                // radius's Region.MAX_RADIUS_KM it used to share. See OfflineMapRepository.MAX_RADIUS_KM
-                // for the arithmetic (two-data-corrections dispatch, Part B).
-                valueRange = Region.MIN_RADIUS_KM.toFloat()..OfflineMapRepository.MAX_RADIUS_KM.toFloat(),
-                steps = OfflineMapRepository.MAX_RADIUS_KM - Region.MIN_RADIUS_KM - 1,
-            )
-
-            // So the tile budget is discovered here, while there's still time to pick a smaller
-            // radius, rather than only on a refused download — a user should not discover the
-            // ceiling at a trailhead.
-            // Against the zoom the deployed source actually serves (SERVED_MAX_ZOOM, now equal to
-            // MAX_ZOOM; the min inside is kept as the seam for their next divergence) — see
-            // OfflineMapRepository.SERVED_MAX_ZOOM (tile-estimate dispatch; two-data-corrections dispatch).
-            val estimatedTiles = estimateServedOfflineTileCount(pickerRegion)
-            val remainingBudget = OfflineMapRepository.TILE_COUNT_LIMIT - uiState.offlineRegions.sumOf { it.tileCount }
-            val exceedsBudget = estimatedTiles > remainingBudget
-            Text(
-                if (exceedsBudget) {
-                    "~$estimatedTiles tiles — exceeds your remaining budget of $remainingBudget"
-                } else {
-                    "~$estimatedTiles tiles"
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = if (exceedsBudget) MaterialTheme.colorScheme.error else Color.Unspecified,
-            )
-
-            OfflineDownloadStatusContent(uiState.offlineDownloadStatus)
-
-            val isDownloading = uiState.offlineDownloadStatus is OfflineMapStatus.Downloading
-            Button(
-                onClick = onDownloadOfflineMaps,
-                enabled = hasValidRegion && !isDownloading,
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text("Download Maps") }
-        }
-
+        OfflineDownloadStatusContent(uiState.offlineDownloadStatus)
+    }
+    val isDownloading = uiState.offlineDownloadStatus is OfflineMapStatus.Downloading
+    val downloadButton: @Composable (Modifier) -> Unit = { buttonModifier ->
+        Button(
+            onClick = onDownloadOfflineMaps,
+            enabled = hasValidRegion && !isDownloading,
+            modifier = buttonModifier.fillMaxWidth(),
+        ) { Text("Download Maps") }
+    }
+    val regionsSection: @Composable () -> Unit = {
         HorizontalDivider()
 
         OfflineRegionsSection(
@@ -263,7 +260,127 @@ internal fun OfflineMapsPanel(
             onOpenRegionDetails = onOpenRegionDetails,
         )
     }
+
+    if (isShortWindow() && LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+        OfflineMapsSideBySide(
+            modifier = modifier,
+            controlsFirst = currentWindowPortEdge() == ScreenEdge.Left,
+            map = { mapModifier -> pickerMap(isNightMode, mapModifier) },
+            instruction = instruction,
+            details = details,
+            regionsSection = regionsSection,
+            confirmActions = confirmActions,
+            downloadButton = downloadButton,
+        )
+        return
+    }
+
+    // The whole panel scrolls as one unit now that OfflineRegionsSection's list has no bound on
+    // its own length — a fixed-aspect-ratio picker map (below) plus a growing region list can
+    // exceed whatever height this panel's own parent hands it (Modifier.weight(1f) from the drawer
+    // sheet's Column, the same pattern SearchControls already uses for its own scroll in that same
+    // parent), so verticalScroll here is meaningful rather than a no-op: weight(1f) gives a bounded,
+    // not infinite, height to scroll within.
+    Column(modifier = modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
+        instruction()
+
+        // A fixed aspect ratio, not weight(1f): the picker map used to claim all leftover space in
+        // an unscrolled panel, but a panel that now scrolls as a whole has no "leftover space" for
+        // weight to resolve against.
+        //
+        // The ratio is on the map viewport rather than a Box around the whole picker (map-pan
+        // dispatch, §2b). Wrapping the whole picker constrained the instruction line and the
+        // OK/Cancel row too, leaving the map itself as the remainder: measured 360x146dp inside a
+        // 360x270dp box on a 360dp phone, a 2.5:1 letterbox rather than the 4:3 the constant
+        // reads as. Constraining the map viewport makes it 360x270dp and lets the picker's own
+        // chrome add its height below — see CentrePinLocationPicker.mapAspectRatio. Since L1 the
+        // picker's three pieces are composed here directly, in CentrePinLocationPicker's own order,
+        // so the map can move to the side-by-side layout; this layout is unchanged.
+        Column(modifier = Modifier.fillMaxWidth()) {
+            CentrePinInstruction()
+            pickerMap(isNightMode, Modifier.fillMaxWidth().aspectRatio(MAP_PICKER_ASPECT_RATIO))
+            confirmActions()
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            details()
+            downloadButton(Modifier)
+        }
+
+        regionsSection()
+    }
 }
+
+/**
+ * L1 (dispatch `prompts/preserved/2026-09-28-47.md`, continuation `2026-09-28-49`; the device
+ * evidence is `docs/audits/2026-09-28-backlog-device-check-part-b-run-record.md`, item 7): the
+ * Offline Maps picker in a short landscape window, where the stacked panel's 4:3 map (480 dp at the
+ * 640 dp column) is taller than the window and, once scrolled, leaves nothing but the map to drag.
+ *
+ * - **Side by side** (owner, "Side by side (Recommended)"): the map on one side at full height, the
+ *   controls on the other, half the width each.
+ * - **Pinned actions** (owner, "Pin OK/Download, rest scrolls (Recommended)", which supersedes "all
+ *   reachable without scrolling": that cannot hold at 384 dp): OK with its Cancel, and the "Pin at"
+ *   line that sits over them in the stacked layout, and Download are pinned at the bottom of the
+ *   controls side, always visible. Everything else scrolls above them, in the stacked order.
+ * - **Which side** (the planner's ruling, 2026-09-28-49): the map on the punch-hole side and the
+ *   controls on the rail side, as the landscape search sheet (P8), the navigation HUD (P9) and the
+ *   tools drawer (P12) sit by the rail with the map beyond them
+ *   (`docs/plans/landscape-phone-design.md`). [controlsFirst] is true when the rail's port edge is
+ *   the window's left (ROTATION_270), so the sides follow the rail on a turn between 90 and 270.
+ *
+ * A drag on the map pans the map: it is its own region of the row, not inside the controls' scroll.
+ * The window test is the one B1-B3 and J5 use (`isShortWindow` and landscape).
+ */
+@Composable
+private fun OfflineMapsSideBySide(
+    modifier: Modifier,
+    controlsFirst: Boolean,
+    map: @Composable (Modifier) -> Unit,
+    instruction: @Composable () -> Unit,
+    details: @Composable ColumnScope.() -> Unit,
+    regionsSection: @Composable () -> Unit,
+    confirmActions: @Composable () -> Unit,
+    downloadButton: @Composable (Modifier) -> Unit,
+) {
+    Row(modifier = modifier.fillMaxSize()) {
+        val controls: @Composable RowScope.() -> Unit = {
+            Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .testTag(OFFLINE_PICKER_CONTROLS_SCROLL_TAG),
+                ) {
+                    instruction()
+                    CentrePinInstruction()
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        content = details,
+                    )
+                    regionsSection()
+                }
+                confirmActions()
+                downloadButton(Modifier.padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.sm))
+            }
+        }
+        if (controlsFirst) controls()
+        map(Modifier.weight(1f).fillMaxHeight())
+        if (!controlsFirst) controls()
+    }
+}
+
+/** [OfflineMapsSideBySide]'s scrolling part, above the pinned actions: what a test drags to reach the slider. */
+internal const val OFFLINE_PICKER_CONTROLS_SCROLL_TAG = "offline-picker-controls-scroll"
 
 /** The picker map's fixed width:height ratio — see [OfflineMapsPanel]'s doc comment for why this replaced `Modifier.weight(1f)`. */
 private const val MAP_PICKER_ASPECT_RATIO = 4f / 3f
