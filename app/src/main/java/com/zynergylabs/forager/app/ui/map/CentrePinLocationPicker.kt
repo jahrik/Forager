@@ -286,9 +286,10 @@ fun CentrePinLocationPickerOverlay(
      */
     night: Boolean = false,
 ) {
-    // The row's fill and its content colour, pinned to the fill's own role (`contentColorFor` matches a
-    // colour-scheme role exactly; see `MapLayersSheet`).
-    val rowColor = MaterialTheme.colorScheme.surface
+    // The row's fill, at the map chrome's alpha: this overlay sits only inside a map's own Box, so it
+    // is always over a map. Its content colour is pinned to the fill's own role (`contentColorFor`
+    // matches a colour-scheme role exactly; see `MapLayersSheet`).
+    val rowColor = mapChromeFill(MaterialTheme.colorScheme.surface, overMap = true)
     val rowContentColor = contentColorFor(MaterialTheme.colorScheme.surface)
     Box(modifier = modifier.fillMaxSize()) {
         CentrePin(night = night, modifier = Modifier.align(Alignment.Center))

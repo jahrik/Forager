@@ -52,6 +52,7 @@ import com.zynergylabs.forager.app.ui.availability.offlineRegionSizeLabel
 import com.zynergylabs.forager.app.ui.availability.offlineRegionZoomNote
 import com.zynergylabs.forager.app.ui.availability.relativeTimeLabel
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
+import com.zynergylabs.forager.app.ui.map.mapChromeFill
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import com.zynergylabs.forager.app.ui.track.formatRecordTimestamp
@@ -155,6 +156,12 @@ internal fun RecordDetailsSheet(
     staleThresholdDays: Int,
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
     onDismiss: () -> Unit,
+    /**
+     * Whether a map is drawn on screen beneath the sheet (map chrome at 80%, dispatch 2026-09-28-56 as
+     * amended by -58; planner message -77): the container is then at `MAP_CHROME_OVER_MAP_ALPHA`, and
+     * otherwise solid, unchanged. Each call site says which it is.
+     */
+    overMap: Boolean = false,
 ) {
     val waypoint = (target as? RecordDetailsTarget.WaypointDetails)?.let { t -> waypoints.firstOrNull { it.id == t.id } }
     val track = (target as? RecordDetailsTarget.TrackDetails)?.let { t -> tracks.firstOrNull { it.id == t.id } }
@@ -165,10 +172,11 @@ internal fun RecordDetailsSheet(
         return
     }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    // Material3's own default container role for a sheet (`BottomSheetDefaults.ContainerColor`), passed
-    // explicitly, as the Layers sheet passes its own (`MapLayersSheet`). The content colour is pinned to
-    // the role's own for the reason given there: `contentColorFor` matches a colour-scheme role exactly.
-    val containerColor = BottomSheetDefaults.ContainerColor
+    // Material3's own default container role for a sheet (`BottomSheetDefaults.ContainerColor`), at the
+    // map chrome's alpha over a map, as the Layers sheet is (`MapLayersSheet`). The content colour is
+    // pinned to the role's own for the reason given there: `contentColorFor` matches a colour-scheme
+    // role exactly. The scrim stays Material3's default.
+    val containerColor = mapChromeFill(BottomSheetDefaults.ContainerColor, overMap)
     val contentColor = contentColorFor(BottomSheetDefaults.ContainerColor)
     ModalBottomSheet(
         onDismissRequest = onDismiss,

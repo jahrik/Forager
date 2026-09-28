@@ -111,6 +111,7 @@ import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorDark
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorLight
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
+import com.zynergylabs.forager.app.ui.map.mapChromeFill
 import com.zynergylabs.forager.app.ui.theme.Bark
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import com.zynergylabs.forager.app.ui.theme.Spacing
@@ -214,6 +215,8 @@ internal fun SearchEntryBar(
     onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
     onDismissTaxonSuggestions: () -> Unit,
     onFieldFocused: () -> Unit,
+    /** Whether this bar is the Maps tab's, over its map: its species suggestions are then at the map chrome's alpha (owner, "1 A"). */
+    overMap: Boolean = false,
 ) {
     val isDarkTheme = LocalForagerDarkTheme.current
     val contentColor = if (isDarkTheme) Color.White else Bark
@@ -291,6 +294,7 @@ internal fun SearchEntryBar(
                         showLocationTrailingIcon = false,
                         fieldColors = fieldColors,
                         contentPadding = fieldContentPadding,
+                        suggestionsOverMap = overMap,
                     )
                 }
             }
@@ -390,6 +394,8 @@ internal fun SearchDropdown(
      */
     expandManualCoordinatesRequested: Boolean = false,
     onManualCoordinatesExpandConsumed: () -> Unit = {},
+    /** Whether this panel opens over the Maps tab's map; its Month menu is then at the map chrome's alpha (owner, "1 A"). */
+    overMap: Boolean = false,
 ) {
     val isDarkTheme = LocalForagerDarkTheme.current
     CompositionLocalProvider(LocalContentColor provides if (isDarkTheme) Color.White else Bark) {
@@ -472,7 +478,7 @@ internal fun SearchDropdown(
                     valueRange = 1f..50f,
                     steps = 48,
                 )
-                MonthSelector(selectedMonth = uiState.selectedMonth, onMonthSelected = onMonthSelected)
+                MonthSelector(selectedMonth = uiState.selectedMonth, onMonthSelected = onMonthSelected, overMap = overMap)
 
                 HorizontalDivider()
                 CollapsibleSection(title = "Recent searches") {
@@ -580,7 +586,11 @@ private fun activeSearchSummary(uiState: AvailabilityUiState, distanceUnit: Dist
  * protected — this strip already exists and already scrolls with nothing beneath it.
  */
 @Composable
-internal fun SearchNotice(uiState: AvailabilityUiState) {
+internal fun SearchNotice(
+    uiState: AvailabilityUiState,
+    /** Whether a map is drawn beneath the banner: the Maps tab's own, inside its map's Box. Map chrome at 80%. */
+    overMap: Boolean = false,
+) {
     val message = uiState.errorMessage
         ?: uiState.taxonSearchErrorMessage
         ?: uiState.plannedTripsErrorMessage
@@ -593,7 +603,7 @@ internal fun SearchNotice(uiState: AvailabilityUiState) {
 
     // The fill and its content colour, pinned to the fill's own role (`contentColorFor` matches a
     // colour-scheme role exactly; see `MapLayersSheet`). The text keeps its own explicit colour.
-    val noticeColor = MaterialTheme.colorScheme.errorContainer
+    val noticeColor = mapChromeFill(MaterialTheme.colorScheme.errorContainer, overMap)
     val noticeContentColor = contentColorFor(MaterialTheme.colorScheme.errorContainer)
     Surface(
         color = noticeColor,
@@ -963,6 +973,11 @@ internal fun AvailabilitySearchTopBar(
     onTaxonSearchQueryChanged: (String) -> Unit,
     onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
     onDismissTaxonSuggestions: () -> Unit,
+    /**
+     * Whether the results pane beside the drawer is drawing its map, so the suggestions, which span
+     * the pane, open over it (planner message 2026-09-28-77, Q2): they are then at the map chrome's alpha.
+     */
+    suggestionsOverMap: Boolean = false,
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surface,
@@ -987,6 +1002,7 @@ internal fun AvailabilitySearchTopBar(
                         onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
                         onTaxonSearchResultSelected = onTaxonSearchResultSelected,
                         onDismissTaxonSuggestions = onDismissTaxonSuggestions,
+                        suggestionsOverMap = suggestionsOverMap,
                     )
                 }
             }
@@ -1061,6 +1077,8 @@ private fun SpeciesSearchControls(
      * existed.
      */
     contentPadding: PaddingValues = OutlinedTextFieldDefaults.contentPadding(),
+    /** Whether the suggestions open over a map drawn on screen; they are then at the map chrome's alpha (owner, "1 A"). */
+    suggestionsOverMap: Boolean = false,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         val suggestionsOpen = uiState.taxonSearchResults.isNotEmpty() || uiState.taxonSearchHasNoResults
@@ -1134,7 +1152,9 @@ private fun SpeciesSearchControls(
             // The menu's default container role, passed explicitly, and its content colour pinned to
             // the role's own (`contentColorFor` matches a colour-scheme role exactly; see
             // `MapLayersSheet`), as J8's menus do (`journalMenuContentColor`).
-            val suggestionsColor = MenuDefaults.containerColor
+            // Owner, verbatim "1 A" (planner message 2026-09-28-77, Q3): at the map chrome's alpha on its
+            // own over the Maps tab, stacking over the 0.8 search panel; solid where no map is drawn.
+            val suggestionsColor = mapChromeFill(MenuDefaults.containerColor, suggestionsOverMap)
             val suggestionsContentColor = contentColorFor(MenuDefaults.containerColor)
             ExposedDropdownMenu(
                 expanded = suggestionsOpen,
@@ -1178,7 +1198,7 @@ private fun TaxonSuggestionContent(result: TaxonSearchResult) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MonthSelector(selectedMonth: Int, onMonthSelected: (Int) -> Unit) {
+private fun MonthSelector(selectedMonth: Int, onMonthSelected: (Int) -> Unit, overMap: Boolean = false) {
     var expanded by remember { mutableStateOf(false) }
     val monthName = Month.of(selectedMonth).getDisplayName(TextStyle.FULL, Locale.getDefault())
 
@@ -1194,7 +1214,8 @@ private fun MonthSelector(selectedMonth: Int, onMonthSelected: (Int) -> Unit) {
                 .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
         )
         // As the species suggestions above: the default role, passed explicitly, and its content colour.
-        val monthMenuColor = MenuDefaults.containerColor
+        // As the species suggestions (owner, "1 A"): 0.8 on its own over the Maps tab, stacking.
+        val monthMenuColor = mapChromeFill(MenuDefaults.containerColor, overMap)
         val monthMenuContentColor = contentColorFor(MenuDefaults.containerColor)
         ExposedDropdownMenu(
             expanded = expanded,
