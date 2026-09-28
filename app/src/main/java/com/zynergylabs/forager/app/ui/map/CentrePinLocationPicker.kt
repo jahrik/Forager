@@ -13,10 +13,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -284,6 +286,10 @@ fun CentrePinLocationPickerOverlay(
      */
     night: Boolean = false,
 ) {
+    // The row's fill and its content colour, pinned to the fill's own role (`contentColorFor` matches a
+    // colour-scheme role exactly; see `MapLayersSheet`).
+    val rowColor = MaterialTheme.colorScheme.surface
+    val rowContentColor = contentColorFor(MaterialTheme.colorScheme.surface)
     Box(modifier = modifier.fillMaxSize()) {
         CentrePin(night = night, modifier = Modifier.align(Alignment.Center))
         Surface(
@@ -291,11 +297,18 @@ fun CentrePinLocationPickerOverlay(
                 .align(Alignment.BottomCenter)
                 .padding(bottom = bottomInset)
                 .fillMaxWidth()
-                .testTag(CENTRE_PIN_CONFIRM_ROW_TAG),
-            color = MaterialTheme.colorScheme.surface,
+                .testTag(CENTRE_PIN_CONFIRM_ROW_TAG)
+                .mapChromeContainerColor(rowColor),
+            color = rowColor,
+            contentColor = rowContentColor,
             shadowElevation = 4.dp,
         ) {
-            CentrePinConfirmRow(selectedText = null, onConfirm = onConfirm, onCancel = onCancel)
+            CentrePinConfirmRow(
+                selectedText = null,
+                onConfirm = onConfirm,
+                onCancel = onCancel,
+                modifier = Modifier.mapChromeContentColor(LocalContentColor.current),
+            )
         }
     }
 }
@@ -364,9 +377,9 @@ internal fun centrePinCasingVector(casing: Int): ImageVector {
 }
 
 @Composable
-private fun CentrePinConfirmRow(selectedText: String?, onConfirm: () -> Unit, onCancel: () -> Unit) {
+private fun CentrePinConfirmRow(selectedText: String?, onConfirm: () -> Unit, onCancel: () -> Unit, modifier: Modifier = Modifier) {
     Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+        modifier = modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         if (selectedText != null) {

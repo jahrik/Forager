@@ -28,7 +28,9 @@ import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -47,6 +49,8 @@ import androidx.compose.foundation.layout.add
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.NavigationRailItemDefaults
+import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
+import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.log.ScreenEdge
 
 /**
@@ -266,16 +270,18 @@ internal fun ExitNavigationPrompt(
     onExit: () -> Unit,
     onKeepNavigating: () -> Unit,
 ) {
+    val dialogColor = AlertDialogDefaults.containerColor
     AlertDialog(
         onDismissRequest = onKeepNavigating,
         title = { Text("Exit navigation?") },
-        text = { Text("Your track will keep recording.") },
+        text = { Text("Your track will keep recording.", modifier = Modifier.mapChromeContentColor(LocalContentColor.current)) },
         confirmButton = {
             TextButton(onClick = onExit, modifier = Modifier.testTag(EXIT_NAVIGATION_PROMPT_EXIT_TAG)) { Text("Exit") }
         },
         dismissButton = {
             TextButton(onClick = onKeepNavigating, modifier = Modifier.testTag(EXIT_NAVIGATION_PROMPT_KEEP_TAG)) { Text("Keep navigating") }
         },
-        modifier = Modifier.testTag(EXIT_NAVIGATION_PROMPT_TAG),
+        modifier = Modifier.testTag(EXIT_NAVIGATION_PROMPT_TAG).mapChromeContainerColor(dialogColor),
+        containerColor = dialogColor,
     )
 }

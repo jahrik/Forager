@@ -29,8 +29,10 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PermanentNavigationDrawer
 import androidx.compose.material3.Surface
@@ -46,6 +48,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
@@ -64,6 +67,8 @@ import com.zynergylabs.forager.app.ui.map.MapLayersControls
 import com.zynergylabs.forager.app.ui.map.MapLayersSheet
 import com.zynergylabs.forager.app.ui.map.MapLegendChip
 import com.zynergylabs.forager.app.ui.map.layersButtonDescription
+import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
+import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.map.layers.COLOUR_FIELDS
 import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
 import com.zynergylabs.forager.app.ui.map.layers.mapLegendFor
@@ -169,16 +174,17 @@ private fun MapModeToggle(mapMode: MapMode, onClick: () -> Unit, modifier: Modif
     // is 24dp and Spacing.sm padding is 8dp a side, which wrapped to a 40dp circle — under M3's
     // 48x48dp minimum touch target, a real miss found by auditing this file's tap targets against
     // that rule, not a hypothetical one.
+    val buttonColor = MaterialTheme.colorScheme.surface
     Surface(
         onClick = onClick,
         shape = CircleShape,
-        color = MaterialTheme.colorScheme.surface,
+        color = buttonColor,
         contentColor = MaterialTheme.colorScheme.onSurface,
         tonalElevation = 3.dp,
         shadowElevation = 2.dp,
-        modifier = modifier.size(MIN_TOUCH_TARGET),
+        modifier = modifier.size(MIN_TOUCH_TARGET).testTag(WIDE_LAYERS_BUTTON_TAG).mapChromeContainerColor(buttonColor),
     ) {
-        Box(contentAlignment = Alignment.Center) {
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.mapChromeContentColor(LocalContentColor.current)) {
             Icon(
                 imageVector = Icons.Filled.Layers,
                 contentDescription = layersButtonDescription(mapMode),
@@ -465,11 +471,15 @@ private fun ThreeWayActionDialog(
     onDropWaypoint: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val dialogColor = AlertDialogDefaults.containerColor
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("What would you like to do here?") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                modifier = Modifier.mapChromeContentColor(LocalContentColor.current),
+            ) {
                 TextButton(onClick = onPlanTrip, modifier = Modifier.fillMaxWidth()) { Text("Plan a trip") }
                 TextButton(onClick = onLogFind, modifier = Modifier.fillMaxWidth()) { Text("Log a find") }
                 TextButton(onClick = onDropWaypoint, modifier = Modifier.fillMaxWidth()) { Text("Drop a waypoint") }
@@ -477,5 +487,13 @@ private fun ThreeWayActionDialog(
         },
         confirmButton = {},
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        modifier = Modifier.testTag(THREE_WAY_ACTION_DIALOG_TAG).mapChromeContainerColor(dialogColor),
+        containerColor = dialogColor,
     )
 }
+
+/** [MapModeToggle], the wide map's Layers button, for tests. */
+internal const val WIDE_LAYERS_BUTTON_TAG = "wide-layers-button"
+
+/** [ThreeWayActionDialog], for tests. */
+internal const val THREE_WAY_ACTION_DIALOG_TAG = "three-way-action-dialog"

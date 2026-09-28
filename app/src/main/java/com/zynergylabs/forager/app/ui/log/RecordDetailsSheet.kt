@@ -13,12 +13,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Directions
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.contentColorFor
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -48,6 +51,8 @@ import com.zynergylabs.forager.app.ui.availability.launchDirections
 import com.zynergylabs.forager.app.ui.availability.offlineRegionSizeLabel
 import com.zynergylabs.forager.app.ui.availability.offlineRegionZoomNote
 import com.zynergylabs.forager.app.ui.availability.relativeTimeLabel
+import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
+import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import com.zynergylabs.forager.app.ui.track.formatRecordTimestamp
 import com.zynergylabs.forager.app.ui.track.shareTrackGpx
@@ -160,13 +165,21 @@ internal fun RecordDetailsSheet(
         return
     }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    // Material3's own default container role for a sheet (`BottomSheetDefaults.ContainerColor`), passed
+    // explicitly, as the Layers sheet passes its own (`MapLayersSheet`). The content colour is pinned to
+    // the role's own for the reason given there: `contentColorFor` matches a colour-scheme role exactly.
+    val containerColor = BottomSheetDefaults.ContainerColor
+    val contentColor = contentColorFor(BottomSheetDefaults.ContainerColor)
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        modifier = Modifier.testTag(RECORD_DETAILS_SHEET_TAG),
+        modifier = Modifier.testTag(RECORD_DETAILS_SHEET_TAG).mapChromeContainerColor(containerColor),
+        containerColor = containerColor,
+        contentColor = contentColor,
     ) {
         Column(
             modifier = Modifier
+                .mapChromeContentColor(LocalContentColor.current)
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = Spacing.lg)

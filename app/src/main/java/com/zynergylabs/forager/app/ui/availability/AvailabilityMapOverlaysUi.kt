@@ -34,6 +34,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -45,8 +46,10 @@ import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.contentColorFor
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -73,6 +76,8 @@ import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorDark
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorLight
 import com.zynergylabs.forager.app.ui.map.MapBubbleShell
 import com.zynergylabs.forager.app.ui.map.MapSlot
+import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
+import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.theme.Bark
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import com.zynergylabs.forager.app.ui.theme.Spacing
@@ -127,8 +132,16 @@ internal fun TripDatePickerDialog(
         },
     )
     var name by remember { mutableStateOf(defaultName) }
+    // The dialog's and the picker's own default colours, passed explicitly. The dialog gives its surface
+    // `contentColorFor` of its container, which matches a colour-scheme role exactly (see
+    // `MapLayersSheet`), so the content colour is pinned to the default container's own.
+    val dialogColors = DatePickerDefaults.colors()
+    val pickerColors = DatePickerDefaults.colors()
+    val dialogContentColor = contentColorFor(DatePickerDefaults.colors().containerColor)
     DatePickerDialog(
         onDismissRequest = onDismiss,
+        modifier = Modifier.testTag(TRIP_DATE_DIALOG_TAG).mapChromeContainerColor(dialogColors.containerColor),
+        colors = dialogColors,
         confirmButton = {
             TextButton(
                 // Guards the "name is never blank" invariant from this dialog — see this
@@ -143,20 +156,28 @@ internal fun TripDatePickerDialog(
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     ) {
-        Column {
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text("Trip name") },
-                singleLine = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Spacing.lg),
-            )
-            DatePicker(state = datePickerState)
+        CompositionLocalProvider(LocalContentColor provides dialogContentColor) {
+            Column(modifier = Modifier.mapChromeContentColor(LocalContentColor.current)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Trip name") },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = Spacing.lg),
+                )
+                DatePicker(state = datePickerState, colors = pickerColors)
+            }
         }
     }
 }
+
+/** [TripDatePickerDialog], for tests. */
+internal const val TRIP_DATE_DIALOG_TAG = "trip-date-dialog"
+
+/** [WaypointNameDialog]'s surface, for tests. */
+internal const val WAYPOINT_NAME_DIALOG_TAG = "waypoint-name-dialog"
 
 /**
  * Confirms a name for a waypoint placed via [com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker] —
@@ -175,14 +196,19 @@ internal fun WaypointNameDialog(defaultName: String, onConfirm: (String) -> Unit
     // AddActionTile -> this dialog alone is fine; TripDatePickerDialog's own text field, reached
     // through this exact same scaffold, is fine). The one structural difference from
     // TripDatePickerDialog left once AlertDialog vs. plain Dialog was ruled out is this property.
+    // The surface's fill and its content colour, pinned to the fill's own role (see `MapLayersSheet`).
+    val dialogColor = MaterialTheme.colorScheme.surface
+    val dialogContentColor = contentColorFor(MaterialTheme.colorScheme.surface)
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(
             shape = RoundedCornerShape(Spacing.md),
             shadowElevation = 4.dp,
-            color = MaterialTheme.colorScheme.surface,
+            color = dialogColor,
+            contentColor = dialogContentColor,
+            modifier = Modifier.testTag(WAYPOINT_NAME_DIALOG_TAG).mapChromeContainerColor(dialogColor),
         ) {
             Column(
-                modifier = Modifier.padding(Spacing.lg),
+                modifier = Modifier.mapChromeContentColor(LocalContentColor.current).padding(Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
                 Text("Name this waypoint", style = MaterialTheme.typography.titleMedium)
