@@ -595,3 +595,54 @@ After the J8 premise pulse (`docs/audits/2026-09-28-j8-premise-pulse.md`), which
 6. Geometry: **"Live records (Recommended)"**: the highlight follows the live waypoint and region positions; a kept record since deleted is simply not highlighted.
 
 Earlier J8 rulings stand: content "Kept tracks, Kept waypoints, Kept finds, Offline-map outlines"; more than one entry may show at once; "Yes, keep them" in Room. Planner's rulings: the migration rebuilds `cartography_entries` in the pattern of 12 to 13 and 14 to 15 (the legacy fixtures declare the entity directly, `Migrations.kt:899-906`); the highlight colour is one new palette role, day and night, proposed by the planner and measured in `MapPaletteTest`, for the owner to judge on the phone.
+
+### Map chrome at 80%, nothing fully obstructs the map (owner, 2026-09-28)
+
+The owner first asked about one sheet, verbatim: "Can you set this card at 80% opacity while over the map? In the places that aren't covering a map, they can stay solid. Same for tracks please". That came with screenshots of the waypoint and track details sheets opened from a map bubble. The owner then gave rulings: **"After J8 (Recommended)"** for the timing and **"Yes, all three (Recommended)"** for including the offline-region sheet. The planner queued it as intent `2026-09-28-56`.
+
+The owner then widened it to a principle, verbatim: "My idea is that nothing should fully obstruct the map view. All map chrome gets 80% opacity as a result."
+
+What the planner takes this to mean, pending the owner's answers on edge cases:
+- Every surface drawn over a map is at `MAP_CHROME_OVER_MAP_ALPHA` (0.8, `ui/map/MapChrome.kt:239`). That covers bars, strips, chips, clusters, rails, legends, bubbles, sheets, drawers and menus.
+- The same component shown where it covers no map stays solid, as in the owner's first message.
+- The icon cluster (`MapChrome.kt:233-236`) and the Layers sheet (`MapLayersSheet.kt:221`) already follow it.
+
+Before the dispatch widens, a read-only pulse inventories every surface drawn over a map (`docs/audits/2026-09-28-map-chrome-inventory-pulse.md` when filed). Edge cases the pulse surfaces, such as dialogs, text fields and drawers, go to the owner before anything is built. Dispatch `2026-09-28-56` stays queued behind J8, and it will be widened by a continuation, not rewritten.
+
+**Edge-case rulings (owner, 2026-09-28).** These were asked after the map-chrome inventory pulse (`docs/audits/2026-09-28-map-chrome-inventory-pulse.md`, read at `76a67f3`). Verbatim answers:
+1. Dialogs, pop-up menus and the snackbar over a map: **"80% over the map"**. This was chosen against the planner's recommendation to keep them solid.
+2. The Tools drawer: **"80% over Maps (Recommended)"**. It is solid over the other tabs.
+3. The accent buttons (the + disc, the record disc, the wide Add button): **"Keep them solid (Recommended)"**.
+4. The attribution caption at 0.55: **"Leave it at 55% (Recommended)"**.
+
+Planner's readings, stated to the owner, stand unless the owner overrules them:
+- Full-screen destinations the user opens stay opaque: the photo viewer, the find-over-view page and the camera. They are destinations, not chrome.
+- Scrims are unchanged.
+- The cluster's 0.6 container is unchanged, since it composites to 0.8 by design (`MapChromeAlphaTest`).
+- The five `0.8f` literals move onto `MAP_CHROME_OVER_MAP_ALPHA`, with no visible change.
+
+Dispatch `2026-09-28-56` is widened by continuation `2026-09-28-58`, and still waits for J8.
+
+**Accent buttons, superseding edge-case ruling 3 (owner, 2026-09-28).** Ruling 3 above ("Keep them solid (Recommended)") stands as the record of what was decided then. The owner then reversed it, verbatim: "Have the colored buttons be at 80% opacity also". That covers the + disc, the record disc while recording, and the wide Add button.
+
+The + disc sits on the icon bar and the record disc on the control pill. Both are already 0.8 composites, so a disc at 0.8 on top would stack to about 0.96. Asked how the discs should reach 80%, the owner answered "[No preference]". The planner ruled **true 80% overall**: the map shows through each disc as much as through the rest of the chrome. The fill beneath is not stacked under the disc, which follows CLAUDE.md's rule that layered fills composite to 0.8 rather than each carrying it. The wide Add button sits straight on the map, so its own fill at 0.8 is already 0.8 overall. Carried by continuation `2026-09-28-59` of `-56`.
+
+**Correction: the "colored buttons" are the bottom tab bar (owner, 2026-09-28).** This supersedes the "Accent buttons" paragraph above, which stands as the record of the planner's misreading.
+- The planner's edge-case question 3 named the + disc, the record disc and the wide Add button, and the owner's "Have the colored buttons be at 80% opacity also" was recorded against those.
+- The owner then clarified, verbatim: "The bottom colored buttons", "Leave the map icon bar alone", and, with a screenshot circling the bottom tab bar (List, Seasonal, Maps, Journal, Tools): "These buttons at the bottom must be 80% opacity".
+
+So:
+- The accent discs and the wide Add button **stay solid**. Edge-case ruling 3 stands again, and the icon bar and control pill are untouched.
+- **The bottom tab bar's buttons go to 80% over the map.**
+  - The bar's own container is already `surfaceContainer` at a literal 0.8 (`AvailabilityCompactMapUi.kt:1210`).
+  - The selected tab's highlight (the brown pill behind Maps) is Material3's default indicator colour, solid. Only the icon and label colours are overridden (`AvailabilityNavigationUi.kt:167-170`). The highlight goes to 80% over the map.
+  - Icons and labels stay opaque, as UX defaults require.
+- The planner applies the same to the navigation rail, which stands in for the bar in short landscape. That is the planner's reading, stated to the owner.
+- Whether the bar's 0.8 container actually shows the map through on the S22 is a device check. The screenshot cannot settle it.
+
+Carried by continuation `2026-09-28-60`, which supersedes `-59`.
+
+**Restart at the edge-case rulings (owner, 2026-09-28).** The owner sent a screenshot of the four edge-case answers as first given, verbatim: "Let's restart from this point and forget everything beyond it:". Those answers were dialogs, menus and snackbar "80% over the map", the drawer "80% over Maps (Recommended)", the accent buttons "Keep them solid (Recommended)" and the caption "Leave it at 55% (Recommended)". So:
+- The "Accent buttons" paragraph and the "Correction" paragraph above are **withdrawn**. They stay in the file only as the record of what was withdrawn.
+- Edge-case rulings 1 to 4 stand as first answered.
+- Continuation `2026-09-28-58` is the governing amendment of `-56`. Continuations `-59` and `-60` are withdrawn (continuation `2026-09-28-61`).
