@@ -32,7 +32,10 @@ private const val CELL_HALF_DEGREES = 0.05
  * `south - 0.05` to `north + 0.05`, and the blocks are the ones holding those (a cell belongs to the
  * block holding its centre).
  */
-internal fun forecastBlocksToRequest(south: Double, west: Double, north: Double, east: Double): Set<ForecastBlock>? {
+/** Tests-first stub for the planner's ruling on Q9 (message 3): a minimum zoom. */
+internal const val MIN_FORECAST_ZOOM = 7.0
+
+internal fun forecastBlocksToRequest(zoom: Double, south: Double, west: Double, north: Double, east: Double): Set<ForecastBlock>? {
     fun firstTenth(degrees: Double) = ceil((degrees - CELL_HALF_DEGREES) * 10 - EPSILON) / 10
     fun lastTenth(degrees: Double) = floor((degrees + CELL_HALF_DEGREES) * 10 + EPSILON) / 10
     val blocks = ForecastBlock.touching(

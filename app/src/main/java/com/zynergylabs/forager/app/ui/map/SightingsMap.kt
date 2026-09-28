@@ -235,6 +235,8 @@ fun SightingsMap(
     layersState: MapLayersState = MapLayersState.DEFAULT,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.onFeatureTap]'s own doc comment. */
     onFeatureTap: (layerId: String, featureId: String) -> Unit = { _, _ -> },
+    /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.forecast]'s own doc comment. */
+    forecast: MapForecastFeed? = null,
 ) {
     val context = LocalContext.current
 

@@ -300,6 +300,9 @@ import com.zynergylabs.forager.app.ui.map.mapIconClusterContainerColor
 import com.zynergylabs.forager.app.ui.map.mapIconClusterChildColor
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorLight
 import com.zynergylabs.forager.app.ui.map.MapMode
+import com.zynergylabs.forager.app.ui.map.layers.ColourFieldMove
+import com.zynergylabs.forager.app.domain.AbsentForecastCellStore
+import com.zynergylabs.forager.app.domain.ForecastCellStore
 import com.zynergylabs.forager.app.ui.map.MapModePicker
 import com.zynergylabs.forager.app.ui.map.MapOverlayContent
 import com.zynergylabs.forager.app.ui.map.MapSlot
@@ -705,6 +708,12 @@ fun AvailabilityScreen(
      * [PendingDeleteSnackbarEffects]. Empty by default, so no other caller changes.
      */
     pendingDeleteNotices: List<PendingDeleteNotice> = emptyList(),
+    /** Tests-first stubs (map layers L0b): the Maps tab shown, and the Layers sheet's three changes. */
+    onMapShown: () -> Unit = {},
+    onMapLayerVisibilityChanged: (String, Boolean) -> Unit = { _, _ -> },
+    onMapLayerOpacityChanged: (String, Float) -> Unit = { _, _ -> },
+    onColourFieldMoved: (String, ColourFieldMove) -> Unit = { _, _ -> },
+    forecastCellStore: ForecastCellStore = AbsentForecastCellStore,
 ) {
     // Map up front. The list is one tap away; the map is the thing this screen is arranged around.
     //

@@ -22,7 +22,12 @@ import com.zynergylabs.forager.app.domain.LocationProvider
 import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.LocationTracker
 import com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository
+import com.zynergylabs.forager.app.domain.AbsentForecastCellStore
+import com.zynergylabs.forager.app.domain.ForecastCellStore
+import com.zynergylabs.forager.app.domain.MapLayerPreferences
+import com.zynergylabs.forager.app.domain.MapLayerPreferencesRepository
 import com.zynergylabs.forager.app.domain.MapPreferencesRepository
+import com.zynergylabs.forager.app.domain.MapRecords
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
 import com.zynergylabs.forager.app.domain.PredictAvailabilityUseCase
 import com.zynergylabs.forager.app.domain.SavePlannedTripUseCase
@@ -40,6 +45,7 @@ import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.PendingDeleteSlot
 import com.zynergylabs.forager.app.ui.log.PendingDeleteCommitScope
+import com.zynergylabs.forager.app.ui.map.layers.ColourFieldMove
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -105,6 +111,14 @@ class AvailabilityViewModel(
      * (journal redesign J4): `viewModelScope` is cancelled by then. See [PendingDeleteCommitScope].
      */
     private val pendingDeleteCommitScope: CoroutineScope = PendingDeleteCommitScope,
+    /** Map layers L0b, B2: every saved record the Maps tab draws. Defaulted like the borrowed capabilities above. */
+    private val getMapRecords: suspend () -> MapRecords = { MapRecords.NONE },
+    /** Map layers L0b, B3: where the Layers sheet's choices persist. */
+    private val mapLayerPreferencesRepository: MapLayerPreferencesRepository = NoStoredMapLayerPreferences,
+    /** Map layers L0b, B5: which forecast groups have cells to draw. */
+    private val forecastCellStore: ForecastCellStore = AbsentForecastCellStore,
+    /** Today, for the forecast's ISO week. */
+    private val today: () -> LocalDate = { LocalDate.now() },
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AvailabilityUiState())
@@ -450,6 +464,18 @@ class AvailabilityViewModel(
      * region+month+filter actually being viewed, rather than on every list search, since a
      * map view the user never opens shouldn't cost an extra API call.
      */
+    /** Tests-first stub (map layers L0b, B2 and B5). */
+    fun onMapShown() {}
+
+    /** Tests-first stub (map layers L0b, B3). */
+    fun onMapLayerVisibilityChanged(layerId: String, visible: Boolean) {}
+
+    /** Tests-first stub (map layers L0b, B3). */
+    fun onMapLayerOpacityChanged(layerId: String, opacity: Float) {}
+
+    /** Tests-first stub (map layers L0b, B1 and B3). */
+    fun onColourFieldMoved(layerId: String, move: ColourFieldMove) {}
+
     fun onMapTabSelected() {
         val state = _uiState.value
         val region = state.region ?: return
@@ -1250,4 +1276,19 @@ class AvailabilityViewModel(
         const val SEARCH_DEBOUNCE_MS = 300L
         const val TAG = "AvailabilityViewModel"
     }
+}
+
+/**
+ * The default [MapLayerPreferencesRepository] for the suites that construct this ViewModel and never
+ * touch the Layers sheet, the same shape as this class's other defaulted capabilities: nothing stored,
+ * every write accepted. `MainActivity` passes the real `map_preferences` store.
+ */
+private object NoStoredMapLayerPreferences : MapLayerPreferencesRepository {
+    override suspend fun getMapLayerPreferences(): Result<MapLayerPreferences> = Result.success(MapLayerPreferences.NONE)
+
+    override suspend fun setLayerVisible(layerId: String, visible: Boolean): Result<Unit> = Result.success(Unit)
+
+    override suspend fun setLayerOpacity(layerId: String, opacity: Float): Result<Unit> = Result.success(Unit)
+
+    override suspend fun setLayerOrder(layerIds: List<String>): Result<Unit> = Result.success(Unit)
 }
