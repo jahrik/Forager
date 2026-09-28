@@ -187,6 +187,7 @@ class LeavingTheJournalFixesTest {
     private lateinit var cartographyRepository: RoomCartographyEntryRepository
     private lateinit var logViewModel: MushroomLogViewModel
     private lateinit var cartographyViewModel: CartographyViewModel
+    private lateinit var availabilityViewModel: AvailabilityViewModel
     private val searchCache = InMemorySearchCacheRepository()
 
     private val photoFile: File get() = File(context.filesDir, PHOTO.relativePath)
@@ -259,7 +260,7 @@ class LeavingTheJournalFixesTest {
             now = { 1_000L },
         )
         val plannedTrips = LeaveFixInMemoryPlannedTripRepository()
-        val availabilityViewModel = AvailabilityViewModel(
+        availabilityViewModel = AvailabilityViewModel(
             locationProvider = LeaveFixUnavailableLocationProvider,
             locationTracker = LeaveFixNoOpLocationTracker,
             getAvailability = GetAvailabilityUseCase(PredictAvailabilityUseCase(LeaveFixEmptyRepository), searchCache),
@@ -1091,6 +1092,116 @@ class LeavingTheJournalFixesTest {
         assertEquals("the find is still open", COMMITTED_FIND.id, logViewModel.uiState.value.editingEntry?.id)
         composeRule.onNodeWithTag(FIND_OVER_VIEW_TAG).assertIsDisplayed()
         composeRule.onNodeWithText("Your own identification: Chanterelle").assertIsDisplayed()
+    }
+
+    // ── F3: a route that opens a find over a kept one leaves the kept one first (continuation 2026-09-28-45) ──
+
+    /** Maps' "Log a find": the add button, the Find chip, then the centre pin's OK, all on the Maps tab. */
+    private fun logAFindOnMaps() {
+        touchNavItem("Maps")
+        composeRule.onNodeWithContentDescription("Plan a trip or log a find here").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Find").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("OK").performClick()
+        composeRule.waitForIdle()
+        assertEquals("Log a find opened the new find", NEW_FIND_ID, logViewModel.uiState.value.editingEntry?.id)
+    }
+
+    private fun assertChangedKeptFindInDraftsAtOnce(route: String) {
+        val drafts = logViewModel.uiState.value.draftEntries
+        assertEquals(
+            "after $route: the kept find's changed draft is in Drafts at once",
+            listOf("Changed, not saved"),
+            drafts.filter { it.id == DRAFT_OF_FIND_ID }.map { it.ownIdentification },
+        )
+        assertTrue("after $route: the Saved to Drafts snackbar shows", snackbarShows("Saved to Drafts"))
+        assertEquals("Changed, not saved", storedFinds().single { it.id == DRAFT_OF_FIND_ID }.ownIdentification)
+        assertCommittedFindIntact()
+    }
+
+    @Test
+    fun `F3 Log a find on Maps over a changed kept find leaves it first, its draft in Drafts at once with Saved to Drafts`() {
+        setScreen()
+        openFindEditor()
+        typeFindIdentification("Changed, not saved")
+
+        logAFindOnMaps()
+
+        assertChangedKeptFindInDraftsAtOnce("Log a find over a changed kept find")
+    }
+
+    @Test
+    fun `F3 Log a find on Maps over an unchanged kept re-edit leaves no duplicate draft row`() {
+        setScreen()
+        openFindEditor()
+        assertEquals(setOf(COMMITTED_FIND.id, DRAFT_OF_FIND_ID), storedFinds().map { it.id }.toSet())
+
+        logAFindOnMaps()
+
+        assertEquals(
+            "the unchanged copy is gone: only the committed find and the new find's draft are stored",
+            setOf(COMMITTED_FIND.id, NEW_FIND_ID),
+            storedFinds().map { it.id }.toSet(),
+        )
+        assertEquals("nothing of the kept find is in Drafts", emptyList<String>(), logViewModel.uiState.value.draftEntries.map { it.id }.filter { it != NEW_FIND_ID })
+        assertNoSavedToDraftsSnackbar("Log a find over an unchanged kept re-edit")
+        assertCommittedFindIntact()
+    }
+
+    /**
+     * Passes on the part-1 tree too, so it is a guard there, not a tests-first test: opening the new
+     * find replaces a viewed one whether or not it is left first. It guards that the added leave
+     * brings back neither the snackbar nor a delete for a find that was only viewed.
+     */
+    @Test
+    fun `F3 Log a find on Maps over a viewed committed find closes it with no snackbar and nothing deleted`() {
+        setScreen()
+        openFindReport()
+
+        logAFindOnMaps()
+
+        assertNoSavedToDraftsSnackbar("Log a find over a viewed find")
+        assertEquals("only the committed find and the new find's draft are stored", setOf(COMMITTED_FIND.id, NEW_FIND_ID), storedFinds().map { it.id }.toSet())
+        assertEquals(listOf(PHOTO.id), storedGalleryPhotoIds())
+        assertCommittedFindIntact()
+    }
+
+    @Test
+    fun `F3 a bubble's Open in Journal over a changed kept find leaves it first, its draft in Drafts at once with Saved to Drafts`() {
+        setScreen(mapSlot = bubbleMap.slot)
+        openFindEditor()
+        typeFindIdentification("Changed, not saved")
+
+        openFindInJournalFromMaps()
+
+        assertEquals("the bubble's find is open", COMMITTED_FIND.id, logViewModel.uiState.value.editingEntry?.id)
+        assertChangedKeptFindInDraftsAtOnce("Open in Journal over a changed kept find")
+    }
+
+    @Test
+    @Config(qualifiers = "w1280dp-h900dp-mdpi")
+    fun `F3 wide, Log a find over a changed find open in the drawer leaves it first, its draft in Drafts at once with Saved to Drafts`() {
+        setScreen()
+        // Setup, not the claim: the wide map draws only after a search (MapTab's `!hasSearched` branch).
+        composeRule.runOnIdle {
+            availabilityViewModel.onManualLatChanged("45.33")
+            availabilityViewModel.onManualLngChanged("-122.63")
+            availabilityViewModel.searchManualCoordinates()
+        }
+        composeRule.waitForIdle()
+        openWideFindEditor()
+        typeFindIdentification("Changed, not saved")
+
+        composeRule.onNodeWithContentDescription("Plan a trip or log a find here").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Log a find").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("OK").performClick()
+        composeRule.waitForIdle()
+        assertEquals("Log a find opened the new find", NEW_FIND_ID, logViewModel.uiState.value.editingEntry?.id)
+
+        assertChangedKeptFindInDraftsAtOnce("the wide Log a find over a changed kept find")
     }
 
     private companion object {
