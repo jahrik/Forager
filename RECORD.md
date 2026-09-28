@@ -3663,3 +3663,45 @@ The list-detail question goes to the owner next. Written by the planner by hand.
 **Finish line:** Tests first through the real bubble path, revert check, full suite, report, pushed; the planner writes the terminal.
 **Abort conditions:** A wrong premise; a tests-first test passing at base; a non-compiling revert; a non-held failure; new copy; disk full or OOM; two failed fixes; an unruled design question.
 **Notes:** Owner, verbatim: "Option B. Thanks for explaining". It supersedes J8 flag ruling 3 ("keep both", -67's notes). The planner's reading of B covers every highlighted case, not only the more-than-three case, and was stated to the owner. Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-71
+**Timestamp:** 2026-09-28T20:49:51Z
+**Closes:** 2026-09-28-51
+**Outcome:** completed
+**Observed:**
+- **Record and relaunches.** Run record docs/audits/2026-09-28-stage-device-check-part-1-run-record.md, device-stage-1 at af47fe4, merged into journal-redesign by the planner. Coders:
+  - the first died on EAI_AGAIN mid check 4, with no verdicts written;
+  - the -55 relaunch pushed verdicts for 1 to 3 (5ec7a63) before the owner's stop;
+  - the -63 relaunch finished checks 4 to 8 (77079ef to af47fe4).
+- **Install.** Unchanged across both gaps. Crash buffer empty, no FATAL EXCEPTION, the same pid throughout. Evidence 01 to 352 in device-evidence/2026-09-28-stage-check-1.
+- **Verdicts.**
+  - Pass: 1, 2 (Offline maps tap half not discriminating), 3, 4a (the location puck draws under the cells), 4b, 4c, 4f (cells at zoom 7.10, none at 6.89), 5c, 7, 8 in short landscape.
+  - 4d legend: pass in portrait and at 90; **fail at 270**, where the chip lies over the cluster's record button.
+  - 4e: collapsed pass (17 px gap); **expanded fail** (122 px overlap; the clamp floors at centre, AvailabilityCompactMapUi.kt:795-797, the coder's reading).
+  - 5a: the fill is as designed (k 0.800, c 6.0, 80% of ground contrast kept), but it **lightens** the darkest quarter and does not read darker at zoom 10.7.
+  - 5b: **the dashes do not carry the edge** on the darkest ground (contrast 1.08 to 1.45).
+  - 6: pass at 15 and above on Topographical, Street and night (16.9/25.35 px against 16.88/25.31); **13 and 11 not observable**, because the search-centre reticle covers the track.
+  - 8 portrait: **fail**. Latitude, Longitude and "Search this location" sit under the keyboard; the dropdown does not resize, and a programmatic scroll does not lower the keyboard.
+- **Restored and read back.** Rotation 0/0, font scale 1.0, Night Maps off, Topographical, Diagnostics off, all overlays on, order and opacity at defaults; database counts equal the start inventory.
+**Deviations:**
+- The two relaunches.
+- No verdicts from the first coder, so -55 re-derived 1 to 3 and -63 re-ran 4d and 4e.
+- The coder's own methods for 4f (a zoom ruler from the cell grid), check 5 (compositing fit and binned contrast) and check 6 (a width tool corrected twice for traced misclassifications, with a raw pixel cut as the primary evidence).
+- The camera was not restored (not in any list).
+**Notes:**
+- **Flags:**
+  - the location puck and its disc draw under all Forager layers;
+  - at 270, whether a touch on the chip reaches the record button is unverified;
+  - MapLibre's "i" sits under the nav bar in portrait and at 90;
+  - at 90 the attribution strip crosses the cluster's bottom row (by eye);
+  - the Diagnostics switch reaches the map only after the tab is shown again;
+  - **a tab round trip resets the map camera** to the location at about zoom 12, possibly against CLAUDE.md UX defaults on user-set state (unverified);
+  - MapLibre "after the MapView was destroyed" errors flood the log;
+  - the search-centre reticle shows with no location set;
+  - in portrait, one of three Backs out of the dropdown had no effect;
+  - a visible offline-region outline takes no tap.
+- **Next:** the fails and flags go to the owner. The phone is free, so J8's device check runs next, per the plan.
+- Written by the planner by hand.
