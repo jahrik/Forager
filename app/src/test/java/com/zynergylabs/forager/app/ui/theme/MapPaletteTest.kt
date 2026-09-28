@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.theme
 
+import com.zynergylabs.forager.app.ui.map.layers.OFFLINE_REGION_FILL_OPACITY
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.fail
@@ -9,6 +10,7 @@ import kotlin.math.atan2
 import kotlin.math.cbrt
 import kotlin.math.floor
 import kotlin.math.pow
+import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 /**
@@ -30,6 +32,14 @@ import kotlin.math.sqrt
  *  - night [MapPalette.searchCentre] `#DEDEDE`, (a) 0.137 and (d) 0.099, and night
  *    [MapPalette.offlineRegion] `#FFFFFF`, (d) 0.099: the swatch board's "Roles that cannot meet every
  *    constraint";
+ *  - **night [MapPalette.offlineRegion] is not held to (a) or (c)** (owner, 2026-09-28: "Test it as
+ *    drawn (Recommended)", dispatch `2026-09-28-22`, re-scoped by `2026-09-28-24`). It is not a solid
+ *    mark: it is drawn at [OFFLINE_REGION_FILL_OPACITY] over the ground, under a black dashed casing,
+ *    so its solid colour's distance from the ground and contrast with the casing describe nothing
+ *    that is drawn. Its night pin carries (d) only. Its as-drawn figures are recorded instead, per
+ *    ground cluster, in [nightOfflineRegionAsDrawn]; they are pins, not bars, and gate nothing beyond
+ *    matching. The owner chooses the night shade from phone screenshots. The day offline region keeps
+ *    (a) and (c) unchanged;
  *  - the three owner overrides, which are not board candidates: the sighting-dot fill (night `#8C8C8C`,
  *    (a) 0.097), the sighting ring ([MapPalette.sightingDotStroke], white, a casing, so it has no
  *    pin of its own) and the selected ring ([MapPalette.sightingDotStrokeSelected], `#2196F3`, night (a)
@@ -56,8 +66,12 @@ import kotlin.math.sqrt
  */
 class MapPaletteTest {
 
-    /** One role's pinned figures in one mode: (a) ground distance, (c) contrast with its casing, (d) nearest other role. */
-    private data class Pin(val role: String, val a: Double, val c: Double, val d: Double)
+    /**
+     * One role's pinned figures in one mode: (a) ground distance, (c) contrast with its casing, (d)
+     * nearest other role. A null (a) or (c) means the role is not held to that check in that mode
+     * (night offline region only; see the class doc).
+     */
+    private data class Pin(val role: String, val a: Double?, val c: Double?, val d: Double)
 
     // Comments give each figure's margin against the board's threshold: (a)/0.15 − 1, (c)/3 − 1,
     // (d)/0.10 − 1. A negative margin is a recorded shortfall (see the class doc), pinned, not asserted
@@ -89,8 +103,10 @@ class MapPaletteTest {
         // Board-recorded shortfall: (a) 0.137 against Topo night #C2D076 and (d) 0.099 against the
         // offline region (board §5, "Roles that cannot meet every constraint").
         Pin("searchCentre", a = 0.137, c = 15.609, d = 0.099), // (a) -0.087, (c) +4.203, (d) -0.010
-        // Board-recorded shortfall: (d) 0.099 against the search centre (same section).
-        Pin("offlineRegion", a = 0.208, c = 21.000, d = 0.099), // (a) +0.387, (c) +6.000, (d) -0.010
+        // Board-recorded shortfall: (d) 0.099 against the search centre (same section). Not held to (a)
+        // or (c): it is drawn translucent, so it is checked as drawn instead (owner's re-scoping,
+        // 2026-09-28; see the class doc and [nightOfflineRegionAsDrawn]).
+        Pin("offlineRegion", a = null, c = null, d = 0.099), // (d) -0.010
         // Owner override ("a mute grey color"): (a) 0.097 on the V1 ground, which the white ring separates.
         Pin("sightingDot", a = 0.097, c = 3.362, d = 0.155), // (a) -0.353, (c) +0.121, (d) +0.550
         // Owner override: the blue ring on the grey dot, 1.076:1 (glyph board §5 records it).
@@ -132,6 +148,57 @@ class MapPaletteTest {
         0xFF020302, 0xFFBEA964, 0xFF2E5CFA,
         0xFF446835, 0xFF5C7D4A, 0xFF173E48, 0xFF3C512B, 0xFF1F342E, 0xFF22201C, 0xFF537342,
     ).map { it.toInt() }
+
+    /**
+     * One night ground cluster's as-drawn figures for the offline region: the composited region's
+     * Oklab ΔE from the plain ground, and the black casing's WCAG contrast over the composite and over
+     * the plain ground. Each is floored to three decimals, like the pins above.
+     */
+    private data class AsDrawnPin(
+        val ground: Long,
+        val deltaE: Double,
+        val casingOverRegion: Double,
+        val casingOverGround: Double,
+    )
+
+    /**
+     * Night [MapPalette.offlineRegion] `#FFFFFF` as drawn, over every [nightGround] cluster in its
+     * order. Recorded, not gated (owner's re-scoping, 2026-09-28): there is no threshold here, only
+     * the requirement that the figures match, so that a change to the fill, its opacity or the casing
+     * shows up as a failing pin rather than passing silently. When the owner picks a new night shade,
+     * these pins are re-measured for it.
+     *
+     * At `#FFFFFF`, the casing is below 3:1 over the composite on `#2A2D01` (2.799), `#020302` (1.712)
+     * and `#22201C` (2.481); these are recorded, not asserted against 3:1.
+     */
+    private val nightOfflineRegionAsDrawn = listOf(
+        AsDrawnPin(0xFF4E6012, deltaE = 0.115, casingOverRegion = 4.866, casingOverGround = 3.005),
+        AsDrawnPin(0xFF627524, deltaE = 0.099, casingOverRegion = 6.099, casingOverGround = 4.089),
+        AsDrawnPin(0xFF334801, deltaE = 0.137, casingOverRegion = 3.692, casingOverGround = 2.068),
+        AsDrawnPin(0xFF798936, deltaE = 0.085, casingOverRegion = 7.518, casingOverGround = 5.444),
+        AsDrawnPin(0xFF879A45, deltaE = 0.073, casingOverRegion = 8.736, casingOverGround = 6.738),
+        AsDrawnPin(0xFF9CA754, deltaE = 0.064, casingOverRegion = 10.047, casingOverGround = 8.069),
+        AsDrawnPin(0xFF59490A, deltaE = 0.125, casingOverRegion = 4.078, casingOverGround = 2.382),
+        AsDrawnPin(0xFF465208, deltaE = 0.126, casingOverRegion = 4.228, casingOverGround = 2.470),
+        AsDrawnPin(0xFF2A2D01, deltaE = 0.161, casingOverRegion = 2.799, casingOverGround = 1.474),
+        AsDrawnPin(0xFFAEBC65, deltaE = 0.050, casingOverRegion = 11.877, casingOverGround = 10.180),
+        AsDrawnPin(0xFFC2D076, deltaE = 0.039, casingOverRegion = 13.958, casingOverGround = 12.577),
+        AsDrawnPin(0xFF666319, deltaE = 0.108, casingOverRegion = 5.281, casingOverGround = 3.363),
+        AsDrawnPin(0xFF323701, deltaE = 0.150, casingOverRegion = 3.131, casingOverGround = 1.682),
+        AsDrawnPin(0xFF4B3A04, deltaE = 0.138, casingOverRegion = 3.439, casingOverGround = 1.906),
+        AsDrawnPin(0xFFA49047, deltaE = 0.071, casingOverRegion = 8.660, casingOverGround = 6.658),
+        AsDrawnPin(0xFF7F752A, deltaE = 0.094, casingOverRegion = 6.535, casingOverGround = 4.480),
+        AsDrawnPin(0xFF020302, deltaE = 0.236, casingOverRegion = 1.712, casingOverGround = 1.016),
+        AsDrawnPin(0xFFBEA964, deltaE = 0.055, casingOverRegion = 10.890, casingOverGround = 9.048),
+        AsDrawnPin(0xFF2E5CFA, deltaE = 0.093, casingOverRegion = 5.741, casingOverGround = 4.027),
+        AsDrawnPin(0xFF446835, deltaE = 0.111, casingOverRegion = 5.168, casingOverGround = 3.277),
+        AsDrawnPin(0xFF5C7D4A, deltaE = 0.095, casingOverRegion = 6.523, casingOverGround = 4.487),
+        AsDrawnPin(0xFF173E48, deltaE = 0.144, casingOverRegion = 3.335, casingOverGround = 1.819),
+        AsDrawnPin(0xFF3C512B, deltaE = 0.129, casingOverRegion = 4.159, casingOverGround = 2.403),
+        AsDrawnPin(0xFF1F342E, deltaE = 0.157, casingOverRegion = 3.013, casingOverGround = 1.588),
+        AsDrawnPin(0xFF22201C, deltaE = 0.175, casingOverRegion = 2.481, casingOverGround = 1.291),
+        AsDrawnPin(0xFF537342, deltaE = 0.102, casingOverRegion = 5.885, casingOverGround = 3.898),
+    )
 
     /** The 11 fill roles (d) compares; the sighting ring and the casing are casings, not roles. */
     private fun fills(p: MapPalette) = mapOf(
@@ -232,6 +299,46 @@ class MapPaletteTest {
     }
 
     /**
+     * The night offline region as drawn over each night ground cluster: the composite's Oklab ΔE from
+     * the plain ground, and the black casing's contrast over the composite and over the plain ground,
+     * each matching its pin. Reads the real [OFFLINE_REGION_FILL_OPACITY], so an opacity edit moves
+     * the pins too.
+     */
+    @Test
+    fun `night offline region as drawn matches its recorded figures over every night ground cluster`() {
+        assertEquals(
+            "one as-drawn pin per night ground cluster, in order",
+            nightGround.map { hex(it) },
+            nightOfflineRegionAsDrawn.map { hex(it.ground.toInt()) },
+        )
+        // The composite itself: white at 20% over black is #333333 (0.2 × 255 = 51).
+        assertEquals("#333333", hex(composite(0xFFFFFFFF.toInt(), 0xFF000000.toInt(), 0.2)))
+        val fill = MapPalette.NIGHT.offlineRegion
+        val casing = MapPalette.NIGHT.casing
+        val opacity = OFFLINE_REGION_FILL_OPACITY.toDouble()
+        val failures = mutableListOf<String>()
+        for (pin in nightOfflineRegionAsDrawn) {
+            val ground = pin.ground.toInt()
+            val region = composite(fill, ground, opacity)
+            val measured = listOf(
+                Triple("ΔE", oklabDistance(region, ground), pin.deltaE),
+                Triple("casing over region", contrastRatio(casing, region), pin.casingOverRegion),
+                Triple("casing over ground", contrastRatio(casing, ground), pin.casingOverGround),
+            )
+            for ((name, value, pinned) in measured) {
+                if (abs(floor3(value) - pinned) > 1e-9) {
+                    failures += "ground %s (region %s): %s is %.4f, pinned at %.3f".format(
+                        hex(ground), hex(region), name, value, pinned,
+                    )
+                }
+            }
+        }
+        if (failures.isNotEmpty()) {
+            fail("Night offline region as drawn, fill ${hex(fill)} at $opacity:\n  " + failures.joinToString("\n  "))
+        }
+    }
+
+    /**
      * A guard on the guards: the maths reproduces the board's own figures, so a broken calculation
      * returning a large constant cannot pass the ratchets above silently.
      */
@@ -255,10 +362,11 @@ class MapPaletteTest {
         val roles = fills(palette)
         assertEquals("every fill role is pinned", roles.keys, pins.map { it.role }.toSet())
         for (pin in pins) {
+            val pinned = pin.a ?: continue
             val argb = roles.getValue(pin.role)
             val (nearest, distance) = ground.map { it to oklabDistance(argb, it) }.minBy { it.second }
-            if (floor3(distance) < pin.a) {
-                failures += "%s.%s is %.4f from ground %s, pinned at %.3f".format(mode, pin.role, distance, hex(nearest), pin.a)
+            if (floor3(distance) < pinned) {
+                failures += "%s.%s is %.4f from ground %s, pinned at %.3f".format(mode, pin.role, distance, hex(nearest), pinned)
             }
         }
         if (failures.isNotEmpty()) fail("Ground distance (a):\n  " + failures.joinToString("\n  "))
@@ -268,10 +376,11 @@ class MapPaletteTest {
         val failures = mutableListOf<String>()
         val roles = fills(palette)
         for (pin in pins) {
+            val pinned = pin.c ?: continue
             val casing = casingOf(pin.role, palette)
             val ratio = contrastRatio(roles.getValue(pin.role), casing)
-            if (floor3(ratio) < pin.c) {
-                failures += "%s.%s is %.4f:1 against %s, pinned at %.3f".format(mode, pin.role, ratio, hex(casing), pin.c)
+            if (floor3(ratio) < pinned) {
+                failures += "%s.%s is %.4f:1 against %s, pinned at %.3f".format(mode, pin.role, ratio, hex(casing), pinned)
             }
         }
         if (failures.isNotEmpty()) fail("Casing contrast (c):\n  " + failures.joinToString("\n  "))
@@ -293,6 +402,17 @@ class MapPaletteTest {
     }
 
     private fun floor3(v: Double) = floor(v * 1000) / 1000
+
+    /**
+     * [fill] at [opacity] over [ground], blended per channel in sRGB (`opacity·fill + (1 − opacity)·ground`)
+     * and rounded to 8 bits. MapLibre's real blend space on the device is unverified: if it blends in
+     * linear light, the drawn colours differ from these.
+     */
+    private fun composite(fill: Int, ground: Int, opacity: Double): Int {
+        fun channel(shift: Int) =
+            (opacity * ((fill shr shift) and 0xFF) + (1 - opacity) * ((ground shr shift) and 0xFF)).roundToInt()
+        return (0xFF shl 24) or (channel(16) shl 16) or (channel(8) shl 8) or channel(0)
+    }
 
     private fun hex(argb: Int) = "#%06X".format(argb and 0xFFFFFF)
 
