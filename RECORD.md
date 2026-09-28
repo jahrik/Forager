@@ -3444,3 +3444,113 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Reason:** the device coder (af6ff5e0d2c8390c0) died on the same outage; its last tool call ended at 18:03:18Z, mid check 4, and its error landed at 18:13:47Z. Pre-registration and install facts were pushed at 5532ff2 on device-stage-1. No verdicts were written, because its reasoning was not saved; evidence 01 to 123 survives in the device-evidence directory. Phone read at relaunch: awake, Forager in focus, user_rotation 3, accelerometer_rotation 0; Diagnostics synthetic layers left on by step 104.
 **Changes:** A fresh device coder confirms that the install is unchanged and reads crashes across the gap. It gives verdicts for checks 1 to 4 from saved evidence only where a file shows the pass condition on its own, and otherwise re-runs the item. It finishes check 4 and runs 5 to 8. It restores settings and rotation, reads them back, numbers new evidence from 124, and writes the verdicts into the existing run record without editing its pre-registration.
 **Notes:** An extract of the dead agent's commands and outputs is at device-evidence/2026-09-28-stage-check-1/prior-agent-transcript-extract.md, outside the repository. Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-56
+**Timestamp:** 2026-09-28T18:41:31Z
+**Title:** The record details sheet (waypoint, track, offline region) at the map chrome's 80% when it covers a map, solid elsewhere
+**Dispatch-file:** preserved/2026-09-28-56.md
+**Change:** RecordDetailsSheet learns that it is over a map. Every call site that covers a map says so, and the container goes to MAP_CHROME_OVER_MAP_ALPHA with the Layers sheet's content-colour and scrim treatment. Other call sites are unchanged.
+**Scope boundary:** RecordDetailsSheet.kt, the call sites that cover a map (expected MapBubble.kt), tests, a completion report. Not the Layers sheet, the bubble cards, the record, index, CLAUDE.md, plans or prompts.
+**Baseline:** the planner's J8 terminal commit on journal-redesign (queued; not launched at this timestamp).
+**Prediction (outcome — planner):** 1. Two call sites; only the map bubble's covers a map on the compact layout. 2. The suite grows by 6 to 12.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** Build, tests first through real entry points in portrait and w823dp-h384dp-land, revert check, full suite, report, pushed; the planner writes the terminal.
+**Abort conditions:** An unclassifiable call site; a tests-first test passing at base; a non-compiling revert; a non-held failure; new copy; disk full or OOM; two failed fixes; an unruled design question.
+**Notes:** Owner, verbatim: "Can you set this card at 80% opacity while over the map? In the places that aren't covering a map, they can stay solid. Same for tracks please" (sent 18:04Z and 18:05Z to the stalled planner session, which never read them; resent with two screenshots to the relaunching session). Rulings: "After J8 (Recommended)", "Yes, all three (Recommended)". Queued behind J8 because about 3 GB of memory was free with J8's Gradle running. Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-57
+**Dispatch-file:** none (pulse dispatched in chat by the planner; read-only)
+**Type:** pulse
+**Outcome:** completed
+**Report:** docs/audits/2026-09-28-map-chrome-inventory-pulse.md (the planner's condensed filing of the hand-back, citations kept)
+**Notes:** 2026-09-28T18:55:30Z. Read at 76a67f3. The owner's principle, verbatim: "My idea is that nothing should fully obstruct the map view. All map chrome gets 80% opacity as a result." The pulse found:
+- four map surfaces and about 35 items drawn over them;
+- fifteen items already at 80%, five of them through 0.8 literals rather than the constant;
+- opaque items over a map: the details sheet, the centre-pin confirm row, the search notice, the wide Layers and Add buttons, and the accent discs;
+- dialogs, popups, the snackbar and the Tools drawer on Material3 defaults;
+- the attribution caption at 0.55;
+- a code comment saying a translucent Surface outside the map's Box shipped opaque on a device.
+Three premises were wrong: the editor has no map; trip planning, Set on map and the HUD have no map of their own; the drawer is in-tree. Edge cases go to the owner before -56 widens. Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-58
+**Timestamp:** 2026-09-28T19:06:20Z
+**Continues:** 2026-09-28-56
+**Dispatch-file:** preserved/2026-09-28-58.md
+**Reason:** the owner widened the request to a principle, verbatim: "My idea is that nothing should fully obstruct the map view. All map chrome gets 80% opacity as a result." The principle went into CLAUDE.md UX defaults (c166bda) and the plan (3212a19). The inventory pulse (dispatch-note -57, 35f05c9) found the items, and the owner ruled the edge cases.
+**Changes:** -56 widens from the details sheet to all map chrome at MAP_CHROME_OVER_MAP_ALPHA where it covers a map, and solid elsewhere. That covers the details sheet, the centre-pin confirm row, the search notice over the map, the wide Layers button, dialogs, pop-up menus, the snackbar, the Tools drawer over Maps, and J8's chip. Unchanged: accent discs, the attribution caption, scrims, the cluster's 0.6 container, and full-screen destinations. The five 0.8f literals move onto the constant. A call site that cannot tell whether it covers a map is a stop. Still queued behind J8.
+**Notes:** Owner, verbatim: "80% over the map" (dialogs, menus, snackbar; against the planner's recommendation), "80% over Maps (Recommended)" (drawer), "Keep them solid (Recommended)" (accent buttons), "Leave it at 55% (Recommended)" (attribution). Planner's readings (full-screen destinations, scrims, the cluster container, the literal consolidation) were stated to the owner. Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-59
+**Timestamp:** 2026-09-28T19:07:31Z
+**Continues:** 2026-09-28-56
+**Dispatch-file:** preserved/2026-09-28-59.md
+**Reason:** the owner reversed -58's ruling 3 on the accent buttons, verbatim: "Have the colored buttons be at 80% opacity also".
+**Changes:** The + disc, the record disc while recording and the wide Add button go to 80% over the map. The discs sit on 0.8-composite fills, so the target is 0.8 overall with the fill beneath not stacked under the disc, proved headless. A mechanism that would change shape, touch targets or layout is a stop. -58's ruling 3 is superseded, not deleted; the plan keeps both. Still queued behind J8.
+**Notes:** Asked how the stacked discs reach 80%, the owner answered "[No preference]". The planner chose true 80% overall, from CLAUDE.md's layered-fill line (c166bda), over the disc's own fill at 0.8, which would composite to about 0.96 and look unchanged. Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-60
+**Timestamp:** 2026-09-28T19:09:44Z
+**Continues:** 2026-09-28-56
+**Dispatch-file:** preserved/2026-09-28-60.md
+**Reason:** -59 rested on a planner misreading. The planner's question named the + disc, the record disc and the wide Add button, and the owner's "Have the colored buttons be at 80% opacity also" was recorded against those. The owner meant the bottom tab bar, verbatim: "The bottom colored buttons", "Leave the map icon bar alone", and, with a screenshot circling the tab bar, "These buttons at the bottom must be 80% opacity".
+**Changes:** Supersedes -59 in full. The accent buttons stay solid (-58 ruling 3 stands again). The bottom tab bar's selected-tab indicator, Material3's default and solid (AvailabilityNavigationUi.kt:167-170), goes to 0.8 composite over the map, with the bar's fill not stacked under it. The bar's container is already 0.8 at AvailabilityCompactMapUi.kt:1210. The rail gets the same treatment in short landscape (planner's reading). Whether the bar's 0.8 shows the map on the S22 is listed as a device item. Still queued behind J8; nothing launched.
+**Notes:** The misreading was the planner's. -59 stays in the record as superseded, not deleted. The owner stopped all agents just before this ("Stop everything"). The J8 relaunch (-54) and the device relaunch (-55) were already killed, with no hand-back from either, and the phone and the j8 worktree were left unchecked. Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-61
+**Timestamp:** 2026-09-28T19:20:43Z
+**Continues:** 2026-09-28-56
+**Dispatch-file:** none (withdrawal only; no new instructions)
+**Reason:** the owner, verbatim: "Let's restart from this point and forget everything beyond it:". That came with a screenshot of the four edge-case answers as first given, the ones -58 carries.
+**Changes:** Continuations -59 and -60 are withdrawn and are not to be given to the -56 coder. -56 as amended by -58 is the whole of the queued dispatch. The plan's "Accent buttons" and "Correction" paragraphs are marked withdrawn. Still queued behind J8; nothing launched.
+**Notes:** The owner's screenshot is outside the repository at device-evidence/2026-09-28-owner-sheet-opacity/owner-restart-point-edge-case-answers.jpg. -59 and -60 stay in the record and in prompts/preserved as withdrawn, not deleted. Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-62
+**Timestamp:** 2026-09-28T19:22:18Z
+**Continues:** 2026-09-28-52
+**Dispatch-file:** preserved/2026-09-28-62.md
+**Reason:** the owner stopped all agents ("Stop everything", about 19:10Z), then restarted at the edge-case rulings (-61) and chose "A" (relaunch both). The -54 coder had pushed ebefbc9 (tests first, stubs) to j8-wip and left 18 files uncommitted (454+/41-); it sent no hand-back.
+**Changes:** A fresh coder first commits and pushes that working tree untouched to j8-wip. It then re-establishes the tests-first failures and the version and collision checks itself, and builds J8 under -52, -53 and -54. J8's chip is not given the 80% treatment; that is for the queued -56/-58.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-63
+**Timestamp:** 2026-09-28T19:22:18Z
+**Continues:** 2026-09-28-51
+**Dispatch-file:** preserved/2026-09-28-63.md
+**Reason:** as -62: stopped by the owner, relaunch chosen as "A". The -55 coder had pushed verdicts for checks 1 to 3 (5ec7a63) and evidence to 200, mid check 4, with no hand-back. Phone at relaunch: awake, Forager in focus, user_rotation 0, accelerometer_rotation 0.
+**Changes:** A fresh device coder confirms the install and reads crashes across the gap. It gives check 4's verdicts from evidence 124 to 200 only where a file shows the pass condition, otherwise re-runs, then runs checks 5 to 8. It restores settings and reads them back, numbers new evidence from 201, and pushes after each check.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-64
+**Timestamp:** 2026-09-28T19:42:57Z
+**Continues:** 2026-09-28-52
+**Dispatch-file:** preserved/2026-09-28-64.md
+**Reason:** the -62 coder stopped before building (report 7f41400 on journal-redesign; the stopped coder's WIP preserved untouched as 9cde9b3 on j8-wip). Its stop was on Q-A: -62's "Do not make J8's chip 80%" contradicted CLAUDE.md UX defaults, and the taxon chip in the same row is already at MAP_CHROME_OVER_MAP_ALPHA. It also asked Q-B: MapPaletteTest's (d) day row passes at the stubs. Verification held: version 15 on both branches, no collision across 110 remote branches.
+**Changes:** Q-A: the chip takes the taxon chip's colour source at 0.8, and the chip's list container goes to 0.8 with opaque content (the owner's ruling 1, "80% over the map"). Both are tests first, and a list component that cannot take a colour is a stop. -62's line is withdrawn as the planner's error. Q-B: accepted, backed by a positive-control revert check. The reused "Couldn't save your changes." is accepted as not new copy. MapLayerStateTest is restated to -53's Q4.
+**Notes:** The -62 error was the planner's: it was written with -56/-58's scope in mind and missed that the owner's standing rule already governs new chrome. Written by the planner by hand.
