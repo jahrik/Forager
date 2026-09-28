@@ -291,6 +291,9 @@ internal fun CompactMainScaffold(
         // comment. Local to this scaffold, not AvailabilityUiState: which panel is showing is a
         // display decision the ViewModel has no part in, same reasoning as mapMode/drawerPanel above.
         var showSearchDropdown by remember { mutableStateOf(false) }
+        // The search bar's one-shot "open the manual coordinates" (continuation 2026-09-28-40); see
+        // SearchDropdown's expandManualCoordinatesRequested.
+        var expandManualCoordinatesRequested by remember { mutableStateOf(false) }
         // Same measured clearance [CompactMapTab] already computes for its own compass strip (see
         // that composable's own compassStripClearance doc comment) — recomputed here rather than
         // threaded through as a parameter, since it depends only on MaterialTheme.typography and
@@ -727,7 +730,7 @@ internal fun CompactMainScaffold(
                                 showSearchDropdown = false
                             },
                             onDismissTaxonSuggestions = onDismissTaxonSuggestions,
-                            onFieldFocused = { showSearchDropdown = true },
+                            onFieldFocused = { showSearchDropdown = true; expandManualCoordinatesRequested = true },
                         )
                         SearchNotice(uiState)
                     }
@@ -949,7 +952,7 @@ internal fun CompactMainScaffold(
                                                     showSearchDropdown = false
                                                 },
                                                 onDismissTaxonSuggestions = onDismissTaxonSuggestions,
-                                                onFieldFocused = { showSearchDropdown = true },
+                                                onFieldFocused = { showSearchDropdown = true; expandManualCoordinatesRequested = true },
                                             )
                                             SearchNotice(uiState)
                                         }
@@ -1204,6 +1207,8 @@ internal fun CompactMainScaffold(
                                         onSelectedTabChange(ResultsTab.MAP)
                                         pickingSearchLocationOnMap = true
                                     },
+                                    expandManualCoordinatesRequested = expandManualCoordinatesRequested,
+                                    onManualCoordinatesExpandConsumed = { expandManualCoordinatesRequested = false },
                                 )
                             }
                         }
