@@ -3293,3 +3293,19 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner's words across the stage: the track and framing requests, "Fit all kept records (Recommended)", "Right after M1 (Recommended)", the search copy and its principle, "Make the tap open search (Recommended)", "Yes it should. Good application of my principle. Proceed with that change", "Apply the same advanced search location change to portrait mode please", "Also open manual coordinates", "Expand and auto-scroll". Planner rulings open to the owner: regions never frame (keeping the plate-pulse ruling); the auto-scroll also applies in portrait at large font scales. Device-only: widths across zooms on each basemap and at night; the framed opening in preview, fullscreen and landscape; the new copy; the wide and compact taps, the scroll lowering the keyboard, and whether a real device refocuses the field after clearFocus(). Flags: stale KDocs on CartographyEntryMapData.allPoints, GeoDistance.boundingRegion, beside SearchDropdown and SearchDropdown's own; the drawer's sections forget a user's expand when the drawer leaves its search panel (a UX-default question for the owner). Next: the three Leaving-the-Journal fixes. Written by the planner by hand.
 
 ---
+
+**Kind:** intent
+**ID:** 2026-09-28-44
+**Timestamp:** 2026-09-28T14:16:04Z
+**Title:** The Leaving-the-Journal fixes: no Discard of a committed find (F1), the day-entry editor surviving a tab round trip with unsaved edits shown only there (F2), finds staying open across tabs (F3), and the drawer-Back check on the dropdown and Map tab (F4)
+**Dispatch-file:** preserved/2026-09-28-44.md
+**Change:** F1 first and pushed alone: leaving after only viewing a committed find shows no snackbar and deletes nothing; Discard only ever deletes a real draft, on compact and wide. F2 the entry's open mode survives the round trip, unsaved edits only in the editor, Back with unsaved changes asks Save or Discard through an existing prompt pattern, onCloseEntry no longer merges a dirty entry. F3 the tab handler no longer closes a find; the Maps search bar gate covers finds; the drawer over an open find and backgrounding covered. F4 the dropdown's and Map tab's Back handlers checked against the open drawer and fixed or proven harmless.
+**Scope boundary:** Branch journal-redesign; the Journal's leave paths (AvailabilityScreen.kt, AvailabilityCompactScaffold.kt, JournalTab.kt, LogPanel.kt), CartographyScreen.kt, CartographyViewModel.kt, MushroomLogViewModel.kt's incidental exit, the dropdown's and Map tab's Back handlers for F4, tests. Not the landscape bugs, J8, new copy, Room, the held flaky tests, the record, index, CLAUDE.md, plans or prompts.
+**Baseline:** journal-redesign at the commit carrying this entry; planner's suite at 9cf3ffa 282 / 2269 / 0 / 0 / 24.
+**Prediction (outcome — planner):** 1. All three still reproduce at base. 2. F1 is a mode check in the leave path. 3. F4 finds at least one handler enabled under the open drawer. 4. The suite grows by 20 to 45.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** F1-F4 pushed with failing tests first, revert checks, the full suite and a completion report; the planner re-runs the suite and writes the terminal.
+**Abort conditions:** A moved premise; a tests-first test passing at base; a non-compiling revert; a non-held failure; new copy needed; disk full or OOM; two failed fixes; an unruled design question.
+**Notes:** Owner's rulings, verbatim, in the plan's "Leaving the Journal" section; order "M1 first". F4 from the drawer fix's flags (terminal 2026-09-28-31). Written by the planner by hand.
+
+---
