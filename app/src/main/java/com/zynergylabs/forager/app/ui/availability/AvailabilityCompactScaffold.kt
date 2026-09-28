@@ -448,7 +448,9 @@ internal fun CompactMainScaffold(
             // away from the Journal, or opening Tools over it, no longer leaves an open find. It
             // called leaveLogEntryEditingOfferingDiscard here (Workstream L4b), so a find open in
             // view or edit was closed, where a day entry stayed open. The find is now still open on
-            // return, in the mode it was in (JournalTab's findEntryModeState).
+            // return, in the mode it was in (JournalTab's findEntryModeState). A route that opens
+            // another find over it leaves it first (onLogFindHere below; AvailabilityScreen's
+            // onOpenFind and its wide onLogFindHere).
             if (tab == CompactTab.TOOLS) {
                 // CompactTab.TOOLS's own doc comment: opens the drawer as an
                 // overlay over whatever tab is already showing, rather than
@@ -724,6 +726,10 @@ internal fun CompactMainScaffold(
                     // "just-created entry opens for editing" behavior the drawer used to give this
                     // exact call. No drawer to open any more; Journal is a bottom-nav destination now.
                     val onLogFindHere: (LatLng) -> Unit = { location ->
+                        // Intent 2026-09-28-44, F3 (continuation 2026-09-28-45, the owner: "Leave the
+                        // kept one first (Recommended)"): a find kept open on the Journal is left
+                        // before the new one opens over it, through the one wrapper.
+                        if (logUiState.editingEntry != null) leaveLogEntryEditingOfferingDiscard()
                         onCompactTabChange(CompactTab.JOURNAL)
                         // Stage 2d: lands JournalTab on Records -> Finds, editing, for the entry
                         // onStartLogEntry is about to create — see JournalTab's own doc comment, "The
