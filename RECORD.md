@@ -4022,3 +4022,19 @@ The list-detail question goes to the owner next. Written by the planner by hand.
 **Reason:** the build slot is free, since the save-failure and map-chrome stages are closed (terminals -82 and -83). -70 (J8 follow-ups) and -78 (layout fixes) wait on the owner's answers about marker rings over lines and the chip over the reset button at 90. -79 depends on neither.
 **Changes:** -79 launches at base 5049dfc (app/ identical to b358a4a) in forager-wt/night-outline, branch night-outline. It runs beside the map-chrome device check (-84), which builds one APK; each checks for other Gradle builds first.
 **Notes:** The owner confirmed "Yes the night outline only". Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-86
+**Timestamp:** 2026-09-28T22:21:24Z
+**Title:** The tablet photo-viewer measurement: one camera photo on the DEVICE CHECK find, the viewer measured in portrait and landscape
+**Dispatch-file:** preserved/2026-09-28-86.md
+**Change:** No code, no install. With the owner at the tablet, take one photo on the "DEVICE CHECK 2026-09-28 T" find with the app's camera; the owner taps through the camera permission prompt. Open the viewer from the album, the find and the map, measure its bounds in dp at 0 and 90, and append the result to the tablet run record.
+**Scope boundary:** The tablet only; the S22 untouched. Only the photo is created, and it is left with the other DEVICE CHECK items. Branch device-tablet-2; evidence outside the repository.
+**Baseline:** the tablet at 1.0.1416+gd7cc9f5b (terminal -80).
+**Prediction (outcome — planner):** 1. The viewer takes the whole window in both orientations, covering the drawer, list and map. 2. One camera permission prompt pauses the run.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** The appended section pushed; the planner merges it and writes the terminal.
+**Abort conditions:** Not exactly the one tablet or a different build; a locked tablet; a new crash; any need to touch the owner's records or the S22. A prompt pauses for the owner.
+**Notes:** Owner, verbatim: "Okay I'm near the tablet. Option A is my choice for the photo viewer question". The owner was told that the photo shows whatever the camera faces. Written by the planner by hand.
