@@ -20,6 +20,7 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -119,6 +120,7 @@ import com.zynergylabs.forager.app.ui.log.CartographyViewModel
 import com.zynergylabs.forager.app.ui.log.ENTRIES_FAB_TAG
 import com.zynergylabs.forager.app.ui.log.ENTRIES_HOME_TAG
 import com.zynergylabs.forager.app.ui.log.LEAVE_PROMPT_DISCARD_TEST_TAG
+import com.zynergylabs.forager.app.ui.log.LEAVE_PROMPT_SAVE_TEST_TAG
 import com.zynergylabs.forager.app.ui.log.MushroomLogViewModel
 import com.zynergylabs.forager.app.ui.log.RecordsSubTab
 import com.zynergylabs.forager.app.ui.log.SAVE_CONFIRM_TEST_TAG
@@ -662,6 +664,154 @@ class LeavingTheJournalFixesTest {
         assertEquals("Discard deleted the draft row only", listOf(COMMITTED_FIND.id), storedFinds().map { it.id })
         assertEquals(listOf(PHOTO.id), storedGalleryPhotoIds())
         assertCommittedFindIntact()
+    }
+
+    // ── F2: a day entry left in its editor comes back in its editor ──
+
+    private fun dayEntryCard() =
+        composeRule.onNode(hasTestTag("entry-card-${COMMITTED_DAY_ENTRY.id}") or hasTestTag("entry-row-${COMMITTED_DAY_ENTRY.id}"))
+
+    /** The day entry's editor is showing, not its report: the account field is there and the report's menu is not. */
+    private fun assertDayEntryEditorShowing(what: String) {
+        assertEquals(
+            "$what: the day entry's editor shows (its account field)",
+            1,
+            composeRule.onAllNodes(hasText("Your own account (optional)") and hasSetTextAction()).fetchSemanticsNodes().size,
+        )
+        assertEquals(
+            "$what: the report view is not showing (no Entry options menu)",
+            0,
+            composeRule.onAllNodesWithContentDescription("Entry options").fetchSemanticsNodes().size,
+        )
+    }
+
+    private fun typeDayEntryTextAndRoundTrip() {
+        openCommittedDayEntryEditor()
+        composeRule.onNodeWithText("Your own account (optional)").performTextReplacement(TYPED_TEXT)
+        composeRule.waitForIdle()
+        touchNavItem("Maps")
+        touchNavItem("Journal")
+    }
+
+    @Test
+    fun `F2 a committed day entry's editor left with typed text comes back in its editor, the text still unsaved and drawn only there`() {
+        setScreen()
+        typeDayEntryTextAndRoundTrip()
+
+        assertDayEntryEditorShowing("back on Journal")
+        composeRule.onNode(hasText("Your own account (optional)") and hasSetTextAction()).assertTextContains(TYPED_TEXT)
+        assertEquals("the store still holds the original text", COMMITTED_DAY_ENTRY.text, storedDayEntry(COMMITTED_DAY_ENTRY.id)?.text)
+        assertEquals("the edit is still held as unsaved", true, cartographyViewModel.uiState.value.hasUnsavedChanges)
+    }
+
+    @Test
+    fun `F2 after that return, Back from the editor asks Save or Discard, and Discard leaves Entries showing the stored text`() {
+        setScreen()
+        typeDayEntryTextAndRoundTrip()
+        assertDayEntryEditorShowing("back on Journal")
+
+        pressBack()
+
+        composeRule.onNodeWithTag(LEAVE_PROMPT_SAVE_TEST_TAG).assertIsDisplayed()
+        composeRule.onNodeWithTag(LEAVE_PROMPT_DISCARD_TEST_TAG).assertIsDisplayed()
+        composeRule.onNodeWithTag(LEAVE_PROMPT_DISCARD_TEST_TAG).performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(ENTRIES_HOME_TAG).assertIsDisplayed()
+        assertEquals(COMMITTED_DAY_ENTRY.text, storedDayEntry(COMMITTED_DAY_ENTRY.id)?.text)
+        assertEquals(
+            "the in-memory list holds the stored text",
+            COMMITTED_DAY_ENTRY.text,
+            cartographyViewModel.uiState.value.entries.single { it.id == COMMITTED_DAY_ENTRY.id }.text,
+        )
+        dayEntryCard().assert(hasText(COMMITTED_DAY_ENTRY.text, substring = true))
+        dayEntryCard().assert(!hasText(TYPED_TEXT, substring = true))
+    }
+
+    @Test
+    fun `F2 after that return, the leave prompt's Save stores the typed text`() {
+        setScreen()
+        typeDayEntryTextAndRoundTrip()
+        assertDayEntryEditorShowing("back on Journal")
+
+        pressBack()
+        composeRule.onNodeWithTag(LEAVE_PROMPT_SAVE_TEST_TAG).performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(TYPED_TEXT, storedDayEntry(COMMITTED_DAY_ENTRY.id)?.text)
+        assertEquals(false, cartographyViewModel.uiState.value.hasUnsavedChanges)
+    }
+
+    /** Ported from the investigation's withheld-waypoint test, with its assertion inverted: the editor comes back, the choice still pending in it. */
+    @Test
+    fun `F2 a committed day entry's editor left with a waypoint withheld comes back in its editor with the waypoint still withheld`() {
+        setScreen()
+        openCommittedDayEntryEditor()
+        composeRule.onNodeWithText(DAY_WAYPOINT.name).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Withhold").performScrollTo().performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Keep").assertExists()
+
+        touchNavItem("Maps")
+        touchNavItem("Journal")
+
+        assertDayEntryEditorShowing("back on Journal")
+        composeRule.onNodeWithText(DAY_WAYPOINT.name).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Keep").assertExists()
+        assertEquals(
+            "the store still keeps the waypoint",
+            listOf(true),
+            storedDayEntry(COMMITTED_DAY_ENTRY.id)?.waypointDecisions?.map { it.kept },
+        )
+        assertEquals(true, cartographyViewModel.uiState.value.hasUnsavedChanges)
+    }
+
+    /** Ported from the investigation's new-draft test, with its assertion inverted: a draft comes back in its editor, Finish entry and all. */
+    @Test
+    fun `F2 a new day entry, a draft, left in its editor comes back in its editor`() {
+        setScreen()
+        touchNavItem("Journal")
+        composeRule.onNodeWithTag(ENTRIES_FAB_TAG).performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Your own account (optional)").performTextReplacement(TYPED_TEXT)
+        composeRule.waitForIdle()
+
+        touchNavItem("Maps")
+        touchNavItem("Journal")
+
+        assertDayEntryEditorShowing("back on Journal")
+        composeRule.onNodeWithText("Finish entry").performScrollTo().assertIsDisplayed()
+        composeRule.onNode(hasText("Your own account (optional)") and hasSetTextAction()).assertTextContains(TYPED_TEXT)
+        val stored = storedDayEntry(NEW_DAY_ENTRY_ID)
+        assertEquals(true, stored?.isDraft)
+        assertEquals(TYPED_TEXT, stored?.text)
+    }
+
+    /**
+     * `CartographyViewModel.onCloseEntry` on an entry with unsaved changes. After F2's mode fix no
+     * screen route is known to reach it that way (the round trip that did now returns to the editor,
+     * whose Back prompts), so this calls it on the real ViewModel the screen is driving, after typing
+     * through the real editor. Its doc comment says the entry is merged only when not dirty.
+     */
+    @Test
+    fun `F2 closing a day entry with unsaved changes leaves the Entries list and card on the stored text`() {
+        setScreen()
+        openCommittedDayEntryEditor()
+        composeRule.onNodeWithText("Your own account (optional)").performTextReplacement(TYPED_TEXT)
+        composeRule.waitForIdle()
+        assertEquals(true, cartographyViewModel.uiState.value.hasUnsavedChanges)
+
+        composeRule.runOnIdle { cartographyViewModel.onCloseEntry() }
+        composeRule.waitForIdle()
+
+        assertEquals(
+            "the in-memory list holds the stored text, not the unsaved edit",
+            COMMITTED_DAY_ENTRY.text,
+            cartographyViewModel.uiState.value.entries.single { it.id == COMMITTED_DAY_ENTRY.id }.text,
+        )
+        composeRule.onNodeWithTag(ENTRIES_HOME_TAG).assertIsDisplayed()
+        dayEntryCard().assert(hasText(COMMITTED_DAY_ENTRY.text, substring = true))
+        assertEquals(COMMITTED_DAY_ENTRY.text, storedDayEntry(COMMITTED_DAY_ENTRY.id)?.text)
     }
 
     private companion object {
