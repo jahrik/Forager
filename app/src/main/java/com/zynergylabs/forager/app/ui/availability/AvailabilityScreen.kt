@@ -5,6 +5,7 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -274,6 +275,7 @@ import com.zynergylabs.forager.app.ui.log.InAppCameraHost
 import com.zynergylabs.forager.app.ui.log.InAppCameraSlot
 import com.zynergylabs.forager.app.ui.log.InAppCameraTarget
 import com.zynergylabs.forager.app.ui.log.JournalTab
+import com.zynergylabs.forager.app.ui.log.leaveKeepsDraft
 import com.zynergylabs.forager.app.ui.log.PendingDeleteNotice
 import com.zynergylabs.forager.app.ui.log.PendingDeleteSnackbarEffects
 import com.zynergylabs.forager.app.ui.log.rememberJournalScreenState
@@ -1167,17 +1169,33 @@ fun AvailabilityScreen(
             logDraftSnackbarHostState.showSnackbar(message = notice.message, duration = SnackbarDuration.Long)
         }
     }
+    // Intent 2026-09-28-44, F1 (the owner: "Snackbar only for real drafts (Recommended)"). This used
+    // to offer "Saved to Drafts" for whatever entry was open, and its Discard deleted that id through
+    // the general delete: after only viewing a committed find, Discard deleted the committed find,
+    // with no Undo (docs/audits/2026-09-28-leaving-the-journal-investigation.md, Behaviour 1). Now the
+    // snackbar is offered only when the leave keeps a draft (leaveKeepsDraft, the ViewModel's own rule
+    // for what it keeps), and Discard deletes that id only while it is still in Drafts when tapped: a
+    // new find's draft saved while the snackbar is still up is committed under the same id, and a
+    // Discard then would delete it.
+    val latestLogUiState by rememberUpdatedState(logUiState)
     val leaveLogEntryEditingOfferingDiscard: () -> Unit = {
-        val discardedId = logUiState.editingEntry?.id
+        val left = logUiState.editingEntry
+        val keptDraftId = left?.takeIf { leaveKeepsDraft(it, logUiState.entries) }?.id
         onLeaveLogEntryEditingIncidentally()
-        if (discardedId != null) {
+        if (keptDraftId != null) {
             logDraftSnackbarScope.launch {
                 val result = logDraftSnackbarHostState.showSnackbar(
                     message = "Saved to Drafts",
                     actionLabel = "Discard",
                     duration = SnackbarDuration.Short,
                 )
-                if (result == SnackbarResult.ActionPerformed) onDiscardLogDraft(discardedId)
+                if (result == SnackbarResult.ActionPerformed) {
+                    if (latestLogUiState.draftEntries.any { it.id == keptDraftId }) {
+                        onDiscardLogDraft(keptDraftId)
+                    } else {
+                        Log.w("AvailabilityScreen", "Discard on \"Saved to Drafts\" ignored: '$keptDraftId' is no longer a draft.")
+                    }
+                }
             }
         }
     }
