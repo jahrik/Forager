@@ -658,7 +658,7 @@ predicted: the region's bubble not opening, the sheet's opaque navigation-bar ba
 
 ## Check 3: in-tree surfaces: **all measured at 0.80; the search notice's first line sits under the compass strip; both chips not run**
 
-Relaunched at 23:03:4xZ (pid 32618), the opening camera, Topographical, Night Maps off.
+Relaunched at 23:04:05Z (pid 32618), the opening camera, Topographical, Night Maps off.
 
 **3c. The bottom nav and 3e. the compass strip: 0.80 each. Pass.** `90-c3-normal-B`, then the cluster's Fullscreen at
 (989, 740): `91-c3-fullscreen-A`. In fullscreen the nav and the search bar are gone and the strip has moved up to
@@ -675,7 +675,7 @@ except the caption, which drops to the window's foot. The map did not move (`[50
 | search bar (not asked; in the same pair) | `[860,135][1050,185]` | 0.199 to 0.200 | 47.0, 37.0, 29.1 | 0.3 | 0.80 |
 
 Containers: the strip and the bar 0.8 × Bark exactly; the nav 32.4, `#202020` (`surfaceContainer`). The exit from
-fullscreen (23:04:3xZ, `92-`) restored the same frame (`90-` against `92-` over the nav band and the map, slope 1.000,
+fullscreen (23:04:54Z, `92-`) restored the same frame (`90-` against `92-` over the nav band and the map, slope 1.000,
 rms 0). The pre-registered fullscreen reference was usable for the strip because nothing covers its band there.
 
 **3a. The centre-pin OK/Cancel row: 0.80 inside, 0.81 to 0.84 at its edges. Pass.** + (989, 1324) at 23:05:08.7Z,
