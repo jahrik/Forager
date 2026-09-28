@@ -3227,3 +3227,14 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner, verbatim: "The offline map region is a bit bright...", "Darker shade (Recommended)", "Not too dark since it can make it harder to read. Find a balance.", "Test it as drawn (Recommended)", "You pick from phone shots (Recommended)", "That's my pick." Device-only: the region at night on the S22 with this build, especially whether the dashed outline carries the edge over the darkest ground. Flags: searchCentre's night (d) pin still 0.099 (now loose; nearest role keptTrack at 0.159); a class-doc P50 figure measured with white; the black night casing under 3:1 on 11 of 26 clusters with no fill; the phone runs candidate 606060; Forager installed into the Dual App profile (user 95). Written by the planner by hand.
 
 ---
+
+**Kind:** continuation
+**ID:** 2026-09-28-38
+**Timestamp:** 2026-09-28T13:15:14Z
+**Continues:** 2026-09-28-34
+**Dispatch-file:** preserved/2026-09-28-38.md
+**Reason:** T1-T3 built (report d64b7ca; coder's suite 280 / 2265 / 0 / 0 / 24; CI on da5ad1b 2 held-family album failures); the coder flagged that on the wide layout the location controls sit in the collapsed "Advanced search" section, one tap past the summary.
+**Changes:** On the wide layout the summary's tap opens the search panel with Advanced search expanded; other entries to the panel unchanged; a user's choice inside the panel not overwritten.
+**Notes:** Owner, verbatim: "Yes it should. Good application of my principle. Proceed with that change". Written by the planner by hand.
+
+---
