@@ -2891,3 +2891,25 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** 2026-09-28T04:58:51Z. Closes the open item in terminal 2026-09-28-09 on whether the two DEVICE CHECK test finds could sync to iNaturalist. The owner, verbatim: "No they could not sync to inaturalist on their own". The finds stay on the phone as test data. Written by the planner by hand.
 
 ---
+
+**Kind:** continuation
+**ID:** 2026-09-28-11
+**Timestamp:** 2026-09-28T09:21:38Z
+**Continues:** 2026-09-28-03
+**Dispatch-file:** preserved/2026-09-28-11.md
+**Reason:** the resumed L0b coder (after the machine restart; the WIP it inherited was preserved by the planner at 11ef6e2) built B1-B7 and pushed 338b241 (suite 266 / 2182 / 1 / 0 / 24; the failure is N1, a real layout clash), then stopped at an abort: revert R02 did not compile (DataStoreMapPreferencesRepository.kt:114:97), a badly chosen revert edit, results refused and the file restored.
+**Changes:** N1 per the owner: the expanded legend's height capped with scrolling content. N2 per the planner: R02 replaced by a compiling edit, R03-R16 and the unrun round-1 revert checks, the release compile evidence, the full suite. Scope, predictions and finish line unchanged.
+**Notes:** Owner, verbatim: "Cap height, scroll (Recommended)". Deviations to carry to the terminal: a tests-first test that passed at base was extended rather than stopped on; the F3 replacements landed one commit after the popover's removal (93da312, 34487da); prediction 2 wrong in part (F3, Q3, and three registry test classes re-pinned in round 1). Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-12
+**Timestamp:** 2026-09-28T09:21:38Z
+**Continues:** 2026-09-28-04
+**Dispatch-file:** preserved/2026-09-28-12.md
+**Reason:** the Part A coder ran the items not blocked (ec3b9c0; item 13 Back-from-chip pass, 18, 8/45, 10, 20, 47, 52 pass, observations recorded, no crash) and held the rest on four conflicts between the items and the dispatch's data rule: New entry and Log a find each save a draft when opened, and item 24 needs a blank-text entry.
+**Changes:** data rule (b) widened under the owner's test-data authorisation: the drafts from item 14's five taps, one draft find, and one blank-text saved entry with candidates withheld, all left in place; the held items run; the Waypoints scroll-on-open-row check not run, to protect the owner's waypoints. Scope otherwise unchanged.
+**Notes:** Owner's authorisation, verbatim: "Yes, labelled test data (Recommended)". Written by the planner by hand.
+
+---
