@@ -582,3 +582,16 @@ Revised order: M1 (running); then track widths by zoom and the entry map's openi
 The owner, verbatim: "the \"September · no location set\" in the search bar is accurate, but it reads awkward, like an error (especially after the user gives their permission to set their location on the map). Change it to \"September · Search a location\"", and the principle: "while bare accuracy is an easy thing to settle on, since it fulfills the honesty part, we need to go one step beyond that and give the user a spark or motivation to action based on that honesty. Like, sure that data exists, but what can they do about it? How can it be useful? In this case, they can search a location to satisfy the \"no location set\"."
 
 The string is at `ui/availability/AvailabilitySearchUi.kt:497` (the `?: "no location set"` fallback); no test pins it (`git grep` over `app/src/test`, 2026-09-28). Built with the track-width and entry-framing stage right after M1. The principle applies to every empty or missing-state string reviewed from here on, within the forecast project's fixed terms.
+
+### J8 rulings (owner, 2026-09-28)
+
+After the J8 premise pulse (`docs/audits/2026-09-28-j8-premise-pulse.md`), which found that the Maps tab already draws every saved record (L0b), that portrait entry cards swipe rather than long-press, and that the map palette has no spare role, the owner's verbatim answers:
+
+1. Standing out: **"Highlight in place (Recommended)"**: a shown entry's tracks, finds, photos and waypoints are highlighted in place with a halo or outline in one shared "journal entry" colour; everything else is unchanged.
+2. Toggle: **"Entry report menu (Recommended)", "Maps-tab chip (Recommended)", "Layers sheet switch"**: "Show on map" / "Hide from map" in the entry report's menu; a Maps-tab chip listing the shown entries, to hide one or all; and a "Journal entries" switch in the Layers sheet's Overlays that turns all shown entries' highlights on or off together. Not the card swipe.
+3. Bubble: **"Name entry + Open entry (Recommended)"**: a highlighted record's bubble names the entry or entries it belongs to and offers "Open entry".
+4. Drafts: **"Saved entries only (Recommended)"**.
+5. Chip: **"Top, by the species chip (Recommended)"**: in the row with the taxon chip, under the compass strip or search bar.
+6. Geometry: **"Live records (Recommended)"**: the highlight follows the live waypoint and region positions; a kept record since deleted is simply not highlighted.
+
+Earlier J8 rulings stand: content "Kept tracks, Kept waypoints, Kept finds, Offline-map outlines"; more than one entry may show at once; "Yes, keep them" in Room. Planner's rulings: the migration rebuilds `cartography_entries` in the pattern of 12 to 13 and 14 to 15 (the legacy fixtures declare the entity directly, `Migrations.kt:899-906`); the highlight colour is one new palette role, day and night, proposed by the planner and measured in `MapPaletteTest`, for the owner to judge on the phone.

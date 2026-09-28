@@ -3395,3 +3395,19 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** The owner's ruling "Device checks per stage, on the S22 Ultra (owner, 2026-09-28)" lapsed after L0a; the planner told the owner and catches up in two parts. Written by the planner by hand.
 
 ---
+
+**Kind:** intent
+**ID:** 2026-09-28-52
+**Timestamp:** 2026-09-28T17:42:46Z
+**Title:** J8, Journal entries on the main map: a shownOnMap column (MIGRATION_15_16), shown saved entries' kept records highlighted in place in one new palette role, toggles in the report menu, a Maps-tab chip and a Layers switch, and bubbles naming the entry with Open entry
+**Dispatch-file:** preserved/2026-09-28-52.md
+**Change:** J8-1 shownOnMap on cartography_entries by a table-rebuilding MIGRATION_15_16, version 16, with its reader. J8-2 live kept tracks, finds, located photos, waypoints and region outlines of shown saved entries highlighted beneath their glyphs in a new JOURNAL_ENTRY role, non-tappable layers. J8-3 Show/Hide on map in the report menu; the chip in the taxon-chip row listing shown entries with Hide and Hide all; a Journal entries switch in the Layers sheet that hides highlights without changing shownOnMap. J8-4 bubbles name the keeping entries and offer Open entry.
+**Scope boundary:** Branch journal-redesign; data/local, data/repository, domain, ui/map (layers, palette, SightingsMap, MapSlot bundles, MapLayersSheet, bubbles), the Maps hosts, CartographyEntryReportScreen.kt, the Journal routes for Open entry, tests. Not the card swipe, J6, the Part B flags, the held flaky tests, the record, index, CLAUDE.md, plans or prompts.
+**Baseline:** journal-redesign at the commit carrying this entry; ForagerDatabase.version 15 on journal-redesign and pre-main, no remote branch at 16 (pulse at 26709b1).
+**Prediction (outcome — planner):** 1. Version 15 on both, no collision. 2. No tenth MapSlot parameter. 3. One new source and four or five highlight layers. 4. The suite grows by 40 to 90.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** J8-1 to J8-4 pushed with tests first, revert checks, the full suite, a collision re-check at the final push and a completion report; the planner re-runs the suite and writes the terminal.
+**Abort conditions:** A version other than 15 or a collision at final push; a wrong premise; a tenth MapSlot parameter; a tests-first test passing at base; a non-compiling revert; a non-held failure; new copy beyond what is named; disk full or OOM; two failed fixes; an unruled design question.
+**Notes:** Owner's J8 rulings, verbatim, in the plan's "J8 rulings (owner, 2026-09-28)"; earlier J8 rulings stand. Planner's rulings: the rebuild migration, one planner-proposed palette role measured in MapPaletteTest, region outlines highlighted under the content ruling, the named copy. Runs beside stage device check Part 1 on the phone. Written by the planner by hand.
+
+---
