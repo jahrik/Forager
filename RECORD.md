@@ -3135,3 +3135,14 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner's rulings, verbatim: "Bubble only (Recommended)", "Open in place (Recommended)", "Yes, same bubbles (Recommended)", "Not tappable (Recommended)"; the planner's rulings are listed in the plan's "M1 rulings" section. Premises from docs/audits/2026-09-28-m1-premise-pulse.md. Runs beside the drawer-Back fix 2026-09-28-28 and the night-fill capture on the phone. Written by the planner by hand.
 
 ---
+
+**Kind:** continuation
+**ID:** 2026-09-28-30
+**Timestamp:** 2026-09-28T11:18:42Z
+**Continues:** 2026-09-28-29
+**Dispatch-file:** preserved/2026-09-28-30.md
+**Reason:** the M1 coder stopped after verification (report 4b6b7e5, premises confirmed, drawer fix 42d9d3d merged): the entry map is reachable only through CartographyScreen.kt, JournalTab.kt and LogPanel.kt, the bubble shell lives in AvailabilityMapOverlaysUi.kt (all outside the dispatched scope, which followed the pulse's file list), and Q3-Q5 were unruled.
+**Changes:** Owner: the wide layout's Open in Journal opens the drawer's LogPanel with the find in its report; the entry map's find button opens the find and Back returns to the entry as it was. Planner: scope widened to the four files (threading, the two find destinations, the shell extraction and tail fix); cells win only at the point stage; onFeatureTap carries screen point, bearing and map position; the compact find route must not overwrite the saved Records filter.
+**Notes:** Owner's answers, verbatim: "Open drawer to the find (Recommended)", "Open find, Back returns (Recommended)". Written by the planner by hand.
+
+---
