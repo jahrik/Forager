@@ -712,3 +712,16 @@ So:
 - The rulings 1 A, 2 A and 3 A stand.
 - The questions about installing on the tablet, test data and first-run prompts wait until J6 is ready to test, when the planner tells the owner.
 - J6 can be dispatched from the plan and the pulse, and is queued as before.
+
+**A separate tablet sanity check before J6, and J6 waits for it (owner, 2026-09-28).** This supersedes the paragraph above ("The sanity test is J6's device check, not a check before it"), which stands as the record of that reading. The owner, verbatim: "Do a separate check before J6 / I'll connect the tablet for the check before J6. Do not start J6 without that sanity check".
+
+The owner also answered the planner's tablet questions, verbatim:
+- "1 not in yet, I'll work on it and tell you": the tablet is not connected yet.
+- "2 B": Forager is already on the tablet; install over it and keep its data.
+- "3 A": the agent creates a few items labelled "DEVICE CHECK" inside Forager on the tablet and leaves them for J6's check.
+- "4 A": at any first-run or system prompt the agent stops, and the owner taps through.
+
+So:
+- The tablet sanity check is intent `2026-09-28-74`. It launches when the owner says the tablet is connected.
+- **J6 is not dispatched until that check's run record is in.**
+- J6's own tablet check after the build stands as well.
