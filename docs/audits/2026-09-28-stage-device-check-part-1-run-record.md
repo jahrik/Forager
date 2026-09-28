@@ -782,3 +782,91 @@ replacement, which changes no pass condition:
   log2(s). The same search on C_off against a second capture of C_off at the same camera must return s = 1 (the
   control on the ruler itself).
 - **Draws nothing** is then B against B_off, as written above, and the control is C against C_off.
+
+## Check 4: the re-runs, and the verdict
+
+### Corrections to my own lines above
+
+- (a) says `151`/`153` are at "Street-level zoom". The basemap there is **Topographical** (`152-sheet-before`); I meant a
+  close zoom, inside one cell.
+- The (f) ruler paragraph cites `MapLayers.kt:272-278` for the search centre. The search centre is `:270`
+  (`toggleable = false`); `:272-278` is the sightings layer.
+- The (f) method detail says "at 19:42Z, before any (f) frame", and the ruler paragraph "at 19:50Z, before any (f)
+  frame was taken". The commits are `f840b00` at 19:42:23Z and `2ef2d25` at **19:45:24Z**. `230` (the pan, 19:41:51Z)
+  came before both, and `232` (Finds, Photos and Waypoints off, 19:42:44Z) between them. Both are set-up frames at zoom
+  7.51. Every zoom step (`236` onward, from 19:45:59Z) came after both.
+
+### (d) The swipe at 90 and 270: **pass** (re-run)
+
+- **90**, from 19:39:48Z (`221-` to `224-`): `221` matches `120` (chip `[1718,871][1933,1006]`). A tap at (1825, 938)
+  expanded it to `[1145,720][1933,990]`, 270 px (`222`). A swipe inside it, (1500, 960) to (1500, 760), moved its
+  content up ("0%" from y 959 to 756, the chanterelles label off the top, the chicken of the woods label into view),
+  still 270 px and `scrollable=true` (`223`). A tap at (1540, 855) collapsed it (`224`).
+- **270**, from 19:40:33Z (`225-` to `228-`): `225` matches `123`, again with no "Start recording track" node. A tap
+  at (2040, 938), left of the cluster's column, expanded it to `[1430,720][2218,990]` (`226`; the "Plan a trip" node
+  gone too). A swipe at x 1700 moved its content up ("0%" from 959 to 752), still expanded (`227`). A tap at
+  (1700, 855) collapsed it (`228`), whose dump still reads "Return to vehicle — start recording first": no recording
+  was started.
+- `user_rotation` read back 1, then 3, after each dump, and 0 after the return (19:41:30Z, `229`).
+
+### (e) Collapsed: **pass** (re-run)
+
+In portrait, chip collapsed, cluster centred (`217`: rows 673 to 1718). The drag on "Hide map controls" from (1052,
+1032) to (1052, 2150), 1118 px, at 19:38:52Z moved the cluster **12 px**: rows 685 to 1730 (`218`), against the chip's
+top at 1747, a gap of **17 px** between the clickable bounds, the same as `113`. In my crop
+(`219-crop-cluster-chip.png`) the cluster's drawn outline ends clearly above the chip's. A 12 px drag back up
+(19:39:27Z) returned it to rows 673 to 1718 (`220`), its centred position.
+
+### (f) Below the minimum zoom, cells draw nothing: **pass** (re-run)
+
+- Set-up: markers off (`232-markers-off-sheet-after.xml`: Finds, Photos, Waypoints off, Offline maps and both fields
+  on). The zoom steps are `197-qzoom2.sh` at (300, 1400), open map; no bubble opened at any step (no "Close" node).
+- **Cell-grid zooms**, from `233-grid.py`'s period fitted to its strongest edges (it now also reports that fit, as
+  its raw autocorrelation locked onto a multiple of the period for `238` and `239`): `232` **7.510**, `236` 7.407,
+  `237` 7.301, `238` 7.198, `239` **7.096**; each fit's residual is 3 px over seven gaps.
+- **The ruler checked before use.** `247-register.py` on `240` against `241` (the same camera twice) returns s =
+  1.000 with a sharp minimum (0.00 against 12.6 one step either side). On pairs the grid measures independently, it
+  agrees to 0.002: `232` to `239` gives log2(s) = -0.4150 (grid: -0.414), `236` to `238` gives -0.2076 (grid: -0.209).
+- **The control, C = `239`, zoom 7.096.** Fields on against fields off at the same camera (`240-C-off`, the sheet dump
+  showing only the two field switches changed): **96.7%** of 1,279,141 map pixels differ by more than 3, median 82.
+  Off against a second off capture (`241`): max **0**. On against on again (`242`): max **0**. The cells draw, and
+  come back exactly.
+- **B = `244`**, after one step of dy -120 (19:48:25Z). No cell is visible, and the basemap has changed raster level.
+  The legend chip still shows "2 layers", as the code says it should below the limit (`ForecastCellLayer.kt:15-24`).
+  Fields on (`244`) against fields off at the same camera (`245-B-off`): **max 0** over the map (`243-onoff.py`, share
+  over 3: 0.0000). On again (`246`): max 0.
+- **B's zoom:** `245` (B off) against `240` (C off), anchored at the reticle's centre: s = **0.866** (mean difference
+  8.45 against a curve median of 34.0 over 0.40 to 1.00; flat within 0.3 from 0.864 to 0.868), so zoom **6.888**,
+  within about 0.01.
+- So cells draw at 7.10 and draw nothing at 6.89, with the bracket straddling 7 by 0.10 and 0.11.
+- Restored: Finds, Photos and Waypoints on (`248-markers-on-sheet-after.xml`); `249-map_prefs-after-f.pb` has every
+  overlay and both fields `true`, the chanterelles opacity 1.0 and the order at the registry's.
+
+### The Diagnostics switch: **off, read back**
+
+- Tools, Settings, then "Diagnostics (debug build)" (`251-` to `254-`, each target found by its text in a fresh dump).
+  `254` shows "Synthetic forecast layers" checked. A tap on its row at 19:52:08.9Z turned it off: `255` shows the row
+  unchecked, and `257-diag-prefs-off.pb` stores `diagnostics.synthetic_forecast = False` (`256-`: the file rewritten at
+  12:52 PDT).
+- Back on the Maps tab with the drawer closed (`260`), the chip "2 layers" and the credit "· Synthetic test data" were
+  **still shown**. The tab asks the store which fields have data only when it comes into view (`onMapShown`,
+  `ui/availability/AvailabilityViewModel.kt:470-493`), and the Tools drawer opens over it, so it had not. After List,
+  then Maps (`261`, `262`), both were gone: the credit reads "© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA)" and no
+  legend node is in the dump. See Flags.
+- Crash buffer after check 4: 0 bytes (`263-`, 19:53:49Z); Forager still pid 9626.
+
+### Check 4, in one place
+
+| item | verdict | from |
+|---|---|---|
+| (a) fields draw, below the markers | pass for every registry marker and the track; the MapLibre location puck draws **under** the cells | saved: `148`, `151`-`153`, `156`-`159` |
+| (b) opacity slider live | pass | saved: `162`-`170` |
+| (c) reorder at the next style load | pass | saved: `175`-`189`; my log read `203` for the style loads |
+| (d) legend | pass in portrait and at 90; **fail at 270**: the chip, collapsed or expanded, lies over the cluster's record button | saved: `111`-`123`, `140`-`144`; re-run `221`-`228` (swipe) |
+| (e) cluster stops above the chip | collapsed: pass, 17 px (re-run `217`-`220`); **expanded: fail**, 122 px overlap (saved `111`, `114`) | both |
+| (f) below the minimum zoom, nothing | pass: draws at 7.10, nothing at 6.89 | re-run `230`-`249` |
+| switch off, read back | done | `254`-`257`, `262` |
+
+**Prediction:** "draws and slider pass; the reorder passes at the basemap change; the legend clears the 'i', the rail
+and the nav; the cluster-over-expanded-legend clamp is the likely failure". **Held**, except that nothing predicted the
+legend lying over the cluster at 270, or the puck under the cells.
