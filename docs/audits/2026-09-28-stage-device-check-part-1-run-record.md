@@ -349,3 +349,128 @@ the map. Prediction: pass.
 inside the region are compared with the same camera with the Offline maps overlay switched off; their pixels must be
 equal within 3 per channel. For check 6, the zoom above 15 is measured from the kept track's own bounding box, about
 39 x 19 m (the data inventory), and at 13 and 11 from the 1 km region's circle.
+## Verdicts, checks 1 to 3
+
+Each verdict says whether it rests on the first coder's saved files, re-read and re-analysed by me, or on a re-run.
+"Saved" means I read the named file myself; nothing is taken from the transcript extract. Screenshot readings are mine,
+from the Read tool, and are marked "by my reading". Crops I made from saved screenshots are numbered from `131` and
+named in the evidence index.
+
+### Check 1: the Layers sheet: **pass** (saved evidence)
+
+- **Opens from the Maps tab.** `13-layers-row-5taps.txt`: five real taps at (935,1125), (960,1150), (990,1178),
+  (1020,1205) and (1045,1235), all inside the Layers row's bounds `[922,1111][1057,1246]` (`10-arrival.xml`). Each
+  took the dump's "Map type" count from 0 to 1. The full sheet from the centre tap (`11-sheet-portrait.xml`) holds
+  "Layers", "Map type", "Overlays" and seven switches: Finds, Photos, Waypoints, Planned trips, Recording trail, Tracks,
+  Offline maps. The file records counts per tap, not a full dump per tap.
+- **Opens from the entry map in fullscreen.** `25-entry-fullscreen.xml` shows the entry map in fullscreen ("Exit
+  fullscreen" in its cluster) with the Layers row at `[922,1185][1057,1320]`. `26-entry-layers-5taps.txt`: five taps
+  across that row, each opening the sheet. `27-entry-sheet.xml` holds five switches: Finds, Photos, Waypoints, Tracks,
+  Offline maps, with no Planned trips and no Recording trail, as `ENTRY_MAP_OVERLAYS` says. On the way there the
+  first coder switched the entry report's own "Offline map" switch on and off again (`22-`, `24-`); it was left off.
+- **80% opaque.** I re-ran `alpha.py` on the saved screenshots. It fits each channel of the sheet-open frame as a line
+  in the same pixel of the sheet-closed frame.
+  - Maps tab (`10-arrival.png` against `11-sheet-portrait.png`): the scrim alone has slope 0.679 (Material's 0.32
+    scrim leaves 0.68). Under the sheet the slope is 0.137, rms at most 0.65. So the sheet passes
+    0.137 / 0.679 = 0.202 of what is behind it: **opacity 0.798**. Solving the intercepts for the container colour
+    gives (27.8, 27.6, 27.0). The container is `SurfaceContainerLowDark`, `#1B1B1B` (27, 27, 27)
+    (`ui/theme/Color.kt:140`, via `BottomSheetDefaults.ContainerColor`, `MapLayersSheet.kt:221`), so it is within 1
+    unit per channel.
+  - Entry map (`25-entry-fullscreen.png` against `27-entry-sheet.png`): scrim 0.681, sheet 0.139, rms 0.31,
+    **opacity 0.796**.
+  - A fully opaque sheet would give slope 0 under the sheet. These readings could not come from one.
+- **Insets.** Frames are from `dumpsys window` (`12-`, `14-`, `17-window-*.txt`):
+  - **Portrait:** the navigation bar is `[0,2181][1080,2316]`. The sheet's scroll area is `[0,581][1080,2181]` and
+    its last switch row ends at 2113 (`11-sheet-portrait.xml`). The one node inside the bar's frame is "Close
+    sheet", `[0,2181][1080,2316]`. That is the modal's scrim, the tap-outside-to-dismiss surface, not a sheet
+    control. I read the condition "no clickable node of the sheet" as excluding it (see Decisions).
+  - **`user_rotation` 1:** the bar is on the right, `[2181,0][2316,1080]`, and the cut-out on the left,
+    `[0,0][75,1080]`. The sheet is `[258,219][2058,1080]`, 1800 px (640 dp) wide and centred, with its rows at
+    x 303 to 2013 (`15-sheet-r1.xml`). Its drag handle starts at y 84, the status bar's bottom edge. The rows below
+    the fold scroll into view, down to Offline maps (`16-sheet-r1-scrolled.xml`).
+  - **`user_rotation` 3:** the bar is on the left, `[0,0][135,1080]`, and the cut-out on the right,
+    `[2241,0][2316,1080]`. The sheet has the same bounds and scrolls the same way (`18-`, `19-sheet-r3*.xml`).
+  - Only the scrim lies in the bar at either rotation.
+- **Prediction:** held.
+
+### Check 2: toggling each overlay
+
+**Hide and show: pass for the five overlays with data (saved evidence, by my reading); Planned trips and Recording
+trail not observable.**
+- **All-on sequence** (crop `132` from `37-`, `40-` to `45-`, `49-` to `51-`, each on Street at about zoom 19):
+  - Finds off removes the find glyph's cap, uncovering the waypoint pin beneath it, and Finds on restores it
+    (`40-`, `41-`).
+  - Photos off removes both photo glyphs, and on restores them (`42-`, `43-`).
+  - Tracks off removes the whole track line, and on restores it (`50-`, `51-`).
+  - Waypoints cannot be seen in this sequence: the pin lies under the photo glyphs, so `44-` and `45-` look the same.
+- **Isolated hides**, with every other overlay off (crop `131`): Waypoints (`61-` to `65-`), Photos (`67-` to `65-`),
+  Finds (`71-` to `73-`) and Tracks (`75-` to `77-`). In each, the glyph or line is present and then gone.
+- **Waypoints shown again** (crop `135`): `87-` has everything off; `89a-` has Photos on (the photo glyph); `89b-` has
+  Waypoints on, and the pin is back above the photo glyph. The sheet dumps confirm each state.
+- **Offline maps** (`133`):
+  - At zoom 19 the view is inside a region. Off turns the whole map from the fill's grey to the plain ground, and on
+    restores it (`51-` to `53-`: pixel (200,1500) goes (159,156,152), then (242,239,233), then (159,156,152)).
+  - Zoomed out, `83-` (Offline maps alone) draws the 5 km circle, its fill and its white dashed outline, and `87-`
+    removes them.
+- **Planned trips and Recording trail:** each switch went off and on and read back (`46-` to `49-*-sheet-after.xml`).
+  No planned trip exists and nothing is recording, so there was nothing to hide. **Not observable**, as the
+  pre-registration said.
+
+**No style reload: pass (re-run).**
+- **The saved visual evidence cannot discriminate**, by the pre-registration's own rule. The control's burst through a
+  basemap change (`35-rec-basemap-street.raw`, re-analysed with `recan.py`) shows no blank: the box's spread stays at
+  29 to 30.
+- **Re-run**, using the discriminator added after the relaunch (`146-c2r-times.txt`, `146-c2r-*.xml`,
+  `147-log-c2r.txt`; the sheet open throughout, the state read back after each step):
+  - Topographical to Street at 18:52:05.7Z: the sensor pair followed at 06.128 and 06.146.
+  - Street to Topographical at 18:52:50.4Z: the pair at 50.740 and 50.758.
+  - Finds, Tracks and Offline maps each off and on, six toggles: **no** sensor line in any window.
+  - Tile requests were 0 in all eight windows, so they could not have told a toggle from a basemap change, as
+    expected.
+- **The first coder's log agrees.** Re-counted by me from `91-log-before-stop.txt` against `toggle-times.txt`: its one
+  control (17:32:58Z) shows the pair and 22 tile requests. None of its 30 toggles shows either.
+- **Prediction:** held.
+
+**A hidden layer takes no tap: pass for Finds, Photos, Waypoints and Tracks (saved evidence); not discriminating for
+Offline maps, whose control failed.**
+- **Finds, Photos, Waypoints and Tracks.** Each had every other overlay off. Each has a control: a tap while visible
+  opens its bubble, with a "Close" node in the dump:
+  - Waypoints: `62-` and `63-`, the bubble titled "DEVICE CHECK waypoint";
+  - Photos: `68-`;
+  - Finds: `72-`, "DEVICE CHECK find 1";
+  - Tracks: `76-`.
+
+  The same points, with the layer hidden, open nothing (no "Close", no "Directions", no "Details" node):
+  - Waypoints: `66-wp-hidden-tap-680-695.xml` and `-652-776.xml`;
+  - Photos: `70-` and `70b-`;
+  - Finds: `74-` and `74b-`;
+  - Tracks: `78-` and `78b-`.
+
+  Each hidden state is confirmed in the sheet dump before it (`65-`, `69-`, `73-`, `77-*-sheet-after.xml`).
+- **Offline maps.** The control failed:
+  - Six taps on the **visible** outline opened nothing: `84-outline-visible.xml`, and `86-outline-*.xml` at five
+    more points.
+  - Each tap was inside a white dash run: I re-read `83-offline-only.png`, the dash rows at x 400, 480, 560, 600, 660
+    and 720 against the tap points.
+  - The dashes were in the same place, within 1 px, in `84b-after-outline-tap.png`, taken after the first tap, so the
+    map had not moved.
+  - The hidden tap (`88-`) also opened nothing, but with no working control it shows nothing either way. **The check
+    cannot discriminate for Offline maps.**
+  - That a visible region outline takes no tap is a finding in itself. See Flags; I did not investigate it.
+
+### Check 3: the choices persist across `am force-stop`: **pass** (saved evidence)
+
+- **Before the stop:** `90-map_prefs-before-stop.pb` holds `map.layer.find-markers-layer.visible = false` and
+  `map.layer.kept-tracks-layer.visible = false`, with the other five true. The crash buffer was empty
+  (`92-crash-before-stop.txt`, 0 bytes).
+- **The stop:** the phone's system log (`126-log-resume.txt`) shows "Killing 30324:com.zynergylabs.forager.app …
+  stop com.zynergylabs.forager.app" at 17:48:28.650Z. Then `Start proc 9626` at 17:48:30.366Z, from the
+  `am start`.
+- **After the relaunch:**
+  - The sheet shows Finds and Tracks off and the other five on (`94-relaunch-sheet.xml`).
+  - The map draws no find glyph and no track (crop `136`, by my reading): `93-relaunch` at the start camera, and
+    `96-relaunch-locate` zoomed in, where the track would be plain.
+  - Switching Tracks on (`97-`) and then Finds on (`98-`) draws each again at the same camera.
+  - The stored keys are all true afterwards (`99-map_prefs-all-on.pb`).
+- **Prediction:** held.
+
