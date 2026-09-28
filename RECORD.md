@@ -3510,3 +3510,14 @@ Three premises were wrong: the editor has no map; trip planning, Set on map and 
 **Reason:** -59 rested on a planner misreading. The planner's question named the + disc, the record disc and the wide Add button, and the owner's "Have the colored buttons be at 80% opacity also" was recorded against those. The owner meant the bottom tab bar, verbatim: "The bottom colored buttons", "Leave the map icon bar alone", and, with a screenshot circling the tab bar, "These buttons at the bottom must be 80% opacity".
 **Changes:** Supersedes -59 in full. The accent buttons stay solid (-58 ruling 3 stands again). The bottom tab bar's selected-tab indicator, Material3's default and solid (AvailabilityNavigationUi.kt:167-170), goes to 0.8 composite over the map, with the bar's fill not stacked under it. The bar's container is already 0.8 at AvailabilityCompactMapUi.kt:1210. The rail gets the same treatment in short landscape (planner's reading). Whether the bar's 0.8 shows the map on the S22 is listed as a device item. Still queued behind J8; nothing launched.
 **Notes:** The misreading was the planner's. -59 stays in the record as superseded, not deleted. The owner stopped all agents just before this ("Stop everything"). The J8 relaunch (-54) and the device relaunch (-55) were already killed, with no hand-back from either, and the phone and the j8 worktree were left unchecked. Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-61
+**Timestamp:** 2026-09-28T19:20:43Z
+**Continues:** 2026-09-28-56
+**Dispatch-file:** none (withdrawal only; no new instructions)
+**Reason:** the owner, verbatim: "Let's restart from this point and forget everything beyond it:". That came with a screenshot of the four edge-case answers as first given, the ones -58 carries.
+**Changes:** Continuations -59 and -60 are withdrawn and are not to be given to the -56 coder. -56 as amended by -58 is the whole of the queued dispatch. The plan's "Accent buttons" and "Correction" paragraphs are marked withdrawn. Still queued behind J8; nothing launched.
+**Notes:** The owner's screenshot is outside the repository at device-evidence/2026-09-28-owner-sheet-opacity/owner-restart-point-edge-case-answers.jpg. -59 and -60 stay in the record and in prompts/preserved as withdrawn, not deleted. Written by the planner by hand.
