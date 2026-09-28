@@ -702,3 +702,37 @@ since there is no overlap.
 
 **Prediction:** "the overlap reproduces at 90 and at 270, and a touch in it opens the chip's list" held at 90 and did
 not hold at 270, where there is no overlap.
+
+Check 5, one line added after the verdict above: "the map had not left north-up" rests on `91-` against `94-` over a map box
+clear of the chip and cluster, `[1300,400][1900,900]`: slope 1.000, rms 0, so the map did not move or turn.
+
+## Check 6: the bubble's entry line, Open entry, and the unsaved-changes prompt: **pass**
+
+The entry was shown again from its report at 21:53:40Z. On the Maps tab (camera reset to the opening one) three
+double-tap steps at (560, 1190) brought the view to about zoom 15 (`112-c6-z15.png`), where the kept find 135 m east,
+"DEVICE CHECK find 2", stands apart with its ring.
+- **Line:** a real touch on it at (626, 1183) opened its bubble (`113-c6-bubble.xml`): "DEVICE CHECK find 2", "Find on
+  2026-09-27", then a clickable node `[68,860][302,995]` whose child has the content description **"Open entry
+  2026-09-27"** and the text **"2026-09-27"**, then "Open in Journal". **Pass.** What TalkBack speaks was not tested;
+  TalkBack stayed off.
+- **Open:** a real touch on the line at (185, 927), 21:54:27Z, put the Journal in front (the Journal navigation item
+  selected, the Entries tab checked) with the L0a entry's report open: header "2026-09-27", "Entry options", "Back to
+  Cartography" (`114-`). The dump is byte-identical to the report opened by hand in check 2 (`23-`). **Pass.**
+- **Prompt, on the L0a DEVICE CHECK entry only:**
+  - Its menu read "Edit entry", "Hide from map", "Delete entry" (`115-`), and "Edit entry" opened the editor (`116-`).
+    Before typing, the "Your own account" field held 29 characters, sha256 prefix `63ac75f9…`.
+  - I touched the end of the field and typed one character, `x`, at 21:55:19Z (`117-`). The field then held 30
+    characters, the first 29 unchanged and an `x` at the end. One Back lowered the keyboard (`mInputShown=false`), with
+    the editor still open and no prompt (`118-`).
+  - On the Maps tab (`119-`) the same three double-tap steps gave the same camera as `112-` (mean difference 0.0 in a
+    map box, `120-`). The same find's bubble showed the same line (`121-`).
+  - A touch on the line at 21:56:09Z brought up **"Save your changes?"**, "This entry has unsaved changes. Save them,
+    discard them, or keep editing.", with **Save, Discard and Cancel** (`122-`). This is the app's own dialog, not a
+    system prompt.
+  - A real touch on **Discard** at 21:56:21Z. **The L0a entry's report opened** (`123-`, byte-identical to `23-` and
+    `114-`). Its text node holds 29 characters with the same hash as before the typing, `63ac75f9…`.
+  - "Welcome back" never appeared.
+  - Whether the typed character reached the database is read at the end, from the final copy's `cartography_entries`
+    digest.
+- Crash buffer 0 bytes (`124-`); pid 5297 throughout.
+- **Prediction:** held.
