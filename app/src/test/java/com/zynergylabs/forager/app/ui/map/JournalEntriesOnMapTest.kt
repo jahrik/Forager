@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.ui.map
 
 import com.zynergylabs.forager.app.domain.HighlightedRecord
 import com.zynergylabs.forager.app.domain.HighlightedRecordKind
+import com.zynergylabs.forager.app.domain.JournalEntryHighlights
 import com.zynergylabs.forager.app.domain.JournalEntryOnMap
 import com.zynergylabs.forager.app.domain.MapLayerPreferences
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
@@ -9,6 +10,9 @@ import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.LogPhoto
 import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
+import com.zynergylabs.forager.app.domain.model.RecordPoint
+import com.zynergylabs.forager.app.domain.model.RecordPolyline
+import com.zynergylabs.forager.app.domain.model.RecordRegion
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.Waypoint
@@ -16,6 +20,7 @@ import com.zynergylabs.forager.app.ui.map.layers.JOURNAL_ENTRIES_SWITCH_LAYER_ID
 import com.zynergylabs.forager.app.ui.map.layers.LayerState
 import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
+import com.zynergylabs.forager.app.ui.map.layers.MapSourceIds
 import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 import com.zynergylabs.forager.app.ui.map.layers.layerPaintFor
 import com.zynergylabs.forager.app.ui.map.layers.restoreMapLayersState
@@ -176,5 +181,53 @@ class JournalEntriesOnMapTest {
             assertEquals("$halo hidden with $record off", false, visible(halo, recordOff))
             (halos.keys - halo).forEach { other -> assertEquals("$other unaffected by $record", true, visible(other, recordOff)) }
         }
+    }
+
+    // ── What reaches the map (J8-2) ──
+
+    @Test
+    fun `each halo source receives the highlighted records of its kind, each feature carrying its record's id`() {
+        val highlights = JournalEntryHighlights(
+            shownEntries = listOf(onMap("a", 12)),
+            trackPolylines = listOf(RecordPolyline("track-1", listOf(LatLng(45.0, -122.0), LatLng(45.1, -122.1)))),
+            findMarkers = listOf(RecordPoint("find-1", LatLng(45.2, -122.2))),
+            photoMarkers = listOf(RecordPoint("photo-1", LatLng(45.3, -122.3))),
+            waypointMarkers = listOf(RecordPoint("waypoint-1", LatLng(45.4, -122.4))),
+            offlineRegionCircles = listOf(RecordRegion("7", Region(45.5, -122.5, 10))),
+            keptIn = emptyMap(),
+        )
+        val ids = journalHighlightFeatureCollections(highlights).mapValues { (_, collection) ->
+            collection.features()!!.map { it.getStringProperty(FEATURE_ID_PROPERTY) }
+        }
+        assertEquals(
+            mapOf(
+                MapSourceIds.JOURNAL_ENTRY_REGIONS to listOf("7"),
+                MapSourceIds.JOURNAL_ENTRY_TRACKS to listOf("track-1"),
+                MapSourceIds.JOURNAL_ENTRY_WAYPOINTS to listOf("waypoint-1"),
+                MapSourceIds.JOURNAL_ENTRY_FINDS to listOf("find-1"),
+                MapSourceIds.JOURNAL_ENTRY_PHOTOS to listOf("photo-1"),
+            ),
+            ids,
+        )
+        // Every halo layer's source is one of these, so no halo layer is left without data.
+        assertEquals(
+            MAP_LAYER_REGISTRY.filter { it.drawnWith != null }.map { it.sourceId }.toSet(),
+            journalHighlightFeatureCollections(JournalEntryHighlights.NONE).keys,
+        )
+    }
+
+    @Test
+    fun `each line halo is the halo width wider on each side than what it lies under, and thins with the zoom as the track does`() {
+        val track = lineSpecForLayer(MapLayerIds.KEPT_TRACKS)!!
+        val trackCasing = lineSpecForLayer(MapLayerIds.KEPT_TRACKS_CASING)!!
+        val trackHalo = lineSpecForLayer(MapLayerIds.JOURNAL_ENTRY_TRACKS)!!
+        val outline = lineSpecForLayer(MapLayerIds.OFFLINE_REGION_OUTLINE)!!
+        val regionHalo = lineSpecForLayer(MapLayerIds.JOURNAL_ENTRY_REGIONS)!!
+        for (zoom in listOf(8f, 11f, 13f, 15f, 18f)) {
+            assertEquals("track halo at $zoom", lineWidthAtZoom(trackCasing, zoom) + 2 * JOURNAL_HALO_WIDTH_DP * lineWidthAtZoom(track, zoom) / track.widthDp, lineWidthAtZoom(trackHalo, zoom), 1e-4f)
+        }
+        assertEquals(outline.widthDp + 2 * JOURNAL_HALO_WIDTH_DP, regionHalo.widthDp, 1e-4f)
+        assertEquals("solid", null, regionHalo.dashPattern)
+        assertEquals("solid", null, trackHalo.dashPattern)
     }
 }

@@ -76,6 +76,13 @@ abstract class CartographyEntryDao {
     abstract suspend fun deleteEntryById(id: String)
 
     /**
+     * J8: sets one entry's `shownOnMap` and no other column, so showing an entry on the map never
+     * rewrites its text, decisions or edit stamp. Returns the rows changed: 0 when no entry [id] exists.
+     */
+    @Query("UPDATE cartography_entries SET shownOnMap = :shown WHERE id = :id")
+    abstract suspend fun setShownOnMap(id: String, shown: Boolean): Int
+
+    /**
      * Replaces [entity]'s stored kept-item set wholesale with [trackRefs]/[waypointRefs]/
      * [offlineRegionRefs]/[findRefs] — an entry's edit screen always writes its complete current
      * selection, never a delta, so "delete everything for this id, then insert what's current" is

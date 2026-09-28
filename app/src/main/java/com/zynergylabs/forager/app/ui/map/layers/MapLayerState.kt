@@ -54,12 +54,21 @@ data class LayerPaint(val layerId: String, val visible: Boolean, val opacities: 
 /**
  * [spec]'s paint under [state]: the state of [MapLayerSpec.stateOwnerId] when it has one, its own
  * otherwise; every base opacity times that state's multiplier.
+ *
+ * J8: a decoration ([MapLayerSpec.drawnWith], a journal-entry halo) is visible only while the layer it
+ * decorates is too, by that layer's own governing state looked up in [registry] (the offline region's
+ * outline follows its fill, so the region halo follows the fill's switch). A decorated layer missing
+ * from [registry] leaves the decoration hidden: a halo around nothing is never drawn, and
+ * `registryProblems` names that registry as wrong.
  */
-fun layerPaintFor(spec: MapLayerSpec, state: MapLayersState): LayerPaint {
+fun layerPaintFor(spec: MapLayerSpec, state: MapLayersState, registry: List<MapLayerSpec> = MAP_LAYER_REGISTRY): LayerPaint {
     val governing = state.stateOf(spec.stateOwnerId ?: spec.id)
+    val decoratedDrawn = spec.drawnWith?.let { decoratedId ->
+        registry.firstOrNull { it.id == decoratedId }?.let { decorated -> state.stateOf(decorated.stateOwnerId ?: decorated.id).visible } ?: false
+    } ?: true
     return LayerPaint(
         layerId = spec.id,
-        visible = governing.visible,
+        visible = governing.visible && decoratedDrawn,
         opacities = spec.baseOpacities.map { OpacityValue(it.property, it.base * governing.opacity) },
     )
 }
@@ -70,6 +79,6 @@ fun layerPaintFor(spec: MapLayerSpec, state: MapLayersState): LayerPaint {
  */
 fun activeLayerCredits(registry: List<MapLayerSpec>, state: MapLayersState): List<String> =
     orderedLayers(registry, state)
-        .filter { layerPaintFor(it, state).visible }
+        .filter { layerPaintFor(it, state, registry).visible }
         .mapNotNull { it.credit }
         .distinct()

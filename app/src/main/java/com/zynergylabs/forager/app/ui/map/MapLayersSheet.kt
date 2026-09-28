@@ -67,6 +67,7 @@ import com.zynergylabs.forager.app.ui.map.layers.COLOUR_FIELDS
 import com.zynergylabs.forager.app.ui.map.layers.ColourFieldMove
 import com.zynergylabs.forager.app.ui.map.layers.ColourFieldSpec
 import com.zynergylabs.forager.app.ui.map.layers.ForecastCellsShown
+import com.zynergylabs.forager.app.ui.map.layers.JOURNAL_ENTRIES_SWITCH_LAYER_ID
 import com.zynergylabs.forager.app.ui.map.layers.LEGEND_NO_FORECAST_HERE
 import com.zynergylabs.forager.app.ui.map.layers.LEGEND_RAMP_HIGH_LABEL
 import com.zynergylabs.forager.app.ui.map.layers.LEGEND_RAMP_LOW_LABEL
@@ -123,8 +124,10 @@ internal fun layersButtonDescription(mapMode: MapMode): String =
 internal data class MapOverlayOption(val layerId: String, val label: String)
 
 /**
- * The Maps tab's seven overlay switches, in the sheet's order (the dispatch, B1). "Offline maps" is
+ * The Maps tab's overlay switches, in the sheet's order (the dispatch, B1). "Offline maps" is
  * the offline region's fill, whose outline follows it (`stateOwnerId`), so one switch hides both.
+ * J8 adds "Journal entries" last, as layer ruling 3 lists it: every journal-entry halo follows that
+ * one switch, which does not change which entries are shown.
  */
 internal val MAPS_TAB_OVERLAYS: List<MapOverlayOption> = listOf(
     MapOverlayOption(MapLayerIds.FINDS, "Finds"),
@@ -134,6 +137,7 @@ internal val MAPS_TAB_OVERLAYS: List<MapOverlayOption> = listOf(
     MapOverlayOption(MapLayerIds.BREADCRUMB, "Recording trail"),
     MapOverlayOption(MapLayerIds.KEPT_TRACKS, "Tracks"),
     MapOverlayOption(MapLayerIds.OFFLINE_REGION_FILL, "Offline maps"),
+    MapOverlayOption(JOURNAL_ENTRIES_SWITCH_LAYER_ID, JOURNAL_ENTRIES_OVERLAY_LABEL),
 )
 
 /**
@@ -142,7 +146,8 @@ internal val MAPS_TAB_OVERLAYS: List<MapOverlayOption> = listOf(
  * (`CartographyEntryReportScreen`'s `MapOverlayContent`), never planned trips or the live trail.
  */
 internal val ENTRY_MAP_OVERLAYS: List<MapOverlayOption> = MAPS_TAB_OVERLAYS.filter {
-    it.layerId != MapLayerIds.PLANNED_TRIPS && it.layerId != MapLayerIds.BREADCRUMB
+    // J8: the entry map draws no journal-entry highlight, so it offers no switch for one.
+    it.layerId != MapLayerIds.PLANNED_TRIPS && it.layerId != MapLayerIds.BREADCRUMB && it.layerId != JOURNAL_ENTRIES_SWITCH_LAYER_ID
 }
 
 /**

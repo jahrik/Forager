@@ -594,8 +594,50 @@ class CartographyViewModel(
         }
     }
 
-    /** J8 tests-first stub: does nothing until the handler is built. */
-    fun onSetShownOnMap(id: String, shown: Boolean) = Unit
+    /**
+     * J8: shows or hides a **saved** entry on the Maps tab — the report menu's "Show on map" and "Hide
+     * from map", the chip's "Hide" and "Hide all". Writes [CartographyEntry.shownOnMap] alone
+     * ([SetCartographyEntryShownOnMapUseCase]) and, once the write has landed, sets that one field on
+     * the listed entry and on the open entry, so the chip, the highlight and the report's menu change at
+     * once. Nothing else about the open entry changes: an unsaved edit stays in it, still unsaved, and
+     * its later save carries the new value, since it is the open entry's own.
+     *
+     * A draft is never shown on the map (owner: "Saved entries only"): a call for one is refused and
+     * logged. So is an id this ViewModel has not loaded. A failed write changes nothing on screen and is
+     * logged, with the same [CartographyUiState.saveErrorMessage] a failed save sets.
+     */
+    fun onSetShownOnMap(id: String, shown: Boolean) {
+        val state = _uiState.value
+        val entry = state.entries.firstOrNull { it.id == id }
+            ?: state.draftEntries.firstOrNull { it.id == id }
+            ?: state.editingEntry?.takeIf { it.id == id }
+        when {
+            entry == null -> {
+                Log.w(TAG, "Show on map was asked for entry '$id', which is not loaded; nothing written.")
+                return
+            }
+            entry.isDraft -> {
+                Log.w(TAG, "Show on map was asked for draft '$id'; only a saved entry is shown on the map, so nothing was written.")
+                return
+            }
+        }
+        viewModelScope.launch {
+            setShownOnMap(id, shown).fold(
+                onSuccess = {
+                    _uiState.update { current ->
+                        current.copy(
+                            entries = current.entries.map { if (it.id == id) it.copy(shownOnMap = shown) else it },
+                            editingEntry = current.editingEntry?.let { if (it.id == id) it.copy(shownOnMap = shown) else it },
+                        )
+                    }
+                },
+                onFailure = { error ->
+                    Log.w(TAG, "Couldn't ${if (shown) "show" else "hide"} entry '$id' on the map.", error)
+                    _uiState.update { it.copy(saveErrorMessage = "Couldn't save your changes.") }
+                },
+            )
+        }
+    }
 
     fun onSaveErrorDismissed() {
         _uiState.update { it.copy(saveErrorMessage = null) }

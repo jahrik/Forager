@@ -222,6 +222,30 @@ private fun line(id: String, sourceId: String, role: PaletteRole, tapGroup: TapG
 )
 
 /**
+ * J8: a journal-entry halo under [decorates], in [PaletteRole.JOURNAL_ENTRY], taking no taps, and
+ * following the "Journal entries" switch ([JOURNAL_ENTRIES_SWITCH_LAYER_ID]); the switch's own layer
+ * is the one halo not following another. See [MapLayerSpec.drawnWith].
+ */
+private fun journalHalo(id: String, sourceId: String, kind: LayerKind, renderer: LayerRenderer, decorates: String): MapLayerSpec {
+    val switch = id == JOURNAL_ENTRIES_SWITCH_LAYER_ID
+    return MapLayerSpec(
+        id = id,
+        kind = kind,
+        renderer = renderer,
+        sourceId = sourceId,
+        zGroup = if (kind == LayerKind.MARKER) ZGroup.MARKERS else ZGroup.LINES,
+        paletteRole = PaletteRole.JOURNAL_ENTRY,
+        userToggleable = switch,
+        userOpacity = false,
+        userReorderable = false,
+        tapGroup = TapGroup.NONE,
+        baseOpacities = if (renderer == LayerRenderer.SYMBOL) ICON_OPACITY else LINE_OPACITY,
+        stateOwnerId = if (switch) null else JOURNAL_ENTRIES_SWITCH_LAYER_ID,
+        drawnWith = decorates,
+    )
+}
+
+/**
  * A colour field's registry entry (map layers L0b, B7): switchable, with an opacity slider, reorderable,
  * credited while visible, and tappable in [TapGroup.COLOUR_FIELD] since M1 (the cell readout bubble).
  * L0b left it untappable because a tappable cell under nearly every tap kept `resolveTap` from reaching
@@ -271,7 +295,14 @@ private const val COLOUR_FIELD_FILL_OPACITY = 0.6f
  *
  * `userToggleable` follows the owner's overlay list for the Layers sheet (layer ruling 3: finds,
  * waypoints, tracks, planned trips, offline maps, journal entries); photos are counted with finds as
- * part of an entry. The sighting dots and the search centre are not in that list, so they are not
+ * part of an entry.
+ *
+ * **J8's five journal-entry halos** (`prompts/preserved/2026-09-28-52.md`, J8-2) each sit directly
+ * below the record layer they decorate, and below that record's casing where it has one, so the halo
+ * shows as a ring around the record's own outline: the offline region's under its outline, the kept
+ * tracks' under their casing, and each marker's under its marker. A halo takes no taps, so M1's tap
+ * routing is unchanged, and it is drawn only while its record's own switch and the "Journal entries"
+ * switch are both on ([MapLayerSpec.drawnWith]). The sighting dots and the search centre are not in that list, so they are not
  * toggleable here. `userOpacity` is offered for colour fields only (layer ruling 1: "each with its
  * own opacity slider"); the multiplier itself applies to any layer. Both are for L0b to confirm.
  */
@@ -290,10 +321,12 @@ val MAP_LAYER_REGISTRY: List<MapLayerSpec> = COLOUR_FIELDS.map(::colourField) + 
         tapGroup = TapGroup.NONE,
         baseOpacities = listOf(BaseOpacity(OpacityProperty.FILL, OFFLINE_REGION_FILL_OPACITY)),
     ),
+    journalHalo(MapLayerIds.JOURNAL_ENTRY_REGIONS, MapSourceIds.JOURNAL_ENTRY_REGIONS, LayerKind.LINE, LayerRenderer.LINE, decorates = MapLayerIds.OFFLINE_REGION_OUTLINE),
     line(MapLayerIds.OFFLINE_REGION_OUTLINE, MapSourceIds.OFFLINE_REGIONS, PaletteRole.CASING, TapGroup.LINE, owner = MapLayerIds.OFFLINE_REGION_FILL),
     line(MapLayerIds.BREADCRUMB_CASING, MapSourceIds.BREADCRUMB, PaletteRole.CASING, TapGroup.NONE, owner = MapLayerIds.BREADCRUMB),
     // M1 (owner's ruling 4, "Not tappable"): the recording trail is not a record, so it takes no taps.
     line(MapLayerIds.BREADCRUMB, MapSourceIds.BREADCRUMB, PaletteRole.BREADCRUMB, TapGroup.NONE, owner = null),
+    journalHalo(MapLayerIds.JOURNAL_ENTRY_TRACKS, MapSourceIds.JOURNAL_ENTRY_TRACKS, LayerKind.LINE, LayerRenderer.LINE, decorates = MapLayerIds.KEPT_TRACKS),
     line(MapLayerIds.KEPT_TRACKS_CASING, MapSourceIds.KEPT_TRACKS, PaletteRole.CASING, TapGroup.NONE, owner = MapLayerIds.KEPT_TRACKS),
     line(MapLayerIds.KEPT_TRACKS, MapSourceIds.KEPT_TRACKS, PaletteRole.KEPT_TRACK, TapGroup.LINE, owner = null),
     // M1 (owner's ruling 4, "Not tappable"): the search-centre reticle is not a record either.
@@ -315,8 +348,11 @@ val MAP_LAYER_REGISTRY: List<MapLayerSpec> = COLOUR_FIELDS.map(::colourField) + 
         ),
     ),
     marker(MapLayerIds.PLANNED_TRIPS, MapSourceIds.PLANNED_TRIPS, PaletteRole.PLANNED_TRIP, toggleable = true),
+    journalHalo(MapLayerIds.JOURNAL_ENTRY_WAYPOINTS, MapSourceIds.JOURNAL_ENTRY_WAYPOINTS, LayerKind.MARKER, LayerRenderer.SYMBOL, decorates = MapLayerIds.WAYPOINTS),
     marker(MapLayerIds.WAYPOINTS, MapSourceIds.WAYPOINTS, PaletteRole.WAYPOINT, toggleable = true),
+    journalHalo(MapLayerIds.JOURNAL_ENTRY_FINDS, MapSourceIds.JOURNAL_ENTRY_FINDS, LayerKind.MARKER, LayerRenderer.SYMBOL, decorates = MapLayerIds.FINDS),
     marker(MapLayerIds.FINDS, MapSourceIds.FINDS, PaletteRole.FIND, toggleable = true),
+    journalHalo(MapLayerIds.JOURNAL_ENTRY_PHOTOS, MapSourceIds.JOURNAL_ENTRY_PHOTOS, LayerKind.MARKER, LayerRenderer.SYMBOL, decorates = MapLayerIds.PHOTOS),
     marker(MapLayerIds.PHOTOS, MapSourceIds.PHOTOS, PaletteRole.PHOTO, toggleable = true),
 )
 
@@ -324,7 +360,9 @@ val MAP_LAYER_REGISTRY: List<MapLayerSpec> = COLOUR_FIELDS.map(::colourField) + 
  * What is wrong with [registry] as a registry, one line per problem; empty when nothing is. Checks
  * that ids are unique, that the groups run bottom to top in [ZGroup] order, that every
  * [MapLayerSpec.stateOwnerId] names another layer that owns its own state, that only colour
- * fields are reorderable, and that every base opacity belongs to its layer's renderer.
+ * fields are reorderable, and that every base opacity belongs to its layer's renderer. Since J8, also
+ * that every [MapLayerSpec.drawnWith] names a layer in the registry listed above the decoration, and
+ * that a decoration takes no taps.
  */
 fun registryProblems(registry: List<MapLayerSpec>): List<String> = buildList {
     registry.groupingBy { it.id }.eachCount().filterValues { it > 1 }.keys.forEach {
@@ -349,6 +387,15 @@ fun registryProblems(registry: List<MapLayerSpec>): List<String> = buildList {
         }
         spec.baseOpacities.filter { it.property.renderer != spec.renderer }.forEach {
             add("${spec.id} is a ${spec.renderer} layer but sets ${it.property.styleName}")
+        }
+        spec.drawnWith?.let { decoratedId ->
+            val decoratedIndex = registry.indexOfFirst { it.id == decoratedId }
+            when {
+                decoratedIndex < 0 -> add("${spec.id} is drawn with $decoratedId, which is not in the registry")
+                decoratedIndex < registry.indexOfFirst { it.id == spec.id } ->
+                    add("${spec.id} decorates $decoratedId but is listed above it; a decoration belongs below what it decorates")
+            }
+            if (spec.tapGroup != TapGroup.NONE) add("${spec.id} decorates $decoratedId but takes taps (${spec.tapGroup}); a decoration takes none")
         }
     }
 }

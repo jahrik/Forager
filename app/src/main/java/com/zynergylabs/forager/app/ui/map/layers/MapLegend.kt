@@ -50,7 +50,7 @@ fun mapLegendFor(
 ): MapLegend? {
     val specsById = colourFields.associateBy { it.layerId }
     val visible = colourFieldsTopFirst(registry, state)
-        .filter { layerPaintFor(it, state).visible }
+        .filter { layerPaintFor(it, state, registry).visible }
         .mapNotNull { specsById[it.id] }
     if (visible.isEmpty()) return null
     val collapsed = visible.singleOrNull()?.label ?: "${visible.size} layers"
