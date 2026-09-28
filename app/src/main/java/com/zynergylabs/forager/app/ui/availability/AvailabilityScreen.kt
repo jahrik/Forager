@@ -1110,41 +1110,6 @@ fun AvailabilityScreen(
     LaunchedEffect(isMapsTabShown) {
         if (isMapsTabShown) onMapShown()
     }
-    // M1 (B3, B4): what the Maps tab's glyph bubbles look records up in, and the J5c sheet's inputs,
-    // all already in hand here. A find's "Open in Journal" opens the find in its report over whatever
-    // the Journal was showing (PendingJournalDestination.VIEW_FIND), so the saved Records chip and top
-    // tab are never changed (planner's ruling on F3, continuation 2026-09-28-30). Compact: the
-    // Journal tab. Medium and expanded: the drawer's LogPanel (owner, Q3: "Open drawer to the find").
-    // Checked against the Maps search-bar gate (AvailabilityCompactScaffold's isEditingJournalEntry):
-    // the find opens as the Journal tab comes up, where that gate hides the header as it does for any
-    // open find; the Maps tab's own bar is gated on the Journal showing, so it is unaffected.
-    val usesCompactTree = windowWidthClass == WindowWidthClass.COMPACT || isShortWindow
-    val mapBubbleSources = MapRecordSources(
-        finds = logUiState.entries,
-        galleryPhotos = logUiState.galleryPhotos,
-        photoEntryReferenceCounts = logUiState.cartographyEntryPhotoReferenceCounts,
-        waypoints = waypoints,
-        waypointEntryReferenceCounts = waypointEntryReferenceCounts,
-        tracks = tracks,
-        plannedTrips = uiState.plannedTrips,
-        offlineRegions = uiState.visibleOfflineRegions,
-        distanceUnit = uiState.distanceUnit,
-        staleThresholdDays = uiState.offlineStaleThresholdDays,
-        nowEpochMillis = currentTime::nowEpochMillis,
-        getFullRecord = getFullRecord,
-        onOpenFind = { findId ->
-            pendingJournalFindId = findId
-            pendingJournalDestination = PendingJournalDestination.VIEW_FIND
-            onOpenLogEntry(findId)
-            if (usesCompactTree) {
-                compactTab = CompactTab.JOURNAL
-            } else {
-                drawerPanel = DrawerPanel.Log
-                isDrawerOpen = true
-            }
-        },
-        openFindLabel = OPEN_IN_JOURNAL_LABEL,
-    )
     val isShortLandscapeWindow = isShortWindow &&
         LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val portEdge = currentWindowPortEdge()
@@ -1213,6 +1178,47 @@ fun AvailabilityScreen(
             }
         }
     }
+    // Declared after leaveLogEntryEditingOfferingDiscard, which its onOpenFind calls (F3).
+    // M1 (B3, B4): what the Maps tab's glyph bubbles look records up in, and the J5c sheet's inputs,
+    // all already in hand here. A find's "Open in Journal" opens the find in its report over whatever
+    // the Journal was showing (PendingJournalDestination.VIEW_FIND), so the saved Records chip and top
+    // tab are never changed (planner's ruling on F3, continuation 2026-09-28-30). Compact: the
+    // Journal tab. Medium and expanded: the drawer's LogPanel (owner, Q3: "Open drawer to the find").
+    // Checked against the Maps search-bar gate (AvailabilityCompactScaffold's isEditingJournalEntry):
+    // the find opens as the Journal tab comes up, where that gate hides the header as it does for any
+    // open find; the Maps tab's own bar is gated on the Journal showing, so it is unaffected.
+    val usesCompactTree = windowWidthClass == WindowWidthClass.COMPACT || isShortWindow
+    val mapBubbleSources = MapRecordSources(
+        finds = logUiState.entries,
+        galleryPhotos = logUiState.galleryPhotos,
+        photoEntryReferenceCounts = logUiState.cartographyEntryPhotoReferenceCounts,
+        waypoints = waypoints,
+        waypointEntryReferenceCounts = waypointEntryReferenceCounts,
+        tracks = tracks,
+        plannedTrips = uiState.plannedTrips,
+        offlineRegions = uiState.visibleOfflineRegions,
+        distanceUnit = uiState.distanceUnit,
+        staleThresholdDays = uiState.offlineStaleThresholdDays,
+        nowEpochMillis = currentTime::nowEpochMillis,
+        getFullRecord = getFullRecord,
+        onOpenFind = { findId ->
+            // Intent 2026-09-28-44, F3 (the owner, continuation 2026-09-28-45: "Leave the kept one
+            // first (Recommended)"): a find kept open on the Journal is left before this one opens
+            // over it, through the one wrapper, so a changed one lands in Drafts at once with "Saved
+            // to Drafts", an unchanged re-edit's copy is deleted, and a viewed one just closes.
+            if (logUiState.editingEntry != null) leaveLogEntryEditingOfferingDiscard()
+            pendingJournalFindId = findId
+            pendingJournalDestination = PendingJournalDestination.VIEW_FIND
+            onOpenLogEntry(findId)
+            if (usesCompactTree) {
+                compactTab = CompactTab.JOURNAL
+            } else {
+                drawerPanel = DrawerPanel.Log
+                isDrawerOpen = true
+            }
+        },
+        openFindLabel = OPEN_IN_JOURNAL_LABEL,
+    )
 
     // Workstream L4c pre-work: corrects this comment's own claim, found stale by the L4 close-out
     // pulse (2026-08-25). This has exactly one call site — the `PermanentNavigationDrawer` medium+
@@ -1488,6 +1494,9 @@ fun AvailabilityScreen(
                 }
 
                 val onLogFindHere: (LatLng) -> Unit = { location ->
+                    // F3 (continuation 2026-09-28-45): the find open in the drawer's LogPanel is left
+                    // first, as on compact; see onOpenFind above.
+                    if (logUiState.editingEntry != null) leaveLogEntryEditingOfferingDiscard()
                     drawerPanel = DrawerPanel.Log
                     isDrawerOpen = true
                     // Stage 2d: lands LogPanel on Records -> Finds for the entry onStartLogEntry is
