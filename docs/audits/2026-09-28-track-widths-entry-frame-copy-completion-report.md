@@ -437,6 +437,15 @@ new id, and the same request with no tracking.
     1, `CompactSearchBarCopyTest` 1 and `WideSearchSummaryTest` 2, which are six new classes and 19 tests;
   - one new test in `CartographyEntryReportScreenMapTest`.
   I did not run a baseline of my own at base.
+- **CI on `da5ad1b`** (run 36425442901): 2265 tests, **2 failed**, 24 skipped. Both failures are the held family:
+  - `JournalPendingDeleteTest` "a long-press anywhere on an album photo opens a menu of exactly Delete"
+    (`AssertionError at JournalPendingDeleteTest.kt:1263`);
+  - "an album photo has no corner delete control, and a long-press at that corner opens the Delete menu" (`:1349`).
+
+  Re-run locally, class alone, at `ceeb829`: 1 class / 52 tests / 0 failures / 0 errors / 0 skipped. I did not
+  investigate or change either, as the dispatch says. CI on `ceeb829` was still running when I wrote this. Earlier
+  runs on this branch, including the WIP commit's merge `39f258b`, were cancelled by later pushes, so `104b17a` has no
+  CI result of its own.
 - **Predictions:**
   - 1 (a fixed or last-known camera) **missed**: the camera was the bounding region's centre at a zoom from its
     radius (verification above);
