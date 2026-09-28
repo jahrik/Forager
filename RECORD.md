@@ -4282,3 +4282,21 @@ Forwarded to the tablet check (-95); named in the S22 check's (-94) launch. Writ
 **Finish line:** Build, tests first, revert check, full suite, report, pushed; the planner writes the terminal; the S22 check follows.
 **Abort conditions:** No device reproduction or a different cause; a tests-first test passing at base; a non-compiling revert; a non-held failure; disk full or OOM; two failed fixes; an unruled design question.
 **Notes:** Owner, verbatim: "Option A for the fix". The cause is from the pulse (dispatch-note -96). Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-98
+**Timestamp:** 2026-09-28T23:39:15Z
+**Continues:** 2026-09-28-78
+**Dispatch-file:** preserved/2026-09-28-98.md
+**Reason:** the -78 coder stopped at verification (b0fb443, docs only). One cause behind items 1, 2 (landscape), 6, 7 and 9: in short landscape the icon cluster (380 dp) is taller than the map area (about 354 dp), so it collides with the bar, chip, legend and caption on its side. Its options A to E each place chrome no ruling gives. Items 4, 5 and 8 need files outside scope.
+**Changes:** Build now:
+- item 2 in portrait (Q4 confirmed to cover rising above centre);
+- item 3 (with the scroll-timing fix);
+- item 4 (scope widens to MapSlot.kt; restore target, zoom, bearing, tilt and tracking mode; no re-zoom on return);
+- item 5 in portrait and landscape (scope widens to MapSlot.kt; the "i" follows the caption in fullscreen);
+- item 8 (scope widens to JournalEntriesChip.kt and AvailabilityMapControlsUi.kt; touch targets only).
+
+Held for the owner: items 1, 2 (landscape), 6, 7 and 9.
+**Notes:** Planner's rulings, stated to the owner. -97 may run beside it on the same file (line 641 only). Written by the planner by hand.
