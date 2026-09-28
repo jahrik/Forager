@@ -29,16 +29,18 @@ import kotlin.math.sqrt
  * threshold a pinned value fails is not asserted (planner ruling, planner-log line 2488, quoted in
  * `RECORD.md` intent `2026-09-27-27`). The values below the board's thresholds are all recorded:
  *
- *  - night [MapPalette.searchCentre] `#DEDEDE`, (a) 0.137 and (d) 0.099, and night
- *    [MapPalette.offlineRegion] `#FFFFFF`, (d) 0.099: the swatch board's "Roles that cannot meet every
- *    constraint";
+ *  - night [MapPalette.searchCentre] `#DEDEDE`, (a) 0.137 and (d) 0.099: the swatch board's "Roles
+ *    that cannot meet every constraint". The board's night [MapPalette.offlineRegion] `#FFFFFF`, (d)
+ *    0.099, was the other half of that (d) pair; the owner's `#202020` (2026-09-28) replaced it, and
+ *    its own (d) is 0.360;
  *  - **night [MapPalette.offlineRegion] is not held to (a) or (c)** (owner, 2026-09-28: "Test it as
  *    drawn (Recommended)", dispatch `2026-09-28-22`, re-scoped by `2026-09-28-24`). It is not a solid
  *    mark: it is drawn at [OFFLINE_REGION_FILL_OPACITY] over the ground, under a black dashed casing,
  *    so its solid colour's distance from the ground and contrast with the casing describe nothing
  *    that is drawn. Its night pin carries (d) only. Its as-drawn figures are recorded instead, per
  *    ground cluster, in [nightOfflineRegionAsDrawn]; they are pins, not bars, and gate nothing beyond
- *    matching. The owner chooses the night shade from phone screenshots. The day offline region keeps
+ *    matching. The owner chose the night shade, `#202020`, from phone screenshots ("You pick from phone
+ *    shots (Recommended)", then "That's my pick."). The day offline region keeps
  *    (a) and (c) unchanged;
  *  - the three owner overrides, which are not board candidates: the sighting-dot fill (night `#8C8C8C`,
  *    (a) 0.097), the sighting ring ([MapPalette.sightingDotStroke], white, a casing, so it has no
@@ -103,10 +105,11 @@ class MapPaletteTest {
         // Board-recorded shortfall: (a) 0.137 against Topo night #C2D076 and (d) 0.099 against the
         // offline region (board §5, "Roles that cannot meet every constraint").
         Pin("searchCentre", a = 0.137, c = 15.609, d = 0.099), // (a) -0.087, (c) +4.203, (d) -0.010
-        // Board-recorded shortfall: (d) 0.099 against the search centre (same section). Not held to (a)
-        // or (c): it is drawn translucent, so it is checked as drawn instead (owner's re-scoping,
-        // 2026-09-28; see the class doc and [nightOfflineRegionAsDrawn]).
-        Pin("offlineRegion", a = null, c = null, d = 0.099), // (d) -0.010
+        // The owner's #202020 (2026-09-28); (d) is against the centre pin. At the board's #FFFFFF it was
+        // 0.099 against the search centre, a board-recorded shortfall. Not held to (a) or (c): it is
+        // drawn translucent, so it is checked as drawn instead (owner's re-scoping, 2026-09-28; see the
+        // class doc and [nightOfflineRegionAsDrawn]).
+        Pin("offlineRegion", a = null, c = null, d = 0.360), // (d) +2.600
         // Owner override ("a mute grey color"): (a) 0.097 on the V1 ground, which the white ring separates.
         Pin("sightingDot", a = 0.097, c = 3.362, d = 0.155), // (a) -0.353, (c) +0.121, (d) +0.550
         // Owner override: the blue ring on the grey dot, 1.076:1 (glyph board §5 records it).
@@ -162,42 +165,45 @@ class MapPaletteTest {
     )
 
     /**
-     * Night [MapPalette.offlineRegion] `#FFFFFF` as drawn, over every [nightGround] cluster in its
+     * Night [MapPalette.offlineRegion] `#202020` as drawn, over every [nightGround] cluster in its
      * order. Recorded, not gated (owner's re-scoping, 2026-09-28): there is no threshold here, only
      * the requirement that the figures match, so that a change to the fill, its opacity or the casing
-     * shows up as a failing pin rather than passing silently. When the owner picks a new night shade,
-     * these pins are re-measured for it.
+     * shows up as a failing pin rather than passing silently. Re-measured for `#202020`, the owner's
+     * pick, from the `#FFFFFF` figures first pinned here; a later shade is re-measured the same way.
      *
-     * At `#FFFFFF`, the casing is below 3:1 over the composite on `#2A2D01` (2.799), `#020302` (1.712)
-     * and `#22201C` (2.481); these are recorded, not asserted against 3:1.
+     * At `#202020`, the composite sits under 0.02 ΔE from the plain ground on `#2A2D01` (0.014),
+     * `#1F342E` (0.013) and `#22201C` (0.001, where the fill all but vanishes), and the casing is
+     * below 3:1 over the composite on 14 of the 26 clusters (lowest `#020302`, 1.052). These are
+     * recorded, not asserted against any threshold. The casing-over-ground figures do not depend on
+     * the fill and are unchanged from `#FFFFFF`.
      */
     private val nightOfflineRegionAsDrawn = listOf(
-        AsDrawnPin(0xFF4E6012, deltaE = 0.115, casingOverRegion = 4.866, casingOverGround = 3.005),
-        AsDrawnPin(0xFF627524, deltaE = 0.099, casingOverRegion = 6.099, casingOverGround = 4.089),
-        AsDrawnPin(0xFF334801, deltaE = 0.137, casingOverRegion = 3.692, casingOverGround = 2.068),
-        AsDrawnPin(0xFF798936, deltaE = 0.085, casingOverRegion = 7.518, casingOverGround = 5.444),
-        AsDrawnPin(0xFF879A45, deltaE = 0.073, casingOverRegion = 8.736, casingOverGround = 6.738),
-        AsDrawnPin(0xFF9CA754, deltaE = 0.064, casingOverRegion = 10.047, casingOverGround = 8.069),
-        AsDrawnPin(0xFF59490A, deltaE = 0.125, casingOverRegion = 4.078, casingOverGround = 2.382),
-        AsDrawnPin(0xFF465208, deltaE = 0.126, casingOverRegion = 4.228, casingOverGround = 2.470),
-        AsDrawnPin(0xFF2A2D01, deltaE = 0.161, casingOverRegion = 2.799, casingOverGround = 1.474),
-        AsDrawnPin(0xFFAEBC65, deltaE = 0.050, casingOverRegion = 11.877, casingOverGround = 10.180),
-        AsDrawnPin(0xFFC2D076, deltaE = 0.039, casingOverRegion = 13.958, casingOverGround = 12.577),
-        AsDrawnPin(0xFF666319, deltaE = 0.108, casingOverRegion = 5.281, casingOverGround = 3.363),
-        AsDrawnPin(0xFF323701, deltaE = 0.150, casingOverRegion = 3.131, casingOverGround = 1.682),
-        AsDrawnPin(0xFF4B3A04, deltaE = 0.138, casingOverRegion = 3.439, casingOverGround = 1.906),
-        AsDrawnPin(0xFFA49047, deltaE = 0.071, casingOverRegion = 8.660, casingOverGround = 6.658),
-        AsDrawnPin(0xFF7F752A, deltaE = 0.094, casingOverRegion = 6.535, casingOverGround = 4.480),
-        AsDrawnPin(0xFF020302, deltaE = 0.236, casingOverRegion = 1.712, casingOverGround = 1.016),
-        AsDrawnPin(0xFFBEA964, deltaE = 0.055, casingOverRegion = 10.890, casingOverGround = 9.048),
-        AsDrawnPin(0xFF2E5CFA, deltaE = 0.093, casingOverRegion = 5.741, casingOverGround = 4.027),
-        AsDrawnPin(0xFF446835, deltaE = 0.111, casingOverRegion = 5.168, casingOverGround = 3.277),
-        AsDrawnPin(0xFF5C7D4A, deltaE = 0.095, casingOverRegion = 6.523, casingOverGround = 4.487),
-        AsDrawnPin(0xFF173E48, deltaE = 0.144, casingOverRegion = 3.335, casingOverGround = 1.819),
-        AsDrawnPin(0xFF3C512B, deltaE = 0.129, casingOverRegion = 4.159, casingOverGround = 2.403),
-        AsDrawnPin(0xFF1F342E, deltaE = 0.157, casingOverRegion = 3.013, casingOverGround = 1.588),
-        AsDrawnPin(0xFF22201C, deltaE = 0.175, casingOverRegion = 2.481, casingOverGround = 1.291),
-        AsDrawnPin(0xFF537342, deltaE = 0.102, casingOverRegion = 5.885, casingOverGround = 3.898),
+        AsDrawnPin(0xFF4E6012, deltaE = 0.044, casingOverRegion = 2.501, casingOverGround = 3.005),
+        AsDrawnPin(0xFF627524, deltaE = 0.056, casingOverRegion = 3.233, casingOverGround = 4.089),
+        AsDrawnPin(0xFF334801, deltaE = 0.028, casingOverRegion = 1.857, casingOverGround = 2.068),
+        AsDrawnPin(0xFF798936, deltaE = 0.068, casingOverRegion = 4.120, casingOverGround = 5.444),
+        AsDrawnPin(0xFF879A45, deltaE = 0.077, casingOverRegion = 4.978, casingOverGround = 6.738),
+        AsDrawnPin(0xFF9CA754, deltaE = 0.086, casingOverRegion = 5.815, casingOverGround = 8.069),
+        AsDrawnPin(0xFF59490A, deltaE = 0.033, casingOverRegion = 2.086, casingOverGround = 2.382),
+        AsDrawnPin(0xFF465208, deltaE = 0.035, casingOverRegion = 2.137, casingOverGround = 2.470),
+        AsDrawnPin(0xFF2A2D01, deltaE = 0.014, casingOverRegion = 1.424, casingOverGround = 1.474),
+        AsDrawnPin(0xFFAEBC65, deltaE = 0.096, casingOverRegion = 7.182, casingOverGround = 10.180),
+        AsDrawnPin(0xFFC2D076, deltaE = 0.106, casingOverRegion = 8.701, casingOverGround = 12.577),
+        AsDrawnPin(0xFF666319, deltaE = 0.047, casingOverRegion = 2.760, casingOverGround = 3.363),
+        AsDrawnPin(0xFF323701, deltaE = 0.020, casingOverRegion = 1.575, casingOverGround = 1.682),
+        AsDrawnPin(0xFF4B3A04, deltaE = 0.024, casingOverRegion = 1.745, casingOverGround = 1.906),
+        AsDrawnPin(0xFFA49047, deltaE = 0.076, casingOverRegion = 4.936, casingOverGround = 6.658),
+        AsDrawnPin(0xFF7F752A, deltaE = 0.060, casingOverRegion = 3.491, casingOverGround = 4.480),
+        AsDrawnPin(0xFF020302, deltaE = 0.045, casingOverRegion = 1.052, casingOverGround = 1.016),
+        AsDrawnPin(0xFFBEA964, deltaE = 0.091, casingOverRegion = 6.457, casingOverGround = 9.048),
+        AsDrawnPin(0xFF2E5CFA, deltaE = 0.073, casingOverRegion = 3.141, casingOverGround = 4.027),
+        AsDrawnPin(0xFF446835, deltaE = 0.045, casingOverRegion = 2.705, casingOverGround = 3.277),
+        AsDrawnPin(0xFF5C7D4A, deltaE = 0.060, casingOverRegion = 3.481, casingOverGround = 4.487),
+        AsDrawnPin(0xFF173E48, deltaE = 0.021, casingOverRegion = 1.681, casingOverGround = 1.819),
+        AsDrawnPin(0xFF3C512B, deltaE = 0.034, casingOverRegion = 2.090, casingOverGround = 2.403),
+        AsDrawnPin(0xFF1F342E, deltaE = 0.013, casingOverRegion = 1.515, casingOverGround = 1.588),
+        AsDrawnPin(0xFF22201C, deltaE = 0.001, casingOverRegion = 1.292, casingOverGround = 1.291),
+        AsDrawnPin(0xFF537342, deltaE = 0.054, casingOverRegion = 3.093, casingOverGround = 3.898),
     )
 
     /** The 11 fill roles (d) compares; the sighting ring and the casing are casings, not roles. */
@@ -233,7 +239,7 @@ class MapPaletteTest {
             "breadcrumb" to (0xFF650BB1 to 0xFFB228F8),
             "centrePin" to (0xFF7D0D5B to 0xFFA656A0),
             "searchCentre" to (0xFF000000 to 0xFFDEDEDE),
-            "offlineRegion" to (0xFF0B0B0B to 0xFFFFFFFF),
+            "offlineRegion" to (0xFF0B0B0B to 0xFF202020),
             "sightingDot" to (0xFF2B2B2B to 0xFF8C8C8C),
             "sightingDotStrokeSelected" to (0xFF2196F3 to 0xFF2196F3),
         )
