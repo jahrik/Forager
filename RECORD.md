@@ -3764,3 +3764,63 @@ The list-detail question goes to the owner next. Written by the planner by hand.
 **Reason:** the owner, verbatim: "Gablet is plugged in with USB debugging turned on".
 **Changes:** -74 launches at base d7cc9f5 (app/ identical to 99de6c2, the J8 terminal). The planner's adb read at launch showed two devices: R5CT321008R (model SM_S908U, the S22, in use by J8's device check -72) and R52T506412L (model SM_X800, product gts8pwifixx). The coder confirms the tablet's facts itself with getprop.
 **Notes:** About 3.4 GB of memory was available at launch, with the save-failure build and J8's device check both running. The coder waits for memory before its APK build. Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-76
+**Timestamp:** 2026-09-28T21:06:34Z
+**Continues:** 2026-09-28-68
+**Dispatch-file:** preserved/2026-09-28-76.md
+**Reason:** the -68 coder stopped at verification (ea60d72), because the Journal surfaces failures three ways (Toast, error-coloured text, plain text), so no single established pattern exists. It found saveErrorMessage set in 7 places with 5 existing messages, cleared on success paths but never displayed, onSaveErrorDismissed with no caller, and a dropped, unlogged failure at CartographyViewModel.kt:133.
+**Changes:** Owner: all seven messages kept verbatim. Owner: option B, a Toast hosted in JournalTab and LogPanel like the find editor's, cleared once shown or on the next successful write, with a failure raised off-screen shown when the Journal next opens. Planner: Discard success clears the message; the onStartEntry failure is logged only. Scope widens to JournalTab, LogPanel, MainActivity and the hosts between, for threading.
+**Notes:** Owner, verbatim: "For the failures, keep the messages as they are. They are specific to the action which is a feature." and "Option B for your question." The planner stated the log line to the owner beforehand. The J8 report's "never cleared" and ":664" were corrected by the coder (cleared on success paths; the line is :672). Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-77
+**Timestamp:** 2026-09-28T21:13:53Z
+**Continues:** 2026-09-28-56
+**Dispatch-file:** preserved/2026-09-28-77.md
+**Reason:** the map-chrome coder stopped at verification (dc09e53):
+- S1: the Records details sheet can cover the offline picker's map, and on wide windows the results map, and cannot tell when.
+- S2 and S3: the species-suggestion and Month popups stack over the 0.8 search panel, against CLAUDE.md's composite line.
+- Q1 to Q5 asked for rulings.
+**Changes:**
+- Owner "1 A": the two popups at 0.8 over the Maps tab, stacking on the panel, as the owner's exception.
+- Planner, stated to the owner and not overruled: "covers a map" means a map drawn on screen beneath; the Records sheet is 0.8 from the Offline maps sub-tab, with the wide case left to J6; surfaces follow the tab on a map-less Maps tab; the wide exit prompt follows the same rule.
+- Gradle builds are serialised across coders.
+**Notes:** Owner, verbatim: "1 A". Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-78
+**Timestamp:** 2026-09-28T21:13:53Z
+**Title:** Part 1's layout fixes: the legend at 270, the cluster over the expanded legend, the portrait search dropdown under the keyboard, the camera reset on a tab round trip, MapLibre's "i" under the nav bar, the attribution strip across the cluster at 90
+**Dispatch-file:** preserved/2026-09-28-78.md
+**Change:** Fix the six items by the least change that holds each ruling, with tests first where Robolectric can see the behaviour and a device-only list where insets decide. An unruled placement is a stop.
+**Scope boundary:** The Maps host files, SightingsMap.kt (camera and attribution margins), MapLayersSheet.kt (legend), the camera state holder, tests, a completion report. Not the night outline, map-chrome alpha, J6 or the other Part 1 flags.
+**Baseline:** journal-redesign at the base named at launch (queued after -70).
+**Prediction (outcome — planner):** 1. Items 1 and 2 share one cause in the clamp. 2. Item 4 is camera state held in composition. 3. Items 3, 5 and 6 are device-only.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** Verification, build, tests first, revert checks, full suite, report, pushed; the planner writes the terminal; the device items go to the next S22 check.
+**Abort conditions:** An unruled placement; a tests-first test passing at base; a non-compiling revert; a non-held failure; new copy; disk full or OOM; two failed fixes on one item; an unruled design question.
+**Notes:** Owner, verbatim: "2 A fix all". Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-79
+**Timestamp:** 2026-09-28T21:13:53Z
+**Title:** The night offline-region outline gets a white border; the fill and the day outline unchanged
+**Dispatch-file:** preserved/2026-09-28-79.md
+**Change:** At night, the region's dashed outline gets a white border line beneath it, in the track-casing pattern. Width, opacity and any dash adjustment are the coder's to propose, measured in MapPaletteTest against Part 1's darkest night ground (target at least 3 to 1). The owner judges on the phone.
+**Scope boundary:** The offline-region layer specs, MapPalette.kt, tests, a completion report. Not the fill, the day outline, taps or anything else.
+**Baseline:** journal-redesign at the base named at launch (queued after -78).
+**Prediction (outcome — planner):** 1. One new line layer and one palette role or constant. 2. The suite grows by 3 to 6.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** Build, tests first, revert check, full suite, report, pushed; the planner writes the terminal; the look goes to the owner on the S22.
+**Abort conditions:** Needing to change the fill or the day outline; a tests-first test passing at base; a non-compiling revert; a non-held failure; disk full or OOM; two failed fixes; an unruled design question.
+**Notes:** Owner, verbatim: "3 A rework the outline only. The fill color and opacity is fine as is. The outline should have a white border". Night only is the planner's reading, stated to the owner. Written by the planner by hand.
