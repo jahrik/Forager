@@ -3411,3 +3411,14 @@ Line 2628 (2026-09-27T02:02:25.441Z):
 **Notes:** Owner's J8 rulings, verbatim, in the plan's "J8 rulings (owner, 2026-09-28)"; earlier J8 rulings stand. Planner's rulings: the rebuild migration, one planner-proposed palette role measured in MapPaletteTest, region outlines highlighted under the content ruling, the named copy. Runs beside stage device check Part 1 on the phone. Written by the planner by hand.
 
 ---
+
+**Kind:** continuation
+**ID:** 2026-09-28-53
+**Timestamp:** 2026-09-28T17:56:14Z
+**Continues:** 2026-09-28-52
+**Dispatch-file:** preserved/2026-09-28-53.md
+**Reason:** the J8 coder stopped at verification (c9217b3; version 15 on both branches, no collision across 108 remote branches): the write path for shownOnMap runs through files outside the dispatched scope (CartographyViewModel, AppContainer, MainActivity, CartographyScreen), Open entry could silently drop unsaved edits (CartographyViewModel.onOpenEntry, :168), and bubble copy for several entries and the date form were unruled.
+**Changes:** Scope widened for one write handler, its wiring and threading (planner); Open entry opens in the Journal with the existing Save-your-changes prompt first (owner); each keeping entry a tappable date line, above three a "Kept in N journal entries" line opening an untitled list (owner); the report header's date form (planner); a record whose overlay is off gets no highlight, and located photos mean the entry's attached photos (planner).
+**Notes:** Owner, verbatim: "Open in Journal, prompt first (Recommended)", "Tap a date line (Recommended)". Written by the planner by hand.
+
+---
