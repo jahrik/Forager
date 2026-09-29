@@ -39,6 +39,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Region
+import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.theme.MapPalette
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
@@ -299,8 +300,8 @@ fun CentrePinLocationPickerOverlay(
     // The row's fill, at the map chrome's alpha: this overlay sits only inside a map's own Box, so it
     // is always over a map. Its content colour is pinned to the fill's own role (`contentColorFor`
     // matches a colour-scheme role exactly; see `MapLayersSheet`).
-    val rowColor = mapChromeFill(MaterialTheme.colorScheme.surface, overMap = true)
-    val rowContentColor = contentColorFor(MaterialTheme.colorScheme.surface)
+    val rowColor = mapChromeFill(navigationBarContainerColor(), overMap = true)
+    val rowContentColor = contentColorFor(navigationBarContainerColor())
     Box(modifier = modifier.fillMaxSize()) {
         CentrePin(night = night, modifier = Modifier.align(Alignment.Center))
         Surface(
