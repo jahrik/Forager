@@ -4560,3 +4560,40 @@ Put to the owner before any fix is written. Written by the planner by hand.
 - Item 8: no change. The band stays map, and J8's pill-only touch design and tests stand.
 - Tests first, revert checks and the full suite, as before.
 **Notes:** Owner, verbatim: "1 A / 2 A / 3 D". Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-110
+**Timestamp:** 2026-09-29T00:41:42Z
+**Continues:** 2026-09-28-78
+**Dispatch-file:** none (relaunch note; -78, -88, -98, -99 and -109 govern)
+**Reason:** the owner, verbatim: "Switch coders to Sonnet 5.5", then "Stop whatever coder that isn't Sonnet 5.5 and switch them". The planner stopped the -78 coder. Its worktree forager-wt/layout-fixes was clean at 08e9f13, with -109 not yet started.
+**Changes:** A fresh coder on Sonnet 5.5 continues from 08e9f13 and builds -109 (the chip row away from the cluster; the legend inboard at 270; item 8 unchanged), then the stage's finish line.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-111
+**Timestamp:** 2026-09-29T00:41:42Z
+**Continues:** 2026-09-28-106
+**Dispatch-file:** none (relaunch note; -106 governs)
+**Reason:** the same owner instruction. The -106 agent was stopped with forager-wt/offline-safety clean at 2a6399f; nothing had been committed, and no pre-registration made.
+**Changes:** A fresh coder on Sonnet 5.5 starts -106 from the current head, in the same worktree.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-112
+**Timestamp:** 2026-09-29T00:41:42Z
+**Continues:** 2026-09-28-94
+**Dispatch-file:** none (relaunch note; -94 governs)
+**Reason:** the same owner instruction. The -94 coder was stopped mid-check with device-trips pushed at f35e815. Phase 1 had the relaunch with no search: flags absent, region null. **Phase 2 is the reproduction:** after a recent search, both flags draw at their pre-registered points. Two trips created by -94 (A 2026-09-28 and B 2026-09-30, ids in the run record and in device-evidence/2026-09-28-planned-trips/trips-created.txt) are still on the S22.
+**Changes:**
+- A fresh device coder on Sonnet 5.5 re-reads the phone's state first, then finishes -94's remaining checks where they add evidence.
+- It **deletes exactly trips A and B** through the planner and reads back planned_trips at its starting count.
+- It restores settings and writes the verdicts into the existing run record, in a new worktree forager-wt/device-trips on branch device-trips.
+- The -94 coder had created its branch in the planner's own session checkout (the dispatch named no worktree). The planner has pushed nothing of it; the branch was already pushed and clean, so the planner restored its checkout to its own branch.
+**Notes:** The reproduction unblocks -97 (the fix, owner option A). Written by the planner by hand.
