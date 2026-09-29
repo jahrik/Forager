@@ -5496,3 +5496,16 @@ It also flagged the snackbar lying over the floating nav.
 - **The planner's reading:** the wide drawer's other panels also carry a back-arrow header, for example Settings' SettingsHeader(onBack) at AvailabilityScreen.kt:1422. A back row with a label would keep that pattern.
 - **Both prompts went to one window.** The coder took J6 only, correctly, so Part 2 Session 1 (-154) has not started and needs its own window.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-158
+**Timestamp:** 2026-09-29T07:39:14Z
+**Dispatch:** none yet
+**Reason:** the owner's ship blocker on the Maps icon bar and the record/return pill. The screenshot and the words are recorded verbatim in the plan, under "The icon bar and the record pill: an L shape".
+**Changes:** none yet. A read-only pulse maps the cluster's geometry. The planner's reading, and which layouts it covers, go to the owner before a dispatch.
+**Notes:**
+- Part 2 Session 1's cluster items (38, 39, 42) will need a re-check after the change.
+- The J6 header question (-157) is still open with the owner.
+- Written by the planner by hand.
