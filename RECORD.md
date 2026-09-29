@@ -6948,3 +6948,30 @@ The planner confirmed each by grep.
 - The forced-failure checks are skipped and recorded as untested.
 - zynergy-site PR #3 is held and gains L1's release wording, to go live with PR #140. This is relayed to the second planner, which owns PR #3.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-232
+**Timestamp:** 2026-09-29T20:21:02Z
+**Dispatch:** 2026-09-28-216 (F5)
+**Reason:** the F5 coder handed back, pushed to journal-redesign at 2fa093ef. Report: docs/audits/2026-09-29-privacy-fixes-completion-report.md.
+**Changes:**
+- **What F5 built:**
+  - leaveOutExcludedTables clears JournalTables.excluded (cached_searches) on the snapshot copy only (RoomJournalBackup.kt:110, 178-196);
+  - TrackGpxExporter.deleteStaleExports() removes .gpx files older than an hour, before each export and at app start (ForagerApplication.kt:57).
+- **Its evidence:**
+  - tests first: 4 of 71 failed as predicted;
+  - M1 showed the restore tests bite;
+  - revert checks R1-R6;
+  - its suite: 3223 / 0 / 0 / 24.
+- **F5's device list is added to Part 3's S22-B** (the dispatch amendment).
+**Notes:**
+- **A wrong premise:** restore already never wrote cached_searches, since it walks JournalTables.journal only.
+- **The model flag:** the coder reports that its session context named a different model from the one the launch prompt expects, so it is unconfirmed. Told to the owner.
+- **The residue flag, for the owner:** deleted rows' bytes may survive in a backup file on a phone without secure_delete. It holds under Robolectric (secure_delete=1), unverified on a phone. Device item 3 checks it first. If there is residue, the options are:
+  - (a) secure_delete on the copy;
+  - (b) VACUUM the copy;
+  - (c) disclose it.
+- **ForagerApplication.kt changed** beyond the scope line, as needed for "at app start".
+- Written by the planner by hand.
