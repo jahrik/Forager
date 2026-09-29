@@ -64,6 +64,7 @@ import com.zynergylabs.forager.app.domain.model.Region
 class GetCartographyEntryMapDataUseCase(
     private val trackRepository: TrackRepository,
     private val mushroomLogRepository: MushroomLogRepository,
+    @Suppress("unused") private val keptTrackPaths: KeptTrackPathRepository,
 ) {
     suspend operator fun invoke(entry: CartographyEntry, galleryPhotos: List<GalleryPhoto>): CartographyEntryMapData {
         val trackPolylines = entry.trackDecisions.filter { it.kept }.mapNotNull { decision ->

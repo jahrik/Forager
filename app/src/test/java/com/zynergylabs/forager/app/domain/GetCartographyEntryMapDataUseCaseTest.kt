@@ -6,6 +6,7 @@ import android.app.Application
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.data.local.ForagerDatabase
+import com.zynergylabs.forager.app.data.repository.RoomKeptTrackPathRepository
 import com.zynergylabs.forager.app.data.repository.RoomMushroomLogRepository
 import com.zynergylabs.forager.app.data.repository.RoomTrackRepository
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
@@ -58,7 +59,7 @@ class GetCartographyEntryMapDataUseCaseTest {
         ).build()
         trackRepository = RoomTrackRepository(database.trackDao())
         mushroomLogRepository = RoomMushroomLogRepository(database.mushroomLogDao())
-        useCase = GetCartographyEntryMapDataUseCase(trackRepository, mushroomLogRepository)
+        useCase = GetCartographyEntryMapDataUseCase(trackRepository, mushroomLogRepository, RoomKeptTrackPathRepository(database.cartographyEntryDao()))
     }
 
     @After

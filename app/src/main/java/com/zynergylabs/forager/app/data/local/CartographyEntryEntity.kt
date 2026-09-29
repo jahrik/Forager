@@ -173,3 +173,20 @@ data class CartographyEntryPhotoRefEntity(
     val photoId: String,
     val attachedAtEpochMillis: Long,
 )
+
+/**
+ * The saved path of a track an entry kept, written when the track is deleted (F3, dispatch
+ * 2026-09-28-195; owner, 2026-09-29: "Option B", "All recommended"). One row per (entry, track) ref
+ * row, so it is untouched by draft saves. [path] is [com.zynergylabs.forager.app.domain.TrackPathCodec]'s
+ * encoding. No `@ForeignKey`, like the ref tables it sits beside. STUB doc (tests first).
+ */
+@Entity(
+    tableName = "cartography_entry_track_paths",
+    primaryKeys = ["entryId", "trackId"],
+    indices = [Index(value = ["trackId"])],
+)
+data class CartographyEntryTrackPathEntity(
+    val entryId: String,
+    val trackId: String,
+    val path: ByteArray,
+)

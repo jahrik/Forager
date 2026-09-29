@@ -976,3 +976,9 @@ val MIGRATION_15_16: Migration = object : Migration(15, 16) {
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_cartography_entries_isDraft` ON `cartography_entries` (`isDraft`)")
     }
 }
+
+/** STUB (tests first): creates nothing yet. */
+val MIGRATION_16_17: Migration = object : Migration(16, 17) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+    }
+}
