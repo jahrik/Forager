@@ -35,3 +35,42 @@ Scope: A1, A2, A3 of the checklist, which are the "map, layout, chrome, fan-out 
 **Data rules.** Only items named "DEVICE CHECK 2026-09-30 ...". Delete afterwards through the app (the dispatch says nothing destructive in this session; the phone is left on the new build at schema 17, so S22-A does not restore from the v16 copy). Anything that cannot be removed through the app is listed as residue with counts against the copy. The owner's own entries, photos, tracks and regions are never edited or deleted.
 
 **Abort conditions** are Part 2 rules 11: an unverifiable copy, uninstall/`-d`/clear needed, signature mismatch, owner's data changed, a new Forager FATAL, locked phone, any need to touch the tablet. A system prompt over the app: stop for the owner.
+
+## S22-A results (evidence in `/home/zynergy-labs/Zynergy/device-evidence/2026-09-30-part-3/`, PNG and dumps prefixed by step)
+
+**Status: PARTIAL. This session ran the install, the migration check and a first slice of A1/A2. Most of A1-A3 has no verdict (list below). I hand back rather than claim items I did not run.**
+
+### Install and migration: PASS
+`install -r` succeeded: versionName `1.0.1910+g06b394b9`, versionCode 1910, same signature hash `d59f30b8` as before, `firstInstallTime` `2026-09-22 11:15:05` unchanged. After one launch and a force-stop, `forager.db` (scratch copy of db and wal): `integrity_check` ok, `user_version` **17**, every row count equal to the copy, plus `cartography_entry_track_paths` = 0 rows (`a-migration-verify.txt`; `diff` against `a-copy/forager-db-verify.txt` shows only those two lines). Crash buffer at the end: empty (`a-crash-end.txt`, 0 lines); no Forager FATAL.
+
+### A1 item 1 (the L against the search bar), at 90 and 270: FAIL after a fullscreen cycle; borderline before it
+- Fresh launch (`r0.png`, 90): the L's bar top is at y=213 px; the search panel's visible bottom is about y=211 (pixel read at x=600), the search slot's node bottom is 216 (`b0.xml` `[75,81][1136,216]`). So visually clear by about 2 px, and by node bounds the L overlaps the slot by 3 px (1 dp). Not a clean pass; consistent with the predicted T9 1 dp figure.
+- **After entering and leaving fullscreen with a real tap on the Fullscreen button, the L rests 47 px (about 17 dp) higher**: the Fullscreen icon bounds go from `[132,247][200,315]` to `[132,200][200,268]` (`r0.xml`/`r2.xml`; `r0.png`, `r2.png`), so the L's top is about y=166, above the search panel's bottom (about 211): the L covers about 45 px of the panel's lower band. In fullscreen itself the L stays put (`r1`: `[132,247]`). Reproduced twice at 90 (`fs-out.png`, `r2.png`) and once at 270 (`q0.png` to `q2.png`: icon `[2117,247]` to `[2117,200]`, L on the right, overlapping the search panel's lower band). This breaks the owner's ruling (a) "the L's top is never above the search bar's bottom" (`prompts/preserved/2026-09-29-30.md`, quoted in the landscape-l report Resumed section 1). Mechanism not investigated (the report's top-limit reading is `topInset`; a plausible cause is the limit being re-read while the search bar is hidden and not re-applied on exit, **unverified**). A relaunch restores 247.
+- Real search bar height at 90: the panel spans y=84 to about 211 px (127 px, about 45 dp), matching the NATIVE 45 dp figure, not the legacy 85 dp.
+
+### A1 item 3 (real touches on the 48 dp squares), partial: PASS on the rows run, 90 only
+Real `adb shell input tap` at fractions of each row's box (box from the dump, 135 px = 48 dp). Reached the button: Layers row at (0.03,0.03), (0.97,0.03), (0.03,0.97), (0.97,0.97), (0.10,0.10), (0.90,0.90), centre (opens the sheet: text "Map type"); Add row at the same corners and (0.10,0.90), (0.90,0.90) (opens Find/Journal/Trip/Waypoint); Fullscreen row at (0.03,0.03) and (0.97,0.03) toggled it. **A tap 6 px left of the Layers square (x=92) did not reach it: PASS.** Not done: the Fullscreen row's lower corners (my taps after the first toggle hit a moved L, so they proved nothing), the north and locate rows, the record button and the return button (record would start a recording and ask for notification permission, a system prompt for the owner), the handle's 20 x 48 box, 270. Taps at points that are not on a square hitting the map were not checked, because a map tap has no visible effect in a dump.
+
+### A2 fan (item 15/17, partial)
+A stray real tap of mine at (1150,640) at 270 (my error, meant for nothing) hit the owner's own real stack at the map centre: a ring of 6 markers (3 camera-photo glyphs, 2 find glyphs, 1 dark pin) with legs to the true point, all on screen and clear of the L and search bar (`fan270-open.png`, `q2.png`). **Back folded it, the app stayed open** (`fan270-afterback.png`, focus `MainActivity`). The 0.4 s timing, "the map does not move", spiral of 9+, the separating zoom, "Remove animations", and every other fan check were not run. No data was created by me.
+
+### Two findings outside the items
+1. **`monkey ... LAUNCHER` rewrites the rotation lock.** `dumpsys window displays` history shows `mode=USER_ROTATION_FREE, rotation=ROTATION_0, caller=MonkeyRotationEvent#injectEvent` at 15:14:34, when I launched with monkey. That is a probable cause of the "`accelerometer_rotation` flipped to 1 on its own" reports in Part 2. I switched to `am start -n com.zynergylabs.forager.app/.MainActivity`. Also, setting `user_rotation` right before a `uiautomator dump` raced once (the dump's `restoreRotationStateLocked` put the old rotation back); read the state after a pause.
+2. **F5's GPX cache cleanup already ran** on the first launch after the install: logcat `ForagerApplication: Deleted 1 GPX export(s) more than an hour old from the cache.` (15:14:12), and `cache/tracks/forager-track-2026-09-27-192346.gpx` is gone from the phone. It is in `a-copy/` (sha256 `a7c4f949...`). S22-B's F5 items 5-7 start without that file; item 7's "reopen with an export over an hour old" needs a fresh Share first.
+
+### Not run (no verdict): everything else in A1-A3
+A1: 2, 4, 5, 7, 8, 9, 10 (and the landscape items' owner-judged halves); A2: 11-14, 16, 18-20; A3: 21-29. Also A4 and A5 were assigned to neither session (see the pre-registration). Sundown alerts: skipped, out of scope. I stopped here because the remainder is a long real-touch and capture campaign and I judged a truthful partial hand-back better than thin verdicts; that is a decision of mine, listed below.
+
+### Restore read-back
+No data of mine to delete: nothing was created. Settings: `accelerometer_rotation` 0, `user_rotation` 0 (start values), `font_scale` 1.0, animation scales untouched, `cmd uimode night` = yes (unchanged from the start), app force-stopped. Files: photos, DataStore, `fungi_index.db`, `mbgl-offline.db` and the rest were not compared except the photo, DataStore, fungi and gpx entries by hash against `a-copy/device.sha256` (`a-end.sha256`): equal, except the gpx, removed by the app itself as above. `forager.db` differs from the copy only by the migration and normal wal activity (counts equal, read above). The phone is left on `1.0.1910+g06b394b9`, schema 17, for S22-B.
+
+### Decisions I made
+- Read A1-A3 as S22-A's groups and left A4/A5 unrun as unassigned.
+- Built by detaching the worktree at `06b394b9` (versionName carries the HEAD sha), then returned to `device-part-3`.
+- Took the copy with 22 files, including the gpx, and left the `.lck` files out.
+- Used `am start` instead of `monkey` after finding the rotation rewrite.
+- Ended after a partial slice (above); that is the largest choice and the planner may want to re-dispatch the rest.
+
+### Flags outside scope
+- The record protocol's sweep/intent/terminal duties were not done: this tree has no kit, and the dispatch says the planner writes the record.
+- `device-part-3` was cut from `4fdd6242`; `origin/journal-redesign` has since moved (`a58c6a4a`, a removal of dispatch-notes), so the branch is one commit behind it.
