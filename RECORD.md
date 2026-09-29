@@ -5234,3 +5234,29 @@ It also flagged the snackbar lying over the floating nav.
   - it deleted its own stale log device-evidence/t97-base-run.log from the shared evidence directory;
   - bottomNavHeightPx keeps its last value after the nav leaves composition.
 - Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-146
+**Timestamp:** 2026-09-29T05:54:49Z
+**Closes:** 2026-09-28-104
+**Outcome:** completed
+**Observed:**
+- **Record:** docs/audits/2026-09-29-map-chrome-follow-ups-completion-report.md, covering the first pass and the "Resumed (relaunch -143)" section.
+- **All nine items resolved.**
+  - The first coder built six (881cfbd).
+  - The relaunch coder built items 8, 2 and 6 (eb27a60f) and item 9 (0e58ab52).
+  - The previous window's tests-first commit, ce952227, needed two test corrections (-145).
+- **Evidence:**
+  - tests first, failing at base for the stated reasons;
+  - six revert checks, each failing only for its own edit;
+  - the coder's suite, 2673 / 0 / 0 / 24.
+- **The planner's own suite**, on an idle machine at 419c78c1, from a cleared results directory: 335 files, none stale, 0 compile errors, 2673 / 0 / 0 / 24, in 269 s.
+- **Item 8's night premise was wrong.** It is superseded in -145 from the frames.
+- **Device-only, for stage device check Part 2:**
+  - the entry map on each basemap, by day and at night;
+  - the notice below the strip and the cluster clearing it, with real status bars, in both landscape rotations;
+  - the snackbar above the nav and clear of the rail;
+  - the centred chips on the S22 and S26.
+**Notes:** Written by the planner by hand.
