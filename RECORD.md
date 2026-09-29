@@ -6994,3 +6994,20 @@ The planner confirmed each by grep.
 **Notes:**
 - **The model:** the owner, verbatim: "Sonnet 5.5 finished eith F5". The coder had reported the model as unconfirmed, with its session context naming a different one.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-234
+**Timestamp:** 2026-09-29T20:26:22Z
+**Dispatch:** 2026-09-28-216 (F5), duplicate launches
+**Reason:** a second F5 window (e4d26c) stopped at once. Its premise was stale, because F5 had already landed, and it built nothing.
+- It found a **third F5 run** in forager-wt/privacy-fixes-sonnet (branch privacy-fixes-sonnet, at the old base 445b292b).
+- That run has uncommitted test edits: JournalBackupTest, TrackGpxExporterTest and RecordDetailsSheetTest, plus a new ForagerApplicationGpxStartTest. They were last modified at 13:23 PDT.
+**Changes:**
+- The second window is told to cancel as done.
+- The planner could not tell which open session owns privacy-fixes-sonnet, so the owner is asked to stop it without pushing.
+**Notes:**
+- F5 stays closed (-233).
+- If the third run pushed, it would put a second implementation over the landed one.
+- Written by the planner by hand.
