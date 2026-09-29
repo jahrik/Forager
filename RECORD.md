@@ -5973,3 +5973,106 @@ Nothing of either window was pushed. On the phone, the two did only force-stop a
 **Notes:**
 - The graphics-mode change keeps the test's assertion. It is recorded here as the planner's decision, not as a weakening, because only the text metrics change, from values no device shows to real ones.
 - Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-179
+**Timestamp:** 2026-09-29T11:16:41Z
+**Closes:** 2026-09-28-154 (stage device check Part 2)
+**Outcome:** completed, with fails, deferrals and findings carried to the Part 2 follow-ups
+**Observed:**
+- **Record:** docs/audits/2026-09-29-stage-device-check-part-2-run-record.md, Sessions 1-3, merged at 2fdb94f1, 54921c0a and ddfe0c2b.
+- **Build:** 1.0.1685+g85a41257 on the S22 throughout. After each session the phone was returned to that session's verified copy: 18 of 18 hashes for Session 1, 21 of 21 for Sessions 2 and 3. Each time: integrity ok, v16, row counts equal. The crash buffer stayed empty.
+- **Session 3,** backup and restore:
+  - **Pass:** 64, 67-71, 73, 74 and 76, with -153's "Replace the existing backup file?" and its region re-ids. That covers backup, Replace, both Merges, not-downloaded regions with a real re-download, negative Merge ids, the photo pause, trips, the recording block, the Backups channel and both notifications, and the declined-permission notice shown once.
+  - **Partly:** 65, with no cloud write, deliberately; 66, where `cmd jobscheduler run` cannot force a WorkManager job; and 75, where the pulse and fade were not captured.
+  - **Not runnable:** 72, since there is no hook.
+- **Across Part 2:**
+  - **Fails:** item 5 (the bubble on rotation) and item 37 (the "i" in portrait fullscreen).
+  - **For the owner** (deferred to 2026-09-30): 54-56, 58 and 59.
+  - **Deferred to after the L:** 38, 39, 40 and 42.
+  - **Not run, declared:** several 90/270 halves, and items 11, 12, 51 and 53.
+**Deviations:**
+- **Session 2 was started twice.** The first verified copy was lost, and a fresh one taken (-167).
+- **The restore was unequal on its first pass,** in Session 2 (7/21) and in Session 3 (11/21). It was caught each time by the read-back, and correct on a second pass that removed each file before pushing. The first pass's cause is not determined.
+- **Session 3 tapped the system "Allow Forager to access folder?" dialog itself,** as part of item 65's picker. The planner accepts that reading of rule 11: the dialog is the picker's own consent step, which the item exists to check. It is not a permission prompt over the app.
+**Notes:**
+- **New findings for the follow-ups:**
+  - (i) a restore onto the phone that made the backup shows each region twice: the live MapLibre row plus a "Not downloaded" copy. Each Merge adds more; 8 rows for 2 regions after a Replace and two Merges;
+  - (j) after a Replace, the Journal still showed the report of a find the Replace had deleted;
+  - (k) turning the schedule on runs a backup at once, and again on every off/on;
+  - (l) scheduled runs keep writing new "(n).zip" files, and nothing prunes them;
+  - (m) while notifications are denied, the permission prompt returns on each schedule toggle and on Start recording.
+- **Residue on the S22 that is not app data:** the "Backups" notification channel, and possibly a persisted folder grant for the deleted DEVICE-CHECK folder.
+- Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-180
+**Timestamp:** 2026-09-29T11:21:40Z
+**Dispatch:** none yet (the Part 2 follow-ups)
+**Reason:** the owner, verbatim: "2 A, 3 I'll take your recommendations". Also, verbatim: "Yes drop that" (the landscape entry map's band, withdrawn).
+**Changes:**
+- **The new track stops:** 100% at zoom 18 and above, about 67% at 16, about 42% at 14, and 25% at 12 and below.
+- **The four backup rulings:**
+  - skip a duplicate region on restore;
+  - the first scheduled run waits for its time;
+  - keep the newest 5 scheduled backups;
+  - ask the notification permission once.
+- All six go into the Part 2 follow-up dispatch. It waits only on the owner approving the "Download Maps" confirmation wording.
+**Notes:**
+- Scheduled-backup pruning is the first time the app deletes files of its own outside its storage. It is limited to scheduled backups in the chosen folder.
+- Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-181
+**Timestamp:** 2026-09-29T11:24:15Z
+**Title:** Part 2 follow-ups F1, the map and the Journal: bubble on rotation, the "i" in fullscreen, track stops, the Download confirmation, track Delete, the tablet chip guard, the Gallery date, "Welcome back", the camera in landscape, stacked glyphs
+**Dispatch-file:** preserved/2026-09-29-32.md; launch preserved/2026-09-29-34.md (~/Zynergy/launch-prompts/15-followups-map.md)
+**Change:** ten items. They are ruled by the owner or are plain bugs; three are investigate-first.
+**Scope boundary:**
+- the compact and wide map chrome, SightingsMap's track stops, the offline picker's confirmation, the records details, PhotoExporter, the Welcome back trigger, and the camera screen's orientation;
+- not backup;
+- not the L's cluster geometry.
+**Baseline:** journal-redesign after the L (-160) lands. The planner names BASE at launch.
+**Prediction (outcome, planner):**
+1. Items 1-6 build.
+2. Item 7's cause is the publish-time media scan.
+3. Item 10 is reported, not built.
+4. The suite grows by 20 to 40.
+**Prediction (mechanism, coder):** not authored.
+**Finish line:** tests first, the build, revert checks, the full suite at 0, the report with device-only items. The planner re-runs the suite and writes the terminal.
+**Notes:**
+- The owner approved the Download copy verbatim: "Approve the Download Maps wording as is".
+- Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-182
+**Timestamp:** 2026-09-29T11:24:15Z
+**Title:** Part 2 follow-ups F2, backup and restore: no duplicate regions, the first scheduled run waits, keep 5 scheduled, ask permission once, close deleted finds after Replace, drop orphaned refs, Try again with the schedule off
+**Dispatch-file:** preserved/2026-09-29-33.md; launch preserved/2026-09-29-35.md (~/Zynergy/launch-prompts/16-followups-backup.md)
+**Change:** seven items: the owner's four rulings (-180) and three bugs.
+**Scope boundary:** data/backup, ui/backup and the post-restore reload. Not the map.
+**Baseline:** journal-redesign at the commit named at launch. It can launch now, beside the L.
+**Prediction (outcome, planner):**
+1. The keep-5 pruning needs a DataStore list of scheduled URIs.
+2. The suite grows by 15 to 30.
+**Prediction (mechanism, coder):** not authored.
+**Finish line:** as F1.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-183
+**Timestamp:** 2026-09-29T11:27:14Z
+**Dispatch:** 2026-09-28-182 (F2)
+**Reason:** the owner launched F2. The owner, verbatim: "Session: # Coder session: Part 2 follow-ups F2".
+**Changes:** F2 runs in that owner-opened window at base cb01395d, beside the L's final run. F1 (-181) waits for the L to land.
+**Notes:** Written by the planner by hand.
