@@ -149,7 +149,6 @@ abstract class WideMapControlsTests {
                 onToggleRecording = { recording = !recording },
                 returnToStart = if (recording) ReturnToStartInfo(bearingDegrees = 180.0, distanceMeters = 1200.0, elevationDifferenceMeters = null) else null,
                 isReturning = navigating,
-                isNavigating = navigating,
                 onToggleReturning = { toggleReturningCalls++ },
                 cartographyUiState = if (shownEntry) ONE_SHOWN_ENTRY else CartographyUiState(),
                 compassProvider = fakeCompass,
@@ -238,7 +237,12 @@ abstract class WideMapControlsTests {
     @Test
     fun `FAILS AT BASE a real touch on the Layers row opens the Layers sheet`() {
         setScreen()
-        touch(boundsDescPrefix("Layers:"))
+        // The wide map's own separate Layers button carries this description too (and passed at base), so the
+        // row touched must be the bar's: inside the cluster.
+        assertTrue("the cluster is on the map", exists(MAP_ICON_CLUSTER_TAG))
+        val row = boundsDescPrefix("Layers:")
+        assertTrue("the Layers control ($row) is a row of the cluster (${cluster()})", row.left >= cluster().left && row.right <= cluster().right && row.top >= cluster().top && row.bottom <= cluster().bottom)
+        touch(row)
         assertTrue("the Layers sheet is open", exists(MAP_LAYERS_SHEET_TAG))
     }
 
@@ -252,7 +256,10 @@ abstract class WideMapControlsTests {
     @Test
     fun `FAILS AT BASE a real touch on the plus row opens the plan-or-log chooser`() {
         setScreen()
-        touchDesc("Plan a trip or log a find here")
+        assertTrue("the cluster is on the map", exists(MAP_ICON_CLUSTER_TAG))
+        val row = boundsDesc("Plan a trip or log a find here")
+        assertTrue("the plus control ($row) is a row of the cluster (${cluster()}), not the separate button", row.left >= cluster().left && row.right <= cluster().right && row.top >= cluster().top && row.bottom <= cluster().bottom)
+        touch(row)
         assertTrue("the chooser is open", composeRule.onAllNodesWithText("What would you like to do here?").fetchSemanticsNodes().isNotEmpty())
     }
 
