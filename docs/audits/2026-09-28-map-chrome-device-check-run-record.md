@@ -848,3 +848,55 @@ them at one camera for comparison with the other five.
 Night Maps is off again); the next launch opens on Topographical. The database (`db-c5-*`): integrity ok,
 `user_version` 16, **every digest equal to the backup's**, after the snackbar path's six more runs. Crash buffer 0
 bytes, 0 `FATAL EXCEPTION` (`150-`).
+
+## Check 6: rotations: **at 90 and at 270 every surface of checks 1 and 3 shows the map through at 0.80**
+
+Relaunched at 23:49:40Z, `user_rotation` 1 at 23:49:48Z (`accelerometer_rotation` 0), Topographical, Night Maps off; at
+23:56:18Z a force-stop and relaunch (to clear the notice), then `user_rotation` 3. The same methods as checks 1 and 3:
+fullscreen as the reference for the rail and the strip, the frame before for the rest. Every pair's control box on the
+map fits slope 1.000, rms 0. Frames `160-` to `178-` (90) and `180-` to `197-` (270); window frames `161-`, `181-`.
+
+**Layout at 90:** the rail on the right (`x` 1956 to 2181, the navigation bar beyond it), the cluster on the left, the
+search bar top left, the strip top right. **At 270** the mirror: rail left (`x` 135 to 360, the navigation bar at
+`x` 0 to 135), cluster right, bar top right, strip top left.
+
+| surface | 90: box, a, composite | 270: box, a, composite |
+|---|---|---|
+| **rail** (fullscreen reference) | `[1965,945][2175,1075]` 0.200-0.201; in the navigation bar's band `[2190,300][2310,480]`, `[2190,600][2310,780]` 0.200-0.201: **0.80** (b 25.9, `#202020`) | `[140,945][355,1075]` 0.200; band `[5,300][130,480]`, `[5,600][130,780]` 0.200: **0.80** |
+| **compass strip** (fullscreen reference: the strip moves toward the edge and uncovers part of its band) | `[1188,90][1208,132]` 0.195-0.205, `[1382,90][1401,132]` 0.201: **0.80** (0.8 × Bark) | `[1110,88][1126,136]` (192 px) 0.203-0.205: **0.80** |
+| **search dropdown** (keyboard floating, lowered by one Back) | `[560,300][1000,420]`, `[560,460][1000,540]`, `[850,580][1040,640]` 0.200-0.202, rms 0.3: **0.80** | `[1650,300][2070,420]`, `[1650,460][2070,540]`, `[1860,580][2070,640]` 0.200: **0.80** |
+| **search notice** (fields read empty in the dump first) | `[300,300][1130,345]`, `[1040,225][1130,290]` 0.200-0.202, b (85.9, 27, 27): **0.80** | `[1330,292][2070,345]` 0.200: **0.80** |
+| **Tools drawer** (opens from the rail's side) | scrim `[300,400][1200,900]` s 0.678-0.679; sheet `[1350,400][2100,900]` 0.134-0.137: **fill 0.80**, composite 0.864; also in the navigation bar's band, 0.138 | scrim `[1100,400][2000,900]` s 0.679; sheet `[180,400][960,900]` 0.134-0.137: **fill 0.80**; band 0.139-0.141 |
+| **centre-pin row** (Cancel at (1500, 990)) | inside Cancel's outline `[1200,940][1900,958]` 0.199-0.200, b 22: **0.80** | the same box, 0.199-0.200: **0.80** |
+| **snackbar** (the check 1c second path through the rail: Journal, Records, Finds, Drafts, the draft, Back, Maps) | `[700,950][1780,1005]` 0.199-0.200, b (183.8, 178.8, 185.9): **0.80**; its top edge `[700,925][1780,945]` 0.173-0.175 (0.826, its shadow, inferred) | the same boxes, the same figures: **0.80**, top edge 0.826 |
+
+**For the owner (by my reading of the frames; not ruled):**
+- **The search notice meets the cluster.** At 90 the cluster's column is drawn over the notice's first words ("Enter a")
+  and its second line ("180).") (`166-c6-r90-notice-B`); at 270 over its last word, "to" (`185-`). The notice runs the
+  bar's full width and the cluster sits over the bar's end, as `-72` flagged for the bar itself.
+- **The centre-pin row spans the whole window in landscape,** `[45,922][1146,1057]` OK and `[1169,922][2271,1057]` Cancel
+  at both rotations, so at 90 Cancel's right end lies under the navigation bar (`x` 2181 on) and at 270 OK's left end
+  does (`x` 0 to 135), and the row covers the rail's "Tools" item (`170-`, `189-`). I touched Cancel only at (1500, 990),
+  well inside the map.
+- **The snackbar is centred on the window,** `x` 281 to 2035 at both rotations, so it reaches over the rail's edge at
+  270 and toward it at 90 (`177-`, `196-`).
+- The Journal's "Offline maps" chip read **0** in this process (`175-`), the start-up region list again empty (check 2a).
+
+**Captures for the owner:** 90: `160-` (rail, strip, bar), `165-` (dropdown), `166-` (notice), `167-` (drawer), `170-`
+(pin row), `177-` (snackbar). 270: `180-`, `184-`, `185-`, `186-`, `189-`, `196-`. All by day on Topographical.
+
+Restored: `user_rotation` 0 at 00:01Z; `map.fullscreen` false (`map_preferences` decodes equal to the start's, `199-`).
+The database after check 6 (`db-c6-*`): integrity ok, `user_version` 16, **every digest equal to the backup's**. Crash
+buffer 0 bytes at 90 and at 270 (`179-`, `198-`).
+
+**Prediction:** check 1 and check 3 held at both rotations.
+
+## Check 7: not run, as the dispatch says
+
+- **The exit-navigation prompt and the HUD:** both need an active return (navigation), which needs a recording or a
+  target; not started.
+- **The three-way action dialog and the wide Layers button:** wide layout only; the S22 has no wide window. For the
+  tablet.
+- **The save-failure Toast:** needs a forced write failure, which needs code.
+- **Also not run here (see check 3):** the taxon chip (needs a search, which writes `cached_searches`) and J8's chip
+  (needs a `shownOnMap` edit).
