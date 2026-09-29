@@ -4937,3 +4937,21 @@ All on layout-fixes-wip at 3bbbcfa. It stopped: a two-chip wrapped row reaches 1
 - Planner's ruling on -104's flag: on the Maps tab the snackbar sits above the floating bottom navigation, not only the system bar (the standard). It goes to -104's continuation.
 - The two stops (the entry map's basemap; the search notice) are put to the owner.
 - Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-129
+**Timestamp:** 2026-09-29T03:22:28Z
+**Continues:** 2026-09-28-104
+**Dispatch-file:** preserved/2026-09-29-12.md
+**Reason:** the -104 coder built six of eight items (881cfbd; its suite was 2578 / 0 / 0 / 24) and stopped on two:
+- item 8: a comment records the entry map's basemap as deliberately local;
+- item 2: the notice's placement against the strip and the cluster was unruled.
+
+It also flagged the snackbar lying over the floating nav.
+**Changes:**
+- The owner, verbatim: "1 B": the entry map is seeded from the Maps tab's basemap, with no write-back, and the cause of its day rendering at night is to be found.
+- The owner, verbatim: "Option A": the notice goes below the strip's measured height, and the cluster's minY follows it while shown.
+- Planner: the snackbar sits above the floating bottom nav and the rail foot.
+**Notes:** Written by the planner by hand.
