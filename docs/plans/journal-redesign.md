@@ -1061,3 +1061,35 @@ So:
 4. **The L is for phone landscape only** (the compact tree's short window). Phone portrait keeps its current arrangement. The tablet (the wide tree, J6b's controls parity) never takes the L.
 5. **Part 2 Session 1 starts now.** Its landscape cluster items are deferred and re-checked after the L lands.
 6. **J6's header is a back-arrow row labelled "Journal",** with the Entries / Records switch below it. It returns to the Search panel, as the "Mushroom Log" row does today.
+
+**The L's height (owner, 2026-09-29).** The cluster-geometry pulse (`docs/audits/2026-09-29-icon-cluster-geometry-pulse.md`) showed three things:
+- the pill is already 48 dp thick, as the bar is wide;
+- stacking cannot keep the L to today's 264 dp in landscape with 48 dp buttons, so the planner's "no taller than today" rule could not be met;
+- an L drawn inside today's rectangular container would leave a corner that takes touches.
+
+The planner offered three options:
+- A: remove the spacing between the bar's buttons, keep them 48 dp, and keep a gap above the pill, making the L 296 dp;
+- B: the same with no gap, 288 dp;
+- C: buttons of about 44 dp to stay at 264.
+
+The owner, verbatim: "A".
+
+So:
+- The bar is five 48 dp rows with no spacing or end padding: 240 dp.
+- An 8 dp gap, then the horizontal pill (48 dp thick): **296 dp in all.**
+- Nothing is drawn around the L, and touches outside its two shapes reach the map.
+
+**The L's pill: the icons stack fully (owner, 2026-09-29).** The L coder asked how long the turned pill is:
+- 96 dp: two 48 dp buttons with no spacing, exactly half under the bar;
+- 108 dp: today's padding, putting record 4 dp off the bar's edge.
+
+The owner, verbatim: "the icons need to stack fully. Make sure that happens and have the pill extend outward like the L".
+
+So:
+- **The pill is 96 dp.**
+- **Record's 48 dp box sits exactly under the bar's 48 dp column,** so its left and right edges equal the bar's. The record icon stacks fully under the bar's icons.
+- Return extends outward, inboard of the screen, forming the L.
+
+**Disk space (owner, 2026-09-29).** The disk filled (about 114 MB free of 67 GB), stopping -160 before any test ran. The planner offered to delete about 4.5 GB of old build output in 28 finished worktrees. The owner, verbatim: "1 C". The owner clears space. The planner deletes nothing.
+
+The owner confirmed the pill's length, verbatim: "2 is  Awith that message". That is option A, 96 dp, together with the "stack fully" message above, which is what -162 carries.
