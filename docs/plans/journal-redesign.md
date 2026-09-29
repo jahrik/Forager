@@ -947,3 +947,5 @@ The owner, verbatim:
 > 6 option A
 
 Item 5's buttons, and which failure they belong to, are put back to the owner before the dispatch (record 2026-09-28-136).
+
+**Restore's Done icon: a tap animation (owner, 2026-09-29).** The owner, verbatim: "Give item 4 a nice animation when tapping it". Which animation is put to the owner as options (record 2026-09-28-138).

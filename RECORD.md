@@ -5119,3 +5119,14 @@ It also flagged the snackbar lying over the floating nav.
 - The planner's proposal for a scheduled run meeting unreadable photos (skip them, then notify "Scheduled backup saved. 2 photos couldn't be backed up.") is **not yet answered by the owner**. The dispatch makes it a stop.
 - Checked: planned_trips.id is a String (`PlannedTripEntity.kt:18`), unlike offline_regions.id (`OfflineRegionEntity.kt:30`, Long, MapLibre's).
 - Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-138
+**Timestamp:** 2026-09-29T04:48:35Z
+**Continues:** 2026-09-28-127
+**Dispatch-file:** none yet. It follows once the owner has picked the animation.
+**Reason:** the owner, verbatim: "Give item 4 a nice animation when tapping it". This refers to -137's item 6, the restore loading page's Done icon.
+**Changes:** none yet. The animation's form is unruled and has been put to the owner. The -137 coder gets it as a message, or through a continuation file if it has already handed back.
+**Notes:** Written by the planner by hand.
