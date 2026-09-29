@@ -960,3 +960,13 @@ The planner's reading:
 - The Street / Topographical / Satellite row is centred horizontally between the sheet's sides.
 - Its vertical place is unchanged.
 - The code is at `MapLayersSheet.kt:263`: a `Row` with `spacedBy(Spacing.xs)` and no width, so it hugs the start.
+
+**Stage device check Part 2 and J6: how they start (owner, 2026-09-29).** The planner asked two questions:
+- whether Part 2 runs backup and restore on the S22 as a full round trip behind a verified full copy (A), restores only on the tablet (B), or only backs up (C);
+- whether J6 launches now (A) or after the backup coder (B).
+
+The owner, verbatim: "1 A / 2 A / Wait until the last coder is done building to begin this stage please, so both can be done side by side as planned."
+
+The planner's reading:
+- **Part 2 runs the full backup-and-restore round trip on the S22,** behind a verified full copy of the phone's data: a backup, a Replace restore and a Merge restore, each confirmed against that copy.
+- **Part 2 and J6 launch together, side by side,** once the backup coder (-137) has finished building. Both prompts are prepared now.
