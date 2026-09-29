@@ -28,7 +28,7 @@ uncommitted.
 4. Conclusion: the three failing tests are a **harness-only** failure, not a product bug. Full
    writeup, including what's ruled out and what's still open (why a Robolectric-hosted Compose
    semantics click no-ops on this row when a real touch succeeds), is in
-   [`2026-08-30-return-to-vehicle-semantics-click-noop.md`](2026-08-30-return-to-vehicle-semantics-click-noop.md).
+   [`2026-08-30-return-to-vehicle-semantics-click-noop.md`](../navigation/2026-08-30-return-to-vehicle-semantics-click-noop.md).
 5. The three tests were restored to `@Ignore`, each citing the commit boundary, the on-device
    result, the merge-tree finding, and the open question — not deleted, since they're the
    follow-up's own subject. `TrackRecordingViewModelTest.kt` already had `startReturn()`/
@@ -159,7 +159,7 @@ per explicit request, unedited.
 > Exactly the three tests named in the audit doc are permitted skips.
 > Any skipped test not on that list fails the build, as today.
 > If the actual skip set doesn't match the allowlist exactly — including a listed test that is no longer skipped — fail the build. A stale allowlist entry is the same invisible non-data the gate exists to catch, so un-ignoring those tests should force the entry's removal in the same change.
-> Comment in ci.yml linking to docs/audits/2026-08-30-return-to-vehicle-semantics-click-noop.md, and note in the audit doc that closing the follow-up includes removing the allowlist.
+> Comment in ci.yml linking to docs/navigation/2026-08-30-return-to-vehicle-semantics-click-noop.md, and note in the audit doc that closing the follow-up includes removing the allowlist.
 > Confirm CI is actually green after the push, not just the local test task. Report the run.
 > No new ViewModel tests — the doc-comment framing on the existing two is accepted as-is.
 > Close with: what you confirmed vs. inferred; what you could not determine; premises in this message that were wrong; anything you decided that this message did not cover

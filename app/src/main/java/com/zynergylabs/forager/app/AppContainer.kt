@@ -293,7 +293,7 @@ class AppContainer(context: Context) {
     val setCartographyEntryShownOnMapUseCase = SetCartographyEntryShownOnMapUseCase(cartographyEntryRepository)
     val getEntryReferenceCountUseCase = GetEntryReferenceCountUseCase(cartographyEntryRepository)
 
-    // Phase 1a of the Forager Navigator plan (docs/plans/forager-navigator-plan.md) — track
+    // Phase 1a of the Forager Navigator plan (docs/navigation/forager-navigator-plan.md) — track
     // recording and waypoints. TrackRecordingService (com.zynergylabs.forager.app.service) reaches these
     // through ForagerApplication.container, the same way every other Android-layer class in this
     // app reaches its dependencies; there is no separate service-scoped graph.

@@ -1,0 +1,30 @@
+# Navigation
+
+The Forager Navigator plan and every report about its navigation work, gathered in one folder at the owner's request (2026-09-29): the plan, its status audit, the navigation chrome, the return estimate and path home, the way-back route, the compass, the alerts, and the sundown work.
+
+These files were moved here from `docs/plans/` and `docs/audits/`. Links in the repository were updated. Citations inside `RECORD.md` and `prompts/preserved/` still name the old paths, as history; `git log --follow` traces each move.
+
+| File | Title |
+|---|---|
+| [2026-08-30-return-to-vehicle-semantics-click-noop.md](2026-08-30-return-to-vehicle-semantics-click-noop.md) | Return-to-vehicle: Compose semantics-layer click no-ops, real touch does not |
+| [2026-09-06-alert-delivery-completion-report.md](2026-09-06-alert-delivery-completion-report.md) | Completion report: alert delivery — reach a pocketed phone, survive a silenced one |
+| [2026-09-06-alert-delivery-prebuild-report.md](2026-09-06-alert-delivery-prebuild-report.md) | Pre-build report: alert delivery — reach a pocketed phone, survive a silenced one |
+| [2026-09-06-compass-reliability-prebuild-report.md](2026-09-06-compass-reliability-prebuild-report.md) | Pre-build report: say so when the compass cannot be trusted |
+| [2026-09-06-compass-reliability-pulse.md](2026-09-06-compass-reliability-pulse.md) | Pulse: compass reliability — what the magnetometer already tells us and nobody reads |
+| [2026-09-06-light-budget-pulse.md](2026-09-06-light-budget-pulse.md) | Pulse: light budget and turnaround alert — what exists, what does not, and what it would cost |
+| [2026-09-06-navigation-chrome-prebuild-report.md](2026-09-06-navigation-chrome-prebuild-report.md) | Pre-build report: one heading on screen, not three |
+| [2026-09-07-return-estimate-item4-completion-report.md](2026-09-07-return-estimate-item4-completion-report.md) | Completion report: the units-system preference, rainfall in inches, and the per-fix instrument log |
+| [2026-09-07-return-estimate-items-1-3-completion-report.md](2026-09-07-return-estimate-items-1-3-completion-report.md) | Completion report — Return estimate, Items 1–3 (build) |
+| [2026-09-07-return-estimate-prebuild-report.md](2026-09-07-return-estimate-prebuild-report.md) | Pre-build report: the return estimate — how long the walk back takes |
+| [2026-09-07-ruling-path-home-self-intersection.md](2026-09-07-ruling-path-home-self-intersection.md) | <!-- Filed 2026-09-08 from the owner's ruling document, verbatim below the rule. The filing note at the end is the coder's, not part of the ruling. --> |
+| [2026-09-08-path-home-monotonicity-amendment-completion-report.md](2026-09-08-path-home-monotonicity-amendment-completion-report.md) | Completion report — path-home monotonicity amendment |
+| [2026-09-08-path-home-ratio-discriminators.py](2026-09-08-path-home-ratio-discriminators.py) | Companion script to the path-home ratio pre-build report |
+| [2026-09-08-path-home-ratio-prebuild-report.md](2026-09-08-path-home-ratio-prebuild-report.md) | Path-home ratio — report before building (nothing built) |
+| [2026-09-11-sundown-countdown-prebuild-report.md](2026-09-11-sundown-countdown-prebuild-report.md) | Pre-build report: the sundown countdown |
+| [2026-09-11-sundown-decisions-and-walkback-sequencing.md](2026-09-11-sundown-decisions-and-walkback-sequencing.md) | Sundown countdown: owner decisions, and why walk-back time cannot come first |
+| [2026-09-11-sundown-device-check-procedure.md](2026-09-11-sundown-device-check-procedure.md) | Device checks for the sundown work: what to run, and what cannot be run yet |
+| [2026-09-11-sundown-phase1-progress-report.md](2026-09-11-sundown-phase1-progress-report.md) | Sundown countdown, Phase 1: what is built, what is not |
+| [2026-09-11-way-back-route-decisions.md](2026-09-11-way-back-route-decisions.md) | Way-back route: owner decisions, and two things the code already had |
+| [2026-09-11-way-back-route-prebuild-report.md](2026-09-11-way-back-route-prebuild-report.md) | Pre-build report: the way back should follow the walked path |
+| [2026-09-28-navigator-plan-status-audit.md](2026-09-28-navigator-plan-status-audit.md) | 2026-09-28: Forager Navigator plan, status audit |
+| [forager-navigator-plan.md](forager-navigator-plan.md) | Forager Navigator — plan |

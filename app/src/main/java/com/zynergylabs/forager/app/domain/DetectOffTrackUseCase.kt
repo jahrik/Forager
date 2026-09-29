@@ -5,7 +5,7 @@ package com.zynergylabs.forager.app.domain
  * returning to a track's start point, if the live distance back has been net *increasing* rather
  * than decreasing across the most recent readings, something is taking the walker the wrong way:
  * could be terrain forcing a detour, could be genuinely drifting off course. This can't tell those
- * apart, and doesn't try to — see `docs/plans/forager-navigator-plan.md` §4 on why a stronger claim
+ * apart, and doesn't try to — see `docs/navigation/forager-navigator-plan.md` §4 on why a stronger claim
  * ("you are off the trail") isn't one this app can back with the data it has.
  *
  * [recentDistancesMeters] is oldest first. Only the most recent [WINDOW_SIZE] readings are
