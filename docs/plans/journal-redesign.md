@@ -1031,3 +1031,33 @@ What that rules, from the options as they were put:
    1. layout and the map;
    2. the Journal flows;
    3. backup and restore last, after the backup follow-up lands.
+
+**The icon bar and the record pill: an L shape (owner, 2026-09-29).** The owner sent a screenshot of the Maps tab, kept outside the repo at `~/Zynergy/device-evidence/2026-09-29-owner-icon-bar-and-pill.jpg`. It shows:
+- the vertical icon bar: fullscreen, compass, locate, Layers, and the green "+";
+- beside it, the smaller vertical record/return pill;
+- a translucent fill above the pill that joins them.
+
+The owner, verbatim: "This can't ship like this.  That's a UX problem. Have the icon bar shrink a little and turn the small pill 90°, then half of the small pill can fit beneath the icon bar, and extend out. / Make the pill the same size as the bar".
+
+The planner's reading, to be confirmed with the owner before any dispatch:
+- The bar gets a little shorter.
+- The record/return pill turns horizontal and sits beneath the bar. Half of it is under the bar, and the other half extends out toward the middle of the screen, mirrored when the cluster is on the other side.
+- The pill is as thick as the bar is wide, so the two read as one L.
+
+**Status:** a ship blocker. The cluster items of Part 2 Session 1 (inventory items 38, 39 and 42) will need re-checking after it.
+
+**The L shape, confirmed from the planner's diagrams (owner, 2026-09-29).** The planner redrew the reading as letter diagrams:
+- the bar at the left, with the pill beneath it, record under the bar and return extending out;
+- mirrored at the right, with return extending toward the middle.
+
+The owner, verbatim: "Oh yeah on either side it looks like an L. On the right side it just looks like an inverse L". The shape and the mirroring are confirmed. The pill's thickness, the height rule, the fill's removal and which screens are still being asked.
+
+**The L shape: where it applies, and the details (owner, 2026-09-29).** Answering the planner's six follow-up questions, the owner said, verbatim: "4: Only apply on landscape phone mode. Never on portrait or tablet mode. / The rest I'll take what's recommended."
+
+So:
+1. **The pill's thickness equals the bar's width,** so the L reads as one piece.
+2. **The whole L is no taller than today's bar and pill,** and every button stays at least 48 dp.
+3. **The translucent fill that joins them today is removed.**
+4. **The L is for phone landscape only** (the compact tree's short window). Phone portrait keeps its current arrangement. The tablet (the wide tree, J6b's controls parity) never takes the L.
+5. **Part 2 Session 1 starts now.** Its landscape cluster items are deferred and re-checked after the L lands.
+6. **J6's header is a back-arrow row labelled "Journal",** with the Entries / Records switch below it. It returns to the Search panel, as the "Mushroom Log" row does today.
