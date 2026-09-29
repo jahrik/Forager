@@ -68,7 +68,7 @@ Robolectric's fake provider is not MediaStore, and it reports zero insets, so no
 | Commit | What | Suite |
 |---|---|---|
 | `bf41dcb` | pre-registration (above), pushed before any edit | not run (docs) |
-| `c985e3f`-equivalent on `photo-export-wip` | tests first: `PhotoViewerSaveTest.kt` (two classes, 11 tests) and `PhotoExportTestFixtures.kt` (a fake media provider and the format headers) | **11 of 11 fail at base**, for the missing control (below). Pushed to `photo-export-wip` first, since it was red |
+| `a6dfee47` on `photo-export-wip` | tests first: `PhotoViewerSaveTest.kt` (two classes, 11 tests) and `PhotoExportTestFixtures.kt` (a fake media provider and the format headers) | **11 of 11 fail at base**, for the missing control (below). Pushed to `photo-export-wip` first, since it was red |
 | `edb74209` | the build: `photo/PhotoExporter.kt` (new), the control in `ui/log/PhotoViewerDialog.kt`; tests unchanged since the tests-first commit except the toast wait (below) | **green** (below); pushed to `journal-redesign` inside merge `6dce0bca` |
 
 `AndroidManifest.xml` is **unchanged** (`git diff` empty): no permission and no `<queries>` entry was needed. `git grep WRITE_EXTERNAL_STORAGE|READ_MEDIA|READ_EXTERNAL` in the manifest: none. The five host screens are unchanged
