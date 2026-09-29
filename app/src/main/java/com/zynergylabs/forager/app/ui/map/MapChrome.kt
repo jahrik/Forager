@@ -110,6 +110,9 @@ internal fun mapIconBarRowAnchorOffset(rowIndexFromTop: Int, rowSpacing: Dp = Sp
  */
 internal const val MAP_MODE_PICKER_TAG = "map-mode-picker"
 
+/** The map icon bar's own fill (portrait cluster, landscape L, tablet and the entry map's bar), for tests reading its container colour. */
+internal const val MAP_ICON_BAR_TAG = "map-icon-bar"
+
 /**
  * The picker [MapModeToggle] (medium/expanded) and [MapIconBar]'s layers row (compact) both open —
  * three real [FilterChip]s, not a list of full-width text rows: the exact "too wide" hardware
@@ -179,7 +182,7 @@ internal fun MapModePicker(
                 .offset(x = anchorOffset.x, y = anchorOffset.y),
         ) {
             Surface(
-                modifier = Modifier.testTag(MAP_MODE_PICKER_TAG),
+                modifier = Modifier.testTag(MAP_MODE_PICKER_TAG).mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight),
                 shape = RoundedCornerShape(Spacing.md),
                 color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
                 contentColor = if (isDarkTheme) Color.White else Bark,
@@ -511,7 +514,7 @@ internal fun MapIconBar(
                 color = barFill,
                 shadowElevation = 2.dp,
                 border = barBorder,
-                modifier = Modifier.matchParentSize(),
+                modifier = Modifier.matchParentSize().testTag(MAP_ICON_BAR_TAG).mapChromeContainerColor(barFill),
             ) {}
             CompositionLocalProvider(LocalContentColor provides barContentColor) { rows() }
         }
@@ -522,7 +525,7 @@ internal fun MapIconBar(
             contentColor = barContentColor,
             shadowElevation = 2.dp,
             border = barBorder,
-            modifier = modifier,
+            modifier = modifier.testTag(MAP_ICON_BAR_TAG).mapChromeContainerColor(barFill),
         ) { rows() }
     }
 }
@@ -639,6 +642,7 @@ internal fun MapIconBarMinimizeHandle(
                 .height(HANDLE_MARK_HEIGHT)
                 .width(HANDLE_VISIBLE_MARK_WIDTH)
                 .testTag("map-icon-bar-minimize-handle-mark")
+                .mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight)
                 .background(color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight, shape = shape)
                 .border(
                     width = 1.dp,
@@ -741,6 +745,7 @@ internal fun MapIconBarRestoreHandle(
                 .fillMaxHeight()
                 .width(HANDLE_VISIBLE_MARK_WIDTH)
                 .testTag("map-icon-bar-restore-handle-mark")
+                .mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight)
                 .background(
                     color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
                     shape = outlineShape,

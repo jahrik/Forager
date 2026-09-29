@@ -53,6 +53,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Map
+import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
+import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
@@ -255,6 +257,7 @@ internal fun OfflineMapsPanel(
         if (confirmingDownload) {
             AlertDialog(
                 onDismissRequest = { confirmingDownload = false },
+                modifier = Modifier.testTag(DOWNLOAD_CONFIRM_DIALOG_TAG).mapChromeContainerColor(AlertDialogDefaults.containerColor),
                 title = { Text("Download this area?") },
                 text = {
                     Text(offlineDownloadConfirmationBody(uiState.offlineMapNameText, uiState.offlineMapRadiusKm, distanceUnit, estimateServedOfflineTileCount(pickerRegion)))
@@ -648,3 +651,5 @@ internal fun offlineRegionZoomNote(region: OfflineRegionSummary): String =
         "region downloaded — a region that shows here has both, since a zoom-${region.maxZoom.toInt()} " +
         "fetch failure fails the whole download rather than silently completing without it."
 
+/** "Download this area?", for tests reading its container colour. */
+internal const val DOWNLOAD_CONFIRM_DIALOG_TAG = "download-confirm-dialog"

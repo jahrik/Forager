@@ -475,6 +475,7 @@ internal fun MapLegendChip(
             .widthIn(max = LEGEND_MAX_WIDTH)
             .heightIn(max = LEGEND_MAX_HEIGHT)
             .testTag(MAP_LEGEND_CHIP_TAG)
+            .mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight)
             .clickable(onClickLabel = if (expanded) "Hide legend" else "Show legend") { onExpandedChange(!expanded) },
     ) {
         Column(

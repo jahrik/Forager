@@ -278,7 +278,7 @@ internal fun SearchEntryBar(
         tonalElevation = 0.dp,
         shadowElevation = 0.dp,
         shape = RectangleShape,
-        modifier = Modifier.fillMaxWidth().testTag(SEARCH_ENTRY_BAR_TAG),
+        modifier = Modifier.fillMaxWidth().testTag(SEARCH_ENTRY_BAR_TAG).mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight),
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.xs)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -414,7 +414,8 @@ internal fun SearchDropdown(
                     color = if (isDarkTheme) CompassStripBackgroundColorDark else CompassStripBackgroundColorLight,
                     shape = RectangleShape,
                 )
-                .testTag(SEARCH_DROPDOWN_TAG),
+                .testTag(SEARCH_DROPDOWN_TAG)
+                .mapChromeContainerColor(if (isDarkTheme) CompassStripBackgroundColorDark else CompassStripBackgroundColorLight),
         ) {
             val scrollState = rememberScrollState()
             // Map/navigation search-UI redo dispatch: "scrolling the drawer dismisses the

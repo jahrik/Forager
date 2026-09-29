@@ -68,6 +68,7 @@ import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.ReturnToStartInfo
+import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.MAP_CHROME_OVER_MAP_ALPHA
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_CORNER_RADIUS
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_EDGE_INSET
@@ -272,7 +273,7 @@ private fun ControlPill(
                 color = pillFill,
                 shadowElevation = 2.dp,
                 border = pillBorder,
-                modifier = Modifier.matchParentSize(),
+                modifier = Modifier.matchParentSize().mapChromeContainerColor(pillFill),
             ) {}
             CompositionLocalProvider(LocalContentColor provides pillContentColor) { buttons() }
         }
@@ -283,7 +284,7 @@ private fun ControlPill(
             contentColor = pillContentColor,
             shadowElevation = 2.dp,
             border = pillBorder,
-            modifier = modifier.testTag("control-pill"),
+            modifier = modifier.testTag("control-pill").mapChromeContainerColor(pillFill),
         ) { buttons() }
     }
 }
@@ -394,7 +395,8 @@ private fun CompassElevationStripContent(
                 // clear it, and now that it wraps content instead of sitting at a fixed 48dp, a
                 // measured value is the only one that stays correct as font scale or content change
                 // it. Also still what this composable's own regression test targets directly.
-                .testTag("compass-elevation-strip"),
+                .testTag("compass-elevation-strip")
+                .mapChromeContainerColor(if (isDarkTheme) CompassStripBackgroundColorDark else CompassStripBackgroundColorLight),
         ) {
             Row(
                 // fillMaxWidth, not fillMaxSize — see this Box's own doc comment above for the
@@ -634,7 +636,7 @@ internal fun AddActionTile(
                 .offset(x = anchorOffset.x, y = anchorOffset.y),
         ) {
             Surface(
-                modifier = Modifier.testTag(ADD_ACTION_TILE_TAG),
+                modifier = Modifier.testTag(ADD_ACTION_TILE_TAG).mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight),
                 shape = RoundedCornerShape(Spacing.md),
                 shadowElevation = 4.dp,
                 color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,

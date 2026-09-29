@@ -149,7 +149,7 @@ internal fun ForagerBottomNav(
     NavigationBar(
         containerColor = containerColor,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier.testTag(COMPACT_BOTTOM_NAV_TAG),
+        modifier = modifier.testTag(COMPACT_BOTTOM_NAV_TAG).mapChromeContainerColor(containerColor),
     ) {
         CompactTab.entries.forEach { tab ->
             NavigationBarItem(
@@ -212,7 +212,7 @@ internal fun ForagerNavigationRail(
         containerColor = containerColor,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         windowInsets = WindowInsets.navigationBars.only(portEdge.horizontalInsetsSide()),
-        modifier = modifier.fillMaxHeight().testTag(COMPACT_NAVIGATION_RAIL_TAG),
+        modifier = modifier.fillMaxHeight().testTag(COMPACT_NAVIGATION_RAIL_TAG).mapChromeContainerColor(containerColor),
     ) {
         CompactTab.entries.forEach { tab ->
             NavigationRailItem(
