@@ -45,6 +45,7 @@ import com.zynergylabs.forager.app.domain.model.TrackPointRecord
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.ui.availability.AvailabilityUiState
 import com.zynergylabs.forager.app.ui.map.Basemap
+import com.zynergylabs.forager.app.ui.map.MapMode
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.theme.Spacing
@@ -637,6 +638,7 @@ internal fun JournalTab(
                 distanceUnit = distanceUnit,
                 mapSlot = mapSlot,
                 night = night,
+                initialMapMode = MapMode.forBasemap(basemap),
                 mapLayers = mapLayers,
                 onMapLayerVisibilityChanged = onMapLayerVisibilityChanged,
                 getMapData = getCartographyEntryMapData,

@@ -5159,3 +5159,123 @@ It also flagged the snackbar lying over the floating nav.
 **Notes:**
 - The dispatch has no open questions left.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-141
+**Timestamp:** 2026-09-29T05:19:22Z
+**Dispatch:** none yet
+**Reason:** the owner asked for the Layers sheet's map-type chips to be centred between the panel sides, with their height unchanged. The ruling is verbatim in the plan, under "Layers sheet: map-type chips centred".
+**Changes:** none yet. Which coder builds it is put to the owner.
+**Notes:**
+- Found while checking windows: 1c29a2, the -127 backup window, is busy, and chrome-follow-ups has pushed its tests first (ce952227). The planner infers that the owner put the -104 continuation (launch prompt 9) in 1c29a2. So launch prompt 10 (backup) belongs in a fresh window, not 1c29a2, as the planner had suggested. This is unverified: the planner cannot see which prompt a window holds.
+- Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-142
+**Timestamp:** 2026-09-29T05:20:01Z
+**Continues:** 2026-09-28-104
+**Dispatch-file:** preserved/2026-09-29-16.md
+**Reason:** the owner, verbatim: "A". The -141 chip centring goes to the -104 continuation coder, after its current three items.
+**Changes:** item 9 is added: the Layers sheet's map-type chip row is centred between the panel sides, at the same height. The coder receives it by SendMessage to session 1c29a2, which the planner believes holds -104.
+**Notes:**
+- The message asks the coder to say so if it is not on -104.
+- Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-143
+**Timestamp:** 2026-09-29T05:20:48Z
+**Continues:** 2026-09-28-104
+**Dispatch-file:** preserved/2026-09-29-17.md (relaunch prompt; copied to ~/Zynergy/launch-prompts/11-chrome-follow-ups-3.md)
+**Reason:** the planner's -142 message went to 1c29a2, which replied that it is the -127 backup coder on -137, not -104. So the planner's -141 inference was wrong.
+- No live session is on -104. chrome-follow-ups' last push was ce952227, about two hours ago, with a clean tree and no test results since 19:57.
+- ListAgents shows no chrome-follow-ups session.
+**Changes:**
+- The relaunch prompt resumes from ce952227 and adds item 9 (preserved/2026-09-29-16.md).
+- The owner is asked to paste it into a fresh window.
+**Notes:**
+- 1c29a2 did nothing on item 9, and said so.
+- Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-144
+**Timestamp:** 2026-09-29T05:27:04Z
+**Dispatch:** 2026-09-28-104
+**Reason:** the owner, verbatim: "It's on photo import/export session".
+**Changes:** the -143 relaunch prompt runs in the window that built -126 (photo export). That window has finished its dispatch. Its socket is 415979, and its ListAgents title still reads "Device coder session: planned trips on the S22".
+**Notes:**
+- A stale shell wait loop from that session (pid 455216, waiting on a trips-on-map build since about 20:00) is still alive. It uses no build resources. Left alone: it is another session's process.
+- Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-145
+**Timestamp:** 2026-09-29T05:49:53Z
+**Dispatch:** 2026-09-28-104
+**Reason:** the -143 relaunch coder handed back items 8, 2, 6 and 9, pushed to journal-redesign at 39328523. The build commits are eb27a60f and 0e58ab52. The report is the "Resumed (relaunch -143)" section of docs/audits/2026-09-29-map-chrome-follow-ups-completion-report.md. Its suite: 2673 / 0 / 0 / 24.
+**Changes:**
+- **A correction to the device check's run record.** docs/audits/2026-09-28-map-chrome-device-check-run-record.md:837 (repeated at :1029) says "The entry map follows neither the basemap nor Night Maps".
+  - The part about Night Maps is **wrong**, and superseded here. The planner viewed the frames ~/Zynergy/device-evidence/2026-09-28-map-chrome-check/c5-street-night-12-entry-menu.png and c5-topo-day-12-entry-menu.png. The night frame's entry map is dark with the night palette, and the day frame's is light.
+  - The part about the basemap is right: both frames draw OpenTopoMap. Item 8's seed fixes that.
+  - The run record is left as written.
+- The coder's test corrections to the previous window's work (a missing import; a Back that left fullscreen instead of closing the sheet) are noted.
+**Notes:**
+- Not closed. The terminal waits on the planner's own idle full suite.
+- Coder flags:
+  - one Gradle run was started at 2453 MB free, against the 2.5 GB rule;
+  - it deleted its own stale log device-evidence/t97-base-run.log from the shared evidence directory;
+  - bottomNavHeightPx keeps its last value after the nav leaves composition.
+- Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-146
+**Timestamp:** 2026-09-29T05:54:49Z
+**Closes:** 2026-09-28-104
+**Outcome:** completed
+**Observed:**
+- **Record:** docs/audits/2026-09-29-map-chrome-follow-ups-completion-report.md, covering the first pass and the "Resumed (relaunch -143)" section.
+- **All nine items resolved.**
+  - The first coder built six (881cfbd).
+  - The relaunch coder built items 8, 2 and 6 (eb27a60f) and item 9 (0e58ab52).
+  - The previous window's tests-first commit, ce952227, needed two test corrections (-145).
+- **Evidence:**
+  - tests first, failing at base for the stated reasons;
+  - six revert checks, each failing only for its own edit;
+  - the coder's suite, 2673 / 0 / 0 / 24.
+- **The planner's own suite**, on an idle machine at 419c78c1, from a cleared results directory: 335 files, none stale, 0 compile errors, 2673 / 0 / 0 / 24, in 269 s.
+- **Item 8's night premise was wrong.** It is superseded in -145 from the frames.
+- **Device-only, for stage device check Part 2:**
+  - the entry map on each basemap, by day and at night;
+  - the notice below the strip and the cluster clearing it, with real status bars, in both landscape rotations;
+  - the snackbar above the nav and clear of the rail;
+  - the centred chips on the S22 and S26.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-147
+**Timestamp:** 2026-09-29T05:59:22Z
+**Dispatch:** none (planner's own drafting, at the owner's request: "Start on the legal docs drafts")
+**Reason:** backup and restore, Save to Gallery and the already-shipped camera strip and GPX export make the published privacy policy, delete-data page and beta README wrong.
+**Changes:**
+- Drafts are on branch legal-drafts at b6d6eca0, from 83e7ae6a. They cover docs/legal/privacy-policy.md, docs/legal/delete-data.md and docs/beta/README.md.
+- Each is marked "DRAFT, not yet published". Nothing is merged to journal-redesign, and the site is not touched.
+**Notes:**
+- **Source files were behind the site.** privacy-policy.md lacked the beta signup-list section that the published page carries. It also said "Forager does not request camera permission", while the manifest declares CAMERA. The draft restores the section from zynergy-site privacy/index.html at 0688e4d.
+- **Permission sources**, traced in the merged-manifest report:
+  - ACCESS_NETWORK_STATE and ACCESS_WIFI_STATE come from MapLibre 13.5.0. They were already in today's app and never listed.
+  - WAKE_LOCK and RECEIVE_BOOT_COMPLETED are new, from WorkManager 2.12.0.
+- D58 check on the diff: clean.
+- The backup notification lines describe -137 work that is not yet built.
+- Written by the planner by hand.

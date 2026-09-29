@@ -224,11 +224,13 @@ import kotlinx.coroutines.launch
  * comment), confirmed by reading `AndroidView`'s `factory` lambda before relying on it: `factory`
  * runs once per call-site instance, never re-run by a later `Modifier`-only recomposition.
  *
- * [entryMapMode] is local to this screen, independent of `AvailabilityScreen`'s own `mapMode` — a
- * confirmed, real state leak this dispatch fixes: before this, `basemap` threaded straight from the
- * live Maps screen, so switching this entry's own preview to Satellite silently changed the live
- * map too. Defaults to [MapMode.DEFAULT] (Topographical), reset per [entry] like every other
- * per-entry state above. The basemap picker (row 4 of [MapIconBar]) is hidden, not disabled, while
+ * [entryMapMode] is local to this screen — a confirmed, real state leak this dispatch fixes: before
+ * this, `basemap` threaded straight from the live Maps screen, so switching this entry's own preview
+ * to Satellite silently changed the live map too. **Seeded, never written back** (owner, 2026-09-29,
+ * "1 B"; dispatch 2026-09-28-104, item 8): when an entry map opens it starts on the Maps tab's own
+ * basemap ([initialMapMode]), and changing it here changes this entry's map only. The leak was the
+ * write-back, and that stays closed; it used to open on [MapMode.DEFAULT] (Topographical) whatever the
+ * Maps tab showed. Reset per [entry] like every other per-entry state above. The basemap picker (row 4 of [MapIconBar]) is hidden, not disabled, while
  * [useOfflineTiles] is on (fullscreen-fixes dispatch, Item 3, reversing this file's own earlier
  * "disabled, not hidden" call) — offline is a single fixed style with nothing to choose between,
  * and an absent control reads as a feature not yet built rather than a limitation the app has.
@@ -254,6 +256,8 @@ internal fun CartographyEntryReportScreen(
     distanceUnit: DistanceUnit,
     mapSlot: MapSlot,
     night: Boolean,
+    /** The Maps tab's basemap as a mode, seeding [entryMapMode] when this screen opens; see this file's doc comment. */
+    initialMapMode: MapMode = MapMode.DEFAULT,
     getMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData,
     getCoveringOfflineRegion: suspend (CartographyEntry, List<LatLng>) -> OfflineRegionSummary?,
     /** See this file's own doc comment, "Fullscreen," for why this is a plain suspend call rather than a [com.zynergylabs.forager.app.domain.LocationProvider] threaded through directly. */
@@ -299,7 +303,7 @@ internal fun CartographyEntryReportScreen(
     var useOfflineTiles by remember(entry.id) { mutableStateOf(false) }
     // See this file's own doc comment, "Fullscreen" — local to this screen, independent of
     // AvailabilityScreen's own mapMode.
-    var entryMapMode by remember(entry.id) { mutableStateOf(MapMode.DEFAULT) }
+    var entryMapMode by remember(entry.id) { mutableStateOf(initialMapMode) }
     var isMapFullscreen by remember(entry.id) { mutableStateOf(false) }
     var showLayersSheet by remember(entry.id) { mutableStateOf(false) }
     // See MapOverlayContent.resetOrientationRequestId's own doc comment.

@@ -149,7 +149,7 @@ internal fun ForagerBottomNav(
     NavigationBar(
         containerColor = containerColor,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier,
+        modifier = modifier.testTag(COMPACT_BOTTOM_NAV_TAG),
     ) {
         CompactTab.entries.forEach { tab ->
             NavigationBarItem(
@@ -244,6 +244,9 @@ internal fun shortLandscapeContentInsets(): WindowInsets =
     WindowInsets.statusBars.only(WindowInsetsSides.Top)
         .add(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
         .add(WindowInsets.ime.only(WindowInsetsSides.Bottom))
+
+/** The bottom navigation bar (either instance), for tests (dispatch 2026-09-28-104, continuation -12, item 6). */
+internal const val COMPACT_BOTTOM_NAV_TAG = "compact-bottom-nav"
 
 /** Tags [ForagerNavigationRail]'s container, so a test can measure the rail's own bounds. */
 internal const val COMPACT_NAVIGATION_RAIL_TAG = "compact-navigation-rail"
