@@ -7080,3 +7080,19 @@ The planner confirmed each by grep.
 **Notes:**
 - **At pasting,** adb showed the S22 (R5CT321008R) attached and the tablet (R52T506412L) not attached.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-240
+**Timestamp:** 2026-09-29T22:08:54Z
+**Dispatch:** 2026-09-28-227 (Part 3), session S22-A
+**Reason:** the owner, verbatim, to planner session [303193]: "Write up S22-A and dispatch it to a coder". Asked whether to use an owner-opened window or an Agent-tool coder, the owner chose "Agent-tool coder here".
+**Changes:**
+- **Session [303193] is now the planner and keeps this record.** The previous planner [05172f] (-236) no longer appears in `ListAgents`.
+- **S22-A runs as an Agent-tool `coder` subagent of [303193]** from preserved/2026-09-29-55. That prompt is -52 with three changes: the role line, the model line, and the hand-back, which is now the subagent's final message instead of a `SendMessage`. The dispatch, worktree, build base (06b394b9) and items are unchanged.
+  - The model requested is the Agent tool's `sonnet` alias. Which version it resolves to has not been checked. On 2026-09-28 it resolved to claude-sonnet-5, not 5.5 (see the coders-run-on-Sonnet ruling). The coder reports what it reads.
+- **Checked before launch:** the `device-part-3` branch and worktree do not exist; the S22 (R5CT321008R) is attached and the tablet is not; no Gradle JVM is running; 2.9 GB of memory is available.
+**Open for the owner:**
+- **S22-B's and the Tablet's prompts** (-53, -54) still hand back to [05172f]. They get corrected before either launches, in whichever mode the owner picks.
+**Notes:** Written by the planner by hand.
