@@ -497,6 +497,73 @@ abstract class AvailabilityScreenLayoutTest {
     }
 
     /**
+     * Part 2 follow-ups F1 item 2 (Part 2 item 37): the attribution "i" sat inside the system navigation band
+     * in portrait fullscreen, where two real taps opened nothing. The caption keeps the true edge in
+     * fullscreen (owner's ruling, see `AvailabilityCompactScaffold`); the "i" clears the navigation bar.
+     * Robolectric reports zero insets, so these tests put a real navigation-bar inset on the window
+     * ([withNavigationBarInset]) and read what the map is handed. What MapLibre then draws, and the real
+     * band, are device-only.
+     */
+    @Test
+    fun `in portrait fullscreen the attribution button clears the navigation bar inset`() {
+        setScreen(SEARCHED_STATE)
+        val navBarPx = withNavigationBarInset(96)
+        composeRule.onNodeWithContentDescription("Fullscreen").performClick()
+        composeRule.waitForIdle()
+
+        val expectedDp = with(androidx.compose.ui.unit.Density(composeRule.activity.resources.displayMetrics.density)) { navBarPx.toDp() }
+        val actual = capturedRenderMode?.attributionBottomInset
+        assertEquals("the map is handed the button's own bottom inset, the navigation bar's", expectedDp.value, actual?.value ?: -1f, 0.5f)
+    }
+
+    @Test
+    fun `the caption keeps the true bottom edge in fullscreen while the button clears the bar`() {
+        setScreen(SEARCHED_STATE)
+        withNavigationBarInset(96)
+        composeRule.onNodeWithContentDescription("Fullscreen").performClick()
+        composeRule.waitForIdle()
+
+        assertEquals("the caption's inset is unchanged: the true edge", 0f, capturedRenderMode?.bottomInset?.value ?: -1f, 0.01f)
+    }
+
+    @Test
+    fun `out of fullscreen the attribution button follows the navigation bar's measured height, as the caption does`() {
+        setScreen(SEARCHED_STATE)
+        withNavigationBarInset(96)
+        composeRule.waitForIdle()
+
+        val mode = capturedRenderMode
+        assertEquals("the button's inset is the caption's outside fullscreen", (mode?.bottomInset?.value ?: -1f), (mode?.attributionBottomInset ?: mode?.bottomInset)?.value ?: -2f, 0.01f)
+        assertTrue("and it is positive: the nav overlays the map", (mode?.bottomInset ?: 0.dp) > 0.dp)
+    }
+
+    @Test
+    fun `with no navigation bar inset the button in fullscreen sits at the true edge`() {
+        setScreen(SEARCHED_STATE)
+        composeRule.onNodeWithContentDescription("Fullscreen").performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(0f, capturedRenderMode?.attributionBottomInset?.value ?: 0f, 0.01f)
+    }
+
+    /**
+     * Puts a bottom navigation-bar inset of [px] on the window, as the platform delivers one, and returns it.
+     * Compose reads system-bar insets through the window-insets dispatch, which Robolectric never fires with a
+     * bar in it; dispatching one here is the only way a test sees a non-zero value.
+     */
+    private fun withNavigationBarInset(px: Int): Int {
+        composeRule.runOnUiThread {
+            val insets = androidx.core.view.WindowInsetsCompat.Builder()
+                .setInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars(), androidx.core.graphics.Insets.of(0, 0, 0, px))
+                .setInsetsIgnoringVisibility(androidx.core.view.WindowInsetsCompat.Type.navigationBars(), androidx.core.graphics.Insets.of(0, 0, 0, px))
+                .build()
+            androidx.core.view.ViewCompat.dispatchApplyWindowInsets(composeRule.activity.window.decorView, insets)
+        }
+        composeRule.waitForIdle()
+        return px
+    }
+
+    /**
      * **Test 4 — the Conditions card is actually on screen.**
      *
      * The card shipped and was measured to zero height for two builds: it existed, it was in the

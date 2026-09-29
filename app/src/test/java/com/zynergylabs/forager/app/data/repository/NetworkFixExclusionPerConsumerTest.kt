@@ -11,6 +11,7 @@ import com.zynergylabs.forager.app.domain.AlertDelivery
 import com.zynergylabs.forager.app.domain.ComputeReturnToStartUseCase
 import com.zynergylabs.forager.app.domain.CreateWaypointUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
+import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
 import com.zynergylabs.forager.app.domain.DetectOffTrackUseCase
 import com.zynergylabs.forager.app.domain.GetCartographyEntryMapDataUseCase
@@ -288,6 +289,7 @@ class NetworkFixExclusionPerConsumerTest {
             getWaypoints = GetWaypointsUseCase(waypointRepository),
             createWaypoint = CreateWaypointUseCase(waypointRepository, currentTime = fixedTime, idGenerator = { "wp-${++waypointIds}" }),
             deleteWaypoint = DeleteWaypointUseCase(waypointRepository),
+            deleteTrack = DeleteTrackUseCase(trackRepository, waypointRepository),
             computeReturnToStart = ComputeReturnToStartUseCase(),
             detectOffTrack = DetectOffTrackUseCase(),
             locationTracker = object : LocationTracker { override val fixes: Flow<LocationFix> = emptyFlow() },

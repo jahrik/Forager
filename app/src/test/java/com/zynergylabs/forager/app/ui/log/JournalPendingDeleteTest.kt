@@ -108,6 +108,7 @@ import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 import com.zynergylabs.forager.app.domain.model.PhotoSource
 import com.zynergylabs.forager.app.domain.CreateWaypointUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
+import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
 import com.zynergylabs.forager.app.domain.DetectOffTrackUseCase
 import com.zynergylabs.forager.app.domain.GetTracksUseCase
@@ -255,6 +256,7 @@ class JournalPendingDeleteTest {
             getWaypoints = GetWaypointsUseCase(waypointRepository),
             createWaypoint = CreateWaypointUseCase(waypointRepository, currentTime = PD_TIME, idGenerator = { "wp-new" }),
             deleteWaypoint = DeleteWaypointUseCase(waypointRepository),
+            deleteTrack = DeleteTrackUseCase(trackRepository, waypointRepository),
             computeReturnToStart = ComputeReturnToStartUseCase(),
             detectOffTrack = DetectOffTrackUseCase(),
             locationTracker = PendingDeleteNoOpLocationTracker,

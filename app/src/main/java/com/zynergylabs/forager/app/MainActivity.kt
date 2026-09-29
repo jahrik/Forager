@@ -227,6 +227,8 @@ class MainActivity : ComponentActivity() {
                     container.alertAudibility,
                     androidErrorLog,
                     getWaypointReferenceCount = { id -> waypointEntryReferenceCountOrZero(id, container.getEntryReferenceCountUseCase::forWaypoint, androidErrorLog) },
+                    getTrackReferenceCount = { id -> trackEntryReferenceCountOrZero(id, container.getEntryReferenceCountUseCase::forTrack, androidErrorLog) },
+                    deleteTrack = container.deleteTrackUseCase,
                 )
             }
         }
@@ -713,6 +715,20 @@ internal suspend fun waypointEntryReferenceCountOrZero(
     errorLog: ErrorLog,
 ): Int = countEntriesReferencingWaypoint(waypointId).getOrElse { error ->
     errorLog.w("WaypointReferenceCount", "Couldn't count journal entries keeping waypoint $waypointId; showing 0.", error)
+    0
+}
+
+/**
+ * How many journal entries keep track [trackId], for the Records Undo snackbar's warning
+ * (`TrackRecordingViewModel.loadTracks`, read by `requestRemoveTrack`). Logged when the 0 fallback
+ * fires, as [waypointEntryReferenceCountOrZero] (Part 2 follow-ups F1 item 5).
+ */
+internal suspend fun trackEntryReferenceCountOrZero(
+    trackId: String,
+    countEntriesReferencingTrack: suspend (String) -> Result<Int>,
+    errorLog: ErrorLog,
+): Int = countEntriesReferencingTrack(trackId).getOrElse { error ->
+    errorLog.w("TrackReferenceCount", "Couldn't count journal entries keeping track $trackId; showing 0.", error)
     0
 }
 

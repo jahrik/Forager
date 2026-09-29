@@ -110,6 +110,13 @@ internal fun RecordsTab(
     onDownloadAgain: (Long) -> Unit = {},
     tracks: List<Track>,
     onTracksOpened: () -> Unit,
+    /**
+     * A swipe on a finished track's row, or the Delete on its details (sheet or pane): asks for a pending
+     * delete with Undo (Part 2 follow-ups F1 item 5, owner "Option A"); `MainActivity` wires it to
+     * `TrackRecordingViewModel.requestRemoveTrack`. `null`, the default, leaves tracks without a delete.
+     * STUB (tests first): accepted and not yet used.
+     */
+    onDeleteTrack: ((String) -> Unit)? = null,
     /** GPX full-record export dispatch — see [TrackExportList]'s own doc comment. Defaults empty/no-op so no other caller of this tab changes. */
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>> = { Result.success(emptyList()) },
     findsContent: @Composable ColumnScope.() -> Unit,
@@ -340,6 +347,7 @@ internal fun RecordsTab(
                     nowEpochMillis = currentTime.nowEpochMillis(),
                     staleThresholdDays = availabilityUiState.offlineStaleThresholdDays,
                     getFullRecord = getFullRecord,
+                    onDeleteTrack = onDeleteTrack,
                     onDismiss = { detailsTarget = null },
                 )
             }
@@ -356,6 +364,7 @@ internal fun RecordsTab(
                 nowEpochMillis = currentTime.nowEpochMillis(),
                 staleThresholdDays = availabilityUiState.offlineStaleThresholdDays,
                 getFullRecord = getFullRecord,
+                onDeleteTrack = onDeleteTrack,
                 onDismiss = { detailsTarget = null },
                 // Owner "1 A" (dispatch 2026-09-28-104, superseding planner message -77's Q1 (b)): over a map
                 // only from the Offline maps sub-tab AND only in a short landscape window, where that panel's

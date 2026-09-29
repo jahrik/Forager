@@ -119,6 +119,10 @@ data class TrackRecordingUiState(
      * has not run yet: the Undo snackbar is still up. See [TrackRecordingViewModel.requestRemoveWaypoint].
      */
     val pendingWaypointDelete: PendingDelete<Waypoint>? = null,
+    /** The track whose delete was asked for (swipe or the details' Delete) and has not run yet: the Undo snackbar is still up. Part 2 follow-ups F1 item 5. */
+    val pendingTrackDelete: PendingDelete<Track>? = null,
+    /** How many journal entries keep each track (loaded with [tracks]); a track missing here has no count and the snackbar says nothing about entries. */
+    val trackEntryReferenceCounts: Map<String, Int> = emptyMap(),
 ) {
     val isRecording: Boolean get() = activeTrack != null
 
@@ -128,6 +132,9 @@ data class TrackRecordingUiState(
      * not [waypoints], to the screen, so the map hides a pending waypoint too until Undo brings it back.
      */
     val visibleWaypoints: List<Waypoint> get() = waypoints.withoutPending(pendingWaypointDelete) { it.id }
+
+    /** [tracks] without [pendingTrackDelete]: what every screen shows. STUB (F1 item 5, tests first): not filtered yet. */
+    val visibleTracks: List<Track> get() = tracks
 }
 
 /** A one-shot message for the map's Snackbar host, keyed by [id] so an identical [message] re-shows — see [TrackRecordingUiState.tripStartWarning] and [TrackRecordingUiState.networkFixesNotice]. */
