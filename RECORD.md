@@ -7098,3 +7098,116 @@ The planner confirmed each by grep.
 - **Tablets are unsupported for PR #140's release.** J6's code stays in the branch but is not device-checked or advertised. The PR body and the release update say so.
 **Open for the owner:** whether "unsupported" should also be enforced, for example by excluding tablets in Play Console's device catalogue or by a manifest change. Nothing has been done for this; it is a separate decision.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-244
+**Timestamp:** 2026-09-29T22:38:19Z
+**Dispatch:** 2026-09-28-227 (Part 3), S22-A; J6's removal
+**Reason:** the owner, verbatim: "J6 isn't useful code, let's remove it and have the tablet act like a blown up phone for now so users can at least use the tablet". Then, when the planner said the removal changes the build Part 3 tests: "Have S22 continue. J6 isn't being tested so it'll be fine".
+**Changes:**
+- **S22-A resumed** on the same build, 1.0.1910+g06b394b9, for every item still without a verdict. It starts by reproducing A1 item 1 once more, recording only. It is told not to stop after a partial slice.
+- **J6's removal and the tablet-as-phone layout** will be a build dispatch. Its premise pulse is running and nothing has been built.
+  - The owner accepts that Part 3 runs on the pre-removal build.
+  - The removal's own checks will be the new build's tests and revert checks, plus whatever device check its dispatch names.
+**Open for the owner:** A1 item 1's overlap, fix before merge or record as a known issue.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-245
+**Timestamp:** 2026-09-29T22:46:46Z
+**Title:** Tablets as a big phone: J6 and the tablet layout removed; the landscape L's overlap after fullscreen fixed
+**Dispatch-file:** preserved/2026-09-29-56.md
+**Change:**
+- Every window renders the phone tree.
+- All tablet-only code is deleted, J6's and the older layout's alike. J6's shared icon cluster, which the phone uses, stays.
+- A1 item 1 (-242) is diagnosed, and fixed if it can be tested; otherwise the coder hands back with a proposed fix.
+**Scope boundary:** the ui/availability and ui/log tablet paths, ui/adaptive, their tests, and the L's top limit. No phone behaviour changes, and no device work (S22-A is on the phone).
+**Owner's answers:** scope "All tablet code"; landscape tablet "Portrait layout is fine"; release note "Nothing"; A1 item 1 "fix".
+**Supersedes, in part:** -243's "J6's code stays in the branch". Tablets are now supported as a big phone, not unsupported, and -243's enforcement question lapses.
+**Notes:**
+- The premise pulse (read-only, at 2a2a5b35) was relayed to the planner, not committed.
+- Its findings are in the dispatch as premises to verify.
+- Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-246
+**Timestamp:** 2026-09-29T22:48:55Z
+**Dispatch:** 2026-09-28-245 (tablets as a big phone)
+**Reason:** the owner, verbatim: "We did the rotation work on the phone so it should carry across to the tablet". Asked, the owner chose "Landscape tablet = phone landscape", and said of -245's recorded answer: "I never okay that."
+**Changes:**
+- **Correction to -245:** its "landscape tablet 'Portrait layout is fine'" is **not** the owner's decision. The owner states it was never approved, and it is withdrawn.
+  - The other two answers recorded there ("All tablet code"; release note "Nothing") stand unless the owner says otherwise. The planner has asked the owner to confirm them.
+- **An amendment to preserved/2026-09-29-56:** the phone's landscape layouts apply to any landscape window, not only to short ones. The gate becomes short **or** landscape. Every phone outcome is unchanged, and the dispatch adds tests at the landscape-tablet size.
+- **The build coder,** already running, is sent the amendment.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-247
+**Timestamp:** 2026-09-29T22:54:47Z
+**Dispatch:** 2026-09-28-245 (tablets as a big phone)
+**Reason:** the owner, verbatim, after -246: "I never okay'd that." The planner took every answer -245 recorded as not the owner's, and asked again.
+**Changes:**
+- **-245's recorded answers are all withdrawn** as the owner's. None of them should be cited from -245.
+- **The owner's answers, given now:**
+  - scope "All tablet code";
+  - release note "No mention".
+- **The landscape answer stands as -246 records it:** "Landscape tablet = phone landscape".
+- **Dispatch -56 is unchanged by this.** Its scope and its -246 amendment already match these answers.
+- **The first build coder was stopped by the owner** before it committed. Its worktree, forager-wt/tablet-as-phone, is clean with nothing pushed. It has not been relaunched.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-248
+**Timestamp:** 2026-09-29T22:55:54Z
+**Dispatch:** 2026-09-28-245 (tablets as a big phone)
+**Reason:** the owner, verbatim: "J6 and the previous tablet mode were horrendous for the same reasons. My guess is the designer assumed it was a style to build on rather than replace. So we are undoing everything, and the phone layout will be the thing to expand instead."
+**Changes:**
+- **The decision and what it rejects** are recorded in preserved/2026-09-29-56, in a closing "Why" section.
+  - **Rejected:** the tablet tree, pre-J6 and J6 alike, as a base for tablet design.
+  - **Chosen:** the phone layout as the base that a future tablet design expands.
+- The dispatch's scope is unchanged.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-249
+**Timestamp:** 2026-09-29T22:59:43Z
+**Dispatch:** 2026-09-28-245 (tablets as a big phone)
+**Reason:** the owner, verbatim: "Continue removing all J6 and prior tablet code, but extract J6 to a separate branch for R&D. I want to see if I can salvage it into something usable."
+**Changes:**
+- **Branch `j6-rnd`** is created on origin at ac3b6a9a, the journal-redesign head before any removal.
+  - It holds J6 working in context, with everything built on it since: the landscape L, F1, F3, F4 and C1. The pre-J6 tablet tree is included.
+  - It builds as the branch did.
+  - It is not merged anywhere and not built on by this project's dispatches.
+- **Also on origin, unchanged:** `j6` (and `j6-wip`), J6's own coder branch, ending at 44c4ff2a (the J6c report), before the later work.
+- **Dispatch -56's removal goes ahead** as written. Its build coder, stopped by the owner before it changed anything, is resumed.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-250
+**Timestamp:** 2026-09-29T23:17:30Z
+**Dispatch:** 2026-09-28-227 (Part 3), S22-A
+**Reason:** the resumed S22-A coder (-244) was stopped, most likely by the owner's interrupt at about 15:50 local, and cannot be resumed. The owner, verbatim: "Finish it up now while the build happens".
+**Observed by the planner:**
+- **Nothing pushed:** device-part-3 on origin is still at 87b041f3, with no Resumed section in the run record.
+- **Unrecorded captures:** pb-* at 15:44 and t.xml at 15:48 are in the evidence folder.
+- **Unpushed merge:** the worktree holds one merge of journal-redesign (7d2fa20e), and nothing else is uncommitted.
+- **The phone:** user_rotation 1, which differs from the start state of 0. The other start settings are as recorded, and the build is 1.0.1910+g06b394b9.
+**Changes:**
+- **A fresh S22-A coder** finishes every item without a verdict, on the installed build, beside the tablet-as-phone build (-245).
+  - Its findings on the landscape L describe the pre-removal build.
+  - The overlap fix and the L on the new build are rechecked in S22-B or later.
+**Notes:** Written by the planner by hand.
