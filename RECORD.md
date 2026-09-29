@@ -6395,3 +6395,30 @@ The planner confirmed each by grep.
 **Reason:** the owner launched both. The owner, verbatim: "Pasted".
 **Changes:** F3 (base ce30ac4c) and F4 (base c3cde3d7) run side by side in owner-opened windows, sharing the machine and merging each other's MapBubbles.kt changes.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-200
+**Timestamp:** 2026-09-29T17:14:22Z
+**Title:** L1: the legal docs (privacy policy, delete-data, beta README) brought up to the build PR #140 ships, with every claim read from code, on legal-drafts
+**Dispatch-file:** preserved/2026-09-29-41.md; launch preserved/2026-09-29-42.md (~/Zynergy/launch-prompts/19-legal-docs.md)
+**Change:** documents only:
+- track delete;
+- entries' kept copies, and the kept path after F3;
+- scheduled backups keep 5, pruned by the app itself;
+- the Backups notifications and the permission asked once;
+- the Gallery date;
+- the merged-manifest permissions;
+- an addendum for the site agent.
+**Scope boundary:** the three documents on legal-drafts, and an addendum section in the site report. Not zynergy-site, and not a merge into journal-redesign.
+**Baseline:** legal-drafts (b6d6eca0), merged with journal-redesign at launch.
+**Prediction (outcome, planner):**
+1. The first draft's "Forager never deletes old ones" is corrected.
+2. At least one draft claim is removed as unconfirmable.
+3. The track-path sentence waits on F3 unless F3 has landed.
+**Prediction (mechanism, coder):** not authored.
+**Finish line:** pushed to legal-drafts, with the claim-by-claim hand-back.
+**Notes:**
+- The owner, verbatim: "Write a dispatch to deal with the legal docs part". This follows -148, where the owner handed publishing to a site agent. That stays: L1 updates the sources the site agent publishes from.
+- Written by the planner by hand.
