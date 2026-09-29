@@ -299,3 +299,22 @@ phone is returned to the copy at the end and I say so (amendment item 2).
 **Declared limits:** item 57's forced half; item 52's ">3 entries" case needs 4 entries that keep one photo (created as DEVICE CHECK rows;
 if it proves too costly through the UI I will record it as not reached); tablet-only halves (F1 wide, F3 step 5) are not runnable on the S22.
 A system prompt over the app is not tapped by me (rule 11).
+
+### Session 2: results so far (interim 1; portrait, rotation 0 only; more follow)
+
+Every verdict rests on `uiautomator` dumps (`s2-*.xml`) and the named PNGs in the evidence directory. Real input only.
+The live log is `s2-notes.md` there. **Rotation lock:** `accelerometer_rotation` read 1 at the first launch (start read 0) and
+again about 2 minutes later, neither set by me (amendment 7); each time I set 0/0 again. A `fixrot` guard now runs before each step.
+Test data: my finds `DEVICE CHECK 2026-09-29 f1`..`f4` and two day entries (`... entry`, `... new`); the phone is returned to the
+copy at the end (a find/entry created through the UI can be deleted through the UI, but the return to the copy is the cleaner read-back).
+
+| Item | Verdict (at 0) | Reading |
+|---|---|---|
+| 13, 21 | pass | An owner-era find's report (`Find on 2026-09-27`, "DEVICE CHECK find 1"): Maps, back to Journal, Tools then one Back (drawer only; `s2-f1-tools.png`), home key and relaunch: the find stays open in its report each time and no "Saved to Drafts" node is in any dump (`s2-f1-*.xml`). |
+| 14 | pass (photos half not covered) | My find f1. Edit, no change, Back: no snackbar, no new draft (Drafts stayed at the pre-existing "Find on 2026-09-28"). Edit, type, Back: "Saved to Drafts" + Discard, Drafts 2; Discard tapped inside the snackbar: Drafts back to 1, the committed find intact with its identification and no "changed text". f1 has no photos, so "with its photos" is **not covered**. A first Discard tap of mine came after the 4 s snackbar had expired and hit the card beneath; it was invalid and redone (noted in `s2-notes.md`). |
+| 15 | pass | New find f4, type, Back; within about 3 s: Drafts tab, the draft, Save, then Discard on the snackbar still up (`s2-item15-pre-discard.png` shows "Saved to Drafts / Discard" after the Save). Afterwards Finds is 6 (2 earlier + f1..f4), Drafts 1, and the f4 report is open: the saved find stays. |
+| 16 | pass | Day entry in Edit, typed, Maps and Journal: the editor with the text. Back: "Save your changes?"; Discard: the entry unchanged, no typed text. Repeated: typed, Maps/Journal, Back, Save: the entry shows the text. |
+| 17 | partly | The new-entry half passes: a new entry, typed, Maps and Journal: the editor with the text and "Finish entry". The withheld-waypoint half was not run. |
+| 18 | pass, with an observation | Dirty editor, `cmd uimode night no` (recreation): the editor is there with the text. **Observation:** a "Welcome back — This entry had an edit still pending when the app went to the background. Continue editing, submit it, or save it as a draft." dialog appears (`s2-n1x.png`) after each recreation; no report I read mentions it. Night mode was restored to `yes` and read back. |
+| 19 | pass at 0 for four of five | With the Journal dropdown, the Maps dropdown, "Set on map", and the Log-a-find picker each open: Tools, then Back closes only the drawer (state still shown), a second Back closes the state. The landscape add-action menu is a 90/270 case, not yet run. |
+| 20 | **pass; my prediction P1 was wrong** | The Journal dropdown, no drawer: Back 1 lowers the keyboard, Back 2 closes the dropdown; the Journal tab stays. The F4 report's finding was made at `b91a543`; I have not established what changed. |
