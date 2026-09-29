@@ -4597,3 +4597,20 @@ Put to the owner before any fix is written. Written by the planner by hand.
 - It restores settings and writes the verdicts into the existing run record, in a new worktree forager-wt/device-trips on branch device-trips.
 - The -94 coder had created its branch in the planner's own session checkout (the dispatch named no worktree). The planner has pushed nothing of it; the branch was already pushed and clean, so the planner restored its checkout to its own branch.
 **Notes:** The reproduction unblocks -97 (the fix, owner option A). Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-113
+**Dispatch-file:** none (planner handoff; no dispatch)
+**Type:** filing
+**Outcome:** completed
+**Report:** docs/audits/2026-09-29-planner-handoff.md
+**Notes:** 2026-09-29T00:46:06Z.
+- The owner, verbatim: "Hang on. Set a place to stop, push everything and save it." then "Stop them".
+- All agents are stopped, and every worktree was checked clean with nothing unpushed.
+- **Open:** -78 (-109 unbuilt), -106 (nothing built), -94 (reproduced; trips A and B still on the S22).
+- **Queued:** -97, -104, J6, Part 2.
+- **Waiting on the owner:** the Sonnet 5.5 model setting (the agents ran as claude-sonnet-5; the planner's "Sonnet 5.5" was unchecked), and PR #141.
+
+Written by the planner by hand.
