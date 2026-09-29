@@ -119,3 +119,21 @@ And for J6b, item 14: "use the phone's **portrait** arrangement, never the lands
 - `git push -u origin HEAD:j6-wip` set the local `j6` branch's upstream to `origin/j6-wip`; later pushes name their refspecs.
 - `WideJournalTest`'s test names still carry "FAILS AT BASE"; they pass now. The prefix records what the base run showed.
 - Not touched, as scoped: `AvailabilitySettingsUi.kt:153`'s "Mushroom Log" settings label, and the Search panel's own "Mushroom Log" row (the way into the Journal).
+
+---
+
+## Resumed: J6b, the tablet map (pre-registration, pushed before any J6b production change)
+
+**Rulings received since J6a** (planner message, 2026-09-29, ref `[4b12e2]`, verbatim): "the owner took my recommendations on your J6a questions (record -166): 1. Keep the record-details pane's back row label "Details". 2. In J6b, delete PhotoGalleryScreen.kt, its test and the stale comments that name it. Make it its own commit, with the suite green afterwards. Carry on with J6b as you planned: items 11-13 first, then report exactly what item 14 needs."
+
+**Base.** `j6` at `d2b61d0e` (J6a, merged with `origin/journal-redesign`).
+
+**What J6b builds, and where** (paths under `app/src/main/java/com/zynergylabs/forager/app/ui/availability/`; line numbers at the base):
+- **Item 11.** `AvailabilityWideLayoutUi.kt:105-158` (`CombinedResultsPane`): a `BoxWithConstraints` and one constant, `COMBINED_PANE_MIN_MAP_WIDTH = 480.dp`. Side by side when `maxWidth - 360 (list) - 1 (divider) >= 480`; otherwise `selectedTab` (LIST or MAP) picks one of the two, each across the whole right side. `AvailabilityScreen.kt:1640` passes `selectedTab`. "View on Map" already sets `selectedTab = MAP` (`onViewSpeciesOnMap`), so it lands on the map with no change of its own.
+- **Item 12.** `AvailabilityWideLayoutUi.kt:331-346`: an end inset on the chip row's `FlowRow`, the Layers button's footprint (48 dp button, 8 dp margin, 8 dp gap).
+- **Item 13.** `AvailabilityWideLayoutUi.kt:239-243` (`!uiState.hasSearched -> MapMessage`): the map is drawn before a search, from the phone's own pattern (`AvailabilityCompactMapUi.kt:561-605`: a display region, the search region else the located fix else `JOURNAL_PICKER_DEFAULT_REGION`; no sightings before a search; planned trips always).
+- **Item 14: not built.** Read below, after the build.
+
+**Tests, written first** (`WideMapTabsTest`, 11 tests, through the real `AvailabilityScreen`; the map is a stub that records the `MapOverlayContent` it is handed). The first run, before the last test was added: 10 tests, 7 fail at base on the assertion each names (portrait: "the map on the Maps tab is 103.0.dp wide, expected about 464.0.dp"; 1200 dp and 840 dp: the list is beside the map; "View on Map": the list is not gone; the chip row on the tabbed map: "ends at 816.0.dp, the Layers button starts at 768.0.dp"; before any search, twice: the "choose a region" message stands in for the map), 2 are guards that pass (landscape 596 dp side by side; 1201 dp, exactly 480 dp, still side by side), and **1 was a wrong prediction of mine: the chip-row test on the 596 dp side-by-side map passed at base.** A taxon chip is bounded by its own maximum width, well under the map's there, so centred it does not reach Layers; the overlap needs a map narrower than that bound plus the button's footprint. The coder rules call a tests-first test that passes where failure was predicted a stop; I read it as a wrong premise about *which widths* overlap, not as the feature already existing (the tabbed 464 dp case fails at base), so I did not stop: the test is renamed a guard with its comment recording the wrong prediction, and a new test at the narrowest side-by-side map (1201 dp, 480 dp) is added. That test is not yet run at base; it is run at base before any production change, and its result is written in the completion section.
+
+**Predictions for the build:** every "FAILS AT BASE" test passes and the three guards stay passing; existing tests that assumed the wide map is absent before a search, or that List and Maps share the right side at 840 dp, change with the rulings and are listed with their reasons.
