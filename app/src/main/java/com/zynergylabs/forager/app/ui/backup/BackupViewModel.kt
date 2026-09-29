@@ -80,7 +80,7 @@ data class BackupUiState(
     val returnToMapRequest: Int = 0,
     /** A scheduled-backup notice that could not be shown as a notification, to be shown in the app once at launch. */
     val launchNotice: ScheduledBackupNotice? = null,
-    /** One-shot (STUB, tests-first commit): the section should ask for the notification permission. */
+    /** One-shot: the section should ask for the notification permission, which is only ever the first time scheduled backups are turned on (owner 3.4). Cleared by [BackupControls.onNotificationPermissionRequestHandled]. */
     val askNotificationPermission: Boolean = false,
 )
 
@@ -108,7 +108,7 @@ data class BackupControls(
     val onReplaceExistingCancelled: () -> Unit = {},
     /** The screen has shown [BackupUiState.launchNotice]; it is forgotten so it shows once. */
     val onLaunchNoticeShown: () -> Unit = {},
-    /** STUB: the section has acted on [BackupUiState.askNotificationPermission]. */
+    /** The section has acted on [BackupUiState.askNotificationPermission]. */
     val onNotificationPermissionRequestHandled: () -> Unit = {},
 )
 
@@ -180,6 +180,7 @@ class BackupViewModel(
         onReplaceExistingConfirmed = ::onReplaceExistingConfirmed,
         onReplaceExistingCancelled = ::onReplaceExistingCancelled,
         onLaunchNoticeShown = ::onLaunchNoticeShown,
+        onNotificationPermissionRequestHandled = ::onNotificationPermissionRequestHandled,
     )
 
     /**
@@ -303,7 +304,29 @@ class BackupViewModel(
             _uiState.update { it.copy(message = BackupMessage.AUTOMATIC_NEEDS_FOLDER) }
             return
         }
-        changeSchedule(current.copy(enabled = enabled))
+        changeSchedule(current.copy(enabled = enabled), afterApplied = if (enabled) ::askNotificationPermissionOnce else null)
+    }
+
+    fun onNotificationPermissionRequestHandled() {
+        _uiState.update { it.copy(askNotificationPermission = false) }
+    }
+
+    /**
+     * Owner 3.4: the notification permission is asked only the first time scheduled backups are turned on. Whether it has been
+     * asked is remembered before the request is raised, so a declined answer is never asked about again (the in-app notice at the
+     * next launch covers it). If that cannot be read or written, it is not asked: asking twice is the thing ruled out.
+     */
+    private suspend fun askNotificationPermissionOnce() {
+        val asked = preferences.notificationPermissionAsked().getOrElse {
+            errorLog.w(TAG, "could not read whether the notification permission was asked; not asking: ${it.message}", it)
+            return
+        }
+        if (asked) return
+        preferences.setNotificationPermissionAsked().onFailure {
+            errorLog.w(TAG, "could not remember that the notification permission was asked; not asking: ${it.message}", it)
+            return
+        }
+        _uiState.update { it.copy(askNotificationPermission = true) }
     }
 
     fun onFrequencyChanged(frequency: BackupFrequency) = changeSchedule(_uiState.value.schedule.copy(frequency = frequency))
@@ -381,13 +404,14 @@ class BackupViewModel(
     }
 
     /** Saves [next], then shows it and hands it to the scheduler; a save that fails is logged and changes nothing. */
-    private fun changeSchedule(next: BackupScheduleSettings) {
+    private fun changeSchedule(next: BackupScheduleSettings, afterApplied: (suspend () -> Unit)? = null) {
         _uiState.update { it.copy(message = null) }
         scope.launch {
             preferences.save(next).fold(
                 onSuccess = {
                     _uiState.update { it.copy(schedule = next) }
                     scheduler.apply(next)
+                    afterApplied?.invoke()
                 },
                 onFailure = { errorLog.w(TAG, "could not save the backup schedule; it is unchanged: ${it.message}", it) },
             )

@@ -71,6 +71,16 @@ internal fun BackupSection(controls: BackupControls, modifier: Modifier = Modifi
         }
     }
 
+    // Turning it on with a folder chosen, the first time only (owner 3.4), is the moment a scheduled run's notification becomes
+    // possible, so the ViewModel raises this one-shot and it is asked for here (API 33+). Declining does not stop the schedule: a
+    // run's notice then waits for the app, and the permission is not asked for again for backups.
+    LaunchedEffect(state.askNotificationPermission) {
+        if (state.askNotificationPermission) {
+            controls.onNotificationPermissionRequestHandled()
+            if (needsNotificationPermission(context)) askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text("Backup", style = MaterialTheme.typography.titleMedium)
 
@@ -87,14 +97,7 @@ internal fun BackupSection(controls: BackupControls, modifier: Modifier = Modifi
             Text("Automatic backup", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
             Switch(
                 checked = state.schedule.enabled,
-                onCheckedChange = { on ->
-                    controls.onAutomaticChanged(on)
-                    // Turning it on with a folder chosen is the moment a scheduled run's notification becomes possible, so it is
-                    // asked for here (API 33+). Declining does not stop the schedule: a run's notice then waits for the app.
-                    if (on && state.schedule.folderUri != null && needsNotificationPermission(context)) {
-                        askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
-                    }
-                },
+                onCheckedChange = { on -> controls.onAutomaticChanged(on) },
                 modifier = Modifier.testTag(BACKUP_AUTOMATIC_SWITCH_TAG),
             )
         }

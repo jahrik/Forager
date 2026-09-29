@@ -12,6 +12,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import androidx.work.Data
 import androidx.work.OneTimeWorkRequest
 import androidx.work.WorkManager
 import com.zynergylabs.forager.app.MainActivity
@@ -105,12 +106,17 @@ internal fun createBackupNotificationChannel(context: Context) {
 
 /**
  * The "Try again" action on the "didn't finish" notification: one backup to the same folder, run by the same worker the
- * schedule uses, as a one-time job. The notification is dismissed.
+ * schedule uses, as a one-time job that is marked as a retry so it runs whether or not the schedule is still on (a folder
+ * whose permission is gone fails as any run does, with the same notification, which opens the Backup section). The
+ * notification is dismissed.
  */
 class BackupRetryReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         WorkManager.getInstance(context.applicationContext).enqueue(
-            OneTimeWorkRequest.Builder(ScheduledBackupWorker::class.java).addTag(BACKUP_RETRY_WORK_TAG).build(),
+            OneTimeWorkRequest.Builder(ScheduledBackupWorker::class.java)
+                .addTag(BACKUP_RETRY_WORK_TAG)
+                .setInputData(Data.Builder().putBoolean(BACKUP_RETRY_INPUT_KEY, true).build())
+                .build(),
         )
         NotificationManagerCompat.from(context).cancel(DID_NOT_FINISH_NOTIFICATION_ID)
     }

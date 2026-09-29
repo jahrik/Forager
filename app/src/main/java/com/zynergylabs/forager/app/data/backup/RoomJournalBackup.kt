@@ -226,21 +226,36 @@ class RoomJournalBackup(
         val oldPhotoPaths = sql.query("SELECT relativePath FROM log_photos").use { c -> buildSet { while (c.moveToNext()) add(c.getString(0)) } }
         val newPhotoPaths = backupDb.rawQuery("SELECT relativePath FROM log_photos", null).use { c -> buildSet { while (c.moveToNext()) add(c.getString(0)) } }
         var inserted = 0
+        var skipped = 0
+        var dropped = 0
         try {
             for ((path, file) in staged.photoFiles) photos.place(path, file)
             hooks.afterPhotosCopied()
             database.runInTransaction(Runnable {
-                for (spec in JournalTables.journal) sql.execSQL("DELETE FROM `${spec.name}`")
-                // Each restored region gets a fresh id by the rule Merge uses, negative, so that a later MapLibre download
+                // An incoming region that is one the phone already has (owner 3.1) keeps the phone's own row, and so its id,
+                // which may be a live MapLibre region's; nothing is inserted for it and every reference follows to that id.
+                val matches = matchingRegions(backupDb, sql)
+                val keep = matches.values.toSet()
+                for (spec in JournalTables.journal) {
+                    if (spec.name == OFFLINE_REGIONS && keep.isNotEmpty()) sql.execSQL("DELETE FROM `${spec.name}` WHERE id NOT IN (${keep.joinToString(",")})")
+                    else sql.execSQL("DELETE FROM `${spec.name}`")
+                }
+                // Every other restored region gets a fresh id by the rule Merge uses, negative, so that a later MapLibre download
                 // arriving with the backup's old id can never overwrite a restored row (owner, "2 A"). Every reference in the
-                // restored data follows it. The table was just emptied, so the ids count down from -1.
+                // restored data follows it. The ids count down from below the lowest region that is left (-1 when none is).
                 val regionIdMap = HashMap<String, String>()
-                var nextRegionId = -1L
+                for ((old, phoneId) in matches) regionIdMap[old] = phoneId.toString()
+                var nextRegionId = minOf(-1L, (sql.query("SELECT MIN(id) FROM offline_regions").use { c -> if (c.moveToFirst() && !c.isNull(0)) c.getLong(0) else 0L }) - 1)
+                val refsSeen = HashSet<Pair<String, String>>()
                 for (spec in JournalTables.journal) {
                     inserted += copyAll(backupDb, sql, spec.name, dropKey = null) { values ->
                         when (spec.name) {
                             OFFLINE_REGIONS -> {
                                 val old = values.getAsString("id")
+                                if (old in matches) {
+                                    skipped++
+                                    return@copyAll false
+                                }
                                 val fresh = nextRegionId--
                                 values.put("id", fresh)
                                 regionIdMap[old] = fresh.toString()
@@ -250,10 +265,22 @@ class RoomJournalBackup(
                             "mushroom_log_entries" -> values.getAsString("offlineRegionId")?.let { old ->
                                 regionIdMap[old]?.let { values.put("offlineRegionId", it.toLong()) } ?: values.putNull("offlineRegionId")
                             }
-                            "cartography_entry_offline_region_refs" -> values.getAsString("offlineRegionId")?.let { old ->
-                                regionIdMap[old]?.let { values.put("offlineRegionId", it.toLong()) }
+                            // An entry's ref to a region the backup does not hold is dropped, as Merge drops it (-155): kept, its
+                            // number could meet a future MapLibre id. Two refs that now name the same region collapse into one.
+                            "cartography_entry_offline_region_refs" -> {
+                                val entry = values.getAsString("entryId")
+                                val old = values.getAsString("offlineRegionId")
+                                val mapped = regionIdMap[old]
+                                if (mapped == null) {
+                                    dropped++
+                                    errorLog.w(TAG, "replace: a row of cartography_entry_offline_region_refs names a region the backup lacks and is left out", BackupException("dropped cartography_entry_offline_region_refs row of $entry, region $old"))
+                                    return@copyAll false
+                                }
+                                values.put("offlineRegionId", mapped.toLong())
+                                if (!refsSeen.add(entry to mapped)) return@copyAll false
                             }
                         }
+                        true
                     }
                 }
                 hooks.afterRowsWritten()
@@ -264,7 +291,7 @@ class RoomJournalBackup(
         }
         photos.commit()
         for (path in oldPhotoPaths - newPhotoPaths) photos.deleteOld(path)
-        return RestoreReport(RestoreMode.REPLACE, rowsInserted = inserted, recordsSkipped = 0, rowsDropped = 0, photoFilesAdded = photos.placedCount)
+        return RestoreReport(RestoreMode.REPLACE, rowsInserted = inserted, recordsSkipped = skipped, rowsDropped = dropped, photoFilesAdded = photos.placedCount)
     }
 
     private fun merge(staged: StagedBackup, backupDb: SQLiteDatabase): RestoreReport {
@@ -288,12 +315,17 @@ class RoomJournalBackup(
                 // name a different region).
                 val regionIdMap = HashMap<String, String>()
                 var nextRegionId = minOf(-1L, (sql.query("SELECT MIN(id) FROM offline_regions").use { c -> if (c.moveToFirst() && !c.isNull(0)) c.getLong(0) else 0L }) - 1)
+                // An incoming region that is one the phone already has (owner 3.1) is skipped, and its references follow to the phone's.
+                val regionMatches = matchingRegions(backupDb, sql)
+                for ((old, phoneId) in regionMatches) regionIdMap[old] = phoneId.toString()
                 for (spec in JournalTables.journal.filter { it.kind == JournalTables.Kind.RECORD }) {
                     val keys = insertedKeys.getOrPut(spec.name) { HashSet() }
                     backupDb.rawQuery("SELECT * FROM `${spec.name}`", null).use { c ->
                         while (c.moveToNext()) {
                             val key = keyOf(c, spec)
-                            if (spec.name == OFFLINE_REGIONS) {
+                            if (spec.name == OFFLINE_REGIONS && key.single() in regionMatches) {
+                                skipped++
+                            } else if (spec.name == OFFLINE_REGIONS) {
                                 val newId = nextRegionId--
                                 val values = c.toValues(dropColumn = null).also { it.put("id", newId) }
                                 insertRow(sql, spec.name, values)
@@ -350,6 +382,11 @@ class RoomJournalBackup(
                                 errorLog.w(TAG, "merge: a row of ${spec.name} names a record that is on neither phone and is left out", BackupException("dropped ${spec.name} row of $ownerValue"))
                                 continue
                             }
+                            // Two incoming regions that both matched one of the phone's give a second ref to the same pair: one is enough.
+                            if (spec.needs.any { it.table == OFFLINE_REGIONS } && existsWithKey(sql, spec, values)) {
+                                skipped++
+                                continue
+                            }
                             insertRow(sql, spec.name, values)
                             inserted++
                         }
@@ -369,18 +406,20 @@ class RoomJournalBackup(
 
     // ---- rows ----------------------------------------------------------------------------------
 
-    /** Every row of [table] in [from], verbatim, into [into]. Returns how many. */
+    /** Every row of [table] in [from], verbatim, into [into], except those [transform] returns false for (it may also change the values). Returns how many were inserted. */
     private fun copyAll(
         from: SQLiteDatabase,
         into: androidx.sqlite.db.SupportSQLiteDatabase,
         table: String,
         dropKey: String?,
-        transform: (ContentValues) -> Unit = {},
+        transform: (ContentValues) -> Boolean = { true },
     ): Int {
         var n = 0
         from.rawQuery("SELECT * FROM `$table`", null).use { c ->
             while (c.moveToNext()) {
-                insertRow(into, table, c.toValues(dropKey).also(transform))
+                val values = c.toValues(dropKey)
+                if (!transform(values)) continue
+                insertRow(into, table, values)
                 n++
             }
         }
@@ -396,6 +435,29 @@ class RoomJournalBackup(
         val columns = values.keySet().toList()
         val sql = "INSERT INTO `$table` (${columns.joinToString(", ") { "`$it`" }}) VALUES (${columns.joinToString(", ") { "?" }})"
         into.execSQL(sql, Array<Any?>(columns.size) { values.get(columns[it]) })
+    }
+
+    /**
+     * For each region in [backupDb], the id of the phone's own region it is (same name, centre within 1 m and radius: [sameOfflineRegion]),
+     * keyed by the backup's id as a string; a region with no match is absent. Reads only. The first matching phone region wins.
+     */
+    private fun matchingRegions(backupDb: SQLiteDatabase, sql: androidx.sqlite.db.SupportSQLiteDatabase): Map<String, Long> {
+        class Region(val id: Long, val name: String, val lat: Double, val lng: Double, val radiusKm: Int)
+        val query = "SELECT id, name, lat, lng, radiusKm FROM offline_regions ORDER BY id"
+        val onPhone = sql.query(query).use { c -> buildList { while (c.moveToNext()) add(Region(c.getLong(0), c.getString(1), c.getDouble(2), c.getDouble(3), c.getInt(4))) } }
+        if (onPhone.isEmpty()) return emptyMap()
+        val incoming = backupDb.rawQuery(query, null).use { c -> buildList { while (c.moveToNext()) add(Region(c.getLong(0), c.getString(1), c.getDouble(2), c.getDouble(3), c.getInt(4))) } }
+        val matches = LinkedHashMap<String, Long>()
+        for (region in incoming) {
+            val same = onPhone.firstOrNull { sameOfflineRegion(region.name, region.lat, region.lng, region.radiusKm, it.name, it.lat, it.lng, it.radiusKm) } ?: continue
+            matches[region.id.toString()] = same.id
+        }
+        return matches
+    }
+
+    private fun existsWithKey(sql: androidx.sqlite.db.SupportSQLiteDatabase, spec: JournalTables.TableSpec, values: ContentValues): Boolean {
+        val where = spec.keyColumns.joinToString(" AND ") { "`$it` = ?" }
+        return sql.query("SELECT 1 FROM `${spec.name}` WHERE $where LIMIT 1", spec.keyColumns.map { values.get(it) }.toTypedArray()).use { it.moveToFirst() }
     }
 
     private fun keyOf(c: Cursor, spec: JournalTables.TableSpec): List<String> = spec.keyColumns.map { c.getString(c.getColumnIndexOrThrow(it)) }

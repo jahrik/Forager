@@ -290,8 +290,31 @@ class MushroomLogViewModel(
         }
     }
 
-    /** STUB (tests-first commit): only reloads. */
-    fun reloadAfterRestore(): Job = loadEntries()
+    /**
+     * After a restore (dispatch 2026-09-28-182, item 5): reads the entries and drafts again, then closes the open find if its
+     * record is in neither list now. A Replace deletes rows behind this ViewModel's back, and [loadEntries] deliberately leaves
+     * the open row alone (it only merges the photos in), so without this the report of a deleted find stays on screen. A read
+     * that failed closes nothing: the lists are then the old ones, and "not in the list" would mean nothing. Its own function,
+     * so the ordinary refresh's rule is untouched.
+     */
+    fun reloadAfterRestore(): Job {
+        return viewModelScope.launch {
+            loadEntries().join()
+            editingEntryMutex.withLock {
+                _uiState.update { state ->
+                    val open = state.editingEntry
+                    when {
+                        open == null || state.loadErrorMessage != null -> state
+                        (state.entries + state.draftEntries).any { it.id == open.id } -> state
+                        else -> {
+                            Log.i(TAG, "A restore removed the open entry '${open.id}'; it is closed.")
+                            state.copy(editingEntry = null)
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     /** Loads [MushroomLogUiState.galleryPhotos] for the photo album — Workstream G2, independent of [loadEntries] (see [MushroomLogUiState]'s own doc comment on why the two get separate loading/error fields). */
     fun loadGalleryPhotos(): Job {
