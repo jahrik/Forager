@@ -111,8 +111,10 @@ class ReturnPromptRecreationTest {
 
     @Test
     fun `backgrounding with no pending edit and returning shows no prompt`() {
+        // A clean entry from the start: the flag is read when the Activity is created, so relaunch with it off.
+        scenario.close()
         dirty = false
-        scenario.recreate()
+        scenario = ActivityScenario.launch(HostActivity::class.java)
         composeRule.waitForIdle()
         scenario.moveToState(Lifecycle.State.CREATED)
         composeRule.waitForIdle()
