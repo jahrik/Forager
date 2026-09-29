@@ -5146,3 +5146,16 @@ It also flagged the snackbar lying over the floating nav.
 - Nothing had launched, so the files were amended rather than a new continuation added.
 - The body tap on the "didn't finish" notification is unruled. The dispatch says to open the app only and list it under Decisions; it has been put to the owner.
 - Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-140
+**Timestamp:** 2026-09-29T04:55:35Z
+**Continues:** 2026-09-28-127
+**Dispatch-file:** preserved/2026-09-29-14.md and 2026-09-29-15.md, amended before launch; the launch copy is updated to match
+**Reason:** the owner, verbatim: "Option A, yes same as other".
+**Changes:** tapping the "Scheduled backup didn't finish" notification opens the Backup section. Its Try again action is unchanged.
+**Notes:**
+- The dispatch has no open questions left.
+- Written by the planner by hand.
