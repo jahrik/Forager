@@ -6438,3 +6438,25 @@ The planner confirmed each by grep.
 **Notes:**
 - **Checked for the notes:** on origin/main (faf2f88f), DeleteTrackUseCase is wired at AppContainer.kt:255 and nothing calls it. So the live delete-data page's "Recorded tracks" line is false for testers today. The notes put that first.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-202
+**Timestamp:** 2026-09-29T17:23:10Z
+**Dispatch:** 2026-09-28-200 (L1), the site agent's notes
+**Reason:** the owner, verbatim: "They can be deleted now. So we keep it."
+**Changes:** the notes' first point now says to keep delete-data's "Recorded tracks" line (preserved/2026-09-29-43.md and its copy), instead of fixing it now.
+**Notes:**
+- The planner's check that origin/main (faf2f88f) has no caller of DeleteTrackUseCase stands in -201 as a fact about main. The owner's ruling concerns the build with F1's track delete.
+- Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-203
+**Timestamp:** 2026-09-29T17:23:27Z
+**Dispatch:** 2026-09-28-200 (L1)
+**Reason:** the owner, verbatim: "Option A". L1 starts after F3 lands, so the kept-path sentence is written for real in one pass.
+**Changes:** L1 is held. The planner hands the owner the launch prompt when F3's terminal is written.
+**Notes:** Written by the planner by hand.
