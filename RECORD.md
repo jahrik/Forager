@@ -6584,3 +6584,25 @@ The planner confirmed each by grep.
 **Reason:** the owner's request that all map chrome match the bottom navigation bar's colour, recorded verbatim in the plan under "Map chrome: one colour, the navigation bar's". The screenshot is kept outside the repo.
 **Changes:** a read-only pulse maps every chrome surface's container colour and alpha against the navigation bar's. One question goes to the owner: the icon bar showing through the open search panel.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-210
+**Timestamp:** 2026-09-29T18:49:59Z
+**Title:** C1: all map chrome takes the bottom navigation bar's colour, through one token. Colour only, with every alpha kept
+**Dispatch-file:** preserved/2026-09-29-45.md; launch preserved/2026-09-29-46.md (~/Zynergy/launch-prompts/20-chrome-colour.md)
+**Change:**
+- one surfaceContainer token, read by the navigation bar and rail and by every map chrome surface (the list is in the dispatch);
+- the search notice keeps errorContainer, the planner's reading, told to the owner;
+- "Download this area?" becomes 0.8 over its map, under the existing dialogs ruling;
+- content colours change only where contrast fails.
+**Scope boundary:** container colours of map chrome in both themes, on phone, tablet and entry map. Not alphas, borders or shadows, and not scrims.
+**Baseline:** the head at launch.
+**Prediction (outcome, planner):**
+1. The Bark/Cream family goes from map chrome entirely.
+2. No contrast failure in dark. Possibly one in light, for Cream-era content on #F4EFE2.
+3. The suite grows by 30 to 60.
+**Prediction (mechanism, coder):** not authored.
+**Finish line:** tests first, the build, revert checks, the full suite at 0, the report with device-only items. The planner re-runs the suite.
+**Notes:** Written by the planner by hand.
