@@ -6721,3 +6721,23 @@ The planner confirmed each by grep.
 **Prediction (mechanism, coder):** not authored.
 **Finish line:** as S1. The planner then updates legal-drafts' two disclosures.
 **Notes:** The owner, verbatim: "2 A / 3 A". Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-217
+**Timestamp:** 2026-09-29T19:32:45Z
+**Closes:** 2026-09-28-197 (F4, stacked markers fan out on tap), with -208
+**Outcome:** completed
+**Observed:**
+- **Record:** docs/audits/2026-09-29-marker-fanout-completion-report.md, with its "Resumed" section. It landed at 5f5d9eb7, and the continuation at 958eea6c.
+- **Built:**
+  - a tap on overlapping **record** markers (planned trips, waypoints, finds, photos) fans them out in a ring, or a spiral above 8, with leader lines, in 0.4 s;
+  - reduced motion snaps;
+  - a map tap, pan, zoom or Back folds them back;
+  - the fan's centre shifts to keep every 48 dp square on screen and off the registered controls;
+  - one code path for every map;
+  - sightings never fan.
+- **The planner's suite** at 948c728b, idle, from a cleared results directory with the hang timeout: 378 files, none stale, 0 compile errors, 3138 / 0 / 0 / 24, in 280 s.
+- **Device-only:** the report's list: the native layer filters, queryRenderedFeatures on a real stack, leg drawing, and bounds during a drag. All go to the next S22 and tablet sessions.
+**Notes:** Written by the planner by hand.
