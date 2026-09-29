@@ -1,6 +1,9 @@
 package com.zynergylabs.forager.app.ui.backup
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -19,7 +22,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.core.content.ContextCompat
 import androidx.compose.ui.semantics.Role
 import com.zynergylabs.forager.app.domain.BackupFrequency
 import com.zynergylabs.forager.app.domain.RestoreMode
@@ -46,6 +51,8 @@ internal fun backupFrequencyTag(frequency: BackupFrequency) = "backup-frequency-
 @Composable
 internal fun BackupSection(controls: BackupControls, modifier: Modifier = Modifier) {
     val state = controls.state
+    val context = LocalContext.current
+    val askNotifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { /* granted or declined: the schedule is already on */ }
     val createBackupFile = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
         if (uri != null) controls.onBackUpNow(uri.toString())
     }
@@ -80,7 +87,14 @@ internal fun BackupSection(controls: BackupControls, modifier: Modifier = Modifi
             Text("Automatic backup", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
             Switch(
                 checked = state.schedule.enabled,
-                onCheckedChange = controls.onAutomaticChanged,
+                onCheckedChange = { on ->
+                    controls.onAutomaticChanged(on)
+                    // Turning it on with a folder chosen is the moment a scheduled run's notification becomes possible, so it is
+                    // asked for here (API 33+). Declining does not stop the schedule: a run's notice then waits for the app.
+                    if (on && state.schedule.folderUri != null && needsNotificationPermission(context)) {
+                        askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                },
                 modifier = Modifier.testTag(BACKUP_AUTOMATIC_SWITCH_TAG),
             )
         }
@@ -129,7 +143,7 @@ internal fun BackupSection(controls: BackupControls, modifier: Modifier = Modifi
     when (val prompt = state.prompt) {
         is BackupPrompt.UnreadablePhotos -> UnreadablePhotosPrompt(prompt, controls)
         BackupPrompt.WriteFailed -> WriteFailedPrompt(controls)
-        is BackupPrompt.ReplaceExisting -> Unit // tests-first stub
+        is BackupPrompt.ReplaceExisting -> ReplaceExistingPrompt(controls)
         null -> Unit
     }
 }
@@ -147,6 +161,17 @@ private fun UnreadablePhotosPrompt(prompt: BackupPrompt.UnreadablePhotos, contro
                 TextButton(onClick = controls.onPhotosContinue) { Text("Continue without file(s)") }
             }
         },
+    )
+}
+
+/** "Replace the existing backup file?" with Replace and Cancel (owner, "3 A"): asked before anything is written into a file that has contents. */
+@Composable
+private fun ReplaceExistingPrompt(controls: BackupControls) {
+    AlertDialog(
+        onDismissRequest = controls.onReplaceExistingCancelled,
+        text = { Text(BackupPrompt.ReplaceExisting.TEXT) },
+        dismissButton = { TextButton(onClick = controls.onReplaceExistingCancelled) { Text("Cancel") } },
+        confirmButton = { TextButton(onClick = controls.onReplaceExistingConfirmed) { Text("Replace") } },
     )
 }
 
@@ -182,6 +207,11 @@ private fun RestorePrompt(controls: BackupControls) {
         },
     )
 }
+
+/** API 33 and later, and the permission not yet granted. */
+private fun needsNotificationPermission(context: android.content.Context): Boolean =
+    Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
 
 private val BackupFrequency.label: String
     get() = when (this) {

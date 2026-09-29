@@ -33,6 +33,8 @@ import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
 import com.zynergylabs.forager.app.service.TrackRecordingService
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreen
 import com.zynergylabs.forager.app.ui.availability.AvailabilityViewModel
+import com.zynergylabs.forager.app.data.backup.EXTRA_OPEN_BACKUP_SECTION
+import com.zynergylabs.forager.app.data.backup.opensBackupSection
 import com.zynergylabs.forager.app.ui.backup.BackupRestoreOverlay
 import com.zynergylabs.forager.app.ui.backup.BackupViewModel
 import com.zynergylabs.forager.app.ui.log.CartographyViewModel
@@ -291,8 +293,29 @@ class MainActivity : ComponentActivity() {
         return fine == PackageManager.PERMISSION_GRANTED || coarse == PackageManager.PERMISSION_GRANTED
     }
 
+    /**
+     * Counts up each time a backup notification's tap reaches the app (dispatch 2026-09-28-153): the screen opens Tools, then
+     * Settings, at the Backup section. Read from the launching intent and from every later one ([onNewIntent]); the extra is
+     * removed once read, so a rotation does not open it again.
+     */
+    private var openBackupRequest by androidx.compose.runtime.mutableIntStateOf(0)
+
+    private fun noteBackupIntent(intent: Intent?) {
+        if (opensBackupSection(intent)) {
+            openBackupRequest++
+            intent?.removeExtra(EXTRA_OPEN_BACKUP_SECTION)
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        noteBackupIntent(intent)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (savedInstanceState == null) noteBackupIntent(intent)
         // The off-track alert's channel is created by AndroidAlertDelivery when AppContainer
         // builds it (alert-delivery dispatch) — nothing alert-related lives in this Activity now.
         // Release the live-fix OS subscription whenever this Activity is not started, and
@@ -491,6 +514,7 @@ class MainActivity : ComponentActivity() {
                     onLockCameraToPortraitChanged = viewModel::onLockCameraToPortraitChanged,
                     backup = backupViewModel.controls(backupUiState),
                     returnToMapRequest = backupUiState.returnToMapRequest,
+                    openBackupRequest = openBackupRequest,
                     onDownloadAgain = viewModel::onDownloadAgain,
                     onThemeModeChanged = viewModel::onThemeModeChanged,
                     onMapFullscreenChanged = viewModel::onMapFullscreenChanged,

@@ -43,7 +43,10 @@ class ScheduledBackupWorker @JvmOverloads constructor(
             Log.w(TAG, "The scheduled backup ran in an application that does not provide its dependencies; nothing was backed up.")
             return Result.failure()
         }
-        return deps.runScheduledBackup().fold(
+        val run = deps.runScheduledBackup()
+        // Tell the person: a notification, or the same words in the app at the next launch (owner, "1 A").
+        deps.reporter.report(run)
+        return run.fold(
             onSuccess = { Result.success() },
             onFailure = { error ->
                 deps.errorLog.w(TAG, "the scheduled backup failed: ${error.message}", error)

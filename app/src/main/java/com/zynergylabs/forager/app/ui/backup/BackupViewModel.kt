@@ -146,6 +146,11 @@ class BackupViewModel(
                 onSuccess = { saved -> _uiState.update { it.copy(schedule = saved) } },
                 onFailure = { errorLog.w(TAG, "could not read the saved backup schedule; the section starts from the off default", it) },
             )
+            // A scheduled-backup notice that could not be a notification (owner, "1 A"): offered once, at launch.
+            preferences.pendingNotice().fold(
+                onSuccess = { notice -> if (notice != null) _uiState.update { it.copy(launchNotice = notice) } },
+                onFailure = { errorLog.w(TAG, "could not read the scheduled-backup notice kept for launch: ${it.message}", it) },
+            )
         }
     }
 
@@ -173,7 +178,42 @@ class BackupViewModel(
         onLaunchNoticeShown = ::onLaunchNoticeShown,
     )
 
-    fun onBackUpNow(uri: String) = runBackUp(uri, UnreadablePhotoPolicy.ASK)
+    /**
+     * The Save picker returned [uri]. **If that file already has contents, ask first** ("Replace the existing backup
+     * file?", owner "3 A"), before anything is opened or written, since opening it truncates it. "Has contents" is the
+     * provider's own size above 0 (`OpenableColumns.SIZE`); a size the provider will not give is asked about too, and
+     * logged: the safe way round, since a skipped question destroys an older backup and an asked one costs a tap.
+     */
+    fun onBackUpNow(uri: String) {
+        val size = try {
+            files.sizeOf(uri)
+        } catch (e: Exception) {
+            errorLog.w(TAG, "could not read the size of the backup file $uri: ${e.message}", e)
+            null
+        }
+        if (size == null) errorLog.w(TAG, "the size of $uri is not known; asking before writing to it", BackupException("size unknown for $uri"))
+        if (size == null || size > 0L) {
+            _uiState.update { it.copy(prompt = BackupPrompt.ReplaceExisting(uri), message = null) }
+            return
+        }
+        runBackUp(uri, UnreadablePhotoPolicy.ASK)
+    }
+
+    fun onReplaceExistingConfirmed() {
+        val prompt = _uiState.value.prompt as? BackupPrompt.ReplaceExisting ?: return
+        runBackUp(prompt.uri, UnreadablePhotoPolicy.ASK)
+    }
+
+    fun onReplaceExistingCancelled() {
+        _uiState.update { if (it.prompt is BackupPrompt.ReplaceExisting) it.copy(prompt = null) else it }
+    }
+
+    fun onLaunchNoticeShown() {
+        _uiState.update { it.copy(launchNotice = null) }
+        scope.launch {
+            preferences.setPendingNotice(null).onFailure { errorLog.w(TAG, "could not forget the notice that was shown at launch: ${it.message}", it) }
+        }
+    }
 
     /**
      * Writes a backup into the file at [uri], which the Save picker has already created. [policy] is ASK on the first
@@ -224,13 +264,6 @@ class BackupViewModel(
         }
         if (!removed) errorLog.w(TAG, "could not delete the incomplete backup file $uri", BackupException("delete reported false for $uri"))
     }
-
-    /** (Tests-first stub.) */
-    fun onReplaceExistingConfirmed() = Unit
-
-    fun onReplaceExistingCancelled() = Unit
-
-    fun onLaunchNoticeShown() = Unit
 
     fun onPhotosTryAgain() {
         val prompt = _uiState.value.prompt as? BackupPrompt.UnreadablePhotos ?: return

@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import android.provider.DocumentsContract
+import android.provider.OpenableColumns
 import com.zynergylabs.forager.app.domain.BackupFiles
 import com.zynergylabs.forager.app.domain.BackupTarget
 import java.io.File
@@ -40,7 +41,25 @@ class ContentResolverBackupFiles(context: Context) : BackupFiles {
      * `file:` URI directly. Reports whether it is gone; a failure is logged here and reported as `false`, so the caller,
      * which only ever deletes the file its own run created, can log and carry on.
      */
-    override fun sizeOf(uri: String): Long? = 0L // tests-first stub
+    /**
+     * How many bytes the file holds now, from the provider's own `OpenableColumns.SIZE`, or `null` when it does not say
+     * (no such file, no row, a null column, a query that fails: the last is logged). `null` is never reported as 0, so a
+     * caller cannot mistake "unknown" for "empty".
+     */
+    override fun sizeOf(uri: String): Long? {
+        val parsed = Uri.parse(uri)
+        if (parsed.scheme == "file") return File(parsed.path!!).takeIf { it.exists() }?.length()
+        return try {
+            resolver.query(parsed, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { c ->
+                if (!c.moveToFirst()) return@use null
+                val column = c.getColumnIndex(OpenableColumns.SIZE)
+                if (column < 0 || c.isNull(column)) null else c.getLong(column)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "could not read the size of $uri", e)
+            null
+        }
+    }
 
     override fun delete(uri: String): Boolean {
         val parsed = Uri.parse(uri)

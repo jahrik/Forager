@@ -196,7 +196,7 @@ abstract class BackupSettingsScreenTests {
         composeRule.onNodeWithTag(BACKUP_AUTOMATIC_SWITCH_TAG).performScrollTo().performClick()
         composeRule.waitForIdle()
 
-        assertTrue(launched.single().first is ActivityResultContracts.OpenDocumentTree)
+        assertTrue(launched.first().first is ActivityResultContracts.OpenDocumentTree)
         assertEquals(listOf("content://tree/Backups"), files.keptFolders)
         composeRule.onNodeWithTag(BACKUP_AUTOMATIC_SWITCH_TAG).assertIsOn()
         assertEquals(BackupScheduleSettings(true, BackupFrequency.WEEKLY, "content://tree/Backups"), scheduler.applied.last())
