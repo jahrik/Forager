@@ -5279,3 +5279,30 @@ It also flagged the snackbar lying over the floating nav.
 - D58 check on the diff: clean.
 - The backup notification lines describe -137 work that is not yet built.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-148
+**Timestamp:** 2026-09-29T06:01:50Z
+**Dispatch:** none (follows -147)
+**Reason:** the owner, verbatim: "I'll have a site agent review and file it properly from here. That's all for the legal docs part."
+**Changes:**
+- The legal drafts (branch legal-drafts, b6d6eca0) and the site report (docs/audits/2026-09-29-privacy-site-update-report.md) pass to the owner's site agent.
+- The planner does no further legal-docs work, and does not merge legal-drafts.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-149
+**Timestamp:** 2026-09-29T06:03:25Z
+**Dispatch:** none yet (Part 2 and J6 prepared)
+**Reason:** the owner, verbatim: "1 A / 2 A / Wait until the last coder is done building to begin this stage please, so both can be done side by side as planned."
+**Changes:**
+- Part 2 includes the full backup and restore round trip on the S22 (Replace and Merge), behind a verified full copy.
+- Part 2 and J6 launch together after -137 hands back and the planner's suite is clean. Launch prompts are prepared in the meantime.
+**Notes:**
+- The owner's "2 A" (launch now) is read together with the sentence that follows it, as launching side by side with Part 2 after -137, not immediately.
+- The planner started the adb server while checking devices. The tablet (R52T506412L) shows "unauthorized"; the owner is told.
+- Written by the planner by hand.
