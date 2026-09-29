@@ -1650,3 +1650,66 @@ on the left and `AbsoluteAlignment.Left` when it is on the right, and `cap = lan
 | R7c | the `widthIn(max = cap)` removed only | the width and wrap tests |
 | RQ4 | the `!landscapeCluster` condition removed | the three landscape Q4 tests |
 | RQ4p | the bound dropped in portrait too | the portrait Q4 guard |
+
+## What happened (the `-117` build)
+
+### Base run of the extended tests, before any source edit (`base2`; 0 compile errors; fresh XML)
+
+20 tests: 8 pass, 12 fail, each for its stated reason. Chip row (9 of 14 fail): the default-side and long-label cases fail on overlap (e.g. 90: row `[0, 53][382, 93]` against cluster `[8, 60][112, 324]`; 270 long label: row `[439, 53][823, 137]` against `[711, 60][815, 324]`); the snapped cases fail on the 264 dp cap (382 wide); the wrap test fails because the chips sit side by side (taxon `[0, 53][216, 85]`, J8's `[224, 61][382, 93]`); the drag-across test fails (row's left stays at 0). The reach guards for J8's chip and the taxon chip's clear button pass at base, as predicted. The three landscape Q4 tests fail: "a 30 dp drag down moved the cluster 30 dp ... but was 0.0". The portrait Q4 guard passes at base.
+
+### Built
+
+`AvailabilityCompactMapUi.kt`:
+- **Item 7:** the chip row's landscape modifier is `width(bar).wrapContentWidth(AbsoluteAlignment.Right if the cluster is on the left, else Left).widthIn(max = bar - (MAP_ICON_BAR_EDGE_INSET + measured cluster width + Spacing.sm))`, 264 dp in the test window. Portrait untouched.
+- **Q4:** `legendBoundPx` now also requires `!landscapeCluster`.
+- **Tests after the build:** all new tests pass (the six affected classes: 69 pass, 2 fail, the 2 being existing B2 tests below).
+
+### Revert checks (each from a copy saved before editing, `/tmp/lf/orig/`; 0 compile errors each; fresh XML; each failure below is one that revert could produce)
+
+| check | revert | result |
+|---|---|---|
+| R7c | the `widthIn` cap removed | 8 of the 3 classes' 20 tests fail: the width and wrap tests and the overlap tests (row `[2, 53][384, 93]` against the cluster at 90; "at most 264 dp wide" at the snapped cases); the wrap test shows the chips side by side (`[2, 53][218, 85]`, `[226, 61][384, 93]`) |
+| R7 | cap removed and alignment back to `Alignment.Start` | 9 fail, adding the drag-across test ("the row moved to the bar's left end ... was at 0.0") |
+| RQ4 | the `!landscapeCluster` condition removed | the three landscape Q4 tests fail ("moved the cluster 30 dp ... but was 0.0") |
+| RQ4p | the bound dropped everywhere | the portrait Q4 guard fails ("dragged far down: the cluster `[328, 280][376, 660]` stops clear of the legend `[349, 592][376, 628]`") and so does the older T2 (portrait, expanded) |
+
+The forward file was compared byte for byte with the saved forward copy after the four runs: identical.
+
+### The full suite, and a stop: S10
+
+From a cleared results directory at `b8d467b` (the tree after `e0baece`, so with the offline-safety changes merged in), 0 compile errors, 314 files all newer than the run's start: **2548 tests, 2523 pass, 1 fail, 24 skipped.** (The XML was overwritten by the revert runs that followed; the figures are from my read of it before they ran, and Gradle's own line, "2548 tests completed, 1 failed, 24 skipped", agrees.)
+
+The one failure is **`AvailabilityScreenLandscapeB2Test` `S10 at ROTATION_90 with the filter chip showing, the central third stays clear`:** "nothing persistent may intersect the central third DpRect(274.3, 128, 548.7, 256); these do: [map-taxon-filter-chip DpRect(309, 93, 384, 137)]".
+
+- **Cause:** the chip row is now at the bar's right end at 90. That test's fixture runs under Robolectric's default graphics mode, which measures text at near-zero width (Decision 6 in the first Resumed section): the search bar is 85 dp tall there, so the chip sits at y 93 to 137 and, at the right end, reaches into the central third (x 274 to 549, y 128 to 256). Before, it was at the left, x 0 to 75.
+- **Experiment (not committed; the file was restored from a copy saved before editing):** the same test under `@GraphicsMode(NATIVE)` passes with the chip row as built.
+- **What remains real:** under native text the standard label leaves the row above y 128, but a long label wraps to `[.., 53][.., 137]` (measured in my long-label tests), so a long label can still reach y 137 at x 120 to 384 at 90, which is inside the central third's x range (274 to 549) and its top edge (128). S10 does not test that.
+- **I did not touch S10.** Changing its graphics mode is a change to a test I was not dispatched to change; the owner's or planner's ruling on S10 comes first. `-78`'s abort conditions include "a non-held failure".
+- **Options, not chosen:** (a) run S10's chip test under native text, as a fixture-fidelity fix; (b) also cap the chip row's height (or its label) so it stays above the central third; (c) rule that the row may enter the central third when a long label wraps; (d) other.
+
+### S3 changed, as pre-registered
+
+`S3 at ROTATION_90 ...` asserted "the chip starts at the bar's start" (`AvailabilityScreenLandscapeB2Test.kt:281`). The owner's ruling puts the row at the bar's right end when the cluster is on the left, which is 90's default. I changed that one assertion to `bar.right == chip.right` and renamed the test. Every other assertion in it is unchanged. The "at 270" S3 test does not exist.
+
+### Where it is
+
+Everything is on `layout-fixes-wip` at `b8d467b`. **Nothing from this continuation is on `journal-redesign`** (it stays at `e0baece` plus whatever the planner has added): the suite has one red test.
+
+## Device-only list (`-117`), S22 at 90 and 270
+
+- The chip row's placement at the bar's away end and its width cap, with the taxon chip alone, with both chips, and with a long label (two or three lines).
+- The row against the central third with a long label (see S10).
+- The cluster dragged down past where the legend's bound stopped it, in landscape on the legend's side, collapsed and expanded, and its lower limit against the real navigation inset.
+- Portrait: the cluster still stops above the legend when dragged far down (unchanged; device confirmation of Q4 in portrait).
+
+## Decisions I made (the `-117` build)
+
+11. **The cap includes the cluster's edge inset:** bar - (8 + measured width + 8) = 264 dp, not the message's "about 272". With 272 the row's inner edge would touch the cluster's (0 gap); the message says "the gap".
+12. **The cap applies whichever side the cluster is on,** as the message reads. With the cluster on the far side, the row still wraps at 264 though nothing is beside it. A cap only on the bar's side would keep one line there. Flag for the planner.
+13. **S3's assertion changed** (pre-registered); **S10 not touched.**
+14. **The wrap test and the long-label tests** use "Chicken of the woods, sulphur shelf, the bright orange bracket fungus of oak" (78 characters). I measured only that label and "artist's bracket (12)".
+
+## Flags outside scope (the `-117` build)
+
+- **S10's fixture measures text at near-zero width** (the same cause as Decision 6): every B2 test that depends on text size without `@GraphicsMode(NATIVE)` measures a different layout from the phone's. Not checked beyond S3 and S10.
+- **The relay and the file agree.** No conflict with `CLAUDE.md`.
