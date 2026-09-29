@@ -73,6 +73,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -620,6 +621,19 @@ internal fun CompactMainScaffold(
                     Snackbar(
                         snackbarData = data,
                         modifier = Modifier
+                            // Dispatch 2026-09-28-104, item 6: on the Maps tab the Scaffold has no bottom
+                            // bar to sit above and its contentWindowInsets drop the bottom side (below), so
+                            // the host lay under the system navigation buttons. The tab's own bottom nav
+                            // takes the same inset for itself; the snackbar takes it here. Off the Maps tab
+                            // the bottomBar is real and Scaffold already places the host above it, so the
+                            // padding would double up. Device-only: Robolectric reports this inset as zero.
+                            .then(
+                                if (compactTab() == CompactTab.MAP) {
+                                    Modifier.windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
+                                } else {
+                                    Modifier
+                                },
+                            )
                             .testTag(COMPACT_SNACKBAR_TAG)
                             .mapChromeContainerColor(snackbarColor)
                             .mapChromeContentColor(snackbarContentColor),

@@ -35,6 +35,11 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.window.DialogWindowProvider
+import android.os.Build
+import android.util.Log
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -791,5 +796,31 @@ internal fun MapFloatingIconButton(
         Box(contentAlignment = Alignment.Center) {
             Icon(imageVector = icon, contentDescription = contentDescription)
         }
+    }
+}
+
+/**
+ * Lets the map show through the navigation-bar band under a modal bottom sheet (dispatch
+ * 2026-09-28-104, item 3). The device check found that band flat and opaque, (20, 19, 18), while a sheet
+ * was up, so the sheet's own 0.8 container stopped short of the screen's foot. **The cause was not
+ * established there** (the sheet window's navigation-bar background, or Android's contrast scrim for
+ * three-button navigation), and I could not establish it here without a device. This turns off the
+ * documented one of the two that an app can turn off: [android.view.Window.setNavigationBarContrastEnforced]
+ * on the sheet's own window (API 29+). The other candidate, the window's navigation-bar colour, is
+ * ignored for a target of API 35+ (see `log/CameraWindowChrome.kt`'s note on the status bar's colour), so
+ * there is nothing to set for it. **A hypothesis, unverified by any test here**: if the band is still
+ * opaque on the phone, the cause is the second one and the fix is not this. Call it inside the sheet's
+ * content, where [LocalView]'s parent is the sheet's dialog window.
+ */
+@Composable
+internal fun MapChromeSheetNavigationBar() {
+    val window = (LocalView.current.parent as? DialogWindowProvider)?.window
+    if (window == null) {
+        // Not swallowed: the sheet's content was not inside a dialog window, so nothing was changed.
+        SideEffect { Log.w("MapChrome", "MapChromeSheetNavigationBar: no dialog window above this sheet; the navigation-bar band is left as it was") }
+        return
+    }
+    SideEffect {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) window.isNavigationBarContrastEnforced = false
     }
 }
