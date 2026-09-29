@@ -255,3 +255,81 @@ Predicted growth of the suite from the three items and item 9: about 14 test run
 ## Revert checks planned
 
 Each restores from a copy saved before editing, checks the build log for compile errors before reading results, and confirms the forward change afterwards: the entry-map seed back to `MapMode.DEFAULT`; the notice spacer removed; the cluster's notice step removed; the snackbar's bottom-nav padding removed; the snackbar's horizontal padding removed (landscape); the chip row's centring removed (item 9).
+
+## Results (appended after building; the pre-registration above is unchanged)
+
+### What landed
+
+| Commit | What |
+|---|---|
+| `eb65b42f` | my pre-registration; the two test corrections (import, the fullscreen Back) |
+| `eb27a60f` | items 8, 2 and 6 built; the previous window's ten tests now pass (six of them failed at base) |
+| `114e9b9c` | item 9's tests, first, red on `chrome-follow-ups-wip` |
+| `0e58ab52` | item 9 built |
+
+Files changed in `main/`, by item (all under `app/src/main/java/com/zynergylabs/forager/app/ui/`):
+- **8:** `map/MapMode.kt` (`MapMode.forBasemap`, a lookup); `log/CartographyEntryReportScreen.kt` (`initialMapMode` parameter, defaulted; the state seeded from it; the doc comment at `:227-234` rewritten: seeded, never written back); `log/CartographyScreen.kt`, `log/JournalTab.kt`, `log/LogPanel.kt` (threading; the two hosts pass `MapMode.forBasemap(basemap)`, which they already held).
+- **2:** `availability/AvailabilitySearchUi.kt` (`searchNoticeMessage`, the notice's one predicate, now shared); `availability/AvailabilityCompactMapUi.kt` (the strip's measured height, the search slot taking it, `searchNoticeBottom`, one new final clamp step `clampMapIconBarVerticalOffset` over the renamed `clampBelowChromeVerticalOffset`, and the clamp effect keyed on the notice's bottom); `availability/AvailabilityCompactScaffold.kt` (the search column's measured height, the spacer above the notice in portrait, the value passed to the Maps tab).
+- **6:** `availability/AvailabilityCompactScaffold.kt` (the snackbar's `when`).
+- **9:** `map/MapLayersSheet.kt` (the chip `Row`).
+- The one inert `main` change from `ce952227` stays (`COMPACT_BOTTOM_NAV_TAG`).
+
+### Tests first, seen failing at base for the stated reason
+
+At the previous window's tests plus my two corrections, and none of the builds (`/tmp/t143-base.log`; **0 compile errors**, every result file newer than the run's start): 10 tests, **6 failed**, exactly the pre-registered set, and each for its stated reason:
+- item 8: "an entry map opened after the Maps tab is set to Street starts on Street": `expected:<OSM_STANDARD> but was:<OPEN_TOPO_MAP>`.
+- item 2, portrait: the notice `[0, 45.7][384, 78]` against the strip `[0, 45.7][384, 63.7]` (they intersect); and the cluster `[328, 62.3][376, 442.3]` against the notice. Landscape: the notice `[0, 47][384, 80]` against the cluster `[8, 60][112, 324]`.
+- item 6: portrait, the snackbar `[0, 751][384, 823]` against the bottom nav `[0, 743][384, 823]`; narrow landscape (`w640dp-h360dp-land`), the snackbar `[0, 288][640, 360]` against the rail `[560, 0][640, 360]`.
+- Passing at base, as pre-registered: the night test (see the premise above), the default-basemap guard, the no-write-back guard (after my correction), and the short-landscape snackbar guard.
+
+Item 9 (`/tmp/t143-chips-base.log`, 0 compile errors, files fresh): **4 tests, 4 failed at that first run**, because the top guard's constants were still a placeholder (`-1`): it is how the base tops were read. They read **275 dp** (portrait) and **142 dp** (landscape). The two centre tests failed for the stated reason: portrait, "the chip row [23.0, 161.67] is centred on the sheet [0.0, 384.0] expected:<192.0> but was:<92.3>"; landscape, "[113.0, 257.0] ... on the sheet [92.0, 732.0] expected:<412.0> but was:<185.0>" (the sheet is 640 dp, its own cap, and the node's bounds are its layout bounds). With 275 and 142 in place the two guards pass forward; **I did not re-run them at base with the real constants**, so "the top guard passes at base" is by construction (the constant is the base reading), not a second observation. After the build: all four pass.
+
+### Revert checks (`/tmp/t143-revert.sh`: copy before editing, restore from the copy, build log read for compile errors before results, results refused if any file is older than the run, hash and `git diff HEAD` read after)
+
+| # | Edit | Compile errors | Failures (each is one this edit produces) | Forward back |
+|---|---|---|---|---|
+| 1 | the seed back to `MapMode.DEFAULT` | 0 | the Street seed test only: `expected:<OSM_STANDARD> but was:<OPEN_TOPO_MAP>` | hash match, clean |
+| 2 | the notice spacer removed | 0 | `SearchNoticePortraitTest` "fully below the compass strip": the notice `[0, 45.7][384, 78]` against the strip | hash match, clean |
+| 3 | the cluster's notice step removed | 0 | `SearchNoticePortraitTest` (cluster against notice `[0, 63.7][384, 96]`) and `SearchNoticeLandscapeTest` (notice against cluster) | hash match, clean |
+| 4 | the snackbar's bottom-nav padding removed | 0 | `SnackbarPortraitTest`: snackbar `[0, 751][384, 823]` against the nav `[0, 743][384, 823]` | hash match, clean |
+| 5 | the snackbar's rail padding removed | 0 | `SnackbarNarrowLandscapeTest`: snackbar `[0, 288][640, 360]` against the rail `[560, 0][640, 360]` | hash match, clean |
+| 6 (item 9) | the chip row's centring removed | 0 | both centre tests (portrait 92.3 against 192; landscape 185 against 412) | `cmp` equal to the saved forward copy |
+
+Each build ran `compileDebugKotlin`. Reverts 2 and 3 fail different tests, so the spacer and the cluster's step are separately held.
+
+### Full suite
+
+`./gradlew :app:testDebugUnitTest`, `LC_ALL=C.UTF-8`, from a cleared `app/build/test-results`, on the final tree (`0e58ab52`): **BUILD SUCCESSFUL in 3m 42s**; **335 result files, none older than the run's start; 2673 tests, 0 failures, 0 errors, 24 skipped**; 0 compile errors in the log. The eight new classes: `MapChromeEntryMapTest` 4, `SearchNoticePortraitTest` 2, `SearchNoticeLandscapeTest` 1, `SnackbarPortraitTest` 1, `SnackbarNarrowLandscapeTest` 1, `SnackbarShortLandscapeTest` 1, `LayersChipsPortraitTest` 2, `LayersChipsLandscapeTest` 2: **14 test runs, all passing**. The count at my base I did not measure, and other coders' merges moved it while I worked, so I claim only my 14. The 24 skipped are the same 24 seen by the two coders before me; I did not investigate them. **I did not run the whole suite on the items-8-2-6 commit alone** (`eb27a60f`), only its own classes; the suite above is the one on the final tree.
+
+### Item 8's night question, answered
+
+No bug. See "Premises" above: the entry map renders in night colours on the device (the check's own frames), and follows no basemap, which the seed now fixes. The Robolectric test "with Night Maps on the entry map is handed night" passes at base and after, and stays as the regression guard for the plumbing.
+
+### Device-only (none of this is proved by the green suite)
+
+- **Item 8:** on the S22, set the Maps tab to Street, open a day entry, and the entry map opens on Street; change it to Satellite there and go back to Maps: still Street. And at night the entry map stays dark on each of the three.
+- **Item 2:** with a notice up (for example a failed search), the notice's top edge meets the compass strip's bottom edge and the icon column sits below the notice, in portrait, and in landscape at both rotations; then clearing the notice puts the column back. **The status bar's height is not in these numbers** (zero under Robolectric): the strip's measured height and the notice's are read from layout, so they carry it, but that is the device's to confirm.
+- **Item 6:** the snackbar's bottom edge meets the floating nav's top edge in portrait (with the real system-bar inset inside the nav's measured height, which Robolectric does not report); in fullscreen it takes the system-bar inset alone; in landscape it clears the rail and the cut-out at both rotations.
+- **Item 9:** the three chips are centred on the sheet on the S26 and the S22, portrait, and in landscape the sheet is 640 dp with the chips centred in it; height unchanged. **The wide tree's Layers sheet** is the same composable (`MapLayersSheet`); I did not run the wide tree's own route to it.
+
+### Decisions I made
+
+1. **Item 8 by a lookup**, `MapMode.forBasemap`, not by threading `mapMode` itself, because `JournalTab` and `LogPanel` already hold the Maps tab's `Basemap` and the two enums are one to one. A second value would have needed four more parameters.
+2. **Item 8's night question answered by the device frames**, not by more code; no `main` change for it.
+3. **Item 2 in portrait only for the spacer.** In a short landscape window the strip is in the other corner, so the notice stays under the bar; the cluster rule applies in both.
+4. **Item 2's floor has no gap** between the notice and the cluster, the same as the cluster's existing limit against the strip. A gap would be a design value nobody gave.
+5. **Item 2's cluster rule is off in fullscreen**, where the whole search column slides away; without that the cluster would hold a floor under chrome that is not there.
+6. **Item 6 in fullscreen keeps the system-bar inset alone**, since the nav is off screen. In landscape the padding is the map controls' own (`mapControlsPadding`), so the snackbar and the controls clear the same things.
+7. **Item 6's "above the rail's foot"** read as "not over the rail" (the previous coder's reading as well; see Premises).
+8. **Item 9's base tops were read from a base run**, with a placeholder constant, and recorded above; the alternative (a top measured relative to another node) would not have been "unchanged from base".
+9. **Corrections to the previous window's tests:** the import, and the fullscreen Back; neither touches an assertion's meaning.
+10. **D58:** a grep over each diff and commit message for the three phrases before every push (read earlier from forager-forecast `origin/d55-artifact-contract`'s `DECISIONS.md`); none found.
+
+### Flags outside scope
+
+1. **The device check's run record is wrong about night on the entry map** (`2026-09-28-map-chrome-device-check-run-record.md:837`, `:1029`): its frames show the entry map dark at night. The planner's to supersede; I did not edit the record.
+2. **`ForagerBottomNav` and the snackbar's measured-height padding depend on `bottomNavHeightPx`**, which keeps its last value once the nav leaves composition (the existing comment at `AvailabilityCompactScaffold.kt` names this for the attribution inset). I use it only outside fullscreen and outside the rail, where the nav is composed; if a third state ever hides the nav without either flag, the snackbar would hold a stale gap.
+3. **I began a Gradle run at 2453 MB free against the 2.5 GB rule** (once), because I read the number after starting; the run was fine. Every later run waited for the check first, and no other Gradle process was running at any of them.
+4. **A stale file of mine from an earlier task** (`device-evidence/t97-base-run.log`, a Gradle log) was in the shared evidence directory; I removed it.
+5. **Not changed, seen:** `SearchNotice` and the strip still use `compassStripClearance` for other things (the taxon chip and bubble limits); only the notice and the cluster use the measured height now.
+6. **Model unverified** (top).
