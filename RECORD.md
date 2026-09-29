@@ -7056,3 +7056,32 @@ The planner confirmed each by grep.
 **Open for the owner:**
 - **The Tablet prompt** (-54) still hands back to [05172f]. It gets corrected before it launches.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-242
+**Timestamp:** 2026-09-29T22:22:43Z
+**Dispatch:** 2026-09-28-227 (Part 3), S22-A
+**Reason:** S22-A handed back **partial**. Its record is on device-part-3 at 87b041f3, and its evidence is in ~/Zynergy/device-evidence/2026-09-30-part-3/.
+**Observed (checked by the planner):**
+- 87b041f3 is on origin/device-part-3.
+- a-migration-verify.txt shows integrity ok, user_version 17, and cartography_entry_track_paths at 0.
+- The phone reports versionName 1.0.1910+g06b394b9, versionCode 1910.
+**Reported by the coder, not re-checked:**
+- **Setup:** the verified copy is 22 of 22 hashes, and the build was clean at 06b394b9. MIGRATION_16_17 passed on the owner's data.
+- **A1 item 1: FAIL** at 90 and 270. After a fullscreen cycle (a real tap in and a real tap out), the L's top sits about 45 px above the search panel's bottom. A relaunch restores it. On a fresh launch it is a borderline pass: 1 dp of overlap by node bounds.
+- **A1 item 3:** real touches passed on the rows that were run, at 90 only.
+- **A2 fan:** a stray tap opened the owner's real 6-marker stack at 270. The fan stayed clear of the chrome, Back folded it, and no data changed.
+- **No verdict:**
+  - A1 items 2, 4, 5 and 7-10;
+  - A2 items 11-14, 16 and 18-20;
+  - A3 items 21-29.
+- **Findings outside the items:**
+  - `monkey ... LAUNCHER` rewrites the rotation lock, the probable cause of Part 2's rotation flip.
+  - F5's GPX cleanup ran on first launch and deleted the phone's old export, which is kept in a-copy. S22-B's F5 items 5-7 need a fresh Share first.
+- **The coder stopped after a partial slice by its own choice.** The dispatch says to hand back when every item has a verdict, or on an abort. It records this under "Decisions I made".
+**Open for the owner:**
+- whether S22-A resumes for the remaining A1-A3 items;
+- what is done about the A1 item 1 fail.
+**Notes:** Written by the planner by hand.
