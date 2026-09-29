@@ -285,6 +285,8 @@ internal fun CompactMainScaffold(
     /** J4b L1: a find tile's long-press Edit (`MushroomLogViewModel.onOpenEntryForEditing`); see [JournalTab]. */
     onOpenLogEntryForEditing: ((String) -> Unit)? = null,
     getCartographyEntryMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData,
+    /** F3 (owner, "C: list screen loads lazily"): one entry's saved track paths, by track id, for the Journal cards' thumbnails. */
+    getSavedTrackPaths: suspend (String) -> Map<String, List<LatLng>> = { emptyMap() },
     getCartographyEntryOfflineRegion: suspend (CartographyEntry, List<LatLng>) -> OfflineRegionSummary?,
     getCartographyEntryCurrentLocation: suspend () -> LocationResult,
     onOfflineMapLatChanged: (String) -> Unit,
@@ -1126,6 +1128,7 @@ internal fun CompactMainScaffold(
                                 onRequestDeleteGalleryPhoto = onRequestDeleteGalleryPhoto,
                                 onOpenEntryForEditing = onOpenLogEntryForEditing,
                                 getCartographyEntryMapData = getCartographyEntryMapData,
+                                getSavedTrackPaths = getSavedTrackPaths,
                                 getCartographyEntryOfflineRegion = getCartographyEntryOfflineRegion,
                                 getCartographyEntryCurrentLocation = getCartographyEntryCurrentLocation,
                                 // Journal restructure Stage 1: the Records tab's three submenus — see

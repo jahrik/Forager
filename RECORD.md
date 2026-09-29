@@ -6460,3 +6460,36 @@ The planner confirmed each by grep.
 **Reason:** the owner, verbatim: "Option A". L1 starts after F3 lands, so the kept-path sentence is written for real in one pass.
 **Changes:** L1 is held. The planner hands the owner the launch prompt when F3's terminal is written.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-204
+**Timestamp:** 2026-09-29T17:55:19Z
+**Dispatch:** 2026-09-28-195 (F3)
+**Reason:** the F3 coder handed back, pushed to journal-redesign at 0df67ba1. Report: docs/audits/2026-09-29-kept-track-path-completion-report.md.
+**Changes:**
+- **The table:** cartography_entry_track_paths, via MIGRATION_16_17 (schema 17; no branch claims 17). TrackPathCodec stores 16 bytes a point.
+- **The copy:** DeleteTrackUseCase copies the filtered path into every ref row (kept, withheld and draft), idempotently and before the delete, but not in one transaction (the reasoning is in the class doc).
+- **The readers:** the entry map, the bubble and the card.
+- **Backup:** the new table has no needs, and track refs lost `needs = tracks`.
+- **An owner decision taken in the coder's window,** verbatim, given twice: "C: list screen loads lazily (Recommended)". The card reads the saved path lazily, only for entries whose kept track is missing.
+**Notes:**
+- **Evidence:** tests first, pushed failing. 21 revert runs. One revert (c6) was uncovered, so a test was added.
+- **The coder's full suite on 10cf4c1c,** 3105 tests each time:
+  - run 1: 1 failure (WideJournalTest, multithreaded SnapshotStateObserver);
+  - run 2: 2 failures (DiagnosticsPanelTest and LeavingTheJournalFixesTest, thread and layout errors);
+  - run 3: 0 failures.
+
+  Each passed in isolation. These add to the intermittent family (-168). **The coder broke the machine rule twice** (Gradle started in the same command as the check), which may have loaded runs 1 and 2.
+- **Coder decisions:**
+  - the bubble for a deleted track reads the decision snapshot, so it has no date line and no Details, and an unnamed track is titled "Recorded track";
+  - the map use case's saved-path read failure is silent, mirroring its existing getOrNull. That is a CLAUDE.md gap, recorded.
+- **The privacy flag** (delete-data.md:17: "every GPS point in it") is L1's item 2, which launches now.
+- **Device-only, for the S22 session:**
+  - delete a track an entry kept, and check the map, card and bubble;
+  - draft and withheld entries;
+  - backup Replace and Merge on a phone without the track;
+  - an install over schema 16;
+  - an entry delete, then confirm its path is gone.
+- Written by the planner by hand.

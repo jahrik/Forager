@@ -32,6 +32,7 @@ import com.zynergylabs.forager.app.domain.AlertAudibilityState
 import com.zynergylabs.forager.app.domain.CreateWaypointUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
+import com.zynergylabs.forager.app.domain.InMemoryKeptTrackPaths
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
 import com.zynergylabs.forager.app.domain.DetectOffTrackUseCase
 import com.zynergylabs.forager.app.domain.ComputeReturnToStartUseCase
@@ -114,7 +115,7 @@ class TrackDeleteTest {
             getWaypoints = GetWaypointsUseCase(waypointRepository),
             createWaypoint = CreateWaypointUseCase(waypointRepository, currentTime = TD_TIME, idGenerator = { "wp-new" }),
             deleteWaypoint = DeleteWaypointUseCase(waypointRepository),
-            deleteTrack = DeleteTrackUseCase(trackRepository, waypointRepository),
+            deleteTrack = DeleteTrackUseCase(trackRepository, waypointRepository, InMemoryKeptTrackPaths()),
             computeReturnToStart = ComputeReturnToStartUseCase(),
             detectOffTrack = DetectOffTrackUseCase(),
             locationTracker = TrackDeleteNoOpLocationTracker,
