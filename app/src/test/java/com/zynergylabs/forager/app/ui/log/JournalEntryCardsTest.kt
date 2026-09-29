@@ -27,6 +27,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTouchInput
@@ -102,9 +103,10 @@ class JournalEntryCardsTest {
         distanceUnit: DistanceUnit = DistanceUnit.KILOMETERS,
         getSavedTrackPaths: suspend (String) -> Map<String, List<LatLng>> = { emptyMap() },
         tracksState: State<List<Track>>? = null,
+        drafts: List<CartographyEntry> = emptyList(),
     ) {
         composeRule.setContent {
-            var cartographyState by remember { mutableStateOf(CartographyUiState(entries = entries)) }
+            var cartographyState by remember { mutableStateOf(CartographyUiState(entries = entries, draftEntries = drafts)) }
             JournalTab(
                 uiState = logState,
                 onOpenCameraForLogEntry = {},
@@ -446,6 +448,18 @@ class JournalEntryCardsTest {
 
         node(cardTag(TRACK_CARD.id)).assertExists()
         inCard(entryThumbTag(TRACK_CARD.id)).assertDoesNotExist()
+    }
+
+    @Test
+    fun `a draft card in the drafts list draws the path saved for its kept track that is gone, through the Journal tab`() {
+        val draftA = CartographyEntry.draft(id = "draft-a", date = LocalDate.of(2026, 9, 12), updatedAtEpochMillis = 2L).copy(text = "Half a loop", trackDecisions = listOf(trackDecision("tr-a", meters = 1_500.0, millis = 30 * 60_000L)))
+        val draftB = CartographyEntry.draft(id = "draft-b", date = LocalDate.of(2026, 9, 11), updatedAtEpochMillis = 1L).copy(text = "Another")
+        setScreen(listOf(TRACK_CARD), drafts = listOf(draftA, draftB), getSavedTrackPaths = { mapOf("tr-a" to SAVED_PATH) })
+
+        node("entries-drafts-continue").performClick()
+        composeRule.waitForIdle()
+
+        inCard(entryThumbTag(draftA.id)).assertIsDisplayed()
     }
 
     // ── J4, D5: several kept tracks (owner rulings "All in one box" and "Sum, with a count") ──
