@@ -5596,3 +5596,22 @@ The re-check runs in Part 2 with the deferred items 38, 39, 40 and 42.
 - Sent to the -160 window.
 - J6 and Part 2 Session 1 were told about the disk.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-163
+**Timestamp:** 2026-09-29T08:18:43Z
+**Dispatch:** none (machine upkeep, at the owner's instruction)
+**Reason:** the owner, verbatim: "Go ahead and delete those files and only those files." "Those files" are the old app/build folders in finished worktrees under ~/Zynergy/forager-wt/, which the planner had offered (-162, option A) and pointed to again.
+**Changes:**
+- **Deleted:** only the app/build directories of 23 finished worktrees, 2733 MB. They are chrome-follow-ups, decorations, device-j8, j8, j8-follow-ups, journal-backup, landscape-b1, landscape-b1-tfcheck, landscape-fixes, layout-fixes, leave-fixes, map-chrome, marker-palette, night-mode, night-outline, night-region, offline-safety, photo-export, save-failure, split-move, split-scaffold, tracks-frame, trips-on-map.
+- **Free space** went from 2535 MB to 5715 MB.
+**Notes:**
+- **Checked before deleting:**
+  - no file under any of those app/build directories was newer than 90 minutes;
+  - the only running Gradle builds were in j6 and landscape-l.
+- **Excluded:** journal-redesign, j6, landscape-l, device-part-2, planner-records and legal-drafts.
+- **Nothing else was deleted:** no source, no commits, no worktree, no Gradle cache, no evidence.
+- **Already gone before this,** so presumably cleared by the owner or the coders: device-offline, device-tablet, device-chrome, device-stage-1, night-evidence, strip-device-check and strip-flash-timer-location. Part 2 Session 1 reports deleting its own worktree's app/build.
+- Written by the planner by hand.
