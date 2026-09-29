@@ -1072,3 +1072,314 @@ The first run's figures, kept: TR1 cluster 368 dp against bar 264 dp; TR5 moved 
 `[782.0, 300.0][815.0, 352.0]` against cluster `[767.0, 8.0][815.0, 376.0]`; T9 bar bottom 85.0 against cluster top
 8.0. T3b, TR3, T5 at 270, T7 at 270, T1 at 90 and T4u's two no-restore cases passed, as predicted. T5u's "no insets"
 case also passed; I added it as a guard and did not pre-register it.
+
+## The build (commit `d959fb9`, pushed to `layout-fixes-wip`)
+
+Every citation below is at `0511272`, the build with the held test file moved out. Only `JournalEntriesChip.kt` has
+changed since in the files cited: item 8 was backed out.
+- **Item 2 (portrait).** Q4's legend bound lifts the cluster above centre (`AvailabilityCompactMapUi.kt:824-841`).
+  - `legendLiftPx` is the legend's bound less the centred cluster's bottom, when the legend is the lowest edge and
+    that difference is negative. The upward limit reaches as far as the lift needs, never past the dropdown's top.
+  - The nav's floor, and every state without a legend, is unchanged.
+  - Not gated to portrait. In short landscape at the S22's size the dropdown bound wins, so it changes nothing there:
+    R2 below left all 14 landscape tests unchanged.
+- **Option A, the reshape.** The cluster's contents are two local composables, `clusterBar` and `clusterPill`
+  (`:1005-1056`).
+  - A short landscape window lays them out in `ShortLandscapeClusterRow` (`:1057-1058`, the function at `:1449-1477`):
+    a Row, bottom-aligned, gap `CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR`, with the pill on the bar's inboard side.
+  - Portrait keeps the Column (`:1059-1066`).
+  - Under Robolectric the cluster is now `[8, 60][112, 324]` at 90 and `[711, 60][815, 324]` at 270: 264 by 104 dp.
+- **Item 3.**
+  - The Maps tab's portrait dropdown cap subtracts the larger of the nav band and the IME's bottom inset
+    (`AvailabilityCompactScaffold.kt:1184-1191`, `:1237`).
+  - `SearchDropdown` keeps the end in view on each viewport size change after the one-shot scroll, until a
+    `DragInteraction.Start` (`AvailabilitySearchUi.kt:439-457`, armed at `:532`).
+- **Item 4.**
+  - `MapCameraMemory` and `MapCameraSnapshot` (`ui/map/MapCameraMemory.kt`), remembered in `AvailabilityScreen`
+    (`:882`) and threaded through `CompactMainScaffold` (`:192`, `:833`) and `CompactMapTab` (`:232`) to
+    `MapRenderMode.cameraMemory` (`MapSlot.kt:218`, forwarded at `:510`).
+  - `SightingsMap` saves the camera on each idle once its first style has loaded (`:488-504`).
+  - On a new map's first style load it restores the camera with `cameraRestoreFor` (`:625-626`, the function at
+    `:1173-1184`), sets `lastAppliedCameraTarget` (`:654`), and activates with the saved mode (`:664`).
+- **Item 5.**
+  - `SightingsMap` reads MapLibre's default attribution margins once (`:548-551`) and applies
+    `attributionMarginsPx` of `bottomInset` and `attributionEndInset` (`:795-811`, the function at `:1201-1208`).
+  - The scaffold sets the end inset to the rail's measured width when the port edge is the "i"'s end side outside
+    fullscreen, and 0 otherwise, animated (`AvailabilityCompactScaffold.kt:596-611`, handed over at `:849`).
+- **Item 8, backed out at `484ea22`** (see the next section). At `d959fb9`, J8's chip had an outer `Box` with the click
+  outside `minimumInteractiveComponentSize()`, and inside it the same pill `Surface` with its ripple clipped to the pill
+  (`JournalEntriesChip.kt:124-156` at `d959fb9`, the click at `:141-142`).
+- **No new copy.** No user-visible string was added or changed.
+
+## T8's band, changed after the build (recorded here as a change, not hidden)
+
+- The build moves J8's chip's click outside the minimum-interactive box. The chip's tagged bounds are those of its
+  merged clickable node, so they became the whole 48 dp box, and T8's band (measured from those bounds) would have
+  vanished.
+- So T8 now takes the pill from the chip's own text plus the pill's padding (`Spacing.md` across, `Spacing.sm` down),
+  which the fix does not move. It also has a guard that this pill lies inside the chip's tagged bounds.
+- R8 below re-ran T8 against the reverted chip: the band came out `[241.3, 69.0][270.0, 77.0]`, byte for byte the
+  second base run's, and all six touches failed as there. The change did not move what T8 measures.
+
+## Tests after the build
+
+Six classes, 35 tests, from a cleared results directory, 0 compile errors, 6 fresh XML files: **33 pass, 2 fail**.
+The two failures are the held re-measurements pre-registered to fail:
+- **T7 at 90:** J8's chip `[0.0, 53.0][158.0, 101.0]` against the cluster `[8.0, 60.0][112.0, 324.0]`.
+- **T1 at 270:** the collapsed legend `[739.0, 316.0][815.0, 352.0]` against the cluster `[711.0, 60.0][815.0, 324.0]`.
+
+## Revert checks
+
+Runner: `/tmp/layout-fixes-probe/revert.py`. Each check:
+- saves the forward file;
+- applies one replacement, asserted to occur once;
+- runs the named classes from a cleared results directory;
+- refuses the results if the build log has any `e: ` line;
+- restores the file from the saved copy (never git) and checks it byte for byte;
+- lists every failure from the XML.
+
+Two first attempts were **refused for compile errors** and redone with a different edit:
+- R2's `if (false && legendLiftPx != null)` lost a smart cast (2 errors);
+- R4u's `if (true) return null` did the same (6 errors).
+
+That is the runner rule working.
+
+| check | revert | classes run | failures (all, from the XML) | forward file restored |
+|---|---|---|---|---|
+| R2 | `legendLiftPx` never set (`?.takeIf { false }`) | legend portrait, short landscape | T2 only: "expanded: the cluster [328.0, 180.0][376.0, 560.0] is clear of the legend [192.0, 532.0][376.0, 628.0]", the base figures | yes |
+| R3a | the keep-in-view never armed | dropdown | T3a only: "'Latitude' ... is not displayed" | yes |
+| R3b | no disarm on the user's drag | dropdown | T3b only: "'Set on map' ... is not displayed", at the assertion after the viewport change (line 108) | yes |
+| R4 | the scaffold no longer passes `mapCameraMemory`, so `CompactMapTab` remembers its own | portrait | T4 only: expected the snapshot | yes |
+| R4u | `cameraRestoreFor` returns null for any snapshot | helpers | the two restore cases of T4u only | yes |
+| R5 | the end inset's target 0 dp | short landscape | T5 at 90 only: "expected:<80.0> but was:<0.0>" | yes |
+| R5u | `attributionMarginsPx` returns the defaults | helpers | the two inset cases of T5u only | yes |
+| R8 | the chip's click back inside its minimum box | portrait | T8 1 to 6: each "chip's list open: false, readout switched: false, map taps +1" | yes |
+| RA | landscape back to the Column (`if (false)`) | short landscape | TR1, TR2, TR4, TR5 and T9, at both rotations, with the base messages (cluster 368 dp, moved 8.0 of 40, and so on) | yes |
+| RA-g | a touch-consuming layer over the pill | short landscape | TR3 at both rotations only: "expected:<5> but was:<0>" | yes |
+
+After the last check, `git status` was clean and each forward line was present (`grep`).
+
+## The re-measured items after the reshape (`-99`)
+
+The pre-registered bounds tests, under Robolectric (native text), and the S22's figures by my arithmetic from the
+reshaped cluster. The S22 figures take the 1080 px landscape window, the 84 px status bar (a 996 px map area) and the
+J8 and Part 1 run records' bar and chip positions. They are not measured.
+
+- **Item 9, the search bar: clear.**
+  - Robolectric: the bar ends at 45.0 dp and the cluster starts at 60.0 dp (T9 passes at both rotations; RA fails it).
+  - S22 by arithmetic: the cluster's top at 210.75 px against the bar's bottom at 210.6 px. They do not intersect,
+    but there is no gap. **Device item.**
+- **Item 6, the caption at 90: clear at the default position, by arithmetic only.**
+  - The cluster now ends at about 953 px, and the caption (one `labelSmall` line and 2 dp of padding each way, about
+    56 px) sits at about 1024 to 1080 px.
+  - The caption is not composed under Robolectric, so this is **device-only**.
+  - A cluster dragged to its lowest point (126.75 px of room) reaches the bottom and the caption again.
+- **Item 7, J8's chip at 90: still collides, on width. Stop, with option E reported.**
+  - Robolectric: chip `[0.0, 53.0][158.0, 101.0]` against cluster `[8.0, 60.0][112.0, 324.0]`, overlapping over x 8
+    to 112 and y 60 to 101. That is the Fullscreen row, the top of the reset row, and the container fill beside them
+    above the pill.
+  - S22 by arithmetic: chip box x 75 to 536 and y 233 to 368 px, against the cluster at x 97.5 to 390 and from
+    210.75 px. The whole cluster width overlaps, 292.5 px.
+  - There is no room below: the chip's box ends at 368 px, so clearing it needs about 180 px downward, and the clamp
+    allows 126.75 px.
+  - **Option E** (the chip aligned to the bar's inboard end when the cluster is on the bar's side) would put the chip at
+    x 674 to 1135 px in the bar's 75 to 1135 px, clear of the cluster by 284 px, by the same arithmetic. I have not
+    chosen it.
+  - At 270 the chip is clear (T7 passes).
+- **Items 1 and 2 in landscape, the legend at 270: still collide, for lack of room. Stop.**
+  - Robolectric: the collapsed legend `[739.0, 316.0][815.0, 352.0]` against the cluster `[711.0, 60.0][815.0, 324.0]`,
+    overlapping by 8.0 dp. Expanded (96 dp) it is worse.
+  - S22 by arithmetic: the collapsed legend's layout from about 889 px against the cluster's bottom at 953 px, an
+    overlap of about 64 px. Expanded (270 px tall, from about 720 px), about 233 px.
+  - Q4's clamp cannot lift the cluster. Its top (210.75 px) is already above the dropdown's top (about 255.6 px), and
+    the clamp never pushes a cluster below that bound's reach, so the upward room is 0. Lifting it 87 px or more would
+    take it into the search bar.
+  - At 90 the legend and cluster are on opposite sides and clear (T1 passes). A user who drags the cluster to the rail
+    side at 90 meets the same collision.
+  - These tests live in `LayoutFixesLandscapeHeldTest.kt`, on `layout-fixes-wip` at `d959fb9`, and are not in
+    `journal-redesign`'s suite (`0511272` removes the file).
+
+## The first full suite, and item 8 stopped
+
+**The first full suite, at `0511272`** (all six items built):
+- cleared results directory; start 00:21:11Z, after waiting for the decorations coder's Gradle build to finish;
+- 0 compile errors; 311 XML files, 0 stale.
+- **311 / 2521 / 2 / 0 / 24.** The planner's base is 306 / 2490 / 0 / 0 / 24, plus my 5 files and 31 tests.
+
+**The two failures are J8's own tests, broken by my item 8 change:**
+1. **`MapChipsOverMapTest`, "the journal entries chip has no shadow under its 0_8 fill":**
+   - Failed at `MapChipsOverMapTest.kt:85`: "read on the chip's own node, the one with the Surface's fill:
+     [testTag, semantics, clickable, minimumInteractiveComponentSize]".
+   - The test reads the modifiers of the node carrying the chip's tag, which it documents as "also carries the
+     Surface's background" (`:40-41`). My change put the tag on a new outer box, off the Surface.
+2. **`JournalEntriesOnMapShortLandscapeTest`, "touches all around the chip reach the map, and a touch on the chip does
+   not":**
+   - Failed at its own guard, `JournalEntriesOnMapScreenTest.kt:491`: "(-6.0.dp, 77.0.dp) is on the map".
+   - Under Robolectric's default graphics the pill is 32 dp wide and sat centred in the 48 dp box, from x 8. My change
+     made the tagged bounds the box, from x 0, so "6 dp left of the chip" fell off the screen.
+   - The portrait variant passed only because its "around the chip" points moved out with the tagged bounds.
+
+**Why this is a stop, not a third fix:**
+- J8's chip is documented and tested to take no touch outside the pill: "nothing here takes a touch outside the pill
+  itself (CLAUDE.md, the Surface pitfall)" (`ui/map/JournalEntriesChip.kt:96`, at base and again now). The J8
+  test touches 6 dp left of, right of, below and at the two lower corners of the pill, and asserts the map takes each.
+- Item 8 needs part of that same margin, the strip above the pill where the readout's margin overlaps it, to be a
+  control's.
+- **Keeping the tag on the Surface and making the rest of the box the chip's** would pass `MapChipsOverMapTest`. It
+  would still fail J8's test by my reading of the geometry: the point 6 dp below the pill lies inside the 48 dp box.
+  That is reasoning, not a run.
+- **Giving the readout the band** needs a real 48 dp touch box on the readout. As a layout change, that grows the strip
+  over the chip, which `-98` excludes ("without moving either control"). Compose's own expansion is what loses to the
+  map today.
+- So every fix I can see either changes J8's tested design (the margin around the pill is the map's) or changes J8's
+  test. Both are closed to me. The failures are not held, and "a non-held failure" is an abort condition.
+- `-98` made each item "built or held on its own", so I stop item 8 alone. The chip went back to its base content at
+  `484ea22`, and T8 moved to `LayoutFixesDeadBandHeldTest.kt` on `layout-fixes-wip`.
+- In a targeted run after the backout, both J8 tests pass again, and all six T8 touches fail with the base message
+  ("chip's list open: false, readout switched: false, map taps +1", band `[241.3, 69.0][270.0, 77.0]`). I did not touch
+  either J8 test.
+
+**Options for item 8** (not chosen):
+- **A. The chip takes its whole 48 dp box** (built at `d959fb9`, R8-checked).
+  - This needs a ruling that the chip's touch box is the chip's, which changes J8's "nothing outside the pill".
+  - It also needs J8's two tests re-anchored: the "around the chip" points taken from the touch box, and the shadow
+    check read on the Surface's node.
+  - This matches Material's own convention: a chip's 48 dp target is the chip's.
+- **B. Only the strip above the pill becomes the chip's** (an asymmetric target, from the pill's top up to the box's
+  top).
+  - J8's tested sides (left, right, below) stay the map's.
+  - It covers the band exactly, but it is contrived: why only the top?
+  - Not built, not tested.
+- **C. The readout takes the band:** a real 48 dp touch box on the readout. That is a layout change that makes the
+  strip taller, and is excluded by "without moving either control" unless ruled otherwise.
+- **D. Leave it:** accept the 25 px band as the map's, as J8 designed. The device check found five touches there
+  "did nothing" visible, because the map took them.
+
+## The second full suite, at `2e7c72f` (the build without item 8, merged with `-100`)
+
+- Merged `origin/journal-redesign` at `da82158`, which carries the decorations band (`-100`). It touches
+  `ui/map/layers/MapLayers.kt` and `MapLayerRegistryTest.kt`, none of my files.
+- Cleared results directory; start 00:28:59Z, with no other Gradle build running and 5124 MB available.
+- 0 compile errors, BUILD SUCCESSFUL; 311 XML files, 0 stale.
+- **311 / 2518 / 0 / 0 / 24.**
+- **The reconciliation:** `-100`'s own suite was 306 / 2493 / 0 / 0 / 24 (its commit `0fd3944`). Mine adds 5 XML files
+  (`LayoutFixesLegendPortraitTest`, `LayoutFixesPortraitTest`, `LayoutFixesShortLandscapeTest`,
+  `SearchDropdownKeyboardTest`, `LayoutFixesMapHelpersTest`) and 25 tests, and all 25 passed:
+  - T2 and T4, one each;
+  - TR1 to TR5, T9 and T5, 14 in all;
+  - T3a and T3b;
+  - seven helper cases.
+
+  306 + 5 = 311 and 2493 + 25 = 2518.
+- The held tests (T7 and T1, 4 tests; T8, 6 tests) are not in this suite. They are on `layout-fixes-wip`.
+
+## Device-only list, for the planner's next device check on the S22 (at 0, 90 and 270 unless stated)
+
+1. **Item 2 (portrait, 0):**
+   - with the forecast fields on and the legend expanded, the cluster's last row ends above the legend's top (Part 1
+     measured a 122 px overlap);
+   - collapsed, it is back at its place;
+   - the cluster still stops above the nav without the legend.
+2. **Item 3 (portrait, 0):** after one touch on the search bar, with the keyboard up, Latitude, Longitude and "Search
+   this location" lie above the keyboard's inset frame (`dumpsys window`), without the user scrolling.
+   - A drag in the dropdown then scrolls it freely.
+   - Also recorded: whether the programmatic scroll lowers the keyboard (the flag below).
+   - Short landscape, where the keyboard floats on the S22, as before.
+3. **Item 4:**
+   - Pan, zoom, rotate and tilt the Maps tab. Go to List (or Journal) and back: the camera is where it was left,
+     including bearing and tilt, and not following.
+   - With the puck followed (locate-me, untouched): the round trip keeps following at the zoom left, with no zoom-in
+     to 16 and no jump to the region at zoom 12.
+   - A new search made elsewhere still moves the camera to it.
+   - After a restart the map opens as before (session only).
+4. **Item 5:**
+   - portrait, outside fullscreen: the "i" is above the app's nav and outside the system bar's frame, and a touch opens
+     MapLibre's attribution;
+   - in fullscreen, at the true bottom edge, with the caption;
+   - at 90 inboard of the rail, and in fullscreen at the edge;
+   - at 270, where it was, in the cut-out band, clear of the cluster and the legend.
+5. **Item 6 (90):** the caption's pixels are clear of the reshaped cluster at its default position.
+6. **Item 8: not built** (stopped, above). If a ruling brings it back, five or more real touches across the old band
+   (y 273 to 294 px in J8's record) each reach exactly one control.
+7. **Item 9 (90 and 270):** the reshaped cluster's top against the search bar's bottom. By arithmetic they touch with
+   no gap, so pixels should be read.
+8. **The reshape (90 and 270), with thumb reach judged by the owner:**
+   - the pill beside the bar, inboard and bottom-aligned;
+   - the container's fill above the pill, 56 by 156 dp, which takes touches;
+   - the drag, the snap and both handles on the new shape;
+   - record and return reachable, including while recording.
+9. **Held, for a ruling, not fixed:** item 7 at 90 (option E), items 1 and 2 in landscape at 270, and item 8.
+
+## Not tested
+
+- Everything under "Device-only", on a device: no phone or emulator was used.
+- MapLibre applying the camera, the tracking mode and the attribution margins; only the pure decisions and the wiring
+  are tested.
+- The IME cap: Robolectric reports no keyboard.
+- The caption against the cluster: `SightingsMap` is not composed under Robolectric.
+- A right-to-left layout on a real screen (only `attributionMarginsPx`'s arithmetic is tested for it).
+- The wide layout and the Cartography entry maps, which pass no camera memory and no end inset (by reading, unchanged).
+
+## Where each item stands (at the push to `journal-redesign`)
+
+| item | status | Robolectric evidence | device-only |
+|---|---|---|---|
+| 1 legend over record at 270 | **stopped**: no room after the reshape (overlap 8 dp under Robolectric, about 64 px on the S22 by arithmetic) | T1 at 270 fails (held, wip) | re-measure after a ruling |
+| 2 portrait | **built** | T2, R2 | the S22 overlap |
+| 2 landscape | **stopped**, with item 1 | T1 (held, wip) | as item 1 |
+| 3 dropdown and keyboard | **built** | T3a, T3b, R3a, R3b (a viewport shrunk by the test) | the IME cap and the timing |
+| 4 camera round trip | **built** | T4, T4u, R4, R4u (wiring and the decision) | MapLibre's restore and the tracking mode |
+| 5 the "i" | **built** (portrait and landscape; fullscreen at the edge) | T5, T5u, R5, R5u (wiring and arithmetic) | all placement |
+| 6 caption at 90 | **cleared by the reshape at the default position, by arithmetic**; no code of its own | none possible | yes |
+| 7 chip over reset at 90 | **stopped**: still overlaps on width; option E reported | T7 at 90 fails (held, wip) | after a ruling |
+| 8 dead band | **stopped**: the fix breaks J8's own tests (above) | T8 fails at base, passes under option A (held, wip) | after a ruling |
+| 9 cluster over search bar | **cleared by the reshape** | T9, RA | the S22 margin is about 0 px by arithmetic |
+| reshape (option A) | **built** | TR1 to TR5, RA, RA-g | thumb reach, the fill above the pill |
+
+## Decisions I made (this Resumed section)
+
+1. **The reshape's details** (`-99` left them to me): the pill on the bar's inboard side, bottom-aligned, with the
+   portrait gap. These are the planner's lean, taken as given. The container's fill stays one surface, so the
+   56 by 156 dp space above the pill takes touches; the owner can judge it on the phone.
+2. **Item 5 at 270:** the "i" stays in the cut-out band on the punch-hole side, because padding it inboard would put it
+   under the cluster. `-98` said "portrait and landscape" without naming a side.
+3. **Item 5's end side follows the layout direction** (right in left-to-right). A right-to-left layout is untested on
+   screen.
+4. **Item 3:** the IME cap only on the Maps tab's portrait dropdown. The other tabs already shrink with the IME, and
+   the landscape dropdown is on a floating keyboard on the S22. The disarm is on the user's drag, not on any touch.
+5. **Item 4:**
+   - The snapshot also carries `lastAppliedCameraTarget`, so a new search after a round trip still moves the camera.
+   - The restore runs only on a new `MapView`'s first style.
+   - The snapshot is written only after that first style has loaded.
+   - The memory is not Compose state.
+6. **Item 2's lift is not gated to portrait.** In short landscape at the S22's size the dropdown bound wins, so it
+   changes nothing there. R2 left all 14 landscape tests unchanged, which supports that.
+7. **Item 8's first fix chose the chip, not the readout,** before I found J8's tests pinning the chip's margin. The
+   choice of control was mine. The backout undoes it.
+8. **Tests-first corrections after the first base run:** native graphics for the text-sized tests, and T8's band
+   redefined to the device's dead band. Both were committed and pushed before the second base run (`86d073e`).
+9. **T8's band reference changed after the build** (from the tagged bounds to the chip's text), since the fix moved the
+   tagged bounds. R8 showed T8 still measures the same band.
+10. **Two revert edits were redone** after the runner refused them for compile errors (R2, R4u).
+11. **The held tests are kept out of `journal-redesign`'s suite and on `layout-fixes-wip`** (`d959fb9` for T7 and T1,
+    `484ea22` for T8), following the J8 follow-ups' handling of failing tests-first commits.
+12. **I backed out item 8 rather than stopping the whole dispatch,** under `-98`'s "each item is built or held on its
+    own". The other items' fixes do not depend on it.
+13. **`T5u with no insets the defaults stand`** was added as a guard without pre-registration. It was said so in the
+    additions.
+
+## Flags outside scope (this Resumed section)
+
+1. **J8's tests pin the pill's margin as the map's** (`JournalEntriesOnMapScreenTest.kt:469-504`), which is the
+   mechanism behind the dead band. Any item 8 ruling meets them.
+2. **The programmatic scroll does not lower the keyboard** (flag 5 of the stop report). This build keeps the fields in
+   view anyway. The comment at `AvailabilitySearchUi.kt:431-433`, which says it does, is left as it was.
+3. **With the reshape, the space above the pill is container fill,** 56 by 156 dp, at the 0.8 chrome alpha, and takes
+   touches (the portrait gap already does, as its doc comment says at `AvailabilityCompactMapUi.kt:1441-1447`).
+4. **Item 9 on the S22 has about 0 px of margin** by arithmetic. A status bar or font scale a few pixels different
+   would reopen it.
+5. **The decorations band (`-100`) landed while I worked** and was merged at `2e7c72f`. It touches `MapLayers.kt` and
+   its registry test, none of my files.
+6. **Robolectric's default graphics mode measures text at near-zero width.** A test whose geometry depends on text
+   (the search bar's height, chip widths) needs `@GraphicsMode(NATIVE)`. The first base run showed it: the search bar
+   85 dp against 45.
