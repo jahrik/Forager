@@ -272,7 +272,7 @@ class MushroomLogViewModelTest {
     }
 
     /**
-     * Without this, a freshly added photo would only show up in [PhotoGalleryScreen] after the
+     * Without this, a freshly added photo would only show up in the removed Photo Gallery screen after the
      * ViewModel is recreated — see [MushroomLogViewModel.onAddPhoto]'s own inline comment on why
      * this refresh exists. Reworked to open a real draft session first (Workstream L4b-R): photo
      * actions, like field edits, only make sense against a draft row, never a merely-viewed
@@ -297,7 +297,7 @@ class MushroomLogViewModelTest {
     }
 
     /**
-     * Standalone-photos dispatch: [MushroomLogViewModel.onAddGalleryPhoto] is [PhotoGalleryScreen]'s
+     * Standalone-photos dispatch: [MushroomLogViewModel.onAddGalleryPhoto] is the removed Photo Gallery screen's
      * own Camera/Gallery entry point — no open entry needed at all (unlike [onAddPhoto] above, which
      * requires a draft session), and the resulting photo has no owning find.
      */
@@ -346,7 +346,7 @@ class MushroomLogViewModelTest {
         assertEquals(newPhoto.id, persistedId)
     }
 
-    /** The default's whole point (entry-photo-acquisition dispatch, Item 2): every call site before this dispatch — [PhotoGalleryScreen]'s own Camera/Import buttons among them — omits [onAddGalleryPhoto]'s new [onPersisted] parameter entirely, so this proves that path still succeeds unchanged rather than merely compiling. */
+    /** The default's whole point (entry-photo-acquisition dispatch, Item 2): every call site before this dispatch — the removed Photo Gallery screen's own Camera/Import buttons among them — omits [onAddGalleryPhoto]'s new [onPersisted] parameter entirely, so this proves that path still succeeds unchanged rather than merely compiling. */
     @Test
     fun `onAddGalleryPhoto with no onPersisted argument still persists and refreshes the gallery`() = runTest(dispatcher) {
         val repository = FakeMushroomLogRepository()

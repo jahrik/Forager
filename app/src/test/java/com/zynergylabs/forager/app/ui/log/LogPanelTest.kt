@@ -278,9 +278,9 @@ class LogPanelTest {
     /**
      * Picker-fixes dispatch F5, in the wide tree (owner: "Remove everywhere now"): `LogPanel`'s
      * Journal album, reached through `CartographyScreen`'s Entries toolbar, shows no corner trash
-     * button. It has no long-press Delete either (`LogPanel` passes no `onRequestDeleteGalleryPhoto`);
-     * until J6 the wide tree's photos are deleted from the drawer's `PhotoGalleryScreen`, which keeps
-     * its own button.
+     * button. (When this was written it had no long-press Delete either and the wide tree's photos were
+     * deleted from the drawer's Photo Gallery screen; J6a removed that screen and gave the album the long-press
+     * Delete, which `WideJournalTest` covers.)
      */
     @Test
     fun `the wide tree's Journal album photo has no corner delete control`() {

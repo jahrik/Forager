@@ -161,7 +161,7 @@ data class CartographyEntryFindRefEntity(
  *
  * Also behind 4b's deletion warning now, alongside track/waypoint/offline-region — see
  * [com.zynergylabs.forager.app.domain.CartographyEntryRepository.countEntriesReferencingPhoto] and
- * [com.zynergylabs.forager.app.ui.log.PhotoGalleryScreen]'s own confirm dialog.
+ * a photo delete's warning (first the removed Photo Gallery screen's confirm dialog, now the album's Undo snackbar).
  */
 @Entity(
     tableName = "cartography_entry_photo_refs",

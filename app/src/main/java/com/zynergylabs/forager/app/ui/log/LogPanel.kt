@@ -130,7 +130,7 @@ internal fun LogPanel(
     onBackToSearch: () -> Unit,
     /** Clears [MushroomLogUiState.saveErrorMessage] once its Toast (`JournalTab`'s) has shown — see [MushroomLogViewModel.onSaveErrorDismissed]. */
     onSaveErrorDismissed: () -> Unit,
-    /** Threaded straight through into [CartographyScreen]'s own Album tab — this window class's first time showing it directly (it previously only reached the standalone photo library via `DrawerPanel.PhotoGallery`, a sibling panel, not this one). */
+    /** Threaded straight through into [CartographyScreen]'s own Album tab — the wide Journal's album, the one place photos are browsed and, since J6a, long-press deleted. */
     galleryPhotos: List<GalleryPhoto> = emptyList(),
     isLoadingGalleryPhotos: Boolean = false,
     onDeleteGalleryPhoto: (GalleryPhoto) -> Unit = {},
