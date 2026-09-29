@@ -1224,3 +1224,11 @@ The planner's proposed behaviour, from the common map convention of fanning a st
 **Fan-out: what fans, and staying on screen (owner, 2026-09-29).** Asked after F4 (record -206), the owner answered, verbatim: "1 A / 2 A".
 1. **Only the owner's own records fan out:** finds, photos, waypoints and planned trips. iNaturalist sighting dots keep their existing tap behaviour and are never part of a fan.
 2. **The fan is shifted so the whole ring or spiral lands on screen,** clear of the icon cluster, the legend and the chip row. The leader lines still point to the markers' true spot.
+
+**Map chrome: one colour, the navigation bar's (owner, 2026-09-29).** The owner sent a screenshot of the Maps tab with the search panel open over the map, the icon bar showing through it, and the bottom navigation bar below. It is kept outside the repo at `~/Zynergy/device-evidence/2026-09-29-owner-chrome-colours.jpg`. The owner, verbatim: "The map chrome isn't aligned. The search panel and map icon bar are the wrong color. Have them be the same color as the bottom app navigation bar. Make sure any other pop up or bubble, or the tool panel, is the same color as the app navigation bar also please".
+
+The planner's reading:
+- Every piece of map chrome takes the bottom navigation bar's colour: the search panel, the icon bar and pill, pop-ups, bubbles, and the Tools panel.
+- The 80% opacity over a map (UX default, "Nothing fully obstructs the map view") stays as it is.
+
+A read-only pulse maps every chrome surface's colour and alpha against the navigation bar's first.
