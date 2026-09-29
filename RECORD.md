@@ -6217,3 +6217,18 @@ The planner confirmed each by grep.
 - **The planner's error.** The planner told the owner that "Tracks can only be deleted by swiping in the list" (-164/-166). That was never checked. **There is no way to delete a track in the app at all.**
 - **Consequence for the published docs.** docs/legal/delete-data.md:17, and so the live zynergy-labs.com/delete-data page, lists "Recorded tracks — the track and every GPS point in it" among the things deletable from inside Forager. That claim is false in today's app. Told to the owner, since the site is theirs.
 - Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-191
+**Timestamp:** 2026-09-29T13:09:11Z
+**Continues:** 2026-09-28-181 (F1)
+**Dispatch-file:** preserved/2026-09-29-36.md (to the F1 coder by SendMessage)
+**Reason:** the owner, verbatim: "Option A".
+**Changes:** item 5 becomes track delete like waypoints:
+- a swipe in Records, and Delete on the details sheet and pane, with Undo;
+- never a recording track;
+- the delete goes through DeleteTrackUseCase;
+- journal entries that kept the track follow the waypoint rule, found in code, with a stop if it is ambiguous.
+**Notes:** Written by the planner by hand.

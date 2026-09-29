@@ -1178,3 +1178,10 @@ None of these block PR #140.
 - **title:** "Download this area?"
 - **body:** "<name> · <radius> around the pin · about <N> tiles". Without a name it is "<radius> around the pin · about <N> tiles". The radius follows the units setting.
 - **buttons:** "Cancel" and "Download".
+
+**Track delete, built like waypoints (owner, 2026-09-29).** The F1 coder found that no track delete exists in the app. The planner's earlier "swipe in the list" had never been checked (record -190). The owner, verbatim: "Option A". The option was put as:
+- tracks delete as waypoints do: a swipe in the Records list and a Delete on the track's details, both with Undo;
+- a track still recording is never offered Delete;
+- a journal entry that kept the track follows the same rule as an entry that kept a since-deleted waypoint.
+
+This also makes the delete-data page's "Recorded tracks" line true.
