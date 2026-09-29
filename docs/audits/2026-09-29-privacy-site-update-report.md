@@ -215,3 +215,35 @@ Left as they were, as statements of practice, platform behaviour or account sett
    - whether the network location provider sends Wi-Fi or cell data to Google is platform behaviour, unverified.
 6. **The export token in a query string.** `/api/beta-export` also accepts the bearer token as `?token=` (`functions/api/beta-export.js:32-38`). This is not a privacy-page matter, but a token in a URL can end up in logs.
 7. **Deployed state.** A repository cannot show whether the deployed Worker matches `server/pmtiles-worker/`, and that file's own comment says the zoom 15 path is "NOT VERIFIED AGAINST REAL INFRASTRUCTURE" (`src/index.ts:138`).
+
+## The delete-data page, and the PR (second planner, 2026-09-29, later)
+
+**Asked for.** The owner, verbatim, answering "open a PR to publish the privacy page?" and "the same update for the delete-data page?": "1 yes / 2 yes".
+
+**Where it is now.** zynergy-site PR #3 (https://github.com/slayer8366/zynergy-site/pull/3), branch `site-legal-pages-2026-09-29`, cut fresh from `main` `0688e4d`:
+- `21eb8de`: the privacy page, the same content as `9bc0d45` above, with a new commit message;
+- `f260b08`: the delete-data page.
+
+Merging PR #3 publishes both. Branch `worktree-bridge-cse_01JoYc3mJXVwBwWBLeCWaqSz` is superseded and can be deleted; the owner decides.
+
+**Delete-data changes**, read against Forager `main` `faf2f88f`. The live page is `delete-data/index.html` at `0688e4d`; `K/` is as above.
+
+| # | Was (live `0688e4d`) | Now (`f260b08`) | Why (at `faf2f88f`) |
+|---|---|---|---|
+| D1 | "Last updated: 11 September 2026" | 29 September 2026 | Section D above |
+| D2 | "no copy of your data anywhere except the phone in your hand" | "the only copies of your data outside the app are ones you sent out yourself" | GPX export (`TrackExportPanel.kt:154-184`); Directions (`AvailabilityPureFunctions.kt:141-176`) |
+| D3 | "Anything you create can be deleted ... item by item, and the deletion takes effect immediately" | "Most of what you create"; immediate, some after a confirm | The delete paths in row 29 above; no Undo on `main` (L1 item 7 correction) |
+| D4 | "Journal entries, including any coordinate attached to a find." | "Journal entries and finds"; a find's delete keeps its photos; an entry's delete removes its copies | `DeleteMushroomLogEntryUseCase.kt` (doc comment: references only, never the photos); `CartographyEntryDao.kt:60-75` |
+| D5 | Photos "taken with your camera app"; "Deleting a photo removes the stored file" | Forager's camera; the delete is from the app's photo gallery, and it removes the file | `CameraXCaptureSession.kt:379-380`; `DeleteGalleryPhotoUseCase.kt:29-31` (the row, then the file) |
+| D6 | "Recorded tracks, the track and every GPS point in it." listed as deletable | Kept as a bullet, moved under "Not yet deletable one by one" | `DeleteTrackUseCase` is built at `K/AppContainer.kt:255` and never called. The owner's ruling to keep the line ("They can be deleted now. So we keep it.") holds for PR #140. The owner was told this before answering "2 yes" |
+| D7 | "Waypoints, including vehicle and origin markers." | "Waypoints." | `K/domain/model/WaypointDesignation.kt:17-21`: `ORIGIN` and `END`, with no vehicle kind |
+| D8 | Waypoints and regions without a note | Deleting either does not remove the copy a journal entry kept | Row D10 |
+| D9 | Not mentioned | "Not yet deletable one by one": tracks, crash traces (the newest ten kept), the last five searches, the cached GPX copy; Clear data or uninstall removes them | `CrashFileStore.kt:55-59`, `:84`; `CachedSearchDao.kt:34` (the only delete is eviction), `RoomSearchCacheRepository.kt:71`; `TrackGpxExporter.kt:18-24`, `:78` |
+| D10 | Not mentioned | New section "Copies that stay until you delete the entry": a waypoint's name and position; a region's name, centre and radius; a track's name, distance, duration and point count; a find's date and identification; a photo's attach date | `K/data/local/CartographyEntryEntity.kt:74-81`, `:90-96`, `:105-112`, `:128-134`, `:163-166`. The item deletes touch none of these tables (`WaypointDao.kt:43`, `OfflineRegionDao.kt:33`, `MushroomLogDao.kt:83`, `:124`, `:127`); only the entry delete removes them (`CartographyEntryDao.kt:60-75`), and the tables have no foreign keys (`CartographyEntryEntity.kt:65`) |
+| D11 | "Uninstalling removes everything ... Nothing is left behind on the device." | "Uninstalling removes what Forager stores", the cache included; a GPX file already sent to another app is that app's | What uninstalling removes is platform behaviour, as on the privacy page |
+| D12 | "Your entries, photos, tracks and waypoints never leave the device." | They leave only when you send them: GPX export, Directions | Row D2 |
+| D13 | "they are logged by the services that receive them" | "may log them" | Row 2 above |
+| D14 | "not stored by Forager and cannot be tied to you, there is no deletion request to make" | No record on any server of ours (the Worker keeps no request logs), and on the phone only the last five searches record them; other services may keep their own logs | `server/pmtiles-worker/wrangler.toml:12-13`; row 9 above. The requests carry the IP address, so "cannot be tied to you" was too strong |
+| D15 | "denying or revoking the location permission ends them" | It stops Forager reading your position, not the requests | `AvailabilityViewModel.kt:363-374`; `Basemap.kt:148`, `:162`, `:171` (L1's item 6) |
+
+Not changed: the `allowBackup` paragraph (the same caveat as on the privacy page) and the beta signup section. Open item 2 above, the notification email, applies to both pages.
