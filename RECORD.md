@@ -5334,3 +5334,16 @@ It also flagged the snackbar lying over the floating nav.
   - Tapping outside a dialog counts as Cancel.
 - Not closed. The terminal waits on item 8 and the planner's suite.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-151
+**Timestamp:** 2026-09-29T06:13:36Z
+**Dispatch:** 2026-09-28-127 (continuation -137)
+**Reason:** the planner's own suite on the -137 build.
+**Changes:** none.
+**Notes:**
+- At 6b7e5041, which contains dd056c6a, on an idle machine (3240 MB available, no other Java Gradle process), from a cleared results directory: 341 files, none stale, 0 compile errors, 2749 / 0 / 0 / 24, in 265 s. That matches the coder's count.
+- -127 stays open for item 8 and the owner's answers to the two data-safety flags (-150).
+- Written by the planner by hand.
