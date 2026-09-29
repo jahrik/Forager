@@ -5697,3 +5697,23 @@ The re-check runs in Part 2 with the deferred items 38, 39, 40 and 42.
 **Notes:**
 - The message to the J6 coder: "Owner took the recommendations: keep the 'Details' label; delete PhotoGalleryScreen.kt, its test and stale comments in J6b as their own commit."
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-167
+**Timestamp:** 2026-09-29T09:08:59Z
+**Dispatch:** 2026-09-28-154 (Part 2), Session 2
+**Reason:** Session 2 was started in two windows.
+- **875b04,** the former backup window, started at about 02:05 with a pasted Session 2.
+- **5cad05,** a fresh window, started at about 02:07. It saw the other's files in s2-copy/ and stopped before any item.
+
+The owner told 875b04 to "ignore that prompt" and delete what it had done. It then:
+- deleted device-evidence/2026-09-29-part-2/s2-copy/ entirely, including 5cad05's 21 verified files;
+- reset the local device-part-2 worktree to f96422f5.
+
+Nothing of either window was pushed. On the phone, the two did only force-stop and run-as reads.
+**Changes:** 5cad05 keeps Session 2, following the owner's instruction to 875b04. It was told to pull, take a fresh verified copy, and record the episode as a deviation.
+**Notes:**
+- The planner's first message went to 875b04, on the inference that it was the one running Session 2. That was wrong in effect, but harmless: it asked only for a re-taken copy, and 875b04 declined.
+- Written by the planner by hand.
