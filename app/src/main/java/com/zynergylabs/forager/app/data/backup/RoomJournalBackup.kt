@@ -47,7 +47,8 @@ class RoomJournalBackupHooks(
  * checkpoint (best effort, to keep the WAL small), then open a write transaction, whose write lock stops any
  * other writer committing and so stops any auto-checkpoint, copy the database file **and its WAL**, release,
  * and fold the copy (open it, checkpoint it, switch it to a rollback journal) into one self-contained file.
- * Readers keep working throughout, and the live database is only ever read.
+ * Readers keep working throughout, and the live database is only ever read. The tables [JournalTables.excluded]
+ * names are then emptied **on the copy**, before it is described and zipped ([leaveOutExcludedTables]).
  *
  * ## Restore
  *
@@ -106,6 +107,7 @@ class RoomJournalBackup(
         try {
             val snapshot = File(scratch, BackupManifest.DATABASE_ENTRY)
             takeSnapshot(snapshot)
+            leaveOutExcludedTables(snapshot)
             val (schemaVersion, photoPaths) = SQLiteDatabase.openDatabase(snapshot.path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
                 requireIntegrity(db, "the snapshot")
                 val paths = db.rawQuery("SELECT relativePath FROM log_photos", null).use { c ->
@@ -171,6 +173,26 @@ class RoomJournalBackup(
         }
         targetWal.delete()
         File(target.path + "-shm").delete()
+    }
+
+    /**
+     * Empties every table [JournalTables.excluded] names, on the snapshot copy only, so the archive carries none of
+     * their rows (F5, dispatch 2026-09-28-216; owner, "2 A": "Leave searches out of backups"). Today that is
+     * `cached_searches`: the last searches, each with the place it was run for. The live database is never written,
+     * so the phone keeps its searches. A restore never reads these tables either (Replace and Merge walk
+     * [JournalTables.journal] alone), so an older backup that still holds searches restores without them.
+     * The `DELETE … WHERE 0` in [takeSnapshot] is not this: it changes nothing and only takes the write lock.
+     */
+    private fun leaveOutExcludedTables(snapshot: File) {
+        SQLiteDatabase.openDatabase(snapshot.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+            db.beginTransaction()
+            try {
+                for (table in JournalTables.excluded.keys) db.execSQL("DELETE FROM `$table`")
+                db.setTransactionSuccessful()
+            } finally {
+                db.endTransaction()
+            }
+        }
     }
 
     // ---- restore -------------------------------------------------------------------------------

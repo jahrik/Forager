@@ -91,7 +91,10 @@ internal object JournalTables {
         ),
     )
 
-    /** Tables in the schema that are deliberately not journal data, and why (ruling 3 B does not list them). */
+    /**
+     * Tables in the schema that are deliberately not journal data, and why (ruling 3 B does not list them). A backup
+     * leaves their rows out, emptying them on its snapshot copy only (F5; owner, "2 A"), and a restore never reads them.
+     */
     val excluded: Map<String, String> = mapOf(
         "cached_searches" to "a rebuildable cache of network results, not journal data",
     )

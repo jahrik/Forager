@@ -10,6 +10,7 @@ import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.RunScheduledBackupUseCase
 import com.zynergylabs.forager.app.domain.ScheduledBackupReporter
 import com.zynergylabs.forager.app.diagnostics.DebugDiagnostics
+import com.zynergylabs.forager.app.export.TrackGpxExporter
 import com.zynergylabs.forager.app.map.initializeMapLibre
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -53,6 +54,7 @@ class ForagerApplication : Application(), ScheduledBackupDependenciesProvider {
         installCrashHandler()
         initializeMapLibreAtStart()
         sweepOrphanedCaptures(startedAt)
+        deleteStaleGpxExports()
     }
 
     /**
@@ -100,6 +102,18 @@ class ForagerApplication : Application(), ScheduledBackupDependenciesProvider {
             if (deleted > 0) Log.i(TAG, "Deleted $deleted orphaned capture file(s) left by an earlier process.")
             // The same number, somewhere a phone with no logcat can read it (debug builds only).
             diagnostics.recordSweep(deleted)
+        }
+    }
+
+    /**
+     * [TrackGpxExporter.deleteStaleExports] at start (F5, dispatch 2026-09-28-216; owner, "3 A"), so an
+     * export more than an hour old leaves the cache even when no later export runs. Off the main thread
+     * for the reason [sweepOrphanedCaptures] gives, and logged at INFO when it deletes anything.
+     */
+    private fun deleteStaleGpxExports() {
+        applicationScope.launch {
+            val deleted = TrackGpxExporter.forContext(this@ForagerApplication).deleteStaleExports()
+            if (deleted > 0) Log.i(TAG, "Deleted $deleted GPX export(s) more than an hour old from the cache.")
         }
     }
 
