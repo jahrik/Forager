@@ -18,24 +18,18 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
 import com.zynergylabs.forager.app.domain.CartographyEntryMapData
 import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
@@ -325,11 +319,8 @@ internal fun CartographyScreen(
     // recreation (a config change during backgrounding, or process death short of losing the
     // process outright) and silently skip the prompt, the same catch the device-check patch's
     // rememberSaveable fix for PhotoAcquisitionLaunchers already established.
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val focusManager = LocalFocusManager.current
-    var backgroundedWhileDirty by rememberSaveable { mutableStateOf(false) }
-    var showReturnPrompt by rememberSaveable { mutableStateOf(false) }
-    val latestIsEntryDirty by rememberUpdatedState(editingEntry != null && !editingEntry.isDraft && uiState.hasUnsavedChanges)
+    // Part 2 follow-ups F1 item 8: the observer and its two saveable flags now live in
+    // rememberReturnPromptState (ReturnPromptState.kt), unchanged in behaviour by the move.
     // Search-focus-and-hide dispatch, Item 1 — the one piece of that item actually built. A general
     // LaunchedEffect(isEditingJournalEntry) { focusManager.clearFocus() } in AvailabilityScreen was
     // tried first and made the dropdown-scrim bug worse, not better (see that file's own
@@ -341,7 +332,6 @@ internal fun CartographyScreen(
     // `editingEntry != null` alone, not gated behind `backgroundedWhileDirty`/the return prompt below:
     // a clean entry or an open draft can sit through a background/resume cycle too, with nothing else
     // here to clear focus for either of those.
-    val latestIsEntryOpen by rememberUpdatedState(editingEntry != null)
     // Entry-photo-acquisition dispatch, Item 2: this screen's own Camera/Import launch (inside
     // PullPhotoPickerScreen, reached from CartographyEntryEditScreen) is a new reachable state that
     // needed this exact guard for the first time — the device-check patch already fixed the
@@ -355,23 +345,11 @@ internal fun CartographyScreen(
     // showReturnPrompt above, for the same reason: a real Activity recreation mid-capture must not
     // lose track of this either.
     var photoAcquisitionInFlight by rememberSaveable { mutableStateOf(false) }
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_STOP -> if (latestIsEntryDirty && !photoAcquisitionInFlight) backgroundedWhileDirty = true
-                Lifecycle.Event.ON_RESUME -> {
-                    if (latestIsEntryOpen) focusManager.clearFocus(force = true)
-                    if (backgroundedWhileDirty) {
-                        showReturnPrompt = true
-                        backgroundedWhileDirty = false
-                    }
-                }
-                else -> Unit
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
+    val returnPrompt = rememberReturnPromptState(
+        entryDirty = editingEntry != null && !editingEntry.isDraft && uiState.hasUnsavedChanges,
+        entryOpen = editingEntry != null,
+        photoAcquisitionInFlight = photoAcquisitionInFlight,
+    )
 
     // Journal redesign J2, T2 (plan J2, owner ruling "Full-screen list (Recommended)"): the Drafts
     // sub-tab became the banner below, and with more than one draft its Continue opens the
@@ -417,10 +395,10 @@ internal fun CartographyScreen(
                     onFinish = onFinishEntry,
                     onSave = { leavePromptResolved = true; onSaveEntry() },
                     onDiscardChanges = { leavePromptResolved = true; onDiscardEntryChanges() },
-                    showReturnPrompt = showReturnPrompt,
-                    onContinueEditing = { showReturnPrompt = false },
-                    onCommit = { showReturnPrompt = false; onSaveEntry() },
-                    onSaveAsDraft = { showReturnPrompt = false; onSaveEntryAsDraft() },
+                    showReturnPrompt = returnPrompt.showReturnPrompt,
+                    onContinueEditing = { returnPrompt.showReturnPrompt = false },
+                    onCommit = { returnPrompt.showReturnPrompt = false; onSaveEntry() },
+                    onSaveAsDraft = { returnPrompt.showReturnPrompt = false; onSaveEntryAsDraft() },
                     onDeleteEntry = { onDeleteEntry(editingEntry.id) },
                     onBack = onCloseEntry,
                     modifier = contentModifier,
