@@ -1238,3 +1238,11 @@ The owner then answered the planner's question about the icon bar showing throug
 So:
 - The bar stays visible through the panel.
 - **Only colour changes.** Every alpha, including the icon bar's, is left as it is.
+
+**After L1, and the chrome colour (owner, 2026-09-29).** The owner, verbatim: "1 A / 2 A / 3 A / 4 A / 5 No, those are map icons not chrome / 6 yes have it coordinate with you".
+1. **Sundown alerts are built.** The logic exists (DecideSundownAlertUseCase), but nothing calls it on main or journal-redesign, while the privacy page describes a turnaround warning and a sunset alert. The feature is wired to what the page describes.
+2. **Backups leave out the recent searches** (`cached_searches`), which the code already calls "not journal data".
+3. **Exported GPX files are cleaned from the app's cache after sharing.**
+4. **C1, the chrome colour, resumes now,** alongside F4's close.
+5. **The icon cluster's opacity layers are not tied to the chrome opacity setting.** In the owner's words, they are "map icons not chrome". The icon bar's *colour* still changes in C1, per the owner's earlier request; only the opacity question is declined.
+6. **The second planner session coordinates with this one.** It hands its results here for the record, and does not instruct coders directly.
