@@ -161,3 +161,55 @@ Every `TapGroup.MARKER` layer is clearly a record or a sighting, so the dispatch
 | `MarkerFanOutPlacementPhonePortraitTest`, `...PhoneLandscapeTest`, `...TabletTest` (4 each, real `AvailabilityScreen`, real touches) | all 12 fail: "inside the map" or "clear of the cluster / legend / Journal chip / rail" (the stub shifts nothing) | each fanned marker's square inside the map and off cluster, legend, Journal chip, bar; a real touch at the centre and four points of each opens that marker's bubble |
 
 **What these tests do not reach**, stated now: the real `MapView` (MapLibre drawing the fan), the device's real system-bar insets (Robolectric reports zero), the compass strip, the search bar and the system bars (not registered), and the entry map and centre-pin picker, which provide no registry and so get the map's bounds only. The screen tests use the chip row with the Journal chip up and no taxon chip.
+
+### Continuation -208: what landed, verification, evidence
+
+**Commits** (all on `journal-redesign`): tests first at stubs (`8769bb1a`: 68 tests in the five affected classes, 23 failing, 45 passing of which the controls are named above); implementation, glue and the geometry fix (`f645e8f9`); the tests that make c4 and the strip check bite; merges of the remote (`--no-rebase`, only `RECORD.md` and `prompts/` overlapped). Head at the full run: `3e81ee1d`.
+
+**Suite.** `./gradlew :app:testDebugUnitTest`, results directory cleared, gated: **3138 tests, 0 failures, 0 errors, 24 skipped**, 378 XML files all newer than the run's start, 0 compile errors. Baseline before this continuation was 3106; the 32 extra are this continuation's (`FanPlacementTest` 9, `MapTapHandlerRecordsOnlyTest` 7, `MapTapHandlerPlacementTest` 2, the twelve-plus-three real-screen tests, less the one obsolete F4 test removed).
+
+**What changed in the code.**
+- `fanout/FanPlacement.kt`: `fanShift` (pure), `FanSpace`, `MapKeepOuts`, `fanOutLayerIds` (records only, derived from the registry, pinned by a test to exactly finds, photos, waypoints, planned trips).
+- `fanout/MapTapHandler.kt`: stack from record layers only; ring about the stack's centroid; shift from the space; each member's displacement is from its own true spot to its place, so the legs still end at the true positions.
+- `map/MapKeepOut.kt`: `LocalMapKeepOuts`, `Modifier.mapKeepOut(id)` (measured bounds in root, removed on leaving the composition), `MapFanSpace`; `SightingsMap` reads it and hands it to the handler.
+- Registered: icon cluster (its measured container, so portrait, the landscape L and the tablet), legend chip (compact and wide), chip row (compact and wide), bottom navigation, landscape rail, compass strip or HUD (compact and wide), the Maps tab's search bar. The provider is at `AvailabilityScreen` (compact) and around the wide `MapTab` (`AvailabilityWideLayoutUi.kt`).
+- **A defect in my F4 geometry, found by this continuation's real touches and fixed:** the ring and spiral spaced markers a touch size apart *as the crow flies*, which leaves the 48 dp squares of diagonal neighbours overlapping (a ring of 5 had them 45.65 dp apart on their wider axis, the spiral of 9 only 40.2), so a touch in a corner of one marker's square could land on its neighbour. Spacing is now that the squares do not overlap (`clear`: 48 dp apart on at least one axis). The ring of eight is now 67.88 dp (`48 / sin 45`), not 62.7. The F4 tests had checked Euclidean gaps and passed; they now check square gaps.
+- Removed: F4's `a sighting in a stack fans with the rest and opens the sighting bubble`, which the owner's ruling reverses (`MapTapHandlerRecordsOnlyTest` holds the replacement).
+
+**Real-touch evidence, and what it covers.** `MarkerFanOutPlacement{PhonePortrait,PhoneLandscape,Tablet}Test`, 5 each, through the real `AvailabilityScreen` (`w384dp-h823dp-xxhdpi`, `w823dp-h384dp-land` rotation 90, `w1318dp-h824dp-mdpi`), real icon cluster, legend, Journal chip, compass strip, search bar, bottom nav or rail. For each spot the test touches for real, lets the fan open, checks every fanned marker's 48 dp square is inside the map and off each control's own unclipped bounds (read from the nodes, not from the registry), then touches each marker at its centre and four points across its square and checks the right bubble opens. Spots: beside each of cluster, legend, Journal chip; under the compass strip with no chip row; near the left and right edges (spiral of 10 as well as 3 and 5). **Not covered:** a top or bottom *edge* spot (the search bar and navigation cover them, so a touch there never reaches a map; the pure `FanPlacementTest` covers all four edges and corners); the landscape's left edge (the cluster covers it whole, so only the right edge ran there); a taxon chip; the real `MapView`; real system-bar insets; the HUD (registered, not tested); the entry map and centre-pin picker, which provide no registry, so their fans keep to the map's bounds only.
+
+**Revert checks** (saved copies, one edit, build log read before the XML, restore from the copy, sha256 compared, tree clean; scripts under `/tmp/revert`):
+
+| Edit | Result |
+|---|---|
+| sightings fan again | 4 fail (the layer set, dots stay put, records over dots) |
+| bounds ignored | 8 fail ("inside the map ..." on all three sizes, plus the handler test) |
+| keep-outs ignored | 12 fail ("clear of the cluster / journal chip / legend / rail") |
+| ring about each marker's own spot | first version of the test **passed** (spots too kind); strengthened, then "fanned markers 0 and 1 are 32.0 dp apart" |
+| clearance back to Euclidean | 6 fail (ring of 5: 45.65; spiral of 9: 40.2; ring of eight 62.7 not 67.88; real touch -20,+20 opens the neighbour) |
+| control margin (half a square) dropped | 4 fail |
+| "as many controls as possible" dropped | 4 fail ("(2 of 3)", "expected 1 but was 0") |
+| on-screen-first dropped | 1 fails ("20 markers cannot fit in 200 dp") |
+| registry never written | 12 fail |
+| search bar not registered | 1 fails ("clear of the search bar") |
+| compass strip not registered (compact) | first version **passed** (no test drove a fan up into it); a no-chip-row "under the strip" test added, then 3 fail |
+| compass strip not registered (wide) | 2 fail |
+
+Not reverted: the HUD and bottom-navigation registrations (no test brings the HUD up or drives a fan into the nav), and the tablet's cluster/legend/chip registrations individually; the suite as a whole fails without the registry (c9), which is all that says.
+
+### Device-only additions
+
+Fan drawn by MapLibre near each edge and control on the S22 and the tablet, in portrait and landscape; the cluster dragged to a new place and snapped across, then a stack tapped beside it (the registry follows its measured bounds by `onGloballyPositioned`; whether that fires during the drag and the slide animation is unverified); the legend expanded and collapsed; a fan beside the bottom navigation and the rail with the system bars real; the HUD up while navigating; a very large stack (a spiral larger than the window is centred and clipped, `allOnScreen = false`).
+
+### Decisions I made (continuation)
+
+- **The bottom navigation, the landscape rail, the compass strip or HUD, and the search bar are keep-outs, as well as the three controls named.** The dispatch names the icon cluster, the legend and the chip row and says "inside the map's visible bounds"; a fan under a bar cannot be touched (the real-touch tests showed it), so I read the visible bounds as excluding what covers the map. Each is one `.mapKeepOut(...)` call and can be removed. **Owner or planner should confirm.**
+- The fan's centre is the centroid of the stack's true positions.
+- The clearance rule is squares that do not overlap, not straight-line distance (above).
+- An unclearable control is left and reported through `FanShift` (`controlsCleared` of `controlsTotal`); nothing surfaces it to the user, since the owner asked only for the report.
+
+### Flags outside scope
+
+- The Maps tab and the wide layout's controls were measured at Robolectric's zero insets; the device may differ.
+- `FanShift.allOnScreen == false` (a stack too big for the window) has no user-visible signal; the fan is centred and clipped.
+- The tap handler's bounds are the map view's, so on the entry map and the centre-pin picker (no registry) a fan can still sit under a bar there.
