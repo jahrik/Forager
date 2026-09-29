@@ -1078,3 +1078,44 @@ So:
 - The bar is five 48 dp rows with no spacing or end padding: 240 dp.
 - An 8 dp gap, then the horizontal pill (48 dp thick): **296 dp in all.**
 - Nothing is drawn around the L, and touches outside its two shapes reach the map.
+
+**The L's pill: the icons stack fully (owner, 2026-09-29).** The L coder asked how long the turned pill is:
+- 96 dp: two 48 dp buttons with no spacing, exactly half under the bar;
+- 108 dp: today's padding, putting record 4 dp off the bar's edge.
+
+The owner, verbatim: "the icons need to stack fully. Make sure that happens and have the pill extend outward like the L".
+
+So:
+- **The pill is 96 dp.**
+- **Record's 48 dp box sits exactly under the bar's 48 dp column,** so its left and right edges equal the bar's. The record icon stacks fully under the bar's icons.
+- Return extends outward, inboard of the screen, forming the L.
+
+**Disk space (owner, 2026-09-29).** The disk filled (about 114 MB free of 67 GB), stopping -160 before any test ran. The planner offered to delete about 4.5 GB of old build output in 28 finished worktrees. The owner, verbatim: "1 C". The owner clears space. The planner deletes nothing.
+
+The owner confirmed the pill's length, verbatim: "2 is  Awith that message". That is option A, 96 dp, together with the "stack fully" message above, which is what -162 carries.
+
+**Part 2 Session 1's questions and J6a's questions (owner, 2026-09-29).** The owner, verbatim: "I'll take your recommendations". That answers the four open recommendations:
+1. **"Download Maps" asks first,** with a confirmation that shows the area. Its wording goes to the owner before the dispatch. Part 2 follow-ups.
+2. **A track's details sheet gets a Delete.** Part 2 follow-ups.
+3. **J6a's record-details pane keeps its back row labelled "Details".**
+4. **PhotoGalleryScreen.kt and its test are deleted in J6b.** They have had no production caller since J6a.
+
+**The L's conflicts, J6c, the investigation, and the rest (owner, 2026-09-29).** Asked for all open items, the owner answered, verbatim: "1 2 3  I'll take your recommendations / 4 paste it here / 5 defer for tomorrow / 6 authorized and always allowed now".
+
+1. **The L** (record -170):
+   - (a) the top limit pushes the L down, below the search bar;
+   - (b) in landscape, the search notice stops before the L's side, the way the legend makes room, so the two never overlap;
+   - (c) the minimise handle's touch area is 48 dp tall, level with the locate row;
+   - (d) every button's full 48 dp square is its touch target, corners included. Nothing else around the L takes touches.
+2. **J6c, the tablet map controls** (record -171):
+   - drag, snap and minimise, as on the phone, within the tablet map's edges;
+   - fullscreen hides the Journal column and the search bar;
+   - the compass strip across the top of the tablet map, with the chip row below it;
+   - the phone's cluster extracted into one shared composable, rather than copied;
+   - Layers and "+" become bar rows.
+
+   The tablet takes the portrait arrangement, never the L.
+3. **The intermittent-failure investigation** is queued after the builds.
+4. **Part 2 Session 3** is pasted to the owner.
+5. **The owner's judgement of Session 1's captures** (rings, chips, highlight colours, night views) is deferred to 2026-09-30.
+6. **The tablet is authorized for USB debugging,** "always allowed". adb reads R52T506412L as a device.

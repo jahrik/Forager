@@ -5577,3 +5577,283 @@ The re-check runs in Part 2 with the deferred items 38, 39, 40 and 42.
 **Notes:**
 - That bc1f21 is Session 1 is the planner's inference from its start time. The message tells it to ignore the note if it is not.
 - Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-162
+**Timestamp:** 2026-09-29T08:12:48Z
+**Continues:** 2026-09-28-160
+**Dispatch-file:** preserved/2026-09-29-28.md
+**Reason:** -160 stopped with the disk full (/ at 100%, about 114 MB free). Its tests first are committed on landscape-l-wip (1692b29c) but have never run. It asked the pill's length.
+- The owner, verbatim: "1 C", declining the planner's offer to delete old build output.
+- The owner, verbatim: "the icons need to stack fully. Make sure that happens and have the pill extend outward like the L".
+**Changes:**
+- The pill is 96 dp, with record exactly under the bar's column.
+- Every coder checks for 2 GB of free disk before a Gradle run.
+- The owner frees space; the planner and the coders delete nothing outside their own worktrees.
+**Notes:**
+- Sent to the -160 window.
+- J6 and Part 2 Session 1 were told about the disk.
+- Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-163
+**Timestamp:** 2026-09-29T08:18:43Z
+**Dispatch:** none (machine upkeep, at the owner's instruction)
+**Reason:** the owner, verbatim: "Go ahead and delete those files and only those files." "Those files" are the old app/build folders in finished worktrees under ~/Zynergy/forager-wt/, which the planner had offered (-162, option A) and pointed to again.
+**Changes:**
+- **Deleted:** only the app/build directories of 23 finished worktrees, 2733 MB. They are chrome-follow-ups, decorations, device-j8, j8, j8-follow-ups, journal-backup, landscape-b1, landscape-b1-tfcheck, landscape-fixes, layout-fixes, leave-fixes, map-chrome, marker-palette, night-mode, night-outline, night-region, offline-safety, photo-export, save-failure, split-move, split-scaffold, tracks-frame, trips-on-map.
+- **Free space** went from 2535 MB to 5715 MB.
+**Notes:**
+- **Checked before deleting:**
+  - no file under any of those app/build directories was newer than 90 minutes;
+  - the only running Gradle builds were in j6 and landscape-l.
+- **Excluded:** journal-redesign, j6, landscape-l, device-part-2, planner-records and legal-drafts.
+- **Nothing else was deleted:** no source, no commits, no worktree, no Gradle cache, no evidence.
+- **Already gone before this,** so presumably cleared by the owner or the coders: device-offline, device-tablet, device-chrome, device-stage-1, night-evidence, strip-device-check and strip-flash-timer-location. Part 2 Session 1 reports deleting its own worktree's app/build.
+- Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-164
+**Timestamp:** 2026-09-29T08:39:16Z
+**Dispatch:** 2026-09-28-154 (Part 2), Session 1
+**Reason:** Session 1 handed back. Its run record is merged at 2fdb94f1 (device-part-2 at f96422f5).
+- **Build:** 85a41257 (1.0.1685+g85a41257), installed with install -r, firstInstallTime unchanged, no migration. The crash buffer has 0 FATAL.
+- **Two fails:**
+  - item 5: an open bubble does not re-anchor after a device rotation until the next pan, and overlaps the cluster;
+  - item 37: in portrait fullscreen the "i" sits under the system nav band, and two real taps opened nothing.
+- **Pass:** 2, 6-10, 27-31, 34-36, 37 at 0/90/270, 40, 41, 43, 44, 46-50, 60 and 63.
+- **Partly:** 1, 3, 39, 42, 45, 61 and 62.
+- **For the owner, from captures:** 54-56, 58 and 59.
+- **Not run:** 11, 12, 51 and 53.
+- **The phone was returned to the verified copy:** 18 sha256 equal, integrity ok, v16, all row counts equal.
+**Changes:** amendment preserved/2026-09-29-29.md for Sessions 2 and 3. Their launch prompts now cite it.
+**Notes:**
+- **Deviations:**
+  - The deferred items 38, 39, 40 and 42 (-159) were run anyway, on the pre-L layout. They are informational only and are re-checked after -160.
+  - Item 38's margin is 14 px, not about 0. That supersedes -124's "about 0 px" (RECORD:4875-4876).
+  - Most visual evidence was converted to JPEG after the disk filled. Only item 48 is from a raw PNG; the others are marked.
+  - "Download Maps" started a real download without confirmation. It was undone by the restore.
+- **The notification prompt's trigger:** Start recording, at 270. That is the recording notification, not -153's backup request, so not a -153 finding. It was revoked and read back as not granted.
+- **Findings for the Part 2 follow-up dispatch:**
+  - (a) item 5, the bubble on rotation;
+  - (b) item 37, the "i" under the nav band in portrait fullscreen;
+  - (c) "Download Maps" starts with no confirmation, an owner question;
+  - (d) the track details sheet has no Delete, an owner question;
+  - (e) the Gallery row's datetaken was NULL for a photo whose file name carries its time (-126 writes DATE_TAKEN "when the record has a time"), to be verified in code.
+- accelerometer_rotation changed to 1 twice without the coder.
+- Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-165
+**Timestamp:** 2026-09-29T08:45:54Z
+**Dispatch:** 2026-09-28-152 (J6), part J6a
+**Reason:** the J6 coder handed back J6a, pushed to journal-redesign at d2b61d0e.
+- Report: "J6a completion report" in docs/audits/2026-09-29-j6-completion-report.md.
+- Its suite: 2834 / 0 / 0 / 24 (+32).
+- Tests first: 25 of 28 WideJournalTest failed at base, 3 are guards.
+- Revert check: a filled Box in place of the pane's Surface lets 5 of 5 touches through.
+**Changes:**
+- The wide Journal is now the phone's JournalTab under a "Journal" back row.
+- JournalDetailSlot draws an opened entry, find, picker or record details over the whole right side.
+- One Back handler. The Photo Gallery panel is removed, and the album has long-press delete.
+**Notes:**
+- **For the owner:**
+  - the record-details pane's back row is labelled "Details" by the coder, since the phone's sheet has no header;
+  - PhotoGalleryScreen.kt now has no production caller: delete it and its test?
+  - "Log a find" over an open find is unreachable on wide under ruling 1, because the pane covers the map's "+".
+- **Premises that did not match,** recorded in the report:
+  - ruling 5's Back order leaves out an existing Finds-chip-to-All step;
+  - an editor's Back closes the entry on the phone too.
+- **Two intermittent failures in the coder's first full run, not recurring in two more runs or in isolation:**
+  - AvailabilityScreenBackNavigationTest "Continue editing on the return prompt" (AppNotIdle);
+  - WideJournalTest (performMeasureAndLayout).
+
+  Their results were deleted before the stack traces were saved. The second belongs to the same family as the planner's LeavingTheJournalFixesTest F3 failure (-134).
+- **Process:** once, the no-Gradle check and the run were in one command, and another worker started in between. That run failed to compile and is not cited.
+- J6b continues. The coder expects to stop on item 14 (controls parity), where the drag, snap, minimise and fullscreen state live in the compact scaffold.
+- Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-166
+**Timestamp:** 2026-09-29T09:03:55Z
+**Continues:** 2026-09-28-152 (J6), and the Part 2 follow-up list (-164)
+**Dispatch-file:** none (by SendMessage to the J6 coder; its text is quoted here)
+**Reason:** the owner, verbatim: "I'll take your recommendations".
+**Changes:**
+- **J6:** keep "Details". Delete PhotoGalleryScreen.kt, its test and the stale comments in J6b, as their own commit, with the suite green.
+- **Part 2 follow-ups:**
+  - "Download Maps" gets a confirmation that shows the area; its wording goes to the owner first;
+  - a track's details sheet gets a Delete.
+**Notes:**
+- The message to the J6 coder: "Owner took the recommendations: keep the 'Details' label; delete PhotoGalleryScreen.kt, its test and stale comments in J6b as their own commit."
+- Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-167
+**Timestamp:** 2026-09-29T09:08:59Z
+**Dispatch:** 2026-09-28-154 (Part 2), Session 2
+**Reason:** Session 2 was started in two windows.
+- **875b04,** the former backup window, started at about 02:05 with a pasted Session 2.
+- **5cad05,** a fresh window, started at about 02:07. It saw the other's files in s2-copy/ and stopped before any item.
+
+The owner told 875b04 to "ignore that prompt" and delete what it had done. It then:
+- deleted device-evidence/2026-09-29-part-2/s2-copy/ entirely, including 5cad05's 21 verified files;
+- reset the local device-part-2 worktree to f96422f5.
+
+Nothing of either window was pushed. On the phone, the two did only force-stop and run-as reads.
+**Changes:** 5cad05 keeps Session 2, following the owner's instruction to 875b04. It was told to pull, take a fresh verified copy, and record the episode as a deviation.
+**Notes:**
+- The planner's first message went to 875b04, on the inference that it was the one running Session 2. That was wrong in effect, but harmless: it asked only for a re-taken copy, and 875b04 declined.
+- Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-168
+**Timestamp:** 2026-09-29T09:44:55Z
+**Dispatch:** none (the planner's own suite at the J6a head, 69c67178)
+**Reason:** the J6 coder reported a Gradle test worker, pid 619285 in forager-wt/journal-redesign, idle for 53 minutes and holding the machine below the sharing limits. It was the planner's own suite.
+**Changes:**
+- A thread dump was saved at ~/Zynergy/device-evidence/planner-suites/run5-hang-jstack.txt, and the partial XML at run5-xml/.
+- Only that worker was ended.
+- The run had reached 198 files and 1488 tests with 0 failures.
+**Notes:**
+- **The hang:** DrawerBackOverJournalTest "portrait, Back with the drawer open over the Finds chip on Records closes the drawer and keeps the Finds chip", touchTools (DrawerBackOverJournalTest.kt:420).
+  - It hung in composeTestRule.waitForIdle → Espresso.onIdle.
+  - The "SDK 36 Main Thread @kotlinx.coroutines.test runner" had used 102.9 s of CPU, so the app never went idle.
+- **The same signature as the -126 coder's hang** in LeavingTheJournalFixesTest F3 (:1139, openFindEditor), whose main thread had used 109 s of CPU.
+- **The family now counts three:**
+  - the planner's F3 failure at 6133649 (performMeasureAndLayout);
+  - the -126 hang;
+  - this hang.
+  
+  Add J6a's two once-only failures, and it is five, all in Journal and compact-tree Compose tests, all intermittent. The cause is unknown. A dedicated investigation is proposed to the owner.
+- The J6a terminal waits on a clean planner run.
+- Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-169
+**Timestamp:** 2026-09-29T09:54:23Z
+**Dispatch:** 2026-09-28-154 (Part 2), Session 2
+**Reason:** Session 2 handed back. Its run record is merged at 54921c0a (device-part-2 at fd560563).
+- **Pass:**
+  - 13 and 21 at 0/90/270;
+  - 14, 15, 19-26, and 33 in 8 of 9 states, at 0;
+  - 16 at 0 and 90;
+  - 32 at 0/90/270.
+- **Partly:** 17, where the withheld-waypoint half was not run, and 52.
+- **Not runnable:** 57, since there is no hook to force a refused write.
+- **Item 20's prediction was wrong;** its pass condition was met.
+- **Not run, declared:** the 90/270 halves of 14, 15, 17, 18, 22-26 and 33.
+- **Restored from the copy:** all 21 hashes equal after a second pass, integrity ok, v16, counts equal. Settings were read back.
+**Changes:** the amendment preserved/2026-09-29-29.md gains points 8-10 for Session 3: remove before pushing, WorkManager's database, and the rotation lock.
+**Notes:**
+- **Findings for the Part 2 follow-ups:**
+  - (f) a "Welcome back" dialog appears after each activity recreation with a pending edit, which no report mentions;
+  - (g) in landscape the camera surface leaves the screen until user_rotation is reset;
+  - (h) item 52's photo-bubble cases were unreachable, because stacked glyphs send a tap to the top one only.
+- **A process finding:** pushing over a longer file does not truncate it, so the first restore pass silently left 7 files unequal. The read-back caught it.
+- Disk was at 2114 MB available.
+- Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-170
+**Timestamp:** 2026-09-29T09:55:57Z
+**Dispatch:** 2026-09-28-160 (the landscape L)
+**Reason:** the L coder handed back with the L built on landscape-l-wip (805ab55a). Nothing is on journal-redesign.
+- **The build:** a fill-less Box replaces the container Surface in landscape. The bar is 240, the gap 8, the horizontal pill 96 × 48, with record under the bar's column on both sides, single-layer 0.8, and the anchor at a 48 dp pitch.
+- **Tests first:** 30 tests, 16 of them failing at base for the pre-registered reasons.
+- **5 revert checks.** One real bug was caught: record sat inboard on the right side.
+- **Full suite:** 2821 / 13 failed / 24 skipped. All 13 come from the conflicts below.
+**Changes:** none. Four decisions go to the owner:
+- (a) T9 ×2: the centred 296 dp L's top (44 dp) is 1 dp above the search bar's bottom (45 dp). The top clamp can pull up but never push down (CMU:846).
+- (b) With a search notice showing, the L overlaps the notice by 49 dp in a 384 dp window, because the notice floor gives way to the lowest edge.
+- (c) T7 ×11: the 72 dp minimise handle now reaches 12 dp into the compass and Layers rows, so real touches at their outer-lower part hit the handle.
+- (d) **The dispatch's corner-clipping stop is triggered.** On the end rows, real touches in the corners of the 48 dp box, outside the 24 dp rounded end (about 5% of the box), fall through to the map.
+**Notes:**
+- The coder used --no-daemon because a crashed run's daemon held a lock.
+- /tmp is shared between sessions: another overwrote a D58 script.
+- Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-171
+**Timestamp:** 2026-09-29T10:13:03Z
+**Dispatch:** 2026-09-28-152 (J6), part J6b
+**Reason:** the J6 coder handed back J6b items 11-13, pushed to journal-redesign at 2777cd11, and stopped at item 14 as predicted.
+- Report: the "J6b completion report" and the "Item 14 … STOP" sections of docs/audits/2026-09-29-j6-completion-report.md.
+- Its suite at 109e9c9f: 2832 / 0 / 0 / 24 (13 deleted with PhotoGalleryScreen, 11 added).
+**Changes:**
+- **Item 11:** List/Maps become real tabs below a 480 dp map width (the COMBINED_PANE_MIN_MAP_WIDTH constant). At 824 dp portrait the map is 464 dp across.
+- **Item 12:** an end inset lets the chip row wrap rather than run under Layers.
+- **Item 13:** the wide map draws before any search, with planned trips.
+- The PhotoGalleryScreen deletion is its own commit (3d95cf29).
+**Notes:**
+- **A correction to J6a:** Robolectric's default graphics mode measures text at about 0 width, so the five Records chips need about 656 dp, not 414. In the 328 dp tablet column they therefore always scroll. That is ruling 7's own "If not, then have it scroll", so no new ruling is needed.
+- **Four wrong chip predictions,** each traced to the same graphics-mode cause. The coder did not stop, reading them as a wrong premise about widths. That reading is recorded for the owner.
+- **Item 14's stop: map controls parity on the tablet.** The bar and pill arrangement is inline compact code, about 700 lines, not a composable. Its drag, snap, minimise and clamps key on compact-only surfaces. Unruled:
+  - (a) whether drag, snap and minimise come to the tablet;
+  - (b) what fullscreen means there;
+  - (c) where the compass strip and nav readout go;
+  - (d) extracting a shared cluster, or a tablet arrangement;
+  - (e) Layers and Add as bar rows.
+- **Machine:** the coder's build output is on /tmp, which is tmpfs, so it uses RAM that the memory rule then counts. One wait loop fell through after 10 minutes, and one suite started at 1805 MB of disk (the bar is 2048).
+- Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-172
+**Timestamp:** 2026-09-29T10:25:01Z
+**Continues:** 2026-09-28-160 (the landscape L)
+**Dispatch-file:** preserved/2026-09-29-30.md (to the L coder by SendMessage)
+**Reason:** the owner, verbatim: "1 2 3  I'll take your recommendations / 4 paste it here / 5 defer for tomorrow / 6 authorized and always allowed now".
+**Changes:** the L's four calls are ruled:
+- the top limit pushes the L down;
+- the landscape notice is inset from the L's side;
+- the handle's touch box is 20 × 48;
+- each button's full 48 dp square takes touches.
+**Notes:**
+- The plan records all six answers, under "The L's conflicts, J6c, the investigation, and the rest".
+- Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-173
+**Timestamp:** 2026-09-29T10:25:01Z
+**Continues:** 2026-09-28-152 (J6), item 14
+**Dispatch-file:** preserved/2026-09-29-31.md (to the J6 coder by SendMessage)
+**Reason:** the same answer's item 2.
+**Changes:** J6c:
+- drag, snap and minimise on the tablet;
+- fullscreen hides the drawer and the search bar;
+- the strip across the top, with the chips below it;
+- the compact cluster extracted into a shared composable, with the compact suite as the guard;
+- Layers and "+" as bar rows;
+- the portrait arrangement only.
+**Notes:**
+- **Also ruled in the same answer:**
+  - the intermittent-failure investigation is queued after the builds;
+  - Session 3 is pasted to the owner;
+  - the capture review is deferred to 2026-09-30;
+  - the tablet is authorized, and adb reads it as a device.
+- **Disk** is at 1243 MB free, under the coders' 2048 MB floor, so builds will wait. The owner is told.
+- Written by the planner by hand.

@@ -14,6 +14,10 @@ package com.zynergylabs.forager.app.ui.availability
 // CompactToolsDrawerContent, whose callers stay in AvailabilityScreen.kt. No symbol left behind is
 // reached from here. Seam F (the wide layout) was released by the owner for this split, as recorded
 // in the Understory amendment merged in #130.
+//
+// J6 (2026-09-29): PhotoGalleryEntryRow and PhotoGalleryHeader, two of the rows moved here, were removed
+// with the standalone Photo Gallery panel (the owner's ruling 2, 2026-09-28: "the old Photo Gallery panel
+// is removed. Only the album remains, as on the phone"), and the list above records the move as it was.
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
@@ -182,28 +186,6 @@ internal fun SettingsEntryRow(onClick: () -> Unit) {
 }
 
 /**
- * The Search panel's sticky-footer entry into the photo gallery (Workstream G2) — same shape as
- * [MushroomLogEntryRow] right above it, since both are entries into mushroom-log-area
- * destinations. No `navigationBarsPadding()` here for the same reason [MushroomLogEntryRow] has
- * none: [SettingsEntryRow] below is still the last row in the sheet and carries that inset.
- */
-@Composable
-internal fun PhotoGalleryEntryRow(onClick: () -> Unit) {
-    HorizontalDivider()
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(Icons.Filled.PhotoLibrary, contentDescription = null)
-        Text("Photo Gallery", style = MaterialTheme.typography.titleSmall)
-    }
-}
-
-/**
  * The Settings panel's header: unlike [DrawerHeader] this carries a visible back arrow and title,
  * because — unlike closing the drawer entirely, which the app bar's tune icon already visually
  * "undoes" — there is nothing else on screen suggesting how to get back from Settings to Search.
@@ -221,23 +203,6 @@ internal fun SettingsHeader(onBack: () -> Unit) {
     ) {
         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to search options")
         Text("Settings", style = MaterialTheme.typography.titleMedium)
-    }
-}
-
-/** [DrawerPanel.PhotoGallery]'s header — mirrors [SettingsHeader]'s back-arrow-plus-title shape exactly, for the same reason: there's nothing else on screen suggesting how to get back to Search. */
-@Composable
-internal fun PhotoGalleryHeader(onBack: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .clickable(role = Role.Button, onClick = onBack)
-            .padding(horizontal = Spacing.lg),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to search options")
-        Text("Photo Gallery", style = MaterialTheme.typography.titleMedium)
     }
 }
 
