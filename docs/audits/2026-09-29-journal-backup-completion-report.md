@@ -372,3 +372,79 @@ Not revert-checked: the two `Job`-returning loaders (a compile error, refused), 
 - **A save picker "overwrite an existing file" case:** the run cannot tell a file it created from one the user chose to overwrite, so a failed write deletes an existing backup the user picked; the older bytes were already truncated by opening for write.
 - `AvailabilityViewModel.onDownloadAgain` shares its tile-budget check with `onDownloadOfflineMaps` by duplicating the calculation, not by extracting it (a new function rather than a change to the working one).
 - The unreadable-photos and write-failed dialogs, and the Backup section, are not shown over the wide layout's own drawer in any test.
+
+
+---
+
+# Resumed: backup follow-up, continuation 2026-09-28-153 (the owner's answers to the item-8 stop and two flags)
+
+Same coder window and worktree. **Model:** configured as `claude-sonnet-5-5`; I cannot read the serving model. Read at `origin/journal-redesign` `61b3c26b` after `git pull --no-rebase`; `CLAUDE.md` unchanged. The plan section "Backup follow-up and Part 2's shape (owner, 2026-09-29)" read: "1 A / 2 A / 3 A / 4 A / For the previous 4 questions" (item 4, Part 2's shape, is not mine).
+
+## Governing text, quoted verbatim
+
+> # Continuation 2026-09-28-153 of dispatch 2026-09-28-127: the backup follow-up
+>
+> **For the -127/-137 backup coder, in `/home/zynergy-labs/Zynergy/forager-wt/journal-backup` (branch `journal-backup`).**
+>
+> **Base:** `origin/journal-redesign` at the commit that carries this file, or later. Pull with `--no-rebase` first.
+>
+> **What governs:**
+> - this file;
+> - the plan's "Backup follow-up and Part 2's shape (owner, 2026-09-29)", verbatim: "1 A / 2 A / 3 A / 4 A";
+> - `RECORD.md` -150 and -153.
+>
+> Add a new "Resumed" section to `docs/audits/2026-09-29-journal-backup-completion-report.md`, and quote this file in it.
+>
+> ## Build
+> 1. **Item 8, finished: a "Backups" notification channel.**
+>    - The channel's user-visible name is exactly **"Backups"**, in `strings.xml` like the others.
+>    - The two notifications are the approved texts:
+>      - **"Scheduled backup didn't finish"**, with **Try again**;
+>      - **"Scheduled backup saved. N photos couldn't be backed up."**, with "1 photo" for N = 1.
+>    - Tapping either opens the Backup section.
+>    - **Permission:** on API 33 and later, request POST_NOTIFICATIONS when the user turns scheduled backups on.
+>      - Declining does not block the schedule.
+>      - If notifications are not allowed when a scheduled run needs one, the same text is shown in the app at its next launch, once. Record where and how, with file:line.
+>      - **Stop** if showing it needs any words beyond the approved texts, or a new surface design.
+> 2. **Replace re-ids restored regions** (owner "2 A"). Replace gives each restored `offline_regions` row a fresh id by the same rule Merge uses, negative ids included. It rewrites every reference in the restored data. Test that a later download with the backup's old id cannot overwrite a restored row.
+> 3. **Asking before overwriting** (owner "3 A"). When the file the user picks for a manual backup already has contents, ask first, before anything is written.
+>    - The text is **"Replace the existing backup file?"**, with **Replace** and **Cancel**.
+>    - Cancel writes nothing and returns to the Backup section.
+>    - Say how "already has contents" is detected (for example, OpenableColumns.SIZE > 0), and what happens when the size cannot be read. **Stop** if it can never be read under SAF.
+>
+> ## Rules
+> - Tests first, **committed and pushed in their failing state** before the build. Last pass skipped this; it is required.
+> - Revert checks from saved copies, refused on compile errors.
+> - The full suite from a cleared results directory.
+> - Push to `journal-redesign`. No device. Merge is not authorised.
+> - The machine-sharing rule as before. Report a build made under 2.5 GB available as a deviation.
+>
+> **When done:** hand back to the planner `[9b334a]`. Stage device check Part 2 and J6 launch after this.
+
+## Tests first: done this time, and pushed failing
+
+The tests and API stubs are committed and pushed **in their failing state** at `1e8b8a0e` on `journal-backup-wip` before any build: 163 tests ran in the touched classes, **40 failed** for the stated reasons (a stub notifier that posts nothing, a reporter that reports nothing, no `ReplaceExisting` prompt, no permission request, an ignored `openBackupRequest`, `Replace` keeping id 7, `sizeOf` answering 0). The list is in this report's results section. **Passed at the stub tree, so controls or vacuous until their revert check:** `without the notification permission nothing is posted` (the stub returns false), `with the permission already granted it is not asked for`, `turning it on with no folder asks for nothing`, `declining the permission does not stop the schedule`, `a new empty file is not asked about`, `once Replace is confirmed, a Try again after unreadable photos does not ask again`, `with no notice waiting nothing is offered`, and `ScheduledBackupNoticeTest: a notice that was shown as a notification is not kept`. Each gets a revert check below.
+
+## Premises and the stops the file names, checked before building
+
+- **Approved words only, on an existing surface (item 1's stop).** The in-app notice at next launch needs no new words: it is the notification's own text (`domain/ScheduledBackupNotice.kt`). It needs no new surface: the app already shows a one-line notice through the screen's own snackbar host (`AvailabilityScreen`'s `logDraftSnackbarHostState`, used for the recording notices and the delete Undo). So I use that host, text only, no action. **Not a stop.** Where it is recorded and shown, with file:line, is in the results.
+- **Size under SAF (item 3's stop).** A document provider reports `OpenableColumns.SIZE` (`Document.COLUMN_SIZE`), which the platform documents as possibly null when the provider does not know. So it is **sometimes unreadable, not never readable**: not a stop. **How "already has contents" is detected:** `ContentResolver.query(uri, [OpenableColumns.SIZE])` returns a size above 0. **When the size cannot be read** (no row, a null column, a failed query): the app **asks**, the safe way round, and logs why. The cost is that a provider that never reports a size is asked about every new file too; I chose the question over a silent overwrite because a wrongly skipped question destroys an older backup and a wrongly asked one costs a tap. Alternative: proceed on unknown.
+- **The permission (item 1).** Asked on API 33 and later when the switch is turned on **and a folder is chosen** (a switch that could not turn on has nothing to notify about). Declining leaves the switch on and the schedule applied.
+- **The channel's importance** is unruled: I use `IMPORTANCE_DEFAULT` (a failed backup should make a sound and show in the shade; it is not an emergency like the off-track alert's HIGH, nor silent like recording's LOW). Decision, flagged.
+- **"Try again"** on the notification is a broadcast to a manifest-declared, non-exported receiver that enqueues one one-time run of the existing worker to the same folder. **The manifest gains one `<receiver>`**, which is required for it.
+
+## Pre-registration: tests and predictions (all written and pushed before the build; the failing state is `1e8b8a0e`)
+
+| # | Test | Predicted at the stub tree | Pass condition after |
+|---|---|---|---|
+| 1a | `AndroidBackupNotifierTest`: the channel is named exactly "Backups"; each notification has the approved title; "Try again" only on the failed one and it is a broadcast to the receiver; both taps carry the extra and open `MainActivity`; no permission or notifications off returns false and posts nothing; the receiver enqueues one one-time job | fails except the no-permission control | all pass |
+| 1b | `ScheduledBackupNoticeTest`: clean run says nothing; failure posts `DidNotFinish`; skipped photos post the count; a notice that could not be shown is kept, one that was shown is not; a keep that fails is logged | fails except two controls | all pass |
+| 1c | `ScheduledBackupTest`: the worker reports; the pending notice round-trips through DataStore | fails | pass |
+| 1d | `BackupViewModelTest` and `BackupSettingsScreen*`: a kept notice is offered once at launch and forgotten; the real screen shows it in the approved words; turning the switch on with a folder asks for the permission, declining keeps the schedule, granted or no folder or turning off asks nothing | fails except controls | pass |
+| 1e | `OpenBackupSection*` (portrait, `w823dp-h384dp-land`): the request opens Tools, then Settings at the Backup section, from Maps and from another tab, and a second request opens it again | fails: the request is ignored | pass |
+| 2 | `JournalBackupTest`: Replace gives a restored region a fresh negative id and rewrites the find and the entry references; a later download upserting id 7 cannot overwrite the restored row; a find naming a region the backup lacks is cleared | fails: Replace keeps id 7 | pass |
+| 3a | `BackupViewModelTest`: a file with contents (or an unreadable size) is asked about before anything is opened; Replace writes; Cancel writes and deletes nothing; a new empty file is not asked; Try again after unreadable photos does not ask again | fails except two controls | pass |
+| 3b | `BackupSettingsScreen*`: the question and its two buttons on the real screen; Cancel then Replace | fails | pass |
+| 3c | `ContentResolverBackupFilesTest`: `sizeOf` reports bytes, 0 for empty, null for a file that is not there | fails: the stub answers 0 | pass |
+
+**Device-only, listed:** the notification's look, sound and channel in the phone's settings; the permission dialog itself; the retry receiver waking with the app closed; tapping a notification from a cold start (`MainActivity` reading the intent's extra is wired but not run); a real provider's `OpenableColumns.SIZE`; WorkManager running the retry.
