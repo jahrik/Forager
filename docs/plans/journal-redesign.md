@@ -838,3 +838,9 @@ Intent `2026-09-28-106`. It runs ahead of the other queued builds, and an S22 de
 **How coders get Sonnet 5.5 (owner, 2026-09-29).** Launching with the Agent tool's "sonnet" choice gave `claude-sonnet-5`, read from the agents' logs, not 5.5. The planner had said 5.5 without checking. The owner chose, verbatim, "I'll do the .config": the owner sets the default subagent model in `/config`.
 
 From here the planner launches coders **without** a model setting, because an explicit one overrides the default. It reads the served model from the first agent's log and reports it.
+
+### Photo export and on-device journal backup (owner, 2026-09-29)
+
+The owner, verbatim: "Let's also add an export option for photos to the device, and on-device backup for journal entries."
+
+These are new features, not yet specified. A read-only pulse maps what exists first: photo storage, any share, export or backup code, the GPX export, Android's backup rules, and the data inventory. Then the design questions go to the owner: where exports go, which photos, the location metadata, what a backup holds, where it is stored, manual or scheduled, and restore. Where they sit relative to J6 and the Journal PR is the owner's to decide.
