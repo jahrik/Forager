@@ -6353,3 +6353,35 @@ The planner confirmed each by grep.
 **Prediction (mechanism, coder):** not authored.
 **Finish line:** as F1 to F3.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-198
+**Timestamp:** 2026-09-29T16:55:33Z
+**Closes:** 2026-09-28-181 (F1, the map and Journal follow-ups), with -191
+**Outcome:** completed
+**Observed:**
+- **Record:** docs/audits/2026-09-29-part-2-followups-map-completion-report.md. It landed at 3a723167.
+- **Built:**
+  - the bubble re-anchors on rotation;
+  - the "i" clears the navigation bar in portrait fullscreen;
+  - the track stops 18/16/14/12;
+  - "Download this area?", with the approved copy;
+  - track delete like waypoints: swipe and details, with Undo, never while recording;
+  - DATE_TAKEN is re-written after publish;
+  - "Welcome back" is guarded against configuration changes.
+- **The tablet chip guard** is a test only. It passed at base, so it is not shown to bite.
+- **Items 9 and 10** are investigations. Item 10 is now F4 (fan-out, owner C).
+- **The planner's suite** at 511c5885, idle, from a cleared results directory, with the hang timeout: 365 files, none stale, 0 compile errors, 3008 / 0 / 0 / 24, in 300 s. That matches the coder's count.
+- **Device-only, for the next S22 and tablet sessions:**
+  - the re-projection on rotation;
+  - the Gallery date on a real media scan, whose cause is unconfirmed;
+  - the "i" with real insets;
+  - track delete by finger;
+  - the Download confirmation;
+  - the camera preview in landscape, which is still unfixed;
+  - "Welcome back" after a night-mode change.
+**Notes:**
+- The tests that passed at base, and ReturnPromptRecreationTest's undiagnosed base failure, are recorded in -196.
+- Written by the planner by hand.
