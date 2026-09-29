@@ -144,6 +144,8 @@ internal fun CartographyScreen(
      * `LogPanel` (J6) passes none, so its cards draw no thumbnail.
      */
     tracks: List<Track> = emptyList(),
+    /** F3 (owner, "C: list screen loads lazily"): one entry's saved track paths, by track id; see [CartographyEntryListScreen]. */
+    getSavedTrackPaths: suspend (String) -> Map<String, List<LatLng>> = { emptyMap() },
     /** Ids of draft finds, for the album's find badge (J3, C5); see [EntriesAlbum]. `LogPanel` passes none. */
     draftFindIds: Set<String> = emptySet(),
     /**
@@ -468,6 +470,7 @@ internal fun CartographyScreen(
                 distanceUnit = distanceUnit,
                 galleryPhotos = galleryPhotos,
                 tracks = tracks,
+                getSavedTrackPaths = getSavedTrackPaths,
                 columns = columns,
                 modifier = contentModifier,
                 onDeleteDraft = onRequestDeleteEntry,
@@ -557,6 +560,7 @@ internal fun CartographyScreen(
                     distanceUnit = distanceUnit,
                     galleryPhotos = galleryPhotos,
                     tracks = tracks,
+                    getSavedTrackPaths = getSavedTrackPaths,
                     loadErrorMessage = uiState.loadErrorMessage,
                     columns = columns,
                     // No floating button in a short window (J5, L2), so nothing to clear.

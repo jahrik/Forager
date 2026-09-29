@@ -230,7 +230,7 @@ internal fun JournalTab(
     onRequestDeleteGalleryPhoto: ((String) -> Unit)? = null,
     /** [CartographyEntryReportScreen]'s own map, Stage 2d — see that composable's doc comment. */
     getCartographyEntryMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData,
-    /** STUB (tests first, F3 card thumbnail, owner: "C: list screen loads lazily"): saved track paths of one entry, by track id. Not read yet. */
+    /** F3 (owner, "C: list screen loads lazily"): one entry's saved track paths, by track id, for the cards' thumbnails; see [CartographyEntryListScreen]. */
     getSavedTrackPaths: suspend (String) -> Map<String, List<LatLng>> = { emptyMap() },
     /** [CartographyEntryReportScreen]'s own offline-map toggle, Stage 2e-i — see that composable's doc comment. */
     getCartographyEntryOfflineRegion: suspend (CartographyEntry, List<LatLng>) -> OfflineRegionSummary?,
@@ -697,6 +697,7 @@ internal fun JournalTab(
                 // trackUiState.tracks, through AvailabilityScreen and CompactMainScaffold), joined in
                 // memory by the Entries cards for their thumbnails.
                 tracks = tracks,
+                getSavedTrackPaths = getSavedTrackPaths,
                 // J3, C5: the album's find badge marks saved finds only; the draft finds' ids are
                 // already in this tab's MushroomLogUiState.
                 draftFindIds = uiState.draftEntries.mapTo(HashSet()) { it.id },

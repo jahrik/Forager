@@ -593,6 +593,13 @@ class MainActivity : ComponentActivity() {
                     onCartographyShownOnMapErrorDismissed = cartographyViewModel::onShownOnMapErrorDismissed,
                     onRequestDeleteGalleryPhoto = mushroomLogViewModel::requestDeleteGalleryPhoto,
                     getCartographyEntryMapData = { entry, photos -> container.getCartographyEntryMapDataUseCase(entry, photos) },
+                    // F3: the Journal cards' saved track paths. A failed read is logged, and that entry's card draws no thumbnail for its deleted track.
+                    getSavedTrackPaths = { entryId ->
+                        container.keptTrackPathRepository.getForEntry(entryId).getOrElse { error ->
+                            androidErrorLog.w("KeptTrackPath", "Couldn't read entry $entryId's saved track paths; its card draws no thumbnail for a deleted track.", error)
+                            emptyMap()
+                        }
+                    },
                     getCartographyEntryOfflineRegion = { entry, points -> container.getCartographyEntryOfflineRegionUseCase(entry, points) },
                     getCartographyEntryCurrentLocation = { container.locationProvider.getCurrentLocation() },
                     isRecording = trackUiState.isRecording,
