@@ -5159,3 +5159,15 @@ It also flagged the snackbar lying over the floating nav.
 **Notes:**
 - The dispatch has no open questions left.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-141
+**Timestamp:** 2026-09-29T05:19:22Z
+**Dispatch:** none yet
+**Reason:** the owner asked for the Layers sheet's map-type chips to be centred between the panel sides, with their height unchanged. The ruling is verbatim in the plan, under "Layers sheet: map-type chips centred".
+**Changes:** none yet. Which coder builds it is put to the owner.
+**Notes:**
+- Found while checking windows: 1c29a2, the -127 backup window, is busy, and chrome-follow-ups has pushed its tests first (ce952227). The planner infers that the owner put the -104 continuation (launch prompt 9) in 1c29a2. So launch prompt 10 (backup) belongs in a fresh window, not 1c29a2, as the planner had suggested. This is unverified: the planner cannot see which prompt a window holds.
+- Written by the planner by hand.
