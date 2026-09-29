@@ -120,7 +120,8 @@ abstract class WideMapControlsTests {
         composeRule.setContent {
             AvailabilityScreen(
                 uiState = SEARCHED.copy(plannedTrips = if (withTrip) listOf(TRIP) else emptyList()),
-                onUseCurrentLocation = { locateMeCalls++ },
+                onUseCurrentLocation = {},
+                onLocateMe = { locateMeCalls++ },
                 onManualLatChanged = {},
                 onManualLngChanged = {},
                 onSearchManualCoordinates = {},
@@ -174,8 +175,14 @@ abstract class WideMapControlsTests {
     private fun touchDesc(d: String) = touch(boundsDesc(d))
     private fun touchTag(tag: String) = touch(boundsTag(tag))
 
+    /**
+     * Three real touches across [b]'s inboard part. Not its outer sliver: the minimise handle straddles the bar's
+     * outer edge at the bar's mid-height, which is the locate row's height, by the phone's own design ("the
+     * handle deliberately overlaps the bar's own outermost sliver", `AvailabilityCompactMapUi`), so a touch there
+     * minimises the cluster (a first draft of this test sampled to 75% across and found exactly that).
+     */
     private fun sampledTouches(b: DpRect, action: () -> Unit) {
-        for ((fx, fy) in listOf(0.25f to 0.25f, 0.5f to 0.5f, 0.75f to 0.75f)) {
+        for ((fx, fy) in listOf(0.2f to 0.25f, 0.35f to 0.5f, 0.5f to 0.75f)) {
             composeRule.onRoot().performTouchInput { click(Offset((b.left.value + b.width.value * fx) * density, (b.top.value + b.height.value * fy) * density)) }
             composeRule.waitForIdle()
             action()
@@ -202,7 +209,7 @@ abstract class WideMapControlsTests {
         val pane = mapPane()
         val c = cluster()
         assertTrue("the cluster ($c) is inside the map pane ($pane), at its right edge", c.right <= pane.right && c.right >= pane.right - 24.dp && c.left >= pane.left)
-        assertEquals("the wide map's own Layers button is gone", false, exists(WIDE_LAYERS_BUTTON_TAG))
+        assertEquals("the wide map's own Layers button is gone", false, exists("wide-layers-button"))
         assertEquals("one 'plan a trip or log a find' control, the bar's own row", 1, composeRule.onAllNodesWithContentDescription("Plan a trip or log a find here").fetchSemanticsNodes().size)
     }
 
