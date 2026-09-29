@@ -6315,3 +6315,24 @@ The planner confirmed each by grep.
 **Notes:**
 - The delete-data wording ("the track and every GPS point in it") needs the site agent's caveat once this ships. The owner has been told.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-196
+**Timestamp:** 2026-09-29T16:49:38Z
+**Dispatch:** 2026-09-28-181 (F1), with -191
+**Reason:** the F1 coder handed back, pushed to journal-redesign at 3a723167. Report: docs/audits/2026-09-29-part-2-followups-map-completion-report.md, "Resumed: results".
+- **Built:** items 1-5 (5 as Option A, track delete like waypoints), 7 and 8.
+- **Item 6** is a guard test only.
+- **Items 9 and 10** are investigations, with no fix.
+- **Its suite at ccbbe8f2:** 3008 / 0 / 0 / 24.
+- **Nine revert checks,** each with an edit-specific message.
+**Changes:** none.
+**Notes:**
+- **Tests that passed at base, and so are not shown to bite:** the track outline stop, the 6 chip guards, and the 4 entry-ref tests.
+- **ReturnPromptRecreationTest "backgrounded then rebuilt"** failed at base for an undiagnosed test fault, so it is not shown to fail for its stated reason.
+- **Existing tests edited:** LandscapeOfflinePickerTest, PhotoViewerSaveTest, and 5 constructor sites.
+- **Device-only:** item 1's re-projection, and item 7's media scan (its cause still unconfirmed).
+- **Item 10** is now ruled as fan-out on tap (owner C, F4). Option B is F3's.
+- Written by the planner by hand.
