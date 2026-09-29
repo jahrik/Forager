@@ -6642,10 +6642,9 @@ The planner confirmed each by grep.
 **Changes:** the site agent's notes (preserved/2026-09-29-43.md and its copy) are amended:
 - L1 is done;
 - the "Recorded tracks" bullet is kept, qualified with the entry-copy caveat;
-- a new "Fix now on the live pages" list: the sundown alerts sentence, the no-third-party-tile-vendor sentence, and the no-log-export-plan sentence.
+- a new "Fix now on the live pages" list: the no-third-party-tile-vendor sentence, and the no-log-export-plan sentence.
 **Notes:**
 - **L1's findings against the code:**
-  - **The sundown alerts do not exist.** DecideSundownAlertUseCase has no caller on main or journal-redesign, and nothing builds a turnaround or sunset alert (TrackRecordingViewModel.kt:833 is the only Alert). The live privacy page describes them. This goes to the owner as a product question.
   - **A backup file carries cached_searches** (the last five searches, with their coordinates), because it is a whole-database copy (RoomJournalBackup.kt:149-176), although JournalTables.kt:95-97 calls it not journal data. It is disclosed; dropping it would be an app change, and goes to the owner.
   - **The exported GPX file is never deleted** from cacheDir/tracks (TrackGpxExporter.kt:78). It is disclosed; the owner decides.
   - **The Worker fetches from build.protomaps.com** on a missing tile, so the live "no third-party tile vendor" claim is contradicted.
@@ -6682,28 +6681,9 @@ The planner confirmed each by grep.
 **Reason:** the owner, verbatim: "1 A / 2 A / 3 A / 4 A / 5 No, those are map icons not chrome / 6 yes have it coordinate with you".
 **Changes:**
 - C1 resumes in its window, with its WIP at 5dac3b74 on chrome-colour-wip.
-- Two new dispatches follow:
-  - S1: wire the sundown alerts;
-  - F5: backups without recent searches, and GPX exports cleaned from the cache.
+- A new dispatch follows, F5: backups without recent searches, and GPX exports cleaned from the cache.
 - The second planner session is asked to hand its results here and not to instruct coders.
 **Notes:** Written by the planner by hand.
-
----
-
-**Kind:** intent
-**ID:** 2026-09-28-215
-**Timestamp:** 2026-09-29T19:32:14Z
-**Title:** S1: wire the sundown alerts (turnaround and sunset, while recording) as the 2026-09-11 reports decided
-**Dispatch-file:** preserved/2026-09-29-47.md; launch preserved/2026-09-29-49.md (~/Zynergy/launch-prompts/21-sundown-alerts.md)
-**Change:** call DecideSundownAlertUseCase from the recording, delivering through the existing channel and strings, under the sundown settings. No new copy; stop on open points.
-**Scope boundary:** the recording's alert wiring. Not the countdown UI, and no new strings.
-**Baseline:** the head at launch.
-**Prediction (outcome, planner):**
-1. The 2026-09-11 decisions cover most of it. One open point comes back (a recording that starts after sunset, or no fix).
-2. The suite grows by 8 to 20.
-**Prediction (mechanism, coder):** not authored.
-**Finish line:** tests first, the build, revert checks, the full suite at 0, the report with device-only items.
-**Notes:** The owner, verbatim: "1 A". Written by the planner by hand.
 
 ---
 
@@ -6719,7 +6699,7 @@ The planner confirmed each by grep.
 **Baseline:** the head at launch.
 **Prediction (outcome, planner):** the suite grows by 5 to 12.
 **Prediction (mechanism, coder):** not authored.
-**Finish line:** as S1. The planner then updates legal-drafts' two disclosures.
+**Finish line:** tests first, the build, revert checks, the full suite at 0, the report with device-only items. The planner then updates legal-drafts' two disclosures.
 **Notes:** The owner, verbatim: "2 A / 3 A". Written by the planner by hand.
 
 ---
@@ -6753,7 +6733,6 @@ The planner confirmed each by grep.
 - "Go ahead and stop the two idle daemons / F3 will have to restart after F4 / Unless it can run side by side". "F3" meant the C1 session;
 - on its relay of L1's hand-back: "1 that is coming up next so we can leave it. / 2 do an audit, note the changes needed, and file it in the audit doc in PR 140 / 3 I want the website privacy policy changed at least so it reflects the app / 4 add to #2 / 5 add to #2 / F4 is running".
 **Changes:**
-- **The live sundown sentence stays,** since S1 is building the feature. The site notes (preserved/2026-09-29-43.md and its copy) are amended.
 - **The second planner does, on the owner's direct instruction:**
   - (a) an audit of the live privacy page against main, appended to docs/audits/2026-09-29-privacy-site-update-report.md;
   - (b) zynergy-site privacy/index.html changed to describe main, on branch worktree-bridge-cse_01JoYc3mJXVwBwWBLeCWaqSz, pushed and not merged.
@@ -6762,51 +6741,5 @@ The planner confirmed each by grep.
 - **Daemons:** the second planner stopped two idle daemons, Kotlin (PID 778942) and Gradle (799186), with no build running. MemAvailable went from 2.24 to 7.37 GB.
 - **Its finding:** after each build, idle daemons hold about 5 GB, which pushes MemAvailable under the 2.5 GB check and stalled C1. A shorter daemon idle timeout would fix it machine-wide. Not ruled.
 - **Merge note:** when legal-drafts merges, keep both appended sections of the site report (L1's addendum and the second planner's audit).
-- **Checked for clashes:** none with S1, F5 or C1.
-- Written by the planner by hand.
-
----
-
-**Kind:** terminal
-**ID:** 2026-09-28-219
-**Timestamp:** 2026-09-29T19:41:02Z
-**Closes:** 2026-09-28-215 (S1, wire the sundown alerts)
-**Outcome:** withdrawn, never launched
-**Observed:** the owner, verbatim: "Sundown alerts will happen with the navigation plan, so we will scrap that entirely from this part of the project. I'll have the navigation planner do a new dispatch."
-**Notes:**
-- Nothing was built.
-- The launch copy is renamed ~/Zynergy/launch-prompts/21-sundown-alerts.WITHDRAWN.md, so it is not pasted by mistake. The preserved dispatch stays as the record.
-- The site notes now say the alerts come with the navigation plan.
-- **The owner's layer-opacity statement is recorded in the plan,** not dispatched. Only colour-field layers have sliders today (MapLayersSheet.kt:385, 399-405). The overlays have switches only.
-- Written by the planner by hand.
-
----
-
-**Kind:** dispatch-note
-**ID:** 2026-09-28-220
-**Timestamp:** 2026-09-29T19:44:35Z
-**Dispatch:** 2026-09-28-200 (L1), the site agent's notes
-**Reason:** the owner, verbatim: "Keep the site notes as is, don't change them for the sundown alert".
-**Changes:** the planner's -219 edit to the notes' sundown line is reverted. preserved/2026-09-29-43.md and its copy are again identical to their state at f5a2e7e3.
-**Notes:**
-- The line still names "dispatch S1", which -219 withdrew. It stays as the owner ruled.
-- Written by the planner by hand.
-
----
-
-**Kind:** dispatch-note
-**ID:** 2026-09-28-221
-**Timestamp:** 2026-09-29T19:46:50Z
-**Dispatch:** none (content undo, at the owner's instruction)
-**Reason:** the owner, verbatim: "Undo all changes to the sundown alerts that were made in the last 24 hours".
-**Changes (content):**
-- **legal-drafts at a1906e97:**
-  - the privacy policy's notifications bullet has its sundown alerts text back, as in the first draft b6d6eca0: "a turnaround warning and one at sunset, while a track is recording … computed on the device from the clock and your position";
-  - the two sundown lines L1 added to the site report's addendum are removed: its removed-claims row 1, and the "sundown sentence on the live page" bullet.
-  - Every other L1 change stands.
-- **The site agent's notes** (preserved/2026-09-29-43.md and its copy): the sundown bullet, which the planner had added on 2026-09-29 and edited three times, is removed. The notes carry no sundown text now, as before.
-**Notes:**
-- **Not undone, because they are records:** the sundown entries in RECORD.md (-212, -214, -215, -218, -219, -220), the plan's sundown paragraphs, and S1's preserved dispatch (preserved/2026-09-29-47.md and -49.md). The owner is asked whether those go too.
-- **L1's completion report still lists the sundown removal,** as its own record of what it did at the time.
-- **The second planner's zynergy-site change kept the live sundown sentence,** so it needs no undo.
+- **Checked for clashes:** none with F5 or C1.
 - Written by the planner by hand.
