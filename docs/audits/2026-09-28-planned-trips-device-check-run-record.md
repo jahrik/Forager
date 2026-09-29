@@ -234,6 +234,67 @@ line about trips, and an empty crash buffer. Absence there is not evidence eithe
 7. **No D58 phrase check.** The tablet coder ran one before each push; my attempt to set it up was refused by the
    permission system, and I did not pursue it. Flagged.
 
+## Observations
+
+Everything below was written after observing. Captures are in the evidence directory; each has a `.png` and a `.xml` of
+the same name unless marked, and `snaps.log` holds each capture's UTC time, rotation and hashes. Every input is logged
+with its time in `07-inputs.log`. "Trip pixels" are `pix.py` counts of the trip's fill colour (±16 per channel) in the
+map box `[0,250][1080,1950]` (below the compass strip, above the attribution line).
+
+### Phase 1 setup: a cold launch, no search
+
+- `am start -W` at 00:19:1xZ: `Status: ok`, `LaunchState: COLD`, pid 4821, Forager's `MainActivity` focused, no prompt
+  (`10-launch.txt`).
+- **The compact Maps tab, before any search** (`11-p1-launch`): the bar reads "September · Search a location"; the map
+  node spans `[0,75][1080,2316]`, so its centre is (540, 1196); the existing DEVICE CHECK find, waypoint and 1 km offline
+  region circle are drawn at the centre, with the location puck beside them. **Waypoints, finds and offline regions draw
+  before a search** (ACMU:643, 651-654). The compass strip read "Location services unavailable" at this first capture
+  and a heading, elevation and MGRS line from the next capture on (flag 2).
+- **Baseline trip pixels** (`12-pix-baseline-p1.txt`): `#9553A4` 0 px, `#FA01DD` 0 px.
+- **The gate's state before any trip** (`13-p1-tools`, `14-p1-trip-planner-empty`): the Tools drawer's Trip Planner reads
+  "No trips planned yet. …" and **"Choose a region in search options to see rain-driven trip windows."**: `region` is
+  null.
+
+### Check 1-0: a past date (observed)
+
+- In the date dialog for trip A (`18-p1-date-dialog-A`), every September day before the 28th is `enabled=false`, the 26th
+  included; "Today, Monday, September 28, 2026" is `checked=true`.
+- A real tap on the 26th's cell (944, 1522) changed nothing: the next dump is byte-identical (`19-p1-date-dialog-after-past-tap`,
+  dump `62e3418a869e663e` both times).
+- **Verdict: as predicted. Trip C (past) cannot be created through the real UI.** Two trips were created, not three.
+
+### Trips created
+
+The compact route with real taps: a slow pan (`swipe` 400,1450 → 400,1200 over 1200 ms), the cluster's add button
+(990, 1325), "Trip" in the add tile (483, 1326), the centre pin's OK (287, 1865), the date dialog, "Plan trip" (914, 1836).
+
+| Trip | Name (the default) | Date | Saved (UTC) | Captures |
+|---|---|---|---|---|
+| **A** | Trip 1 | 2026-09-28 (today) | 00:21:2xZ | `15-p1-after-pan-A`, `16-p1-add-menu-A`, `17-p1-centre-pin-A` (crop `17-p1-centre-pin-A-crop.png`), `18-p1-date-dialog-A`, `20-p1-after-A` |
+| **B** | Trip 2 | 2026-09-30 | 00:22:2xZ | `21-p1-after-pan-B`, `22-p1-add-menu-B`, `23-p1-centre-pin-B`, `24-p1-date-dialog-B`, `25-p1-date-dialog-B-sep30`, `26-p1-after-B` |
+
+- B's dialog offered the default name "Trip 2" (`24-`), so `plannedTrips` held A by then (ACMU:1374).
+- **The Trip Planner lists both** (`28-p1-trip-planner-AB`): "Today", "Trip 1", "Sep 28", and "Trip 2", "Sep 30", each with
+  an MGRS and a decimal-degrees line, "Directions to Trip N" and "Remove planned trip for 2026-09-28" / "…2026-09-30";
+  and below them **"Choose a region in search options to see rain-driven trip windows."** So both trips are in
+  `uiState.plannedTrips` while `region` is null. The coordinates are in `trips-created.txt` in the evidence directory; the
+  ids come from the database copy after check 1-5b.
+- **Where the points are on screen.** Each trip is stored at `cameraCenter`, the camera's target (ACMU:1340), which is
+  the map view's centre, (540, 1196). The centre pin's drawn tip is at about (540, 1216) (`17-…-crop`, my reading), 20 px
+  lower. The DEVICE CHECK find's `#DA02AF` cluster moved up by **exactly 236 px** at each pan (`[507,1122]` → `[507,886]` →
+  `[507,650]`), so after B's placing, **A's point is at (540, 960) and B's at (540, 1196).** The two trips are 0.0101° of
+  latitude apart (evidence file), about 1.12 km for 236 px, which is zoom 12 at this latitude (inferred from the Web
+  Mercator scale).
+
+### Check 1-1: each trip just after creating it, at the placing zoom, no search
+
+| After | Capture | Trip pixels in the map | Seen | Verdict |
+|---|---|---|---|---|
+| A | `20-p1-after-A` (crop `20-p1-after-A-crop.png`) | `#9553A4` **0 px**, `#FA01DD` 0 px | ground only at (540, 1196) | **absent** |
+| B | `26-p1-after-B` | `#9553A4` **1 px**, at (509, 742), 218 px from A's point and 454 px from B's; `#FA01DD` 0 px (`27-pix-p1-after-B.txt`) | ground only at both points | **both absent** |
+
+**Verdict: as predicted.** With both trips saved and listed, and `region` null, no flag is drawn at either point.
+
 ## Appendix: the dispatch and the launch message, verbatim
 
 ### `prompts/preserved/2026-09-28-94.md` at `ae0b90f`, the whole file
