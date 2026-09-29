@@ -6548,3 +6548,16 @@ The planner confirmed each by grep.
 - **Device-only:** 12 checks, including the native filter parser, queryRenderedFeatures on a real stack, and the leg drawing.
 - **Machine:** one run started with another Gradle process present, at 2459 MB.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-207
+**Timestamp:** 2026-09-29T18:11:39Z
+**Dispatch:** 2026-09-28-197 (F4)
+**Reason:** the planner's own suite at the F4 head.
+**Changes:** none.
+**Notes:**
+- At 09eac052 (containing 5f5d9eb7), idle, from a cleared results directory with the hang timeout: 372 files, none stale, 0 compile errors, 3106 / 0 / 0 / 24, in 240 s.
+- F4 stays open for the owner's two calls (-206).
+- Written by the planner by hand.
