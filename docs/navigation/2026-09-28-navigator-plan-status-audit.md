@@ -1,6 +1,6 @@
 # 2026-09-28: Forager Navigator plan, status audit
 
-The owner asked which parts of `docs/plans/forager-navigator-plan.md` are
+The owner asked which parts of `docs/navigation/forager-navigator-plan.md` are
 unfinished. `docs/plans/README.md` has said since 2026-08-25 that "Phase
 1.5/2/3/4: status not re-audited in this pass", and no later record audits
 them. This report does. It was written in a planner session at `pre-main`
@@ -99,9 +99,9 @@ still an unchecked box (`forager-navigator-plan.md:441` †).
 **Walking time.** Plan §4 cut any time estimate, and
 `domain/model/ReturnToStartInfo.kt:4-8` † still cites that cut. Later owner
 rulings point the other way: walk-back time "should be implemented first"
-(`docs/audits/2026-09-11-sundown-decisions-and-walkback-sequencing.md:26` †),
+(`docs/navigation/2026-09-11-sundown-decisions-and-walkback-sequencing.md:26` †),
 and the average pace is displayed from the start
-(`docs/audits/2026-09-11-sundown-countdown-prebuild-report.md:280` †, recorded
+(`docs/navigation/2026-09-11-sundown-countdown-prebuild-report.md:280` †, recorded
 "rather than acted on" at `:274` †). `domain/ReturnWalkingTime.kt` is built
 and tested, and it has no production caller †. **That is deliberate:**
 "No surface exists yet, on purpose … the alert brings the surface"
@@ -259,7 +259,7 @@ a file outside the repository, to be filed by the working coder.
 
 ## For the coder filing this
 
-- Path: `docs/audits/2026-09-28-navigator-plan-status-audit.md`.
+- Path: `docs/navigation/2026-09-28-navigator-plan-status-audit.md`.
 - `docs/audits/README.md` is a serialization point. If the append conflicts,
   merge (never rebase) and keep every row. Proposed row:
 
