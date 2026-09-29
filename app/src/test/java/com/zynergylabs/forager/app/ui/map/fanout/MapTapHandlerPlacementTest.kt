@@ -28,11 +28,12 @@ class MapTapHandlerPlacementTest {
     private fun at(h: MapTapHandler, xPx: Float, yPx: Float) = h.onMapTap(LatLng(0.0, 0.0), xPx, yPx)
 
     @Test
-    fun `markers a few dp apart fan into places that clear each other, and their true spots stay where they were`() {
-        // 0, 12 and 30 dp across: all within a touch size of the first, so one stack.
-        scene.addAtScreen(MapLayerIds.PHOTOS, "a", 400f, 800f)
-        scene.addAtScreen(MapLayerIds.PHOTOS, "b", 424f, 800f)
-        scene.addAtScreen(MapLayerIds.FINDS, "c", 460f, 810f)
+    fun `markers up to a touch size apart fan into places that clear each other, and their true spots stay where they were`() {
+        // In dp at density 2: p1 at (200, 400), p2 40 dp up and left of it, p3 on p1. All within a touch size of p1, so one
+        // stack; a ring drawn round each marker's own spot would put p1 and p2 about 32 dp apart.
+        scene.addAtScreen(MapLayerIds.PHOTOS, "p1", 400f, 800f)
+        scene.addAtScreen(MapLayerIds.PHOTOS, "p2", 320f, 720f)
+        scene.addAtScreen(MapLayerIds.PHOTOS, "p3", 400f, 800f)
         at(handler(), 400f, 800f)
         assertEquals(3, fan.members.size)
         val places = fan.members.map { memberPositionDp(it, 1f) }
@@ -41,9 +42,9 @@ class MapTapHandlerPlacementTest {
             assertTrue("fanned markers $i and $j are $gap dp apart on their wider axis", gap >= FAN_TOUCH_DP - 0.01f)
         }
         val trueSpots = fan.members.associate { it.key.featureId to (it.trueXDp to it.trueYDp) }
-        assertEquals(400f / scene.density to 800f / scene.density, trueSpots.getValue("a"))
-        assertEquals(424f / scene.density to 800f / scene.density, trueSpots.getValue("b"))
-        assertEquals(460f / scene.density to 810f / scene.density, trueSpots.getValue("c"))
+        assertEquals(200f to 400f, trueSpots.getValue("p1"))
+        assertEquals(160f to 360f, trueSpots.getValue("p2"))
+        assertEquals(200f to 400f, trueSpots.getValue("p3"))
     }
 
     @Test

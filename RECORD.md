@@ -6606,3 +6606,84 @@ The planner confirmed each by grep.
 **Prediction (mechanism, coder):** not authored.
 **Finish line:** tests first, the build, revert checks, the full suite at 0, the report with device-only items. The planner re-runs the suite.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-211
+**Timestamp:** 2026-09-29T19:17:32Z
+**Dispatch:** 2026-09-28-210 (C1)
+**Reason:** C1 ran in the window that built F3. It reports a stop on "the owner's instruction ('Start F4. Stop C1', relayed by the L1 planner)". The planner sent no such message, and the owner is being asked what they meant.
+- **State:** only the pre-registration is pushed (b8eb6136 on chrome-colour-wip).
+- **Uncommitted in the chrome-colour worktree:**
+  - test seams, and a stub token file;
+  - edits to MapChromeOverMapTest, MapLayersSheetTest and LandscapeLClusterPixelsTest;
+  - four new test classes.
+
+  None of it has been compiled or run.
+**Changes:** the planner asked the coder to push the uncommitted work to chrome-colour-wip now (push-before-you-tidy), then stay stopped.
+**Notes:**
+- **The coder's findings:**
+  - the pulse's premise was wrong: the wide record-details pane is `surface`, solid (JournalDetailSlot.kt:100), not surfaceContainerLow;
+  - MapModePicker has no caller;
+  - MapIconStackButtonColor* are kept (redefined) so MapChromeAlphaTest is untouched;
+  - the snackbar's inverse colours fail contrast on the token, so it takes the navigation bar's content colours;
+  - the Download dialog is always over a map.
+- **Machine:** one start at 2415 MB, which failed at compile.
+- Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-212
+**Timestamp:** 2026-09-29T19:18:05Z
+**Dispatch:** 2026-09-28-200 (L1)
+**Reason:** L1 handed back. It ran as a subagent of another planner session the owner opened ("You are the planner. Dispatch the following to a c…"). The documents are pushed to legal-drafts at a0cf46ed. Report: docs/audits/2026-09-29-legal-docs-l1-completion-report.md. The addendum is at the end of docs/audits/2026-09-29-privacy-site-update-report.md.
+**Changes:** the site agent's notes (preserved/2026-09-29-43.md and its copy) are amended:
+- L1 is done;
+- the "Recorded tracks" bullet is kept, qualified with the entry-copy caveat;
+- a new "Fix now on the live pages" list: the sundown alerts sentence, the no-third-party-tile-vendor sentence, and the no-log-export-plan sentence.
+**Notes:**
+- **L1's findings against the code:**
+  - **The sundown alerts do not exist.** DecideSundownAlertUseCase has no caller on main or journal-redesign, and nothing builds a turnaround or sunset alert (TrackRecordingViewModel.kt:833 is the only Alert). The live privacy page describes them. This goes to the owner as a product question.
+  - **A backup file carries cached_searches** (the last five searches, with their coordinates), because it is a whole-database copy (RoomJournalBackup.kt:149-176), although JournalTables.kt:95-97 calls it not journal data. It is disclosed; dropping it would be an app change, and goes to the owner.
+  - **The exported GPX file is never deleted** from cacheDir/tracks (TrackGpxExporter.kt:78). It is disclosed; the owner decides.
+  - **The Worker fetches from build.protomaps.com** on a missing tile, so the live "no third-party tile vendor" claim is contradicted.
+  - **The in-app backup notice** is shown when a notification could not be posted, not as a reaction to declining the permission (ScheduledBackupNotice.kt:49-53).
+  - **Removed as unconfirmable:** dashboard-dated claims, plan-tier claims, "no tile requests inside a downloaded region", and the salted-hash claim, which depends on RATE_LIMIT_SALT and falls back to a public constant (beta-signup.js:233-237).
+  - **Corrected first-draft claims:** immediate deletion (there is an Undo first), "denying location ends them", "every item deletable", crash traces' location, "vehicle markers", and "nothing shared".
+- **The C1 stop (-211) came from that other planner session:** "Start F4. Stop C1", relayed. The owner is asked what they meant.
+- Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-213
+**Timestamp:** 2026-09-29T19:27:40Z
+**Dispatch:** 2026-09-28-197 (F4), continuation -208
+**Reason:** the F4 coder handed back the continuation, pushed to journal-redesign at 958eea6c. Report section: "Resumed: continuation 2026-09-28-208".
+**Changes:**
+- **Records only:** the planned trips, waypoints, finds and photos layers fan (MapLayers.kt:406-409). Sightings (:391-400) never do.
+- **The fan's centre shifts** (a pure fanShift) to keep every 48 dp square on screen and off the keep-outs. Controls register their measured bounds through Modifier.mapKeepOut.
+- **A geometry defect in F4 was found and fixed:** diagonal squares overlapped. Spacing now uses non-overlapping squares, so a ring of 8 is 67.88 dp.
+- **Its suite at 3e81ee1d:** 3138 / 0 / 0 / 24. Real touches on phone portrait, phone landscape and the tablet. 14 revert checks, two of them strengthened.
+**Notes:**
+- **The coder's decision, accepted by the planner:** the bottom nav, rail, compass strip/HUD and search bar are keep-outs too, beyond the dispatch's cluster, legend and chip row. A fanned marker under a bar cannot be touched, and the owner's "lands on screen" is read as the usable screen.
+- The nav, rail and HUD registrations have no individual revert evidence.
+- The entry map and the centre-pin picker have no registry, so they keep to their bounds only.
+- Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-214
+**Timestamp:** 2026-09-29T19:31:09Z
+**Dispatch:** C1 (-210) resumed; new work queued
+**Reason:** the owner, verbatim: "1 A / 2 A / 3 A / 4 A / 5 No, those are map icons not chrome / 6 yes have it coordinate with you".
+**Changes:**
+- C1 resumes in its window, with its WIP at 5dac3b74 on chrome-colour-wip.
+- Two new dispatches follow:
+  - S1: wire the sundown alerts;
+  - F5: backups without recent searches, and GPX exports cleaned from the cache.
+- The second planner session is asked to hand its results here and not to instruct coders.
+**Notes:** Written by the planner by hand.
