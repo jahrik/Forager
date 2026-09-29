@@ -6791,3 +6791,22 @@ The planner confirmed each by grep.
 **Notes:**
 - The line still names "dispatch S1", which -219 withdrew. It stays as the owner ruled.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-221
+**Timestamp:** 2026-09-29T19:46:50Z
+**Dispatch:** none (content undo, at the owner's instruction)
+**Reason:** the owner, verbatim: "Undo all changes to the sundown alerts that were made in the last 24 hours".
+**Changes (content):**
+- **legal-drafts at a1906e97:**
+  - the privacy policy's notifications bullet has its sundown alerts text back, as in the first draft b6d6eca0: "a turnaround warning and one at sunset, while a track is recording … computed on the device from the clock and your position";
+  - the two sundown lines L1 added to the site report's addendum are removed: its removed-claims row 1, and the "sundown sentence on the live page" bullet.
+  - Every other L1 change stands.
+- **The site agent's notes** (preserved/2026-09-29-43.md and its copy): the sundown bullet, which the planner had added on 2026-09-29 and edited three times, is removed. The notes carry no sundown text now, as before.
+**Notes:**
+- **Not undone, because they are records:** the sundown entries in RECORD.md (-212, -214, -215, -218, -219, -220), the plan's sundown paragraphs, and S1's preserved dispatch (preserved/2026-09-29-47.md and -49.md). The owner is asked whether those go too.
+- **L1's completion report still lists the sundown removal,** as its own record of what it did at the time.
+- **The second planner's zynergy-site change kept the live sundown sentence,** so it needs no undo.
+- Written by the planner by hand.
