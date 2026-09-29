@@ -304,3 +304,61 @@ the owner or the planner pushes these commits from this worktree.
 **State:** unchanged apart from this section. There is still no push, no Gradle run and no `app/` edit. The
 commits `057117e`, `6542747` and `91bb142` stand as they are; this section is one further local commit on top of
 them. `origin/journal-redesign` has moved by 2 commits since `6542747`; I did not pull, as nothing is being pushed.
+
+## Resumed: the pre-registration pushed by the owner and the planner
+
+The planner's second message, part of this dispatch, verbatim:
+
+````
+Planner message, part of dispatch `2026-09-28-100`. Quote it verbatim in your report.
+
+**Your pre-registration is on the remote.** The owner acted on the push directly, not through a relay:
+- The owner ran the pull and push from `/home/zynergy-labs/Zynergy/forager-wt/decorations` themselves. The pull merged, and the push was rejected only as non-fast-forward, because the remote had moved.
+- Following that, the planner merged `origin/journal-redesign` into `decorations` (a merge, no rebase; records and run reports only, `app/` unchanged since `6dcc3b3`) and pushed: `ae0b90f..2893f8a`.
+- Your commits `057117e`, `6542747`, `91bb142` and `4b55b23`, and the owner's merge, are now on `journal-redesign` unchanged. Your branch is level with `origin/journal-redesign`.
+
+**Resume at tests first**, exactly as you pre-registered, then the build, revert checks, the full suite and the report.
+- Push as you go with `git pull --no-rebase` then `git push origin decorations:journal-redesign`.
+- **If the permission system refuses a push again, stop and hand back.** Keep the work committed locally, and don't try another route. The owner will decide, as before.
+- Before each Gradle run, check that no other build is running and that 2.5 GB is available. The layout-fix coder builds on this machine.
+````
+
+**Checked before resuming:**
+- After `git fetch`, `HEAD` and `origin/journal-redesign` are both `2893f8a`.
+- `git merge-base --is-ancestor` puts `057117e`, `6542747`, `91bb142` and `4b55b23` on the remote.
+- `git diff 6dcc3b3 origin/journal-redesign -- app/` is empty.
+- The pre-registration reached the remote before any test in this dispatch had run.
+
+## Tests first
+
+Commit **`3660e5b`**, test file only (`MapLayerRegistryTest.kt`, +101 −5). No production file is touched.
+
+What changed:
+- **T1, re-pinned.** The enum-order test is renamed `the groups run colour fields, areas, decorations, lines, markers, …`, and its enum assertion now compares `ZGroup.entries.map { it.name }` with the five names.
+- **T5, re-pinned.** The band assertion in `every marker ring draws below every line, …` becomes `decorationsBand()`, and its KDoc is updated.
+- **New:** T2 (`the decorations band holds the three marker rings and nothing else`), T3 (`the two line halos stay in the lines band, directly beneath their casings, and no marker ring is in it`) and **the guard T4** (`guard - the full draw order is the base's, layer for layer`, over the literal `drawOrderAtBase` for the default state and the swapped colour fields).
+- **Helper:** `decorationsBand()` finds the band by name.
+- **Counts:** `@Test` count 23 at base, 26 now.
+
+**The runner.** `/tmp/decorations/run.sh`, with its summariser `/tmp/decorations/summ.py`, both outside the repository. Before starting, it:
+- refuses to start if a Gradle build is running, under 2560 MiB is available, or `/` has under 3 GiB free;
+- clears `app/build/test-results/testDebugUnitTest`;
+- runs `LC_ALL=C.UTF-8 ./gradlew --offline :app:testDebugUnitTest --tests …`.
+
+After the run, it:
+- refuses to cite results if the log has any `e: ` line;
+- sums the JUnit XML, listing every file whose mtime or `timestamp` is older than the start.
+
+**Seen at `3660e5b`.**
+- The run started 00:11:33Z (2026-09-29), with MemAvailable 3865 MiB, `/` 5573 MiB free and no other Gradle build running.
+- The run ended `BUILD FAILED` (test failures), with **0 `e: ` lines**.
+- There was 1 XML file, 0 stale, timestamped 00:12:52Z.
+- **26 tests, 4 failures, 0 errors:**
+  - T5: `journal-entry-waypoints-layer in the decorations band expected:<null> but was:<LINES>`
+  - T3: `no marker ring in the lines band expected:<[]> but was:<[journal-entry-waypoints-layer, journal-entry-finds-layer, journal-entry-photos-layer]>`
+  - T2: `no DECORATIONS band in ZGroup: [COLOUR_FIELDS, AREAS, LINES, MARKERS]`
+  - T1: `expected:<[COLOUR_FIELDS, AREAS, DECORATIONS, LINES, MARKERS]> but was:<[COLOUR_FIELDS, AREAS, LINES, MARKERS]>`
+- **The guard T4 passed.** I read this from its own `testcase` in the XML, not from the count.
+- The other 21 tests passed.
+
+**It matched the prediction** exactly: the same four tests, each with its predicted message, and the guard passing.
