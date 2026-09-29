@@ -1787,3 +1787,61 @@ On `layout-fixes-wip`. **Nothing from this continuation is on `journal-redesign`
 ## Flags outside scope (this section)
 
 - The standard-label two-chip row (owner's 1A) reaches y 129 as well, so this is not a long-label problem; nothing measures that row against the central third.
+
+---
+
+# Resumed a fifth time (planner message `2026-09-29-07`, record `2026-09-28-121`)
+
+## The message, verbatim
+
+From `prompts/preserved/2026-09-29-07.md` at `49acbba` (first 16 hex of its sha256 `bdb3682de24acad3`), below its "verbatim message follows" line. The relay I was sent ("Option B for the chips": tighten the row's line spacing, S10's two-chip case on drawn bounds, tests first failing at `3bbbcfa`) matches the file.
+
+> Planner message `2026-09-29-07` (record `2026-09-28-121`), part of dispatch `2026-09-28-78`. Quote it verbatim in your report. It answers your stop at `3bbbcfa`: the two-chip wrapped row reaching 1 dp into the central third.
+> 
+> **The owner, verbatim: "Option B for the chips".** Option B, as the planner put it: "Keep two lines, tightened. Close the gap between the lines so the visible chips clear the middle third. The chip's invisible touch margin (the 48 dp tap area Android requires) would still reach a few dp past the edge. S10 would check the visible chip, not that invisible margin."
+> 
+> **Build:**
+> - Tighten the wrapped row's line spacing (and J8's chip's vertical placement within its own touch box, if needed) so the **drawn** chips clear the central third at 90 and 270, with the standard label and the 78-character one.
+> - **Keep every chip's 48 dp minimum touch target.** The invisible margin may extend past the edge.
+> - Change nothing else.
+> 
+> **S10:** its two-chip case asserts on the **drawn** chip bounds, not the touch box. This is an owner-approved change of what the test measures. Record exactly what changed and why in the report. The one-chip case and the central-third rule itself are unchanged.
+> 
+> **Tests first**, seen failing at `3bbbcfa`: the drawn chips of a wrapped two-chip row clear the central third, standard and long label, at 90 and 270. Real touches still reach each chip.
+> 
+> Revert check on the spacing. Then **re-run the whole suite on your final tree**, including your earlier test-only edit, with 0 failures. Push to `journal-redesign` with `--no-rebase`, add a new "Resumed" section, and hand back to `[9b334a]`. Before each Gradle run, check that no other build is running and that 2.5 GB is available; the offline-regions device coder builds one APK now.
+
+## What was measured, and two findings against the message's premises
+
+- **The S10 two-chip tests already measured the drawn chips.** They take the row from the two chips' tagged bounds. J8's tagged bounds are the 32 dp drawn pill (`[97, 129]` at the failing rows), not its 48 dp box; the taxon chip has no box beyond its drawn 32 dp. So "S10's two-chip case asserts on the drawn chip bounds, not the touch box" describes what those tests already did; I changed nothing about what they measure. The B2 file's own S10 chip case is the one-chip case and is untouched apart from `@GraphicsMode(NATIVE)` (previous section).
+- **J8's tappable area is its pill, not a 48 dp box.** My first guard for "keep the 48 dp touch target" put real touches 6 dp above and below the pill (inside the 48 dp layout box) and expected J8's list to open. At `3bbbcfa` (base run `base4`, 0 compile errors, fresh XML) both failed at 90 and 270: the touch at y=91 next to the pill `[168, 97][326, 129]` did not reach the chip. So the 48 dp box is layout only (it sets the line's height and centres the pill in it, 8 dp above and below); touches outside the pill go to the map, as `-109` recorded ("touches only on its pill"). The premise "keep every chip's 48 dp minimum touch target" therefore describes the layout box, which is kept, not a tappable margin that exists today. I replaced the guard with real touches inside the pill, 3 dp from its top and bottom edges and 12 dp from each end (all open the list), and I did not change the pill's tappable area.
+
+## Tests first, seen failing at `3bbbcfa`'s source (`base4`)
+
+Four fail for the stated reason, all on the row's bottom at y 129 against the central third's top at 128: the wrapped two-chip row's drawn chips, standard label at 90 (`[168, 53][384, 129]`) and 270 (`[439, 53][655, 129]`), and the 78-character label at 90 (`[120, 53][384, 129]`) and 270 (`[439, 53][703, 129]`). The other 22 pass. The two touch-box guards failed as above (a wrong premise of mine, corrected before the build).
+
+## Built
+
+`AvailabilityCompactMapUi.kt`: in short landscape the chip row's `FlowRow` has `verticalArrangement = Arrangement.spacedBy(0.dp)` (it was `Spacing.xs`, 4 dp); portrait keeps 4 dp. With the second line directly under the first, the drawn chips of the wrapped row end at y 125 against the 128 line. J8's chip is untouched: it keeps its 48 dp layout box, so the 8 dp of margin above its pill separates the lines visually (12 dp between the taxon chip's bottom and the pill's top).
+
+## Evidence
+
+- After the build: the chip-row class and the other affected classes (B2, `JournalEntriesOnMap*`, `MapChipsOverMapTest`, `JournalEntriesChipTest`): 102 pass, 0 fail, 0 compile errors.
+- **Revert check on the spacing** (saved copy, `Spacing.xs` restored in landscape; 0 compile errors; fresh XML; the forward file byte-identical afterwards): exactly the four S10 tests fail, with the same bounds as the base run (`[168, 53][384, 129]`, `[439, 53][655, 129]`, `[120, 53][384, 129]`, `[439, 53][703, 129]`); the other 24 pass.
+- **Full suite on the final tree**, cleared results directory, 0 compile errors, 314 files all newer than the run's start: **2563 tests, 0 failures, 0 errors, 24 skipped.** It includes the earlier test-only edit (the row-height clause moved to the taxon-chip-alone tests) and the merge of `journal-redesign` at `49acbba`.
+
+## Device-only list (`-121`), S22 at 90 and 270
+
+- The wrapped two-chip row: the visible gap between the taxon chip and J8's pill (12 dp), the row's bottom against the window's middle, and the nav inset.
+- That J8's pill still opens its list from a thumb touch at its edges.
+- Portrait's chip row spacing unchanged (4 dp).
+
+## Decisions I made (this section)
+
+19. **The spacing change is in landscape only** (the condition already used for the row's landscape modifier), since the message says to change nothing else.
+20. **I zeroed the gap rather than shrinking it** to the smallest that clears 128 (3 dp): the gap the message asks to "close". With 0, the drawn bottom is 125.
+21. **The touch-box guard was rewritten** after it disproved its own premise (above), not weakened: it now asserts touches over the pill reach the chip.
+
+## Flags outside scope (this section)
+
+- The message's premise that J8's chip has an invisible 48 dp touch margin does not hold at this base (above). If a 48 dp tappable target is wanted for J8's chip, that is a change to `JournalEntriesChip.kt` and to `-109`'s ruling ("touches only on its pill"), and it is not made here.
