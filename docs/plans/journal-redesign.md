@@ -1232,3 +1232,9 @@ The planner's reading:
 - The 80% opacity over a map (UX default, "Nothing fully obstructs the map view") stays as it is.
 
 A read-only pulse maps every chrome surface's colour and alpha against the navigation bar's first.
+
+The owner then answered the planner's question about the icon bar showing through the open search panel, verbatim: "Option B / That's not a problem. My problem is exactly how I stated: the wrong color. / Opacity for the icon bar is fine as is."
+
+So:
+- The bar stays visible through the panel.
+- **Only colour changes.** Every alpha, including the icon bar's, is left as it is.
