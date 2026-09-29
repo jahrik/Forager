@@ -40,6 +40,8 @@ class ContentResolverBackupFiles(context: Context) : BackupFiles {
      * `file:` URI directly. Reports whether it is gone; a failure is logged here and reported as `false`, so the caller,
      * which only ever deletes the file its own run created, can log and carry on.
      */
+    override fun sizeOf(uri: String): Long? = 0L // tests-first stub
+
     override fun delete(uri: String): Boolean {
         val parsed = Uri.parse(uri)
         return try {

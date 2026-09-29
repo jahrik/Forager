@@ -14,6 +14,8 @@ import com.zynergylabs.forager.app.domain.BackupScheduleSettings
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.RunScheduledBackupUseCase
+import com.zynergylabs.forager.app.domain.ScheduledBackupNotice
+import com.zynergylabs.forager.app.domain.ScheduledBackupReporter
 import com.zynergylabs.forager.app.domain.backupFileName
 import com.zynergylabs.forager.app.ui.backup.FakeBackupFiles
 import com.zynergylabs.forager.app.ui.backup.FakeJournalBackup
@@ -44,6 +46,7 @@ class ScheduledBackupTest {
     private val clock = CurrentTimeProvider { noon }
     private val files = FakeBackupFiles()
     private val logged = mutableListOf<String>()
+    private val notifier = com.zynergylabs.forager.app.ui.backup.FakeBackupNotifier()
     private val backup = FakeJournalBackup()
     private val on = BackupScheduleSettings(enabled = true, frequency = BackupFrequency.WEEKLY, folderUri = "content://tree/backups")
 
@@ -156,6 +159,7 @@ class ScheduledBackupTest {
     private fun worker(prefs: BackupScheduleSettings, log: MutableList<String>): ListenableWorker {
         val deps = object : ScheduledBackupDependencies {
             override val runScheduledBackup = useCase(prefs)
+            override val reporter = ScheduledBackupReporter(notifier, FakeSchedulePreferences(prefs), ErrorLog { _, _, _ -> })
             override val errorLog = ErrorLog { _, message, error -> log += "$message :: ${error.message}" }
         }
         return TestListenableWorkerBuilder<ScheduledBackupWorker>(context)
@@ -225,5 +229,40 @@ class ScheduledBackupTest {
 
         assertNull(infos(wm).firstOrNull { it.state == WorkInfo.State.ENQUEUED })
         assertFalse(infos(wm).any { it.state == WorkInfo.State.ENQUEUED })
+    }
+
+    // ---- what a scheduled run tells the person (dispatch 2026-09-28-153, item 1) ----
+
+    @Test
+    fun `the worker reports a failed run, so a notification or an in-app notice follows`() = runBlocking {
+        files.failFolder = true
+
+        (worker(on, mutableListOf()) as androidx.work.CoroutineWorker).doWork()
+
+        assertEquals(listOf<ScheduledBackupNotice>(ScheduledBackupNotice.DidNotFinish), notifier.notices)
+    }
+
+    @Test
+    fun `the worker reports nothing for a clean run, and the skipped count for a run that left photos out`() = runBlocking {
+        (worker(on, mutableListOf()) as androidx.work.CoroutineWorker).doWork()
+        assertEquals("a clean run says nothing", emptyList<ScheduledBackupNotice>(), notifier.notices)
+
+        backup.unreadablePhotos = 3
+        (worker(on, mutableListOf()) as androidx.work.CoroutineWorker).doWork()
+
+        assertEquals(listOf<ScheduledBackupNotice>(ScheduledBackupNotice.SavedWithSkippedPhotos(3)), notifier.notices)
+    }
+
+    @Test
+    fun `a notice waiting to be shown at launch is stored and read back exactly, and clears`() = runBlocking {
+        val prefs = DataStoreBackupSchedulePreferences(context)
+        assertEquals("none by default", null, prefs.pendingNotice().getOrThrow())
+
+        for (notice in listOf(ScheduledBackupNotice.DidNotFinish, ScheduledBackupNotice.SavedWithSkippedPhotos(1), ScheduledBackupNotice.SavedWithSkippedPhotos(12))) {
+            prefs.setPendingNotice(notice).getOrThrow()
+            assertEquals(notice, prefs.pendingNotice().getOrThrow())
+        }
+        prefs.setPendingNotice(null).getOrThrow()
+        assertEquals(null, prefs.pendingNotice().getOrThrow())
     }
 }

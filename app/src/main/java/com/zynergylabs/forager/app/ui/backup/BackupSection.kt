@@ -129,6 +129,7 @@ internal fun BackupSection(controls: BackupControls, modifier: Modifier = Modifi
     when (val prompt = state.prompt) {
         is BackupPrompt.UnreadablePhotos -> UnreadablePhotosPrompt(prompt, controls)
         BackupPrompt.WriteFailed -> WriteFailedPrompt(controls)
+        is BackupPrompt.ReplaceExisting -> Unit // tests-first stub
         null -> Unit
     }
 }

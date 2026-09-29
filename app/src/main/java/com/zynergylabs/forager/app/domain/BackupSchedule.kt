@@ -27,6 +27,11 @@ interface BackupSchedulePreferences {
     suspend fun get(): Result<BackupScheduleSettings>
 
     suspend fun save(settings: BackupScheduleSettings): Result<Unit>
+
+    /** A scheduled-backup notice that could not be shown as a notification, waiting to be shown in the app once; `null` when there is none. */
+    suspend fun pendingNotice(): Result<ScheduledBackupNotice?>
+
+    suspend fun setPendingNotice(notice: ScheduledBackupNotice?): Result<Unit>
 }
 
 /** Makes the operating system's job list match [settings]: periodic work when enabled, none otherwise. WorkManager in production. */
@@ -51,6 +56,12 @@ interface BackupFiles {
      * created**, when that run's write failed or the person cancelled (owner, "7 A"); nothing prunes old backups.
      */
     fun delete(uri: String): Boolean
+
+    /**
+     * How many bytes the file at [uri] holds now, from the provider's own size column (`OpenableColumns.SIZE`), or `null`
+     * when the provider does not say. Asked of the file the Save picker returned, before anything is written to it.
+     */
+    fun sizeOf(uri: String): Long?
 
     /** Keeps read and write access to [folderUri] across restarts (a persisted URI permission). */
     fun keepAccessToFolder(folderUri: String)

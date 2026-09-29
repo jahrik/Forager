@@ -9,6 +9,7 @@ import androidx.datastore.preferences.preferencesDataStoreFile
 import com.zynergylabs.forager.app.domain.BackupFrequency
 import com.zynergylabs.forager.app.domain.BackupSchedulePreferences
 import com.zynergylabs.forager.app.domain.BackupScheduleSettings
+import com.zynergylabs.forager.app.domain.ScheduledBackupNotice
 import kotlinx.coroutines.flow.first
 
 /**
@@ -46,6 +47,10 @@ class DataStoreBackupSchedulePreferences(context: Context) : BackupSchedulePrefe
         }
         Unit
     }
+
+    override suspend fun pendingNotice(): Result<ScheduledBackupNotice?> = Result.failure(UnsupportedOperationException("pending notice: not built"))
+
+    override suspend fun setPendingNotice(notice: ScheduledBackupNotice?): Result<Unit> = Result.failure(UnsupportedOperationException("pending notice: not built"))
 
     private companion object {
         const val DATA_STORE_NAME = "backup_schedule_preferences"

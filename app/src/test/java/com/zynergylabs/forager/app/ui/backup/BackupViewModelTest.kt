@@ -461,4 +461,108 @@ class BackupViewModelTest {
         assertEquals("a tap while loading does nothing", RestorePage.LOADING, vm.state().restorePage)
         assertEquals(0, vm.state().returnToMapRequest)
     }
+
+    // ---- item 1: a notice waiting for the next launch ----------------------------------------------
+
+    @Test
+    fun `a scheduled-backup notice that could not be a notification is offered once at launch, and forgotten after`() {
+        prefs.pending = com.zynergylabs.forager.app.domain.ScheduledBackupNotice.SavedWithSkippedPhotos(2)
+
+        val vm = viewModel()
+
+        assertEquals(com.zynergylabs.forager.app.domain.ScheduledBackupNotice.SavedWithSkippedPhotos(2), vm.state().launchNotice)
+        assertEquals("Scheduled backup saved. 2 photos couldn't be backed up.", vm.state().launchNotice!!.text)
+
+        vm.controls(vm.state()).onLaunchNoticeShown()
+
+        assertNull(vm.state().launchNotice)
+        assertNull("gone from the store, so the next launch does not show it again", prefs.pending)
+        assertNull(viewModel().state().launchNotice)
+    }
+
+    @Test
+    fun `with no notice waiting nothing is offered`() {
+        assertNull(viewModel().state().launchNotice)
+    }
+
+    // ---- item 3: asking before a file with contents is replaced ---------------------------------
+
+    @Test
+    fun `a file that already has contents is asked about first, and nothing is opened or written`() {
+        files.sizes["content://docs/old.zip"] = 4096L
+        val vm = viewModel()
+
+        vm.controls(vm.state()).onBackUpNow("content://docs/old.zip")
+
+        assertEquals(BackupPrompt.ReplaceExisting("content://docs/old.zip"), vm.state().prompt)
+        assertEquals("Replace the existing backup file?", BackupPrompt.ReplaceExisting.TEXT)
+        assertTrue("the file was not even opened for writing", files.written.isEmpty())
+        assertEquals(0, backup.backUps)
+        assertTrue(files.deleted.isEmpty())
+    }
+
+    @Test
+    fun `Replace writes the backup into the file`() {
+        files.sizes["content://docs/old.zip"] = 4096L
+        val vm = viewModel()
+        vm.controls(vm.state()).onBackUpNow("content://docs/old.zip")
+
+        vm.controls(vm.state()).onReplaceExistingConfirmed()
+
+        assertTrue(FakeJournalBackup.BACKUP_BYTES.contentEquals(files.written.getValue("content://docs/old.zip").toByteArray()))
+        assertEquals(BackupMessage.BACKUP_SAVED, vm.state().message)
+        assertNull(vm.state().prompt)
+    }
+
+    @Test
+    fun `Cancel writes nothing, deletes nothing, and returns to the Backup section`() {
+        files.sizes["content://docs/old.zip"] = 4096L
+        val vm = viewModel()
+        vm.controls(vm.state()).onBackUpNow("content://docs/old.zip")
+
+        vm.controls(vm.state()).onReplaceExistingCancelled()
+
+        assertNull(vm.state().prompt)
+        assertTrue(files.written.isEmpty())
+        assertTrue("the file that was there is left alone", files.deleted.isEmpty())
+        assertEquals(0, backup.backUps)
+        assertFalse(vm.state().busy)
+    }
+
+    @Test
+    fun `a new empty file is not asked about`() {
+        files.sizes["content://docs/new.zip"] = 0L
+        val vm = viewModel()
+
+        vm.controls(vm.state()).onBackUpNow("content://docs/new.zip")
+
+        assertNull(vm.state().prompt)
+        assertEquals(BackupMessage.BACKUP_SAVED, vm.state().message)
+    }
+
+    @Test
+    fun `a size the provider does not give is asked about, the safe way round, and the reason is logged`() {
+        files.sizeUnreadable += "content://docs/mystery.zip"
+        val vm = viewModel()
+
+        vm.controls(vm.state()).onBackUpNow("content://docs/mystery.zip")
+
+        assertEquals(BackupPrompt.ReplaceExisting("content://docs/mystery.zip"), vm.state().prompt)
+        assertTrue(files.written.isEmpty())
+        assertTrue("logged: $logged", logged.any { "size" in it && "mystery.zip" in it })
+    }
+
+    @Test
+    fun `once Replace is confirmed, a Try again after unreadable photos does not ask again`() {
+        files.sizes["content://docs/old.zip"] = 4096L
+        backup.unreadablePhotos = 2
+        val vm = viewModel()
+        vm.controls(vm.state()).onBackUpNow("content://docs/old.zip")
+        vm.controls(vm.state()).onReplaceExistingConfirmed()
+        assertEquals(BackupPrompt.UnreadablePhotos(2, "content://docs/old.zip"), vm.state().prompt)
+
+        vm.controls(vm.state()).onPhotosTryAgain()
+
+        assertTrue("asked about the photos again, not about the file", vm.state().prompt is BackupPrompt.UnreadablePhotos)
+    }
 }

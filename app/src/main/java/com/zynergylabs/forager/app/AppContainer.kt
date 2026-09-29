@@ -9,10 +9,13 @@ import com.zynergylabs.forager.app.domain.BackupScheduler
 import com.zynergylabs.forager.app.domain.BackupScheduleSettings
 import com.zynergylabs.forager.app.domain.BackupSchedulePreferences
 import com.zynergylabs.forager.app.domain.BackupFiles
+import com.zynergylabs.forager.app.domain.BackupNotifier
+import com.zynergylabs.forager.app.domain.ScheduledBackupReporter
 import com.zynergylabs.forager.app.data.repository.DataStoreBackupSchedulePreferences
 import com.zynergylabs.forager.app.data.repository.RoomOfflineRegionIdReplacer
 import com.zynergylabs.forager.app.data.backup.WorkManagerBackupScheduler
 import com.zynergylabs.forager.app.data.backup.RoomJournalBackup
+import com.zynergylabs.forager.app.data.backup.AndroidBackupNotifier
 import com.zynergylabs.forager.app.data.backup.ContentResolverBackupFiles
 import androidx.core.content.pm.PackageInfoCompat
 import android.util.Log
@@ -218,6 +221,8 @@ class AppContainer(context: Context) {
             WorkManagerBackupScheduler(androidx.work.WorkManager.getInstance(context.applicationContext)).apply(settings)
     }
     val runScheduledBackupUseCase = RunScheduledBackupUseCase(journalBackup, backupSchedulePreferences, backupFiles)
+    val backupNotifier: BackupNotifier = AndroidBackupNotifier(context.applicationContext)
+    val scheduledBackupReporter = ScheduledBackupReporter(backupNotifier, backupSchedulePreferences, errorLog)
     val plannedTripRepository: PlannedTripRepository = RoomPlannedTripRepository(database.plannedTripDao())
     val getPlannedTripsUseCase = GetPlannedTripsUseCase(plannedTripRepository)
     val savePlannedTripUseCase = SavePlannedTripUseCase(plannedTripRepository)

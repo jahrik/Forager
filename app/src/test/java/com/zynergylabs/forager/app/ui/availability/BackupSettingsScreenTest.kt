@@ -81,13 +81,13 @@ abstract class BackupSettingsScreenTests {
     private var recording = false
 
     private val launched = mutableListOf<Pair<ActivityResultContract<*, *>, Any?>>()
-    private val answers = mutableMapOf<Class<*>, Uri?>()
+    private val answers = mutableMapOf<Class<*>, Any?>()
     private val registryOwner = object : ActivityResultRegistryOwner {
         @Suppress("UNCHECKED_CAST")
         override val activityResultRegistry: ActivityResultRegistry = object : ActivityResultRegistry() {
             override fun <I, O> onLaunch(requestCode: Int, contract: ActivityResultContract<I, O>, input: I, options: ActivityOptionsCompat?) {
                 launched += contract to input
-                answers[contract.javaClass]?.let { dispatchResult(requestCode, it as O) }
+                if (answers.containsKey(contract.javaClass)) answers[contract.javaClass]?.let { dispatchResult(requestCode, it as O) }
             }
         }
     }
@@ -367,6 +367,112 @@ abstract class BackupSettingsScreenTests {
         composeRule.onNodeWithTag(BACKUP_AUTOMATIC_SWITCH_TAG).assertIsOn()
         composeRule.onNodeWithTag(backupFrequencyTag(BackupFrequency.WEEKLY)).assertIsSelected()
         assertEquals(BackupFrequency.WEEKLY, scheduler.applied.last().frequency)
+    }
+
+    // ---- dispatch 2026-09-28-153 -------------------------------------------------------------------
+
+    @Test
+    fun `a file that already has contents is asked about before anything is written, with the owner's words`() {
+        files.sizes["content://docs/chosen.zip"] = 4096L
+        answers[ActivityResultContracts.CreateDocument::class.java] = Uri.parse("content://docs/chosen.zip")
+        setScreen()
+
+        tap("Back up now")
+
+        composeRule.onNodeWithText("Replace the existing backup file?").assertIsDisplayed()
+        composeRule.onNodeWithText("Replace").assertIsDisplayed()
+        composeRule.onNodeWithText("Cancel").assertIsDisplayed()
+        assertTrue("nothing written yet", files.written.isEmpty())
+    }
+
+    @Test
+    fun `Replace on that question writes the backup, and Cancel writes nothing`() {
+        files.sizes["content://docs/chosen.zip"] = 4096L
+        answers[ActivityResultContracts.CreateDocument::class.java] = Uri.parse("content://docs/chosen.zip")
+        setScreen()
+        tap("Back up now")
+        composeRule.onNodeWithText("Cancel").performClick()
+        composeRule.waitForIdle()
+        assertTrue(files.written.isEmpty())
+        assertEquals(0, composeRule.onAllNodesWithText("Replace the existing backup file?").fetchSemanticsNodes().size)
+
+        tap("Back up now")
+        composeRule.onNodeWithText("Replace").performClick()
+        composeRule.waitForIdle()
+
+        assertTrue(FakeJournalBackup.BACKUP_BYTES.contentEquals(files.written.getValue("content://docs/chosen.zip").toByteArray()))
+        composeRule.onNodeWithText("Backup saved.").performScrollTo().assertIsDisplayed()
+    }
+
+    private fun turnScheduleOn() {
+        answers[ActivityResultContracts.OpenDocumentTree::class.java] = Uri.parse("content://tree/Backups")
+        setScreen()
+        tap("Choose folder")
+        composeRule.onNodeWithTag(BACKUP_AUTOMATIC_SWITCH_TAG).performScrollTo().performClick()
+        composeRule.waitForIdle()
+    }
+
+    private fun notificationPermissionAsks() = launched.count { (it.first as? ActivityResultContracts.RequestPermission) != null && it.second == "android.permission.POST_NOTIFICATIONS" }
+
+    @Test
+    fun `turning scheduled backups on asks for the notification permission`() {
+        answers[ActivityResultContracts.RequestPermission::class.java] = false
+
+        turnScheduleOn()
+
+        assertEquals(1, notificationPermissionAsks())
+    }
+
+    @Test
+    fun `declining the permission does not stop the schedule`() {
+        answers[ActivityResultContracts.RequestPermission::class.java] = false
+
+        turnScheduleOn()
+
+        composeRule.onNodeWithTag(BACKUP_AUTOMATIC_SWITCH_TAG).assertIsOn()
+        assertTrue("the schedule is on and applied", scheduler.applied.last().enabled)
+    }
+
+    @Test
+    fun `with the permission already granted it is not asked for`() {
+        androidx.test.core.app.ApplicationProvider.getApplicationContext<Application>().let {
+            org.robolectric.Shadows.shadowOf(it).grantPermissions(android.Manifest.permission.POST_NOTIFICATIONS)
+        }
+
+        turnScheduleOn()
+
+        assertEquals(0, notificationPermissionAsks())
+    }
+
+    @Test
+    fun `turning it on with no folder asks for nothing`() {
+        setScreen()
+
+        composeRule.onNodeWithTag(BACKUP_AUTOMATIC_SWITCH_TAG).performScrollTo().performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(0, notificationPermissionAsks())
+    }
+
+    @Test
+    fun `turning it off asks for nothing more`() {
+        answers[ActivityResultContracts.RequestPermission::class.java] = false
+        turnScheduleOn()
+
+        composeRule.onNodeWithTag(BACKUP_AUTOMATIC_SWITCH_TAG).performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(BACKUP_AUTOMATIC_SWITCH_TAG).assertIsOff()
+        assertEquals("still the one ask, from turning it on", 1, notificationPermissionAsks())
+    }
+
+    @Test
+    fun `a notice kept for launch is shown once, in the app, in the approved words`() {
+        prefs.pending = com.zynergylabs.forager.app.domain.ScheduledBackupNotice.DidNotFinish
+        setScreen()
+
+        composeRule.onNodeWithText("Scheduled backup didn't finish").assertIsDisplayed()
+        assertEquals("forgotten once shown", null, prefs.pending)
     }
 }
 

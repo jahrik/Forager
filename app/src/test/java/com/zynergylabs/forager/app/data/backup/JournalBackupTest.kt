@@ -193,7 +193,9 @@ class JournalBackupTest {
         val report = b.restore(a.backUp(), RestoreMode.REPLACE).getOrThrow()
 
         assertEquals(RestoreMode.REPLACE, report.mode)
-        assertEquals(a.dump(JOURNAL_TABLE_NAMES), b.dump(JOURNAL_TABLE_NAMES))
+        val regionId = b.scalar("SELECT id FROM offline_regions")!!.toLong()
+        assertTrue("the restored region has a fresh id of this phone's own (owner, \"2 A\"): $regionId", regionId < 0)
+        assertEquals("everything else equal, the region's id and the references to it aside", a.dump(JOURNAL_TABLE_NAMES), b.dump(JOURNAL_TABLE_NAMES).withRegionId(regionId, 7L))
         assertEquals("photo files, byte for byte", a.files(), b.files())
         assertEquals("planned trips are backed up and restored too (owner, \"4 A\")", 2L, b.count("planned_trips"))
         assertEquals("no scratch file is left behind", emptyList<String>(), b.scratchLeftovers())
@@ -211,7 +213,7 @@ class JournalBackupTest {
 
         b.restore(a.backUp(), RestoreMode.REPLACE).getOrThrow()
 
-        assertEquals(a.dump(JOURNAL_TABLE_NAMES), b.dump(JOURNAL_TABLE_NAMES))
+        assertEquals(a.dump(JOURNAL_TABLE_NAMES), b.dump(JOURNAL_TABLE_NAMES).withRegionId(b.scalar("SELECT id FROM offline_regions")!!.toLong(), 7L))
         assertFalse("the phone's own photo file is gone", File(b.filesDir, "photos/own-p.jpg").exists())
         assertEquals(a.files(), b.files())
         assertEquals("its own planned trip is gone, the backup's two are in", 2L, b.count("planned_trips"))
@@ -368,13 +370,56 @@ class JournalBackupTest {
     }
 
     @Test
-    fun `Replace keeps a region's own id, as ruled`() {
-        val a = phone().apply { insert("offline_regions", "id" to 7L, "name" to "Cedar Creek") }
+    fun `Replace gives a restored region a fresh id, the same rule Merge uses, and rewrites every reference`() {
+        val a = phone().apply {
+            insert("offline_regions", "id" to 7L, "name" to "Cedar Creek")
+            insert("offline_regions", "id" to 9L, "name" to "Fir Ridge")
+            insert("mushroom_log_entries", "id" to "f1", "isDraft" to 0L, "offlineRegionId" to 7L)
+            insert("cartography_entries", "id" to "e1", "isDraft" to 0L)
+            insert("cartography_entry_offline_region_refs", "entryId" to "e1", "offlineRegionId" to 9L, "name" to "Fir Ridge")
+        }
+        val b = phone().apply { insert("offline_regions", "id" to 7L, "name" to "Phone's own, to be replaced") }
+
+        b.restore(a.backUp(), RestoreMode.REPLACE).getOrThrow()
+
+        assertEquals("the phone's own region went with the replace", "0", b.scalar("SELECT COUNT(*) FROM offline_regions WHERE name LIKE 'Phone%'"))
+        val cedar = b.scalar("SELECT id FROM offline_regions WHERE name='Cedar Creek'")!!.toLong()
+        val fir = b.scalar("SELECT id FROM offline_regions WHERE name='Fir Ridge'")!!.toLong()
+        assertTrue("fresh and negative: $cedar, $fir", cedar < 0 && fir < 0 && cedar != fir)
+        assertEquals("the find names its region's new id", cedar.toString(), b.scalar("SELECT offlineRegionId FROM mushroom_log_entries WHERE id='f1'"))
+        assertEquals("the entry's ref row names its region's new id", fir.toString(), b.scalar("SELECT offlineRegionId FROM cartography_entry_offline_region_refs WHERE entryId='e1'"))
+        assertEquals(emptyList<String>(), danglingRows(b))
+    }
+
+    @Test
+    fun `after a Replace a later download that arrives with the backup's old id cannot overwrite a restored row`() {
+        val a = phone().apply {
+            insert("offline_regions", "id" to 7L, "name" to "Cedar Creek", "lat" to 45.5)
+            insert("mushroom_log_entries", "id" to "f1", "isDraft" to 0L, "offlineRegionId" to 7L)
+        }
+        val b = phone()
+        b.restore(a.backUp(), RestoreMode.REPLACE).getOrThrow()
+
+        // A download finishing under MapLibre's id 7 upserts its own row by id (MapLibreOfflineMapRepository.download).
+        kotlinx.coroutines.runBlocking {
+            b.database.offlineRegionDao().upsert(
+                com.zynergylabs.forager.app.data.local.OfflineRegionEntity(7L, "A new download", 1.0, 2.0, 5, 10.0, 15.0, 1_000L),
+            )
+        }
+
+        assertEquals("the restored row is still there, unchanged", "1", b.scalar("SELECT COUNT(*) FROM offline_regions WHERE name='Cedar Creek' AND lat=45.5"))
+        assertEquals("and the download has a row of its own", "A new download", b.scalar("SELECT name FROM offline_regions WHERE id=7"))
+        assertEquals("the find still points at the restored region, not at the download", "Cedar Creek", b.scalar("SELECT name FROM offline_regions WHERE id = (SELECT offlineRegionId FROM mushroom_log_entries WHERE id='f1')"))
+    }
+
+    @Test
+    fun `a find that names a region the backup does not hold has that link cleared by a Replace, not left to meet a future id`() {
+        val a = phone().apply { insert("mushroom_log_entries", "id" to "f-lonely", "isDraft" to 0L, "offlineRegionId" to 99L) }
         val b = phone()
 
         b.restore(a.backUp(), RestoreMode.REPLACE).getOrThrow()
 
-        assertEquals("Cedar Creek", b.scalar("SELECT name FROM offline_regions WHERE id=7"))
+        assertEquals("NULL", b.scalar("SELECT COALESCE(CAST(offlineRegionId AS TEXT), 'NULL') FROM mushroom_log_entries WHERE id='f-lonely'"))
     }
 
     @Test
@@ -538,6 +583,15 @@ class JournalBackupTest {
         assertEquals("the schema version this build restores up to is the one the database declares", 16, com.zynergylabs.forager.app.data.local.ForagerDatabase.SCHEMA_VERSION)
         assertEquals(com.zynergylabs.forager.app.data.local.ForagerDatabase.SCHEMA_VERSION, phone().database.openHelper.readableDatabase.version)
     }
+
+    /** These rows with a restored region's fresh [new] id read as its old [old]: the id column and every reference to it. */
+    private fun Map<String, List<String>>.withRegionId(new: Long, old: Long): Map<String, List<String>> =
+        mapValues { (_, rows) ->
+            rows.map { row ->
+                row.replace("offlineRegionId=$new", "offlineRegionId=$old")
+                    .replace(Regex("(^|\\|)id=$new(\\||$)")) { it.value.replace("id=$new", "id=$old") }
+            }.sorted()
+        }
 
     // ---- helpers -------------------------------------------------------------------------------
 

@@ -127,6 +127,7 @@ internal class MapChromeScreenState {
     var cartography by mutableStateOf(CartographyUiState())
     var entryMapData: CartographyEntryMapData = NO_ENTRY_MAP
     var returnToMapRequest by mutableStateOf(0)
+    var openBackupRequest by mutableStateOf(0)
     val downloadedAgain = mutableListOf<Long>()
     var backup by mutableStateOf(com.zynergylabs.forager.app.ui.backup.BackupControls())
 }
@@ -187,6 +188,7 @@ internal fun MapChromeTestScreen(
             getCartographyEntryMapData = { _, _ -> state.entryMapData },
             backup = state.backup,
             returnToMapRequest = state.returnToMapRequest,
+            openBackupRequest = state.openBackupRequest,
             onDownloadAgain = { state.downloadedAgain += it },
         )
         overlay()
