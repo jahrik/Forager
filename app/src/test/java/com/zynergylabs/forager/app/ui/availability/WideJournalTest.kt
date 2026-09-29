@@ -394,11 +394,16 @@ class WideJournalTest {
             onRequestDeleteCartographyEntry = cartographyViewModel::requestDeleteEntry,
             onRequestDeleteGalleryPhoto = logViewModel::requestDeleteGalleryPhoto,
             waypoints = listOf(DAY_WAYPOINT),
-            tracks = listOf(DAY_TRACK),
+            tracks = tracksOnScreen,
+            getSavedTrackPaths = savedTrackPaths,
             compassProvider = WideJFakeCompassProvider,
             mapSlot = WideJStubMapSlot,
         )
     }
+
+    /** What the wide tree is given as the loaded tracks, and as the read of an entry's saved track paths (F3). */
+    private var tracksOnScreen: List<Track> = listOf(DAY_TRACK)
+    private var savedTrackPaths: suspend (String) -> Map<String, List<LatLng>> = { emptyMap() }
 
     private fun setScreen(seedTwoDraftDayEntries: Boolean = false) {
         buildViewModels(seedTwoDraftDayEntries)
@@ -771,6 +776,21 @@ class WideJournalTest {
         // JournalEntryCardsTest's inCard() does.
         assertEquals(
             "the card draws its kept track's thumbnail (tracks reach the wide Entries)",
+            1,
+            composeRule.onAllNodes(hasTestTag(entryTrackThumbnailTestTag(COMMITTED_DAY_ENTRY.id)), useUnmergedTree = true).fetchSemanticsNodes().size,
+        )
+    }
+
+    // F3 (owner, "C: list screen loads lazily"): through AvailabilityScreen's wide tree, LogPanel to JournalTab to the card.
+    @Test
+    fun `an Entries card whose kept track is gone from the loaded tracks draws the path saved for it`() {
+        tracksOnScreen = emptyList()
+        savedTrackPaths = { id -> if (id == COMMITTED_DAY_ENTRY.id) mapOf("track-1" to listOf(LatLng(45.32, -122.64), LatLng(45.33, -122.63))) else emptyMap() }
+        setScreen()
+        openJournal()
+
+        assertEquals(
+            "the card draws its saved track path (the read reaches the wide Entries)",
             1,
             composeRule.onAllNodes(hasTestTag(entryTrackThumbnailTestTag(COMMITTED_DAY_ENTRY.id)), useUnmergedTree = true).fetchSemanticsNodes().size,
         )

@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.Dp
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
+import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
@@ -69,6 +70,8 @@ internal fun CartographyEntryListScreen(
     galleryPhotos: List<GalleryPhoto> = emptyList(),
     /** The already-loaded recorded tracks, which a card's thumbnail is looked up in by id (J3, C3; see [entryThumbnailTracks]). */
     tracks: List<Track> = emptyList(),
+    /** STUB (tests first, F3 card thumbnail, owner: "C: list screen loads lazily"): saved track paths of one entry, by track id. Not read yet. */
+    getSavedTrackPaths: suspend (String) -> Map<String, List<LatLng>> = { emptyMap() },
     /**
      * J4b L2 (owner ruling "Lists swipe, grids long-press (Recommended)"): when set, every card is a
      * [TwoStageSwipeRow] whose revealed Delete, full swipe and "Delete" accessibility action call

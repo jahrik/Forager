@@ -620,6 +620,8 @@ fun AvailabilityScreen(
      * real resolver just to compile.
      */
     getCartographyEntryOfflineRegion: suspend (CartographyEntry, List<LatLng>) -> OfflineRegionSummary? = { _, _ -> null },
+    /** STUB (tests first, F3 card thumbnail, owner: "C: list screen loads lazily"): saved track paths of one entry, by track id. Not read yet. */
+    getSavedTrackPaths: suspend (String) -> Map<String, List<LatLng>> = { emptyMap() },
     /**
      * [com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreen]'s own fullscreen recenter button —
      * fullscreen-maps dispatch, see that composable's own doc comment, "Fullscreen." Defaulted for

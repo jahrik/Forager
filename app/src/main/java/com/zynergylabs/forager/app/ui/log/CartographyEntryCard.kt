@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
+import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.LocalDate
@@ -344,6 +345,13 @@ private val ENTRY_HERO_HEIGHT = 140.dp
  */
 internal fun entryThumbnailTracks(entry: CartographyEntry, tracksById: Map<String, Track>): List<Track> =
     entry.trackDecisions.filter { it.kept }.mapNotNull { tracksById[it.trackId] }
+
+/** STUB (tests first): the entries whose thumbnail needs a saved path. */
+internal fun entriesNeedingSavedPaths(entries: List<CartographyEntry>, tracksById: Map<String, Track>): List<String> = emptyList()
+
+/** STUB (tests first): [entryThumbnailTracks] with the saved paths of tracks that are gone. */
+internal fun entryThumbnailTracksOrSaved(entry: CartographyEntry, tracksById: Map<String, Track>, savedPaths: Map<String, List<LatLng>>): List<Track> =
+    entryThumbnailTracks(entry, tracksById)
 
 /** A card's track thumbnail: [TracksThumbnail] in a small square at the card's end, every kept track found drawn in it. */
 @Composable
