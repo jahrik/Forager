@@ -907,3 +907,24 @@ The planner's placement: after the trips fix (`-97`) and the map-chrome follow-u
 **Photo export: imports leave unchanged (owner, 2026-09-29, via the -126 coder).** Ruling 2 above ("Exported photos carry no location") now covers **photos taken in the app only**. The owner, verbatim, as quoted in `docs/audits/2026-09-29-photo-export-completion-report.md:19`: "Imported photos taken outside the app are not within our scope. They can use a scrubbing app to remove it if they want it removed. All photos taken inside the app are scrubbed either way and that's our scope". It was confirmed with "Export imports unchanged (Recommended)". So every photo is exported as a byte copy of its stored file, and an imported photo may carry its own location or other metadata into the Gallery.
 
 Alternative rejected: stripping imports. The existing scrubber handles JPEG only, while imports can be HEIC, PNG or WebP. The privacy policy and beta README must say this (record 2026-09-28-131).
+
+**Journal backup and restore: third rulings (owner, 2026-09-29).** These answer the -127 coder's stop and the decisions it made itself (record 2026-09-28-132). The owner, verbatim:
+
+> 1 B
+> 2 A
+> 3 A
+> 4 A
+> 5 A
+> 6 B - instead of showing an app restarting, go into a splash page telling the user the changes are loading, then when loaded, show a Done button for them to tap to return to the app's home map.
+> 7 A inform user that a file could not be backed up and offer to try again
+> 8 weekly to start, with default off, let the user set the frequency from there
+
+The planner's reading, with the options as they were put:
+1. **Restored offline regions are listed in Offline maps as "not downloaded",** each with a re-download from its stored centre, radius and zoom. This needs new copy, to be approved first.
+2. **Merge gives each incoming region a new id** and rewrites the entries' references to it.
+3. **A backup with missing photo files reports that it is partial,** not "Backup saved." This needs copy.
+4. **Planned trips are included** in backup and restore.
+5. **Restore is blocked while a track is recording,** with a short message. This needs copy.
+6. **After a restore, every screen shows fresh data.** Not by a visible app restart: a loading page says the changes are loading, then a Done button returns to the Maps home. This needs copy.
+7. **A backup that fails partway deletes only the file it created.** The user is told the backup could not be completed and is offered a retry. This needs copy. How a scheduled run, which has no screen open, tells the user is not yet ruled.
+8. **The default frequency is Weekly.** The schedule stays off until the user turns it on and can then set the frequency.

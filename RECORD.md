@@ -5012,3 +5012,25 @@ It also flagged the snackbar lying over the floating nav.
   - partial files are left after a failed write.
 - Not closed. The terminal waits on the owner's rulings and the planner's own suite.
 - Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-133
+**Timestamp:** 2026-09-29T04:32:21Z
+**Continues:** 2026-09-28-127
+**Dispatch-file:** none yet. It follows once the owner has approved the copy.
+**Reason:** the owner ruled on -127's stop and its decisions (-132). The rulings are recorded verbatim in the plan, under "Journal backup and restore: third rulings".
+**Changes:**
+- Restored regions are listed as "not downloaded", with a re-download.
+- Merge re-ids incoming regions.
+- A partial backup is reported as partial.
+- Planned trips are included in backup and restore.
+- Restore is blocked while a track records.
+- After a restore, a loading page with a Done button returns to Maps.
+- A backup that fails partway deletes its own file and offers a retry.
+- Weekly is the default frequency, and the schedule stays off by default.
+**Notes:**
+- Copy for five new messages goes to the owner first.
+- The owner also asked for a report of every privacy and data-sharing change, for the site.
+- Written by the planner by hand.
