@@ -196,7 +196,19 @@ class ScheduledBackupTest {
         return WorkManager.getInstance(context)
     }
 
-    private fun infos(wm: WorkManager) = wm.getWorkInfosForUniqueWork(WorkManagerBackupScheduler.UNIQUE_WORK_NAME).get()
+    /**
+     * The job's state once it has settled. Test-mode WorkManager runs a periodic job's first run at once, on a real thread,
+     * and the worker now also reports its outcome, so the first read could catch it mid-run (RUNNING). What is asserted is
+     * unchanged: this waits (up to 10 s) for the run to end, it does not accept RUNNING.
+     */
+    private fun infos(wm: WorkManager): List<WorkInfo> {
+        val deadline = System.currentTimeMillis() + 10_000
+        while (true) {
+            val read = wm.getWorkInfosForUniqueWork(WorkManagerBackupScheduler.UNIQUE_WORK_NAME).get()
+            if (read.none { it.state == WorkInfo.State.RUNNING } || System.currentTimeMillis() > deadline) return read
+            Thread.sleep(50)
+        }
+    }
 
     @Test
     fun `enabling schedules one periodic job at the chosen frequency, and nothing is scheduled while it is off`() {
