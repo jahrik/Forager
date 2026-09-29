@@ -5347,3 +5347,30 @@ It also flagged the snackbar lying over the floating nav.
 - At 6b7e5041, which contains dd056c6a, on an idle machine (3240 MB available, no other Java Gradle process), from a cleared results directory: 341 files, none stale, 0 compile errors, 2749 / 0 / 0 / 24, in 265 s. That matches the coder's count.
 - -127 stays open for item 8 and the owner's answers to the two data-safety flags (-150).
 - Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-152
+**Timestamp:** 2026-09-29T06:23:21Z
+**Title:** J6, the wide tree for tablets. J6a: the Journal to list-detail, with phone parity. J6b: the tablet map (narrow-map tabs, a map before search, controls parity)
+**Dispatch-file:** preserved/2026-09-29-18.md (dispatch); preserved/2026-09-29-19.md (launch prompt; ~/Zynergy/launch-prompts/12-j6-tablet.md)
+**Change:** per the owner's J6 design rulings (plan, "J6 design rulings (owner, 2026-09-29)"), built in two parts in one window.
+**Scope boundary:** the wide tree (AvailabilityScreen's wide branch, AvailabilityWideLayoutUi, LogPanel and the shared Journal pieces as far as the wide tree needs them), and tests.
+- The compact tree's behaviour is unchanged, and guarded by its existing tests.
+- Not touched: the record, the index, CLAUDE.md, plans or prompts.
+**Baseline:** journal-redesign at the base named at launch, verified by the coder.
+**Prediction (outcome, planner):**
+1. J6a is the larger part.
+2. J6b's controls are shared composables, reused rather than copied. Where a compact control depends on the compact scaffold, that is a stop.
+3. The suite grows by 40 to 90.
+**Prediction (mechanism, coder):** not authored.
+**Finish line:**
+- J6a pushed with tests first, revert checks and the full suite, and a report section.
+- Then the same for J6b.
+- A device-only list for the owner's tablet.
+- The planner re-runs the suite and writes the terminal. No merge.
+**Notes:**
+- Launches side by side with stage device check Part 2 (owner, -149), once the backup follow-up is settled.
+- The owner's backup questions (-150) are still open.
+- Written by the planner by hand.

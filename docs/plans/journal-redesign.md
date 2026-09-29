@@ -970,3 +970,52 @@ The owner, verbatim: "1 A / 2 A / Wait until the last coder is done building to 
 The planner's reading:
 - **Part 2 runs the full backup-and-restore round trip on the S22,** behind a verified full copy of the phone's data: a backup, a Replace restore and a Merge restore, each confirmed against that copy.
 - **Part 2 and J6 launch together, side by side,** once the backup coder (-137) has finished building. Both prompts are prepared now.
+
+### J6 design rulings (owner, 2026-09-29)
+
+Asked after the J6 refresh pulse (`docs/audits/2026-09-29-j6-premise-refresh-pulse.md`, read at `db756faa`), the owner answered, verbatim:
+
+> 1 to 5 I'll take your recommendations
+>
+> For smaller calls...
+>
+> 1 to 6 I'll take your recommendations
+>
+> 7 if there's room to not need it scroll then it should be used. Tablets allow the space. If not, then have it scroll.
+>
+> 8 yes
+>
+> 9 there's no reason not to have them. If the phone has them, add them in. The worst that happens is they don't get used. Now is the time to get it going for tablets.
+>
+> 10 give the photo album a long press delete option for photos in tablet mode
+
+What that rules, from the options as they were put:
+1. **An opened entry or find takes the whole right side, search bar included.** That is about 465 dp in portrait and 958 dp in landscape.
+2. **List and Maps become real tabs whenever the combined pane would leave the map narrower than 480 dp** (the planner's suggested minimum, taken with the recommendation). Otherwise they stay side by side. The J8 chip row clears the Layers button either way.
+3. **With the Journal open and nothing selected,** the right side is unchanged: the list and the map, under ruling 2.
+4. **Columns:** Entries 1, Finds 2, Album 3, as on the phone.
+5. **One Back order whatever the route:**
+   1. picker;
+   2. editor, with its save prompts;
+   3. report;
+   4. close the detail;
+   5. Records to Entries;
+   6. Journal to Search;
+   7. exit.
+
+   Open items and views survive switching panels, because the existing Journal state holders are passed to the wide tree.
+6. **Smaller calls 1-6:**
+   1. The record details open in the right side, not as a sheet.
+   2. The photo viewer stays full screen.
+   3. The map pickers open in the right side.
+   4. The drafts list is in the left column.
+   5. Tablet finds get the report view and the "+" tile, and the All logbook lists finds.
+   6. The tablet draws its map before any search, so planned trips show.
+7. **The Records chip row:** no scrolling when the chips fit the column; they scroll only when they do not.
+8. **Headers match the phone:** Entries / Records.
+9. **Map chrome parity:** the tablet map gets the phone map's controls (locate, compass, record, and the rest the phone has). This reverses the planner's recommendation to leave them out.
+10. **The album gets a long-press delete for photos on the tablet,** as on the phone. The old Photo Gallery panel is removed (ruling 2 of 2026-09-28).
+
+**The planner's split, stated to the owner.** J6 is built as two parts, in one coder window, pushed and reported in order:
+- **J6a, the Journal:** rulings 1 and 3-8, 10, and J1-J10 parity.
+- **J6b, the tablet map:** rulings 2, 6.6 and 9, and the chip row's clearance.
