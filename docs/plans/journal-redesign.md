@@ -1078,3 +1078,16 @@ So:
 - The bar is five 48 dp rows with no spacing or end padding: 240 dp.
 - An 8 dp gap, then the horizontal pill (48 dp thick): **296 dp in all.**
 - Nothing is drawn around the L, and touches outside its two shapes reach the map.
+
+**The L's pill: the icons stack fully (owner, 2026-09-29).** The L coder asked how long the turned pill is:
+- 96 dp: two 48 dp buttons with no spacing, exactly half under the bar;
+- 108 dp: today's padding, putting record 4 dp off the bar's edge.
+
+The owner, verbatim: "the icons need to stack fully. Make sure that happens and have the pill extend outward like the L".
+
+So:
+- **The pill is 96 dp.**
+- **Record's 48 dp box sits exactly under the bar's 48 dp column,** so its left and right edges equal the bar's. The record icon stacks fully under the bar's icons.
+- Return extends outward, inboard of the screen, forming the L.
+
+**Disk space (owner, 2026-09-29).** The disk filled (about 114 MB free of 67 GB), stopping -160 before any test ran. The planner offered to delete about 4.5 GB of old build output in 28 finished worktrees. The owner, verbatim: "1 C". The owner clears space. The planner deletes nothing.

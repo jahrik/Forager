@@ -5577,3 +5577,22 @@ The re-check runs in Part 2 with the deferred items 38, 39, 40 and 42.
 **Notes:**
 - That bc1f21 is Session 1 is the planner's inference from its start time. The message tells it to ignore the note if it is not.
 - Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-162
+**Timestamp:** 2026-09-29T08:12:48Z
+**Continues:** 2026-09-28-160
+**Dispatch-file:** preserved/2026-09-29-28.md
+**Reason:** -160 stopped with the disk full (/ at 100%, about 114 MB free). Its tests first are committed on landscape-l-wip (1692b29c) but have never run. It asked the pill's length.
+- The owner, verbatim: "1 C", declining the planner's offer to delete old build output.
+- The owner, verbatim: "the icons need to stack fully. Make sure that happens and have the pill extend outward like the L".
+**Changes:**
+- The pill is 96 dp, with record exactly under the bar's column.
+- Every coder checks for 2 GB of free disk before a Gradle run.
+- The owner frees space; the planner and the coders delete nothing outside their own worktrees.
+**Notes:**
+- Sent to the -160 window.
+- J6 and Part 2 Session 1 were told about the disk.
+- Written by the planner by hand.
