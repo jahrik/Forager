@@ -5421,3 +5421,32 @@ It also flagged the snackbar lying over the floating nav.
 **Notes:**
 - Launches side by side with J6 (-152) after -153 hands back.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-155
+**Timestamp:** 2026-09-29T07:11:17Z
+**Dispatch:** 2026-09-28-127 (continuation -153)
+**Reason:** the -153 coder handed back, pushed to journal-redesign at 85a41257.
+- Tests first were committed failing, on journal-backup-wip at 1e8b8a0e (163 ran, 40 failed).
+- Build fa6047d8, with a test-timing fix 3883a32d.
+- 28 revert checks.
+- Its suite: 2802 / 0 / 0 / 24.
+**Changes:** all three items are built:
+- the "Backups" channel, with the permission asked when a folder is chosen and a declined permission falling back to a once-only notice at the next launch;
+- Replace re-ids regions;
+- "Replace the existing backup file?", asked when the file has contents or its size cannot be read.
+**Notes:**
+- The coder's wait loop (pid 540720) matched itself through pgrep and never ended. The planner diagnosed it at the owner's question; it has since exited.
+- Builds again ran below 2.5 GB available (1.9-2.9 GB), with idle daemons of other sessions holding memory.
+- **The coder's decisions,** reported to the owner:
+  - channel importance DEFAULT;
+  - the launch notice is text only, with no Try again;
+  - Replace keeps a cartography region ref row whose region the backup lacks. That row could meet a future MapLibre id: the same collision class as -150 (a), narrower.
+- **Flags:**
+  - a Try again after the schedule is turned off fails and posts "didn't finish";
+  - two notification kinds can show at once;
+  - providers that never report a size ask every time.
+- The terminal for -127 follows the planner's suite.
+- Written by the planner by hand.
