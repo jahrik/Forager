@@ -171,8 +171,12 @@ import com.zynergylabs.forager.app.ui.log.RECORDS_LOGBOOK_LIST_TAG
 import com.zynergylabs.forager.app.ui.log.TILE_OPTIONS_DELETE_TAG
 import com.zynergylabs.forager.app.ui.log.TILE_OPTIONS_EDIT_TAG
 import com.zynergylabs.forager.app.ui.log.albumFindBadgeTestTag
+import com.zynergylabs.forager.app.ui.log.cartographyEntryDeleteNotice
+import com.zynergylabs.forager.app.ui.log.findDeleteNotice
+import com.zynergylabs.forager.app.ui.log.galleryPhotoDeleteNotice
 import com.zynergylabs.forager.app.ui.log.albumPhotoTestTag
 import com.zynergylabs.forager.app.ui.log.entryCardTestTag
+import com.zynergylabs.forager.app.ui.log.entrySwipeTag
 import com.zynergylabs.forager.app.ui.log.entryTrackThumbnailTestTag
 
 /**
@@ -347,6 +351,11 @@ class WideJournalTest {
             onNightModeMapsChanged = availabilityViewModel::onNightModeMapsChanged,
             onThemeModeChanged = availabilityViewModel::onThemeModeChanged,
             logUiState = logUiState.hidingPendingDelete(),
+            pendingDeleteNotices = listOfNotNull(
+                findDeleteNotice(logUiState.pendingDelete, onUndo = logViewModel::undoDeleteEntry, onCommit = logViewModel::commitDeleteEntry),
+                cartographyEntryDeleteNotice(cartographyUiState.pendingDelete, onUndo = cartographyViewModel::undoDeleteEntry, onCommit = cartographyViewModel::commitDeleteEntry),
+                galleryPhotoDeleteNotice(logUiState.pendingPhotoDelete, onUndo = logViewModel::undoDeleteGalleryPhoto, onCommit = logViewModel::commitDeleteGalleryPhoto),
+            ),
             onStartLogEntry = logViewModel::onStartNewEntry,
             onOpenLogEntry = logViewModel::onOpenEntry,
             onCloseLogEntry = logViewModel::onCloseEntry,
@@ -550,12 +559,12 @@ class WideJournalTest {
         assertEquals("2. Back from the picker leaves the picker", false, textExists(PICKER_MARKER))
         composeRule.onNodeWithText("Your own identification (optional)").assertExists()
 
+        // The editor's Back is the existing "leaving without answering" (the find is left, not stepped
+        // back to its report): JournalTab.unwindFindsSection, and the same in the phone's Journal.
         pressBack()
         assertEquals("3. Back from the editor leaves the editor", false, textExists("Your own identification (optional)"))
-        assertTrue("3. the find is still open, in its report", descriptionExists("Entry options"))
-
-        pressBack()
-        assertEquals("4. Back from the report closes the detail", null, logViewModel.uiState.value.editingEntry)
+        assertEquals("3-4. the find is left, so the detail is closed", null, logViewModel.uiState.value.editingEntry)
+        assertEquals("4. no detail pane is left over", false, tagExists("journal-detail-pane"))
         assertTrue("4. the Journal is still on Records, its Finds chip selected", tagExists(RECORDS_FILTER_CHIP_ROW_TAG))
         composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.FINDS)).assertIsSelected()
 
@@ -565,6 +574,21 @@ class WideJournalTest {
 
         pressBack()
         assertTrue("6. Journal to the Search panel", searchPanelShowing())
+    }
+
+    @Test
+    fun `FAILS AT BASE Back from a find's report closes the detail and keeps Records on Finds`() {
+        setScreen()
+        openRecords(RecordsSubTab.FINDS)
+        composeRule.onNodeWithText(FIND_TILE_TEXT).performClick()
+        composeRule.waitForIdle()
+        assertTrue("the find is open in its report", descriptionExists("Entry options"))
+
+        pressBack()
+
+        assertEquals("the detail is closed", null, logViewModel.uiState.value.editingEntry)
+        assertSearchBarShowing(true, "after closing the find")
+        composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.FINDS)).assertIsSelected()
     }
 
     @Test
@@ -621,8 +645,9 @@ class WideJournalTest {
         assertTrue("the find's detail is in the detail pane", tagExists("journal-detail-pane"))
         assertRightSide("the find's detail", boundsOf("journal-detail-pane").left)
         assertSearchBarShowing(false, "while the find is open")
-        assertTrue("the Finds gallery stays in the left column", textExists(FIND_TILE_TEXT))
-        assertLeftColumn("the Finds gallery's tile", boundsOfText(FIND_TILE_TEXT).right)
+        // The report may repeat the tile's text (a title), so the tile is the node inside the left column.
+        val inLeftColumn = composeRule.onAllNodesWithText(FIND_TILE_TEXT).fetchSemanticsNodes().filter { it.boundsInRoot.right <= DRAWER_EDGE.value + 1f }
+        assertTrue("the Finds gallery's tile stays in the left column", inLeftColumn.isNotEmpty())
     }
 
     @Test
@@ -665,9 +690,9 @@ class WideJournalTest {
     fun `FAILS AT BASE Finds draws two columns`() {
         setScreen()
         openRecords(RecordsSubTab.FINDS)
-        val tile = boundsOfText(FIND_TILE_TEXT)
-        val second = boundsOfText(SECOND_FIND_TILE_TEXT)
-        assertTrue("side by side (tops ${tile.top} and ${second.top})", tile.top == second.top)
+        // The plus tile takes the first cell, so two finds are not promised the same row; the width is what
+        // says how many columns there are.
+        val tile = boundsOfText(SECOND_FIND_TILE_TEXT)
         assertTrue("two columns in 328 dp: a tile is ${tile.width} wide, not about a third of the row", tile.width in 135.dp..175.dp)
     }
 
@@ -735,15 +760,22 @@ class WideJournalTest {
     fun `FAILS AT BASE an Entries card draws its kept track's thumbnail`() {
         setScreen()
         openJournal()
-        assertTrue("the thumbnail (tracks reach the wide Entries)", tagExists(entryTrackThumbnailTestTag(COMMITTED_DAY_ENTRY.id)))
+        // The thumbnail's tag is inside the card's merged node, so it is read from the unmerged tree, as
+        // JournalEntryCardsTest's inCard() does.
+        assertEquals(
+            "the card draws its kept track's thumbnail (tracks reach the wide Entries)",
+            1,
+            composeRule.onAllNodes(hasTestTag(entryTrackThumbnailTestTag(COMMITTED_DAY_ENTRY.id)), useUnmergedTree = true).fetchSemanticsNodes().size,
+        )
     }
 
     @Test
     fun `FAILS AT BASE an Entries card offers Delete, and its pending delete says Undo`() {
         setScreen()
         openJournal()
-        val node = composeRule.onNodeWithTag(entryCardTestTag(COMMITTED_DAY_ENTRY.id)).fetchSemanticsNode()
-        assertTrue("the card carries a Delete action", node.config.getOrNull(SemanticsActions.CustomActions)?.any { it.label == "Delete" } == true)
+        assertTrue("the card has a swipe row (onRequestDeleteEntry reaches the wide Entries)", tagExists(entrySwipeTag(COMMITTED_DAY_ENTRY.id)))
+        val node = composeRule.onNodeWithTag(entrySwipeTag(COMMITTED_DAY_ENTRY.id)).fetchSemanticsNode()
+        assertTrue("the swipe row carries a Delete action", node.config.getOrNull(SemanticsActions.CustomActions)?.any { it.label == "Delete" } == true)
     }
 
     @Test
@@ -828,6 +860,9 @@ class WideJournalTest {
 
         restorationTester.emulateSavedInstanceStateRestore()
         composeRule.waitForIdle()
+        // The drawer's panel is plain `remember` for every panel (Settings too), so a recreation lands on
+        // Search; the Journal's own holder is what this test is about, so reopen the panel.
+        openJournal()
 
         assertTrue("still on Records after the restore", tagExists(RECORDS_FILTER_CHIP_ROW_TAG))
         composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.WAYPOINTS)).assertIsSelected()
