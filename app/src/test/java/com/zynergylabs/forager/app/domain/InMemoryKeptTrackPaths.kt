@@ -20,11 +20,11 @@ internal class InMemoryKeptTrackPaths : KeptTrackPathRepository {
     /** Runs at the moment a copy is asked for, so a test can record what else was true then (for example, that the track still existed). */
     var onCopy: (String) -> Unit = {}
 
-    override suspend fun copyForTrack(trackId: String, path: List<LatLng>): Result<Int> {
+    override suspend fun copyForTrack(trackId: String, path: List<LatLng>): Result<Unit> {
         if (failCopy) return Result.failure(IllegalStateException("copy refused by test"))
         onCopy(trackId)
         copies += trackId to path
-        return Result.success(1)
+        return Result.success(Unit)
     }
 
     override suspend fun getForEntry(entryId: String): Result<Map<String, List<LatLng>>> =
