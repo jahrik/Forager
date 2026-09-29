@@ -6779,3 +6779,15 @@ The planner confirmed each by grep.
 - The site notes now say the alerts come with the navigation plan.
 - **The owner's layer-opacity statement is recorded in the plan,** not dispatched. Only colour-field layers have sliders today (MapLayersSheet.kt:385, 399-405). The overlays have switches only.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-220
+**Timestamp:** 2026-09-29T19:44:35Z
+**Dispatch:** 2026-09-28-200 (L1), the site agent's notes
+**Reason:** the owner, verbatim: "Keep the site notes as is, don't change them for the sundown alert".
+**Changes:** the planner's -219 edit to the notes' sundown line is reverted. preserved/2026-09-29-43.md and its copy are again identical to their state at f5a2e7e3.
+**Notes:**
+- The line still names "dispatch S1", which -219 withdrew. It stays as the owner ruled.
+- Written by the planner by hand.
