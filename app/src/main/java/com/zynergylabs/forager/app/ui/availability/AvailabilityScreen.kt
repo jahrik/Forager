@@ -489,6 +489,8 @@ fun AvailabilityScreen(
     backup: BackupControls = BackupControls(),
     /** Counts up when the person taps Done on the restore page: go to the Maps tab and close the drawer. */
     returnToMapRequest: Int = 0,
+    /** Counts up when a backup notification is tapped: open the Backup section in Tools, then Settings. (Tests-first stub: ignored.) */
+    openBackupRequest: Int = 0,
     /** "Download again" on a restored offline region. */
     onDownloadAgain: (Long) -> Unit = {},
     /** Settings' Light/Dark/System Default theme choice — see [AvailabilityUiState.themeMode]'s own doc comment. */

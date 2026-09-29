@@ -12,11 +12,13 @@ import com.zynergylabs.forager.app.domain.BackupScheduleSettings
 import com.zynergylabs.forager.app.domain.BackupScheduler
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.RunScheduledBackupUseCase
+import com.zynergylabs.forager.app.domain.ScheduledBackupReporter
 import java.util.concurrent.TimeUnit
 
 /** What the worker needs. */
 interface ScheduledBackupDependencies {
     val runScheduledBackup: RunScheduledBackupUseCase
+    val reporter: ScheduledBackupReporter
     val errorLog: ErrorLog
 }
 

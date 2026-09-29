@@ -9,6 +9,7 @@ import com.zynergylabs.forager.app.domain.BackupScheduler
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.JournalBackup
 import com.zynergylabs.forager.app.domain.RestoreMode
+import com.zynergylabs.forager.app.domain.ScheduledBackupNotice
 import com.zynergylabs.forager.app.domain.UnreadablePhotoPolicy
 import com.zynergylabs.forager.app.domain.UnreadablePhotosException
 import com.zynergylabs.forager.app.domain.BackupException
@@ -49,6 +50,13 @@ sealed interface BackupPrompt {
         val text: String get() = if (count == 1) "1 photo couldn't be backed up." else "$count photos couldn't be backed up."
     }
 
+    /** The file the person picked already has contents: ask before anything is written to it (owner, "3 A"). */
+    data class ReplaceExisting(val uri: String) : BackupPrompt {
+        companion object {
+            const val TEXT = "Replace the existing backup file?"
+        }
+    }
+
     /** The write into a file failed and the file this run created was removed. */
     object WriteFailed : BackupPrompt {
         const val TEXT = "Couldn't finish the backup. The incomplete file was removed."
@@ -70,6 +78,8 @@ data class BackupUiState(
     val createFileRequested: Boolean = false,
     /** Counts up each time the person taps Done; the screen goes to the Maps tab when it changes. */
     val returnToMapRequest: Int = 0,
+    /** A scheduled-backup notice that could not be shown as a notification, to be shown in the app once at launch. */
+    val launchNotice: ScheduledBackupNotice? = null,
 )
 
 /** The Backup section's state and callbacks, as [com.zynergylabs.forager.app.ui.availability.SettingsContent] takes them. */
@@ -92,6 +102,10 @@ data class BackupControls(
     val onCreateFileRequestHandled: () -> Unit = {},
     val onRestoreDoneTapped: () -> Unit = {},
     val onRestorePageLeft: () -> Unit = {},
+    val onReplaceExistingConfirmed: () -> Unit = {},
+    val onReplaceExistingCancelled: () -> Unit = {},
+    /** The screen has shown [BackupUiState.launchNotice]; it is forgotten so it shows once. */
+    val onLaunchNoticeShown: () -> Unit = {},
 )
 
 /**
@@ -154,6 +168,9 @@ class BackupViewModel(
         onCreateFileRequestHandled = ::onCreateFileRequestHandled,
         onRestoreDoneTapped = ::onRestoreDoneTapped,
         onRestorePageLeft = ::onRestorePageLeft,
+        onReplaceExistingConfirmed = ::onReplaceExistingConfirmed,
+        onReplaceExistingCancelled = ::onReplaceExistingCancelled,
+        onLaunchNoticeShown = ::onLaunchNoticeShown,
     )
 
     fun onBackUpNow(uri: String) = runBackUp(uri, UnreadablePhotoPolicy.ASK)
@@ -207,6 +224,13 @@ class BackupViewModel(
         }
         if (!removed) errorLog.w(TAG, "could not delete the incomplete backup file $uri", BackupException("delete reported false for $uri"))
     }
+
+    /** (Tests-first stub.) */
+    fun onReplaceExistingConfirmed() = Unit
+
+    fun onReplaceExistingCancelled() = Unit
+
+    fun onLaunchNoticeShown() = Unit
 
     fun onPhotosTryAgain() {
         val prompt = _uiState.value.prompt as? BackupPrompt.UnreadablePhotos ?: return

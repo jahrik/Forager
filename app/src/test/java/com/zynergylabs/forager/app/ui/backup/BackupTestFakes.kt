@@ -59,6 +59,15 @@ internal class FakeJournalBackup : JournalBackup {
 
 internal class FakeSchedulePreferences(var stored: BackupScheduleSettings = BackupScheduleSettings()) : BackupSchedulePreferences {
     var failGet = false
+    var pending: com.zynergylabs.forager.app.domain.ScheduledBackupNotice? = null
+
+    override suspend fun pendingNotice(): Result<com.zynergylabs.forager.app.domain.ScheduledBackupNotice?> = Result.success(pending)
+
+    override suspend fun setPendingNotice(notice: com.zynergylabs.forager.app.domain.ScheduledBackupNotice?): Result<Unit> {
+        pending = notice
+        return Result.success(Unit)
+    }
+
     override suspend fun get(): Result<BackupScheduleSettings> =
         if (failGet) Result.failure(IllegalStateException("fake: unreadable")) else Result.success(stored)
 
@@ -89,6 +98,14 @@ internal class FakeBackupFiles : BackupFiles {
     var failFolder = false
     var failDelete = false
 
+    /** What [sizeOf] answers by URI; a URI not listed is a new, empty file (0). */
+    val sizes = mutableMapOf<String, Long>()
+
+    /** URIs whose provider does not say how big the file is. */
+    val sizeUnreadable = mutableSetOf<String>()
+
+    override fun sizeOf(uri: String): Long? = if (uri in sizeUnreadable) null else sizes[uri] ?: 0L
+
     override fun openForWrite(uri: String): OutputStream {
         if (failOpen) throw java.io.IOException("fake: cannot open $uri")
         return ByteArrayOutputStream().also { written[uri] = it }
@@ -115,5 +132,15 @@ internal class FakeBackupFiles : BackupFiles {
 
     override fun keepAccessToFolder(folderUri: String) {
         keptFolders += folderUri
+    }
+}
+
+/** A [com.zynergylabs.forager.app.domain.BackupNotifier] that records what it was asked to show, and can say it could not show it. */
+internal class FakeBackupNotifier(var shows: Boolean = true) : com.zynergylabs.forager.app.domain.BackupNotifier {
+    val notices = mutableListOf<com.zynergylabs.forager.app.domain.ScheduledBackupNotice>()
+
+    override fun notify(notice: com.zynergylabs.forager.app.domain.ScheduledBackupNotice): Boolean {
+        notices += notice
+        return shows
     }
 }
