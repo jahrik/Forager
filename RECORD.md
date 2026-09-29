@@ -6169,3 +6169,17 @@ Nothing of either window was pushed. On the phone, the two did only force-stop a
   - other open editors (track, waypoint, trip, region detail) are not closed by a restore.
 - The D58 check ran after the first push, with 0 hits then and after.
 - Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-188
+**Timestamp:** 2026-09-29T12:09:51Z
+**Closes:** 2026-09-28-182 (F2, the backup follow-ups)
+**Outcome:** completed
+**Observed:**
+- **Record:** the "Follow-ups (-182)" section of docs/audits/2026-09-29-journal-backup-completion-report.md. It landed at 29d65a26.
+- **All seven items are built** (-187).
+- **The planner's suite** at b09892a4, idle, from a cleared results directory with the hang timeout: 356 files, none stale, 0 compile errors, 2949 / 0 / 0 / 24, in 320 s. That matches the coder's count.
+- **Device-only:** the report's six items, plus -187's two flags (Replace and the phone's own regions' tiles; editors a restore does not close). All go to the next S22 session.
+**Notes:** Written by the planner by hand.
