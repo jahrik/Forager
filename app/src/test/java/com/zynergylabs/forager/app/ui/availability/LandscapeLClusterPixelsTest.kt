@@ -106,8 +106,8 @@ class LandscapeLClusterPixelsTest {
         assertSameColour("the gap above the pill's extension shows the map", reference, at(extensionX, gapY))
 
         // One layer at 0.8: a point on the bar clear of its icon (icons span the middle 24 of 48), and the same on the pill.
-        val barEdgeX = if (clusterOnLeft) bar.left + 5.dp else bar.right - 5.dp
-        assertSameColour("the bar reads as one layer at 0.8 over the map", composite(reference), at(barEdgeX, midY))
+        // Off the minimise handle, which straddles the bar's outer edge at its mid-height: the top row's centre height, 6 dp in.
+        assertSameColour("the bar reads as one layer at 0.8 over the map", composite(reference), at(bar.left + 6.dp, bar.top + 24.dp))
         val pillEdgeX = if (clusterOnLeft) pill.left + 5.dp else pill.right - 5.dp
         assertSameColour("the pill reads as one layer at 0.8 over the map", composite(reference), at(pillEdgeX, (pill.top + pill.bottom) / 2))
         // And the inboard end of the pill, past where the bar is: the extension is also one layer, not a layer over a container fill.
