@@ -25,7 +25,7 @@ class DeleteTrackUseCaseTest {
         val tracks = InMemoryTracks(track)
         val waypoints = InMemoryWaypoints(linked, unrelated)
 
-        DeleteTrackUseCase(tracks, waypoints)("t1").getOrThrow()
+        DeleteTrackUseCase(tracks, waypoints, InMemoryKeptTrackPaths())("t1").getOrThrow()
 
         assertNull(tracks.tracks["t1"])
         assertEquals(linked.copy(trackId = null), waypoints.waypoints["w1"])
@@ -37,7 +37,7 @@ class DeleteTrackUseCaseTest {
         val tracks = InMemoryTracks(track)
         val waypoints = InMemoryWaypoints(linked).apply { failDetach = true }
 
-        val result = DeleteTrackUseCase(tracks, waypoints)("t1")
+        val result = DeleteTrackUseCase(tracks, waypoints, InMemoryKeptTrackPaths())("t1")
 
         assertTrue(result.isFailure)
         assertTrue(tracks.deletedIds.isEmpty())
@@ -49,7 +49,7 @@ class DeleteTrackUseCaseTest {
         val tracks = InMemoryTracks(track).apply { failDelete = true }
         val waypoints = InMemoryWaypoints(linked)
 
-        val result = DeleteTrackUseCase(tracks, waypoints)("t1")
+        val result = DeleteTrackUseCase(tracks, waypoints, InMemoryKeptTrackPaths())("t1")
 
         assertTrue(result.isFailure)
         assertEquals(listOf("t1"), waypoints.detachedTrackIds)

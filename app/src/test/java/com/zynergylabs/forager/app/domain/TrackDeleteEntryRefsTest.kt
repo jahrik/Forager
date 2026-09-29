@@ -5,6 +5,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.data.local.ForagerDatabase
 import com.zynergylabs.forager.app.data.repository.RoomCartographyEntryRepository
+import com.zynergylabs.forager.app.data.repository.RoomKeptTrackPathRepository
 import com.zynergylabs.forager.app.data.repository.RoomMushroomLogRepository
 import com.zynergylabs.forager.app.data.repository.RoomTrackRepository
 import com.zynergylabs.forager.app.data.repository.RoomWaypointRepository
@@ -72,7 +73,7 @@ class TrackDeleteEntryRefsTest {
         trackRepository = RoomTrackRepository(database.trackDao())
         waypointRepository = RoomWaypointRepository(database.waypointDao())
         entryRepository = RoomCartographyEntryRepository(database.cartographyEntryDao())
-        mapData = GetCartographyEntryMapDataUseCase(trackRepository, RoomMushroomLogRepository(database.mushroomLogDao()))
+        mapData = GetCartographyEntryMapDataUseCase(trackRepository, RoomMushroomLogRepository(database.mushroomLogDao()), RoomKeptTrackPathRepository(database.cartographyEntryDao()))
         trackRepository.create(track).getOrThrow()
         trackRepository.appendPoints(track.id, track.points).getOrThrow()
         waypointRepository.save(waypoint).getOrThrow()
@@ -96,7 +97,7 @@ class TrackDeleteEntryRefsTest {
 
     @Test
     fun `after the track is deleted the entry still keeps it as its snapshot, and draws no line`() = runTest {
-        DeleteTrackUseCase(trackRepository, waypointRepository)("track-1").getOrThrow()
+        DeleteTrackUseCase(trackRepository, waypointRepository, RoomKeptTrackPathRepository(database.cartographyEntryDao()))("track-1").getOrThrow()
 
         val loaded = entryRepository.getById("entry-1").getOrThrow()!!
 
@@ -117,7 +118,7 @@ class TrackDeleteEntryRefsTest {
 
     @Test
     fun `deleting the track leaves the entry's waypoint decision alone too`() = runTest {
-        DeleteTrackUseCase(trackRepository, waypointRepository)("track-1").getOrThrow()
+        DeleteTrackUseCase(trackRepository, waypointRepository, RoomKeptTrackPathRepository(database.cartographyEntryDao()))("track-1").getOrThrow()
 
         val loaded = entryRepository.getById("entry-1").getOrThrow()!!
 

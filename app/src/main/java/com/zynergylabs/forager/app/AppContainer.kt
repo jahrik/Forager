@@ -37,6 +37,7 @@ import com.zynergylabs.forager.app.data.repository.LocalFungiIndexRepository
 import com.zynergylabs.forager.app.data.repository.OpenMeteoHistoricalWeatherProvider
 import com.zynergylabs.forager.app.data.repository.OpenMeteoWeatherProvider
 import com.zynergylabs.forager.app.data.repository.RoomCartographyEntryRepository
+import com.zynergylabs.forager.app.data.repository.RoomKeptTrackPathRepository
 import com.zynergylabs.forager.app.data.repository.RoomMushroomLogRepository
 import com.zynergylabs.forager.app.data.repository.RoomOfflineRegionDayIndex
 import com.zynergylabs.forager.app.data.repository.RoomPlannedTripRepository
@@ -77,6 +78,7 @@ import com.zynergylabs.forager.app.domain.GetAvailabilityUseCase
 import com.zynergylabs.forager.app.domain.GetCartographyDraftEntriesUseCase
 import com.zynergylabs.forager.app.domain.GetCartographyEntriesUseCase
 import com.zynergylabs.forager.app.domain.GetCartographyEntryMapDataUseCase
+import com.zynergylabs.forager.app.domain.KeptTrackPathRepository
 import com.zynergylabs.forager.app.domain.GetCartographyEntryOfflineRegionUseCase
 import com.zynergylabs.forager.app.domain.GetCartographyEntryUseCase
 import com.zynergylabs.forager.app.domain.GetConditionsUseCase
@@ -326,7 +328,8 @@ class AppContainer(context: Context) {
     val deleteWaypointUseCase = DeleteWaypointUseCase(waypointRepository)
     // After waypointRepository (Kotlin initialises properties in source order): deleting a track
     // now detaches its waypoints first — HUD-foundations dispatch, Item 3, see DeleteTrackUseCase.
-    val deleteTrackUseCase = DeleteTrackUseCase(trackRepository, waypointRepository)
+    val keptTrackPathRepository: KeptTrackPathRepository = RoomKeptTrackPathRepository(database.cartographyEntryDao())
+    val deleteTrackUseCase = DeleteTrackUseCase(trackRepository, waypointRepository, keptTrackPathRepository)
     // The origin-waypoint read path for Track.originWaypointId — no consumer until the navigation
     // HUD dispatch, by design; see GetTrackOriginWaypointUseCase's own doc comment.
     val getTrackOriginWaypointUseCase = GetTrackOriginWaypointUseCase(trackRepository, waypointRepository)
@@ -334,7 +337,7 @@ class AppContainer(context: Context) {
     // Journal Stage 2d: CartographyEntryReportScreen's own map, resolving kept references
     // (tracks/finds live-fetched, waypoints/photos/offline-regions already in the entry's own
     // snapshot) — see GetCartographyEntryMapDataUseCase's own doc comment.
-    val getCartographyEntryMapDataUseCase = GetCartographyEntryMapDataUseCase(trackRepository, mushroomLogRepository)
+    val getCartographyEntryMapDataUseCase = GetCartographyEntryMapDataUseCase(trackRepository, mushroomLogRepository, keptTrackPathRepository)
 
     // Journal Stage 2e-i: the same screen's manual offline-map toggle — see
     // GetCartographyEntryOfflineRegionUseCase's own doc comment.

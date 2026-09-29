@@ -19,6 +19,7 @@ package com.zynergylabs.forager.app.domain
 class DeleteTrackUseCase(
     private val repository: TrackRepository,
     private val waypointRepository: WaypointRepository,
+    @Suppress("unused") private val keptTrackPaths: KeptTrackPathRepository,
 ) {
     suspend operator fun invoke(id: String): Result<Unit> =
         waypointRepository.detachFromTrack(id).mapCatching { repository.delete(id).getOrThrow() }
