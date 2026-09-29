@@ -4966,3 +4966,238 @@ It also flagged the snackbar lying over the floating nav.
 **Reason:** -129 was sent to window 1c29a2. The owner had meanwhile pasted -127 (backup) into that window, and it proposed doing both in turn. The owner, verbatim: "option B if the coder is busy".
 **Changes:** That window was told to drop -129 and stay on -127. -129 goes to a fresh owner-opened window from launch prompt preserved/2026-09-29-13.md, in forager-wt/chrome-follow-ups.
 **Notes:** The planner's earlier "A" option (sending to 1c29a2) rested on a wrong picture of which window held what. Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-131
+**Timestamp:** 2026-09-29T04:13:16Z
+**Dispatch:** 2026-09-28-126
+**Reason:** the -126 coder handed back. "Save to Gallery" is built and pushed to journal-redesign; the last push is 3e958fd8, and the build commit is edb74209, merged in 6dce0bca. Its suite on the merged tree: 2589 / 0 / 0 / 24. The coder stopped on one gap, the dispatch's strip step for imports. scrubPhotoMetadata only rewrites JPEGs, while imports can be HEIC, PNG or WebP. The coder put that to the owner directly.
+**Changes:**
+- The owner's ruling, given to the coder and quoted verbatim in docs/audits/2026-09-29-photo-export-completion-report.md:19: "Imported photos taken outside the app are not within our scope. They can use a scrubbing app to remove it if they want it removed. All photos taken inside the app are scrubbed either way and that's our scope". The owner confirmed it with "Export imports unchanged (Recommended)" (:21).
+- So the strip step and the test "an exported import has no GPS" are dropped. An import's exported copy is byte-for-byte the stored file. The plan's photo-export ruling 2 is narrowed accordingly (plan, same commit).
+**Notes:**
+- The planner did not hear this ruling itself. It is recorded from the coder's report, which quotes it verbatim.
+- Not closed. The terminal waits on the planner's own full suite on an idle machine.
+- The privacy policy and beta README now need a line that an import's exported copy may keep its location. That goes into the pending legal-docs draft.
+- Coder flags carried:
+  - One full-suite hang, in LeavingTheJournalFixesTest F3 (:1139). That is the same class as the planner's own contended F3 failure at 6133649, so both go into one investigation.
+  - The coder ran `./gradlew --stop`, which stops every daemon on the machine.
+  - The coder started a run while another build was running.
+  - A non-JPEG import is still stored under a .jpg name (FilePhotoStore.kt:120).
+- Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-132
+**Timestamp:** 2026-09-29T04:20:38Z
+**Dispatch:** 2026-09-28-127
+**Reason:** the -127 coder handed back journal backup and restore, pushed to journal-redesign at 0400d730 (build fbdaf0c7; tests first 68fede12 on journal-backup-wip). Report: docs/audits/2026-09-29-journal-backup-completion-report.md. Its suite on merged tree de2ae432: 2659 / 0 / 0 / 24. It carries 14 revert checks.
+**Changes:** none yet. There is one STOP (item 6, offline regions) and a list of coder decisions that need the owner's eyes.
+**Notes:**
+- **The STOP.** Restored offline_regions rows are invisible after a restore, because the -106 rule keeps a Room row with no MapLibre region but does not show it.
+- **A new finding.** offline_regions.id is MapLibre's per-phone id, so Merge can mistake an unrelated region for a duplicate and point the entry refs at the wrong one.
+- **Found outside the dispatch.**
+  - Screens do not observe the database, so a restore leaves them stale. The coder added a post-restore reload of five loaders. Not covered: the offline-region list and the Maps tab's records.
+- **Legal-docs inputs:**
+  - WorkManager adds RECEIVE_BOOT_COMPLETED, WAKE_LOCK and ACCESS_NETWORK_STATE to the merged manifest.
+  - A backup file makes "Nothing is left behind" false.
+- **Coder decisions put to the owner:**
+  - planned_trips are not restored;
+  - Weekly is the default frequency;
+  - "Backup saved." is shown when photo files are missing (a partial result shown as success, against CLAUDE.md);
+  - restore is not blocked while a track records;
+  - partial files are left after a failed write.
+- Not closed. The terminal waits on the owner's rulings and the planner's own suite.
+- Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-133
+**Timestamp:** 2026-09-29T04:32:21Z
+**Continues:** 2026-09-28-127
+**Dispatch-file:** none yet. It follows once the owner has approved the copy.
+**Reason:** the owner ruled on -127's stop and its decisions (-132). The rulings are recorded verbatim in the plan, under "Journal backup and restore: third rulings".
+**Changes:**
+- Restored regions are listed as "not downloaded", with a re-download.
+- Merge re-ids incoming regions.
+- A partial backup is reported as partial.
+- Planned trips are included in backup and restore.
+- Restore is blocked while a track records.
+- After a restore, a loading page with a Done button returns to Maps.
+- A backup that fails partway deletes its own file and offers a retry.
+- Weekly is the default frequency, and the schedule stays off by default.
+**Notes:**
+- Copy for five new messages goes to the owner first.
+- The owner also asked for a report of every privacy and data-sharing change, for the site.
+- Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-134
+**Timestamp:** 2026-09-29T04:39:01Z
+**Closes:** 2026-09-28-97
+**Outcome:** completed
+**Observed:**
+- **Record:** docs/audits/2026-09-28-planned-trips-on-map-completion-report.md.
+- **The fix is present at head.** `AvailabilityCompactMapUi.kt:657` reads `plannedTrips = uiState.plannedTrips,`, with the hasSearched gate gone (b427a66).
+- **The planner's own verification,** on an idle machine at d3c16f06, from a cleared results directory with every XML file newer than the start and 0 compile errors:
+  - LeavingTheJournalFixesTest alone, three runs: 34 / 0 / 0 / 0 each time.
+  - Then the full suite: 327 files, 2659 / 0 / 0 / 24, in 193 s.
+- **The earlier red,** at 6133649: F3 "a committed find open in its editor…", `performMeasureAndLayout called during measure layout`. That run broke the one-build-at-a-time rule: the planner's wait loop fell through after 60 minutes.
+  - The wait was not caused by builds. The busy check was fooled by another session's stuck shell loop, whose text contained the pattern (pid 455216, parent 415979).
+  - The check now matches Java Gradle processes only, plus 2.5 GB available.
+- **Device-only:** trips visible before a search, on the S22 and the tablet. This goes to stage device check Part 2.
+**Notes:**
+- LeavingTheJournalFixesTest has now misbehaved in two full-suite runs: the planner's failure at 6133649 and the -126 coder's hang (F3 :1139). Both were in different tests, and neither recurred idle.
+  - It is recorded as an intermittent with an unknown cause, **not** as contention. One clean idle full run is not evidence of absence. It stays open for the investigation queue.
+- Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-135
+**Timestamp:** 2026-09-29T04:39:01Z
+**Closes:** 2026-09-28-126
+**Outcome:** completed
+**Observed:**
+- **Record:** docs/audits/2026-09-29-photo-export-completion-report.md. The build is edb74209, the last push 3e958fd8, and it is present at head (`PhotoViewerDialog.kt:524`).
+- **Tests first:** 11 of 11 failed at base for the missing control.
+- **Revert checks:** 4, each from a saved copy with an edit-specific message.
+- **The coder's suite on the merged tree:** 2589 / 0 / 0 / 24.
+- **The planner's suite at d3c16f06** (see -134): 2659 / 0 / 0 / 24, which includes this work.
+- **The owner's ruling on imports** is recorded in -131 and the plan: imports are exported unchanged, and ruling 2 is narrowed to in-app photos. The dispatch's strip step is dropped on the owner's word.
+- **Device-only, for Part 2:**
+  - the S22 Gallery's "Forager" album, with the date and location from a capture and from an import;
+  - control placement against real insets;
+  - that no permission prompt appears.
+  - The API 26-28 folder picker has no device on hand.
+**Notes:**
+- Coder process flags, noted and not repeated:
+  - it ran `./gradlew --stop`, which stops every Gradle daemon;
+  - it started one run with another build running.
+- A non-JPEG import is still stored under a .jpg name (`FilePhotoStore.kt:120`). This is parked and not dispatched.
+- The site changes are in docs/audits/2026-09-29-privacy-site-update-report.md.
+- Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-136
+**Timestamp:** 2026-09-29T04:42:38Z
+**Continues:** 2026-09-28-127
+**Dispatch-file:** none yet
+**Reason:** the owner ruled on the backup copy. The ruling is verbatim in the plan, under "Journal backup and restore: copy".
+**Changes:**
+- Items 1-3 are approved as drafted.
+- Item 4: a pulsing app icon with Done at its centre, and the icon is the Done button.
+- Item 6: A, a notification with Try again.
+- Item 5 is approved with added Continue and "continue without file(s)" options.
+**Notes:**
+- The planner's question back to the owner on item 5: those options apply when some files cannot be read, whereas a failed write of the backup file itself cannot continue. Which button set goes where is asked before the dispatch is written.
+- Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-137
+**Timestamp:** 2026-09-29T04:48:02Z
+**Continues:** 2026-09-28-127
+**Dispatch-file:** preserved/2026-09-29-14.md (continuation); preserved/2026-09-29-15.md (launch prompt, copied to ~/Zynergy/launch-prompts/10-backup-rulings.md)
+**Reason:** the owner ruled on the -136 questions. The owner, verbatim: "Item 4: B" / "Item 5: A".
+**Changes:**
+- Item 4 (B): the icon pulses while loading and stops once Done appears.
+- Item 5 (A): the two cases are split.
+  - Unreadable photos: "N photos couldn't be backed up." with Try again / Continue without file(s) / Cancel.
+  - A failed write: the existing message, with Try again / Cancel.
+- Nine build items dispatched to the -127 coder in forager-wt/journal-backup.
+**Notes:**
+- The planner's proposal for a scheduled run meeting unreadable photos (skip them, then notify "Scheduled backup saved. 2 photos couldn't be backed up.") is **not yet answered by the owner**. The dispatch makes it a stop.
+- Checked: planned_trips.id is a String (`PlannedTripEntity.kt:18`), unlike offline_regions.id (`OfflineRegionEntity.kt:30`, Long, MapLibre's).
+- Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-138
+**Timestamp:** 2026-09-29T04:48:35Z
+**Continues:** 2026-09-28-127
+**Dispatch-file:** none yet. It follows once the owner has picked the animation.
+**Reason:** the owner, verbatim: "Give item 4 a nice animation when tapping it". This refers to -137's item 6, the restore loading page's Done icon.
+**Changes:** none yet. The animation's form is unruled and has been put to the owner. The -137 coder gets it as a message, or through a continuation file if it has already handed back.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-139
+**Timestamp:** 2026-09-29T04:52:40Z
+**Continues:** 2026-09-28-127
+**Dispatch-file:** preserved/2026-09-29-14.md and 2026-09-29-15.md, both amended before launch; the launch copy in ~/Zynergy/launch-prompts/10-backup-rulings.md is updated to match
+**Reason:** the owner, verbatim: "1 A / 2 not pasted yet / 3 yes that sounds good. Tap on the notify to go to the backup page".
+**Changes:**
+- Item 6 gains the grow-and-fade tap animation into Maps. Reduced motion goes straight to Maps.
+- Item 8: a scheduled run skips unreadable photos, saves the backup, and notifies. Tapping the notification opens the Backup section.
+**Notes:**
+- Nothing had launched, so the files were amended rather than a new continuation added.
+- The body tap on the "didn't finish" notification is unruled. The dispatch says to open the app only and list it under Decisions; it has been put to the owner.
+- Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-140
+**Timestamp:** 2026-09-29T04:55:35Z
+**Continues:** 2026-09-28-127
+**Dispatch-file:** preserved/2026-09-29-14.md and 2026-09-29-15.md, amended before launch; the launch copy is updated to match
+**Reason:** the owner, verbatim: "Option A, yes same as other".
+**Changes:** tapping the "Scheduled backup didn't finish" notification opens the Backup section. Its Try again action is unchanged.
+**Notes:**
+- The dispatch has no open questions left.
+- Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-141
+**Timestamp:** 2026-09-29T05:19:22Z
+**Dispatch:** none yet
+**Reason:** the owner asked for the Layers sheet's map-type chips to be centred between the panel sides, with their height unchanged. The ruling is verbatim in the plan, under "Layers sheet: map-type chips centred".
+**Changes:** none yet. Which coder builds it is put to the owner.
+**Notes:**
+- Found while checking windows: 1c29a2, the -127 backup window, is busy, and chrome-follow-ups has pushed its tests first (ce952227). The planner infers that the owner put the -104 continuation (launch prompt 9) in 1c29a2. So launch prompt 10 (backup) belongs in a fresh window, not 1c29a2, as the planner had suggested. This is unverified: the planner cannot see which prompt a window holds.
+- Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-142
+**Timestamp:** 2026-09-29T05:20:01Z
+**Continues:** 2026-09-28-104
+**Dispatch-file:** preserved/2026-09-29-16.md
+**Reason:** the owner, verbatim: "A". The -141 chip centring goes to the -104 continuation coder, after its current three items.
+**Changes:** item 9 is added: the Layers sheet's map-type chip row is centred between the panel sides, at the same height. The coder receives it by SendMessage to session 1c29a2, which the planner believes holds -104.
+**Notes:**
+- The message asks the coder to say so if it is not on -104.
+- Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-143
+**Timestamp:** 2026-09-29T05:20:48Z
+**Continues:** 2026-09-28-104
+**Dispatch-file:** preserved/2026-09-29-17.md (relaunch prompt; copied to ~/Zynergy/launch-prompts/11-chrome-follow-ups-3.md)
+**Reason:** the planner's -142 message went to 1c29a2, which replied that it is the -127 backup coder on -137, not -104. So the planner's -141 inference was wrong.
+- No live session is on -104. chrome-follow-ups' last push was ce952227, about two hours ago, with a clean tree and no test results since 19:57.
+- ListAgents shows no chrome-follow-ups session.
+**Changes:**
+- The relaunch prompt resumes from ce952227 and adds item 9 (preserved/2026-09-29-16.md).
+- The owner is asked to paste it into a fresh window.
+**Notes:**
+- 1c29a2 did nothing on item 9, and said so.
+- Written by the planner by hand.

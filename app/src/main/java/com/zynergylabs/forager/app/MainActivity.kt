@@ -32,6 +32,7 @@ import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
 import com.zynergylabs.forager.app.service.TrackRecordingService
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreen
 import com.zynergylabs.forager.app.ui.availability.AvailabilityViewModel
+import com.zynergylabs.forager.app.ui.backup.BackupViewModel
 import com.zynergylabs.forager.app.ui.log.CartographyViewModel
 import com.zynergylabs.forager.app.ui.log.CameraAbsenceWatcher
 import com.zynergylabs.forager.app.ui.log.CameraGridModeViewModel
@@ -148,6 +149,33 @@ class MainActivity : ComponentActivity() {
                     container.getTripReportOfflineRegionsUseCase,
                     container.computeTrackStatisticsUseCase,
                     container.setCartographyEntryShownOnMapUseCase,
+                )
+            }
+        }
+    }
+
+    /**
+     * Settings' Backup section (journal backup and restore, dispatch 2026-09-28-127). After a restore that worked,
+     * the screens that read the journal once and hold it are told to read again: there is no Flow anywhere in
+     * `data/local`, so nothing else would refresh them. The offline-region list is not reloaded here (its
+     * loader is private to [AvailabilityViewModel]), and restored regions are not shown anyway; see the report.
+     */
+    private val backupViewModel: BackupViewModel by viewModels {
+        viewModelFactory {
+            initializer {
+                BackupViewModel(
+                    backup = container.journalBackup,
+                    preferences = container.backupSchedulePreferences,
+                    scheduler = container.backupScheduler,
+                    files = container.backupFiles,
+                    errorLog = androidErrorLog,
+                    afterRestore = {
+                        cartographyViewModel.loadEntries()
+                        mushroomLogViewModel.loadEntries()
+                        mushroomLogViewModel.loadGalleryPhotos()
+                        trackRecordingViewModel.loadTracks()
+                        trackRecordingViewModel.loadWaypoints()
+                    },
                 )
             }
         }
@@ -305,6 +333,7 @@ class MainActivity : ComponentActivity() {
             // AvailabilityUiState.themeMode (Settings' Light/Dark/System Default choice), so
             // ForagerTheme needs the resolved boolean below rather than the other way around.
             val uiState by viewModel.uiState.collectAsState()
+            val backupUiState by backupViewModel.uiState.collectAsState()
             // AppThemeMode.SYSTEM_DEFAULT is the one choice this app doesn't store as an explicit
             // light/dark value — it means "follow the device" — and isSystemInDarkTheme() is a
             // @Composable-only signal (backed by LocalConfiguration), so this resolution has to
@@ -450,6 +479,7 @@ class MainActivity : ComponentActivity() {
                     onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
                     onAutoSaveLocationToPhotosChanged = viewModel::onAutoSaveLocationToPhotosChanged,
                     onLockCameraToPortraitChanged = viewModel::onLockCameraToPortraitChanged,
+                    backup = backupViewModel.controls(backupUiState),
                     onThemeModeChanged = viewModel::onThemeModeChanged,
                     onMapFullscreenChanged = viewModel::onMapFullscreenChanged,
                     onMapShown = viewModel::onMapShown,

@@ -903,3 +903,60 @@ The planner's placement: after the trips fix (`-97`) and the map-chrome follow-u
 - **Restore prompt:** the title "Restore this backup?", the owner's body, the buttons Replace, Merge and Cancel; afterwards "Restore complete." or "Couldn't restore that backup."
 
 **J8's chip tap area (owner, 2026-09-29).** The chip responds only on its 32 dp pill, J8's "touches only on its pill" design, inside a 48 dp layout box. The owner, verbatim: **"Option A for now. We may need to change it if it's too small"**. It stays pill-only. Device check Part 2 captures how the pill feels to tap, at its edges, for the owner to judge, and the full 48 dp is revisited if it proves too small.
+
+**Photo export: imports leave unchanged (owner, 2026-09-29, via the -126 coder).** Ruling 2 above ("Exported photos carry no location") now covers **photos taken in the app only**. The owner, verbatim, as quoted in `docs/audits/2026-09-29-photo-export-completion-report.md:19`: "Imported photos taken outside the app are not within our scope. They can use a scrubbing app to remove it if they want it removed. All photos taken inside the app are scrubbed either way and that's our scope". It was confirmed with "Export imports unchanged (Recommended)". So every photo is exported as a byte copy of its stored file, and an imported photo may carry its own location or other metadata into the Gallery.
+
+Alternative rejected: stripping imports. The existing scrubber handles JPEG only, while imports can be HEIC, PNG or WebP. The privacy policy and beta README must say this (record 2026-09-28-131).
+
+**Journal backup and restore: third rulings (owner, 2026-09-29).** These answer the -127 coder's stop and the decisions it made itself (record 2026-09-28-132). The owner, verbatim:
+
+> 1 B
+> 2 A
+> 3 A
+> 4 A
+> 5 A
+> 6 B - instead of showing an app restarting, go into a splash page telling the user the changes are loading, then when loaded, show a Done button for them to tap to return to the app's home map.
+> 7 A inform user that a file could not be backed up and offer to try again
+> 8 weekly to start, with default off, let the user set the frequency from there
+
+The planner's reading, with the options as they were put:
+1. **Restored offline regions are listed in Offline maps as "not downloaded",** each with a re-download from its stored centre, radius and zoom. This needs new copy, to be approved first.
+2. **Merge gives each incoming region a new id** and rewrites the entries' references to it.
+3. **A backup with missing photo files reports that it is partial,** not "Backup saved." This needs copy.
+4. **Planned trips are included** in backup and restore.
+5. **Restore is blocked while a track is recording,** with a short message. This needs copy.
+6. **After a restore, every screen shows fresh data.** Not by a visible app restart: a loading page says the changes are loading, then a Done button returns to the Maps home. This needs copy.
+7. **A backup that fails partway deletes only the file it created.** The user is told the backup could not be completed and is offered a retry. This needs copy. How a scheduled run, which has no screen open, tells the user is not yet ruled.
+8. **The default frequency is Weekly.** The schedule stays off until the user turns it on and can then set the frequency.
+
+**Journal backup and restore: copy (owner, 2026-09-29).** The planner's drafts were:
+1. A restored region: "Not downloaded", with **Download again**.
+2. "Backup saved, but 2 photos couldn't be found and were left out."
+3. "Stop recording before restoring a backup."
+4. "Loading your restored journal…", then "Your journal is restored." with **Done**.
+5. "Couldn't finish the backup. The incomplete file was removed." with **Try again** and **Cancel**.
+6. How a failed scheduled backup tells the user: A, a notification with **Try again**, or B, a message at the next launch.
+
+The owner, verbatim:
+
+> 1 approve
+> 2 approve
+> 3 approve
+> 4 approve have a pulsing app icon with Done in the center, be the done button to tap
+> 5 approve, add a Continue button, and a  "continue without file(s)" option in case they don't care. Else it will bar them from backup if the file isn't backing up properly
+> 6 option A
+
+Item 5's buttons, and which failure they belong to, are put back to the owner before the dispatch (record 2026-09-28-136).
+
+**Restore's Done icon: a tap animation (owner, 2026-09-29).** The owner, verbatim: "Give item 4 a nice animation when tapping it". Which animation is put to the owner as options (record 2026-09-28-138).
+
+**Done icon animation and scheduled-backup photos (owner, 2026-09-29).** The owner, verbatim: "1 A / 2 not pasted yet / 3 yes that sounds good. Tap on the notify to go to the backup page".
+- **The animation (A):** tapping the Done icon makes it grow slightly and fade out while the Maps tab fades in, in about 300 ms.
+- **A scheduled run with unreadable photos:** it skips them, saves the backup, and notifies "Scheduled backup saved. N photos couldn't be backed up." Tapping the notification opens the Backup section.
+
+**Layers sheet: map-type chips centred (owner, 2026-09-29).** The owner, verbatim, with a screenshot of the Maps tab's Layers sheet on the S26 (kept outside the repo at `~/Zynergy/device-evidence/2026-09-29-owner-layers-sheet-chips.jpg`): "One more thing: have the map street/topo/satellite chips be centered between the panel sides. The height position on the panel is fine as is."
+
+The planner's reading:
+- The Street / Topographical / Satellite row is centred horizontally between the sheet's sides.
+- Its vertical place is unchanged.
+- The code is at `MapLayersSheet.kt:263`: a `Row` with `spacedBy(Spacing.xs)` and no width, so it hugs the start.
