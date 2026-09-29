@@ -6838,3 +6838,13 @@ The planner confirmed each by grep.
   - This covers the merge the coder had not re-run.
 - **Device-only:** the report's list. Chiefly: whether the navigation bar and all chrome read as one colour over each basemap, day and night, on the S22 and the tablet; the sheets over their scrims; and the snackbar with an action.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-226
+**Timestamp:** 2026-09-29T20:07:13Z
+**Dispatch:** 2026-09-28-216 (F5)
+**Reason:** the owner, verbatim: "F5 is running".
+**Changes:** F5 runs in an owner-opened window. The planner prepares the S22 device session (Part 3) and J6's tablet check from the device-only lists, starting with a read-only inventory.
+**Notes:** Written by the planner by hand.
