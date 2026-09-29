@@ -96,8 +96,8 @@ Both builds give users the same behaviour. They cannot both be merged, because t
 The owner, verbatim, with the model identifiers replaced as in Appendix B: "Discard the redo and keep the findings in the audit file in PR 140, we are measuring [model B] vs [model A]."
 
 - **The landed F5 stays** on `journal-redesign`.
-- **The redo is discarded.** Its branch (head `426786f5`) is deleted from the remote, and its worktree is removed once found clean.
-- **Its findings stay here.** So that this file does not depend on commits that may no longer be reachable, the redo's code and its report are kept below:
+- **The redo is not used.** ~~Its branch (head `426786f5`) is deleted from the remote, and its worktree is removed once found clean.~~ **Corrected by the owner, before anything was deleted**, verbatim: "We are keeping the F5 that already landed / Keep the branch / Do not delete", then "Don't delete it. Just don't use it". The branch and its worktree stay as they are. They are not merged, not built on and not deleted.
+- **Its findings stay here.** The redo's code and its report are kept below, so this file stands on its own:
   - **Appendix A:** the redo's full diff against its base.
   - **Appendix B:** its completion report, word for word.
 - **The measurement.** The two builds are the owner's comparison of two models on one dispatch.
