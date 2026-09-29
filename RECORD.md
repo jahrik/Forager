@@ -6975,3 +6975,22 @@ The planner confirmed each by grep.
   - (c) disclose it.
 - **ForagerApplication.kt changed** beyond the scope line, as needed for "at app start".
 - Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-233
+**Timestamp:** 2026-09-29T20:25:37Z
+**Closes:** 2026-09-28-216 (F5, backups without recent searches; GPX cache cleaned)
+**Outcome:** completed
+**Observed:**
+- **Record:** docs/audits/2026-09-29-privacy-fixes-completion-report.md. It landed at 2fa093ef.
+- **Built:**
+  - cached_searches cleared in the backup's snapshot copy only;
+  - GPX exports older than an hour deleted before each export and at app start.
+- **The planner's suite** at 06b394b9, idle, from a cleared results directory with the hang timeout: 395 files, none stale, 0 compile errors, 3223 / 0 / 0 / 24, in 260 s. That matches the coder's count.
+  - 06b394b9 is also Part 3's BASE, so S22-A builds from a clean commit.
+- **Device-only:** in Part 3 S22-B (-232's amendment), including the secure_delete residue observation.
+**Notes:**
+- **The model:** the owner, verbatim: "Sonnet 5.5 finished eith F5". The coder had reported the model as unconfirmed, with its session context naming a different one.
+- Written by the planner by hand.
