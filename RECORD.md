@@ -5742,3 +5742,30 @@ Nothing of either window was pushed. On the phone, the two did only force-stop a
   Add J6a's two once-only failures, and it is five, all in Journal and compact-tree Compose tests, all intermittent. The cause is unknown. A dedicated investigation is proposed to the owner.
 - The J6a terminal waits on a clean planner run.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-169
+**Timestamp:** 2026-09-29T09:54:23Z
+**Dispatch:** 2026-09-28-154 (Part 2), Session 2
+**Reason:** Session 2 handed back. Its run record is merged at 54921c0a (device-part-2 at fd560563).
+- **Pass:**
+  - 13 and 21 at 0/90/270;
+  - 14, 15, 19-26, and 33 in 8 of 9 states, at 0;
+  - 16 at 0 and 90;
+  - 32 at 0/90/270.
+- **Partly:** 17, where the withheld-waypoint half was not run, and 52.
+- **Not runnable:** 57, since there is no hook to force a refused write.
+- **Item 20's prediction was wrong;** its pass condition was met.
+- **Not run, declared:** the 90/270 halves of 14, 15, 17, 18, 22-26 and 33.
+- **Restored from the copy:** all 21 hashes equal after a second pass, integrity ok, v16, counts equal. Settings were read back.
+**Changes:** the amendment preserved/2026-09-29-29.md gains points 8-10 for Session 3: remove before pushing, WorkManager's database, and the rotation lock.
+**Notes:**
+- **Findings for the Part 2 follow-ups:**
+  - (f) a "Welcome back" dialog appears after each activity recreation with a pending edit, which no report mentions;
+  - (g) in landscape the camera surface leaves the screen until user_rotation is reset;
+  - (h) item 52's photo-bubble cases were unreachable, because stacked glyphs send a tap to the top one only.
+- **A process finding:** pushing over a longer file does not truncate it, so the first restore pass silently left 7 files unequal. The read-back caught it.
+- Disk was at 2114 MB available.
+- Written by the planner by hand.
