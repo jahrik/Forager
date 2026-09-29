@@ -153,3 +153,108 @@ From a cleared results directory, `--continue`, run started at epoch 1790675323;
 - `/tmp` is shared: another session overwrote `/tmp/d58check.sh`, so the D58 check is inline (0 hits, diff and commit messages).
 - A crashed run's daemon held this worktree's `.gradle` lock; I did not stop it.
 - The disk and memory gates delayed runs by hours in total; several waits were on another session's long Gradle process.
+
+
+# Resumed (continuation 2026-09-28-172, the owner's four calls; -178, TR5 and the top limit; J6c merge)
+
+**Superseding note.** The header status line of this file ("STOPPED AGAIN on three conflicts ...") and the "Three conflicts" section above were the state at the first resume. All three are decided or resolved below; the record above is left as written.
+
+## 1. What governs, quoted
+`prompts/preserved/2026-09-29-30.md` at `origin/journal-redesign` (`91c7cc7e`), verbatim:
+
+> **The owner, verbatim:** "1 2 3  I'll take your recommendations". Item 1 was your four decisions (record -170), so the planner's recommendation on each is ruled. All four apply in **phone short landscape only**. Portrait and the tablet stay unchanged.
+> - **(a) The search bar.** Change the top limit so it **pushes the L down** as well as pulling it up. The L's top is never above the search bar's bottom (the strip clearance).
+>   - T9 should then pass as it is. Do not edit T9.
+>   - If the L cannot fit between the top and bottom bounds in a window, stop and report the numbers.
+> - **(b) The search notice.** In landscape, the notice's end on the L's side is inset by 8 + the L's measured width + 8, the way the legend makes room (CMU:1272-1276 at 53c79fdc). The notice and the L never overlap.
+>   - In landscape the L no longer follows the notice's floor: it stays where it is.
+>   - Portrait's notice-floor behaviour is unchanged.
+>   - Test both sides at 90 and 270 with a notice showing: the bounds are disjoint, the notice text is readable (it wraps as needed), and the L does not move.
+> - **(c) The minimise handle.** Its touch box becomes **20 x 48 dp**, centred on the locate row (row 3). It must not reach the compass or Layers rows. The mark is unchanged unless it no longer fits the box; then stop.
+>   - T7 should pass as it is. Do not edit T7.
+> - **(d) The corners.** Each button of the L, all five bar rows and both pill buttons, takes touches across its **full 48 x 48 dp square**, corners included, even where the drawn shape curves away. Nothing outside those squares takes touches.
+>   - Add real-touch tests at the probe points that fell through before: (0.03, 0.97), (0.97, 0.97), (0.1, 0.9) and (0.9, 0.9) of each end row's box, plus the pill's outer corners. Each must reach its button.
+>   - A point 2 dp outside a square must reach the map.
+> **Then:** tests first for (a)-(d), pushed failing; the build and revert checks; **the full suite at 0 failures;** push to journal-redesign; a "Resumed" section in your report.
+
+The planner's message recorded as -178, verbatim, is the authority for the one edit to an existing test:
+
+> 1. TR5: take option (1). Mark TR5 @GraphicsMode(NATIVE), as T9 and the chip tests already are.
+>    - This is not weakening. The assertion and the 40 dp drag stay exactly as written. Only the text metrics change, from Robolectric's legacy ones (the search bar at 85 dp, which no device shows) to real ones.
+>    - Conditions: (a) change nothing else in TR5; (b) show that it passes under NATIVE; (c) show that it still bites, with a revert check from a saved copy that breaks the vertical drag, failing with TR5's own message; (d) quote this message in your report as the authority for the edit.
+> 2. Top limit: "never above the search bar's bottom" is the ruling's wording, so topInset alone is right IF nothing else is drawn between the search bar's bottom and topInset + compassStripClearance in short landscape. Check that in code before you land: Is the compass strip, or anything else, composed in that band in short landscape? Cite file:line. If nothing is: keep topInset alone. If the strip IS there: the L must clear it too (topInset + clearance). Under native metrics that is 61 + 296 = 357 <= 384, so it fits on real text metrics. Any test that only fails in legacy metrics then goes NATIVE under the same conditions as TR5. Report which it was.
+
+## 2. Tests first for (a)-(d), at the tree that had the L but none of the four calls
+Committed and pushed before any code (`e75fdb98`, message not saying "not run yet"; `65f915d5` is the empty follow-up commit that says so), then run once the disk floor allowed: `LandscapeLRulingsTest` (new), my `LandscapeLClusterTest` L2 and L4 (updated: the notice-floor tests were removed as superseded by (b); the compass-row touches now take the full spread, since (c) removes the handle from that row), plus `LayoutFixesShortLandscapeTest` and `LayoutFixesChipRowLandscapeTest`. Log has no `e:` line; read from the JUnit XML, 4 files, none stale: **71 tests, 31 failed.** Every new failure is for its ruling: A1/B1 ("the L did not move when the notice appeared ... expected:<44.0> but was:<88.0>", the old notice floor), C1 ("the handle's touch box is 48 dp tall ... expected:<48.0> but was:<72.0>"), D1/D2/D3 (corner touches on the top row, bottom row and pill lost, "every corner touch on the record button's square reached it expected:<8> but was:<4>"), T7 (11) and T9 (2) as before. Two were my tests' faults and are recorded: A1 first ran under legacy text metrics where the search bar is 85 dp (T9 is NATIVE), so A1 and B1 are marked NATIVE; and D4's first case ("2 dp outside the top row's outer side") returned no map tap before the change, for a reason **I did not isolate** (it passes after the change; which element took a touch at 6 dp from the screen's left edge before is unverified).
+
+## 3. What was built for the four calls
+- **(a)** the top-limit clamp's upper bound is `Float.POSITIVE_INFINITY` in the L (was 0f), so the limit pushes the L down as well as pulling it up; the L's limit is `topInset` (the search bar's bottom).
+- **(b)** `SearchNoticeInset` and `LocalSearchNoticeInset` (in `AvailabilitySearchUi.kt`): the notice takes an absolute left or right inset; `CompactMapTab` provides 8 + the L's measured width + 8 on the L's side, and only when the L is on the notice's own side (the punch-hole side); the notice-floor step of the clamp is skipped in the L.
+- **(c)** `MapIconBarMinimizeHandle(tapHeight)`: 72 dp default (`HANDLE_DEFAULT_TAP_HEIGHT`), 48 dp in the L. The mark is 48 x 10 either way (it was the 72 dp box less 12 dp above and below) and fills the shorter box exactly; it did not have to change.
+- **(d)** `MapIconBar(fullSquareHits)` and `ControlPill`'s horizontal form draw their shape on a content-less `Surface` sized to the buttons and put the buttons above it unclipped, so the rounded ends no longer decide which corner touches a button gets. Nothing outside the squares takes touches: the shape lies inside their union.
+
+## 4. Forward runs, and what they caught
+- First forward run of the classes: **75 tests, 22 failed.** One cause for most: I had used the existing top limit, `topInset + compassStripClearance` (61 dp under NATIVE, about 121 dp under legacy metrics), which put the 296 dp L at 121 to 417 in a 384 dp map: the pill half off-screen, so TR1, TR3, TR5, L4 and D4 failed together. Changed to `topInset` alone (section 6); also fixed C1's unmerged-node lookup (`useUnmergedTree`).
+- Second run: 75 tests, **4 failed**: TR5 at both rotations (section 5) and my L2 top-row test, which read the row's bounds once while the L now moves when fullscreen hides the search bar; it re-reads bounds after each settled touch now.
+- Then, with TR5 marked NATIVE and a new A2 (below): 32 tests in the two classes, 0 failed.
+
+## 5. TR5, on the planner's authority (-178, quoted above)
+- **Before:** under legacy text metrics the search bar is 85 dp tall (topInset 85), the map area is 384, the L is 296: at rest 85 to 381, 3 dp of travel. TR5: "a 40 dp drag down moved the cluster 40 dp ([8.0, 85.0][104.0, 381.0] to [8.0, 88.0][104.0, 384.0]) expected:<40.0> but was:<3.0>".
+- **Edit:** the `@GraphicsMode(GraphicsMode.Mode.NATIVE)` annotation on both TR5 tests and a comment quoting the reason; nothing else in TR5 changed (condition (a)).
+- **(b) Passes under NATIVE:** the run `LandscapeLRulingsTest` + `LayoutFixesShortLandscapeTest`, 32 tests, 0 failed; and TR5 is green in the merged-tree full suite (section 9).
+- **(c) Still bites:** revert Q1 (section 8), from a copy saved before the edit, breaks the vertical drag (`dragAmount.y` replaced by `0f`): TR5 fails with its own message "a 40 dp drag down moved the cluster 40 dp ([719.0, 45.0][815.0, 341.0] to ...)", with no compile error.
+- **(d)** quoted above.
+
+## 6. The top limit: what is in the band between the search bar's bottom and topInset + compassStripClearance in short landscape (the -178 condition)
+Read from code, at `AvailabilityCompactMapUi.kt` after the merge:
+- **The compass strip: no.** In short landscape it is in the top corner on the rail side, the side away from the search bar: `CompassElevationStrip`'s landscape modifier, CMU:704-710 (aligned top-start or top-end by `railPortEdge`, `padding(controlsPadding)` only, no `topInset`). Test A2 (`LandscapeLRulingsTest`, NATIVE, both rotations) drags the L to the top of the rail side and asserts its bounds do not intersect the strip's (`compass-elevation-strip`): passes.
+- **Anything else: three things, none of which needs the clearance.**
+  - The **search notice** sits under the search bar (the search slot's Column), so it is in the band by design; ruling (b) makes room for it horizontally.
+  - The **taxon and journal chip row** is at `topInset + Spacing.sm` on the punch-hole side (CMU:764), so it is also in the band; its width is capped to leave the L's column clear (CMU:765-767), and T7, which passes unedited, pins that.
+  - The **SearchDropdown** starts at `searchBarHeight + compassStripClearance` (`AvailabilityCompactScaffold.kt:1228`), so it starts below the band, and only while the search field is focused; it is drawn over the map content, the L included, and I did not test the overlap of an open dropdown with the L (a device item).
+- **So it was: nothing persistent in the band that the L must clear. `topInset` alone is kept** (CMU passes it as `topLimitPx` in the L; portrait keeps `topInset + compassStripClearance`). Under NATIVE the L rests at 45 to 341 (bar 45; limit 45; 296 tall; map 384); under legacy metrics at 85 to 381.
+
+## 7. The J6c merge (planner: "expect conflicts ... resolve by carrying the L into MapIconCluster / MapIconClusterState.landscape ... report file by file")
+Merged with `git pull --no-rebase origin journal-redesign` (no rebase, no reset), twice: the first at `92556887` (J6c's `44c4ff2a` extraction and its dependents), the second after `journal-redesign` moved on 11 more commits, none of them source (RECORD.md, one audit record, the plan, four prompt files).
+- `AvailabilityCompactMapUi.kt`: **the only textual conflict.** Took `journal-redesign`'s version whole (the cluster had left it: 1555 to about 1030 lines) and re-applied only what still belongs to the phone's tab: `topLimitPx` (`topInset` alone in the L); the `SearchNoticeInset` provided around the search slot; the AddActionTile anchor `ADD_TILE_ANCHOR_OFFSET_LANDSCAPE`; the bar slot as a local `phoneBar(modifier, fill, rowSpacing, fullSquareHits)` used by both `bar` and the new `landscapeBar`; the new `landscapePill`.
+- `AvailabilityMapIconCluster.kt` (new upstream, no conflict): the L lives here now. Carried: the landscape `Box` in place of the container `Surface` (`clusterMeasure` shared by both), `LandscapeLCluster` in place of `ShortLandscapeClusterRow`, the top-limit clamp's upper bound and the notice-floor skip keyed on `state.landscape`, the handle's `tapHeight`, and two new optional parameters on `MapIconCluster`: `landscapeBar` and `landscapePill` (default null; used only when `state.landscape`, else `bar` and `pill`).
+- `AvailabilityWideLayoutUi.kt` (the tablet's call): **not touched.** It supplies only `bar` and `pill`, never sets `landscape`, and so takes exactly the code it took at J6c. This is why the L's bar and pill are separate optional parameters and not a change to the shared slots' signatures.
+- `MapChrome.kt`, `AvailabilityMapControlsUi.kt`, `AvailabilitySearchUi.kt`: auto-merged with J6c's edits without a textual conflict (they were not touched by J6c's extraction beyond what merged cleanly); the compile and the full suite are the check that they are consistent.
+- Tests J6c added or changed (`WideMapControls*Test` x3, `MapChromeOverMapTest`, `AvailabilityScreenMapLayersTest`, `JournalEntriesOnMapScreenTest`, `WideMapTabsTest`) were not edited by me.
+
+## 8. Revert checks on the merged tree (from copies saved to `/tmp/llrev` before each edit; the runner refuses results if the log has an `e:` line, restores from the saved copy, and the tree was clean against the merge commit afterwards)
+All 13 logs had no `e:` line; each ran the 5 classes (75 tests). Each failed only for its own edit:
+- Q1 vertical drag broken: **TR5** "a 40 dp drag down moved the cluster 40 dp ([719.0, 45.0][815.0, 341.0] to ...", and L4's fullscreen bottom clamp.
+- Q2 top limit's upper bound back to 0f: A1 "at rest the L's top 44.0 is not above the search bar's bottom 45.0", D4.
+- Q3 notice floor back on in the L: B1 "the L did not move when the notice appeared".
+- Q4 handle box back to 72: L2, C1, T7.
+- Q5 notice inset removed: B1 "the notice [...] and the L [...] do not overlap".
+- Q6 top limit back to `topInset + clearance`: L4, TR1 "the cluster [8.0, 121.0][104.0, 417.0] lies inside the map area" (the legacy-metrics window, the numbers from section 4).
+- Q7 bar's full-square touches off: D1, D2.
+- Q8 pill's full-square touches off: D3.
+- Q9 add-tile anchor back to the portrait pitch: L6 "expected:<32.0> but was:<40.0>".
+- Q10 the container `Surface` with the 0.6 fill back: L5 "the empty corner ... shows the map", L3 "a real long-press in the empty corner ... reached the map".
+- Q11 the pill's own 0.8 fill removed: L5 "the pill reads as one layer at 0.8".
+- Q12 the bar's row spacing back to 4 dp: L1 "the bar is 240 tall", L5 "the gap under the bar shows the map".
+- Q13 the pill's Row order not mirrored: L1, TR2, TR4 at the right-hand cluster.
+T9's two failures appear in every one of these runs only where the edit lets the L rise above the search bar (Q2, Q6); T9 passes unedited in the forward runs.
+
+## 9. Full suite on the merged tree
+From a cleared results directory, `--continue`, run started at the epoch in `/tmp/llrev/full3.log.start`: **BUILD SUCCESSFUL; 355 result files, none older than the start; 2915 tests, 0 failed, 0 errors, 24 skipped** (the existing `@Ignore` count; not measured at base). That includes every L class, `LayoutFixesShortLandscapeTest` (T9 and TR5 unedited except the TR5 annotation), `LayoutFixesChipRowLandscapeTest` (T7, unedited), `MapChromeAlphaTest`, and J6c's three `WideMapControls*` classes (Portrait, Landscape, 1280). The second merge after that run added no source (docs, prompts, RECORD.md only, checked by `git diff --stat`), so the result stands for the pushed tree.
+
+## 10. Decisions I made
+- **The top limit is `topInset` alone in the L** (section 6), the planner's -178 conditional, verified as required (the compass strip is not in the band).
+- **The notice inset applies only when the L is on the notice's own side** (the punch-hole side); the ruling's "the notice's end on the L's side" is read that way, so a notice does not shrink when the L is across the screen from it. The alternative (always inset the L-facing end) is one condition.
+- **Optional `landscapeBar` and `landscapePill` on `MapIconCluster`** (section 7), so the tablet's call is unchanged.
+- **`SearchNoticeInset` reaches the notice through a composition local**, so the search slot's signature (used by the scaffold) is not widened.
+- **L2 and L4 (my tests) were updated**, and A1/B1/A2 marked NATIVE, for reasons recorded above.
+- The handle's mark is unchanged at 48 x 10 dp; it fits the 48 dp box exactly, so the "stop if it no longer fits" condition did not arise.
+
+## 11. Not tested / device-only, and flags
+- Real insets (a real `topInset`, the cut-out, the rail), the real search bar and strip heights, thumb reach, and a real finger on the corner touches: device items at 90 and 270 on the S22.
+- The notice's real wrapping (Robolectric's fonts): the tests assert its bounds are disjoint and at least 200 dp wide, not that it reads well.
+- An open SearchDropdown over the L (section 6): not tested.
+- D4 touches 2 dp outside the squares, including at 6 dp from the physical left edge, where a real device has a system back-gesture zone: device-only.
+- The skipped count (24) is not compared against the base.
+- **D4's first pre-change failure was not root-caused** (section 2).
+- **Flags outside scope:** `/tmp` is shared between sessions (an earlier session overwrote a script of mine; the D58 check is inline, 0 hits on the diff and commit messages); several Gradle runs waited for other sessions' builds and the disk floor.
