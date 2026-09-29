@@ -69,6 +69,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -377,6 +380,9 @@ internal fun CompactMainScaffold(
             label = "mapTopInset",
         )
         val safeAnimatedTopInset = animatedTopInset.coerceAtLeast(0.dp)
+        // Dispatch 2026-09-28-104, item 2: the search column's measured height (the bar, and the notice below the compass strip when
+        // one shows). The Maps tab keeps the icon cluster below its bottom while a notice shows; nothing else reads it.
+        var searchChromeHeightPx by remember { mutableStateOf(0) }
         // "Set on map" (SearchDropdown's own Advanced Search section, dispatch C item 2) hands off to the exact same
         // pan-to-centre-pin-plus-confirm flow every other pin placement in this app uses
         // (CentrePinLocationPickerOverlay) rather than a second picker — see CompactMapTab's own
@@ -623,15 +629,26 @@ internal fun CompactMainScaffold(
                         modifier = Modifier
                             // Dispatch 2026-09-28-104, item 6: on the Maps tab the Scaffold has no bottom
                             // bar to sit above and its contentWindowInsets drop the bottom side (below), so
-                            // the host lay under the system navigation buttons. The tab's own bottom nav
-                            // takes the same inset for itself; the snackbar takes it here. Off the Maps tab
-                            // the bottomBar is real and Scaffold already places the host above it, so the
-                            // padding would double up. Device-only: Robolectric reports this inset as zero.
+                            // the host lay under the system navigation buttons. Off the Maps tab the
+                            // bottomBar is real and Scaffold already places the host above it, so nothing is
+                            // added there. Device-only: Robolectric reports the system inset as zero.
+                            // Continuation -12 (planner's ruling): on the Maps tab the snackbar sits above the
+                            // floating bottom navigation, not only above the system bar. In portrait, outside
+                            // fullscreen, that is the nav's own measured height (which already includes the
+                            // system-bar inset it takes, so nothing is added twice). In fullscreen the nav is
+                            // off screen and the snackbar keeps the system-bar inset alone. In a short
+                            // landscape window the rail runs the whole height of the port edge, so the
+                            // snackbar keeps the system-bar inset at the bottom and takes the map controls'
+                            // own side padding (the cut-out and the rail's measured width), so the centred
+                            // snackbar clears the rail.
                             .then(
-                                if (compactTab() == CompactTab.MAP) {
-                                    Modifier.windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
-                                } else {
-                                    Modifier
+                                when {
+                                    compactTab() != CompactTab.MAP -> Modifier
+                                    showRail -> Modifier
+                                        .padding(mapControlsPadding)
+                                        .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
+                                    isMapFullscreen() -> Modifier.windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
+                                    else -> Modifier.padding(bottom = bottomNavHeight)
                                 },
                             )
                             .testTag(COMPACT_SNACKBAR_TAG)
@@ -926,6 +943,12 @@ internal fun CompactMainScaffold(
                                 // slide into the space it vacates in the same motion, not jump ahead of
                                 // it.
                                 topInset = safeAnimatedTopInset,
+                                // Item 2: only while a notice shows, and not in fullscreen, where the whole search column slides away.
+                                searchNoticeBottom = if (searchNoticeMessage(uiState) != null && !isMapFullscreen()) {
+                                    with(LocalDensity.current) { searchChromeHeightPx.toDp() }
+                                } else {
+                                    0.dp
+                                },
                                 // Passed as a slot, not composed at this call site directly, so it
                                 // renders inside CompactMapTab's own Box — see that parameter's own
                                 // doc comment for why this specific nesting is load-bearing, not
@@ -959,9 +982,9 @@ internal fun CompactMainScaffold(
                                 // so here the conjunction always resolves to the bar; it is written out
                                 // so that the rule reads as the owner ruled it, not as its consequence.
                                 searchBarSlot = if (isEditingJournalEntry && compactTab() == CompactTab.JOURNAL) {
-                                    {}
+                                    { _ -> }
                                 } else {
-                                    {
+                                    { compassStripHeight ->
                                         // Fullscreen-slide-out-fixes dispatch, Item 1: the slide distance
                                         // is the bar's own height PLUS the real status-bar inset, not
                                         // fullHeight alone. This bar's top edge is the content area's
@@ -992,7 +1015,7 @@ internal fun CompactMainScaffold(
                                                 Modifier.padding(mapControlsPadding)
                                             },
                                         ) {
-                                        Column {
+                                        Column(modifier = Modifier.onSizeChanged { searchChromeHeightPx = it.height }) {
                                             SearchEntryBar(
                                                 uiState = uiState,
                                                 distanceUnit = distanceUnit,
@@ -1011,6 +1034,12 @@ internal fun CompactMainScaffold(
                                                 // owner, "1 A": its suggestions stack over the 0.8 panel).
                                                 overMap = true,
                                             )
+                                            // Item 2 (owner, "Option A"): the notice sits just below the compass strip, which is drawn at the
+                                            // bar's bottom over this column, so the notice starts where the strip's own measured height ends.
+                                            // In a short landscape window the strip is in the other corner and the notice stays under the bar.
+                                            if (searchNoticeMessage(uiState) != null && !showRail) {
+                                                Spacer(Modifier.height(compassStripHeight))
+                                            }
                                             SearchNotice(uiState, overMap = true)
                                         }
                                         }

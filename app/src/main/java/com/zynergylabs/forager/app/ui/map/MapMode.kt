@@ -34,5 +34,8 @@ enum class MapMode(val label: String, val basemap: Basemap) {
     companion object {
         /** Topographical, via OpenStreetMap — the same basemap [MapService.DEFAULT]'s topo mode already opened on. */
         val DEFAULT = TOPOGRAPHIC
+
+        /** The mode that draws [basemap]; the two are one to one, so this is a lookup, not a choice. */
+        fun forBasemap(basemap: Basemap): MapMode = entries.first { it.basemap == basemap }
     }
 }
