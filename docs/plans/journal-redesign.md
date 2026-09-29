@@ -1220,3 +1220,7 @@ The planner's proposed behaviour, from the common map convention of fanning a st
 5. **Tapping the map, panning, zooming or pressing Back** folds them back.
 6. **The fan-out animation takes 0.4 s.** With the system's animations off, the markers appear spread out at once.
 7. **It works everywhere:** the Maps tab and a journal entry's map, on the phone and on the tablet.
+
+**Fan-out: what fans, and staying on screen (owner, 2026-09-29).** Asked after F4 (record -206), the owner answered, verbatim: "1 A / 2 A".
+1. **Only the owner's own records fan out:** finds, photos, waypoints and planned trips. iNaturalist sighting dots keep their existing tap behaviour and are never part of a fan.
+2. **The fan is shifted so the whole ring or spiral lands on screen,** clear of the icon cluster, the legend and the chip row. The leader lines still point to the markers' true spot.

@@ -6561,3 +6561,16 @@ The planner confirmed each by grep.
 - At 09eac052 (containing 5f5d9eb7), idle, from a cleared results directory with the hang timeout: 372 files, none stale, 0 compile errors, 3106 / 0 / 0 / 24, in 240 s.
 - F4 stays open for the owner's two calls (-206).
 - Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-208
+**Timestamp:** 2026-09-29T18:24:03Z
+**Continues:** 2026-09-28-197 (F4)
+**Dispatch-file:** preserved/2026-09-29-44.md (to the F4 coder by SendMessage)
+**Reason:** the owner, verbatim: "1 A / 2 A".
+**Changes:**
+- Only records fan out: finds, photos, waypoints and trips. Sighting dots never do.
+- The fan's centre shifts so every fanned touch area is on screen and clear of the cluster, legend and chips. The leader lines point to the true spot.
+**Notes:** Written by the planner by hand.
