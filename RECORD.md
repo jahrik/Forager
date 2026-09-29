@@ -6687,3 +6687,37 @@ The planner confirmed each by grep.
   - F5: backups without recent searches, and GPX exports cleaned from the cache.
 - The second planner session is asked to hand its results here and not to instruct coders.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-215
+**Timestamp:** 2026-09-29T19:32:14Z
+**Title:** S1: wire the sundown alerts (turnaround and sunset, while recording) as the 2026-09-11 reports decided
+**Dispatch-file:** preserved/2026-09-29-47.md; launch preserved/2026-09-29-49.md (~/Zynergy/launch-prompts/21-sundown-alerts.md)
+**Change:** call DecideSundownAlertUseCase from the recording, delivering through the existing channel and strings, under the sundown settings. No new copy; stop on open points.
+**Scope boundary:** the recording's alert wiring. Not the countdown UI, and no new strings.
+**Baseline:** the head at launch.
+**Prediction (outcome, planner):**
+1. The 2026-09-11 decisions cover most of it. One open point comes back (a recording that starts after sunset, or no fix).
+2. The suite grows by 8 to 20.
+**Prediction (mechanism, coder):** not authored.
+**Finish line:** tests first, the build, revert checks, the full suite at 0, the report with device-only items.
+**Notes:** The owner, verbatim: "1 A". Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-216
+**Timestamp:** 2026-09-29T19:32:14Z
+**Title:** F5: backups without recent searches; GPX exports cleaned from the cache
+**Dispatch-file:** preserved/2026-09-29-48.md; launch preserved/2026-09-29-50.md (~/Zynergy/launch-prompts/22-privacy-fixes.md)
+**Change:**
+- cached_searches is cleared in the backup's snapshot copy and never restored;
+- GPX exports older than an hour are deleted at start and before each new export (the planner's reading, told to the owner).
+**Scope boundary:** data/backup and TrackGpxExporter.
+**Baseline:** the head at launch.
+**Prediction (outcome, planner):** the suite grows by 5 to 12.
+**Prediction (mechanism, coder):** not authored.
+**Finish line:** as S1. The planner then updates legal-drafts' two disclosures.
+**Notes:** The owner, verbatim: "2 A / 3 A". Written by the planner by hand.
