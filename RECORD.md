@@ -6934,3 +6934,17 @@ The planner confirmed each by grep.
   - (a) publish PR #3 now, which contradicts -229;
   - (b) hold PR #3 and bring in L1's Part 2 wording, so it publishes with PR #140.
 - Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-231
+**Timestamp:** 2026-09-29T20:19:41Z
+**Continues:** 2026-09-28-227 (Part 3), and the PR #3 question (-230)
+**Dispatch-file:** preserved/2026-09-29-51.md, with an amendment section added before launch
+**Reason:** the owner, verbatim: "1 A / 2 A / 3 A / 4 A". The planner's reading is recorded in the plan under "Part 3's limits, and PR #3's timing".
+**Changes:**
+- S22-B may move the clock forward and may force Doze, restoring and reading back both.
+- The forced-failure checks are skipped and recorded as untested.
+- zynergy-site PR #3 is held and gains L1's release wording, to go live with PR #140. This is relayed to the second planner, which owns PR #3.
+**Notes:** Written by the planner by hand.
