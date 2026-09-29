@@ -857,3 +857,5 @@ This supersedes the planner launching coders as Agent-tool subagents:
 - **The planner can message these windows but cannot drive them.** Stopping one, or answering its prompts, is the owner's.
 
 **Models (owner, 2026-09-29).** The owner, verbatim: "Sonnet and Opus 5.5 just released so I'll use Opus 5.5 to plan and Sonnet 5.5 to code." The planner session runs on Opus 5.5, and coder windows on Sonnet 5.5. The owner sets both.
+
+**MapLibre failing to load at start-up (owner, 2026-09-29).** The offline-safety coder (`-106`) made `ForagerApplication` catch and log a failure to initialise MapLibre (Exception and LinkageError), because under Robolectric the SDK throws UnsatisfiedLinkError. As a result, a device whose map library cannot load starts the app and fails only when a map opens. The planner offered "A. Keep it: the Journal and everything else stay usable, and the failure is logged." The owner, verbatim: **"Option A for the map crash"**.
