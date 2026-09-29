@@ -339,7 +339,7 @@ internal fun ObservationBubble(
 internal fun TaxonMapFilterChip(label: String, onClear: () -> Unit, modifier: Modifier = Modifier) {
     val isDarkTheme = LocalForagerDarkTheme.current
     Surface(
-        modifier = modifier.testTag("map-taxon-filter-chip"),
+        modifier = modifier.testTag("map-taxon-filter-chip").mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight),
         shape = RoundedCornerShape(percent = 50),
         color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
         contentColor = if (isDarkTheme) Color.White else Bark,
