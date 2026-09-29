@@ -195,20 +195,17 @@ class LandscapeLClusterTest {
     @Test fun `L2 at ROTATION_270 five real touches across the bottom row of the bar all reach it`() = assertAddRowReachedAtEveryPoint(Surface.ROTATION_270)
 
     /**
-     * The compass and locate rows, touched at the row's centre column and its inboard 0.2/0.8 columns only. The outer 10 dp of the bar
-     * at the rows' shared 12 dp with the minimise handle is the handle's: the handle is 72 dp tall, centred on the bar's mid-height,
-     * and with 48 dp pitch it reaches 12 dp into rows 2 and 4 (8 dp at the old 52 dp pitch); a first version of this test that
-     * sampled the outer columns minimised the cluster. That overlap is a finding in the report, not something this test hides by
-     * accident: it is excluded here by name.
+     * The compass row takes the full five-point spread (the minimise handle, 20 x 48 dp centred on the locate row since the owner's
+     * ruling (c), no longer reaches it); the locate row is touched at its centre column and inboard 0.2/0.8 columns, because the handle
+     * owns the outer 12 dp of the locate row by design.
      */
     private fun assertMiddleRowsTakeTouches(rotation: Int, clusterOnLeft: Boolean) {
         setScreen(rotation)
         val before = map.taps
         val inboard = if (clusterOnLeft) 0.8f else 0.2f
         val points = listOf(inboard to 0.2f, 0.5f to 0.5f, inboard to 0.8f, 0.5f to 0.2f, 0.5f to 0.8f)
-        fun touchInboardOf(r: DpRect) = points.forEach { (fx, fy) -> composeRule.touchAt(r.left + (r.right - r.left) * fx, r.top + (r.bottom - r.top) * fy) }
-        touchInboardOf(described("Reset orientation to north"))
-        touchInboardOf(described("Center on my location"))
+        touchAcross(described("Reset orientation to north")) {}
+        described("Center on my location").let { r -> points.forEach { (fx, fy) -> composeRule.touchAt(r.left + (r.right - r.left) * fx, r.top + (r.bottom - r.top) * fy) } }
         assertEquals("none of the ten touches on the compass and locate rows fell through to the map", before, map.taps)
     }
 
@@ -274,23 +271,9 @@ class LandscapeLClusterTest {
 
     @Test fun `L4 at ROTATION_270 the bottom clamp uses the L's 296 tall box, with the nav and in fullscreen`() = assertBottomClamp(Surface.ROTATION_270)
 
-    private fun assertNoticeFloor(rotation: Int) {
-        setScreen(rotation, uiState = LAYOUT_FIXES_FIX_STATE.copy(errorMessage = "A notice is showing."))
-        val notice = tag(SEARCH_NOTICE_TAG)
-        val (x, y) = handleCentre()
-        composeRule.longPressDrag(x, y, 0.dp, (-800).dp)
-        val c = cluster()
-        assertNear("the cluster is 296 tall after a long drag up", 296f, c.bottom - c.top)
-        // The floor is "as far down as the cluster may go at all" (CMU noticeFloorPx, min(notice floor, lowest edge)): in this 384 dp window
-        // 296 dp cannot fit under the notice, so the lowest edge wins and the top is the map's bottom less 296.
-        val m = tag(LAYOUT_FIXES_MAP_TAG)
-        val expectedTop = minOf(notice.bottom.value, m.bottom.value - 296f)
-        assertEquals("the cluster's top ${c.top.value} is the notice's bottom ${notice.bottom.value}, or the lowest 296 dp box's top if the L does not fit under it", expectedTop, c.top.value, 1f)
-    }
-
-    @Test fun `L4 at ROTATION_90 the notice floor holds the L's top at or below the notice`() = assertNoticeFloor(Surface.ROTATION_90)
-
-    @Test fun `L4 at ROTATION_270 the notice floor holds the L's top at or below the notice`() = assertNoticeFloor(Surface.ROTATION_270)
+    // The notice-floor tests that were here (the cluster's top held at or below a notice, or the lowest edge where it does not fit) are
+    // superseded by the owner's ruling (dispatch 2026-09-28-172, "1 2 3  I'll take your recommendations"): in landscape the L no
+    // longer follows the notice's floor; the notice makes room for the L instead. See LandscapeLRulingsTest.
 
     // ── The AddActionTile anchor follows the L's row pitch ──
 
