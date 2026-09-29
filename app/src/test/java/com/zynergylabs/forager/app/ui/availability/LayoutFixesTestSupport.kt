@@ -26,6 +26,7 @@ import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.ui.log.CartographyUiState
+import com.zynergylabs.forager.app.ui.map.MapOverlayContent
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.layers.ForecastCellsShown
@@ -52,14 +53,16 @@ internal const val LAYOUT_FIXES_MAP_TAG = "map-slot"
 /**
  * Stands in for the real map. Like the real map's `AndroidView`, it takes pointer input over its whole
  * bounds, so a touch no control claims lands here and is counted ([taps]); and it records the last
- * [MapRenderMode] it was handed.
+ * [MapRenderMode] and [MapOverlayContent] it was handed.
  */
 internal class LayoutFixesMapSlot {
     var renderMode: MapRenderMode? = null
+    var content: MapOverlayContent? = null
     var taps = 0
 
-    val slot: MapSlot = { _, _, renderMode, _, _, onTap, _, _, modifier ->
+    val slot: MapSlot = { _, content, renderMode, _, _, onTap, _, _, modifier ->
         this.renderMode = renderMode
+        this.content = content
         Box(
             modifier
                 .testTag(LAYOUT_FIXES_MAP_TAG)
