@@ -6998,23 +6998,6 @@ The planner confirmed each by grep.
 ---
 
 **Kind:** dispatch-note
-**ID:** 2026-09-28-234
-**Timestamp:** 2026-09-29T20:26:22Z
-**Dispatch:** 2026-09-28-216 (F5), duplicate launches
-**Reason:** a second F5 window (e4d26c) stopped at once. Its premise was stale, because F5 had already landed, and it built nothing.
-- It found a **third F5 run** in forager-wt/privacy-fixes-sonnet (branch privacy-fixes-sonnet, at the old base 445b292b).
-- That run has uncommitted test edits: JournalBackupTest, TrackGpxExporterTest and RecordDetailsSheetTest, plus a new ForagerApplicationGpxStartTest. They were last modified at 13:23 PDT.
-**Changes:**
-- The second window is told to cancel as done.
-- The planner could not tell which open session owns privacy-fixes-sonnet, so the owner is asked to stop it without pushing.
-**Notes:**
-- F5 stays closed (-233).
-- If the third run pushed, it would put a second implementation over the landed one.
-- Written by the planner by hand.
-
----
-
-**Kind:** dispatch-note
 **ID:** 2026-09-28-236
 **Timestamp:** 2026-09-29T20:31:25Z
 **Dispatch:** none (the planner role moves to another session)
@@ -7022,47 +7005,10 @@ The planner confirmed each by grep.
 **Changes:**
 - **This session is now the planner and keeps this record.** Its address, as `ListAgents` prints it, is "You are the planner. Dispatch the following to a c..." [05172f]. The stopped planner [4b12e2] is no longer listed. A row named "# Planner session" [d282e1] shows as an offline Remote Control session.
 - **The hand-back address is corrected** in Part 3's launch prompts, none of which has launched yet: preserved/2026-09-29-52, -53 and -54, and their identical copies at ~/Zynergy/launch-prompts/23-part-3-s22-a.md, 24-part-3-s22-b.md and 25-part-3-tablet.md. Each now names this session and [05172f]. Nothing else in them changed.
-- **The F5 redo window [e4d26c]** was launched from a prompt that hands back to "# Planner session". It has been told to hand back here instead, with nothing else about its work changed.
 **Open, carried over for the owner:**
-- **From -234:** whether the third F5 run in privacy-fixes-sonnet is to be stopped without pushing.
 - **From -232:** the secure_delete residue observation, which is in Part 3 S22-B.
-- **From -231, zynergy-site PR #3:** the release wording is going in (5cc9a64, work in progress, not merged). Its F5 sentences follow the landed F5 and change if the redo replaces it.
+- **From -231, zynergy-site PR #3:** the release wording is going in (5cc9a64, work in progress, not merged). Its F5 sentences follow the landed F5.
 **Notes:** Written by the planner by hand.
-
----
-
-**Kind:** dispatch-note
-**ID:** 2026-09-28-237
-**Timestamp:** 2026-09-29T21:32:45Z
-**Dispatch:** 2026-09-28-216 (F5)
-**Reason:** the owner, verbatim, with model identifiers replaced as in the comparison's Appendix B: "Discard the redo and keep the findings in the audit file in PR 140, we are measuring [model B] vs [model A]." Then, before anything was deleted: "We are keeping the F5 that already landed / Keep the branch / Do not delete", and "Don't delete it. Just don't use it".
-**Changes:**
-- **The landed F5 stays** (2fa093ef's code). F5 stays closed (-233).
-- **The redo is kept and not used.** Its branch (head 426786f5) and worktree stay as they are: not merged, not built on, not deleted. It was checked clean and fully pushed.
-- **The findings are in PR 140:** docs/audits/2026-09-29-f5-landed-and-redo-compared.md (99816bff, c0516f82, and this commit). It holds the code diff, the procedure rule by rule, the tests, the owner's decision, and the redo's diff and report as appendices.
-**Notes:**
-- **The measurement's labels:** build A, the landed F5, ran on model A, which its commits' Co-Authored-By trailers name. Build B, the redo, ran on model B, the model the launch prompt sets (preserved/2026-09-29-50.md). Model identifiers are kept out of this file.
-- **Still open for the owner:** the third F5 worktree (-234). Nothing is running in it and nothing was pushed; it is untouched.
-- Written by the planner by hand.
-
----
-
-**Kind:** dispatch-note
-**ID:** 2026-09-28-238
-**Timestamp:** 2026-09-29T21:41:14Z
-**Dispatch:** 2026-09-28-216 (F5), the third F5 worktree (-234)
-**Reason:** the owner, verbatim: "The third one was an opened session that never made it into coding, so that branch is a duplicate".
-**Changes:**
-- **-234's open question is closed.** The third F5 worktree is a duplicate. It is not used and not deleted, as with the redo (-237).
-**Notes:**
-- **What the worktree holds**, as observed at this entry (read only, nothing changed):
-  - local branch at base 445b292b, with no commits beyond it and nothing on the remote;
-  - uncommitted test edits, 94 added lines in JournalBackupTest, TrackGpxExporterTest and RecordDetailsSheetTest;
-  - one untracked 37-line ForagerApplicationGpxStartTest;
-  - nothing running in it;
-  - files last written at 13:23-13:24 PDT.
-- **So the session drafted tests,** and built and committed nothing.
-- Written by the planner by hand.
 
 ---
 
