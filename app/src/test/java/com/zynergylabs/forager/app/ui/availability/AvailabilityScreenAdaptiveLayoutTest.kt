@@ -280,8 +280,14 @@ class AvailabilityScreenWideWindowLayoutTest {
      * Used to assert on [ConditionsCard]'s "Current Conditions" for the List-unique half; that card
      * now lives in the Seasonal tab instead (PANEL-CONTENTS-DISPATCH.md item 2), so this asserts on
      * the ranked list's own content ([FORECAST]) rather than a card that no longer sits here.
+     *
+     * J6b (the owner's ruling 2, 2026-09-29): this is at 1,280 dp now, not this class's 840 dp. Beside the
+     * 360 dp drawer and 360 dp list an 840 dp window leaves the map 119 dp, under the 480 dp minimum, so
+     * there List and Maps are real tabs (`WideMapTabsTest` covers that, and the 480 dp boundary from both
+     * sides). At 1,280 dp the map is 559 dp, so the reveal pattern this test is about still holds.
      */
     @Test
+    @Config(qualifiers = "w1280dp-h900dp-mdpi")
     fun `list and map content are both displayed together without switching tabs`() {
         setScreen(SEARCHED_STATE.copy(forecast = FORECAST, selectedMonth = LocalDate.now().monthValue))
 
