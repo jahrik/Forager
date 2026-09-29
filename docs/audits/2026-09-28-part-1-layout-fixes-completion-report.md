@@ -1576,3 +1576,77 @@ At the build, from a cleared results directory, `LC_ALL=C.UTF-8`, `./gradlew --o
 - **Q4's legend bound in landscape.** In short landscape, with the legend beside the cluster, the clamp at `AvailabilityCompactMapUi.kt:799-841` still limits the cluster's downward drag to the legend's top. That limit protected a legend that sat below the cluster; it now protects nothing. It predates this change (the cluster was already held near centre at 270 by the same bound). The planner may want to rule whether landscape drops it.
 - **My prediction for the chip row at 270 was wrong** (above). The earlier report's "at 270 the chip is clear" was measured with J8's chip alone.
 - **`RECORD.md` is not mine to write;** the planner records this.
+
+---
+
+# Resumed a third time (planner message `2026-09-29-04`, record `2026-09-28-117`)
+
+## The message, verbatim
+
+The cross-session message as delivered to me, then the file that governs it (`prompts/preserved/2026-09-29-04.md` at `e0baece`, first 16 hex of
+its sha256 `6e2789617993fe8b`), below its "verbatim message follows" line. I compared them: the file's text is what follows.
+
+> Planner message `2026-09-29-04` (record `2026-09-28-117`), part of dispatch `2026-09-28-78`. Quote it verbatim in your report. It answers your stop on item 7 and your flag on Q4's legend bound.
+> 
+> **The owner, verbatim: "1 A 2 A".** As the planner put them:
+> - "1. The chip row in landscape. A. Line it up at the end away from the icon bar, and cap its width at the space left beside the bar, about 272 dp. When both chips are showing they wrap onto two lines instead of reaching under the bar."
+> - "2. A leftover limit on dragging the icon bar. A. Drop that limit in landscape, and keep it in portrait."
+> 
+> **Item 7: build it.**
+> - In short landscape the chip row (taxon chip and J8's chip) aligns to the search bar's end away from the cluster's current side.
+> - Its width is capped at the bar's width minus the cluster's measured width and the gap, so the FlowRow wraps to two lines when both chips will not fit.
+> - It follows the cluster when the cluster is dragged or snapped to the other side. Portrait is unchanged.
+> - Use your held `LayoutFixesChipRowHeldTest`, extended, as tests first. It must fail at base for the stated reason.
+> - Also test a long chip label, not only "artist's bracket (12)".
+> - Real touches reach the reset button, and each chip.
+> 
+> **Q4's legend bound: drop it in short landscape, where the legend now sits beside the cluster.** Keep it in portrait. Tests first: in landscape the cluster can be dragged down past where the legend's bound stopped it, and in portrait the bound still holds.
+> 
+> **Before you build:** your last `git pull --no-rebase` brought in the offline-safety coder's `app/` changes, and you did not re-run the suite on the merged tree. The planner is re-running it now. Pull again with `--no-rebase` before starting.
+> 
+> **Everything else stands:** revert checks per item, the full suite from a cleared results directory on your final tree, the device-only list, and a new "Resumed" section. Before each Gradle run, check that no other build is running (`pgrep -af '[G]radleWrapperMain|[G]radleWorkerMain'`) and that 2.5 GB is available; the planner's suite may be running. Hand back as before, to the planner session ref `[9b334a]`.
+
+The relay: "Planner continuation 2026-09-29-04 (record 2026-09-28-117) for dispatch 2026-09-28-78: build item 7 with a width cap, and drop Q4's
+legend bound in short landscape. ... The owner, verbatim: "1 A 2 A". ..." (it points at the file above as the governing text).
+
+## State at the start
+
+- I pulled `origin/journal-redesign` with `--no-rebase`: fast-forward to `e0baece`, which contains my `7d17a5c` and the offline-safety `app/`
+  changes. The suite I reported ran before that merge; I re-run it on the final tree below.
+- `CLAUDE.md`, the dispatch files, and this message do not conflict.
+
+## The design I will build (stated before building)
+
+**Item 7.** In the landscape branch of the chip row's modifier (`AvailabilityCompactMapUi.kt`, the `punchHoleEdge != null && landscapeSearchWidth != null`
+arm): `width(landscapeSearchWidth).wrapContentWidth(<absolute alignment>).widthIn(max = cap)`, with the alignment `AbsoluteAlignment.Right` when the cluster is
+on the left and `AbsoluteAlignment.Left` when it is on the right, and `cap = landscapeSearchWidth - (MAP_ICON_BAR_EDGE_INSET + measured cluster width + Spacing.sm)`
+(384 - 104 - 16 = 264 dp in the test window). The cap is applied whichever side the cluster is on, as the message states it. Portrait's arm is untouched.
+
+**Q4.** `legendBoundPx` (`:799`) also requires `!landscapeCluster`, so in short landscape the legend adds no bound to the cluster's drag; portrait keeps it.
+
+## Pre-registration: tests and predictions
+
+- **`LayoutFixesChipRowLandscapeTest`** (held file, extended), `w823dp-h384dp-land`, `@GraphicsMode(NATIVE)`, rotation pinned:
+  - each configuration asserts, in order: the row does not intersect the cluster; it keeps at least 7.5 dp from it; it is at most 264 dp wide
+    (+0.5); it is at the bar's end away from the cluster; it lies in the bar's width; five real touches across the reset button all reach it;
+  - configurations: 90 and 270 on the default side, 90 snapped right, 270 snapped left, and a long label ("Chicken of the woods, sulphur shelf, the bright orange bracket fungus of oak") at 90, 270 and 270 snapped left;
+  - both chips wrap onto two lines at 90 (J8's chip below the taxon chip);
+  - a real touch on J8's chip opens its list, and a real touch on the taxon chip's clear button clears the filter, at 90 and 270;
+  - the row moves when the cluster is dragged across.
+  - **Predicted at base: fail** on the cases where the row overlaps or is over-wide (all the default-side cases, the long-label cases, the wrap test, 270 snapped
+    by the alignment); the snapped-right case at 90 fails on the width cap (382 against 264) though it clears the cluster; the touch-reach tests for the two
+    chips pass at base (guards: J8's chip and the clear button are reachable today).
+- **`LayoutFixesLegendLandscapeTest`, three `Q4` tests** (270 collapsed, 270 expanded, 90 with the cluster snapped right): a 30 dp drag down moves the cluster 30 dp
+  (1 dp), its bottom ends below the legend's top, and the legend and cluster still do not intersect. **Predicted at base: all three fail** (the bound holds the cluster:
+  the legend's top less 8 dp is above the cluster's bottom).
+- **`LayoutFixesLegendPortraitTest`, one `Q4` test** (`w384dp-h740dp`): a 400 dp drag down stops the cluster at or above the legend's top. **Predicted at base: passes** (a
+  guard for "keep it in portrait"), backed by a revert check that drops the bound in portrait as well.
+
+### Revert checks planned
+
+| check | revert | should fail |
+|---|---|---|
+| R7 | the chip row's modifier back to `width(bar).wrapContentWidth(Alignment.Start)` | the chip-row tests, with the cap or alignment message |
+| R7c | the `widthIn(max = cap)` removed only | the width and wrap tests |
+| RQ4 | the `!landscapeCluster` condition removed | the three landscape Q4 tests |
+| RQ4p | the bound dropped in portrait too | the portrait Q4 guard |
