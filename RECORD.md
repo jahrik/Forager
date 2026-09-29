@@ -6493,3 +6493,25 @@ The planner confirmed each by grep.
   - an install over schema 16;
   - an entry delete, then confirm its path is gone.
 - Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-205
+**Timestamp:** 2026-09-29T18:02:22Z
+**Closes:** 2026-09-28-195 (F3, a kept track keeps its path)
+**Outcome:** completed
+**Observed:**
+- **Record:** docs/audits/2026-09-29-kept-track-path-completion-report.md. It landed at 0df67ba1.
+- **Built:**
+  - cartography_entry_track_paths via MIGRATION_16_17 (schema 17);
+  - the path copied on delete into kept, withheld and draft refs;
+  - the entry map, card (read lazily, owner "C") and bubble fall back to it;
+  - backup keeps track refs without their track.
+- **The planner's suite** at 6fd659b4 (containing F3), idle, from a cleared results directory with the hang timeout: 372 files, none stale, 0 compile errors, 3106 / 0 / 0 / 24, in 280 s.
+  - The coder's runs 1 and 2 had one and two intermittent failures. The planner's run had none.
+- **Device-only:** the report's list (-204), for the S22 session.
+**Notes:**
+- The delete-data wording goes to L1, now launched.
+- The silent saved-path read failure in the map use case is a known CLAUDE.md gap, recorded in the report.
+- Written by the planner by hand.
