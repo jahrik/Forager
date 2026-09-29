@@ -266,6 +266,7 @@ import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.ui.platform.LocalConfiguration
 import com.zynergylabs.forager.app.ui.log.ScreenEdge
 import com.zynergylabs.forager.app.ui.adaptive.isShortWindow
+import com.zynergylabs.forager.app.ui.backup.BackupControls
 import com.zynergylabs.forager.app.ui.adaptive.currentWindowPortEdge
 import com.zynergylabs.forager.app.ui.adaptive.punchHoleEdgeFor
 import com.zynergylabs.forager.app.ui.log.currentDisplayRotation
@@ -481,6 +482,11 @@ fun AvailabilityScreen(
     onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit = {},
     /** Settings' "Lock camera to portrait" checkbox — see [AvailabilityUiState.lockCameraToPortrait]. Defaulted like the one above. */
     onLockCameraToPortraitChanged: (Boolean) -> Unit = {},
+    /**
+     * Settings' Backup section (journal backup and restore, dispatch 2026-09-28-127): its state and callbacks.
+     * Defaulted, so a caller with no backup still composes the section, inert.
+     */
+    backup: BackupControls = BackupControls(),
     /** Settings' Light/Dark/System Default theme choice — see [AvailabilityUiState.themeMode]'s own doc comment. */
     onThemeModeChanged: (AppThemeMode) -> Unit,
     /**
