@@ -5450,3 +5450,33 @@ It also flagged the snackbar lying over the floating nav.
   - providers that never report a size ask every time.
 - The terminal for -127 follows the planner's suite.
 - Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-156
+**Timestamp:** 2026-09-29T07:15:20Z
+**Closes:** 2026-09-28-127
+**Outcome:** completed
+**Observed:**
+- **Record:** docs/audits/2026-09-29-journal-backup-completion-report.md, covering the first pass and the "Resumed" sections for -137 and -153.
+- **Built:**
+  - backup and restore (Replace, and Merge with regions re-id'd);
+  - restored regions shown as "Not downloaded", with Download again;
+  - the unreadable-photo pause;
+  - planned trips included;
+  - the recording block;
+  - the loading page with Done and its grow-and-fade;
+  - failed-write cleanup;
+  - "Replace the existing backup file?";
+  - scheduled backups, off by default and Weekly, with "Backups" notifications and the fallback at the next launch.
+- **The planner's own suite,** on an idle machine at 85a41257, from a cleared results directory: 345 files, none stale, 0 compile errors, 2802 / 0 / 0 / 24, in 233 s. That matches the coder's count.
+- **Device-only:** Part 2 Session 3 (-154).
+**Deviations:**
+- The first pass had no tests-first commit. This was self-reported, and corrected in -153.
+- Builds ran under 2.5 GB available on each pass.
+**Notes:**
+- **Left for the Part 2 follow-ups, with no ruling needed now:**
+  - Replace keeps a cartography region ref row whose region the backup lacks (-155), so it could meet a future MapLibre id;
+  - a Try again after the schedule is turned off posts "didn't finish".
+- Written by the planner by hand.
