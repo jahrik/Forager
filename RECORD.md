@@ -6183,3 +6183,19 @@ Nothing of either window was pushed. On the phone, the two did only force-stop a
 - **The planner's suite** at b09892a4, idle, from a cleared results directory with the hang timeout: 356 files, none stale, 0 compile errors, 2949 / 0 / 0 / 24, in 320 s. That matches the coder's count.
 - **Device-only:** the report's six items, plus -187's two flags (Replace and the phone's own regions' tiles; editors a restore does not close). All go to the next S22 session.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-189
+**Timestamp:** 2026-09-29T13:00:53Z
+**Dispatch:** 2026-09-28-181 (F1)
+**Reason:** the owner launched F1. The owner, verbatim: "Pasted".
+**Changes:** F1 runs in an owner-opened window. The base named in its prompt is 6992bef5. journal-redesign has since gained F2 (29d65a26) and records; the coder pulls with --no-rebase.
+**Notes:**
+- **Queued after F1:**
+  - one S22 device session: the L's items 38/39/40/42 and device list, F1's and F2's device lists, -187's flags, and Part 2's not-run items;
+  - the tablet's J6 check;
+  - the intermittent-failure investigation;
+  - PR #140.
+- Written by the planner by hand.
