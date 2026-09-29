@@ -18,6 +18,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.model.LatLng
+import com.zynergylabs.forager.app.ui.log.CartographyUiState
 import com.zynergylabs.forager.app.ui.map.JOURNAL_ENTRIES_CHIP_TAG
 import com.zynergylabs.forager.app.ui.map.MAP_LEGEND_CHIP_TAG
 import com.zynergylabs.forager.app.ui.map.MapSlot
@@ -91,14 +92,14 @@ abstract class MarkerFanOutPlacementScreenTests(private val rotation: Int) {
         )
     }
 
-    private fun setScreen() {
+    private fun setScreen(shownEntry: Boolean = true) {
         Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(rotation)
         var rotationSeen: Int? = null
         val store = FixedForecastStore(BOTH_FORECAST_GROUPS)
         val viewModel = mapLayersViewModel(store = store)
         composeRule.setContent {
             rotationSeen = LocalView.current.display?.rotation
-            MapLayersTestScreen(viewModel, slot, store, cartographyUiState = LAYOUT_FIXES_SHOWN_ENTRY_STATE)
+            MapLayersTestScreen(viewModel, slot, store, cartographyUiState = if (shownEntry) LAYOUT_FIXES_SHOWN_ENTRY_STATE else CartographyUiState())
         }
         composeRule.waitForIdle()
         composeRule.mainClock.advanceTimeBy(2_000)
@@ -107,6 +108,9 @@ abstract class MarkerFanOutPlacementScreenTests(private val rotation: Int) {
     }
 
     private fun bounds(tag: String): DpRect = composeRule.onNodeWithTag(tag).getUnclippedBoundsInRoot()
+
+    /** The compass strip's own text (its heading, or its no-fix line), which is inside the strip. */
+    private fun stripText(): DpRect? = barBounds(COMPASS_STRIP_HEADING_TAG) ?: barBounds(COMPASS_STRIP_NO_FIX_TAG)
 
     /** A bar drawn over the map (the bottom navigation, the landscape rail), when this layout has it. */
     private fun barBounds(tag: String): DpRect? =
@@ -172,11 +176,11 @@ abstract class MarkerFanOutPlacementScreenTests(private val rotation: Int) {
         val controls = listOfNotNull(
             "cluster" to bounds(MAP_ICON_CLUSTER_TAG),
             "legend" to bounds(MAP_LEGEND_CHIP_TAG),
-            "journal chip" to bounds(JOURNAL_ENTRIES_CHIP_TAG),
+            barBounds(JOURNAL_ENTRIES_CHIP_TAG)?.let { "journal chip" to it },
             barBounds(COMPACT_BOTTOM_NAV_TAG)?.let { "bottom nav" to it },
             barBounds(COMPACT_NAVIGATION_RAIL_TAG)?.let { "rail" to it },
             barBounds(SEARCH_ENTRY_BAR_TAG)?.let { "search bar" to it },
-            barBounds(COMPASS_STRIP_HEADING_TAG)?.let { "compass strip (its heading)" to it },
+            stripText()?.let { "compass strip (its text)" to it },
         )
         val half = 24f
         val placed = fan.members.map { m ->
@@ -236,6 +240,14 @@ abstract class MarkerFanOutPlacementScreenTests(private val rotation: Int) {
         val l = bounds(MAP_LEGEND_CHIP_TAG)
         fanAt("above-legend", (l.left.value + l.right.value) / 2, l.top.value - 12f, 4)
         fanAt("beside-legend", beside(l), (l.top.value + l.bottom.value) / 2, 3)
+    }
+
+    @Test
+    fun `a stack tapped just under the compass strip, with no chip row, fans clear of the strip`() {
+        setScreen(shownEntry = false)
+        val heading = checkNotNull(stripText()) { "the compass strip shows neither its heading nor its no-fix line" }
+        // The strip's own bottom is not measurable from outside; a touch well under its heading is beneath it.
+        fanAt("under-strip", (heading.left.value + heading.right.value) / 2, heading.bottom.value + 30f, 4)
     }
 
     @Test
