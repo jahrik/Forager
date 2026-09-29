@@ -198,3 +198,60 @@ Predicted counts: the suite grows by about 11 test methods (4 + 2 + 1 + 1 + 1 + 
 ### Revert checks planned
 
 Each restores from a copy saved before editing, checks the build log for compile errors first, and confirms the forward change afterwards: the seed (item 8) back to `MapMode.DEFAULT`; the notice spacer (item 2) removed; the cluster's notice bound (item 2) removed; the snackbar's bottom-nav padding (item 6) removed.
+
+---
+
+# Resumed (relaunch `2026-09-28-143`: the last three items plus item 9; a third coder)
+
+This is a **new** section; the two above are earlier coders' and are not rewritten. Nothing below was built or observed when this part was pushed.
+
+## Who, and the governing texts
+
+- Model: this session is configured for `claude-sonnet-5-5`; **I cannot read the serving model**, so it is unverified.
+- Worktree `/home/zynergy-labs/Zynergy/forager-wt/chrome-follow-ups`, branch `chrome-follow-ups`, at `ce952227` plus a `journal-redesign` merge (`--no-rebase`). `CLAUDE.md` read at the base; nothing in the dispatch conflicts with it.
+- **What the previous window left** (`ce952227`): pre-registration, a `MapChromeResumedTest.kt` of ten tests, a test tag `COMPACT_BOTTOM_NAV_TAG` on `ForagerBottomNav` (the only `main` change, inert), and an optional `mapSlotOverride` on `MapChromeTestScreen`. Nothing of it had been run. **Two findings on it, both fixed in the tests, neither in `main`:**
+  1. **It did not compile:** `MapChromeResumedTest.kt:295` used `RecordingNotice` with no import (`com.zynergylabs.forager.app.ui.track.RecordingNotice`). Added.
+  2. **One test failed at base for a reason other than the pre-registered one.** "changing the basemap on the entry map leaves the Maps tab on Street" was predicted to pass at base and failed on `Expected exactly '1' node ... ContentDescription = 'Exit fullscreen'`. Cause: in the fullscreen entry map, the Activity-level Back the test used to close the Layers sheet does not reach the sheet's dialog window; it reaches the screen's own `BackHandler`, which leaves fullscreen (`CartographyEntryReportScreen.kt:354`), so the exit control was already gone. The test now picks Satellite without that Back, asserts the entry map took it, then uses Back on purpose to leave fullscreen. After the fix it passes at base, as pre-registered.
+- **Governing texts, verbatim.** The continuation `prompts/preserved/2026-09-29-12.md` and its planner message are quoted in the section above (the previous coder's) and are unchanged. This session's launch prompt, the parts that govern:
+
+> You are a **fresh coder** continuing dispatch `2026-09-28-104`. **A previous window started this continuation and went quiet:** it pushed pre-registration and tests first for items 8, 2 and 6 at `ce952227` (branch `chrome-follow-ups`), and nothing after. ... Read what it pushed, check its pre-registration against this prompt, and carry on from there; if its tests or predictions look wrong, that is a finding.
+> **Item 8** (the owner, verbatim "1 B"): Seed `entryMapMode` from the Maps tab's `mapMode` when the entry map opens. No write-back. Update the comment at `CartographyEntryReportScreen.kt:227-234`. Find, with file:line, why the entry map rendered in daylight at night. Fix it only if the fix is confined to passing or honouring `night`; otherwise report it.
+> **Item 2** (the owner, verbatim "Option A"): On the Maps tab, place the search notice below the compass strip, using the strip's measured height. While the notice shows, the cluster's `minY` follows the notice's measured bottom. Placement only, no copy.
+> **Item 9** (the owner, verbatim: "One more thing: have the map street/topo/satellite chips be centered between the panel sides. The height position on the panel is fine as is."): governed by `prompts/preserved/2026-09-29-16.md`; read it in full. Centre the Layers sheet's map-type chip row between the sheet's sides, height unchanged; do it after items 8, 2 and 6 as its own commit.
+> **Item 6** (the planner's ruling): on the Maps tab the snackbar sits above the floating bottom nav, and above the rail's foot in landscape.
+> **Tests first** for each, in portrait and `w823dp-h384dp-land` where relevant, seen failing at base. Then revert checks, the full suite on your final tree at 0 failures, and a push to `journal-redesign`. Broken work goes on `chrome-follow-ups-wip`. No phone. Merge is not authorised.
+> Sharing the machine: check that no Java Gradle process is running (`pgrep -af '^\S*java .*([G]radleWrapperMain|[G]radleWorkerMain)'`) and that 2.5 GB of memory is available. Never run `./gradlew --stop`.
+
+`prompts/preserved/2026-09-29-16.md` (item 9's dispatch), the parts that govern, verbatim:
+
+> **Item 9.** In `MapLayersSheet.kt`, the map-type `Row` (`:263` at `83a1d56c`: `Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs))`) is centred horizontally between the sheet's sides. Its spacing between chips is unchanged, and so is its vertical position. Nothing else in the sheet moves.
+> **Premise to verify:** the sheet's content column has symmetric horizontal padding (`:257`, `padding(horizontal = Spacing.lg)`), so "centred in the content" equals "centred between the panel sides". If the padding is not symmetric, or the sheet's visible sides are not its layout bounds (for example, in landscape or the wide tree), **stop** and report.
+> **Tests first**, seen failing at base, in portrait and `w823dp-h384dp-land`: the row's horizontal centre equals the sheet's horizontal centre, within 1 dp; its top is unchanged from base. If the Layers sheet has a separate wide or tablet form, cover it too, or say it has none, with file:line.
+> Then a revert check from a saved copy, and your full suite at the end covering everything. Report it in your "Resumed" section as item 9.
+
+## Premises checked at my base
+
+- **The previous window's pre-registration against this prompt:** items 8, 2 and 6 match the continuation; its item-6 landscape reading ("clear of the rail") is my reading too. One pre-registered figure I correct: the suite count of "about 11 methods" was for the tests as written; the fix above does not change it.
+- **Item 8, why the device check saw day rendering at night: the premise is wrong, and the run record's frames say so.** I opened the device check's own captures (`device-evidence/2026-09-28-map-chrome-check/c5-*-12-entry-menu.png`). `c5-topo-day-12` shows the entry map light; `c5-topo-night-12`, `c5-street-night-12` and `c5-satellite-night-12` show it **dark, with the night marker palette**, all three identical to one another. So the entry map **does** follow Night Maps on the S22. What it does not follow is the basemap: all six frames read "OpenTopoMap" in the attribution and draw the topographic style, which is `entryMapMode` defaulting to `MapMode.DEFAULT` (`CartographyEntryReportScreen.kt:302`) and is what "1 B" seeds. The run record's line "In all six combinations the entry report's preview map ... is the same Topographical-by-day rendering" (`2026-09-28-map-chrome-device-check-run-record.md:837`, repeated at `:1029`) is right about the basemap and **wrong about night**; the previous coder's Robolectric test ("with Night Maps on the entry map is handed night", passing at base) and my reading of the frames agree. `night` is a required parameter with one call site (`CartographyScreen.kt:417-422`), passed at every hop (`AvailabilityScreen.kt:908`, `AvailabilityCompactScaffold.kt:1031`, `JournalTab.kt:638`, `LogPanel.kt:470`, `CartographyEntryReportScreen.kt:485`) into the same `SightingsMapSlot` that restyles on `nightMode` (`SightingsMap.kt:586`). **There is no night bug to fix.** The record entry is the planner's to supersede; I do not edit the run record.
+- **Item 9's premise.** `MapLayersSheet.kt` (`Column`, `.fillMaxWidth()`, `.padding(horizontal = Spacing.lg)`, `.padding(bottom = Spacing.lg)`): the padding is symmetric, so centred in the content is centred in the sheet's layout bounds. **One composable serves every caller** (there is no separate wide or tablet form); its callers are the Maps tab (`AvailabilityCompactMapUi.kt`, `showLayersSheet`), the entry map's fullscreen (`CartographyEntryReportScreen.kt`) and the wide tree; the sheet is a Material `ModalBottomSheet`, whose own width cap (640 dp by default) is the sheet's layout bounds in landscape. To be shown in the test by comparing with the sheet node's own bounds. Not a stop.
+- **Design (mine to state, the dispatch's to rule if wrong).**
+  - *Item 8:* a defaulted `initialMapMode: MapMode = MapMode.DEFAULT` on `CartographyScreen` and `CartographyEntryReportScreen` (some 16 test callers stay unchanged), passed from `JournalTab` and `LogPanel`, which already hold the Maps tab's `basemap`; `MapMode` and `Basemap` are one to one (`map/MapMode.kt`), so a `MapMode.forBasemap` lookup does the seed and nothing threads a second value. `entryMapMode` is seeded from it at `remember(entry.id)`; nothing writes back.
+  - *Item 2:* `CompactMapTab`'s search slot takes the strip's **measured** height (`onSizeChanged` on the strip, after its own top padding); in portrait the scaffold puts a spacer of that height between the bar and the notice, so the notice starts where the strip ends. The scaffold measures its search column's height and, while a notice shows, hands `CompactMapTab` that bottom; the cluster's clamp gets one new final step that raises the offset so the cluster's top is at or below it, and the clamp effect re-runs when the bottom changes. The clamp is display-only, so the cluster returns to where the user left it when the notice clears. In landscape the strip is in the other corner, so no spacer there; the cluster rule is the same.
+  - *Item 6:* on the Maps tab in portrait, outside fullscreen, the snackbar's bottom padding is the measured bottom-nav height (`bottomNavHeight`, which already includes the system-bar inset the bar takes); in fullscreen, and in landscape, it keeps the navigation-bar inset it has now; in landscape it also takes the map controls' own horizontal padding (`mapControlsPadding`: the cut-out and the rail's measured width), so the centred snackbar clears the rail.
+- **Item 6's "above the rail's foot in landscape"** I read as "not lying over the rail", the same as the previous coder did (the rail runs the full height at the port edge, so it has no foot band to sit above). If the planner meant a different placement, that is a stop I did not hit.
+
+## Item 9's tests, pre-registered
+
+New file `MapChromeChipsTest.kt`, through the real `AvailabilityScreen` (`MapChromeTestScreen`): open the Layers sheet from the cluster's row; the chip row's bounds are the union of the `Street`, `Topographical` and `Satellite` chips'; the sheet's are the tagged sheet node's.
+
+| test | predicted at base | pass condition after |
+|---|---|---|
+| portrait (`w384dp-h823dp-xxhdpi`): the chip row's horizontal centre equals the sheet's, within 1 dp | **fails**: the row hugs the start (`Row` with no `fillMaxWidth` and no centring) | equal within 1 dp |
+| portrait: the row's top is the value it has at base | **passes at base and after** (a guard, not evidence for the change) | unchanged; the constant is read from the base run and recorded here |
+| `w823dp-h384dp-land`: the same two | centre **fails**; top guard passes | as above |
+
+Predicted growth of the suite from the three items and item 9: about 14 test runs (11 from the previous window's file, 4 from item 9, less the guard tests counted twice); I will count from the XML.
+
+## Revert checks planned
+
+Each restores from a copy saved before editing, checks the build log for compile errors before reading results, and confirms the forward change afterwards: the entry-map seed back to `MapMode.DEFAULT`; the notice spacer removed; the cluster's notice step removed; the snackbar's bottom-nav padding removed; the snackbar's horizontal padding removed (landscape); the chip row's centring removed (item 9).
