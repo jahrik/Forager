@@ -687,3 +687,67 @@ is byte-identical in hash (`c6c7de3f…`) to `101-r-first`'s, so nothing else ch
    12298 and 18843 (first 17:32:50, last 18:11:33). Not trips-related; I did not investigate it (flag).
 
 **Skipped, as pre-registered:** 2-1z and 2-5a.
+
+## Resumed: step 3, the deletes, and step 4, the restore
+
+**Deleted through the Trip Planner** (Tools drawer → Trip Planner → each row's "Remove planned trip for <date>" button, real taps,
+`07-inputs.log`). Before (`141-d-planner-before`): **exactly two rows**, "Trip 1" (2026-09-28) and "Trip 2" (2026-09-30), matching the ids
+`5deff079-1dba-440e-b947-46e53b0e18d3` and `47b2784e-6ba8-46cd-96fc-f76bee22ce15` above by name, date and the coordinates in `trips-created.txt`
+(the UI shows no id; identification is by name, date and coordinates, inferred). Remove on 2026-09-28 at 01:12:3xZ (`142-`: only Trip 2 left); remove on
+2026-09-30 at 01:12:4xZ (`143-`: "No trips planned yet."). No confirmation dialog appeared; no other row was touched. The map afterwards
+(`144-d-map-after-delete`) has 0 trip pixels; the find, waypoint and regions were untouched.
+
+**Read-back, from a database copy after a force-stop** (`146-force-stop-end.txt`: pid 18843 before, none after, 01:13:02Z; `db-end-*`): device
+and local sha256 match for all three files; **`forager.db` is byte-identical to the start copy** (`e88effc0…61af7c93`); header valid, WAL magic valid;
+**`integrity_check` ok; `user_version` 16; `planned_trips` 0** (the starting count, `db-start-verify.txt`); the other 17 tables' row counts equal the start's.
+Per-table digests over every column (`db-end-digest.txt` against `db-start-digest.txt`, `diff`): **17 of 18 identical; only `cached_searches` differs**
+(2 rows both times; the timestamps and possibly cached results the "Fungi · August" re-runs rewrote, as pre-registered and as phase 2 reported).
+I did not open the raw copy.
+
+**Settings restored and read back** (`151-final-read.txt`, 01:13:25Z; `152-datastore-compare.txt`): the two things I changed in the app, the Planned trips switch
+(`map.layer.planned-trips-layer.visible = True`) and Night Maps (`night_mode.maps = False`), read back from `map_preferences`; **all five DataStore files
+are byte-identical (`cmp`) to the start copies** (`05-*-start.pb`). System: `user_rotation` 0, `accelerometer_rotation` 0, `font_scale` 1.0, `screen_off_timeout` 600000,
+`navigation_mode` 0, `location_mode` 3, `display_density_forced` 450, `cmd uimode night` yes: all as read at 01:06Z and at the run's start; none was changed. Forager
+relaunched with `am start` (COLD) and in focus, on the Maps tab, crash buffer 0 bytes. `region` is null again on that cold start (the Trip Planner line was not re-read; inferred, AUS:30).
+
+## Resumed: verdicts
+
+Phases 1 and 2 (above) plus this run give, for the two trips on the compact tree (S22, `1.0.1457+gb358a4aa`):
+
+| Condition | Result | Evidence |
+|---|---|---|
+| Trips saved and listed, **`region` null** (cold start, no search) | **never drawn**, at any zoom tried, switch on/off, day/night, after a tab trip and a relaunch; no bubble | phase 1: 0 trip pixels in every capture `20-`…`55-`; resumed `122-r-relaunch` |
+| Same trips, **after a recent search sets `region`** | **both draw** at their points, 2175 px each, 19.9 x 27.7 dp | `66-p2-after-search`; `101-r-first`; `129-r-after-search` (same bounds as `66-`) |
+| Switch off / on, with `region` set | gone / both back | `104-`, `106-` |
+| Day / night, with `region` set | `#9553A4` / `#FA01DD`, same clusters | `113-`, `110-` |
+| Tap on each flag, `region` set | bubble with name, date, MGRS, decimal degrees, "Directions" | `116-r-tap-A`, `-B` |
+| Force-stop and relaunch | absent, bar "Search a location"; **both draw again after the search is re-run** | `122-`, `129-` |
+
+**Predictions:** every pre-registered row held **except R-0** (I predicted `region` null on first capture; it was set, because the pid I took for a restart was the earlier run's own
+relaunch). That was my wrong premise, not a behaviour of the app; the gate itself behaved as predicted at every point where I could read it.
+
+**The cause the evidence supports.** The compact Maps tab hands the map an empty trip list whenever `region` is null: `plannedTrips = if (hasSearched) uiState.plannedTrips else emptyList()`
+(ACMU:641, `hasSearched = uiState.region != null` at :573; **read** at `b358a4a`). **Observed:** on the S22, with two trips in the database and in the Trip Planner, no flag is drawn while the bar reads
+"Search a location" (`region` null), across the zoom, switch, day/night, tab and relaunch cases; the flags draw when a search sets `region`, with the camera, the trips, the layer switch and Night Maps
+unchanged (phase 2 and `129-`, the same clusters twice); they vanish again at every cold start until a search is re-run. **Inferred:** that the owner's S26 report ("They do not appear at all") is this
+gate, as they had three trips listed and did not report running a search (I have not seen the S26 or their state). What the evidence does **not** cover: the wide tree (the tablet's terminal `-101` did, after a
+search), a trip with the switch on before any search under a different route to set `region` (manual coordinates, "Use current location"), and whether the gate was intended.
+
+## Resumed: Decisions I made
+
+1. **Skipped 2-1z and 2-5a**, pre-registered before observing, with the reasons above. The dispatch's step 2 lists "the layer switch, day and night, tap, and relaunch, with the search run", which I ran.
+2. **Re-ran the "Fungi · August" recent search** (as phase 2 did) rather than "Use current location", for the reason in Decisions above (5): it rewrites one existing `cached_searches` row instead of adding one. The digest shows only that table changed.
+3. **Read screenshots for the search step**, after the keyboard was up (the earlier run's stray touch); lowered the keyboard with Back, as `-84` and the earlier run did. No prompt appeared.
+4. **Identified the trips to delete by name, date and coordinates**, since the planner shows no id; there were exactly two rows.
+5. **Used `am start` at the end** so Forager is in focus as at the handoff. The prior state (Forager focused) is what the dispatch describes; the app was in a cold start with `region` null.
+6. **Ran the D58 check** as a grep over the diff and the commit message before each push (the phrases were read from forager-forecast `origin/d55-artifact-contract`'s `DECISIONS.md` row D58 with `git show`, no checkout); none found. The phrases are not written in this file.
+7. **No record entry, no `RECORD.md`, index, `CLAUDE.md`, `docs/plans/` or `prompts/` touched**; merge not done.
+
+## Resumed: Flags outside scope
+
+1. **`AvailabilityViewModel: Couldn't read offline regions.`** (a `MapLibreConfigurationException`, `loadOfflineRegions`, `AvailabilityViewModel.kt:922-923` via `init` :167) at every cold start I can see in logcat (pids 12298, 18843). This is the path the planner's pulse is reading.
+2. **`Mbgl-NativeMapView: … getMetersPerPixelAtLatitude after the MapView was destroyed`, 2466 lines** across three processes (17:32:50 to 18:11:33), including while the Maps tab was on screen. Unexplained; not investigated.
+3. **A uiautomator dump cannot show the flags:** the dump hash of the map with the flags drawn (`101-`) equals the hash with them deleted (`144-`); only the screenshot differs. Any future check of this feature that reads dumps only would pass in both states (`snaps.log`).
+4. **The Trip Planner starts collapsed each time the drawer opens**; a first tap in this run did not expand it (`140-`), the second did (`141-`). Not investigated (possibly the tap landed before the drawer settled).
+5. **The model that served this session is unverified** (see the pre-registration).
+6. **Screenshots and dumps of this run contain the owner's real map area and the trips' coordinates**; they stay outside the repository.
