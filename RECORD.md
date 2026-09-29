@@ -6257,3 +6257,19 @@ The planner confirmed each by grep.
   - item 10's premise is corrected: the case is photo on photo, with PHOTOS drawn above FINDS;
   - for item 5, deleting a waypoint leaves its ref rows and snapshots untouched. The coder applies the same to tracks, but a track snapshot has no path, so an entry cannot redraw a deleted track. That goes to the owner as a question.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-193
+**Timestamp:** 2026-09-29T16:31:34Z
+**Dispatch:** none yet (F3, after F1)
+**Reason:** the owner, verbatim: "Option B": a kept track keeps its path, so deleting the track does not change the entry's map.
+**Changes:**
+- F1 builds track delete under the waypoint rule, as its coder read it (-192).
+- F3 adds the kept path, preceded by a read-only pulse that maps:
+  - how kept snapshots are stored;
+  - the database version (16) and migrations;
+  - the backup's table list and Merge;
+  - where the entry map draws kept tracks.
+**Notes:** Written by the planner by hand.
