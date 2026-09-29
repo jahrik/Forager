@@ -1383,3 +1383,133 @@ J8 and Part 1 run records' bar and chip positions. They are not measured.
 6. **Robolectric's default graphics mode measures text at near-zero width.** A test whose geometry depends on text
    (the search bar's height, chip widths) needs `@GraphicsMode(NATIVE)`. The first base run showed it: the search bar
    85 dp against 45.
+
+---
+
+# Resumed again (planner message `2026-09-28-109`)
+
+## Who and what I ran on
+
+- Model: this session is configured for `claude-sonnet-5-5`, the model ID in my system prompt. I did not verify the serving model
+  beyond that line, so the serving model may differ.
+- Worktree `/home/zynergy-labs/Zynergy/forager-wt/layout-fixes`, branch `layout-fixes`. It was clean at `08e9f13`; I pulled
+  `origin/journal-redesign` with `--no-rebase` (fast-forward) to `9b59a4d`. The pull brought only planner-side files
+  (`RECORD.md`, `prompts/`, `docs/`), no source.
+- `CLAUDE.md` was read at the base. The coder's rules in the launch prompt and `CLAUDE.md` do not conflict with `-109`.
+
+## The dispatch texts read, in order
+
+`prompts/preserved/2026-09-28-78.md`, `-88.md`, `-98.md`, `-99.md` and `-109.md` (the last at `c2c9e6b`, first 16 hex of its sha256
+`c0788bd79fae188e`), and `RECORD.md` entries `2026-09-28-108` and `-110`. `-78`, `-88`, `-98` and `-99` are quoted verbatim
+above in this report. **`-109` verbatim, below its "verbatim message follows" line:**
+
+> Planner message `2026-09-28-109`, part of dispatch `2026-09-28-78`, as amended by `-88`, `-98` and `-99`. Quote it verbatim in your report. It rules on your held items 1, 2 (landscape), 7 and 8.
+> 
+> **The owner's answers, verbatim: "1 A / 2 A / 3 D".** As the planner put them:
+> - "1. The chip over the reset button at 90°. A. Move the chip to the other end of the search bar, away from the icon bar."
+> - "2. The legend over the icon bar at 270°. A. At 270°, put the legend just inside the icon bar, beside it towards the centre, instead of tucked into the corner."
+> - "3. The strip between the chip and the coordinates. D. Leave it as map."
+> 
+> **Item 7: build it (your option E, extended by the planner).**
+> - In a short landscape window, **the chip row** (the taxon chip and J8's chip together) aligns to the end of the search bar **away from the cluster's current side**, and follows the cluster when it is dragged or snapped to the other side.
+> - It is the row, not J8's chip alone, because J8's chip was ruled "Top, by the species chip". That is the planner's reading of the owner's "the chip", stated to the owner.
+> - Portrait is unchanged.
+> - **Tests first** at `w823dp-h384dp-land`, 90 and 270, with the cluster on each side: the chip row does not intersect the cluster. Real touches across the reset button reach it.
+> 
+> **Items 1 and 2 (landscape): build them.**
+> - When the cluster is on the legend's side (at 270 by default, or wherever it is snapped), the legend sits **just inboard of the cluster**: beside it towards the centre, bottom-aligned, with the portrait gap, collapsed or expanded. Otherwise it stays in its corner as today.
+> - Q4's rule (the cluster moves up for the expanded legend) still applies where there is room.
+> - **Tests first:** the legend, collapsed and expanded, does not intersect the cluster at 90 and 270 with the cluster on each side. Real touches across the legend's chip reach it.
+> 
+> **Item 8: no change.** The owner ruled the band stays map. J8's chip design (touches only on its pill, `JournalEntriesChip.kt:96`) and its tests stand. Record the ruling in your report. Your held T8 tests stay off the suite, on `layout-fixes-wip`.
+> 
+> **Everything else stands:** revert checks per item, the full suite, the device-only list (add the chip row's and the legend's placement at 90 and 270), no new copy, and a "Resumed" section.
+> 
+> **Sharing the machine:** the offline-safety coder builds on this machine. Before each Gradle run, check that no other build is running and that 2.5 GB is available.
+
+`RECORD.md` `-110`, the relaunch note, verbatim in its Reason: "the owner, verbatim: \"Switch coders to Sonnet 5.5\", then \"Stop whatever
+coder that isn't Sonnet 5.5 and switch them\". The planner stopped the -78 coder. Its worktree forager-wt/layout-fixes was clean at
+08e9f13, with -109 not yet started." Its Changes: "A fresh coder on Sonnet 5.5 continues from 08e9f13 and builds -109 (the chip row
+away from the cluster; the legend inboard at 270; item 8 unchanged), then the stage's finish line."
+
+## Premises checked at the base (`9b59a4d`)
+
+- **The chip row's placement** is `AvailabilityCompactMapUi.kt:1131-1160`: in short landscape a `FlowRow` aligned to `punchHoleEdge`,
+  `width(landscapeSearchWidth)`, `wrapContentWidth(Alignment.Start)`. So today the row is always at the bar's start. Confirmed.
+- **The legend's placement** is `AvailabilityCompactMapUi.kt:1210-1225`: `Alignment.BottomEnd`, `padding(controlsPadding)`,
+  `padding(end = Spacing.sm, bottom = renderMode.bottomInset + LEGEND_ATTRIBUTION_CLEARANCE)`. Confirmed. The cluster is on the legend's side
+  exactly when `!isMapIconBarOnLeftSide` (the same test as `legendBoundPx`, `:799`).
+- **Q4's clamp** (`:794-841`) applies its legend bound only when `!isMapIconBarOnLeftSide`. Not changed by this work (see Decisions).
+- **An existing test asserts the old chip placement:** `AvailabilityScreenLandscapeB2Test.kt:271-283` (S3 at ROTATION_90) asserts
+  "the chip starts at the bar's start" (`:281`). At 90 the cluster's default is the left, so `-109` moves the chip row to the bar's right end
+  and that assertion must change. That is the ruling overriding an older assertion, not a silenced test; I will change only that one assertion
+  and record it.
+- **`-109` says the held T8 tests "stay off the suite, on `layout-fixes-wip`".** `origin/layout-fixes-wip` is at `08e9f13`, the same commit as
+  `layout-fixes`, and neither has T8 at its tip. T8 is in `LayoutFixesPortraitTest.kt` at `d959fb9`, which `origin/layout-fixes-wip` contains
+  in its history (`git grep -c T8 d959fb9 -- .../LayoutFixesPortraitTest.kt` = 6). So the premise holds in history, not at the branch tip. Not a blocker.
+- **No caller check needed for the changed paths:** both are inline in `CompactMapTab`, reached from `AvailabilityScreen` (the tests drive the real screen).
+
+## The design I will build (stated before building)
+
+**Item 7.** In the landscape branch only (`punchHoleEdge != null && landscapeSearchWidth != null`), `wrapContentWidth(...)` takes an *absolute*
+alignment: `AbsoluteAlignment.Right` when the cluster is on the left (`isMapIconBarOnLeftSide`), `AbsoluteAlignment.Left` when it is on the right.
+The cluster's side is an absolute left/right, so the row's alignment is absolute too (the existing `TopStart`/`TopEnd` on `punchHoleEdge` is
+unchanged). It follows the cluster because `isMapIconBarOnLeftSide` is state. Portrait's branch is not touched.
+
+**Items 1 and 2 (landscape).** In short landscape with the cluster on the legend's side, the legend's end padding grows from `Spacing.sm` by
+`MAP_ICON_BAR_EDGE_INSET` + the cluster container's width + `Spacing.sm` (the portrait gap between the legend and the cluster,
+`legendClusterGapPx`, `:798`). The width is the cluster container's measured width, read in the same `onGloballyPositioned` that measures its
+height (`:1049-1052`), kept as the last measured value so a minimised cluster leaves the legend where it was. Vertical placement is unchanged
+(bottom-aligned). Otherwise the legend is exactly as today.
+
+**Item 8.** No code change.
+
+## Pre-registration: tests, pass conditions and predictions
+
+All Robolectric, `w823dp-h384dp-land`, `@GraphicsMode(NATIVE)` (text measured, as Decision 6 above), rotation pinned with
+`ShadowDisplay.setRotation` and asserted seen by the screen. Cluster moved by the real long-press drag of its minimise handle. Every touch
+is a coordinate touch. New file
+`app/src/test/java/com/zynergylabs/forager/app/ui/availability/LayoutFixesLandscapeRulingsTest.kt`; `LayoutFixesTestSupport.kt` gains a
+`content` field on `LayoutFixesMapSlot` (test support only).
+
+### `LayoutFixesChipRowLandscapeTest` (item 7): the real screen with the taxon chip (via "View on Map" from the List tab) and J8's chip
+
+Each test asserts, in this order: (a) the chip row (union of the two chips' bounds) does not intersect the cluster; (b) the row is at the bar's
+end away from the cluster (within 1 dp) and inside the bar's width; (c) five real touches across the reset button's bounds all reach it
+(`resetOrientationRequestId` up by 5 on the map's overlay content).
+
+| test | predicted at base |
+|---|---|
+| T7 at 90, cluster left (default) | **fails at (a)**: the row `[0, 53][158, 101]` against the cluster `[8, 60][112, 324]`, the figures the earlier report recorded |
+| T7 at 90, cluster snapped right | passes (a guard: the row is already at the bar's left end, away from the right) |
+| T7 at 270, cluster right (default) | passes (a guard: the row is at the bar's left end, away from the right) |
+| T7 at 270, cluster snapped left | **fails at (b)**: the row is at the bar's left end, expected at its right end |
+| T7 at 90, the row moves when the cluster is dragged across | **fails**: `chipRow().left` does not decrease |
+
+### `LayoutFixesLegendLandscapeTest` (items 1 and 2 landscape): the real screen with the legend showing (as the earlier held test)
+
+For each rotation, with the cluster on the far side (the legend's corner position is read there) and then on the legend's side, with the legend
+collapsed and expanded: the legend does not intersect the cluster; its bottom equals the corner's bottom (within 1 dp); on the legend's side its
+right edge is 8 dp left of the cluster's left edge (within 1 dp); four real touches at different points of the chip's bounds each flip it.
+
+| test | predicted at base |
+|---|---|
+| T1 at 90 | **fails** in the second phase (cluster snapped right), collapsed: the legend overlaps the cluster; the first phase (cluster left) passes |
+| T1 at 270 | **fails** in the first phase (cluster on its default right), collapsed: the figures the earlier report recorded, legend `[739, 316][815, 352]` against the cluster `[711, 60][815, 324]` |
+
+Any test predicted to fail that passes at base is a stop.
+
+### Revert checks planned
+
+Each restores from a copy saved before editing (not git), checks the build log for compile errors before reading results, and confirms the
+forward change afterwards.
+
+| check | revert | should fail |
+|---|---|---|
+| R7 | the chip row's `wrapContentWidth` back to `Alignment.Start` | the T7 tests, at (a) at 90-left and (b) at 270-snapped, with a message naming the bar's end |
+| R1 | the legend's end padding back to `Spacing.sm` | the T1 tests with the legend beside the cluster |
+
+### Device-only, by construction
+
+The chip row's and the legend's placement at 90 and 270 on the S22 (real insets, cut-out, the rail's measured width); where the legend's left
+end reaches relative to the search dropdown; and thumb reach.
