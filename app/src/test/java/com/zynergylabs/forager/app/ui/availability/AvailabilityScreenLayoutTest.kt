@@ -10,7 +10,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -200,7 +200,7 @@ private val TRIP_WINDOW_REPORT_NO_WINDOWS = TripWindowReport(
 
 abstract class AvailabilityScreenLayoutTest {
 
-    private val composeRule = createComposeRule()
+    private val composeRule = createAndroidComposeRule<androidx.activity.ComponentActivity>()
 
     /**
      * Declares the Compose test host activity on Robolectric's package manager before
