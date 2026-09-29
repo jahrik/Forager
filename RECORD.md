@@ -4484,3 +4484,33 @@ Put to the owner before any fix is written. Written by the planner by hand.
 **Finish line:** Part 1 pushed, then Part 2, each with tests first, revert checks and the full suite, then the report. The planner writes the terminal and dispatches an S22 check with a full backup of forager.db and mbgl-offline.db.
 **Abort conditions:** A migration needed; new copy; anything reading filesDir/maplibre-offline; a path deleting tiles or a row without the user's delete; a tests-first test passing at base; a non-compiling revert; a non-held failure; disk full or OOM; two failed fixes; a refused push; an unruled design question.
 **Notes:** Owner, verbatim: "Option A. Protect then fix." Runs ahead of the queued builds, as data safety, beside -78 on different files, with Gradle serialised. Launched through a general-purpose agent carrying the coder's rules, because the planner's session checkout is on device-trips (-94's coder created it there) and so lacks .claude/agents. Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-107
+**Timestamp:** 2026-09-29T00:28:59Z
+**Closes:** 2026-09-28-100
+**Outcome:** completed
+**Observed:**
+- **Commits.**
+  - Pre-registration 057117e; the stop report 91bb142 (the first push was refused as "Out-of-Place Publication", and a local status read as "Data Exfiltration"); a "Resumed" note at 4b55b23.
+  - The owner pulled and pushed directly. The push was rejected as non-fast-forward because the remote had moved; the planner then merged the remote and pushed (ae0b90f..2893f8a).
+  - Tests first 3660e5b; the build 9d1e4c1 (MapLayers.kt only); the report 0fd3944 and 33a69c1. All on journal-redesign, with no later push refused.
+- **The build.** ZGroup is { COLOUR_FIELDS, AREAS, DECORATIONS, LINES, MARKERS }. journalHalo takes zGroup (default LINES); the three marker rings pass DECORATIONS; the two line halos stay in LINES. registryProblems needed no change, since it does not read kind.
+- **Evidence.**
+  - Tests first: 4 of 26 failed as pre-registered; the named guard T4 (the full draw order identical to base) passed.
+  - R1 (rings back in LINES): 3 failures, the guard passed.
+  - R2 (DECORATIONS above LINES): 5 failures, including the guard.
+  - Coder's suite at 9d1e4c1: 306 / 2493 / 0 / 0 / 24.
+- **Planner's suite** at d59a628 (app/ equal to 9d1e4c1): 306 / 2493 / 0 / 0 / 24, cleared, 0 stale, no compile errors, 00:24:38 to 00:27:46Z.
+**Deviations:**
+- The first resume's retry instruction was declined by the coder, correctly: the refusal named the user as the one to decide, and a relayed "A" is not the user's consent.
+- Failing tests-first commits went to decorations-wip first.
+**Notes:**
+- Device-only: none. The layer order handed to SightingsMap is unchanged, as the guard proves.
+- Flags:
+  - SightingsMap.kt:831-832's KDoc still lists four bands;
+  - the two permission refusals.
+- Owner, verbatim: "Option C: decorations to keep it separate. We can change it if the forecast layering needs changes".
+- Written by the planner by hand.
