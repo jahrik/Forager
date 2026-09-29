@@ -1142,3 +1142,39 @@ The owner then asked, verbatim: "Unless that's a scaffolding for more map functi
 - In short landscape, only the Maps tab lets its map run under the cut-out. `AvailabilityCompactScaffold.kt:679-683` sets `contentWindowInsets` to the top only, "the map runs the whole width, under the cut-out", and pads the controls one by one (`mapControlsPadding`, :552-575).
 - Every other tab, the Journal included, takes `shortLandscapeContentInsets()` (:684-685). That keeps the whole tab, lists and text included, out of the cut-out band.
 - The entry map lives inside the Journal tab, so it inherits that margin.
+
+**The landscape entry map's left band: dropped (owner, 2026-09-29).** Asked whether "Nevermind that part" meant the entry map's black band in landscape, the owner answered, verbatim: "Yes drop that". The request is withdrawn. The entry map keeps the Journal tab's cut-out margin, and nothing is dispatched.
+
+**Tracks by zoom, revised, and Session 3's backup findings (owner, 2026-09-29).** The owner, verbatim: "2 A, 3 I'll take your recommendations".
+
+**2 A: new track width stops,** replacing the 2026-09-28-34 proposal:
+- zoom 18 and above: full width, 100%. The line is 6 dp plus a 1.5 dp casing each side, 9 dp in all;
+- zoom 16: about 67%;
+- zoom 14: about 42%;
+- zoom 12 and below: 25%. The line is 1.5 dp, 2.25 dp with its casing;
+- linear between stops.
+
+The casing and the highlight halo keep following the stops, as today.
+
+**3: Session 3's backup findings,** the planner's recommendations:
+1. **A restore skips a region that matches one already on the phone** (same name, centre and radius), so the phone that made the backup does not get duplicates.
+2. **The first scheduled backup waits for its scheduled time.** Turning the schedule on, or off and on, does not run one at once.
+3. **Scheduled backups keep the newest 5.** Older scheduled backup files in the chosen folder are deleted. Manual backups are never touched.
+4. **The notification permission is asked once,** when scheduled backups are first turned on. If it is declined, it is not asked again for backups; the in-app notice covers it.
+
+**The parked items wait for PR #140 (owner, 2026-09-29).** PR #140 is the single Journal PR: journal-redesign into pre-main, currently a draft. The owner, verbatim: "15 to 22 can come after PR 140 merge". That refers to the planner's open-items list, whose items 15-22 were parked:
+- the "MapView destroyed" log flood and the StrictMode disk reads at start-up;
+- the offline-region cases not yet tested (P1/P3, and no network);
+- the light theme's legibility;
+- the portrait dropdown's second Back;
+- Android 8-10 with no device;
+- non-JPEG imports stored under a .jpg name;
+- Session 3's leftovers on the S22 (the Backups channel, and possibly a folder grant);
+- the cause of the restore's unequal first pass.
+
+None of these block PR #140.
+
+**"Download Maps" asks first: the approved copy (owner, 2026-09-29).** The owner, verbatim: "Approve the Download Maps wording as is". The dialog opens over the picker when "Download Maps" is tapped:
+- **title:** "Download this area?"
+- **body:** "<name> · <radius> around the pin · about <N> tiles". Without a name it is "<radius> around the pin · about <N> tiles". The radius follows the units setting.
+- **buttons:** "Cancel" and "Download".
