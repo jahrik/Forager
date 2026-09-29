@@ -51,3 +51,81 @@ Citations are [read] at `7d17a5c`. The planner's outcome predictions are quoted 
 5. **Logs:** any `Room region row N has no MapLibre region in this read; kept, not shown.` (`map/OfflineRegionReconciliation.kt:41`), with its id, is recorded. Prediction 3 says there are none, because the backup's Room ids (1, 2) equal MapLibre's (1, 2).
 
 **Abort conditions (verbatim in the dispatch):** an unverifiable backup; uninstall, `-d` or a clear; a signature mismatch; any region missing afterwards; a new crash; any prompt over the app; a locked phone; touching the tablet. None has occurred at the time of writing.
+
+---
+
+# Resumed: results (same session, after the pre-registration above was pushed)
+
+Install: `install -r` only, `Success`. After it: `versionName=1.0.1577+g7d17a5c4`, `versionCode=1577`, `firstInstallTime=2026-09-22 11:15:05` (**unchanged**), signature the same (`signatures=[d59f30b8]`). Evidence directory: `/home/zynergy-labs/Zynergy/device-evidence/2026-09-29-offline-regions/` (outside the repository).
+
+## Verdicts against the pre-registered pass conditions
+
+| # | Check | Verdict |
+|---|---|---|
+| 1 | Three cold starts | **Pass** on all three (pids 26794, 26991, 27179), with the caveat under "What the log check cannot show" |
+| 2 | Regions from launch, Offline maps panel never opened | **Pass** |
+| 3 | Nothing lost | **Pass** |
+| 4 | Offline tiles still work | **Pass**, with the network caveat pre-registered and the store evidence below |
+| 5 | Kept-but-missing warnings | **None occurred**; prediction 3 held |
+
+### 1. Cold starts (`am force-stop`, `am start -n .../.MainActivity`, `logcat -d`, no `-c`; lines separated by pid)
+
+| Start | pid | `Couldn't read offline regions` | `MapLibre initialised.` (tag `MapLibreStorage`) | `MapLibre initialisation failed` | `MapLibreConfigurationException` | `FATAL EXCEPTION` |
+|---|---|---|---|---|---|---|
+| 1 | 26794 | 0 | 1 | 0 | 0 | 0 |
+| 2 | 26991 | 0 | 1 | 0 | 0 | 0 |
+| 3 | 27179 | 0 | 1 | 0 | 0 | 0 |
+
+The whole ring buffer (16:27 to 18:58, 313136 lines) has the `MapLibre initialised.` line exactly once per pid for these three and none elsewhere. No system or first-run prompt appeared over the app (screenshots `screen-start1.png`, `screen-start3.png`).
+
+**What the log check cannot show.** The buffer also holds 12 starts of the *old* build (16:27 to 18:13) and none of them logged `Couldn't read offline regions` or any MapLibre line either (checked pids 20142, 18843, 12298: no MapLibre or offline lines). So "no read-error line" would have passed on the old build in this buffer too; it has no positive control here, and I could not make one (reinstalling the old build needs a downgrade, which the dispatch forbids). The pulse's claim that the old build logged the error at every S22 cold start is therefore not reproduced by this buffer, and I did not investigate why. What carries the claim that the start-up read now succeeds is check 2's positive data, not the absence of a line.
+
+**Observation, not a gate (debug build).** Each start logs about 8 StrictMode `DiskReadViolation` traces (about 25 to 52 ms each) whose stack passes through `MapLibre.getInstance` from `MapLibreStorage.kt:27` and `ForagerApplication.onCreate` (`:39`), i.e. main-thread disk reads from the new start-up initialisation. `logcat-start{1,2,3}-pid.txt`. Also 284 `Mbgl-NativeMapView: You're calling getMetersPerPixelAtLatitude after the MapView was destroyed` errors in the buffer; not attributed to this change and I did not compare against the old build.
+
+### 2. Regions from launch (start 3, pid 27179, still the same process throughout; the Offline maps panel was not opened)
+
+- **Records chip counts** (`ui-records-chips.xml`): All 8, Finds 2, Tracks 1, Waypoints 3, **Offline maps 2**. 2 + 1 + 3 + 2 = 8, so the regions are counted in All.
+- **All logbook** (`ui-records.xml`, `screen-records.png`) lists both "DEVICE CHECK 2026-09-28 B" (3 mi, 244 tiles, 3.1 MB) and "DEVICE CHECK" (1 mi, 17 tiles, 0.3 MB).
+- **Bubble:** my first tap hit a find's card ("DEVICE CHECK find 1"), which does not count. Tapping the region's dashed outline (single tap; no long-press) opened the region's card "DEVICE CHECK", "1 mi · 0.3 MB", with a Details button (`screen-region-bubble.png`, `ui-region-bubble.xml`). Zero `No … in the host's lists` lines in the log after the tap or anywhere in the buffer. Both cards closed.
+- The screenshots show `Mbgl` and Records rendering; nothing was created, edited or deleted.
+
+### 3. Nothing lost (app force-stopped, both databases copied out again; every file's device sha256 equals the local copy, `after/sha256-verify.txt`)
+
+- `forager.db`: `integrity_check` ok, `user_version` 16. **All 17 table counts identical** to the backup. **`offline_regions` rows 1 and 2 identical in every column.** `forager.db`, `-wal` and `-shm` are byte-identical to the backup.
+- `mbgl-offline.db`: `integrity_check` ok. Counts identical to the backup: `regions` 2, `resources` 2, `tiles` 967, `region_resources` 4, `region_tiles` 261. Both region definitions and descriptions identical. **Bytes differ** (sha256 `561d2906…` after against `c0d0d87d…` before), as pre-registered. The difference I found is only the `accessed` timestamps: `max(tiles.accessed)` went from 1790644397 (18:13:17 PDT, the backup) to 1790647084 (18:58:04 PDT); 28 tile rows and both `resources` rows were touched. I did not diff every page, so "only timestamps" is what I found, not what I proved.
+
+### 4. Offline tiles
+
+Journal, the entry "DEVICE CHECK 2026-09-28 (L0a)" report, "Offline map" switch on (`screen-entry-offline-on.png`): the map re-rendered as shapes only (buildings, roads, no labels) with the attribution "Protomaps © OpenStreetMap", against "© OpenStreetMap, SRTM, OpenTopoMap" with the switch off (`screen-entry-report.png`). Wi-Fi and data were left on, so **the screenshot alone cannot show where the tiles came from.** The store shows it did read them: at 18:57:46 PDT, the second of the toggle, `mbgl-offline.db` rows were stamped `accessed`: `resources` id 1 `…/style/offline.json`, `resources` id 2 `…/us.json`, and three vector tiles that belong to a region (`tiles` ids 54, 65, 66 at z15, z12, z11 from the Protomaps worker). Those are the only three of the store's 611 worker tiles touched since the backup. That shows the store was hit; it does not show the network was not also used. The switch was turned back off and read back (`ui-entry-restored.xml`: the switch node at `[889,1278][1035,1413]` reads `checked=false`; the attribution is the basemap's again).
+
+### 5. Logs
+
+Whole buffer: `has no MapLibre region` 0, `is incomplete; kept` 0, `Deleting region` 0, `listOfflineRegions returned no list` 0. Room ids (1, 2) equal MapLibre's ids (1, 2) in both databases, so no mismatch existed to warn about, which is what prediction 3 said. That also means **P1 (kept-but-missing) and P3 (never-finished delete) were not exercised on the device**; only the agreement case ran.
+
+## Restores and final state
+
+No app setting was changed; the one in-memory switch (`CartographyEntryReportScreen.kt:299`, `remember`, not persisted) was flipped and flipped back. No network setting was touched (`airplane_mode_on` = 0 at the end). Nothing was created, edited, deleted, uninstalled or cleared; no `-d`. The app was left force-stopped. The tablet was not touched.
+
+## Predictions (planner, verbatim) against what was observed
+
+"1. No region-read error on any cold start, and one init line per process." **Held** (see the control caveat). "2. Regions show from launch." **Held.** "3. Every row kept, with no P1 warning, because Room and MapLibre agree." **Held.** "4. Offline tiles still render from files/mbgl-offline.db." **Held**, with store rows stamped at the toggle.
+
+## Not tested
+
+- Any disagreement between Room and MapLibre (P1) and any incomplete region (P3) on the device.
+- Offline rendering with the network off (the dispatch forbade changing network settings).
+- The old build's behaviour on this device (no downgrade allowed), so nothing here shows the fix *caused* the improvement, only that the new build behaves as pre-registered.
+- The S26 and the tablet.
+
+## Decisions I made
+
+1. Built at `7d17a5c` by a detached checkout, then returned to `device-offline` to commit. Both are in this worktree.
+2. Used `am start -n com.zynergylabs.forager.app/.MainActivity` (resolved through `cmd package resolve-activity`).
+3. For the bubble, tapped the region's dashed outline after the first tap opened a find; I read `MapBubbles.kt:78` (the outline layer maps to `OFFLINE_REGION`) to choose that.
+4. Read the store's `accessed` columns as evidence for check 4, which the dispatch did not ask for.
+
+## Flags outside scope
+
+- The StrictMode main-thread disk reads from `getInstance` in `Application.onCreate` (debug builds), above.
+- The log-control gap above: the pulse's premise that every S22 cold start logged the error is not reproduced in this buffer.
+- The 284 `Mbgl-NativeMapView … after the MapView was destroyed` errors.
