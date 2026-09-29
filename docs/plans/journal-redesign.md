@@ -1128,3 +1128,12 @@ Today (`ui/map/layers/TrackWidthByZoom.kt`, `TRACK_WIDTH_ZOOM_STOPS`):
 - it is linear in between.
 
 These stops were the planner's proposal of 2026-09-28-34, "for the owner to judge on the phone". The new stops are put to the owner as options.
+
+**The entry map in landscape: the left side cut off (owner, 2026-09-29).** The owner sent a phone screenshot in landscape: a journal entry's map in fullscreen, with the Entries / Records switch above it and the rail on the right. It is kept outside the repo at `~/Zynergy/device-evidence/2026-09-29-owner-landscape-entry-map-cut.jpg`. The owner, verbatim: "On landscape a lot of the map is gone.  The entire left side is cut off for no reason."
+
+What the screenshot shows, read by the planner:
+- The map starts about 122 px in from the left edge, the width of the camera cut-out band in that rotation. The band is left black.
+- The Entries / Records row sits above the map, in its own band across the top.
+- The Maps tab's own map does reach into the cut-out band: Part 2 Session 1 found its "i" there at 270 (item 37). So the entry map differs from Maps.
+
+The fix's shape goes to the owner as options.
