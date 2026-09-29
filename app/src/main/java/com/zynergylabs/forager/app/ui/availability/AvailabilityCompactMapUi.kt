@@ -62,6 +62,7 @@ import androidx.compose.runtime.setValue
 import com.zynergylabs.forager.app.ui.map.MAP_CHROME_OVER_MAP_ALPHA
 import com.zynergylabs.forager.app.ui.map.JournalEntriesMapChip
 import kotlinx.coroutines.launch
+import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -796,11 +797,13 @@ internal fun CompactMapTab(
                 // holds its own copy, and nothing re-runs the effect more often to paper over it.
                 val currentIsFullscreen by rememberUpdatedState(isFullscreen)
                 val currentDropdownTopPx by rememberUpdatedState(dropdownTopPx)
+                // Part 1 layout fixes (the owner's "2 A", planner message 2026-09-29-04): not in short
+                // landscape, where the legend now sits beside the cluster and no longer lies below it.
                 // Map layers L0b (Q4): the chip's top, only while the chip is on the cluster's side
                 // (it sits at the bottom-end corner), less a gap, as a further lowest edge for the
                 // cluster. Display-only, like the nav's: the remembered position is never changed.
                 val legendClusterGapPx = with(compassStripDensity) { Spacing.sm.toPx() }
-                val legendBoundPx = legendChipTopPx?.takeIf { !isMapIconBarOnLeftSide }?.let { it - legendClusterGapPx }
+                val legendBoundPx = legendChipTopPx?.takeIf { !isMapIconBarOnLeftSide && !landscapeCluster }?.let { it - legendClusterGapPx }
                 val currentLegendBoundPx by rememberUpdatedState(legendBoundPx)
                 // See the comment on the LaunchedEffect below for both bounds' derivations.
                 fun clampMapIconBarVerticalOffset(offsetPx: Float): Float {
@@ -1141,12 +1144,20 @@ internal fun CompactMapTab(
                             // Landscape B2 (S3): directly under the search bar (the strip is in
                             // the rail corner now, not under the bar), in a column the bar's own
                             // width on the punch-hole side, aligned to the bar's start.
+                            //
+                            // Part 1 layout fixes, item 7 (the owner's "1 A", planner message 2026-09-29-04): the
+                            // row aligns to the bar's end away from the cluster's current side, and its width is
+                            // capped at the bar's width less the cluster's edge inset, measured width and the gap
+                            // beside it, so two chips that do not fit wrap onto two lines instead of reaching
+                            // under the cluster. Both follow the cluster when it is dragged or snapped across.
+                            val clusterColumnDp = MAP_ICON_BAR_EDGE_INSET + with(LocalDensity.current) { mapIconClusterWidthPx.toDp() } + Spacing.sm
                             Modifier
                                 .align(if (punchHoleEdge == ScreenEdge.Left) Alignment.TopStart else Alignment.TopEnd)
                                 .padding(controlsPadding)
                                 .padding(top = topInset + Spacing.sm)
                                 .width(landscapeSearchWidth)
-                                .wrapContentWidth(Alignment.Start)
+                                .wrapContentWidth(if (isMapIconBarOnLeftSide) AbsoluteAlignment.Right else AbsoluteAlignment.Left)
+                                .widthIn(max = (landscapeSearchWidth - clusterColumnDp).coerceAtLeast(0.dp))
                         } else {
                             Modifier
                                 .align(Alignment.TopCenter)

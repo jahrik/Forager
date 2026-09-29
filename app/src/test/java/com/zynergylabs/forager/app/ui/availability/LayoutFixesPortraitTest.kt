@@ -77,6 +77,28 @@ class LayoutFixesLegendPortraitTest {
         composeRule.waitForIdle()
         assertTrue("collapsed again: the cluster is back where it started (${cluster().describe()} against ${start.describe()})", abs((cluster().top - start.top).value) <= 1f)
     }
+
+    /**
+     * Q4's legend bound stays in portrait (the owner's "2 A", planner message `2026-09-29-04`): however far the
+     * cluster is dragged down, it stops above the legend chip, collapsed or expanded.
+     */
+    @Test
+    fun `Q4 in portrait the legend still stops the cluster from being dragged down over it`() {
+        Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(Surface.ROTATION_0)
+        val store = FixedForecastStore(BOTH_FORECAST_GROUPS)
+        val viewModel = mapLayersViewModel(store = store)
+        composeRule.setContent { MapLayersTestScreen(viewModel, map.slot, store) }
+        composeRule.waitForIdle()
+        composeRule.mainClock.advanceTimeBy(2_000)
+        composeRule.waitForIdle()
+
+        fun cluster(): DpRect = composeRule.onNodeWithTag(MAP_ICON_CLUSTER_TAG).getUnclippedBoundsInRoot()
+        fun legend(): DpRect = composeRule.onNodeWithTag(MAP_LEGEND_CHIP_TAG).getUnclippedBoundsInRoot()
+        val handle = composeRule.onNodeWithTag("map-icon-bar-minimize-handle").getUnclippedBoundsInRoot()
+        composeRule.longPressDrag((handle.left + handle.right) / 2, (handle.top + handle.bottom) / 2, 0.dp, 400.dp)
+        assertFalse("dragged far down: the cluster ${cluster().describe()} stops clear of the legend ${legend().describe()}", cluster().overlapsRect(legend()))
+        assertTrue("the cluster's bottom ${cluster().bottom.value} is at or above the legend's top ${legend().top.value}", cluster().bottom <= legend().top)
+    }
 }
 
 /**

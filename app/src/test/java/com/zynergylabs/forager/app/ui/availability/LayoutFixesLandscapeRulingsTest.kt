@@ -142,4 +142,43 @@ class LayoutFixesLegendLandscapeTest {
 
     @Test
     fun `T1 at ROTATION_270 the legend is clear of the cluster on either side, inboard of it on the legend's side`() = run(Surface.ROTATION_270, defaultClusterOnRight = true)
+
+    /** A long-press drag of the minimise handle by [dy] dp down, returning how far the cluster's top moved. */
+    private fun dragClusterDown(dy: Dp): Float {
+        val before = cluster().top
+        val handle = tag("map-icon-bar-minimize-handle")
+        composeRule.longPressDrag((handle.left + handle.right) / 2, (handle.top + handle.bottom) / 2, 0.dp, dy)
+        return (cluster().top - before).value
+    }
+
+    /**
+     * Q4's legend bound is dropped in short landscape (the owner's "2 A", planner message `2026-09-29-04`): with
+     * the legend beside the cluster on its side, the cluster can be dragged down past the legend's top, to the
+     * map area's own limit. Before, the bound held the cluster where it was (the legend's top is above its bottom).
+     */
+    private fun assertClusterDragsPastTheLegendsTop(rotation: Int, snapLeft: Boolean?, expanded: Boolean) {
+        setScreen(rotation)
+        if (snapLeft == false) snapClusterAcross(500.dp)
+        if (expanded) {
+            val at = legend()
+            composeRule.touchAt((at.left + at.right) / 2, (at.top + at.bottom) / 2)
+            composeRule.mainClock.advanceTimeBy(2_000)
+            composeRule.waitForIdle()
+            assertTrue("the legend expanded", legendExpanded())
+        }
+        val legendTop = legend().top
+        val moved = dragClusterDown(30.dp)
+        assertEquals("a 30 dp drag down moved the cluster 30 dp (its bottom ${cluster().bottom.value} is past the legend's top ${legendTop.value})", 30f, moved, 1f)
+        assertTrue("the cluster's bottom ${cluster().bottom.value} is below the legend's top ${legendTop.value}, the old bound", cluster().bottom > legendTop)
+        assertFalse("the legend ${legend().describe()} and the cluster ${cluster().describe()} still do not intersect", legend().overlapsRect(cluster()))
+    }
+
+    @Test fun `Q4 at ROTATION_270 with the legend collapsed on the cluster's side the cluster drags down past the legend's top`() =
+        assertClusterDragsPastTheLegendsTop(Surface.ROTATION_270, snapLeft = null, expanded = false)
+
+    @Test fun `Q4 at ROTATION_270 with the legend expanded on the cluster's side the cluster drags down past the legend's top`() =
+        assertClusterDragsPastTheLegendsTop(Surface.ROTATION_270, snapLeft = null, expanded = true)
+
+    @Test fun `Q4 at ROTATION_90 with the cluster snapped to the legend's side the cluster drags down past the legend's top`() =
+        assertClusterDragsPastTheLegendsTop(Surface.ROTATION_90, snapLeft = false, expanded = false)
 }
