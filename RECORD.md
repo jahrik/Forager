@@ -4880,3 +4880,14 @@ All on layout-fixes-wip at 3bbbcfa. It stopped: a two-chip wrapped row reaches 1
   - J8's pill touched at its edges.
 - **Open for the owner:** whether J8's chip should be tappable across a full 48 dp.
 - Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-125
+**Timestamp:** 2026-09-29T02:23:30Z
+**Continues:** 2026-09-28-104
+**Dispatch-file:** preserved/2026-09-29-09.md (launch prompt)
+**Reason:** -104 was queued behind -78, which is now closed (terminal -124).
+**Changes:** -104 is launched for an owner-opened Sonnet 5.5 window, with its own worktree forager-wt/chrome-follow-ups. The coder re-verifies against the layout fixes and the trips fix, both of which landed after -104 was written.
+**Notes:** Written by the planner by hand.
