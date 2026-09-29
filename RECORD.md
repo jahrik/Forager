@@ -7098,3 +7098,18 @@ The planner confirmed each by grep.
 - **Tablets are unsupported for PR #140's release.** J6's code stays in the branch but is not device-checked or advertised. The PR body and the release update say so.
 **Open for the owner:** whether "unsupported" should also be enforced, for example by excluding tablets in Play Console's device catalogue or by a manifest change. Nothing has been done for this; it is a separate decision.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-244
+**Timestamp:** 2026-09-29T22:38:19Z
+**Dispatch:** 2026-09-28-227 (Part 3), S22-A; J6's removal
+**Reason:** the owner, verbatim: "J6 isn't useful code, let's remove it and have the tablet act like a blown up phone for now so users can at least use the tablet". Then, when the planner said the removal changes the build Part 3 tests: "Have S22 continue. J6 isn't being tested so it'll be fine".
+**Changes:**
+- **S22-A resumed** on the same build, 1.0.1910+g06b394b9, for every item still without a verdict. It starts by reproducing A1 item 1 once more, recording only. It is told not to stop after a partial slice.
+- **J6's removal and the tablet-as-phone layout** will be a build dispatch. Its premise pulse is running and nothing has been built.
+  - The owner accepts that Part 3 runs on the pre-removal build.
+  - The removal's own checks will be the new build's tests and revert checks, plus whatever device check its dispatch names.
+**Open for the owner:** A1 item 1's overlap, fix before merge or record as a known issue.
+**Notes:** Written by the planner by hand.
