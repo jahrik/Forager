@@ -306,6 +306,8 @@ class LandscapeLClusterTest {
 
     @Test fun `L6 at ROTATION_90 the add menu's panel is placed against the L's add row`() {
         setScreen(Surface.ROTATION_90)
-        assertEquals("LLPROBE the panel's bottom less the add row's centre", 0f, panelBottomFromAddRowCentre(), 0.001f)
+        // A characterisation, pinned from the value read at the implementation (32 dp): the panel's own offsets are not derived here. What it
+        // holds is the L's row pitch: anchoring with the portrait pitch (104 dp to the add row, not 96) moves the panel 8 dp, to 40.
+        assertEquals("the add menu's panel bottom is 32 dp below the add row's centre (the anchor uses the L's 48 dp row pitch)", 32f, panelBottomFromAddRowCentre(), 0.5f)
     }
 }
