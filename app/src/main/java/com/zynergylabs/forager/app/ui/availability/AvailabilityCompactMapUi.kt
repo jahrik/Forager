@@ -581,8 +581,11 @@ internal fun CompactMapTab(
                 if (uiState.region != null && status is LocateMeStatus.Located) focusOverride = status.location
             }
 
-            // Sightings/planned trips are only real once a search has actually run — before that,
-            // displayRegion is a viewport with nothing plotted on it yet, not a stand-in search.
+            // Sightings are only real once a search has actually run — before that, displayRegion is a
+            // viewport with nothing plotted on it yet, not a stand-in search. Saved planned trips are
+            // the user's own records, like the waypoints and finds below, so they are handed to the map
+            // whether or not a search has run (owner, 2026-09-28, "Option A"; a real S22 drew none
+            // until a search set the region).
             val hasSearched = uiState.region != null
             // "View on Map" from a List-tab row — see MapTab's own doc comment on the identical
             // filteredSightings/mapTaxonFilterLabel pair for why this filters uiState.sightings
@@ -651,7 +654,7 @@ internal fun CompactMapTab(
                     displayRegion,
                     MapOverlayContent(
                         sightings = filteredSightings,
-                        plannedTrips = if (hasSearched) uiState.plannedTrips else emptyList(),
+                        plannedTrips = uiState.plannedTrips,
                         breadcrumbPoints = breadcrumbPoints,
                         waypoints = waypoints,
                         resumeTrackingRequestId = resumeTrackingRequestId,
