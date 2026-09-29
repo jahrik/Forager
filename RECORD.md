@@ -4741,3 +4741,21 @@ Also recorded: the owner's ruling "So let's do sessions this way now": coders in
   - older audits name filesDir/maplibre-offline;
   - whether backup rules cover files/mbgl-offline.db (allowBackup is false; see -116).
 - Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-119
+**Timestamp:** 2026-09-29T01:40:27Z
+**Continues:** 2026-09-28-78
+**Dispatch-file:** preserved/2026-09-29-05.md
+**Reason:** under -117 the coder built item 7 (the chip row aligned away from the cluster, width-capped at 264 dp) and dropped Q4's bound in landscape, all on layout-fixes-wip (d261ce7, build b8d467b).
+- The full suite had 1 failure: B2 S10's central third.
+  - Partly an artefact: the default Robolectric text width. The test passes under NATIVE.
+  - Partly real: a long label wraps the row into the central third at 90.
+- The coder did not touch S10 and stopped.
+**Changes:**
+- The owner, verbatim: "Option B": S10's chip case under @GraphicsMode(NATIVE), with its assertion unchanged, and chips single-line with an ellipsis so the row never enters the central third.
+- The planner's ruling on the coder's Decision 12: the cap applies only on the cluster's side.
+- Tests first, revert checks, and the full suite at 0 failures before pushing.
+**Notes:** Written by the planner by hand.
