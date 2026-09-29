@@ -4330,3 +4330,38 @@ Held for the owner: items 1, 2 (landscape), 6, 7 and 9.
 **Finish line:** Build, tests first, revert checks, full suite, report, pushed; the planner writes the terminal.
 **Abort conditions:** Any visible change; a model change beyond the band; an unnamed tests-first test passing at base; a non-compiling revert; a non-held failure; disk full or OOM; two failed fixes; an unruled design question.
 **Notes:** Owner, verbatim: "Option C: decorations to keep it separate. We can change it if the forecast layering needs changes". The planner corrected its own earlier attribution: "The four groups stand as written" is the planner's restatement; the owner's L0a words were "Accept: markers above lines (Recommended)". Launched now beside -78 (different files), with Gradle serialised. Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-101
+**Timestamp:** 2026-09-28T23:54:42Z
+**Closes:** 2026-09-28-95
+**Outcome:** completed
+**Observed:**
+- **Record.** docs/audits/2026-09-28-planned-trips-tablet-run-record.md, device-trips-tablet at 80e8d21, merged by the planner.
+- **Device and build.** SM-X800 at 1.0.1416+gd7cc9f5b, no install.
+- **Trips.** Two created through the real UI (6378dc98..., 2026-09-28; 9dd22e20..., 2026-09-30). **No past trip could be made:** earlier days are disabled in the dialog, and a real tap changed nothing (SavePlannedTripUseCase.kt:31-33). Both were deleted through the planner. Afterwards planned_trips reads 0, integrity ok, user_version 16, and every count and digest is unchanged except the cache row's timestamps.
+- **Not reproduced:** on the wide tree, after a search, both trips drew as flags (19.8 × 27.8 dp) in every case:
+  - landscape and portrait, whenever the point was on screen;
+  - zoomed in and out;
+  - Layers switch off (0 trip pixels, the find still drawn) and on;
+  - night (#FA01DD) and day (#9553A4);
+  - tap opening the bubble;
+  - a Seasonal round trip, and a relaunch with the search re-run.
+- **The cause the evidence supports.** A trip was absent only with no search (no map on wide), with the switch off, or off screen. The shared layer, glyph, switch and tap code drops nothing. That leaves the compact search gate (AvailabilityCompactMapUi.kt:640-641) as the candidate for the S26 symptom, which the S22 check (-94) is to observe.
+- **Logs.** Crash buffer unchanged (0 Forager lines); no trip error lines, no FATAL.
+**Deviations:**
+- The first capture read a stale dump from the earlier run's script; it was caught against the screenshot, and the script was fixed.
+- One pre-registration citation was corrected in a later section (:27-29 to :31-33).
+- The dispatch's placement route omitted the centre-pin step.
+- Restoring two app settings created map_preferences.preferences_pb holding defaults.
+**Notes:**
+- **Flags:**
+  - "Couldn't read offline regions." with MapLibreConfigurationException ("requires calling MapLibre.getInstance(...) before inflating") logs at every start-up (AVM:923, then MapLibreStorage.kt:58/94). It is not investigated, and could matter on a device that has offline regions.
+  - At far zoom, a trip flag sits partly under waypoint and find glyphs.
+  - Portrait strip and clipped bubble (as in -80).
+  - A past-dated trip drawing is code-read only.
+  - Two dump files remain on /sdcard.
+- The -97 fix stays gated on -94's reproduction.
+- Written by the planner by hand.
