@@ -1246,3 +1246,12 @@ So:
 4. **C1, the chrome colour, resumes now,** alongside F4's close.
 5. **The icon cluster's opacity layers are not tied to the chrome opacity setting.** In the owner's words, they are "map icons not chrome". The icon bar's *colour* still changes in C1, per the owner's earlier request; only the opacity question is declined.
 6. **The second planner session coordinates with this one.** It hands its results here for the record, and does not instruct coders directly.
+
+**Sundown alerts leave this project; the layer opacity statement (owner, 2026-09-29).** The owner, verbatim: "Sundown alerts will happen with the navigation plan, so we will scrap that entirely from this part of the project. I'll have the navigation planner do a new dispatch. / C Layers should have an opacity slider for each individual layer. I meant that as a statement not a request."
+
+So:
+- **S1 (record -215) is withdrawn and never launched.** The sundown alerts belong to the navigation plan, whose planner dispatches them. The live privacy page's sundown sentence stays, as the owner ruled (-218), because the feature is coming.
+- **"Layers should have an opacity slider for each individual layer"** is recorded as the owner's statement of intent, not a request for work now.
+  - Checked in code at this commit: in the Layers sheet only the colour-field layers carry an opacity slider (`MapLayersSheet.kt:385, 399-405`).
+  - The overlays (Finds, Photos, Waypoints, Planned trips, Recording trail, Tracks, Offline maps) have an on/off switch only (`:280, 298`).
+  - The gap is noted for the owner and not dispatched.
