@@ -518,6 +518,7 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
         journalHighlights = content.journalHighlights,
         cameraMemory = renderMode.cameraMemory,
         attributionEndInset = renderMode.attributionEndInset,
+        attributionBottomInset = renderMode.attributionBottomInset,
         modifier = modifier,
     )
 }

@@ -114,9 +114,11 @@ internal fun RecordsTab(
      * A swipe on a finished track's row, or the Delete on its details (sheet or pane): asks for a pending
      * delete with Undo (Part 2 follow-ups F1 item 5, owner "Option A"); `MainActivity` wires it to
      * `TrackRecordingViewModel.requestRemoveTrack`. `null`, the default, leaves tracks without a delete.
-     * STUB (tests first): accepted and not yet used.
+     * A track that is still recording is offered neither the swipe nor the Delete.
      */
     onDeleteTrack: ((String) -> Unit)? = null,
+    /** Set when a committed track delete failed and the track is back ([TrackRecordingUiState.tracksErrorMessage]); shown above the Tracks chip's list. */
+    tracksErrorMessage: String? = null,
     /** GPX full-record export dispatch — see [TrackExportList]'s own doc comment. Defaults empty/no-op so no other caller of this tab changes. */
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>> = { Result.success(emptyList()) },
     findsContent: @Composable ColumnScope.() -> Unit,
@@ -271,6 +273,7 @@ internal fun RecordsTab(
                 getFullRecord = getFullRecord,
                 onDeleteWaypoint = onDeleteWaypoint,
                 onDeleteOfflineRegion = onDeleteOfflineRegion,
+                onDeleteTrack = onDeleteTrack,
                 onDownloadAgain = onDownloadAgain,
                 onOpenFind = { id ->
                     selectTab(RecordsSubTab.FINDS)
@@ -317,6 +320,8 @@ internal fun RecordsTab(
                 getFullRecord = getFullRecord,
                 modifier = Modifier.weight(1f),
                 onOpenTrackDetails = { id -> openDetails(RecordDetailsTarget.TrackDetails(id)) },
+                onDeleteTrack = onDeleteTrack,
+                errorMessage = tracksErrorMessage,
             )
 
             // Column, not Box: the relocated find-editing composables (CentrePinLocationPicker,

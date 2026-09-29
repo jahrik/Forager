@@ -192,6 +192,10 @@ internal fun LogPanel(
     waypoints: List<Waypoint>,
     waypointsErrorMessage: String?,
     onDeleteWaypoint: (String) -> Unit,
+    /** Part 2 follow-ups F1 item 5 (owner "Option A"): a finished track's swipe or details Delete asks for a pending delete with Undo; `null` (the default) leaves tracks without a delete. */
+    onDeleteTrack: ((String) -> Unit)? = null,
+    /** Set when a committed track delete failed and the track is back; shown above the Tracks list. */
+    tracksErrorMessage: String? = null,
     waypointEntryReferenceCounts: Map<String, Int> = emptyMap(),
     /** See this composable's own doc comment — Stage 2d. `null` (the default) is a no-op, so every other caller of this panel is unaffected. */
     pendingDestination: PendingJournalDestination? = null,
@@ -313,6 +317,8 @@ internal fun LogPanel(
             waypoints = waypoints,
             waypointsErrorMessage = waypointsErrorMessage,
             onDeleteWaypoint = onDeleteWaypoint,
+            onDeleteTrack = onDeleteTrack,
+            tracksErrorMessage = tracksErrorMessage,
             waypointEntryReferenceCounts = waypointEntryReferenceCounts,
             pendingDestination = pendingDestination,
             pendingFindId = pendingFindId,

@@ -46,6 +46,7 @@ import com.zynergylabs.forager.app.ui.log.cartographyEntryDeleteNotice
 import com.zynergylabs.forager.app.ui.log.findDeleteNotice
 import com.zynergylabs.forager.app.ui.log.galleryPhotoDeleteNotice
 import com.zynergylabs.forager.app.ui.log.offlineRegionDeleteNotice
+import com.zynergylabs.forager.app.ui.log.trackDeleteNotice
 import com.zynergylabs.forager.app.ui.log.waypointDeleteNotice
 import com.zynergylabs.forager.app.ui.theme.ForagerTheme
 import com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel
@@ -643,7 +644,12 @@ class MainActivity : ComponentActivity() {
                     navigationTarget = trackUiState.originWaypoint,
                     pathHomeMeters = trackUiState.pathHome?.totalMeters,
                     crashFileStore = container.crashFileStore,
-                    tracks = trackUiState.tracks,
+                    // Part 2 follow-ups F1 item 5: the visible list leaves out a track whose delete is pending
+                    // (Undo snackbar up), as the waypoints' does; a swipe or the details' Delete asks for that
+                    // pending delete, and never for a track that is still recording.
+                    tracks = trackUiState.visibleTracks,
+                    onDeleteTrack = trackRecordingViewModel::requestRemoveTrack,
+                    tracksErrorMessage = trackUiState.tracksErrorMessage,
                     onTracksOpened = trackRecordingViewModel::loadTracks,
                     getFullRecord = trackRecordingViewModel::getFullRecord,
                     pendingDeleteNotices = listOfNotNull(
@@ -651,6 +657,11 @@ class MainActivity : ComponentActivity() {
                             trackUiState.pendingWaypointDelete,
                             onUndo = trackRecordingViewModel::undoRemoveWaypoint,
                             onCommit = trackRecordingViewModel::commitRemoveWaypoint,
+                        ),
+                        trackDeleteNotice(
+                            trackUiState.pendingTrackDelete,
+                            onUndo = trackRecordingViewModel::undoRemoveTrack,
+                            onCommit = trackRecordingViewModel::commitRemoveTrack,
                         ),
                         offlineRegionDeleteNotice(
                             uiState.pendingOfflineRegionDelete,

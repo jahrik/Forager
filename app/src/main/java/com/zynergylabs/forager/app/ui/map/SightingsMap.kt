@@ -263,6 +263,8 @@ fun SightingsMap(
     cameraMemory: MapCameraMemory? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.attributionEndInset]'s own doc comment. */
     attributionEndInset: Dp = 0.dp,
+    /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.attributionBottomInset]'s own doc comment. */
+    attributionBottomInset: Dp? = null,
 ) {
     val context = LocalContext.current
 
@@ -384,6 +386,46 @@ fun SightingsMap(
         }
     }
 
+    // Re-projects the glyph a shown bubble belongs to and reports it, so the bubble follows the glyph. Called at
+    // every camera idle, and (Part 2 follow-ups F1 item 1) when the map's own size changes: a device rotation
+    // resizes the view without any camera idle, and the bubble used to stay at its portrait place until the
+    // next pan. Reads the latest lists and callbacks through the current* states, as the idle listener always did.
+    fun reanchorFocusedBubble(map: MapLibreMap) {
+        // Keeps a shown observation bubble glued to its own marker's real screen position
+        // across a pan/zoom/rotate — a hardware report asked for exactly this ("have it stay
+        // there when we move the map, so we know which one it belongs to"), and re-projecting
+        // whichever sighting currentFocusedObservationId currently names on every idle (the
+        // same projection call the click listener above uses once, at tap time) is what
+        // answers it without this composable needing to reimplement MapLibre's own
+        // screen<->geo math. Resolved fresh against currentSightings/currentFocusedObservationId
+        // rather than a sighting captured at tap time, so a dismissal that's since cleared
+        // the caller's own focused id (see MapOverlayContent.focusedObservationId's doc
+        // comment) is reflected here too instead of silently re-reviving a closed bubble. The
+        // bearing carried alongside — also re-read fresh here, not just at tap time — is what
+        // lets the caller keep the bubble's own placement direction correct (screen position
+        // and orientation both live, not just position) after a rotate gesture; see
+        // AnchoredAtScreenPoint's own doc comment in AvailabilityScreen.kt for what it does
+        // with this value.
+        currentFocusedObservationId
+            ?.let { id -> currentSightings.firstOrNull { it.observationId == id } }
+            ?.let { sighting ->
+                val screenPoint = map.projection.toScreenLocation(MapLibreLatLng(sighting.lat, sighting.lng))
+                currentOnSightingTap(sighting, Offset(screenPoint.x, screenPoint.y), map.cameraPosition.bearing.toFloat())
+            }
+        // M1 (F2): the same for a point feature's bubble. Its glyph's own position is re-found
+        // in the lists this map draws (focusedFeaturePosition) and reported as a feature tap
+        // at that point, so the caller's bubble follows the glyph. A record no longer drawn
+        // is not re-fired, and a dismissed bubble has no focusedFeature, so nothing revives it.
+        currentFocusedFeature?.let { focus ->
+            focusedFeaturePosition(focus, currentPlannedTrips, currentWaypoints, currentFindMarkers, currentPhotoMarkers)?.let { at ->
+                val glyph = map.projection.toScreenLocation(MapLibreLatLng(at.lat, at.lng))
+                currentOnFeatureTap(
+                    MapFeatureTap(focus.layerId, focus.featureId, Offset(glyph.x, glyph.y), map.cameraPosition.bearing.toFloat(), at),
+                )
+            }
+        }
+    }
+
     // Registered once per composition of this MapView, not per recomposition: getMapAsync's
     // callback fires exactly once for the life of the MapView, so there's no re-registration to
     // guard against the way applyBasemap's guard above is needed for setStyle.
@@ -498,39 +540,9 @@ fun SightingsMap(
                         )
                     }
                 }
-                // Keeps a shown observation bubble glued to its own marker's real screen position
-                // across a pan/zoom/rotate — a hardware report asked for exactly this ("have it stay
-                // there when we move the map, so we know which one it belongs to"), and re-projecting
-                // whichever sighting currentFocusedObservationId currently names on every idle (the
-                // same projection call the click listener above uses once, at tap time) is what
-                // answers it without this composable needing to reimplement MapLibre's own
-                // screen<->geo math. Resolved fresh against currentSightings/currentFocusedObservationId
-                // rather than a sighting captured at tap time, so a dismissal that's since cleared
-                // the caller's own focused id (see MapOverlayContent.focusedObservationId's doc
-                // comment) is reflected here too instead of silently re-reviving a closed bubble. The
-                // bearing carried alongside — also re-read fresh here, not just at tap time — is what
-                // lets the caller keep the bubble's own placement direction correct (screen position
-                // and orientation both live, not just position) after a rotate gesture; see
-                // AnchoredAtScreenPoint's own doc comment in AvailabilityScreen.kt for what it does
-                // with this value.
-                currentFocusedObservationId
-                    ?.let { id -> currentSightings.firstOrNull { it.observationId == id } }
-                    ?.let { sighting ->
-                        val screenPoint = map.projection.toScreenLocation(MapLibreLatLng(sighting.lat, sighting.lng))
-                        currentOnSightingTap(sighting, Offset(screenPoint.x, screenPoint.y), map.cameraPosition.bearing.toFloat())
-                    }
-                // M1 (F2): the same for a point feature's bubble. Its glyph's own position is re-found
-                // in the lists this map draws (focusedFeaturePosition) and reported as a feature tap
-                // at that point, so the caller's bubble follows the glyph. A record no longer drawn
-                // is not re-fired, and a dismissed bubble has no focusedFeature, so nothing revives it.
-                currentFocusedFeature?.let { focus ->
-                    focusedFeaturePosition(focus, currentPlannedTrips, currentWaypoints, currentFindMarkers, currentPhotoMarkers)?.let { at ->
-                        val glyph = map.projection.toScreenLocation(MapLibreLatLng(at.lat, at.lng))
-                        currentOnFeatureTap(
-                            MapFeatureTap(focus.layerId, focus.featureId, Offset(glyph.x, glyph.y), map.cameraPosition.bearing.toFloat(), at),
-                        )
-                    }
-                }
+                // Keeps a shown bubble glued to its glyph across a pan, zoom or rotate gesture: see
+                // reanchorFocusedBubble, which a rotation of the device also calls (onViewportResized below).
+                reanchorFocusedBubble(map)
             }
             // MapLibre's own tap-to-reveal attribution control defaults to bottom-start — the same
             // corner this composable's own always-visible Basemap.attribution caption occupies (see
@@ -797,7 +809,7 @@ fun SightingsMap(
     // the rail and the system bar at 90. What MapLibre draws is device-only: this map cannot run
     // under Robolectric.
     val layoutDirection = LocalLayoutDirection.current
-    val attributionBottomPx = with(LocalDensity.current) { bottomInset.roundToPx() }
+    val attributionBottomPx = with(LocalDensity.current) { (attributionBottomInset ?: bottomInset).roundToPx() }
     val attributionEndPx = with(LocalDensity.current) { attributionEndInset.roundToPx() }
     LaunchedEffect(mapLibreMap, attributionDefaultMargins, attributionBottomPx, attributionEndPx, layoutDirection) {
         val map = mapLibreMap ?: return@LaunchedEffect
@@ -857,7 +869,10 @@ fun SightingsMap(
             // this composable's slot".
             modifier = Modifier
                 .fillMaxSize()
-                .clipToBounds(),
+                .clipToBounds()
+                // After the view's own layout has taken the new size (the post), so the projection is the new
+                // one; a no-op while no map is ready or nothing is focused.
+                .onViewportResized { mapView.post { mapLibreMap?.let(::reanchorFocusedBubble) } },
         )
         // The always-visible attribution line CopyrightOverlay used to draw directly onto the
         // osmdroid MapView. MapLibre has its own tap-to-reveal attribution control
@@ -1524,10 +1539,10 @@ internal fun lineWidthExpression(spec: LineLayerSpec): Expression {
  * side, in [MapPalette.casing], and always solid: under the dashed breadcrumb it still outlines the
  * whole trail, so the dashes read as one path against a busy ground.
  *
- * Each track and its casing thin out together as the map zooms out ([TRACK_WIDTH_ZOOM_STOPS], owner,
- * 2026-09-28): the casing copies its track's stops, so the widths above are the full widths, at zoom
- * 15 and above, and the casing keeps its ratio to its line (9 to 6) at every zoom. At zoom 11 and
- * below that is a 3.6 dp casing over a 2.4 dp line, 0.6 dp a side, not [CASING_WIDTH_DP].
+ * Each track and its casing thin out together as the map zooms out ([TRACK_WIDTH_ZOOM_STOPS], owner "2 A",
+ * 2026-09-29): the casing copies its track's stops, so the widths above are the full widths, at zoom
+ * 18 and above, and the casing keeps its ratio to its line (9 to 6) at every zoom. At zoom 12 and
+ * below that is a 2.25 dp casing over a 1.5 dp line, 0.375 dp a side, not [CASING_WIDTH_DP].
  */
 internal fun trackLayerSpecs(): List<LineLayerSpec> {
     fun casingFor(track: LineLayerSpec, layerId: String) = track.copy(

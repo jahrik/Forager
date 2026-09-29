@@ -678,6 +678,10 @@ fun AvailabilityScreen(
     /** Called with the placed location and the confirmed name when "Drop a waypoint" is chosen from [ThreeWayActionDialog] — see [WaypointNameDialog]. */
     onDropWaypoint: (LatLng, String) -> Unit = { _, _ -> },
     onDeleteWaypoint: (String) -> Unit = {},
+    /** Part 2 follow-ups F1 item 5 (owner "Option A"): a finished track's swipe or details Delete asks for a pending delete with Undo; `null` (the default) leaves tracks without a delete. */
+    onDeleteTrack: ((String) -> Unit)? = null,
+    /** Set when a committed track delete failed and the track is back; shown above the Tracks list. */
+    tracksErrorMessage: String? = null,
     /**
      * Bearing/distance/elevation difference back to the active track's start point, from the
      * device's current position — `null` whenever nothing is being recorded, no fix has come in
@@ -1539,6 +1543,8 @@ fun AvailabilityScreen(
                     waypoints = waypoints,
                     waypointsErrorMessage = waypointsErrorMessage,
                     onDeleteWaypoint = onDeleteWaypoint,
+                    onDeleteTrack = onDeleteTrack,
+                    tracksErrorMessage = tracksErrorMessage,
                     waypointEntryReferenceCounts = waypointEntryReferenceCounts,
                     pendingDestination = pendingJournalDestination,
                     pendingFindId = pendingJournalFindId,
@@ -1851,6 +1857,8 @@ fun AvailabilityScreen(
             onTracksOpened = onTracksOpened,
             getFullRecord = getFullRecord,
             onDeleteWaypoint = onDeleteWaypoint,
+            onDeleteTrack = onDeleteTrack,
+            tracksErrorMessage = tracksErrorMessage,
             onRecentSearchSelected = onRecentSearchSelected,
             onRadiusChanged = onRadiusChanged,
             onMonthSelected = onMonthSelected,

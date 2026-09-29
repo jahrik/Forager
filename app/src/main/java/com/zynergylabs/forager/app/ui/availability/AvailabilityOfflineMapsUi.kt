@@ -74,6 +74,7 @@ import com.zynergylabs.forager.app.ui.log.swipeToDeleteTag
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -238,12 +239,32 @@ internal fun OfflineMapsPanel(
         OfflineDownloadStatusContent(uiState.offlineDownloadStatus)
     }
     val isDownloading = uiState.offlineDownloadStatus is OfflineMapStatus.Downloading
+    // "Download Maps" asks first (owner, 2026-09-29: "Approve the Download Maps wording as is";
+    // docs/plans/journal-redesign.md, "'Download Maps' asks first: the approved copy"). Part 2 finding (c):
+    // one tap used to start a real download. Saveable, so a rotation or a night-mode rebuild with the
+    // question up keeps asking it.
+    var confirmingDownload by rememberSaveable { mutableStateOf(false) }
     val downloadButton: @Composable (Modifier) -> Unit = { buttonModifier ->
         Button(
-            onClick = onDownloadOfflineMaps,
+            onClick = { confirmingDownload = true },
             enabled = hasValidRegion && !isDownloading,
             modifier = buttonModifier.fillMaxWidth(),
         ) { Text("Download Maps") }
+    }
+    val confirmDownloadDialog: @Composable () -> Unit = {
+        if (confirmingDownload) {
+            AlertDialog(
+                onDismissRequest = { confirmingDownload = false },
+                title = { Text("Download this area?") },
+                text = {
+                    Text(offlineDownloadConfirmationBody(uiState.offlineMapNameText, uiState.offlineMapRadiusKm, distanceUnit, estimateServedOfflineTileCount(pickerRegion)))
+                },
+                confirmButton = {
+                    TextButton(onClick = { confirmingDownload = false; onDownloadOfflineMaps() }) { Text("Download") }
+                },
+                dismissButton = { TextButton(onClick = { confirmingDownload = false }) { Text("Cancel") } },
+            )
+        }
     }
     val regionsSection: @Composable () -> Unit = {
         HorizontalDivider()
@@ -274,6 +295,7 @@ internal fun OfflineMapsPanel(
             confirmActions = confirmActions,
             downloadButton = downloadButton,
         )
+        confirmDownloadDialog()
         return
     }
 
@@ -316,6 +338,18 @@ internal fun OfflineMapsPanel(
 
         regionsSection()
     }
+    confirmDownloadDialog()
+}
+
+/**
+ * The confirmation's body, in the owner's approved wording: "<name> · <radius> around the pin · about <N>
+ * tiles", or "<radius> around the pin · about <N> tiles" when the name is blank. [radiusKm] is shown in the
+ * units setting ([formatDistanceKm]).
+ */
+internal fun offlineDownloadConfirmationBody(name: String, radiusKm: Int, unit: DistanceUnit, estimatedTiles: Int): String {
+    val area = "${formatDistanceKm(radiusKm, unit)} around the pin · about $estimatedTiles tiles"
+    val trimmed = name.trim()
+    return if (trimmed.isEmpty()) area else "$trimmed · $area"
 }
 
 /**

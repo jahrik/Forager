@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Directions
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -61,6 +62,7 @@ import com.zynergylabs.forager.app.ui.map.mapChromeFill
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import com.zynergylabs.forager.app.ui.track.formatRecordTimestamp
+import com.zynergylabs.forager.app.ui.track.canBeDeleted
 import com.zynergylabs.forager.app.ui.track.shareTrackGpx
 import com.zynergylabs.forager.app.ui.track.trackTitle
 import kotlinx.coroutines.launch
@@ -160,7 +162,7 @@ internal fun RecordDetailsSheet(
     nowEpochMillis: Long,
     staleThresholdDays: Int,
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
-    /** The track's Delete: a pending delete with Undo (Part 2 follow-ups F1 item 5). `null` shows none. STUB (tests first): accepted, not yet used. */
+    /** The track's Delete: a pending delete with Undo, as the list's swipe asks for (Part 2 follow-ups F1 item 5, owner "Option A"). `null` shows none; a track still recording never shows one. */
     onDeleteTrack: ((String) -> Unit)? = null,
     onDismiss: () -> Unit,
     /**
@@ -214,6 +216,7 @@ internal fun RecordDetailsSheet(
                 nowEpochMillis = nowEpochMillis,
                 staleThresholdDays = staleThresholdDays,
                 getFullRecord = getFullRecord,
+                onDeleteTrack = onDeleteTrack,
             )
         }
     }
@@ -236,7 +239,7 @@ internal fun RecordDetailsPane(
     nowEpochMillis: Long,
     staleThresholdDays: Int,
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
-    /** The track's Delete: a pending delete with Undo (Part 2 follow-ups F1 item 5). `null` shows none. STUB (tests first): accepted, not yet used. */
+    /** The track's Delete: a pending delete with Undo, as the list's swipe asks for (Part 2 follow-ups F1 item 5, owner "Option A"). `null` shows none; a track still recording never shows one. */
     onDeleteTrack: ((String) -> Unit)? = null,
     onDismiss: () -> Unit,
 ) {
@@ -280,6 +283,7 @@ internal fun RecordDetailsPane(
                 nowEpochMillis = nowEpochMillis,
                 staleThresholdDays = staleThresholdDays,
                 getFullRecord = getFullRecord,
+                onDeleteTrack = onDeleteTrack,
             )
         }
     }
@@ -298,10 +302,11 @@ private fun RecordDetailsBody(
     nowEpochMillis: Long,
     staleThresholdDays: Int,
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
+    onDeleteTrack: ((String) -> Unit)?,
 ) {
     when {
         waypoint != null -> WaypointDetails(waypoint, tracks, waypointEntryReferenceCounts)
-        track != null -> TrackDetails(track, waypoints, distanceUnit, getFullRecord)
+        track != null -> TrackDetails(track, waypoints, distanceUnit, getFullRecord, onDeleteTrack)
         region != null -> OfflineRegionDetails(region, distanceUnit, nowEpochMillis, staleThresholdDays)
     }
 }
@@ -342,6 +347,7 @@ private fun TrackDetails(
     waypoints: List<Waypoint>,
     distanceUnit: DistanceUnit,
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
+    onDeleteTrack: ((String) -> Unit)?,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -369,6 +375,19 @@ private fun TrackDetails(
         ) {
             Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.size(18.dp))
             Text("Share", modifier = Modifier.padding(start = Spacing.sm))
+        }
+        // Part 2 follow-ups F1 item 5 (owner "Option A"): the same pending delete and Undo as the row's swipe,
+        // labelled "Delete" as the swipe's revealed button and its accessibility action are (DELETE_ACTION_LABEL,
+        // SwipeToDelete.kt). Never for a track that is still recording. The sheet or pane closes by itself when the
+        // track leaves the list it reads (the pending track is hidden at once).
+        if (onDeleteTrack != null && track.canBeDeleted) {
+            OutlinedButton(
+                onClick = { onDeleteTrack(track.id) },
+                modifier = Modifier.testTag(RECORD_DETAILS_DELETE_TAG),
+            ) {
+                Icon(Icons.Filled.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+                Text(DELETE_ACTION_LABEL, modifier = Modifier.padding(start = Spacing.sm))
+            }
         }
     }
 }
