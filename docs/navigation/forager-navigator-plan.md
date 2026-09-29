@@ -2,7 +2,7 @@
 
 Vetted against `slayer8366/Forager` (README + CLAUDE.md, read 2026-08-18)
 and re-vetted for handoff on 2026-08-18. Companion document:
-[`maplibre-migration.md`](./maplibre-migration.md), which specs the
+[`maplibre-migration.md`](../plans/maplibre-migration.md), which specs the
 renderer change this plan depends on.
 
 **Status: ready to send to a coder.** The two decisions this plan
@@ -86,7 +86,7 @@ new subsystem — geometry storage, rendering, offline packaging,
 point-in-polygon — but most of the engine half of that disappears on a
 vector renderer.
 
-See [`maplibre-migration.md`](./maplibre-migration.md) for the full spec,
+See [`maplibre-migration.md`](../plans/maplibre-migration.md) for the full spec,
 now written and in `docs/plans/`, including:
 
 - What survives (`MapSlot`, `Basemap`, `OfflineMapRepository`, all of

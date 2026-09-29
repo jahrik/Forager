@@ -14,7 +14,7 @@ import java.util.Locale
  * are in bijection ([forDistanceUnit]), which is what lets every existing `DistanceUnit` reader and
  * the Settings control's existing callback keep their shape. Readers today: every distance display
  * (through [distanceUnit]) and rainfall ([formatRainfall]). **Not yet readers, reported and queued
- * in `docs/audits/2026-09-07-return-estimate-prebuild-report.md` §4.4:** soil temperature (°C at
+ * in `docs/navigation/2026-09-07-return-estimate-prebuild-report.md` §4.4:** soil temperature (°C at
  * one site) and elevation (metres at three). They wait on this preference; they are not converted
  * here, per the ruling ("build the preference here, convert rainfall only, report the others").
  *

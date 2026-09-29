@@ -29,6 +29,8 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.runtime.movableContentOf
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
+import com.zynergylabs.forager.app.ui.map.mapChromeFill
+import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.adaptive.currentWindowPortEdge
 import com.zynergylabs.forager.app.ui.adaptive.isShortWindow
 import com.zynergylabs.forager.app.ui.log.ScreenEdge
@@ -53,6 +55,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Map
+import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
+import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
@@ -253,8 +257,14 @@ internal fun OfflineMapsPanel(
     }
     val confirmDownloadDialog: @Composable () -> Unit = {
         if (confirmingDownload) {
+            // C1: the picker's map is always drawn beneath this dialog (`pickerMap`, both layouts), so it takes the
+            // map chrome's 0.8 like the other dialogs (owner's edge-case ruling: "Dialogs ... 80% over the map"); it
+            // was opaque. The navigation bar's colour, as every dialog over a map now is.
+            val downloadDialogColor = mapChromeFill(navigationBarContainerColor(), overMap = true)
             AlertDialog(
                 onDismissRequest = { confirmingDownload = false },
+                containerColor = downloadDialogColor,
+                modifier = Modifier.testTag(DOWNLOAD_CONFIRM_DIALOG_TAG).mapChromeContainerColor(downloadDialogColor),
                 title = { Text("Download this area?") },
                 text = {
                     Text(offlineDownloadConfirmationBody(uiState.offlineMapNameText, uiState.offlineMapRadiusKm, distanceUnit, estimateServedOfflineTileCount(pickerRegion)))
@@ -648,3 +658,5 @@ internal fun offlineRegionZoomNote(region: OfflineRegionSummary): String =
         "region downloaded — a region that shows here has both, since a zoom-${region.maxZoom.toInt()} " +
         "fetch failure fails the whole download rather than silently completing without it."
 
+/** "Download this area?", for tests reading its container colour. */
+internal const val DOWNLOAD_CONFIRM_DIALOG_TAG = "download-confirm-dialog"

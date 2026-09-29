@@ -57,6 +57,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import com.zynergylabs.forager.app.ui.theme.SurfaceContainerDark
+import com.zynergylabs.forager.app.ui.theme.SurfaceContainerLight
+import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
 import com.zynergylabs.forager.app.ui.theme.Bark
 import com.zynergylabs.forager.app.ui.theme.Cream
@@ -109,6 +112,9 @@ internal fun mapIconBarRowAnchorOffset(rowIndexFromTop: Int, rowSpacing: Dp = Sp
  * a usable proxy for the panel's edges under Robolectric.
  */
 internal const val MAP_MODE_PICKER_TAG = "map-mode-picker"
+
+/** The map icon bar's own fill (portrait cluster, landscape L, tablet and the entry map's bar), for tests reading its container colour. */
+internal const val MAP_ICON_BAR_TAG = "map-icon-bar"
 
 /**
  * The picker [MapModeToggle] (medium/expanded) and [MapIconBar]'s layers row (compact) both open —
@@ -179,7 +185,7 @@ internal fun MapModePicker(
                 .offset(x = anchorOffset.x, y = anchorOffset.y),
         ) {
             Surface(
-                modifier = Modifier.testTag(MAP_MODE_PICKER_TAG),
+                modifier = Modifier.testTag(MAP_MODE_PICKER_TAG).mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight),
                 shape = RoundedCornerShape(Spacing.md),
                 color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
                 contentColor = if (isDarkTheme) Color.White else Bark,
@@ -244,10 +250,19 @@ internal val MAP_ICON_BAR_CORNER_RADIUS = MIN_TOUCH_TARGET / 2
  * reasoning for the opposite risk (merging into snow, sand, or other pale terrain), but nobody has
  * looked at it on a real screen yet.
  */
-internal val MapIconStackButtonColorDark = Bark.copy(alpha = MAP_CHROME_OVER_MAP_ALPHA)
+internal val MapIconStackButtonColorDark = SurfaceContainerDark.copy(alpha = MAP_CHROME_OVER_MAP_ALPHA)
 
-/** [MapIconStackButtonColorDark]'s light-theme counterpart — see that color's own doc comment. */
-internal val MapIconStackButtonColorLight = Cream.copy(alpha = MAP_CHROME_OVER_MAP_ALPHA)
+/**
+ * C1 (dispatch 2026-09-28-210): **this colour, and [MapIconStackButtonColorLight], are the navigation bar's container
+ * colour, not a hue of their own.** They were Bark and Cream. They are built from `SurfaceContainerDark` and
+ * `SurfaceContainerLight`, the two values `Theme.kt` gives `colorScheme.surfaceContainer` (what
+ * [com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor] returns), because they are read at about twenty
+ * places that cannot call a composable; `MapChromeColourTokenTest` asserts they equal the scheme's own in both
+ * themes. Kept under their names, with their 0.8, because `MapChromeAlphaTest` pins that alpha. The owner, verbatim:
+ * "Have them be the same color as the bottom app navigation bar."
+ *
+ * [MapIconStackButtonColorDark]'s light-theme counterpart — see that color's own doc comment. */
+internal val MapIconStackButtonColorLight = SurfaceContainerLight.copy(alpha = MAP_CHROME_OVER_MAP_ALPHA)
 
 /** The standing opacity for chrome floating over the map — the one value every fill here targets. */
 internal const val MAP_CHROME_OVER_MAP_ALPHA = 0.8f
@@ -311,7 +326,7 @@ internal fun srcOverAlpha(top: Float, bottom: Float): Float = top + bottom * (1f
 @Composable
 @ReadOnlyComposable
 internal fun mapIconClusterContainerColor(): Color =
-    (if (LocalForagerDarkTheme.current) Bark else Cream).copy(alpha = MAP_ICON_CLUSTER_CONTAINER_ALPHA)
+    navigationBarContainerColor().copy(alpha = MAP_ICON_CLUSTER_CONTAINER_ALPHA)
 
 /** The standing single-layer chrome fill ([MapIconStackButtonColorDark]/[MapIconStackButtonColorLight], 0.8) for whichever theme is current — the landscape L's pill, which has no container under it. */
 @Composable
@@ -323,7 +338,7 @@ internal fun mapIconChromeFillColor(): Color =
 @Composable
 @ReadOnlyComposable
 internal fun mapIconClusterChildColor(): Color =
-    (if (LocalForagerDarkTheme.current) Bark else Cream).copy(alpha = MAP_ICON_CLUSTER_CHILD_ALPHA)
+    navigationBarContainerColor().copy(alpha = MAP_ICON_CLUSTER_CHILD_ALPHA)
 
 /** The hairline edge for whichever theme is current — [MAP_ICON_STACK_BORDER_COLOR_DARK]/[MAP_ICON_STACK_BORDER_COLOR_LIGHT]. */
 @Composable
@@ -511,7 +526,7 @@ internal fun MapIconBar(
                 color = barFill,
                 shadowElevation = 2.dp,
                 border = barBorder,
-                modifier = Modifier.matchParentSize(),
+                modifier = Modifier.matchParentSize().testTag(MAP_ICON_BAR_TAG).mapChromeContainerColor(barFill),
             ) {}
             CompositionLocalProvider(LocalContentColor provides barContentColor) { rows() }
         }
@@ -522,7 +537,7 @@ internal fun MapIconBar(
             contentColor = barContentColor,
             shadowElevation = 2.dp,
             border = barBorder,
-            modifier = modifier,
+            modifier = modifier.testTag(MAP_ICON_BAR_TAG).mapChromeContainerColor(barFill),
         ) { rows() }
     }
 }
@@ -639,6 +654,7 @@ internal fun MapIconBarMinimizeHandle(
                 .height(HANDLE_MARK_HEIGHT)
                 .width(HANDLE_VISIBLE_MARK_WIDTH)
                 .testTag("map-icon-bar-minimize-handle-mark")
+                .mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight)
                 .background(color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight, shape = shape)
                 .border(
                     width = 1.dp,
@@ -741,6 +757,7 @@ internal fun MapIconBarRestoreHandle(
                 .fillMaxHeight()
                 .width(HANDLE_VISIBLE_MARK_WIDTH)
                 .testTag("map-icon-bar-restore-handle-mark")
+                .mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight)
                 .background(
                     color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
                     shape = outlineShape,
