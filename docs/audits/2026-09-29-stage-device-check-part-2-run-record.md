@@ -363,3 +363,75 @@ copy at the end (a find/entry created through the UI can be deleted through the 
 - The owner-era `Find on 2026-09-28` draft (Drafts) and the "5 unfinished entries" were present before and untouched.
 - The `Show on map` menu entry becomes "Hide from map"; the entry map's preview zooms on two quick taps.
 - Disk is at 2114 MB available, close to the amendment's 2048 MB floor.
+
+## Session 3: backup and restore
+
+**Coder:** `claude-sonnet-5-5` as configured for the session (not independently readable from inside it).
+**Device:** S22 `R5CT321008R` (SM-S908U). The tablet is `R52T506412L` (SM-X800); it is not touched, and every adb call uses `-s R5CT321008R`.
+**Items:** 64-76, plus the -153 items (the "Backups" channel, the permission request when the schedule is turned on, the in-app fallback at the
+next launch, Replace re-iding restored regions, "Replace the existing backup file?"). Evidence prefix `s3-`, directory
+`/home/zynergy-labs/Zynergy/device-evidence/2026-09-29-part-2/`.
+
+### Setup (before any launch)
+
+- **Base:** `device-part-2` at `fd560563` (Session 2's last push), already containing `85a41257` (`git merge-base --is-ancestor`).
+- **Build (amendment item 1):** versionName `1.0.1685+g85a41257`, versionCode 1685, `firstInstallTime` 2026-09-22 11:15:05,
+  `lastUpdateTime` 2026-09-29 00:30:31, read from `dumpsys package` before anything else. Not built, not installed. The APK's sha256 was not re-read by me.
+- **Starting settings:** `accelerometer_rotation` 0, `user_rotation` 0, `font_scale` 1.0, window/transition/animator scales 1.0/1.0/1.0,
+  `wm size` 1080x2316. Crash buffer (`logcat -b crash -d`) empty. Launcher in focus, screen awake. POST_NOTIFICATIONS `granted=false` (Session 2's read-back).
+- **Deviation, disk:** `df -m /` reads **977 MB available**, below the amendment's 2048 MB floor for bulk evidence (Session 2 ended at 2114 MB; something else on
+  the machine used about 1.1 GB since). I did not delete anything of another session's. This session's evidence is the 34 MB copy plus PNG crops, so it does not
+  write in bulk; I will re-read `df` before each batch and stop if it falls under 300 MB.
+- **Verified full copy (rule 2), `s3-copy/`:** force-stopped, then pulled through `run-as`: 21 files (`databases/` forager.db, -wal, -shm, fungi_index.db + side files;
+  `files/photos/` 3; `files/mbgl-offline.db` (23,674,880 bytes); 5 DataStore files; `files/profileInstalled`; `no_backup/androidx.work.workdb` + -shm + -wal; 2 shared_prefs).
+  Device sha256 (`device.sha256`) equals the pulled files' (`local.sha256`) for **21 of 21**; the device hashes re-read after the pull are unchanged; no app process.
+  `forager.db` on a scratch copy of the db and its wal: header `SQLite format 3`, `integrity_check` = ok, `user_version` = 16, every table's row count in
+  `forager-db-verify.txt` (mushroom_log_entries 3, log_photos 3, log_entry_photos 1, tracks 1, track_points 23, waypoints 3, offline_regions 2, cartography_entries 7,
+  cartography_entry_find_refs 2, ..._offline_region_refs 1, ..._photo_refs 1, ..._track_refs 1, ..._waypoint_refs 3, planned_trips 0, cached_searches 2).
+  The 21 hashes are also equal, file for file, to Session 2's `s2-copy/device.sha256`, so the phone was left exactly as Session 2's restore put it. (My `forager-db-verify.txt`
+  lists user tables by `sqlite_master`; it omits `sqlite_sequence`, which Session 2's file lists with 1 row. Nothing else differs.)
+
+### Pre-registration (before the first launch of this session)
+
+Sources read at this base: dispatch `prompts/preserved/2026-09-29-21.md` and amendment `-29.md` (read in full, on `origin/journal-redesign`); the inventory
+(items 64-76, group 1h); the backup report's "Resumed" -137 and -153 sections (its final form). Code read by me at this base, in
+`app/src/main/java/com/zynergylabs/forager/app/`: `ui/backup/BackupSection.kt` (whole file); by grep only: `ui/backup/BackupViewModel.kt:32-62`
+(message strings), `ui/backup/RestoreLoadingPage.kt:49-160`, `data/backup/RoomJournalBackup.kt:234-297` (region re-id), `domain/ScheduledBackupNotice.kt:13-19`,
+`data/backup/AndroidBackupNotifier.kt:22-101` and `data/backup/ScheduledBackup.kt:84` (`UNIQUE_WORK_NAME = "journal-backup"`),
+`ui/availability/AvailabilityOfflineMapsUi.kt:575-588`. Where a pass condition rests on a line I have only grepped, it is the report's line, not my reading of the logic.
+
+**Method.** Real `adb shell input` and real rotations only. System pickers (create file, choose folder, open file) are driven with `input`; the DocumentsUI's own
+"Allow access to ...?" step of the folder picker is part of that picker (item 65's persisted permission), so I treat it as part of the flow under test. The
+**notification permission** prompt (turning the schedule on with a folder chosen, `BackupSection.kt:88-93`; and starting a recording) is a system prompt over the app: rule 11
+and amendment item 6 say stop and ask the owner to tap it. I will not tap it and will not `pm grant`. Files I create on the phone: a folder
+`/sdcard/Documents/DEVICE-CHECK-2026-09-29/` and the backup zips in it; my paths are recorded and removed at the end.
+
+**Plan of the round trip (state names):** S0 = the verified copy (owner's data only). Backup **A** is taken at S0. Then I add one find labelled
+"DEVICE CHECK 2026-09-29 s3" (state S1) and take backup **B**. Then: Replace-restore of A (to S0'), Merge-restore of B, Merge-restore of A (the "second backup" is B; both
+Merges are run), each read back from the database (`run-as` copy of `forager.db` + wal, scratch, integrity, counts). At the end the phone is returned to S0 (amendment 2 and 8: remove each
+file on the device first, then push the copy; every hash again after a few seconds; files that did not exist in the copy, such as a new DataStore file or a photo, are removed).
+
+| Item | Pass condition (source) | Prediction |
+|---|---|---|
+| 64 | A backup to a chosen folder writes `forager-backup-<date>.zip` and shows "Backup saved." (`BackupViewModel.kt:32`). A Replace restore of A returns the journal rows to S0's counts (mushroom_log_entries 3, log_photos 3, tracks 1, track_points 23, waypoints 3, cartography_entries 7, planned_trips 0) and the 3 photo files with the same sha256; a Merge restore of B adds the s3 find without duplicating the rest. `offline_regions` and its refs change ids by design (below). | passes on rows; the region ids differ from S0 |
+| 65 | The Save picker offers `forager-backup-<date>.zip` (`backupFileName`, `BackupSchedule.kt:71`); the folder picker's choice shows in the section under "Backup folder" by its own name (`BackupSection.kt:127-135`) and survives a force-stop and relaunch (persisted permission, `takePersistableUriPermission` in `ContentResolverBackupFiles.kt`; unverified line); the open-file picker lists the zip. A **cloud provider:** I will look at whether the pickers list one, and will **not write a backup to one** (it would send the owner's journal, with its locations, to an external account; hard to reverse). Recorded as not run unless the owner rules otherwise. | pass except the cloud write, not run |
+| 66 | The schedule (`UNIQUE_WORK_NAME = "journal-backup"`, `ScheduledBackup.kt:84`) run through `adb shell cmd jobscheduler run -f` (job id read from `dumpsys jobscheduler`) puts a `forager-backup-<date>.zip` in the folder. I do not change the clock and do not force Doze; "under Doze" is **not run** and said so. | file lands; Doze half not run |
+| 67 | The Backup section in the Tools drawer (Tools, then Settings): title "Backup", "Back up now", "Automatic backup" with its switch, "How often" with Daily/Weekly/Monthly, "Backup folder" + "Choose folder", "Restore from backup" (`BackupSection.kt:96-160`), at 0, 90 and 270, each control's bounds from `uiautomator dump` inside the screen and not covered by another. | pass; the landscape scroll is my likeliest surprise (the report's "how far the scroll lands" is device-only) |
+| 68 | Fresh install state: the switch is off and "Weekly" selected (`BackupSection.kt:97-115`; the report's test names). The DataStore file for the schedule does not exist in the copy, so this is the first read. | pass |
+| 69 | After Replace of A, each restored region shows "Not downloaded" and a "Download again" button (`AvailabilityOfflineMapsUi.kt:579-588`). "Download again" runs against the real server (NET). It needs no Wi-Fi/data change. It starts a real tile download; I will size it first from the row's radius and zoom and the tile budget before tapping, and stop and ask if it looks large. | rows show; the download's size is unknown to me |
+| 70 | Merge gives each incoming region a **new negative id** below the current minimum (`RoomJournalBackup.kt:290,297`); the refs (`mushroom_log_entries.offlineRegionId`, `cartography_entry_offline_region_refs`) follow. Replace also re-ids, counting down from -1 (`RoomJournalBackup.kt:236-244`). Read from `forager.db`. I predict Merge of a backup into a phone that already holds the same regions **adds them again** (the report's decision 2), so `offline_regions` grows. | Replace ids -1,-2; Merge adds more |
+| 71 | Unreadable photos pause: "N photos couldn't be backed up." with Try again / Continue without file(s) / Cancel (`BackupViewModel.kt:50`, `BackupSection.kt:150-160`); Continue saves and says "Backup saved, but N photos couldn't be found and were left out." (`:41-42`); Cancel deletes the file this run created. I will cause it **only with a photo of my own**: a DEVICE CHECK find with a camera photo, then remove that one photo file through `run-as`. The owner's three photos are never touched. | pass |
+| 72 | A failed write that deletes only its own file, with Try again / Cancel (`BackupViewModel.kt:62`). **Predicted not runnable:** it needs a forced write failure and there is no hook (Session 2 found none for item 57; adding one is the owner's call). I will look for a way to fail a write with only the phone's own controls, and if none, record it not runnable and add no hook. | not runnable |
+| 73 | Planned trips round-trip (`JournalTables.kt:54`). The phone has 0 planned trips. I would create one named "DEVICE CHECK 2026-09-29 s3 trip" before backup B, restore, and read `planned_trips` from the db. If a trip cannot be created with real input, not reached. | pass if created |
+| 74 | With a track recording, choosing a backup to restore shows "Stop recording before restoring a backup." and nothing is staged (`BackupViewModel.kt:37`, block near `:261`). Starting a recording asks for POST_NOTIFICATIONS (Session 1's finding): a system prompt, so I stop for the owner. Without an answer this is **not reached**. | depends on the owner |
+| 75 | After a Replace/Merge commits: a full-screen page, the app icon pulsing, "Loading your restored journal…"; then the icon stops, "Your journal is restored." and "Done" at its centre; a tap on the icon (168 dp, description "Done", `RestoreLoadingPage.kt:53,130`) returns to Maps with a ~300 ms grow-and-fade; with `animator_duration_scale` 0 it goes straight to Maps (`RestoreLoadingPage.kt:96`). Captured as a screenshot series (the pulse and the fade are timing, so I judge from frames and say how many). I set the scale to 0 for the reduced-motion run and restore 1.0. | pass; frame capture may miss the 300 ms fade, which I will say |
+| 76 | "Backups" channel exists with that user-visible name (`AndroidBackupNotifier.kt:97-101`, read from `dumpsys notification` or the app's notification settings); a scheduled run that meets an unreadable photo posts "Scheduled backup saved. 1 photo couldn't be backed up." (`ScheduledBackupNotice.kt:19`), and a tap opens Tools, then Settings at the Backup section. **Needs POST_NOTIFICATIONS granted, which needs the owner's tap on the prompt.** With it declined, the same text is kept and shown once as a snackbar at the next launch (the -153 in-app fallback). | not reachable without the owner; the decline path is reachable only if the owner taps Don't allow |
+| -153: Replace re-ids | Replace of A leaves `offline_regions` ids negative (-1, -2), never the backup's original ids (`RoomJournalBackup.kt:238-244`). | pass |
+| -153: "Replace the existing backup file?" | Picking an existing non-empty zip in the Save picker asks first, with Replace / Cancel (`BackupSection.kt:165-172`); Cancel writes nothing (sha256 of that zip unchanged); a new empty file is not asked about. | pass |
+
+**Predictions, so a surprise is visible:** (P1) the two notification-permission items (66-notification half, 74, 76) cannot be finished without an owner tap; (P2) Replace of A returns the
+journal tables to S0's counts and the photo files to S0's hashes, but **not** `offline_regions` ids; (P3) `mbgl-offline.db` is unchanged by a restore (regions are Room rows only, "Not downloaded"),
+so any change to it comes from "Download again"; (P4) item 72 is not runnable; (P5) the return to S0 needs the remove-then-push order (Session 2's finding), and the WorkManager db will differ until it is restored.
+
+**Declared limits:** the cloud provider write, "under Doze", the forced-failure half of item 72, and anything behind the notification prompt unless the owner taps it. Tablet-only halves
+(a restore onto the tablet as a new phone, the wide layout's Backup section) are not runnable on the S22. Item 8's channel importance (`IMPORTANCE_DEFAULT`) is the coder's unruled choice per the report; I record what the device shows and give no verdict on the choice.
