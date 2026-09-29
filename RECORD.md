@@ -6774,3 +6774,27 @@ The planner confirmed each by grep.
 - **Left where they were, as history:** RECORD.md and prompts/preserved still cite the old paths. `git log --follow` traces each move.
 - **Considered and not moved:** maplibre-migration.md (the plan's companion, but a map-renderer plan cited widely), and the 2026-09-07 track-distance pulse.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-223
+**Timestamp:** 2026-09-29T19:58:12Z
+**Dispatch:** 2026-09-28-210 (C1)
+**Reason:** the C1 coder handed back, pushed to journal-redesign at b9679e76. Report: docs/audits/2026-09-29-chrome-colour-completion-report.md.
+**Changes:**
+- **One token,** navigationBarContainerColor() = surfaceContainer (dark #202020, light #F4EFE2), read by the navigation bar and the rail.
+- **Every map chrome surface takes it,** either through the kept, redefined MapIconStackButtonColor* constants or through mapChromeFill.
+- **The wide details pane** takes the token and stays solid. The pulse's premise was wrong: it had been `surface`.
+- **The search notice** keeps errorContainer.
+- **Alphas are unchanged,** except "Download this area?", from opaque to 0.8. The cluster's 0.6/0.5 are not tied to the chrome alpha (owner "5 No").
+- **Only the snackbar's content changed:** text onSurfaceVariant and action primary, because its inverse colours fail contrast on the token.
+- **All other measured contrast** clears AA: dark 7.39-16.29, light 4.73-11.42.
+**Notes:**
+- **Tests first:** 168 tests, 108 failing for their reasons. 20 revert runs.
+- **Two escapes, closed.** Fill-only reverts of the pane and the search panel passed, because the semantic seams repeat the given colour. Pixel tests were added (search bar, strip, icon bar, nav bar, panel, bubble, wide pane, dark and light) and re-reverted, and all now bite.
+- **Proven through the seam only, not pixels:** HUD, chips, legend, AddActionTile, handles, cluster container, pill, sheets, dialogs, drawer, menus, snackbar, centre-pin row and the Download dialog.
+- **Its suite on a6d01fc9:** 3217 / 0 / 0 / 24. It was not re-run after the last merge, 35c9a86b.
+- **Stale comments** still name CompassStripBackgroundColor* (AvailabilityMapControlsUi.kt:5, AvailabilitySearchUi.kt:11, theme/Theme.kt:62). MapModePicker has no caller.
+- **Machine:** one attempt at 2415 MB, which failed at compile.
+- Written by the planner by hand.
