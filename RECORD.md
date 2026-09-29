@@ -6897,3 +6897,17 @@ The planner confirmed each by grep.
   - deleting a waypoint, region, find or photo leaves the entry's copy (CartographyEntryDao.kt:60-75);
   - there is no "vehicle" waypoint kind (WaypointDesignation.kt:17-21).
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-229
+**Timestamp:** 2026-09-29T20:13:46Z
+**Dispatch:** none (an owner ruling on zynergy-site PR #3, relayed to the second planner, which owns that PR)
+**Reason:** the owner, verbatim: "Make the tracks deletable so the words are true", and "Do not tell users they can't delete tracks in the same update that allows them to delete them. That's not sensible".
+**Changes:**
+- PR #3's row D6 is reversed: "Recorded tracks" stays in delete-data's deletable list, with L1's wording.
+- The second planner is asked to add that commit to PR #3. The ruling is in the plan, under "Delete-data never says tracks cannot be deleted".
+**Notes:**
+- **The consequence:** PR #3's delete-data page is true once PR #140 ships. Its merge is still the owner's click.
+- Written by the planner by hand.
