@@ -6006,3 +6006,22 @@ Nothing of either window was pushed. On the phone, the two did only force-stop a
   - (m) while notifications are denied, the permission prompt returns on each schedule toggle and on Start recording.
 - **Residue on the S22 that is not app data:** the "Backups" notification channel, and possibly a persisted folder grant for the deleted DEVICE-CHECK folder.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-180
+**Timestamp:** 2026-09-29T11:21:40Z
+**Dispatch:** none yet (the Part 2 follow-ups)
+**Reason:** the owner, verbatim: "2 A, 3 I'll take your recommendations". Also, verbatim: "Yes drop that" (the landscape entry map's band, withdrawn).
+**Changes:**
+- **The new track stops:** 100% at zoom 18 and above, about 67% at 16, about 42% at 14, and 25% at 12 and below.
+- **The four backup rulings:**
+  - skip a duplicate region on restore;
+  - the first scheduled run waits for its time;
+  - keep the newest 5 scheduled backups;
+  - ask the notification permission once.
+- All six go into the Part 2 follow-up dispatch. It waits only on the owner approving the "Download Maps" confirmation wording.
+**Notes:**
+- Scheduled-backup pruning is the first time the app deletes files of its own outside its storage. It is limited to scheduled backups in the chosen folder.
+- Written by the planner by hand.
