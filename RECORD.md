@@ -5648,3 +5648,35 @@ The re-check runs in Part 2 with the deferred items 38, 39, 40 and 42.
   - (e) the Gallery row's datetaken was NULL for a photo whose file name carries its time (-126 writes DATE_TAKEN "when the record has a time"), to be verified in code.
 - accelerometer_rotation changed to 1 twice without the coder.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-165
+**Timestamp:** 2026-09-29T08:45:54Z
+**Dispatch:** 2026-09-28-152 (J6), part J6a
+**Reason:** the J6 coder handed back J6a, pushed to journal-redesign at d2b61d0e.
+- Report: "J6a completion report" in docs/audits/2026-09-29-j6-completion-report.md.
+- Its suite: 2834 / 0 / 0 / 24 (+32).
+- Tests first: 25 of 28 WideJournalTest failed at base, 3 are guards.
+- Revert check: a filled Box in place of the pane's Surface lets 5 of 5 touches through.
+**Changes:**
+- The wide Journal is now the phone's JournalTab under a "Journal" back row.
+- JournalDetailSlot draws an opened entry, find, picker or record details over the whole right side.
+- One Back handler. The Photo Gallery panel is removed, and the album has long-press delete.
+**Notes:**
+- **For the owner:**
+  - the record-details pane's back row is labelled "Details" by the coder, since the phone's sheet has no header;
+  - PhotoGalleryScreen.kt now has no production caller: delete it and its test?
+  - "Log a find" over an open find is unreachable on wide under ruling 1, because the pane covers the map's "+".
+- **Premises that did not match,** recorded in the report:
+  - ruling 5's Back order leaves out an existing Finds-chip-to-All step;
+  - an editor's Back closes the entry on the phone too.
+- **Two intermittent failures in the coder's first full run, not recurring in two more runs or in isolation:**
+  - AvailabilityScreenBackNavigationTest "Continue editing on the return prompt" (AppNotIdle);
+  - WideJournalTest (performMeasureAndLayout).
+
+  Their results were deleted before the stack traces were saved. The second belongs to the same family as the planner's LeavingTheJournalFixesTest F3 failure (-134).
+- **Process:** once, the no-Gradle check and the run were in one command, and another worker started in between. That run failed to compile and is not cited.
+- J6b continues. The coder expects to stop on item 14 (controls parity), where the drag, snap, minimise and fullscreen state live in the compact scaffold.
+- Written by the planner by hand.
