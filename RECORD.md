@@ -6102,3 +6102,43 @@ Nothing of either window was pushed. On the phone, the two did only force-stop a
 - **Not root-caused:** D4's pre-change failure, a touch 2 dp outside at 6 dp from the edge.
 - The terminals for -160 and -152 (J6) wait on the planner's own suite.
 - Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-185
+**Timestamp:** 2026-09-29T11:50:31Z
+**Closes:** 2026-09-28-152 (J6, the wide tree for tablets)
+**Outcome:** completed
+**Observed:**
+- **Record:** docs/audits/2026-09-29-j6-completion-report.md, with its J6a, J6b and J6c sections.
+- **J6a** (d2b61d0e): the phone's Journal on the tablet, with list-detail on the right side, one Back order, the Journal state holders passed in, record details as a pane, album long-press delete, and the Photo Gallery panel removed. The header is "Journal" (-159), and "Details" is kept (-166).
+- **J6b** (2777cd11): List/Maps become tabs below a 480 dp map, the chip row gets its inset, and the map shows before any search. PhotoGalleryScreen is deleted.
+- **J6c** (44c4ff2a): the phone's cluster is extracted into MapIconCluster, and the tablet gets the phone's portrait controls, strip, HUD and fullscreen. The guard held: every existing compact test passed with no edit.
+- **The planner's suite** at 24b1aac0 (containing J6c and the L), from a cleared results directory with a hang timeout: 355 files, none stale, 0 compile errors, 2915 / 0 / 0 / 24, in 401 s.
+- **Device-only:** J6's tablet check, on the owner's SM-X800 (now authorized). The lists are in each part's report.
+**Deviations:**
+- The J6a suite's results were cleared before two once-only failures' traces were saved (-165).
+- J6c removed three J6b chip-vs-Layers tests with their button. A replacement guard is F1's item 6.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-186
+**Timestamp:** 2026-09-29T11:50:31Z
+**Closes:** 2026-09-28-160 (the landscape icon cluster as an L)
+**Outcome:** completed
+**Observed:**
+- **Record:** docs/audits/2026-09-29-landscape-l-completion-report.md, with its "Resumed" sections. Landed at 29f44002.
+- **The L, in phone short landscape only:**
+  - the bar at 240 dp, then an 8 dp gap, then the 96 × 48 pill, with record under the bar's column on both sides;
+  - fill-less;
+  - (a) pushed below the search bar;
+  - (b) the notice inset on the L's side;
+  - (c) the handle's box 20 × 48;
+  - (d) full 48 dp touch squares.
+- TR5 runs in native text metrics (-178).
+- **The planner's suite:** as -185, 2915 / 0 / 0 / 24 at 24b1aac0.
+- **Device-only (S22 at 90 and 270):** the items the report lists, plus Part 2's deferred 38, 39, 40 and 42, all in the next S22 session.
+**Notes:** Written by the planner by hand.
