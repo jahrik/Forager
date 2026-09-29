@@ -4,9 +4,11 @@ import android.view.Surface
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -59,7 +61,7 @@ class LayoutFixesChipRowLandscapeTest {
 
     private val map = LayoutFixesMapSlot()
 
-    private fun setScreen(rotation: Int, label: String = SHORT_LABEL) {
+    private fun setScreen(rotation: Int, label: String = SHORT_LABEL, withTaxonChip: Boolean = true, withJournalChip: Boolean = true) {
         Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(rotation)
         var rotationSeen: Int? = null
         composeRule.setContent {
@@ -71,13 +73,14 @@ class LayoutFixesChipRowLandscapeTest {
                     selectedMonth = LocalDate.now().monthValue,
                 ),
                 mapSlot = map.slot,
-                cartographyUiState = LAYOUT_FIXES_SHOWN_ENTRY_STATE,
+                cartographyUiState = if (withJournalChip) LAYOUT_FIXES_SHOWN_ENTRY_STATE else com.zynergylabs.forager.app.ui.log.CartographyUiState(),
             )
         }
         composeRule.waitForIdle()
         composeRule.mainClock.advanceTimeBy(2_000)
         composeRule.waitForIdle()
         assertEquals("the screen must see the pinned rotation", rotation, rotationSeen)
+        if (!withTaxonChip) return
         // "View on Map" from a List-tab row, the taxon chip's real entry point (as the B2 tests do).
         composeRule.onNodeWithText("List").performClick()
         composeRule.waitForIdle()
@@ -92,9 +95,8 @@ class LayoutFixesChipRowLandscapeTest {
 
     /** The taxon chip and J8's chip together: the row's drawn extent (the row draws nothing itself). */
     private fun chipRow(): DpRect {
-        val taxon = tag("map-taxon-filter-chip")
-        val journal = tag(JOURNAL_ENTRIES_CHIP_TAG)
-        return DpRect(minOf(taxon.left, journal.left), minOf(taxon.top, journal.top), maxOf(taxon.right, journal.right), maxOf(taxon.bottom, journal.bottom))
+        val present = listOf("map-taxon-filter-chip", JOURNAL_ENTRIES_CHIP_TAG).filter { composeRule.onAllNodesWithTag(it).fetchSemanticsNodes().isNotEmpty() }.map { tag(it) }
+        return DpRect(present.minOf { it.left }, present.minOf { it.top }, present.maxOf { it.right }, present.maxOf { it.bottom })
     }
 
     private fun snapClusterAcross(dx: Dp) {
@@ -112,8 +114,12 @@ class LayoutFixesChipRowLandscapeTest {
         assertFalse("the chip row ${row.describe()} and the cluster ${cluster.describe()} do not intersect", row.overlapsRect(cluster))
         val gap = if (clusterOnLeft) row.left - cluster.right else cluster.left - row.right
         assertTrue("the row ${row.describe()} keeps the 8 dp gap from the cluster ${cluster.describe()} (gap $gap)", gap >= 7.5.dp)
-        val cap = (bar.right - bar.left) - (cluster.right - cluster.left) - 16.dp
-        assertTrue("the row ${row.describe()} is at most ${cap.value} dp wide, the bar's width less the cluster's, its edge inset and the gap", (row.right - row.left) <= cap + 0.5.dp)
+        // Planner message 2026-09-29-05: the width cap applies only where the cluster sits under the bar's reach.
+        val clusterUnderBar = cluster.right > bar.left && cluster.left < bar.right
+        if (clusterUnderBar) {
+            val cap = (bar.right - bar.left) - (cluster.right - cluster.left) - 16.dp
+            assertTrue("the row ${row.describe()} is at most ${cap.value} dp wide, the bar's width less the cluster's, its edge inset and the gap", (row.right - row.left) <= cap + 0.5.dp)
+        }
         if (clusterOnLeft) {
             assertEquals("the cluster is on the left, so the row ${row.describe()} ends at the bar's right end ${bar.describe()}", bar.right.value, row.right.value, 1f)
         } else {
@@ -205,6 +211,93 @@ class LayoutFixesChipRowLandscapeTest {
     @Test fun `T7 at ROTATION_270 a real touch on J8's chip reaches it`() {
         setScreen(Surface.ROTATION_270)
         assertEachChipTakesItsTouches()
+    }
+
+    /** The window's central third (x and y from 1/3 to 2/3), as the B2 tests' S10 takes it. */
+    private fun assertChipRowClearOfCentralThird() {
+        val root = composeRule.onAllNodes(androidx.compose.ui.test.isRoot()).onFirst().getUnclippedBoundsInRoot()
+        val third = DpRect(
+            root.left + (root.right - root.left) / 3, root.top + (root.bottom - root.top) / 3,
+            root.left + (root.right - root.left) * 2 / 3, root.top + (root.bottom - root.top) * 2 / 3,
+        )
+        val row = chipRow()
+        assertFalse("the chip row ${row.describe()} does not intersect the central third ${third.describe()}", row.overlapsRect(third))
+    }
+
+    @Test fun `S10 at ROTATION_90 with a long label the chip row stays out of the central third`() {
+        setScreen(Surface.ROTATION_90, LONG_LABEL)
+        assertChipRowClearOfCentralThird()
+    }
+
+    @Test fun `S10 at ROTATION_270 with a long label the chip row stays out of the central third`() {
+        setScreen(Surface.ROTATION_270, LONG_LABEL)
+        assertChipRowClearOfCentralThird()
+    }
+
+    /** The taxon chip's label is one ellipsized line, and the whole row is a single line tall. */
+    private fun assertLongLabelOneEllipsizedLine() {
+        val node = composeRule.onNode(androidx.compose.ui.test.hasText("Showing:", substring = true), useUnmergedTree = true)
+        val results = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+        assertTrue("the label exposes its layout", node.fetchSemanticsNode().config.getOrNull(SemanticsActions.GetTextLayoutResult)?.action?.invoke(results) == true)
+        val layout = results.single()
+        assertEquals("the long label is on one line", 1, layout.lineCount)
+        assertTrue("and that line is ellipsized", layout.isLineEllipsized(0))
+    }
+
+    /** With the taxon chip alone (no second line to add), a long label leaves the whole row one chip tall and out of the central third. */
+    private fun assertTaxonChipAloneOneLine() {
+        assertLongLabelOneEllipsizedLine()
+        val row = chipRow()
+        assertTrue("the row ${row.describe()} is one chip tall (48 dp at most)", (row.bottom - row.top) <= 48.dp)
+        assertChipRowClearOfCentralThird()
+    }
+
+    @Test fun `T7 at ROTATION_90 the taxon chip alone with a long label is one ellipsized line, clear of the central third`() {
+        setScreen(Surface.ROTATION_90, LONG_LABEL, withJournalChip = false)
+        assertTaxonChipAloneOneLine()
+    }
+
+    @Test fun `T7 at ROTATION_270 the taxon chip alone with a long label is one ellipsized line, clear of the central third`() {
+        setScreen(Surface.ROTATION_270, LONG_LABEL, withJournalChip = false)
+        assertTaxonChipAloneOneLine()
+    }
+
+    @Test fun `T7 at ROTATION_90 a long label is one ellipsized line`() {
+        setScreen(Surface.ROTATION_90, LONG_LABEL)
+        assertLongLabelOneEllipsizedLine()
+    }
+
+    @Test fun `T7 at ROTATION_270 a long label is one ellipsized line`() {
+        setScreen(Surface.ROTATION_270, LONG_LABEL)
+        assertLongLabelOneEllipsizedLine()
+    }
+
+    @Test fun `T7 with the cluster on the far side the two chips have room and stay on one line`() {
+        setScreen(Surface.ROTATION_90)
+        snapClusterAcross(500.dp)
+        val taxon = tag("map-taxon-filter-chip")
+        val journal = tag(JOURNAL_ENTRIES_CHIP_TAG)
+        assertTrue("the journal chip ${journal.describe()} is beside the taxon chip ${taxon.describe()}, not under it", journal.top < taxon.bottom - 0.5.dp)
+    }
+
+    @Test fun `T7 at ROTATION_90 J8's chip alone clears the cluster and the reset button takes touches`() {
+        setScreen(Surface.ROTATION_90, withTaxonChip = false)
+        assertChipRowAwayFromCluster()
+    }
+
+    @Test fun `T7 at ROTATION_270 J8's chip alone clears the cluster and the reset button takes touches`() {
+        setScreen(Surface.ROTATION_270, withTaxonChip = false)
+        assertChipRowAwayFromCluster()
+    }
+
+    @Test fun `T7 at ROTATION_90 the taxon chip alone clears the cluster and the reset button takes touches`() {
+        setScreen(Surface.ROTATION_90, withJournalChip = false)
+        assertChipRowAwayFromCluster()
+    }
+
+    @Test fun `T7 at ROTATION_270 the taxon chip alone clears the cluster and the reset button takes touches`() {
+        setScreen(Surface.ROTATION_270, withJournalChip = false)
+        assertChipRowAwayFromCluster()
     }
 
     private fun assertTaxonClearReachable() {

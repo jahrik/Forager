@@ -1713,3 +1713,77 @@ Everything is on `layout-fixes-wip` at `b8d467b`. **Nothing from this continuati
 
 - **S10's fixture measures text at near-zero width** (the same cause as Decision 6): every B2 test that depends on text size without `@GraphicsMode(NATIVE)` measures a different layout from the phone's. Not checked beyond S3 and S10.
 - **The relay and the file agree.** No conflict with `CLAUDE.md`.
+
+---
+
+# Resumed a fourth time (planner message `2026-09-29-05`, record `2026-09-28-119`)
+
+## The message, verbatim
+
+From `prompts/preserved/2026-09-29-05.md` at `e726ebc` (first 16 hex of its sha256 `e4e0c36bb70db6eb`), below its "verbatim message follows" line. The relay I was sent
+(owner "Option B"; S10 under NATIVE; one-line labels with `maxLines = 1` and `TextOverflow.Ellipsis`; cap only on the cluster's side; tests first failing at `b8d467b`) matches the file.
+
+> Planner message `2026-09-29-05` (record `2026-09-28-119`), part of dispatch `2026-09-28-78`. Quote it verbatim in your report. It answers your stop on the red S10 test (`AvailabilityScreenLandscapeB2Test`, "S10 at ROTATION_90 with the filter chip showing, the central third stays clear").
+> 
+> **The owner, verbatim: "Option B".** Option B, as the planner put it: "Fix the test, and keep each chip to one line, shortening long names with '…', so the row never enters the middle third."
+> 
+> **Build:**
+> 1. **S10's chip case runs under `@GraphicsMode(NATIVE)`,** so it measures real text. This is a harness correction the owner approved, not a weakened assertion: the central-third assertion itself is unchanged.
+> 2. **Each chip in the row keeps its label to one line** (`maxLines = 1`, `TextOverflow.Ellipsis`), so a long species name is shortened with "…" and the row never grows into the central third. There is no new copy. Keep each chip's touch target and the clear button intact.
+> 3. **The planner's ruling on your Decision 12:** the width cap applies only on the side where the cluster sits, under the bar's reach. When the chips have room, they stay on one line.
+> 
+> **Tests first**, seen failing at `b8d467b` for the stated reason:
+> - S10 under NATIVE, with your 78-character label: the row does not intersect the central third at 90 and 270;
+> - the long label renders on one line and is ellipsized;
+> - one-chip and two-chip placement still clears the cluster.
+> 
+> Revert checks for the ellipsis and the side-limited cap. Then **the full suite on your final tree, with 0 failures**, pushed to `journal-redesign` with `--no-rebase`, and a new "Resumed" section. Before each Gradle run, check that no other build is running and that 2.5 GB is available. Hand back to `[9b334a]`.
+
+## Pre-registration (written from the message, before the base run)
+
+- S10's chip case (`AvailabilityScreenLandscapeB2Test`) gets `@GraphicsMode(NATIVE)`; its assertion is unchanged. **Predicted at base: passes** (the earlier experiment).
+- New tests in `LayoutFixesChipRowLandscapeTest`: the 78-character label at 90 and 270 keeps the whole row out of the window's central third (**predicted to fail at base**: the row reaches y 153); the taxon chip's label is one ellipsized line (**predicted to fail**: 3 lines); with the cluster on the far side, two chips with room stay on one line (**predicted to fail**: the 264 cap wraps them); J8's chip alone and the taxon chip alone clear the cluster and the reset button takes real touches (**predicted to pass**, guards). The cap assertions in the older tests apply only where the cluster is under the bar's reach.
+- Revert checks planned: the ellipsis (`maxLines`/`overflow`), and the side-limited cap.
+
+## What happened
+
+- **Base run (`base3`, 0 compile errors, fresh XML) at `b8d467b`'s source:** 5 fail, 43 pass, as predicted: the long label was 3 lines; the row `[120, 53][384, 153]` (90) and `[439, 53][..., 153]` (270) reached the central third; the far-side chips wrapped (`[0, 97][158, 129]` under `[0, 53][216, 85]`). S10 under NATIVE passed (a guard).
+- **Built:** the taxon chip's label `maxLines = 1`, `TextOverflow.Ellipsis`, `Modifier.weight(1f, fill = false)` (so the clear button keeps its 24 dp); J8's chip's label `maxLines = 1`, `Ellipsis`; the width cap only when `isMapIconBarOnLeftSide == (punchHoleEdge == ScreenEdge.Left)`, i.e. the cluster is on the bar's side. The first build run had a compile error (a missing `TextOverflow` import in `JournalEntriesChip.kt`); I discarded that run and re-ran.
+- **Revert checks (saved copies, 0 compile errors, fresh XML, forward files byte-identical afterwards):** the ellipsis reverted: the two ellipsis tests fail with "the long label is on one line expected 1 but was 3" (and the two S10 long-label tests fail as at base). The side-limited cap reverted to always: the far-side test fails ("the journal chip [0, 97][158, 129] is beside the taxon chip [0, 53][216, 85], not under it").
+- **Full suite at the final source, before my last test edit:** 2557 tests, 4 failed, 24 skipped, 314 files, 0 compile errors. The four failures were all in `LayoutFixesChipRowLandscapeTest`; two were a defect in my own tests (I asserted the whole two-chip row is one chip tall; two chips wrap onto two lines by the owner's earlier ruling), which I moved to the taxon-chip-alone tests. The chip-row class then ran: 22 pass, **2 fail**. I have not re-run the whole suite since that test edit.
+
+## The stop: with both chips and a long label the row still reaches the central third, by 1 dp
+
+The two remaining failures are the message's own test, "S10 ... with your 78-character label: the row does not intersect the central third at 90 and 270", with both chips showing:
+- 90: the row `[120, 53][384, 129]` against the central third `[274.3, 128][548.7, 256]`.
+- 270: `[439, 53][703, 129]` against the same.
+
+**Cause.** The long taxon chip is one ellipsized line but fills the whole 264 dp cap, so J8's chip does not fit beside it and wraps to a second line. The two-line row is 76 dp tall: the taxon chip (32 dp) at y 53 to 85, 4 dp, then J8's chip's 48 dp touch box at y 89 to 137, with its drawn chip at y 97 to 129. The central third's top edge is at 128, so the tagged bounds cross it by 1 dp and J8's 48 dp box by 9 dp. This is not specific to the long label: the same two-line shape (owner's "1 A", "they wrap onto two lines") results with the standard label, which no test measures against the central third. The message expected the one-line labels to keep the row out of the central third; that holds for one chip (the two taxon-chip-alone tests pass: one ellipsized line, one chip tall, clear) but not for two, whose second line is what reaches it.
+
+**Options, not chosen (each is a design decision):**
+- **A.** Cap the taxon chip's width so both chips sit on one line (taxon at most about 264 - 158 - 8 = 98 dp, so its label is heavily ellipsized). The row is one line and clears the central third; the owner's "they wrap onto two lines" (1A) would no longer apply.
+- **B.** Keep two lines and shave the second line by 2 dp or more (for example a smaller gap between lines, or J8's chip sized to its pill), so its tagged bounds end at or above y 128. Its 48 dp touch box would still reach 137.
+- **C.** Rule that a second line may enter the central third, and drop or narrow the two-chip long-label S10 assertion (a weakening of a test, so it is the owner's to decide).
+- **D.** The wrapped chip goes elsewhere (an unruled placement).
+
+## Where it is
+
+On `layout-fixes-wip`. **Nothing from this continuation is on `journal-redesign`:** the suite has two red tests, both the message's own. Before the last test edit the whole suite was otherwise green: 2557 tests, the four failures being the chip-row ones above.
+
+## Device-only list (`-119`), S22 at 90 and 270
+
+- A long species name in the taxon chip: one line, ellipsized, the clear button whole and tappable.
+- Two chips with a long name: whether the second line reaches the window's middle, and where it sits against the nav inset.
+- The chips with the cluster on the far side: both on one line, at the bar's away end.
+- S10-style central-third clearance on the real window height.
+
+## Decisions I made (this section)
+
+15. **The clear button is kept by a non-filling weight on the label,** not a fixed label width.
+16. **J8's chip label also has `maxLines = 1` and an ellipsis,** since the message says each chip; its label is short and fixed today, so nothing changes visibly.
+17. **I moved my own "row is one chip tall" clause to the taxon-chip-alone tests.** It was a wrong assertion in my test, not the message's.
+18. **The stop above is mine to report, not to resolve:** picking A to D is a design choice.
+
+## Flags outside scope (this section)
+
+- The standard-label two-chip row (owner's 1A) reaches y 129 as well, so this is not a long-label problem; nothing measures that row against the central third.
