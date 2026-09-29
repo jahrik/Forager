@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app.ui.map
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -280,6 +281,15 @@ fun CentrePinLocationPickerOverlay(
      */
     bottomInset: Dp = 0.dp,
     /**
+     * Padding for the OK/Cancel row alone (dispatch 2026-09-28-104, item 5): in a short landscape
+     * window the Maps tab passes its `controlsPadding` (the cut-out band and the rail's measured width on
+     * the port side), so the row clears the rail and the system bar the rail takes. **Not applied to the
+     * overlay's own frame**, because the pin is centred in that frame and marks the map's centre: padding
+     * one side would move the pin off the coordinate it reports. Zero (the default) keeps every other
+     * caller, and portrait, as it was.
+     */
+    rowPadding: PaddingValues = PaddingValues(0.dp),
+    /**
      * Night Maps, as the map underneath is drawing it: the caller passes its own
      * `MapRenderMode.night`, so the pin's colours follow the map's (colour build C2 (e)). Defaults to
      * day for callers that have no night value.
@@ -297,6 +307,7 @@ fun CentrePinLocationPickerOverlay(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = bottomInset)
+                .padding(rowPadding)
                 .fillMaxWidth()
                 .testTag(CENTRE_PIN_CONFIRM_ROW_TAG)
                 .mapChromeContainerColor(rowColor),

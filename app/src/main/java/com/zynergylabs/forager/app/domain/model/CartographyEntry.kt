@@ -81,6 +81,17 @@ data class CartographyEntry(
      */
     val shownOnMap: Boolean = false,
 ) {
+    /**
+     * Whether this entry keeps at least one record the Maps tab could highlight for it: a kept track,
+     * find, waypoint or offline-region decision, or an attached photo — the definition
+     * [com.zynergylabs.forager.app.domain.GetJournalEntryHighlightsUseCase] uses for "what an entry keeps".
+     * Whether that record is drawn today (a photo with no location, a record since deleted) is that use
+     * case's live read and is not asked here. The report menu offers "Show on map" only when this is true.
+     */
+    val keepsHighlightableRecord: Boolean
+        get() = trackDecisions.any { it.kept } || findDecisions.any { it.kept } ||
+            waypointDecisions.any { it.kept } || offlineRegionDecisions.any { it.kept } || photos.isNotEmpty()
+
     companion object {
         /** A freshly-started, undecided entry for [date] — every decision list empty, [isDraft] always `true`. Mirrors [MushroomLogEntry.draft]'s own shape: persisted immediately by its use case, not held only in memory. */
         fun draft(id: String, date: LocalDate, updatedAtEpochMillis: Long): CartographyEntry = CartographyEntry(

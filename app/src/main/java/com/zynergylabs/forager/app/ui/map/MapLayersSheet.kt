@@ -247,6 +247,7 @@ internal fun MapLayersSheet(
         containerColor = containerColor,
         contentColor = contentColor,
     ) {
+        MapChromeSheetNavigationBar()
         val providedContentColor = LocalContentColor.current
         Column(
             modifier = Modifier

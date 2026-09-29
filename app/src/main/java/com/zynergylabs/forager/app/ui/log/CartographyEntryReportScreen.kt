@@ -421,7 +421,11 @@ internal fun CartographyEntryReportScreen(
                             // The content colour as read inside the menu, for tests.
                             modifier = Modifier.mapChromeContentColor(LocalContentColor.current),
                         )
-                        if (!entry.isDraft && onSetShownOnMap != null) {
+                        // "Show on map" only when there is something to show (dispatch 2026-09-28-104, item 7):
+                        // absent, not disabled, as this screen's other unavailable controls are (see the doc
+                        // comments on the offline row and the basemap picker). "Hide from map" stays on an
+                        // entry already shown, so a shown entry can always be hidden.
+                        if (!entry.isDraft && onSetShownOnMap != null && (entry.shownOnMap || entry.keepsHighlightableRecord)) {
                             DropdownMenuItem(
                                 text = { Text(if (entry.shownOnMap) HIDE_FROM_MAP_LABEL else SHOW_ON_MAP_LABEL) },
                                 leadingIcon = { Icon(Icons.Filled.Map, contentDescription = null) },
