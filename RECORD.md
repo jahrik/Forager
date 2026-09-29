@@ -5529,3 +5529,35 @@ It also flagged the snackbar lying over the floating nav.
   Its dispatch follows the cluster-geometry pulse.
 - **Part 2 Session 1** starts now. Inventory items 38, 39, 40 and 42 (the landscape cluster, the reshape, and the legend against the cluster) are deferred to after the L.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-160
+**Timestamp:** 2026-09-29T07:52:05Z
+**Title:** The landscape icon cluster as an L: a 240 dp bar, an 8 dp gap, a horizontal 48 dp pill, 296 dp in all, nothing drawn or touch-taking around it (owner "A")
+**Dispatch-file:** preserved/2026-09-29-26.md
+**Change:** in phone short landscape only, the icon bar and the record/return pill become an L that mirrors by side. The container's fill is removed and the empty corner passes touches to the map.
+**Scope boundary:**
+- the compact tree's landscape cluster, and what is keyed on it;
+- LFSL's TR1, TR2 and TR4 are replaced, as they pin the superseded shape;
+- not portrait, not the wide tree, not the entry report's MapIconBar.
+**Baseline:** journal-redesign at the base named in the dispatch.
+**Prediction (outcome, planner):**
+1. The container needs its own landscape branch, not an outline change on the shared Surface.
+2. The anchor offset needs a landscape pitch.
+3. The suite grows by 10 to 25.
+**Prediction (mechanism, coder):** not authored.
+**Finish line:**
+- tests first, pushed failing;
+- the build;
+- revert checks;
+- the full suite at 0 failures;
+- the report with a device-only list;
+- the planner re-runs the suite and writes the terminal.
+
+The re-check runs in Part 2 with the deferred items 38, 39, 40 and 42.
+**Notes:**
+- The owner's ruling "A" is recorded verbatim in the plan, under "The L's height".
+- Sent by SendMessage to the window that built -104's relaunch (socket 415979), which knows this code.
+- Written by the planner by hand.
