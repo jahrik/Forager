@@ -7193,3 +7193,21 @@ The planner confirmed each by grep.
 - **Also on origin, unchanged:** `j6` (and `j6-wip`), J6's own coder branch, ending at 44c4ff2a (the J6c report), before the later work.
 - **Dispatch -56's removal goes ahead** as written. Its build coder, stopped by the owner before it changed anything, is resumed.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-250
+**Timestamp:** 2026-09-29T23:17:30Z
+**Dispatch:** 2026-09-28-227 (Part 3), S22-A
+**Reason:** the resumed S22-A coder (-244) was stopped, most likely by the owner's interrupt at about 15:50 local, and cannot be resumed. The owner, verbatim: "Finish it up now while the build happens".
+**Observed by the planner:**
+- **Nothing pushed:** device-part-3 on origin is still at 87b041f3, with no Resumed section in the run record.
+- **Unrecorded captures:** pb-* at 15:44 and t.xml at 15:48 are in the evidence folder.
+- **Unpushed merge:** the worktree holds one merge of journal-redesign (7d2fa20e), and nothing else is uncommitted.
+- **The phone:** user_rotation 1, which differs from the start state of 0. The other start settings are as recorded, and the build is 1.0.1910+g06b394b9.
+**Changes:**
+- **A fresh S22-A coder** finishes every item without a verdict, on the installed build, beside the tablet-as-phone build (-245).
+  - Its findings on the landscape L describe the pre-removal build.
+  - The overlap fix and the L on the new build are rechecked in S22-B or later.
+**Notes:** Written by the planner by hand.
