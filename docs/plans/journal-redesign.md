@@ -814,3 +814,16 @@ After the map-chrome device check (terminal `2026-09-28-102`), the owner answere
    - the entry map ignoring the basemap and Night Maps.
 
    Rule 1's sheet change is part of the same stage.
+
+### Offline regions: protect, then fix (owner, 2026-09-28)
+
+The offline-regions start-up pulse (`docs/audits/2026-09-28-offline-regions-startup-pulse.md`) found:
+- The start-up read throws before any delete, so nothing is deleted today.
+- But `MapLibreOfflineMapRepository.kt:190` prunes every Room region row that is missing from a successful MapLibre read, including an empty one.
+- The storage redirect to `filesDir/maplibre-offline` has never taken effect. The live store is `files/mbgl-offline.db`, so making the redirect succeed would empty the list and prune every row.
+
+The owner ruled, verbatim: **"Option A. Protect then fix."** The planner had offered A as:
+1. Make the list refuse to delete a region's saved details because MapLibre's list doesn't include it. Only the user's delete removes a region; mismatches are logged. The half-finished-download cleanup is limited to downloads that genuinely never finished.
+2. Then fix the start-up error by dropping the storage move and initialising MapLibre once at start-up, before anything reads.
+
+Intent `2026-09-28-106`. It runs ahead of the other queued builds, and an S22 device check with a full backup follows it.
