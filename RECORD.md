@@ -6654,3 +6654,21 @@ The planner confirmed each by grep.
   - **Corrected first-draft claims:** immediate deletion (there is an Undo first), "denying location ends them", "every item deletable", crash traces' location, "vehicle markers", and "nothing shared".
 - **The C1 stop (-211) came from that other planner session:** "Start F4. Stop C1", relayed. The owner is asked what they meant.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-213
+**Timestamp:** 2026-09-29T19:27:40Z
+**Dispatch:** 2026-09-28-197 (F4), continuation -208
+**Reason:** the F4 coder handed back the continuation, pushed to journal-redesign at 958eea6c. Report section: "Resumed: continuation 2026-09-28-208".
+**Changes:**
+- **Records only:** the planned trips, waypoints, finds and photos layers fan (MapLayers.kt:406-409). Sightings (:391-400) never do.
+- **The fan's centre shifts** (a pure fanShift) to keep every 48 dp square on screen and off the keep-outs. Controls register their measured bounds through Modifier.mapKeepOut.
+- **A geometry defect in F4 was found and fixed:** diagonal squares overlapped. Spacing now uses non-overlapping squares, so a ring of 8 is 67.88 dp.
+- **Its suite at 3e81ee1d:** 3138 / 0 / 0 / 24. Real touches on phone portrait, phone landscape and the tablet. 14 revert checks, two of them strengthened.
+**Notes:**
+- **The coder's decision, accepted by the planner:** the bottom nav, rail, compass strip/HUD and search bar are keep-outs too, beyond the dispatch's cluster, legend and chip row. A fanned marker under a bar cannot be touched, and the owner's "lands on screen" is read as the usable screen.
+- The nav, rail and HUD registrations have no individual revert evidence.
+- The entry map and the centre-pin picker have no registry, so they keep to their bounds only.
+- Written by the planner by hand.
