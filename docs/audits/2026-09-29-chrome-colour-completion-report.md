@@ -102,6 +102,8 @@ What changed, per dispatch item (paths under `app/src/main/java/com/zynergylabs/
 
 **Full suite**, results cleared first, every file newer than the run's start (0 stale), `e:` lines 0, on `a6d01fc9` (this branch merged with `origin/journal-redesign`): **394 classes / 3217 tests / 0 failed / 24 skipped.** One run; no flake seen.
 
+**Not covered by that run:** after it I merged `origin/journal-redesign` once more (`35c9a86b`, the commit pushed): 46 files from other sessions, of which `git diff a6d01fc9 35c9a86b --stat -- app` shows 11 under `app/` (small edits, for example `AvailabilityScreenSettingsPanelTest.kt` and `TrackRecordingViewModelTest.kt`, 16 lines changed in all). None of them touches a colour file of mine, but the suite was not rerun on the merged result.
+
 ## Decisions I made
 
 1. **Constants kept, redefined**, rather than removed (`MapChromeAlphaTest` pins their alpha, so removing them would edit an alpha assertion); the token is the composable `navigationBarContainerColor()` and the constants are built from the same two theme values. There are two expressions of one colour, held equal by `MapChromeColourTokenTest`; if someone changes `Theme.kt`'s `surfaceContainer` to a different value, the constants follow because they use the same vals, but a change of the token function alone would not reach them.
