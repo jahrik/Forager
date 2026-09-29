@@ -178,3 +178,51 @@ Evidence prefix `s1-` in `/home/zynergy-labs/Zynergy/device-evidence/2026-09-29-
 | 36 | pass | search by coordinates moved the camera (NET). Bearing/tilt not settable. |
 
 **Finding to note:** deleting my test data: track details sheet has only Share (no Delete), so five 1-point test tracks are left; see the clean-up section at the end.
+
+### Session 1: final results (01:40)
+
+Same basis as above (uiautomator bounds; visual positions from JPEG marked; item 48 from PNG). The complete per-tap log with every bound is `s1-notes.md` in the evidence directory. **Crash buffer:** empty at start; at the end 0 `FATAL` lines and no Forager line.
+
+**Verdicts not given above**
+
+| Item | Verdict | Reading |
+|---|---|---|
+| 1 | partly | see interim 2. Track and colour-field cells (needs an unstacked location, and a point-stage zoom) not reached; trip glyph: the flag opened its bubble ("DEVICE CHECK 2026-09-29 trip B", coordinates, Directions) at 90. |
+| 3 | partly | as interim 2. |
+| 4 | not run separately | Bubble bounds against strip, nav, rail and cut-out were seen in passing: photo bubble at 0 [68,849]..; at 90 the bubble overlapped the cluster until a pan (see 5). |
+| 5 | **fail on rotation** | as interim 2 (bubble stays at the portrait place until the next pan). |
+| 11, 12 | not run | see interim 3. |
+| 36 | pass except bearing and tilt (not settable with single-pointer input: not runnable) | |
+| 37 | pass at 0, 90 and 270; **fail in portrait fullscreen** | In fullscreen the "i" is at [1010,2246][1069,2305], inside the system navigation band (`NavigationBar0`, from y=2181). Two real taps at (1040,2275) and (1040,2262) opened no dialog and focus stayed on MainActivity (`s1-fsi`, `s1-fsi2`). |
+| 38 | pass (caption); margin 14 px, not about 0 | interim 2 |
+| 42 | landscape pass with observation; portrait not run | interim 2 (the "+" then covers the "i" at 90) |
+| 45 | pass at 0 only | 90 and 270 not run |
+| 50 | pass with a qualification | With the keyboard up, Back 1 closes the keyboard, Back 2 closes the suggestions popup leaving the search panel open, Back 3 closes the panel. "One Back" holds once the keyboard is down. |
+| 51 | not run | I could not find the Records sheet. See the mistake below. |
+| 53 | not run | (no ORIGIN/END pins isolated) |
+| 54, 55, 56 | owner to judge | captures: `s1-night-*.png`, `s1-list-tab`, chip screenshots `s1-j8p0/j8r90/j8r270/long90`. The taxon chip and J8 chip are visible against the map at night; no shadow. |
+| 58, 59 | owner to judge (captures only) | Night is ON at baseline (map sepia). `s1-night-Street.png`, `s1-night-Topographical.png`, `s1-night-Satellite.png` (PNG crops y 700-1400): the highlighted region outline is a teal ring with a white dashed line on all three. No day comparison, no entry-report-at-night capture. |
+| 60 | pass | Cold start, no search: flag drawn for trip B; a tap opened its bubble; Layers > Planned trips off removed the flag and on restored it. Day (Night Maps off) not run. |
+| 61 | partly (import only) | The phone has no photo without a location, so the capture-without-location half could not be tested. Saving the existing photo: MediaStore row `Pictures/Forager/forager-photo-20260927-211632.jpg`, 1,841,146 bytes = the source file's size, `datetaken` NULL, `date_added` set. The Gallery app's own date display was not checked, so "the right date" is **unverified**; NULL `datetaken` is the thing to check. |
+| 62 | partly | Viewer: Close [23,98][158,233], Save [922,98][1057,233], status bar bottom 75: 23 px clear. Landscape not measured. |
+| 63 | pass | No permission prompt; the row was added within 1 s of the tap (12 MP not tested: the file is 1.8 MB). |
+
+**Mistake made (Decisions I made / Flags):** In Journal > Records > Offline maps at 90, tapping "Download Maps" started a real download at once (no confirm step): Offline maps went 2 to 3. I had expected a sheet. That region and the other test data are gone after the restore below. **Flag:** a single tap on Download Maps downloads with no confirmation.
+
+**Decisions I made**
+- **Restored the phone from the verified copy at the end of Session 1** (force-stop, `run-as` cat of all 18 files back). Reason: the track details sheet has no Delete, so five 1-point test tracks, ~10 of my waypoints, one saved entry, two trips and one download could not be removed from the UI. Read-back after the restore: all 18 sha256 equal the copy's; `forager.db` integrity ok, `user_version` 16, every table's row count equal to `forager-db-verify.txt`. The dispatch's rule 6 names the restore for Session 3; using it here goes beyond that and is disclosed. Nothing of the owner's changed between the copy and the restore, so the restore is a no-op for the owner's data (the copy was taken before I did anything).
+- Turned the debug "Synthetic forecast layers" switch ON for 34/40, and started recordings for 39/46; the restore returned the DataStore file to OFF.
+- The owner tapped Allow on the notification prompt; I revoked it (`pm revoke`) and cleared the user-set flag (`pm clear-permission-flags ... user-set`); read back `granted=false, flags=[USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]` = the start state.
+- Converted PNG evidence to JPEG q90 when the disk filled; deleted my worktree's `app/build`.
+- Deleted the one Gallery row I created (`content delete`, MediaStore id 1001239272, path `Pictures/Forager/forager-photo-20260927-211632.jpg`); the folder no longer lists.
+
+**Flags outside scope**
+- `accelerometer_rotation` returned to 1 twice on its own (the app has no code that writes it); left 0/0 at the end.
+- Item 37 in fullscreen and item 5 (rotation with a bubble open) are the two device failures.
+- Starting a track recording raises the notification-permission prompt (planner's point 2).
+- The download-with-no-confirm above.
+- A cross-session message (planner ref change) and an owner message about the pill layout (withdrawn) are quoted in `s1-notes.md`.
+
+**Restore read-back.** Rotation 0/0, font_scale 1.0, animation scales 1.0/1.0/1.0, `wm size` 1080x2316, versionName `1.0.1685+g85a41257`, firstInstallTime `2026-09-22 11:15:05` unchanged, `POST_NOTIFICATIONS` not granted; map type, Night Maps and the Diagnostics switch are back to the copy's DataStore values because the DataStore files were restored byte for byte.
+
+**Items with no verdict here:** 11, 12, 51, 53, 61 (capture half), 45 at 90/270, 42 portrait, 4 (separate). They are not runnable or were not reached; they are not passes.
