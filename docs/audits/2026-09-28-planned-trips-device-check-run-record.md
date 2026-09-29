@@ -629,3 +629,61 @@ phone's `cmd uimode night` is the phone's own state and I do not touch it.
 
 **D58.** Before each push I check the diff and commit messages for the three phrases in forager-forecast `docs/planning/DECISIONS.md`
 row D58 (Decision column); I do not write them anywhere. Reading that row is the check's input; if I cannot read it, I say so.
+
+## Resumed: observations, step 2 (checks with the search run)
+
+Written after observing. Captures are numbered from `101-` in the evidence directory (`snaps.log`, `07-inputs.log`); "trip pixels"
+are `pix.py` counts in the map box `[0,250][1080,1950]`, clusters from `flags.py`. All on the S22, build `1.0.1457+gb358a4aa`.
+
+**R-0, first capture (`101-r-first`, 01:07:34Z): my prediction was wrong.** I predicted `region` null (the app "restarted", pid 12298
+not 4821). It was **set**: the bar reads "August · 5 mi", and both flags drew (4350 px of `#9553A4`, two clusters of 2175 px,
+19.9 x 27.7 dp, at `[590,1118][645,1195]` and `[590,1403][645,1480]`). The premise was wrong, not the app: **pid 12298 is the earlier
+run's own phase-1 relaunch** (`ps` start 17:34:53 PDT = 00:34:53Z; the first logcat lines for it are at 17:34:55), so the phase 2
+search ran in it and `region` was still set. The camera had been moved about 54 px right and 237 px up from phase 2's view (the
+flags' x is 590 not 536), so the points below are read from these captures, not carried over. The A point is the bottom-left of the
+upper cluster.
+
+| # | Case | Capture | Trip pixels | Verdict |
+|---|---|---|---|---|
+| R-0 | first state, `region` set | `101-r-first` | `#9553A4` 4350, `#FA01DD` 0 | both **draw** (prediction on `region` wrong; draw predicted after a search) |
+| 2-2 | switch **off** (01:08:09Z; row `checked` true → false) | `104-r-trips-off` | 0 / 0 | **absent**, as predicted |
+| 2-2 | switch **on** (01:08:25Z; false → true) | `106-r-trips-on` | 4350 / 0, same clusters as `101-` | **both back**, as predicted |
+| 2-3 | Night Maps **on** (`setnight.sh`, `night_mode.maps = True`) | `110-r-night` | `#9553A4` 0, **`#FA01DD` 4350** | **both draw in the night colour**, two clusters of 2175 px at the same bounds, as predicted |
+| 2-3 | day again (`night_mode.maps = False`) | `113-r-day-again` | 4350 / 0 | **both back in `#9553A4`**, as predicted |
+
+`map_preferences` after the toggles: `map.layer.planned-trips-layer.visible = True`, `night_mode.maps = False`
+(`109-prefs-after-toggle.txt`, `setnight.sh`'s own read).
+
+**2-4, a real tap on each flag (day).** `input tap` at (600, 1160) (A's flag body, above its foot at y 1195) and (600, 1445) (B's, foot 1480):
+
+| Touch | Capture | Bubble in the dump | Verdict |
+|---|---|---|---|
+| A (600, 1160) | `116-r-tap-A` | "Trip 1", "Sep 28", an MGRS, decimal degrees, "Directions" | **bubble opens**, as predicted |
+| B (600, 1445) | `116-r-tap-B` | "Trip 2", "Sep 30", an MGRS, decimal degrees, "Directions" | **bubble opens**, as predicted |
+
+The MGRS and decimal-degree lines equal the Trip Planner's and `trips-created.txt`'s for each trip (`117-tap-*-texts.txt`; the
+values are not copied here, under `-04`'s coordinate rule). Each bubble was closed with Back; the dump after (`118-r-after-bubbles`)
+is byte-identical in hash (`c6c7de3f…`) to `101-r-first`'s, so nothing else changed.
+
+**2-5b, force-stop and relaunch.** Crash buffer 0 bytes before (`119-`). `am force-stop` at 01:09:58Z, pid 12298 before, none after
+(`120-`); `am start -W` `Status: ok`, `LaunchState: COLD` (`121-`).
+- `122-r-relaunch` (01:10:06Z): the bar reads **"September · Search a location"** (`region` null); trip pixels **0 / 0**. As predicted.
+- The Trip Planner (`125-r-trip-planner`, opened from Tools; it starts collapsed) lists "Trip 1"/"Sep 28" and "Trip 2"/"Sep 30" and
+  **"Choose a region in search options to see rain-driven trip windows."** (the same predicate as the map's gate, ATWU:61-68).
+- The keyboard came up on the first touch of the bar (`127-`); this time I read the screenshot, lowered it with Back
+  (`mInputShown=false`), opened "Recent searches" (`128-`), and touched the "Fungi · August" card at (500, 1265) (01:11:0xZ).
+  No prompt appeared.
+- `129-r-after-search` (01:11:17Z, 8 s after): bar "August · 5 mi"; **both flags draw**: `#9553A4` 4350 px, clusters
+  `[536,1354][591,1431]` and `[536,1590][591,1667]`, **the same bounds phase 2 recorded** (`66-p2-after-search`), 2175 px each.
+  **Verdict: as predicted: absent at every cold start until a search runs, then both draw.**
+
+**Logcat** (`133-logcat-full.txt`, `logcat -d`, never cleared; crash buffer 0 bytes at `132-`). **No Forager line about planned trips**
+(no "Couldn't load planned trips."; the string "planned" does not occur), as predicted. Two lines outside the question:
+1. At each cold start, `AvailabilityViewModel: Couldn't read offline regions.` with a `MapLibreConfigurationException` ("Using
+   MapView requires calling MapLibre.getInstance…"), from `loadOfflineRegions` at `AvailabilityViewModel.kt:922-923` via the
+   ViewModel's `init` (:167), seen for pid 12298 (17:34:55) and pid 18843 (18:09:59). That is the offline-regions start-up path
+   `-112`'s planner note says a pulse is reading; I add only that it is present at both cold starts I can see.
+2. `Mbgl-NativeMapView: You're calling getMetersPerPixelAtLatitude after the MapView was destroyed` **2466 times** across pids 4821,
+   12298 and 18843 (first 17:32:50, last 18:11:33). Not trips-related; I did not investigate it (flag).
+
+**Skipped, as pre-registered:** 2-1z and 2-5a.
