@@ -6606,3 +6606,28 @@ The planner confirmed each by grep.
 **Prediction (mechanism, coder):** not authored.
 **Finish line:** tests first, the build, revert checks, the full suite at 0, the report with device-only items. The planner re-runs the suite.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-211
+**Timestamp:** 2026-09-29T19:17:32Z
+**Dispatch:** 2026-09-28-210 (C1)
+**Reason:** C1 ran in the window that built F3. It reports a stop on "the owner's instruction ('Start F4. Stop C1', relayed by the L1 planner)". The planner sent no such message, and the owner is being asked what they meant.
+- **State:** only the pre-registration is pushed (b8eb6136 on chrome-colour-wip).
+- **Uncommitted in the chrome-colour worktree:**
+  - test seams, and a stub token file;
+  - edits to MapChromeOverMapTest, MapLayersSheetTest and LandscapeLClusterPixelsTest;
+  - four new test classes.
+
+  None of it has been compiled or run.
+**Changes:** the planner asked the coder to push the uncommitted work to chrome-colour-wip now (push-before-you-tidy), then stay stopped.
+**Notes:**
+- **The coder's findings:**
+  - the pulse's premise was wrong: the wide record-details pane is `surface`, solid (JournalDetailSlot.kt:100), not surfaceContainerLow;
+  - MapModePicker has no caller;
+  - MapIconStackButtonColor* are kept (redefined) so MapChromeAlphaTest is untouched;
+  - the snackbar's inverse colours fail contrast on the token, so it takes the navigation bar's content colours;
+  - the Download dialog is always over a map.
+- **Machine:** one start at 2415 MB, which failed at compile.
+- Written by the planner by hand.
