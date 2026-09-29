@@ -1576,7 +1576,9 @@ fun AvailabilityScreen(
     val mainScaffold: @Composable () -> Unit = {
         Scaffold(
             topBar = {
-                AvailabilitySearchTopBar(
+                // J6c: fullscreen hides the search bar (and, below, the summary, the notice, the tab row and the
+                // drawer), so the map fills the window; exit restores them.
+                if (!isMapFullscreen) AvailabilitySearchTopBar(
                     uiState = uiState,
                     onOpenDrawer = {
                         // Dismissed here, not just left to whatever state the drawer's own
@@ -1610,27 +1612,29 @@ fun AvailabilityScreen(
                 // The summary's tap opens the search (owner, 2026-09-28, "Make the tap open search"):
                 // the permanent drawer comes back to its search panel from whichever panel it shows,
                 // even before any search, and the last species query is reopened as before.
-                ActiveSearchSummary(
-                    uiState,
-                    distanceUnit,
-                    onClick = {
-                        drawerPanel = DrawerPanel.Search
-                        // Continuation 2026-09-28-38 (owner: "Yes it should"): straight to the
-                        // location controls, with "Advanced search" open. A one-shot request that
-                        // the section consumes, so a later collapse by the user stands.
-                        expandAdvancedSearchRequested = true
-                        onReopenTaxonSuggestions()
-                    },
-                )
-                SearchNotice(uiState)
+                if (!isMapFullscreen) {
+                    ActiveSearchSummary(
+                        uiState,
+                        distanceUnit,
+                        onClick = {
+                            drawerPanel = DrawerPanel.Search
+                            // Continuation 2026-09-28-38 (owner: "Yes it should"): straight to the
+                            // location controls, with "Advanced search" open. A one-shot request that
+                            // the section consumes, so a later collapse by the user stands.
+                            expandAdvancedSearchRequested = true
+                            onReopenTaxonSuggestions()
+                        },
+                    )
+                    SearchNotice(uiState)
 
-                SecondaryTabRow(selectedTabIndex = selectedTab.ordinal) {
-                    ResultsTab.entries.forEach { tab ->
-                        Tab(
-                            selected = selectedTab == tab,
-                            onClick = { selectedTab = tab },
-                            text = { Text(tab.label) },
-                        )
+                    SecondaryTabRow(selectedTabIndex = selectedTab.ordinal) {
+                        ResultsTab.entries.forEach { tab ->
+                            Tab(
+                                selected = selectedTab == tab,
+                                onClick = { selectedTab = tab },
+                                text = { Text(tab.label) },
+                            )
+                        }
                     }
                 }
 
@@ -1673,6 +1677,30 @@ fun AvailabilityScreen(
                         onClearTaxonFilter = onClearMapTaxonFilter,
                         onViewOnMap = onViewSpeciesOnMap,
                         selectedTab = selectedTab,
+                        controls = WideMapControls(
+                            isFullscreen = isMapFullscreen,
+                            // The phone's own toggle and its persistence (the one preference), so fullscreen
+                            // behaves as it does there, restarts included (J6c).
+                            onToggleFullscreen = {
+                                isMapFullscreen = !isMapFullscreen
+                                onMapFullscreenChanged(isMapFullscreen)
+                            },
+                            onLocateMe = onLocateMe,
+                            isRecording = isRecording,
+                            onToggleRecording = onToggleRecording,
+                            startRecordingErrorMessage = startRecordingErrorMessage,
+                            returnToStart = returnToStart,
+                            isReturning = isReturning,
+                            isNavigating = isNavigating,
+                            isOffTrack = isOffTrack,
+                            onToggleReturning = onToggleReturning,
+                            compassProvider = compassProvider,
+                            computeTrueHeading = computeTrueHeading,
+                            navigationTarget = navigationTarget,
+                            pathHomeMeters = pathHomeMeters,
+                            currentTime = currentTime,
+                            clusterPosition = mapIconClusterPosition,
+                        ),
                         modifier = Modifier.weight(1f),
                     )
                     ResultsTab.SEASONAL -> SeasonalTab(uiState = uiState, modifier = Modifier.weight(1f))
@@ -1936,7 +1964,9 @@ fun AvailabilityScreen(
         // stretching it as the window grows past the medium breakpoint.
         PermanentNavigationDrawer(
             drawerContent = {
-                PermanentDrawerSheet(modifier = Modifier.width(PERMANENT_DRAWER_WIDTH)) {
+                // J6c: fullscreen hides the Journal column (this drawer); exit restores it. Nothing is
+                // composed here meanwhile, so the drawer takes no width and the map fills the window.
+                if (!isMapFullscreen) PermanentDrawerSheet(modifier = Modifier.width(PERMANENT_DRAWER_WIDTH)) {
                     // Workstream L4b-R2: the drawer sheet is DrawerPanel.Log's own visual area, so
                     // its discard-offer Snackbar docks here — at the bottom of this sheet — rather
                     // than in mainScaffold's Scaffold, which is the search/results pane beside it,
