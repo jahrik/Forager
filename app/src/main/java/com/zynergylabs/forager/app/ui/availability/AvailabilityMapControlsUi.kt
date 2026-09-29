@@ -204,16 +204,12 @@ private fun ControlPill(
     rowSpacing: Dp = Spacing.xs,
 ) {
     val isDarkTheme = LocalForagerDarkTheme.current
-    Surface(
-        shape = RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS),
-        // A child of the cluster container — see MAP_ICON_CLUSTER_CHILD_ALPHA's own doc comment — unless the landscape L hands it
-        // its own single-layer fill.
-        color = fillColor.takeOrElse { mapIconClusterChildColor() },
-        contentColor = if (isDarkTheme) Color.White else Bark,
-        shadowElevation = 2.dp,
-        border = BorderStroke(1.dp, if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT),
-        modifier = modifier.testTag("control-pill"),
-    ) {
+    // A child of the cluster container — see MAP_ICON_CLUSTER_CHILD_ALPHA's own doc comment — unless the landscape L hands it
+    // its own single-layer fill.
+    val pillFill = fillColor.takeOrElse { mapIconClusterChildColor() }
+    val pillContentColor = if (isDarkTheme) Color.White else Bark
+    val pillBorder = BorderStroke(1.dp, if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT)
+    val buttons: @Composable () -> Unit = {
         // The two buttons, once: the vertical pill lays them in a Column, the landscape L's horizontal pill (record under the bar's
         // column, return extending inboard) in a Row. Same buttons, tags, states and accents either way.
         val record: @Composable () -> Unit = {
@@ -266,6 +262,29 @@ private fun ControlPill(
                 returnToVehicle()
             }
         }
+    }
+    if (horizontal) {
+        // Owner's ruling (d), continuation 2026-09-28-172: both buttons take touches across their full 48 x 48 squares, corners
+        // included. The drawn pill is a content-less Surface underneath, so its rounded ends do not clip the buttons' hit areas.
+        Box(modifier = modifier.testTag("control-pill")) {
+            Surface(
+                shape = RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS),
+                color = pillFill,
+                shadowElevation = 2.dp,
+                border = pillBorder,
+                modifier = Modifier.matchParentSize(),
+            ) {}
+            CompositionLocalProvider(LocalContentColor provides pillContentColor) { buttons() }
+        }
+    } else {
+        Surface(
+            shape = RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS),
+            color = pillFill,
+            contentColor = pillContentColor,
+            shadowElevation = 2.dp,
+            border = pillBorder,
+            modifier = modifier.testTag("control-pill"),
+        ) { buttons() }
     }
 }
 

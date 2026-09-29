@@ -160,10 +160,16 @@ class LandscapeLClusterTest {
         setScreen(rotation)
         var expectFullscreen = false
         val before = map.taps
-        touchAcross(fullscreenRow()) {
+        // The row's bounds are read again after every touch, once the layout has settled: each toggle of fullscreen hides or brings back
+        // the search bar, and the L now moves with its top limit (owner's ruling (a), continuation 2026-09-28-172).
+        fractions().forEach { (fx, fy) ->
+            val row = composeRule.onNode(androidx.compose.ui.test.hasContentDescription("Fullscreen") or androidx.compose.ui.test.hasContentDescription("Exit fullscreen")).getUnclippedBoundsInRoot()
+            composeRule.touchAt(row.left + (row.right - row.left) * fx, row.top + (row.bottom - row.top) * fy)
+            composeRule.mainClock.advanceTimeBy(2_000)
+            composeRule.waitForIdle()
             expectFullscreen = !expectFullscreen
             val shown = composeRule.onAllNodes(androidx.compose.ui.test.hasContentDescription(if (expectFullscreen) "Exit fullscreen" else "Fullscreen"))
-            assertEquals("the touch toggled fullscreen (expected fullscreen=$expectFullscreen)", 1, shown.fetchSemanticsNodes().size)
+            assertEquals("the touch at ($fx, $fy) toggled fullscreen (expected fullscreen=$expectFullscreen)", 1, shown.fetchSemanticsNodes().size)
         }
         assertEquals("none of the five touches on the top row fell through to the map", before, map.taps)
     }
