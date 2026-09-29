@@ -378,6 +378,38 @@ reads its `checked` state back from a second dump, closes the sheet with Back, t
   to hit. The pennant positions are where the tablet's flags drew relative to their points (above and to the right of
   the pole foot), not measured on this phone yet.
 
+### Check 1-5b: a force-stop and relaunch, no search; the trips' ids
+
+- **Crash buffer before the stop** (`52-crash-p1.txt`): 0 bytes.
+- `am force-stop` at 00:34:42Z, pid 4821 before, none after (`53-force-stop-p1.txt`).
+- **Database copy** (`db-p1-*`): device and local sha256 match (`forager.db` unchanged, `e88effc0…61af7c93`; the WAL and
+  SHM changed); `integrity_check` `ok`; `user_version` 16; **`planned_trips` 2**, `cached_searches` 2. Against the start's
+  per-table digests **only `planned_trips` differs**; every other table is unchanged (`db-p1-digest.txt`).
+
+**The trips created** (coordinates in `trips-created.txt` in the evidence directory):
+
+| Trip | id | name | date |
+|---|---|---|---|
+| **A** | `5deff079-1dba-440e-b947-46e53b0e18d3` | Trip 1 | 2026-09-28 |
+| **B** | `47b2784e-6ba8-46cd-96fc-f76bee22ce15` | Trip 2 | 2026-09-30 |
+
+- **Relaunch:** `am start -W` at 00:34:5xZ, `Status: ok`, `LaunchState: COLD` (`54-relaunch-p1.txt`). The map opened at the
+  launch view again (`55-p1-relaunch`; `shift.py` against `11-p1-launch` dx 0, dy 0, score 1.02), so **A's point is at
+  (540, 1432) and B's at (540, 1668)**. Trip pixels 0 / 0; no flag seen. The bar reads "September · Search a location".
+- **The Trip Planner after the relaunch** (`57-p1-relaunch-trip-planner`): "Today", "Trip 1", "Sep 28" and "Trip 2",
+  "Sep 30", loaded at start-up (AVM:159-162), and **"Choose a region in search options to see rain-driven trip
+  windows."**: `region` is null again.
+- **Verdict: as predicted, both absent.**
+
+### Phase 1 in one line
+
+With no search run, **both trips are saved (database), loaded (the Trip Planner lists them) and never drawn**: 0 trip
+pixels in every capture of the map, from `20-` to `55-`, at the placing zoom, zoomed in to +2 and out to about −0.33, with
+the switch off and on, by night and by day, after a tab round trip and after a relaunch, and no bubble where they sit;
+while the find, waypoint, photo and offline regions draw and a tap on the find opens its bubble. In every one of those
+states the Trip Planner's "Choose a region…" line shows that `region` is null, the condition under which ACMU:641 hands the
+map an empty list.
+
 ## Appendix: the dispatch and the launch message, verbatim
 
 ### `prompts/preserved/2026-09-28-94.md` at `ae0b90f`, the whole file
