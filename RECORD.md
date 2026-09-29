@@ -4614,3 +4614,21 @@ Put to the owner before any fix is written. Written by the planner by hand.
 - **Waiting on the owner:** the Sonnet 5.5 model setting (the agents ran as claude-sonnet-5; the planner's "Sonnet 5.5" was unchecked), and PR #141.
 
 Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-114
+**Dispatch-file:** preserved/2026-09-29-01.md, preserved/2026-09-29-02.md, preserved/2026-09-29-03.md (launch prompts)
+**Type:** filing
+**Outcome:** completed
+**Report:** none (launch prompts for coder sessions opened by the owner)
+**Notes:** 2026-09-29T01:03:08Z.
+- **The model.** The owner is running coders in separate Claude Code session windows and sets `/model claude-sonnet-5-5` in each, which worked per session. It replaces the plan to pin the model in `.claude/agents/coder.md`. The owner, verbatim: "Maybe open the coders in new session windows?", "that way no need to do this", "No merge", then "Branch is deleted. Write the promots".
+- **PR #141 is closed** and branch agent-instructions-now deleted by the owner, unmerged. No backup was written and nothing was merged.
+- **The prompts** carry the coder's rules, name each worktree, and hand back to the planner session by SendMessage to ref [9b334a]:
+  - -01 is -106 (offline safety);
+  - -02 is -78 with -109 (layout fixes);
+  - -03 is -94's finish (the S22 trips cleanup).
+
+Written by the planner by hand.
