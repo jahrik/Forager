@@ -14,6 +14,10 @@ package com.zynergylabs.forager.app.ui.availability
 // CompactToolsDrawerContent, whose callers stay in AvailabilityScreen.kt. No symbol left behind is
 // reached from here. Seam F (the wide layout) was released by the owner for this split, as recorded
 // in the Understory amendment merged in #130.
+//
+// J6 (2026-09-29): PhotoGalleryEntryRow and PhotoGalleryHeader, two of the rows moved here, were removed
+// with the standalone Photo Gallery panel (the owner's ruling 2, 2026-09-28: "the old Photo Gallery panel
+// is removed. Only the album remains, as on the phone"), and the list above records the move as it was.
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
