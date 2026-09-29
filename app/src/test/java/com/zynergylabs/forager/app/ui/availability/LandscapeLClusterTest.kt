@@ -125,6 +125,9 @@ class LandscapeLClusterTest {
         assertNear("the pill is 48 thick", 48f, p.bottom - p.top)
         assertNear("the pill is 96 wide: record under the bar, return beside it", 96f, p.right - p.left)
         assertNear("the record button is 48 wide", 48f, record.right - record.left)
+        // Continuation 2026-09-28-162, the owner: "the icons need to stack fully": record's box is exactly under the bar's column, both edges.
+        assertNear("the record button's left edge equals the bar's", b.left.value, record.left)
+        assertNear("the record button's right edge equals the bar's", b.right.value, record.right)
         assertNear("the return button is 48 wide", 48f, ret.right - ret.left)
         if (clusterOnLeft) {
             assertNear("the pill's outer end is flush with the bar's outer (left) edge", b.left.value, p.left)
