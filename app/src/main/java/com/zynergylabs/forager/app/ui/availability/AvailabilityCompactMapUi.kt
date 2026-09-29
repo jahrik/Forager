@@ -75,6 +75,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
@@ -92,6 +93,8 @@ import com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPickerOverlay
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_CORNER_RADIUS
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_EDGE_INSET
+import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_LANDSCAPE_ROW_SPACING
+import com.zynergylabs.forager.app.ui.map.mapIconChromeFillColor
 import com.zynergylabs.forager.app.ui.map.MIN_TOUCH_TARGET
 import com.zynergylabs.forager.app.ui.map.MapIconBar
 import com.zynergylabs.forager.app.ui.map.MapIconBarMinimizeHandle
@@ -1022,85 +1025,103 @@ internal fun CompactMapTab(
                         .then(mapIconBarPositionOffset),
                 ) {
                     Box {
-                        Surface(
-                            shape = RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS),
-                            // The lighter of the two layered fills — see
-                            // MAP_ICON_CLUSTER_CONTAINER_ALPHA's own doc comment for the
-                            // compositing arithmetic and the values chosen.
-                            color = mapIconClusterContainerColor(),
-                            shadowElevation = 2.dp,
-                            border = BorderStroke(1.dp, mapIconStackBorderColor()),
-                            modifier = Modifier
-                                .padding(MAP_ICON_BAR_EDGE_INSET)
-                                // Feeds both drag clamps above — see mapIconClusterHeightPx's own
-                                // doc comment. Measured on the container, never on its contents.
-                                .onGloballyPositioned { coordinates ->
-                                    mapIconClusterHeightPx = coordinates.size.height.toFloat()
-                                    mapIconClusterWidthPx = coordinates.size.width.toFloat()
-                                }
-                                .testTag(MAP_ICON_CLUSTER_TAG),
-                        ) {
-                            // Part 1 layout fixes, the owner's ruling "For icon column in short landscape:
-                            // option A" (planner message 2026-09-28-99): in a short landscape window the
-                            // ControlPill sits beside the bar instead of below it (ShortLandscapeClusterRow),
-                            // so the cluster is the bar's height and fits the window. Portrait keeps the Column.
-                            val clusterBar: @Composable () -> Unit = {
-                                MapIconBar(
-                                    isFullscreen = isFullscreen,
-                                    onToggleFullscreen = onToggleFullscreen,
-                                    onLocateMe = {
-                                        resumeTrackingRequestId++
-                                        onLocateMe()
-                                    },
-                                    onResetOrientation = { resetOrientationRequestId++ },
-                                    mapMode = mapMode,
-                                    onOpenLayers = { showLayersSheet = true },
-                                    onAdd = {
-                                        // No location to grab any more — the button just opens
-                                        // the menu; the location comes from
-                                        // CentrePinLocationPickerOverlay's own camera tracking
-                                        // once a choice is made. See this function's own doc
-                                        // comment.
-                                        showActionMenu = true
-                                    },
-                                    fillColor = mapIconClusterChildColor(),
-                                    // Feeds the panels' and handles' anchors — see
-                                    // mapIconBarCentreInClusterPx's own doc comment.
-                                    modifier = Modifier.onGloballyPositioned { coordinates ->
-                                        mapIconBarCentreInClusterPx = coordinates.boundsInParent().center.y
-                                    },
-                                )
+                        val clusterBar: @Composable (Color, Dp) -> Unit = { barFill, barRowSpacing ->
+                            MapIconBar(
+                                isFullscreen = isFullscreen,
+                                onToggleFullscreen = onToggleFullscreen,
+                                onLocateMe = {
+                                    resumeTrackingRequestId++
+                                    onLocateMe()
+                                },
+                                onResetOrientation = { resetOrientationRequestId++ },
+                                mapMode = mapMode,
+                                onOpenLayers = { showLayersSheet = true },
+                                onAdd = {
+                                    // No location to grab any more — the button just opens
+                                    // the menu; the location comes from
+                                    // CentrePinLocationPickerOverlay's own camera tracking
+                                    // once a choice is made. See this function's own doc
+                                    // comment.
+                                    showActionMenu = true
+                                },
+                                fillColor = barFill,
+                                rowSpacing = barRowSpacing,
+                                // Feeds the panels' and handles' anchors — see
+                                // mapIconBarCentreInClusterPx's own doc comment.
+                                modifier = Modifier.onGloballyPositioned { coordinates ->
+                                    mapIconBarCentreInClusterPx = coordinates.boundsInParent().center.y
+                                },
+                            )
+                        }
+                        val clusterPill: @Composable (Boolean, Color, Dp) -> Unit = { pillHorizontal, pillFill, pillRowSpacing ->
+                            // Composed whenever MapIconBar is (regardless of isRecording —
+                            // record start/stop must stay reachable before the first
+                            // recording starts, the same as it was as an always-enabled
+                            // MapIconBar row before this dispatch; isRecording flows in as a
+                            // plain parameter, see TrailheadControls' own doc comment, not a
+                            // presence check, so a tester never sees this pill appear from
+                            // nowhere the first time they hit record). Inside the container
+                            // rather than gated separately: it minimises, slides, drags and
+                            // clamps with the bar because it is laid out with it.
+                            TrailheadControls(
+                                isRecording = isRecording,
+                                onToggleRecording = onToggleRecording,
+                                returnToStart = returnToStart,
+                                isReturning = isReturning,
+                                isOffTrack = isOffTrack,
+                                onToggleReturning = onToggleReturning,
+                                distanceUnit = uiState.distanceUnit,
+                                onLeftSide = isMapIconBarOnLeftSide,
+                                horizontal = pillHorizontal,
+                                fillColor = pillFill,
+                                rowSpacing = pillRowSpacing,
+                            )
+                        }
+                        // Feeds both drag clamps above — see mapIconClusterHeightPx's own doc comment. Measured on the container (the
+                        // portrait Surface, the landscape L's Box), never on its contents.
+                        val clusterMeasure = Modifier
+                            .padding(MAP_ICON_BAR_EDGE_INSET)
+                            .onGloballyPositioned { coordinates ->
+                                mapIconClusterHeightPx = coordinates.size.height.toFloat()
+                                mapIconClusterWidthPx = coordinates.size.width.toFloat()
                             }
-                            val clusterPill: @Composable () -> Unit = {
-                                // Composed whenever MapIconBar is (regardless of isRecording —
-                                // record start/stop must stay reachable before the first
-                                // recording starts, the same as it was as an always-enabled
-                                // MapIconBar row before this dispatch; isRecording flows in as a
-                                // plain parameter, see TrailheadControls' own doc comment, not a
-                                // presence check, so a tester never sees this pill appear from
-                                // nowhere the first time they hit record). Inside the container
-                                // rather than gated separately: it minimises, slides, drags and
-                                // clamps with the bar because it is laid out with it.
-                                TrailheadControls(
-                                    isRecording = isRecording,
-                                    onToggleRecording = onToggleRecording,
-                                    returnToStart = returnToStart,
-                                    isReturning = isReturning,
-                                    isOffTrack = isOffTrack,
-                                    onToggleReturning = onToggleReturning,
-                                    distanceUnit = uiState.distanceUnit,
+                            .testTag(MAP_ICON_CLUSTER_TAG)
+                        if (landscapeCluster) {
+                            // Landscape L (dispatch 2026-09-28-160; the owner: "Oh yeah on either side it looks like an L", and, on
+                            // the height, "A"). No container Surface: nothing is drawn around the L, and this Box draws nothing and
+                            // takes no pointer input, so the corner inboard of the bar and the gap between bar and pill reach the
+                            // map. The bar and the pill are each one layer at the standing chrome alpha (their default fills, not
+                            // the cluster-child fill that composited over a container). Measured here for every clamp.
+                            Box(modifier = clusterMeasure) {
+                                LandscapeLCluster(
                                     onLeftSide = isMapIconBarOnLeftSide,
+                                    bar = { clusterBar(Color.Unspecified, MAP_ICON_BAR_LANDSCAPE_ROW_SPACING) },
+                                    pill = { clusterPill(true, mapIconChromeFillColor(), MAP_ICON_BAR_LANDSCAPE_ROW_SPACING) },
                                 )
                             }
-                            if (landscapeCluster) {
-                                ShortLandscapeClusterRow(onLeftSide = isMapIconBarOnLeftSide, bar = clusterBar, pill = clusterPill)
-                            } else {
-                                Column(
-                                    horizontalAlignment = if (isMapIconBarOnLeftSide) Alignment.Start else Alignment.End,
-                                    verticalArrangement = Arrangement.spacedBy(CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR),
-                                ) {
-                                    clusterBar()
-                                    clusterPill()
+                        } else {
+                            Surface(
+                                shape = RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS),
+                                // The lighter of the two layered fills — see
+                                // MAP_ICON_CLUSTER_CONTAINER_ALPHA's own doc comment for the
+                                // compositing arithmetic and the values chosen.
+                                color = mapIconClusterContainerColor(),
+                                shadowElevation = 2.dp,
+                                border = BorderStroke(1.dp, mapIconStackBorderColor()),
+                                modifier = clusterMeasure,
+                            ) {
+                                // Part 1 layout fixes, the owner's ruling "For icon column in short landscape:
+                                // option A" (planner message 2026-09-28-99): in a short landscape window the
+                                // ControlPill sits beside the bar instead of below it (ShortLandscapeClusterRow),
+                                // so the cluster is the bar's height and fits the window. Portrait keeps the Column. (Superseded for the landscape by the L, above.)
+                                run {
+                                    Column(
+                                        horizontalAlignment = if (isMapIconBarOnLeftSide) Alignment.Start else Alignment.End,
+                                        verticalArrangement = Arrangement.spacedBy(CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR),
+                                    ) {
+                                        clusterBar(mapIconClusterChildColor(), Spacing.xs)
+                                        clusterPill(false, Color.Unspecified, Spacing.xs)
+                                    }
                                 }
                             }
                         }
@@ -1406,7 +1427,7 @@ internal fun CompactMapTab(
                     anchor = mapIconBarSideAlignment,
                     anchorOffset = DpOffset(
                         x = mapIconBarPanelAnchorOffset.x,
-                        y = mapIconBarPanelAnchorOffset.y + ADD_TILE_ANCHOR_OFFSET,
+                        y = mapIconBarPanelAnchorOffset.y + (if (landscapeCluster) ADD_TILE_ANCHOR_OFFSET_LANDSCAPE else ADD_TILE_ANCHOR_OFFSET),
                     ),
                     growsFrom = if (isMapIconBarOnLeftSide) Alignment.BottomStart else Alignment.BottomEnd,
                 )
@@ -1519,31 +1540,23 @@ internal fun CompactMapTab(
 private val CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR = Spacing.sm
 
 /**
- * The icon cluster's contents in a short landscape window (Part 1 layout fixes; the owner's ruling "For
- * icon column in short landscape: option A", planner message `2026-09-28-99`): [pill] (the ControlPill,
- * record and return) beside [bar] (MapIconBar) instead of below it, so the cluster is the bar's height,
- * 264 dp, and fits a 384 dp window where the stacked 380 dp column filled it from top to bottom.
+ * The icon cluster in a short landscape window, as an L (dispatch 2026-09-28-160; the owner: "Oh yeah on either side it looks like an
+ * L. On the right side it just looks like an inverse L", and, on the height, "A"). [bar] (MapIconBar, five 48 dp rows, 240 dp) on top, an
+ * 8 dp gap, then [pill] (ControlPill turned horizontal, 96 by 48): its outer end flush with the bar's outer edge, so record sits
+ * exactly under the bar's column and return extends inboard, towards the middle of the screen; mirrored with the cluster's side. 296 dp in all.
  *
- * The placement is this dispatch's proposal, stated in its report: the pill on the bar's inboard side
- * (towards the screen's centre), so the bar keeps the screen edge and the minimise handle that
- * straddles the container's outer edge at the bar's mid-height is where it was; bottom-aligned with the
- * bar, so the record button stays low where a thumb reaches; and the gap portrait has between them,
- * [CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR]. The container around both stays one surface, as the portrait
- * gap is, so the space above the pill is the container's.
+ * Replaces the side-by-side `ShortLandscapeClusterRow` (Part 1 layout fixes, "option A", planner message `2026-09-28-99`), which
+ * sat inside a filled container; this draws nothing around the two shapes. The Column has no fill and no pointer input, so what is
+ * outside them is the map's.
  */
 @Composable
-private fun ShortLandscapeClusterRow(onLeftSide: Boolean, bar: @Composable () -> Unit, pill: @Composable () -> Unit) {
-    Row(
-        verticalAlignment = Alignment.Bottom,
-        horizontalArrangement = Arrangement.spacedBy(CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR),
+private fun LandscapeLCluster(onLeftSide: Boolean, bar: @Composable () -> Unit, pill: @Composable () -> Unit) {
+    Column(
+        horizontalAlignment = if (onLeftSide) Alignment.Start else Alignment.End,
+        verticalArrangement = Arrangement.spacedBy(CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR),
     ) {
-        if (onLeftSide) {
-            bar()
-            pill()
-        } else {
-            pill()
-            bar()
-        }
+        bar()
+        pill()
     }
 }
 
