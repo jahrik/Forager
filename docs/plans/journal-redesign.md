@@ -1211,3 +1211,12 @@ Sequencing: F1's track delete lands first and F3 right after, both before PR #14
 The owner, verbatim: "Option C / This sounds better than the other options  and honestly, it's like A, but it keeps the icons, which is more robust for UX."
 
 The planner's proposed behaviour, from the common map convention of fanning a stack out around its point, goes to the owner to confirm before a dispatch (F4).
+
+**Fan-out: the behaviour (owner, 2026-09-29).** The owner, verbatim: "Confirm 1 to 5 / 6 Give it a .4s animation speed. / 7 confirm". The behaviour is:
+1. **A stack** is markers whose touch areas overlap at the current zoom.
+2. **Tapping a stack** fans its markers out in a small ring around their spot. Each keeps its own icon, with a thin line back to its true position. The map does not move.
+3. **More than 8 markers** fan out in a spiral instead of a ring.
+4. **Tapping a fanned-out marker** opens its bubble as usual.
+5. **Tapping the map, panning, zooming or pressing Back** folds them back.
+6. **The fan-out animation takes 0.4 s.** With the system's animations off, the markers appear spread out at once.
+7. **It works everywhere:** the Maps tab and a journal entry's map, on the phone and on the tablet.

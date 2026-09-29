@@ -6336,3 +6336,20 @@ The planner confirmed each by grep.
 - **Device-only:** item 1's re-projection, and item 7's media scan (its cause still unconfirmed).
 - **Item 10** is now ruled as fan-out on tap (owner C, F4). Option B is F3's.
 - Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-197
+**Timestamp:** 2026-09-29T16:52:13Z
+**Title:** F4: stacked markers fan out on tap. A ring, or a spiral above 8, with leader lines, 0.4 s, folding back on map tap, pan, zoom or Back, everywhere
+**Dispatch-file:** preserved/2026-09-29-39.md; launch preserved/2026-09-29-40.md (~/Zynergy/launch-prompts/18-marker-fanout.md)
+**Change:** per the owner's "Option C" and "Confirm 1 to 5 / 6 Give it a .4s animation speed. / 7 confirm".
+**Scope boundary:** the shared map's tap handling and marker rendering, for all map surfaces. The layer order is unchanged.
+**Baseline:** the head at launch. It can run beside F3.
+**Prediction (outcome, planner):**
+1. It stops once on the ring radius, or on what the fan-out covers.
+2. The suite grows by 15 to 30.
+**Prediction (mechanism, coder):** not authored.
+**Finish line:** as F1 to F3.
+**Notes:** Written by the planner by hand.
