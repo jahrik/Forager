@@ -1099,3 +1099,23 @@ The owner confirmed the pill's length, verbatim: "2 is  Awith that message". Tha
 2. **A track's details sheet gets a Delete.** Part 2 follow-ups.
 3. **J6a's record-details pane keeps its back row labelled "Details".**
 4. **PhotoGalleryScreen.kt and its test are deleted in J6b.** They have had no production caller since J6a.
+
+**The L's conflicts, J6c, the investigation, and the rest (owner, 2026-09-29).** Asked for all open items, the owner answered, verbatim: "1 2 3  I'll take your recommendations / 4 paste it here / 5 defer for tomorrow / 6 authorized and always allowed now".
+
+1. **The L** (record -170):
+   - (a) the top limit pushes the L down, below the search bar;
+   - (b) in landscape, the search notice stops before the L's side, the way the legend makes room, so the two never overlap;
+   - (c) the minimise handle's touch area is 48 dp tall, level with the locate row;
+   - (d) every button's full 48 dp square is its touch target, corners included. Nothing else around the L takes touches.
+2. **J6c, the tablet map controls** (record -171):
+   - drag, snap and minimise, as on the phone, within the tablet map's edges;
+   - fullscreen hides the Journal column and the search bar;
+   - the compass strip across the top of the tablet map, with the chip row below it;
+   - the phone's cluster extracted into one shared composable, rather than copied;
+   - Layers and "+" become bar rows.
+
+   The tablet takes the portrait arrangement, never the L.
+3. **The intermittent-failure investigation** is queued after the builds.
+4. **Part 2 Session 3** is pasted to the owner.
+5. **The owner's judgement of Session 1's captures** (rings, chips, highlight colours, night views) is deferred to 2026-09-30.
+6. **The tablet is authorized for USB debugging,** "always allowed". adb reads R52T506412L as a device.
