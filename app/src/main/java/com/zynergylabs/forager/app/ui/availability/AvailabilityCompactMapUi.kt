@@ -1405,7 +1405,10 @@ internal fun CompactMapTab(
                 // insets") — is what's underneath; in fullscreen the nav has slid away and only
                 // the system navigation bar is. The fullscreen half is device-only by
                 // construction: Robolectric reports that inset as zero.
-                val centrePinConfirmBottomInset = if (isFullscreen) {
+                // Dispatch 2026-09-28-104, item 5: in the rail layout the nav-bar inset applies outside
+                // fullscreen too (no bottom nav is measured there, so mapBottomNavHeightPx is zero), and the
+                // row also takes controlsPadding (below) so it clears the rail. Device-only, as above.
+                val centrePinConfirmBottomInset = if (isFullscreen || railPortEdge != null) {
                     WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
                 } else {
                     with(LocalDensity.current) { mapBottomNavHeightPx.toDp() }
@@ -1424,6 +1427,7 @@ internal fun CompactMapTab(
                         onCancel = { pendingAction = null },
                         modifier = Modifier.fillMaxSize(),
                         bottomInset = centrePinConfirmBottomInset,
+                        rowPadding = controlsPadding,
                         // The map's own night (the renderMode handed to mapSlot above), so the pin
                         // follows Night Maps (colour build C2 (e)).
                         night = renderMode.night,
@@ -1437,6 +1441,7 @@ internal fun CompactMapTab(
                         onCancel = onCancelSearchLocationPick,
                         modifier = Modifier.fillMaxSize(),
                         bottomInset = centrePinConfirmBottomInset,
+                        rowPadding = controlsPadding,
                         // The map's own night (the renderMode handed to mapSlot above), so the pin
                         // follows Night Maps (colour build C2 (e)).
                         night = renderMode.night,

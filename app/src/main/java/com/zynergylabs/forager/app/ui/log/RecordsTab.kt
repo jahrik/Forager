@@ -324,10 +324,13 @@ internal fun RecordsTab(
             staleThresholdDays = availabilityUiState.offlineStaleThresholdDays,
             getFullRecord = getFullRecord,
             onDismiss = { detailsTarget = null },
-            // Planner message 2026-09-28-77, Q1 option (b): over a map only from the Offline maps
-            // sub-tab, whose region picker map is in that panel. The wide results map beside the
-            // drawer is left to J6.
-            overMap = selectedTab == RecordsSubTab.OFFLINE_MAPS,
+            // Owner "1 A" (dispatch 2026-09-28-104, superseding planner message -77's Q1 (b)): over a map
+            // only from the Offline maps sub-tab AND only in a short landscape window, where that panel's
+            // picker map is beside the list (`OfflineMapsPanel`'s own test, AvailabilityOfflineMapsUi.kt:264,
+            // which is `isShortLandscapeJournal`). In portrait, and in the wide tree, the panel is stacked
+            // and the sheet lies over the region list, not a map, so it stays solid. The wide results map
+            // beside the drawer is left to J6.
+            overMap = selectedTab == RecordsSubTab.OFFLINE_MAPS && isShortLandscapeJournal(),
         )
     }
 }
