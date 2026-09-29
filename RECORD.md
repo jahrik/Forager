@@ -6798,3 +6798,25 @@ The planner confirmed each by grep.
 - **Stale comments** still name CompassStripBackgroundColor* (AvailabilityMapControlsUi.kt:5, AvailabilitySearchUi.kt:11, theme/Theme.kt:62). MapModePicker has no caller.
 - **Machine:** one attempt at 2415 MB, which failed at compile.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-224
+**Timestamp:** 2026-09-29T20:01:11Z
+**Dispatch:** none (results relayed by the second planner session [05172f])
+**Reason:** the second planner finished the two tasks the owner gave it (-218).
+**Changes:**
+- **(1) An audit of the live privacy page against main** (faf2f88f): 29 changes as was / now / why, corrections to L1's Part 1, and seven open items. It is appended to docs/audits/2026-09-29-privacy-site-update-report.md (0d079a9d, merged at 2f4eafe7).
+- **(2) The live privacy page, changed to describe main,** on zynergy-site branch worktree-bridge-cse_01JoYc3mJXVwBwWBLeCWaqSz (9bc0d45). It is not merged, and publishing is the owner's.
+**Notes:**
+- **Corrections for main:**
+  - L1's Part 1 item 7 is wrong for main: there is no Undo there (CartographyEntryReportScreen.kt:96); Undo is PR #140 only;
+  - tracks cannot be deleted on main, so the live delete-data line is untrue today. The owner's "keep it" holds for PR #140.
+- **The delete-data page** is unchanged and waits on the owner. The audit's open item 1 lists what it needs.
+- **F5, once released,** changes the privacy page's GPX cache-copy sentences.
+- **9bc0d45's commit message** mentions the sundown sentence being unchanged. It was pushed before the owner's "B remove them all". It is left for the owner: a replacement branch, or a force-push.
+- **Still with the owner, from that session:**
+  - a build-timing section (a shared flock for Gradle, and handing back rather than stopping idle daemons);
+  - a Gradle daemon idle timeout.
+- Written by the planner by hand.
