@@ -101,17 +101,7 @@ class MapTapHandlerTest {
         assertEquals(listOf(MapLayerIds.PHOTOS, MapLayerIds.FINDS, MapLayerIds.WAYPOINTS), fan.members.map { it.key.layerId })
     }
 
-    @Test
-    fun `a sighting in a stack fans with the rest and opens the sighting bubble`() {
-        scene.add(MapLayerIds.SIGHTINGS, "9001")
-        scene.add(MapLayerIds.WAYPOINTS, "w")
-        tapAtSpot()
-        assertTrue(fan.isOpen)
-        fullyOpen()
-        val (x, y) = placeOf(fan.members.single { it.key.layerId == MapLayerIds.SIGHTINGS })
-        tap(x, y)
-        assertEquals(listOf("sighting:9001"), sinks.events)
-    }
+    // A sighting no longer joins a fan (the owner's "1 A", continuation -208): MapTapHandlerRecordsOnlyTest holds that.
 
     // Rule 4: a tap on a fanned marker opens its bubble.
 

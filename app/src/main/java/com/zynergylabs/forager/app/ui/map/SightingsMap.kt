@@ -341,6 +341,8 @@ fun SightingsMap(
     // which exists once the map is ready (getMapAsync below).
     val fanOut = remember { MarkerFanOutState() }
     val tapHandlerRef = remember { TapHandlerRef() }
+    // The room a fan has: this view's bounds, and the controls over it that the screen has measured (MapKeepOut.kt).
+    val fanSpace = rememberMapFanSpace()
     // Guards against re-running setStyle on every recomposition, mirroring the deleted osmdroid
     // applyBasemap's own name()-comparison guard and for the same reason: setStyle discards every
     // source and layer the previous style had, so calling it when nothing about the style actually
@@ -457,6 +459,7 @@ fun SightingsMap(
             val handler = MapTapHandler(
                 fan = fanOut,
                 probe = MapLibreProbe(map, context.resources.displayMetrics.density),
+                space = fanSpace,
                 drawOrder = { orderedLayers(MAP_LAYER_REGISTRY, currentLayersState) },
                 sinks = object : MapTapSinks {
                     override fun onPlainTap() = currentOnTap()
@@ -902,6 +905,7 @@ fun SightingsMap(
                 .clipToBounds()
                 // After the view's own layout has taken the new size (the post), so the projection is the new
                 // one; a no-op while no map is ready or nothing is focused.
+                .trackMapFanSpace(fanSpace)
                 .onViewportResized { mapView.post { mapLibreMap?.let(::reanchorFocusedBubble) } },
         )
         // The always-visible attribution line CopyrightOverlay used to draw directly onto the

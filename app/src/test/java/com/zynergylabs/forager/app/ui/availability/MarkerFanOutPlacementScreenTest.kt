@@ -175,6 +175,8 @@ abstract class MarkerFanOutPlacementScreenTests(private val rotation: Int) {
             "journal chip" to bounds(JOURNAL_ENTRIES_CHIP_TAG),
             barBounds(COMPACT_BOTTOM_NAV_TAG)?.let { "bottom nav" to it },
             barBounds(COMPACT_NAVIGATION_RAIL_TAG)?.let { "rail" to it },
+            barBounds(SEARCH_ENTRY_BAR_TAG)?.let { "search bar" to it },
+            barBounds(COMPASS_STRIP_HEADING_TAG)?.let { "compass strip (its heading)" to it },
         )
         val half = 24f
         val placed = fan.members.map { m ->
@@ -222,7 +224,10 @@ abstract class MarkerFanOutPlacementScreenTests(private val rotation: Int) {
         val c = bounds(MAP_ICON_CLUSTER_TAG)
         val midY = (c.top.value + c.bottom.value) / 2
         fanAt("beside-cluster", beside(c), midY, 4)
-        fanAt("above-cluster", (c.left.value + c.right.value) / 2, c.top.value - 12f, 4)
+        val map = bounds(LAYOUT_FIXES_MAP_TAG)
+        // Above it where there is room under the top chrome, else below it (short landscape).
+        val y = if (c.top.value - map.top.value >= 200f) c.top.value - 12f else c.bottom.value + 12f
+        fanAt("above-or-below-cluster", (c.left.value + c.right.value) / 2, y, 4)
     }
 
     @Test

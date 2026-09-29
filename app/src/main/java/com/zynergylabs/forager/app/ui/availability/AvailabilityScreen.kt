@@ -1,5 +1,7 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.ui.map.LocalMapKeepOuts
+import com.zynergylabs.forager.app.ui.map.fanout.MapKeepOuts
 import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Context
@@ -1909,7 +1911,9 @@ fun AvailabilityScreen(
         } else {
             ambientDirection
         }
-        CompositionLocalProvider(LocalLayoutDirection provides drawerDirection) {
+        // Where the controls over the map are, for the marker fan-out to keep clear of (MapKeepOut.kt).
+        val mapKeepOuts = remember { MapKeepOuts() }
+        CompositionLocalProvider(LocalLayoutDirection provides drawerDirection, LocalMapKeepOuts provides mapKeepOuts) {
         ModalNavigationDrawer(
             drawerState = drawerState,
             // Swipe-to-open is off on purpose: the content behind the drawer is a full-screen
