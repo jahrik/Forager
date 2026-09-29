@@ -1253,3 +1253,7 @@ So:
   - Checked in code at this commit: in the Layers sheet only the colour-field layers carry an opacity slider (`MapLayersSheet.kt:385, 399-405`).
   - The overlays (Finds, Photos, Waypoints, Planned trips, Recording trail, Tracks, Offline maps) have an on/off switch only (`:280, 298`).
   - The gap is noted for the owner and not dispatched.
+
+**Delete-data never says tracks cannot be deleted (owner, 2026-09-29).** zynergy-site PR #3 had moved delete-data's "Recorded tracks" bullet under "Not yet deletable one by one", because testers' current build (main) cannot delete a track (record -228, row D6). The owner, verbatim: "Make the tracks deletable so the words are true", then "Do not tell users they can't delete tracks in the same update that allows them to delete them. That's not sensible".
+
+So PR #3 keeps "Recorded tracks" in the deletable list, with L1's wording, not under "Not yet deletable". The page and PR #140, which makes tracks deletable, go out together.
