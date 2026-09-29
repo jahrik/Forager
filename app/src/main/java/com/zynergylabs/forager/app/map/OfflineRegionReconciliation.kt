@@ -31,18 +31,27 @@ internal suspend fun reconcileOfflineRegions(
     deleteRegion: suspend (Long) -> Unit,
     warn: (String) -> Unit,
 ): List<OfflineRegionSummary> {
+    // A Room row with no MapLibre region is kept, not shown, and logged every time it is seen.
+    // MapLibre's read is not authoritative: an empty or partial read (a store that was not the one
+    // the rows were written against, a read that raced initialisation) says nothing about whether
+    // the row's tiles exist, and a row deleted on that say-so is gone for good. Only the user's own
+    // delete (deleteRegion) removes a row.
     val liveIds = live.map { it.id }.toSet()
-    dao.getAll().filter { it.id !in liveIds }.forEach { dao.deleteById(it.id) }
+    roomRowIdsMissingFromRead(dao.getAll().map { it.id }.toSet(), liveIds).forEach { id ->
+        warn("Room region row $id has no MapLibre region in this read; kept, not shown.")
+    }
 
-    val idsToDelete = offlineRegionIdsToDelete(
-        completeById = live.associate { it.id to it.isComplete },
-        inFlightIds = inFlightIds,
-    )
     return live.mapNotNull { region ->
         if (!region.isComplete) {
-            if (region.id in idsToDelete) {
-                deleteRegion(region.id)
-                dao.deleteById(region.id)
+            when (val decision = incompleteRegionDecision(region, hasRoomRow = dao.getById(region.id) != null, inFlightIds)) {
+                IncompleteRegionDecision.InFlight -> Unit
+                IncompleteRegionDecision.Delete -> {
+                    warn("Deleting region ${region.id}: it never finished (incomplete, not downloading now, no Room row, metadata never recorded a completion).")
+                    deleteRegion(region.id)
+                    dao.deleteById(region.id)
+                }
+                is IncompleteRegionDecision.Keep ->
+                    warn("Region ${region.id} is incomplete; kept, not shown: ${decision.reason}.")
             }
             return@mapNotNull null
         }
@@ -75,13 +84,43 @@ internal suspend fun reconcileOfflineRegions(
     }
 }
 
-/**
- * Which of `OfflineManager`'s regions are deleted: every region that is not complete
- * ([completeById] maps each region id to `OfflineRegionStatus.isComplete`), except one still
- * downloading in this process ([inFlightIds]).
- */
-internal fun offlineRegionIdsToDelete(completeById: Map<Long, Boolean>, inFlightIds: Set<Long>): Set<Long> =
-    completeById.filterValues { complete -> !complete }.keys - inFlightIds
+/** Ids of Room rows that [read] (the ids `OfflineManager` listed) does not contain: to be logged, never deleted. */
+internal fun roomRowIdsMissingFromRead(roomIds: Set<Long>, read: Set<Long>): Set<Long> = roomIds - read
 
-/** What [MapLibreOfflineMapRepository.listRegions] makes of `OfflineManager`'s `onList` payload. */
-internal fun <T> regionListOrFailure(read: List<T>?): List<T> = read.orEmpty()
+internal sealed interface IncompleteRegionDecision {
+    /** A download this process is still running. Not listed, not touched, not logged. */
+    data object InFlight : IncompleteRegionDecision
+
+    /** Provably never finished: deleted, tiles and row. */
+    data object Delete : IncompleteRegionDecision
+
+    /** Cannot be shown to have never finished: kept, not shown, logged with [reason]. */
+    data class Keep(val reason: String) : IncompleteRegionDecision
+}
+
+/**
+ * What to do with a region `OfflineManager` reports as incomplete. It is deleted only when it
+ * provably never finished. `download()` creates the region with placeholder metadata
+ * (`downloadedAtEpochMillis == 0`) and writes both the real timestamp and the Room row only after
+ * the download completes, so a region with no Room row whose metadata still holds the placeholder
+ * never finished. Anything that cannot be shown that way is kept: whether a completed region can
+ * later report itself incomplete is native behaviour this code cannot rule out.
+ */
+internal fun incompleteRegionDecision(
+    region: LiveRegion,
+    hasRoomRow: Boolean,
+    inFlightIds: Set<Long>,
+): IncompleteRegionDecision {
+    if (region.id in inFlightIds) return IncompleteRegionDecision.InFlight
+    if (hasRoomRow) return IncompleteRegionDecision.Keep("it has a Room row, which is written only on completion")
+    val metadata = region.metadata?.toRegionMetadata()
+        ?: return IncompleteRegionDecision.Keep("its metadata is missing or unreadable")
+    if (metadata.downloadedAtEpochMillis != 0L) {
+        return IncompleteRegionDecision.Keep("its metadata records a completion time")
+    }
+    return IncompleteRegionDecision.Delete
+}
+
+/** What [MapLibreOfflineMapRepository.listRegions] makes of `OfflineManager`'s `onList` payload: a null list is a failed read, never an empty one. */
+internal fun <T> regionListOrFailure(read: List<T>?): List<T> =
+    read ?: throw java.io.IOException("listOfflineRegions returned no list.")
