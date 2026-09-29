@@ -6385,3 +6385,13 @@ The planner confirmed each by grep.
 **Notes:**
 - The tests that passed at base, and ReturnPromptRecreationTest's undiagnosed base failure, are recorded in -196.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-199
+**Timestamp:** 2026-09-29T16:56:51Z
+**Dispatch:** 2026-09-28-195 (F3) and 2026-09-28-197 (F4)
+**Reason:** the owner launched both. The owner, verbatim: "Pasted".
+**Changes:** F3 (base ce30ac4c) and F4 (base c3cde3d7) run side by side in owner-opened windows, sharing the machine and merging each other's MapBubbles.kt changes.
+**Notes:** Written by the planner by hand.
