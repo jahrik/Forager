@@ -7011,3 +7011,21 @@ The planner confirmed each by grep.
 - F5 stays closed (-233).
 - If the third run pushed, it would put a second implementation over the landed one.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-235
+**Timestamp:** 2026-09-29T20:26:47Z
+**Dispatch:** 2026-09-28-216 (F5), a redo
+**Reason:** the F5 window e4d26c (933788) reports that the owner told it directly to redo F5 on Sonnet 5.5 on a new branch, because the landed F5 was built on Opus 5.5 and the attribution should be true.
+- It follows the owner over the planner's cancel (-234).
+- Worktree: forager-wt/privacy-fixes-redo-sonnet. Branch: privacy-fixes-redo-sonnet, from 445b292b.
+- It pushes only to its own branch, never to journal-redesign, with no merge.
+- Report: docs/audits/2026-09-29-privacy-fixes-sonnet-redo-completion-report.md.
+**Changes:** none on journal-redesign.
+**Notes:**
+- **This supersedes the planner's note in -233** ("Sonnet 5.5 finished eith F5") as to which model built the landed F5. The coder reports the owner's statement that it was Opus 5.5.
+- **The owner is asked** what happens to the landed F5 (2fa093ef's code) when the redo finishes.
+- **The earlier third run** in privacy-fixes-sonnet (-234) may be another redo; the owner is asked.
+- Written by the planner by hand.
