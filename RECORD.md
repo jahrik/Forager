@@ -4923,3 +4923,17 @@ All on layout-fixes-wip at 3bbbcfa. It stopped: a two-chip wrapped row reaches 1
 **Finish line:** Build, tests first, revert checks, full suite, report; the planner writes the terminal; an S22 device check with its own backup first; the legal documents drafted with the owner.
 **Abort conditions:** Any path that could lose live data; new copy; an unruled choice; a tests-first pass at base; a non-compiling revert; a non-held failure; two failed fixes; a refused push.
 **Notes:** Owner rulings verbatim in the plan. Within the 2026-09-09 ruling (allowBackup false). Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-128
+**Timestamp:** 2026-09-29T03:04:59Z
+**Continues:** 2026-09-28-127
+**Dispatch-file:** preserved/2026-09-29-11.md (launch prompt; base supplied at launch)
+**Reason:** -104 has built six of its eight items (881cfbd). Its two held items, the search notice and the entry map's basemap, touch other screens, and the owner said, verbatim, "Go ahead" to launching backup and restore now.
+**Changes:** -127 launches at base 881cfbd in forager-wt/journal-backup (branch journal-backup). The launch copy in ~/Zynergy/launch-prompts/8-journal-backup.md names the base and the worktree command.
+**Notes:**
+- Planner's ruling on -104's flag: on the Maps tab the snackbar sits above the floating bottom navigation, not only the system bar (the standard). It goes to -104's continuation.
+- The two stops (the entry map's basemap; the search notice) are put to the owner.
+- Written by the planner by hand.
