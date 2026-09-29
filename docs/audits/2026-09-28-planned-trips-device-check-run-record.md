@@ -330,6 +330,54 @@ marked and estimates (±30 px) elsewhere; the trip-pixel count covers the whole 
 - **"Center on my location"** recentred on the puck without changing the zoom and without setting `region` (the next
   captures still show "Search a location"), as AVM:449-460 reads.
 
+### Check 1-5a: a tab round trip, no search (run before 1-2 to 1-4; Decisions I made, 8)
+
+- Journal (`40-p1-journal`, dump only: the Journal shows the owner's entries): **the dump holds no MapLibre node**, so the
+  map was taken down. Maps again (`41-p1-maps-after-journal`): the map was rebuilt **at the launch view**: `shift.py`
+  against `11-p1-launch` gives dx 0, dy 0 (score 1.03), and against `26-p1-after-B` dy +472 = 2 × 236. So at the placing
+  zoom, **A's point is at (540, 1432) and B's at (540, 1668), exactly**, both on screen.
+- Trip pixels 0 / 0; no flag seen at either point. The "Search a location" bar is unchanged.
+- **Verdict: as predicted, both absent.** This view is the reference for checks 1-2 to 1-4.
+
+### Check 1-2: the Layers "Planned trips" switch off, then on, no search
+
+`ltoggle.sh` (copied from `-84`): opens the Layers sheet from the cluster, taps the "Planned trips" row's clickable node,
+reads its `checked` state back from a second dump, closes the sheet with Back, then captures.
+
+| State | Capture | Row `checked` | Trip pixels | Map against `41-` | Verdict |
+|---|---|---|---|---|---|
+| off (00:31:07Z) | `42-p1-trips-off` | `true` → **`false`** | 0 / 0 | identical (dx 0, dy 0, score 0.00) | **absent** |
+| on (00:31:36Z) | `43-p1-trips-on` | `false` → **`true`** | 0 / 0 | identical (score 0.00) | **absent** |
+
+- `map_preferences` reads `map.layer.planned-trips-layer.visible = True` afterwards.
+- **Verdict: as predicted.** The switch changes nothing on screen, because there is nothing in the layer to show or hide.
+
+### Check 1-3: by day and at night, no search
+
+`setnight.sh` (copied from `-84`): Tools, Settings, the Night Maps row, read back from the dump and from `map_preferences`.
+
+| State | Capture | `#FA01DD` | `#9553A4` | Control | Verdict |
+|---|---|---|---|---|---|
+| night (checkbox `true`, `night_mode.maps = True`) | `44-p1-night` | **0 px** | 0 px | the find in its night colour `#F96FAC`, 2860 px at `[507,1123][600,1195]`, its own place: the style reloaded in the night palette | **both absent** |
+| day again (`false`, `night_mode.maps = False`) | `45-p1-day-again` | 0 px | **0 px** | the find in `#DA02AF`, 2862 px at the same bounds; map against `41-` dx 0, dy 0 | **both absent** |
+
+- **Verdict: as predicted.** Night Maps is back off and read back.
+
+### Check 1-4: a real tap where each trip sits, no search
+
+| Touch | Capture | Bubble in the dump | Verdict |
+|---|---|---|---|
+| A's point (540, 1432) | `46-p1-tap-A-540-1432` | none (dump identical to `45-`, `5db193b3…`) | **no bubble** |
+| where A's pennant would be (565, 1372) | `47-p1-tap-A-565-1372` | none (identical) | **no bubble** |
+| B's point (540, 1668) | `48-p1-tap-B-540-1668` | none (identical) | **no bubble** |
+| where B's pennant would be (565, 1608) | `49-p1-tap-B-565-1608` | none (identical) | **no bubble** |
+| **control:** the DEVICE CHECK find's glyph (540, 1140) | `50-p1-tap-find-control` | "DEVICE CHECK find 1", "Find on 2026-09-27", "Open in Journal", "Close" | the find's bubble opens |
+
+- The control bubble was closed with Back (`51-p1-bubble-closed`, dump `5db193b3…` again). Nothing in it was touched.
+- **Verdict: as predicted.** The tap path works in this state (the control), and at the trips' points there is nothing
+  to hit. The pennant positions are where the tablet's flags drew relative to their points (above and to the right of
+  the pole foot), not measured on this phone yet.
+
 ## Appendix: the dispatch and the launch message, verbatim
 
 ### `prompts/preserved/2026-09-28-94.md` at `ae0b90f`, the whole file
