@@ -895,3 +895,9 @@ The planner's placement: after the trips fix (`-97`) and the map-chrome follow-u
 > Select Cancel to go back.
 
 "Skipping any duplicates" agrees with the planner's reading of merge: when a record is on both sides, the device's copy is kept. The rest of the draft copy (titles, buttons, the Backup settings and messages) awaits the owner's confirmation.
+
+**Export and backup copy approved (owner, 2026-09-29).** The owner, verbatim: "A, approve the rest". With the owner's own restore-prompt body above, the approved copy is:
+- **Photo viewer:** "Save to Gallery" (Android 9 and below: "Save to folder"); messages "Saved to Gallery", "Saved" and "Couldn't save that photo."
+- **Tools, Settings, Backup:** "Back up now" (default file name `forager-backup-<date>.zip`); "Automatic backup" (a switch, off by default); "How often": Daily, Weekly or Monthly; "Backup folder": "Choose folder"; "Restore from backup".
+- **Messages:** "Backup saved.", "Couldn't save the backup.", "Automatic backup is off until you choose a folder."
+- **Restore prompt:** the title "Restore this backup?", the owner's body, the buttons Replace, Merge and Cancel; afterwards "Restore complete." or "Couldn't restore that backup."
