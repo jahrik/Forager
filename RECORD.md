@@ -6515,3 +6515,36 @@ The planner confirmed each by grep.
 - The delete-data wording goes to L1, now launched.
 - The silent saved-path read failure in the map use case is a known CLAUDE.md gap, recorded in the report.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-206
+**Timestamp:** 2026-09-29T18:07:16Z
+**Dispatch:** 2026-09-28-197 (F4)
+**Reason:** the F4 coder handed back, pushed to journal-redesign at 5f5d9eb7. Report: docs/audits/2026-09-29-marker-fanout-completion-report.md.
+- **Built:**
+  - MapTapHandler wraps the old tap logic;
+  - a ring up to 8, then a spiral, sized from the 48 dp touch area;
+  - 0.4 s, with animator scale 0 snapping;
+  - a Back handler composed only while the fan is open;
+  - fanned copies drawn above the registry layers, with the originals filtered out;
+  - one code path through SightingsMap for every map surface.
+- **Evidence:**
+  - tests first: 39 tests, 35 failing;
+  - 14 revert checks, two of them redone: the duration test had compared against the constant itself, and one revert did not compile and was refused;
+  - FanOutLayersTest was written after the code;
+  - the suite on 752ead66 (with F3): 3106 / 0 / 0 / 24.
+**Changes:** none. Two calls go to the owner:
+- (1) **Every marker layer fans, sighting dots included, with no cap,** so a dense dot cluster becomes a spiral running off screen;
+- (coverage) **the fanned copies draw under every overlay** (the icon cluster, legend and chips) and clip at the screen edge. There is no edge avoidance.
+**Notes:**
+- **The coder's other decisions stand unless the owner says otherwise:**
+  - a stack is the tapped marker plus every marker overlapping it;
+  - a tap elsewhere folds the fan and then goes on;
+  - any camera or content change folds it;
+  - a stack tap keeps an open bubble;
+  - leg colours and easing are the coder's.
+- **Device-only:** 12 checks, including the native filter parser, queryRenderedFeatures on a real stack, and the leg drawing.
+- **Machine:** one run started with another Gradle process present, at 2459 MB.
+- Written by the planner by hand.
