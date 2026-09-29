@@ -792,6 +792,74 @@ class JournalBackupTest {
         assertEquals("the live database stayed at the app's own version throughout", 17, liveVersionDuringRestore)
     }
 
+    // ---- recent searches are left out (F5, dispatch 2026-09-28-216; owner, "2 A") ------------------
+
+    @Test
+    fun `a backup made with searches on the phone holds no cached_searches rows, and the phone keeps its searches`() {
+        val a = phone().apply {
+            seedFullJournal()
+            addSearches()
+        }
+        assertEquals("the phone has searches, so the check below is not vacuous", 2L, a.count("cached_searches"))
+        val searchesBefore = a.dump(listOf("cached_searches"))
+        val snapshot = tmp.newFile("with-searches.db").apply { writeBytes(readZip(a.backUp()).getValue("forager.db")) }
+
+        SQLiteDatabase.openDatabase(snapshot.path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
+            assertEquals("the backup's snapshot holds no cached_searches rows", 0L, db.rawQuery("SELECT COUNT(*) FROM cached_searches", null).use { c -> c.moveToFirst(); c.getLong(0) })
+            assertEquals("the journal is still in it", a.count("waypoints"), db.rawQuery("SELECT COUNT(*) FROM waypoints", null).use { c -> c.moveToFirst(); c.getLong(0) })
+        }
+        assertEquals("the phone keeps its searches: the live table is never cleared", searchesBefore, a.dump(listOf("cached_searches")))
+    }
+
+    @Test
+    fun `Replace from an older backup that holds searches leaves the phone's own searches exactly as they were`() {
+        val old = backupHoldingSearches()
+        val b = phone().apply {
+            insert("waypoints", "id" to "own-w", "name" to "Phone's own")
+            addSearches()
+        }
+        val searchesBefore = b.dump(listOf("cached_searches"))
+
+        b.restore(old, RestoreMode.REPLACE).getOrThrow()
+
+        assertEquals("the restore ran: the backup's waypoint replaced the phone's", "name-1", b.scalar("SELECT name FROM waypoints"))
+        assertEquals("the phone's searches are exactly as they were, and none of the backup's arrived", searchesBefore, b.dump(listOf("cached_searches")))
+    }
+
+    @Test
+    fun `Merge of an older backup that holds searches leaves the phone's own searches exactly as they were`() {
+        val old = backupHoldingSearches()
+        val b = phone().apply {
+            insert("waypoints", "id" to "own-w", "name" to "Phone's own")
+            addSearches()
+        }
+        val searchesBefore = b.dump(listOf("cached_searches"))
+
+        b.restore(old, RestoreMode.MERGE).getOrThrow()
+
+        assertEquals("the restore ran: the backup's waypoint was merged in beside the phone's", 2L, b.count("waypoints"))
+        assertEquals("the phone's searches are exactly as they were, and none of the backup's arrived", searchesBefore, b.dump(listOf("cached_searches")))
+    }
+
+    /** Two recent searches, each with the place it was run for, as the search cache stores them. */
+    private fun Phone.addSearches() {
+        insert("cached_searches", "key" to "45.52|-122.68|25|10|taxon:47348", "lat" to 45.52, "lng" to -122.68, "filterLabel" to "Chanterelles")
+        insert("cached_searches", "key" to "44.05|-121.31|50|5|iconic:Fungi:without=null", "lat" to 44.05, "lng" to -121.31, "filterLabel" to "Fungi")
+    }
+
+    /**
+     * A backup an earlier build made, before searches were left out: a real database at today's schema with a row in
+     * every table, `cached_searches` included (checked here, so the restore tests cannot pass on a backup without one).
+     */
+    private fun backupHoldingSearches(): ByteArray {
+        val old = OlderBackup.build(OlderBackup.helper(), tmp.root, version = Phone.SCHEMA)
+        val db = tmp.newFile("older-with-searches.db").apply { writeBytes(readZip(old.archive).getValue("forager.db")) }
+        SQLiteDatabase.openDatabase(db.path, null, SQLiteDatabase.OPEN_READONLY).use {
+            assertEquals("the older backup holds a search", 1L, it.rawQuery("SELECT COUNT(*) FROM cached_searches", null).use { c -> c.moveToFirst(); c.getLong(0) })
+        }
+        return old.archive
+    }
+
     // ---- what the table list is ----------------------------------------------------------------
 
     @Test
