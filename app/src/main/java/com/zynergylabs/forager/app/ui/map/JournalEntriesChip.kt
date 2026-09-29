@@ -1,5 +1,8 @@
 package com.zynergylabs.forager.app.ui.map
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,13 +15,17 @@ import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.contentColorFor
+import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsPropertyKey
@@ -114,23 +121,38 @@ internal fun JournalEntriesMapChip(
     val container = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight
     val content = if (isDarkTheme) Color.White else Bark
     Box(modifier = modifier) {
-        Surface(
-            onClick = { expanded = true },
+        // Part 1 layout fixes, item 8 (J8's device check, check 4; planner message 2026-09-28-98, "touch
+        // targets only"): the chip's layout is Material's 48 dp minimum-interactive box with the pill
+        // centred in it, and a Surface's own click covered only the pill. The strip above the pill was
+        // Compose's touch-target expansion, which loses to the map's direct hit underneath, so where it
+        // overlapped the coordinate readout's own expansion a touch reached neither control. The click
+        // now covers the whole box, so every point of it is the chip's own. The box, the pill and its
+        // ripple (clipped to the pill) are drawn and placed as before; nothing moves.
+        val interactionSource = remember { MutableInteractionSource() }
+        val pill = RoundedCornerShape(percent = 50)
+        Box(
+            contentAlignment = Alignment.Center,
             modifier = Modifier
                 .testTag(JOURNAL_ENTRIES_CHIP_TAG)
                 .semantics {
                     journalEntriesChipContainerColor = container
                     journalEntriesChipContentColor = content
-                },
-            shape = RoundedCornerShape(percent = 50),
-            color = container,
-            contentColor = content,
+                }
+                .clickable(interactionSource = interactionSource, indication = null, onClick = { expanded = true })
+                .minimumInteractiveComponentSize(),
         ) {
-            Text(
-                journalEntriesChipLabel(entries.size),
-                style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
-            )
+            Surface(
+                shape = pill,
+                color = container,
+                contentColor = content,
+                modifier = Modifier.clip(pill).indication(interactionSource, ripple()),
+            ) {
+                Text(
+                    journalEntriesChipLabel(entries.size),
+                    style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                )
+            }
         }
         val menuContainer = journalMenuContainerColor()
         val menuContent = journalMenuContentColor()

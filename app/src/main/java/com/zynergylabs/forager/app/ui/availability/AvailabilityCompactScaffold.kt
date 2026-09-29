@@ -70,6 +70,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.safeDrawing
@@ -82,6 +83,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
@@ -147,6 +149,7 @@ import com.zynergylabs.forager.app.ui.map.Basemap
 import com.zynergylabs.forager.app.ui.map.MapMode
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
+import com.zynergylabs.forager.app.ui.map.MapCameraMemory
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
@@ -185,6 +188,8 @@ internal fun CompactMainScaffold(
     currentTime: CurrentTimeProvider,
     mapSlot: MapSlot,
     mapIconClusterPosition: MapIconClusterPositionState,
+    /** Part 1 layout fixes, item 4: the Maps tab's camera, kept above the tab switch; threaded to [CompactMapTab]. */
+    mapCameraMemory: MapCameraMemory,
     mapRenderMode: MapRenderMode,
     /**
      * Map layers L0b: the Maps tab's Layers sheet, legend and saved records ([MapLayersControls]),
@@ -588,6 +593,22 @@ internal fun CompactMainScaffold(
             label = "attributionBottomInset",
         )
         val safeAttributionBottomInset = animatedAttributionBottomInset.coerceAtLeast(0.dp)
+        // Part 1 layout fixes, item 5 (planner message 2026-09-28-98): MapLibre's "i" sits at the map's
+        // bottom end, so beside the bottom inset above it keeps clear of whatever is on that end edge:
+        // the overlaid rail, in a short landscape window at the rotation that puts the port there (90 in
+        // a left-to-right layout). At the other rotation that edge is the punch-hole side, and the "i"
+        // stays where it was, in the cut-out band: padding it inboard of the cut-out would put it under
+        // the cluster's column. In fullscreen it goes to the edge, the caption's own treatment (the
+        // planner's ruling: "It belongs with the caption"). Animated on the rail's own spec, as the
+        // bottom inset is on the nav's. The rail's measured width includes the system bar it takes, which
+        // Robolectric reports as zero: what the "i" clears on the phone is a device item.
+        val attributionEndEdge = if (LocalLayoutDirection.current == LayoutDirection.Ltr) ScreenEdge.Right else ScreenEdge.Left
+        val animatedAttributionEndInset by animateDpAsState(
+            targetValue = if (showRail && !isMapFullscreen() && portEdge == attributionEndEdge) mapRailWidth else 0.dp,
+            animationSpec = MotionTokens.navigationMotionSpec(),
+            label = "attributionEndInset",
+        )
+        val safeAttributionEndInset = animatedAttributionEndInset.coerceAtLeast(0.dp)
         Scaffold(
             snackbarHost = {
                 // Material3's own snackbar, with its default colours passed explicitly. Its content
@@ -809,6 +830,7 @@ internal fun CompactMainScaffold(
                                 uiState = uiState,
                                 mapSlot = mapSlot,
                                 clusterPosition = mapIconClusterPosition,
+                                cameraMemory = mapCameraMemory,
                                 // Landscape B2: the punch-hole side, and the search bar's capped
                                 // width there (the chip sits under it, within it).
                                 punchHoleEdge = if (showRail) punchHoleEdge else null,
@@ -824,7 +846,7 @@ internal fun CompactMainScaffold(
                                 // Text's own padding — no map effect keys on it or on renderMode as a
                                 // whole (SightingsMap's own LaunchedEffects, checked), so nothing here
                                 // re-measures or re-fits the map.
-                                renderMode = mapRenderMode.copy(bottomInset = safeAttributionBottomInset),
+                                renderMode = mapRenderMode.copy(bottomInset = safeAttributionBottomInset, attributionEndInset = safeAttributionEndInset),
                                 mapMode = mapMode(),
                                 onMapModeSelected = { onMapModeChange(it) },
                                 mapLayers = mapLayers,
@@ -1159,6 +1181,14 @@ internal fun CompactMainScaffold(
                             // receiver") since a BoxScope, not a ColumnScope, is this call's real one.
                             // fullscreen-fixes dispatch, Item 1 (third design): fed into heightIn below.
                             val searchDropdownTopOffset = if (compactTab() == CompactTab.MAP) searchBarHeight + compassStripClearance else 0.dp
+                            // Part 1 layout fixes, item 3 (Part 1's device check, check 8): on the Maps tab
+                            // this Box runs to the window's bottom, since the tab's contentWindowInsets
+                            // reserve only the top and sides, so the keyboard does not shrink it. The panel's
+                            // cap therefore keeps it above the keyboard's own inset, or above the nav band,
+                            // whichever reaches higher. The other tabs' Scaffold padding (safeDrawing, which
+                            // includes the keyboard) shrinks this Box already. Robolectric reports no
+                            // keyboard, so this is device-only by construction.
+                            val searchDropdownImeBottom = with(LocalDensity.current) { WindowInsets.ime.getBottom(this).toDp() }
                             androidx.compose.animation.AnimatedVisibility(
                                 visible = showSearchDropdown,
                                 enter = expandVertically(animationSpec = MotionTokens.panelMotionSpec()) + fadeIn(animationSpec = MotionTokens.panelMotionSpec()),
@@ -1204,7 +1234,7 @@ internal fun CompactMainScaffold(
                                         .padding(top = searchDropdownTopOffset)
                                         .heightIn(
                                             max = maxHeight - searchDropdownTopOffset -
-                                                (if (compactTab() == CompactTab.MAP) bottomNavHeight else 0.dp),
+                                                (if (compactTab() == CompactTab.MAP) maxOf(bottomNavHeight, searchDropdownImeBottom) else 0.dp),
                                         )
                                 },
                             ) {

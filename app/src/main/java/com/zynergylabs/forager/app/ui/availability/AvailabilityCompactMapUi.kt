@@ -31,6 +31,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -106,6 +107,7 @@ import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
 import com.zynergylabs.forager.app.ui.map.layers.mapLegendFor
 import com.zynergylabs.forager.app.ui.map.MapOverlayContent
 import com.zynergylabs.forager.app.ui.map.MapBubbleLayer
+import com.zynergylabs.forager.app.ui.map.MapCameraMemory
 import com.zynergylabs.forager.app.ui.map.MapBubbleTarget
 import com.zynergylabs.forager.app.ui.map.MapFeatureTap
 import com.zynergylabs.forager.app.ui.map.MapRecordSources
@@ -222,6 +224,12 @@ internal fun CompactMapTab(
      * default keeps any other caller self-contained.
      */
     clusterPosition: MapIconClusterPositionState = rememberMapIconClusterPositionState(),
+    /**
+     * Part 1 layout fixes, item 4: where the map keeps the camera the user left, held by the caller so
+     * it survives leaving and returning to this tab, as [clusterPosition] is. See [MapCameraMemory].
+     * The default keeps any other caller self-contained.
+     */
+    cameraMemory: MapCameraMemory = remember { MapCameraMemory() },
     mapMode: MapMode,
     onMapModeSelected: (MapMode) -> Unit,
     onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
@@ -655,7 +663,7 @@ internal fun CompactMapTab(
                         // J8-2: the shown entries' kept records, highlighted under their own glyphs.
                         journalHighlights = mapLayers.journalHighlights,
                     ),
-                    renderMode.copy(onFeatureTap = onFeatureTap),
+                    renderMode.copy(onFeatureTap = onFeatureTap, cameraMemory = cameraMemory),
                     focusOverride,
                     {},
                     // Tapping the map restores chrome while fullscreen — decision #5 — AND dismisses
@@ -812,6 +820,24 @@ internal fun CompactMapTab(
                             .coerceIn(-fallbackDownwardOffsetPx, 0f)
                     } else {
                         -fallbackDownwardOffsetPx
+                    }
+                    // Part 1 layout fixes, item 2 (the owner's Q4 ruling, "the cluster moves up when the
+                    // legend expands"; planner message 2026-09-28-98): the floor above keeps the cluster
+                    // at its centred position at the least, so a legend reaching above the centred
+                    // cluster's bottom was overlapped rather than cleared (122 px on the S22). Where the
+                    // legend is the lowest edge and its edge is above the centred bottom, the cluster
+                    // rises above centre: the downward limit is the legend's own (negative) offset, and
+                    // the upward limit reaches as far as that needs and never past the dropdown's top,
+                    // which still wins where the two meet. The nav's floor, and every state without a
+                    // legend, is unchanged.
+                    val legendLiftPx = currentLegendBoundPx
+                        ?.takeIf { it <= navBoundPx && mapIconClusterHeightPx > 0f }
+                        ?.let { it - (mapContentBoxHeightPx + mapIconClusterHeightPx) / 2f }
+                        ?.takeIf { it < 0f }
+                    if (legendLiftPx != null) {
+                        val dropdownLimitPx = currentDropdownTopPx - (mapContentBoxHeightPx - mapIconClusterHeightPx) / 2f
+                        val liftedUpwardOffsetPx = minOf(maxUpwardOffsetPx, maxOf(legendLiftPx, dropdownLimitPx))
+                        return offsetPx.coerceIn(liftedUpwardOffsetPx, maxOf(liftedUpwardOffsetPx, legendLiftPx))
                     }
                     return offsetPx.coerceIn(maxUpwardOffsetPx, maxOf(maxUpwardOffsetPx, maxDownwardOffsetPx))
                 }
@@ -976,10 +1002,11 @@ internal fun CompactMapTab(
                                 }
                                 .testTag(MAP_ICON_CLUSTER_TAG),
                         ) {
-                            Column(
-                                horizontalAlignment = if (isMapIconBarOnLeftSide) Alignment.Start else Alignment.End,
-                                verticalArrangement = Arrangement.spacedBy(CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR),
-                            ) {
+                            // Part 1 layout fixes, the owner's ruling "For icon column in short landscape:
+                            // option A" (planner message 2026-09-28-99): in a short landscape window the
+                            // ControlPill sits beside the bar instead of below it (ShortLandscapeClusterRow),
+                            // so the cluster is the bar's height and fits the window. Portrait keeps the Column.
+                            val clusterBar: @Composable () -> Unit = {
                                 MapIconBar(
                                     isFullscreen = isFullscreen,
                                     onToggleFullscreen = onToggleFullscreen,
@@ -1005,6 +1032,8 @@ internal fun CompactMapTab(
                                         mapIconBarCentreInClusterPx = coordinates.boundsInParent().center.y
                                     },
                                 )
+                            }
+                            val clusterPill: @Composable () -> Unit = {
                                 // Composed whenever MapIconBar is (regardless of isRecording —
                                 // record start/stop must stay reachable before the first
                                 // recording starts, the same as it was as an always-enabled
@@ -1024,6 +1053,17 @@ internal fun CompactMapTab(
                                     distanceUnit = uiState.distanceUnit,
                                     onLeftSide = isMapIconBarOnLeftSide,
                                 )
+                            }
+                            if (landscapeCluster) {
+                                ShortLandscapeClusterRow(onLeftSide = isMapIconBarOnLeftSide, bar = clusterBar, pill = clusterPill)
+                            } else {
+                                Column(
+                                    horizontalAlignment = if (isMapIconBarOnLeftSide) Alignment.Start else Alignment.End,
+                                    verticalArrangement = Arrangement.spacedBy(CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR),
+                                ) {
+                                    clusterBar()
+                                    clusterPill()
+                                }
                             }
                         }
                         MapIconBarMinimizeHandle(
@@ -1405,6 +1445,35 @@ internal fun CompactMapTab(
  * they were parked for, and are left for the owner's own separate look.
  */
 private val CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR = Spacing.sm
+
+/**
+ * The icon cluster's contents in a short landscape window (Part 1 layout fixes; the owner's ruling "For
+ * icon column in short landscape: option A", planner message `2026-09-28-99`): [pill] (the ControlPill,
+ * record and return) beside [bar] (MapIconBar) instead of below it, so the cluster is the bar's height,
+ * 264 dp, and fits a 384 dp window where the stacked 380 dp column filled it from top to bottom.
+ *
+ * The placement is this dispatch's proposal, stated in its report: the pill on the bar's inboard side
+ * (towards the screen's centre), so the bar keeps the screen edge and the minimise handle that
+ * straddles the container's outer edge at the bar's mid-height is where it was; bottom-aligned with the
+ * bar, so the record button stays low where a thumb reaches; and the gap portrait has between them,
+ * [CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR]. The container around both stays one surface, as the portrait
+ * gap is, so the space above the pill is the container's.
+ */
+@Composable
+private fun ShortLandscapeClusterRow(onLeftSide: Boolean, bar: @Composable () -> Unit, pill: @Composable () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.spacedBy(CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR),
+    ) {
+        if (onLeftSide) {
+            bar()
+            pill()
+        } else {
+            pill()
+            bar()
+        }
+    }
+}
 
 /** The cluster container's own `Surface` — what tests measure the cluster's real extent by (icon-bar-unify-container dispatch). */
 internal const val MAP_ICON_CLUSTER_TAG = "map-icon-cluster"
