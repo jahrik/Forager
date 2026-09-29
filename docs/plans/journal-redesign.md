@@ -876,3 +876,12 @@ Still to rule before a dispatch:
 - where the controls live;
 - the order against J6 and the Journal PR;
 - the user documents to update: the privacy policy, the delete-data page ("Nothing is left behind"), and the beta README.
+
+**Photo export and journal backup: second rulings (owner, 2026-09-29).** The owner, verbatim: "1 C ask to replace or merge / 2 C / 3 B / 4 A / 5 A".
+1. **Restore asks each time whether to replace or merge.** The planner's reading: merge adds what this phone lacks and keeps what it already has. On a record present on both sides, the phone's copy is kept.
+2. **The schedule's frequency is the user's choice:** daily, weekly or monthly. It stays off until turned on.
+3. **On Android 9 and below** (API 26-28), photo export saves to a folder the user picks, through SAF, instead of the Gallery. No storage permission is added.
+4. **Controls:** backup and restore in Tools, then Settings; "Save to Gallery" on the photo viewer.
+5. **Built before the Journal PR.**
+
+The planner's placement: after the trips fix (`-97`) and the map-chrome follow-ups (`-104`), and before J6 and device check Part 2. The UI copy goes to the owner for approval before the dispatch.
