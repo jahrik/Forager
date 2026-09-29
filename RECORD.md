@@ -7146,3 +7146,20 @@ The planner confirmed each by grep.
 - **An amendment to preserved/2026-09-29-56:** the phone's landscape layouts apply to any landscape window, not only to short ones. The gate becomes short **or** landscape. Every phone outcome is unchanged, and the dispatch adds tests at the landscape-tablet size.
 - **The build coder,** already running, is sent the amendment.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-247
+**Timestamp:** 2026-09-29T22:54:47Z
+**Dispatch:** 2026-09-28-245 (tablets as a big phone)
+**Reason:** the owner, verbatim, after -246: "I never okay'd that." The planner took every answer -245 recorded as not the owner's, and asked again.
+**Changes:**
+- **-245's recorded answers are all withdrawn** as the owner's. None of them should be cited from -245.
+- **The owner's answers, given now:**
+  - scope "All tablet code";
+  - release note "No mention".
+- **The landscape answer stands as -246 records it:** "Landscape tablet = phone landscape".
+- **Dispatch -56 is unchanged by this.** Its scope and its -246 amendment already match these answers.
+- **The first build coder was stopped by the owner** before it committed. Its worktree, forager-wt/tablet-as-phone, is clean with nothing pushed. It has not been relaunched.
+**Notes:** Written by the planner by hand.
