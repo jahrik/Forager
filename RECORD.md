@@ -6232,3 +6232,86 @@ The planner confirmed each by grep.
 - the delete goes through DeleteTrackUseCase;
 - journal entries that kept the track follow the waypoint rule, found in code, with a stop if it is ambiguous.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-192
+**Timestamp:** 2026-09-29T13:35:33Z
+**Dispatch:** 2026-09-28-181 (F1)
+**Reason:** the F1 coder handed back an interim. Items 1-5, 7 and 8 are written on followups-map-wip (9d794552), and none is compiled. Items 9 and 10 are reported only. The disk is below the 2048 MB floor and falling about 60 MB per 10 minutes, with no build running.
+**Changes:** none to the dispatch.
+**Notes:**
+- **The planner traced the disk loss:**
+  - /var/log/syslog is 9.3 GB, and /var/log/journal is 4.1 GB;
+  - both are being filled by the Claude Desktop app (pid 3347, parent gnome-shell) repeating "GPU process launch failed: error_code=1002" about 2,000 times a second;
+  - 225,226 such lines were found in syslog's last 50 MB alone.
+- **The coders do not depend on that app.** They run under `claude remote-control` (pid 580771), started from a Ptyxis terminal.
+- **The fix needs the owner:** the planner has no sudo, and these are system files outside the project.
+  - Quit and reopen Claude Desktop, to stop the flood.
+  - Then `sudo truncate -s 0 /var/log/syslog` and `sudo journalctl --vacuum-size=500M`, which reclaim about 13 GB.
+- **F1's interim findings:**
+  - item 1 is testable only at its trigger (MapView cannot be built in Robolectric);
+  - item 7's cause is not confirmed (DATE_TAKEN is re-written after publish);
+  - item 8 is fixed with an isChangingConfigurations guard;
+  - item 10's premise is corrected: the case is photo on photo, with PHOTOS drawn above FINDS;
+  - for item 5, deleting a waypoint leaves its ref rows and snapshots untouched. The coder applies the same to tracks, but a track snapshot has no path, so an entry cannot redraw a deleted track. That goes to the owner as a question.
+- Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-193
+**Timestamp:** 2026-09-29T16:31:34Z
+**Dispatch:** none yet (F3, after F1)
+**Reason:** the owner, verbatim: "Option B": a kept track keeps its path, so deleting the track does not change the entry's map.
+**Changes:**
+- F1 builds track delete under the waypoint rule, as its coder read it (-192).
+- F3 adds the kept path, preceded by a read-only pulse that maps:
+  - how kept snapshots are stored;
+  - the database version (16) and migrations;
+  - the backup's table list and Merge;
+  - where the entry map draws kept tracks.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-194
+**Timestamp:** 2026-09-29T16:36:42Z
+**Dispatch:** none (machine upkeep, at the owner's instruction)
+**Reason:** the disk reached 0 MB free, from Claude Desktop's GPU error loop (-192).
+- The owner cleared /var/log/syslog and vacuumed the journal. The owner, verbatim: "Done, check the disk space". Free space was back to 13730 MB.
+- The desktop process (pid 3347, running for 1 day 12 hours) was still writing about 1 GB an hour.
+- The owner, verbatim: "B, go ahead and kill it".
+**Changes:** the planner ended pid 3347 with a plain `kill`.
+- syslog grew 0 bytes in the next 30 s.
+- claude remote-control (pid 580771), which hosts the coder sessions, is still running.
+- 13549 MB free.
+**Notes:**
+- **During the zero-disk minutes,** the planner's append to the plan was cut off mid-sentence. It was repaired from the intended text before committing (52637482).
+- The planner also deleted its own journal-redesign/app/build (124 MB, regenerable) to buy time. The flood consumed it within seconds.
+- Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-195
+**Timestamp:** 2026-09-29T16:44:58Z
+**Title:** F3: a kept track keeps its path. A new table via MIGRATION_16_17, copied at delete time, read by the entry map, card and bubble, and kept by backup Merge
+**Dispatch-file:** preserved/2026-09-29-37.md; launch preserved/2026-09-29-38.md (~/Zynergy/launch-prompts/17-kept-track-path.md)
+**Change:** per the owner's "Option B" and "All recommended", both recorded in the plan.
+**Scope boundary:**
+- the database (a new table and migration), DeleteTrackUseCase, the three entry readers, and backup's table list and Merge for track refs;
+- F1's two "draws no line" tests are updated under this ruling;
+- not the Maps-tab highlight, and not the other ref kinds.
+**Baseline:** journal-redesign after F1 lands. The planner names BASE at launch.
+**Prediction (outcome, planner):**
+1. The copy and the delete fit in one Room transaction.
+2. The suite grows by 25 to 45.
+3. Version 17 is still free.
+**Prediction (mechanism, coder):** not authored.
+**Finish line:** as F1 and F2.
+**Notes:**
+- The delete-data wording ("the track and every GPS point in it") needs the site agent's caveat once this ships. The owner has been told.
+- Written by the planner by hand.

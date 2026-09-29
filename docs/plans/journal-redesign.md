@@ -1185,3 +1185,29 @@ None of these block PR #140.
 - a journal entry that kept the track follows the same rule as an entry that kept a since-deleted waypoint.
 
 This also makes the delete-data page's "Recorded tracks" line true.
+
+**A kept track keeps its path (owner, 2026-09-29).** The F1 coder found that deleting a waypoint leaves an entry's ref rows and snapshot in place, and applied the same to tracks. But a track's snapshot has no path, so an entry that kept a deleted track could no longer draw its line. The planner offered:
+- A: accept that;
+- B: save the track's path into the entry when it is kept, so a later delete does not affect the entry's map.
+
+The owner, verbatim: "Option B".
+
+The planner's placement: B changes the database (a place for the path), the backup's table list and Merge rules, and the entry map's drawing. So it is its own stage, F3, after F1, built on a read-only pulse of how kept snapshots are stored. F1's track delete lands first, and the two land before PR #140.
+
+**Kept track paths: F3's design (owner, 2026-09-29).** Asked after the kept-track-path pulse (`docs/audits/2026-09-29-kept-track-path-pulse.md`), the owner answered, verbatim: "All recommended. I'll review the other items".
+1. **The path is copied only when a track is deleted.** Just before the delete, it goes into every journal entry that has the track, kept or withheld. It is stored in a new table, `cartography_entry_track_paths(entryId, trackId, path)`, as the read-seam-filtered lat/lng in time order. No backfill is needed.
+2. **Backup Merge keeps an entry's track refs, and their saved paths, even when the phone lacks the track.** This reverses the backup report's decision 8 for track refs only.
+3. **The saved path shows wherever the entry shows the track:** its map, its card thumbnail, and the bubble for a tapped track line. The Maps tab's highlight stays live, per the earlier "Live records" ruling.
+4. **Drafts get the saved path too.**
+
+Sequencing: F1's track delete lands first and F3 right after, both before PR #140.
+
+**Stacked map markers fan out on tap (owner, 2026-09-29).** Part 2 Session 2 (item 52) and F1's item 10 found that when markers overlap, for example two photos at one spot, a tap reaches only the top one. The planner offered:
+- A: a chooser list;
+- B: clustering;
+- C: fan out on tap;
+- D: leave it.
+
+The owner, verbatim: "Option C / This sounds better than the other options  and honestly, it's like A, but it keeps the icons, which is more robust for UX."
+
+The planner's proposed behaviour, from the common map convention of fanning a stack out around its point, goes to the owner to confirm before a dispatch (F4).
