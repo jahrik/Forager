@@ -1119,3 +1119,12 @@ The owner confirmed the pill's length, verbatim: "2 is  Awith that message". Tha
 4. **Part 2 Session 3** is pasted to the owner.
 5. **The owner's judgement of Session 1's captures** (rings, chips, highlight colours, night views) is deferred to 2026-09-30.
 6. **The tablet is authorized for USB debugging,** "always allowed". adb reads R52T506412L as a device.
+
+**Tracks thinner when zoomed out, again (owner, 2026-09-29).** The owner sent a screenshot of a journal entry's map at night: a short track under its find and photo glyphs, drawn as a thick lilac line. It is kept outside the repo at `~/Zynergy/device-evidence/2026-09-29-owner-track-thickness.jpg`. The owner, verbatim: "One thing about tracks: when zoomed out they're still thick on the line. Can they be thinned when zoomed out even further? It's hard to read it accurately from a distance".
+
+Today (`ui/map/layers/TrackWidthByZoom.kt`, `TRACK_WIDTH_ZOOM_STOPS`):
+- a track line is 6 dp, plus a 1.5 dp casing each side, 9 dp in all, at zoom 15 and above;
+- it is 40% of that at zoom 11 and below (2.4 dp line, 5.4 dp in all);
+- it is linear in between.
+
+These stops were the planner's proposal of 2026-09-28-34, "for the owner to judge on the phone". The new stops are put to the owner as options.
