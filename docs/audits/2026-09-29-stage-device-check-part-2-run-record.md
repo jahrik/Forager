@@ -109,3 +109,14 @@ pixels. A tap that is meant to hit a control is a coordinate tap. Item verdicts 
 - Item 61's import half needs a photo on the phone to import; if none exists I will say so.
 - Item 11's zoom 13 and 11 depend on a track being visible; the phone holds one track.
 - A system prompt over the app is not tapped by me (rule 11). It becomes a stop.
+
+### Progress, interim (00:42; the run is not finished, no session verdicts yet)
+
+Evidence is in `s1-*` files in the evidence directory; the live log is `s1-notes.md` there.
+
+- **Item 37, portrait:** pass. A tap at (1040,1915) inside the "i" bounds `[1010,1886][1069,1945]` opened the MapLibre attribution dialog (`s1-i37-p0-attr.png`).
+- **Item 1, partly:** the find, photo and region bubbles open on real taps (`s1-m1-p0-tap-glyph.png` and `s1-m1-p0-tap-inside-circle.png`). Waypoint, track and trip glyphs, and the colour-field cells, are not yet touched. All of the phone's existing finds, photos and waypoints are stacked at one spot and the map stops zooming, so the kinds cannot be separated without new data at other places.
+- **Item 2:** pass with a caveat. Three taps inside the offline circle, more than 250 px from the glyph stack and more than 100 px from the outline, opened nothing. Nothing lies beneath there, so this shows the interior does not capture a tap, not that a glyph beneath is reached.
+- **Observation, no report I have read asserts it:** bubbles opened on taps about 150-170 px (54-60 dp) from the stacked glyphs, and the region bubble on a tap 48 px inside the outline.
+- **Rotation setting found changed:** `accelerometer_rotation` read 0 before the install and 1 at the first launch, with the phone at ROTATION_90. I did not set it. I reset it to 0 with `user_rotation` 0. The final read-back will restore the original 0/0.
+- **Owner message received mid-run, not actioned:** quoted verbatim in the evidence notes and in the hand-back. It asks to shrink the icon bar, turn the small pill 90° with half of it under the bar, and make the pill the same size as the bar. It is a design change. It has ambiguities (which pill, and what "same size" and "beneath" mean) and it would change the APK that Sessions 2 and 3 reuse. It belongs to a separate dispatch.
