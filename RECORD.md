@@ -5973,3 +5973,36 @@ Nothing of either window was pushed. On the phone, the two did only force-stop a
 **Notes:**
 - The graphics-mode change keeps the test's assertion. It is recorded here as the planner's decision, not as a weakening, because only the text metrics change, from values no device shows to real ones.
 - Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-179
+**Timestamp:** 2026-09-29T11:16:41Z
+**Closes:** 2026-09-28-154 (stage device check Part 2)
+**Outcome:** completed, with fails, deferrals and findings carried to the Part 2 follow-ups
+**Observed:**
+- **Record:** docs/audits/2026-09-29-stage-device-check-part-2-run-record.md, Sessions 1-3, merged at 2fdb94f1, 54921c0a and ddfe0c2b.
+- **Build:** 1.0.1685+g85a41257 on the S22 throughout. After each session the phone was returned to that session's verified copy: 18 of 18 hashes for Session 1, 21 of 21 for Sessions 2 and 3. Each time: integrity ok, v16, row counts equal. The crash buffer stayed empty.
+- **Session 3,** backup and restore:
+  - **Pass:** 64, 67-71, 73, 74 and 76, with -153's "Replace the existing backup file?" and its region re-ids. That covers backup, Replace, both Merges, not-downloaded regions with a real re-download, negative Merge ids, the photo pause, trips, the recording block, the Backups channel and both notifications, and the declined-permission notice shown once.
+  - **Partly:** 65, with no cloud write, deliberately; 66, where `cmd jobscheduler run` cannot force a WorkManager job; and 75, where the pulse and fade were not captured.
+  - **Not runnable:** 72, since there is no hook.
+- **Across Part 2:**
+  - **Fails:** item 5 (the bubble on rotation) and item 37 (the "i" in portrait fullscreen).
+  - **For the owner** (deferred to 2026-09-30): 54-56, 58 and 59.
+  - **Deferred to after the L:** 38, 39, 40 and 42.
+  - **Not run, declared:** several 90/270 halves, and items 11, 12, 51 and 53.
+**Deviations:**
+- **Session 2 was started twice.** The first verified copy was lost, and a fresh one taken (-167).
+- **The restore was unequal on its first pass,** in Session 2 (7/21) and in Session 3 (11/21). It was caught each time by the read-back, and correct on a second pass that removed each file before pushing. The first pass's cause is not determined.
+- **Session 3 tapped the system "Allow Forager to access folder?" dialog itself,** as part of item 65's picker. The planner accepts that reading of rule 11: the dialog is the picker's own consent step, which the item exists to check. It is not a permission prompt over the app.
+**Notes:**
+- **New findings for the follow-ups:**
+  - (i) a restore onto the phone that made the backup shows each region twice: the live MapLibre row plus a "Not downloaded" copy. Each Merge adds more; 8 rows for 2 regions after a Replace and two Merges;
+  - (j) after a Replace, the Journal still showed the report of a find the Replace had deleted;
+  - (k) turning the schedule on runs a backup at once, and again on every off/on;
+  - (l) scheduled runs keep writing new "(n).zip" files, and nothing prunes them;
+  - (m) while notifications are denied, the permission prompt returns on each schedule toggle and on Start recording.
+- **Residue on the S22 that is not app data:** the "Backups" notification channel, and possibly a persisted folder grant for the deleted DEVICE-CHECK folder.
+- Written by the planner by hand.
