@@ -6672,3 +6672,18 @@ The planner confirmed each by grep.
 - The nav, rail and HUD registrations have no individual revert evidence.
 - The entry map and the centre-pin picker have no registry, so they keep to their bounds only.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-214
+**Timestamp:** 2026-09-29T19:31:09Z
+**Dispatch:** C1 (-210) resumed; new work queued
+**Reason:** the owner, verbatim: "1 A / 2 A / 3 A / 4 A / 5 No, those are map icons not chrome / 6 yes have it coordinate with you".
+**Changes:**
+- C1 resumes in its window, with its WIP at 5dac3b74 on chrome-colour-wip.
+- Two new dispatches follow:
+  - S1: wire the sundown alerts;
+  - F5: backups without recent searches, and GPX exports cleaned from the cache.
+- The second planner session is asked to hand its results here and not to instruct coders.
+**Notes:** Written by the planner by hand.
