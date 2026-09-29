@@ -5956,3 +5956,20 @@ Nothing of either window was pushed. On the phone, the two did only force-stop a
 - **A finding:** a real touch at the locate row's outer edge minimises the cluster, because the handle straddles the bar there. That is the phone's own design, and relates to the L's (c).
 - **The L has not landed.** Its code moved in the extraction. The L coder was told to merge, not rebase, and to carry the L into MapIconClusterState.landscape.
 - Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-178
+**Timestamp:** 2026-09-29T11:10:29Z
+**Continues:** 2026-09-28-160 (the landscape L), -172
+**Dispatch-file:** none (by SendMessage; the text is summarised here)
+**Reason:** the L coder reported that (a)-(d) are built (landscape-l-wip aea60989). Its suite: 2865 tests, 2 failed, 24 skipped. T7 and T9 now pass unedited.
+- The two failures are TR5, at 90 and at 270. In Robolectric's legacy text metrics the search bar measures 85 dp, so the pushed-down 296 dp L has 3 dp of travel where TR5 drags 40 dp.
+- Under native metrics the bar is 45 dp and there are 43 dp of travel.
+**Changes:**
+- **The planner's call:** TR5 goes @GraphicsMode(NATIVE), as T9 and the chip tests already are. The assertion and the drag stay as written. It must be shown passing, and still biting under a revert of the vertical drag.
+- **The top limit:** topInset alone, per the ruling's words ("below the search bar"), unless something is drawn between the search bar's bottom and topInset + compassStripClearance in short landscape. The coder checks that and cites it. If the strip is there, the L clears it too: 357 dp on native metrics, which fits in 384.
+**Notes:**
+- The graphics-mode change keeps the test's assertion. It is recorded here as the planner's decision, not as a weakening, because only the text metrics change, from values no device shows to real ones.
+- Written by the planner by hand.
