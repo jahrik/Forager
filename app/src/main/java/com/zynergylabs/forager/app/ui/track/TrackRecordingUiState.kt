@@ -123,6 +123,8 @@ data class TrackRecordingUiState(
     val pendingTrackDelete: PendingDelete<Track>? = null,
     /** How many journal entries keep each track (loaded with [tracks]); a track missing here has no count and the snackbar says nothing about entries. */
     val trackEntryReferenceCounts: Map<String, Int> = emptyMap(),
+    /** Set when a committed track delete failed (the track is back in [tracks]); cleared by the next successful load. */
+    val tracksErrorMessage: String? = null,
 ) {
     val isRecording: Boolean get() = activeTrack != null
 
@@ -133,8 +135,8 @@ data class TrackRecordingUiState(
      */
     val visibleWaypoints: List<Waypoint> get() = waypoints.withoutPending(pendingWaypointDelete) { it.id }
 
-    /** [tracks] without [pendingTrackDelete]: what every screen shows. STUB (F1 item 5, tests first): not filtered yet. */
-    val visibleTracks: List<Track> get() = tracks
+    /** [tracks] without [pendingTrackDelete]: what every screen shows (a pending record is hidden at once, as a pending waypoint is). */
+    val visibleTracks: List<Track> get() = tracks.withoutPending(pendingTrackDelete) { it.id }
 }
 
 /** A one-shot message for the map's Snackbar host, keyed by [id] so an identical [message] re-shows — see [TrackRecordingUiState.tripStartWarning] and [TrackRecordingUiState.networkFixesNotice]. */

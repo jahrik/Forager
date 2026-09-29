@@ -103,6 +103,7 @@ class ReturnPromptRecreationTest {
         scenario.moveToState(Lifecycle.State.CREATED)
         composeRule.waitForIdle()
         scenario.recreate()
+        scenario.moveToState(Lifecycle.State.RESUMED)
         composeRule.waitForIdle()
 
         assertTrue("a backgrounded pending edit is still asked about after the rebuild", promptShown())

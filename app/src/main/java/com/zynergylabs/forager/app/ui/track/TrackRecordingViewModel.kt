@@ -166,6 +166,9 @@ class TrackRecordingViewModel(
 
     /** The one waypoint whose delete is pending (journal redesign J4) — see [requestRemoveWaypoint]. */
     private val waypointDeletes = PendingDeleteSlot<String, Waypoint> { it.id }
+
+    /** The one track whose delete is pending (Part 2 follow-ups F1 item 5) — see [requestRemoveTrack]. */
+    private val trackDeletes = PendingDeleteSlot<String, Track> { it.id }
     private var locationJob: Job? = null
 
     // Oldest first, cleared on every startReturn()/stopReturn()/stopRecording() — see
@@ -608,7 +611,11 @@ class TrackRecordingViewModel(
         return viewModelScope.launch {
             getTracks()
                 .onSuccess { tracks ->
-                    _uiState.update { it.copy(tracks = tracks.sortedByDescending(Track::startedAtEpochMillis)) }
+                    _uiState.update { it.copy(tracks = tracks.sortedByDescending(Track::startedAtEpochMillis), tracksErrorMessage = null) }
+                    // One query per track, as the waypoints do (a handful of rows at most): what the Undo
+                    // snackbar's "used in N journal entries" reads (Part 2 follow-ups F1 item 5).
+                    val counts = tracks.associate { it.id to getTrackReferenceCount(it.id) }
+                    _uiState.update { it.copy(trackEntryReferenceCounts = counts) }
                 }
                 .onFailure { error -> errorLog.w(TAG, "Couldn't load tracks.", error) }
         }
@@ -697,14 +704,74 @@ class TrackRecordingViewModel(
         }
     }
 
-    /** STUB (F1 item 5, tests first): asks for a pending delete of a finished track. Does nothing yet. */
-    fun requestRemoveTrack(id: String) {}
+    /**
+     * A swipe on a finished track's Records row, or the Delete on its details (Part 2 follow-ups F1 item 5,
+     * owner "Option A", built like [requestRemoveWaypoint]): the track becomes pending, hidden from
+     * [TrackRecordingUiState.visibleTracks] at once and still saved, and the Undo snackbar shows. The real
+     * delete ([DeleteTrackUseCase], which detaches the track's waypoints first) runs from
+     * [commitRemoveTrack] when the snackbar ends without Undo, from here when a second track is asked for
+     * while this one is pending (the first is committed then), or from [onCleared].
+     *
+     * **Never a track that is recording.** A track whose end time is null, or the one this ViewModel is
+     * recording into, is refused and logged, so a caller that offers Delete on it by mistake still cannot
+     * delete a recording. An id not in the list is logged and pends nothing.
+     */
+    fun requestRemoveTrack(id: String) {
+        val state = _uiState.value
+        val track = state.tracks.firstOrNull { it.id == id }
+        if (track == null) {
+            errorLog.w(TAG, "A delete was asked for track '$id', which is not loaded; nothing pended.", IllegalStateException("no track '$id'"))
+            return
+        }
+        if (track.endedAtEpochMillis == null || state.activeTrack?.trackId == id) {
+            errorLog.w(TAG, "A delete was asked for track '$id', which is still recording; refused.", IllegalStateException("track '$id' is recording"))
+            return
+        }
+        val displaced = trackDeletes.pend(track, state.trackEntryReferenceCounts[id] ?: 0)
+        _uiState.update { it.copy(pendingTrackDelete = trackDeletes.pending) }
+        displaced?.let(::commitTrackDelete)
+    }
 
-    /** STUB (F1 item 5): the Undo. Does nothing yet. */
-    fun undoRemoveTrack(id: String) {}
+    /** The snackbar's Undo: the pending track shows again. Nothing was deleted, so nothing is restored. */
+    fun undoRemoveTrack(id: String) {
+        if (trackDeletes.undo(id) == null) {
+            errorLog.w(TAG, "Undo for track '$id' came after its delete was committed; nothing to undo.", IllegalStateException("track '$id' not pending"))
+        }
+        _uiState.update { it.copy(pendingTrackDelete = trackDeletes.pending) }
+    }
 
-    /** STUB (F1 item 5): the Undo window closed. Does nothing yet. */
-    fun commitRemoveTrack(id: String) {}
+    /** The snackbar ended without Undo (timed out, or a newer one replaced it): the pending track's delete runs, once. */
+    fun commitRemoveTrack(id: String) {
+        val track = trackDeletes.commit(id)
+        _uiState.update { it.copy(pendingTrackDelete = trackDeletes.pending) }
+        track?.let(::commitTrackDelete)
+    }
+
+    /**
+     * The real delete of a track whose pending time is over. It leaves [TrackRecordingUiState.tracks] at once
+     * rather than when the reload lands, so it does not flash back between the snackbar closing and the delete
+     * finishing. A failed delete puts it back where it was and reports the failure
+     * ([TrackRecordingUiState.tracksErrorMessage]), never as if it had worked.
+     */
+    private fun commitTrackDelete(track: Track) {
+        val index = _uiState.value.tracks.indexOfFirst { it.id == track.id }
+        _uiState.update { state -> state.copy(tracks = state.tracks.filterNot { it.id == track.id }) }
+        viewModelScope.launch {
+            deleteTrack(track.id)
+                .onSuccess { loadTracks() }
+                .onFailure { error ->
+                    errorLog.w(TAG, "Couldn't delete track.", error)
+                    _uiState.update { state ->
+                        val restored = if (state.tracks.any { it.id == track.id }) {
+                            state.tracks
+                        } else {
+                            state.tracks.toMutableList().apply { add(index.coerceIn(0, size), track) }
+                        }
+                        state.copy(tracks = restored, tracksErrorMessage = "Couldn't delete track.")
+                    }
+                }
+        }
+    }
 
     fun removeWaypoint(id: String) {
         viewModelScope.launch {
@@ -790,6 +857,13 @@ class TrackRecordingViewModel(
         locationJob?.cancel()
         // Journal redesign J4: a waypoint still pending is committed here, since no snackbar is left
         // to end. viewModelScope is already cancelled, so the delete runs on pendingDeleteCommitScope.
+        trackDeletes.takeAny()?.let { track ->
+            pendingDeleteCommitScope.launch {
+                deleteTrack(track.id).onFailure { error ->
+                    errorLog.w(TAG, "Couldn't delete track '${track.id}' pending when the screen closed; it is still saved.", error)
+                }
+            }
+        }
         waypointDeletes.takeAny()?.let { waypoint ->
             pendingDeleteCommitScope.launch {
                 deleteWaypoint(waypoint.id).onFailure { error ->
