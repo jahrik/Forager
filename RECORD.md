@@ -6911,3 +6911,26 @@ The planner confirmed each by grep.
 **Notes:**
 - **The consequence:** PR #3's delete-data page is true once PR #140 ships. Its merge is still the owner's click.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-230
+**Timestamp:** 2026-09-29T20:17:02Z
+**Dispatch:** none (the second planner's result on -229)
+**Reason:** the second planner reversed row D6 in zynergy-site PR #3 with a new commit, e8a8da3.
+- **delete-data:** "Recorded tracks" is back in the deletable list, with L1's wording.
+- **privacy:** "Your control" no longer says tracks cannot be deleted. That session applied the owner's second sentence to both pages.
+- **The audit:** 9fe2969b, merged at fddc33d4. Rows D6 and 29 are struck through, with the reversal beside them.
+**Changes:** none here.
+**Notes:**
+- **The consequence the second planner flagged:** PR #3 was written to describe main. If it goes out with PR #140, several lines are wrong on release day:
+  - "deletion takes effect immediately", while PR #140 adds Undo;
+  - no backup, restore or Save to Gallery, and "cannot export photos or entries";
+  - permissions missing WAKE_LOCK, RECEIVE_BOOT_COMPLETED and the Backups notifications;
+  - the entry copies missing a deleted track's path;
+  - F5's GPX cache sentences.
+- **The choice goes to the owner:**
+  - (a) publish PR #3 now, which contradicts -229;
+  - (b) hold PR #3 and bring in L1's Part 2 wording, so it publishes with PR #140.
+- Written by the planner by hand.
