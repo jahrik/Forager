@@ -6292,3 +6292,26 @@ The planner confirmed each by grep.
 - **During the zero-disk minutes,** the planner's append to the plan was cut off mid-sentence. It was repaired from the intended text before committing (52637482).
 - The planner also deleted its own journal-redesign/app/build (124 MB, regenerable) to buy time. The flood consumed it within seconds.
 - Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-195
+**Timestamp:** 2026-09-29T16:44:58Z
+**Title:** F3: a kept track keeps its path. A new table via MIGRATION_16_17, copied at delete time, read by the entry map, card and bubble, and kept by backup Merge
+**Dispatch-file:** preserved/2026-09-29-37.md; launch preserved/2026-09-29-38.md (~/Zynergy/launch-prompts/17-kept-track-path.md)
+**Change:** per the owner's "Option B" and "All recommended", both recorded in the plan.
+**Scope boundary:**
+- the database (a new table and migration), DeleteTrackUseCase, the three entry readers, and backup's table list and Merge for track refs;
+- F1's two "draws no line" tests are updated under this ruling;
+- not the Maps-tab highlight, and not the other ref kinds.
+**Baseline:** journal-redesign after F1 lands. The planner names BASE at launch.
+**Prediction (outcome, planner):**
+1. The copy and the delete fit in one Room transaction.
+2. The suite grows by 25 to 45.
+3. Version 17 is still free.
+**Prediction (mechanism, coder):** not authored.
+**Finish line:** as F1 and F2.
+**Notes:**
+- The delete-data wording ("the track and every GPS point in it") needs the site agent's caveat once this ships. The owner has been told.
+- Written by the planner by hand.
