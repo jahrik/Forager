@@ -7063,3 +7063,20 @@ The planner confirmed each by grep.
   - files last written at 13:23-13:24 PDT.
 - **So the session drafted tests,** and built and committed nothing.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-239
+**Timestamp:** 2026-09-29T21:45:14Z
+**Dispatch:** none (zynergy-site PR #3, and Part 3's launch)
+**Reason:** the owner, verbatim: "1 paste the dispatch here / 2 hold until we are finished then both merges can take place / 3 explain this".
+**Changes:**
+- **zynergy-site PR #3 is held** until the work is finished. Then it and Forager PR #140 merge together.
+  - Its title and description now say so, and describe the PR #140 build (last commit 6141cf7). It is not merged.
+- **Part 3's three launch prompts were pasted to the owner** as they stand (~/Zynergy/launch-prompts/23, 24 and 25, identical to preserved -52, -53 and -54).
+  - Checked before pasting: no app, server or gradle change since BASE 06b394b9; the device-part-3 branch and worktree do not exist yet, so S22-A can create them.
+  - The order is the dispatch's: S22-A first; the tablet beside it once the APK exists; S22-B after S22-A hands back.
+**Notes:**
+- **At pasting,** adb showed the S22 (R5CT321008R) attached and the tablet (R52T506412L) not attached.
+- Written by the planner by hand.
