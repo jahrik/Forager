@@ -333,3 +333,33 @@ copy at the end (a find/entry created through the UI can be deleted through the 
 | 33 | pass at 0 for 8 of 9 states | Tools then Back closes only the drawer, with the state kept, over: a clean editor, a report, a dirty editor (then Back 2 raises "Save your changes?"), the Records Finds chip (chip stays selected), the Entries album, the drafts list, the entry map in fullscreen, the pull-photo picker. Settings over an open entry: Back 1 gives the Tools panel, Back 2 closes the drawer, the entry is open. The short-landscape search header is a 90/270 case, not yet run. |
 
 **Observations (not gates):** (a) a clean day-entry editor's second Back leaves it with no prompt; (b) the "Welcome back" dialog (item 18); (c) two quick taps on the entry map's preview zoom it instead of opening fullscreen; a single tap opens fullscreen and the bottom nav's Tools still opens the drawer there.
+
+### Session 2: rotations 90 and 270, item 52, item 57, and the final state
+
+| Item | Verdict | Reading |
+|---|---|---|
+| 13, 21 at 90 and 270 | pass | A find's report (`Find on 2026-09-29`): Maps and Journal, Tools + one Back, home and relaunch: the report stays each time, no snackbar (`s2-r90a..d`, `s2-t270e..h`). |
+| 19 at 90 and 270 | pass (landscape add-action menu) | The add menu (Trip / Find / Waypoint) open, Tools, Back: only the drawer closes and the menu stays; Back 2 closes the menu (`s2-am1..4`, `s2-t270j..m`). |
+| 16 at 90 | pass | Day-entry editor, typed "R90", Maps and Journal: editor and text stay; Back: "Save your changes?"; Discard: no "R90" anywhere (`s2-k90m..o`). A first attempt's typing never reached the field (a tap in the label row did not focus it); it was redone with the tap in the field body. |
+| 32 at 90 and 270 | pass | Day entry report and editor to Maps: the search bar is at [194,74][1113,209] at 90 (starts on the punch-hole side, ends short of the 1158 centre line) and [1299,74][2218,209] at 270 (starts past the centre, on the punch-hole side); Journal keeps the entry each time (`s2-e90d`, `s2-t270p`). |
+| 33 at 90 | pass (short-landscape search header) | Entries tab, Search button [1590,84][1725,219], header up: Tools, Back closes only the drawer (header stays); Back 2 hides the header (`s2-sh3..6`). An earlier note of mine said no control was found: that was wrong; the button is on the Entries and album headers, not on the Records one I was looking at. |
+| 52 | partly, mostly not reached | With two of my entries shown on the map ("2 journal entries on map"): my find f2's bubble shows two `Open entry 2026-09-29` date lines (the 1-3 shown-entries case for a find; `s2-b52-560-1150.xml`). The owner's photo glyph's bubble says "Not in a find or a journal entry" (it is in no find and no shown entry; the code sets that text when no find and no shown entry apply, `MapBubbles.kt:317-318`). **Not reached:** the photo bubble with "In <find>" (my photo glyph shares one spot with the owner's, and a tap reaches only the top glyph; the map stops zooming there, as Session 1 found), the more-than-3 "Kept in N" case (needs four entries), and the switch-off case. |
+| 57 | **not runnable** | No debug hook exists to force a refused write (`grep` of `app/src/main` for a failing-write hook found none), and adding one is the owner's call; I added none. Whether each of the seven messages is legible, long enough and clear of the keyboard and cluster at 0/90/270, and the next-Journal-open display of an off-screen failure, are therefore unverified. |
+
+**Not run, declared:** 14, 15, 17 (withheld-waypoint half), 18, 22-26 at 90 and 270 (each was run at 0 only); 33's other states at 90/270; 32's entry-map fullscreen at 90/270; 31-style wide-window halves (F1 wide, F3 step 5: the tablet). Nothing here is a pass by silence.
+
+**Deviation recap:** the duplicate window and the lost first copy (above). One more of mine: a first Discard tap in item 14 came after the snackbar had expired and was redone.
+
+**Restore read-back (the phone was returned to the verified copy, as Session 1 did).** Reason: the finds f1..f4, two day entries, drafts, one camera photo, and each "show on map" flag were created through the UI, and the return to a byte-equal state is the read-back. After force-stop: the one photo file the camera added (`files/photos/ccf4b8a9-...jpg`) was removed and every file in the copy was written back. A first restore pass left 7 of 21 files unequal (WAL/SHM, `mbgl-offline.db`, `profileInstalled`, the WorkManager db files, one shared_prefs file; `mbgl-offline.db` and `androidx.work.workdb-wal` were longer than the copy, so the `cat >` overwrite did not fully replace them); the cause is not determined. A second pass that removed each file first and rewrote it gave **21 of 21 sha256 equal to the copy**, still equal 8 s later, no app process. `forager.db` (scratch copy of db and wal): `integrity_check` ok, `user_version` 16, every table's row count equal to `s2-copy/forager-db-verify.txt`. No Gallery rows were made (`content query` on `Pictures/Forager` returns none); temporary files on `/sdcard` were deleted.
+
+**Settings read-back:** `accelerometer_rotation` 0, `user_rotation` 0, `font_scale` 1.0, animation scales 1.0/1.0/1.0, `wm size` 1080x2316, uimode night `yes` (the start value, restored after item 18), versionName `1.0.1685+g85a41257`, firstInstallTime `2026-09-22 11:15:05`, POST_NOTIFICATIONS `granted=false` (never granted this session). Crash buffer at the end: empty; no `FATAL EXCEPTION` in main/crash. `df -m /`: 2114 MB available at the end.
+
+**Decisions I made:** stopped at the duplicate window and resumed on the planner's word; used my own labelled finds/entries rather than editing existing ones; restored from the copy rather than deleting through the UI (amendment 2); used `cmd uimode night` for item 18's activity recreation and restored it; used the app's own camera for item 25 (no prompt appeared); set `accelerometer_rotation` back to 0 whenever it changed (it flipped to 1 at least three times without my doing it, plus a landscape at relaunch).
+
+**Flags outside scope:**
+- The "Welcome back" dialog after each activity recreation with a pending edit (item 18) is not in any report I read.
+- The camera surface turns the screen to landscape and leaves it there until `user_rotation` is set.
+- A clean day-entry editor's second Back leaves it with no prompt (correct, noted so it is not read as a gap).
+- The owner-era `Find on 2026-09-28` draft (Drafts) and the "5 unfinished entries" were present before and untouched.
+- The `Show on map` menu entry becomes "Hide from map"; the entry map's preview zooms on two quick taps.
+- Disk is at 2114 MB available, close to the amendment's 2048 MB floor.
