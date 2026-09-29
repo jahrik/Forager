@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.ComponentName
 import android.content.Intent
 import android.content.IntentFilter
+import android.net.Uri
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
@@ -41,10 +42,12 @@ import com.zynergylabs.forager.app.photo.FileProviderCacheReset
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreen
 import com.zynergylabs.forager.app.ui.availability.AvailabilityUiState
 import com.zynergylabs.forager.app.ui.map.MapSlot
+import java.io.File
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -332,6 +335,30 @@ class RecordDetailsSheetTest {
         assertEquals(Intent.ACTION_CHOOSER, started.action)
         assertEquals("application/gpx+xml", started.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)?.type)
         assertTrue("a tap on the row's own Share button does not open the sheet", !sheetShowing())
+    }
+
+    /**
+     * F5 (dispatch 2026-09-28-216; owner, "3 A"): a Share deletes the cached GPX exports more than an hour old
+     * before it writes its own, and keeps one within the hour, which another app may still be reading. Through
+     * the row's own Share button, a real touch; the files are dated against the real clock the export reads.
+     */
+    @Suppress("DEPRECATION")
+    @Test
+    fun `a Share first deletes GPX exports more than an hour old from the cache and keeps one within the hour`() {
+        val dir = File(composeRule.activity.cacheDir, "tracks").apply { mkdirs() }
+        val now = System.currentTimeMillis()
+        val stale = File(dir, "forager-track-2025-08-01-090000.gpx").apply { writeText("<gpx/>"); assertTrue(setLastModified(now - 2 * 60 * 60_000L)) }
+        val recent = File(dir, "forager-track-2025-08-02-090000.gpx").apply { writeText("<gpx/>"); assertTrue(setLastModified(now - 10 * 60_000L)) }
+        setScreen()
+        openRecords()
+        selectChip(RecordsSubTab.RECORDED_TRACKS)
+
+        composeRule.onNodeWithTag("share-track-T1").performScrollTo().performTouchInput { click(center) }
+        val shared = awaitStartedActivity().getParcelableExtra<Intent>(Intent.EXTRA_INTENT)?.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
+
+        assertFalse("the export more than an hour old is deleted before the new one is written", stale.exists())
+        assertTrue("the export within the hour is kept", recent.exists())
+        assertEquals("the folder holds the recent export and the one just shared", setOf(recent.name, shared?.lastPathSegment), dir.list()!!.toSet())
     }
 
     // ── J4b's rule: a tap on an open swipe row closes it and opens nothing ──
