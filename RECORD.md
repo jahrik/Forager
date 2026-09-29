@@ -6066,3 +6066,13 @@ Nothing of either window was pushed. On the phone, the two did only force-stop a
 **Prediction (mechanism, coder):** not authored.
 **Finish line:** as F1.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-183
+**Timestamp:** 2026-09-29T11:27:14Z
+**Dispatch:** 2026-09-28-182 (F2)
+**Reason:** the owner launched F2. The owner, verbatim: "Session: # Coder session: Part 2 follow-ups F2".
+**Changes:** F2 runs in that owner-opened window at base cb01395d, beside the L's final run. F1 (-181) waits for the L to land.
+**Notes:** Written by the planner by hand.
