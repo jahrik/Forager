@@ -4955,3 +4955,14 @@ It also flagged the snackbar lying over the floating nav.
 - The owner, verbatim: "Option A": the notice goes below the strip's measured height, and the cluster's minY follows it while shown.
 - Planner: the snackbar sits above the floating bottom nav and the rail foot.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-130
+**Timestamp:** 2026-09-29T03:24:24Z
+**Continues:** 2026-09-28-104
+**Dispatch-file:** preserved/2026-09-29-13.md (launch prompt)
+**Reason:** -129 was sent to window 1c29a2. The owner had meanwhile pasted -127 (backup) into that window, and it proposed doing both in turn. The owner, verbatim: "option B if the coder is busy".
+**Changes:** That window was told to drop -129 and stay on -127. -129 goes to a fresh owner-opened window from launch prompt preserved/2026-09-29-13.md, in forager-wt/chrome-follow-ups.
+**Notes:** The planner's earlier "A" option (sending to 1c29a2) rested on a wrong picture of which window held what. Written by the planner by hand.
