@@ -463,6 +463,7 @@ internal const val RECORD_DETAILS_ZOOM_TAG = "record-details-zoom"
 internal const val RECORD_DETAILS_THUMBNAIL_TAG = "record-details-thumbnail"
 internal const val RECORD_DETAILS_DIRECTIONS_TAG = "record-details-directions"
 internal const val RECORD_DETAILS_SHARE_TAG = "record-details-share"
+internal const val RECORD_DETAILS_DELETE_TAG = "record-details-delete"
 
 internal fun recordDetailsFieldTag(key: String): String = "record-details-field-$key"
 
