@@ -6232,3 +6232,28 @@ The planner confirmed each by grep.
 - the delete goes through DeleteTrackUseCase;
 - journal entries that kept the track follow the waypoint rule, found in code, with a stop if it is ambiguous.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-192
+**Timestamp:** 2026-09-29T13:35:33Z
+**Dispatch:** 2026-09-28-181 (F1)
+**Reason:** the F1 coder handed back an interim. Items 1-5, 7 and 8 are written on followups-map-wip (9d794552), and none is compiled. Items 9 and 10 are reported only. The disk is below the 2048 MB floor and falling about 60 MB per 10 minutes, with no build running.
+**Changes:** none to the dispatch.
+**Notes:**
+- **The planner traced the disk loss:**
+  - /var/log/syslog is 9.3 GB, and /var/log/journal is 4.1 GB;
+  - both are being filled by the Claude Desktop app (pid 3347, parent gnome-shell) repeating "GPU process launch failed: error_code=1002" about 2,000 times a second;
+  - 225,226 such lines were found in syslog's last 50 MB alone.
+- **The coders do not depend on that app.** They run under `claude remote-control` (pid 580771), started from a Ptyxis terminal.
+- **The fix needs the owner:** the planner has no sudo, and these are system files outside the project.
+  - Quit and reopen Claude Desktop, to stop the flood.
+  - Then `sudo truncate -s 0 /var/log/syslog` and `sudo journalctl --vacuum-size=500M`, which reclaim about 13 GB.
+- **F1's interim findings:**
+  - item 1 is testable only at its trigger (MapView cannot be built in Robolectric);
+  - item 7's cause is not confirmed (DATE_TAKEN is re-written after publish);
+  - item 8 is fixed with an isChangingConfigurations guard;
+  - item 10's premise is corrected: the case is photo on photo, with PHOTOS drawn above FINDS;
+  - for item 5, deleting a waypoint leaves its ref rows and snapshots untouched. The coder applies the same to tracks, but a track snapshot has no path, so an entry cannot redraw a deleted track. That goes to the owner as a question.
+- Written by the planner by hand.
