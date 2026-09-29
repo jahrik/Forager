@@ -5615,3 +5615,36 @@ The re-check runs in Part 2 with the deferred items 38, 39, 40 and 42.
 - **Nothing else was deleted:** no source, no commits, no worktree, no Gradle cache, no evidence.
 - **Already gone before this,** so presumably cleared by the owner or the coders: device-offline, device-tablet, device-chrome, device-stage-1, night-evidence, strip-device-check and strip-flash-timer-location. Part 2 Session 1 reports deleting its own worktree's app/build.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-164
+**Timestamp:** 2026-09-29T08:39:16Z
+**Dispatch:** 2026-09-28-154 (Part 2), Session 1
+**Reason:** Session 1 handed back. Its run record is merged at 2fdb94f1 (device-part-2 at f96422f5).
+- **Build:** 85a41257 (1.0.1685+g85a41257), installed with install -r, firstInstallTime unchanged, no migration. The crash buffer has 0 FATAL.
+- **Two fails:**
+  - item 5: an open bubble does not re-anchor after a device rotation until the next pan, and overlaps the cluster;
+  - item 37: in portrait fullscreen the "i" sits under the system nav band, and two real taps opened nothing.
+- **Pass:** 2, 6-10, 27-31, 34-36, 37 at 0/90/270, 40, 41, 43, 44, 46-50, 60 and 63.
+- **Partly:** 1, 3, 39, 42, 45, 61 and 62.
+- **For the owner, from captures:** 54-56, 58 and 59.
+- **Not run:** 11, 12, 51 and 53.
+- **The phone was returned to the verified copy:** 18 sha256 equal, integrity ok, v16, all row counts equal.
+**Changes:** amendment preserved/2026-09-29-29.md for Sessions 2 and 3. Their launch prompts now cite it.
+**Notes:**
+- **Deviations:**
+  - The deferred items 38, 39, 40 and 42 (-159) were run anyway, on the pre-L layout. They are informational only and are re-checked after -160.
+  - Item 38's margin is 14 px, not about 0. That supersedes -124's "about 0 px" (RECORD:4875-4876).
+  - Most visual evidence was converted to JPEG after the disk filled. Only item 48 is from a raw PNG; the others are marked.
+  - "Download Maps" started a real download without confirmation. It was undone by the restore.
+- **The notification prompt's trigger:** Start recording, at 270. That is the recording notification, not -153's backup request, so not a -153 finding. It was revoked and read back as not granted.
+- **Findings for the Part 2 follow-up dispatch:**
+  - (a) item 5, the bubble on rotation;
+  - (b) item 37, the "i" under the nav band in portrait fullscreen;
+  - (c) "Download Maps" starts with no confirmation, an owner question;
+  - (d) the track details sheet has no Delete, an owner question;
+  - (e) the Gallery row's datetaken was NULL for a photo whose file name carries its time (-126 writes DATE_TAKEN "when the record has a time"), to be verified in code.
+- accelerometer_rotation changed to 1 twice without the coder.
+- Written by the planner by hand.
