@@ -61,7 +61,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.BuildConfig
 import com.zynergylabs.forager.app.crash.CrashFileStore
-import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.model.AppThemeMode
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.UnitSystem
@@ -491,7 +490,7 @@ private fun DistanceUnitSection(distanceUnit: DistanceUnit, onDistanceUnitSelect
  * ambitious planner" — species search is gone from here for good, and the name should say so. Two
  * things live here now, none of them search:
  *
- * 1. **[SearchControls]**, `includeRecentSearches = false` — Trip Planner only. Waypoints moved
+ * 1. **[SearchControls]** — Trip Planner only. Waypoints moved
  *    out (Journal restructure Stage 1) into the Journal's own Records tab.
  * 2. **Settings** ([showSettings]) — new as of the map redesign's Dispatch B, per the owner's own
  *    call: this drawer *is* the Tools destination now, so Settings (which had its own bottom-nav
@@ -509,7 +508,6 @@ internal fun CompactToolsDrawerContent(
     onDistanceUnitSelected: (DistanceUnit) -> Unit,
     onClose: () -> Unit,
     onDeletePlannedTrip: (String) -> Unit,
-    currentTime: CurrentTimeProvider,
     isNightMode: Boolean,
     onNightModeMapsChanged: (Boolean) -> Unit,
     autoSaveLocationToPhotos: Boolean,
@@ -562,13 +560,7 @@ internal fun CompactToolsDrawerContent(
         SearchControls(
             modifier = Modifier.weight(1f),
             uiState = uiState,
-            distanceUnit = distanceUnit,
             onDeletePlannedTrip = onDeletePlannedTrip,
-            currentTime = currentTime,
-            // See SearchControls' own doc comment on these params: species search, Recent
-            // searches, and Advanced search all now live in SearchDropdown, over the map, not here.
-            includeAdvancedSearch = false,
-            includeRecentSearches = false,
         )
         SettingsEntryRow(onClick = { showSettings = true })
     }

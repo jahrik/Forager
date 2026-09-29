@@ -183,17 +183,12 @@ internal fun rememberMapIconClusterPositionState(): MapIconClusterPositionState 
  * the map fills the entire content area, with the top compass/elevation strip and the right-edge
  * icon stack drawn over it.
  *
- * Scoped to `WindowWidthClass.COMPACT` only; `MEDIUM`/`EXPANDED` keep using the unmodified [MapTab]
- * inside [CombinedResultsPane] — see the plan doc's "Scope decision" section for why this is a
- * separate composable rather than a conditional threaded through [MapTab] itself.
+ * The one Maps tab at every window size (dispatch 2026-09-28-245: a tablet is a big phone). The
+ * tablet's separate map pane, `MapTab` inside `CombinedResultsPane`, was removed.
  *
- * Owns the location-placing flow exactly as [MapTab] does — see that composable's doc comment for
- * the mechanics [PendingMapAction] drives; [TripDatePickerDialog]/[defaultTripName] are shared,
- * unmodified, but the "what would you like to do here" chooser itself is [AddActionTile] here
- * rather than [MapTab]'s [ThreeWayActionDialog] — see that composable's own doc comment for why.
- * The icon stack's add (+) button reuses this exact same flow — it sets [showActionMenu] directly,
- * the identical trigger the map's own dedicated button sets on [MapTab], rather than a parallel
- * dialog/handler — so the two entry points can never drift apart. Unlike before this rework, it no
+ * Owns the location-placing flow; [PendingMapAction] drives it, and [TripDatePickerDialog]/[defaultTripName]
+ * are shared. The "what would you like to do here" chooser is [AddActionTile]. The icon stack's add (+)
+ * button sets [showActionMenu] directly, rather than a parallel dialog/handler. Unlike before this rework, it no
  * longer needs to hand the flow a starting location itself: [CentrePinLocationPicker]'s own camera
  * tracking supplies that once a choice is made, the same as every other site.
  */

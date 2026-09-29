@@ -398,8 +398,7 @@ fun AvailabilityScreen(
     onDeletePlannedTrip: (String) -> Unit,
     /**
      * Called when one of the recent searches is tapped; see [RecentSearchesSection]. Reached from
-     * the medium/expanded drawer's own [DrawerPanel.Search] panel, or from [SearchDropdown] on
-     * compact windows.
+     * [SearchDropdown].
      */
     onRecentSearchSelected: (CachedSearchSummary) -> Unit,
     /**
@@ -449,7 +448,7 @@ fun AvailabilityScreen(
      */
     onMapFullscreenChanged: (Boolean) -> Unit = {},
     /**
-     * The mushroom log drawer destination's own state — see [com.zynergylabs.forager.app.ui.log.LogPanel].
+     * The mushroom log's own state, read by the Journal tab ([JournalTab]).
      * Defaulted, like [mapSlot] below, so the many existing tests of this screen that have nothing
      * to do with the log don't need to pass log-specific state and callbacks just to compile.
      */
@@ -479,9 +478,8 @@ fun AvailabilityScreen(
     /**
      * Opens a row and, if it's a committed entry, immediately begins editing it — one atomic
      * ViewModel operation ([com.zynergylabs.forager.app.ui.log.MushroomLogViewModel.onOpenEntryForEditing]),
-     * not [onOpenLogEntry] and [onStartEditingLogEntry] chained here. [LogPanel]'s own entry list
-     * is the one caller (see that composable's own doc comment on why its "no report step" shape
-     * needs this instead of the two-callback chain [JournalTab] still uses).
+     * not [onOpenLogEntry] and [onStartEditingLogEntry] chained here. A find tile's long-press Edit
+     * in [JournalTab] calls it.
      */
     onOpenLogEntryForEditing: (String) -> Unit = {},
     /** Save — commits the currently-open entry. See [com.zynergylabs.forager.app.ui.log.MushroomLogViewModel.onSaveEntry]'s own doc comment. */
@@ -497,9 +495,9 @@ fun AvailabilityScreen(
     onPullLogPhoto: (LogPhoto) -> Unit = {},
     onDeleteLogEntry: (String) -> Unit = {},
     onDeleteGalleryPhoto: (GalleryPhoto) -> Unit = {},
-    /** Standalone-photos dispatch: Camera/Gallery acquisition, no owning find — the album's own Camera/Import buttons (the Journal's Entries album, on both trees). */
+    /** Standalone-photos dispatch: Camera/Gallery acquisition, no owning find — the album's own Camera/Import buttons (the Journal's Entries album). */
     onAddGalleryPhoto: (PhotoSource) -> Unit = {},
-    /** Clears [logUiState]'s `saveErrorMessage` once its Toast has shown — see [LogPanel]/[JournalTab]'s identical parameter. */
+    /** Clears [logUiState]'s `saveErrorMessage` once its Toast has shown — see [JournalTab]'s identical parameter. */
     onSaveLogErrorDismissed: () -> Unit = {},
     /** Journal Stage 2b's new authored entity — see [com.zynergylabs.forager.app.ui.log.CartographyScreen]'s own doc comment for all of the following. Defaulted, same reasoning as [logUiState]. */
     cartographyUiState: CartographyUiState = CartographyUiState(),
@@ -525,14 +523,13 @@ fun AvailabilityScreen(
     onDeleteCartographyEntry: (String) -> Unit = {},
     /**
      * An Entries card's swipe Delete (journal redesign J4b L2): a *pending* delete with Undo
-     * (`CartographyViewModel.requestDeleteEntry`), passed to the compact tree's `JournalTab` only.
-     * `null` (the default) leaves the cards without the swipe; the wide tree's `LogPanel` is not
-     * given it (J6 owns the wide tree).
+     * (`CartographyViewModel.requestDeleteEntry`), passed to `JournalTab`.
+     * `null` (the default) leaves the cards without the swipe.
      */
     onRequestDeleteCartographyEntry: ((String) -> Unit)? = null,
     /**
      * J8-3: shows or hides a saved entry on the Maps tab (`CartographyViewModel.onSetShownOnMap`): the
-     * entry report's "Show on map" and "Hide from map", on both trees, and the Maps-tab chip's "Hide"
+     * entry report's "Show on map" and "Hide from map", and the Maps-tab chip's "Hide"
      * and "Hide all". Defaulted, so the many tests of this screen that never show an entry are unchanged.
      */
     onSetCartographyEntryShownOnMap: (entryId: String, shown: Boolean) -> Unit = { _, _ -> },
@@ -540,8 +537,8 @@ fun AvailabilityScreen(
     onCartographyShownOnMapErrorDismissed: () -> Unit = {},
     /**
      * Clears [cartographyUiState]'s `saveErrorMessage` once its Toast has shown. That Toast is hosted
-     * by the Journal itself, [JournalTab] (compact) and [LogPanel] (wide), not here, so this is
-     * threaded to them (intent `2026-09-28-68`, continuation `2026-09-28-76`).
+     * by the Journal itself, [JournalTab], not here, so this is
+     * threaded to it (intent `2026-09-28-68`, continuation `2026-09-28-76`).
      */
     onCartographySaveErrorDismissed: () -> Unit = {},
     /**
@@ -701,14 +698,14 @@ fun AvailabilityScreen(
     /**
      * The Journal's pending deletes, one per record type at most (journal redesign J4): each is shown
      * as an Undo snackbar in this screen's one snackbar host, the same slot "Saved to Drafts" and
-     * the trip-start warning use, so it docks where those do in both window classes and outlives a
+     * the trip-start warning use, so it docks where those do and outlives a
      * Journal tab change. `MainActivity` builds them from the owning ViewModels' pending state; see
      * [PendingDeleteSnackbarEffects]. Empty by default, so no other caller changes.
      */
     pendingDeleteNotices: List<PendingDeleteNotice> = emptyList(),
     /**
-     * Map layers L0b. [onMapShown] runs every time the Maps tab comes into view (compact: the Maps
-     * bottom-nav tab; medium and expanded: the List and Map pane, which always shows the map), which
+     * Map layers L0b. [onMapShown] runs every time the Maps tab comes into view (the Maps
+     * bottom-nav tab or rail item), which
      * is how the saved records and the forecast availability stay fresh (the dispatch, B2:
      * `AvailabilityViewModel.onMapShown`). The next three are the Layers sheet's changes, and
      * [forecastCellStore] is where the Maps tab's colour fields read their cells (the app's one store,
@@ -731,11 +728,9 @@ fun AvailabilityScreen(
     var selectedTab by rememberSaveable { mutableStateOf(ResultsTab.MAP) }
 
     // The compact bottom nav's own 5-way selection — see [CompactTab]'s doc comment for why this
-    // is separate from selectedTab rather than extending ResultsTab itself (which the medium/
-    // expanded window's tab row also reads and must stay 3-way). Kept in sync with selectedTab
+    // is separate from selectedTab rather than extending ResultsTab itself (a 3-way enum). Kept in sync with selectedTab
     // below whenever the tapped destination is one of the three they share, so onMapTabSelected/
-    // onSeasonalTabSelected's LaunchedEffect keeps firing correctly and a later resize to a wider
-    // window lands on the same List/Maps/Seasonal tab compact was just showing.
+    // onSeasonalTabSelected's LaunchedEffect keeps firing correctly .
     //
     // Journal redesign J2, T5 (owner ruling "Yes, fold into J2 (Recommended)"): saveable, so an
     // Activity recreation (a night-mode toggle, a fold, process death; a plain rotation does not
@@ -763,7 +758,7 @@ fun AvailabilityScreen(
     val findOverViewState = remember { mutableStateOf<FindOverView?>(null) }
 
     // Device-check patch, Items 2/3: whether a find's camera/gallery round-trip is currently in
-    // flight, reported up from whichever of JournalTab/LogPanel is composed via
+    // flight, reported up from JournalTab via
     // onPhotoAcquisitionInFlightChanged (see LogEntryDetailScreen's own doc comment on that
     // parameter). Read by this screen's own ON_STOP hook below, to suppress the "user backgrounded
     // the app" incidental-exit heuristic while the backgrounding is this app's own doing.
@@ -771,15 +766,12 @@ fun AvailabilityScreen(
 
     // "View on Map" on a List-tab species row: which taxon (if any) the map tabs should limit
     // their sightings to. Lives here, alongside selectedTab/compactTab, because both the List and
-    // Map tabs read and clear it and neither is an ancestor of the other in either window-class
-    // layout (CombinedResultsPane and compactMainScaffold each show only one at a time, but both
-    // are built from this same function's state). Null means "no filter" — the ordinary, every
+    // Map tabs read and clear it and neither is an ancestor of the other
+    // (compactMainScaffold shows one at a time, but both are built from this same function's state). Null means "no filter" — the ordinary, every
     // sighting view.
     var mapTaxonFilter by remember { mutableStateOf<Long?>(null) }
 
-    // Sets the filter and jumps to whichever map surface the current window class actually shows —
-    // both selectedTab and compactTab are updated unconditionally rather than branching on
-    // windowWidthClass here, since only the one the active layout reads has any effect; see
+    // Sets the filter and jumps to the Maps tab — both selectedTab and compactTab are updated; see
     // CompactTab's own doc comment for why the two are kept as separate state instead of one.
     val onViewSpeciesOnMap: (Long) -> Unit = { taxonId ->
         mapTaxonFilter = taxonId
@@ -798,16 +790,15 @@ fun AvailabilityScreen(
     // into this one line, and the strip, the HUD and the map cannot drift apart because none of
     // them was ever written against isReturning directly.
     val isNavigating = isReturning
-    // Navigation HUD stage one's display rules, applied once here so the compact map and the
-    // wide-layout MapTab agree — see mapVisibleWaypoints. Records keeps the full list.
+    // Navigation HUD stage one's display rules, applied once here so the map and the
+    // Records list agree — see mapVisibleWaypoints. Records keeps the full list.
     val mapWaypoints = remember(waypoints, isNavigating, navigationTarget) {
         mapVisibleWaypoints(waypoints, isNavigating = isNavigating, target = navigationTarget)
     }
 
     // Local remembered state, same reasoning as selectedTab/mapMode below: purely a display
     // decision the ViewModel has no part in. The compact map icon stack's fullscreen toggle sets
-    // this — see CompactMapTab's call site. Compact-only: WindowWidthClass.MEDIUM/EXPANDED never
-    // render the icon stack that can set it, so it stays false there. Only reachable while on the
+    // this — see CompactMapTab's call site. Only reachable while on the
     // Maps tab (the toggle icon lives in that tab's own icon stack), so this being true while
     // selectedTab != MAP cannot happen in practice.
     var isMapFullscreen by remember { mutableStateOf(false) }
@@ -956,11 +947,9 @@ fun AvailabilityScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
     var isDrawerOpen by remember { mutableStateOf(false) }
 
-    // Stage 2d's routing fix: a one-shot request into whichever of LogPanel/JournalTab is about to
-    // show, set by both onLogFindHere closures below alongside their existing drawerPanel/compactTab
+    // Stage 2d's routing fix: a one-shot request into JournalTab, set alongside the compactTab
     // switch — see JournalTab's own doc comment, "The map '+' routing bug," for why this exists and
-    // why it stays a single-purpose token rather than a shared navigation type. One instance covers
-    // both window classes: only whichever of LogPanel/JournalTab is actually composed reads it.
+    // why it stays a single-purpose token rather than a shared navigation type. Only JournalTab reads it.
     var pendingJournalDestination by remember { mutableStateOf<PendingJournalDestination?>(null) }
     // M1: the find a PendingJournalDestination.VIEW_FIND request opens, cleared with the request.
     var pendingJournalFindId by remember { mutableStateOf<String?>(null) }
@@ -984,7 +973,7 @@ fun AvailabilityScreen(
     // since only the one the active layout reads has any effect. Keyed on the request's count, so a tab the person is
     // already on is set again harmlessly and 0, the default, does nothing.
     // A backup notification's tap (dispatch 2026-09-28-153): open Tools, then Settings, at the Backup section. The compact
-    // drawer opens over whatever tab is showing; the wide layout's permanent drawer is switched to its Settings panel.
+    // drawer opens over whatever tab is showing.
     LaunchedEffect(openBackupRequest) {
         if (openBackupRequest > 0) {
             isDrawerOpen = true
@@ -1021,10 +1010,7 @@ fun AvailabilityScreen(
     // before that composable was renamed. Navigation-chrome amendment: a fifth step, navigation,
     // sits between "return to the Maps tab" and the exit handler — see its own comment below.
     //
-    // Only isDrawerOpen/isMapFullscreen/compactTab drive this — all three are compact-only state
-    // that a medium/expanded window never changes away from its own defaults (isDrawerOpen stays
-    // false there; a PermanentNavigationDrawer is never "closed"), so none of this fires on that
-    // width class.
+    // Only isDrawerOpen/isMapFullscreen/compactTab drive this — all three are state of this one tree.
     //
     // The drawer opens over whatever tab is showing, and that tab's nested handlers are registered
     // after this one, so they would win while the drawer is open. The Journal's are turned off while
@@ -1141,10 +1127,9 @@ fun AvailabilityScreen(
     )
 
     // Workstream L4b-R2: the one wrapped "leaving without answering" callback, hoisted here (rather
-    // than declared separately inside compactMainScaffold and again wherever the drawer's own
-    // LogPanel needed it) so "every in-app exit offers a discard action" stays one fact about one
-    // callback shared by every caller — the compact bottom nav's JournalTab, its own tab-switch
-    // handler, and DrawerPanel.Log's LogPanel below — rather than N independently-maintained copies.
+    // than declared separately inside compactMainScaffold) so "every in-app exit offers a discard action" stays one fact about one
+    // callback shared by every caller — the bottom nav's JournalTab and its own tab-switch
+    // handler — rather than N independently-maintained copies.
     // Backgrounding is the deliberate, sole exception: see compactMainScaffold's own
     // DisposableEffect, which calls the *raw* onLeaveLogEntryEditingIncidentally directly, never this
     // wrapper, since there is no window left to show a Snackbar in by the time that fires.
@@ -1210,8 +1195,8 @@ fun AvailabilityScreen(
     // M1 (B3, B4): what the Maps tab's glyph bubbles look records up in, and the J5c sheet's inputs,
     // all already in hand here. A find's "Open in Journal" opens the find in its report over whatever
     // the Journal was showing (PendingJournalDestination.VIEW_FIND), so the saved Records chip and top
-    // tab are never changed (planner's ruling on F3, continuation 2026-09-28-30). Compact: the
-    // Journal tab. Medium and expanded: the drawer's LogPanel (owner, Q3: "Open drawer to the find").
+    // tab are never changed (planner's ruling on F3, continuation 2026-09-28-30). The
+    // Journal tab comes up.
     // Checked against the Maps search-bar gate (AvailabilityCompactScaffold's isEditingJournalEntry):
     // the find opens as the Journal tab comes up, where that gate hides the header as it does for any
     // open find; the Maps tab's own bar is gated on the Journal showing, so it is unaffected.
@@ -1244,7 +1229,7 @@ fun AvailabilityScreen(
         // switch shows the highlights; with it off no record is highlighted, so no bubble names one.
         journalEntriesKeeping = if (drawnMapLayers.stateOf(JOURNAL_ENTRIES_SWITCH_LAYER_ID).visible) journalHighlights.keptIn else emptyMap(),
         // J8-4, the owner's Q1 ruling ("Open in Journal, prompt first (Recommended)"): switches to the
-        // Journal (compact) or opens the drawer's LogPanel (wide, as M1's find route does) with the
+        // Journal with the
         // entry in its report on Entries, the one top-tab change opening it requires; the saved Records
         // chip is untouched. The Journal side (CartographyScreen's openEntryRequest) asks the existing
         // "Save your changes?" first when another entry is open in its editor with unsaved changes, and
@@ -1393,8 +1378,7 @@ fun AvailabilityScreen(
             onDeleteCartographyEntry = onDeleteCartographyEntry,
             onRequestDeleteCartographyEntry = onRequestDeleteCartographyEntry,
             onRequestDeleteGalleryPhoto = onRequestDeleteGalleryPhoto,
-            // J4b L1: a find tile's long-press Edit uses the same open-and-edit call the wide tree's
-            // LogPanel already uses for every find it opens.
+            // J4b L1: a find tile's long-press Edit uses the one open-and-edit call.
             onOpenLogEntryForEditing = onOpenLogEntryForEditing,
             getCartographyEntryMapData = getCartographyEntryMapData,
             getSavedTrackPaths = getSavedTrackPaths,
@@ -1496,7 +1480,6 @@ fun AvailabilityScreen(
                     onDistanceUnitSelected = onDistanceUnitSelected,
                     onClose = { isDrawerOpen = false },
                     onDeletePlannedTrip = onDeletePlannedTrip,
-                    currentTime = currentTime,
                     isNightMode = isNightMode,
                     onNightModeMapsChanged = onNightModeMapsChanged,
                     autoSaveLocationToPhotos = uiState.autoSaveLocationToPhotos,
@@ -1520,13 +1503,11 @@ fun AvailabilityScreen(
         },
     )
     }
-    // The in-app camera, once, outside the width-class branch above — deliberately not inside
-    // either tree, so the flip a rotation causes on a phone (COMPACT to MEDIUM) does not dispose
-    // it. Its own open flag lives in InAppCameraViewModel, which survives the recreation.
-    // See InAppCameraHost for both mechanisms and the owner's decision.
-    // Landscape B1 (2026-09-26): a phone's landscape window is now short and stays in the compact
-    // tree, so a phone's rotation no longer flips trees; a window crossing 600dp while tall (a
-    // foldable, a resized window) still does, which is why the placement stays as it is.
+    // The in-app camera, once, after the tree above. Its own open flag lives in InAppCameraViewModel,
+    // which survives a recreation. See InAppCameraHost for both mechanisms and the owner's decision.
+    // Until dispatch 2026-09-28-245 a window crossing 600 dp flipped between two trees, which is why
+    // it stayed outside them; there is one tree now, and the placement (after it) is kept for the
+    // reason below.
     //
     // It sits *after* the branch rather than before it (2026-09-19): since the camera draws in the
     // Activity's own window instead of a dialog's, nothing but composition order puts it on top,

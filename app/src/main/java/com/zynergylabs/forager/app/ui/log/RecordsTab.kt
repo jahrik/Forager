@@ -33,22 +33,16 @@ import com.zynergylabs.forager.app.ui.track.TrackExportList
  * The Journal's **Records** tab (journal restructure Stage 1) — "a logbook: raw, complete,
  * machine-generated data. It shows everything, it does not curate" (the project owner's own
  * framing). Four submenus: **Waypoints** (used to be a [WaypointsSection] inside
- * `SearchControls`, reachable from both window classes' own drawers), **Offline Maps** and
- * **Recorded Tracks** (used to be Settings submenus, reached via `DrawerPanel.OfflineMaps`/
- * `DrawerPanel.Tracks` on medium/expanded and `showOfflineMaps`/`showTracks` local state on
- * compact), and **Finds** — added Journal Stage 2b, `amendment-2b-finds-and-trash.md`: raw
+ * `SearchControls`), **Offline Maps** and
+ * **Recorded Tracks** (used to be Settings submenus), and **Finds** — added Journal Stage 2b, `amendment-2b-finds-and-trash.md`: raw
  * `MushroomLogEntry` field records, moved here **unmodified, still working exactly as it did in
  * Cartography** — override text: "the override is for the move, not for Records generally." None
  * of the four screens' own content changed — only where they're reached from.
  *
- * **[findsContent] is a slot, not inlined logic.** Compact and expanded each render this same
- * fourth slot as a report-then-edit two-step ([JournalTab]) or straight-to-edit ([LogPanel]) when
- * an entry is open — that per-window difference is real and stays — but when nothing is open, both
- * now host the identical [FindsGalleryScreen] (Stage 2b follow-up dispatch, point 1, "restore the
- * unify" — see that composable's own doc comment for why the two window classes had briefly
- * diverged onto genuinely different browsing screens, and why this reunifies them). [JournalTab]/
- * [LogPanel] each still own their find-editing state (mode, pickers) exactly as before, just render
- * it into this tab's fourth slot now instead of directly into a "Cartography" tab. [onFindsTabLeft]
+ * **[findsContent] is a slot, not inlined logic.** [JournalTab] renders it as a report-then-edit
+ * two-step when an entry is open, and the [FindsGalleryScreen] when nothing is; it still owns its
+ * find-editing state (mode, pickers) exactly as before, just rendered
+ * into this tab's fourth slot instead of directly into a "Cartography" tab. [onFindsTabLeft]
  * fires whenever [selectedTab] changes away from [RecordsSubTab.FINDS] to a sibling sub-tab — the
  * same "leaving mid-edit is an incidental exit" signal [JournalTab]'s own top-level tab switch
  * already sent before finds moved here; now that finds live *inside* Records, switching among
@@ -126,7 +120,7 @@ internal fun RecordsTab(
      * The committed logged finds (`MushroomLogUiState.entries`, what the Finds gallery's own first
      * "Log" tab lists; owner's answer 3 in `prompts/preserved/2026-09-27-17.md`, "Committed finds
      * only"): the Finds chip counts them and the All logbook lists them (journal redesign J1, S3/S4).
-     * `null` means the caller has none to give — [LogPanel], out of scope until J6 — and then the
+     * `null` means the caller has none to give — and then the
      * Finds and All chips show no count and the All logbook says finds are not listed, rather than
      * showing a made-up number or passing the rest off as everything.
      */
@@ -134,7 +128,7 @@ internal fun RecordsTab(
     /**
      * Opens a find's report — the All logbook's find tap (J1 S4). `RecordsTab` selects the Finds chip
      * first, so the report opens in the Finds slot and Back goes report, Finds gallery, All (owner's
-     * answer 2). The default does nothing beyond that chip switch ([LogPanel] passes none).
+     * answer 2). The default does nothing beyond that chip switch.
      */
     onOpenFind: (String) -> Unit = {},
     /** J4b L1: the All logbook find tile's long-press Delete (pending, with Undo); `null` leaves it tap-only. */
@@ -146,7 +140,7 @@ internal fun RecordsTab(
     onEditFind: ((String) -> Unit)? = null,
     onFindsTabLeft: () -> Unit = {},
     /**
-     * Whether [JournalTab]/[LogPanel]'s own find-editing `BackHandler` is currently live —
+     * Whether [JournalTab]'s own find-editing `BackHandler` is currently live —
      * back-nav-and-save-flow dispatch, Item 1. Gates this tab's own sub-tab-stepping `BackHandler`
      * (below) out of the way while it is: that handler is registered at a *shallower* structural
      * point (the caller's own composable, this tab's parent) than this one even though it covers a
@@ -160,7 +154,7 @@ internal fun RecordsTab(
     /**
      * A one-shot external request to switch to a specific sub-tab — Stage 2d's routing fix for the
      * map "+" icon bar's "Log a find" flow, which used to leave this tab's own [selectedTab]
-     * (defaults to [RecordsSubTab.WAYPOINTS]) untouched even after [JournalTab]/[LogPanel] switched
+     * (defaults to [RecordsSubTab.WAYPOINTS]) untouched even after [JournalTab] switched
      * to Records, landing on Waypoints instead of Finds. `null` (the default) means nothing pending;
      * every other caller of this composable passes nothing, so its own behavior is unchanged.
      */
@@ -170,15 +164,14 @@ internal fun RecordsTab(
     /**
      * Where the selection lives. [JournalTab] passes [JournalScreenState.recordsFilterState], hoisted
      * and saveable (journal redesign J1, S1), so the selection survives leaving the Journal tab and
-     * an Activity recreation. The default is local, plain `remember` state, which is what [LogPanel]
-     * (the wide tree, out of scope until plan stage J6) still gets, unchanged.
+     * an Activity recreation. The default is local, plain `remember` state, for a caller that hosts this tab on its own (tests).
      */
     selectedTabState: MutableState<RecordsSubTab> = remember { mutableStateOf(DEFAULT_RECORDS_FILTER) },
     /**
      * Journal redesign J5, L3: in a short window the filter chip row is the second row under the
      * Journal's L1 row, and hides while the content below it scrolls down, returning on a scroll up
      * ([HideOnScrollState]); and (L5a) the chips take the tighter [RecordsChipRowMetrics.ShortWindow]
-     * so all five fit one line at 640 dp. `false` (the default: portrait, and `LogPanel`) keeps the
+     * so all five fit one line at 640 dp. `false` (the default: portrait) keeps the
      * row fixed and J1's spacing, as before.
      */
     shortWindow: Boolean = false,
@@ -354,7 +347,7 @@ internal fun RecordsTab(
  * Which of [RecordsTab]'s filter chips is selected — declared in chip display order (journal
  * redesign J1, S3: [ALL] added and made the default, the rest reordered to the plan's All · Finds ·
  * Tracks · Waypoints · Offline maps). Nothing reads the ordinal: [JournalScreenState]'s saver stores
- * names. `internal`, not `private`, as of Stage 2d: [JournalTab]/[LogPanel] hold a pending value of
+ * names. `internal`, not `private`, as of Stage 2d: [JournalTab] holds a pending value of
  * this type to request [FINDS] externally — see [RecordsTab]'s own `pendingSubTab` doc comment.
  */
 internal enum class RecordsSubTab { ALL, FINDS, RECORDED_TRACKS, WAYPOINTS, OFFLINE_MAPS }

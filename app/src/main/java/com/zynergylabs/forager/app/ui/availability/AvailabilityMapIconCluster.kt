@@ -121,21 +121,21 @@ import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
 /**
- * The map icon cluster's state and layout, shared by the phone's Maps tab ([CompactMapTab]) and the
- * tablet's map pane ([CombinedResultsPane]'s map), extracted from `CompactMapTab` in J6c (dispatch
- * 2026-09-28-152 item 14, continuation 2026-09-28-173: "Extract, don't copy").
+ * The map icon cluster's state and layout, used by the Maps tab ([CompactMapTab]). It was extracted from
+ * `CompactMapTab` in J6c (dispatch 2026-09-28-152 item 14, continuation 2026-09-28-173: "Extract, don't
+ * copy") to be shared with the tablet's map pane, which was removed in dispatch 2026-09-28-245; the
+ * extraction stays.
  *
  * What moved is the cluster as it was, not a rewrite: the container holding the bar and the record | return
  * pill, the minimise and restore handles, the long-press drag, the side snap, and the clamps, with the
- * comments that recorded why each is as it is. What the two trees supply differs and comes in as inputs:
- * the compact tree's bottom navigation, search dropdown, notice and legend bound the drag; the tablet has
- * none of the first three and bounds it with the strip and chip row above and the pane's own edges. The
- * bar and the pill are slots, so each tree wires its own callbacks (locate, orient, layers, add, record,
- * return) without this file knowing them.
+ * comments that recorded why each is as it is. The bottom navigation, search dropdown, notice and legend
+ * bound the drag. The bar and the pill are slots, so the Maps tab wires its own callbacks (locate,
+ * orient, layers, add, record, return) without this file knowing them.
  *
  * The landscape L (a short window's `LandscapeLCluster`, dispatch 2026-09-28-160) is chosen by [MapIconClusterState.landscape],
- * true only when the compact scaffold gives the rail and punch-hole edges; the tablet never does, so it
- * never takes the L (the owner's ruling, 2026-09-29: "Never on portrait or tablet mode").
+ * true only when the compact scaffold gives the rail and punch-hole edges, that is in a landscape window,
+ * whatever its size (dispatch 2026-09-28-246). The owner's ruling of 2026-09-29, "Never on portrait or
+ * tablet mode", is superseded for a landscape tablet by -246.
  */
 
 /**
