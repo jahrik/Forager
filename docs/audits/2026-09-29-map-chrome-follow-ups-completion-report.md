@@ -126,3 +126,75 @@ The wide tree's Offline maps sheet is asserted solid (I read "only in short land
 - `GetJournalEntryHighlightsUseCase` and `CartographyEntry.keepsHighlightableRecord` state "what an entry keeps" twice; a change to one must change the other. I did not refactor the use case (out of scope).
 - The run record's flag 10 (the trip dialog at 0.815) and the light-theme gap are not touched.
 - A stray Bash `pgrep -af '[G]radleWrapperMain|[G]radleWorkerMain'` in this shell matched another session's `until ...` wait loop, so it reported a build when none ran; I confirmed with `ps` that no Gradle worker was running before each build. Another session's Gradle and Kotlin daemons were idle.
+
+---
+
+# Resumed (planner continuation `2026-09-29-12`, record `2026-09-28-129`; a fresh coder)
+
+## Who and what I ran on
+
+- Model: this session is configured for `claude-sonnet-5-5` (my system prompt's model line). I did not verify the serving model.
+- Worktree `/home/zynergy-labs/Zynergy/forager-wt/chrome-follow-ups`, branch `chrome-follow-ups`, at `881cfbd` (the first coder's report commit); I pulled `origin/journal-redesign` with `--no-rebase` (fast-forward to `1d513e1`, planner files only in `prompts/` and `RECORD.md`; no `app/` change since `881cfbd`'s merge base).
+- `CLAUDE.md` read at the base. Nothing in the dispatch conflicts with it.
+
+## The governing texts, verbatim
+
+`prompts/preserved/2026-09-29-12.md` (the continuation), below its "verbatim message follows" line, at `1d513e1`:
+
+> Planner message `2026-09-29-12` (record `2026-09-28-129`), part of dispatch `2026-09-28-104`. Quote it verbatim in your report. It answers your two stops at `881cfbd` and your flag on item 6.
+> 
+> **Item 8, the entry map's basemap. The owner, verbatim: "1 B".** As the planner put it: "When an entry map opens, start it on your Maps-tab basemap. You can still change it for that entry, and changing it doesn't affect the Maps tab."
+> - Seed `entryMapMode` from the Maps tab's `mapMode` when the entry map opens. There is no write-back, so the comment's state-leak fix stays intact. Update the comment at `CartographyEntryReportScreen.kt:227-234` to say so.
+> - Night Maps is already passed (`:481`). **Also find why the device check saw day rendering on the entry map at night.** Report the cause with file:line. If it is a separate bug, fix it only if the fix is confined to passing or honouring `night` on the entry map; otherwise report it.
+> - **Tests first:** an entry map opened after the Maps tab is set to a non-default basemap starts on that basemap. Changing it there leaves the Maps tab unchanged.
+> 
+> **Item 2, the search notice. The owner, verbatim: "Option A".** As the planner put it: "The red notice slides in just below the compass strip. While it's showing, the icon column on the right keeps below it rather than overlapping."
+> - On the Maps tab the notice is placed below the compass strip, using the strip's **measured** height, not `compassStripClearance`.
+> - While it shows, the cluster's top limit (`minY`) follows the notice's measured bottom, and the cluster moves down if it would overlap.
+> - Placement only; no copy.
+> - **Tests first,** in portrait and `w823dp-h384dp-land`: a notice is fully below the strip and does not intersect the cluster, and the cluster returns to its limit when the notice clears.
+> 
+> **Item 6, the planner's ruling on your flag:** on the Maps tab, the snackbar sits above the floating bottom navigation (and above the rail's foot in landscape), not only above the system bar. That is the standard placement. Add a test that it does not intersect the bottom nav.
+> 
+> Revert checks for each, the full suite on your final tree at 0 failures, push to `journal-redesign` with `--no-rebase`, and a new "Resumed" section. Before each Gradle run, check that no other build is running and that 2.5 GB is available; the photo-export and backup coders build here. Hand back to `[9b334a]`.
+
+The launch prompt this session was opened with (it is also `prompts/preserved/2026-09-29-13.md`), "The dispatch" section:
+
+> You are a **fresh coder** continuing dispatch `2026-09-28-104`. The first coder built six of eight items (`881cfbd`) and stopped on two. That window is now busy with other work, so it is not yours to message.
+> **What governs:** read in full, on `origin/journal-redesign`: `prompts/preserved/2026-09-28-104.md` (the dispatch); `prompts/preserved/2026-09-29-09.md` (its launch prompt); **`prompts/preserved/2026-09-29-12.md`** (the continuation you build), which governs. Also read the report ... Quote `-2026-09-29-12` and this prompt verbatim in a new "Resumed" section.
+> **Worktree:** `/home/zynergy-labs/Zynergy/forager-wt/chrome-follow-ups` (branch `chrome-follow-ups`). **Work only there.** Pull `journal-redesign` with `--no-rebase` first.
+> **Build (from `-2026-09-29-12`):** **Item 8** (the owner, verbatim "1 B"): seed `entryMapMode` from the Maps tab's `mapMode` when the entry map opens, no write-back; update the comment at `CartographyEntryReportScreen.kt:227-234`; find, with file:line, why the entry map rendered in daylight at night, and fix it only if the fix is confined to passing or honouring `night`, otherwise report it. **Item 2** (the owner, verbatim "Option A"): on the Maps tab place the search notice below the compass strip, using the strip's measured height; while the notice shows, the cluster's `minY` follows the notice's measured bottom; placement only, no copy. **Item 6** (the planner's ruling): on the Maps tab the snackbar sits above the floating bottom nav, and above the rail's foot in landscape.
+> **Tests first** for each, in portrait and `w823dp-h384dp-land` where relevant, seen failing at base. Then revert checks, the full suite on your final tree at 0 failures, and a push to `journal-redesign`. Broken work goes on `chrome-follow-ups-wip`. No phone. Merge is not authorised.
+
+(The role-and-rules block of the launch prompt, and its hand-back instructions, are those of `prompts/preserved/2026-09-29-09.md`, which is quoted in this report's first section by the first coder.)
+
+## Premises checked at the base
+
+- **Item 8's written decision:** `ui/log/CartographyEntryReportScreen.kt:227-234` and the state at `:299-302` say `entryMapMode` is local and independent of the Maps tab's `mapMode`, fixing a leak that came from *writing back*. The owner's "1 B" seeds it on open with no write-back; the leak fix stays intact.
+- **Where the Maps tab's `mapMode` is:** `AvailabilityScreen.kt:894` (`var mapMode ... MapMode.DEFAULT`). It reaches `LogPanel` (`:1416`) and the compact scaffold (`mapMode` lambda, `:1677`) only as `basemap = mapMode.basemap` (`:895`); `JournalTab.kt:139` and `LogPanel.kt:117` take `basemap: Basemap`; `CartographyScreen` and `CartographyEntryReportScreen` take neither. `MapMode` and `Basemap` are one to one (`map/MapMode.kt:28-31`), so the seed needs `mapMode` threaded, not a lookup.
+- **Where `night` goes:** `AvailabilityScreen.kt:902` (`isNightMode = uiState.nightModeMaps`) to `LogPanel`/`JournalTab` (`night = isNightMode`, `:1426`, scaffold `:1031`), to `CartographyScreen` (`JournalTab.kt:638`, `LogPanel.kt:470`), to `CartographyEntryReportScreen` (`CartographyScreen.kt:422`), to the map's `MapRenderMode(night = night)` (`CartographyEntryReportScreen.kt:481`). Every hop is a direct pass, and `MapRenderMode.nightModeLoaded` defaults to `true` (`map/MapSlot.kt:33`), so the entry map is never held by the cold-launch gate. The cause of the daylight rendering is therefore **not** established by reading; a test below pins what the code hands the map (see the pre-registration).
+- **Item 2's layout:** the notice is composed in the search bar's `Column` (`AvailabilityCompactScaffold.kt:975-1001`, `SearchNotice(uiState, overMap = true)` at `:1014`), which is `CompactMapTab`'s `searchBarSlot` (`AvailabilityCompactMapUi.kt:353`, composed at `:694`); the compass strip is drawn later in the same Box at `topInset` (`:1107-1123`), so the notice's first line lies under it. The strip's own height is not measured anywhere (`compassStripClearance` is a text-line height, `:638-642`). The cluster's top limit is `dropdownTopPx = (topInset + compassStripClearance)` (`:781`), used by `clampMapIconBarVerticalOffset` (`:804-841`), whose upward bound is coerced to at most 0 (`:818-822`), so the clamp cannot move a cluster down to clear anything. That coercion is why "the cluster moves down if it would overlap" needs a positive lower limit while a notice shows.
+- **Item 6's cause:** the Maps-tab snackbar takes only `WindowInsets.navigationBars` bottom padding (`AvailabilityCompactScaffold.kt:627-637`); the floating bottom nav is inside `CompactMapTab`'s Box, not the Scaffold's `bottomBar`, so nothing reserves its height for the snackbar. Its measured height is already kept: `bottomNavHeightPx` (`:520`), `bottomNavHeight` (`:544`), zero in the rail layout.
+
+## Pre-registration (written before any build or test run)
+
+New tests are in `MapChromeResumedTest.kt` (new), driving the real `AvailabilityScreen` through `MapChromeTestScreen`; I gave `MapChromeTestScreen` an optional `mapSlotOverride`, and `ForagerBottomNav` a test tag (`COMPACT_BOTTOM_NAV_TAG`), both inert. Robolectric reports zero insets, so item 6's system-bar half and item 2's status-bar half are device-only.
+
+| test | predicted at base | pass condition after |
+|---|---|---|
+| `MapChromeEntryMapTest`: Maps tab set to Street through the Layers sheet, then Journal: the entry map's `basemap` | **fails**: `OPEN_TOPO_MAP` (`CartographyEntryReportScreen.kt:302` seeds `MapMode.DEFAULT`) | `OSM_STANDARD` |
+| same, Maps tab left on its default | passes (guard: the seed changes nothing when the tab is on its default) | passes |
+| same, entry map fullscreen, Layers, Satellite: the entry map is `USGS_IMAGERY_ONLY` and the Maps tab is still Street | **passes at base** (the no-write-back guard; it can only fail if the seed is built as a write-back) | passes |
+| Night Maps on and loaded: the entry map's render mode has `night == true` | **passes at base** if the plumbing is right (the diagnosis test). If it fails, that is the cause | passes |
+| `SearchNoticePortraitTest`: strip and notice | **fails**: the notice starts at the bar's bottom, where the strip is drawn, so the two overlap | notice top at or below the strip's bottom |
+| `SearchNoticePortraitTest`: cluster dragged to its top limit, then a notice, then cleared | **fails**: the cluster's top limit is `topInset + clearance` and the notice is full width, so they intersect | cluster top at or below the notice's bottom, and back at its limit when cleared |
+| `SearchNoticeLandscapeTest`: notice vs strip (different corners) and vs the cluster; cluster back when cleared | **fails on the cluster**: the cluster's top (60 dp) is above the notice's bottom under the 45 dp bar; the strip half passes | no intersection; cluster returns to 60 dp |
+| `SnackbarPortraitTest`: snackbar vs the bottom nav | **fails**: the host is at the Scaffold's bottom edge and the nav is at the same edge | snackbar bottom at or above the nav's top |
+| `SnackbarNarrowLandscapeTest` (`w640dp-h360dp-land`): snackbar vs the rail | **predicted to fail** (a 600 dp snackbar centred in 640 dp spans 20 to 620; the rail is 560 to 640); if it passes at base that is a stop | no intersection |
+| `SnackbarShortLandscapeTest` (`w823dp-h384dp-land`): the same | passes (a guard: the snackbar's 600 dp cap keeps it off an 80 dp rail at 823 dp) | passes |
+
+Predicted counts: the suite grows by about 11 test methods (4 + 2 + 1 + 1 + 1 + 1 + 1).
+
+### Revert checks planned
+
+Each restores from a copy saved before editing, checks the build log for compile errors first, and confirms the forward change afterwards: the seed (item 8) back to `MapMode.DEFAULT`; the notice spacer (item 2) removed; the cluster's notice bound (item 2) removed; the snackbar's bottom-nav padding (item 6) removed.
