@@ -1185,3 +1185,11 @@ None of these block PR #140.
 - a journal entry that kept the track follows the same rule as an entry that kept a since-deleted waypoint.
 
 This also makes the delete-data page's "Recorded tracks" line true.
+
+**A kept track keeps its path (owner, 2026-09-29).** The F1 coder found that deleting a waypoint leaves an entry's ref rows and snapshot in place, and applied the same to tracks. But a track's snapshot has no path, so an entry that kept a deleted track could no longer draw its line. The planner offered:
+- A: accept that;
+- B: save the track's path into the entry when it is kept, so a later delete does not affect the entry's map.
+
+The owner, verbatim: "Option B".
+
+The planner's placement: B changes the database (a place for the path), the backup's table list and Merge rules, and the entry map's drawing. So it is its own stage, F3, after F1, built on a read-only pulse of how kept snapshots are stored. F1's track delete lands first, and the two land before PR #140.
