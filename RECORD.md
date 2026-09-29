@@ -5480,3 +5480,19 @@ It also flagged the snackbar lying over the floating nav.
   - Replace keeps a cartography region ref row whose region the backup lacks (-155), so it could meet a future MapLibre id;
   - a Try again after the schedule is turned off posts "didn't finish".
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-157
+**Timestamp:** 2026-09-29T07:17:04Z
+**Dispatch:** 2026-09-28-152 (J6)
+**Reason:** the J6 coder stopped at dispatch item 8, the header.
+- The phone Journal has no header text: its top row is the JournalSwitch (JournalTab.kt:616-624).
+- The wide header (LogPanel.kt:576-590) is also a 48 dp back-arrow row to Search.
+- Nothing is built. Its report is started at 2a88511c on j6.
+**Changes:** none. The header question goes to the owner.
+**Notes:**
+- **The planner's reading:** the wide drawer's other panels also carry a back-arrow header, for example Settings' SettingsHeader(onBack) at AvailabilityScreen.kt:1422. A back row with a label would keep that pattern.
+- **Both prompts went to one window.** The coder took J6 only, correctly, so Part 2 Session 1 (-154) has not started and needs its own window.
+- Written by the planner by hand.
