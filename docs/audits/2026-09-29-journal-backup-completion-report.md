@@ -273,3 +273,102 @@ Every test goes through the real entry point (the ViewModel callback, the real `
 Predicted counts: 35 to 60 new tests. **Revert checks planned**, one per new mechanism (saved copy, compile errors checked, forward change confirmed after): negative-id allocation, ref rewrite, the unreadable-photo pre-check, the sink-untouched guarantee, delete-only-what-this-run-created, the recording block, the staged Done/LOADING states, the Maps-at-the-tap, reduced motion, `isDownloaded` listing, the old-row replacement, planned trips in the journal list. Full suite from a cleared results directory at the end, on the merged tree.
 
 **Device-only, listed, not run:** the pulse and the grow-and-fade on the phone; the system Save picker offering the name again after a failed write; a real SAF delete of a created file (`DocumentsContract.deleteDocument`); a re-download of a restored region against the real tile server and MapLibre; the reduced-motion setting on a device; item 8's notifications when built.
+
+## Results of the resumed pass (dispatch 2026-09-28-137; appended, nothing above changed)
+
+Paths are under `app/src/main/java/com/zynergylabs/forager/app/`.
+
+### What landed
+
+Pre-registration `1acd19af` (pushed first); the build `693054b5`; the touch fix `0644574e`; the merge `0cd48927` (the -104 continuation coder had changed `MapChromeTestScreen`; I kept both changes); the head pushed to `journal-redesign` is `7e5c3526` (a later merge added only records). Broken work went to `journal-backup-wip` at `693054b5`.
+
+| # | Item | Where |
+|---|---|---|
+| 1 | Restored regions listed as "Not downloaded" with "Download again"; the button downloads from the stored centre and radius through the **unchanged** `download`, held to the tile budget, then the old row is replaced by the new one and its references follow | `domain/OfflineMapRepository.kt` (`isDownloaded`, `listNotDownloadedRegions`, `replaceRegion`), `map/OfflineRegionReconciliation.kt:135` (`notDownloadedRegions`), `data/repository/RoomOfflineRegionIdReplacer.kt`, `ui/availability/AvailabilityViewModel.kt:909` (`onDownloadAgain`), `ui/availability/AvailabilityOfflineMapsUi.kt` (`OfflineRegionRow`) |
+| 2 | Merge gives incoming regions new ids and rewrites references | `data/backup/RoomJournalBackup.kt:266-273` |
+| 3 | Unreadable photos pause; Try again / Continue without file(s) / Cancel; "Backup saved, but N photos couldn't be found and were left out." | `RoomJournalBackup.kt:128`, `ui/backup/BackupViewModel.kt`, `ui/backup/BackupSection.kt` |
+| 4 | Planned trips are journal data | `data/backup/JournalTables.kt:54` |
+| 5 | Restore blocked while recording | `BackupViewModel.kt:261` and `onRestoreConfirmed` |
+| 6 | Loading page, Done, tap animation, return to Maps, the reload | `ui/backup/RestoreLoadingPage.kt`, `MainActivity.kt:651`, `ui/availability/AvailabilityScreen.kt:1038` (`returnToMapRequest`), `AvailabilityViewModel.kt:950` (`reloadAfterRestore`) |
+| 7 | A failed write deletes its own file; "Couldn't finish the backup. The incomplete file was removed." with Try again / Cancel | `BackupViewModel.kt:192`, `domain/BackupSchedule.kt:94`, `data/backup/ContentResolverBackupFiles.kt:43` |
+| 8 | **STOP** (the channel), see the pre-registration; what was built of it: a scheduled run skips unreadable photos and saves, and deletes its own file on a failed write | `domain/BackupSchedule.kt` |
+| 9 | Weekly default confirmed by test | `BackupSettingsScreen...: turning the automatic backup on leaves Weekly selected`, `ScheduledBackupTest: the saved schedule is off, weekly...` |
+
+**Item 6's reload list, each with file:line** (all of it is joined before Done appears; `MainActivity.kt:170-190`): `CartographyViewModel.loadEntries` (`ui/log/CartographyViewModel.kt:94`), `MushroomLogViewModel.loadEntries` (`:247`) and `loadGalleryPhotos` (`:293`), `TrackRecordingViewModel.loadTracks` (`:599`) and `loadWaypoints` (`:572`), and inside `AvailabilityViewModel.reloadAfterRestore`: planned trips (`:810`), the offline regions with counts (`:923`, now including the not-downloaded rows), and the Maps tab's records (`:479`, extracted into `loadMapRecords`). Each loader now **returns its `Job`** so the caller can wait. **What I did not find or reload, so an open screen may still show old data:** an entry or find open in an editor (`editingEntry`), the Records sub-tab position and the search state, `loadRecentSearches` (`:771`, the search cache is not restored), and anything not read through a ViewModel loader (a composable that reads on its own). Not searched exhaustively.
+
+### Tests first: **what happened, said plainly**
+
+I wrote the tests and API stubs, ran them, and read the failures (`/tmp/stub-stage-build.log`: 306 ran, **70 failed**, each for the expected reason: "not built", no prompt, no page, `expected:<[1, 5]> but was:<[1]>`, no "Not downloaded" node), and **then built without committing the stub tree first**. So the tests-first commit the rule asks for **does not exist**: `693054b5` holds tests and implementation together, and the failing state cannot be reproduced from git. The evidence is that log and its transcript. Two more things about it: (1) the first run of the page tests failed for a wrong reason (a missing host-activity rule in the test); I fixed the test and it is not counted; (2) tests that **passed at the stub tree**: `ContentResolverBackupFilesTest: delete of a file that is not there reports false`, the three `JournalBackupTest` ASK/SKIP controls, `BackupViewModelTest: with no recording a restore may start`, `a failed restore shows no loading page and reloads nothing`, `Cancel after a failed write closes the prompt and does not ask for a file`, `one photo left out is worded in the singular`, `OfflineRegionReconciliationTest: a Room row MapLibre does have is not offered as not downloaded`, `Replace keeps a region's own id`, and the three loader tests. Each is a control or was vacuous against the stub; the ones that guard a mechanism were revert-checked below (the singular-wording test and the loader tests are the exceptions: the wording is a pure function, and the loaders returning a `Job` can only be reverted by a compile error).
+
+### A bug the tests found in my own code
+
+`SupportSQLiteDatabase.insert` swallows the exception and returns -1, which is **also the row id of a row inserted under id -1**, so the first region a Merge re-ids reads as a failed insert. Merge and Replace now insert through plain SQL (`insertRow`), which throws SQLite's own message.
+
+### Revert checks (`/tmp/revert2.sh`, saved copy, restored from the copy, build log read for compile errors first)
+
+28 planned in one run, plus 2. **0 compile errors in 29 of them**; one, the first attempt at the touch guard (`swallow`), had 5 compile errors, so its result is **refused** and it was redone as `swallow2` and then `surface`. Every result below names a failure this edit could produce.
+
+| mechanism (one-line revert) | the failure that named it |
+|---|---|
+| region ids: reuse the backup's id | `UNIQUE constraint failed: offline_regions.id` (3 tests) and `the region arrives ... expected:<[1]> but was:<[0]>` |
+| region link rewrite on finds | `the incoming find names the new id expected:<[-1]> but was:<[7]>`; `expected:<[NULL]> but was:<[99]>` |
+| region rewrite on entry refs | `so does the entry's ref row expected:<[-1]> but was:<[7]>` |
+| ASK stops before writing | `expected UnreadablePhotosException, got null` (2 tests) |
+| unreadable = missing or not readable | `BackupException cannot be cast to UnreadablePhotosException` (the read-bit test ran; skipped count is the suite's 24 as before) |
+| planned trips in the journal list | five `JournalBackupTest`: `a trip only the backup has arrives expected:<[1]> but was:<[0]>`, the table-list test, both Replace tests, the schema-15 test |
+| restore blocked while recording (request) | `Restore from backup says so and opens no picker` in both window shapes, and the ViewModel test |
+| ... (at confirm) | `a recording that starts while the prompt is up ...` |
+| a failed write deletes its file | `expected:<[content://docs/x.zip]> but was:<[]>` (5 tests, incl. both screens) |
+| Cancel deletes the file | 3 tests, incl. both screens |
+| Try again opens the Save picker | `the Save picker was opened a second time expected:<2> but was:<1>` |
+| the reload is called | `the reload has begun and is held expected:<1> but was:<0>` |
+| the page is Loading | `expected:<LOADING> but was:<NONE>` |
+| Done requests Maps | 7 tests incl. `Done also closes the Tools drawer` and both shapes |
+| the screen goes to Maps | 4 tests, `(Selected = 'true') ... Text = '[Maps]' Selected = 'false'` |
+| reduced motion | `no animation to wait for expected:<1> but was:<0>` |
+| the icon is a button only when done | `a touch on the icon while loading does nothing expected:<0> but was:<1>` |
+| the page takes every touch | first attempt **did not bite**: `Surface` already consumes touches, so my own `pointerInput` was redundant; I removed it, and reverting `Surface` to `Box` fails `the page covers the screen: a touch on it is not the screen's expected:<0> but was:<1>` |
+| not-downloaded list filter | `expected:<[]> but was:<[1, 2]>` |
+| the ViewModel merges the two lists | 5 tests |
+| the old row is deleted; references move | `expected:<[0]> but was:<[1]>`; `expected:<[42]> but was:<[5]>` |
+| scheduled: skip | `UnreadablePhotosException: 2 photo file(s) could not be read` |
+| scheduled: delete own file | `expected:<[...#2]> but was:<[]>`; `logged: []` |
+| `delete` of a `file:` URI | `AssertionError` (the file was not removed) |
+| Download again: the replace call; the budget | `expected:<[(5, 42)]> but was:<[]>`; `the download was never attempted` |
+| the row's "Not downloaded" branch | all six row tests |
+
+Not revert-checked: the two `Job`-returning loaders (a compile error, refused), the wording of "1 photo ... was left out" (a pure function), and the same-bytes skip in `PhotoFileJournal`.
+
+### Full suite
+
+`./gradlew :app:testDebugUnitTest` from a cleared `app/build/test-results`, `LC_ALL=C.UTF-8`, on the merged tree: **BUILD SUCCESSFUL in 4m**. From the JUnit XML: **341 result files, none older than the run's start; 2749 tests, 0 failures, 0 errors, 24 skipped.** By class deltas this pass added about **76 tests** (`BackupViewModelTest` 15 to 32, `JournalBackupTest` 20 to 26, `ScheduledBackupTest` 11 to 14, `ContentResolverBackupFilesTest` 2 to 4, `BackupSettingsScreen*` 22 to 34, `RestoreLoadingPageTest` 8, `RestoreReturnsToMap*` 8, `OfflineNotDownloadedRegion*` 6, `RoomOfflineRegionIdReplacerTest` 3, plus the region tests in `AvailabilityViewModelOfflineMapsTest` and `OfflineRegionReconciliationTest` and three loader tests); the rest of the growth from 2659 is other coders'. **Machine sharing:** the free-memory check stayed at about 2.1 to 2.9 GB for the whole session while other sessions' idle Gradle and Kotlin daemons held it; I waited 10 minutes, then built at 2128 MB available (`/tmp/jb-mem-note`) and for every revert build after that. No other Java Gradle process was running for any of my builds. I never ran `--stop`.
+
+### Device-only, listed, not run
+
+- The pulse and the grow-and-fade on the phone (timing, smoothness, the icon's edge against the page); whether "Done" reads over the icon's art on the S22 (I put it on a pill of the theme's colour, unseen).
+- The system's reduced-motion setting on a device (tested by setting the animator duration scale in Robolectric).
+- The Save picker reopening after a failed write; a real SAF delete (`DocumentsContract.deleteDocument`) of the created file, and what a provider does when the user picked an existing file to overwrite.
+- A re-download of a restored region against the real tile server and MapLibre: `MapLibreOfflineMapRepository.listNotDownloadedRegions` (`map/MapLibreOfflineMapRepository.kt`) reads `OfflineManager` and cannot run off a device; only its pure decision (`notDownloadedRegions`) and the Room replacement are tested.
+- A restore onto the tablet; the wide (tablet-portrait) layout's Not downloaded row and Backup section, which reach the same composables but are not exercised here.
+- Item 8's notifications (not built).
+
+### Decisions I made (none is copy; each needs the owner or planner)
+
+1. **Merge region ids are negative** (`RoomJournalBackup.kt:266`), so they cannot equal a MapLibre id and be overwritten by a later download's `upsert`. Replace keeps the backup's own ids, as ruled, and so **still has the collision**: a restored region numbered 3 and a later MapLibre download numbered 3 are the same row to `upsert`.
+2. **A Merge never skips an incoming region as a duplicate**, so merging a backup into the phone that made it adds its regions again (the test says so). The ruling has no "same region" test.
+3. **"Download again" replaces the old row** (references rewritten, old row deleted), in one transaction; without it the list shows the region twice.
+4. **"Not downloaded" rows are in the same list as downloaded ones** everywhere it is shown (the Offline maps panel and Records), so they also count 0 tiles against the budget and can be swiped away with the existing Undo.
+5. **The Save picker after a failed write** is opened again on "Try again" (the file it made is gone); the screen asks for it through one one-shot state flag.
+6. **Two failures, two messages:** a file that could not be opened (nothing created) keeps "Couldn't save the backup."; anything failing after the file exists is the new message with the delete.
+7. **"1 photo ... was left out"** (verb agrees with the singular).
+8. **A reload that throws is logged and the page still goes to Done** (the data is restored; a screen may be stale). No approved copy for that case.
+9. **Clicking outside either new dialog** (or Back) is Cancel; for the unreadable-photos dialog Cancel deletes the created file.
+10. **A scheduled failure also removes its own file** (item 7 read to cover it), and "one file per run, nothing deleted" now has this one exception, its own failed run.
+
+### Flags outside scope
+
+- **Item 8 is the owner's/planner's:** a channel name (options in the pre-registration). The `POST_NOTIFICATIONS` runtime permission (declared, API 33+) will need to be asked before a notification can show; nothing asks for it today for this.
+- **A restored region on Replace can be overwritten by a later download** (decision 1).
+- **A save picker "overwrite an existing file" case:** the run cannot tell a file it created from one the user chose to overwrite, so a failed write deletes an existing backup the user picked; the older bytes were already truncated by opening for write.
+- `AvailabilityViewModel.onDownloadAgain` shares its tile-budget check with `onDownloadOfflineMaps` by duplicating the calculation, not by extracting it (a new function rather than a change to the working one).
+- The unreadable-photos and write-failed dialogs, and the Backup section, are not shown over the wide layout's own drawer in any test.
