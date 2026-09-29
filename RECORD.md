@@ -5171,3 +5171,16 @@ It also flagged the snackbar lying over the floating nav.
 **Notes:**
 - Found while checking windows: 1c29a2, the -127 backup window, is busy, and chrome-follow-ups has pushed its tests first (ce952227). The planner infers that the owner put the -104 continuation (launch prompt 9) in 1c29a2. So launch prompt 10 (backup) belongs in a fresh window, not 1c29a2, as the planner had suggested. This is unverified: the planner cannot see which prompt a window holds.
 - Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-142
+**Timestamp:** 2026-09-29T05:20:01Z
+**Continues:** 2026-09-28-104
+**Dispatch-file:** preserved/2026-09-29-16.md
+**Reason:** the owner, verbatim: "A". The -141 chip centring goes to the -104 continuation coder, after its current three items.
+**Changes:** item 9 is added: the Layers sheet's map-type chip row is centred between the panel sides, at the same height. The coder receives it by SendMessage to session 1c29a2, which the planner believes holds -104.
+**Notes:**
+- The message asks the coder to say so if it is not on -104.
+- Written by the planner by hand.
