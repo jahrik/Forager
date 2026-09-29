@@ -5480,3 +5480,52 @@ It also flagged the snackbar lying over the floating nav.
   - Replace keeps a cartography region ref row whose region the backup lacks (-155), so it could meet a future MapLibre id;
   - a Try again after the schedule is turned off posts "didn't finish".
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-157
+**Timestamp:** 2026-09-29T07:17:04Z
+**Dispatch:** 2026-09-28-152 (J6)
+**Reason:** the J6 coder stopped at dispatch item 8, the header.
+- The phone Journal has no header text: its top row is the JournalSwitch (JournalTab.kt:616-624).
+- The wide header (LogPanel.kt:576-590) is also a 48 dp back-arrow row to Search.
+- Nothing is built. Its report is started at 2a88511c on j6.
+**Changes:** none. The header question goes to the owner.
+**Notes:**
+- **The planner's reading:** the wide drawer's other panels also carry a back-arrow header, for example Settings' SettingsHeader(onBack) at AvailabilityScreen.kt:1422. A back row with a label would keep that pattern.
+- **Both prompts went to one window.** The coder took J6 only, correctly, so Part 2 Session 1 (-154) has not started and needs its own window.
+- Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-158
+**Timestamp:** 2026-09-29T07:39:14Z
+**Dispatch:** none yet
+**Reason:** the owner's ship blocker on the Maps icon bar and the record/return pill. The screenshot and the words are recorded verbatim in the plan, under "The icon bar and the record pill: an L shape".
+**Changes:** none yet. A read-only pulse maps the cluster's geometry. The planner's reading, and which layouts it covers, go to the owner before a dispatch.
+**Notes:**
+- Part 2 Session 1's cluster items (38, 39, 42) will need a re-check after the change.
+- The J6 header question (-157) is still open with the owner.
+- Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-159
+**Timestamp:** 2026-09-29T07:46:08Z
+**Continues:** 2026-09-28-152 (J6), and the L-shape request (-158)
+**Dispatch-file:** preserved/2026-09-29-25.md (to the J6 coder by SendMessage)
+**Reason:** the owner, verbatim: "4: Only apply on landscape phone mode. Never on portrait or tablet mode. / The rest I'll take what's recommended."
+**Changes:**
+- **J6's header** is a back-arrow row labelled "Journal", with the Entries / Records switch below it. J6b uses the phone's portrait control arrangement, never the L.
+- **The L** is ruled in full, in the plan under "The L shape: where it applies, and the details":
+  - phone landscape only;
+  - the pill as thick as the bar is wide;
+  - no taller than today, with 48 dp minimums;
+  - the fill removed.
+
+  Its dispatch follows the cluster-geometry pulse.
+- **Part 2 Session 1** starts now. Inventory items 38, 39, 40 and 42 (the landscape cluster, the reshape, and the legend against the cluster) are deferred to after the L.
+**Notes:** Written by the planner by hand.
