@@ -30,6 +30,7 @@ import com.zynergylabs.forager.app.ui.log.CartographyUiState
 import com.zynergylabs.forager.app.ui.map.Basemap
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.map.MapSlot
+import com.zynergylabs.forager.app.ui.track.RecordingNotice
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -113,13 +114,20 @@ class MapChromeEntryMapTest {
 
     private fun layersRow(): SemanticsNodeInteraction = composeRule.onNode(hasContentDescription("Layers:", substring = true))
 
-    private fun pickMapType(label: String) {
+    /**
+     * Picks [label] in the Layers sheet. [closeWithBack] presses the Activity's Back afterwards; the entry map's fullscreen
+     * caller passes `false`, because there that Back does not reach the sheet's dialog window: it reaches the screen's own
+     * `BackHandler`, which leaves fullscreen (`CartographyEntryReportScreen.kt:354`), and the test does that on purpose below.
+     */
+    private fun pickMapType(label: String, closeWithBack: Boolean = true) {
         layersRow().performTouchInput { click(center) }
         composeRule.waitForIdle()
         composeRule.onNodeWithText(label).performTouchInput { click() }
         composeRule.waitForIdle()
-        composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
-        composeRule.waitForIdle()
+        if (closeWithBack) {
+            composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
+            composeRule.waitForIdle()
+        }
     }
 
     private fun openJournal() {
@@ -155,10 +163,11 @@ class MapChromeEntryMapTest {
         composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.CARTOGRAPHY_MAP_TEST_TAG).performTouchInput { click(center) }
         composeRule.mainClock.advanceTimeBy(2_000)
         composeRule.waitForIdle()
-        pickMapType("Satellite")
+        pickMapType("Satellite", closeWithBack = false)
         assertEquals("the entry map took Satellite", Basemap.USGS_IMAGERY_ONLY, recorder.entryMode()?.basemap)
 
-        composeRule.onNodeWithContentDescription("Exit fullscreen").performClick()
+        // Back leaves fullscreen, which unmounts the sheet with it.
+        composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Maps").performClick()
         composeRule.mainClock.advanceTimeBy(2_000)
