@@ -39,6 +39,13 @@ import org.junit.Test
  * markers to below every line, so no ring covers a kept track, the recording trail, the offline
  * outline or another line. The region's halo, border and outline keep their order. The full order and
  * the halos' own placement are re-pinned, and the rings' rule is a new test below.
+ *
+ * The decorations band (dispatch `2026-09-28-100`; the owner, "Option C: decorations to keep it separate. We
+ * can change it if the forecast layering needs changes"): a fifth z-band between areas and lines holds the
+ * three marker rings, and the two line halos stay in the lines band. Nothing on screen changes: the full draw
+ * order is the base's, pinned by a guard. The enum-order pin and the rings' band pin are re-pinned; the band's
+ * contents, the line halos' band and the guard are new tests below. These tests find the band by name
+ * ([decorationsBand]), so they compiled at base, where it did not exist, and failed there on its absence.
  */
 class MapLayerRegistryTest {
 
@@ -112,6 +119,42 @@ class MapLayerRegistryTest {
 
     private fun spec(id: String) = MAP_LAYER_REGISTRY.single { it.id == id }
 
+    /**
+     * The decorations band (dispatch `2026-09-28-100`), or `null` where it does not exist. Found by name so these
+     * tests compiled at base, where `ZGroup` had no such constant, and failed there on the band's absence rather
+     * than on a missing symbol.
+     */
+    private fun decorationsBand(): ZGroup? = ZGroup.entries.singleOrNull { it.name == "DECORATIONS" }
+
+    /**
+     * Every layer, bottom to top, in the order the map draws them with the default state: `orderedLayers` at
+     * base `6dcc3b3` (`app/` equal to `bde2e98`), before the decorations band. Written out rather than derived
+     * from [expectedOrder], so a later re-pin of the registry cannot move it too. The guard passing at base is
+     * what shows this list is the base's order.
+     */
+    private val drawOrderAtBase = listOf(
+        MapLayerIds.FORECAST_CHICKEN_OF_THE_WOODS,
+        MapLayerIds.FORECAST_CHANTERELLES,
+        MapLayerIds.OFFLINE_REGION_FILL,
+        MapLayerIds.JOURNAL_ENTRY_WAYPOINTS,
+        MapLayerIds.JOURNAL_ENTRY_FINDS,
+        MapLayerIds.JOURNAL_ENTRY_PHOTOS,
+        MapLayerIds.JOURNAL_ENTRY_REGIONS,
+        MapLayerIds.OFFLINE_REGION_BORDER,
+        MapLayerIds.OFFLINE_REGION_OUTLINE,
+        MapLayerIds.BREADCRUMB_CASING,
+        MapLayerIds.BREADCRUMB,
+        MapLayerIds.JOURNAL_ENTRY_TRACKS,
+        MapLayerIds.KEPT_TRACKS_CASING,
+        MapLayerIds.KEPT_TRACKS,
+        MapLayerIds.SEARCH_CENTRE,
+        MapLayerIds.SIGHTINGS,
+        MapLayerIds.PLANNED_TRIPS,
+        MapLayerIds.WAYPOINTS,
+        MapLayerIds.FINDS,
+        MapLayerIds.PHOTOS,
+    )
+
     @Test
     fun `every current layer is in the registry exactly once, and nothing else is`() {
         val ids = MAP_LAYER_REGISTRY.map { it.id }
@@ -134,11 +177,12 @@ class MapLayerRegistryTest {
         moved.forEach { assertTrue("$it draws above every line", ids.indexOf(it) > lastLine) }
     }
 
+    /** Dispatch `2026-09-28-100`: the decorations band sits between areas and lines (the owner, "Option C"). */
     @Test
-    fun `the groups run colour fields, areas, lines, markers, bottom to top, and the colour-field group holds the two synthetic layers`() {
+    fun `the groups run colour fields, areas, decorations, lines, markers, bottom to top, and the colour-field group holds the two synthetic layers`() {
         val groups = MAP_LAYER_REGISTRY.map { it.zGroup }
         assertEquals("groups never step down", groups.sortedBy { it.ordinal }, groups)
-        assertEquals(listOf(ZGroup.COLOUR_FIELDS, ZGroup.AREAS, ZGroup.LINES, ZGroup.MARKERS), ZGroup.entries.toList())
+        assertEquals(listOf("COLOUR_FIELDS", "AREAS", "DECORATIONS", "LINES", "MARKERS"), ZGroup.entries.map { it.name })
         assertEquals(colourFields, MAP_LAYER_REGISTRY.filter { it.zGroup == ZGroup.COLOUR_FIELDS }.map { it.id })
         assertEquals("one registry colour field per colour-field spec", colourFields.toSet(), COLOUR_FIELDS.map { it.layerId }.toSet())
         assertEquals(listOf(MapLayerIds.OFFLINE_REGION_FILL), MAP_LAYER_REGISTRY.filter { it.zGroup == ZGroup.AREAS }.map { it.id })
@@ -297,8 +341,9 @@ class MapLayerRegistryTest {
      * below every line layer [lineLayers] names, in the registry and in the order the map draws them
      * ([orderedLayers] with the default state), so a ring covers no line, and below every other marker,
      * the search-centre reticle included. Each ring is still below its own marker, still takes no taps,
-     * and the registry has no problems. The rings sit in the lines band, at its bottom: the bands, their
-     * order and [registryProblems] are unchanged, and the rings stay symbol layers.
+     * and the registry has no problems. The rings stay symbol layers. Since dispatch `2026-09-28-100` they
+     * are the decorations band, which sits between areas and lines, so they draw where they drew when they
+     * were at the bottom of the lines band.
      */
     @Test
     fun `every marker ring draws below every line, still below its own marker, and takes no taps`() {
@@ -317,12 +362,63 @@ class MapLayerRegistryTest {
             }
         }
         rings.forEach { ring ->
-            assertEquals("${ring.id} in the lines band, at its bottom", ZGroup.LINES, ring.zGroup)
+            assertEquals("${ring.id} in the decorations band", decorationsBand(), ring.zGroup)
             assertEquals("${ring.id} still a symbol", LayerRenderer.SYMBOL, ring.renderer)
             assertEquals("${ring.id} takes no taps", TapGroup.NONE, ring.tapGroup)
             assertFalse("${ring.id} is not a tap target", ring.id in tappableLayerIds(drawOrder))
         }
         assertEquals(emptyList<String>(), registryProblems(MAP_LAYER_REGISTRY))
+    }
+
+    /**
+     * Dispatch `2026-09-28-100` (the owner, "Option C: decorations to keep it separate"): the decorations band
+     * holds the three marker rings, waypoints, finds and photos in that order, and no other layer. At base the band
+     * did not exist and the rings were at the bottom of the lines band.
+     */
+    @Test
+    fun `the decorations band holds the three marker rings and nothing else`() {
+        val band = decorationsBand()
+        assertNotNull("no DECORATIONS band in ZGroup: ${ZGroup.entries}", band)
+        assertEquals(markerRings, MAP_LAYER_REGISTRY.filter { it.zGroup == band }.map { it.id })
+    }
+
+    /**
+     * Dispatch `2026-09-28-100`: the two line halos (the offline region outline's and the kept tracks') stay in the
+     * lines band, each directly beneath its own line's casing in the draw order (the region's under the outline's
+     * night border, as `-79` placed it), and no marker ring is left in that band. The halves on the line halos
+     * pass at base, where they were already so; the last fails at base, where the three rings sat at the band's
+     * bottom. That is how the test was seen failing, as the J8 follow-ups and `-79` coders did for unchanged values.
+     */
+    @Test
+    fun `the two line halos stay in the lines band, directly beneath their casings, and no marker ring is in it`() {
+        val lineHalos = listOf(MapLayerIds.JOURNAL_ENTRY_REGIONS, MapLayerIds.JOURNAL_ENTRY_TRACKS)
+        assertEquals("the line halos", lineHalos, MAP_LAYER_REGISTRY.filter { it.drawnWith != null && it.kind == LayerKind.LINE }.map { it.id })
+        lineHalos.forEach { assertEquals("$it in the lines band", ZGroup.LINES, spec(it).zGroup) }
+        val ids = orderedLayers(MAP_LAYER_REGISTRY, MapLayersState.DEFAULT).map { it.id }
+        assertEquals("the region's halo directly beneath the outline's border", ids.indexOf(MapLayerIds.OFFLINE_REGION_BORDER) - 1, ids.indexOf(MapLayerIds.JOURNAL_ENTRY_REGIONS))
+        assertEquals("the tracks' halo directly beneath their casing", ids.indexOf(MapLayerIds.KEPT_TRACKS_CASING) - 1, ids.indexOf(MapLayerIds.JOURNAL_ENTRY_TRACKS))
+        assertEquals(
+            "no marker ring in the lines band",
+            emptyList<String>(),
+            MAP_LAYER_REGISTRY.filter { it.zGroup == ZGroup.LINES && it.id in markerRings }.map { it.id },
+        )
+    }
+
+    /**
+     * **Guard** (dispatch `2026-09-28-100`: "Nothing on screen changes"): the order the map draws every layer in,
+     * bottom to top, is the base's ([drawOrderAtBase]), layer for layer. It is compared for the default state and
+     * for the two colour fields in the other stored order, the two branches of [orderedLayers]. It passes at base
+     * by construction; it is backed by a revert check that puts the decorations band above the lines band.
+     */
+    @Test
+    fun `guard - the full draw order is the base's, layer for layer`() {
+        assertEquals("default state", drawOrderAtBase, orderedLayers(MAP_LAYER_REGISTRY, MapLayersState.DEFAULT).map { it.id })
+        val swapped = MapLayersState(reorderableOrder = colourFields.reversed())
+        assertEquals(
+            "colour fields in the other order",
+            colourFields.reversed() + drawOrderAtBase.drop(colourFields.size),
+            orderedLayers(MAP_LAYER_REGISTRY, swapped).map { it.id },
+        )
     }
 
     /**
