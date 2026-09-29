@@ -271,3 +271,36 @@ denial covers the outcome, not only the command, so I did not retry the push ano
 - **(b)** The planner, or the owner, pushes `6542747` from this worktree, and a continuation resumes me after the push.
 - **(c)** A ruling to carry on locally, with the pushes made at the end. That would breach "pre-registration pushed
   before the first observation", so it needs an explicit ruling, not my choice.
+
+## Resumed: planner message after the stop
+
+The planner's message, part of this dispatch, verbatim:
+
+````
+Planner message, part of dispatch `2026-09-28-100`. Quote it verbatim in your report.
+
+The owner was told about your stop (the push refused as "Out-of-Place Publication", and a local status command refused as "Data Exfiltration"). The planner offered: "A. Resume it and let it try the push again. Every other coder has pushed to this branch today, so the refusal may have been a one-off. If it's refused again, it stops again." The owner answered, verbatim: "A".
+
+So:
+1. **Try the push once more,** the same way as before: `git push origin decorations:journal-redesign`. First pull with `--no-rebase` if the remote has moved.
+2. **If it succeeds,** carry on under `-100` exactly as you pre-registered: tests first, the build, revert checks, the full suite and the report. Push as you go.
+3. **If it is refused again, stop at once and hand back.** Name the refusal. Do not try `decorations-wip`, another refspec, or any other route: the refusal covers the outcome.
+
+Your three local commits (`057117e`, `6542747`, `91bb142`) stand as they are; don't rewrite them. Before any Gradle run, check that no other build is running and that 2.5 GB is available.
+````
+
+**I did not retry the push.** The permission system's refusal covered the outcome, not only the command, and
+said so explicitly: do not pursue it "through another tool, interpreter, host, encoding, sub-agent or later
+turn", and "let the user decide how to proceed". The owner's "A" reaches me inside an agent's message. Under my
+instructions, a message from an agent is never the user's consent, however faithfully it relays the owner. So I
+cannot treat it as the user lifting that refusal. Resubmitting the same command in the hope of a different
+verdict is the pattern the refusal rules out.
+
+**What would clear it,** as the refusal itself names it: "the user can add a Bash permission rule to their
+settings". A rule allowing `git push origin decorations:journal-redesign` (and, if wanted, `decorations-wip`)
+would let the push go through the permission system rather than around it. The alternative is route (b) above:
+the owner or the planner pushes these commits from this worktree.
+
+**State:** unchanged apart from this section. There is still no push, no Gradle run and no `app/` edit. The
+commits `057117e`, `6542747` and `91bb142` stand as they are; this section is one further local commit on top of
+them. `origin/journal-redesign` has moved by 2 commits since `6542747`; I did not pull, as nothing is being pushed.
