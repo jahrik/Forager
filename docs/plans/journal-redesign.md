@@ -827,3 +827,8 @@ The owner ruled, verbatim: **"Option A. Protect then fix."** The planner had off
 2. Then fix the start-up error by dropping the storage move and initialising MapLibre once at start-up, before anything reads.
 
 Intent `2026-09-28-106`. It runs ahead of the other queued builds, and an S22 device check with a full backup follows it.
+
+**The layout fixes' held items (owner, 2026-09-28).** The owner answered verbatim "1 A / 2 A / 3 D" (continuation `2026-09-28-109`):
+1. **J8's chip over the cluster's reset button at 90: move it to the search bar's other end, away from the icon bar.** The planner reads "the chip" as the chip row, the taxon chip and J8's chip together, because J8's chip was ruled "Top, by the species chip". The row sits at the end of the search bar away from the cluster, following the cluster's side. Portrait is unchanged.
+2. **The legend at 270: just inboard of the icon bar,** beside it towards the centre, bottom-aligned, collapsed or expanded, when the cluster is on the legend's side. Otherwise it stays in the corner as today.
+3. **The band between the chip and the coordinate readout: left as map.** J8's design, where the chip takes touches only on its pill, stands. A tap there reaches the map.

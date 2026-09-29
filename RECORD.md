@@ -4545,3 +4545,18 @@ Put to the owner before any fix is written. Written by the planner by hand.
   - the dropdown's programmatic scroll still does not lower the keyboard, despite the comment;
   - Robolectric needs @GraphicsMode(NATIVE) for text geometry.
 - Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-109
+**Timestamp:** 2026-09-29T00:39:57Z
+**Continues:** 2026-09-28-78
+**Dispatch-file:** preserved/2026-09-28-109.md
+**Reason:** the owner ruled on -78's held items, verbatim: "1 A / 2 A / 3 D".
+**Changes:**
+- Item 7: in short landscape the chip row (taxon and J8) aligns to the search bar's end away from the cluster's current side. That the row moves, not J8's chip alone, is the planner's reading, stated to the owner.
+- Items 1 and 2 (landscape): with the cluster on the legend's side, the legend sits just inboard of it, bottom-aligned, collapsed or expanded.
+- Item 8: no change. The band stays map, and J8's pill-only touch design and tests stand.
+- Tests first, revert checks and the full suite, as before.
+**Notes:** Owner, verbatim: "1 A / 2 A / 3 D". Written by the planner by hand.
