@@ -361,7 +361,7 @@ Baseline on this branch, confirmed last pass: 1114 tests, 24 skipped, skip set i
 
 **Coverage stated plainly, per the owner:** under Robolectric `onBackPressedDispatcher.onBackPressed()` reaches the Activity, not the dialog window, so every "back dismisses the prompt" test exercises the handler's toggle path. The dialog window's own back handling (`onDismissRequest`) is device-only coverage. The guarantee — back never exits navigation — holds by either route, and the doc comments at the handler and at the tests say so.
 
-**Not asserted:** the control pill's toggle still exiting directly. Its wiring is unchanged (`onClick = onToggleReturning`, nothing between), but its semantic click is this suite's documented Robolectric no-op (`docs/audits/2026-08-30-return-to-vehicle-semantics-click-noop.md`), so it is on the device list.
+**Not asserted:** the control pill's toggle still exiting directly. Its wiring is unchanged (`onClick = onToggleReturning`, nothing between), but its semantic click is this suite's documented Robolectric no-op (`docs/navigation/2026-08-30-return-to-vehicle-semantics-click-noop.md`), so it is on the device list.
 
 ## Device verification
 

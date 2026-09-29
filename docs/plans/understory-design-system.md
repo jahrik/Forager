@@ -1110,7 +1110,7 @@ running from its doc comment to its closing line:
 
 **Why seam F was held, and why that no longer applies.** The only recorded
 reason for the old hold is the owner acceptance in
-`docs/audits/2026-09-07-return-estimate-prebuild-report.md:366`: "seams F
+`docs/navigation/2026-09-07-return-estimate-prebuild-report.md:366`: "seams F
 and G are held because moving the HUD before stage two would mean moving it
 twice". The wide `MapTab` has no HUD today: `NavigationHud`'s only call site
 is `AvailabilityScreen.kt:4211`, inside `CompactMapTab` (`:3376`). That is

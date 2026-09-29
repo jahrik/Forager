@@ -27,7 +27,7 @@ twice in this repository:
   project owner that the type never identifies the mushroom, and no
   field is or feeds a species suggestion, candidate list, "likely," or
   confidence score.
-- [`docs/plans/forager-navigator-plan.md` §7](plans/forager-navigator-plan.md):
+- [`docs/navigation/forager-navigator-plan.md` §7](navigation/forager-navigator-plan.md):
   "AI identification or edibility advice" is listed under "Deferred
   indefinitely."
 
