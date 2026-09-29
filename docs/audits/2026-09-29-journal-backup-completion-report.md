@@ -504,3 +504,67 @@ The notification's look, sound and its "Backups" entry in the phone's settings; 
 - The retry job runs `ScheduledBackupWorker`, which needs the schedule to be on and a folder chosen; a retry after the person turned the schedule off fails ("the setting is off") and posts "didn't finish" again.
 - Two notifications of different kinds can be on screen at once (separate ids).
 - A restore Replace still keeps a *dangling* entry region ref verbatim (decision 4).
+
+## Follow-ups (-182)
+
+Coder session, dispatch `2026-09-28-182` (`prompts/preserved/2026-09-29-33.md`), worktree `/home/zynergy-labs/Zynergy/forager-wt/followups-backup`, branch `followups-backup`. Written by the coder; the planner writes the record. Nothing above this heading is rewritten.
+
+**Model.** The session is configured for `claude-sonnet-5-5` (the system prompt names it). I cannot read the serving model from inside the session, so I do not claim it.
+
+### Governing text, verbatim
+
+The dispatch's seven items (`prompts/preserved/2026-09-29-33.md`, "Build"): "No duplicate regions on restore (owner 3.1). Replace and Merge both skip an incoming offline region that matches one already on the phone: the same name, the same centre within 1 m, and the same radius. Its entry references are rewritten to the matching region."; "The first scheduled backup waits (owner 3.2). Turning the schedule on, or off and on, does not run a backup at once. The first run is at its scheduled interval."; "Keep the newest 5 scheduled backups (owner 3.3). After a successful scheduled run, delete the oldest scheduled backups beyond 5. Only files the scheduled job itself created and recorded (for example, their URIs kept in the backup DataStore) are ever deleted. Manual backups and any other file in the folder are never touched. A failed delete is logged at WARN and never fails the backup. Stop if the recorded list cannot be kept reliably."; "Ask for notification permission once (owner 3.4). It is asked only the first time scheduled backups are turned on. If it is declined, it is not asked again for backups; the in-app next-launch notice covers it. The recording notification's own request is out of scope; leave it as it is."; "A deleted find still shown after Replace (Session 3, a bug). ... After a restore, every open entry or find whose record no longer exists is closed, as the post-restore reload clears the other screens."; "Replace and an orphaned region reference (-155, -156). ... Replace drops such rows, as Merge already does. Count and log them."; "\"Try again\" after the schedule is off (-153 flag). A notification's Try again runs one backup to the saved folder whether or not the schedule is still on. If the folder's permission is gone, it posts the existing failure and opens the Backup section when tapped."
+
+The owner's rulings (`docs/plans/journal-redesign.md`, "Tracks by zoom, revised, and Session 3's backup findings", part 3), verbatim: "2 A, 3 I'll take your recommendations", the recommendations being: "A restore skips a region that matches one already on the phone (same name, centre and radius), so the phone that made the backup does not get duplicates."; "The first scheduled backup waits for its scheduled time. Turning the schedule on, or off and on, does not run one at once."; "Scheduled backups keep the newest 5. Older scheduled backup files in the chosen folder are deleted. Manual backups are never touched."; "The notification permission is asked once, when scheduled backups are first turned on. If it is declined, it is not asked again for backups; the in-app notice covers it."
+
+The dispatch's rules: "Tests first, pushed failing. Revert checks from saved copies. The full suite at 0 failures. Push to journal-redesign. No device. Merge is not authorised. The machine checks as in F1. Never run `--stop`. A device-only list for the next S22 session."
+
+### Base, verified
+
+`git fetch origin journal-redesign`: the remote head is `3bf69e67` ("F2 launch prompt: BASE cb01395d"). The planner-named base `cb01395d` is an ancestor of it (`git merge-base --is-ancestor`), and `git diff --stat cb01395d origin/journal-redesign` is one file, `prompts/preserved/2026-09-29-35.md`, one line. No app code differs. The worktree is cut from `origin/journal-redesign` at `3bf69e67`, as the dispatch says. `docs/audits/README.md`, `RECORD.md`, `CLAUDE.md`, `docs/plans/` and `prompts/` are not touched by this work.
+
+Note in passing: the memory note "owner stopped all agents 2026-09-29" is older than this dispatch; the owner opened this session, so I treat the dispatch as current.
+
+### Premises read at the base (file:line), and what each item needs
+
+| Item | What the code does now (read) | Change |
+|---|---|---|
+| 1 | Replace re-ids every incoming region from -1 (`RoomJournalBackup.kt:237-247`); Merge gives each incoming region a new id and never skips one (`:296-302`). Region columns: `name`, `lat`, `lng`, `radiusKm: Int` (`OfflineRegionEntity.kt:29-37`). | Both modes map an incoming region that matches a phone region (name equal, centre within 1 m, `radiusKm` equal) to that region's id, insert nothing, and rewrite the refs to it. |
+| 2 | `WorkManagerBackupScheduler.apply` builds the periodic request with no initial delay (`ScheduledBackup.kt:79`); Session 3 saw a run at each enable/toggle. `apply` is called only from `BackupViewModel.changeSchedule` (`BackupViewModel.kt:386`; `AppContainer.kt:219-221`), never at launch. | `setInitialDelay(interval)` on the request. |
+| 3 | `RunScheduledBackupUseCase` writes one file per run and deletes nothing (`BackupSchedule.kt:75-107`); the prefs interface has no list of files (`:26-35`). | The prefs gain a recorded list of the job's own file URIs; after a successful run the use case appends the new URI, trims the record to the newest 5, then deletes the ones trimmed off. |
+| 4 | `BackupSection.kt:88-95` launches the request on every switch-on with a folder chosen; nothing remembers it. | The ViewModel decides once, from a persisted flag, and raises a one-shot request the section acts on. |
+| 5 | `MushroomLogViewModel.loadEntries` keeps `editingEntry` and only merges its photos (`MushroomLogViewModel.kt:269-275`); `CartographyViewModel.loadEntries` does not touch `editingEntry` (`CartographyViewModel.kt:95-110`). `MainActivity.kt:181-190` reloads through those two. | A new `reloadAfterRestore()` on each (not a condition in `loadEntries`) that reloads and closes an open row whose id is in neither fresh list; `MainActivity` calls it. |
+| 6 | Replace's transform for `cartography_entry_offline_region_refs` leaves the row as is when the region is not in the backup (`RoomJournalBackup.kt:253-255`); `RestoreReport.rowsDropped` is passed as 0 (`:267`). | Replace skips such a row, counts it in `rowsDropped`, logs it at WARN as Merge does (`:348-352`). |
+| 7 | The Try again receiver enqueues the same worker with no input (`AndroidBackupNotifier.kt:112-113`); the use case fails when the setting is off (`BackupSchedule.kt:90`). | The receiver marks its one-time request as a retry; the worker passes that to the use case, which then does not require the setting to be on (a folder is still required). |
+
+### Pre-registration
+
+Each prediction is stated before any test is written or run. "At base" means at `3bf69e67`, with only the signature stubs the tests need in order to compile (no behaviour).
+
+**Tests-first (predicted to fail at base, each on an assertion, not on a compile error):**
+
+| # | Test (class, in the tests-first commit) | Pass condition | Predicted at base |
+|---|---|---|---|
+| 1a | `JournalBackupTest`: Replace of a backup onto the phone that made it | `offline_regions` count unchanged (2 for 2), the refs point at the live regions' own ids | FAILS: rows are re-id'd negative, so the count is 4 or ids differ |
+| 1b | `JournalBackupTest`: Merge of a backup onto the phone that made it | `rowsInserted` 0 for regions, region count unchanged | FAILS: it inserts each region again (the existing test at `JournalBackupTest.kt:426-440` asserts exactly that, and is rewritten in this commit) |
+| 1c | `JournalBackupTest`: differences that must NOT match: another name, a centre 2 m off, another radius | each is inserted as a new region; a centre 0.5 m off matches | passes at base for the "not matched" cases (base inserts everything); the 0.5 m case FAILS. The "not matched" cases are the guard that the rule is not "always skip", and are flagged as passing at base by design |
+| 2a | `ScheduledBackupTest`: WorkManager test driver, counting worker | nothing runs at enqueue; one run after the initial delay is met | FAILS: the periodic first run happens at once |
+| 2b | same: off then on again, and a frequency change while on | no run at either | FAILS at the off/on |
+| 3a | `ScheduledBackupTest` (use case): 7 runs | 5 files remain, the 2 oldest recorded ones were deleted, in order | FAILS: nothing is deleted |
+| 3b | same: a manual backup and an unrelated file in the folder | never deleted, though older than everything | passes at base (nothing is ever deleted) — flagged: it can only fail once pruning exists, so its value is in the revert check (a prune that deletes by folder listing) |
+| 3c | same: a failed delete | logged at WARN, the run still a success, the entry not kept forever | FAILS at base only via 3a's precondition |
+| 3d | same: a failed run records nothing and prunes nothing; an unreadable record prunes nothing and the run succeeds | as stated | 3d-failed-run passes at base (flagged, as 3b); the unreadable-record case FAILS to compile-stub only if stubs differ, so it is asserted on the log line |
+| 3e | `ScheduledBackupTest` (DataStore): the recorded list reads back in order | equal | FAILS against the stub |
+| 4a | `BackupViewModelTest`: turn on with a folder | one-shot request raised the first time; off, on again: not raised; a new ViewModel over the same prefs: not raised | FAILS: no such state |
+| 4b | `BackupSettingsScreenTests` (real screen): on, off, on | exactly 1 permission launch; with the flag already set, 0 | FAILS at on-off-on: 2 launches |
+| 5a | `MushroomLogViewModelTest`: open find deleted behind the screen's back, then `reloadAfterRestore()` | `editingEntry` null; a still-present open find stays open | FAILS against the stub (which only reloads) |
+| 5b | `CartographyViewModelTest`: the same for an entry | `editingEntry` null, candidates and unsaved flag cleared | FAILS against the stub |
+| 6 | `JournalBackupTest`: Replace with an orphan region ref | orphan row absent, `rowsDropped` 1, one WARN naming it | FAILS: the row is kept, `rowsDropped` 0 |
+| 7a | `ScheduledBackupTest`: real `BackupRetryReceiver.onReceive` with the setting off | one file created in the saved folder | FAILS: the use case refuses, nothing written |
+| 7b | same: folder unreadable and setting off | `createInFolder` attempted once, `DidNotFinish` reported | FAILS on the attempt count (0 at base): the notice alone would also be posted at base, for the wrong reason (the setting), so the assertion is on the attempt |
+
+**Mechanism predictions:** (a) tests 2 fail at base because test-mode WorkManager runs a periodic first run at once (the existing test file's own comment, `ScheduledBackupTest.kt` "infos", says so); if a 2 test passes at base, the check is not seeing the run and is wrong. (b) The three existing tests that assert the old behaviour, `JournalBackupTest.kt:426` and the notification tests at `BackupSettingsScreenTest.kt:418-466` for on-off-on, are rewritten or extended in the tests-first commit because the ruled behaviour replaces theirs, not to silence them; each is named in the hand-back.
+
+**Unverified at the start:** whether `setInitialDelay` on a periodic request under `ExistingPeriodicWorkPolicy.UPDATE` holds when the frequency is changed while a job is pending (test 2b decides); whether `MainActivity`'s reload lambda can be driven headless (I predict not; its two calls are then covered by the ViewModel tests and the wiring is a device item).
+
+**Stop conditions I will honour:** an unruled choice; a tests-first test that passes at base where failure is predicted (other than those flagged above); the recorded list of item 3 not keepable reliably; two failed fixes on one symptom; a revert build that does not compile; a refused push.
