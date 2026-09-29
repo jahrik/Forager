@@ -100,6 +100,14 @@ class MarkerFanOutHostTest {
 
     private companion object {
         const val FRAME_MS = 16
+
+        /** The owner's ".4s", written out on purpose: comparing to the production constant would move with it. */
+        const val OWNER_DURATION_MS = 400
+    }
+
+    @Test
+    fun `the duration constant is the owner's 400 ms`() {
+        assertEquals(400, com.zynergylabs.forager.app.ui.map.fanout.FAN_DURATION_MS)
     }
 
     // Rule 6: 0.4 s.
@@ -128,7 +136,7 @@ class MarkerFanOutHostTest {
         val frames = framesToReach(end = 1f, start = 0f)
         // The first moved frame is one frame in, so the animation ran (frames + 1) frames of FRAME_MS.
         val ran = (frames + 1) * FRAME_MS
-        assertTrue("the fan-out ran $ran ms, not $FAN_DURATION_MS", ran in FAN_DURATION_MS..FAN_DURATION_MS + FRAME_MS)
+        assertTrue("the fan-out ran $ran ms, not $OWNER_DURATION_MS", ran in OWNER_DURATION_MS..OWNER_DURATION_MS + FRAME_MS)
         assertTrue(state.isOpen)
     }
 
@@ -140,7 +148,7 @@ class MarkerFanOutHostTest {
         composeRule.mainClock.advanceTimeByFrame() // animation clock starts
         advance(200)
         assertTrue("part way at about 200 ms, was ${state.progress}", state.progress in 0.05f..0.95f)
-        advance(FAN_DURATION_MS - 200L - 2 * FRAME_MS)
+        advance(OWNER_DURATION_MS - 200L - 2 * FRAME_MS)
         assertTrue("about 384 ms in, not done: ${state.progress}", state.progress < 1f)
     }
 
@@ -155,7 +163,7 @@ class MarkerFanOutHostTest {
         assertEquals("its markers are still drawn while it folds", 3, state.members.size)
         val frames = framesToReach(end = 0f, start = 1f)
         val ran = (frames + 1) * FRAME_MS
-        assertTrue("the fold-back ran $ran ms, not $FAN_DURATION_MS", ran in FAN_DURATION_MS..FAN_DURATION_MS + FRAME_MS)
+        assertTrue("the fold-back ran $ran ms, not $OWNER_DURATION_MS", ran in OWNER_DURATION_MS..OWNER_DURATION_MS + FRAME_MS)
         assertTrue("released once folded", state.members.isEmpty())
     }
 
