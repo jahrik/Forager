@@ -414,6 +414,41 @@ was read at three points (before the trips, after them, after the relaunch). Tha
 hands the map an empty list. (Corrected in the commit after `a46c992`, which said the Trip Planner line was read "in
 every one of those states"; it was read at three.)
 
+### Phase 2, check 2-S: the search (the recent "Fungi · August" re-run)
+
+- A touch on the bar's text (500, 132) opened the dropdown (`60-p2-search-open`), and a touch on "Recent searches"
+  expanded it (`61-p2-recent-open`): "Fungi · September" and "Fungi · August", each "cached 19 hours ago", with the same
+  region (its coordinates are in the dumps, not here).
+- **A stray touch on the keyboard (a deviation).** The Samsung keyboard was up from the first touch; I read the dumps,
+  which do not include the keyboard's window, and not the screenshots, so my touch meant for the August row, at
+  (215, 1465), landed on the keyboard's toolbar about 70 px from its Galaxy AI button (`61-p2-recent-open-crop.png`), and
+  the keyboard showed its writing-assist panel ("Spelling and grammar", "Writing style", "Composer";
+  `63-p2-after-search`, whose dump is identical to `61-`'s: nothing in Forager changed). **No dialog, consent or sign-in
+  appeared.** I judged the panel part of the keyboard, not a system prompt, did not touch it, and lowered it with the
+  system Back key (`64-p2-after-back-1.png`, screenshot only; `dumpsys input_method` `mInputShown=false`), as `-84` lowered
+  the keyboard (Decisions I made, 9; flag 3).
+- With the keyboard down, a touch on the August card's centre (300, 1520) at 00:38:5xZ ran the search. After 7 s
+  (`66-p2-after-search`) **the bar reads "August · 5 mi"**: `region` is set (`AvailabilitySearchUi.kt:565`). The Trip
+  Planner (`68-p2-trip-planner`) lists both trips and, **in place of the "Choose a region…" line, rain-driven trip windows**
+  ("7–9 days after 1.2 in of rain ending Sep 25", …): `hasSearched` is true (ATWU:62-63).
+- **The camera did not move:** `66-` against `55-p1-relaunch` dx 0, dy 0 (score 0.13). The puck was tracking since the
+  relaunch, so the region move was skipped (SM:640-662, as read). So the trips' points are where phase 1 put them.
+- **Verdict: as predicted** (the gate's state changed; no sightings error; no spinner left on screen).
+
+### Check 2-1: after the search, at the placing zoom
+
+| Trip | Capture | Trip pixels (`#9553A4`) | Cluster bounds | Predicted point | Seen | Verdict |
+|---|---|---|---|---|---|---|
+| A | `66-p2-after-search` (crop `66-p2-after-search-crop.png`) | **2175 px** | `[536,1354][591,1431]` = 19.9 x 27.7 dp | (540, 1432) | a purple flag, white casing, its pole foot at the point | **draws** |
+| B | `66-p2-after-search` | **2175 px** | `[536,1590][591,1667]` = 19.9 x 27.7 dp | (540, 1668) | the same | **draws** |
+
+- The map-wide count is 4350 px in exactly these two clusters and nothing else (baseline 0). The clusters' size is the
+  glyph's 20 x 28 dp (MG:41-42); their bottom edges are 1 px above the pre-registered points, and their 236 px separation
+  is the placing pan.
+- Sighting dots also appeared with the search (grey discs across the map; ACMU:576-580 gates them the same way).
+- **This is the reproduction:** the same two trips, at the same camera, in the same process, draw nothing for 20
+  captures while `region` is null, and draw as soon as a search sets it, with nothing else changed.
+
 ## Appendix: the dispatch and the launch message, verbatim
 
 ### `prompts/preserved/2026-09-28-94.md` at `ae0b90f`, the whole file
