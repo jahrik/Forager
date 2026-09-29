@@ -43,11 +43,12 @@ class ScheduledBackupTest {
     private val noon = 1_790_000_000_000L // a fixed instant, so the file name is a known date
     private val clock = CurrentTimeProvider { noon }
     private val files = FakeBackupFiles()
+    private val logged = mutableListOf<String>()
     private val backup = FakeJournalBackup()
     private val on = BackupScheduleSettings(enabled = true, frequency = BackupFrequency.WEEKLY, folderUri = "content://tree/backups")
 
     private fun useCase(prefs: BackupScheduleSettings) =
-        RunScheduledBackupUseCase(backup, FakeSchedulePreferences(prefs), files, clock, zone)
+        RunScheduledBackupUseCase(backup, FakeSchedulePreferences(prefs), files, clock, zone, ErrorLog { _, m, e -> logged += "$m :: ${e.message}" })
 
     // ---- the settings file ---------------------------------------------------------------------
 
@@ -91,6 +92,7 @@ class ScheduledBackupTest {
 
         assertEquals(2, files.created.size)
         assertEquals("both files are still there", 2, files.written.size)
+        assertTrue("and nothing was deleted", files.deleted.isEmpty())
     }
 
     @Test
@@ -111,6 +113,42 @@ class ScheduledBackupTest {
 
         assertTrue("names the folder: ${result.exceptionOrNull()}", result.exceptionOrNull().let { it is com.zynergylabs.forager.app.domain.BackupException && "folder" in it.message!! })
         assertEquals("nothing was reported as written", 0, backup.backUps)
+    }
+
+    @Test
+    fun `a scheduled run that meets unreadable photos skips them and saves the backup, reporting how many`() = runBlocking {
+        backup.unreadablePhotos = 2
+
+        val result = useCase(on)()
+
+        assertEquals(2, result.getOrThrow().photoFilesMissing)
+        assertEquals("it never asks: there is no screen", listOf(com.zynergylabs.forager.app.domain.UnreadablePhotoPolicy.SKIP), backup.policies)
+        assertTrue(files.deleted.isEmpty())
+        assertEquals(1, files.created.size)
+    }
+
+    @Test
+    fun `a scheduled run whose write fails deletes the file it created, and only that file`() = runBlocking {
+        useCase(on)() // an earlier, good backup already in the folder
+        val earlier = files.written.keys.single()
+        backup.failWrite = true
+
+        val result = useCase(on)()
+
+        assertTrue(result.isFailure)
+        assertEquals("only the file this run created", listOf(files.created.last().let { "${it.first}/${it.second}#2" }), files.deleted)
+        assertTrue("the earlier backup is untouched", earlier in files.written.keys)
+    }
+
+    @Test
+    fun `a delete that fails is logged at warn and the run is still reported as a failure`() = runBlocking {
+        backup.failWrite = true
+        files.failDelete = true
+
+        val result = useCase(on)()
+
+        assertTrue(result.isFailure)
+        assertTrue("logged: $logged", logged.any { "delete" in it })
     }
 
     // ---- the worker ----------------------------------------------------------------------------

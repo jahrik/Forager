@@ -24,7 +24,9 @@ class BackupViewModelTest {
     private val scheduler = FakeScheduler()
     private val files = FakeBackupFiles()
     private val logged = mutableListOf<String>()
-    private var restoredCallbacks = 0
+    private var reloads = 0
+    private var recording = false
+    private var reloadGate: kotlinx.coroutines.CompletableDeferred<Unit>? = null
 
     private fun viewModel() = BackupViewModel(
         backup = backup,
@@ -33,7 +35,8 @@ class BackupViewModelTest {
         files = files,
         errorLog = ErrorLog { _, message, error -> logged += "$message :: ${error.message}" },
         ioDispatcher = Dispatchers.Unconfined,
-        afterRestore = { restoredCallbacks++ },
+        isRecording = { recording },
+        reloadAfterRestore = { reloads++; reloadGate?.await() },
     )
 
     private fun BackupViewModel.state() = uiState.value
@@ -124,13 +127,14 @@ class BackupViewModelTest {
     }
 
     @Test
-    fun `a backup that fails says Couldn't save the backup, logs why, and is not shown as saved`() {
+    fun `a backup that fails after its file exists removes the file and asks, rather than saying Couldn't save`() {
         backup.failBackUp = true
         val vm = viewModel()
 
         vm.controls(vm.state()).onBackUpNow("content://docs/x.zip")
 
-        assertEquals(BackupMessage.BACKUP_FAILED, vm.state().message)
+        assertEquals(BackupPrompt.WriteFailed, vm.state().prompt)
+        assertEquals(listOf("content://docs/x.zip"), files.deleted)
         assertTrue(logged.any { "backup failed" in it })
     }
 
@@ -214,21 +218,247 @@ class BackupViewModelTest {
         assertTrue(backup.restored.isEmpty())
     }
 
-    @Test
-    fun `a successful restore tells the app so its screens can reload, and a failed or cancelled one does not`() {
-        files.contents["content://docs/b.zip"] = "PK".toByteArray()
-        val ok = viewModel()
-        ok.controls(ok.state()).onRestoreFileChosen("content://docs/b.zip")
-        ok.controls(ok.state()).onRestoreConfirmed(RestoreMode.REPLACE)
-        assertEquals("after a restore that worked", 1, restoredCallbacks)
+    // ---- item 3: unreadable photos pause the backup -------------------------------------------
 
+    @Test
+    fun `unreadable photos pause the backup before anything is written, and the prompt says how many`() {
+        backup.unreadablePhotos = 3
+        val vm = viewModel()
+
+        vm.controls(vm.state()).onBackUpNow("content://docs/x.zip")
+
+        assertEquals(BackupPrompt.UnreadablePhotos(3, "content://docs/x.zip"), vm.state().prompt)
+        assertEquals("3 photos couldn't be backed up.", (vm.state().prompt as BackupPrompt.UnreadablePhotos).text)
+        assertNull("not shown as a saved or failed backup", vm.state().message)
+        assertEquals("nothing was written before the person chose", 0, files.written.getValue("content://docs/x.zip").size())
+        assertTrue("and nothing was deleted", files.deleted.isEmpty())
+    }
+
+    @Test
+    fun `one unreadable photo is worded in the singular`() {
+        backup.unreadablePhotos = 1
+        val vm = viewModel()
+
+        vm.controls(vm.state()).onBackUpNow("content://docs/x.zip")
+
+        assertEquals("1 photo couldn't be backed up.", (vm.state().prompt as BackupPrompt.UnreadablePhotos).text)
+    }
+
+    @Test
+    fun `Continue without files saves the backup without them and says how many were left out`() {
+        backup.unreadablePhotos = 2
+        val vm = viewModel()
+        vm.controls(vm.state()).onBackUpNow("content://docs/x.zip")
+
+        vm.controls(vm.state()).onPhotosContinue()
+
+        assertEquals(listOf(com.zynergylabs.forager.app.domain.UnreadablePhotoPolicy.ASK, com.zynergylabs.forager.app.domain.UnreadablePhotoPolicy.SKIP), backup.policies)
+        assertTrue(FakeJournalBackup.BACKUP_BYTES.contentEquals(files.written.getValue("content://docs/x.zip").toByteArray()))
+        assertEquals(BackupMessage.SavedWithoutPhotos(2), vm.state().message)
+        assertEquals("Backup saved, but 2 photos couldn't be found and were left out.", vm.state().message!!.text)
+        assertNull(vm.state().prompt)
+    }
+
+    @Test
+    fun `one photo left out is worded in the singular, verb and all`() {
+        assertEquals("Backup saved, but 1 photo couldn't be found and was left out.", BackupMessage.SavedWithoutPhotos(1).text)
+    }
+
+    @Test
+    fun `Try again reads the photos again, and saves the backup if they can be read now`() {
+        backup.unreadablePhotos = 2
+        val vm = viewModel()
+        vm.controls(vm.state()).onBackUpNow("content://docs/x.zip")
+        backup.unreadablePhotos = 0
+
+        vm.controls(vm.state()).onPhotosTryAgain()
+
+        assertEquals(BackupMessage.BACKUP_SAVED, vm.state().message)
+        assertNull(vm.state().prompt)
+        assertTrue("it asked again, it did not skip", backup.policies.all { it == com.zynergylabs.forager.app.domain.UnreadablePhotoPolicy.ASK })
+    }
+
+    @Test
+    fun `Try again with the photos still unreadable asks again`() {
+        backup.unreadablePhotos = 2
+        val vm = viewModel()
+        vm.controls(vm.state()).onBackUpNow("content://docs/x.zip")
+
+        vm.controls(vm.state()).onPhotosTryAgain()
+
+        assertEquals(2, (vm.state().prompt as BackupPrompt.UnreadablePhotos).count)
+        assertEquals(2, backup.backUps)
+    }
+
+    @Test
+    fun `Cancel saves nothing and deletes the file this run created, and only that file`() {
+        backup.unreadablePhotos = 2
+        val vm = viewModel()
+        vm.controls(vm.state()).onBackUpNow("content://docs/x.zip")
+
+        vm.controls(vm.state()).onPhotosCancel()
+
+        assertEquals(listOf("content://docs/x.zip"), files.deleted)
+        assertNull(vm.state().prompt)
+        assertNull("cancelled is not a failure and not a save", vm.state().message)
+    }
+
+    // ---- item 7: a failed write removes its own file ------------------------------------------
+
+    @Test
+    fun `a write that fails after the file exists deletes that file and asks, with the owner's words`() {
+        backup.failWrite = true
+        val vm = viewModel()
+
+        vm.controls(vm.state()).onBackUpNow("content://docs/x.zip")
+
+        assertEquals(listOf("content://docs/x.zip"), files.deleted)
+        assertEquals(BackupPrompt.WriteFailed, vm.state().prompt)
+        assertEquals("Couldn't finish the backup. The incomplete file was removed.", BackupPrompt.WriteFailed.TEXT)
+        assertNull("the older message is not also shown", vm.state().message)
+        assertTrue("the reason is logged: $logged", logged.any { "the write failed" in it })
+    }
+
+    @Test
+    fun `Try again after a failed write asks the screen to open the Save picker again`() {
+        backup.failWrite = true
+        val vm = viewModel()
+        vm.controls(vm.state()).onBackUpNow("content://docs/x.zip")
+
+        vm.controls(vm.state()).onWriteFailedTryAgain()
+
+        assertNull(vm.state().prompt)
+        assertTrue(vm.state().createFileRequested)
+        vm.controls(vm.state()).onCreateFileRequestHandled()
+        assertFalse(vm.state().createFileRequested)
+    }
+
+    @Test
+    fun `Cancel after a failed write closes the prompt and does not ask for a file`() {
+        backup.failWrite = true
+        val vm = viewModel()
+        vm.controls(vm.state()).onBackUpNow("content://docs/x.zip")
+
+        vm.controls(vm.state()).onWriteFailedCancel()
+
+        assertNull(vm.state().prompt)
+        assertFalse(vm.state().createFileRequested)
+    }
+
+    @Test
+    fun `a delete that fails is logged at warn and the person is told nothing extra`() {
+        backup.failWrite = true
+        files.failDelete = true
+        val vm = viewModel()
+
+        vm.controls(vm.state()).onBackUpNow("content://docs/x.zip")
+
+        assertEquals("still the same prompt", BackupPrompt.WriteFailed, vm.state().prompt)
+        assertTrue("the failed delete is logged: $logged", logged.any { "delete" in it && "x.zip" in it })
+        assertNull(vm.state().message)
+    }
+
+    // ---- item 5: no restore while recording ---------------------------------------------------
+
+    @Test
+    fun `a restore cannot be started while a track is recording, and nothing is touched`() {
+        recording = true
+        files.contents["content://docs/b.zip"] = "PK".toByteArray()
+        val vm = viewModel()
+
+        val allowed = vm.controls(vm.state()).onRestoreRequested()
+
+        assertFalse(allowed)
+        assertEquals(BackupMessage.RESTORE_BLOCKED_WHILE_RECORDING, vm.state().message)
+        assertEquals("Stop recording before restoring a backup.", vm.state().message!!.text)
+        assertNull(vm.state().pendingRestoreUri)
+        assertTrue(backup.restored.isEmpty())
+    }
+
+    @Test
+    fun `with no recording a restore may start`() {
+        val vm = viewModel()
+
+        assertTrue(vm.controls(vm.state()).onRestoreRequested())
+        assertNull(vm.state().message)
+    }
+
+    @Test
+    fun `a recording that starts while the prompt is up still blocks Replace and Merge, and restores nothing`() {
+        files.contents["content://docs/b.zip"] = "PK".toByteArray()
+        val vm = viewModel()
+        vm.controls(vm.state()).onRestoreFileChosen("content://docs/b.zip")
+        recording = true
+
+        vm.controls(vm.state()).onRestoreConfirmed(RestoreMode.REPLACE)
+
+        assertTrue(backup.restored.isEmpty())
+        assertEquals(BackupMessage.RESTORE_BLOCKED_WHILE_RECORDING, vm.state().message)
+        assertNull(vm.state().pendingRestoreUri)
+    }
+
+    // ---- item 6: the loading page ----------------------------------------------------------------
+
+    @Test
+    fun `after a restore the page is Loading while the screens reload, then Done`() {
+        files.contents["content://docs/b.zip"] = "PK".toByteArray()
+        reloadGate = kotlinx.coroutines.CompletableDeferred()
+        val vm = viewModel()
+        vm.controls(vm.state()).onRestoreFileChosen("content://docs/b.zip")
+
+        vm.controls(vm.state()).onRestoreConfirmed(RestoreMode.REPLACE)
+
+        assertEquals("the reload has begun and is held", 1, reloads)
+        assertEquals(RestorePage.LOADING, vm.state().restorePage)
+
+        reloadGate!!.complete(Unit)
+
+        assertEquals(RestorePage.DONE, vm.state().restorePage)
+    }
+
+    @Test
+    fun `a failed restore shows no loading page and reloads nothing`() {
         backup.failRestore = true
-        val bad = viewModel()
-        bad.controls(bad.state()).onRestoreFileChosen("content://docs/b.zip")
-        bad.controls(bad.state()).onRestoreConfirmed(RestoreMode.REPLACE)
-        val cancelled = viewModel()
-        cancelled.controls(cancelled.state()).onRestoreFileChosen("content://docs/b.zip")
-        cancelled.controls(cancelled.state()).onRestoreCancelled()
-        assertEquals("not after one that failed or was cancelled", 1, restoredCallbacks)
+        files.contents["content://docs/b.zip"] = "PK".toByteArray()
+        val vm = viewModel()
+        vm.controls(vm.state()).onRestoreFileChosen("content://docs/b.zip")
+
+        vm.controls(vm.state()).onRestoreConfirmed(RestoreMode.MERGE)
+
+        assertEquals(RestorePage.NONE, vm.state().restorePage)
+        assertEquals(0, reloads)
+    }
+
+    @Test
+    fun `tapping Done asks the screen for the Maps tab at once, and the page leaves after its animation`() {
+        files.contents["content://docs/b.zip"] = "PK".toByteArray()
+        val vm = viewModel()
+        vm.controls(vm.state()).onRestoreFileChosen("content://docs/b.zip")
+        vm.controls(vm.state()).onRestoreConfirmed(RestoreMode.REPLACE)
+        assertEquals(RestorePage.DONE, vm.state().restorePage)
+        assertEquals(0, vm.state().returnToMapRequest)
+
+        vm.controls(vm.state()).onRestoreDoneTapped()
+
+        assertEquals("the Maps tab is requested at the tap, not after the animation", 1, vm.state().returnToMapRequest)
+        assertEquals(RestorePage.LEAVING, vm.state().restorePage)
+
+        vm.controls(vm.state()).onRestorePageLeft()
+
+        assertEquals(RestorePage.NONE, vm.state().restorePage)
+    }
+
+    @Test
+    fun `Done is not offered before the reload has finished`() {
+        reloadGate = kotlinx.coroutines.CompletableDeferred()
+        files.contents["content://docs/b.zip"] = "PK".toByteArray()
+        val vm = viewModel()
+        vm.controls(vm.state()).onRestoreFileChosen("content://docs/b.zip")
+        vm.controls(vm.state()).onRestoreConfirmed(RestoreMode.REPLACE)
+
+        vm.controls(vm.state()).onRestoreDoneTapped()
+
+        assertEquals("a tap while loading does nothing", RestorePage.LOADING, vm.state().restorePage)
+        assertEquals(0, vm.state().returnToMapRequest)
     }
 }

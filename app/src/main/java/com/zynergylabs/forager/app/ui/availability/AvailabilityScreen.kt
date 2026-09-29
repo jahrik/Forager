@@ -487,6 +487,10 @@ fun AvailabilityScreen(
      * Defaulted, so a caller with no backup still composes the section, inert.
      */
     backup: BackupControls = BackupControls(),
+    /** Counts up when the person taps Done on the restore page: go to the Maps tab and close the drawer. */
+    returnToMapRequest: Int = 0,
+    /** "Download again" on a restored offline region. */
+    onDownloadAgain: (Long) -> Unit = {},
     /** Settings' Light/Dark/System Default theme choice — see [AvailabilityUiState.themeMode]'s own doc comment. */
     onThemeModeChanged: (AppThemeMode) -> Unit,
     /**
@@ -1027,6 +1031,18 @@ fun AvailabilityScreen(
         }
     }
 
+    // Tapping Done on the restore's loading page goes home (dispatch 2026-09-28-137, item 6): the Maps tab, the drawer
+    // closed. The same two writes as "View on Map" above (onViewSpeciesOnMap): both tab states are set unconditionally,
+    // since only the one the active layout reads has any effect. Keyed on the request's count, so a tab the person is
+    // already on is set again harmlessly and 0, the default, does nothing.
+    LaunchedEffect(returnToMapRequest) {
+        if (returnToMapRequest > 0) {
+            isDrawerOpen = false
+            compactTab = CompactTab.MAP
+            selectedTab = ResultsTab.MAP
+        }
+    }
+
     LaunchedEffect(selectedTab, uiState.region, uiState.selectedMonth, uiState.taxonFilter) {
         if (selectedTab == ResultsTab.MAP) onMapTabSelected()
         if (selectedTab == ResultsTab.SEASONAL) onSeasonalTabSelected()
@@ -1493,6 +1509,7 @@ fun AvailabilityScreen(
                     onOfflineMapsOpened = onOfflineMapsOpened,
                     onDownloadOfflineMaps = onDownloadOfflineMaps,
                     onDeleteOfflineRegion = onDeleteOfflineRegion,
+                    onDownloadAgain = onDownloadAgain,
                     tracks = tracks,
                     onTracksOpened = onTracksOpened,
                     getFullRecord = getFullRecord,
@@ -1782,6 +1799,7 @@ fun AvailabilityScreen(
             onOfflineMapsOpened = onOfflineMapsOpened,
             onDownloadOfflineMaps = onDownloadOfflineMaps,
             onDeleteOfflineRegion = onDeleteOfflineRegion,
+            onDownloadAgain = onDownloadAgain,
             onTracksOpened = onTracksOpened,
             getFullRecord = getFullRecord,
             onDeleteWaypoint = onDeleteWaypoint,

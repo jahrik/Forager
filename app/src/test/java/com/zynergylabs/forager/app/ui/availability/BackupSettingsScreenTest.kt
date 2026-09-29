@@ -78,6 +78,7 @@ abstract class BackupSettingsScreenTests {
     private val scheduler = FakeScheduler()
     private val files = FakeBackupFiles()
     private val logged = mutableListOf<String>()
+    private var recording = false
 
     private val launched = mutableListOf<Pair<ActivityResultContract<*, *>, Any?>>()
     private val answers = mutableMapOf<Class<*>, Uri?>()
@@ -92,7 +93,7 @@ abstract class BackupSettingsScreenTests {
     }
 
     private fun setScreen() {
-        val vm = BackupViewModel(backup, prefs, scheduler, files, ErrorLog { _, m, e -> logged += "$m :: ${e.message}" }, Dispatchers.Unconfined)
+        val vm = BackupViewModel(backup, prefs, scheduler, files, ErrorLog { _, m, e -> logged += "$m :: ${e.message}" }, Dispatchers.Unconfined, isRecording = { recording })
         composeRule.setContent {
             CompositionLocalProvider(LocalActivityResultRegistryOwner provides registryOwner) {
                 val state by vm.uiState.collectAsState()
@@ -162,8 +163,8 @@ abstract class BackupSettingsScreenTests {
     }
 
     @Test
-    fun `a backup that fails shows Couldn't save the backup and not Backup saved`() {
-        backup.failBackUp = true
+    fun `a backup whose file cannot be opened shows Couldn't save the backup and not Backup saved`() {
+        files.failOpen = true
         answers[ActivityResultContracts.CreateDocument::class.java] = Uri.parse("content://docs/chosen.zip")
         setScreen()
 
@@ -276,6 +277,96 @@ abstract class BackupSettingsScreenTests {
 
         composeRule.onNodeWithText("Couldn't restore that backup.").performScrollTo().assertIsDisplayed()
         assertEquals(0, composeRule.onAllNodesWithText("Restore complete.").fetchSemanticsNodes().size)
+    }
+
+    // ---- unreadable photos, a failed write, no restore while recording, the default frequency ----
+
+    @Test
+    fun `unreadable photos pause the backup with the owner's words and three buttons`() {
+        backup.unreadablePhotos = 2
+        answers[ActivityResultContracts.CreateDocument::class.java] = Uri.parse("content://docs/chosen.zip")
+        setScreen()
+
+        tap("Back up now")
+
+        composeRule.onNodeWithText("2 photos couldn't be backed up.").assertIsDisplayed()
+        for (button in listOf("Try again", "Continue without file(s)", "Cancel")) composeRule.onNodeWithText(button).assertIsDisplayed()
+        assertEquals("nothing was written yet", 0, files.written.getValue("content://docs/chosen.zip").size())
+    }
+
+    @Test
+    fun `Continue without files saves the backup and says how many photos were left out`() {
+        backup.unreadablePhotos = 2
+        answers[ActivityResultContracts.CreateDocument::class.java] = Uri.parse("content://docs/chosen.zip")
+        setScreen()
+        tap("Back up now")
+
+        composeRule.onNodeWithText("Continue without file(s)").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Backup saved, but 2 photos couldn't be found and were left out.").performScrollTo().assertIsDisplayed()
+        assertTrue(FakeJournalBackup.BACKUP_BYTES.contentEquals(files.written.getValue("content://docs/chosen.zip").toByteArray()))
+    }
+
+    @Test
+    fun `Cancel on the unreadable photos prompt deletes the file this run created`() {
+        backup.unreadablePhotos = 1
+        answers[ActivityResultContracts.CreateDocument::class.java] = Uri.parse("content://docs/chosen.zip")
+        setScreen()
+        tap("Back up now")
+        composeRule.onNodeWithText("1 photo couldn't be backed up.").assertIsDisplayed()
+
+        composeRule.onNodeWithText("Cancel").performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(listOf("content://docs/chosen.zip"), files.deleted)
+        assertEquals(0, composeRule.onAllNodesWithText("1 photo couldn't be backed up.").fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `a failed write shows the owner's message with Try again and Cancel, and Try again opens the Save picker again`() {
+        backup.failWrite = true
+        answers[ActivityResultContracts.CreateDocument::class.java] = Uri.parse("content://docs/chosen.zip")
+        setScreen()
+
+        tap("Back up now")
+
+        composeRule.onNodeWithText("Couldn't finish the backup. The incomplete file was removed.").assertIsDisplayed()
+        composeRule.onNodeWithText("Cancel").assertIsDisplayed()
+        assertEquals(listOf("content://docs/chosen.zip"), files.deleted)
+        assertEquals(1, launched.size)
+
+        composeRule.onNodeWithText("Try again").performClick()
+        composeRule.waitForIdle()
+
+        assertEquals("the Save picker was opened a second time", 2, launched.count { it.first is ActivityResultContracts.CreateDocument })
+    }
+
+    @Test
+    fun `while a track is recording, Restore from backup says so and opens no picker`() {
+        recording = true
+        setScreen()
+
+        tap("Restore from backup")
+
+        composeRule.onNodeWithText("Stop recording before restoring a backup.").performScrollTo().assertIsDisplayed()
+        assertTrue("no file picker was launched", launched.none { it.first is ActivityResultContracts.OpenDocument })
+        assertTrue(backup.restored.isEmpty())
+    }
+
+    @Test
+    fun `turning the automatic backup on leaves Weekly selected, the default the owner ruled`() {
+        answers[ActivityResultContracts.OpenDocumentTree::class.java] = Uri.parse("content://tree/Backups")
+        setScreen()
+        composeRule.onNodeWithTag(backupFrequencyTag(BackupFrequency.WEEKLY)).performScrollTo().assertIsSelected()
+
+        tap("Choose folder")
+        composeRule.onNodeWithTag(BACKUP_AUTOMATIC_SWITCH_TAG).performScrollTo().performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(BACKUP_AUTOMATIC_SWITCH_TAG).assertIsOn()
+        composeRule.onNodeWithTag(backupFrequencyTag(BackupFrequency.WEEKLY)).assertIsSelected()
+        assertEquals(BackupFrequency.WEEKLY, scheduler.applied.last().frequency)
     }
 }
 

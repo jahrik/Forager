@@ -10,6 +10,7 @@ import com.zynergylabs.forager.app.domain.BackupScheduleSettings
 import com.zynergylabs.forager.app.domain.BackupSchedulePreferences
 import com.zynergylabs.forager.app.domain.BackupFiles
 import com.zynergylabs.forager.app.data.repository.DataStoreBackupSchedulePreferences
+import com.zynergylabs.forager.app.data.repository.RoomOfflineRegionIdReplacer
 import com.zynergylabs.forager.app.data.backup.WorkManagerBackupScheduler
 import com.zynergylabs.forager.app.data.backup.RoomJournalBackup
 import com.zynergylabs.forager.app.data.backup.ContentResolverBackupFiles
@@ -229,7 +230,7 @@ class AppContainer(context: Context) {
     val getAvailabilityUseCase = GetAvailabilityUseCase(predictAvailabilityUseCase, searchCacheRepository)
     val getRecentSearchesUseCase = GetRecentSearchesUseCase(searchCacheRepository)
 
-    val offlineMapRepository: OfflineMapRepository = MapLibreOfflineMapRepository(context, database.offlineRegionDao())
+    val offlineMapRepository: OfflineMapRepository = MapLibreOfflineMapRepository(context, database.offlineRegionDao(), RoomOfflineRegionIdReplacer(database))
     val getTripReportOfflineRegionsUseCase = GetTripReportOfflineRegionsUseCase(offlineMapRepository)
     // One instance for both interfaces (map layers L0b, planner's ruling on F1): DataStore refuses a
     // second live instance on `map_preferences`, so the layer choices live in this same class.

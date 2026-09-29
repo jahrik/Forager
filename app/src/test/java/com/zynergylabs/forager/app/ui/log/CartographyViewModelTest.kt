@@ -601,6 +601,19 @@ class CartographyViewModelTest {
         assertEquals("a draft has nothing to demote — the editor must stay open", draftId, viewModel.uiState.value.editingEntry?.id)
     }
 
+    // ── Restore (dispatch 2026-09-28-137, item 6): a reload the caller can wait for ──
+
+    @Test
+    fun `loadEntries returns a Job, and once it is joined the entries written behind the screen's back are listed`() = runTest(dispatcher) {
+        advanceUntilIdle()
+        shownEntryRepository.save(savedEntry("restored-entry")).getOrThrow() // a restore writes the store, not this ViewModel
+
+        viewModel.loadEntries().join()
+
+        assertEquals(listOf("restored-entry"), viewModel.uiState.value.entries.map { it.id })
+        assertEquals(false, viewModel.uiState.value.isLoadingEntries)
+    }
+
     // ── J8: onSetShownOnMap, the one handler that writes shownOnMap ──
 
     private val shownEntryRepository get() = RoomCartographyEntryRepository(database.cartographyEntryDao())

@@ -107,6 +107,7 @@ internal fun RecordsTab(
     onOfflineMapsOpened: () -> Unit,
     onDownloadOfflineMaps: () -> Unit,
     onDeleteOfflineRegion: (Long) -> Unit,
+    onDownloadAgain: (Long) -> Unit = {},
     tracks: List<Track>,
     onTracksOpened: () -> Unit,
     /** GPX full-record export dispatch — see [TrackExportList]'s own doc comment. Defaults empty/no-op so no other caller of this tab changes. */
@@ -256,6 +257,7 @@ internal fun RecordsTab(
                 getFullRecord = getFullRecord,
                 onDeleteWaypoint = onDeleteWaypoint,
                 onDeleteOfflineRegion = onDeleteOfflineRegion,
+                onDownloadAgain = onDownloadAgain,
                 onOpenFind = { id ->
                     selectTab(RecordsSubTab.FINDS)
                     onOpenFind(id)
@@ -291,6 +293,7 @@ internal fun RecordsTab(
                 onOfflineMapNameChanged = onOfflineMapNameChanged,
                 onDownloadOfflineMaps = onDownloadOfflineMaps,
                 onDeleteOfflineRegion = onDeleteOfflineRegion,
+                onDownloadAgain = onDownloadAgain,
                 onOpenRegionDetails = { id -> openDetails(RecordDetailsTarget.OfflineRegionDetails(id)) },
             )
 

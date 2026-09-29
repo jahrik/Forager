@@ -174,6 +174,8 @@ internal fun Phone.seedFullJournal() {
     insert("mushroom_log_entries", "id" to "f2", "entryNotes" to "A draft", "isDraft" to 1L, "draftOfEntryId" to "f1")
     insert("log_entry_photos", "entryId" to "f1", "photoId" to "p1")
     insert("log_entry_photos", "entryId" to "f1", "photoId" to "p2")
+    insert("planned_trips", "id" to "trip-1", "name" to "Chanterelle weekend", "date" to "2026-10-04")
+    insert("planned_trips", "id" to "trip-2", "name" to "Morels", "date" to "2027-04-20")
     insert("cartography_entries", "id" to "e1", "text" to "A good day", "isDraft" to 0L)
     insert("cartography_entry_track_refs", "entryId" to "e1", "trackId" to "t1")
     insert("cartography_entry_waypoint_refs", "entryId" to "e1", "waypointId" to "w1")

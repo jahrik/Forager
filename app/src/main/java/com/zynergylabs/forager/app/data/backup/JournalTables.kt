@@ -49,6 +49,9 @@ internal object JournalTables {
             softLinks = listOf(Reference("offlineRegionId", "offline_regions"), Reference("draftOfEntryId", "mushroom_log_entries")),
         ),
         TableSpec("cartography_entries", Kind.RECORD, listOf("id")),
+        // Backed up and restored (owner, "4 A"). Its id is a UUID (SavePlannedTripUseCase), not a per-phone counter, so the
+        // ordinary id rule holds: on a Merge an id already present is skipped and the phone's copy wins.
+        TableSpec("planned_trips", Kind.RECORD, listOf("id")),
         TableSpec("track_points", Kind.OWNED, listOf("id"), autoKey = true, owner = Reference("trackId", "tracks")),
         TableSpec(
             "log_entry_photos", Kind.OWNED, listOf("entryId", "photoId"),
@@ -78,7 +81,6 @@ internal object JournalTables {
 
     /** Tables in the schema that are deliberately not journal data, and why (ruling 3 B does not list them). */
     val excluded: Map<String, String> = mapOf(
-        "planned_trips" to "not in ruling 3 B's list, and the premise pulse classes it as not journal data; a restore leaves the phone's planned trips alone",
         "cached_searches" to "a rebuildable cache of network results, not journal data",
     )
 }
