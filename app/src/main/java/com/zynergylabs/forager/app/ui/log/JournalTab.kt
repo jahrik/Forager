@@ -1,7 +1,7 @@
 package com.zynergylabs.forager.app.ui.log
 
 import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
-import com.zynergylabs.forager.app.ui.adaptive.isShortWindow
+import com.zynergylabs.forager.app.ui.adaptive.isShortOrLandscapeWindow
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
@@ -308,13 +308,6 @@ internal fun JournalTab(
      */
     findEntryModeState: MutableState<JournalEntryMode> = remember { mutableStateOf(JournalEntryMode.REPORT) },
     findOverViewState: MutableState<FindOverView?> = remember { mutableStateOf(null) },
-    /**
-     * J6a (ruling 1, list-detail): the wide tree's detail slot, handed by [LogPanel]. With it, an open
-     * find (its report, editor and pickers), an open day entry ([CartographyScreen]) and a record's
-     * details ([RecordsTab]) register there and take the whole right side while the lists stay where
-     * they are. `null` (the default, every compact caller) draws each in place, as before.
-     */
-    detailSlot: JournalDetailSlot? = null,
     modifier: Modifier = Modifier,
 ) {
     // See LogPanel's identical effect for why this both shows and immediately clears the field.
@@ -572,11 +565,6 @@ internal fun JournalTab(
     val findsSection: @Composable ColumnScope.() -> Unit = {
         if (editing != null) findsDetail() else findsList()
     }
-    // J6a: with a slot, an open find registers as a detail (the whole right side) and the Finds chip
-    // keeps only the list. Above every other detail in priority: a find opened over a day entry covers it.
-    JournalDetail(detailSlot, active = editing != null, priority = JournalDetailPriority.FIND) {
-        Column(modifier = Modifier.fillMaxSize()) { findsDetail() }
-    }
 
     fun selectTopTab(tab: JournalTopTab) {
         // Leaving Records mid-find-edit for Entries is an incidental exit — see this composable's
@@ -590,7 +578,7 @@ internal fun JournalTab(
     // drawn here. Entries draws that row itself (CartographyScreen, which owns the New and photo
     // actions and the state they need); Records gets it from the RECORDS branch below. `null` in
     // portrait and in every window that is not short, which is exactly as before.
-    val shortLandscape = isShortLandscapeJournal()
+    val shortLandscape = isLandscapeJournal()
     // Any entry open, find or Cartography entry: the scaffold hides the search header then anyway
     // (its isEditingJournalEntry rule, the same two fields), so the row's search icon is left out.
     val journalEntryOpen = editing != null || cartographyUiState.editingEntry != null
@@ -691,7 +679,7 @@ internal fun JournalTab(
                 // J3, C4 (plan J9): one full-width column in compact portrait; `columns` stays the
                 // only width knob. A short window (a phone on its side) keeps two columns, which J5's
                 // sideways cards use (plan L4); the rule is J3's, unchanged.
-                columns = if (isShortWindow()) SHORT_WINDOW_ENTRY_COLUMNS else COMPACT_PORTRAIT_ENTRY_COLUMNS,
+                columns = if (isShortOrLandscapeWindow()) SHORT_WINDOW_ENTRY_COLUMNS else COMPACT_PORTRAIT_ENTRY_COLUMNS,
                 entriesViewState = journalState.entriesViewState,
                 // J3, C3: the track list this tab already receives for Records (MainActivity's
                 // trackUiState.tracks, through AvailabilityScreen and CompactMainScaffold), joined in
@@ -712,7 +700,6 @@ internal fun JournalTab(
                 openEntryRequest = entryOpenRequest,
                 onOpenEntryRequestConsumed = { entryOpenRequest = null },
                 onSetShownOnMap = onSetCartographyEntryShownOnMap,
-                detailSlot = detailSlot,
             )
 
             // J5: a Column in every window, so RecordsTab keeps one place in the composition when
@@ -749,8 +736,7 @@ internal fun JournalTab(
                     getFullRecord = getFullRecord,
                     // M1: while a find is open over the view, the Finds slot under it draws nothing,
                     // so the find is composed once, in the overlay.
-                    // J6a: with a slot the open find is the pane's, so the Finds chip keeps only its list.
-                    findsContent = { if (detailSlot != null) findsList() else if (findOverView == null) findsSection() },
+                    findsContent = { if (findOverView == null) findsSection() },
                     finds = uiState.entries,
                     // The All logbook's find tap: RecordsTab has already selected the Finds chip; this
                     // opens the report there, exactly as the Finds gallery's own tile does.
@@ -770,8 +756,7 @@ internal fun JournalTab(
                     // gets out of the way while the list scrolls, with the tighter chip spacing.
                     shortWindow = shortLandscape,
                     backEnabled = backEnabled,
-                    detailSlot = detailSlot,
-                )
+                    )
             }
         }
     }
@@ -779,8 +764,7 @@ internal fun JournalTab(
     // M1: the find opened from a map bubble, over the view (FindOverView). An opaque Surface, so no
     // touch reaches the view under it, and its own Back handler, composed after everything under it,
     // so Back unwinds the find first (a picker, the edit form, then the report) and only then the view.
-    // J6a: not with a slot, where the open find is drawn by the pane and there is nothing to overlay.
-    if (findOverViewVisible && detailSlot == null) {
+    if (findOverViewVisible) {
         BackHandler(enabled = backEnabled) { unwindFindsSection() }
         Surface(modifier = Modifier.fillMaxSize().testTag(FIND_OVER_VIEW_TAG)) {
             Column(modifier = Modifier.fillMaxSize()) { findsSection() }

@@ -23,7 +23,7 @@ package com.zynergylabs.forager.app.ui.availability
 // onPendingJournalDestinationChange, logPhotoAcquisitionInFlight and
 // onLogPhotoAcquisitionInFlightChange. Getter only (1): mapTaxonFilter. Setter only (1):
 // onSelectedTabChange. Values (95): focusManager, keyboardController, logUiState,
-// cartographyUiState, isShortLandscapeWindow, portEdge, logDraftSnackbarHostState, uiState,
+// cartographyUiState, isLandscapeWindow, portEdge, logDraftSnackbarHostState, uiState,
 // distanceUnit, currentTime, mapSlot, mapIconClusterPosition, mapRenderMode, isNightMode,
 // isRecording, startRecordingErrorMessage, breadcrumbPoints, mapWaypoints, returnToStart,
 // isReturning, isNavigating, isOffTrack, compassProvider, computeTrueHeading, navigationTarget,
@@ -176,7 +176,7 @@ internal fun CompactMainScaffold(
     logPhotoAcquisitionInFlight: () -> Boolean,
     cartographyUiState: CartographyUiState,
     isDrawerOpen: () -> Boolean,
-    isShortLandscapeWindow: Boolean,
+    isLandscapeWindow: Boolean,
     portEdge: ScreenEdge,
     /** Landscape B2 (S1): the punch-hole edge from `punchHoleEdgeFor`; read only while the rail shows. */
     punchHoleEdge: ScreenEdge,
@@ -547,7 +547,7 @@ internal fun CompactMainScaffold(
         //  - Every other tab: an opaque rail beside the content (railBeside), since there is no
         //    map to keep the size of and text under a translucent rail would hurt reading.
         // Portrait, and every window that is not short, is exactly as before.
-        val showRail = isShortLandscapeWindow
+        val showRail = isLandscapeWindow
         val railBeside = showRail && compactTab() != CompactTab.MAP
         // R18: no bottom band for a bar that is not there. The measured height is the portrait
         // bar's while turning into landscape (onGloballyPositioned stops firing once the bar

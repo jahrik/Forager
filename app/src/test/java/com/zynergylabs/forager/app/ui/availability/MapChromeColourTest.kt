@@ -230,50 +230,6 @@ class MapChromeColourShortLandscapeDarkTest : MapChromeColourCompactTests(dark =
 class MapChromeColourShortLandscapeLightTest : MapChromeColourCompactTests(dark = false, landscape = true, 420.dp, 150.dp, 50.dp)
 
 // ---------------------------------------------------------------------------------------------------
-// The tablet (wide) Maps results: the same cluster, which takes the same token (the tablet has no navigation bar).
-// ---------------------------------------------------------------------------------------------------
-
-abstract class MapChromeColourWideTests(private val dark: Boolean) {
-    private val composeRule = createAndroidComposeRule<ComponentActivity>()
-
-    @get:Rule
-    val rules: RuleChain = RuleChain.outerRule(mapChromeHostActivityRule()).around(composeRule)
-
-    private val map = BubbleMapSlot(chromeColourGlyphs(60.dp, 300.dp, 40.dp))
-    private val state = MapChromeScreenState()
-    private val roles = MapChromeRoles()
-
-    private fun setScreen() {
-        state.ui = state.ui.copy(region = Region(45.5, -122.6, 10))
-        composeRule.setContent { MapChromeTestScreen(state, map, roles, darkTheme = dark) }
-        composeRule.waitForIdle()
-    }
-
-    @Test
-    fun `on the tablet the cluster's container is the token at 0_6 and its bar and pill are the token at 0_5`() {
-        setScreen()
-        composeRule.assertToken(MAP_ICON_CLUSTER_TAG, roles.token, MAP_ICON_CLUSTER_CONTAINER_ALPHA)
-        composeRule.assertToken(MAP_ICON_BAR_TAG, roles.token, MAP_ICON_CLUSTER_CHILD_ALPHA)
-        composeRule.assertToken("control-pill", roles.token, MAP_ICON_CLUSTER_CHILD_ALPHA)
-    }
-
-    @Test
-    fun `on the tablet a map bubble is the token at 0_8`() {
-        setScreen()
-        composeRule.touchCentreOfTag(glyphTag(BUBBLE_WAYPOINT.id))
-        composeRule.assertToken(MAP_BUBBLE_TAG, roles.token, MAP_CHROME_OVER_MAP_ALPHA)
-    }
-}
-
-@RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], qualifiers = "w1280dp-h900dp-mdpi")
-class MapChromeColourWideDarkTest : MapChromeColourWideTests(dark = true)
-
-@RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], qualifiers = "w1280dp-h900dp-mdpi")
-class MapChromeColourWideLightTest : MapChromeColourWideTests(dark = false)
-
-// ---------------------------------------------------------------------------------------------------
 // The entry map's fullscreen icon bar, and "Download this area?" over the offline picker's map.
 // ---------------------------------------------------------------------------------------------------
 
