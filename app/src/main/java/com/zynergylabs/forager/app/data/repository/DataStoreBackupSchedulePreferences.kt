@@ -71,6 +71,14 @@ class DataStoreBackupSchedulePreferences(context: Context) : BackupSchedulePrefe
         Unit
     }
 
+    override suspend fun scheduledBackupFiles(): Result<List<String>> = Result.success(emptyList()) // STUB (tests-first commit)
+
+    override suspend fun setScheduledBackupFiles(uris: List<String>): Result<Unit> = Result.success(Unit) // STUB
+
+    override suspend fun notificationPermissionAsked(): Result<Boolean> = Result.success(false) // STUB
+
+    override suspend fun setNotificationPermissionAsked(): Result<Unit> = Result.success(Unit) // STUB
+
     private companion object {
         const val DATA_STORE_NAME = "backup_schedule_preferences"
         val KEY_ENABLED = booleanPreferencesKey("backup.enabled")

@@ -565,4 +565,47 @@ class BackupViewModelTest {
 
         assertTrue("asked about the photos again, not about the file", vm.state().prompt is BackupPrompt.UnreadablePhotos)
     }
+
+    // ---- dispatch 2026-09-28-182, item 4: the notification permission is asked once (owner 3.4) ----
+
+    @Test
+    fun `turning scheduled backups on for the first time asks for the notification permission, and off and on again does not`() {
+        val vm = viewModel()
+        vm.controls(vm.state()).onFolderChosen("content://tree/backups")
+
+        vm.controls(vm.state()).onAutomaticChanged(true)
+
+        assertTrue("asked the first time", vm.state().askNotificationPermission)
+        assertTrue("and remembered that it was", prefs.notificationAsked)
+        vm.controls(vm.state()).onNotificationPermissionRequestHandled()
+        assertFalse("the one-shot is cleared once acted on", vm.state().askNotificationPermission)
+
+        vm.controls(vm.state()).onAutomaticChanged(false)
+        vm.controls(vm.state()).onAutomaticChanged(true)
+
+        assertFalse("not asked again, whatever the answer was", vm.state().askNotificationPermission)
+        assertTrue("and the schedule is on", vm.state().schedule.enabled)
+    }
+
+    @Test
+    fun `having been asked in an earlier session, turning scheduled backups on asks for nothing`() {
+        prefs.notificationAsked = true
+        val vm = viewModel()
+        vm.controls(vm.state()).onFolderChosen("content://tree/backups")
+
+        vm.controls(vm.state()).onAutomaticChanged(true)
+
+        assertFalse(vm.state().askNotificationPermission)
+        assertTrue(vm.state().schedule.enabled)
+    }
+
+    @Test
+    fun `turning it on with no folder does not use up the one ask`() {
+        val vm = viewModel()
+
+        vm.controls(vm.state()).onAutomaticChanged(true)
+
+        assertFalse(vm.state().askNotificationPermission)
+        assertFalse("still unspent", prefs.notificationAsked)
+    }
 }

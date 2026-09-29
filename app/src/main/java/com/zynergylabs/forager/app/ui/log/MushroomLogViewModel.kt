@@ -290,6 +290,9 @@ class MushroomLogViewModel(
         }
     }
 
+    /** STUB (tests-first commit): only reloads. */
+    fun reloadAfterRestore(): Job = loadEntries()
+
     /** Loads [MushroomLogUiState.galleryPhotos] for the photo album — Workstream G2, independent of [loadEntries] (see [MushroomLogUiState]'s own doc comment on why the two get separate loading/error fields). */
     fun loadGalleryPhotos(): Job {
         return viewModelScope.launch {

@@ -38,6 +38,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -130,6 +131,24 @@ class CartographyViewModelTest {
     fun tearDown() {
         Dispatchers.resetMain()
         database.close()
+    }
+
+    /** Dispatch 2026-09-28-182, item 5: an open entry a Replace deleted is closed, with the candidates and the unsaved flag that went with it. */
+    @Test
+    fun `after a restore, an open entry whose record is gone is closed with its candidates, and one still there stays open`() = runTest(dispatcher) {
+        viewModel.onStartEntry(DAY)
+        advanceUntilIdle()
+        val id = viewModel.uiState.value.editingEntry!!.id
+        viewModel.reloadAfterRestore().join()
+        assertEquals("still there, so still open", id, viewModel.uiState.value.editingEntry?.id)
+
+        RoomCartographyEntryRepository(database.cartographyEntryDao()).delete(id).getOrThrow()
+        viewModel.reloadAfterRestore().join()
+
+        assertNull("the deleted entry is closed", viewModel.uiState.value.editingEntry)
+        assertNull(viewModel.uiState.value.candidatesForEditingEntry)
+        assertEquals(false, viewModel.uiState.value.hasUnsavedChanges)
+        assertEquals("and the lists no longer hold it", emptyList<String>(), (viewModel.uiState.value.entries + viewModel.uiState.value.draftEntries).map { it.id })
     }
 
     @Test

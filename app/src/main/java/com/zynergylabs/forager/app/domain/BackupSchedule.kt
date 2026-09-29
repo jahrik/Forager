@@ -32,6 +32,16 @@ interface BackupSchedulePreferences {
     suspend fun pendingNotice(): Result<ScheduledBackupNotice?>
 
     suspend fun setPendingNotice(notice: ScheduledBackupNotice?): Result<Unit>
+
+    /** The URIs of the backup files the scheduled job itself created and still keeps, oldest first. STUB (tests-first commit). */
+    suspend fun scheduledBackupFiles(): Result<List<String>>
+
+    suspend fun setScheduledBackupFiles(uris: List<String>): Result<Unit>
+
+    /** Whether the notification permission has already been asked for on turning scheduled backups on. STUB (tests-first commit). */
+    suspend fun notificationPermissionAsked(): Result<Boolean>
+
+    suspend fun setNotificationPermissionAsked(): Result<Unit>
 }
 
 /** Makes the operating system's job list match [settings]: periodic work when enabled, none otherwise. WorkManager in production. */
@@ -85,7 +95,7 @@ class RunScheduledBackupUseCase(
     private val zone: ZoneId = ZoneId.systemDefault(),
     private val errorLog: ErrorLog = ErrorLog { _, _, _ -> },
 ) {
-    suspend operator fun invoke(): Result<BackupReport> {
+    suspend operator fun invoke(retry: Boolean = false): Result<BackupReport> {
         val settings = preferences.get().getOrElse { return Result.failure(it) }
         if (!settings.enabled) return Result.failure(BackupException("the scheduled backup ran while the setting is off; nothing was written"))
         val folder = settings.folderUri ?: return Result.failure(BackupException("the scheduled backup ran with no folder chosen; nothing was written"))

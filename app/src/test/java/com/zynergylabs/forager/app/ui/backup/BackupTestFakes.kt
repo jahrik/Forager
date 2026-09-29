@@ -68,6 +68,28 @@ internal class FakeSchedulePreferences(var stored: BackupScheduleSettings = Back
         return Result.success(Unit)
     }
 
+    /** The scheduled job's own files as recorded, oldest first. */
+    var scheduledFiles: List<String> = emptyList()
+    var failFilesGet = false
+    var failFilesSet = false
+    var notificationAsked = false
+
+    override suspend fun scheduledBackupFiles(): Result<List<String>> =
+        if (failFilesGet) Result.failure(IllegalStateException("fake: the record is unreadable")) else Result.success(scheduledFiles)
+
+    override suspend fun setScheduledBackupFiles(uris: List<String>): Result<Unit> {
+        if (failFilesSet) return Result.failure(IllegalStateException("fake: the record cannot be written"))
+        scheduledFiles = uris
+        return Result.success(Unit)
+    }
+
+    override suspend fun notificationPermissionAsked(): Result<Boolean> = Result.success(notificationAsked)
+
+    override suspend fun setNotificationPermissionAsked(): Result<Unit> {
+        notificationAsked = true
+        return Result.success(Unit)
+    }
+
     override suspend fun get(): Result<BackupScheduleSettings> =
         if (failGet) Result.failure(IllegalStateException("fake: unreadable")) else Result.success(stored)
 
@@ -116,7 +138,11 @@ internal class FakeBackupFiles : BackupFiles {
         return ByteArrayInputStream(contents.getValue(uri))
     }
 
+    /** Every [createInFolder] call, failed or not. */
+    var folderAttempts = 0
+
     override fun createInFolder(folderUri: String, displayName: String): BackupTarget {
+        folderAttempts++
         if (failFolder) throw java.io.IOException("fake: folder unreadable")
         created += folderUri to displayName
         val uri = "$folderUri/$displayName#${created.size}"

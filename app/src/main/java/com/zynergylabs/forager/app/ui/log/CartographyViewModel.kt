@@ -111,6 +111,9 @@ class CartographyViewModel(
         }
     }
 
+    /** STUB (tests-first commit): only reloads. */
+    fun reloadAfterRestore(): Job = loadEntries()
+
     /**
      * Starts a brand-new entry for [date], persists it immediately as a draft with every one of that
      * day's *initial* candidates already kept, and opens it for curation. See this class's own doc

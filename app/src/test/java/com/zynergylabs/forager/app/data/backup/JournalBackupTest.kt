@@ -423,20 +423,148 @@ class JournalBackupTest {
     }
 
     @Test
-    fun `a Merge of a backup into the phone that made it changes nothing except that its regions arrive again under new ids`() {
+    fun `a Merge of a backup into the phone that made it changes nothing at all, its regions included`() {
         val a = phone().apply { seedFullJournal() }
-        val rows = a.dump(JOURNAL_TABLE_NAMES - "offline_regions")
+        val rows = a.dump(JOURNAL_TABLE_NAMES)
         val files = a.files()
 
         val report = a.restore(a.backUp(), RestoreMode.MERGE).getOrThrow()
 
-        // Every record already there is skipped. An incoming region is never skipped (owner, "2 A": it always gets a new
-        // id), so the one region is the one row that arrives; the ruling has no "same region" test, and this says so.
-        assertEquals(1, report.rowsInserted)
-        assertEquals(rows, a.dump(JOURNAL_TABLE_NAMES - "offline_regions"))
-        assertEquals(2L, a.count("offline_regions"))
+        // Every record is skipped, the region too: it is the same region (owner 3.1, "no duplicate regions on restore").
+        // This test used to say the one region arrived again under a new id, which is what 3.1 rules out.
+        assertEquals(0, report.rowsInserted)
+        assertEquals(rows, a.dump(JOURNAL_TABLE_NAMES))
+        assertEquals(1L, a.count("offline_regions"))
         assertEquals(files, a.files())
         assertEquals("no scratch file is left behind", emptyList<String>(), a.scratchLeftovers())
+    }
+
+    // ---- no duplicate regions on restore (dispatch 2026-09-28-182, item 1; owner 3.1) ----------
+
+    private fun Phone.region(id: Long, name: String, lat: Double, lng: Double, radiusKm: Long) =
+        insert("offline_regions", "id" to id, "name" to name, "lat" to lat, "lng" to lng, "radiusKm" to radiusKm)
+
+    private val metresPerDegree = 6_371_000.0 * Math.PI / 180.0
+
+    private fun regionIds(p: Phone): List<Long> = p.scalar("SELECT GROUP_CONCAT(id) FROM (SELECT id FROM offline_regions ORDER BY id)")?.split(",")?.map { it.toLong() } ?: emptyList()
+
+    @Test
+    fun `Replace onto the phone that made the backup keeps its own regions, adds none, and points every reference at them`() {
+        val a = phone().apply {
+            region(7, "Cedar Creek", 45.5, -122.5, 5)
+            region(9, "Fir Ridge", 46.0, -121.0, 2)
+            insert("mushroom_log_entries", "id" to "f1", "isDraft" to 0L, "offlineRegionId" to 7L)
+            insert("cartography_entries", "id" to "e1", "isDraft" to 0L)
+            insert("cartography_entry_offline_region_refs", "entryId" to "e1", "offlineRegionId" to 9L)
+        }
+        val regionsBefore = a.dump(listOf("offline_regions"))
+
+        a.restore(a.backUp(), RestoreMode.REPLACE).getOrThrow()
+
+        assertEquals("the same two regions, not four", listOf(7L, 9L), regionIds(a))
+        assertEquals("and the live rows are untouched", regionsBefore, a.dump(listOf("offline_regions")))
+        assertEquals("the find names the live region", "7", a.scalar("SELECT offlineRegionId FROM mushroom_log_entries WHERE id='f1'"))
+        assertEquals("the entry's ref names the live region", "9", a.scalar("SELECT offlineRegionId FROM cartography_entry_offline_region_refs WHERE entryId='e1'"))
+        assertEquals(emptyList<String>(), danglingRows(a))
+    }
+
+    @Test
+    fun `Replace keeps a phone region the backup matches, drops one it does not, and gives an unmatched incoming region a new negative id`() {
+        val a = phone().apply {
+            region(7, "Cedar Creek", 45.5, -122.5, 5)
+            region(8, "Only in the backup", 44.0, -120.0, 3)
+            insert("mushroom_log_entries", "id" to "f1", "isDraft" to 0L, "offlineRegionId" to 8L)
+        }
+        val b = phone().apply {
+            region(3, "Cedar Creek", 45.5, -122.5, 5)
+            region(4, "Only on the phone", 40.0, -100.0, 1)
+        }
+
+        b.restore(a.backUp(), RestoreMode.REPLACE).getOrThrow()
+
+        assertEquals("Cedar Creek keeps the phone's own id 3", "3", b.scalar("SELECT id FROM offline_regions WHERE name='Cedar Creek'"))
+        assertEquals("the phone-only region goes with the replace, as before", "0", b.scalar("SELECT COUNT(*) FROM offline_regions WHERE name='Only on the phone'"))
+        val fresh = b.scalar("SELECT id FROM offline_regions WHERE name='Only in the backup'")!!.toLong()
+        assertTrue("the unmatched one is fresh and negative: $fresh", fresh < 0)
+        assertEquals("two regions in all", 2L, b.count("offline_regions"))
+        assertEquals("the find names the fresh one", fresh.toString(), b.scalar("SELECT offlineRegionId FROM mushroom_log_entries WHERE id='f1'"))
+    }
+
+    @Test
+    fun `Merge skips an incoming region that is the phone's own within half a metre, and rewrites the incoming references to the phone's region`() {
+        val a = phone().apply {
+            region(7, "Cedar Creek", 45.5 + 0.5 / metresPerDegree, -122.5, 5)
+            insert("mushroom_log_entries", "id" to "f1", "isDraft" to 0L, "offlineRegionId" to 7L)
+            insert("cartography_entries", "id" to "e1", "isDraft" to 0L)
+            insert("cartography_entry_offline_region_refs", "entryId" to "e1", "offlineRegionId" to 7L)
+        }
+        val b = phone().apply { region(3, "Cedar Creek", 45.5, -122.5, 5) }
+        val regionsBefore = b.dump(listOf("offline_regions"))
+
+        b.restore(a.backUp(), RestoreMode.MERGE).getOrThrow()
+
+        assertEquals("no second region, and the phone's row is untouched", regionsBefore, b.dump(listOf("offline_regions")))
+        assertEquals("the incoming find names the phone's region", "3", b.scalar("SELECT offlineRegionId FROM mushroom_log_entries WHERE id='f1'"))
+        assertEquals("so does the incoming entry's ref", "3", b.scalar("SELECT offlineRegionId FROM cartography_entry_offline_region_refs WHERE entryId='e1'"))
+        assertEquals(emptyList<String>(), danglingRows(b))
+    }
+
+    /** Passes at base by design (the base inserts every region): it is the guard that the rule is a match, not "always skip". */
+    @Test
+    fun `Merge still adds an incoming region that differs in name, in radius, or by two metres`() {
+        val a = phone().apply {
+            region(1, "Cedar Creek Two", 45.5, -122.5, 5)
+            region(2, "Cedar Creek", 45.5 + 2.0 / metresPerDegree, -122.5, 5)
+            region(3, "Cedar Creek", 45.5, -122.5, 6)
+        }
+        val b = phone().apply { region(3, "Cedar Creek", 45.5, -122.5, 5) }
+
+        b.restore(a.backUp(), RestoreMode.MERGE).getOrThrow()
+
+        assertEquals("the phone's own plus the three that differ", 4L, b.count("offline_regions"))
+        assertEquals("the three came in under new negative ids", "3", b.scalar("SELECT COUNT(*) FROM offline_regions WHERE id < 0"))
+    }
+
+    @Test
+    fun `a backup that holds the same region twice, both matching the phone's one, adds nothing and keeps one reference per entry, in both modes`() {
+        for (mode in RestoreMode.entries) {
+            val a = phone().apply {
+                region(1, "Cedar Creek", 45.5, -122.5, 5)
+                region(2, "Cedar Creek", 45.5, -122.5, 5)
+                insert("cartography_entries", "id" to "e1", "isDraft" to 0L)
+                insert("cartography_entry_offline_region_refs", "entryId" to "e1", "offlineRegionId" to 1L)
+                insert("cartography_entry_offline_region_refs", "entryId" to "e1", "offlineRegionId" to 2L)
+            }
+            val b = phone().apply { region(3, "Cedar Creek", 45.5, -122.5, 5) }
+
+            b.restore(a.backUp(), mode).getOrThrow()
+
+            assertEquals("$mode: one region", listOf(3L), regionIds(b))
+            assertEquals("$mode: one ref row for the entry, on the phone's region", "1|3", b.scalar("SELECT COUNT(*) || '|' || MIN(offlineRegionId) FROM cartography_entry_offline_region_refs WHERE entryId='e1'"))
+        }
+    }
+
+    // ---- Replace and an orphaned region reference (item 6; -155, -156) --------------------------
+
+    @Test
+    fun `Replace drops an entry's region ref whose region the backup lacks, counts each, and logs it`() {
+        val a = phone().apply {
+            region(7, "Cedar Creek", 45.5, -122.5, 5)
+            insert("cartography_entries", "id" to "e1", "isDraft" to 0L)
+            insert("cartography_entries", "id" to "e2", "isDraft" to 0L)
+            insert("cartography_entry_offline_region_refs", "entryId" to "e1", "offlineRegionId" to 7L)
+            insert("cartography_entry_offline_region_refs", "entryId" to "e1", "offlineRegionId" to 99L)
+            insert("cartography_entry_offline_region_refs", "entryId" to "e2", "offlineRegionId" to 98L)
+        }
+        val b = phone()
+
+        val report = b.restore(a.backUp(), RestoreMode.REPLACE).getOrThrow()
+
+        assertEquals("only the ref to the region the backup holds is left", "1", b.scalar("SELECT COUNT(*) FROM cartography_entry_offline_region_refs"))
+        assertEquals("and it names that region's new id", b.scalar("SELECT id FROM offline_regions WHERE name='Cedar Creek'"), b.scalar("SELECT offlineRegionId FROM cartography_entry_offline_region_refs"))
+        assertEquals("both orphans are counted", 2, report.rowsDropped)
+        assertEquals("and each is logged, by table", 2, b.logged.count { "cartography_entry_offline_region_refs" in it && "left out" in it })
+        assertEquals(emptyList<String>(), danglingRows(b))
     }
 
     // ---- refusing a bad backup -----------------------------------------------------------------

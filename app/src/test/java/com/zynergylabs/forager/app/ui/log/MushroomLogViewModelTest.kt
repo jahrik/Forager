@@ -257,6 +257,47 @@ class MushroomLogViewModelTest {
         assertEquals(false, vm.uiState.value.isLoadingGalleryPhotos)
     }
 
+    /** Dispatch 2026-09-28-182, item 5: a Replace deletes rows behind the screen's back; the open find must not stay on screen. */
+    @Test
+    fun `after a restore, an open find whose record is gone is closed, and one that is still there stays open`() = runTest(dispatcher) {
+        val other = entry.copy(id = "entry-2")
+        val repository = FakeMushroomLogRepository(listOf(entry, other))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onOpenEntry(entry.id)
+        advanceUntilIdle()
+        assertEquals(entry.id, vm.uiState.value.editingEntry?.id)
+
+        repository.delete(entry.id).getOrThrow()
+        vm.reloadAfterRestore().join()
+
+        assertNull("the deleted find's report is closed", vm.uiState.value.editingEntry)
+        assertEquals("and the list no longer holds it", listOf(other.id), (vm.uiState.value.entries + vm.uiState.value.draftEntries).map { it.id })
+
+        vm.onOpenEntry(other.id)
+        advanceUntilIdle()
+        vm.reloadAfterRestore().join()
+        assertEquals("a find that is still there stays open", other.id, vm.uiState.value.editingEntry?.id)
+    }
+
+    @Test
+    fun `after a restore, an open draft whose record is gone is closed too`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository(listOf(entry))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onOpenEntry(entry.id)
+        advanceUntilIdle()
+        vm.onStartEditingEntry()
+        advanceUntilIdle()
+        val draftId = vm.uiState.value.editingEntry!!.id
+        assertTrue("an edit session on a draft of the entry", vm.uiState.value.editingEntry!!.isDraft)
+
+        repository.delete(draftId).getOrThrow()
+        vm.reloadAfterRestore().join()
+
+        assertNull(vm.uiState.value.editingEntry)
+    }
+
     /** Workstream G2: [MushroomLogViewModel.loadGalleryPhotos] runs alongside [MushroomLogViewModel.loadEntries] on init, independently populating [MushroomLogUiState.galleryPhotos]. */
     @Test
     fun `the gallery photos load on init, independent of the entry list`() = runTest(dispatcher) {
