@@ -4666,3 +4666,21 @@ Written by the planner by hand.
   - the Trip Planner starts collapsed, and the first tap did not expand it;
   - the serving model is unverified.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-116
+**Dispatch-file:** none (pulse dispatched in chat by the planner; read-only)
+**Type:** pulse
+**Outcome:** completed
+**Report:** docs/audits/2026-09-29-export-backup-premise-pulse.md (the planner's condensed filing, citations kept)
+**Notes:** 2026-09-29T01:23:18Z. Read at a7343f5. It found:
+- the owner's 2026-09-09 ruling: allowBackup false for good, restore through an in-app export/import, none of it built;
+- photos app-private, captures EXIF-scrubbed, imports untouched, never written to the gallery, every file named .jpg whatever its type;
+- the GPX share the only release export;
+- no storage permission declared; SAF needs none at any SDK;
+- a backup must cover forager.db (WAL), the photo files, and the offline regions' MapLibre store;
+- several user documents stale, and the backup location in tension with the delete-data promise.
+
+Also recorded: the owner's ruling "So let's do sessions this way now": coders in owner-opened windows with paste-ready prompts (plan). Written by the planner by hand.
