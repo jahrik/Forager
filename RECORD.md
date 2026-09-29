@@ -5279,3 +5279,15 @@ It also flagged the snackbar lying over the floating nav.
 - D58 check on the diff: clean.
 - The backup notification lines describe -137 work that is not yet built.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-148
+**Timestamp:** 2026-09-29T06:01:50Z
+**Dispatch:** none (follows -147)
+**Reason:** the owner, verbatim: "I'll have a site agent review and file it properly from here. That's all for the legal docs part."
+**Changes:**
+- The legal drafts (branch legal-drafts, b6d6eca0) and the site report (docs/audits/2026-09-29-privacy-site-update-report.md) pass to the owner's site agent.
+- The planner does no further legal-docs work, and does not merge legal-drafts.
+**Notes:** Written by the planner by hand.
