@@ -717,7 +717,10 @@ internal class JournalEntriesOnMapWideTest : JournalEntriesOnMapHarness() {
         val slot = composeRule.onNodeWithTag("map-slot").getUnclippedBoundsInRoot()
         composeRule.onNodeWithText("1 journal entry on map").assertIsDisplayed()
         assertTrue("on the map ($chip, $slot)", chip.left >= slot.left && chip.right <= slot.right && chip.top >= slot.top)
-        assertTrue("at its top ($chip, $slot)", chip.top - slot.top < 32.dp)
+        // J6c (ruling 3): the compass strip runs across the top of the map with the chip row below it, so the chip is at
+        // the top of what the strip leaves (this read "< 32.dp" from the map's own top).
+        val strip = composeRule.onNodeWithTag("compass-elevation-strip").getUnclippedBoundsInRoot()
+        assertTrue("below the strip, at the top of the map ($chip, $strip, $slot)", chip.top >= strip.bottom && chip.top - strip.bottom < 32.dp)
         val midY = (chip.top + chip.bottom) / 2
         val before = map.taps
 

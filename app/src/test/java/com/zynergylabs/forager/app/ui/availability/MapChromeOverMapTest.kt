@@ -742,10 +742,19 @@ class MapChromeWideTest {
         assertEquals("trip-date-picker: container", Color.Transparent, composeRule.colourOn(TRIP_DATE_PICKER_TAG, MapChromeContainerColor))
     }
 
+    /**
+     * J6c (the owner's item 5: "The tablet's separate Layers button and "+" are replaced by the bar's Layers
+     * and "+" rows"): the wide map's own Layers button, which this test read at the map chrome's alpha, no
+     * longer exists. Its replacement is a row of the icon cluster, the same `MapIconBar` and container the phone's
+     * Maps tab draws, whose fill the compact tests guard. What is asserted here is what is left to say about the
+     * wide map: the separate button is gone and the Layers control is the cluster's row. A direct alpha
+     * assertion on that row is not made: the cluster's fill is not marked with `MapChromeContainerColor`.
+     */
     @Test
-    fun `on the wide layout the Layers button over the map is at the map chrome's alpha`() {
+    fun `on the wide layout the Layers control is the icon cluster's row, and the separate Layers button is gone`() {
         setScreen()
-        composeRule.assertOverMap(WIDE_LAYERS_BUTTON_TAG, roles.surface, roles.onSurface)
+        assertEquals("the cluster is on the wide map", 1, composeRule.onAllNodesWithTag(MAP_ICON_CLUSTER_TAG).fetchSemanticsNodes().size)
+        assertEquals("the separate Layers button is gone", 0, composeRule.onAllNodesWithTag("wide-layers-button").fetchSemanticsNodes().size)
     }
 
     @Test

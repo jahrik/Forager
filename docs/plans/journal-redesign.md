@@ -1119,3 +1119,26 @@ The owner confirmed the pill's length, verbatim: "2 is  Awith that message". Tha
 4. **Part 2 Session 3** is pasted to the owner.
 5. **The owner's judgement of Session 1's captures** (rings, chips, highlight colours, night views) is deferred to 2026-09-30.
 6. **The tablet is authorized for USB debugging,** "always allowed". adb reads R52T506412L as a device.
+
+**Tracks thinner when zoomed out, again (owner, 2026-09-29).** The owner sent a screenshot of a journal entry's map at night: a short track under its find and photo glyphs, drawn as a thick lilac line. It is kept outside the repo at `~/Zynergy/device-evidence/2026-09-29-owner-track-thickness.jpg`. The owner, verbatim: "One thing about tracks: when zoomed out they're still thick on the line. Can they be thinned when zoomed out even further? It's hard to read it accurately from a distance".
+
+Today (`ui/map/layers/TrackWidthByZoom.kt`, `TRACK_WIDTH_ZOOM_STOPS`):
+- a track line is 6 dp, plus a 1.5 dp casing each side, 9 dp in all, at zoom 15 and above;
+- it is 40% of that at zoom 11 and below (2.4 dp line, 5.4 dp in all);
+- it is linear in between.
+
+These stops were the planner's proposal of 2026-09-28-34, "for the owner to judge on the phone". The new stops are put to the owner as options.
+
+**The entry map in landscape: the left side cut off (owner, 2026-09-29).** The owner sent a phone screenshot in landscape: a journal entry's map in fullscreen, with the Entries / Records switch above it and the rail on the right. It is kept outside the repo at `~/Zynergy/device-evidence/2026-09-29-owner-landscape-entry-map-cut.jpg`. The owner, verbatim: "On landscape a lot of the map is gone.  The entire left side is cut off for no reason."
+
+What the screenshot shows, read by the planner:
+- The map starts about 122 px in from the left edge, the width of the camera cut-out band in that rotation. The band is left black.
+- The Entries / Records row sits above the map, in its own band across the top.
+- The Maps tab's own map does reach into the cut-out band: Part 2 Session 1 found its "i" there at 270 (item 37). So the entry map differs from Maps.
+
+The fix's shape goes to the owner as options.
+
+The owner then asked, verbatim: "Unless that's a scaffolding for more map functions". The planner checked the code: the band is not reserved for map functions.
+- In short landscape, only the Maps tab lets its map run under the cut-out. `AvailabilityCompactScaffold.kt:679-683` sets `contentWindowInsets` to the top only, "the map runs the whole width, under the cut-out", and pads the controls one by one (`mapControlsPadding`, :552-575).
+- Every other tab, the Journal included, takes `shortLandscapeContentInsets()` (:684-685). That keeps the whole tab, lists and text included, out of the cut-out band.
+- The entry map lives inside the Journal tab, so it inherits that margin.

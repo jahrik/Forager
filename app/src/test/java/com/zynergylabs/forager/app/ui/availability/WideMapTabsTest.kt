@@ -28,7 +28,6 @@ import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.SpeciesObservationCount
 import com.zynergylabs.forager.app.domain.model.TaxonFilter
 import com.zynergylabs.forager.app.ui.log.CartographyUiState
-import com.zynergylabs.forager.app.ui.map.JOURNAL_ENTRIES_CHIP_TAG
 import com.zynergylabs.forager.app.ui.map.MapOverlayContent
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import java.time.LocalDate
@@ -208,63 +207,12 @@ class WideMapTabsTest {
         assertWidth("the map", mapBounds().width, 464.dp)
     }
 
-    // ── Item 12: the chip row against the Layers button ──
-
-    /**
-     * The row the refresh pulse measured: the taxon chip ("Showing: ...", from View on Map) and J8's "N journal
-     * entries on map" chip, side by side at the map's top centre. Either chip's right edge must be left of the
-     * Layers button's left edge; a centred row of both is about 406 dp, so it runs under the button on any map
-     * narrower than about 406 + 2 x 64 dp.
-     */
-    private fun assertChipsClearOfLayers(where: String) {
-        composeRule.onNodeWithText("List").performClick()
-        composeRule.waitForIdle()
-        composeRule.onNodeWithText("View on Map").performClick()
-        composeRule.waitForIdle()
-        val layers = composeRule.onNodeWithTag(WIDE_LAYERS_BUTTON_TAG).getUnclippedBoundsInRoot()
-        for ((name, tag) in listOf("taxon chip" to TAXON_CHIP, "journal entries chip" to JOURNAL_ENTRIES_CHIP_TAG)) {
-            val chip = composeRule.onNodeWithTag(tag).getUnclippedBoundsInRoot()
-            assertTrue("$where: the $name ends at ${chip.right}, the Layers button starts at ${layers.left}", chip.right <= layers.left)
-        }
-    }
-
-    @Test
-    @GraphicsMode(GraphicsMode.Mode.NATIVE)
-    fun `FAILS AT BASE the chip row clears the Layers button on the tabbed map`() {
-        setScreen(SEARCHED_STATE, cartographyUiState = ONE_SHOWN_ENTRY)
-        assertChipsClearOfLayers("portrait, the map across 464 dp")
-    }
-
-    /**
-     * **Native graphics, and why.** Robolectric's default graphics mode measures text at close to no width, so
-     * the chips were 84 dp and 47 dp wide there and nothing could overlap; a first version of these tests
-     * (a taxon chip alone, then a long species name to stress it) passed at base for that reason, and a
-     * revert of the inset alone left every test green. `@GraphicsMode(NATIVE)`, as the project's own
-     * chip-fit guard uses, gives real text widths: the taxon chip 277 dp, "1 journal entry on map" 158 dp,
-     * 443 dp on one line with the gap.
-     *
-     * Centred on a map W wide, with no inset, that row ends at (W + 443) / 2 + the row's 8 dp margin:
-     * 1240 on the 596 dp map (Layers starts at 1262: clear, so a guard), 1182 on the 480 dp map (Layers
-     * starts at 1145) and 816 on the tabbed 464 dp map (Layers starts at 768). The inset is what the last two
-     * need: it narrows the row's room so it wraps to two lines clear of the button. The tabbed test also fails
-     * at base for another reason (its map is 103 dp wide there), so the proof that the *inset* is what fixes
-     * it is a revert of the inset alone.
-     */
-    @Test
-    @GraphicsMode(GraphicsMode.Mode.NATIVE)
-    @Config(qualifiers = "w1318dp-h824dp-mdpi")
-    fun `GUARD the chip row clears the Layers button on the 596 dp side by side map`() {
-        setScreen(SEARCHED_STATE, cartographyUiState = ONE_SHOWN_ENTRY)
-        assertChipsClearOfLayers("landscape, the map beside the list at 596 dp")
-    }
-
-    @Test
-    @GraphicsMode(GraphicsMode.Mode.NATIVE)
-    @Config(qualifiers = "w1201dp-h900dp-mdpi")
-    fun `FAILS AT BASE the chip row clears the Layers button on the narrowest side by side map, 480 dp`() {
-        setScreen(SEARCHED_STATE, cartographyUiState = ONE_SHOWN_ENTRY)
-        assertChipsClearOfLayers("1201 dp, the map beside the list at exactly 480 dp")
-    }
+    // ── Item 12: the chip row against the Layers button: superseded by J6c ──
+    // J6b's chip-row tests (three, at 464, 480 and 596 dp, with the end inset revert-checked) asserted the chips
+    // clear the wide map's separate Layers button. J6c (the owner's item 5) removed that button, and with it the
+    // inset: the Layers row is the icon cluster's, which is held below the chip row by its top limit
+    // (`WideMapControlsTest`: "dragged far up the cluster stops below the compass strip and the chip row"). The
+    // three tests are removed with the button they measured against, not weakened; their history is J6b's report.
 
     // ── Item 13: a map before any search ──
 
