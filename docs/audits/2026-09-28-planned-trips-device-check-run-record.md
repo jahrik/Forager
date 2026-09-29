@@ -295,6 +295,41 @@ The compact route with real taps: a slow pan (`swipe` 400,1450 → 400,1200 over
 
 **Verdict: as predicted.** With both trips saved and listed, and `region` null, no flag is drawn at either point.
 
+### Check 1-1z: zoomed in and out on each trip, no search
+
+**How the points were followed.** With no flag drawn, each trip's point is carried from its placing position through
+each gesture: a pan is measured by `shift.py` (a map patch matched between two captures; it reproduces the known 236 px
+pans exactly, as a control), and a zoom by the size of the 1 km DEVICE CHECK offline region's dashed circle (radius
+210 px at the placing zoom; my reading of each screenshot, about ±10%). A double-tap zooms about its point (seen for A:
+the circle's edge 58 px above A at +1 and about 116 px at +2), **except while the camera tracks the location puck**, when
+it zoomed about the puck (`37-`, inferred from MapLibre's tracking mode, not read). So the points below are exact where
+marked and estimates (±30 px) elsewhere; the trip-pixel count covers the whole map box either way.
+
+| Capture | Gesture | Zoom vs placing (circle) | A's point | B's point | Trip pixels | Verdict |
+|---|---|---|---|---|---|---|
+| `30-p1-A-zoom-in-1` | double-tap on A | +1 | (540, 960) exact | (540, 1432) | 0 / 0 | **absent** |
+| `31-p1-A-zoom-in-2` (crop `31-…-crop.png`) | double-tap on A | +2 | (540, 960) exact | off screen | 0 / 0 | **absent** |
+| `32-p1-zoom-out-1` | quick-zoom v1 (**panned 301 px instead**) | +2 | (540, 659) | off screen | 0 / 0 | **absent** |
+| `33-p1-zoom-out-2` | quick-zoom v2 (**zoomed out**) | about +1.2 | ≈ (537, 879) | ≈ (537, 1429) | 0 / 0 | **both absent** |
+| `34-p1-zoom-out-3` | quick-zoom v2 | about −0.33 | ≈ (537, 1087) | ≈ (537, 1275) | 0 / 0 | **both absent** |
+| `35-p1-zoom-out-4` | quick-zoom v2 (a pan and possibly a zoom; the matcher's fit was poor) | not determined | not determined | not determined | 0 / 0 | not used |
+| `36-p1-locate-me` | "Center on my location" | about −0.33 | ≈ (540, 1372) | ≈ (540, 1561) | 0 / 0 | **both absent** |
+| `37-p1-B-zoom-in-1` | double-tap on B (zoomed about the puck) | about +0.67 | ≈ (540, 1617) | below the map box | 0 / 0 | **absent** |
+| `38-p1-pan-to-B` | pan 382 px (measured) | about +0.67 | ≈ (540, 1235) | ≈ (540, 1610) | 0 / 0 | **both absent** |
+| `39-p1-B-zoom-in-2` (map `39-…-map.png`) | double-tap on B | about +1.7 | ≈ (540, 860) | (540, 1610) | 0 / 0 | **both absent** |
+
+"Trip pixels" is `#9553A4` / `#FA01DD` in the whole map box.
+
+- **Verdict: as predicted.** No flag at any zoom tried, from about −0.33 to +2 levels about the placing zoom, with each
+  point on screen in at least one capture at each direction of zoom. The DEVICE CHECK find, waypoint, offline regions and
+  the location puck drew in every capture where their ground was on screen.
+- **Not reached:** a zoom-out of more than about a third of a level. MapLibre's quick-zoom over adb is unreliable: of four
+  attempts, one zoomed out 0.8 levels, one 1.5 levels, and two panned (`32-`, `35-`). The first form (`input tap` then
+  `motionevent`s) panned; the second (all `motionevent`s) zoomed twice and panned once. `input` calls take about 47 ms on
+  this phone (timed), so the double-tap window alone does not explain it; not investigated further.
+- **"Center on my location"** recentred on the puck without changing the zoom and without setting `region` (the next
+  captures still show "Search a location"), as AVM:449-460 reads.
+
 ## Appendix: the dispatch and the launch message, verbatim
 
 ### `prompts/preserved/2026-09-28-94.md` at `ae0b90f`, the whole file
