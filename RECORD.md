@@ -4834,3 +4834,49 @@ All on layout-fixes-wip at 3bbbcfa. It stopped: a two-chip wrapped row reaches 1
 **Reason:** -97 was queued until the failure reproduced on a device (done: -94, terminal -115) and behind -78 (finished at 341566a).
 **Changes:** -97 is launched for an owner-opened Sonnet 5.5 window from launch prompt preserved/2026-09-29-08.md, with its own worktree forager-wt/trips-on-map.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-124
+**Timestamp:** 2026-09-29T02:07:02Z
+**Closes:** 2026-09-28-78
+**Outcome:** completed
+**Observed:**
+- **Record.** docs/audits/2026-09-28-part-1-layout-fixes-completion-report.md, with its stop section and five "Resumed" sections.
+- **Coders:** an Agent-tool coder through -98, -99 and part of -109 (stopped for the model switch); a general-purpose relaunch (stopped by the owner); then an owner-opened session for -109, -117, -119 and -121, configured for claude-sonnet-5-5 but not read back.
+- **All nine items resolved.**
+  - Item 1 and item 2 in landscape: the legend sits inboard of the cluster on its side.
+  - Item 2 in portrait: the cluster lifts above centre for the expanded legend.
+  - Item 3: the dropdown cap subtracts the IME inset, with a keep-in-view.
+  - Item 4: MapCameraMemory restores the camera on a tab round trip.
+  - Item 5: the "i" takes the bottom and end insets.
+  - The short-landscape reshape (owner's option A) clears items 6 and 9.
+  - Item 7: the chip row aligns away from the cluster, capped only on the cluster's side, with single-line ellipsized labels and landscape line spacing 0.
+  - Q4's legend bound is dropped in landscape and kept in portrait.
+  - Item 8: no change (owner "3 D").
+  - S10's chip case runs under @GraphicsMode(NATIVE).
+- **Final:** journal-redesign at 341566a. Coder's suite on the final tree: 314 / 2563 / 0 / 0 / 24.
+- **Planner's suite** at 341566a: 314 / 2563 / 0 / 0 / 24, cleared, 0 stale, no compile errors, from 02:03:16Z.
+**Deviations:**
+- **Planner premises corrected by the coder:**
+  - the two-chip row is 382 dp, not J8's chip's 158 dp;
+  - S10's two-chip tests already measured drawn bounds;
+  - J8's chip has no tappable 48 dp margin (touches only on its 32 dp pill, the -109 design).
+- Several tests-first corrections, each pushed before its re-run.
+- Two revert edits were redone after the runner refused them for compile errors.
+- One wrong own assertion was moved.
+**Notes:**
+- **Device-only (S22 at 0, 90 and 270):**
+  - the cluster above the expanded legend (portrait);
+  - dropdown fields above the keyboard;
+  - the camera surviving a tab round trip;
+  - the "i" placement;
+  - the caption clear of the cluster at 90;
+  - the cluster-to-search-bar margin (about 0 px);
+  - the reshape's placement, thumb reach and the fill above the pill;
+  - the chip row with one, two and long-label chips against the central third and the nav inset;
+  - the cluster dragged past the old legend bound in landscape;
+  - J8's pill touched at its edges.
+- **Open for the owner:** whether J8's chip should be tappable across a full 48 dp.
+- Written by the planner by hand.
