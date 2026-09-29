@@ -693,57 +693,6 @@ internal class JournalEntriesOnMapShortLandscapeTest : JournalEntriesOnMapCompac
     }
 }
 
-/**
- * The wide layout (`w1280dp`, as M1's wide bubble tests: at `w840dp` the map is too narrow for a
- * bubble): the chip in the row with the taxon chip at the map's top centre, and "Open entry" into the
- * drawer's log panel. The wide map shows only once a region is searched, so a search runs first.
- */
-@RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], qualifiers = "w1280dp-h900dp-mdpi")
-internal class JournalEntriesOnMapWideTest : JournalEntriesOnMapHarness() {
-    override val glyphX: Dp = 60.dp
-    override val glyphY: Dp = 300.dp
-
-    override fun prepareAvailability(viewModel: AvailabilityViewModel) {
-        viewModel.onManualLatChanged("45.5")
-        viewModel.onManualLngChanged("-122.6")
-        viewModel.searchManualCoordinates()
-    }
-
-    @Test
-    fun `on the wide layout the chip sits at the top of the map, and touches all around it reach the map`() {
-        setScreen(entryA(shown = true))
-        val chip = composeRule.onNodeWithTag(JOURNAL_ENTRIES_CHIP_TAG).assertIsDisplayed().getUnclippedBoundsInRoot()
-        val slot = composeRule.onNodeWithTag("map-slot").getUnclippedBoundsInRoot()
-        composeRule.onNodeWithText("1 journal entry on map").assertIsDisplayed()
-        assertTrue("on the map ($chip, $slot)", chip.left >= slot.left && chip.right <= slot.right && chip.top >= slot.top)
-        // J6c (ruling 3): the compass strip runs across the top of the map with the chip row below it, so the chip is at
-        // the top of what the strip leaves (this read "< 32.dp" from the map's own top).
-        val strip = composeRule.onNodeWithTag("compass-elevation-strip").getUnclippedBoundsInRoot()
-        assertTrue("below the strip, at the top of the map ($chip, $strip, $slot)", chip.top >= strip.bottom && chip.top - strip.bottom < 32.dp)
-        val midY = (chip.top + chip.bottom) / 2
-        val before = map.taps
-
-        touchAt(chip.left - 12.dp, midY)
-        touchAt(chip.right + 12.dp, midY)
-        touchAt((chip.left + chip.right) / 2, chip.bottom + 12.dp)
-        assertEquals("all three touches around the chip reached the map", before + 3, map.taps)
-    }
-
-    @Test
-    fun `on the wide layout a date line opens the entry's report in the drawer's log panel`() {
-        setScreen(entryA(shown = true), entryB(shown = false))
-        touchCentreOf(glyphTag(FIND.id))
-
-        touchCentreOf(mapBubbleEntryLineTag("entry-a"))
-
-        // J6a header ruling (prompts/preserved/2026-09-29-25.md): the panel's header reads "Journal".
-        composeRule.onNodeWithText("Journal").assertExists()
-        assertReportShowing(ENTRY_A_TEXT)
-        assertEquals("entry-a", cartographyViewModel.uiState.value.editingEntry?.id)
-    }
-}
-
 // ── J8 follow-ups (dispatch 2026-09-28-70, widened by continuation 2026-09-28-87) ──
 
 private val KEPT_PHOTO_AT = LatLng(BUBBLE_PHOTO.photo.latitude!!, BUBBLE_PHOTO.photo.longitude!!)

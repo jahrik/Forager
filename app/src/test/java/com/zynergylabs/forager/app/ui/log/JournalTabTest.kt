@@ -335,6 +335,29 @@ class JournalTabTest {
     }
 
     /**
+     * Moved here from `LogPanelTest`, deleted with the wide tree's `LogPanel` (dispatch 2026-09-28-245): "Change
+     * Location" on an entry that already has a location opens the centre-pin picker and updates the location on
+     * confirm. The phone's `JournalTab` renders the same [LogEntryDetailScreen], and none of this file's other
+     * tests opened the picker from an already-located entry.
+     */
+    @Test
+    fun `Change Location on an already-located entry opens the centre-pin picker and updates the entry's location on confirm`() {
+        setScreen(MushroomLogUiState(entries = listOf(existingEntry)))
+        composeRule.onNodeWithText("Find on ${existingEntry.foundOn}").performClick()
+        composeRule.onNodeWithContentDescription("Entry options").performClick()
+        composeRule.onNodeWithText("Edit entry").performClick()
+
+        composeRule.onNodeWithText("Change Location").performClick()
+        composeRule.onNodeWithTag("picker-map").assertIsDisplayed()
+
+        composeRule.onNodeWithText("Simulate pan to test location").performClick()
+        composeRule.onNodeWithText("OK").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Found at 45.5000, -122.5000").assertExists()
+    }
+
+    /**
      * Picker-fixes dispatch, F1, the owner's report: "when choosing a location to save to the find
      * log" the picker snapped back to the device after every pan. A live fix arrives about once a
      * second, each a new picker region (`findLocationPickerRegion`), and before this fix each one

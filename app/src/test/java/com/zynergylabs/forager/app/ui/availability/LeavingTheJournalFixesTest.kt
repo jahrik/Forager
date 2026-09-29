@@ -629,55 +629,6 @@ class LeavingTheJournalFixesTest {
         assertEquals(false, storedFinds().single { it.id == NEW_FIND_ID }.isDraft)
     }
 
-    // ── F1, the wide layout: the drawer's LogPanel shares the one wrapped callback ──
-
-    private fun openWideFindEditor() {
-        composeRule.onNodeWithText("Mushroom Log").performClick()
-        composeRule.onNodeWithText("Records").performClick()
-        composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.FINDS)).performScrollTo().performClick()
-        composeRule.waitForIdle()
-        // J6a (item 6.5): the wide Journal opens a find in its report first, as the phone does, and the
-        // report's Edit opens the editor on a draft copy (this used to open the editor from the tile).
-        composeRule.onNodeWithText(FIND_TILE_TEXT).performClick()
-        composeRule.waitForIdle()
-        composeRule.onNodeWithContentDescription("Entry options").performClick()
-        composeRule.onNodeWithText("Edit entry").performClick()
-        composeRule.waitForIdle()
-        composeRule.onNodeWithText("Your own identification (optional)").assertExists()
-        assertEquals(DRAFT_OF_FIND_ID, logViewModel.uiState.value.editingEntry?.id)
-    }
-
-    @Test
-    @Config(qualifiers = "w1280dp-h900dp-mdpi")
-    fun `F1 wide, a committed find opened in the drawer's editor and left by Back unchanged shows no snackbar`() {
-        setScreen()
-        openWideFindEditor()
-
-        pressBack()
-
-        assertEquals("Back left the editor", null, logViewModel.uiState.value.editingEntry)
-        assertNoSavedToDraftsSnackbar("leaving the wide editor unchanged")
-        assertNothingDeletedAndNoDraft("leaving the wide editor unchanged")
-    }
-
-    /** A guard, as its compact twin above: already holds at base. */
-    @Test
-    @Config(qualifiers = "w1280dp-h900dp-mdpi")
-    fun `F1 wide, a committed find changed in the drawer's editor then left by Back shows Saved to Drafts, and Discard deletes only the draft row`() {
-        setScreen()
-        openWideFindEditor()
-        typeFindIdentification("Changed, not saved")
-
-        pressBack()
-
-        assertTrue("the Saved to Drafts snackbar shows", snackbarShows("Saved to Drafts"))
-        assertEquals("Changed, not saved", storedFinds().single { it.id == DRAFT_OF_FIND_ID }.ownIdentification)
-        touchDiscard()
-        assertEquals("Discard deleted the draft row only", listOf(COMMITTED_FIND.id), storedFinds().map { it.id })
-        assertEquals(listOf(PHOTO.id), storedGalleryPhotoIds())
-        assertCommittedFindIntact()
-    }
-
     // ── F2: a day entry left in its editor comes back in its editor ──
 
     private fun dayEntryCard() =
@@ -1183,42 +1134,6 @@ class LeavingTheJournalFixesTest {
 
         assertEquals("the bubble's find is open", COMMITTED_FIND.id, logViewModel.uiState.value.editingEntry?.id)
         assertChangedKeptFindInDraftsAtOnce("Open in Journal over a changed kept find")
-    }
-
-    /**
-     * J6a (ruling 1, list-detail) changed what this test was about. It used to open a find in the wide
-     * drawer, edit it, and reach the results map's "+" beside it to Log a find over it, checking that
-     * the changed find was left first (F3). An opened find now takes the whole right side, the map
-     * included, so "Log a find" over an open find cannot be reached in the wide tree at all: the "+" is not
-     * on screen. What is left to hold, and what this asserts, is that the changed find stays open and
-     * unsaved while it is covering the map, and that leaving it by Back still keeps its draft with the
-     * "Saved to Drafts" snackbar, as F1's wide tests already show for the unchanged and changed cases.
-     */
-    @Test
-    @Config(qualifiers = "w1280dp-h900dp-mdpi")
-    fun `F3 wide, a changed find open in the detail pane covers the map, so Log a find is not reachable over it, and Back still keeps its draft`() {
-        setScreen()
-        // Setup, not the claim: the wide map draws only after a search (MapTab's `!hasSearched` branch).
-        composeRule.runOnIdle {
-            availabilityViewModel.onManualLatChanged("45.33")
-            availabilityViewModel.onManualLngChanged("-122.63")
-            availabilityViewModel.searchManualCoordinates()
-        }
-        composeRule.waitForIdle()
-        composeRule.onNodeWithContentDescription("Plan a trip or log a find here").assertIsDisplayed()
-        openWideFindEditor()
-        typeFindIdentification("Changed, not saved")
-
-        assertEquals(
-            "the map's Add button is not reachable while the find covers the map",
-            0,
-            composeRule.onAllNodesWithContentDescription("Plan a trip or log a find here").fetchSemanticsNodes().size,
-        )
-        assertEquals("the changed find is still open", DRAFT_OF_FIND_ID, logViewModel.uiState.value.editingEntry?.id)
-
-        pressBack()
-
-        assertChangedKeptFindInDraftsAtOnce("Back from the wide editor over the covered map")
     }
 
     private companion object {

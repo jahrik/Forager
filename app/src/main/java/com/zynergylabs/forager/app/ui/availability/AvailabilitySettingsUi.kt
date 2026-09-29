@@ -32,8 +32,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
@@ -137,28 +135,6 @@ internal fun DrawerHeader(onClose: () -> Unit) {
 }
 
 /**
- * The Search panel's sticky-footer entry into the mushroom log, right above [SettingsEntryRow] —
- * see [DrawerPanel]'s doc comment for the two sticky rows this drawer now has. No
- * `navigationBarsPadding()` here: [SettingsEntryRow] below is still the last row in the sheet and
- * carries that inset, so both rows don't independently pad for the same nav-bar gap.
- */
-@Composable
-internal fun MushroomLogEntryRow(onClick: () -> Unit) {
-    HorizontalDivider()
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(Icons.Filled.MenuBook, contentDescription = null)
-        Text("Mushroom Log", style = MaterialTheme.typography.titleSmall)
-    }
-}
-
-/**
  * The Search panel's sticky-footer entry into Settings — the exact slot [BuildIdentityFooter] used
  * to occupy, same divider-plus-navigation-bar-padding treatment, so the footer's move to the bottom
  * of the Settings panel doesn't leave this slot looking or behaving any differently to a user who
@@ -182,27 +158,6 @@ internal fun SettingsEntryRow(onClick: () -> Unit) {
     ) {
         Icon(Icons.Filled.Settings, contentDescription = null)
         Text("Settings", style = MaterialTheme.typography.titleSmall)
-    }
-}
-
-/**
- * The Settings panel's header: unlike [DrawerHeader] this carries a visible back arrow and title,
- * because — unlike closing the drawer entirely, which the app bar's tune icon already visually
- * "undoes" — there is nothing else on screen suggesting how to get back from Settings to Search.
- */
-@Composable
-internal fun SettingsHeader(onBack: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .clickable(role = Role.Button, onClick = onBack)
-            .padding(horizontal = Spacing.lg),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to search options")
-        Text("Settings", style = MaterialTheme.typography.titleMedium)
     }
 }
 

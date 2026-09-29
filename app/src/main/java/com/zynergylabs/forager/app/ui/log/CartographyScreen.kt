@@ -198,14 +198,6 @@ internal fun CartographyScreen(
     onOpenEntryRequestConsumed: () -> Unit = {},
     /** J8-3: the report menu's "Show on map" and "Hide from map" for a saved entry. `null` (the default) offers neither. */
     onSetShownOnMap: ((entryId: String, shown: Boolean) -> Unit)? = null,
-    /**
-     * J6a (ruling 1, list-detail): where the wide tree opens the entry that is open. With a slot, the
-     * open entry's report or editor registers there ([JournalDetailPriority.ENTRY]) and this screen
-     * keeps drawing its list, so the entry takes the whole right side while the list stays in the left
-     * column. `null` (the default; the compact `JournalTab`, tests) draws the open entry here in place
-     * of the list, exactly as before.
-     */
-    detailSlot: JournalDetailSlot? = null,
 ) {
     var mode by entryModeState
     val shortWindow = shortWindowHeader != null
@@ -430,17 +422,10 @@ internal fun CartographyScreen(
             }
         }
     }
-    if (editingEntry != null && detailSlot == null) {
+    if (editingEntry != null) {
         ShortWindowFrame(shortWindowHeader, action = null, modifier = modifier) { contentModifier -> entryDetail(contentModifier) }
         return
     }
-    // J6a: with a slot the entry is a detail beside the list, not a replacement for it. Registered while
-    // an entry is open; its content is read through state, so it follows the entry, its mode and its
-    // prompts without re-registering.
-    JournalDetail(detailSlot, active = editingEntry != null, priority = JournalDetailPriority.ENTRY) {
-        entryDetail(Modifier.fillMaxSize())
-    }
-
     if (uiState.isLoadingCandidates) {
         ShortWindowFrame(shortWindowHeader, action = null, modifier = modifier) { contentModifier ->
             Box(modifier = contentModifier, contentAlignment = Alignment.Center) {

@@ -123,13 +123,6 @@ internal fun RecordsTab(
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>> = { Result.success(emptyList()) },
     findsContent: @Composable ColumnScope.() -> Unit,
     /**
-     * J6a (ruling 6.1): the wide tree's detail slot. With it, a tapped record's details open in the
-     * right side ([RecordDetailsPane], registered at [JournalDetailPriority.RECORD_DETAILS]) instead of
-     * as [RecordDetailsSheet]'s modal sheet, and Back closes them. `null` (the default; compact, tests)
-     * is the sheet, as before.
-     */
-    detailSlot: JournalDetailSlot? = null,
-    /**
      * The committed logged finds (`MushroomLogUiState.entries`, what the Finds gallery's own first
      * "Log" tab lists; owner's answer 3 in `prompts/preserved/2026-09-27-17.md`, "Committed finds
      * only"): the Finds chip counts them and the All logbook lists them (journal redesign J1, S3/S4).
@@ -334,52 +327,26 @@ internal fun RecordsTab(
 
     // J5c: the details sheet, over whichever list the row was tapped in. It reads the same lists the
     // rows were drawn from (waypoints and regions already leave out a pending delete).
-    //
-    // J6a: with a slot the same details are a pane in the right side instead (ruling 6.1), closed by
-    // Back as well as by the pane's own back row. The handler is composed after this tab's other
-    // handlers (JournalTab's, above it), so it is the first to take Back while the details are open.
-    if (detailSlot != null) {
-        BackHandler(enabled = backEnabled && detailsTarget != null) { detailsTarget = null }
-        JournalDetail(detailSlot, active = detailsTarget != null, priority = JournalDetailPriority.RECORD_DETAILS) {
-            detailsTarget?.let { target ->
-                RecordDetailsPane(
-                    target = target,
-                    waypoints = waypoints,
-                    tracks = tracks,
-                    offlineRegions = availabilityUiState.visibleOfflineRegions,
-                    waypointEntryReferenceCounts = waypointEntryReferenceCounts,
-                    distanceUnit = distanceUnit,
-                    nowEpochMillis = currentTime.nowEpochMillis(),
-                    staleThresholdDays = availabilityUiState.offlineStaleThresholdDays,
-                    getFullRecord = getFullRecord,
-                    onDeleteTrack = onDeleteTrack,
-                    onDismiss = { detailsTarget = null },
-                )
-            }
-        }
-    } else {
-        detailsTarget?.let { target ->
-            RecordDetailsSheet(
-                target = target,
-                waypoints = waypoints,
-                tracks = tracks,
-                offlineRegions = availabilityUiState.visibleOfflineRegions,
-                waypointEntryReferenceCounts = waypointEntryReferenceCounts,
-                distanceUnit = distanceUnit,
-                nowEpochMillis = currentTime.nowEpochMillis(),
-                staleThresholdDays = availabilityUiState.offlineStaleThresholdDays,
-                getFullRecord = getFullRecord,
-                onDeleteTrack = onDeleteTrack,
-                onDismiss = { detailsTarget = null },
-                // Owner "1 A" (dispatch 2026-09-28-104, superseding planner message -77's Q1 (b)): over a map
-                // only from the Offline maps sub-tab AND only in a short landscape window, where that panel's
-                // picker map is beside the list (`OfflineMapsPanel`'s own test, AvailabilityOfflineMapsUi.kt:264,
-                // which is `isShortLandscapeJournal`). In portrait the panel is stacked and the sheet lies over
-                // the region list, not a map, so it stays solid. (The wide tree no longer reaches this branch:
-                // it passes a slot, J6a.)
-                overMap = selectedTab == RecordsSubTab.OFFLINE_MAPS && isShortLandscapeJournal(),
-            )
-        }
+    detailsTarget?.let { target ->
+        RecordDetailsSheet(
+            target = target,
+            waypoints = waypoints,
+            tracks = tracks,
+            offlineRegions = availabilityUiState.visibleOfflineRegions,
+            waypointEntryReferenceCounts = waypointEntryReferenceCounts,
+            distanceUnit = distanceUnit,
+            nowEpochMillis = currentTime.nowEpochMillis(),
+            staleThresholdDays = availabilityUiState.offlineStaleThresholdDays,
+            getFullRecord = getFullRecord,
+            onDeleteTrack = onDeleteTrack,
+            onDismiss = { detailsTarget = null },
+            // Owner "1 A" (dispatch 2026-09-28-104, superseding planner message -77's Q1 (b)): over a map
+            // only from the Offline maps sub-tab AND only in a landscape window, where that panel's
+            // picker map is beside the list (`OfflineMapsPanel`'s own test, AvailabilityOfflineMapsUi.kt:264,
+            // which is `isLandscapeJournal`). In portrait the panel is stacked and the sheet lies over
+            // the region list, not a map, so it stays solid.
+            overMap = selectedTab == RecordsSubTab.OFFLINE_MAPS && isLandscapeJournal(),
+        )
     }
 }
 

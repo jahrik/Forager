@@ -22,17 +22,15 @@ package com.zynergylabs.forager.app.ui.availability
 //   OfflineRegionsSection. It is a different function, not a reference to the one here — a grep
 //   coincidence, not a dependency.
 
-import android.content.res.Configuration
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.runtime.movableContentOf
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import com.zynergylabs.forager.app.ui.map.mapChromeFill
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.adaptive.currentWindowPortEdge
-import com.zynergylabs.forager.app.ui.adaptive.isShortWindow
+import com.zynergylabs.forager.app.ui.adaptive.isLandscapeWindow
 import com.zynergylabs.forager.app.ui.log.ScreenEdge
 import com.zynergylabs.forager.app.ui.map.CentrePinConfirmActions
 import com.zynergylabs.forager.app.ui.map.CentrePinInstruction
@@ -294,7 +292,7 @@ internal fun OfflineMapsPanel(
         )
     }
 
-    if (isShortWindow() && LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+    if (isLandscapeWindow()) {
         OfflineMapsSideBySide(
             modifier = modifier,
             controlsFirst = currentWindowPortEdge() == ScreenEdge.Left,
@@ -381,7 +379,7 @@ internal fun offlineDownloadConfirmationBody(name: String, radiusKm: Int, unit: 
  *   the window's left (ROTATION_270), so the sides follow the rail on a turn between 90 and 270.
  *
  * A drag on the map pans the map: it is its own region of the row, not inside the controls' scroll.
- * The window test is the one B1-B3 and J5 use (`isShortWindow` and landscape).
+ * The window test is the one B1-B3 and J5 use (`isLandscapeWindow`).
  */
 @Composable
 private fun OfflineMapsSideBySide(
