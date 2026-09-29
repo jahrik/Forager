@@ -64,6 +64,8 @@ import com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsPanel
 import com.zynergylabs.forager.app.ui.log.JournalTab
 import com.zynergylabs.forager.app.ui.map.MapMode
 import com.zynergylabs.forager.app.ui.map.MapModePicker
+import com.zynergylabs.forager.app.ui.backup.BackupControls
+import com.zynergylabs.forager.app.ui.backup.BackupSection
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
 /**
@@ -267,6 +269,7 @@ private fun CompactSettingsTab(
     themeMode: AppThemeMode,
     onThemeModeChanged: (AppThemeMode) -> Unit,
     crashFileStore: CrashFileStore,
+    backup: BackupControls,
     modifier: Modifier = Modifier,
 ) {
     var showCrashLogs by remember { mutableStateOf(false) }
@@ -315,6 +318,7 @@ private fun CompactSettingsTab(
                     onThemeModeChanged = onThemeModeChanged,
                     onOpenCrashLogs = { showCrashLogs = true },
                     onOpenDiagnostics = { showDiagnostics = true },
+                    backup = backup,
                 )
                 BuildIdentityFooter()
             }
@@ -354,6 +358,8 @@ internal fun SettingsContent(
     onOpenCrashLogs: () -> Unit,
     /** Debug builds only: the row this opens composes nothing in release — see [DiagnosticsEntryRow]'s two source-set versions. */
     onOpenDiagnostics: () -> Unit,
+    /** The Backup section's state and callbacks (journal backup and restore, dispatch 2026-09-28-127). */
+    backup: BackupControls = BackupControls(),
 ) {
     Column(
         modifier = modifier
@@ -368,6 +374,8 @@ internal fun SettingsContent(
         HorizontalDivider()
         PhotoLocationSection(checked = autoSaveLocationToPhotos, onCheckedChange = onAutoSaveLocationToPhotosChanged)
         CameraPortraitLockSection(checked = lockCameraToPortrait, onCheckedChange = onLockCameraToPortraitChanged)
+        HorizontalDivider()
+        BackupSection(controls = backup)
         HorizontalDivider()
         CrashLogsEntryRow(onClick = onOpenCrashLogs)
         DiagnosticsEntryRow(onClick = onOpenDiagnostics)
@@ -570,6 +578,7 @@ internal fun CompactToolsDrawerContent(
     themeMode: AppThemeMode,
     onThemeModeChanged: (AppThemeMode) -> Unit,
     crashFileStore: CrashFileStore,
+    backup: BackupControls = BackupControls(),
 ) {
     // Own drill-in step, same shape as CompactSettingsTab's own CrashLogs submenu — see this
     // composable's own doc comment, item 2. Composed inside this drawer sheet (which the
@@ -595,6 +604,7 @@ internal fun CompactToolsDrawerContent(
             themeMode = themeMode,
             onThemeModeChanged = onThemeModeChanged,
             crashFileStore = crashFileStore,
+            backup = backup,
             modifier = Modifier.fillMaxSize(),
         )
         return

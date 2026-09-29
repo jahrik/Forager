@@ -1,7 +1,11 @@
 package com.zynergylabs.forager.app.data.backup
 
+import android.content.ContentValues
 import android.content.Context
+import android.database.Cursor
+import android.database.sqlite.SQLiteDatabase
 import com.zynergylabs.forager.app.data.local.ForagerDatabase
+import com.zynergylabs.forager.app.domain.BackupException
 import com.zynergylabs.forager.app.domain.BackupReport
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.ErrorLog
@@ -12,6 +16,10 @@ import com.zynergylabs.forager.app.domain.SystemCurrentTimeProvider
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
+import java.util.UUID
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Seams a test uses to stop the operation at a chosen point: [snapshotLockHeld] runs while the snapshot holds
@@ -26,7 +34,36 @@ class RoomJournalBackupHooks(
     val afterRowsWritten: () -> Unit = {},
 )
 
-/** The journal backup over the app's Room database and photo folder. (Tests-first stub: every operation is unsupported.) */
+/**
+ * The journal backup over the app's Room database and photo folder (dispatch 2026-09-28-127). The format is
+ * [BackupManifest]'s; the table knowledge is [JournalTables]'s.
+ *
+ * ## The snapshot
+ *
+ * `VACUUM INTO` would be the one-statement answer but needs SQLite 3.27, which Android ships from API 30, and
+ * `minSdk` is 26. A plain copy of `forager.db` under WAL can be torn by a checkpoint landing mid-copy. So:
+ * checkpoint (best effort, to keep the WAL small), then open a write transaction, whose write lock stops any
+ * other writer committing and so stops any auto-checkpoint, copy the database file **and its WAL**, release,
+ * and fold the copy (open it, checkpoint it, switch it to a rollback journal) into one self-contained file.
+ * Readers keep working throughout, and the live database is only ever read.
+ *
+ * ## Restore
+ *
+ * Both modes first stage the archive in a scratch folder and verify it, all before the live data is touched: the
+ * manifest, every SHA-256, the schema version (newer than this build is refused; older is migrated **on the
+ * scratch copy** by Room's registered migrations, with no destructive fallback), and `integrity_check` before
+ * and after the migration. The live Room database is never closed or swapped; rows are written through one
+ * Room transaction, so a failure rolls back and observers see either everything or nothing.
+ *
+ * - **Replace:** photo files are copied in first (a live file of the same name with different bytes is moved
+ *   aside, not overwritten), then one transaction deletes the journal tables' rows and inserts the
+ *   backup's. On any failure the transaction rolls back and the photo step is undone. Only after the commit are
+ *   the phone's old photo files that no restored row uses deleted.
+ * - **Merge:** [JournalTables]'s rule. A record whose id is on the phone is skipped and the phone's copy wins,
+ *   whole; a record the phone lacks is inserted with its dependent rows, each kept only if every record it names
+ *   is on the phone afterwards, so nothing dangles; a nullable link to a record that is nowhere is set NULL.
+ *   Photo files are copied only for photo rows that were inserted.
+ */
 class RoomJournalBackup(
     private val context: Context,
     private val database: ForagerDatabase,
@@ -38,9 +75,291 @@ class RoomJournalBackup(
     private val clock: CurrentTimeProvider = SystemCurrentTimeProvider,
     private val hooks: RoomJournalBackupHooks = RoomJournalBackupHooks(),
 ) : JournalBackup {
-    override suspend fun backUp(sink: OutputStream): Result<BackupReport> =
-        Result.failure(UnsupportedOperationException("journal backup: not built"))
 
-    override suspend fun restore(source: InputStream, mode: RestoreMode): Result<RestoreReport> =
-        Result.failure(UnsupportedOperationException("journal restore: not built"))
+    override suspend fun backUp(sink: OutputStream): Result<BackupReport> = withContext(Dispatchers.IO) {
+        attempt("backup failed") { doBackUp(sink) }
+    }
+
+    override suspend fun restore(source: InputStream, mode: RestoreMode): Result<RestoreReport> = withContext(Dispatchers.IO) {
+        attempt("restore failed") { doRestore(source, mode) }
+    }
+
+    /** Runs [block]; anything it throws (other than cancellation) is logged with [what] and returned as a [BackupException] failure. */
+    private inline fun <T> attempt(what: String, block: () -> T): Result<T> = try {
+        Result.success(block())
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: BackupException) {
+        errorLog.w(TAG, "$what: ${e.message}", e)
+        Result.failure(e)
+    } catch (e: Throwable) {
+        errorLog.w(TAG, "$what: ${e.message}", e)
+        Result.failure(BackupException("$what: ${e.message}", e))
+    }
+
+    // ---- back up -------------------------------------------------------------------------------
+
+    private fun doBackUp(sink: OutputStream): BackupReport {
+        val scratch = newScratch("backup")
+        try {
+            val snapshot = File(scratch, BackupManifest.DATABASE_ENTRY)
+            takeSnapshot(snapshot)
+            val (schemaVersion, photoPaths) = SQLiteDatabase.openDatabase(snapshot.path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
+                requireIntegrity(db, "the snapshot")
+                val paths = db.rawQuery("SELECT relativePath FROM log_photos", null).use { c ->
+                    buildList { while (c.moveToNext()) add(c.getString(0)) }
+                }
+                db.version to paths
+            }
+            val photos = LinkedHashMap<String, File>()
+            var missing = 0
+            for (path in photoPaths.distinct().sorted()) {
+                val file = File(filesDir, path)
+                if (!BackupArchive.isSafeEntryName(path) || !file.isFile) {
+                    missing++
+                    errorLog.w(TAG, "backup: photo $path has no file on disk and is left out", BackupException("missing photo file $path"))
+                    continue
+                }
+                photos[path] = file
+            }
+            val listed = buildList {
+                add(describe(BackupManifest.DATABASE_ENTRY, snapshot))
+                photos.forEach { (path, file) -> add(describe(path, file)) }
+            }
+            val manifest = BackupManifest(
+                formatVersion = BackupManifest.FORMAT_VERSION,
+                appVersionCode = appVersionCode,
+                schemaVersion = schemaVersion,
+                createdAtEpochMillis = clock.nowEpochMillis(),
+                files = listed,
+            )
+            val bytes = BackupArchive.write(sink, manifest, snapshot, photos)
+            return BackupReport(photoFiles = photos.size, photoFilesMissing = missing, archiveBytes = bytes)
+        } finally {
+            scratch.deleteRecursively()
+        }
+    }
+
+    private fun describe(path: String, file: File) = ManifestFile(path, BackupArchive.sha256Hex(file), file.length())
+
+    private fun takeSnapshot(target: File) {
+        val sql = database.openHelper.writableDatabase
+        try {
+            sql.query("PRAGMA wal_checkpoint(TRUNCATE)").use { it.moveToFirst() }
+        } catch (e: Exception) {
+            // Best effort: it only keeps the WAL small. The locked copy below is what makes the snapshot consistent.
+            errorLog.w(TAG, "backup: the checkpoint before the snapshot failed; copying the WAL as well", e)
+        }
+        val walFile = File(databaseFile.path + "-wal")
+        val targetWal = File(target.path + "-wal")
+        database.runInTransaction(Runnable {
+            // Take the write lock now: a statement that changes nothing still takes it, and from here to the end
+            // of the transaction no other writer can commit, so nothing can checkpoint underneath the copy.
+            sql.execSQL("DELETE FROM cached_searches WHERE 0")
+            hooks.snapshotLockHeld()
+            databaseFile.copyTo(target, overwrite = true)
+            if (walFile.exists()) walFile.copyTo(targetWal, overwrite = true)
+        })
+        // Fold the copy into one file: opening it replays the copied WAL; then checkpoint and drop the WAL mode.
+        SQLiteDatabase.openDatabase(target.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+            db.rawQuery("PRAGMA wal_checkpoint(TRUNCATE)", null).use { it.moveToFirst() }
+            db.rawQuery("PRAGMA journal_mode=DELETE", null).use { it.moveToFirst() }
+        }
+        targetWal.delete()
+        File(target.path + "-shm").delete()
+    }
+
+    // ---- restore -------------------------------------------------------------------------------
+
+    private fun doRestore(source: InputStream, mode: RestoreMode): RestoreReport {
+        val scratch = newScratch("restore")
+        try {
+            val staged = BackupArchive.stage(source, File(scratch, "staged"))
+            checkSchemaVersion(staged.manifest)
+            SQLiteDatabase.openDatabase(staged.databaseFile.path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
+                requireIntegrity(db, "the backup's database")
+                if (db.version != staged.manifest.schemaVersion) {
+                    throw BackupException("the manifest says schema ${staged.manifest.schemaVersion} but the database is schema ${db.version}")
+                }
+            }
+            migrateOnScratchCopy(staged.databaseFile)
+            return SQLiteDatabase.openDatabase(staged.databaseFile.path, null, SQLiteDatabase.OPEN_READONLY).use { backupDb ->
+                requireIntegrity(backupDb, "the backup's database after migration")
+                when (mode) {
+                    RestoreMode.REPLACE -> replace(staged, backupDb)
+                    RestoreMode.MERGE -> merge(staged, backupDb)
+                }
+            }
+        } finally {
+            scratch.deleteRecursively()
+        }
+    }
+
+    private fun checkSchemaVersion(manifest: BackupManifest) {
+        if (manifest.schemaVersion > ForagerDatabase.SCHEMA_VERSION) {
+            throw BackupException(
+                "the backup is from schema ${manifest.schemaVersion}, newer than this app's ${ForagerDatabase.SCHEMA_VERSION}; " +
+                    "restore it with an app that is at least as new as the one that made it",
+            )
+        }
+    }
+
+    /** Opens the scratch copy with Room, which runs the registered migrations up to this build's schema and checks the result against it; then closes it. */
+    private fun migrateOnScratchCopy(file: File) {
+        val scratchDb = ForagerDatabase.openForRestore(context, file.absolutePath)
+        try {
+            scratchDb.openHelper.writableDatabase.query("PRAGMA wal_checkpoint(TRUNCATE)").use { it.moveToFirst() }
+        } finally {
+            scratchDb.close()
+        }
+        File(file.path + "-wal").delete()
+        File(file.path + "-shm").delete()
+    }
+
+    private fun replace(staged: StagedBackup, backupDb: SQLiteDatabase): RestoreReport {
+        val photos = PhotoFileJournal(filesDir, errorLog)
+        val sql = database.openHelper.writableDatabase
+        val oldPhotoPaths = sql.query("SELECT relativePath FROM log_photos").use { c -> buildSet { while (c.moveToNext()) add(c.getString(0)) } }
+        val newPhotoPaths = backupDb.rawQuery("SELECT relativePath FROM log_photos", null).use { c -> buildSet { while (c.moveToNext()) add(c.getString(0)) } }
+        var inserted = 0
+        try {
+            for ((path, file) in staged.photoFiles) photos.place(path, file)
+            hooks.afterPhotosCopied()
+            database.runInTransaction(Runnable {
+                for (spec in JournalTables.journal) sql.execSQL("DELETE FROM `${spec.name}`")
+                for (spec in JournalTables.journal) inserted += copyAll(backupDb, sql, spec.name, dropKey = null)
+                hooks.afterRowsWritten()
+            })
+        } catch (t: Throwable) {
+            photos.rollback()
+            throw t
+        }
+        photos.commit()
+        for (path in oldPhotoPaths - newPhotoPaths) photos.deleteOld(path)
+        return RestoreReport(RestoreMode.REPLACE, rowsInserted = inserted, recordsSkipped = 0, rowsDropped = 0, photoFilesAdded = photos.placedCount)
+    }
+
+    private fun merge(staged: StagedBackup, backupDb: SQLiteDatabase): RestoreReport {
+        val photos = PhotoFileJournal(filesDir, errorLog)
+        val sql = database.openHelper.writableDatabase
+        var inserted = 0
+        var skipped = 0
+        var dropped = 0
+        // Photo files first, and only for photo rows the phone lacks.
+        val photoSpec = JournalTables.journal.first { it.name == "log_photos" }
+        val candidatePhotos = backupDb.rawQuery("SELECT id, relativePath FROM log_photos", null).use { c ->
+            buildList { while (c.moveToNext()) add(c.getString(0) to c.getString(1)) }
+        }.filter { (id, _) -> !existsIn(sql, photoSpec.name, "id", id) }
+        try {
+            for ((_, path) in candidatePhotos) staged.photoFiles[path]?.let { photos.place(path, it) }
+            hooks.afterPhotosCopied()
+            database.runInTransaction(Runnable {
+                val insertedKeys = HashMap<String, MutableSet<String>>()
+                for (spec in JournalTables.journal.filter { it.kind == JournalTables.Kind.RECORD }) {
+                    val keys = insertedKeys.getOrPut(spec.name) { HashSet() }
+                    backupDb.rawQuery("SELECT * FROM `${spec.name}`", null).use { c ->
+                        while (c.moveToNext()) {
+                            val key = keyOf(c, spec)
+                            if (existsIn(sql, spec.name, spec.keyColumns.single(), key.single())) {
+                                skipped++
+                            } else {
+                                check(sql.insert(spec.name, SQLiteDatabase.CONFLICT_ABORT, c.toValues(dropColumn = null)) != -1L) { "insert into ${spec.name} failed" }
+                                keys += key.single()
+                                inserted++
+                            }
+                        }
+                    }
+                }
+                // A nullable link on a record this merge inserted, to a record that is on neither phone, becomes NULL.
+                for (spec in JournalTables.journal.filter { it.kind == JournalTables.Kind.RECORD && it.softLinks.isNotEmpty() }) {
+                    for (link in spec.softLinks) for (key in insertedKeys.getValue(spec.name)) {
+                        val target = sql.query("SELECT `${link.column}` FROM `${spec.name}` WHERE `${spec.keyColumns.single()}` = ?", arrayOf<Any?>(key)).use { c ->
+                            if (c.moveToFirst() && !c.isNull(0)) c.getString(0) else null
+                        }
+                        if (target != null && !existsIn(sql, link.table, link.targetKey, target)) {
+                            sql.execSQL("UPDATE `${spec.name}` SET `${link.column}` = NULL WHERE `${spec.keyColumns.single()}` = ?", arrayOf<Any?>(key))
+                        }
+                    }
+                }
+                // Dependent rows: only with an owner this merge inserted, and only if every record they name is on the phone.
+                for (spec in JournalTables.journal.filter { it.kind == JournalTables.Kind.OWNED }) {
+                    val owner = spec.owner!!
+                    val ownerKeys = insertedKeys.getValue(owner.table)
+                    backupDb.rawQuery("SELECT * FROM `${spec.name}`", null).use { c ->
+                        while (c.moveToNext()) {
+                            val ownerValue = c.getString(c.getColumnIndexOrThrow(owner.column))
+                            if (ownerValue !in ownerKeys) continue
+                            val dangling = spec.needs.any { need ->
+                                val value = c.getString(c.getColumnIndexOrThrow(need.column))
+                                !existsIn(sql, need.table, need.targetKey, value)
+                            }
+                            if (dangling) {
+                                dropped++
+                                errorLog.w(TAG, "merge: a row of ${spec.name} names a record that is on neither phone and is left out", BackupException("dropped ${spec.name} row of $ownerValue"))
+                                continue
+                            }
+                            check(sql.insert(spec.name, SQLiteDatabase.CONFLICT_ABORT, c.toValues(dropColumn = if (spec.autoKey) spec.keyColumns.single() else null)) != -1L) {
+                                "insert into ${spec.name} failed"
+                            }
+                            inserted++
+                        }
+                    }
+                }
+                hooks.afterRowsWritten()
+            })
+        } catch (t: Throwable) {
+            photos.rollback()
+            throw t
+        }
+        photos.commit()
+        // A photo file was copied ahead of its row; if the row did not get inserted after all, the file goes.
+        for ((id, path) in candidatePhotos) if (!existsIn(sql, photoSpec.name, "id", id)) photos.deleteOld(path)
+        return RestoreReport(RestoreMode.MERGE, rowsInserted = inserted, recordsSkipped = skipped, rowsDropped = dropped, photoFilesAdded = photos.placedCount)
+    }
+
+    // ---- rows ----------------------------------------------------------------------------------
+
+    /** Every row of [table] in [from], verbatim, into [into]. Returns how many. */
+    private fun copyAll(from: SQLiteDatabase, into: androidx.sqlite.db.SupportSQLiteDatabase, table: String, dropKey: String?): Int {
+        var n = 0
+        from.rawQuery("SELECT * FROM `$table`", null).use { c ->
+            while (c.moveToNext()) {
+                check(into.insert(table, SQLiteDatabase.CONFLICT_ABORT, c.toValues(dropKey)) != -1L) { "insert into $table failed" }
+                n++
+            }
+        }
+        return n
+    }
+
+    private fun keyOf(c: Cursor, spec: JournalTables.TableSpec): List<String> = spec.keyColumns.map { c.getString(c.getColumnIndexOrThrow(it)) }
+
+    private fun existsIn(sql: androidx.sqlite.db.SupportSQLiteDatabase, table: String, column: String, value: String): Boolean =
+        sql.query("SELECT 1 FROM `$table` WHERE `$column` = ? LIMIT 1", arrayOf<Any?>(value)).use { it.moveToFirst() }
+
+    private fun Cursor.toValues(dropColumn: String?): ContentValues {
+        val cv = ContentValues()
+        for (i in 0 until columnCount) {
+            val name = getColumnName(i)
+            if (name == dropColumn) continue
+            when (getType(i)) {
+                Cursor.FIELD_TYPE_NULL -> cv.putNull(name)
+                Cursor.FIELD_TYPE_INTEGER -> cv.put(name, getLong(i))
+                Cursor.FIELD_TYPE_FLOAT -> cv.put(name, getDouble(i))
+                Cursor.FIELD_TYPE_BLOB -> cv.put(name, getBlob(i))
+                else -> cv.put(name, getString(i))
+            }
+        }
+        return cv
+    }
+
+    private fun requireIntegrity(db: SQLiteDatabase, what: String) {
+        val result = db.rawQuery("PRAGMA integrity_check", null).use { c -> if (c.moveToFirst()) c.getString(0) else "no result" }
+        if (result != "ok") throw BackupException("$what failed its integrity check: $result")
+    }
+
+    private fun newScratch(kind: String): File = File(scratchDir, "$kind-${UUID.randomUUID()}").also { it.mkdirs() }
+
+    private companion object {
+        const val TAG = "RoomJournalBackup"
+    }
 }
