@@ -1,6 +1,6 @@
 # Dispatch 2026-09-28-160: the landscape icon cluster as an L — coder report
 
-**Status: in progress (pre-registration pushed before building).** Sections below are appended as work lands; nothing above a "Resumed" heading is rewritten.
+**Status: STOPPED, blocked by a full disk (see "Stop: no space left on device" at the end). Tests written and pushed; no test has been run; no implementation written.** Sections below are appended as work lands; nothing above a "Resumed" heading is rewritten.
 
 **Coder session.** The owner's launch prompt names `/model claude-sonnet-5-5`. The session's configured model id is `claude-sonnet-5-5`; the serving model was not independently read, so that is the configured identifier, not a verified one.
 
@@ -48,3 +48,23 @@ All at `w823dp-h384dp-land`, `ROTATION_90` (cluster on the left) and `ROTATION_2
 **The corner-clipping stop (dispatch).** Prediction: five touches at fractions 0.2/0.8 of an end row's 48 dp box lie inside the rounded end. From the 24 dp corner radius on a 48 dp wide bar, the point at fraction (0.2, 0.2) is at distance √2 × 14.4 = 20.4 dp from the arc's centre (inside 24); at (0.1, 0.1) it is 27.0 (outside). So the gate samples are inside by geometry, and the extreme corners of the 48 dp box are outside the drawn shape by geometry. Whether Robolectric's Compose hit-testing follows the rounded clip is undetermined (the map, §6). A separate, non-gating probe of the extreme corners is run once and its result reported here rather than committed as a test.
 
 **Machine.** 2332 MB available at the first check, under the 2.5 GB rule; no Gradle run started until both the memory and the Java-Gradle-process checks pass.
+
+## Stop: no space left on device
+
+**What happened, read from the build logs.**
+- First run of the three test classes at the unmodified base (`:app:testDebugUnitTest --tests '*LandscapeLClusterTest' --tests '*LandscapeLClusterPixelsTest' --tests '*LayoutFixesShortLandscapeTest'`, `--offline`): `BUILD FAILED in 1m 2s`, `Could not add entry ':app:bundleDebugClassesToRuntimeJar' to cache executionHistory.bin`, then `Could not receive a message from the daemon`.
+- Second run: `BUILD FAILED in 769ms`, `java.io.IOException: No space left on device` while resolving `incomingCatalogForLibs0`.
+- `df` at the time: `/dev/nvme0n1p5`, 67 G, 100% used, 0 available; a byte count read a minute apart showed about 120 MB free, and it moves as other sessions build.
+
+**Consequence.** Neither run reached compilation or a test; there are no JUnit results, so nothing in this report is a test result. The predictions in the pre-registration are untested.
+
+**What I did not do, and why.** The space is held by other sessions' and the owner's work, none of it mine to delete: `~/Zynergy/forager-wt` is 11 G across some 30 worktrees, `~/.gradle` 9.8 G, `~/Android` 6.1 G, `~/.android` 4.9 G, `~/Zynergy/device-evidence` 3.8 G, `~/Zynergy/forager-repo-backups` 1.1 G. My own worktree is 165 MB, and clearing it would not free enough for a Gradle build. Removing another worktree's `build/` or the shared Gradle cache would be outside this dispatch's scope ("work only in your named worktree") and could break a build another coder or the device session is running. So this is a stop for the owner or planner to resolve, not something I worked around.
+
+**What is pushed** (branch `landscape-l-wip`; nothing on `journal-redesign`):
+- `LandscapeLClusterTest.kt` (geometry, real coordinate touches, corner and gap long-presses with positive controls, bottom and notice clamps), `LandscapeLClusterPixelsTest.kt` (native graphics: nothing drawn in the corner or the gap; bar and pill each one layer at 0.8), and edits to `LayoutFixesShortLandscapeTest.kt` replacing TR1, TR2 and TR4 (and the `bar()` helper's 4 dp), each carrying the owner's ruling verbatim in its comment.
+- Not compiled yet. Unverified: that these tests compile, and that they fail at base for the reasons pre-registered.
+
+**To resume.** Free roughly 2 GB (a Gradle build here wrote about 160 MB into the worktree before failing, and the daemon and test workers need more), then: run the three classes at base and confirm the pre-registered failures; implement (container `Surface` becomes a fill-less `Box` in landscape; `MapIconBar` and `ControlPill` gain a landscape row pitch and horizontal form; `mapIconBarRowAnchorOffset` gains a row-pitch parameter); revert checks from saved copies; the full suite from a cleared results directory.
+
+## Decisions I would have to make (not made; for the planner)
+1. **The pill's width.** The dispatch fixes its thickness (48) and outer-end flush, not its length. I pre-registered 96 (two 48 dp buttons, no padding or spacing, the same rule the bar's "no spacing" gives), which also makes the record button sit exactly under the bar and puts "half of the pill" under the bar as the owner said. The alternative is 108 (today's 4 dp padding and spacing turned horizontal), which offsets the record button 4 dp from the bar's edge. The tests pin 96.
