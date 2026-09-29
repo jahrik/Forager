@@ -545,7 +545,11 @@ class AvailabilityScreenLandscapeB2Test {
         assertCentreClear(listOf(SEARCH_ENTRY_BAR_TAG, NAVIGATION_HUD_TAG, MAP_ICON_CLUSTER_TAG, COMPACT_NAVIGATION_RAIL_TAG))
     }
 
+    // Planner message 2026-09-29-05 (the owner's "Option B"): a harness correction, not a weaker assertion. The default
+    // graphics mode measures text at near-zero width, which put the chip row at a different place from the phone's;
+    // the central-third assertion below is unchanged.
     @Test
+    @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
     fun `S10 at ROTATION_90 with the filter chip showing, the central third stays clear`() {
         setScreen(Surface.ROTATION_90, B2_SEARCHED_STATE.copy(forecast = B2_FORECAST, selectedMonth = LocalDate.now().monthValue))
         showTaxonFilterChip()

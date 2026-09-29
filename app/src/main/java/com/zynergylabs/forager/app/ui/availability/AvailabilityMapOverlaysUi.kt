@@ -66,6 +66,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -348,7 +349,15 @@ internal fun TaxonMapFilterChip(label: String, onClear: () -> Unit, modifier: Mo
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Showing: $label", style = MaterialTheme.typography.labelMedium)
+            // Planner message 2026-09-29-05 (the owner's "Option B"): one line, a long name ends in an ellipsis, and
+            // the label gives way (a weight that does not fill) so the clear button keeps its 24 dp.
+            Text(
+                "Showing: $label",
+                style = MaterialTheme.typography.labelMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
+            )
             IconButton(
                 onClick = onClear,
                 modifier = Modifier.size(24.dp).testTag("map-taxon-filter-clear"),

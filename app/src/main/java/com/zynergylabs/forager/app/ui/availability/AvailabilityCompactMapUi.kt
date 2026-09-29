@@ -1150,6 +1150,9 @@ internal fun CompactMapTab(
                             // capped at the bar's width less the cluster's edge inset, measured width and the gap
                             // beside it, so two chips that do not fit wrap onto two lines instead of reaching
                             // under the cluster. Both follow the cluster when it is dragged or snapped across.
+                            // Planner message 2026-09-29-05: the cap only where the cluster sits under the bar's
+                            // reach (it is on the bar's side); elsewhere the chips have room and stay on one line.
+                            val clusterUnderBar = isMapIconBarOnLeftSide == (punchHoleEdge == ScreenEdge.Left)
                             val clusterColumnDp = MAP_ICON_BAR_EDGE_INSET + with(LocalDensity.current) { mapIconClusterWidthPx.toDp() } + Spacing.sm
                             Modifier
                                 .align(if (punchHoleEdge == ScreenEdge.Left) Alignment.TopStart else Alignment.TopEnd)
@@ -1157,7 +1160,7 @@ internal fun CompactMapTab(
                                 .padding(top = topInset + Spacing.sm)
                                 .width(landscapeSearchWidth)
                                 .wrapContentWidth(if (isMapIconBarOnLeftSide) AbsoluteAlignment.Right else AbsoluteAlignment.Left)
-                                .widthIn(max = (landscapeSearchWidth - clusterColumnDp).coerceAtLeast(0.dp))
+                                .widthIn(max = if (clusterUnderBar) (landscapeSearchWidth - clusterColumnDp).coerceAtLeast(0.dp) else landscapeSearchWidth)
                         } else {
                             Modifier
                                 .align(Alignment.TopCenter)
