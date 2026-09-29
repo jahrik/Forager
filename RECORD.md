@@ -6631,3 +6631,26 @@ The planner confirmed each by grep.
   - the Download dialog is always over a map.
 - **Machine:** one start at 2415 MB, which failed at compile.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-212
+**Timestamp:** 2026-09-29T19:18:05Z
+**Dispatch:** 2026-09-28-200 (L1)
+**Reason:** L1 handed back. It ran as a subagent of another planner session the owner opened ("You are the planner. Dispatch the following to a c…"). The documents are pushed to legal-drafts at a0cf46ed. Report: docs/audits/2026-09-29-legal-docs-l1-completion-report.md. The addendum is at the end of docs/audits/2026-09-29-privacy-site-update-report.md.
+**Changes:** the site agent's notes (preserved/2026-09-29-43.md and its copy) are amended:
+- L1 is done;
+- the "Recorded tracks" bullet is kept, qualified with the entry-copy caveat;
+- a new "Fix now on the live pages" list: the sundown alerts sentence, the no-third-party-tile-vendor sentence, and the no-log-export-plan sentence.
+**Notes:**
+- **L1's findings against the code:**
+  - **The sundown alerts do not exist.** DecideSundownAlertUseCase has no caller on main or journal-redesign, and nothing builds a turnaround or sunset alert (TrackRecordingViewModel.kt:833 is the only Alert). The live privacy page describes them. This goes to the owner as a product question.
+  - **A backup file carries cached_searches** (the last five searches, with their coordinates), because it is a whole-database copy (RoomJournalBackup.kt:149-176), although JournalTables.kt:95-97 calls it not journal data. It is disclosed; dropping it would be an app change, and goes to the owner.
+  - **The exported GPX file is never deleted** from cacheDir/tracks (TrackGpxExporter.kt:78). It is disclosed; the owner decides.
+  - **The Worker fetches from build.protomaps.com** on a missing tile, so the live "no third-party tile vendor" claim is contradicted.
+  - **The in-app backup notice** is shown when a notification could not be posted, not as a reaction to declining the permission (ScheduledBackupNotice.kt:49-53).
+  - **Removed as unconfirmable:** dashboard-dated claims, plan-tier claims, "no tile requests inside a downloaded region", and the salted-hash claim, which depends on RATE_LIMIT_SALT and falls back to a public constant (beta-signup.js:233-237).
+  - **Corrected first-draft claims:** immediate deletion (there is an Undo first), "denying location ends them", "every item deletable", crash traces' location, "vehicle markers", and "nothing shared".
+- **The C1 stop (-211) came from that other planner session:** "Start F4. Stop C1", relayed. The owner is asked what they meant.
+- Written by the planner by hand.
