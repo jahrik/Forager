@@ -567,3 +567,65 @@ The planner's message that launched me. The store copy above governs over it.
 > - **Where things go:** evidence in `/home/zynergy-labs/Zynergy/device-evidence/2026-09-28-planned-trips/`. The run record is `docs/audits/2026-09-28-planned-trips-device-check-run-record.md` on a new branch `device-trips`, from `origin/journal-redesign`, pushed after each check. The planner merges it; you do not touch `RECORD.md`. Merge is not authorised.
 >
 > When you finish or stop, hand back a report: the build, the trips created and deleted, every verdict, captures by name, logcat lines, the supported cause (marked read, observed or inferred), what was restored, decisions you made and flags.
+
+## Resumed (dispatch `2026-09-28-94`, continued by `RECORD.md` `2026-09-28-112`): pre-registration
+
+**Written before any Forager screen was captured in this resumed run.** Observations are added in later commits; this
+part stays unchanged. The section above is the earlier coder's and is not rewritten.
+
+**Who and where.** A fresh device coder in worktree `/home/zynergy-labs/Zynergy/forager-wt/device-trips`, branch
+`device-trips`, at `f35e815` (`origin/device-trips`, verified equal at 01:0xZ). The launch prompt says the session should
+be on `/model claude-sonnet-5-5`; **the session's configuration names `claude-sonnet-5-5`, but I cannot read which model
+served the turns (the `get_session` tool is not available to me), so the serving model is unverified.** No install, no app code
+changed, no `RECORD.md`, index, `CLAUDE.md`, `docs/plans/` or `prompts/` touched. The dispatch (`prompts/preserved/2026-09-28-94.md`
+on `origin/journal-redesign`, read in full) is quoted verbatim in the appendix above; `RECORD.md` `-103` and `-112` are quoted
+in the handoff, not re-quoted here beyond: `-112` "A fresh device coder on Sonnet 5.5 re-reads the phone's state first, then
+finishes -94's remaining checks where they add evidence. It **deletes exactly trips A and B** through the planner and reads
+back planned_trips at its starting count. It restores settings and writes the verdicts into the existing run record."
+
+**Phone state read first** (`100-resumed-state.txt`, 01:06:42Z, 2026-09-28 18:06 PDT on the phone): `R5CT321008R` and the tablet
+listed, only the S22 addressed; `user_rotation` 0, `accelerometer_rotation` 0, `font_scale` 1.0, `screen_off_timeout` 600000,
+`navigation_mode` 0, `location_mode` 3, `display_density_forced` 450, `cmd uimode night`: yes (the phone's own setting, as at the start
+of the run above); Forager's `MainActivity` focused, `isKeyguardShowing=false`; `versionName` `1.0.1457+gb358a4aa`, `versionCode` 1457,
+`lastUpdateTime` 2026-09-28 15:28:49; **pid 12298** (the earlier run's last read was pid 4821, so the app has been restarted since
+phase 2 and `region` may be null again: read before use); crash buffer 0 bytes; 1080x2316 at 450 dpi (compact tree).
+
+**What phases 1 and 2 already give, and what this run adds.** Phase 1 covered every check with no search (0 trip pixels in 20+
+captures). Phase 2 covered only check 2-1 (both flags draw at their points after a recent search). This run adds the
+with-search cases the dispatch's checks 2, 3, 4 and 5 still lack: **2-2 switch, 2-3 night, 2-4 tap, 2-5b relaunch.**
+**Skipped, and why** (they add nothing beyond phases 1 and 2 for the cause): 2-1z (zoom with the flags visible: phase 1 showed
+the zoom gestures are unreliable over adb, and no-min/max-zoom is read at SM:953-958) and 2-5a (a tab round trip with a search:
+phase 1's round trip rebuilt the map at the launch view with `region` unchanged; the with-search version tests the ViewModel
+keeping `region`, which is neither what the reproduction turns on nor needed to name the cause). Both stay open in the table.
+
+### Predictions and pass conditions (same measure as above: `pix.py` count of `#9553A4` by day and `#FA01DD` at night within ±16 per
+channel, the flag a 19.9 x 27.7 dp cluster, `snap.sh` for every capture)
+
+Precondition for every row: `region` set, read from the bar ("August · 5 mi" rather than "Search a location") and from the Trip
+Planner's "Choose a region…" line being absent. If the app is found with `region` null I re-run the "Fungi · August" recent
+search first (the same route as phase 2) and record it. Trip points are read from the screenshot, not assumed.
+
+| # | Case | Prediction | Because |
+|---|---|---|---|
+| R-0 | State on first capture | `region` null (the app restarted, pid 12298 not 4821) and no flag; after the search re-run, both flags draw | ACMU:573, 641; AUS:30 |
+| 2-2 | Planned trips switch off, then on | **Off: 0 px of `#9553A4`, no flag; on: both flags back** at the same screen points | SM:673-676, 984-991 |
+| 2-3 | Night Maps on, then off | **Night: both flags in `#FA01DD` (about 2175 px each, same cluster size) and 0 px of `#9553A4`; day again: `#9553A4` back, 0 px `#FA01DD`** | MP:83, 104; SM:623-632, 860-881 |
+| 2-4 | A real tap on each flag (at the flag body, a few px above the pole foot) | **A bubble** with "Trip 1"/"Trip 2", "Sep 28"/"Sep 30", an MGRS, decimal degrees, "Directions" | MapBubble.kt:413-419; SM:400-411 |
+| 2-5b | `am force-stop`, `am start -W` | **No flag; the "Choose a region…" line back**; after the "Fungi · August" re-run, **both draw** | `region` null at every start (AUS:30) |
+
+**What would contradict the supported cause** (`region` null gating the list at ACMU:641): a flag drawn with `region` null; no
+flag with `region` set, the switch on and the points on screen; a flag after the relaunch before the search is re-run.
+
+**Delete and read-back (step 3).** Only through the Trip Planner's "Remove planned trip for <date>" buttons (ATWU:151-153), for the
+two rows named "Trip 1" (2026-09-28) and "Trip 2" (2026-09-30), whose ids are `5deff079-1dba-440e-b947-46e53b0e18d3` and
+`47b2784e-6ba8-46cd-96fc-f76bee22ce15` (`trips-created.txt`, from a database copy). If the planner lists any other trip, or these
+two are not the only rows, I stop. Pass: after `am force-stop`, a database copy (`dbcopy.sh`, `dbverify.sh`, `dbdigest.py`, never
+opening the raw copy) shows `planned_trips` 0 rows, `integrity_check` ok, and every other table's digest equal to the start's
+(`db-start-digest.txt`), except `cached_searches` timestamps, which the search re-run changes (compared and reported).
+
+**Settings restore (step 4).** I expect to change only the Planned trips switch (back to `true`) and Night Maps (back to `false`),
+each read back from the dump and from `map_preferences`; no system setting is planned to change (rotation stays 0/0). The
+phone's `cmd uimode night` is the phone's own state and I do not touch it.
+
+**D58.** Before each push I check the diff and commit messages for the three phrases in forager-forecast `docs/planning/DECISIONS.md`
+row D58 (Decision column); I do not write them anywhere. Reading that row is the check's input; if I cannot read it, I say so.
