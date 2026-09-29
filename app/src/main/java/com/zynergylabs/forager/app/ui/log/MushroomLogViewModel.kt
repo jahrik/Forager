@@ -178,7 +178,7 @@ class MushroomLogViewModel(
     private val commitDraftEntry: CommitDraftEntryUseCase,
     private val deleteEntry: DeleteMushroomLogEntryUseCase,
     private val addPhoto: AddPhotoToLogEntryUseCase,
-    /** Standalone-photos dispatch: acquisition with no owning find — [PhotoGalleryScreen]'s own Camera/Gallery buttons. See [onAddGalleryPhoto]. */
+    /** Standalone-photos dispatch: acquisition with no owning find — the album's own Camera/Import buttons. See [onAddGalleryPhoto]. */
     private val addPhotoToGallery: AddPhotoToGalleryUseCase,
     private val removePhoto: RemovePhotoFromLogEntryUseCase,
     private val getGalleryPhotos: GetGalleryPhotosUseCase,
@@ -290,7 +290,7 @@ class MushroomLogViewModel(
         }
     }
 
-    /** Loads [MushroomLogUiState.galleryPhotos] for [PhotoGalleryScreen] — Workstream G2, independent of [loadEntries] (see [MushroomLogUiState]'s own doc comment on why the two get separate loading/error fields). */
+    /** Loads [MushroomLogUiState.galleryPhotos] for the photo album — Workstream G2, independent of [loadEntries] (see [MushroomLogUiState]'s own doc comment on why the two get separate loading/error fields). */
     fun loadGalleryPhotos(): Job {
         return viewModelScope.launch {
             _uiState.update { it.copy(isLoadingGalleryPhotos = true, galleryLoadErrorMessage = null) }
@@ -793,7 +793,7 @@ class MushroomLogViewModel(
                 addPhoto(entry, source).fold(
                     onSuccess = { updated ->
                         _uiState.update { it.copy(editingEntry = updated, isSavingPhoto = false, saveErrorMessage = null) }
-                        // A freshly added photo is a new gallery row PhotoGalleryScreen's already-loaded
+                        // A freshly added photo is a new gallery row the album's already-loaded
                         // state doesn't know about yet — without this, it wouldn't appear there until
                         // the ViewModel is recreated. Detach has no equivalent need: it never removes a
                         // gallery row, only a reference nothing in this screen currently displays.
@@ -892,7 +892,7 @@ class MushroomLogViewModel(
     }
 
     /**
-     * Standalone-photos dispatch: acquires [source] via [PhotoGalleryScreen]'s own Camera/Gallery
+     * Standalone-photos dispatch: acquires [source] via the album's own Camera/Import
      * buttons — persisted and added to the gallery only, never attached to anything (see
      * [AddPhotoToGalleryUseCase]'s own doc comment for why this stops one step short of
      * [onAddPhoto]). No [editingEntryMutex] needed: unlike [onAddPhoto], this never reads or writes
@@ -1049,8 +1049,8 @@ class MushroomLogViewModel(
 
     /**
      * Workstream G3: deletes [photo] from the gallery — the user has already confirmed, including
-     * seeing how many entries reference it (see [com.zynergylabs.forager.app.ui.log.PhotoGalleryScreen]'s own
-     * confirmation flow). Refreshes both the gallery and the entry list on success: an entry left
+     * seeing how many entries reference it (the removed Photo Gallery screen's confirmation flow; since J4b the
+     * album's long-press Delete is a pending delete that names the same count in its Undo snackbar). Refreshes both the gallery and the entry list on success: an entry left
      * open in the background (e.g. across a tab switch — nothing closes [MushroomLogUiState.editingEntry]
      * on its own) must not keep showing a reference to a photo that no longer exists. See this
      * class's own doc comment on the [loadEntries] hazard for why that refresh no longer risks

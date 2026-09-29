@@ -14,6 +14,7 @@ package com.zynergylabs.forager.app.ui.availability
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -53,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.LatLng
+import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.Waypoint
@@ -97,9 +99,22 @@ internal val PERMANENT_DRAWER_WIDTH = 360.dp
 
 /**
  * List and Map shown together rather than tab-switched — the M3 "reveal" pattern for medium+
- * windows (see [AvailabilityScreen]'s call site). [ListTab] keeps a fixed, readable width so it
- * doesn't stretch as the window grows; [MapTab] takes the rest, same as it does full-bleed at
- * compact width.
+ * windows (see [AvailabilityScreen]'s call site) — **while the map keeps a usable width.** [ListTab]
+ * keeps a fixed, readable width so it doesn't stretch as the window grows; [MapTab] takes the rest,
+ * same as it does full-bleed at compact width.
+ *
+ * **When the map would be narrower than [COMBINED_PANE_MIN_MAP_WIDTH], List and Maps are real tabs
+ * instead** (J6b, ruling 2 in `docs/plans/journal-redesign.md`, "J6 design rulings (owner, 2026-09-29)":
+ * "List and Maps become real tabs whenever the combined pane would leave the map narrower than 480 dp").
+ * Beside the 360 dp drawer and the 360 dp list, a 824 dp tablet in portrait left the map 103 dp wide,
+ * and an 840 dp window 119 dp. Then [selectedTab], the List | Maps row above this pane, picks which of
+ * the two fills the whole right side, and every route that selects Maps ("View on Map" among them)
+ * lands on the map. The key is the map's width, not the window class, because EXPANDED windows of 840
+ * to about 1,200 dp are narrow too (the J6 refresh pulse, section 3c).
+ *
+ * The two layouts are two call sites of the same [MapTab], so a change between them (a tablet turned
+ * from portrait to landscape) starts the map's own local state afresh; what the person set in the
+ * results (the tab, the species filter, the search) is `AvailabilityScreen`'s and is kept.
  */
 @Composable
 internal fun CombinedResultsPane(
@@ -119,6 +134,8 @@ internal fun CombinedResultsPane(
     taxonFilter: Long?,
     onClearTaxonFilter: () -> Unit,
     onViewOnMap: (Long) -> Unit,
+    /** Which of the two the tabs above this pane have chosen; read only when the map is too narrow to sit beside the list. Seasonal is not drawn here, so anything but [ResultsTab.LIST] is the map. */
+    selectedTab: ResultsTab,
     modifier: Modifier = Modifier,
     /**
      * Map layers L0b: the Layers sheet's choices and callbacks, the legend and the saved records the
@@ -128,15 +145,16 @@ internal fun CombinedResultsPane(
     /** M1: see [CompactMapTab]'s parameter of the same name. */
     bubbleSources: MapRecordSources = MapRecordSources(),
 ) {
-    Row(modifier = modifier.fillMaxHeight()) {
+    val list: @Composable (Modifier) -> Unit = { listModifier ->
         ListTab(
             uiState = uiState,
             currentTime = currentTime,
             distanceUnit = distanceUnit,
             onViewOnMap = onViewOnMap,
-            modifier = Modifier.width(COMBINED_PANE_LIST_WIDTH).fillMaxHeight(),
+            modifier = listModifier.testTag(WIDE_LIST_PANE_TAG),
         )
-        VerticalDivider()
+    }
+    val map: @Composable (Modifier) -> Unit = { mapModifier ->
         MapTab(
             uiState = uiState,
             mapSlot = mapSlot,
@@ -152,13 +170,40 @@ internal fun CombinedResultsPane(
             onClearTaxonFilter = onClearTaxonFilter,
             mapLayers = mapLayers,
             bubbleSources = bubbleSources,
-            modifier = Modifier.weight(1f).fillMaxHeight(),
+            modifier = mapModifier,
         )
+    }
+    BoxWithConstraints(modifier = modifier.fillMaxHeight()) {
+        val mapBesideList = maxWidth - COMBINED_PANE_LIST_WIDTH - COMBINED_PANE_DIVIDER_WIDTH
+        if (mapBesideList >= COMBINED_PANE_MIN_MAP_WIDTH) {
+            Row(modifier = Modifier.fillMaxHeight()) {
+                list(Modifier.width(COMBINED_PANE_LIST_WIDTH).fillMaxHeight())
+                VerticalDivider()
+                map(Modifier.weight(1f).fillMaxHeight())
+            }
+        } else if (selectedTab == ResultsTab.LIST) {
+            list(Modifier.fillMaxSize())
+        } else {
+            map(Modifier.fillMaxSize())
+        }
     }
 }
 
 /** Same readable-width reasoning as [PERMANENT_DRAWER_WIDTH]; see [CombinedResultsPane]. */
 private val COMBINED_PANE_LIST_WIDTH = 360.dp
+
+/** The divider between the list and the map: `VerticalDivider`'s own default thickness (`DividerDefaults.Thickness`). */
+private val COMBINED_PANE_DIVIDER_WIDTH = 1.dp
+
+/**
+ * The narrowest the map may be beside the list (J6b, ruling 2; the planner's suggested minimum, taken with
+ * the owner's recommendation). Anchors from the refresh pulse: the map's info bubble is 280 dp, its
+ * two-chip row 406 dp, the Layers button 56 dp. Below it, [CombinedResultsPane] makes List and Maps tabs.
+ */
+internal val COMBINED_PANE_MIN_MAP_WIDTH = 480.dp
+
+/** The list pane, for tests (its width says which layout [CombinedResultsPane] chose). */
+internal const val WIDE_LIST_PANE_TAG = "wide-list-pane"
 
 /**
  * The quick-fire icon overlaid on the map's own top-right corner — not the app bar, not Settings —
@@ -237,11 +282,6 @@ private fun MapTab(
     var pendingWaypointLocation by remember { mutableStateOf<LatLng?>(null) }
 
     when {
-        !uiState.hasSearched -> MapMessage(
-            "Choose a region in search options to see mapped sightings.",
-            modifier = modifier,
-        )
-
         uiState.isLoadingSightings -> Column(
             modifier = modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -257,8 +297,18 @@ private fun MapTab(
         )
 
         else -> {
+            // J6b, item 13 (owner's ruling 6.6: "The tablet draws its map before any search, so planned
+            // trips show"): the phone's own pattern (`CompactMapTab`), so the two cannot drift. The map's
+            // viewport is never null, unlike `uiState.region` (set only once a search has run): the search
+            // region, else the device's located fix, else a fixed fallback. Sightings are only real once a
+            // search has run; the saved planned trips are the person's own records, so they are handed to
+            // the map whether or not one has.
+            val located = (uiState.locateMeStatus as? LocateMeStatus.Located)?.location
             val region = uiState.region
-            if (region != null) {
+                ?: located?.let { Region(lat = it.lat, lng = it.lng, radiusKm = JOURNAL_PICKER_DEFAULT_REGION.radiusKm) }
+                ?: JOURNAL_PICKER_DEFAULT_REGION
+            val hasSearched = uiState.region != null
+            run {
                 var cameraCenter by remember(region) { mutableStateOf(LatLng(region.lat, region.lng)) }
                 // M1: the one tapped thing, as on the compact Maps tab.
                 var tapped by remember { mutableStateOf<TappedMapThing?>(null) }
@@ -271,10 +321,10 @@ private fun MapTab(
                     // observationCount — the two can legitimately disagree (the forecast is a
                     // separate historical query; the map only shows what actually loaded for this
                     // region), so the count in mapTaxonFilterLabel below is what's really on screen.
-                    val filteredSightings = if (taxonFilter != null) {
-                        uiState.sightings.filter { it.taxonId == taxonFilter }
-                    } else {
-                        uiState.sightings
+                    val filteredSightings = when {
+                        !hasSearched -> emptyList()
+                        taxonFilter != null -> uiState.sightings.filter { it.taxonId == taxonFilter }
+                        else -> uiState.sightings
                     }
                     val mapTaxonFilterLabel = taxonFilter?.let { id ->
                         val name = uiState.forecast?.entries?.firstOrNull { it.species.taxonId == id }?.species
@@ -332,7 +382,13 @@ private fun MapTab(
                             FlowRow(
                                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                                 verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-                                modifier = Modifier.align(Alignment.TopCenter).padding(Spacing.sm),
+                                // J6b, item 12: an end inset, the Layers button's footprint, so the row (which
+                                // wraps to a second line when it must) never runs under the button, at any
+                                // width. At 824 dp the row's own width was 87 dp under it, its clear control
+                                // with no bounds (the tablet sanity run, TR:396, 559-561).
+                                modifier = Modifier
+                                    .align(Alignment.TopCenter)
+                                    .padding(start = Spacing.sm, top = Spacing.sm, end = Spacing.sm + MIN_TOUCH_TARGET + Spacing.sm),
                             ) {
                                 mapTaxonFilterLabel?.let { label -> TaxonMapFilterChip(label = label, onClear = onClearTaxonFilter) }
                                 if (shownJournalEntries.isNotEmpty()) {

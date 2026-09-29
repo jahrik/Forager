@@ -201,6 +201,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -286,13 +287,14 @@ import com.zynergylabs.forager.app.ui.log.JournalTab
 import com.zynergylabs.forager.app.ui.log.leaveKeepsDraft
 import com.zynergylabs.forager.app.ui.log.PendingDeleteNotice
 import com.zynergylabs.forager.app.ui.log.PendingDeleteSnackbarEffects
+import com.zynergylabs.forager.app.ui.log.JournalDetailPane
+import com.zynergylabs.forager.app.ui.log.JournalDetailSlot
 import com.zynergylabs.forager.app.ui.log.rememberJournalScreenState
 import com.zynergylabs.forager.app.ui.log.LogPanel
 import com.zynergylabs.forager.app.ui.log.MushroomLogUiState
 import com.zynergylabs.forager.app.ui.log.PendingJournalDestination
 import com.zynergylabs.forager.app.ui.map.MapRecordSources
 import com.zynergylabs.forager.app.ui.map.OPEN_IN_JOURNAL_LABEL
-import com.zynergylabs.forager.app.ui.log.PhotoGalleryScreen
 import com.zynergylabs.forager.app.ui.map.Basemap
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPickerOverlay
@@ -394,12 +396,9 @@ private enum class DrawerPanel {
     // value is unreachable there — see ui/diagnostics/DiagnosticsPanel.kt (both source sets).
     Diagnostics,
     Log,
-    // Workstream G2 (`docs/plans/pr26-rework.md`): the medium/expanded half of the gallery's
-    // top-level destination — see PhotoGalleryScreen's own doc comment. No longer a
-    // both-window-classes destination as of map/navigation redesign dispatch B: the compact side
-    // folded into LogGalleryScreen's own Album tab (reached via CompactTab.JOURNAL) rather than
-    // keeping a standalone compact counterpart.
-    PhotoGallery,
+    // The standalone Photo Gallery panel that stood here (Workstream G2) was removed in J6a (owner,
+    // 2026-09-28, ruling 2: "the old Photo Gallery panel is removed. Only the album remains, as on the
+    // phone"); its photos, and now their long-press delete, are the Journal's album.
 }
 
 /** How long a first back press keeps "exit on the next one" armed — see [AvailabilityScreen]. */
@@ -552,7 +551,7 @@ fun AvailabilityScreen(
     onPullLogPhoto: (LogPhoto) -> Unit = {},
     onDeleteLogEntry: (String) -> Unit = {},
     onDeleteGalleryPhoto: (GalleryPhoto) -> Unit = {},
-    /** Standalone-photos dispatch: Camera/Gallery acquisition, no owning find — [PhotoGalleryScreen]'s own buttons, both Album surfaces (Cartography's tab and [DrawerPanel.PhotoGallery]). */
+    /** Standalone-photos dispatch: Camera/Gallery acquisition, no owning find — the album's own Camera/Import buttons (the Journal's Entries album, on both trees). */
     onAddGalleryPhoto: (PhotoSource) -> Unit = {},
     /** Clears [logUiState]'s `saveErrorMessage` once its Toast has shown — see [LogPanel]/[JournalTab]'s identical parameter. */
     onSaveLogErrorDismissed: () -> Unit = {},
@@ -810,6 +809,10 @@ fun AvailabilityScreen(
     // plain remember: it survives the tab change the ruling is about, not a recreation.
     val findEntryModeState = rememberSaveable { mutableStateOf(JournalEntryMode.REPORT) }
     val findOverViewState = remember { mutableStateOf<FindOverView?>(null) }
+    // J6a (ruling 1, list-detail): the wide tree's right side. The Journal's open entry, find, record
+    // details and pickers register here (JournalDetailSlot); the wide branch below draws the top one over
+    // the results pane. The compact tree never reads it.
+    val journalDetailSlot = remember { JournalDetailSlot() }
 
     // Device-check patch, Items 2/3: whether a find's camera/gallery round-trip is currently in
     // flight, reported up from whichever of JournalTab/LogPanel is composed via
@@ -1316,8 +1319,9 @@ fun AvailabilityScreen(
             if (usesCompactTree) {
                 compactTab = CompactTab.JOURNAL
             } else {
+                // J6a, ruling 5: the wide Journal's Back is one order whatever the route; no
+                // `isDrawerOpen` (the compact drawer's flag) is set for it.
                 drawerPanel = DrawerPanel.Log
-                isDrawerOpen = true
             }
         },
         openFindLabel = OPEN_IN_JOURNAL_LABEL,
@@ -1339,7 +1343,6 @@ fun AvailabilityScreen(
                 compactTab = CompactTab.JOURNAL
             } else {
                 drawerPanel = DrawerPanel.Log
-                isDrawerOpen = true
             }
         },
     )
@@ -1409,10 +1412,8 @@ fun AvailabilityScreen(
                 )
                 // Sticky footer rows: the log is the newer of the two pre-existing ones, placed
                 // above Settings so it isn't the last thing in the sheet — see
-                // MushroomLogEntryRow. The photo gallery (Workstream G2) joins right below it,
-                // the other mushroom-log-area destination.
+                // MushroomLogEntryRow.
                 MushroomLogEntryRow(onClick = { drawerPanel = DrawerPanel.Log })
-                PhotoGalleryEntryRow(onClick = { drawerPanel = DrawerPanel.PhotoGallery })
                 // Occupies the search panel's old sticky-footer slot — BuildIdentityFooter
                 // moved to the bottom of the Settings panel below.
                 SettingsEntryRow(onClick = { drawerPanel = DrawerPanel.Settings })
@@ -1548,21 +1549,18 @@ fun AvailabilityScreen(
                         pendingJournalEntryId = null
                     },
                     onSetCartographyEntryShownOnMap = onSetCartographyEntryShownOnMap,
-                )
-            }
-
-            DrawerPanel.PhotoGallery -> {
-                // Back returns all the way to Search, same as DrawerPanel.Log — there's no
-                // intermediate panel between this and Search the way Settings has OfflineMaps.
-                PhotoGalleryHeader(onBack = { drawerPanel = DrawerPanel.Search })
-                PhotoGalleryScreen(
-                    modifier = Modifier.weight(1f),
-                    photos = logUiState.galleryPhotos,
-                    isLoading = logUiState.isLoadingGalleryPhotos,
-                    onDeletePhoto = onDeleteGalleryPhoto,
-                    onOpenCamera = { onOpenCamera(InAppCameraTarget.ALBUM) },
-                    onAddGalleryPhoto = onAddGalleryPhoto,
-                    loadErrorMessage = logUiState.galleryLoadErrorMessage,
+                    // J6a: the same holders the compact tree gets (ruling 5, J10), so an open detail, the
+                    // view choice, the Records chip and a find over a view survive a panel switch and a
+                    // change of tree; the phone's find "+" tile and report step; the J4b delete paths.
+                    onStartEntry = onStartLogEntry,
+                    onStartEditingEntry = onStartEditingLogEntry,
+                    onRequestDeleteCartographyEntry = onRequestDeleteCartographyEntry,
+                    onRequestDeleteGalleryPhoto = onRequestDeleteGalleryPhoto,
+                    journalState = journalScreenState,
+                    cartographyEntryModeState = cartographyEntryModeState,
+                    findEntryModeState = findEntryModeState,
+                    findOverViewState = findOverViewState,
+                    detailSlot = journalDetailSlot,
                 )
             }
         }
@@ -1641,7 +1639,6 @@ fun AvailabilityScreen(
                     // first, as on compact; see onOpenFind above.
                     if (logUiState.editingEntry != null) leaveLogEntryEditingOfferingDiscard()
                     drawerPanel = DrawerPanel.Log
-                    isDrawerOpen = true
                     // Stage 2d: lands LogPanel on Records -> Finds for the entry onStartLogEntry is
                     // about to create — see JournalTab's own doc comment, "The map '+' routing bug."
                     pendingJournalDestination = PendingJournalDestination.EDIT_NEW_FIND
@@ -1675,6 +1672,7 @@ fun AvailabilityScreen(
                         taxonFilter = mapTaxonFilter,
                         onClearTaxonFilter = onClearMapTaxonFilter,
                         onViewOnMap = onViewSpeciesOnMap,
+                        selectedTab = selectedTab,
                         modifier = Modifier.weight(1f),
                     )
                     ResultsTab.SEASONAL -> SeasonalTab(uiState = uiState, modifier = Modifier.weight(1f))
@@ -1954,7 +1952,32 @@ fun AvailabilityScreen(
                     }
                 }
             },
-            content = mainScaffold,
+            content = {
+                // J6a (ruling 1, list-detail): an opened Journal entry, find, record's details or picker
+                // takes the whole right side, in place of the results pane and its search bar, while the
+                // list stays in the drawer's 360 dp column. The pane is drawn over mainScaffold, which stays
+                // composed beneath it so what the person had there (the chosen tab, the list's scroll, the
+                // map's camera) is as it was when the detail closes; while covered its semantics are cleared,
+                // so nothing beneath is reachable by TalkBack or a test, and its focus is dropped so a
+                // keyboard left up over the search field goes. The pane is opaque and takes every touch.
+                val journalDetail = if (drawerPanel == DrawerPanel.Log) journalDetailSlot.top else null
+                LaunchedEffect(journalDetail != null) {
+                    if (journalDetail != null) {
+                        focusManager.clearFocus(force = true)
+                        keyboardController?.hide()
+                    }
+                }
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .then(if (journalDetail != null) Modifier.clearAndSetSemantics { } else Modifier),
+                    ) {
+                        mainScaffold()
+                    }
+                    if (journalDetail != null) JournalDetailPane(journalDetail)
+                }
+            },
         )
     }
     // The in-app camera, once, outside the width-class branch above — deliberately not inside

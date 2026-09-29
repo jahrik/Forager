@@ -2,6 +2,8 @@
 
 package com.zynergylabs.forager.app.ui.availability
 
+import androidx.compose.ui.test.onAllNodesWithTag
+import com.zynergylabs.forager.app.ui.log.JOURNAL_DETAIL_PANE_TAG
 import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
@@ -592,6 +594,20 @@ abstract class MapChromeRecordsTests(private val wide: Boolean, private val pick
         composeRule.waitForIdle()
     }
 
+    /**
+     * The details are solid, not at the map chrome's alpha. In the compact Journal they are a sheet; in
+     * the wide tree they are the right side's detail pane (J6a, ruling 6.1: "The record details open in
+     * the right side, not as a sheet"), whose container is `surface`.
+     */
+    private fun assertDetailsSolid() {
+        if (wide) {
+            composeRule.assertSolid(JOURNAL_DETAIL_PANE_TAG, roles.surface)
+            assertEquals("the wide tree has no details sheet", 0, composeRule.onAllNodesWithTag(RECORD_DETAILS_SHEET_TAG).fetchSemanticsNodes().size)
+        } else {
+            composeRule.assertSolid(RECORD_DETAILS_SHEET_TAG, roles.sheet)
+        }
+    }
+
     /** A real touch on [rowTag], upper middle, after scrolling it into view. */
     private fun touchRow(rowTag: String) {
         composeRule.onNodeWithTag(rowTag).performScrollTo()
@@ -610,7 +626,7 @@ abstract class MapChromeRecordsTests(private val wide: Boolean, private val pick
         if (pickerMapBesideList) {
             composeRule.assertOverMap(RECORD_DETAILS_SHEET_TAG, roles.sheet, roles.onSurface)
         } else {
-            composeRule.assertSolid(RECORD_DETAILS_SHEET_TAG, roles.sheet)
+            assertDetailsSolid()
         }
     }
 
@@ -618,21 +634,21 @@ abstract class MapChromeRecordsTests(private val wide: Boolean, private val pick
     fun `an offline region's details sheet from All stays solid`() {
         openRecords(RecordsSubTab.ALL)
         touchRow("records-swipe-offline-maps-${BUBBLE_REGION.id}")
-        composeRule.assertSolid(RECORD_DETAILS_SHEET_TAG, roles.sheet)
+        assertDetailsSolid()
     }
 
     @Test
     fun `a waypoint's details sheet from the Waypoints sub-tab stays solid`() {
         openRecords(RecordsSubTab.WAYPOINTS)
         touchRow("records-swipe-waypoints-${BUBBLE_WAYPOINT.id}")
-        composeRule.assertSolid(RECORD_DETAILS_SHEET_TAG, roles.sheet)
+        assertDetailsSolid()
     }
 
     @Test
     fun `a track's details sheet from the Tracks sub-tab stays solid`() {
         openRecords(RecordsSubTab.RECORDED_TRACKS)
         touchRow("track-row-${BUBBLE_TRACK.id}")
-        composeRule.assertSolid(RECORD_DETAILS_SHEET_TAG, roles.sheet)
+        assertDetailsSolid()
     }
 }
 

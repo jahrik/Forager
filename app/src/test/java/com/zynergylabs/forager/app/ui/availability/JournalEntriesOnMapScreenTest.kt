@@ -352,7 +352,10 @@ internal abstract class JournalEntriesOnMapHarness {
     }
 
     protected fun assertReportShowing(text: String) {
-        composeRule.onNodeWithText(text).assertIsDisplayed()
+        // J6a: on the wide tree the report is in the right side's detail pane while the Entries list, whose
+        // card carries the same text, stays in the left column, so the text is read inside the pane there.
+        val inPane = composeRule.onAllNodesWithTag("journal-detail-pane").fetchSemanticsNodes().isNotEmpty()
+        (if (inPane) composeRule.onNode(hasText(text) and hasAnyAncestor(hasTestTag("journal-detail-pane"))) else composeRule.onNodeWithText(text)).assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
         assertEquals("the report, not the editor", 0, composeRule.onAllNodes(hasText("Your own account (optional)") and hasSetTextAction()).fetchSemanticsNodes().size)
     }
@@ -731,7 +734,8 @@ internal class JournalEntriesOnMapWideTest : JournalEntriesOnMapHarness() {
 
         touchCentreOf(mapBubbleEntryLineTag("entry-a"))
 
-        composeRule.onNodeWithText("Mushroom Log").assertExists()
+        // J6a header ruling (prompts/preserved/2026-09-29-25.md): the panel's header reads "Journal".
+        composeRule.onNodeWithText("Journal").assertExists()
         assertReportShowing(ENTRY_A_TEXT)
         assertEquals("entry-a", cartographyViewModel.uiState.value.editingEntry?.id)
     }
