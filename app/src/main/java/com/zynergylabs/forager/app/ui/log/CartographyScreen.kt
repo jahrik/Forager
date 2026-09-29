@@ -46,6 +46,7 @@ import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.PhotoSource
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.ui.map.MapRecordSources
+import com.zynergylabs.forager.app.ui.map.MapMode
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.LocalDate
@@ -101,6 +102,8 @@ internal fun CartographyScreen(
     distanceUnit: DistanceUnit,
     mapSlot: MapSlot,
     night: Boolean,
+    /** Threaded to [CartographyEntryReportScreen] only: the Maps tab's basemap, which an entry map opens on. */
+    initialMapMode: MapMode = MapMode.DEFAULT,
     /**
      * Map layers L0b (owner's ruling 4, "Same sheet"): the layer choices the Maps tab and the entry map
      * share, and the entry map's Layers-sheet switch. Threaded through to [CartographyEntryReportScreen]
@@ -420,6 +423,7 @@ internal fun CartographyScreen(
                     distanceUnit = distanceUnit,
                     mapSlot = mapSlot,
                     night = night,
+                    initialMapMode = initialMapMode,
                     getMapData = getMapData,
                     getCoveringOfflineRegion = getCoveringOfflineRegion,
                     getCurrentLocation = getCurrentLocation,

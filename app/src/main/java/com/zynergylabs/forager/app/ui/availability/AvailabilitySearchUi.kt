@@ -615,15 +615,7 @@ internal fun SearchNotice(
     /** Whether a map is drawn beneath the banner: the Maps tab's own, inside its map's Box. Map chrome at 80%. */
     overMap: Boolean = false,
 ) {
-    val message = uiState.errorMessage
-        ?: uiState.taxonSearchErrorMessage
-        ?: uiState.plannedTripsErrorMessage
-        ?: if (uiState.locationPermissionDenied) {
-            "Location permission was denied. Open search options and enter coordinates manually."
-        } else {
-            null
-        }
-    if (message == null) return
+    val message = searchNoticeMessage(uiState) ?: return
 
     // The fill and its content colour, pinned to the fill's own role (`contentColorFor` matches a
     // colour-scheme role exactly; see `MapLayersSheet`). The text keeps its own explicit colour.
@@ -645,6 +637,20 @@ internal fun SearchNotice(
         )
     }
 }
+
+/**
+ * The text [SearchNotice] shows, or `null` when it shows nothing. One definition for the banner and for the Maps tab's layout, which
+ * places the banner below the compass strip and keeps the icon cluster below it only while it shows (dispatch 2026-09-28-104, item 2).
+ */
+internal fun searchNoticeMessage(uiState: AvailabilityUiState): String? =
+    uiState.errorMessage
+        ?: uiState.taxonSearchErrorMessage
+        ?: uiState.plannedTripsErrorMessage
+        ?: if (uiState.locationPermissionDenied) {
+            "Location permission was denied. Open search options and enter coordinates manually."
+        } else {
+            null
+        }
 
 /** [SearchNotice]'s banner, for tests. */
 internal const val SEARCH_NOTICE_TAG = "search-notice"
