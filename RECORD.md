@@ -6273,3 +6273,22 @@ The planner confirmed each by grep.
   - the backup's table list and Merge;
   - where the entry map draws kept tracks.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-194
+**Timestamp:** 2026-09-29T16:36:42Z
+**Dispatch:** none (machine upkeep, at the owner's instruction)
+**Reason:** the disk reached 0 MB free, from Claude Desktop's GPU error loop (-192).
+- The owner cleared /var/log/syslog and vacuumed the journal. The owner, verbatim: "Done, check the disk space". Free space was back to 13730 MB.
+- The desktop process (pid 3347, running for 1 day 12 hours) was still writing about 1 GB an hour.
+- The owner, verbatim: "B, go ahead and kill it".
+**Changes:** the planner ended pid 3347 with a plain `kill`.
+- syslog grew 0 bytes in the next 30 s.
+- claude remote-control (pid 580771), which hosts the coder sessions, is still running.
+- 13549 MB free.
+**Notes:**
+- **During the zero-disk minutes,** the planner's append to the plan was cut off mid-sentence. It was repaired from the intended text before committing (52637482).
+- The planner also deleted its own journal-redesign/app/build (124 MB, regenerable) to buy time. The flood consumed it within seconds.
+- Written by the planner by hand.
