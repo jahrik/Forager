@@ -1025,3 +1025,50 @@ change afterwards.
 - the caption against the reshaped cluster (item 6: the caption is inside `SightingsMap`, which no screen test
   composes);
 - every figure that depends on the S22's status bar, nav bar and cut-out (items 1, 7 and 9 margins).
+
+## Additions to the pre-registration, written after the first base run and before the second
+
+The first tests-first run (35 tests from a cleared results directory, 0 compile errors, 6 fresh XML files) matched
+every prediction but one. T8 failed at its guard: "the band must exist: chip [176.3, 77.0][208.0, 109.0], readout's
+touch area [219.0, 30.0][225.3, 78.0]".
+- **Why:** under Robolectric's default (legacy) graphics mode text measures almost no width. The readout's
+  coordinates are 6.3 dp wide and J8's chip 32 dp, so the two do not overlap across the screen and no band exists.
+- **The same run showed text-sized geometry away from the phone's.** The search bar measured 85 dp (`[0.0, 0.0][384.0,
+  85.0]`), against my prediction of about 45 dp and the S22's 126.6 px (45 dp). The collapsed legend measured 33 by
+  52 dp.
+- By CLAUDE.md, a failure that does not match its prediction means the test is wrong, so these are corrected before
+  anything is built.
+
+**Corrections, before the re-run:**
+1. **Native graphics.** T8, T9, T7 and T1 run under `@GraphicsMode(GraphicsMode.Mode.NATIVE)`, as
+   `AvailabilityScreenMapIconStackTest.kt:1077` already does. Their geometry depends on text size, and native text
+   is the closer match to the phone.
+   - T2, TR1 to TR5 and T5 stay in the default mode. Their geometry is icons, rows and the nav and rail, and T2's
+     figures matched the prediction exactly: the cluster ending at 560.0 dp against the expanded legend's top at
+     532.0 dp.
+2. **T8's band redefined to the device's dead band.** On the S22 the five dead touches lay between the chip's
+   expanded touch area and its pill's top: y 278 to 293 px, against the pill drawn from 294 px
+   (`docs/audits/2026-09-28-j8-device-check-run-record.md:615`, `:623-626`). The chip's own layout is its pill (the
+   first run measured it 32 dp tall), and its 48 dp is Compose's touch expansion, as is the readout's.
+   - So the band is where the two expanded touch areas overlap, outside both controls' own bounds. Each control's
+     touch area is its bounds extended to 48 dp tall about its centre.
+   - The band runs across x from the larger of the two left edges to the smaller of the two right edges. Down the
+     screen it runs from the larger of the chip's touch top and the readout's text bottom, to the smaller of the
+     readout's touch bottom and the chip's own top.
+   - The six points are unchanged in form: x at 1/6, 1/2 and 5/6, y 1 dp inside its top and its bottom, or its middle
+     if it is under 3 dp tall.
+   - **Predicted at base: all six reach neither control, and the map takes them.**
+3. **Updated predictions after the build,** from native text sizes I have not yet measured. The search bar should be
+   near the phone's 45 dp:
+   - **T9** should pass, with the cluster's top at about 60 dp;
+   - **T7** at 90 should still fail, because the chip starts about 53 dp down, above the cluster's top at 60 dp, and
+     overlaps the bar's column;
+   - **T1** at 270 should still fail, because the collapsed legend starts about 316 dp down, above the cluster's
+     bottom at about 324 dp.
+   - If native measurement gives a different search bar height, the numbers in the run decide, and I will say so.
+
+The first run's figures, kept: TR1 cluster 368 dp against bar 264 dp; TR5 moved 8.0 dp of 40; T5 at 90 0.0 against
+80.0; T4 `null`; T7 at 90 chip `[1.0, 93.0][48.0, 145.0]` against cluster `[8.0, 8.0][56.0, 376.0]`; T1 at 270 legend
+`[782.0, 300.0][815.0, 352.0]` against cluster `[767.0, 8.0][815.0, 376.0]`; T9 bar bottom 85.0 against cluster top
+8.0. T3b, TR3, T5 at 270, T7 at 270, T1 at 90 and T4u's two no-restore cases passed, as predicted. T5u's "no insets"
+case also passed; I added it as a guard and did not pre-register it.
