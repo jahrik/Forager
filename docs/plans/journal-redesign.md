@@ -953,3 +953,10 @@ Item 5's buttons, and which failure they belong to, are put back to the owner be
 **Done icon animation and scheduled-backup photos (owner, 2026-09-29).** The owner, verbatim: "1 A / 2 not pasted yet / 3 yes that sounds good. Tap on the notify to go to the backup page".
 - **The animation (A):** tapping the Done icon makes it grow slightly and fade out while the Maps tab fades in, in about 300 ms.
 - **A scheduled run with unreadable photos:** it skips them, saves the backup, and notifies "Scheduled backup saved. N photos couldn't be backed up." Tapping the notification opens the Backup section.
+
+**Layers sheet: map-type chips centred (owner, 2026-09-29).** The owner, verbatim, with a screenshot of the Maps tab's Layers sheet on the S26 (kept outside the repo at `~/Zynergy/device-evidence/2026-09-29-owner-layers-sheet-chips.jpg`): "One more thing: have the map street/topo/satellite chips be centered between the panel sides. The height position on the panel is fine as is."
+
+The planner's reading:
+- The Street / Topographical / Satellite row is centred horizontally between the sheet's sides.
+- Its vertical place is unchanged.
+- The code is at `MapLayersSheet.kt:263`: a `Row` with `spacedBy(Spacing.xs)` and no width, so it hugs the start.
