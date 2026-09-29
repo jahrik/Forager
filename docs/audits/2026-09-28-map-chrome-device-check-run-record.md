@@ -1014,8 +1014,8 @@ about 0.8) held for the fills; their composites over a scrim or dim are 0.86 and
 1. **Offline regions are missing from the region list after a launch.** The Maps tab draws both DEVICE CHECK regions,
    but a tap on either outline opens no bubble (`W MapBubble: No OFFLINE_REGION 1 in the host's lists`), and the Records
    chips count no region, until the Journal's Offline maps panel is opened and reloads the list
-   (`AvailabilityViewModel.kt:897-905`); then the bubble and the sheet work. Seen in three processes (22:50Z, 23:12Z,
-   23:54Z). The start-up load is `:167`. Not investigated. While reading it I saw that `listRegions`
+   (`AvailabilityViewModel.kt:897-905`); then the bubble and the sheet work. Seen in four processes: All counting 6 at 22:43Z (`27-`)
+   and 23:08Z (`103-`), the bubble's log lines at 22:50Z, and "Offline maps 0" at 23:54Z (`175-`). The start-up load is `:167`. Not investigated. While reading it I saw that `listRegions`
    (`map/MapLibreOfflineMapRepository.kt:182-215`) deletes Room rows and MapLibre regions it judges gone or incomplete,
    on every start-up; nothing was deleted here (digests equal), and I did not test it.
 2. **The search notice's first line lies under the compass strip** in portrait (`98-`, `99-`), and under the cluster's
