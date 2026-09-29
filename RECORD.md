@@ -5930,3 +5930,29 @@ Nothing of either window was pushed. On the phone, the two did only force-stop a
 - Each removal was re-checked immediately before: no process's working directory inside it, and `git status` empty. The first pass removed only worktrees whose sole changes were the checked, untracked prompt files.
 - Offline Remote Control sessions whose worktrees were removed will not find them if resumed.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-177
+**Timestamp:** 2026-09-29T11:09:31Z
+**Dispatch:** 2026-09-28-152 (J6), part J6c (continuation -173)
+**Reason:** the J6 coder handed back J6c, pushed to journal-redesign at 44c4ff2a. Report: the "J6c" section of docs/audits/2026-09-29-j6-completion-report.md.
+**Changes:**
+- **The extraction:** the compact cluster is now MapIconCluster and MapIconClusterState (AvailabilityMapIconCluster.kt), and CompactMapTab went from 1555 to 1046 lines. The L is state.landscape, set only by the compact scaffold.
+- **The tablet map** has the phone's controls: the cluster, the compass strip (HUD while navigating), the chip row below them, bar rows for Layers and "+", and fullscreen. Fullscreen hides the drawer, search bar, summary, notice, tab row and side-by-side list, using the phone's flag and persistence.
+**Notes:**
+- **The guard held.** A full suite after the extraction, before any wiring, passed every existing test with no edit: 2883 tests, 45 failing, all in the new WideMapControls*Test.
+- **Final suite:** 2880 / 0 / 0 / 24 at 290c293a.
+- **Tests first:** 51 of 51 failed on a whole-change revert. Four one-line revert checks.
+- **Existing wide-tree tests changed as intended:**
+  - MapChromeOverMapTest, AvailabilityScreenMapLayersTest, JournalEntriesOnMapScreenTest and WideMapTabsTest.
+  - **Three J6b chip-vs-Layers tests were removed,** because the button they measured against is gone.
+  - The planner accepts the removal, and asks for a replacement guard in the follow-ups: the tablet chip row never overlaps the cluster, at 824, 1280 and 1318 dp.
+- **Coder decisions:**
+  - the chip row sits below the measured strip or HUD, unlike the phone, so the HUD cannot overlap it;
+  - the tablet's "+" keeps its plan-or-log dialog;
+  - MapControlToasts is shared.
+- **A finding:** a real touch at the locate row's outer edge minimises the cluster, because the handle straddles the bar there. That is the phone's own design, and relates to the L's (c).
+- **The L has not landed.** Its code moved in the extraction. The L coder was told to merge, not rebase, and to carry the L into MapIconClusterState.landscape.
+- Written by the planner by hand.
