@@ -834,3 +834,7 @@ Intent `2026-09-28-106`. It runs ahead of the other queued builds, and an S22 de
 3. **The band between the chip and the coordinate readout: left as map.** J8's design, where the chip takes touches only on its pill, stands. A tap there reaches the map.
 
 **Coders run on Sonnet 5.5 (owner, 2026-09-28).** The owner, verbatim: "Switch coders to Sonnet 5.5". Every coder the planner launches from now on sets the Sonnet model. Coders already running when this was said (the layout fixes `-78`, offline safety `-106`, and the S22 planned-trips check `-94`) keep the model they started on, unless the owner asks for a restart. Pulses are not coders and are unaffected unless the owner says so.
+
+**How coders get Sonnet 5.5 (owner, 2026-09-29).** Launching with the Agent tool's "sonnet" choice gave `claude-sonnet-5`, read from the agents' logs, not 5.5. The planner had said 5.5 without checking. The owner chose, verbatim, "I'll do the .config": the owner sets the default subagent model in `/config`.
+
+From here the planner launches coders **without** a model setting, because an explicit one overrides the default. It reads the served model from the first agent's log and reports it.
