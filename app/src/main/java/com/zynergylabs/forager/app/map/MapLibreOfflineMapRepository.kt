@@ -257,6 +257,7 @@ private suspend fun OfflineManager.listOfflineRegionsSuspend(): List<OfflineRegi
     suspendCancellableCoroutine { continuation ->
         listOfflineRegions(object : OfflineManager.ListOfflineRegionsCallback {
             override fun onList(offlineRegions: Array<OfflineRegion>?) {
+                if (offlineRegions == null) Log.w(TAG, "listOfflineRegions returned no list; treating the read as failed.")
                 if (continuation.isActive) continuation.resumeWith(runCatching { regionListOrFailure(offlineRegions?.toList()) })
             }
 
