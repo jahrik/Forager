@@ -117,3 +117,65 @@ Options for the owner, none chosen: a chooser listing every marker under the fin
 - **The tablet's fullscreen** uses a different scaffold (`AvailabilityWideLayoutUi.kt`); the "i" fix is in the compact one only.
 - **An existing test contradicts the scaffold** (`AvailabilityScreenLayoutTest.kt:476` says the caption's inset does not change across fullscreen; the scaffold targets 0 in fullscreen). Unreconciled; the first run shows which is stale.
 - **Item 1's test limit.** `MapView` cannot be constructed under Robolectric (`OfflineStyleSwapTest.kt:187`), so a real configuration change can test the trigger (`onViewportResized`) and not the re-projection. The dispatch asked for a real configuration change at 0 to 90 and 90 to 0; that is what `MapViewportResizeTest` does to the trigger. Whether the bubble then lands on its glyph is device-only.
+
+## Resumed: results (disk recovered; supersedes "nothing has been run" above)
+
+Disk recovered to 13.4 GB free (`RECORD` -194: the drain was Claude Desktop's GPU error loop filling syslog and the journal; the owner had it stopped). Before each Gradle run I checked no Java Gradle process, memory, and `df -m /` ≥ 2048 MB. Never ran `--stop`. Branch head at the full run: `ccbbe8f2`.
+
+**Tests first, run at the failing state.** `9212a2b9` (tests plus stubs) plus a two-file test fix (`b78bffc4`: `TrackRecordingServiceTest` needed the new constructor argument, `AvailabilityScreenLayoutTest` needed an Activity-bearing rule; the first build at `9212a2b9` alone did not compile, 8 `e:` lines, so it was not a run). Second build: 0 compile errors, results newer than the run start. Of 83 tests in the ten classes, the failures and reasons matched the pre-registration, with these differences:
+- `TrackWidthByZoomTest`: the outline test also **passed** at base (it only asserts the outline is 1.5 dp at two zooms; I moved those zooms with the stops), so it does not bite; 4 of 6 failed, as the stops/widths/expression assertions name.
+- `OfflineDownloadConfirmationTest` 7/7 and `LandscapeOfflinePickerTest` 2/2 failed for "Download this area?" not found. `PhotoExporterDateTakenTest` 2/4 failed, the two controls passed, exactly as predicted. `MapViewportResizeTest` 2/4 failed (0 resizes), the two controls passed. `AvailabilityScreenLayoutOnSmallDensePhoneTest`: 1 failed ("expected 48.0 but was -1.0", 96 px at 2×), the other three new tests and the old `bottomInset ... identical` test **passed** (I had flagged that old test as a risk; it does not contradict the scaffold under this harness, so that flag is closed as not reproduced, not explained). `WideChipRowClusterGuard*` 6/6 **passed at base** (a guard, reported as such). `TrackDeleteEntryRefsTest` 4/4 passed at base (characterisation, as flagged).
+- `TrackDeleteTest`: 13 of 17 failed at the stubs (swipe rows absent, no Delete, no log); the 4 that passed are the "no Delete for a recording track" and "no delete handed" cases, which a stub satisfies.
+- `ReturnPromptRecreationTest`: the prediction held for the two recreation tests (prompt shown after a recreation, so the mechanism reproduces under Robolectric). Two of the five failed for **test faults**, not the reason: the "no pending edit" case set the flag after the Activity was launched, and the "backgrounded then rebuilt" case hit "No compose hierarchies" at base. I fixed the first (relaunch with the flag off, `ccbbe8f2`); the second passes at head and I did not diagnose why it failed at base, so that one test has not been shown to fail for a stated reason.
+
+**Head:** the ten classes plus `PhotoViewerSave*` (14 classes, 83+ tests): 0 failures.
+
+**Revert checks** (each: copy saved before editing, edit, run the affected classes, read the build log for `e:` lines, read the JUnit XML with every file newer than the run's start, restore from the copy and compare sha256, confirm the working tree is clean afterwards). All nine built with 0 compile errors; all restored byte-equal; `git status` clean at the end.
+
+| Revert | Failing, with the message specific to the edit |
+|---|---|
+| item 3, first stop back to `(11, 0.4)` | 4 of 6: "breadcrumb stop 0's zoom expected:<12.0> but was:<11.0>"; "breadcrumb at zoom 5 expected:<1.5> but was:<2.4>" |
+| item 4, button calls the download at once | 9 of 15 (7 confirmation tests and the two landscape tests): "Download this area?" not found |
+| item 7, second write carries no time | 2 of 15: "a write of the time follows the publish expected:<true> but was:<false>"; `getAsLong(...) must not be null` |
+| item 8, guard removed | 2 of 5: "no Welcome back after a recreation the user did not leave the app for" |
+| item 2, `attributionBottomInset = null` | 1 of 22: "expected:<48.0> but was:<-1.0>" |
+| item 1, resize never reported | 2 of 4: "one resize, to the landscape viewport expected:<1> but was:<0>", and back |
+| item 5, view-model recording guard off | 1 of 17: "expected null, but was:<PendingDelete(item=Track(id=t-rec ..." |
+| item 5, `canBeDeleted` always true | 3 of 17: recording row has a swipe; the sheet and the pane show a Delete for a recording track |
+| item 5, `commitRemoveTrack` never deletes | 3 of 17: `expected:<[detach:t-other, delete:t-other]> but was:<[]>` |
+
+Not covered by a revert: item 1's `SightingsMap` glue (the re-anchoring itself, untestable here), item 2's `SightingsMap` margin use, the LandscapeOfflinePicker edit (covered by item 4's), `ReturnPromptState`'s extraction (behaviour-preserving; the existing `AvailabilityScreenBackNavigationTest` return-prompt tests passed in the full run).
+
+**Full suite**, from a cleared results directory, at `ccbbe8f2`: `BUILD SUCCESSFUL`, 0 `e:` lines; JUnit XML, 365 files, **all newer than the run's start (0 stale): 3008 tests, 0 failures, 0 errors, 24 skipped.** (F2's planner suite was 2949/0/0/24, so +59.)
+
+**Merge.** `origin/journal-redesign` had six further planner commits (docs, prompts, plan; no code). Merged with `git merge --no-edit`, no rebase.
+
+## Decisions I made
+
+- Item 5: read "the same rule" as "the ref row and its snapshot survive untouched", for tracks as for waypoints. The planner said build it as read; the owner has since ruled "a kept track keeps its path (Option B)" (`RECORD` -190s, F3), which is a separate continuation.
+- Item 2: caption stays at the true edge; only MapLibre's "i" clears the bar; only in the compact tree.
+- Item 5: a failed committed delete restores the track and shows "Couldn't delete track." above the Tracks list (`tracksErrorMessage`), which the dispatch did not spell out; it follows "failed results are reported as such".
+- Item 5: the snackbar carries the entry count ("used in N journal entries") like the waypoint's, read from the existing `forTrack` count.
+- Item 7: the second write's failure is logged at WARN and does not fail the save.
+- Edited existing tests only where the intended behaviour breaks them: `LandscapeOfflinePickerTest`, `PhotoViewerSaveTest` (`single` → the update that carries `IS_PENDING`), four constructor sites, `TrackRecordingServiceTest`.
+- Item 8: extracted the return prompt's state into `ReturnPromptState.kt` (behaviour-preserving) so a real recreation could reach it.
+
+## Device-only list (S22 and tablet)
+
+1. Bubble: open a photo/find bubble in portrait, rotate 0→90 and 90→0 with no pan; it sits on its glyph and clears the cluster (S22 and tablet).
+2. The "i" in portrait fullscreen (S22, 3-button and gesture navigation): it sits above the navigation bar and a real tap opens the attribution dialog; out of fullscreen unchanged. Real insets; Robolectric showed only the value handed to the map.
+3. Track widths at zoom 12, 14, 16, 18: look right, casing and halo follow; breadcrumb dots and gaps at low zoom.
+4. Download Maps: dialog wording, radius in the units setting, Cancel/Download, in portrait and landscape 90/270.
+5. Track delete: swipe in Tracks and All, Undo, timeout deletes, waypoints detached; Delete on the sheet (S22) and the pane (tablet); a track being recorded offers neither; an entry that kept the deleted track still lists it.
+6. Tablet chip row against the cluster at the three sizes with both chips (the test is a guard that passed at base).
+7. Gallery date taken: save a photo with a time, read `datetaken` and the Gallery's own date; if still NULL, the scan runs after the second write and the cause is different.
+8. "Welcome back": toggle night mode with a dirty editor (no prompt); background the app with a dirty editor and return (prompt).
+9. Camera in landscape: repeat Session 2's steps; the investigation's mechanism (the platform rewriting `user_rotation`) is unverified.
+10. Stacked glyphs: covered by the owner's later ruling (`02b1a491`, fan out on tap); nothing built here.
+
+## Flags outside scope
+
+- The disk drain and its cause are recorded in `RECORD` -192/-194; nothing for me to add.
+- `AvailabilityScreenLayoutTest`'s old caption test passing at base while the scaffold targets 0 in fullscreen is unexplained (closed as not reproduced, above).
+- The tablet's fullscreen "i" (wide scaffold) and MapLibre's logo in the same band are untouched.
+- `ReturnPromptRecreationTest` "backgrounded then rebuilt" was not shown to fail at base for a stated reason.
