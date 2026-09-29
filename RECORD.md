@@ -4823,3 +4823,14 @@ All on layout-fixes-wip at 3bbbcfa. It stopped: a two-chip wrapped row reaches 1
   - 284 "after the MapView was destroyed" errors (also flagged by -115).
 - -106 is closed on the device.
 - Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-123
+**Timestamp:** 2026-09-29T02:03:40Z
+**Continues:** 2026-09-28-97
+**Dispatch-file:** preserved/2026-09-29-08.md (launch prompt)
+**Reason:** -97 was queued until the failure reproduced on a device (done: -94, terminal -115) and behind -78 (finished at 341566a).
+**Changes:** -97 is launched for an owner-opened Sonnet 5.5 window from launch prompt preserved/2026-09-29-08.md, with its own worktree forager-wt/trips-on-map.
+**Notes:** Written by the planner by hand.
