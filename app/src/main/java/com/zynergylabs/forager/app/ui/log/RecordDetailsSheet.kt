@@ -160,6 +160,8 @@ internal fun RecordDetailsSheet(
     nowEpochMillis: Long,
     staleThresholdDays: Int,
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
+    /** The track's Delete: a pending delete with Undo (Part 2 follow-ups F1 item 5). `null` shows none. STUB (tests first): accepted, not yet used. */
+    onDeleteTrack: ((String) -> Unit)? = null,
     onDismiss: () -> Unit,
     /**
      * Whether a map is drawn on screen beneath the sheet (map chrome at 80%, dispatch 2026-09-28-56 as
@@ -234,6 +236,8 @@ internal fun RecordDetailsPane(
     nowEpochMillis: Long,
     staleThresholdDays: Int,
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
+    /** The track's Delete: a pending delete with Undo (Part 2 follow-ups F1 item 5). `null` shows none. STUB (tests first): accepted, not yet used. */
+    onDeleteTrack: ((String) -> Unit)? = null,
     onDismiss: () -> Unit,
 ) {
     val waypoint = (target as? RecordDetailsTarget.WaypointDetails)?.let { t -> waypoints.firstOrNull { it.id == t.id } }

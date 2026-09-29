@@ -14,6 +14,7 @@ import com.zynergylabs.forager.app.domain.CreateWaypointUseCase
 import com.zynergylabs.forager.app.domain.DEFAULT_DARKNESS_MARGIN_MINUTES
 import com.zynergylabs.forager.app.domain.ComputeSundownCountdownUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
+import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
 import com.zynergylabs.forager.app.domain.DetectOffTrackUseCase
 import com.zynergylabs.forager.app.domain.ErrorLog
@@ -149,6 +150,13 @@ class TrackRecordingViewModel(
      * redesign J4): `viewModelScope` is cancelled by then. See [PendingDeleteCommitScope].
      */
     private val pendingDeleteCommitScope: CoroutineScope = PendingDeleteCommitScope,
+    /**
+     * How many journal entries keep a track, for the Undo snackbar's warning, read the way
+     * [getWaypointReferenceCount] is. Part 2 follow-ups F1 item 5.
+     */
+    private val getTrackReferenceCount: suspend (String) -> Int = { 0 },
+    /** The real delete of a track, run only when its Undo window closes. Part 2 follow-ups F1 item 5. */
+    private val deleteTrack: DeleteTrackUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TrackRecordingUiState())
@@ -688,6 +696,15 @@ class TrackRecordingViewModel(
                 }
         }
     }
+
+    /** STUB (F1 item 5, tests first): asks for a pending delete of a finished track. Does nothing yet. */
+    fun requestRemoveTrack(id: String) {}
+
+    /** STUB (F1 item 5): the Undo. Does nothing yet. */
+    fun undoRemoveTrack(id: String) {}
+
+    /** STUB (F1 item 5): the Undo window closed. Does nothing yet. */
+    fun commitRemoveTrack(id: String) {}
 
     fun removeWaypoint(id: String) {
         viewModelScope.launch {

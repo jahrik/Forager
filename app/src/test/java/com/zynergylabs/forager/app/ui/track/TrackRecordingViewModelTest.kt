@@ -8,6 +8,7 @@ import com.zynergylabs.forager.app.domain.AlertKind
 import com.zynergylabs.forager.app.domain.ComputeReturnToStartUseCase
 import com.zynergylabs.forager.app.domain.CreateWaypointUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
+import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
 import com.zynergylabs.forager.app.domain.DetectOffTrackUseCase
 import com.zynergylabs.forager.app.domain.GetTracksUseCase
@@ -133,6 +134,7 @@ class TrackRecordingViewModelTest {
         // waypoint per recording, and a fixed id would make the second silently replace the first.
         createWaypoint = CreateWaypointUseCase(waypointRepository, currentTime = fixedTime, idGenerator = { "waypoint-${++waypointIds}" }),
         deleteWaypoint = DeleteWaypointUseCase(waypointRepository),
+        deleteTrack = DeleteTrackUseCase(trackRepository, waypointRepository),
         computeReturnToStart = ComputeReturnToStartUseCase(),
         detectOffTrack = DetectOffTrackUseCase(),
         locationTracker = locationTracker,
