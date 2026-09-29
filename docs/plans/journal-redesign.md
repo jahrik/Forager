@@ -1045,3 +1045,9 @@ The planner's reading, to be confirmed with the owner before any dispatch:
 - The pill is as thick as the bar is wide, so the two read as one L.
 
 **Status:** a ship blocker. The cluster items of Part 2 Session 1 (inventory items 38, 39 and 42) will need re-checking after it.
+
+**The L shape, confirmed from the planner's diagrams (owner, 2026-09-29).** The planner redrew the reading as letter diagrams:
+- the bar at the left, with the pill beneath it, record under the bar and return extending out;
+- mirrored at the right, with return extending toward the middle.
+
+The owner, verbatim: "Oh yeah on either side it looks like an L. On the right side it just looks like an inverse L". The shape and the mirroring are confirmed. The pill's thickness, the height rule, the fill's removal and which screens are still being asked.
