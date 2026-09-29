@@ -6199,3 +6199,21 @@ Nothing of either window was pushed. On the phone, the two did only force-stop a
   - the intermittent-failure investigation;
   - PR #140.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-190
+**Timestamp:** 2026-09-29T13:07:19Z
+**Dispatch:** 2026-09-28-181 (F1), item 5
+**Reason:** the F1 coder stopped on item 5, a Delete on a track's details. The premise was wrong at addf7d7a:
+- tracks have no swipe delete: RecordsLogbookList.kt:153-159 has no TwoStageSwipeRow for tracks, and swipeToDeleteTag is used only for waypoints and offline maps;
+- there is no pending-delete or Undo state for tracks, only for waypoints (TrackRecordingUiState.kt:121, TrackRecordingViewModel.kt:160);
+- DeleteTrackUseCase (AppContainer.kt:329) has no production caller.
+
+The planner confirmed each by grep.
+**Changes:** none. The other nine items continue. Item 5's shape goes to the owner.
+**Notes:**
+- **The planner's error.** The planner told the owner that "Tracks can only be deleted by swiping in the list" (-164/-166). That was never checked. **There is no way to delete a track in the app at all.**
+- **Consequence for the published docs.** docs/legal/delete-data.md:17, and so the live zynergy-labs.com/delete-data page, lists "Recorded tracks — the track and every GPS point in it" among the things deletable from inside Forager. That claim is false in today's app. Told to the owner, since the site is theirs.
+- Written by the planner by hand.
