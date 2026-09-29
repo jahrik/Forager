@@ -4684,3 +4684,20 @@ Written by the planner by hand.
 - several user documents stale, and the backup location in tension with the delete-data promise.
 
 Also recorded: the owner's ruling "So let's do sessions this way now": coders in owner-opened windows with paste-ready prompts (plan). Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-117
+**Timestamp:** 2026-09-29T01:26:47Z
+**Continues:** 2026-09-28-78
+**Dispatch-file:** preserved/2026-09-29-04.md
+**Reason:** the owner-window coder built -109's legend items. Items 1 and 2 (landscape): the legend sits inboard of the cluster on its side. Item 8 is recorded unchanged. Pushed at 7d17a5c.
+- **It stopped on item 7.** The premise was wrong: the two-chip row is 382 dp wide in a 384 dp bar, so alignment alone cannot clear the 104 dp cluster. The planner's 158 dp came from J8's chip alone.
+- **It flagged** Q4's legend bound still limiting the cluster's drag in landscape.
+- Its suite ran at 749630d: 312 / 2520 / 0 / 0 / 24. It was not re-run after merging the offline-safety app/ changes.
+**Changes:** The owner, verbatim: "1 A 2 A".
+- Item 7: align the chip row away from the cluster and cap its width (about 272 dp), so it wraps.
+- Q4's bound: dropped in short landscape, kept in portrait.
+- Tests first, revert checks and the full suite on the final tree.
+**Notes:** Sent to the owner-opened window by SendMessage. Written by the planner by hand.
