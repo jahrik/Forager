@@ -6450,3 +6450,13 @@ The planner confirmed each by grep.
 **Notes:**
 - The planner's check that origin/main (faf2f88f) has no caller of DeleteTrackUseCase stands in -201 as a fact about main. The owner's ruling concerns the build with F1's track delete.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-203
+**Timestamp:** 2026-09-29T17:23:27Z
+**Dispatch:** 2026-09-28-200 (L1)
+**Reason:** the owner, verbatim: "Option A". L1 starts after F3 lands, so the kept-path sentence is written for real in one pass.
+**Changes:** L1 is held. The planner hands the owner the launch prompt when F3's terminal is written.
+**Notes:** Written by the planner by hand.
