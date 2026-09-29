@@ -53,3 +53,76 @@ Predictions on counts: the suite grows by 3 to 6 tests (the dispatch predicted 1
 Options: (i) notice below the strip, full width, and the cluster's `minY` follows the notice's measured bottom while it shows; (ii) notice below the strip, bounded to leave the cluster's column free (text wraps to more lines); (iii) the notice replaces the strip's row while it shows. I would pick none without the planner.
 
 **Item 8, the entry map follows the basemap and Night Maps.** Written decision to the contrary at `CartographyEntryReportScreen.kt:227-234` (above). The dispatch says stop. Options: (i) leave as is, and record that the entry map's basemap is per-entry by design, changing the dispatch's ruling; (ii) seed `entryMapMode` from the Maps tab's `mapMode` on open, keeping the entry's own picker and not writing back (the leak the comment fixed was write-back), which needs the planner to say the seed is wanted; (iii) follow Night Maps only, leaving the basemap per-entry. Whether Night Maps already reaches the entry map is separate: `night = night` is passed (`:481`); I have not established why the device check saw day rendering in all six combinations and did not look, since the item stops.
+
+## Results (appended after building; the sections above are unchanged)
+
+### What landed
+
+Commits on `chrome-follow-ups` (first pushed to `chrome-follow-ups-wip`): `b586eb6` pre-registration (on `journal-redesign`), the tests-first commit, and the forward commit; hashes are in the hand-back. Items 1, 3, 4, 5, 6 and 7 are built; items 2 and 8 are stops (above).
+
+| # | Change | File:line at the forward commit |
+|---|---|---|
+| 1 | `overMap = selectedTab == OFFLINE_MAPS && isShortLandscapeJournal()` | `ui/log/RecordsTab.kt` (the `RecordDetailsSheet(` call's `overMap`) |
+| 4 | `BackHandler(enabled = suggestionsOpen)` composed **after** the `ExposedDropdownMenuBox` | `ui/availability/AvailabilitySearchUi.kt` (end of the species field's `Column`) |
+| 7 | `CartographyEntry.keepsHighlightableRecord`; the menu offers Show only with it, Hide whenever shown | `domain/model/CartographyEntry.kt`; `ui/log/CartographyEntryReportScreen.kt:424` |
+| 5 | new `rowPadding` on `CentrePinLocationPickerOverlay`, applied to the row only; the Maps tab passes `controlsPadding`, and the nav-bar bottom inset also applies in the rail layout | `ui/map/CentrePinLocationPicker.kt`, `ui/availability/AvailabilityCompactMapUi.kt` (the overlay's two call sites and `centrePinConfirmBottomInset`) |
+| 6 | Maps-tab snackbar takes `WindowInsets.navigationBars` bottom padding | `ui/availability/AvailabilityCompactScaffold.kt` (`snackbarHost`) |
+| 3 | `MapChromeSheetNavigationBar()` sets `isNavigationBarContrastEnforced = false` on the sheet's dialog window, in both bottom sheets (the Records one only over a map) | `ui/map/MapChrome.kt` (end), `MapLayersSheet.kt`, `RecordDetailsSheet.kt` |
+
+### Tests first, seen failing at base for the stated reason (`a3221b4` plus the tests; `/tmp/cf-base.log`, JUnit XML read)
+
+64 tests ran in the four filters, 7 failed, exactly the predicted set:
+- item 1: `MapChromeRecordsPortraitTest`, `MapChromeRecordsWideTest`: "record-details-sheet: container alpha expected:<1.0> but was:<0.8>". `MapChromeRecordsShortLandscapeTest` passed at base and passes after, as pre-registered: it cannot tell base from fix.
+- item 4: `MapChromeSuggestionsBackPortraitTest`, `...ShortLandscapeTest`: "one Back closed the suggestions expected:<0> but was:<1>".
+- item 7: `JournalEntriesOnMapPortraitTest`, `...ShortLandscapeTest`: "no Show on map expected:<0> but was:<1>".
+- item 5: `MapChromePinRowLandscapeTest`: row `[0,320][823,384]` dp against the rail `[743,0][823,384]` dp.
+`the report menu still offers Hide from map on a shown entry that keeps nothing` and `...offers Show on map on a saved entry that keeps a record` passed at base and pass after: they pin decisions and were not expected to fail.
+
+### Item 4 took three attempts; the record of how
+
+1. A `BackHandler` above the `ExposedDropdownMenuBox`: still failed.
+2. The same inside the box's content: still failed.
+Two failed fixes, so no third guess. Data instead (a temporary diagnostic test and temporary `println`s, all removed before the commit; `grep DIAG app/src` shows none): after typing, Back reached none of this screen's handlers (the home handler printed on the same Back before typing, none printed after; the search panel's did not; mine did not), and the ViewModel dismiss was never called. `javap` on `material3-android-1.5.0-alpha26` showed `ExposedDropdownMenuBox` calling `androidx.compose.material3.internal.BackHandler` at the end of its body, after its content. That handler answers with `onExpandedChange(false)`, which this box passes as a no-op. The third variant, composed after the box, is the one that passes. **What I did not establish:** that on the S22 the same ordering is what swallowed Back. The Robolectric finding and the bytecode order agree, and the device symptom (three Backs, nothing) fits, but the device is where it is confirmed. Item 4's fix is therefore Robolectric-verified, device-check advised.
+
+### Revert checks (`/tmp/revert.sh`: saves a copy before editing, restores from that copy, runs the classes, reports compile errors, then confirms the file equals HEAD)
+
+| item | one-line revert | build log compile errors | failures read from the XML | forward present after |
+|---|---|---|---|---|
+| 1 | drop `&& isShortLandscapeJournal()` | 0 | Portrait and Wide: "container alpha expected:<1.0> but was:<0.8>" | yes |
+| 4 | `BackHandler(enabled = false)` | 0 | both: "one Back closed the suggestions expected:<0> but was:<1>" | yes |
+| 5 | drop `.padding(rowPadding)` | 0 | "the row DpRect(left=0.0.dp, top=320.0.dp, right=823.0.dp ...) does not lie over the rail DpRect(left=743.0.dp ..." | yes |
+| 7 | `(entry.shownOnMap \|\| entry.keepsHighlightableRecord)` becomes `true` | 0 | both: "no Show on map expected:<0> but was:<1>" | yes |
+
+Each failure is one that its own revert could produce. Items 3 and 6 have no test and so no revert check.
+
+### Full suite
+
+`./gradlew :app:testDebugUnitTest` from a cleared `app/build/test-results`, `LC_ALL=C.UTF-8`, at the forward commit's tree: **BUILD SUCCESSFUL in 3m 15s**. From the JUnit XML: **319 result files, none older than the run's start; 2578 tests, 0 failures, 0 errors, 24 skipped.** I authored 6 new test methods (3 in `JournalEntriesOnMapScreenTest`'s compact harness, run in 2 window classes; 2 in `MapChromeSuggestionsBackTests`, run in 2; 1 in `MapChromePinRowLandscapeTest`), which the runner counts as 11 new test runs, and rewrote one existing method (`MapChromeRecordsTests`, run in 3 classes). I did not run the base suite, so the exact growth is **unverified**; the planned-trips report gives 2567 at `b427a66`, a different base, so 2578 minus 11 is not a claim. The dispatch predicted 10 to 20 for the eight items; two are stops and two are device-only, so 11 runs is inside that range for what was built, which is a coincidence rather than a check.
+
+### Device-only, for the S22 (Robolectric reports zero insets; none of these is proved by the green suite)
+
+- **Item 3, a bottom sheet's navigation-bar band.** Hypothesis-driven: the cause was not established in the device check, and I could not establish it here. The change turns off the contrast scrim (`isNavigationBarContrastEnforced`); the other candidate, the window's navigation-bar colour, is ignored for a target of API 35+. **If the band is still flat (20, 19, 18) with the sheet up, the cause is the second one and this change does nothing.** Pass: with the Layers sheet, and the Records sheet from the Offline maps panel in short landscape, the band under the sheet shows the map at 0.8 like the rest of the sheet. In portrait the Records sheet is solid now, so its band should read solid: that is the correct result there, not a failure.
+- **Item 5, landscape pin row.** The rail half is tested (bounds); the device check is the system-bar half: the row's ends clear the rail and the navigation bar in both landscape rotations (90 and 270), and the pin still sits at the map's true centre (it must not have moved; `rowPadding` does not touch the pin's frame).
+- **Item 6, portrait snackbar.** The snackbar sits above the system navigation bar. **Flag:** on the Maps tab the floating bottom nav is also at the foot, so a snackbar just above the system bar can lie over the floating nav; the ruling says "above the system navigation bar" and I did exactly that. If the owner wants it above the floating nav as well, that is a placement nobody has ruled.
+- **Item 4, on the phone:** one Back with the suggestions up closes them and leaves the search panel.
+- **Item 1, on the phone (short landscape, Offline maps panel):** the sheet shows the picker map through it; and in portrait it is solid.
+
+### Not tested
+
+The wide tree's Offline maps sheet is asserted solid (I read "only in short landscape" literally, and the wide tree's panel is stacked); if the owner meant the wide tree to keep 0.8, that is the one place my reading could be wrong. Nothing tests `MapChromeSheetNavigationBar`'s window call: under Robolectric its `SideEffect` runs harmlessly. The Maps-tab snackbar's padding is untested by construction.
+
+### Decisions I made
+
+1. **Item 1, wide tree:** solid (literal reading of "only in short landscape").
+2. **Item 7, what "highlightable" means:** any kept track, find, waypoint or offline-region decision, or any attached photo, i.e. the domain's own definition of "what an entry keeps" (`GetJournalEntryHighlightsUseCase.kt:44-75`), not a check that the record is drawn today. A photo with no location counts as kept. A different reading (require a drawn record) needs the map's live data at the menu, which the report screen does not have.
+3. **Item 7, an entry already shown that keeps nothing** still offers "Hide from map", so a shown entry can always be hidden. No new copy.
+4. **Item 5, the bottom inset in the rail layout** now uses the navigation-bar inset outside fullscreen (before, only in fullscreen), because no bottom nav is measured there.
+5. **Items 2 and 8 stopped**, per the dispatch's stop rule; nothing was built for either.
+6. **Item 3 was built on an unestablished cause**, because the dispatch lists it as device-only and asks for a fix against the documented APIs; the report says so and lists the failing case.
+
+### Flags outside scope
+
+- The species suggestions' `onExpandedChange = {}` is what makes M3's own Back handler a no-op. Anything else in the app that uses `ExposedDropdownMenuBox` with a no-op `onExpandedChange` will swallow Back the same way; I grepped only this file's use.
+- `GetJournalEntryHighlightsUseCase` and `CartographyEntry.keepsHighlightableRecord` state "what an entry keeps" twice; a change to one must change the other. I did not refactor the use case (out of scope).
+- The run record's flag 10 (the trip dialog at 0.815) and the light-theme gap are not touched.
+- A stray Bash `pgrep -af '[G]radleWrapperMain|[G]radleWorkerMain'` in this shell matched another session's `until ...` wait loop, so it reported a build when none ran; I confirmed with `ps` that no Gradle worker was running before each build. Another session's Gradle and Kotlin daemons were idle.
