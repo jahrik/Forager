@@ -1081,6 +1081,32 @@ internal fun shouldApplyCameraRequest(
     lastAppliedRequestId: String?,
 ): Boolean = !isGpsTracking && request != null && request.id != lastAppliedRequestId
 
+/**
+ * What a map restores from a [MapCameraSnapshot] (Part 1 layout fixes, item 4): the camera, the region
+ * target taken as already applied, and the location component's camera mode.
+ */
+internal data class MapCameraRestore(
+    val target: LatLng,
+    val zoom: Double,
+    val bearing: Double,
+    val tilt: Double,
+    val appliedTarget: Pair<Region, LatLng?>?,
+    /** A [CameraMode] constant: [CameraMode.TRACKING] if the snapshot was following, [CameraMode.NONE] if not. */
+    val cameraMode: Int,
+)
+
+/**
+ * The restore a map makes as it first loads a style, or `null` for none (Part 1 layout fixes, item 4).
+ * Tests-first stub: no restore yet.
+ */
+internal fun cameraRestoreFor(saved: MapCameraSnapshot?, previousCameraMode: Int?): MapCameraRestore? = null
+
+/**
+ * MapLibre's attribution margins, as `[left, top, right, bottom]` px (Part 1 layout fixes, item 5).
+ * Tests-first stub: the defaults, unchanged.
+ */
+internal fun attributionMarginsPx(defaults: IntArray, bottomInsetPx: Int, endInsetPx: Int, isRtl: Boolean): IntArray = defaults.copyOf()
+
 /** The zoom a fitted frame opens at: [fittedZoom], capped at [maxZoom]. */
 internal fun cappedFrameZoom(fittedZoom: Double, maxZoom: Double): Double = minOf(fittedZoom, maxZoom)
 
