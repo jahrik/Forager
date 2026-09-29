@@ -799,3 +799,18 @@ The planner's reading, stated to the owner:
 - **nothing on screen changes**.
 
 Intent `2026-09-28-100`. It can be revisited if the forecast layering needs changes.
+
+### Map-chrome device check: the owner's rulings (2026-09-28)
+
+After the map-chrome device check (terminal `2026-09-28-102`), the owner answered verbatim "1 A 2 A":
+1. **The Records details sheet from the Offline maps panel is 0.8 only in short landscape,** where the picker map sits beside the list. **It is solid in portrait,** where it lies over the list. This supersedes the planner's Q1 (b) ruling in `-77`, which assumed a map beneath and was the planner's error.
+2. **The device check's small layout flags are batched into one fix stage** after the layout fixes (`-78`), as intent `2026-09-28-104`:
+   - the search notice under the compass strip or cluster;
+   - a bottom sheet's opaque nav-bar band;
+   - the species suggestions ignoring Back;
+   - the landscape pin row under the nav bar;
+   - the portrait snackbar under the system nav buttons;
+   - "Show on map" on an entry with nothing kept;
+   - the entry map ignoring the basemap and Night Maps.
+
+   Rule 1's sheet change is part of the same stage.
