@@ -152,3 +152,29 @@ the dumps, not from the JPEGs.
 - Bubbles open on taps up to about 54-60 dp from a glyph; nothing I have read states that tolerance.
 - The bubble sits under the cluster at 90 where they overlap.
 - `accelerometer_rotation` was set back to 1 twice without my setting it (cause outside the app; the app has no code writing it).
+
+### Results so far (interim 3, 01:27)
+
+Evidence prefix `s1-` in `/home/zynergy-labs/Zynergy/device-evidence/2026-09-29-part-2/`; the full live log with every bound is `s1-notes.md` there. **Measurement basis:** every verdict below rests on `uiautomator` bounds unless marked "PNG", except that positions read off screenshots are from JPEGs (the disk filled) and are marked "visual". Item 48 rests on raw PNG pixels (`s1-i48-bandA-crop.png`, `s1-i48-bandB-crop.png`).
+
+**Notification prompt (planner's request).** Trigger: Maps tab at 270, my `input tap 1993 729` on "Start recording track" (`[1959,695][2027,763]`), the first recording start; status-bar clock 1:03 in `s1-rec270-a.jpg`. The logcat buffer had rolled past it (earliest kept FGS line 01:06:44 for the second start), so the log line is not available. The prompt was the system "Allow Forager to send you notifications?" (`GrantPermissionsActivity`). The owner tapped Allow; `POST_NOTIFICATIONS` went from `granted=false` to `granted=true`. Finding: starting a track recording raises the notification prompt, not only choosing a backup folder. To restore: `adb shell pm revoke com.zynergylabs.forager.app android.permission.POST_NOTIFICATIONS`, then read it back (done at the end).
+
+| Item | Verdict | Reading |
+|---|---|---|
+| 9, 10 | pass (entry 2026-09-27) | At 0 the preview map is [0,437][1080,1247]; at 90 [116,400][1916,832] (432 px = 154 dp) and at 270 [401,400][2201,832]; both finds and the cluster of glyphs are inside in each; rotation re-fits. A tap on empty preview map opens the entry map fullscreen. Pan-then-find-open-close: not run. |
+| 11 | not run | Zoom 13/11 track widths: the map does not zoom out from the entry preview with real input in a way I could measure widths; only 1 old track and my 1-point tracks exist. |
+| 12 | not run | Large font scale and refocus not exercised. |
+| 27, 28 | pass | Picker (Journal > Records > Offline maps chip) at 90 and 270: controls [1061..1871] / [446..1256] all visible with non-zero size, map beside them; pin text "Pin at: 45.3222, -122.6252" identical at 270, 90 and 0 after a pan. Entry report map centred between insets. |
+| 29, 30, 31 | pass / observation | L2 opening frame on the 154 dp preview holds the day's find spread with margin. The bottom-right clickable [1725,856][1871,991] is the Offline map switch, fully inside (rail from 1956). Bubbles (find card about 103 dp, photo card 118 dp) fit inside the 154 dp map and are not clipped; a bubble taller than the map could not be produced. The card covers its own glyph. |
+| 39 | partly pass | At 270 with recording on: record/stop [1959,695][2027,763] and return [1959,841][2027,909] both on screen and clear of the legend; a real tap on return started navigation (a banner covers the search bar and strip) and Stop navigating and Stop recording worked. Drag and snap (long-press) worked at 90 with both handles. Thumb reach: owner. The 56 x 156 dp fill: the container above the pill is drawn as one surface (`s1-drag2-r90.jpg`); the owner to judge. |
+| 41 | pass at 90 (cluster either side) and 270, one and two chips and a long label | Chips sit at the bar's start on the side away from the cluster and follow the cluster when it is dragged; 104 px clear of the cluster; the long label ellipsises before the X and the row is capped at the bar's width. Portrait spacing: taxon pill [219,272][861,362] to J8 clickable [219,374][680,509], 12 px (4 dp). |
+| 43 | pass | Taps 4 px inside each edge of J8's pill opened its list; taps 4 px outside opened nothing. Feel: owner. |
+| 44 | pass (Street/Satellite half) | Maps Street; the entry map showed Street; choosing Satellite on the entry left Maps on Street. Night half with 58/59. |
+| 45 | pass at 0 | Notice "Enter a valid latitude (-90 to 90) and longitude (-180 to 180)." [0,254][1080,391], its top at the strip's visible bottom (254); the cluster moved down to Fullscreen [956,464] (button top 430), 39 px below the notice; clearing the notice returned the cluster. 90/270 not run. |
+| 46 | pass | Trip-start snackbar ("Do Not Disturb is on...") at 0: card ends at 1925, the floating nav starts at 1956 (31 px); fullscreen: 32 px above the system nav band; 90: 59 px from the rail, 53 from the cut-out; 270: 63 and 51. It draws over the legend and the cluster's lower rows. |
+| 48 | pass, portrait Layers sheet (PNG) | Screen rows y 2215-2300 in the nav band: with the sheet open pixel std is 0.14-0.22 of the same rows with no sheet, mean (35,32,30): the map shows through at about 0.8, not a flat band. The landscape Records sheet was not opened. |
+| 49 | pass on clearance | At 90: OK [120,922][1004,1057], Cancel [1027,922][1911,1057], rail from 1956. At 270: [405..1289] and [1312..2196], rail ends 360. Pin x = map centre exactly; pin y hot spot unknown (node 498..611 against map centre 582). |
+| 40, 42 | see interim 2 | unchanged |
+| 36 | pass | search by coordinates moved the camera (NET). Bearing/tilt not settable. |
+
+**Finding to note:** deleting my test data: track details sheet has only Share (no Delete), so five 1-point test tracks are left; see the clean-up section at the end.
