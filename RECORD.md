@@ -6764,3 +6764,18 @@ The planner confirmed each by grep.
 - **Merge note:** when legal-drafts merges, keep both appended sections of the site report (L1's addendum and the second planner's audit).
 - **Checked for clashes:** none with S1, F5 or C1.
 - Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-219
+**Timestamp:** 2026-09-29T19:41:02Z
+**Closes:** 2026-09-28-215 (S1, wire the sundown alerts)
+**Outcome:** withdrawn, never launched
+**Observed:** the owner, verbatim: "Sundown alerts will happen with the navigation plan, so we will scrap that entirely from this part of the project. I'll have the navigation planner do a new dispatch."
+**Notes:**
+- Nothing was built.
+- The launch copy is renamed ~/Zynergy/launch-prompts/21-sundown-alerts.WITHDRAWN.md, so it is not pasted by mistake. The preserved dispatch stays as the record.
+- The site notes now say the alerts come with the navigation plan.
+- **The owner's layer-opacity statement is recorded in the plan,** not dispatched. Only colour-field layers have sliders today (MapLayersSheet.kt:385, 399-405). The overlays have switches only.
+- Written by the planner by hand.
