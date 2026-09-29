@@ -7015,24 +7015,6 @@ The planner confirmed each by grep.
 ---
 
 **Kind:** dispatch-note
-**ID:** 2026-09-28-235
-**Timestamp:** 2026-09-29T20:26:47Z
-**Dispatch:** 2026-09-28-216 (F5), a redo
-**Reason:** the F5 window e4d26c (933788) reports that the owner told it directly to redo F5 on Sonnet 5.5 on a new branch, because the landed F5 was built on Opus 5.5 and the attribution should be true.
-- It follows the owner over the planner's cancel (-234).
-- Worktree: forager-wt/privacy-fixes-redo-sonnet. Branch: privacy-fixes-redo-sonnet, from 445b292b.
-- It pushes only to its own branch, never to journal-redesign, with no merge.
-- Report: docs/audits/2026-09-29-privacy-fixes-sonnet-redo-completion-report.md.
-**Changes:** none on journal-redesign.
-**Notes:**
-- **This supersedes the planner's note in -233** ("Sonnet 5.5 finished eith F5") as to which model built the landed F5. The coder reports the owner's statement that it was Opus 5.5.
-- **The owner is asked** what happens to the landed F5 (2fa093ef's code) when the redo finishes.
-- **The earlier third run** in privacy-fixes-sonnet (-234) may be another redo; the owner is asked.
-- Written by the planner by hand.
-
----
-
-**Kind:** dispatch-note
 **ID:** 2026-09-28-236
 **Timestamp:** 2026-09-29T20:31:25Z
 **Dispatch:** none (the planner role moves to another session)
@@ -7040,9 +7022,8 @@ The planner confirmed each by grep.
 **Changes:**
 - **This session is now the planner and keeps this record.** Its address, as `ListAgents` prints it, is "You are the planner. Dispatch the following to a c..." [05172f]. The stopped planner [4b12e2] is no longer listed. A row named "# Planner session" [d282e1] shows as an offline Remote Control session.
 - **The hand-back address is corrected** in Part 3's launch prompts, none of which has launched yet: preserved/2026-09-29-52, -53 and -54, and their identical copies at ~/Zynergy/launch-prompts/23-part-3-s22-a.md, 24-part-3-s22-b.md and 25-part-3-tablet.md. Each now names this session and [05172f]. Nothing else in them changed.
-- **The F5 redo window [e4d26c]** (-235) was launched from a prompt that hands back to "# Planner session". It has been told to hand back here instead, with nothing else about its work changed.
+- **The F5 redo window [e4d26c]** was launched from a prompt that hands back to "# Planner session". It has been told to hand back here instead, with nothing else about its work changed.
 **Open, carried over for the owner:**
-- **From -235:** what happens to the landed F5 (2fa093ef's code) when the Sonnet redo finishes.
 - **From -234:** whether the third F5 run in privacy-fixes-sonnet is to be stopped without pushing.
 - **From -232:** the secure_delete residue observation, which is in Part 3 S22-B.
 - **From -231, zynergy-site PR #3:** the release wording is going in (5cc9a64, work in progress, not merged). Its F5 sentences follow the landed F5 and change if the redo replaces it.
