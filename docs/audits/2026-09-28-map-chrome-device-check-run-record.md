@@ -876,7 +876,7 @@ search bar top left, the strip top right. **At 270** the mirror: rail left (`x` 
   bar's full width and the cluster sits over the bar's end, as `-72` flagged for the bar itself.
 - **The centre-pin row spans the whole window in landscape,** `[45,922][1146,1057]` OK and `[1169,922][2271,1057]` Cancel
   at both rotations, so at 90 Cancel's right end lies under the navigation bar (`x` 2181 on) and at 270 OK's left end
-  does (`x` 0 to 135), and the row covers the rail's "Tools" item (`170-`, `189-`). I touched Cancel only at (1500, 990),
+  does (`x` 0 to 135), and the row's top edge covers the foot of the rail's "Tools" item (`170-`, `189-`). I touched Cancel only at (1500, 990),
   well inside the map.
 - **The snackbar is centred on the window,** `x` 281 to 2035 at both rotations, so it reaches over the rail's edge at
   270 and toward it at 90 (`177-`, `196-`).
@@ -900,3 +900,137 @@ buffer 0 bytes at 90 and at 270 (`179-`, `198-`).
 - **The save-failure Toast:** needs a forced write failure, which needs code.
 - **Also not run here (see check 3):** the taxon chip (needs a search, which writes `cached_searches`) and J8's chip
   (needs a `shownOnMap` edit).
+
+## Settings and data restored and read back (00:01Z to 00:03Z)
+
+- **The database**, final copy after `am force-stop` (`db-end-*`; `db-end-raw/` read-only): **all three files
+  byte-identical to the backup** (`forager.db` `e88effc0…61af7c93`, `-wal` `55db76e4…31ea95c3`, `-shm`
+  `3ddec32f…ea89459`, device and local sha256 equal); header valid, WAL magic valid, **integrity ok, `user_version` 16**;
+  the same 18 tables with the backup's counts; every per-table digest (all columns) equal; `shownOnMap` 0 on all 7
+  entries. Copies taken after every check (`db-launch`, `db-c1c`, `db-c1end`, `db-c2`, `db-c3`, `db-c4`, `db-c5`,
+  `db-c6`) all verified the same way, digests equal to the backup's each time. **Nothing was created, edited or deleted.**
+- **System settings** (`200-settings-end.txt`) equal to the start's (`03-`): `font_scale` 1.0 (never changed),
+  `accelerometer_rotation` 0, `user_rotation` 0 (set back at 00:01Z), `navigation_mode` 0, `location_mode` 3,
+  `screen_off_timeout` 600000, `stay_on_while_plugged_in` 15, the animation scales 1.0, night mode yes.
+- **App settings:** all five DataStore files (`map_preferences`, `debug_diagnostics_preferences`,
+  `camera_grid_preferences`, `camera_orientation_preferences`, `photo_location_preferences`) are **byte-identical to
+  the start's** (`201-*-end.pb` against `05-*-start.pb`): Night Maps off, `map.fullscreen` false, Finds and Photos on,
+  every other overlay as found. The basemap, which is not persisted, opens on Topographical (`205-`).
+- **The app:** relaunched with `am start` at 00:03Z (pid 30284), in focus on the Maps tab in portrait, as found; the
+  phone unlocked. The camera, the search query and the notice are process state and went with the force-stops.
+- **The install** at the end (`206-`): `versionName=1.0.1457+gb358a4aa`, `lastUpdateTime` 15:28:49 PDT,
+  `firstInstallTime` 2026-09-22 11:15:05, the same data inodes. **The phone keeps this build**; nothing was rolled back,
+  since the dispatch names no rollback.
+- The database copies stay in the evidence directory. They hold the owner's records and are outside the repository.
+
+## Crash reads
+
+`logcat -d -b crash` was **0 bytes** at every read: `02-` (start), `17-` (first launch), `36-`, `47-` (check 1),
+`81-`, `87-` (check 2), `100-` (check 3), `132-` (check 4), `150-` (check 5), `179-` (90), `198-` (check 6),
+`203-` (end), and once more after the final relaunch. `logcat -d` at the end (`204-`) has **0** `FATAL EXCEPTION`
+lines, and the events buffer no Forager `am_crash` or `am_anr`. Every change of pid was a force-stop and relaunch of
+mine. **No system or Google prompt appeared over the app** at any point; the one stop in the scripted captures was my
+own focus check misreading Forager's popup window (check 5). **No abort condition was met.**
+
+## All checks
+
+| check | verdict | composite (fill) |
+|---|---|---|
+| 0 first launch, database | **pass**: `user_version` 16, counts and digests unchanged | — |
+| 1a search dropdown (outside the map's Box) | **shows the map through; pass** | **0.800**, 0.8 × Bark |
+| 1b Tools drawer (outside the map's Box) | **shows the map through; pass** | 0.863 over the scrim (**fill 0.80**) |
+| 1c compact snackbar (outside the map's Box) | **shows the map through; pass** (second path; first path wrong premise) | **0.80 to 0.82** over the map |
+| 2a details sheet: track, waypoint, offline region | **shows the map through; pass** (the region only after the region list loaded) | 0.862 to 0.866 (**fill 0.795 to 0.803**) |
+| 2b trip-date dialog | **shows the map through; pass** | 0.92 over the dim (**fill 0.797 to 0.815**) |
+| 2c waypoint-name dialog | **shows the map through; pass** | 0.92 (**fill 0.801 to 0.809**) |
+| 2d species suggestions | **shows the map through; pass** | own 0.80 to 0.81 over the panel; stacked **0.965 to 0.975**; over bare map **0.805** |
+| 2e Month menu | **shows the map through; pass** | own 0.80 over the panel; over bare map **0.800** |
+| 3a centre-pin row | **pass** | **0.80** inside, 0.81 to 0.84 at its edges |
+| 3b search notice | **pass** on the measure; first line under the compass strip | **0.80**; about 0.96 where under the strip |
+| 3c bottom nav | **pass** | **0.80** |
+| 3d rail | **pass** (check 6) | **0.80** |
+| 3e compass strip | **pass** | **0.80** |
+| 3f taxon chip | **not run** (needs a search, which writes) | — |
+| 3g J8's chip | **not run** (needs a `shownOnMap` edit); question for the planner | `-72`'s 0.833 to 0.840 stands |
+| 4a Records sheet from Offline maps | **0.8 as built**, but over the list, not the map, in portrait | fill **0.799 to 0.802** |
+| 4b Records sheet from All | **opaque; pass** | a 0.000 |
+| 4c entry with a map: menu, delete dialog | **pass** | menu **0.80**; dialog **fill 0.796**, composite 0.92 |
+| 4d entry without a map: menu, delete dialog | **opaque; pass** | a 0.000; dialog solid by flat-ground value |
+| 5 legibility | **82 captures** for the owner | — |
+| 6 rotations 90 and 270 | **pass**: rail, strip, dropdown, notice, drawer, pin row, snackbar | all **0.80** (drawer fill) |
+| 7 exit prompt, HUD, three-way dialog, wide Layers button, save-failure Toast | **not run**, as the dispatch says | — |
+
+**Predictions.** Mine for check 1 held (all three show through at 0.8); the planner's "at least one of the dropdown,
+drawer and snackbar renders opaque" (intent `-84`, prediction 2) did not. The planner's prediction 1 (the windows at
+about 0.8) held for the fills; their composites over a scrim or dim are 0.86 and 0.92. Prediction 3 (nav and strip
+0.8) held.
+
+## Decisions I made
+
+1. **No record entries, and no section check against a `kit.json`.** My standing instructions call for a sweep, an intent
+   and a structural check of the dispatch against `.claude/kit.json`. At this base there is no `.claude/` and no
+   checker (the owner removed them in `e136330`); the dispatch and the launch message say the planner writes the record
+   and that I do not touch `RECORD.md`; `-04` says the kit's record steps do not apply. The main checkout's `kit.json`
+   (`faf2f88`) lists `device` sections this dispatch does not have by those names: Base and state, Scope boundary,
+   Closed decisions, Prediction, Finish line and abort conditions, Checks, Out of scope, Device items. Which config
+   applies needs an owner ruling; I followed the dispatch and the base, as the `-51`, `-72` and `-56` coders did.
+2. **The build commit and branch:** built detached at `b358a4a`; `device-chrome` cut from `origin/journal-redesign` at
+   `20ada3d`, its upstream unset, pushed with `-u origin device-chrome`.
+3. **Database checks beyond the dispatch:** the device's own sha256, a re-check just before the install, per-table
+   digests over every column, and a full copy and verify after every check, not only after the install.
+4. **"By day" and "at night" read as Night Maps off and on,** as `-72` read them, with the app's dark theme throughout. No
+   light-theme captures.
+5. **The measurement conventions I pre-registered:** composite `1 − a`, and for windows the fill `1 − a/s` against the
+   scrim or dim; the thresholds (0.10, 0.02, the 0.78 to 0.82 band) and the spread floor of 8; container colours
+   solved from the intercepts. The dispatch named the method (`-72`'s), not these.
+6. **The snackbar:** "Saved to Drafts", raised by opening the existing draft find (`-12`'s test data) and leaving its
+   editor. I judged from the code that opening and leaving writes nothing, and checked it with digests after each run.
+   The first path rested on a premise I had not checked (F3); I pre-registered the second in a pushed addition before
+   trying it. The third run switched to fullscreen while the snackbar showed, to get a readable ground.
+7. **Dialogs dismissed with Back,** not their Cancel buttons (the same state change by the code), so no touch landed
+   beside a confirm. The centre-pin row was cancelled with its own Cancel, as the dispatch says.
+8. **Settings changed for access and restored:** Finds and Photos layers off and on to uncover the waypoint pin;
+   fullscreen on and off as the reference frame for the nav, rail and strip; the basemap and Night Maps for check 5;
+   rotations. All read back equal (the DataStore files byte-identical).
+9. **The two chips not run** rather than stopping the dispatch: J8's needs a `shownOnMap` edit, the taxon chip a search
+   that writes `cached_searches`. Raised as a question.
+10. **The region sheet retried** after check 4, once the Offline maps panel had loaded the region list; the earlier
+    failures are recorded as they happened.
+11. **The suggestions closed by an outside touch** at (60, 1830), on the panel's dismiss scrim, after three Backs did
+    nothing.
+12. **The scripted captures of check 5** (`pass.sh`, `setmap.sh`, `setnight.sh`), with fixed coordinates guarded by dump
+    checks; the focus check corrected after its false stop, and that combination run again from the start. An extra
+    uniform Topographical-by-day pass, and the Layers sheet itself captured where the basemap was changed through it.
+13. **Beyond the dispatch:** the search bar's alpha (in the same fullscreen pair), the Layers sheet captures, and the
+    dialogs' fills over non-map ground.
+14. **The Offline maps sheet in portrait measured over the list**, the pre-registered fallback; its landscape case,
+    where it would cover the picker map, is not in the rotation list and was not run.
+15. **Navigation choices:** five double-taps to zoom to the track and waypoint; drags on plain text to scroll the Offline
+    maps panel and the chip row; force-stops and relaunches to clear the query and the notice and to read the database;
+    "chanterelle" as the species typed; a final relaunch so the app is in focus as found.
+
+## Flags outside scope
+
+1. **Offline regions are missing from the region list after a launch.** The Maps tab draws both DEVICE CHECK regions,
+   but a tap on either outline opens no bubble (`W MapBubble: No OFFLINE_REGION 1 in the host's lists`), and the Records
+   chips count no region, until the Journal's Offline maps panel is opened and reloads the list
+   (`AvailabilityViewModel.kt:897-905`); then the bubble and the sheet work. Seen in three processes (22:50Z, 23:12Z,
+   23:54Z). The start-up load is `:167`. Not investigated. While reading it I saw that `listRegions`
+   (`map/MapLibreOfflineMapRepository.kt:182-215`) deletes Room rows and MapLibre regions it judges gone or incomplete,
+   on every start-up; nothing was deleted here (digests equal), and I did not test it.
+2. **The search notice's first line lies under the compass strip** in portrait (`98-`, `99-`), and under the cluster's
+   column in landscape (`166-`, `185-`).
+3. **A bottom sheet's navigation-bar band is opaque** (flat (20, 19, 18)) while the sheet is up (`56-`).
+4. **The species suggestions ignore Back** (three Backs, nothing changed; `79-`); only an outside touch closed them.
+   `-51`'s Part 1 saw a Back swallowed on the dropdown too.
+5. **In landscape the centre-pin row spans under the navigation bar** and over the foot of the rail (`170-`, `189-`).
+6. **In portrait the Records sheet from Offline maps covers the list, not the picker map**, at 0.8, text over text
+   (`108-`). The rule `-77` Q1 (b) gave it assumed the picker map beneath.
+7. **The entry map follows neither the basemap nor Night Maps** (check 5, `-12`, `-13` in all six combinations).
+8. **In portrait the snackbar lies under the system navigation bar's buttons**, with "Discard" beside the system Back
+   button (`34-`), because on the Maps tab the Scaffold has no bottom bar to sit above.
+9. **"Show on map" is offered on an entry with nothing kept** (`6380d39b…`, `124-`).
+10. **The trip dialog's first box read 0.815** against 0.797 to 0.802 elsewhere in it; not established why.
+11. **The light theme** was not captured or measured anywhere; the owner may want it (every stage test is dark too, per
+    `-83`).
+12. **The tablet** `R52T506412L` was attached throughout and never addressed: every call named `-s R5CT321008R`.
