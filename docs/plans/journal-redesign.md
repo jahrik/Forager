@@ -901,3 +901,5 @@ The planner's placement: after the trips fix (`-97`) and the map-chrome follow-u
 - **Tools, Settings, Backup:** "Back up now" (default file name `forager-backup-<date>.zip`); "Automatic backup" (a switch, off by default); "How often": Daily, Weekly or Monthly; "Backup folder": "Choose folder"; "Restore from backup".
 - **Messages:** "Backup saved.", "Couldn't save the backup.", "Automatic backup is off until you choose a folder."
 - **Restore prompt:** the title "Restore this backup?", the owner's body, the buttons Replace, Merge and Cancel; afterwards "Restore complete." or "Couldn't restore that backup."
+
+**J8's chip tap area (owner, 2026-09-29).** The chip responds only on its 32 dp pill, J8's "touches only on its pill" design, inside a 48 dp layout box. The owner, verbatim: **"Option A for now. We may need to change it if it's too small"**. It stays pill-only. Device check Part 2 captures how the pill feels to tap, at its edges, for the owner to judge, and the full 48 dp is revisited if it proves too small.
