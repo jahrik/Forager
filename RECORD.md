@@ -4701,3 +4701,43 @@ Also recorded: the owner's ruling "So let's do sessions this way now": coders in
 - Q4's bound: dropped in short landscape, kept in portrait.
 - Tests first, revert checks and the full suite on the final tree.
 **Notes:** Sent to the owner-opened window by SendMessage. Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-118
+**Timestamp:** 2026-09-29T01:27:21Z
+**Closes:** 2026-09-28-106
+**Outcome:** completed
+**Observed:**
+- **Coder.** An owner-opened session, launch prompt preserved/2026-09-29-01.md, configured for claude-sonnet-5-5 (not read back). Report: docs/audits/2026-09-29-offline-regions-protect-and-fix-completion-report.md.
+- **Commits.** Pre-registration 9b59a4d; Part 1 a649ac3; Part 2 d9cf4fd; report 60f4c62 (merged in 49c3943). Failing tests-first commits on offline-safety-wip (26632d6, 9b667c0).
+- **Part 1, protect.**
+  - P1: no prune. A Room row missing from MapLibre's read is kept, not shown, and logged at Log.w with its id.
+  - P2: a null list is a failure.
+  - P3: the incomplete-region delete only applies when there is no Room row and the metadata's downloadedAt is 0. No migration was needed.
+- **Part 2, fix.**
+  - F1: the storage redirect is removed; the store stays at files/mbgl-offline.db.
+  - F2: MapLibreInitializer is called once from ForagerApplication.onCreate, and comments were corrected.
+  - F3: follows from F2.
+- **Evidence.**
+  - Tests first: Part 1, 8 of 11 failed by assertion (3 controls passed); Part 2, 3 of 3 failed.
+  - Revert checks confirmed, each with 0 compile errors: the prune restored, null-to-empty restored, the Application call removed, the once-guard removed.
+  - Coder's suites: 2526 after Part 1; 2529 / 24 skipped / 0 after Part 2.
+- **Planner's suite** at 7d17a5c (offline safety plus -78's legend work merged): 313 / 2531 / 0 / 0 / 24, cleared, 0 stale, no compile errors, from 01:23:32Z.
+**Deviations:**
+- OfflineRegionIdsToDeleteTest (3 tests) was deleted, since its subject was replaced; its cases are covered by the new tests.
+- **MapLibre failing to load at start-up is now caught and logged,** so a device whose map library cannot load starts and fails only when a map opens. The owner ruled "Option A for the map crash" (keep).
+- **A rule slip, self-reported:** its first Part 2 Gradle runs started while the layout coder's build was live.
+- JVM limits: the OfflineRegion-to-LiveRegion mapping, OfflineManager and getInstance are untested. The unfinished marker on builds before 99606a5 is unverified; such regions are kept.
+**Notes:**
+- **Device-only (the S22 check, next):**
+  - a cold start logs no "Couldn't read offline regions";
+  - regions show in Records and bubbles at once;
+  - files/mbgl-offline.db is unchanged and every Room row kept, behind a full backup of forager.db and mbgl-offline.db;
+  - one "MapLibre initialised." line per process.
+- **Flags:**
+  - AvailabilityOfflineMapsUi.kt:19-20's comment is now stale;
+  - older audits name filesDir/maplibre-offline;
+  - whether backup rules cover files/mbgl-offline.db (allowBackup is false; see -116).
+- Written by the planner by hand.
