@@ -21,10 +21,16 @@ enum class LayerKind { COLOUR_FIELD, AREA, LINE, MARKER }
 
 /**
  * The z-bands above the basemap, **bottom to top in declaration order**: colour fields < areas <
- * lines < markers (the L0a dispatch, A1). The ordinal is the order; [orderedLayers] and
- * [registryProblems] both read it, so reordering these constants reorders the map.
+ * decorations < lines < markers. The ordinal is the order; [orderedLayers] and [registryProblems] both
+ * read it, so reordering these constants reorders the map.
+ *
+ * Four bands came from the L0a dispatch, A1. [DECORATIONS] came from dispatch `2026-09-28-100`, on the
+ * owner's ruling: "Option C: decorations to keep it separate. We can change it if the forecast layering
+ * needs changes". It holds the J8 marker rings, kept separate from the lines band, where the J8 follow-ups
+ * had put them at the bottom. It sits exactly there, so no layer moved on screen. The ruling and the
+ * planner's reading of it are recorded in `docs/plans/journal-redesign.md`, "A decorations band for the rings".
  */
-enum class ZGroup { COLOUR_FIELDS, AREAS, LINES, MARKERS }
+enum class ZGroup { COLOUR_FIELDS, AREAS, DECORATIONS, LINES, MARKERS }
 
 /**
  * Which kind of native layer [SightingsMap][com.zynergylabs.forager.app.ui.map.SightingsMap] builds
@@ -243,20 +249,27 @@ private fun line(id: String, sourceId: String, role: PaletteRole, tapGroup: TapG
  * following the "Journal entries" switch ([JOURNAL_ENTRIES_SWITCH_LAYER_ID]); the switch's own layer
  * is the one halo not following another. See [MapLayerSpec.drawnWith].
  *
- * Every halo is in the lines band, a marker's ring included (J8 follow-ups, continuation
- * `2026-09-28-87`, item 4; the owner, "1 A", to "Move marker rings below all lines"): the registry lists
- * the three rings at that band's bottom, so no ring covers a line. A ring is still a symbol layer below
- * its own marker. The bands, their order and [registryProblems] are unchanged; a ring left in the
- * markers band could not sit below a line.
+ * A halo is in [zGroup]. A line's halo stays in the lines band, directly beneath its own line's casing,
+ * which is the default. The three marker rings are in [ZGroup.DECORATIONS] (dispatch `2026-09-28-100`; the
+ * owner, "Option C"), the band just below the lines, so no ring covers a line (J8 follow-ups, continuation
+ * `2026-09-28-87`, item 4; the owner, "1 A", to "Move marker rings below all lines"). A ring is still a
+ * symbol layer below its own marker; a ring left in the markers band could not sit below a line.
  */
-private fun journalHalo(id: String, sourceId: String, kind: LayerKind, renderer: LayerRenderer, decorates: String): MapLayerSpec {
+private fun journalHalo(
+    id: String,
+    sourceId: String,
+    kind: LayerKind,
+    renderer: LayerRenderer,
+    decorates: String,
+    zGroup: ZGroup = ZGroup.LINES,
+): MapLayerSpec {
     val switch = id == JOURNAL_ENTRIES_SWITCH_LAYER_ID
     return MapLayerSpec(
         id = id,
         kind = kind,
         renderer = renderer,
         sourceId = sourceId,
-        zGroup = ZGroup.LINES,
+        zGroup = zGroup,
         paletteRole = PaletteRole.JOURNAL_ENTRY,
         userToggleable = switch,
         userOpacity = false,
@@ -323,10 +336,12 @@ private const val COLOUR_FIELD_FILL_OPACITY = 0.6f
  * **J8's five journal-entry halos** (`prompts/preserved/2026-09-28-52.md`, J8-2) each sit below the
  * record layer they decorate, so the halo shows as a ring around the record's own outline. The two line
  * halos sit directly below their record's casing: the offline region's under its outline's border, the
- * kept tracks' under their casing. The three marker rings (waypoints, finds, photos) sit below every
- * line, at the bottom of the lines band (J8 follow-ups, continuation `2026-09-28-87`, item 4; the owner,
- * "1 A", to "Move marker rings below all lines"), so a ring never covers a track, the offline outline or
- * any other line. J8 had put each directly under its own marker, above every line and the search-centre
+ * kept tracks' under their casing, both in the lines band. The three marker rings (waypoints, finds,
+ * photos) are the decorations band, below every line (J8 follow-ups, continuation `2026-09-28-87`, item 4;
+ * the owner, "1 A", to "Move marker rings below all lines"; the band itself from dispatch `2026-09-28-100`,
+ * the owner, "Option C"), so a ring never covers a track, the offline outline or any other line. They were
+ * at the bottom of the lines band first, and the band put them exactly where they already drew. J8 had
+ * put each directly under its own marker, above every line and the search-centre
  * reticle, and continuation `-87` reports rings covering parts of a kept track and of the reticle. A
  * halo takes no taps, so M1's tap
  * routing is unchanged, and it is drawn only while its record's own switch and the "Journal entries"
@@ -355,10 +370,11 @@ val MAP_LAYER_REGISTRY: List<MapLayerSpec> = COLOUR_FIELDS.map(::colourField) + 
         tapGroup = TapGroup.NONE,
         baseOpacities = listOf(BaseOpacity(OpacityProperty.FILL, OFFLINE_REGION_FILL_OPACITY)),
     ),
-    // J8 follow-ups, item 4 (the owner, "1 A"): the three marker rings, below every line.
-    journalHalo(MapLayerIds.JOURNAL_ENTRY_WAYPOINTS, MapSourceIds.JOURNAL_ENTRY_WAYPOINTS, LayerKind.MARKER, LayerRenderer.SYMBOL, decorates = MapLayerIds.WAYPOINTS),
-    journalHalo(MapLayerIds.JOURNAL_ENTRY_FINDS, MapSourceIds.JOURNAL_ENTRY_FINDS, LayerKind.MARKER, LayerRenderer.SYMBOL, decorates = MapLayerIds.FINDS),
-    journalHalo(MapLayerIds.JOURNAL_ENTRY_PHOTOS, MapSourceIds.JOURNAL_ENTRY_PHOTOS, LayerKind.MARKER, LayerRenderer.SYMBOL, decorates = MapLayerIds.PHOTOS),
+    // J8 follow-ups, item 4 (the owner, "1 A"): the three marker rings, below every line, in the
+    // decorations band (dispatch 2026-09-28-100; the owner, "Option C").
+    journalHalo(MapLayerIds.JOURNAL_ENTRY_WAYPOINTS, MapSourceIds.JOURNAL_ENTRY_WAYPOINTS, LayerKind.MARKER, LayerRenderer.SYMBOL, decorates = MapLayerIds.WAYPOINTS, zGroup = ZGroup.DECORATIONS),
+    journalHalo(MapLayerIds.JOURNAL_ENTRY_FINDS, MapSourceIds.JOURNAL_ENTRY_FINDS, LayerKind.MARKER, LayerRenderer.SYMBOL, decorates = MapLayerIds.FINDS, zGroup = ZGroup.DECORATIONS),
+    journalHalo(MapLayerIds.JOURNAL_ENTRY_PHOTOS, MapSourceIds.JOURNAL_ENTRY_PHOTOS, LayerKind.MARKER, LayerRenderer.SYMBOL, decorates = MapLayerIds.PHOTOS, zGroup = ZGroup.DECORATIONS),
     journalHalo(MapLayerIds.JOURNAL_ENTRY_REGIONS, MapSourceIds.JOURNAL_ENTRY_REGIONS, LayerKind.LINE, LayerRenderer.LINE, decorates = MapLayerIds.OFFLINE_REGION_OUTLINE),
     line(MapLayerIds.OFFLINE_REGION_BORDER, MapSourceIds.OFFLINE_REGIONS, PaletteRole.OFFLINE_REGION_BORDER, TapGroup.NONE, owner = MapLayerIds.OFFLINE_REGION_FILL)
         .copy(baseOpacities = listOf(BaseOpacity(OpacityProperty.LINE, OFFLINE_REGION_BORDER_OPACITY))),

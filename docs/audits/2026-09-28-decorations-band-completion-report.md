@@ -304,3 +304,227 @@ the owner or the planner pushes these commits from this worktree.
 **State:** unchanged apart from this section. There is still no push, no Gradle run and no `app/` edit. The
 commits `057117e`, `6542747` and `91bb142` stand as they are; this section is one further local commit on top of
 them. `origin/journal-redesign` has moved by 2 commits since `6542747`; I did not pull, as nothing is being pushed.
+
+## Resumed: the pre-registration pushed by the owner and the planner
+
+The planner's second message, part of this dispatch, verbatim:
+
+````
+Planner message, part of dispatch `2026-09-28-100`. Quote it verbatim in your report.
+
+**Your pre-registration is on the remote.** The owner acted on the push directly, not through a relay:
+- The owner ran the pull and push from `/home/zynergy-labs/Zynergy/forager-wt/decorations` themselves. The pull merged, and the push was rejected only as non-fast-forward, because the remote had moved.
+- Following that, the planner merged `origin/journal-redesign` into `decorations` (a merge, no rebase; records and run reports only, `app/` unchanged since `6dcc3b3`) and pushed: `ae0b90f..2893f8a`.
+- Your commits `057117e`, `6542747`, `91bb142` and `4b55b23`, and the owner's merge, are now on `journal-redesign` unchanged. Your branch is level with `origin/journal-redesign`.
+
+**Resume at tests first**, exactly as you pre-registered, then the build, revert checks, the full suite and the report.
+- Push as you go with `git pull --no-rebase` then `git push origin decorations:journal-redesign`.
+- **If the permission system refuses a push again, stop and hand back.** Keep the work committed locally, and don't try another route. The owner will decide, as before.
+- Before each Gradle run, check that no other build is running and that 2.5 GB is available. The layout-fix coder builds on this machine.
+````
+
+**Checked before resuming:**
+- After `git fetch`, `HEAD` and `origin/journal-redesign` are both `2893f8a`.
+- `git merge-base --is-ancestor` puts `057117e`, `6542747`, `91bb142` and `4b55b23` on the remote.
+- `git diff 6dcc3b3 origin/journal-redesign -- app/` is empty.
+- The pre-registration reached the remote before any test in this dispatch had run.
+
+## Tests first
+
+Commit **`3660e5b`**, test file only (`MapLayerRegistryTest.kt`, +101 −5). No production file is touched.
+
+What changed:
+- **T1, re-pinned.** The enum-order test is renamed `the groups run colour fields, areas, decorations, lines, markers, …`, and its enum assertion now compares `ZGroup.entries.map { it.name }` with the five names.
+- **T5, re-pinned.** The band assertion in `every marker ring draws below every line, …` becomes `decorationsBand()`, and its KDoc is updated.
+- **New:** T2 (`the decorations band holds the three marker rings and nothing else`), T3 (`the two line halos stay in the lines band, directly beneath their casings, and no marker ring is in it`) and **the guard T4** (`guard - the full draw order is the base's, layer for layer`, over the literal `drawOrderAtBase` for the default state and the swapped colour fields).
+- **Helper:** `decorationsBand()` finds the band by name.
+- **Counts:** `@Test` count 23 at base, 26 now.
+
+**The runner.** `/tmp/decorations/run.sh`, with its summariser `/tmp/decorations/summ.py`, both outside the repository. Before starting, it:
+- refuses to start if a Gradle build is running, under 2560 MiB is available, or `/` has under 3 GiB free;
+- clears `app/build/test-results/testDebugUnitTest`;
+- runs `LC_ALL=C.UTF-8 ./gradlew --offline :app:testDebugUnitTest --tests …`.
+
+After the run, it:
+- refuses to cite results if the log has any `e: ` line;
+- sums the JUnit XML, listing every file whose mtime or `timestamp` is older than the start.
+
+**Seen at `3660e5b`.**
+- The run started 00:11:33Z (2026-09-29), with MemAvailable 3865 MiB, `/` 5573 MiB free and no other Gradle build running.
+- The run ended `BUILD FAILED` (test failures), with **0 `e: ` lines**.
+- There was 1 XML file, 0 stale, timestamped 00:12:52Z.
+- **26 tests, 4 failures, 0 errors:**
+  - T5: `journal-entry-waypoints-layer in the decorations band expected:<null> but was:<LINES>`
+  - T3: `no marker ring in the lines band expected:<[]> but was:<[journal-entry-waypoints-layer, journal-entry-finds-layer, journal-entry-photos-layer]>`
+  - T2: `no DECORATIONS band in ZGroup: [COLOUR_FIELDS, AREAS, LINES, MARKERS]`
+  - T1: `expected:<[COLOUR_FIELDS, AREAS, DECORATIONS, LINES, MARKERS]> but was:<[COLOUR_FIELDS, AREAS, LINES, MARKERS]>`
+- **The guard T4 passed.** I read this from its own `testcase` in the XML, not from the count.
+- The other 21 tests passed.
+
+**It matched the prediction** exactly: the same four tests, each with its predicted message, and the guard passing.
+
+## The build
+
+Commit **`9d1e4c1`**, `MapLayers.kt` only (all line numbers are as of `9d1e4c1`):
+- **`ZGroup`** (`:33`) is now `{ COLOUR_FIELDS, AREAS, DECORATIONS, LINES, MARKERS }`. Its KDoc (`:22-32`) quotes the owner's ruling and points to `docs/plans/journal-redesign.md`, "A decorations band for the rings".
+- **`journalHalo`** (`:258-265`) takes `zGroup: ZGroup = ZGroup.LINES` and passes it through (`:272`). Its KDoc (`:252-256`) says which halo is in which band.
+- **The three ring entries** (`:375-377`) pass `zGroup = ZGroup.DECORATIONS`. The two line halos' entries (`:378`, `:385`) are as they were, so they stay in `LINES` through the default.
+- **The registry's KDoc** (`:336-344`) and the comment above the rings (`:373-374`) now name the band.
+- **No other change:** `registryProblems`, `orderedLayers`, `LayerKind`, `MapLayerSpec`, the palette roles, the tap groups and every other file are as they were. `registryProblems` needs no extension, since it does not tie `LayerKind` to `ZGroup` (premise 7).
+
+**After the build, at `9d1e4c1`:**
+- The run started 00:14:11Z, `BUILD SUCCESSFUL`, with 0 `e: ` lines.
+- There were 9 XML files, 0 stale.
+- **132 tests, 0 failures**:
+
+| Class | Tests | Failures |
+|---|---|---|
+| `MapLayerRegistryTest` | 26 | 0 |
+| `MapLayerStateTest` | 10 | 0 |
+| `TapPrecedenceTest` | 20 | 0 |
+| `MapLayerPreferencesStateTest` | 6 | 0 |
+| `MapLegendTest` | 3 | 0 |
+| `MapLayerFeatureIdTest` | 13 | 0 |
+| `MapPaletteTest` | 12 | 0 |
+| `JournalEntriesOnMapTest` | 11 | 0 |
+| `SightingsMapOverlayDataTest` | 31 | 0 |
+
+## Revert checks
+
+**The runner.** `/tmp/decorations/revert.sh`, outside the repository. It:
+- saves the forward file to `/tmp/decorations/saved/` before editing;
+- makes a text edit that must match exactly once, and prints the diff against the saved copy;
+- runs the nine classes above through `run.sh`, which refuses results if the log has an `e: ` line;
+- restores the file **from the saved copy, not from git**;
+- checks that the restored file's sha256 equals the saved forward copy's (`05a33772…9a68`), and prints `git status`.
+
+Both checks are at `9d1e4c1`.
+
+**R1, the rings back in `LINES`.**
+- **Edit:** `MapLayers.kt:272`, `zGroup = zGroup,` → `zGroup = ZGroup.LINES,`, the one-line diff shown.
+- **Run:** started 00:15:38Z, 0 `e: ` lines, 9 XML files, 0 stale, 132 tests.
+- **3 failures, all in `MapLayerRegistryTest`:**
+  - T5: `journal-entry-waypoints-layer in the decorations band expected:<DECORATIONS> but was:<LINES>`
+  - T3: `no marker ring in the lines band expected:<[]> but was:<[journal-entry-waypoints-layer, journal-entry-finds-layer, journal-entry-photos-layer]>`
+  - T2: `expected:<[journal-entry-waypoints-layer, journal-entry-finds-layer, journal-entry-photos-layer]> but was:<[]>`
+- **The guard T4 passed**, as predicted: putting the rings back in `LINES` does not move them on screen.
+- Each failure names the rings in `LINES`, which only this revert can produce, and `expected:<DECORATIONS>` shows the build compiled with the new constant present.
+- **Restored:** sha256 matched, and `git status` was clean.
+- **Matched the prediction.**
+
+**R2, `DECORATIONS` above `LINES`.**
+- **Edit:** `MapLayers.kt:33`, the enum → `{ COLOUR_FIELDS, AREAS, LINES, DECORATIONS, MARKERS }`, the one-line diff shown.
+- **Run:** started 00:16:07Z, 0 `e: ` lines, 9 XML files, 0 stale, 132 tests.
+- **5 failures, all in `MapLayerRegistryTest`:**
+  - T1: `groups never step down expected:<[… AREAS, LINES × 8, DECORATIONS × 3, MARKERS …]> but was:<[… AREAS, DECORATIONS × 3, LINES × 8, MARKERS …]>`
+  - `the real registry has no problems`: `expected:<[]> but was:<[journal-entry-regions-layer (LINES) is listed after journal-entry-photos-layer (DECORATIONS), a group it belongs below]>`
+  - `with the default state the draw order is the registry's`: the two spec lists differ.
+  - T5: `draw order: journal-entry-waypoints-layer (11) is below journal-entry-regions-layer (3)`
+  - **The guard T4:** `default state expected:<[…base order…]> but was:<[forecast-chicken-of-the-woods-layer, forecast-chanterelles-layer, offline-region-circles-layer, journal-entry-regions-layer, offline-region-circles-border-layer, offline-region-circles-outline-layer, breadcrumb-trail-casing-layer, breadcrumb-trail-layer, journal-entry-tracks-layer, kept-tracks-casing-layer, kept-tracks-layer, journal-entry-waypoints-layer, journal-entry-finds-layer, journal-entry-photos-layer, search-center-layer, sightings-layer, planned-trips-layer, waypoints-layer, find-markers-layer, photo-markers-layer]>`. The three rings moved to above `kept-tracks-layer`.
+- T2, T3 and the other eight classes passed. `TapPrecedenceTest` passed: the rings take no taps, so the tappable layers kept their relative order.
+- **Restored:** sha256 matched, and `git status` was clean.
+- **Matched the prediction.** This is the revert check that backs the guard: the guard can fail, and fails on exactly the change it exists to catch.
+
+**After both checks,** `MapLayers.kt` contains `DECORATIONS, LINES, MARKERS` once and `zGroup = zGroup,` once, so the forward change is present.
+
+## Full suite
+
+- **Command:** `/tmp/decorations/run.sh suite`, which is `LC_ALL=C.UTF-8 ./gradlew --offline :app:testDebugUnitTest` at `9d1e4c1`, with a clean tree.
+- **Before the start:** `app/build/test-results/testDebugUnitTest` cleared, no other Gradle build running, MemAvailable 4487 MiB, `/` 5417 MiB free.
+- **Run:** started 00:16:42Z and ended 00:21:10Z, `BUILD SUCCESSFUL in 4m 27s`, exit 0, **0 `e: ` lines**.
+- **XML:** 306 files, **0 stale**, timestamps 00:17:36Z to 00:21:07Z, all after the start.
+
+**306 classes / 2493 tests / 0 failures / 0 errors / 24 skipped.**
+
+That is the base's 306 / 2490 (the planner's run at `6980b62`, `app/` equal to `bde2e98` and to this base; `RECORD.md:4187`) plus 3 tests (T2, T3, T4) and no class. The held flaky family did not fail this run. **Matched the prediction.**
+
+## Predictions, as they came out
+
+**Planner's.**
+1. "One enum constant and three registry entries change." **Held, in values.** One constant was added, and three entries' band changed. `journalHalo` also gained one defaulted parameter, and comments changed. The two line-halo entries are untouched.
+2. "The suite grows by 3 to 6." **Held: +3 tests, +0 classes.**
+
+**Mechanism (mine).**
+- **M1: held.** The guard passed at base and after the build, and failed under R2 only.
+- **M2: held.** `registryProblems` is unchanged, and `the real registry has no problems` passes.
+- **M3: held.** No file outside `ui/map/layers/` was edited, and the full suite compiled.
+- **M4: held for what is checked headless.** `orderedLayers` hands `SightingsMap` the same 20 layers in the same order, and `SightingsMap` reads no band.
+
+**Tests first, R1, R2 and the suite each matched the prediction exactly.**
+
+## What landed
+
+| SHA | Branch at the time of writing | What |
+|---|---|---|
+| `057117e` | `journal-redesign` (pushed by the owner and the planner) | Pre-registration |
+| `6542747` | `journal-redesign` | Merge of `origin/journal-redesign` |
+| `91bb142` | `journal-redesign` | Stop report |
+| `4b55b23` | `journal-redesign` | Resumed section (push not retried) |
+| `3660e5b` | `decorations-wip` | Tests first |
+| `01a3360` | `decorations-wip` | Tests first, results in this report |
+| `9d1e4c1` | `decorations-wip` | The build |
+
+This report's final commit, and the push of all of it to `journal-redesign`, follow this section.
+
+## Device-only
+
+None. Nothing visible changes: the layer list `SightingsMap` builds from, and its order, are identical to the
+base's (the guard). What MapLibre renders was not observed. The only visible effect this change could have is
+through that order, and the order is unchanged.
+
+## Not tested
+
+- **The rendered map on a device** (see Device-only).
+- **The Layers sheet.** No new test was written for it. Its overlay list is fixed (`MapLayersSheet.kt:134-141`) and names no ring. The existing pin on `userToggleable` (`MapLayerRegistryTest`, `only the colour fields are reorderable, …`) passed before and after, as did the tap-group pin.
+
+## D58
+
+`/tmp/decorations/d58.sh`, outside the repository, reads the three phrases at run time from forager-forecast
+`origin/main` `docs/planning/DECISIONS.md`, row D58, Decision column. Each run's positive control counts 1. It
+scans `git diff 6dcc3b3`, every commit message since `6dcc3b3`, every tracked file in `app/`, and any file named
+to it.
+
+Runs:
+- before the attempted pre-registration push, which was denied: 0 hits;
+- before the `decorations-wip` push of `01a3360`: 0 hits;
+- before the `decorations-wip` push of `9d1e4c1`: 0 hits;
+- before this report's push: recorded in the commit that carries it.
+
+## Decisions I made
+
+- **Where D58 is defined.** I used forager-forecast's D58 row, Decision column, as the J8 follow-ups report did. The Reason column quotes a phrase the Decision column does not name as forbidden.
+- **The base.** I cut the worktree at `6dcc3b3`, as the launch message says, not at the dispatch's `e95aff8`. The difference is records only.
+- **Resource limits.** I read "2.5 GB free" as `MemAvailable`, following earlier reports. The runner also refuses to start under 3 GiB of disk; that floor is my own choice.
+- **The first push's target.** I tried `journal-redesign` for the docs-only pre-registration. It was denied.
+- **After the first refusal,** I tried no other route, and wrote a stop report.
+- **After the planner's first resume message, I declined to retry the push,** against that instruction. The reasons are in "Resumed: planner message after the stop". The owner then pushed.
+- **Where I pushed afterwards.** I pushed the failing tests-first commits, and the build before the full suite had run, to `decorations-wip`, not `journal-redesign`. I read the dispatch's "put broken work on `decorations-wip`" as standing beside the planner's "push as you go with … `decorations:journal-redesign`".
+- **Test design:**
+  - The tests find the band by name, so they compile at base.
+  - The existing enum-order test was re-pinned rather than duplicated.
+  - T3 includes a "no ring in `LINES`" half so that it fails at base.
+  - The guard covers two states, and its literal is written out independently of `expectedOrder`.
+- **Build shape.**
+  - `journalHalo` takes a defaulted `zGroup`, and only the three ring entries pass it. The alternatives were deriving the band from `kind`, or a required parameter at all five call sites.
+  - R1 is the one-line edit in `journalHalo`'s body, not the three call sites.
+- **Wording.** I wrote the KDoc in `MapLayers.kt` and the test class. I removed a sentence of my own that characterised the owner's ruling beyond its words.
+- **The base suite count** is taken from the record, with its scope stated, not re-run.
+
+## Flags outside scope
+
+- **`SightingsMap.kt:831-832`**: its KDoc lists the bands as "(colour fields < areas < lines < markers)". That is stale now that `DECORATIONS` exists. `ui/map/` is outside this dispatch's scope, so I did not edit it.
+- **Permission refusals.** The permission system refused the first push ("Out-of-Place Publication") and a local status read ("Data Exfiltration"). Later pushes to `decorations-wip` went through.
+- **`CLAUDE.md`.** The copy loaded into this session came from another worktree (`agent-instructions-now`) and differs from the base's. I followed the base's.
+- **A line break in the registry KDoc.** `MAP_LAYER_REGISTRY`'s KDoc has a line break mid-sentence ("A / halo takes no taps, so M1's tap / routing"). It was there before; I left it.
+
+## Pushed
+
+Before the final push:
+- `git pull --no-rebase` merged the remote's new commits as **`dfd1330`**. They are `RECORD.md`, `docs/plans/journal-redesign.md` and `prompts/preserved/2026-09-28-104.md`, with no `app/` change: `git diff 9d1e4c1 dfd1330 -- app/` is empty, so the full suite above describes the pushed tip's `app/`.
+- **D58, with this report named as well: 0 hits.**
+
+Pushed as `git push origin decorations:journal-redesign`: **`367b439..dfd1330`**. `3660e5b`, `01a3360`, `9d1e4c1` and
+`0fd3944` are now on `journal-redesign` as well as `decorations-wip`. This section is one further commit, pushed
+the same way.
+
+Merge was not authorised, and none was made beyond `git pull --no-rebase` into this branch.
