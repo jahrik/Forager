@@ -5857,3 +5857,76 @@ Nothing of either window was pushed. On the phone, the two did only force-stop a
   - the tablet is authorized, and adb reads it as a device.
 - **Disk** is at 1243 MB free, under the coders' 2048 MB floor, so builds will wait. The owner is told.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-174
+**Timestamp:** 2026-09-29T10:33:41Z
+**Dispatch:** none (machine upkeep, at the owner's instruction)
+**Reason:** the disk fell to 779 MB free, blocking both building coders (the floor is 2048). The owner, verbatim: "A B and C", choosing from the planner's list.
+**Changes:**
+- **A:** forager-wt/journal-redesign/app/build, 394 MB, the planner's own suite output.
+- **B:** ~/Zynergy/device-evidence/2026-09-28-stage-check-1 (768 MB) and 2026-09-28-map-chrome-check (609 MB).
+- **C:** ~/.gradle/caches/build-cache-1 (230 MB). The downloaded libraries (modules-2) and 9.7.0's transforms were kept.
+- Free space went from 779 MB to 2772 MB.
+**Notes:**
+- No Gradle build was running at the deletion.
+- **Kept, not deleted:** six write-protected files in 2026-09-28-map-chrome-check, 1.5 MB in total: db-backup-raw/ and db-end-raw/, each holding forager.db with its -wal and -shm. They are the map-chrome check's copies of the phone database, deliberately made read-only. The planner did not override the protection. They are left for the owner.
+- **Evidence now gone:** the screenshots and dumps cited by Part 1's run record (-71) and the map-chrome run record (-102). That includes the two frames the planner viewed for -145's night correction (c5-street-night-12, c5-topo-day-12). -145's text keeps what was seen.
+- Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-175
+**Timestamp:** 2026-09-29T10:44:18Z
+**Dispatch:** none (the cleanup proposal's G1, at the owner's instruction)
+**Reason:** the owner, verbatim: "Delete G1". G1 is docs/audits/2026-09-29-cleanup-proposal.md's 55 finished worktrees in ~/Zynergy/forager-wt: merged into journal-redesign, clean, nothing unpushed.
+**Changes:**
+- **49 worktrees** removed with `git worktree remove`.
+- **6** whose folders were already gone (device-chrome, device-offline, device-stage-1, device-tablet, night-evidence, strip-device-check) were dropped from git's list with `git worktree prune`. A dry run showed only those six.
+- **54 local branches** were deleted with `git branch -d`, which refuses an unmerged branch; none was refused. The 55th entry, strip-grid-level, was a detached worktree with no branch.
+- Free space went from 2439 MB to 6835 MB.
+**Notes:**
+- **Each was re-checked immediately before removal:**
+  - the folder exists;
+  - no process has its working directory inside it;
+  - `git status` is empty;
+  - HEAD is an ancestor of origin/journal-redesign.
+
+  None was skipped.
+- **Untouched:**
+  - remote branches;
+  - the G2-G9 groups;
+  - the active worktrees: journal-redesign, planner-records, j6, landscape-l, device-part-2 and legal-drafts;
+  - the main checkout.
+- **46 worktrees remain:** the main checkout, 6 active, 4 in G2, and 35 Claude Code session worktrees (G3).
+- Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-176
+**Timestamp:** 2026-09-29T10:50:35Z
+**Dispatch:** none (the cleanup proposal's G3, at the owner's instruction)
+**Reason:** the owner, verbatim: "Delete the unused workspaces. Obviously you will want to leave the ones the coders are using, but the rest can go." That is G3: the Claude Code session worktrees under ~/Zynergy/Forager/.claude/worktrees.
+**Changes:**
+- **Kept, because a live Claude session's process works in them:**
+  - 01Vfk1 (this planner);
+  - 01PcUE (J6);
+  - 01SBrw (the L);
+  - 01P8x3 (Part 2 Session 1);
+  - 01PTwh (Part 2 Session 2);
+  - 01J1Ei (the newest session).
+- **Kept, locked:** bridge-cse_01FHkngY3UZwSSLGXXHwMbxv. git refused to remove it: "locked working tree, lock reason: claude agent … (pid 580771)". The lock was not overridden.
+- **Removed: 28 worktrees,** in two passes. The first pass's clean-check was faulty and skipped the clean ones; the second pass removed them.
+  - **Deleted: 20 local branches,** each only after confirming its tip is contained in a remote branch.
+  - **Kept: 7 branches whose tips are on no remote,** so no commit is lost: redo-pr103-camera-groundwork, pr103-rebase-89f53a4, and five worktree-bridge-cse_* branches (01Dq4S, 01EJdQ, 01LY5B, 01QyNZ, 01SwRr).
+- **Salvaged first:** 16 untracked prompts/preserved/*.md files, from 7 of the worktrees, that are absent from origin or differ from it. They are copied, and byte-compared, to ~/Zynergy/cleanup-salvage/2026-09-29/<session-id>/. The other 12 untracked files were identical to origin/journal-redesign.
+- **Free space:** 6500 MB before, 8148 MB after.
+- **Remaining worktrees:** 18.
+**Notes:**
+- Each removal was re-checked immediately before: no process's working directory inside it, and `git status` empty. The first pass removed only worktrees whose sole changes were the checked, untracked prompt files.
+- Offline Remote Control sessions whose worktrees were removed will not find them if resumed.
+- Written by the planner by hand.
