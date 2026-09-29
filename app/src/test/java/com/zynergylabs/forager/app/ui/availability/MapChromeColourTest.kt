@@ -17,6 +17,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Dp
@@ -330,7 +331,7 @@ abstract class MapChromeColourEntryAndDialogTests(private val dark: Boolean) {
         composeRule.waitForIdle()
         composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.OFFLINE_MAPS)).performClick()
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("Download Maps").performClick()
+        composeRule.onNodeWithText("Download Maps").performScrollTo().performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Download this area?").assertIsDisplayed()
         composeRule.assertToken(DOWNLOAD_CONFIRM_DIALOG_TAG, roles.token, MAP_CHROME_OVER_MAP_ALPHA)

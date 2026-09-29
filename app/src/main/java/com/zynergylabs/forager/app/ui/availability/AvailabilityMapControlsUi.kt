@@ -267,13 +267,13 @@ private fun ControlPill(
     if (horizontal) {
         // Owner's ruling (d), continuation 2026-09-28-172: both buttons take touches across their full 48 x 48 squares, corners
         // included. The drawn pill is a content-less Surface underneath, so its rounded ends do not clip the buttons' hit areas.
-        Box(modifier = modifier.testTag("control-pill")) {
+        Box(modifier = modifier.testTag("control-pill").mapChromeContainerColor(pillFill)) {
             Surface(
                 shape = RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS),
                 color = pillFill,
                 shadowElevation = 2.dp,
                 border = pillBorder,
-                modifier = Modifier.matchParentSize().mapChromeContainerColor(pillFill),
+                modifier = Modifier.matchParentSize(),
             ) {}
             CompositionLocalProvider(LocalContentColor provides pillContentColor) { buttons() }
         }
