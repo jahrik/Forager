@@ -121,3 +121,34 @@ Evidence is in `s1-*` files in the evidence directory; the live log is `s1-notes
 - **Rotation setting found changed:** `accelerometer_rotation` read 0 before the install and 1 at the first launch, with the phone at ROTATION_90. I did not set it. I reset it to 0 with `user_rotation` 0. The final read-back will restore the original 0/0.
 - **Owner message received mid-run, not actioned:** quoted verbatim in the evidence notes and in the hand-back. It asks to shrink the icon bar, turn the small pill 90° with half of it under the bar, and make the pill the same size as the bar. It is a design change. It has ambiguities (which pill, and what "same size" and "beneath" mean) and it would change the APK that Sessions 2 and 3 reuse. It belongs to a separate dispatch.
 - **Owner message withdrawn (00:45):** "Oh sorry ignore that". The pill/icon-bar message above is not a finding and no dispatch follows from it. Items 34, 39 and 40 are judged on their own pass conditions.
+
+### Results so far (interim 2, 00:56; more follow)
+
+Every figure below is from a `uiautomator dump` (`s1-*.xml`) or from the named screenshot (`s1-*.jpg`). The disk filled at 00:51, so
+five screenshots from that moment are empty and were deleted, and the remaining PNGs were converted to JPEG q90. Bounds come from
+the dumps, not from the JPEGs.
+
+| Item | Verdict | Evidence and reading |
+|---|---|---|
+| 1 | partly: find, photo, region, waypoint bubbles pass; track, trip and colour-field cells not reached | Find, photo and region bubbles open on real taps (`s1-m1-p0-tap-glyph`). A waypoint I dropped as "DEVICE CHECK 2026-09-29 wp1" opens its own bubble with Directions and Details (`s1-m1-waypoint-bubble`). On the entry map the ORIGIN waypoint and the track were not separable from the find: taps at their glyphs returned the find-1 bubble. No planned trips exist (`planned_trips` = 0), and I have not yet made one (item 60). |
+| 2 | pass, with a caveat | At one zoom level in, three taps inside the offline circle (>250 px from the glyphs, >100 px from the outline) opened nothing. Nothing lies beneath there, so this shows the interior does not capture the tap, not that a glyph beneath is reached. |
+| 3 | partly | Left edge (photo glyph at x~58): card clamped to x=35, tail tip on the glyph's cap but at its right edge, not centred. The entry map's right-side glyph (x=947): tail tip on the cap. Top, bottom, right edge and 90/270 not tested. |
+| 5 | pan and dismiss pass; rotation fails | Pan re-anchors (tail moved with the glyph). After X, a pan does not bring the bubble back. **After a rotation from 0 to 90 with the bubble open the bubble stayed at its portrait place** (`s1-m1-rot90-open`, bounds [~35..780 x ~700..990]) while the glyph was at about (937,573); it overlapped the cluster. A 50 px pan re-anchored it (`s1-m1-rot90-afterpan`). Zoom re-anchor not tested. |
+| 6 | pass | In fullscreen a tap on the waypoint pin opened its bubble; the bottom-nav labels are absent from the dump and "Exit fullscreen" stayed. |
+| 7 | pass | Directions launched `act=VIEW dat=geo:0,0?q=45.3262615,-122.6181016(DEVICE%20CHECK%202026-09-29%20wp1)`, `cmp=com.google.android.apps.maps/.MapsActivity`, which was the top activity; Back twice returned to Forager. |
+| 8 | pass | Find bubble > "Open in Journal" opens the find page over the Journal; the day entry's find-2 bubble > "Open find" opens over the day entry; Back returns to the entry. |
+| 34 | pass (portrait) | Collapsed cluster last row [922,1583][1057,1718], legend chip [842,1747][1057,1882]. Expanded legend card [269,1596][1057,1866]; the cluster moved up and its last row ends at 1563: 33 px clear. Re-collapsed: the rows are back at [922,1437]/[922,1583], as before. Needs Diagnostics "Synthetic forecast layers" ON (original OFF; restore at the end). |
+| 35 | pass | Latitude [45,990][528,1171], Longitude [551,990][1035,1171], "Search this location" [355,1255][725,1312]; the keyboard's top is at about y=1398. A scroll of the dropdown lowered the keyboard (`mInputShown` true to false). |
+| 36 | partly | Pan and zoom survive Maps > Journal > Maps (`s1-t36-before`, `s1-t36-after`, glyph at the same pixel). Locate then round trip: same view. Bearing and tilt cannot be set with a single pointer: not runnable. "A new search still moves the camera": not yet run. |
+| 37 | pass at 0, 90, 270 | "i" at [1010,1886][1069,1945] (0); [1886,1010][1945,1069] with the rail from x=1956 (90); [2246,1010][2305,1069] (270). A tap opened the "MapLibre Android" attribution dialog each time (`s1-i37-*`). Fullscreen "i" not yet checked. |
+| 38 | pass (caption); margin is 14 px, not ~0 | At 90 and 270 the search bar bottom is 209 and the cluster top 223: 14 px by bounds. The coordinate caption [1260,87]..[1933,178] does not overlap the cluster (x 98-391). |
+| 40 | partly: pass at 90 with the cluster on either side | Cluster left, expanded legend [1145,720][1933,990]: no overlap. Cluster dragged right, expanded legend [830,720][1618,990], the pill's left edge 1640: 22 px clear. 270 (cluster right by default): legend [1115,720][1903,990], pill from 1925. Dropdown: the legend shows through the semi-transparent dropdown behind "Search this location" (`s1-search-top`). |
+| 42 | pass, with an observation | At 90 the cluster dragged down to [1798,935][1933,1070] (bottom 1070 of 1080). Its "+" then overlaps the "i" [1886,1010][1945,1069] (`s1-drag-down-r90`). Portrait stopping above the legend not yet tested. |
+| 47 | pass (portrait) | The three chips sit at y 651-708 (same height); outlines x 124-328 and 715-958 of 1080: margins 124 and 122. Landscape not yet measured. |
+
+**Observations for the owner (not gates):**
+- The expanded legend is capped at 96 dp (`MapLayersSheet.kt:440`). With the title wrapped to two lines, the ramp's "0%" and "100%" labels are cut off at rest (`s1-leg-expanded-p0`).
+- Long-press then drag is what moves the cluster (`AvailabilityCompactMapUi.kt:910`, `detectDragGesturesAfterLongPress`). A plain swipe on the handle does nothing.
+- Bubbles open on taps up to about 54-60 dp from a glyph; nothing I have read states that tolerance.
+- The bubble sits under the cluster at 90 where they overlap.
+- `accelerometer_rotation` was set back to 1 twice without my setting it (cause outside the app; the app has no code writing it).
