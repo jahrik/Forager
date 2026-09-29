@@ -1397,6 +1397,7 @@ fun AvailabilityScreen(
                     onLockCameraToPortraitChanged = onLockCameraToPortraitChanged,
                     onOpenCrashLogs = { drawerPanel = DrawerPanel.CrashLogs },
                     onOpenDiagnostics = { drawerPanel = DrawerPanel.Diagnostics },
+                    backup = backup,
                 )
                 BuildIdentityFooter()
             }
@@ -1876,6 +1877,7 @@ fun AvailabilityScreen(
                         themeMode = uiState.themeMode,
                         onThemeModeChanged = onThemeModeChanged,
                         crashFileStore = crashFileStore,
+                        backup = backup,
                     )
                     }
                     }

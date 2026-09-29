@@ -38,9 +38,47 @@ internal object JournalTables {
         val softLinks: List<Reference> = emptyList(),
     )
 
-    /** The journal tables, in the order a Merge inserts them (records first, then what hangs off them). */
-    val journal: List<TableSpec> = emptyList()
+    /** The journal tables, records first, then what hangs off them: the order a Merge inserts in. */
+    val journal: List<TableSpec> = listOf(
+        TableSpec("waypoints", Kind.RECORD, listOf("id"), softLinks = listOf(Reference("trackId", "tracks"))),
+        TableSpec("tracks", Kind.RECORD, listOf("id"), softLinks = listOf(Reference("originWaypointId", "waypoints"))),
+        TableSpec("offline_regions", Kind.RECORD, listOf("id")),
+        TableSpec("log_photos", Kind.RECORD, listOf("id")),
+        TableSpec(
+            "mushroom_log_entries", Kind.RECORD, listOf("id"),
+            softLinks = listOf(Reference("offlineRegionId", "offline_regions"), Reference("draftOfEntryId", "mushroom_log_entries")),
+        ),
+        TableSpec("cartography_entries", Kind.RECORD, listOf("id")),
+        TableSpec("track_points", Kind.OWNED, listOf("id"), autoKey = true, owner = Reference("trackId", "tracks")),
+        TableSpec(
+            "log_entry_photos", Kind.OWNED, listOf("entryId", "photoId"),
+            owner = Reference("entryId", "mushroom_log_entries"), needs = listOf(Reference("photoId", "log_photos")),
+        ),
+        TableSpec(
+            "cartography_entry_track_refs", Kind.OWNED, listOf("entryId", "trackId"),
+            owner = Reference("entryId", "cartography_entries"), needs = listOf(Reference("trackId", "tracks")),
+        ),
+        TableSpec(
+            "cartography_entry_waypoint_refs", Kind.OWNED, listOf("entryId", "waypointId"),
+            owner = Reference("entryId", "cartography_entries"), needs = listOf(Reference("waypointId", "waypoints")),
+        ),
+        TableSpec(
+            "cartography_entry_offline_region_refs", Kind.OWNED, listOf("entryId", "offlineRegionId"),
+            owner = Reference("entryId", "cartography_entries"), needs = listOf(Reference("offlineRegionId", "offline_regions")),
+        ),
+        TableSpec(
+            "cartography_entry_find_refs", Kind.OWNED, listOf("entryId", "findId"),
+            owner = Reference("entryId", "cartography_entries"), needs = listOf(Reference("findId", "mushroom_log_entries")),
+        ),
+        TableSpec(
+            "cartography_entry_photo_refs", Kind.OWNED, listOf("entryId", "photoId"),
+            owner = Reference("entryId", "cartography_entries"), needs = listOf(Reference("photoId", "log_photos")),
+        ),
+    )
 
     /** Tables in the schema that are deliberately not journal data, and why (ruling 3 B does not list them). */
-    val excluded: Map<String, String> = emptyMap()
+    val excluded: Map<String, String> = mapOf(
+        "planned_trips" to "not in ruling 3 B's list, and the premise pulse classes it as not journal data; a restore leaves the phone's planned trips alone",
+        "cached_searches" to "a rebuildable cache of network results, not journal data",
+    )
 }

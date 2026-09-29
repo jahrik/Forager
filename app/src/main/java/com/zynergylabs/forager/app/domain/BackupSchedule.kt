@@ -64,5 +64,16 @@ class RunScheduledBackupUseCase(
     private val clock: CurrentTimeProvider = SystemCurrentTimeProvider,
     private val zone: ZoneId = ZoneId.systemDefault(),
 ) {
-    suspend operator fun invoke(): Result<BackupReport> = Result.failure(UnsupportedOperationException("scheduled backup: not built"))
+    suspend operator fun invoke(): Result<BackupReport> {
+        val settings = preferences.get().getOrElse { return Result.failure(it) }
+        if (!settings.enabled) return Result.failure(BackupException("the scheduled backup ran while the setting is off; nothing was written"))
+        val folder = settings.folderUri ?: return Result.failure(BackupException("the scheduled backup ran with no folder chosen; nothing was written"))
+        val name = backupFileName(clock.nowEpochMillis(), zone)
+        val sink = try {
+            files.createInFolder(folder, name)
+        } catch (e: Exception) {
+            return Result.failure(BackupException("could not create $name in the backup folder: ${e.message}", e))
+        }
+        return sink.use { backup.backUp(it) }
+    }
 }

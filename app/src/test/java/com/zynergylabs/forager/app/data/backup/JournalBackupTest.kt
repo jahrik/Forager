@@ -346,6 +346,23 @@ class JournalBackupTest {
         assertUnchanged(b, rows, files)
     }
 
+    @Test
+    fun `an archive entry the manifest does not list, or one that would land outside the scratch folder, is refused`() {
+        val a = phone().apply { seedFullJournal() }
+        val b = phone().apply { insert("waypoints", "id" to "own-w") }
+        val rows = b.dump(); val files = b.files()
+        val outside = File(tmp.root, "evil.txt")
+
+        for (name in listOf("../../evil.txt", "photos/../../evil.txt", "extra.bin")) {
+            val entries = readZip(a.backUp())
+            entries[name] = "not a backup file".toByteArray()
+
+            assertRefused(b.restore(writeZip(entries), RestoreMode.REPLACE), "an entry named $name")
+            assertFalse("nothing was written outside the scratch folder for $name", outside.exists())
+        }
+        assertUnchanged(b, rows, files)
+    }
+
     // ---- versions ------------------------------------------------------------------------------
 
     @Test
