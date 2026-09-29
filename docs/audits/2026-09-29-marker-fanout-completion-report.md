@@ -121,3 +121,5 @@ MapLibre's GL is unreachable: the fan layers drawing, the originals actually dis
 - **Mixed kinds** fan together by design; the old priority (photo wins) is what hid the find. Reported for the third stop condition.
 - The prior tests-first `MapTapHandlerTest` "lone marker" and "tap on the empty map" tests failed at the stubs rather than passing as I had pre-registered (stub artefact; recorded above).
 - A breach of the machine-sharing gate before one run (recorded above), mine.
+
+**Suite re-run on the merged head `752ead66`** (after F3's work was merged in, which the 3057 run above predates): cleared results, gated, **3106 tests, 0 failures, 0 errors, 24 skipped**, 372 XML files all newer than the run's start, 0 compile errors. The 49 extra over 3057 are F3's, not mine.
