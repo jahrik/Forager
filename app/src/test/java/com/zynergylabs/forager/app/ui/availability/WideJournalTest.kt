@@ -12,6 +12,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.click
@@ -143,6 +144,7 @@ import kotlinx.coroutines.runBlocking
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.getOrNull
 
+import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -872,6 +874,57 @@ class WideJournalTest {
         assertTrue("still on Records after the restore", tagExists(RECORDS_FILTER_CHIP_ROW_TAG))
         composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.WAYPOINTS)).assertIsSelected()
     }
+
+    // ── Ruling 1 and CLAUDE.md, "a semantic click asserts wiring, not routing": real touches ──
+
+    @Test
+    fun `a real touch across where the results tabs were reaches the detail pane, not the tab beneath it`() {
+        setScreen()
+        // The wide tree starts on the Maps tab (`AvailabilityScreen`'s `selectedTab`), so Seasonal, the
+        // right-most tab, is the one a stray touch could visibly change.
+        composeRule.onNodeWithText("Maps").assertIsSelected()
+        val seasonal = boundsOfText("Seasonal")
+        fun touchSeasonal(fraction: Float) {
+            composeRule.onRoot().performTouchInput {
+                click(Offset((seasonal.left.value + seasonal.width.value * fraction) * density, (seasonal.top.value + seasonal.height.value / 2f) * density))
+            }
+            composeRule.waitForIdle()
+        }
+        // Positive control: with nothing open the same coordinates do reach the Seasonal tab (so the
+        // coordinates are the tab's, and the check below is not vacuous).
+        touchSeasonal(0.5f)
+        composeRule.onNodeWithText("Seasonal").assertIsSelected()
+        composeRule.onNodeWithText("Maps").performClick()
+        composeRule.onNodeWithText("Maps").assertIsSelected()
+
+        openDayEntryReport()
+        assertSearchBarShowing(false, "while the entry is open")
+        for (fraction in listOf(0.2f, 0.5f, 0.8f)) touchSeasonal(fraction)
+
+        // Whatever those touches did inside the report, close it and look at the tab beneath.
+        var backs = 0
+        while (!descriptionExists("Advanced search options") && backs < 6) {
+            pressBack()
+            backs++
+        }
+        assertSearchBarShowing(true, "after closing whatever the touches opened")
+        composeRule.onNodeWithText("Maps").assertIsSelected()
+        composeRule.onNodeWithText("Seasonal").assertIsNotSelected()
+    }
+
+    @Test
+    fun `FAILS AT BASE the pull-photo picker opens in the right side`() {
+        setScreen()
+        openFindEditor()
+        composeRule.onNodeWithText("From Album").performScrollTo().performClick()
+        composeRule.waitForIdle()
+
+        assertTrue("the picker (its Camera and Import buttons) is on screen", textExists("Camera") && textExists("Import"))
+        assertRightSide("the pull-photo picker's Camera button", boundsOfText("Camera").left)
+        assertTrue("the picker is in the detail pane", tagExists("journal-detail-pane"))
+    }
+
+    // ── Item 4 ──
 
     private companion object {
         val DRAWER_EDGE = 360.dp
