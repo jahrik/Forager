@@ -194,8 +194,12 @@ internal fun MapLayersTestScreen(
     onCloseLogEntry: () -> Unit = {},
     cartographyUiState: CartographyUiState = CartographyUiState(),
     getCartographyEntryMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData = { _, _ -> CartographyEntryMapData(emptyList(), emptyList(), emptyList(), emptyList(), emptyList()) },
+    // Applied to the ViewModel's state before the screen reads it, for a state the ViewModel cannot reach (sightings
+    // held with no region); identity by default.
+    uiStateTransform: (AvailabilityUiState) -> AvailabilityUiState = { it },
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val viewModelState by viewModel.uiState.collectAsState()
+    val uiState = uiStateTransform(viewModelState)
     AvailabilityScreen(
         uiState = uiState,
         logUiState = logUiState,

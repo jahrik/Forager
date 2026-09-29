@@ -139,7 +139,9 @@ internal class BubbleMapSlot(private val glyphs: List<StubGlyph>) {
                     onTap()
                 },
         ) {
-            glyphs.forEach { glyph ->
+            // A planned-trip glyph is drawn only for a trip the screen handed the map (`content.plannedTrips`), as the
+            // real planned-trips source holds only what it is given; every other kind is drawn from the fixed list.
+            glyphs.filter { it.layerId != MapLayerIds.PLANNED_TRIPS || content.plannedTrips.any { trip -> trip.id == it.featureId } }.forEach { glyph ->
                 Box(
                     Modifier
                         .offset(glyph.x - 12.dp, glyph.y - 12.dp)
