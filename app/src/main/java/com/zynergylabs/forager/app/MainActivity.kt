@@ -162,8 +162,9 @@ class MainActivity : ComponentActivity() {
      * Settings' Backup section (journal backup and restore, dispatches 2026-09-28-127 and -137). After a restore that
      * worked, everything that reads the journal once and holds it is told to read again, and the restore's loading
      * page waits for all of them: there is no Flow anywhere in `data/local`, so nothing else refreshes. The list, with
-     * where each read is: the entries and drafts (`CartographyViewModel.loadEntries`), the finds and drafts and the
-     * gallery photos with their reference counts (`MushroomLogViewModel.loadEntries`, `loadGalleryPhotos`), the tracks
+     * where each read is: the entries and drafts (`CartographyViewModel.reloadAfterRestore`), the finds and drafts
+     * (`MushroomLogViewModel.reloadAfterRestore`; both also close an open entry or find whose record the restore removed,
+     * dispatch 2026-09-28-182 item 5) and the gallery photos with their reference counts (`MushroomLogViewModel.loadGalleryPhotos`), the tracks
      * and the waypoints with their reference counts (`TrackRecordingViewModel.loadTracks`, `loadWaypoints`), and the
      * planned trips, the offline regions with their reference counts, and the Maps tab's records
      * (`AvailabilityViewModel.reloadAfterRestore`).
@@ -180,8 +181,8 @@ class MainActivity : ComponentActivity() {
                     isRecording = { trackRecordingViewModel.uiState.value.isRecording },
                     reloadAfterRestore = {
                         listOf(
-                            cartographyViewModel.loadEntries(),
-                            mushroomLogViewModel.loadEntries(),
+                            cartographyViewModel.reloadAfterRestore(),
+                            mushroomLogViewModel.reloadAfterRestore(),
                             mushroomLogViewModel.loadGalleryPhotos(),
                             trackRecordingViewModel.loadTracks(),
                             trackRecordingViewModel.loadWaypoints(),

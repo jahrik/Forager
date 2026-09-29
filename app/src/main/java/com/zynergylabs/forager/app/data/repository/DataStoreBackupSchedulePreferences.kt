@@ -71,13 +71,30 @@ class DataStoreBackupSchedulePreferences(context: Context) : BackupSchedulePrefe
         Unit
     }
 
-    override suspend fun scheduledBackupFiles(): Result<List<String>> = Result.success(emptyList()) // STUB (tests-first commit)
+    /**
+     * The scheduled job's own file URIs, oldest first, in one string separated by newlines. A URI the Storage Access Framework
+     * hands out is percent-encoded and never holds a raw newline, so the separator cannot occur inside one.
+     */
+    override suspend fun scheduledBackupFiles(): Result<List<String>> = runCatchingCancellable {
+        dataStore.data.first()[KEY_SCHEDULED_FILES]?.split(FILE_SEPARATOR)?.filter { it.isNotEmpty() } ?: emptyList()
+    }
 
-    override suspend fun setScheduledBackupFiles(uris: List<String>): Result<Unit> = Result.success(Unit) // STUB
+    override suspend fun setScheduledBackupFiles(uris: List<String>): Result<Unit> = runCatchingCancellable {
+        require(uris.none { FILE_SEPARATOR in it }) { "a backup file URI holds a newline and cannot be recorded" }
+        dataStore.edit { prefs ->
+            if (uris.isEmpty()) prefs.remove(KEY_SCHEDULED_FILES) else prefs[KEY_SCHEDULED_FILES] = uris.joinToString(FILE_SEPARATOR)
+        }
+        Unit
+    }
 
-    override suspend fun notificationPermissionAsked(): Result<Boolean> = Result.success(false) // STUB
+    override suspend fun notificationPermissionAsked(): Result<Boolean> = runCatchingCancellable {
+        dataStore.data.first()[KEY_NOTIFICATION_ASKED] ?: false
+    }
 
-    override suspend fun setNotificationPermissionAsked(): Result<Unit> = Result.success(Unit) // STUB
+    override suspend fun setNotificationPermissionAsked(): Result<Unit> = runCatchingCancellable {
+        dataStore.edit { prefs -> prefs[KEY_NOTIFICATION_ASKED] = true }
+        Unit
+    }
 
     private companion object {
         const val DATA_STORE_NAME = "backup_schedule_preferences"
@@ -85,6 +102,9 @@ class DataStoreBackupSchedulePreferences(context: Context) : BackupSchedulePrefe
         val KEY_FREQUENCY = stringPreferencesKey("backup.frequency")
         val KEY_FOLDER = stringPreferencesKey("backup.folder_uri")
         val KEY_PENDING_NOTICE = stringPreferencesKey("backup.pending_notice")
+        val KEY_SCHEDULED_FILES = stringPreferencesKey("backup.scheduled_files")
+        val KEY_NOTIFICATION_ASKED = booleanPreferencesKey("backup.notification_permission_asked")
+        const val FILE_SEPARATOR = "\n"
         const val NOTICE_DID_NOT_FINISH = "did_not_finish"
         const val NOTICE_SKIPPED_PREFIX = "skipped:"
     }
