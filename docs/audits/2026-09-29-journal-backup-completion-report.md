@@ -448,3 +448,59 @@ The tests and API stubs are committed and pushed **in their failing state** at `
 | 3c | `ContentResolverBackupFilesTest`: `sizeOf` reports bytes, 0 for empty, null for a file that is not there | fails: the stub answers 0 | pass |
 
 **Device-only, listed:** the notification's look, sound and channel in the phone's settings; the permission dialog itself; the retry receiver waking with the app closed; tapping a notification from a cold start (`MainActivity` reading the intent's extra is wired but not run); a real provider's `OpenableColumns.SIZE`; WorkManager running the retry.
+
+
+## Results of the backup follow-up (dispatch 2026-09-28-153; appended)
+
+Paths are under `app/src/main/java/com/zynergylabs/forager/app/`.
+
+### What landed
+
+Tests and stubs pushed **failing** first (`1e8b8a0e` on `journal-backup-wip`: 163 ran, 40 failed); pre-registration `d2d6ee4e`; the build `fa6047d8`; the timing fix in one test `3883a32d`; pushed to `journal-redesign`.
+
+| # | Item | Where |
+|---|---|---|
+| 1 | Channel named exactly "Backups" (`strings.xml`), the two approved notifications, "Try again" (a broadcast to a non-exported receiver that enqueues one one-time run of the same worker), tap opens Tools, then Settings at the Backup section | `data/backup/AndroidBackupNotifier.kt`, `AndroidManifest.xml` (one `<receiver>`), `domain/ScheduledBackupNotice.kt`, `data/backup/ScheduledBackup.kt` (`doWork` reports), `MainActivity.kt` (`noteBackupIntent`, `onNewIntent`, `openBackupRequest`), `ui/availability/AvailabilityScreen.kt` (the request effect), `AvailabilitySettingsUi.kt` (open Settings, scroll to the section) |
+| 1 | Permission: asked on API 33+ when the switch is turned on **and a folder is chosen**; declining leaves the schedule on | `ui/backup/BackupSection.kt` (`needsNotificationPermission`) |
+| 1 | **Declined or notifications off:** the notice is kept (`DataStoreBackupSchedulePreferences`, key `backup.pending_notice`) and shown **once at the next launch** through the screen's own snackbar host, approved text only, no action | recorded in `ScheduledBackupReporter.report` (`domain/ScheduledBackupNotice.kt`); read in `BackupViewModel` init (`ui/backup/BackupViewModel.kt`); shown and forgotten in `AvailabilityScreen.kt` (`LaunchedEffect(backup.state.launchNotice)`) |
+| 2 | Replace gives each restored region a fresh negative id (counting down from -1 on the emptied table), rewrites the finds' and entries' references, and clears a find's link to a region the backup lacks | `data/backup/RoomJournalBackup.kt` (`replace`) |
+| 3 | A file with contents is asked about first: "Replace the existing backup file?", Replace / Cancel; nothing opened or written until Replace | `ui/backup/BackupViewModel.kt` (`onBackUpNow`), `BackupSection.kt`, `data/backup/ContentResolverBackupFiles.kt` (`sizeOf`) |
+
+**How "already has contents" is detected:** `ContentResolver.query(uri, [OpenableColumns.SIZE])` above 0 (a `file:` URI: its length). **A size that cannot be read** (no row, null column, failed query, no such file) is **asked about** and logged, never taken for empty. **No stop:** SAF providers may report the size as null, so it is sometimes unreadable, not never readable.
+
+### Tests first, seen failing
+
+At `1e8b8a0e`, 40 of 163 failed for the stated reasons (notifier posts nothing, reporter reports nothing, no `ReplaceExisting`, no permission request, `openBackupRequest` ignored, Replace keeping id 7, `sizeOf` answering 0). Passed at that tree, each revert-checked below: the no-permission notifier control, permission-granted / no-folder / declining, the new-empty-file and no-second-ask VM tests, the no-notice launch test, and one reporter control.
+
+### Revert checks (`/tmp/revert2.sh`; saved copy, restored from the copy, build log read for compile errors first)
+
+28 runs, **0 compile errors in all 28**, each failing with a message this edit could produce, every file restored (`git status` clean after the last). One line each: worker reports (`ScheduledBackupTest` 2 failed); failure notice; skipped-count notice (`expected:<[SavedWithSkippedPhotos(count=2)]> but was:<[]>`); keep-when-not-shown; pending store (`count=1` read back as `count=0`); permission check; notifications-enabled check; Try again action (`actions must not be null`); tap extra; channel name (`expected:<Backup[s]> but was:<Backup[]>`); retry enqueue; launch notice read; forget-after-shown; size check (7); unknown size asked (`expected:<ReplaceExisting(...mystery.zip)> but was:<null>`); Replace confirm (4); the permission ask, the granted case, the no-folder case, the turn-off case; launch snackbar; open request (6); open Settings (6); scroll to the section (3, in short landscape); fresh region ids (`the restored region has a fresh id ... : 7`); the find rewrite; the entry-ref rewrite (`expected:<[-2]> but was:<[9]>`); `sizeOf` for a missing file (`expected:<null> but was:<0>`).
+
+Not revert-checked: `MainActivity`'s intent reading (device-only), the notice text (a pure function, asserted as literals), the receiver's notification cancel.
+
+### Full suite
+
+From a cleared results directory on the merged tree: **BUILD SUCCESSFUL in 3m 23s, 345 result files none older than the start, 2802 tests, 0 failures, 0 errors, 24 skipped.** **A failure on the way, not held:** the first full run had 1 failure, `ScheduledBackupTest: enabling schedules one periodic job ...` (`expected:<ENQUEUED> but was:<RUNNING>`), a race in my own test: test-mode WorkManager runs the periodic job's first run at once on a real thread, and the worker now also reports, so the read caught it mid-run. The fix waits up to 10 s for the run to end and still asserts ENQUEUED (it does not accept RUNNING); three reruns of the two WorkManager classes passed. About 60 tests were added (163 in the touched classes before to 163 plus the new files; by class: `ScheduledBackupNoticeTest` 7, `AndroidBackupNotifierTest` 9, `OpenBackupSection*` 6, plus the additions in the existing classes).
+
+**Machine sharing deviation:** free memory ran 1.8 to 3.2 GB (other sessions' idle daemons); the first full run started at **2421 MB available** and the revert builds at about 2.1 to 2.9 GB, all under the 2.5 GB rule at times. No other Java Gradle process ran during my builds; never `--stop`.
+
+### Device-only, listed, not run
+
+The notification's look, sound and its "Backups" entry in the phone's settings; the permission dialog; the retry receiver waking with the app closed and the one-time job running; a tap from a cold start (`MainActivity` reads the intent, not run); how far the Settings scroll lands on the section in the real drawer; a real provider's `OpenableColumns.SIZE`.
+
+### Decisions I made
+
+1. **The channel's importance is `IMPORTANCE_DEFAULT`** (unruled).
+2. **An unknown file size is asked about** (safe way round); a provider that never reports size will be asked about every new file. Alternative: proceed.
+3. **The permission is asked only with a folder chosen** (a switch that could not turn on has nothing to notify).
+4. **Replace clears a find's link to a region the backup does not hold, but keeps an entry's ref row to one** (a composite key cannot be nulled), so such a ref row keeps its old number and could meet a future id. Merge drops such a row.
+5. **The launch notice is text only, no "Try again"** on the snackbar.
+6. **"Try again" cancels the notification** and does not itself say a run started.
+7. **Tapping outside the new question is Cancel**; a failed write after Replace still deletes the file the user chose to overwrite (already confirmed).
+8. **Scroll to the section is by measured position**, after the drawer lays it out; the top of the section is put in view, the rest is a scroll away.
+
+### Flags outside scope
+
+- The retry job runs `ScheduledBackupWorker`, which needs the schedule to be on and a folder chosen; a retry after the person turned the schedule off fails ("the setting is off") and posts "didn't finish" again.
+- Two notifications of different kinds can be on screen at once (separate ids).
+- A restore Replace still keeps a *dangling* entry region ref verbatim (decision 4).
