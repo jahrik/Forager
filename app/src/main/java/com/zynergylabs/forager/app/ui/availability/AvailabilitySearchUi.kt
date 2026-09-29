@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
@@ -75,6 +76,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.withFrameNanos
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -432,6 +436,25 @@ internal fun SearchDropdown(
             // counts as a scroll in progress, so the effect above also lowers the keyboard, which in
             // a short window is what lets the fields be seen at all.
             var scrollToCoordinatesPending by remember { mutableStateOf(false) }
+            // Part 1 layout fixes, item 3 (Part 1's device check, check 8; planner message
+            // 2026-09-28-98): in portrait the one scroll above lands while everything still fits, and
+            // the keyboard coming up afterwards shrinks this panel (its cap follows the keyboard, see
+            // compactMainScaffold), which would leave the fields scrolled off the bottom. So after that
+            // scroll the end stays in view each time the viewport's size changes, until the user drags
+            // the panel: their scroll stands from then on. Keyed on the viewport, not the content, so a
+            // section the user opens does not pull the view to the end. The device check found the
+            // programmatic scroll does not lower the keyboard (the comment above says it does); this
+            // keeps the fields in view above it either way.
+            var coordinatesKeptInView by remember { mutableStateOf(false) }
+            if (coordinatesKeptInView) {
+                LaunchedEffect(Unit) {
+                    launch {
+                        scrollState.interactionSource.interactions.first { it is DragInteraction.Start }
+                        coordinatesKeptInView = false
+                    }
+                    snapshotFlow { scrollState.viewportSize }.collect { scrollState.scrollTo(scrollState.maxValue) }
+                }
+            }
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -506,6 +529,7 @@ internal fun SearchDropdown(
                                 withFrameNanos { }
                                 scrollState.scrollTo(scrollState.maxValue)
                                 scrollToCoordinatesPending = false
+                                coordinatesKeptInView = true
                             }
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {

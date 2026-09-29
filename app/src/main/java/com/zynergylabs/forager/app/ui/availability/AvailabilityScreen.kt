@@ -332,6 +332,7 @@ import com.zynergylabs.forager.app.ui.map.SightingsMapSlot
 import com.zynergylabs.forager.app.ui.map.mapIconBarRecordAccent
 import com.zynergylabs.forager.app.ui.map.mapIconBarRowAnchorOffset
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
+import com.zynergylabs.forager.app.ui.map.MapCameraMemory
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.theme.Bark
 import com.zynergylabs.forager.app.ui.theme.Cream
@@ -875,6 +876,10 @@ fun AvailabilityScreen(
     // The icon cluster's position, held here rather than in CompactMapTab so it survives leaving
     // and returning to the Map tab — see MapIconClusterPositionState's own doc comment.
     val mapIconClusterPosition = rememberMapIconClusterPositionState()
+    // Part 1 layout fixes, item 4 (planner message 2026-09-28-98, under CLAUDE.md's UX defaults): the
+    // camera the user left on the Maps tab, held here for the same reason, since the map and its camera
+    // leave composition with the tab. See MapCameraMemory. Session only.
+    val mapCameraMemory = remember { MapCameraMemory() }
 
     // Local remembered state, alongside selectedTab and for the same reason: which basemap is under
     // the overlays changes nothing the ViewModel owns. It triggers no fetch, filters no result, and
@@ -1666,6 +1671,7 @@ fun AvailabilityScreen(
             currentTime = currentTime,
             mapSlot = mapSlot,
             mapIconClusterPosition = mapIconClusterPosition,
+            mapCameraMemory = mapCameraMemory,
             mapRenderMode = mapRenderMode,
             mapLayers = mapLayersControls,
             mapMode = { mapMode },

@@ -30,7 +30,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color as ComposeColor
 import com.zynergylabs.forager.app.ui.theme.MapPalette
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
@@ -256,6 +259,10 @@ fun SightingsMap(
     cameraRequest: MapCameraRequest? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapOverlayContent.journalHighlights]'s own doc comment. */
     journalHighlights: JournalEntryHighlights = JournalEntryHighlights.NONE,
+    /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.cameraMemory]'s own doc comment. */
+    cameraMemory: MapCameraMemory? = null,
+    /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.attributionEndInset]'s own doc comment. */
+    attributionEndInset: Dp = 0.dp,
 ) {
     val context = LocalContext.current
 
@@ -313,6 +320,9 @@ fun SightingsMap(
     // M1 (F2): the point feature a caller's bubble is showing, and the lists it is looked up in, read
     // fresh on every camera idle for the reason currentFocusedObservationId is.
     val currentFocusedFeature by rememberUpdatedState(focusedFeature)
+    // Part 1 layout fixes, item 4: read by the camera-idle listener (registered once) and by the first
+    // style load, for the reason the lines above give.
+    val currentCameraMemory by rememberUpdatedState(cameraMemory)
     val currentPlannedTrips by rememberUpdatedState(plannedTrips)
     val currentWaypoints by rememberUpdatedState(waypoints)
     val currentFindMarkers by rememberUpdatedState(findMarkers)
@@ -351,6 +361,10 @@ fun SightingsMap(
     // frame): kept with the MapView, so a request arriving again on a later recomposition, after a
     // fullscreen switch or a find overlay's Back, does not move the camera the user has since moved.
     var lastAppliedCameraRequestId by remember { mutableStateOf<String?>(null) }
+
+    // Part 1 layout fixes, item 5: MapLibre's own attribution margins, read once the map is ready, which
+    // the caption's insets are added to below.
+    var attributionDefaultMargins by remember { mutableStateOf<IntArray?>(null) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -471,6 +485,23 @@ fun SightingsMap(
                 map.cameraPosition.target?.let { target ->
                     currentOnCameraIdle(LatLng(target.latitude, target.longitude))
                 }
+                // Part 1 layout fixes, item 4: the camera this map settled on, for the map that comes
+                // back after a tab change. Not before this MapView's first style has loaded: until then
+                // the camera is the SDK's default, and the restore has yet to read what was saved.
+                if (loadedStyle != null) {
+                    val camera = map.cameraPosition
+                    camera.target?.let { target ->
+                        currentCameraMemory?.saved = MapCameraSnapshot(
+                            target = LatLng(target.latitude, target.longitude),
+                            zoom = camera.zoom,
+                            bearing = camera.bearing,
+                            tilt = camera.tilt,
+                            following = map.locationComponent.isLocationComponentActivated &&
+                                map.locationComponent.cameraMode != CameraMode.NONE,
+                            appliedTarget = lastAppliedCameraTarget,
+                        )
+                    }
+                }
                 // Keeps a shown observation bubble glued to its own marker's real screen position
                 // across a pan/zoom/rotate — a hardware report asked for exactly this ("have it stay
                 // there when we move the map, so we know which one it belongs to"), and re-projecting
@@ -514,6 +545,10 @@ fun SightingsMap(
             // correct — confirmed via javap against the pinned org.maplibre.gl:android-sdk artifact
             // that UiSettings exposes setAttributionGravity/setAttributionMargins for exactly this.
             map.uiSettings.setAttributionGravity(Gravity.BOTTOM or Gravity.END)
+            // Part 1 layout fixes, item 5: MapLibre's own margins, which the insets below are added to.
+            attributionDefaultMargins = map.uiSettings.let {
+                intArrayOf(it.attributionMarginLeft, it.attributionMarginTop, it.attributionMarginRight, it.attributionMarginBottom)
+            }
             // MapLibre's own compass view (a floating circular reset-to-north control it draws
             // itself, top-right by default) is replaced by the map icon bar's own orientation-
             // reset control — a real hardware report found the two overlapping, and the SDK's own
@@ -580,6 +615,15 @@ fun SightingsMap(
         } else {
             null
         }
+        // Part 1 layout fixes, item 4 (planner message 2026-09-28-98): a map that has left composition
+        // with its tab and come back is a new MapView, which would open where a fresh map does (the
+        // region move below, at zoomForRadiusKm, and the first activation's zoom-in). Its first style
+        // load restores the camera the user left instead: target, zoom, bearing and tilt, the region
+        // target taken as already applied (so the region move does not run, while a new search still
+        // does), and the tracking mode (so the zoom-in does not run). Only on this MapView's first
+        // style; a later style swap keeps its own camera, as before.
+        val cameraRestore = cameraRestoreFor(if (appliedStyle == null) currentCameraMemory?.saved else null, previousCameraMode)
+        cameraRestore?.let { applyCameraRestore(map, it) }
         map.setMaxZoomPreference(basemap.maxZoom.toDouble())
         val builder = when (val source = mapStyleSourceFor(basemap, night = requested.night, useOfflineTiles = useOfflineTiles)) {
             is MapStyleSource.Json -> Style.Builder().fromJson(source.json)
@@ -603,6 +647,12 @@ fun SightingsMap(
             // on loadedStyle among other things — including the sighting source, with "selected"
             // baked in from whatever focusedObservationId is current at that point. Nothing here
             // needs to seed it separately.
+            // Item 4: again once the style has loaded, in case a style's own default camera replaced it,
+            // and the region target recorded before loadedStyle wakes the data+camera effect below.
+            cameraRestore?.let {
+                applyCameraRestore(map, it)
+                lastAppliedCameraTarget = it.appliedTarget
+            }
             appliedStyle = requested
             loadedStyle = style
             // setStyle discards the previous style's LocationComponent state the same way it does
@@ -611,7 +661,7 @@ fun SightingsMap(
             // re-activate-on-every-new-style treatment. Guarded by trackLiveLocation — see that
             // parameter's own doc comment for why a historical-place map instance must never seize
             // the camera for the device's current location at all.
-            if (trackLiveLocation) activateLiveLocationIfPermitted(map, style, context, restoreCameraMode = previousCameraMode)
+            if (trackLiveLocation) activateLiveLocationIfPermitted(map, style, context, restoreCameraMode = cameraRestore?.cameraMode ?: previousCameraMode)
         }
     }
 
@@ -740,6 +790,24 @@ fun SightingsMap(
         } else {
             activateLiveLocationIfPermitted(map, style, context)
         }
+    }
+
+    // Part 1 layout fixes, item 5 (Part 1's device check, flag 3; planner message 2026-09-28-98): MapLibre's
+    // attribution button ("i") keeps from the bottom what the always-visible caption keeps
+    // (bottomInset: the nav's measured height, which includes the system navigation bar, and in
+    // fullscreen the true edge, the caption's own treatment), and from its end edge the inset the host
+    // hands in (the overlaid rail in a short landscape window at the rotation that puts it on that
+    // edge). Without them it sat under the system navigation bar and the nav in portrait, and under
+    // the rail and the system bar at 90. What MapLibre draws is device-only: this map cannot run
+    // under Robolectric.
+    val layoutDirection = LocalLayoutDirection.current
+    val attributionBottomPx = with(LocalDensity.current) { bottomInset.roundToPx() }
+    val attributionEndPx = with(LocalDensity.current) { attributionEndInset.roundToPx() }
+    LaunchedEffect(mapLibreMap, attributionDefaultMargins, attributionBottomPx, attributionEndPx, layoutDirection) {
+        val map = mapLibreMap ?: return@LaunchedEffect
+        val defaults = attributionDefaultMargins ?: return@LaunchedEffect
+        val (left, top, right, bottom) = attributionMarginsPx(defaults, attributionBottomPx, attributionEndPx, isRtl = layoutDirection == LayoutDirection.Rtl)
+        map.uiSettings.setAttributionMargins(left, top, right, bottom)
     }
 
     // The map icon bar's orientation-reset control — MapLibre's own native compass view is
@@ -1096,16 +1164,48 @@ internal data class MapCameraRestore(
 )
 
 /**
- * The restore a map makes as it first loads a style, or `null` for none (Part 1 layout fixes, item 4).
- * Tests-first stub: no restore yet.
+ * The restore a map makes as it first loads a style, or `null` for none (Part 1 layout fixes, item 4):
+ * [saved], the camera the user left, when there is one and the location component has no mode of its
+ * own yet ([previousCameraMode] `null`, a new `MapView`). A style swap on a live map keeps its own
+ * camera and mode, as before. Following restores [CameraMode.TRACKING] and panned away
+ * [CameraMode.NONE]; either is non-null, so the first activation's zoom-in does not run.
  */
-internal fun cameraRestoreFor(saved: MapCameraSnapshot?, previousCameraMode: Int?): MapCameraRestore? = null
+internal fun cameraRestoreFor(saved: MapCameraSnapshot?, previousCameraMode: Int?): MapCameraRestore? {
+    if (saved == null || previousCameraMode != null) return null
+    return MapCameraRestore(
+        target = saved.target,
+        zoom = saved.zoom,
+        bearing = saved.bearing,
+        tilt = saved.tilt,
+        appliedTarget = saved.appliedTarget,
+        cameraMode = if (saved.following) CameraMode.TRACKING else CameraMode.NONE,
+    )
+}
+
+/** Moves [map]'s camera to [restore]'s, at once, as the region move does. */
+private fun applyCameraRestore(map: MapLibreMap, restore: MapCameraRestore) {
+    map.cameraPosition = CameraPosition.Builder()
+        .target(MapLibreLatLng(restore.target.lat, restore.target.lng))
+        .zoom(restore.zoom)
+        .bearing(restore.bearing)
+        .tilt(restore.tilt)
+        .build()
+}
 
 /**
- * MapLibre's attribution margins, as `[left, top, right, bottom]` px (Part 1 layout fixes, item 5).
- * Tests-first stub: the defaults, unchanged.
+ * MapLibre's attribution margins, as `[left, top, right, bottom]` px (Part 1 layout fixes, item 5):
+ * [defaults], MapLibre's own, with [bottomInsetPx] added at the bottom and [endInsetPx] at the end edge,
+ * which is the right in a left-to-right layout and the left in a right-to-left one (the button's
+ * gravity is `BOTTOM or END`).
  */
-internal fun attributionMarginsPx(defaults: IntArray, bottomInsetPx: Int, endInsetPx: Int, isRtl: Boolean): IntArray = defaults.copyOf()
+internal fun attributionMarginsPx(defaults: IntArray, bottomInsetPx: Int, endInsetPx: Int, isRtl: Boolean): IntArray {
+    val (left, top, right, bottom) = defaults
+    return if (isRtl) {
+        intArrayOf(left + endInsetPx, top, right, bottom + bottomInsetPx)
+    } else {
+        intArrayOf(left, top, right + endInsetPx, bottom + bottomInsetPx)
+    }
+}
 
 /** The zoom a fitted frame opens at: [fittedZoom], capped at [maxZoom]. */
 internal fun cappedFrameZoom(fittedZoom: Double, maxZoom: Double): Double = minOf(fittedZoom, maxZoom)

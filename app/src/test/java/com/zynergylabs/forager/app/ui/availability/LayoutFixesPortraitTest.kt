@@ -16,6 +16,8 @@ import com.zynergylabs.forager.app.ui.map.JOURNAL_ENTRIES_CHIP_TAG
 import com.zynergylabs.forager.app.ui.map.JOURNAL_ENTRIES_HIDE_ALL_TAG
 import com.zynergylabs.forager.app.ui.map.MAP_LEGEND_CHIP_TAG
 import com.zynergylabs.forager.app.ui.map.MapCameraSnapshot
+import com.zynergylabs.forager.app.ui.map.journalEntriesChipLabel
+import com.zynergylabs.forager.app.ui.theme.Spacing
 import kotlin.math.abs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -163,7 +165,16 @@ class LayoutFixesPortraitTest {
      */
     private fun assertBandTouchReachesOneControl(fx: Float, fy: Float) {
         setScreen(showEntry = true)
-        val chip = composeRule.onNodeWithTag(JOURNAL_ENTRIES_CHIP_TAG).getUnclippedBoundsInRoot()
+        val chipBounds = composeRule.onNodeWithTag(JOURNAL_ENTRIES_CHIP_TAG).getUnclippedBoundsInRoot()
+        // The pill as drawn, from the chip's own text and the pill's padding around it (Spacing.md
+        // across, Spacing.sm down), a reference the fix to the chip's touch area does not move. At
+        // base it is the chip's tagged bounds; after the fix the tagged bounds are the whole 48 dp box.
+        val chipText = composeRule.onNodeWithText(journalEntriesChipLabel(1), useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val chip = DpRect(chipText.left - Spacing.md, chipText.top - Spacing.sm, chipText.right + Spacing.md, chipText.bottom + Spacing.sm)
+        assertTrue(
+            "the pill ${chip.describe()} lies inside the chip's own bounds ${chipBounds.describe()}",
+            chip.left >= chipBounds.left - 0.5.dp && chip.top >= chipBounds.top - 0.5.dp && chip.right <= chipBounds.right + 0.5.dp && chip.bottom <= chipBounds.bottom + 0.5.dp,
+        )
         val readoutText = composeRule.onNodeWithText(coordinatesStripText(LAYOUT_FIXES_FIX_LOCATION, false), useUnmergedTree = true)
             .getUnclippedBoundsInRoot()
         // Each control's touch area: its own bounds, extended to Compose's 48 dp minimum touch target
