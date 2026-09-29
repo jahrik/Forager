@@ -25,6 +25,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 /**
  * J6a item 7 (owner: "if there's room to not need it scroll then it should be used. Tablets allow the
@@ -32,7 +33,10 @@ import org.robolectric.annotation.Config
  * not fit the width it is given. Both cases are read from the row's own scroll range, the semantics
  * `Modifier.horizontalScroll` reports: a range with a zero maximum is a row that cannot scroll.
  *
- * Both tests GUARD: they hold at the base, where `horizontalScroll` on a row that fits already has
+ * Measured in native graphics (J6b): the five chips with these counts need about 656 dp (a scroll range of 356
+ * at a 300 dp window, 0 at 700 dp). The tablet's drawer column gives the row 328 dp, so there it always scrolls.
+ *
+ * All three tests GUARD: they hold at the base, where `horizontalScroll` on a row that fits already has
  * nothing to scroll. They are written to pin that reading of the ruling, and to fail if the row is
  * ever made to scroll (or to clip) when it fits. They do not, alone, prove the wide tree's row fits
  * or overflows in its 328 dp content: the wide test in `WideJournalTest` reads the real column.
@@ -41,6 +45,10 @@ import org.robolectric.annotation.Config
 // A window wider than the widest row asked for: Robolectric's default window is 320 dp, and a 1,400 dp
 // Box in it is measured at 320 (a first draft of these tests read a range of 94 for a "fits" row).
 @Config(sdk = [36], qualifiers = "w1500dp-h800dp-mdpi")
+// Native graphics: in Robolectric's default mode text has close to no width, so the chips are a fraction of their
+// real size and "the chips fit" or "overflow" says nothing (found in J6b: a first version of this file, and the J6a
+// report's "five chips need 414 dp", read that mode).
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class RecordsChipRowScrollTest {
 
     private val composeRule = createComposeRule()
