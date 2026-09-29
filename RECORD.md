@@ -5100,3 +5100,22 @@ It also flagged the snackbar lying over the floating nav.
 **Notes:**
 - The planner's question back to the owner on item 5: those options apply when some files cannot be read, whereas a failed write of the backup file itself cannot continue. Which button set goes where is asked before the dispatch is written.
 - Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-137
+**Timestamp:** 2026-09-29T04:48:02Z
+**Continues:** 2026-09-28-127
+**Dispatch-file:** preserved/2026-09-29-14.md (continuation); preserved/2026-09-29-15.md (launch prompt, copied to ~/Zynergy/launch-prompts/10-backup-rulings.md)
+**Reason:** the owner ruled on the -136 questions. The owner, verbatim: "Item 4: B" / "Item 5: A".
+**Changes:**
+- Item 4 (B): the icon pulses while loading and stops once Done appears.
+- Item 5 (A): the two cases are split.
+  - Unreadable photos: "N photos couldn't be backed up." with Try again / Continue without file(s) / Cancel.
+  - A failed write: the existing message, with Try again / Cancel.
+- Nine build items dispatched to the -127 coder in forager-wt/journal-backup.
+**Notes:**
+- The planner's proposal for a scheduled run meeting unreadable photos (skip them, then notify "Scheduled backup saved. 2 photos couldn't be backed up.") is **not yet answered by the owner**. The dispatch makes it a stop.
+- Checked: planned_trips.id is a String (`PlannedTripEntity.kt:18`), unlike offline_regions.id (`OfflineRegionEntity.kt:30`, Long, MapLibre's).
+- Written by the planner by hand.
