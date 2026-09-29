@@ -123,3 +123,41 @@ MapLibre's GL is unreachable: the fan layers drawing, the originals actually dis
 - A breach of the machine-sharing gate before one run (recorded above), mine.
 
 **Suite re-run on the merged head `752ead66`** (after F3's work was merged in, which the 3057 run above predates): cleared results, gated, **3106 tests, 0 failures, 0 errors, 24 skipped**, 372 XML files all newer than the run's start, 0 compile errors. The 49 extra over 3057 are F3's, not mine.
+
+## Resumed: continuation 2026-09-28-208 (what fans, and staying on screen)
+
+**Governing text, quoted.** The owner, verbatim, "1 A / 2 A", answering decision 1 and the coverage report (`prompts/preserved/2026-09-29-44.md`, `docs/plans/journal-redesign.md` "Fan-out: what fans, and staying on screen"). The dispatch: "**Only the owner's own records fan:** finds, photos, waypoints and planned trips. **Sighting dots never join a fan.** A tap on a sighting dot, even one stacked with records, behaves exactly as before F4. A stack is formed from the record markers only. If a record stack also overlaps sighting dots, the records fan and the dots stay put. Say which TapGroup.MARKER layers are in and out, with file:line. **Stop** if a marker layer is neither clearly a record nor a sighting." and "**Stay on screen and clear of the controls.** Shift the fan's centre, not the markers' true positions, so every fanned marker's 48 dp touch area lies inside the map's visible bounds and outside the measured bounds of the icon cluster (the phone portrait, the landscape L, the tablet), the legend and the chip row. The leader lines still run from each fanned marker to the true point. If no shift can clear everything ... keep the markers on screen first, then clear as many controls as possible. Say so in the report. Test with real coordinate touches near each edge and next to each control, on the phone portrait, the phone landscape and the tablet."
+
+**Base:** `origin/journal-redesign` at the start of this continuation, pulled with `--no-rebase` into `marker-fanout` (my head before it: `5f5d9eb7`). Nothing this continuation touches moved in the pulled commits (checked by the merge being clean).
+
+### Layers, in and out (read at `MapLayers.kt`)
+
+| Layer | `TapGroup` | file:line | Verdict |
+|---|---|---|---|
+| `SIGHTINGS` | `MARKER` | `MapLayers.kt:391-400` (circle renderer, `PaletteRole.SIGHTING_DOT`) | **out**: an iNaturalist sighting |
+| `PLANNED_TRIPS` | `MARKER` (the `marker()` default, `:217`) | `:406` | **in**: the owner's record |
+| `WAYPOINTS` | `MARKER` | `:407` | **in** |
+| `FINDS` | `MARKER` | `:408` | **in** |
+| `PHOTOS` | `MARKER` | `:409` | **in** |
+| `SEARCH_CENTRE` | `NONE` (`:389`) | not a tap target at all | not in question |
+| the three `JOURNAL_ENTRY_*` marker halos | `NONE` | `:375-377` | decorations, take no taps |
+
+Every `TapGroup.MARKER` layer is clearly a record or a sighting, so the dispatch's stop does not fire. The fan set is derived as "`TapGroup.MARKER` and not the sighting dot's palette role", and a test pins the exact set of four, so a marker layer added later fails it and forces a ruling instead of fanning by default.
+
+### Design
+
+- **Stack:** built from the four record layers only. A tap that resolves to a sighting dot goes on as before F4 (the winner is not in the fan set, so nothing else is consulted). A record stack over dots fans without them; the dots are neither hidden nor moved.
+- **Fan centre:** the centroid of the stack's true positions. Each member's displacement is now `centre + ring place + shift - own true position`, so the ring is a true ring (the earlier version placed each member round its own true spot, which could leave two fanned markers closer than a touch size when their true spots differed; that is a defect in what I shipped in F4 and is corrected here).
+- **Shift** (`fanShift`, pure, dp): the smallest move of the whole fan, from the centre, that puts every member's 48 dp square inside the map's bounds and off every control; candidates are the bounds-clamped origin and the edges of each forbidden region, tried in order of distance. If no move clears every control: the largest subset that can be cleared, on screen first; if the fan is larger than the window: centred on it and reported (`allOnScreen = false`).
+- **Measured bounds:** each control reports its own bounds in root px, from `onGloballyPositioned`, into a `MapKeepOuts` registry provided over the map screens (`LocalMapKeepOuts`); the map reads it at tap time and subtracts its own root offset. Nothing is recomposed, and nothing is hand-copied from a layout constant. Registered: the icon cluster (its measured container, in portrait, the landscape L and the tablet), the legend chip, and the chip row (the container of the taxon and Journal chips).
+- **Reading I am taking, to be ruled on:** "the map's visible bounds" excludes what the bottom navigation and the landscape rail cover, so those two bars are registered as keep-outs as well as the three named controls. Without them, a shift that keeps a fan "inside the map view" can put half of it under the bar, where a touch never reaches it; the first screen-level run at the stubs was written against the map view alone and the touch step made the gap plain. The compass strip, the search bar and the system bars are not registered.
+
+### Predictions and pass conditions (before building)
+
+| Test class | At the stubs | Pass after |
+|---|---|---|
+| `FanPlacementTest` (9, pure) | 7 fail on "inside", "clear of the control", "20 markers cannot fit"; 2 pass as controls (no shift needed; the shape is kept) | every touch square inside the bounds and off every control; shift equals the overshoot; centred and flagged when the fan is bigger than the window |
+| `MapTapHandlerRecordsOnlyTest` (7) | 4 fail (the layer set, dots fanning, one record over dots, records over dots); 3 pass as controls (lone dot, planner-trip-and-waypoint, dot beside an open fan) | the four layers and only they; dots never fan |
+| `MarkerFanOutPlacementPhonePortraitTest`, `...PhoneLandscapeTest`, `...TabletTest` (4 each, real `AvailabilityScreen`, real touches) | all 12 fail: "inside the map" or "clear of the cluster / legend / Journal chip / rail" (the stub shifts nothing) | each fanned marker's square inside the map and off cluster, legend, Journal chip, bar; a real touch at the centre and four points of each opens that marker's bubble |
+
+**What these tests do not reach**, stated now: the real `MapView` (MapLibre drawing the fan), the device's real system-bar insets (Robolectric reports zero), the compass strip, the search bar and the system bars (not registered), and the entry map and centre-pin picker, which provide no registry and so get the map's bounds only. The screen tests use the chip row with the Journal chip up and no taxon chip.

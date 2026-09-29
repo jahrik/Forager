@@ -16,7 +16,7 @@ import kotlin.math.tan
  * fanned stack) are not returned, as the real map does not draw them.
  */
 internal class FanOutTestScene(override val density: Float = 2f) : MapProbe {
-    data class Placed(val layerId: String, val featureId: String, val lat: Double, val lng: Double)
+    data class Placed(val layerId: String, val featureId: String, val lat: Double, val lng: Double, val screenXPx: Float? = null, val screenYPx: Float? = null)
 
     var zoom = 10.0
     val centre = LatLng(45.0, -122.0)
@@ -40,6 +40,15 @@ internal class FanOutTestScene(override val density: Float = 2f) : MapProbe {
         markers += Placed(layerId, featureId, lat, lng)
     }
 
+    /** A marker at a given screen position, px of the map view, whatever the projection says (for layouts read off real chrome). */
+    fun addAtScreen(layerId: String, featureId: String, xPx: Float, yPx: Float) {
+        markers += Placed(layerId, featureId, centre.lat, centre.lng, xPx, yPx)
+    }
+
+    private fun px(p: Placed) = (p.screenXPx ?: xPx(p.lng))
+
+    private fun py(p: Placed) = (p.screenYPx ?: yPx(p.lat))
+
     private fun visible(layerIds: List<String>) =
         markers.filter { it.layerId in layerIds && FanKey(it.layerId, it.featureId) !in hidden() }
 
@@ -49,14 +58,14 @@ internal class FanOutTestScene(override val density: Float = 2f) : MapProbe {
     override fun hitsInBox(xPx: Float, yPx: Float, halfPx: Float, layerIds: List<String>): List<TapHit> {
         val reach = halfPx + ICON_HALF_DP * density
         return visible(layerIds)
-            .filter { abs(xPx(it.lng) - xPx) <= reach && abs(yPx(it.lat) - yPx) <= reach }
+            .filter { abs(px(it) - xPx) <= reach && abs(py(it) - yPx) <= reach }
             .map { TapHit(it.layerId, it.featureId) }
     }
 
     override fun markersInBox(xPx: Float, yPx: Float, halfPx: Float, layerIds: List<String>): List<ProbedMarker> =
         visible(layerIds)
-            .filter { abs(xPx(it.lng) - xPx) <= halfPx && abs(yPx(it.lat) - yPx) <= halfPx }
-            .map { ProbedMarker(FanKey(it.layerId, it.featureId), it.lat, it.lng, xPx(it.lng), yPx(it.lat)) }
+            .filter { abs(px(it) - xPx) <= halfPx && abs(py(it) - yPx) <= halfPx }
+            .map { ProbedMarker(FanKey(it.layerId, it.featureId), it.lat, it.lng, px(it), py(it)) }
 
     companion object {
         const val ICON_HALF_DP = 12f

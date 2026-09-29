@@ -58,6 +58,7 @@ class MapTapHandler(
     private val probe: MapProbe,
     private val drawOrder: () -> List<MapLayerSpec>,
     private val sinks: MapTapSinks,
+    private val space: FanSpace = FanSpace.Unbounded,
 ) {
     fun onMapTap(at: LatLng, xPx: Float, yPx: Float) {
         val density = probe.density
