@@ -51,6 +51,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -76,6 +77,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -92,6 +94,8 @@ import com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPickerOverlay
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_CORNER_RADIUS
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_EDGE_INSET
+import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_LANDSCAPE_ROW_SPACING
+import com.zynergylabs.forager.app.ui.map.mapIconChromeFillColor
 import com.zynergylabs.forager.app.ui.map.MIN_TOUCH_TARGET
 import com.zynergylabs.forager.app.ui.map.MapIconBar
 import com.zynergylabs.forager.app.ui.map.MapIconBarMinimizeHandle
@@ -563,7 +567,18 @@ internal fun CompactMapTab(
                 // this Box) is what makes its translucency actually work.
                 // The strip's own measured height goes with it, so a notice in the slot can be placed below the strip
                 // (item 2). Zero while the strip is not composed.
-                searchBarSlot(with(compassStripDensity) { compassStripHeightPx.toDp() })
+                // Owner's ruling (b), continuation 2026-09-28-172: in the landscape L, a notice on the same side as the L is inset on
+                // that side by 8 + the L's measured width + 8, as the legend makes room (legendEndPadding below). Elsewhere none.
+                val noticeAnchoredLeft = punchHoleEdge == ScreenEdge.Left
+                val noticeInsetDp = MAP_ICON_BAR_EDGE_INSET + with(compassStripDensity) { cluster.clusterWidthPx.toDp() } + Spacing.sm
+                val searchNoticeInset = when {
+                    !landscapeCluster || cluster.isOnLeftSide != noticeAnchoredLeft -> SearchNoticeInset.None
+                    cluster.isOnLeftSide -> SearchNoticeInset(left = noticeInsetDp)
+                    else -> SearchNoticeInset(right = noticeInsetDp)
+                }
+                CompositionLocalProvider(LocalSearchNoticeInset provides searchNoticeInset) {
+                    searchBarSlot(with(compassStripDensity) { compassStripHeightPx.toDp() })
+                }
                 // minY = compassStripClearance, a real measurement of the strip's own type style: the
                 // strip is composed after this in the same Box (so its own controls win any overlap)
                 // and is full-width against the map's top edge, so a glyph tapped near the top would
@@ -591,37 +606,47 @@ internal fun CompactMapTab(
                 // Box, and MapIconBar's Surface intercepts touches across its full bounds, which on a short
                 // viewport reach up into the strip's row; the strip's own control must win any overlap
                 // (AvailabilityScreenMapIconStackTest's touch-interaction test on a w360dp-h640dp viewport).
+                val phoneBar: @Composable (Modifier, Color, Dp, Boolean) -> Unit = { barModifier, barFill, barRowSpacing, barFullSquareHits ->
+                    MapIconBar(
+                        isFullscreen = isFullscreen,
+                        onToggleFullscreen = onToggleFullscreen,
+                        onLocateMe = {
+                            resumeTrackingRequestId++
+                            onLocateMe()
+                        },
+                        onResetOrientation = { resetOrientationRequestId++ },
+                        mapMode = mapMode,
+                        onOpenLayers = { showLayersSheet = true },
+                        onAdd = {
+                            // No location to grab any more — the button just opens
+                            // the menu; the location comes from
+                            // CentrePinLocationPickerOverlay's own camera tracking
+                            // once a choice is made. See this function's own doc
+                            // comment.
+                            showActionMenu = true
+                        },
+                        fillColor = barFill,
+                        rowSpacing = barRowSpacing,
+                        fullSquareHits = barFullSquareHits,
+                        modifier = barModifier,
+                    )
+                }
                 MapIconCluster(
                     state = cluster,
                     isFullscreen = isFullscreen,
                     // The cluster cannot rise above where SearchDropdown itself starts: topInset (about the
                     // search bar's height) plus the strip's own clearance (icon-bar-drag-refinements, Item 4).
-                    topLimitPx = with(compassStripDensity) { (topInset + compassStripClearance).toPx() },
+                    // Owner's ruling (a), continuation 2026-09-28-172 ("never above the search bar's bottom"): in the landscape L the limit is
+                    // topInset, the search bar's own bottom, without the strip clearance (the compass strip is in the other corner there,
+                    // nothing else is drawn in that band beside the notice and the chips, which make room for the L, and the SearchDropdown
+                    // starts below it); the L pushes down to it as well as up. Portrait keeps topInset + the clearance.
+                    topLimitPx = with(compassStripDensity) { (if (landscapeCluster) topInset else topInset + compassStripClearance).toPx() },
                     noticeBottomPx = with(compassStripDensity) { searchNoticeBottom.toPx() },
                     controlsPadding = controlsPadding,
-                    bar = { barModifier ->
-                        MapIconBar(
-                            isFullscreen = isFullscreen,
-                            onToggleFullscreen = onToggleFullscreen,
-                            onLocateMe = {
-                                resumeTrackingRequestId++
-                                onLocateMe()
-                            },
-                            onResetOrientation = { resetOrientationRequestId++ },
-                            mapMode = mapMode,
-                            onOpenLayers = { showLayersSheet = true },
-                            onAdd = {
-                                // No location to grab any more — the button just opens
-                                // the menu; the location comes from
-                                // CentrePinLocationPickerOverlay's own camera tracking
-                                // once a choice is made. See this function's own doc
-                                // comment.
-                                showActionMenu = true
-                            },
-                            fillColor = mapIconClusterChildColor(),
-                            modifier = barModifier,
-                        )
-                    },
+                    bar = { barModifier -> phoneBar(barModifier, mapIconClusterChildColor(), Spacing.xs, false) },
+                    // Landscape L: the bar's rows 48 dp apart with no end padding (240 dp), one layer at the standing 0.8 fill, every row
+                    // taking touches across its full 48 x 48 square (owner's "A" and ruling (d), continuations -160 and -172).
+                    landscapeBar = { barModifier -> phoneBar(barModifier, Color.Unspecified, MAP_ICON_BAR_LANDSCAPE_ROW_SPACING, true) },
                     pill = { onLeftSide ->
                         // Composed whenever MapIconBar is (regardless of isRecording — record start/stop must
                         // stay reachable before the first recording starts; isRecording flows in as a plain
@@ -635,6 +660,23 @@ internal fun CompactMapTab(
                             onToggleReturning = onToggleReturning,
                             distanceUnit = uiState.distanceUnit,
                             onLeftSide = onLeftSide,
+                        )
+                    },
+                    // Landscape L: the pill turned horizontal (record under the bar's column, return inboard, 96 x 48), one layer at the
+                    // standing 0.8 fill, both buttons taking touches across their full 48 x 48 squares.
+                    landscapePill = { onLeftSide ->
+                        TrailheadControls(
+                            isRecording = isRecording,
+                            onToggleRecording = onToggleRecording,
+                            returnToStart = returnToStart,
+                            isReturning = isReturning,
+                            isOffTrack = isOffTrack,
+                            onToggleReturning = onToggleReturning,
+                            distanceUnit = uiState.distanceUnit,
+                            onLeftSide = onLeftSide,
+                            horizontal = true,
+                            fillColor = mapIconChromeFillColor(),
+                            rowSpacing = MAP_ICON_BAR_LANDSCAPE_ROW_SPACING,
                         )
                     },
                 )
@@ -929,7 +971,7 @@ internal fun CompactMapTab(
                     // (see mapIconBarPanelAnchorOffset above), plus this panel's own row.
                     anchor = cluster.sideAlignment,
                     anchorOffset = cluster.panelAnchorOffset(LocalDensity.current).let { anchor ->
-                        DpOffset(x = anchor.x, y = anchor.y + ADD_TILE_ANCHOR_OFFSET)
+                        DpOffset(x = anchor.x, y = anchor.y + (if (landscapeCluster) ADD_TILE_ANCHOR_OFFSET_LANDSCAPE else ADD_TILE_ANCHOR_OFFSET))
                     },
                     growsFrom = if (isMapIconBarOnLeftSide) Alignment.BottomStart else Alignment.BottomEnd,
                 )
