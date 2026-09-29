@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.domain.model.AvailabilityEntry
+import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.AvailabilityForecast
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
@@ -26,6 +27,8 @@ import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.SpeciesObservationCount
 import com.zynergylabs.forager.app.domain.model.TaxonFilter
+import com.zynergylabs.forager.app.ui.log.CartographyUiState
+import com.zynergylabs.forager.app.ui.map.JOURNAL_ENTRIES_CHIP_TAG
 import com.zynergylabs.forager.app.ui.map.MapOverlayContent
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import java.time.LocalDate
@@ -84,7 +87,7 @@ class WideMapTabsTest {
         Box(modifier.testTag(MAP_SLOT))
     }
 
-    private fun setScreen(uiState: AvailabilityUiState) {
+    private fun setScreen(uiState: AvailabilityUiState, cartographyUiState: CartographyUiState = CartographyUiState()) {
         composeRule.setContent {
             AvailabilityScreen(
                 uiState = uiState,
@@ -112,6 +115,7 @@ class WideMapTabsTest {
                 onDeleteOfflineRegion = {},
                 onNightModeMapsChanged = {},
                 onThemeModeChanged = {},
+                cartographyUiState = cartographyUiState,
                 mapSlot = capturingMapSlot,
             )
         }
@@ -205,41 +209,54 @@ class WideMapTabsTest {
 
     // ── Item 12: the chip row against the Layers button ──
 
-    private fun assertChipClearOfLayers(where: String) {
+    /**
+     * The row the refresh pulse measured: the taxon chip ("Showing: ...", from View on Map) and J8's "N journal
+     * entries on map" chip, side by side at the map's top centre. Either chip's right edge must be left of the
+     * Layers button's left edge; a centred row of both is about 406 dp, so it runs under the button on any map
+     * narrower than about 406 + 2 x 64 dp.
+     */
+    private fun assertChipsClearOfLayers(where: String) {
         composeRule.onNodeWithText("List").performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithText("View on Map").performClick()
         composeRule.waitForIdle()
-        val chip = composeRule.onNodeWithTag(TAXON_CHIP).getUnclippedBoundsInRoot()
         val layers = composeRule.onNodeWithTag(WIDE_LAYERS_BUTTON_TAG).getUnclippedBoundsInRoot()
-        assertTrue("$where: the chip row ends at ${chip.right}, the Layers button starts at ${layers.left}", chip.right <= layers.left)
+        for ((name, tag) in listOf("taxon chip" to TAXON_CHIP, "journal entries chip" to JOURNAL_ENTRIES_CHIP_TAG)) {
+            val chip = composeRule.onNodeWithTag(tag).getUnclippedBoundsInRoot()
+            assertTrue("$where: the $name ends at ${chip.right}, the Layers button starts at ${layers.left}", chip.right <= layers.left)
+        }
     }
 
     @Test
     fun `FAILS AT BASE the chip row clears the Layers button on the tabbed map`() {
-        setScreen(SEARCHED_LONG_NAME_STATE)
-        assertChipClearOfLayers("portrait, the map across 464 dp")
+        setScreen(SEARCHED_LONG_NAME_STATE, cartographyUiState = ONE_SHOWN_ENTRY)
+        assertChipsClearOfLayers("portrait, the map across 464 dp")
     }
 
     /**
-     * A wrong prediction of mine, recorded: this was written as a FAILS AT BASE test and passed at base
-     * (the first run's XML). A long taxon chip is bounded by its own maximum width, well under the
-     * 596 dp map's, so centred it does not reach the Layers button there; the overlap needs a map
-     * narrower than that bound plus the button's footprint. It is kept as a guard, and the case that does
-     * fail at base is the next test, at the narrowest map the side by side layout gives (480 dp).
+     * Three wrong predictions of mine, recorded, each read from a base run's XML. I wrote this and the 480 dp
+     * test as FAILS AT BASE tests with a taxon chip alone, and both passed at base: a chip is bounded by its
+     * own maximum width. I then made both show the two-chip row the pulse measured (the taxon chip and
+     * "N journal entries on map"), and both still passed at base. The row wraps to a widest line of about
+     * 368 dp, centred, so on a map W wide it ends at (W + 368) / 2: 501 on the 596 dp map (Layers starts at
+     * 541) and exactly 424 on the 480 dp map (Layers starts at 424). The planner's 480 dp minimum is where a
+     * side by side map stops needing the inset. It is needed on a narrower map, which only the tabbed layout
+     * gives: 464 dp portrait ends at 416, Layers starts at 408. So these two are guards, and the tabbed test
+     * below is the one the inset is for. It fails at base too, but at base its map is 103 dp wide, so the
+     * proof that the *inset* is what fixes it is a revert of the inset alone, after the build.
      */
     @Test
     @Config(qualifiers = "w1318dp-h824dp-mdpi")
     fun `GUARD the chip row clears the Layers button on the 596 dp side by side map`() {
-        setScreen(SEARCHED_LONG_NAME_STATE)
-        assertChipClearOfLayers("landscape, the map beside the list at 596 dp")
+        setScreen(SEARCHED_LONG_NAME_STATE, cartographyUiState = ONE_SHOWN_ENTRY)
+        assertChipsClearOfLayers("landscape, the map beside the list at 596 dp")
     }
 
     @Test
     @Config(qualifiers = "w1201dp-h900dp-mdpi")
-    fun `FAILS AT BASE the chip row clears the Layers button on the narrowest side by side map, 480 dp`() {
-        setScreen(SEARCHED_LONG_NAME_STATE)
-        assertChipClearOfLayers("1201 dp, the map beside the list at exactly 480 dp")
+    fun `GUARD the chip row clears the Layers button on the narrowest side by side map, 480 dp, with no room to spare`() {
+        setScreen(SEARCHED_LONG_NAME_STATE, cartographyUiState = ONE_SHOWN_ENTRY)
+        assertChipsClearOfLayers("1201 dp, the map beside the list at exactly 480 dp")
     }
 
     // ── Item 13: a map before any search ──
@@ -284,6 +301,10 @@ class WideMapTabsTest {
         )
 
         /** A name long enough that a chip centred over a 464 dp or a 596 dp map runs under the Layers button unless the row is given an end inset. */
+        val ONE_SHOWN_ENTRY = CartographyUiState(
+            entries = listOf(CartographyEntry.draft(id = "entry-1", date = LocalDate.of(2026, 9, 12), updatedAtEpochMillis = 1_000L).copy(isDraft = false, text = "A walk.", shownOnMap = true)),
+        )
+
         val LONG_NAME = "Pacific Golden Chanterelle, also called the Western golden chanterelle of the Cascade foothills"
         val SEARCHED_LONG_NAME_STATE = SEARCHED_STATE.copy(
             forecast = SEARCHED_STATE.forecast!!.copy(entries = listOf(AvailabilityEntry(species = species(LONG_NAME), relativeLikelihood = 1f))),
