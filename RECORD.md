@@ -4795,3 +4795,31 @@ All on layout-fixes-wip at 3bbbcfa. It stopped: a two-chip wrapped row reaches 1
 - S10's two-chip case measures drawn bounds (an owner-approved change of the measure).
 - Tests first, a revert check, and the whole suite at 0 before pushing.
 **Notes:** The offline-regions device check (-120) was pasted by the owner and is running. Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-122
+**Timestamp:** 2026-09-29T02:00:50Z
+**Closes:** 2026-09-28-120
+**Outcome:** completed
+**Observed:**
+- **Record.** docs/audits/2026-09-29-offline-regions-device-check-run-record.md, device-offline (record 19c852e), merged by the planner. The coder was an owner-opened session (launch prompt preserved/2026-09-29-06.md, corrected at cc9a30b before pasting), configured for claude-sonnet-5-5 but not read back.
+- **Build.** 7d17a5c (1.0.1577+g7d17a5c4, sha256 dac26e11...), same certificate; install -r with firstInstallTime unchanged.
+- **Backup verified:** forager.db and its wal and shm, and files/mbgl-offline.db. offline_regions ids 1 and 2; MapLibre regions 2, tiles 967, region_tiles 261.
+- **Checks.** All five passed:
+  1. Three cold starts: 0 "Couldn't read offline regions", 1 "MapLibre initialised." per process, 0 MapLibreConfigurationException, 0 FATAL.
+  2. Regions from launch, with the panel never opened: Records All 8 including 2 regions, Offline maps 2; the All logbook lists both; the region bubble opens its card; 0 "host's lists" lines.
+  3. Nothing lost: forager.db and its wal and shm byte-identical to the backup; every offline_regions column and all 17 table counts identical; mbgl-offline.db counts and region rows identical and integrity ok, with its bytes differing only by advancing "accessed" stamps (not every page diffed).
+  4. Offline tiles: the entry report's offline switch rendered, and the store's accessed stamps show 3 region tiles read at the toggle. The network was left on, so this proves the store was read, not that the network was unused.
+  5. 0 kept-but-missing warnings; Room and MapLibre ids agree.
+- **Restored:** only the in-memory switch, flipped and read back. Nothing created, edited or deleted.
+**Deviations:**
+- **Check 1 has no positive control.** The buffer's 12 old-build starts also logged no read error, contrary to the pulse's premise that every S22 cold start logged it (not investigated). The start-up read's success therefore rests on check 2's positive data.
+- The P1 and P3 disagreement cases and offline rendering with the network off were not run.
+**Notes:**
+- **Flags:**
+  - about 8 debug-build StrictMode DiskReadViolation traces per start (25 to 52 ms) from MapLibre.getInstance in Application.onCreate (ForagerApplication.kt:39, MapLibreStorage.kt:27): main-thread disk reads from the new start-up init;
+  - 284 "after the MapView was destroyed" errors (also flagged by -115).
+- -106 is closed on the device.
+- Written by the planner by hand.
