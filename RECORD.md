@@ -7163,3 +7163,17 @@ The planner confirmed each by grep.
 - **Dispatch -56 is unchanged by this.** Its scope and its -246 amendment already match these answers.
 - **The first build coder was stopped by the owner** before it committed. Its worktree, forager-wt/tablet-as-phone, is clean with nothing pushed. It has not been relaunched.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-248
+**Timestamp:** 2026-09-29T22:55:54Z
+**Dispatch:** 2026-09-28-245 (tablets as a big phone)
+**Reason:** the owner, verbatim: "J6 and the previous tablet mode were horrendous for the same reasons. My guess is the designer assumed it was a style to build on rather than replace. So we are undoing everything, and the phone layout will be the thing to expand instead."
+**Changes:**
+- **The decision and what it rejects** are recorded in preserved/2026-09-29-56, in a closing "Why" section.
+  - **Rejected:** the tablet tree, pre-J6 and J6 alike, as a base for tablet design.
+  - **Chosen:** the phone layout as the base that a future tablet design expands.
+- The dispatch's scope is unchanged.
+**Notes:** Written by the planner by hand.
