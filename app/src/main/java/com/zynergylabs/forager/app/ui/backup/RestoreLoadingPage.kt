@@ -27,7 +27,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -71,7 +70,8 @@ private const val ICON_PIXELS = 512
  * restored." and "Done" sits at the icon's centre, **and the icon is the button**.
  *
  * - Full screen and opaque, and it takes every touch, so nothing underneath is pressed through it (CLAUDE.md, the
- *   Surface pitfall).
+ *   Surface pitfall): a Material3 `Surface` consumes the touches on its bounds, which is what makes it so, and a test
+ *   touches the page outside the icon to prove it.
  * - **The tap animation** (owner, "1 A"): the icon grows slightly and the page fades out, about 300 ms, revealing the
  *   Maps tab that [BackupViewModel.onRestoreDoneTapped] asked for at the moment of the tap. With the system's animator
  *   duration scale at 0 (reduced motion) it leaves at once.
@@ -109,8 +109,7 @@ internal fun RestoreLoadingPage(page: RestorePage, onDoneTapped: () -> Unit, onL
         modifier = modifier
             .fillMaxSize()
             .graphicsLayer { alpha = 1f - leave.value }
-            .testTag(RESTORE_PAGE_TAG)
-            .pointerInput(Unit) { awaitPointerEventScope { while (true) awaitPointerEvent().changes.forEach { it.consume() } } },
+            .testTag(RESTORE_PAGE_TAG),
         color = MaterialTheme.colorScheme.background,
     ) {
         Column(
