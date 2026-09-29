@@ -406,9 +406,13 @@ reads its `checked` state back from a second dump, closes the sheet with Back, t
 With no search run, **both trips are saved (database), loaded (the Trip Planner lists them) and never drawn**: 0 trip
 pixels in every capture of the map, from `20-` to `55-`, at the placing zoom, zoomed in to +2 and out to about −0.33, with
 the switch off and on, by night and by day, after a tab round trip and after a relaunch, and no bubble where they sit;
-while the find, waypoint, photo and offline regions draw and a tap on the find opens its bubble. In every one of those
-states the Trip Planner's "Choose a region…" line shows that `region` is null, the condition under which ACMU:641 hands the
-map an empty list.
+while the find, waypoint, photo and offline regions draw and a tap on the find opens its bubble. **`region` is null
+throughout:** the bar reads "September · Search a location" in every one of those captures, and that text is what the
+bar shows exactly when `region` is null (`val where = uiState.region?.let { … } ?: "Search a location"`,
+`ui/availability/AvailabilitySearchUi.kt:565`); the Trip Planner's "Choose a region…" line, the same predicate (ATWU:62),
+was read at three points (before the trips, after them, after the relaunch). That is the condition under which ACMU:641
+hands the map an empty list. (Corrected in the commit after `a46c992`, which said the Trip Planner line was read "in
+every one of those states"; it was read at three.)
 
 ## Appendix: the dispatch and the launch message, verbatim
 
