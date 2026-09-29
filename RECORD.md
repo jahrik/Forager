@@ -4514,3 +4514,34 @@ Put to the owner before any fix is written. Written by the planner by hand.
   - the two permission refusals.
 - Owner, verbatim: "Option C: decorations to keep it separate. We can change it if the forecast layering needs changes".
 - Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-108
+**Timestamp:** 2026-09-29T00:38:15Z
+**Continues:** 2026-09-28-78
+**Dispatch-file:** none (progress note; -78 stays open)
+**Reason:** the -78 coder handed back after -98 and -99. It built items 2 (portrait), 3, 4 and 5 and the owner's option A reshape, which cleared items 6 and 9. It held items 1, 2 (landscape), 7 and 8. Report: docs/audits/2026-09-28-part-1-layout-fixes-completion-report.md, "Resumed" section.
+**Changes:** None to the scope.
+- **On journal-redesign at 08e9f13:**
+  - item 2: the cluster lifts above centre for an expanded legend;
+  - item 3: the dropdown cap subtracts the IME inset, and a keep-in-view after the one-shot scroll;
+  - item 4: MapCameraMemory restores target, zoom, bearing, tilt, the tracking mode and the applied region target on a new map's first style;
+  - item 5: the "i" takes the caption's bottom inset and the rail's end inset, staying in the cut-out band at 270;
+  - the short-landscape ControlPill sits beside the MapIconBar (264 dp).
+- **Held, put to the owner:**
+  - item 7: the chip still collides on width at 90 (option E would clear it by about 284 px);
+  - items 1 and 2 in landscape: at 270 the legend overlaps the cluster by about 64 px collapsed and 233 px expanded, and the cluster cannot rise;
+  - item 8: making the chip own its whole touch box broke two J8 tests that pin "no touch outside the pill", so it was backed out, with options A to D.
+- **Evidence:**
+  - Tests first: two base runs, the second 26 of 35 failing as predicted.
+  - Revert checks R2 to RA-g confirmed; two revert edits were refused by the runner for compile errors and redone.
+  - Coder's suite at 2e7c72f: 311 / 2518 / 0 / 0 / 24.
+  - **Planner's suite at 08e9f13** (app/ equal to 2e7c72f): 311 / 2518 / 0 / 0 / 24, cleared, 0 stale, no compile errors.
+**Notes:**
+- Device-only: items 2, 3, 4, 5, 6 and 9; the reshape's placement, thumb reach, the 56 × 156 dp fill above the pill, drag and snap. Item 9's margin on the S22 is about 0 px by arithmetic.
+- Flags:
+  - the dropdown's programmatic scroll still does not lower the keyboard, despite the comment;
+  - Robolectric needs @GraphicsMode(NATIVE) for text geometry.
+- Written by the planner by hand.
