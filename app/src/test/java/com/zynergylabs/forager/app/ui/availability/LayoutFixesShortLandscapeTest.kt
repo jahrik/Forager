@@ -195,9 +195,17 @@ class LayoutFixesShortLandscapeTest {
         assertTrue("a touch on the restore handle brought it back at the same place (${cluster().describe()})", abs((cluster().top - after.top).value) <= 1f)
     }
 
-    @Test fun `TR5 at ROTATION_90 the handle drags the cluster down and minimises and restores it`() = assertDragAndHandlesWork(Surface.ROTATION_90)
+    // Marked NATIVE on the planner's authority (dispatch 2026-09-28-178, option (1), quoted in the report): the assertion and the 40 dp drag are
+    // unchanged; only the text metrics change, from Robolectric's legacy ones (the search bar 85 dp tall, which no device shows) to real
+    // ones (45 dp), as T9 and the chip tests already are. Under the legacy metrics the L, held below the search bar by the owner's
+    // ruling (a) of 2026-09-28-172, has 3 dp of travel in the 384 dp window and no drag of 40 dp can move it.
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) fun `TR5 at ROTATION_90 the handle drags the cluster down and minimises and restores it`() = assertDragAndHandlesWork(Surface.ROTATION_90)
 
-    @Test fun `TR5 at ROTATION_270 the handle drags the cluster down and minimises and restores it`() = assertDragAndHandlesWork(Surface.ROTATION_270)
+    // Marked NATIVE on the planner's authority (dispatch 2026-09-28-178, option (1), quoted in the report): the assertion and the 40 dp drag are
+    // unchanged; only the text metrics change, from Robolectric's legacy ones (the search bar 85 dp tall, which no device shows) to real
+    // ones (45 dp), as T9 and the chip tests already are. Under the legacy metrics the L, held below the search bar by the owner's
+    // ruling (a) of 2026-09-28-172, has 3 dp of travel in the 384 dp window and no drag of 40 dp can move it.
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) fun `TR5 at ROTATION_270 the handle drags the cluster down and minimises and restores it`() = assertDragAndHandlesWork(Surface.ROTATION_270)
 
     // ── Item 9 ──
 
