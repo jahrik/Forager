@@ -129,7 +129,7 @@ class FanOutLayersTest {
     @Test
     fun `no hidden ids is a filter that shows everything`() {
         val text = fanOutHiddenFilter("featureId", emptyList()).toString()
-        assertEquals("true", text)
+        assertEquals("[\"all\"]", text)
         assertFalse("!=" in text)
     }
 }

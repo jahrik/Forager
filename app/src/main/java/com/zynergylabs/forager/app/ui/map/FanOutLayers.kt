@@ -178,12 +178,14 @@ private fun haloImageFor(layerId: String, featureId: String, highlights: Journal
 
 /**
  * The filter that hides [ids] from a layer: every feature whose [property] is not one of them.
- * `Expression.literal(true)` (show all) for none, which is also how a hidden layer is let go, since
- * this SDK version has no "remove filter" call that this file has verified.
+ * `["all"]` (an `all` of nothing, which is true of every feature) for none, which is also how a hidden
+ * layer is let go, since this SDK version has no "remove filter" call that this file has verified. Not
+ * `literal(true)`: whether the native filter parser takes a bare boolean is unverified, while `["all"]`
+ * is the canonical match-everything filter. Device-only either way.
  */
 internal fun fanOutHiddenFilter(property: String, ids: List<Any>): Expression =
     if (ids.isEmpty()) {
-        Expression.literal(true)
+        Expression.all()
     } else {
         Expression.all(*ids.map { id ->
             when (id) {
