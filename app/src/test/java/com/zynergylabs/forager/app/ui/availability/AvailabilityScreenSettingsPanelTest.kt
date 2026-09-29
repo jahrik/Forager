@@ -696,7 +696,7 @@ class AvailabilityScreenSettingsPanelTest {
 
     /**
      * The offline-readiness text a downloaded region shows — the z0-14 local-archive vs. z15
-     * live-fetched-at-download-time distinction `docs/plans/forager-navigator-plan.md`'s Phase 1c
+     * live-fetched-at-download-time distinction `docs/navigation/forager-navigator-plan.md`'s Phase 1c
      * item asks this submenu to surface, per the project owner's own call to extend this existing
      * panel rather than build a separate live-position readiness check (deferred).
      *

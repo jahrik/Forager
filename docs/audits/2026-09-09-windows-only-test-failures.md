@@ -126,7 +126,7 @@ Added by the backup-ruling docs dispatch, after the messages this note said it d
 out to be recorded on another branch. Nothing above was deleted; this section says which of it
 still stands.
 
-**Source.** `docs/audits/2026-09-08-path-home-monotonicity-amendment-completion-report.md` (on this
+**Source.** `docs/navigation/2026-09-08-path-home-monotonicity-amendment-completion-report.md` (on this
 tree; written by the `claude/path-home-join` session, which ran the suite **on the owner's Windows
 machine**). Its "Ten pre-existing failures" list names all ten tests and both messages. The
 identification of that run with the ten failures this note describes rests on the same host, the

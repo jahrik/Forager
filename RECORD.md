@@ -6743,3 +6743,34 @@ The planner confirmed each by grep.
 - **Merge note:** when legal-drafts merges, keep both appended sections of the site report (L1's addendum and the second planner's audit).
 - **Checked for clashes:** none with F5 or C1.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-222
+**Timestamp:** 2026-09-29T19:57:07Z
+**Dispatch:** none (the planner's own repository change, at the owner's instruction)
+**Reason:** the owner, verbatim:
+- "Move both 8/18 and 9/28 files into PR 140. / Add the following to the same folder: navigation chrome pre-build (2026-09-06); return estimate (2026-09-07, three reports); way-back route decisions and pre-build (2026-09-11); the sundown countdown and decisions reports (2026-09-11)."
+- "1 A / 2 A and anything else I haven't found yet".
+**Changes:**
+- **Merged the navigator-audit branch** into journal-redesign (bb47864d), keeping every index row. So the 2026-09-28 Navigator plan status audit is now in PR #140.
+- **A new folder, docs/navigation/, with a README index.** 22 files moved with git mv:
+  - **the plan:** forager-navigator-plan.md, from docs/plans;
+  - **the status audit**, 2026-09-28;
+  - **the navigation chrome** pre-build (2026-09-06);
+  - **the return estimate:** its three reports (2026-09-07);
+  - **the way-back route:** decisions and pre-build (2026-09-11);
+  - **all four sundown reports** (2026-09-11);
+  - **found by the planner, under "anything else":**
+    - return-to-vehicle semantics (2026-08-30);
+    - compass reliability, pulse and pre-build (2026-09-06);
+    - light budget and turnaround (2026-09-06);
+    - alert delivery, pre-build and completion (2026-09-06);
+    - the path-home ruling (2026-09-07);
+    - path-home ratio pre-build, monotonicity amendment and the companion script (2026-09-08).
+- **Links rewritten** in 26 files, and 0 broken links to moved files remain. In app/ and .github the changes are comment lines only, checked by diff.
+**Notes:**
+- **Left where they were, as history:** RECORD.md and prompts/preserved still cite the old paths. `git log --follow` traces each move.
+- **Considered and not moved:** maplibre-migration.md (the plan's companion, but a map-renderer plan cited widely), and the 2026-09-07 track-distance pulse.
+- Written by the planner by hand.
