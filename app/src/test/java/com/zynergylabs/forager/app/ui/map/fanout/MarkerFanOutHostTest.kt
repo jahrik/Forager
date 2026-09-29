@@ -91,8 +91,11 @@ class MarkerFanOutHostTest {
 
     /** A Back press, then a frame, since the clock is paused and a handler leaves or joins on recomposition. */
     private fun pressBack() {
-        composeRule.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
-        advance(16)
+        composeRule.activityRule.scenario.onActivity {
+            it.onBackPressedDispatcher.onBackPressed()
+            Snapshot.sendApplyNotifications()
+        }
+        advance(48)
     }
 
     private companion object {
