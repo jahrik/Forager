@@ -181,71 +181,30 @@ class MapLibreOfflineMapRepository(
 
     override suspend fun listRegions(): Result<List<OfflineRegionSummary>> = runCatchingCancellable {
         val offlineRegions = offlineManager().listOfflineRegionsSuspend()
-        val liveIds = offlineRegions.map { it.id }.toSet()
-
-        // A Room row whose OfflineManager-backed region is simply gone (deleted by something other
-        // than deleteRegion, e.g. OfflineManager's own database being reset) describes a download
-        // that no longer exists — pruned rather than kept as a phantom entry with no real tiles
-        // behind it.
-        offlineRegionDao.getAll().filter { it.id !in liveIds }.forEach { offlineRegionDao.deleteById(it.id) }
 
         // isEntryCapture filtering (Workstream A's column) belongs here eventually — once
         // Workstream D's capture mechanism exists to actually set it, this list should exclude
         // rows where it's true so the region-management list doesn't show automatic per-log-entry
         // captures alongside regions the user picked. Not implemented: entry-captures don't exist
         // yet, and this is a later workstream's job, not B's.
-        val statuses = offlineRegions.associate { it.id to it.getStatusSuspend() }
-        val idsToDelete = offlineRegionIdsToDelete(
-            completeById = statuses.mapValues { (_, status) -> status.isComplete },
-            inFlightIds = inFlightRegionIds.toSet(),
-        )
-        offlineRegions.mapNotNull { offlineRegion ->
-            val status = statuses.getValue(offlineRegion.id)
-
-            // A region OfflineManager still has on file but never finished — e.g. the process was
-            // killed mid-download — is the same "half-downloaded region looking complete" case
-            // download()'s own catch block prevents within one run. A restart bypasses that catch
-            // block entirely, so the same invariant is re-checked here, per region.
-            // Which incomplete regions are deleted is offlineRegionIdsToDelete's decision; an
-            // incomplete region is never listed either way.
-            if (!status.isComplete) {
-                if (offlineRegion.id in idsToDelete) {
-                    offlineRegion.deleteSuspend()
-                    offlineRegionDao.deleteById(offlineRegion.id)
-                }
-                return@mapNotNull null
-            }
-
-            val row = offlineRegionDao.getById(offlineRegion.id)
-                ?: offlineRegion.metadata.toRegionMetadata()?.let { metadata ->
-                    // The Room row is missing but the region's own metadata blob survived — rebuild
-                    // the row from it rather than dropping a real, on-disk, tile-budget-consuming
-                    // region from the list. See OfflineRegionEntity's doc comment.
-                    OfflineRegionEntity(
-                        id = offlineRegion.id,
-                        name = metadata.name,
-                        lat = metadata.region.lat,
-                        lng = metadata.region.lng,
-                        radiusKm = metadata.region.radiusKm,
-                        minZoom = metadata.minZoom,
-                        maxZoom = metadata.maxZoom,
-                        createdAtEpochMillis = metadata.downloadedAtEpochMillis,
-                    ).also { offlineRegionDao.upsert(it) }
-                }
-                // Neither the table nor the blob can say what this region is — nothing usable to show.
-                ?: return@mapNotNull null
-
-            OfflineRegionSummary(
-                id = row.id,
-                name = row.name,
-                region = Region(row.lat, row.lng, row.radiusKm),
-                minZoom = row.minZoom,
-                maxZoom = row.maxZoom,
-                tileCount = status.completedTileCount.toInt(),
+        val live = offlineRegions.map { offlineRegion ->
+            val status = offlineRegion.getStatusSuspend()
+            LiveRegion(
+                id = offlineRegion.id,
+                isComplete = status.isComplete,
+                metadata = offlineRegion.metadata,
+                tileCount = status.completedTileCount,
                 sizeBytes = status.completedResourceSize,
-                createdAtEpochMillis = row.createdAtEpochMillis,
             )
         }
+        val byId = offlineRegions.associateBy { it.id }
+        reconcileOfflineRegions(
+            live = live,
+            dao = offlineRegionDao,
+            inFlightIds = inFlightRegionIds.toSet(),
+            deleteRegion = { id -> byId.getValue(id).deleteSuspend() },
+            warn = { message -> Log.w(TAG, message) },
+        )
     }
 
     // initializeMapLibre() must run before any other MapLibre API call touches the native library —
@@ -280,22 +239,6 @@ class MapLibreOfflineMapRepository(
 // re-tried.
 private const val TAG = "MapLibreOfflineMapRepo"
 
-/**
- * Which of `OfflineManager`'s regions [MapLibreOfflineMapRepository.listRegions] deletes: every
- * region that is not complete ([completeById] maps each region id to
- * `OfflineRegionStatus.isComplete`), except one still downloading in this process ([inFlightIds]).
- * The cleanup is for a region a killed or crashed process left incomplete; a running download is
- * incomplete too and was deleted with them until F4 of the picker-fixes dispatch.
- *
- * A pure function so the decision is testable headless: `OfflineManager` and `OfflineRegion` are
- * not constructible off a device, which is why this repository's only tests so far are of the
- * other pure piece it holds, the metadata bytes (`MapLibreOfflineRegionMetadataTest`); the
- * ViewModel's tests use a fake repository (`AvailabilityViewModelOfflineMapsTest`, whose doc
- * comment leaves `OfflineManager` behaviour to this class).
- */
-internal fun offlineRegionIdsToDelete(completeById: Map<Long, Boolean>, inFlightIds: Set<Long>): Set<Long> =
-    completeById.filterValues { complete -> !complete }.keys - inFlightIds
-
 private fun Region.toLatLngBounds(): LatLngBounds {
     val box = GeoDistance.boundingBox(LatLng(lat, lng), radiusKm)
     return LatLngBounds.Builder()
@@ -314,7 +257,7 @@ private suspend fun OfflineManager.listOfflineRegionsSuspend(): List<OfflineRegi
     suspendCancellableCoroutine { continuation ->
         listOfflineRegions(object : OfflineManager.ListOfflineRegionsCallback {
             override fun onList(offlineRegions: Array<OfflineRegion>?) {
-                if (continuation.isActive) continuation.resume(offlineRegions?.toList().orEmpty())
+                if (continuation.isActive) continuation.resumeWith(runCatching { regionListOrFailure(offlineRegions?.toList()) })
             }
 
             override fun onError(error: String) {
