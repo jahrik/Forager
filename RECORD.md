@@ -5213,3 +5213,24 @@ It also flagged the snackbar lying over the floating nav.
 **Notes:**
 - A stale shell wait loop from that session (pid 455216, waiting on a trips-on-map build since about 20:00) is still alive. It uses no build resources. Left alone: it is another session's process.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-145
+**Timestamp:** 2026-09-29T05:49:53Z
+**Dispatch:** 2026-09-28-104
+**Reason:** the -143 relaunch coder handed back items 8, 2, 6 and 9, pushed to journal-redesign at 39328523. The build commits are eb27a60f and 0e58ab52. The report is the "Resumed (relaunch -143)" section of docs/audits/2026-09-29-map-chrome-follow-ups-completion-report.md. Its suite: 2673 / 0 / 0 / 24.
+**Changes:**
+- **A correction to the device check's run record.** docs/audits/2026-09-28-map-chrome-device-check-run-record.md:837 (repeated at :1029) says "The entry map follows neither the basemap nor Night Maps".
+  - The part about Night Maps is **wrong**, and superseded here. The planner viewed the frames ~/Zynergy/device-evidence/2026-09-28-map-chrome-check/c5-street-night-12-entry-menu.png and c5-topo-day-12-entry-menu.png. The night frame's entry map is dark with the night palette, and the day frame's is light.
+  - The part about the basemap is right: both frames draw OpenTopoMap. Item 8's seed fixes that.
+  - The run record is left as written.
+- The coder's test corrections to the previous window's work (a missing import; a Back that left fullscreen instead of closing the sheet) are noted.
+**Notes:**
+- Not closed. The terminal waits on the planner's own idle full suite.
+- Coder flags:
+  - one Gradle run was started at 2453 MB free, against the 2.5 GB rule;
+  - it deleted its own stale log device-evidence/t97-base-run.log from the shared evidence directory;
+  - bottomNavHeightPx keeps its last value after the nav leaves composition.
+- Written by the planner by hand.
