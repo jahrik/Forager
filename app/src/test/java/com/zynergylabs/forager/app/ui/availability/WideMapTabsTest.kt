@@ -42,6 +42,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 /**
  * J6b, the tablet map (dispatch 2026-09-28-152, items 11-13; the owner's rulings in
@@ -228,34 +229,40 @@ class WideMapTabsTest {
     }
 
     @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
     fun `FAILS AT BASE the chip row clears the Layers button on the tabbed map`() {
-        setScreen(SEARCHED_LONG_NAME_STATE, cartographyUiState = ONE_SHOWN_ENTRY)
+        setScreen(SEARCHED_STATE, cartographyUiState = ONE_SHOWN_ENTRY)
         assertChipsClearOfLayers("portrait, the map across 464 dp")
     }
 
     /**
-     * Three wrong predictions of mine, recorded, each read from a base run's XML. I wrote this and the 480 dp
-     * test as FAILS AT BASE tests with a taxon chip alone, and both passed at base: a chip is bounded by its
-     * own maximum width. I then made both show the two-chip row the pulse measured (the taxon chip and
-     * "N journal entries on map"), and both still passed at base. The row wraps to a widest line of about
-     * 368 dp, centred, so on a map W wide it ends at (W + 368) / 2: 501 on the 596 dp map (Layers starts at
-     * 541) and exactly 424 on the 480 dp map (Layers starts at 424). The planner's 480 dp minimum is where a
-     * side by side map stops needing the inset. It is needed on a narrower map, which only the tabbed layout
-     * gives: 464 dp portrait ends at 416, Layers starts at 408. So these two are guards, and the tabbed test
-     * below is the one the inset is for. It fails at base too, but at base its map is 103 dp wide, so the
-     * proof that the *inset* is what fixes it is a revert of the inset alone, after the build.
+     * **Native graphics, and why.** Robolectric's default graphics mode measures text at close to no width, so
+     * the chips were 84 dp and 47 dp wide there and nothing could overlap; a first version of these tests
+     * (a taxon chip alone, then a long species name to stress it) passed at base for that reason, and a
+     * revert of the inset alone left every test green. `@GraphicsMode(NATIVE)`, as the project's own
+     * chip-fit guard uses, gives real text widths: the taxon chip 277 dp, "1 journal entry on map" 158 dp,
+     * 443 dp on one line with the gap.
+     *
+     * Centred on a map W wide, with no inset, that row ends at (W + 443) / 2 + the row's 8 dp margin:
+     * 1240 on the 596 dp map (Layers starts at 1262: clear, so a guard), 1182 on the 480 dp map (Layers
+     * starts at 1145) and 816 on the tabbed 464 dp map (Layers starts at 768). The inset is what the last two
+     * need: it narrows the row's room so it wraps to two lines clear of the button. The tabbed test also fails
+     * at base for another reason (its map is 103 dp wide there), so the proof that the *inset* is what fixes
+     * it is a revert of the inset alone.
      */
     @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
     @Config(qualifiers = "w1318dp-h824dp-mdpi")
     fun `GUARD the chip row clears the Layers button on the 596 dp side by side map`() {
-        setScreen(SEARCHED_LONG_NAME_STATE, cartographyUiState = ONE_SHOWN_ENTRY)
+        setScreen(SEARCHED_STATE, cartographyUiState = ONE_SHOWN_ENTRY)
         assertChipsClearOfLayers("landscape, the map beside the list at 596 dp")
     }
 
     @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
     @Config(qualifiers = "w1201dp-h900dp-mdpi")
-    fun `GUARD the chip row clears the Layers button on the narrowest side by side map, 480 dp, with no room to spare`() {
-        setScreen(SEARCHED_LONG_NAME_STATE, cartographyUiState = ONE_SHOWN_ENTRY)
+    fun `FAILS AT BASE the chip row clears the Layers button on the narrowest side by side map, 480 dp`() {
+        setScreen(SEARCHED_STATE, cartographyUiState = ONE_SHOWN_ENTRY)
         assertChipsClearOfLayers("1201 dp, the map beside the list at exactly 480 dp")
     }
 
@@ -303,15 +310,8 @@ class WideMapTabsTest {
             sightings = listOf(MATCHING_SIGHTING, OTHER_SIGHTING),
         )
 
-        /** A name long enough that a chip centred over a 464 dp or a 596 dp map runs under the Layers button unless the row is given an end inset. */
         val ONE_SHOWN_ENTRY = CartographyUiState(
             entries = listOf(CartographyEntry.draft(id = "entry-1", date = LocalDate.of(2026, 9, 12), updatedAtEpochMillis = 1_000L).copy(isDraft = false, text = "A walk.", shownOnMap = true)),
-        )
-
-        val LONG_NAME = "Pacific Golden Chanterelle, also called the Western golden chanterelle of the Cascade foothills"
-        val SEARCHED_LONG_NAME_STATE = SEARCHED_STATE.copy(
-            forecast = SEARCHED_STATE.forecast!!.copy(entries = listOf(AvailabilityEntry(species = species(LONG_NAME), relativeLikelihood = 1f))),
-            sightings = listOf(MATCHING_SIGHTING.copy(commonName = LONG_NAME)),
         )
     }
 }
