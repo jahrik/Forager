@@ -9,6 +9,7 @@ import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -232,6 +233,49 @@ class LayoutFixesChipRowLandscapeTest {
     @Test fun `S10 at ROTATION_270 with a long label the chip row stays out of the central third`() {
         setScreen(Surface.ROTATION_270, LONG_LABEL)
         assertChipRowClearOfCentralThird()
+    }
+
+    // Planner message 2026-09-29-07 (the owner's "Option B for the chips"): the wrapped two-chip row's DRAWN chips clear
+    // the central third with the standard label as well. The row is measured from the two chips' tagged bounds, which are
+    // the drawn pills (J8's is 32 dp tall inside its 48 dp touch box; see the report).
+    @Test fun `S10 at ROTATION_90 with the standard label the wrapped two-chip row's drawn chips stay out of the central third`() {
+        setScreen(Surface.ROTATION_90)
+        assertChipRowClearOfCentralThird()
+    }
+
+    @Test fun `S10 at ROTATION_270 with the standard label the wrapped two-chip row's drawn chips stay out of the central third`() {
+        setScreen(Surface.ROTATION_270)
+        assertChipRowClearOfCentralThird()
+    }
+
+    /**
+     * J8's chip keeps taking touches over its whole drawn pill: real touches 3 dp inside its top and bottom edges and at its
+     * left and right ends each open its list. (Measured at `3bbbcfa`: a touch 6 dp OUTSIDE the pill does not reach the chip,
+     * so J8's tappable area is the pill, `JournalEntriesChip.kt`'s own note; the 48 dp box around it is layout only.)
+     */
+    private fun assertJournalChipKeepsItsTouchBox() {
+        val chip = tag(JOURNAL_ENTRIES_CHIP_TAG)
+        assertEquals("J8's drawn pill is 32 dp tall", 32f, (chip.bottom - chip.top).value, 0.5f)
+        val cx = (chip.left + chip.right) / 2
+        val cy = (chip.top + chip.bottom) / 2
+        listOf(cx to chip.top + 3.dp, cx to chip.bottom - 3.dp, chip.left + 12.dp to cy, chip.right - 12.dp to cy).forEach { (x, y) ->
+            composeRule.touchAt(x, y)
+            assertTrue("a real touch at (${x.value}, ${y.value}) on the pill ${chip.describe()} opened its list",
+                composeRule.onAllNodesWithTag(JOURNAL_ENTRIES_LIST_TAG).fetchSemanticsNodes().isNotEmpty())
+            // A touch outside the popup dismisses it before the next.
+            composeRule.onAllNodes(androidx.compose.ui.test.isRoot()).onFirst().performTouchInput { down(center); up() }
+            composeRule.waitForIdle()
+        }
+    }
+
+    @Test fun `T7 at ROTATION_90 J8's chip keeps taking touches over its pill under the tightened spacing`() {
+        setScreen(Surface.ROTATION_90)
+        assertJournalChipKeepsItsTouchBox()
+    }
+
+    @Test fun `T7 at ROTATION_270 J8's chip keeps taking touches over its pill under the tightened spacing`() {
+        setScreen(Surface.ROTATION_270)
+        assertJournalChipKeepsItsTouchBox()
     }
 
     /** The taxon chip's label is one ellipsized line, and the whole row is a single line tall. */

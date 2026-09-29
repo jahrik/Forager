@@ -1139,7 +1139,12 @@ internal fun CompactMapTab(
                 if (mapTaxonFilterLabel != null || shownJournalEntries.isNotEmpty()) {
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                        // Part 1 layout fixes (the owner's "Option B for the chips", planner message 2026-09-29-07): in
+                        // short landscape the wrapped second line follows the first with no gap, so the drawn chips of a
+                        // two-line row end above the window's central third. J8's chip keeps its 48 dp layout box (its
+                        // drawn pill is centred in it, 8 dp of margin above and below), so the margin, not the chip,
+                        // takes the space. Portrait keeps its 4 dp.
+                        verticalArrangement = Arrangement.spacedBy(if (punchHoleEdge != null && landscapeSearchWidth != null) 0.dp else Spacing.xs),
                         modifier = if (punchHoleEdge != null && landscapeSearchWidth != null) {
                             // Landscape B2 (S3): directly under the search bar (the strip is in
                             // the rail corner now, not under the bar), in a column the bar's own
