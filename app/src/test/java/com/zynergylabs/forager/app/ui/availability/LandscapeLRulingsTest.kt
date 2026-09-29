@@ -30,6 +30,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 import org.robolectric.shadows.ShadowDisplay
 
 /**
@@ -121,9 +122,9 @@ class LandscapeLRulingsTest {
         assertTrue("the L ${cluster().describe()} fits inside the map area ${tag(LAYOUT_FIXES_MAP_TAG).describe()}", cluster().bottom <= tag(LAYOUT_FIXES_MAP_TAG).bottom + 0.5.dp)
     }
 
-    @Test fun `A1 at ROTATION_90 the L's top is never above the search bar's bottom`() = assertTopLimit(Surface.ROTATION_90)
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) fun `A1 at ROTATION_90 the L's top is never above the search bar's bottom`() = assertTopLimit(Surface.ROTATION_90)
 
-    @Test fun `A1 at ROTATION_270 the L's top is never above the search bar's bottom`() = assertTopLimit(Surface.ROTATION_270)
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) fun `A1 at ROTATION_270 the L's top is never above the search bar's bottom`() = assertTopLimit(Surface.ROTATION_270)
 
     // ── (b) The notice makes room for the L; the L stays put ──
 
@@ -152,13 +153,13 @@ class LandscapeLRulingsTest {
         assertTrue("the L's top ${cluster().top.value} is above the notice's bottom ${notice.bottom.value}: it does not follow the floor", cluster().top < notice.bottom)
     }
 
-    @Test fun `B1 at ROTATION_90 with the L on the left a notice makes room and the L does not move`() = assertNoticeMakesRoom(Surface.ROTATION_90, clusterLeft = true)
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) fun `B1 at ROTATION_90 with the L on the left a notice makes room and the L does not move`() = assertNoticeMakesRoom(Surface.ROTATION_90, clusterLeft = true)
 
-    @Test fun `B1 at ROTATION_90 with the L on the right a notice makes room and the L does not move`() = assertNoticeMakesRoom(Surface.ROTATION_90, clusterLeft = false)
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) fun `B1 at ROTATION_90 with the L on the right a notice makes room and the L does not move`() = assertNoticeMakesRoom(Surface.ROTATION_90, clusterLeft = false)
 
-    @Test fun `B1 at ROTATION_270 with the L on the right a notice makes room and the L does not move`() = assertNoticeMakesRoom(Surface.ROTATION_270, clusterLeft = false)
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) fun `B1 at ROTATION_270 with the L on the right a notice makes room and the L does not move`() = assertNoticeMakesRoom(Surface.ROTATION_270, clusterLeft = false)
 
-    @Test fun `B1 at ROTATION_270 with the L on the left a notice makes room and the L does not move`() = assertNoticeMakesRoom(Surface.ROTATION_270, clusterLeft = true)
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) fun `B1 at ROTATION_270 with the L on the left a notice makes room and the L does not move`() = assertNoticeMakesRoom(Surface.ROTATION_270, clusterLeft = true)
 
     // ── (c) The minimise handle's box ──
 
@@ -173,7 +174,7 @@ class LandscapeLRulingsTest {
         assertEquals("the handle is centred on the locate row ${locate.describe()} (${h.describe()})", (locate.top.value + locate.bottom.value) / 2f, (h.top.value + h.bottom.value) / 2f, 0.5f)
         assertFalse("the handle ${h.describe()} does not reach the compass row ${compass.describe()}", h.overlapsRect(compass))
         assertFalse("the handle ${h.describe()} does not reach the Layers row ${layers.describe()}", h.overlapsRect(layers))
-        val mark = tag("map-icon-bar-minimize-handle-mark")
+        val mark = composeRule.onNode(hasTestTag("map-icon-bar-minimize-handle-mark"), useUnmergedTree = true).getUnclippedBoundsInRoot()
         assertEquals("the mark is unchanged: 10 dp wide", 10f, (mark.right - mark.left).value, 0.5f)
         assertEquals("the mark is unchanged: 48 dp tall, and fits the box", 48f, (mark.bottom - mark.top).value, 0.5f)
     }
@@ -267,7 +268,7 @@ class LandscapeLRulingsTest {
         cases.forEach { (name, at) ->
             val before = map.taps
             composeRule.touchAt(at.first, at.second)
-            assertEquals("a real touch $name reached the map (bar ${bar.describe()}, pill ${pill.describe()})", before + 1, map.taps)
+            assertEquals("a real touch $name reached the map (bar ${bar.describe()}, pill ${pill.describe()}, map ${tag(LAYOUT_FIXES_MAP_TAG).describe()})", before + 1, map.taps)
         }
     }
 

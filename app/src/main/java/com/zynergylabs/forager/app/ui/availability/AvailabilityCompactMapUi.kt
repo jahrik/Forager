@@ -51,6 +51,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -96,6 +97,7 @@ import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_EDGE_INSET
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_LANDSCAPE_ROW_SPACING
 import com.zynergylabs.forager.app.ui.map.mapIconChromeFillColor
 import com.zynergylabs.forager.app.ui.map.MIN_TOUCH_TARGET
+import com.zynergylabs.forager.app.ui.map.HANDLE_DEFAULT_TAP_HEIGHT
 import com.zynergylabs.forager.app.ui.map.MapIconBar
 import com.zynergylabs.forager.app.ui.map.MapIconBarMinimizeHandle
 import com.zynergylabs.forager.app.ui.map.MapIconBarRestoreHandle
@@ -707,7 +709,18 @@ internal fun CompactMapTab(
                 // this Box) is what makes its translucency actually work.
                 // The strip's own measured height goes with it, so a notice in the slot can be placed below the strip
                 // (item 2). Zero while the strip is not composed.
-                searchBarSlot(with(compassStripDensity) { compassStripHeightPx.toDp() })
+                // Owner's ruling (b), continuation 2026-09-28-172: in the landscape L, a notice on the same side as the L is inset on
+                // that side by 8 + the L's measured width + 8, as the legend makes room (legendEndPadding below). Elsewhere none.
+                val noticeAnchoredLeft = punchHoleEdge == ScreenEdge.Left
+                val noticeInsetDp = MAP_ICON_BAR_EDGE_INSET + with(compassStripDensity) { mapIconClusterWidthPx.toDp() } + Spacing.sm
+                val searchNoticeInset = when {
+                    !landscapeCluster || isMapIconBarOnLeftSide != noticeAnchoredLeft -> SearchNoticeInset.None
+                    isMapIconBarOnLeftSide -> SearchNoticeInset(left = noticeInsetDp)
+                    else -> SearchNoticeInset(right = noticeInsetDp)
+                }
+                CompositionLocalProvider(LocalSearchNoticeInset provides searchNoticeInset) {
+                    searchBarSlot(with(compassStripDensity) { compassStripHeightPx.toDp() })
+                }
                 // minY = compassStripClearance, a real measurement of the strip's own type style: the
                 // strip is composed after this in the same Box (so its own controls win any overlap)
                 // and is full-width against the map's top edge, so a glyph tapped near the top would
@@ -815,7 +828,15 @@ internal fun CompactMapTab(
                 // one clamp, derived live, used by the drag path and the effect alike; no path
                 // holds its own copy, and nothing re-runs the effect more often to paper over it.
                 val currentIsFullscreen by rememberUpdatedState(isFullscreen)
+                val currentLandscapeCluster by rememberUpdatedState(landscapeCluster)
+                // Owner's ruling (a), continuation 2026-09-28-172: "The L's top is never above the search bar's bottom." In the landscape L
+                // that limit is topInset, the search bar's own bottom edge, without the strip clearance added on top of it for
+                // the SearchDropdown's space (the strip is in the other corner in a short landscape window, and the dropdown's own top is
+                // not the L's concern): with the clearance the L is 33 dp too tall for a 384 dp window under Robolectric's legacy text
+                // metrics (limit 121 + 296 = 417 > 384), where without it it fits (85 + 296 = 381). Portrait keeps the clearance.
+                val currentTopInsetPx by rememberUpdatedState(with(compassStripDensity) { topInset.toPx() })
                 val currentDropdownTopPx by rememberUpdatedState(dropdownTopPx)
+                val currentTopLimitPx = if (currentLandscapeCluster) currentTopInsetPx else currentDropdownTopPx
                 // Part 1 layout fixes (the owner's "2 A", planner message 2026-09-29-04): not in short
                 // landscape, where the legend now sits beside the cluster and no longer lies below it.
                 // Map layers L0b (Q4): the chip's top, only while the chip is on the cluster's side
@@ -842,8 +863,11 @@ internal fun CompactMapTab(
                     // dropdownTopPx, so the bar can't rise into the dropdown's own space
                     // (icon-bar-drag-refinements dispatch, Item 4).
                     val maxUpwardOffsetPx = if (mapIconClusterHeightPx > 0f) {
-                        (currentDropdownTopPx - (mapContentBoxHeightPx - mapIconClusterHeightPx) / 2f)
-                            .coerceIn(-fallbackDownwardOffsetPx, 0f)
+                        (currentTopLimitPx - (mapContentBoxHeightPx - mapIconClusterHeightPx) / 2f)
+                            // Owner's ruling (a), continuation 2026-09-28-172: in the landscape L the top limit pushes the L down as well as
+                            // pulling it up, so its top is never above the search bar's bottom. Portrait keeps 0 as the upper bound (the limit
+                            // only ever raised a cluster that sat above it there, never lowered a centred one).
+                            .coerceIn(-fallbackDownwardOffsetPx, if (currentLandscapeCluster) Float.POSITIVE_INFINITY else 0f)
                     } else {
                         -fallbackDownwardOffsetPx
                     }
@@ -876,7 +900,9 @@ internal fun CompactMapTab(
                 val currentNoticeBottomPx by rememberUpdatedState(with(compassStripDensity) { searchNoticeBottom.toPx() })
                 fun clampMapIconBarVerticalOffset(offsetPx: Float): Float {
                     val clamped = clampBelowChromeVerticalOffset(offsetPx)
-                    if (currentNoticeBottomPx <= 0f || mapIconClusterHeightPx <= 0f) return clamped
+                    // Owner's ruling (b), continuation 2026-09-28-172: in the landscape L the notice makes room for the L instead (the
+                    // notice's L-side end is inset, see LocalSearchNoticeInset), so the L stays where it is. Portrait is unchanged.
+                    if (currentLandscapeCluster || currentNoticeBottomPx <= 0f || mapIconClusterHeightPx <= 0f) return clamped
                     val noticeFloorPx = currentNoticeBottomPx - (mapContentBoxHeightPx - mapIconClusterHeightPx) / 2f
                     val lowestPx = clampBelowChromeVerticalOffset(Float.MAX_VALUE)
                     return maxOf(clamped, minOf(noticeFloorPx, lowestPx))
@@ -1025,7 +1051,7 @@ internal fun CompactMapTab(
                         .then(mapIconBarPositionOffset),
                 ) {
                     Box {
-                        val clusterBar: @Composable (Color, Dp) -> Unit = { barFill, barRowSpacing ->
+                        val clusterBar: @Composable (Color, Dp, Boolean) -> Unit = { barFill, barRowSpacing, barFullSquareHits ->
                             MapIconBar(
                                 isFullscreen = isFullscreen,
                                 onToggleFullscreen = onToggleFullscreen,
@@ -1046,6 +1072,7 @@ internal fun CompactMapTab(
                                 },
                                 fillColor = barFill,
                                 rowSpacing = barRowSpacing,
+                                fullSquareHits = barFullSquareHits,
                                 // Feeds the panels' and handles' anchors — see
                                 // mapIconBarCentreInClusterPx's own doc comment.
                                 modifier = Modifier.onGloballyPositioned { coordinates ->
@@ -1095,7 +1122,7 @@ internal fun CompactMapTab(
                             Box(modifier = clusterMeasure) {
                                 LandscapeLCluster(
                                     onLeftSide = isMapIconBarOnLeftSide,
-                                    bar = { clusterBar(Color.Unspecified, MAP_ICON_BAR_LANDSCAPE_ROW_SPACING) },
+                                    bar = { clusterBar(Color.Unspecified, MAP_ICON_BAR_LANDSCAPE_ROW_SPACING, true) },
                                     pill = { clusterPill(true, mapIconChromeFillColor(), MAP_ICON_BAR_LANDSCAPE_ROW_SPACING) },
                                 )
                             }
@@ -1119,7 +1146,7 @@ internal fun CompactMapTab(
                                         horizontalAlignment = if (isMapIconBarOnLeftSide) Alignment.Start else Alignment.End,
                                         verticalArrangement = Arrangement.spacedBy(CONTROL_PILL_GAP_BELOW_MAP_ICON_BAR),
                                     ) {
-                                        clusterBar(mapIconClusterChildColor(), Spacing.xs)
+                                        clusterBar(mapIconClusterChildColor(), Spacing.xs, false)
                                         clusterPill(false, Color.Unspecified, Spacing.xs)
                                     }
                                 }
@@ -1128,6 +1155,8 @@ internal fun CompactMapTab(
                         MapIconBarMinimizeHandle(
                             onMinimize = { isMapIconBarMinimized = true },
                             onLeftSide = isMapIconBarOnLeftSide,
+                            // Owner's ruling (c), continuation 2026-09-28-172: in the landscape L the box is one row tall, centred on the locate row.
+                            tapHeight = if (landscapeCluster) MIN_TOUCH_TARGET else HANDLE_DEFAULT_TAP_HEIGHT,
                             modifier = Modifier
                                 .align(mapIconBarSideAlignment)
                                 .then(mapIconBarCentreShiftOffset)
