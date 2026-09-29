@@ -1193,3 +1193,11 @@ This also makes the delete-data page's "Recorded tracks" line true.
 The owner, verbatim: "Option B".
 
 The planner's placement: B changes the database (a place for the path), the backup's table list and Merge rules, and the entry map's drawing. So it is its own stage, F3, after F1, built on a read-only pulse of how kept snapshots are stored. F1's track delete lands first, and the two land before PR #140.
+
+**Kept track paths: F3's design (owner, 2026-09-29).** Asked after the kept-track-path pulse (`docs/audits/2026-09-29-kept-track-path-pulse.md`), the owner answered, verbatim: "All recommended. I'll review the other items".
+1. **The path is copied only when a track is deleted.** Just before the delete, it goes into every journal entry that has the track, kept or withheld. It is stored in a new table, `cartography_entry_track_paths(entryId, trackId, path)`, as the read-seam-filtered lat/lng in time order. No backfill is needed.
+2. **Backup Merge keeps an entry's track refs, and their saved paths, even when the phone lacks the track.** This reverses the backup report's decision 8 for track refs only.
+3. **The saved path shows wherever the entry shows the track:** its map, its card thumbnail, and the bubble for a tapped track line. The Maps tab's highlight stays live, per the earlier "Live records" ruling.
+4. **Drafts get the saved path too.**
+
+Sequencing: F1's track delete lands first and F3 right after, both before PR #140.
