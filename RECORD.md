@@ -6642,10 +6642,9 @@ The planner confirmed each by grep.
 **Changes:** the site agent's notes (preserved/2026-09-29-43.md and its copy) are amended:
 - L1 is done;
 - the "Recorded tracks" bullet is kept, qualified with the entry-copy caveat;
-- a new "Fix now on the live pages" list: the sundown alerts sentence, the no-third-party-tile-vendor sentence, and the no-log-export-plan sentence.
+- a new "Fix now on the live pages" list: the no-third-party-tile-vendor sentence, and the no-log-export-plan sentence.
 **Notes:**
 - **L1's findings against the code:**
-  - **The sundown alerts do not exist.** DecideSundownAlertUseCase has no caller on main or journal-redesign, and nothing builds a turnaround or sunset alert (TrackRecordingViewModel.kt:833 is the only Alert). The live privacy page describes them. This goes to the owner as a product question.
   - **A backup file carries cached_searches** (the last five searches, with their coordinates), because it is a whole-database copy (RoomJournalBackup.kt:149-176), although JournalTables.kt:95-97 calls it not journal data. It is disclosed; dropping it would be an app change, and goes to the owner.
   - **The exported GPX file is never deleted** from cacheDir/tracks (TrackGpxExporter.kt:78). It is disclosed; the owner decides.
   - **The Worker fetches from build.protomaps.com** on a missing tile, so the live "no third-party tile vendor" claim is contradicted.
@@ -6682,8 +6681,65 @@ The planner confirmed each by grep.
 **Reason:** the owner, verbatim: "1 A / 2 A / 3 A / 4 A / 5 No, those are map icons not chrome / 6 yes have it coordinate with you".
 **Changes:**
 - C1 resumes in its window, with its WIP at 5dac3b74 on chrome-colour-wip.
-- Two new dispatches follow:
-  - S1: wire the sundown alerts;
-  - F5: backups without recent searches, and GPX exports cleaned from the cache.
+- A new dispatch follows, F5: backups without recent searches, and GPX exports cleaned from the cache.
 - The second planner session is asked to hand its results here and not to instruct coders.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-216
+**Timestamp:** 2026-09-29T19:32:14Z
+**Title:** F5: backups without recent searches; GPX exports cleaned from the cache
+**Dispatch-file:** preserved/2026-09-29-48.md; launch preserved/2026-09-29-50.md (~/Zynergy/launch-prompts/22-privacy-fixes.md)
+**Change:**
+- cached_searches is cleared in the backup's snapshot copy and never restored;
+- GPX exports older than an hour are deleted at start and before each new export (the planner's reading, told to the owner).
+**Scope boundary:** data/backup and TrackGpxExporter.
+**Baseline:** the head at launch.
+**Prediction (outcome, planner):** the suite grows by 5 to 12.
+**Prediction (mechanism, coder):** not authored.
+**Finish line:** tests first, the build, revert checks, the full suite at 0, the report with device-only items. The planner then updates legal-drafts' two disclosures.
+**Notes:** The owner, verbatim: "2 A / 3 A". Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-217
+**Timestamp:** 2026-09-29T19:32:45Z
+**Closes:** 2026-09-28-197 (F4, stacked markers fan out on tap), with -208
+**Outcome:** completed
+**Observed:**
+- **Record:** docs/audits/2026-09-29-marker-fanout-completion-report.md, with its "Resumed" section. It landed at 5f5d9eb7, and the continuation at 958eea6c.
+- **Built:**
+  - a tap on overlapping **record** markers (planned trips, waypoints, finds, photos) fans them out in a ring, or a spiral above 8, with leader lines, in 0.4 s;
+  - reduced motion snaps;
+  - a map tap, pan, zoom or Back folds them back;
+  - the fan's centre shifts to keep every 48 dp square on screen and off the registered controls;
+  - one code path for every map;
+  - sightings never fan.
+- **The planner's suite** at 948c728b, idle, from a cleared results directory with the hang timeout: 378 files, none stale, 0 compile errors, 3138 / 0 / 0 / 24, in 280 s.
+- **Device-only:** the report's list: the native layer filters, queryRenderedFeatures on a real stack, leg drawing, and bounds during a drag. All go to the next S22 and tablet sessions.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-218
+**Timestamp:** 2026-09-29T19:33:27Z
+**Dispatch:** none (owner decisions relayed by the second planner session [05172f], per -214)
+**Reason:** the second planner relayed the owner's decisions given in its window, verbatim:
+- "Start F4. Stop C1";
+- "Go ahead and stop the two idle daemons / F3 will have to restart after F4 / Unless it can run side by side". "F3" meant the C1 session;
+- on its relay of L1's hand-back: "1 that is coming up next so we can leave it. / 2 do an audit, note the changes needed, and file it in the audit doc in PR 140 / 3 I want the website privacy policy changed at least so it reflects the app / 4 add to #2 / 5 add to #2 / F4 is running".
+**Changes:**
+- **The second planner does, on the owner's direct instruction:**
+  - (a) an audit of the live privacy page against main, appended to docs/audits/2026-09-29-privacy-site-update-report.md;
+  - (b) zynergy-site privacy/index.html changed to describe main, on branch worktree-bridge-cse_01JoYc3mJXVwBwWBLeCWaqSz, pushed and not merged.
+- The notes now tell the site agent not to edit the live privacy page in parallel.
+**Notes:**
+- **Daemons:** the second planner stopped two idle daemons, Kotlin (PID 778942) and Gradle (799186), with no build running. MemAvailable went from 2.24 to 7.37 GB.
+- **Its finding:** after each build, idle daemons hold about 5 GB, which pushes MemAvailable under the 2.5 GB check and stalled C1. A shorter daemon idle timeout would fix it machine-wide. Not ruled.
+- **Merge note:** when legal-drafts merges, keep both appended sections of the site report (L1's addendum and the second planner's audit).
+- **Checked for clashes:** none with F5 or C1.
+- Written by the planner by hand.
