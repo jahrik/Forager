@@ -420,6 +420,39 @@ internal abstract class JournalEntriesOnMapCompactTests : JournalEntriesOnMapHar
         assertEquals(0, composeRule.onAllNodesWithText("Show on map").fetchSemanticsNodes().size)
     }
 
+    // Dispatch 2026-09-28-104, item 7: "Show on map" only when the saved entry keeps at least one record
+    // the map can highlight (its kept decisions and attached photos, as GetJournalEntryHighlightsUseCase
+    // reads them). Hidden, not disabled, as the report's other absent controls are.
+    @Test
+    fun `the report menu does not offer Show on map on a saved entry that keeps nothing`() {
+        setScreen(entryB(shown = false))
+        openEntryReport("entry-b", ENTRY_B_TEXT)
+        openEntryMenu()
+
+        composeRule.onNodeWithText("Edit entry").assertIsDisplayed()
+        composeRule.onNodeWithText("Delete entry").assertIsDisplayed()
+        assertEquals("no Show on map", 0, composeRule.onAllNodesWithText("Show on map").fetchSemanticsNodes().size)
+        assertEquals("nor a Hide from map", 0, composeRule.onAllNodesWithText("Hide from map").fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `the report menu still offers Hide from map on a shown entry that keeps nothing`() {
+        setScreen(entryB(shown = true))
+        openEntryReport("entry-b", ENTRY_B_TEXT)
+        openEntryMenu()
+
+        composeRule.onNodeWithText("Hide from map").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the report menu offers Show on map on a saved entry that keeps a record`() {
+        setScreen(entryA(shown = false))
+        openEntryReport("entry-a", ENTRY_A_TEXT)
+        openEntryMenu()
+
+        composeRule.onNodeWithText("Show on map").assertIsDisplayed()
+    }
+
     @Test
     fun `a failed Show on map shows exactly Changes not applied, Try again, and changes nothing`() {
         failShownOnMapWrites = true
