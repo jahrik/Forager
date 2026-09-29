@@ -7132,3 +7132,17 @@ The planner confirmed each by grep.
 - The premise pulse (read-only, at 2a2a5b35) was relayed to the planner, not committed.
 - Its findings are in the dispatch as premises to verify.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-246
+**Timestamp:** 2026-09-29T22:48:55Z
+**Dispatch:** 2026-09-28-245 (tablets as a big phone)
+**Reason:** the owner, verbatim: "We did the rotation work on the phone so it should carry across to the tablet". Asked, the owner chose "Landscape tablet = phone landscape", and said of -245's recorded answer: "I never okay that."
+**Changes:**
+- **Correction to -245:** its "landscape tablet 'Portrait layout is fine'" is **not** the owner's decision. The owner states it was never approved, and it is withdrawn.
+  - The other two answers recorded there ("All tablet code"; release note "Nothing") stand unless the owner says otherwise. The planner has asked the owner to confirm them.
+- **An amendment to preserved/2026-09-29-56:** the phone's landscape layouts apply to any landscape window, not only to short ones. The gate becomes short **or** landscape. Every phone outcome is unchanged, and the dispatch adds tests at the landscape-tablet size.
+- **The build coder,** already running, is sent the amendment.
+**Notes:** Written by the planner by hand.
