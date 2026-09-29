@@ -1201,3 +1201,13 @@ The planner's placement: B changes the database (a place for the path), the back
 4. **Drafts get the saved path too.**
 
 Sequencing: F1's track delete lands first and F3 right after, both before PR #140.
+
+**Stacked map markers fan out on tap (owner, 2026-09-29).** Part 2 Session 2 (item 52) and F1's item 10 found that when markers overlap, for example two photos at one spot, a tap reaches only the top one. The planner offered:
+- A: a chooser list;
+- B: clustering;
+- C: fan out on tap;
+- D: leave it.
+
+The owner, verbatim: "Option C / This sounds better than the other options  and honestly, it's like A, but it keeps the icons, which is more robust for UX."
+
+The planner's proposed behaviour, from the common map convention of fanning a stack out around its point, goes to the owner to confirm before a dispatch (F4).
