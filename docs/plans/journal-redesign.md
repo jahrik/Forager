@@ -903,3 +903,7 @@ The planner's placement: after the trips fix (`-97`) and the map-chrome follow-u
 - **Restore prompt:** the title "Restore this backup?", the owner's body, the buttons Replace, Merge and Cancel; afterwards "Restore complete." or "Couldn't restore that backup."
 
 **J8's chip tap area (owner, 2026-09-29).** The chip responds only on its 32 dp pill, J8's "touches only on its pill" design, inside a 48 dp layout box. The owner, verbatim: **"Option A for now. We may need to change it if it's too small"**. It stays pill-only. Device check Part 2 captures how the pill feels to tap, at its edges, for the owner to judge, and the full 48 dp is revisited if it proves too small.
+
+**Photo export: imports leave unchanged (owner, 2026-09-29, via the -126 coder).** Ruling 2 above ("Exported photos carry no location") now covers **photos taken in the app only**. The owner, verbatim, as quoted in `docs/audits/2026-09-29-photo-export-completion-report.md:19`: "Imported photos taken outside the app are not within our scope. They can use a scrubbing app to remove it if they want it removed. All photos taken inside the app are scrubbed either way and that's our scope". It was confirmed with "Export imports unchanged (Recommended)". So every photo is exported as a byte copy of its stored file, and an imported photo may carry its own location or other metadata into the Gallery.
+
+Alternative rejected: stripping imports. The existing scrubber handles JPEG only, while imports can be HEIC, PNG or WebP. The privacy policy and beta README must say this (record 2026-09-28-131).
