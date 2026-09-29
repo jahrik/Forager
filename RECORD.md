@@ -5561,3 +5561,19 @@ The re-check runs in Part 2 with the deferred items 38, 39, 40 and 42.
 - The owner's ruling "A" is recorded verbatim in the plan, under "The L's height".
 - Sent by SendMessage to the window that built -104's relaunch (socket 415979), which knows this code.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-161
+**Timestamp:** 2026-09-29T07:52:45Z
+**Dispatch:** 2026-09-28-160, and the running -152 and -154
+**Reason:** ListAgents shows that this planner session's ref is now [4b12e2], under the name "# Planner session". Every launch prompt named [9b334a].
+- The earlier coder windows (backup, photo export, map chrome) now show offline. So -160 cannot be sent to the map-chrome window as -160's Notes said, and needs a fresh window.
+**Changes:**
+- J6 (c9ccd1) and the session believed to be Part 2 Session 1 (bc1f21) were messaged the new ref.
+- Launch prompts for Part 2 Sessions 2 and 3 now name the planner by name and ref.
+- -160's launch prompt is preserved/2026-09-29-27.md (~/Zynergy/launch-prompts/14-landscape-l.md), for a fresh window.
+**Notes:**
+- That bc1f21 is Session 1 is the planner's inference from its start time. The message tells it to ignore the note if it is not.
+- Written by the planner by hand.
