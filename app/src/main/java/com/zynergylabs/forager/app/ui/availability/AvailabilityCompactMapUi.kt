@@ -54,6 +54,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -68,6 +69,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -350,7 +352,13 @@ internal fun CompactMapTab(
      * call site today (compactMainScaffold's own Map tab branch), which supplies the bar; nothing
      * else needs to know this parameter exists.
      */
-    searchBarSlot: @Composable () -> Unit = {},
+    searchBarSlot: @Composable (compassStripHeight: Dp) -> Unit = { _ -> },
+    /**
+     * Dispatch 2026-09-28-104, item 2 (owner, "Option A"): the bottom edge, in this Box's own coordinates, of the search notice while
+     * one shows, else 0. The icon cluster's top limit follows it: the cluster is held at or below this edge and returns to where the
+     * user left it when the notice clears (the clamp is display-only). Placement only.
+     */
+    searchNoticeBottom: Dp = 0.dp,
     modifier: Modifier = Modifier,
     /**
      * Map layers L0b: the Layers sheet's choices and callbacks, the legend and every saved record this
@@ -635,6 +643,9 @@ internal fun CompactMapTab(
             val compassStripTextMeasurer = rememberTextMeasurer()
             val compassStripLabelStyle = MaterialTheme.typography.labelMedium
             val compassStripDensity = LocalDensity.current
+            // The strip's real height, measured on the strip itself where it is composed below (item 2). Not
+            // compassStripClearance, which is one text line's height.
+            var compassStripHeightPx by remember { mutableIntStateOf(0) }
             val compassStripClearance = remember(compassStripLabelStyle, compassStripDensity) {
                 with(compassStripDensity) {
                     compassStripTextMeasurer.measure("Mg", compassStripLabelStyle).size.height.toDp()
@@ -691,7 +702,9 @@ internal fun CompactMapTab(
                 // Composed right after mapSlot — see searchBarSlot's own doc comment for why this
                 // exact nesting (a direct sibling of the map's own AndroidView content, inside
                 // this Box) is what makes its translucency actually work.
-                searchBarSlot()
+                // The strip's own measured height goes with it, so a notice in the slot can be placed below the strip
+                // (item 2). Zero while the strip is not composed.
+                searchBarSlot(with(compassStripDensity) { compassStripHeightPx.toDp() })
                 // minY = compassStripClearance, a real measurement of the strip's own type style: the
                 // strip is composed after this in the same Box (so its own controls win any overlap)
                 // and is full-width against the map's top edge, so a glyph tapped near the top would
@@ -809,7 +822,7 @@ internal fun CompactMapTab(
                 val legendBoundPx = legendChipTopPx?.takeIf { !isMapIconBarOnLeftSide && !landscapeCluster }?.let { it - legendClusterGapPx }
                 val currentLegendBoundPx by rememberUpdatedState(legendBoundPx)
                 // See the comment on the LaunchedEffect below for both bounds' derivations.
-                fun clampMapIconBarVerticalOffset(offsetPx: Float): Float {
+                fun clampBelowChromeVerticalOffset(offsetPx: Float): Float {
                     // The lowest edge the bar may reach: this Box's own bottom in fullscreen, the
                     // nav's own top edge otherwise (mapBottomNavHeightPx's own doc comment).
                     val navBoundPx = mapContentBoxHeightPx - (if (currentIsFullscreen) 0f else mapBottomNavHeightPx)
@@ -850,6 +863,20 @@ internal fun CompactMapTab(
                         return offsetPx.coerceIn(liftedUpwardOffsetPx, maxOf(liftedUpwardOffsetPx, legendLiftPx))
                     }
                     return offsetPx.coerceIn(maxUpwardOffsetPx, maxOf(maxUpwardOffsetPx, maxDownwardOffsetPx))
+                }
+                // Dispatch 2026-09-28-104, item 2: while a search notice shows, the cluster's top is held at or below the
+                // notice's measured bottom, as far down as the cluster may go at all (the lowest edge the clamp above
+                // allows), and the clamp above already lets it rise back when the notice clears, because this is the
+                // user-chosen offset clamped for display, never a change to the memory. Its own function on the clamp above,
+                // not a condition inside it. The floor is the offset that puts the cluster's top edge at the notice's bottom:
+                // the same arithmetic as the clamp's upward bound (the top edge is (box - cluster) / 2 + offset).
+                val currentNoticeBottomPx by rememberUpdatedState(with(compassStripDensity) { searchNoticeBottom.toPx() })
+                fun clampMapIconBarVerticalOffset(offsetPx: Float): Float {
+                    val clamped = clampBelowChromeVerticalOffset(offsetPx)
+                    if (currentNoticeBottomPx <= 0f || mapIconClusterHeightPx <= 0f) return clamped
+                    val noticeFloorPx = currentNoticeBottomPx - (mapContentBoxHeightPx - mapIconClusterHeightPx) / 2f
+                    val lowestPx = clampBelowChromeVerticalOffset(Float.MAX_VALUE)
+                    return maxOf(clamped, minOf(noticeFloorPx, lowestPx))
                 }
                 // Expanded-panels dispatch: where AddActionTile below anchors — the bar's live
                 // position, not its default one. (The map mode popover anchored here too until map
@@ -931,7 +958,7 @@ internal fun CompactMapTab(
                 // mapIconBarUserChosenOffsetPx's own doc comment. Not keyed on the memory itself:
                 // a drag snaps the displayed value directly and is never animated.
                 val mapIconBarOffsetSpec = MotionTokens.navigationMotionSpec<Float>()
-                LaunchedEffect(mapIconClusterHeightPx, mapContentBoxHeightPx, mapBottomNavHeightPx, isFullscreen, landscapeCluster, legendBoundPx) {
+                LaunchedEffect(mapIconClusterHeightPx, mapContentBoxHeightPx, mapBottomNavHeightPx, isFullscreen, landscapeCluster, legendBoundPx, currentNoticeBottomPx) {
                     val targetPx = clampMapIconBarVerticalOffset(mapIconBarUserChosenOffsetPx)
                     if (targetPx != mapIconBarDisplayedOffsetPx.value) {
                         mapIconBarDisplayedOffsetPx.animateTo(targetPx, mapIconBarOffsetSpec)
@@ -1121,9 +1148,12 @@ internal fun CompactMapTab(
                                 .padding(controlsPadding)
                                 .fillMaxWidth()
                                 .padding(top = topInset)
+                                // After the padding, so it is the strip's own height (item 2).
+                                .onSizeChanged { compassStripHeightPx = it.height }
                         },
                         contentWidth = railPortEdge != null,
                     )
+                    DisposableEffect(Unit) { onDispose { compassStripHeightPx = 0 } }
                 }
 
                 // Below the compass strip (topInset + compassStripClearance as top padding), same

@@ -260,7 +260,14 @@ internal fun MapLayersSheet(
         ) {
             Text("Layers", style = MaterialTheme.typography.titleLarge)
             Text("Map type", style = MaterialTheme.typography.titleSmall)
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            // Centred between the sheet's sides (owner, 2026-09-29: "have the map street/topo/satellite chips be centered between the
+            // panel sides. The height position on the panel is fine as is."; dispatch 2026-09-28-104, item 9). The column above has
+            // equal padding at both ends, so centring in it is centring in the sheet; the spacing between chips and the row's height
+            // are unchanged.
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs, Alignment.CenterHorizontally),
+            ) {
                 MapMode.entries.forEach { mode ->
                     FilterChip(
                         selected = mode == mapMode,
