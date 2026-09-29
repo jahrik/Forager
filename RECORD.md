@@ -7042,3 +7042,17 @@ The planner confirmed each by grep.
 **Open for the owner:**
 - **S22-B's and the Tablet's prompts** (-53, -54) still hand back to [05172f]. They get corrected before either launches, in whichever mode the owner picks.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-241
+**Timestamp:** 2026-09-29T22:21:14Z
+**Dispatch:** 2026-09-28-227 (Part 3), S22-B
+**Reason:** S22-A found at pre-registration (device-part-3, c83fabb1) that the checklist's A4 (Journal flows at 90 and 270) and A5 (camera and Gallery) were in neither session's list. The planner confirmed this against preserved/2026-09-29-51:23-46. The owner, verbatim: "Option 1. Add to the S22B check."
+**Changes:**
+- **An amendment to preserved/2026-09-29-51:** S22-B runs A4 and A5 before A6 and before its restore. Item 36 is observed and recorded, not fixed.
+- **S22-B's launch prompt** (preserved/2026-09-29-53, copied to ~/Zynergy/launch-prompts/24-part-3-s22-b.md) now hands back to planner [303193], "bridge-cse-01gsvz2a2dqdptet1ttk1dgh-03", and names the amendment. Nothing else in it changed. S22-B has not launched.
+**Open for the owner:**
+- **The Tablet prompt** (-54) still hands back to [05172f]. It gets corrected before it launches.
+**Notes:** Written by the planner by hand.
