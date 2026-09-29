@@ -126,6 +126,25 @@ class LandscapeLRulingsTest {
 
     @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) fun `A1 at ROTATION_270 the L's top is never above the search bar's bottom`() = assertTopLimit(Surface.ROTATION_270)
 
+    /**
+     * The top limit is the search bar's bottom (topInset) and not topInset plus the strip clearance, on the planner's condition
+     * (dispatch 2026-09-28-178): nothing else may be drawn in that band on the L's side. The compass strip is in the top corner on the
+     * rail side (CompactMapUi, `CompassElevationStrip`'s landscape modifier), so the L snapped to the rail side and dragged to the top
+     * must not intersect it.
+     */
+    private fun assertClearOfTheCompassStrip(rotation: Int, railSideIsLeft: Boolean) {
+        setScreen(rotation)
+        snapTo(railSideIsLeft)
+        settle()
+        drag((-800).dp)
+        val strip = tag("compass-elevation-strip")
+        assertFalse("the L ${cluster().describe()} at the top of the rail side does not intersect the compass strip ${strip.describe()}", strip.overlapsRect(cluster()))
+    }
+
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) fun `A2 at ROTATION_90 the L at the top of the rail side is clear of the compass strip`() = assertClearOfTheCompassStrip(Surface.ROTATION_90, railSideIsLeft = false)
+
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) fun `A2 at ROTATION_270 the L at the top of the rail side is clear of the compass strip`() = assertClearOfTheCompassStrip(Surface.ROTATION_270, railSideIsLeft = true)
+
     // ── (b) The notice makes room for the L; the L stays put ──
 
     private fun assertNoticeMakesRoom(rotation: Int, clusterLeft: Boolean) {
