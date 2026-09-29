@@ -6998,23 +6998,6 @@ The planner confirmed each by grep.
 ---
 
 **Kind:** dispatch-note
-**ID:** 2026-09-28-234
-**Timestamp:** 2026-09-29T20:26:22Z
-**Dispatch:** 2026-09-28-216 (F5), duplicate launches
-**Reason:** a second F5 window (e4d26c) stopped at once. Its premise was stale, because F5 had already landed, and it built nothing.
-- It found a **third F5 run** in forager-wt/privacy-fixes-sonnet (branch privacy-fixes-sonnet, at the old base 445b292b).
-- That run has uncommitted test edits: JournalBackupTest, TrackGpxExporterTest and RecordDetailsSheetTest, plus a new ForagerApplicationGpxStartTest. They were last modified at 13:23 PDT.
-**Changes:**
-- The second window is told to cancel as done.
-- The planner could not tell which open session owns privacy-fixes-sonnet, so the owner is asked to stop it without pushing.
-**Notes:**
-- F5 stays closed (-233).
-- If the third run pushed, it would put a second implementation over the landed one.
-- Written by the planner by hand.
-
----
-
-**Kind:** dispatch-note
 **ID:** 2026-09-28-236
 **Timestamp:** 2026-09-29T20:31:25Z
 **Dispatch:** none (the planner role moves to another session)
@@ -7022,47 +7005,10 @@ The planner confirmed each by grep.
 **Changes:**
 - **This session is now the planner and keeps this record.** Its address, as `ListAgents` prints it, is "You are the planner. Dispatch the following to a c..." [05172f]. The stopped planner [4b12e2] is no longer listed. A row named "# Planner session" [d282e1] shows as an offline Remote Control session.
 - **The hand-back address is corrected** in Part 3's launch prompts, none of which has launched yet: preserved/2026-09-29-52, -53 and -54, and their identical copies at ~/Zynergy/launch-prompts/23-part-3-s22-a.md, 24-part-3-s22-b.md and 25-part-3-tablet.md. Each now names this session and [05172f]. Nothing else in them changed.
-- **The F5 redo window [e4d26c]** was launched from a prompt that hands back to "# Planner session". It has been told to hand back here instead, with nothing else about its work changed.
 **Open, carried over for the owner:**
-- **From -234:** whether the third F5 run in privacy-fixes-sonnet is to be stopped without pushing.
 - **From -232:** the secure_delete residue observation, which is in Part 3 S22-B.
-- **From -231, zynergy-site PR #3:** the release wording is going in (5cc9a64, work in progress, not merged). Its F5 sentences follow the landed F5 and change if the redo replaces it.
+- **From -231, zynergy-site PR #3:** the release wording is going in (5cc9a64, work in progress, not merged). Its F5 sentences follow the landed F5.
 **Notes:** Written by the planner by hand.
-
----
-
-**Kind:** dispatch-note
-**ID:** 2026-09-28-237
-**Timestamp:** 2026-09-29T21:32:45Z
-**Dispatch:** 2026-09-28-216 (F5)
-**Reason:** the owner, verbatim, with model identifiers replaced as in the comparison's Appendix B: "Discard the redo and keep the findings in the audit file in PR 140, we are measuring [model B] vs [model A]." Then, before anything was deleted: "We are keeping the F5 that already landed / Keep the branch / Do not delete", and "Don't delete it. Just don't use it".
-**Changes:**
-- **The landed F5 stays** (2fa093ef's code). F5 stays closed (-233).
-- **The redo is kept and not used.** Its branch (head 426786f5) and worktree stay as they are: not merged, not built on, not deleted. It was checked clean and fully pushed.
-- **The findings are in PR 140:** docs/audits/2026-09-29-f5-landed-and-redo-compared.md (99816bff, c0516f82, and this commit). It holds the code diff, the procedure rule by rule, the tests, the owner's decision, and the redo's diff and report as appendices.
-**Notes:**
-- **The measurement's labels:** build A, the landed F5, ran on model A, which its commits' Co-Authored-By trailers name. Build B, the redo, ran on model B, the model the launch prompt sets (preserved/2026-09-29-50.md). Model identifiers are kept out of this file.
-- **Still open for the owner:** the third F5 worktree (-234). Nothing is running in it and nothing was pushed; it is untouched.
-- Written by the planner by hand.
-
----
-
-**Kind:** dispatch-note
-**ID:** 2026-09-28-238
-**Timestamp:** 2026-09-29T21:41:14Z
-**Dispatch:** 2026-09-28-216 (F5), the third F5 worktree (-234)
-**Reason:** the owner, verbatim: "The third one was an opened session that never made it into coding, so that branch is a duplicate".
-**Changes:**
-- **-234's open question is closed.** The third F5 worktree is a duplicate. It is not used and not deleted, as with the redo (-237).
-**Notes:**
-- **What the worktree holds**, as observed at this entry (read only, nothing changed):
-  - local branch at base 445b292b, with no commits beyond it and nothing on the remote;
-  - uncommitted test edits, 94 added lines in JournalBackupTest, TrackGpxExporterTest and RecordDetailsSheetTest;
-  - one untracked 37-line ForagerApplicationGpxStartTest;
-  - nothing running in it;
-  - files last written at 13:23-13:24 PDT.
-- **So the session drafted tests,** and built and committed nothing.
-- Written by the planner by hand.
 
 ---
 
@@ -7095,4 +7041,60 @@ The planner confirmed each by grep.
 - **Checked before launch:** the `device-part-3` branch and worktree do not exist; the S22 (R5CT321008R) is attached and the tablet is not; no Gradle JVM is running; 2.9 GB of memory is available.
 **Open for the owner:**
 - **S22-B's and the Tablet's prompts** (-53, -54) still hand back to [05172f]. They get corrected before either launches, in whichever mode the owner picks.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-241
+**Timestamp:** 2026-09-29T22:21:14Z
+**Dispatch:** 2026-09-28-227 (Part 3), S22-B
+**Reason:** S22-A found at pre-registration (device-part-3, c83fabb1) that the checklist's A4 (Journal flows at 90 and 270) and A5 (camera and Gallery) were in neither session's list. The planner confirmed this against preserved/2026-09-29-51:23-46. The owner, verbatim: "Option 1. Add to the S22B check."
+**Changes:**
+- **An amendment to preserved/2026-09-29-51:** S22-B runs A4 and A5 before A6 and before its restore. Item 36 is observed and recorded, not fixed.
+- **S22-B's launch prompt** (preserved/2026-09-29-53, copied to ~/Zynergy/launch-prompts/24-part-3-s22-b.md) now hands back to planner [303193], "bridge-cse-01gsvz2a2dqdptet1ttk1dgh-03", and names the amendment. Nothing else in it changed. S22-B has not launched.
+**Open for the owner:**
+- **The Tablet prompt** (-54) still hands back to [05172f]. It gets corrected before it launches.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-242
+**Timestamp:** 2026-09-29T22:22:43Z
+**Dispatch:** 2026-09-28-227 (Part 3), S22-A
+**Reason:** S22-A handed back **partial**. Its record is on device-part-3 at 87b041f3, and its evidence is in ~/Zynergy/device-evidence/2026-09-30-part-3/.
+**Observed (checked by the planner):**
+- 87b041f3 is on origin/device-part-3.
+- a-migration-verify.txt shows integrity ok, user_version 17, and cartography_entry_track_paths at 0.
+- The phone reports versionName 1.0.1910+g06b394b9, versionCode 1910.
+**Reported by the coder, not re-checked:**
+- **Setup:** the verified copy is 22 of 22 hashes, and the build was clean at 06b394b9. MIGRATION_16_17 passed on the owner's data.
+- **A1 item 1: FAIL** at 90 and 270. After a fullscreen cycle (a real tap in and a real tap out), the L's top sits about 45 px above the search panel's bottom. A relaunch restores it. On a fresh launch it is a borderline pass: 1 dp of overlap by node bounds.
+- **A1 item 3:** real touches passed on the rows that were run, at 90 only.
+- **A2 fan:** a stray tap opened the owner's real 6-marker stack at 270. The fan stayed clear of the chrome, Back folded it, and no data changed.
+- **No verdict:**
+  - A1 items 2, 4, 5 and 7-10;
+  - A2 items 11-14, 16 and 18-20;
+  - A3 items 21-29.
+- **Findings outside the items:**
+  - `monkey ... LAUNCHER` rewrites the rotation lock, the probable cause of Part 2's rotation flip.
+  - F5's GPX cleanup ran on first launch and deleted the phone's old export, which is kept in a-copy. S22-B's F5 items 5-7 need a fresh Share first.
+- **The coder stopped after a partial slice by its own choice.** The dispatch says to hand back when every item has a verdict, or on an abort. It records this under "Decisions I made".
+**Open for the owner:**
+- whether S22-A resumes for the remaining A1-A3 items;
+- what is done about the A1 item 1 fail.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-243
+**Timestamp:** 2026-09-29T22:33:45Z
+**Dispatch:** 2026-09-28-227 (Part 3), Tablet
+**Reason:** the owner, verbatim: "I took out the last because the tablet mode will need to be redone entirely. Let's skip J6 run and act like the tablet is unsupported for now." The line taken out was the release note's tablet bullet.
+**Changes:**
+- **The Tablet session of Part 3 is cancelled.** An amendment to preserved/2026-09-29-51 says so. Its launch prompt, -54, is withdrawn and was never launched, and the still-open question of correcting its hand-back address (-240, -241) lapses with it.
+- **Tablets are unsupported for PR #140's release.** J6's code stays in the branch but is not device-checked or advertised. The PR body and the release update say so.
+**Open for the owner:** whether "unsupported" should also be enforced, for example by excluding tablets in Play Console's device catalogue or by a manifest change. Nothing has been done for this; it is a separate decision.
 **Notes:** Written by the planner by hand.
