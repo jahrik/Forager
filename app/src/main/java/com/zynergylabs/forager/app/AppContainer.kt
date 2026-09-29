@@ -1,6 +1,20 @@
 package com.zynergylabs.forager.app
 
 import android.content.Context
+import java.io.File
+import com.zynergylabs.forager.app.domain.RunScheduledBackupUseCase
+import com.zynergylabs.forager.app.domain.JournalBackup
+import com.zynergylabs.forager.app.domain.ErrorLog
+import com.zynergylabs.forager.app.domain.BackupScheduler
+import com.zynergylabs.forager.app.domain.BackupScheduleSettings
+import com.zynergylabs.forager.app.domain.BackupSchedulePreferences
+import com.zynergylabs.forager.app.domain.BackupFiles
+import com.zynergylabs.forager.app.data.repository.DataStoreBackupSchedulePreferences
+import com.zynergylabs.forager.app.data.backup.WorkManagerBackupScheduler
+import com.zynergylabs.forager.app.data.backup.RoomJournalBackup
+import com.zynergylabs.forager.app.data.backup.ContentResolverBackupFiles
+import androidx.core.content.pm.PackageInfoCompat
+import android.util.Log
 import com.zynergylabs.forager.app.crash.CrashFileStore
 import com.zynergylabs.forager.app.data.local.ForagerDatabase
 import com.zynergylabs.forager.app.data.local.fungiindex.FungiIndexDatabase
@@ -178,6 +192,31 @@ class AppContainer(context: Context) {
     )
 
     private val database = ForagerDatabase.create(context)
+
+    /** `Log.w`-backed, for the pieces (the backup) that take an [ErrorLog] and are built here rather than in an Activity. */
+    val errorLog: ErrorLog = ErrorLog { tag, message, error -> Log.w(tag, message, error) }
+
+    // Journal backup and restore (dispatch 2026-09-28-127). The snapshot copies `forager.db` itself, so the
+    // backup is built over the same file the database above opened. Scratch space is the cache folder: the
+    // system may clear it, and nothing there is anyone's only copy.
+    val journalBackup: JournalBackup = RoomJournalBackup(
+        context = context.applicationContext,
+        database = database,
+        databaseFile = context.getDatabasePath(ForagerDatabase.DATABASE_NAME),
+        filesDir = context.filesDir,
+        scratchDir = File(context.cacheDir, "journal-backup"),
+        appVersionCode = PackageInfoCompat.getLongVersionCode(context.packageManager.getPackageInfo(context.packageName, 0)),
+        errorLog = errorLog,
+    )
+    val backupSchedulePreferences: BackupSchedulePreferences = DataStoreBackupSchedulePreferences(context)
+    val backupFiles: BackupFiles = ContentResolverBackupFiles(context)
+
+    /** Touches WorkManager only when the schedule changes, so a launch that never opens Backup never starts it. */
+    val backupScheduler: BackupScheduler = object : BackupScheduler {
+        override fun apply(settings: BackupScheduleSettings) =
+            WorkManagerBackupScheduler(androidx.work.WorkManager.getInstance(context.applicationContext)).apply(settings)
+    }
+    val runScheduledBackupUseCase = RunScheduledBackupUseCase(journalBackup, backupSchedulePreferences, backupFiles)
     val plannedTripRepository: PlannedTripRepository = RoomPlannedTripRepository(database.plannedTripDao())
     val getPlannedTripsUseCase = GetPlannedTripsUseCase(plannedTripRepository)
     val savePlannedTripUseCase = SavePlannedTripUseCase(plannedTripRepository)
