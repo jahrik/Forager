@@ -16,6 +16,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 
 /**
@@ -97,7 +98,9 @@ internal fun JournalDetail(
 internal fun JournalDetailPane(layer: JournalDetailLayer, modifier: Modifier = Modifier) {
     // Solid: no map is drawn beneath it (the results pane under it is covered), so it takes none of the map
     // chrome's 80% fill; the container colour is marked so a test reads it the way it reads the sheets'.
-    Surface(modifier = modifier.fillMaxSize().testTag(JOURNAL_DETAIL_PANE_TAG).mapChromeContainerColor(MaterialTheme.colorScheme.surface)) {
+    // C1 (owner: "...or the tool panel, is the same color as the app navigation bar"; planner: the pane takes the token and stays solid).
+    // The pulse read this as surfaceContainerLow; it was `surface`.
+    Surface(color = navigationBarContainerColor(), modifier = modifier.fillMaxSize().testTag(JOURNAL_DETAIL_PANE_TAG).mapChromeContainerColor(navigationBarContainerColor())) {
         androidx.compose.foundation.layout.Box(
             modifier = Modifier
                 .fillMaxSize()

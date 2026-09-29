@@ -49,6 +49,7 @@ import androidx.compose.foundation.layout.add
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.NavigationRailItemDefaults
+import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.map.mapChromeFill
@@ -144,12 +145,12 @@ internal fun ForagerBottomNav(
      * went opaque, reasoning it was never both visible and over the map at once; this restores
      * translucency for the non-fullscreen state, where it *is* always over the map.
      */
-    containerColor: Color = MaterialTheme.colorScheme.surfaceContainer,
+    containerColor: Color = navigationBarContainerColor(),
 ) {
     NavigationBar(
         containerColor = containerColor,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier.testTag(COMPACT_BOTTOM_NAV_TAG),
+        modifier = modifier.testTag(COMPACT_BOTTOM_NAV_TAG).mapChromeContainerColor(containerColor),
     ) {
         CompactTab.entries.forEach { tab ->
             NavigationBarItem(
@@ -206,13 +207,13 @@ internal fun ForagerNavigationRail(
     onTabSelected: (CompactTab) -> Unit,
     portEdge: ScreenEdge,
     modifier: Modifier = Modifier,
-    containerColor: Color = MaterialTheme.colorScheme.surfaceContainer,
+    containerColor: Color = navigationBarContainerColor(),
 ) {
     NavigationRail(
         containerColor = containerColor,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         windowInsets = WindowInsets.navigationBars.only(portEdge.horizontalInsetsSide()),
-        modifier = modifier.fillMaxHeight().testTag(COMPACT_NAVIGATION_RAIL_TAG),
+        modifier = modifier.fillMaxHeight().testTag(COMPACT_NAVIGATION_RAIL_TAG).mapChromeContainerColor(containerColor),
     ) {
         CompactTab.entries.forEach { tab ->
             NavigationRailItem(
@@ -276,7 +277,7 @@ internal fun ExitNavigationPrompt(
     /** Whether a map is drawn on screen beneath the prompt: its container is then at the map chrome's alpha. */
     overMap: Boolean = false,
 ) {
-    val dialogColor = mapChromeFill(AlertDialogDefaults.containerColor, overMap)
+    val dialogColor = mapChromeFill(navigationBarContainerColor(), overMap)
     AlertDialog(
         onDismissRequest = onKeepNavigating,
         title = { Text("Exit navigation?") },

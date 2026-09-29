@@ -380,7 +380,7 @@ allowlist identity) — quoted, not re-measured.
 - `returnWalkingTime` has no caller in `app/src/main` (grep, all three type names).
 - The origin's creation path, its single-shot guard, and the absence of an accuracy field on
   `Waypoint`.
-- The script's outputs, on the synthetic fixtures (re-runnable: `python3 docs/audits/2026-09-08-path-home-ratio-discriminators.py`).
+- The script's outputs, on the synthetic fixtures (re-runnable: `python3 docs/navigation/2026-09-08-path-home-ratio-discriminators.py`).
 - **Spot-check, 2026-09-08:** none of the fourteen source files cited above changed between
   `c914a30` and PR #77's merged head `8dc10d4` (`git diff --stat` over the cited paths is empty), so
   every line number holds on `main` at `cb16932`. The commits in between touched the build file,

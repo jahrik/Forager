@@ -8,13 +8,9 @@ import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.AlertDialogDefaults
-import androidx.compose.material3.BottomSheetDefaults
-import androidx.compose.material3.DatePickerDefaults
-import androidx.compose.material3.DrawerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
-import androidx.compose.material3.SnackbarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -103,21 +99,33 @@ internal class MapChromeRoles {
     var snackbar: Color = Color.Unspecified
     var snackbarContent: Color = Color.Unspecified
     var drawer: Color = Color.Unspecified
+    /** C1: the navigation bar's container colour, the one token every role below now equals. */
+    var token: Color = Color.Unspecified
 
     @Composable
     fun Capture() {
-        sheet = BottomSheetDefaults.ContainerColor
-        surface = MaterialTheme.colorScheme.surface
+        // C1 (dispatch 2026-09-28-210). The owner, verbatim: "The map chrome isn't aligned. The search panel and map icon
+        // bar are the wrong color. Have them be the same color as the bottom app navigation bar. Make sure any other pop
+        // up or bubble, or the tool panel, is the same color as the app navigation bar also please". So the roles below
+        // that were the sheet, the surface, the dialog, the date picker, the snackbar and the drawer roles are now the
+        // token, `surfaceContainer`; each was `BottomSheetDefaults.ContainerColor` (surfaceContainerLow),
+        // `colorScheme.surface`, `AlertDialogDefaults.containerColor` (surfaceContainerHigh), `DatePickerDefaults`'
+        // container (surfaceContainerHigh), `SnackbarDefaults.color` (inverseSurface) and `DrawerDefaults.modalContainerColor`
+        // (surfaceContainerLow). The snackbar's content colour becomes the navigation bar's own (`onSurfaceVariant`),
+        // because `inverseOnSurface` on the token fails contrast (ChromeContrastTest). No alpha assertion changes.
+        token = MaterialTheme.colorScheme.surfaceContainer
+        sheet = token
+        surface = token
         onSurface = MaterialTheme.colorScheme.onSurface
         errorContainer = MaterialTheme.colorScheme.errorContainer
         onErrorContainer = MaterialTheme.colorScheme.onErrorContainer
         menu = MenuDefaults.containerColor
-        dialog = AlertDialogDefaults.containerColor
+        dialog = token
         dialogText = AlertDialogDefaults.textContentColor
-        datePicker = DatePickerDefaults.colors().containerColor
-        snackbar = SnackbarDefaults.color
-        snackbarContent = SnackbarDefaults.contentColor
-        drawer = DrawerDefaults.modalContainerColor
+        datePicker = token
+        snackbar = token
+        snackbarContent = MaterialTheme.colorScheme.onSurfaceVariant
+        drawer = token
     }
 }
 
@@ -150,8 +158,10 @@ internal fun MapChromeTestScreen(
     mapSlotOverride: com.zynergylabs.forager.app.ui.map.MapSlot? = null,
     // Dispatch 2026-09-28-137: something drawn over the screen, as MainActivity draws the restore's loading page.
     overlay: @Composable () -> Unit = {},
+    // C1 (dispatch 2026-09-28-210): the colour tests run both themes; every earlier caller is dark.
+    darkTheme: Boolean = true,
 ) {
-    ForagerTheme(darkTheme = true) {
+    ForagerTheme(darkTheme = darkTheme) {
         roles.Capture()
         AvailabilityScreen(
             uiState = state.ui,

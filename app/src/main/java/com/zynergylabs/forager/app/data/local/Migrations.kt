@@ -86,7 +86,7 @@ val MIGRATION_3_4: Migration = object : Migration(3, 4) {
 
 /**
  * Adds `tracks`, `track_points`, and `waypoints` on top of version 4's tables — Phase 1a of the
- * Forager Navigator plan (`docs/plans/forager-navigator-plan.md`). A real, hand-written migration,
+ * Forager Navigator plan (`docs/navigation/forager-navigator-plan.md`). A real, hand-written migration,
  * not `fallbackToDestructiveMigration()`: recorded tracks and dropped waypoints are irreplaceable
  * field data in exactly the way mushroom-log entries are — see [ForagerDatabase]'s doc comment and
  * [MIGRATION_3_4]'s for the precedent this follows.

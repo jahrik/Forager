@@ -51,6 +51,7 @@ import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.model.formatDistanceKm
 import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
 import com.zynergylabs.forager.app.domain.networkFixExclusionNote
+import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.availability.decimalDegreesLabel
 import com.zynergylabs.forager.app.ui.availability.launchDirections
 import com.zynergylabs.forager.app.ui.availability.offlineRegionSizeLabel
@@ -185,8 +186,9 @@ internal fun RecordDetailsSheet(
     // map chrome's alpha over a map, as the Layers sheet is (`MapLayersSheet`). The content colour is
     // pinned to the role's own for the reason given there: `contentColorFor` matches a colour-scheme
     // role exactly. The scrim stays Material3's default.
-    val containerColor = mapChromeFill(BottomSheetDefaults.ContainerColor, overMap)
-    val contentColor = contentColorFor(BottomSheetDefaults.ContainerColor)
+    // C1: the navigation bar's colour (was surfaceContainerLow); alpha as it was, 0.8 over a map and solid elsewhere.
+    val containerColor = mapChromeFill(navigationBarContainerColor(), overMap)
+    val contentColor = contentColorFor(navigationBarContainerColor())
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,

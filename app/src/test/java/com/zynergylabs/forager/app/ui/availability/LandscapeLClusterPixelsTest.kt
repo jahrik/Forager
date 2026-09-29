@@ -15,8 +15,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.ui.map.MAP_CHROME_OVER_MAP_ALPHA
-import com.zynergylabs.forager.app.ui.theme.Bark
-import com.zynergylabs.forager.app.ui.theme.Cream
+import com.zynergylabs.forager.app.ui.theme.SurfaceContainerDark
+import com.zynergylabs.forager.app.ui.theme.SurfaceContainerLight
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -88,7 +88,9 @@ class LandscapeLClusterPixelsTest {
 
         // Far from every control: the middle of the map area, and the same height as the L's middle.
         val reference = at((m.left + m.right) / 2, (m.top + m.bottom) / 2)
-        val chrome = if (dark) Bark else Cream
+        // C1 (dispatch 2026-09-28-210), the owner: "The search panel and map icon bar are the wrong color. Have them be the
+        // same color as the bottom app navigation bar." Was Bark and Cream; the alpha (0.8) below is unchanged.
+        val chrome = if (dark) SurfaceContainerDark else SurfaceContainerLight
         val over = MAP_CHROME_OVER_MAP_ALPHA
         fun composite(background: Color) = Color(
             red = chrome.red * over + background.red * (1f - over),
