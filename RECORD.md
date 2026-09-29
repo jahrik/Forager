@@ -4759,3 +4759,19 @@ Also recorded: the owner's ruling "So let's do sessions this way now": coders in
 - The planner's ruling on the coder's Decision 12: the cap applies only on the cluster's side.
 - Tests first, revert checks, and the full suite at 0 failures before pushing.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-120
+**Timestamp:** 2026-09-29T01:41:08Z
+**Title:** The offline-regions device check on the S22 after -106: cold start with no region-read error, regions visible from launch, every region row and MapLibre region kept, behind a verified backup of forager.db and mbgl-offline.db
+**Dispatch-file:** preserved/2026-09-29-06.md
+**Change:** No code. Back up and verify both databases. Build 7d17a5c and install -r. Check three cold starts for logs (no "Couldn't read offline regions", one "MapLibre initialised." per process), regions in Records and bubbles before the panel opens, all rows and MapLibre regions unchanged, offline tiles showing.
+**Scope boundary:** The S22 only. No data created, edited or deleted; no network settings changed; settings restored. Branch device-offline; evidence outside the repository.
+**Baseline:** journal-redesign 7d17a5c (planner suite 313 / 2531 / 0 / 0 / 24); the S22 at 1.0.1457+gb358a4aa.
+**Prediction (outcome — planner):** 1. No region-read error on any cold start, and one init line per process. 2. Regions show from launch. 3. Every row kept, with no P1 warning, because Room and MapLibre agree. 4. Offline tiles still render from files/mbgl-offline.db.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** The run record pushed with backup figures, verdicts, logs and restores. The planner merges it and writes the terminal.
+**Abort conditions:** An unverifiable backup; uninstall, -d or a clear; a signature mismatch; any region missing afterwards; a new crash; any prompt; a locked phone; touching the tablet.
+**Notes:** Run by an owner-opened Sonnet 5.5 window from this launch prompt, per the owner's "So let's do sessions this way now". Written by the planner by hand.
