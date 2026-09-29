@@ -7044,3 +7044,22 @@ The planner confirmed each by grep.
 - **The measurement's labels:** build A, the landed F5, ran on model A, which its commits' Co-Authored-By trailers name. Build B, the redo, ran on model B, the model the launch prompt sets (preserved/2026-09-29-50.md). Model identifiers are kept out of this file.
 - **Still open for the owner:** the third F5 worktree (-234). Nothing is running in it and nothing was pushed; it is untouched.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-238
+**Timestamp:** 2026-09-29T21:41:14Z
+**Dispatch:** 2026-09-28-216 (F5), the third F5 worktree (-234)
+**Reason:** the owner, verbatim: "The third one was an opened session that never made it into coding, so that branch is a duplicate".
+**Changes:**
+- **-234's open question is closed.** The third F5 worktree is a duplicate. It is not used and not deleted, as with the redo (-237).
+**Notes:**
+- **What the worktree holds**, as observed at this entry (read only, nothing changed):
+  - local branch at base 445b292b, with no commits beyond it and nothing on the remote;
+  - uncommitted test edits, 94 added lines in JournalBackupTest, TrackGpxExporterTest and RecordDetailsSheetTest;
+  - one untracked 37-line ForagerApplicationGpxStartTest;
+  - nothing running in it;
+  - files last written at 13:23-13:24 PDT.
+- **So the session drafted tests,** and built and committed nothing.
+- Written by the planner by hand.
