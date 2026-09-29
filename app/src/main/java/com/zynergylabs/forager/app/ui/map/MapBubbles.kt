@@ -19,6 +19,7 @@ import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.domain.model.RecordPoint
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.Track
+import com.zynergylabs.forager.app.domain.model.TrackDecision
 import com.zynergylabs.forager.app.domain.model.TrackPointRecord
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCase
@@ -147,6 +148,11 @@ data class MapRecordSources(
      * details action (the J5c sheet reads records, and there is none).
      */
     val snapshotWaypoints: List<Waypoint> = emptyList(),
+    /**
+     * STUB (tests first, F3): an entry map's kept track decisions, for a track whose record has since left
+     * [tracks].
+     */
+    val snapshotTracks: List<TrackDecision> = emptyList(),
     val waypointEntryReferenceCounts: Map<String, Int> = emptyMap(),
     val tracks: List<Track> = emptyList(),
     val plannedTrips: List<PlannedTrip> = emptyList(),
@@ -189,7 +195,7 @@ sealed interface MapBubbleContent {
     data class WaypointContent(val waypoint: Waypoint, val mgrs: String?, val hasDetails: Boolean = true, val keptIn: List<JournalEntryOnMap> = emptyList()) : MapBubbleContent
 
     /** A track: its title, date, distance and duration; details. */
-    data class TrackContent(val trackId: String, val title: String, val date: String, val distance: String, val duration: String, val keptIn: List<JournalEntryOnMap> = emptyList()) : MapBubbleContent
+    data class TrackContent(val trackId: String, val title: String, val date: String?, val distance: String, val duration: String, val hasDetails: Boolean = true, val keptIn: List<JournalEntryOnMap> = emptyList()) : MapBubbleContent
 
     /** A planned trip: what its Trip Planner row shows; Directions. */
     data class Trip(val trip: PlannedTrip, val date: String, val mgrs: String?, val coordinates: String) : MapBubbleContent

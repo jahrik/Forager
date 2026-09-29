@@ -85,7 +85,7 @@ class CartographyEntryShownOnMapMigrationTest {
             legacyDb.close()
         }
         return Room.databaseBuilder(context, ForagerDatabase::class.java, dbFile.absolutePath)
-            .addMigrations(MIGRATION_15_16)
+            .addMigrations(MIGRATION_15_16, MIGRATION_16_17)
             .build()
     }
 

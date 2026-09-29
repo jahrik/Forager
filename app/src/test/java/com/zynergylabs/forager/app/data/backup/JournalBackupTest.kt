@@ -76,7 +76,7 @@ class JournalBackupTest {
         val manifest = JSONObject(String(zip.getValue("manifest.json")))
         assertEquals(1, manifest.getInt("formatVersion"))
         assertEquals(42L, manifest.getLong("appVersionCode"))
-        assertEquals(16, manifest.getInt("schemaVersion"))
+        assertEquals(17, manifest.getInt("schemaVersion"))
         assertTrue("created time is stamped", manifest.getLong("createdAtEpochMillis") > 0)
         val files = manifest.getJSONArray("files")
         assertEquals(5, files.length())
@@ -95,7 +95,7 @@ class JournalBackupTest {
         val db = SQLiteDatabase.openDatabase(snapshot.path, null, SQLiteDatabase.OPEN_READONLY)
         db.use {
             assertEquals("ok", it.rawQuery("PRAGMA integrity_check", null).use { c -> c.moveToFirst(); c.getString(0) })
-            assertEquals(16, it.version)
+            assertEquals(17, it.version)
             assertEquals(a.count("track_points"), it.rawQuery("SELECT COUNT(*) FROM track_points", null).use { c -> c.moveToFirst(); c.getLong(0) })
         }
     }
@@ -640,6 +640,99 @@ class JournalBackupTest {
         assertUnchanged(b, rows, files)
     }
 
+    // ---- F3: a kept track keeps its path (dispatch 2026-09-28-195, item 6) -----------------------
+    //
+    // The dispatch's ruling, quoted: "`cartography_entry_track_refs` loses `needs = tracks`, so Merge keeps a
+    // track ref whose track is missing; the backup report's decision 8 is reversed for track refs only. Waypoint,
+    // region and find refs keep today's behaviour." And: "the new table is journal data, owned by entries, with
+    // no `needs`". `danglingRows` reads each OWNED spec's owner and `needs`, so with the track ref's `needs`
+    // gone it no longer lists a track ref that names no track: that is the expectation that changes, and it is
+    // deliberate, not a loosened check (the tests below assert the row is present, and the waypoint case
+    // still drops).
+
+    private val keptPath = listOf(com.zynergylabs.forager.app.domain.model.LatLng(45.2, -122.5), com.zynergylabs.forager.app.domain.model.LatLng(45.21, -122.51))
+
+    private fun Phone.savedPath(entryId: String, trackId: String): List<com.zynergylabs.forager.app.domain.model.LatLng>? =
+        database.openHelper.readableDatabase.query("SELECT path FROM cartography_entry_track_paths WHERE entryId = ? AND trackId = ?", arrayOf<Any?>(entryId, trackId)).use { c ->
+            if (c.moveToFirst()) com.zynergylabs.forager.app.domain.TrackPathCodec.decode(c.getBlob(0)) else null
+        }
+
+    /** A phone whose entry `e-gone` kept a track that has since been deleted: the ref and its saved path, and no track row. */
+    private fun phoneWithDeletedTrackKept(): Phone = phone().apply {
+        insert("cartography_entries", "id" to "e-gone", "text" to "Kept a track later deleted", "isDraft" to 0L)
+        insert("cartography_entry_track_refs", "entryId" to "e-gone", "trackId" to "deleted-t", "name" to "Old ridge")
+        insert("cartography_entry_track_paths", "entryId" to "e-gone", "trackId" to "deleted-t", "path" to com.zynergylabs.forager.app.domain.TrackPathCodec.encode(keptPath))
+    }
+
+    @Test
+    fun `Replace keeps an entry's ref to a deleted track and its saved path, the path byte for byte`() {
+        val a = phoneWithDeletedTrackKept()
+        val b = phone()
+
+        b.restore(a.backUp(), RestoreMode.REPLACE).getOrThrow()
+
+        assertEquals("Old ridge", b.scalar("SELECT name FROM cartography_entry_track_refs WHERE entryId='e-gone' AND trackId='deleted-t'"))
+        assertEquals(keptPath, b.savedPath("e-gone", "deleted-t"))
+        assertEquals("there is no track row, and none was invented", 0L, b.count("tracks"))
+    }
+
+    @Test
+    fun `Merge keeps an entry's ref to a track that is on neither phone, with its saved path, and drops nothing`() {
+        val a = phoneWithDeletedTrackKept()
+        val b = phone().apply { insert("waypoints", "id" to "own-w", "name" to "Phone's own") }
+
+        val report = b.restore(a.backUp(), RestoreMode.MERGE).getOrThrow()
+
+        assertEquals("Old ridge", b.scalar("SELECT name FROM cartography_entry_track_refs WHERE entryId='e-gone' AND trackId='deleted-t'"))
+        assertEquals(keptPath, b.savedPath("e-gone", "deleted-t"))
+        assertEquals("no row was dropped: a track ref whose track is missing is kept now", 0, report.rowsDropped)
+        assertEquals(emptyList<String>(), danglingRows(b))
+    }
+
+    @Test
+    fun `Merge still drops a waypoint ref whose waypoint is gone, in the same entry that keeps its deleted track`() {
+        val a = phoneWithDeletedTrackKept().apply {
+            insert("cartography_entry_waypoint_refs", "entryId" to "e-gone", "waypointId" to "gone-w", "name" to "Old gate")
+        }
+        val b = phone()
+
+        val report = b.restore(a.backUp(), RestoreMode.MERGE).getOrThrow()
+
+        assertEquals("the track ref stays", "1", b.scalar("SELECT COUNT(*) FROM cartography_entry_track_refs WHERE entryId='e-gone'"))
+        assertEquals("the waypoint ref keeps today's rule and is dropped", "0", b.scalar("SELECT COUNT(*) FROM cartography_entry_waypoint_refs WHERE entryId='e-gone'"))
+        assertEquals("and counted", 1, report.rowsDropped)
+    }
+
+    @Test
+    fun `Merge of an entry the phone already has keeps the phone's saved path and adds none of the backup's`() {
+        val a = phoneWithDeletedTrackKept()
+        val phonesPath = listOf(com.zynergylabs.forager.app.domain.model.LatLng(1.0, 2.0))
+        val b = phone().apply {
+            insert("cartography_entries", "id" to "e-gone", "text" to "The phone's own copy", "isDraft" to 0L)
+            insert("cartography_entry_track_refs", "entryId" to "e-gone", "trackId" to "deleted-t", "name" to "Phone's ref")
+            insert("cartography_entry_track_paths", "entryId" to "e-gone", "trackId" to "deleted-t", "path" to com.zynergylabs.forager.app.domain.TrackPathCodec.encode(phonesPath))
+        }
+
+        b.restore(a.backUp(), RestoreMode.MERGE).getOrThrow()
+
+        assertEquals(phonesPath, b.savedPath("e-gone", "deleted-t"))
+        assertEquals(1L, b.count("cartography_entry_track_paths"))
+    }
+
+    @Test
+    fun `a backup from schema 16 restores through the registered migration, gaining an empty path table`() {
+        val helper = OlderBackup.helper()
+        val old = OlderBackup.build(helper, tmp.root, version = 16)
+        val b = phone().apply { insert("waypoints", "id" to "own-w", "name" to "Phone's own") }
+
+        b.restore(old.archive, RestoreMode.REPLACE).getOrThrow()
+
+        assertEquals("a value from the old snapshot survived the migration", "name-1", b.scalar("SELECT name FROM waypoints"))
+        for (t in JOURNAL_TABLE_NAMES - "cartography_entry_track_paths") assertEquals("one seeded row in $t", 1L, b.count(t))
+        assertEquals("no path was invented for the old backup's track ref", 0L, b.count("cartography_entry_track_paths"))
+        assertEquals("the scratch copy is gone", emptyList<String>(), b.scratchLeftovers())
+    }
+
     // ---- versions ------------------------------------------------------------------------------
 
     @Test
@@ -648,13 +741,13 @@ class JournalBackupTest {
         val b = phone().apply { insert("waypoints", "id" to "own-w") }
         val rows = b.dump(); val files = b.files()
         val entries = readZip(a.backUp())
-        val manifest = JSONObject(String(entries.getValue("manifest.json"))).put("schemaVersion", 17)
+        val manifest = JSONObject(String(entries.getValue("manifest.json"))).put("schemaVersion", 18)
         entries["manifest.json"] = manifest.toString().toByteArray()
 
         val result = b.restore(writeZip(entries), RestoreMode.REPLACE)
 
         assertRefused(result, "a backup from a newer schema")
-        assertTrue("the reason is logged: ${b.logged}", b.logged.any { "17" in it && "newer" in it })
+        assertTrue("the reason is logged: ${b.logged}", b.logged.any { "18" in it && "newer" in it })
         assertUnchanged(b, rows, files)
     }
 
@@ -680,7 +773,9 @@ class JournalBackupTest {
         assertEquals("the migrated column exists and took its default", "0", b.scalar("SELECT shownOnMap FROM cartography_entries"))
         assertEquals("a value from the old snapshot survived the migration", "name-1", b.scalar("SELECT name FROM waypoints"))
         assertEquals("text-1", b.scalar("SELECT text FROM cartography_entries"))
-        for (t in JOURNAL_TABLE_NAMES) assertEquals("one seeded row in $t", 1L, b.count(t))
+        // A v15 file has no path table: it arrives through MIGRATION_16_17, present and empty (F3).
+        for (t in JOURNAL_TABLE_NAMES - "cartography_entry_track_paths") assertEquals("one seeded row in $t", 1L, b.count(t))
+        assertEquals("the path table the migration created is there and empty", 0L, b.count("cartography_entry_track_paths"))
         assertEquals("the scratch copy is gone", emptyList<String>(), b.scratchLeftovers())
     }
 
@@ -694,7 +789,7 @@ class JournalBackupTest {
 
         b.restore(old.archive, RestoreMode.REPLACE).getOrThrow()
 
-        assertEquals("the live database stayed at the app's own version throughout", 16, liveVersionDuringRestore)
+        assertEquals("the live database stayed at the app's own version throughout", 17, liveVersionDuringRestore)
     }
 
     // ---- what the table list is ----------------------------------------------------------------
@@ -708,7 +803,7 @@ class JournalBackupTest {
         assertEquals(emptyList<String>(), journal.intersect(JournalTables.excluded.keys).toList())
         val pk = schemaPrimaryKeys(Phone.SCHEMA)
         for (spec in JournalTables.journal) assertEquals("${spec.name}'s key columns", pk.getValue(spec.name), spec.keyColumns)
-        assertEquals("the schema version this build restores up to is the one the database declares", 16, com.zynergylabs.forager.app.data.local.ForagerDatabase.SCHEMA_VERSION)
+        assertEquals("the schema version this build restores up to is the one the database declares", 17, com.zynergylabs.forager.app.data.local.ForagerDatabase.SCHEMA_VERSION)
         assertEquals(com.zynergylabs.forager.app.data.local.ForagerDatabase.SCHEMA_VERSION, phone().database.openHelper.readableDatabase.version)
     }
 
@@ -740,5 +835,5 @@ class JournalBackupTest {
 internal val JOURNAL_TABLE_NAMES = listOf(
     "mushroom_log_entries", "log_photos", "log_entry_photos", "tracks", "track_points", "waypoints", "offline_regions",
     "planned_trips", "cartography_entries", "cartography_entry_track_refs", "cartography_entry_waypoint_refs",
-    "cartography_entry_offline_region_refs", "cartography_entry_find_refs", "cartography_entry_photo_refs",
+    "cartography_entry_offline_region_refs", "cartography_entry_find_refs", "cartography_entry_photo_refs", "cartography_entry_track_paths",
 )
