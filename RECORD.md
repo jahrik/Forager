@@ -5717,3 +5717,28 @@ Nothing of either window was pushed. On the phone, the two did only force-stop a
 **Notes:**
 - The planner's first message went to 875b04, on the inference that it was the one running Session 2. That was wrong in effect, but harmless: it asked only for a re-taken copy, and 875b04 declined.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-168
+**Timestamp:** 2026-09-29T09:44:55Z
+**Dispatch:** none (the planner's own suite at the J6a head, 69c67178)
+**Reason:** the J6 coder reported a Gradle test worker, pid 619285 in forager-wt/journal-redesign, idle for 53 minutes and holding the machine below the sharing limits. It was the planner's own suite.
+**Changes:**
+- A thread dump was saved at ~/Zynergy/device-evidence/planner-suites/run5-hang-jstack.txt, and the partial XML at run5-xml/.
+- Only that worker was ended.
+- The run had reached 198 files and 1488 tests with 0 failures.
+**Notes:**
+- **The hang:** DrawerBackOverJournalTest "portrait, Back with the drawer open over the Finds chip on Records closes the drawer and keeps the Finds chip", touchTools (DrawerBackOverJournalTest.kt:420).
+  - It hung in composeTestRule.waitForIdle → Espresso.onIdle.
+  - The "SDK 36 Main Thread @kotlinx.coroutines.test runner" had used 102.9 s of CPU, so the app never went idle.
+- **The same signature as the -126 coder's hang** in LeavingTheJournalFixesTest F3 (:1139, openFindEditor), whose main thread had used 109 s of CPU.
+- **The family now counts three:**
+  - the planner's F3 failure at 6133649 (performMeasureAndLayout);
+  - the -126 hang;
+  - this hang.
+  
+  Add J6a's two once-only failures, and it is five, all in Journal and compact-tree Compose tests, all intermittent. The cause is unknown. A dedicated investigation is proposed to the owner.
+- The J6a terminal waits on a clean planner run.
+- Written by the planner by hand.
