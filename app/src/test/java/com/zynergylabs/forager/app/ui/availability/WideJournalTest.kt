@@ -877,6 +877,13 @@ class WideJournalTest {
 
     // ── Ruling 1 and CLAUDE.md, "a semantic click asserts wiring, not routing": real touches ──
 
+    /**
+     * Wiring and routing through the whole screen, not proof that the pane itself blocks input: a revert
+     * (the pane's `Surface` swapped for a filled `Box`) left this passing, because a real report is a
+     * scrolling column that takes those touches itself. `JournalDetailPaneTouchTest` is the test that
+     * fails when the pane stops blocking input; this one guards that the coordinates a person would tap
+     * for the covered tabs do not change the tab.
+     */
     @Test
     fun `a real touch across where the results tabs were reaches the detail pane, not the tab beneath it`() {
         setScreen()
