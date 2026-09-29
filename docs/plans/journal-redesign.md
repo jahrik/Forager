@@ -1173,3 +1173,8 @@ The casing and the highlight halo keep following the stops, as today.
 - the cause of the restore's unequal first pass.
 
 None of these block PR #140.
+
+**"Download Maps" asks first: the approved copy (owner, 2026-09-29).** The owner, verbatim: "Approve the Download Maps wording as is". The dialog opens over the picker when "Download Maps" is tapped:
+- **title:** "Download this area?"
+- **body:** "<name> · <radius> around the pin · about <N> tiles". Without a name it is "<radius> around the pin · about <N> tiles". The radius follows the units setting.
+- **buttons:** "Cancel" and "Download".
