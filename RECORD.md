@@ -6875,3 +6875,25 @@ The planner confirmed each by grep.
 **Notes:**
 - The checklist file is filed by the planner from a read-only helper, before launch.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-228
+**Timestamp:** 2026-09-29T20:10:01Z
+**Dispatch:** none (results relayed by the second planner session [05172f])
+**Reason:** the owner answered that session's three questions, verbatim: "1 yes / 2 yes / 3 no answer".
+**Changes:**
+- **zynergy-site PR #3** (https://github.com/slayer8366/zynergy-site/pull/3) is open, from branch site-legal-pages-2026-09-29, cut from main 0688e4d. It is not merged, and merging is the owner's click.
+  - 21eb8de: the privacy page, the same content as 9bc0d45, with no sundown line in its message.
+  - f260b08: the delete-data page, brought up to Forager main faf2f88f.
+- **The branch worktree-bridge-cse_01JoYc3mJXVwBwWBLeCWaqSz is superseded.** Deleting it is the owner's call.
+- **The delete-data changes are recorded in PR #140:** the section "The delete-data page, and the PR" of docs/audits/2026-09-29-privacy-site-update-report.md (feae0947, 15 rows).
+- **The build-timing section was dropped,** since the owner gave no answer.
+- **The site agent's notes** (preserved/2026-09-29-43.md and its copy) now point at PR #3 and cover both pages. Only that paragraph changed. The sundown text is untouched, per the owner.
+**Notes:**
+- **Row D6:** delete-data's "Recorded tracks" bullet moves under "Not yet deletable one by one" for today's app (main), because DeleteTrackUseCase has no caller there. It goes back with L1's wording at PR #140's release. The owner was told before answering "2 yes".
+- **Findings on main:**
+  - deleting a waypoint, region, find or photo leaves the entry's copy (CartographyEntryDao.kt:60-75);
+  - there is no "vehicle" waypoint kind (WaypointDesignation.kt:17-21).
+- Written by the planner by hand.
