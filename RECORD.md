@@ -4447,3 +4447,22 @@ Held for the owner: items 1, 2 (landscape), 6, 7 and 9.
 - The planner found that -94's coder created its branch in the planner's own session checkout, because -94 named no worktree; the planner will restore that checkout when the coder is done.
 - Every dispatch from here names its worktree.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-105
+**Dispatch-file:** none (pulse dispatched in chat by the planner; read-only)
+**Type:** pulse
+**Outcome:** completed
+**Report:** docs/audits/2026-09-28-offline-regions-startup-pulse.md (the planner's condensed filing, citations kept)
+**Notes:** 2026-09-29T00:23:11Z. Read at ae0b90f. It found:
+- **Today's start-up exception deletes nothing.** It is thrown in offlineManager() before listRegions' deletes.
+- **The deleting line is MapLibreOfflineMapRepository.kt:190.** It prunes every Room region row missing from a successful read, including an empty or null read, with no plausibility check.
+- **The live store is the SDK default files/mbgl-offline.db**, not the redirect folder the code intends. The redirect has never taken effect since 1726b90 (2026-08-23).
+- **So the obvious fix for the exception** (initialise MapLibre before the redirect) would point MapLibre at an empty store, and the next successful read would delete every region row.
+- The incomplete-region branch (:211-215) deletes tiles and row if a region ever reports incomplete outside a download.
+- **No test covers any of it.**
+- The silent fallback to the default path breaks CLAUDE.md's "Errors and failure paths".
+
+Put to the owner before any fix is written. Written by the planner by hand.
