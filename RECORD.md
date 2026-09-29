@@ -5083,3 +5083,20 @@ It also flagged the snackbar lying over the floating nav.
 - A non-JPEG import is still stored under a .jpg name (`FilePhotoStore.kt:120`). This is parked and not dispatched.
 - The site changes are in docs/audits/2026-09-29-privacy-site-update-report.md.
 - Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-136
+**Timestamp:** 2026-09-29T04:42:38Z
+**Continues:** 2026-09-28-127
+**Dispatch-file:** none yet
+**Reason:** the owner ruled on the backup copy. The ruling is verbatim in the plan, under "Journal backup and restore: copy".
+**Changes:**
+- Items 1-3 are approved as drafted.
+- Item 4: a pulsing app icon with Done at its centre, and the icon is the Done button.
+- Item 6: A, a notification with Try again.
+- Item 5 is approved with added Continue and "continue without file(s)" options.
+**Notes:**
+- The planner's question back to the owner on item 5: those options apply when some files cannot be read, whereas a failed write of the backup file itself cannot continue. Which button set goes where is asked before the dispatch is written.
+- Written by the planner by hand.

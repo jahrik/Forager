@@ -928,3 +928,22 @@ The planner's reading, with the options as they were put:
 6. **After a restore, every screen shows fresh data.** Not by a visible app restart: a loading page says the changes are loading, then a Done button returns to the Maps home. This needs copy.
 7. **A backup that fails partway deletes only the file it created.** The user is told the backup could not be completed and is offered a retry. This needs copy. How a scheduled run, which has no screen open, tells the user is not yet ruled.
 8. **The default frequency is Weekly.** The schedule stays off until the user turns it on and can then set the frequency.
+
+**Journal backup and restore: copy (owner, 2026-09-29).** The planner's drafts were:
+1. A restored region: "Not downloaded", with **Download again**.
+2. "Backup saved, but 2 photos couldn't be found and were left out."
+3. "Stop recording before restoring a backup."
+4. "Loading your restored journal…", then "Your journal is restored." with **Done**.
+5. "Couldn't finish the backup. The incomplete file was removed." with **Try again** and **Cancel**.
+6. How a failed scheduled backup tells the user: A, a notification with **Try again**, or B, a message at the next launch.
+
+The owner, verbatim:
+
+> 1 approve
+> 2 approve
+> 3 approve
+> 4 approve have a pulsing app icon with Done in the center, be the done button to tap
+> 5 approve, add a Continue button, and a  "continue without file(s)" option in case they don't care. Else it will bar them from backup if the file isn't backing up properly
+> 6 option A
+
+Item 5's buttons, and which failure they belong to, are put back to the owner before the dispatch (record 2026-09-28-136).
