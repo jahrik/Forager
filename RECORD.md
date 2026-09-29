@@ -6741,3 +6741,26 @@ The planner confirmed each by grep.
 - **The planner's suite** at 948c728b, idle, from a cleared results directory with the hang timeout: 378 files, none stale, 0 compile errors, 3138 / 0 / 0 / 24, in 280 s.
 - **Device-only:** the report's list: the native layer filters, queryRenderedFeatures on a real stack, leg drawing, and bounds during a drag. All go to the next S22 and tablet sessions.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-218
+**Timestamp:** 2026-09-29T19:33:27Z
+**Dispatch:** none (owner decisions relayed by the second planner session [05172f], per -214)
+**Reason:** the second planner relayed the owner's decisions given in its window, verbatim:
+- "Start F4. Stop C1";
+- "Go ahead and stop the two idle daemons / F3 will have to restart after F4 / Unless it can run side by side". "F3" meant the C1 session;
+- on its relay of L1's hand-back: "1 that is coming up next so we can leave it. / 2 do an audit, note the changes needed, and file it in the audit doc in PR 140 / 3 I want the website privacy policy changed at least so it reflects the app / 4 add to #2 / 5 add to #2 / F4 is running".
+**Changes:**
+- **The live sundown sentence stays,** since S1 is building the feature. The site notes (preserved/2026-09-29-43.md and its copy) are amended.
+- **The second planner does, on the owner's direct instruction:**
+  - (a) an audit of the live privacy page against main, appended to docs/audits/2026-09-29-privacy-site-update-report.md;
+  - (b) zynergy-site privacy/index.html changed to describe main, on branch worktree-bridge-cse_01JoYc3mJXVwBwWBLeCWaqSz, pushed and not merged.
+- The notes now tell the site agent not to edit the live privacy page in parallel.
+**Notes:**
+- **Daemons:** the second planner stopped two idle daemons, Kotlin (PID 778942) and Gradle (799186), with no build running. MemAvailable went from 2.24 to 7.37 GB.
+- **Its finding:** after each build, idle daemons hold about 5 GB, which pushes MemAvailable under the 2.5 GB check and stalled C1. A shorter daemon idle timeout would fix it machine-wide. Not ruled.
+- **Merge note:** when legal-drafts merges, keep both appended sections of the site report (L1's addendum and the second planner's audit).
+- **Checked for clashes:** none with S1, F5 or C1.
+- Written by the planner by hand.
