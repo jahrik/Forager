@@ -855,3 +855,5 @@ This supersedes the planner launching coders as Agent-tool subagents:
 - **The coder hands back** by pushing its report and sending the planner session a `SendMessage`. The planner re-runs the suite, merges run records and writes the record, as before.
 - **Read-only pulses** may still run as subagents of the planner.
 - **The planner can message these windows but cannot drive them.** Stopping one, or answering its prompts, is the owner's.
+
+**Models (owner, 2026-09-29).** The owner, verbatim: "Sonnet and Opus 5.5 just released so I'll use Opus 5.5 to plan and Sonnet 5.5 to code." The planner session runs on Opus 5.5, and coder windows on Sonnet 5.5. The owner sets both.
