@@ -182,28 +182,6 @@ internal fun SettingsEntryRow(onClick: () -> Unit) {
 }
 
 /**
- * The Search panel's sticky-footer entry into the photo gallery (Workstream G2) — same shape as
- * [MushroomLogEntryRow] right above it, since both are entries into mushroom-log-area
- * destinations. No `navigationBarsPadding()` here for the same reason [MushroomLogEntryRow] has
- * none: [SettingsEntryRow] below is still the last row in the sheet and carries that inset.
- */
-@Composable
-internal fun PhotoGalleryEntryRow(onClick: () -> Unit) {
-    HorizontalDivider()
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(Icons.Filled.PhotoLibrary, contentDescription = null)
-        Text("Photo Gallery", style = MaterialTheme.typography.titleSmall)
-    }
-}
-
-/**
  * The Settings panel's header: unlike [DrawerHeader] this carries a visible back arrow and title,
  * because — unlike closing the drawer entirely, which the app bar's tune icon already visually
  * "undoes" — there is nothing else on screen suggesting how to get back from Settings to Search.
@@ -221,23 +199,6 @@ internal fun SettingsHeader(onBack: () -> Unit) {
     ) {
         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to search options")
         Text("Settings", style = MaterialTheme.typography.titleMedium)
-    }
-}
-
-/** [DrawerPanel.PhotoGallery]'s header — mirrors [SettingsHeader]'s back-arrow-plus-title shape exactly, for the same reason: there's nothing else on screen suggesting how to get back to Search. */
-@Composable
-internal fun PhotoGalleryHeader(onBack: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .clickable(role = Role.Button, onClick = onBack)
-            .padding(horizontal = Spacing.lg),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to search options")
-        Text("Photo Gallery", style = MaterialTheme.typography.titleMedium)
     }
 }
 

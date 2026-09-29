@@ -202,6 +202,14 @@ internal fun CartographyScreen(
     onOpenEntryRequestConsumed: () -> Unit = {},
     /** J8-3: the report menu's "Show on map" and "Hide from map" for a saved entry. `null` (the default) offers neither. */
     onSetShownOnMap: ((entryId: String, shown: Boolean) -> Unit)? = null,
+    /**
+     * J6a (ruling 1, list-detail): where the wide tree opens the entry that is open. With a slot, the
+     * open entry's report or editor registers there ([JournalDetailPriority.ENTRY]) and this screen
+     * keeps drawing its list, so the entry takes the whole right side while the list stays in the left
+     * column. `null` (the default; the compact `JournalTab`, tests) draws the open entry here in place
+     * of the list, exactly as before.
+     */
+    detailSlot: JournalDetailSlot? = null,
 ) {
     var mode by entryModeState
     val shortWindow = shortWindowHeader != null
@@ -380,8 +388,10 @@ internal fun CartographyScreen(
     // draft is open the entry's handler above is the only one enabled here.
     var draftsListOpen by rememberSaveable { mutableStateOf(false) }
 
-    if (editingEntry != null) {
-        ShortWindowFrame(shortWindowHeader, action = null, modifier = modifier) { contentModifier ->
+    // The open entry's report or editor: drawn in place of the list, or, with a slot, in the wide
+    // tree's right side. One definition for both, so the two can not drift.
+    val entryDetail: @Composable (Modifier) -> Unit = { contentModifier ->
+        if (editingEntry != null) {
             if (mode == CartographyEntryMode.EDIT) {
                 CartographyEntryEditScreen(
                     entry = editingEntry,
@@ -439,7 +449,16 @@ internal fun CartographyScreen(
                 )
             }
         }
+    }
+    if (editingEntry != null && detailSlot == null) {
+        ShortWindowFrame(shortWindowHeader, action = null, modifier = modifier) { contentModifier -> entryDetail(contentModifier) }
         return
+    }
+    // J6a: with a slot the entry is a detail beside the list, not a replacement for it. Registered while
+    // an entry is open; its content is read through state, so it follows the entry, its mode and its
+    // prompts without re-registering.
+    JournalDetail(detailSlot, active = editingEntry != null, priority = JournalDetailPriority.ENTRY) {
+        entryDetail(Modifier.fillMaxSize())
     }
 
     if (uiState.isLoadingCandidates) {
