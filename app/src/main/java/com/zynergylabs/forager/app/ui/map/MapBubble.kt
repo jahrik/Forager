@@ -405,7 +405,7 @@ internal fun MapFeatureBubble(
             }
             is MapBubbleContent.TrackContent -> {
                 BubbleTitle(content.title)
-                BubbleLine(content.date)
+                content.date?.let { BubbleLine(it) }
                 BubbleLine("${content.distance} · ${content.duration}")
                 KeptInEntries(content.keptIn, onOpenEntry)
                 BubbleActions { BubbleAction("Details", MAP_BUBBLE_DETAILS_TAG) { onDetails(RecordDetailsTarget.TrackDetails(content.trackId)) } }
