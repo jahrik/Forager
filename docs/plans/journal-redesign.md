@@ -885,3 +885,13 @@ Still to rule before a dispatch:
 5. **Built before the Journal PR.**
 
 The planner's placement: after the trips fix (`-97`) and the map-chrome follow-ups (`-104`), and before J6 and device check Part 2. The UI copy goes to the owner for approval before the dispatch.
+
+**Restore prompt body: the owner's copy (2026-09-29).** It replaces the planner's draft body. The owner, verbatim:
+
+> Select Replace if you want to delete the journal data on this device, and move the backup into its place.
+>
+> Select Merge if you want to keep the journal data on this device, and restore the rest of the backup, skipping any duplicates.
+>
+> Select Cancel to go back.
+
+"Skipping any duplicates" agrees with the planner's reading of merge: when a record is on both sides, the device's copy is kept. The rest of the draft copy (titles, buttons, the Backup settings and messages) awaits the owner's confirmation.
