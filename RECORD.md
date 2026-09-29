@@ -5529,3 +5529,122 @@ It also flagged the snackbar lying over the floating nav.
   Its dispatch follows the cluster-geometry pulse.
 - **Part 2 Session 1** starts now. Inventory items 38, 39, 40 and 42 (the landscape cluster, the reshape, and the legend against the cluster) are deferred to after the L.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-160
+**Timestamp:** 2026-09-29T07:52:05Z
+**Title:** The landscape icon cluster as an L: a 240 dp bar, an 8 dp gap, a horizontal 48 dp pill, 296 dp in all, nothing drawn or touch-taking around it (owner "A")
+**Dispatch-file:** preserved/2026-09-29-26.md
+**Change:** in phone short landscape only, the icon bar and the record/return pill become an L that mirrors by side. The container's fill is removed and the empty corner passes touches to the map.
+**Scope boundary:**
+- the compact tree's landscape cluster, and what is keyed on it;
+- LFSL's TR1, TR2 and TR4 are replaced, as they pin the superseded shape;
+- not portrait, not the wide tree, not the entry report's MapIconBar.
+**Baseline:** journal-redesign at the base named in the dispatch.
+**Prediction (outcome, planner):**
+1. The container needs its own landscape branch, not an outline change on the shared Surface.
+2. The anchor offset needs a landscape pitch.
+3. The suite grows by 10 to 25.
+**Prediction (mechanism, coder):** not authored.
+**Finish line:**
+- tests first, pushed failing;
+- the build;
+- revert checks;
+- the full suite at 0 failures;
+- the report with a device-only list;
+- the planner re-runs the suite and writes the terminal.
+
+The re-check runs in Part 2 with the deferred items 38, 39, 40 and 42.
+**Notes:**
+- The owner's ruling "A" is recorded verbatim in the plan, under "The L's height".
+- Sent by SendMessage to the window that built -104's relaunch (socket 415979), which knows this code.
+- Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-161
+**Timestamp:** 2026-09-29T07:52:45Z
+**Dispatch:** 2026-09-28-160, and the running -152 and -154
+**Reason:** ListAgents shows that this planner session's ref is now [4b12e2], under the name "# Planner session". Every launch prompt named [9b334a].
+- The earlier coder windows (backup, photo export, map chrome) now show offline. So -160 cannot be sent to the map-chrome window as -160's Notes said, and needs a fresh window.
+**Changes:**
+- J6 (c9ccd1) and the session believed to be Part 2 Session 1 (bc1f21) were messaged the new ref.
+- Launch prompts for Part 2 Sessions 2 and 3 now name the planner by name and ref.
+- -160's launch prompt is preserved/2026-09-29-27.md (~/Zynergy/launch-prompts/14-landscape-l.md), for a fresh window.
+**Notes:**
+- That bc1f21 is Session 1 is the planner's inference from its start time. The message tells it to ignore the note if it is not.
+- Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-162
+**Timestamp:** 2026-09-29T08:12:48Z
+**Continues:** 2026-09-28-160
+**Dispatch-file:** preserved/2026-09-29-28.md
+**Reason:** -160 stopped with the disk full (/ at 100%, about 114 MB free). Its tests first are committed on landscape-l-wip (1692b29c) but have never run. It asked the pill's length.
+- The owner, verbatim: "1 C", declining the planner's offer to delete old build output.
+- The owner, verbatim: "the icons need to stack fully. Make sure that happens and have the pill extend outward like the L".
+**Changes:**
+- The pill is 96 dp, with record exactly under the bar's column.
+- Every coder checks for 2 GB of free disk before a Gradle run.
+- The owner frees space; the planner and the coders delete nothing outside their own worktrees.
+**Notes:**
+- Sent to the -160 window.
+- J6 and Part 2 Session 1 were told about the disk.
+- Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-163
+**Timestamp:** 2026-09-29T08:18:43Z
+**Dispatch:** none (machine upkeep, at the owner's instruction)
+**Reason:** the owner, verbatim: "Go ahead and delete those files and only those files." "Those files" are the old app/build folders in finished worktrees under ~/Zynergy/forager-wt/, which the planner had offered (-162, option A) and pointed to again.
+**Changes:**
+- **Deleted:** only the app/build directories of 23 finished worktrees, 2733 MB. They are chrome-follow-ups, decorations, device-j8, j8, j8-follow-ups, journal-backup, landscape-b1, landscape-b1-tfcheck, landscape-fixes, layout-fixes, leave-fixes, map-chrome, marker-palette, night-mode, night-outline, night-region, offline-safety, photo-export, save-failure, split-move, split-scaffold, tracks-frame, trips-on-map.
+- **Free space** went from 2535 MB to 5715 MB.
+**Notes:**
+- **Checked before deleting:**
+  - no file under any of those app/build directories was newer than 90 minutes;
+  - the only running Gradle builds were in j6 and landscape-l.
+- **Excluded:** journal-redesign, j6, landscape-l, device-part-2, planner-records and legal-drafts.
+- **Nothing else was deleted:** no source, no commits, no worktree, no Gradle cache, no evidence.
+- **Already gone before this,** so presumably cleared by the owner or the coders: device-offline, device-tablet, device-chrome, device-stage-1, night-evidence, strip-device-check and strip-flash-timer-location. Part 2 Session 1 reports deleting its own worktree's app/build.
+- Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-164
+**Timestamp:** 2026-09-29T08:39:16Z
+**Dispatch:** 2026-09-28-154 (Part 2), Session 1
+**Reason:** Session 1 handed back. Its run record is merged at 2fdb94f1 (device-part-2 at f96422f5).
+- **Build:** 85a41257 (1.0.1685+g85a41257), installed with install -r, firstInstallTime unchanged, no migration. The crash buffer has 0 FATAL.
+- **Two fails:**
+  - item 5: an open bubble does not re-anchor after a device rotation until the next pan, and overlaps the cluster;
+  - item 37: in portrait fullscreen the "i" sits under the system nav band, and two real taps opened nothing.
+- **Pass:** 2, 6-10, 27-31, 34-36, 37 at 0/90/270, 40, 41, 43, 44, 46-50, 60 and 63.
+- **Partly:** 1, 3, 39, 42, 45, 61 and 62.
+- **For the owner, from captures:** 54-56, 58 and 59.
+- **Not run:** 11, 12, 51 and 53.
+- **The phone was returned to the verified copy:** 18 sha256 equal, integrity ok, v16, all row counts equal.
+**Changes:** amendment preserved/2026-09-29-29.md for Sessions 2 and 3. Their launch prompts now cite it.
+**Notes:**
+- **Deviations:**
+  - The deferred items 38, 39, 40 and 42 (-159) were run anyway, on the pre-L layout. They are informational only and are re-checked after -160.
+  - Item 38's margin is 14 px, not about 0. That supersedes -124's "about 0 px" (RECORD:4875-4876).
+  - Most visual evidence was converted to JPEG after the disk filled. Only item 48 is from a raw PNG; the others are marked.
+  - "Download Maps" started a real download without confirmation. It was undone by the restore.
+- **The notification prompt's trigger:** Start recording, at 270. That is the recording notification, not -153's backup request, so not a -153 finding. It was revoked and read back as not granted.
+- **Findings for the Part 2 follow-up dispatch:**
+  - (a) item 5, the bubble on rotation;
+  - (b) item 37, the "i" under the nav band in portrait fullscreen;
+  - (c) "Download Maps" starts with no confirmation, an owner question;
+  - (d) the track details sheet has no Delete, an owner question;
+  - (e) the Gallery row's datetaken was NULL for a photo whose file name carries its time (-126 writes DATE_TAKEN "when the record has a time"), to be verified in code.
+- accelerometer_rotation changed to 1 twice without the coder.
+- Written by the planner by hand.
