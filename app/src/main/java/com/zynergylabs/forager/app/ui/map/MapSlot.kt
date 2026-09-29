@@ -209,6 +209,19 @@ data class MapRenderMode(
      * parameter-count reason [layers] gives.
      */
     val cameraRequest: MapCameraRequest? = null,
+    /**
+     * Where this map keeps the camera the user left, across the map leaving and re-entering
+     * composition (Part 1 layout fixes, item 4, planner message `2026-09-28-98`), or `null` for a map
+     * that keeps none. See [MapCameraMemory]. Here rather than on [MapSlot] for the parameter-count
+     * reason [layers] gives.
+     */
+    val cameraMemory: MapCameraMemory? = null,
+    /**
+     * How far MapLibre's attribution button ("i") keeps from the map's end edge (Part 1 layout fixes,
+     * item 5), beside [bottomInset] for the bottom. Zero for every caller but the compact Maps tab in a
+     * short landscape window, whose overlaid rail sits on that edge at one rotation.
+     */
+    val attributionEndInset: Dp = 0.dp,
 )
 
 /**
