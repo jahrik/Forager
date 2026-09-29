@@ -4,7 +4,6 @@ import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.hypot
-import kotlin.math.max
 import kotlin.math.sin
 
 /*
@@ -67,26 +66,39 @@ fun stackOf(tapped: ProbedMarker, nearby: List<ProbedMarker>, density: Float): L
 
 /**
  * The [count] offsets a stack fans out to, first marker first: a ring up to [FAN_RING_MAX], a spiral
- * beyond. Either way no two touch areas overlap and none sits on the stack's own spot.
+ * beyond. Either way no two touch squares overlap (their centres are [FAN_TOUCH_DP] apart on at least
+ * one axis, which is a stronger condition than 48 dp apart as the crow flies: two centres 48 dp apart on
+ * the diagonal have squares that overlap) and none sits on the stack's own spot.
  *
- * **Ring:** radius `max(48, 48 / (2 sin(pi/n)))` dp: the smaller radius that puts adjacent centres a
- * touch size apart, floored at one touch size so the ring clears the spot it fans from. The first
- * marker is straight above, the rest clockwise.
+ * **Ring:** the smallest radius, from one touch size up, at which every pair of markers clears that
+ * condition. The first marker is straight above, the rest clockwise.
  *
  * **Spiral:** an Archimedean spiral from one touch size out, growing one touch size per turn; each
- * marker is the first point along it at least a touch size from every marker already placed. That
- * rule is the whole spacing: there is no fudge factor to keep the turns apart.
+ * marker is the first point along it that clears every marker already placed. That rule is the whole
+ * spacing: there is no fudge factor to keep the turns apart.
  */
 fun fanOffsets(count: Int): List<FanOffset> = if (count <= FAN_RING_MAX) ring(count) else spiral(count)
 
+/** True when squares [FAN_TOUCH_DP] across, centred on [a] and [b], do not overlap (touching edges do not count). */
+private fun clear(a: FanOffset, b: FanOffset): Boolean = maxOf(abs(a.xDp - b.xDp), abs(a.yDp - b.yDp)) >= FAN_TOUCH_DP
+
 private fun ring(count: Int): List<FanOffset> {
     if (count <= 0) return emptyList()
-    val radius = if (count < 2) FAN_TOUCH_DP else max(FAN_TOUCH_DP, FAN_TOUCH_DP / (2f * sin(PI / count).toFloat()))
-    return List(count) { i ->
+    fun at(radius: Float) = List(count) { i ->
         val angle = -PI / 2 + 2 * PI * i / count
         FanOffset((radius * cos(angle)).toFloat(), (radius * sin(angle)).toFloat())
     }
+    var radius = FAN_TOUCH_DP
+    var placed = at(radius)
+    while (placed.indices.any { i -> (i + 1 until placed.size).any { j -> !clear(placed[i], placed[j]) } }) {
+        radius += RING_RADIUS_STEP_DP
+        placed = at(radius)
+    }
+    return placed
 }
+
+/** How much the ring's radius grows while looking for room; fine enough that the gap it leaves is under 0.1 dp. */
+private const val RING_RADIUS_STEP_DP = 0.05f
 
 private fun spiral(count: Int): List<FanOffset> {
     val growthPerRadian = FAN_TOUCH_DP / (2 * PI)
@@ -94,7 +106,7 @@ private fun spiral(count: Int): List<FanOffset> {
     var angle = -PI / 2
     repeat(count) {
         var candidate = pointAt(angle, growthPerRadian)
-        while (placed.any { hypot(candidate.xDp - it.xDp, candidate.yDp - it.yDp) < FAN_TOUCH_DP }) {
+        while (placed.any { !clear(candidate, it) }) {
             angle += SPIRAL_STEP_RADIANS
             candidate = pointAt(angle, growthPerRadian)
         }

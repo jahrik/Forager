@@ -3,7 +3,6 @@ package com.zynergylabs.forager.app.ui.map.fanout
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerSpec
 import com.zynergylabs.forager.app.ui.map.layers.MapTapOutcome
-import com.zynergylabs.forager.app.ui.map.layers.TapGroup
 import com.zynergylabs.forager.app.ui.map.layers.TapHit
 import com.zynergylabs.forager.app.ui.map.layers.mapTapOutcome
 import com.zynergylabs.forager.app.ui.map.layers.resolveTap
@@ -88,8 +87,12 @@ class MapTapHandler(
     /** What the map draws changed (its records, its layer switches, its style): the fan folds. */
     fun onContentChanged() = fan.fold()
 
+    private fun FanRect.scaled(by: Float) = FanRect(left * by, top * by, right * by, bottom * by)
+
     private fun openStackAround(winner: TapHit, order: List<MapLayerSpec>, xPx: Float, yPx: Float): Boolean {
-        val markerLayers = order.filter { it.tapGroup == TapGroup.MARKER }.map { it.id }
+        // Only the owner's own records fan (the owner's "1 A"): a sighting dot is not in this list, so a tap that
+        // resolves to one, and a dot stacked under records, are left as they were before the fan-out.
+        val markerLayers = fanOutLayerIds(order)
         if (winner.layerId !in markerLayers || winner.featureId == null) return false
         val density = probe.density
         val nearby = probe.markersInBox(xPx, yPx, STACK_QUERY_HALF_DP * density, markerLayers)
@@ -99,10 +102,27 @@ class MapTapHandler(
 
         val heightOf = order.withIndex().associate { it.value.id to it.index }
         val topFirst = stack.sortedWith(compareByDescending<ProbedMarker> { heightOf.getValue(it.key.layerId) }.thenBy { it.key.featureId })
-        val offsets = fanOffsets(topFirst.size)
+        // The ring is about the stack's centre, so its markers are a touch size apart whatever their true spots (each
+        // within a touch size of the tapped one), and it is then shifted as a whole to stay on screen and off the
+        // controls; each member's displacement is from its own true position to its place, and the true positions
+        // (where the legs end) do not move.
+        val trueDp = topFirst.map { (it.xPx / density) to (it.yPx / density) }
+        val centreX = trueDp.map { it.first }.average().toFloat()
+        val centreY = trueDp.map { it.second }.average().toFloat()
+        val ring = fanOffsets(topFirst.size)
+        val placement = fanShift(
+            centreX, centreY, ring,
+            bounds = space.boundsPx()?.let { it.scaled(1f / density) },
+            keepOuts = space.keepOutsPx().map { it.scaled(1f / density) },
+        )
         fan.open(
             topFirst.mapIndexed { i, m ->
-                FanMember(m.key, m.lat, m.lng, m.xPx / density, m.yPx / density, offsets[i])
+                val (trueX, trueY) = trueDp[i]
+                val offset = FanOffset(
+                    centreX + ring[i].xDp + placement.shift.xDp - trueX,
+                    centreY + ring[i].yDp + placement.shift.yDp - trueY,
+                )
+                FanMember(m.key, m.lat, m.lng, trueX, trueY, offset)
             },
         )
         return true

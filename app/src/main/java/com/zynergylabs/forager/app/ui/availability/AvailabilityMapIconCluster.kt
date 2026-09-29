@@ -1,5 +1,7 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.ui.map.MapKeepOutIds
+import com.zynergylabs.forager.app.ui.map.mapKeepOut
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.ui.unit.Density
 import androidx.compose.runtime.mutableFloatStateOf
@@ -557,6 +559,7 @@ internal fun BoxScope.MapIconCluster(
             // Surface, the landscape L's Box), never on its contents.
             val clusterMeasure = Modifier
                 .padding(MAP_ICON_BAR_EDGE_INSET)
+                .mapKeepOut(MapKeepOutIds.CLUSTER)
                 .onGloballyPositioned { coordinates ->
                     state.clusterHeightPx = coordinates.size.height.toFloat()
                     state.clusterWidthPx = coordinates.size.width.toFloat()

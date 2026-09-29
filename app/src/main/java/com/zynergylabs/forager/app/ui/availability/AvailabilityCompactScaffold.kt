@@ -53,6 +53,8 @@ package com.zynergylabs.forager.app.ui.availability
 // behaviour change." The getter pattern and the ResultsTab widening are the planner's rulings on
 // this build's two stops, quoted in RECORD.md intent 2026-09-27-21.
 
+import com.zynergylabs.forager.app.ui.map.MapKeepOutIds
+import com.zynergylabs.forager.app.ui.map.mapKeepOut
 import com.zynergylabs.forager.app.ui.map.MapLayersControls
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -1036,7 +1038,7 @@ internal fun CompactMainScaffold(
                                                 Modifier.padding(mapControlsPadding)
                                             },
                                         ) {
-                                        Column(modifier = Modifier.onSizeChanged { searchChromeHeightPx = it.height }) {
+                                        Column(modifier = Modifier.mapKeepOut(MapKeepOutIds.SEARCH_BAR).onSizeChanged { searchChromeHeightPx = it.height }) {
                                             SearchEntryBar(
                                                 uiState = uiState,
                                                 distanceUnit = distanceUnit,

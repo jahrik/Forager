@@ -16,6 +16,8 @@ package com.zynergylabs.forager.app.ui.availability
 // here. Seam F (the wide layout) was released by the owner for this split, as recorded in the
 // Understory amendment merged in #130.
 
+import com.zynergylabs.forager.app.ui.map.MapKeepOutIds
+import com.zynergylabs.forager.app.ui.map.mapKeepOut
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -716,7 +718,7 @@ internal fun CompactMapTab(
                                 .padding(top = topInset)
                                 // After the padding, so it is the strip's own height (item 2).
                                 .onSizeChanged { compassStripHeightPx = it.height }
-                        },
+                        }.mapKeepOut(MapKeepOutIds.TOP_STRIP),
                         contentWidth = railPortEdge != null,
                     )
                     DisposableEffect(Unit) { onDispose { compassStripHeightPx = 0 } }
@@ -770,7 +772,7 @@ internal fun CompactMapTab(
                                 .align(Alignment.TopCenter)
                                 .padding(controlsPadding)
                                 .padding(top = topInset + compassStripClearance + Spacing.sm)
-                        },
+                        }.mapKeepOut(MapKeepOutIds.CHIPS),
                     ) {
                         mapTaxonFilterLabel?.let { label -> TaxonMapFilterChip(label = label, onClear = onClearTaxonFilter) }
                         if (shownJournalEntries.isNotEmpty()) {
@@ -818,7 +820,7 @@ internal fun CompactMapTab(
                                 .padding(controlsPadding)
                                 .fillMaxWidth()
                                 .padding(top = topInset)
-                        },
+                        }.mapKeepOut(MapKeepOutIds.TOP_STRIP),
                     )
                 }
 
@@ -850,6 +852,7 @@ internal fun CompactMapTab(
                             .align(Alignment.BottomEnd)
                             .padding(controlsPadding)
                             .padding(end = legendEndPadding, bottom = renderMode.bottomInset + LEGEND_ATTRIBUTION_CLEARANCE)
+                            .mapKeepOut(MapKeepOutIds.LEGEND)
                             .onGloballyPositioned { coordinates ->
                                 legendChipTopPx = coordinates.positionInRoot().y - mapContentBoxTopInRootPx
                             },
@@ -906,6 +909,7 @@ internal fun CompactMapTab(
                             onTabSelected = onBottomNavTabSelected,
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .mapKeepOut(MapKeepOutIds.BOTTOM_NAV)
                                 .onGloballyPositioned { coordinates ->
                                     mapBottomNavHeightPx = coordinates.size.height.toFloat()
                                     onBottomNavHeightMeasured(coordinates.size.height.toFloat())
@@ -939,7 +943,7 @@ internal fun CompactMapTab(
                             onTabSelected = onBottomNavTabSelected,
                             portEdge = railPortEdge,
                             containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = MAP_CHROME_OVER_MAP_ALPHA),
-                            modifier = Modifier.onGloballyPositioned { coordinates ->
+                            modifier = Modifier.mapKeepOut(MapKeepOutIds.RAIL).onGloballyPositioned { coordinates ->
                                 onRailWidthMeasured(coordinates.size.width.toFloat())
                             },
                         )

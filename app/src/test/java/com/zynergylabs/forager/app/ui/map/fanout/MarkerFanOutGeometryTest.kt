@@ -17,7 +17,8 @@ import kotlin.math.hypot
  */
 class MarkerFanOutGeometryTest {
 
-    private fun gap(a: FanOffset, b: FanOffset) = hypot(a.xDp - b.xDp, a.yDp - b.yDp)
+    /** Two touch areas are 48 dp squares, so they clear each other only when the centres are 48 dp apart on at least one axis. */
+    private fun gap(a: FanOffset, b: FanOffset) = maxOf(abs(a.xDp - b.xDp), abs(a.yDp - b.yDp))
 
     private fun minPairwise(offsets: List<FanOffset>): Float =
         offsets.indices.flatMap { i -> (i + 1 until offsets.size).map { j -> gap(offsets[i], offsets[j]) } }.min()
@@ -31,11 +32,11 @@ class MarkerFanOutGeometryTest {
     // Rule 2: the ring.
 
     @Test
-    fun `a ring of two to eight puts every pair at least a touch size apart`() {
+    fun `a ring of two to eight leaves no two touch squares overlapping`() {
         for (n in 2..FAN_RING_MAX) {
             val ring = fanOffsets(n)
             assertEquals("count for $n", n, ring.size)
-            assertTrue("ring of $n: closest pair ${minPairwise(ring)} dp, needs at least $FAN_TOUCH_DP", minPairwise(ring) >= FAN_TOUCH_DP - 0.01f)
+            assertTrue("ring of $n: the closest pair is ${minPairwise(ring)} dp apart on its wider axis, the squares overlap below $FAN_TOUCH_DP", minPairwise(ring) >= FAN_TOUCH_DP - 0.01f)
         }
     }
 
@@ -56,10 +57,11 @@ class MarkerFanOutGeometryTest {
     }
 
     @Test
-    fun `the ring of eight is as tight as a touch size allows - its radius is the derived one, not a round number`() {
-        // 48 / (2 sin(pi/8)) = 62.72
+    fun `the ring of eight is as tight as square touch areas allow - its radius is derived, not a round number`() {
+        // Adjacent markers of eight sit 45 degrees apart; their centres differ by r sin 45 across and r (1 - cos 45) along,
+        // so the squares clear each other when r sin 45 = 48, r = 48 / sin 45 = 67.88.
         val radius = hypot(fanOffsets(8).first().xDp, fanOffsets(8).first().yDp)
-        assertEquals(62.72f, radius, 0.05f)
+        assertEquals(67.88f, radius, 0.05f)
     }
 
     // Rule 3: the spiral.
@@ -71,11 +73,11 @@ class MarkerFanOutGeometryTest {
     }
 
     @Test
-    fun `a spiral of nine to sixty puts every pair at least a touch size apart and clears the spot`() {
+    fun `a spiral of nine to sixty leaves no two touch squares overlapping and clears the spot`() {
         for (n in listOf(9, 12, 30, 60)) {
             val spiral = fanOffsets(n)
             assertEquals("count for $n", n, spiral.size)
-            assertTrue("spiral of $n: closest pair ${minPairwise(spiral)} dp, needs at least $FAN_TOUCH_DP", minPairwise(spiral) >= FAN_TOUCH_DP - 0.01f)
+            assertTrue("spiral of $n: the closest pair is ${minPairwise(spiral)} dp apart on its wider axis, the squares overlap below $FAN_TOUCH_DP", minPairwise(spiral) >= FAN_TOUCH_DP - 0.01f)
             assertTrue("spiral of $n: a marker at ${spiral.minOf { hypot(it.xDp, it.yDp) }} dp sits on the spot", spiral.all { hypot(it.xDp, it.yDp) >= FAN_TOUCH_DP - 0.01f })
         }
     }

@@ -11,6 +11,11 @@ package com.zynergylabs.forager.app.ui.availability
 // layout) was released by the owner for this split, as recorded in the Understory amendment merged
 // in #130. Stage D left CombinedResultsPane behind because it composes MapTab, which was then held.
 
+import androidx.compose.runtime.CompositionLocalProvider
+import com.zynergylabs.forager.app.ui.map.LocalMapKeepOuts
+import com.zynergylabs.forager.app.ui.map.fanout.MapKeepOuts
+import com.zynergylabs.forager.app.ui.map.MapKeepOutIds
+import com.zynergylabs.forager.app.ui.map.mapKeepOut
 import androidx.compose.runtime.mutableFloatStateOf
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
@@ -239,7 +244,10 @@ internal fun CombinedResultsPane(
             modifier = listModifier.testTag(WIDE_LIST_PANE_TAG),
         )
     }
+    // Where the controls over the map are, for the marker fan-out to keep clear of (MapKeepOut.kt).
+    val mapKeepOuts = remember { MapKeepOuts() }
     val map: @Composable (Modifier) -> Unit = { mapModifier ->
+        CompositionLocalProvider(LocalMapKeepOuts provides mapKeepOuts) {
         MapTab(
             uiState = uiState,
             mapSlot = mapSlot,
@@ -258,6 +266,7 @@ internal fun CombinedResultsPane(
             controls = controls,
             modifier = mapModifier,
         )
+        }
     }
     BoxWithConstraints(modifier = modifier.fillMaxHeight()) {
         // The layout is chosen against the pane's width with the drawer in place, also in fullscreen (J6c), so
@@ -515,6 +524,7 @@ private fun MapTab(
                                 modifier = Modifier
                                     .align(Alignment.TopCenter)
                                     .fillMaxWidth()
+                                    .mapKeepOut(MapKeepOutIds.TOP_STRIP)
                                     .onSizeChanged { stripHeightPx = it.height },
                             )
                             DisposableEffect(Unit) { onDispose { stripHeightPx = 0 } }
@@ -532,6 +542,7 @@ private fun MapTab(
                                 modifier = Modifier
                                     .align(Alignment.TopCenter)
                                     .fillMaxWidth()
+                                    .mapKeepOut(MapKeepOutIds.TOP_STRIP)
                                     .onSizeChanged { hudHeightPx = it.height },
                             )
                             DisposableEffect(Unit) { onDispose { hudHeightPx = 0 } }
@@ -550,6 +561,7 @@ private fun MapTab(
                                 modifier = Modifier
                                     .align(Alignment.TopCenter)
                                     .padding(start = Spacing.sm, end = Spacing.sm, top = topChrome + Spacing.sm)
+                                    .mapKeepOut(MapKeepOutIds.CHIPS)
                                     .onGloballyPositioned { coordinates -> chipsBottomPx = coordinates.boundsInParent().bottom },
                             ) {
                                 mapTaxonFilterLabel?.let { label -> TaxonMapFilterChip(label = label, onClear = onClearTaxonFilter) }
@@ -588,6 +600,7 @@ private fun MapTab(
                                 modifier = Modifier
                                     .align(Alignment.BottomEnd)
                                     .padding(end = Spacing.sm, bottom = renderMode.bottomInset + LEGEND_ATTRIBUTION_CLEARANCE)
+                                    .mapKeepOut(MapKeepOutIds.LEGEND)
                                     .onGloballyPositioned { coordinates ->
                                         cluster.legendChipTopPx = coordinates.positionInRoot().y - cluster.mapContentBoxTopInRootPx
                                     },
