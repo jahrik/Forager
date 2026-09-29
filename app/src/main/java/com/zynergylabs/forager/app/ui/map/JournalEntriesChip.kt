@@ -26,6 +26,7 @@ import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import com.zynergylabs.forager.app.domain.JournalEntryOnMap
+import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.theme.Bark
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import com.zynergylabs.forager.app.ui.theme.Spacing
@@ -65,7 +66,7 @@ private var SemanticsPropertyReceiver.journalMenuContentColor by JournalMenuCont
  * `2026-09-28-64`), as the Layers sheet puts its own sheet role at that alpha (`MapLayersSheet`).
  */
 @Composable
-internal fun journalMenuContainerColor(): Color = MenuDefaults.containerColor.copy(alpha = MAP_CHROME_OVER_MAP_ALPHA)
+internal fun journalMenuContainerColor(): Color = navigationBarContainerColor().copy(alpha = MAP_CHROME_OVER_MAP_ALPHA)
 
 /**
  * A J8 menu's content colour: the default menu role's own content colour, opaque. Pinned to the
@@ -73,7 +74,7 @@ internal fun journalMenuContainerColor(): Color = MenuDefaults.containerColor.co
  * exactly, and given the container at 80% it matches none and falls back to `LocalContentColor`.
  */
 @Composable
-internal fun journalMenuContentColor(): Color = contentColorFor(MenuDefaults.containerColor)
+internal fun journalMenuContentColor(): Color = contentColorFor(navigationBarContainerColor())
 
 /** Marks a J8 menu's content with its colours, for tests. */
 internal fun Modifier.journalMenuColours(container: Color, content: Color): Modifier =

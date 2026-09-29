@@ -68,6 +68,7 @@ import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.ReturnToStartInfo
+import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.MAP_CHROME_OVER_MAP_ALPHA
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_CORNER_RADIUS
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_EDGE_INSET
@@ -90,12 +91,6 @@ import com.zynergylabs.forager.app.ui.theme.Cream
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import kotlin.math.roundToInt
-
-/** Translucent background for [CompassElevationStripContent] and [SearchDropdown]'s own panel — dark-theme value. Was 0.78, one alpha step off the app's settled 80% map-chrome opacity ([MapIconStackButtonColorDark]'s own value); the map/navigation search-UI redo dispatch names 80% as the one value all map chrome shares, so this now matches rather than carrying its own near-miss. */
-internal val CompassStripBackgroundColorDark = Bark.copy(alpha = MAP_CHROME_OVER_MAP_ALPHA)
-
-/** [CompassStripBackgroundColorDark]'s light-theme counterpart — same reasoning as [MapIconStackButtonColorLight]: picked per [com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme], independent of the map's own night mode, unverified on hardware. */
-internal val CompassStripBackgroundColorLight = Cream.copy(alpha = MAP_CHROME_OVER_MAP_ALPHA)
 
 /** The compass strip's heading text — one of the two places a heading can appear, never both at once (the strip hides while the HUD shows). */
 internal const val COMPASS_STRIP_HEADING_TAG = "compass-strip-heading"
@@ -266,7 +261,7 @@ private fun ControlPill(
     if (horizontal) {
         // Owner's ruling (d), continuation 2026-09-28-172: both buttons take touches across their full 48 x 48 squares, corners
         // included. The drawn pill is a content-less Surface underneath, so its rounded ends do not clip the buttons' hit areas.
-        Box(modifier = modifier.testTag("control-pill")) {
+        Box(modifier = modifier.testTag("control-pill").mapChromeContainerColor(pillFill)) {
             Surface(
                 shape = RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS),
                 color = pillFill,
@@ -283,7 +278,7 @@ private fun ControlPill(
             contentColor = pillContentColor,
             shadowElevation = 2.dp,
             border = pillBorder,
-            modifier = modifier.testTag("control-pill"),
+            modifier = modifier.testTag("control-pill").mapChromeContainerColor(pillFill),
         ) { buttons() }
     }
 }
@@ -386,7 +381,7 @@ private fun CompassElevationStripContent(
                 // ControlPill (Part B), so this strip wraps its Row's natural text-content height
                 // again, the same as before that dispatch.
                 .background(
-                    color = if (isDarkTheme) CompassStripBackgroundColorDark else CompassStripBackgroundColorLight,
+                    color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
                     shape = RectangleShape,
                 )
                 // Lets CompactMapTab's own onGloballyPositioned measure this strip's real height —
@@ -394,7 +389,8 @@ private fun CompassElevationStripContent(
                 // clear it, and now that it wraps content instead of sitting at a fixed 48dp, a
                 // measured value is the only one that stays correct as font scale or content change
                 // it. Also still what this composable's own regression test targets directly.
-                .testTag("compass-elevation-strip"),
+                .testTag("compass-elevation-strip")
+                .mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight),
         ) {
             Row(
                 // fillMaxWidth, not fillMaxSize — see this Box's own doc comment above for the
@@ -634,7 +630,7 @@ internal fun AddActionTile(
                 .offset(x = anchorOffset.x, y = anchorOffset.y),
         ) {
             Surface(
-                modifier = Modifier.testTag(ADD_ACTION_TILE_TAG),
+                modifier = Modifier.testTag(ADD_ACTION_TILE_TAG).mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight),
                 shape = RoundedCornerShape(Spacing.md),
                 shadowElevation = 4.dp,
                 color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,

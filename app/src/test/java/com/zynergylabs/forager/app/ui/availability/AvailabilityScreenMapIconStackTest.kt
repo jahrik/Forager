@@ -834,7 +834,7 @@ class AvailabilityScreenMapIconStackTest {
      * The ✕ is a deliberate press and still exits directly, with no prompt composed. (The control
      * pill's toggle is wired the same way — `onClick = onToggleReturning`, nothing in between —
      * but its semantic click is this suite's documented Robolectric no-op, see
-     * docs/audits/2026-08-30-return-to-vehicle-semantics-click-noop.md, so it is not asserted
+     * docs/navigation/2026-08-30-return-to-vehicle-semantics-click-noop.md, so it is not asserted
      * here; the real-touch exit test above covers the ✕ by coordinates.)
      */
     @Test
@@ -980,7 +980,7 @@ class AvailabilityScreenMapIconStackTest {
      * A commit bisection then showed the failure is genuinely absent before `72f0a54` (the search-
      * bar redesign) and genuinely present after it — a real regression introduced by that commit,
      * not cross-test contamination. See
-     * `docs/audits/2026-08-30-return-to-vehicle-semantics-click-noop.md` for the full investigation:
+     * `docs/navigation/2026-08-30-return-to-vehicle-semantics-click-noop.md` for the full investigation:
      * what's ruled out (the compass-strip-clearance padding specifically; a moved semantics merge
      * boundary around this row, checked by comparing the merged/unmerged tree before and after
      * `72f0a54`), the confirmed-working real-device result (three real `adb shell input tap` events
@@ -1650,7 +1650,7 @@ class AvailabilityScreenMapIconStackTest {
     //   node when the identical production wiring fires correctly on a real touch. Not yet looked
     //   at: the gesture-detector/pointer-input node beneath the semantics layer, inside
     //   MapBarIconButton's own Icon child — below the level the merge-tree check compared.
-    // Full writeup: docs/audits/2026-08-30-return-to-vehicle-semantics-click-noop.md
+    // Full writeup: docs/navigation/2026-08-30-return-to-vehicle-semantics-click-noop.md
     @Ignore("Harness-only failure, confirmed working on a real device — see this test's own comment and the linked audit doc")
     @Test
     fun `tapping the control pill's return-to-vehicle button calls onToggleReturning`() {
@@ -1714,7 +1714,7 @@ class AvailabilityScreenMapIconStackTest {
     // @Ignore for the same harness-only reason as `tapping the control pill's return-to-vehicle
     // button calls onToggleReturning` above — see that test's own comment for the full provenance
     // (commit boundary `72f0a54`, the on-device result on `3df717b`, the merge-tree finding, and
-    // the open question) and docs/audits/2026-08-30-return-to-vehicle-semantics-click-noop.md.
+    // the open question) and docs/navigation/2026-08-30-return-to-vehicle-semantics-click-noop.md.
     // Not deleted: same reason, this is the follow-up's own subject.
     @Ignore("Harness-only failure, confirmed working on a real device — see the sibling test's comment and the linked audit doc")
     @Test
@@ -1746,7 +1746,7 @@ class AvailabilityScreenMapIconStackTest {
      */
     // @Ignore for the same harness-only reason as its twin above — see `tapping the control pill's
     // return-to-vehicle button calls onToggleReturning`'s own comment for the full provenance and
-    // docs/audits/2026-08-30-return-to-vehicle-semantics-click-noop.md. Not deleted: same reason.
+    // docs/navigation/2026-08-30-return-to-vehicle-semantics-click-noop.md. Not deleted: same reason.
     @Ignore("Harness-only failure, confirmed working on a real device — see the sibling test's comment and the linked audit doc")
     @Test
     fun `a real touch at each trailhead control's own screen coordinates reaches that control while not returning`() {
@@ -1814,7 +1814,7 @@ class AvailabilityScreenMapIconStackTest {
      * the bar sits at its own default (right) edge, before any drag has happened — control-pill-
      * record specifically, not control-pill-return-to-vehicle, which has its own pre-existing,
      * unrelated Robolectric-only click no-op documented in
-     * docs/audits/2026-08-30-return-to-vehicle-semantics-click-noop.md.
+     * docs/navigation/2026-08-30-return-to-vehicle-semantics-click-noop.md.
      */
     @Test
     fun `a real touch on the record button reaches it while the bar is on its default right edge`() {

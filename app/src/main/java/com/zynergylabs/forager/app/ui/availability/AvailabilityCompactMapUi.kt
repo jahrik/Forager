@@ -16,6 +16,7 @@ package com.zynergylabs.forager.app.ui.availability
 // here. Seam F (the wide layout) was released by the owner for this split, as recorded in the
 // Understory amendment merged in #130.
 
+import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.map.MapKeepOutIds
 import com.zynergylabs.forager.app.ui.map.mapKeepOut
 import android.widget.Toast
@@ -904,7 +905,7 @@ internal fun CompactMapTab(
                             selectedTab = CompactTab.MAP,
                             // 80%, the standing opacity for chrome over the map — see this bar's own
                             // containerColor doc comment.
-                            containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = MAP_CHROME_OVER_MAP_ALPHA),
+                            containerColor = navigationBarContainerColor().copy(alpha = MAP_CHROME_OVER_MAP_ALPHA),
                             isDrawerOpen = isDrawerOpen,
                             onTabSelected = onBottomNavTabSelected,
                             modifier = Modifier
@@ -942,7 +943,7 @@ internal fun CompactMapTab(
                             isDrawerOpen = isDrawerOpen,
                             onTabSelected = onBottomNavTabSelected,
                             portEdge = railPortEdge,
-                            containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = MAP_CHROME_OVER_MAP_ALPHA),
+                            containerColor = navigationBarContainerColor().copy(alpha = MAP_CHROME_OVER_MAP_ALPHA),
                             modifier = Modifier.mapKeepOut(MapKeepOutIds.RAIL).onGloballyPositioned { coordinates ->
                                 onRailWidthMeasured(coordinates.size.width.toFloat())
                             },

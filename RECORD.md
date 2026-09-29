@@ -6743,3 +6743,157 @@ The planner confirmed each by grep.
 - **Merge note:** when legal-drafts merges, keep both appended sections of the site report (L1's addendum and the second planner's audit).
 - **Checked for clashes:** none with F5 or C1.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-222
+**Timestamp:** 2026-09-29T19:57:07Z
+**Dispatch:** none (the planner's own repository change, at the owner's instruction)
+**Reason:** the owner, verbatim:
+- "Move both 8/18 and 9/28 files into PR 140. / Add the following to the same folder: navigation chrome pre-build (2026-09-06); return estimate (2026-09-07, three reports); way-back route decisions and pre-build (2026-09-11); the sundown countdown and decisions reports (2026-09-11)."
+- "1 A / 2 A and anything else I haven't found yet".
+**Changes:**
+- **Merged the navigator-audit branch** into journal-redesign (bb47864d), keeping every index row. So the 2026-09-28 Navigator plan status audit is now in PR #140.
+- **A new folder, docs/navigation/, with a README index.** 22 files moved with git mv:
+  - **the plan:** forager-navigator-plan.md, from docs/plans;
+  - **the status audit**, 2026-09-28;
+  - **the navigation chrome** pre-build (2026-09-06);
+  - **the return estimate:** its three reports (2026-09-07);
+  - **the way-back route:** decisions and pre-build (2026-09-11);
+  - **all four sundown reports** (2026-09-11);
+  - **found by the planner, under "anything else":**
+    - return-to-vehicle semantics (2026-08-30);
+    - compass reliability, pulse and pre-build (2026-09-06);
+    - light budget and turnaround (2026-09-06);
+    - alert delivery, pre-build and completion (2026-09-06);
+    - the path-home ruling (2026-09-07);
+    - path-home ratio pre-build, monotonicity amendment and the companion script (2026-09-08).
+- **Links rewritten** in 26 files, and 0 broken links to moved files remain. In app/ and .github the changes are comment lines only, checked by diff.
+**Notes:**
+- **Left where they were, as history:** RECORD.md and prompts/preserved still cite the old paths. `git log --follow` traces each move.
+- **Considered and not moved:** maplibre-migration.md (the plan's companion, but a map-renderer plan cited widely), and the 2026-09-07 track-distance pulse.
+- Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-223
+**Timestamp:** 2026-09-29T19:58:12Z
+**Dispatch:** 2026-09-28-210 (C1)
+**Reason:** the C1 coder handed back, pushed to journal-redesign at b9679e76. Report: docs/audits/2026-09-29-chrome-colour-completion-report.md.
+**Changes:**
+- **One token,** navigationBarContainerColor() = surfaceContainer (dark #202020, light #F4EFE2), read by the navigation bar and the rail.
+- **Every map chrome surface takes it,** either through the kept, redefined MapIconStackButtonColor* constants or through mapChromeFill.
+- **The wide details pane** takes the token and stays solid. The pulse's premise was wrong: it had been `surface`.
+- **The search notice** keeps errorContainer.
+- **Alphas are unchanged,** except "Download this area?", from opaque to 0.8. The cluster's 0.6/0.5 are not tied to the chrome alpha (owner "5 No").
+- **Only the snackbar's content changed:** text onSurfaceVariant and action primary, because its inverse colours fail contrast on the token.
+- **All other measured contrast** clears AA: dark 7.39-16.29, light 4.73-11.42.
+**Notes:**
+- **Tests first:** 168 tests, 108 failing for their reasons. 20 revert runs.
+- **Two escapes, closed.** Fill-only reverts of the pane and the search panel passed, because the semantic seams repeat the given colour. Pixel tests were added (search bar, strip, icon bar, nav bar, panel, bubble, wide pane, dark and light) and re-reverted, and all now bite.
+- **Proven through the seam only, not pixels:** HUD, chips, legend, AddActionTile, handles, cluster container, pill, sheets, dialogs, drawer, menus, snackbar, centre-pin row and the Download dialog.
+- **Its suite on a6d01fc9:** 3217 / 0 / 0 / 24. It was not re-run after the last merge, 35c9a86b.
+- **Stale comments** still name CompassStripBackgroundColor* (AvailabilityMapControlsUi.kt:5, AvailabilitySearchUi.kt:11, theme/Theme.kt:62). MapModePicker has no caller.
+- **Machine:** one attempt at 2415 MB, which failed at compile.
+- Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-224
+**Timestamp:** 2026-09-29T20:01:11Z
+**Dispatch:** none (results relayed by the second planner session [05172f])
+**Reason:** the second planner finished the two tasks the owner gave it (-218).
+**Changes:**
+- **(1) An audit of the live privacy page against main** (faf2f88f): 29 changes as was / now / why, corrections to L1's Part 1, and seven open items. It is appended to docs/audits/2026-09-29-privacy-site-update-report.md (0d079a9d, merged at 2f4eafe7).
+- **(2) The live privacy page, changed to describe main,** on zynergy-site branch worktree-bridge-cse_01JoYc3mJXVwBwWBLeCWaqSz (9bc0d45). It is not merged, and publishing is the owner's.
+**Notes:**
+- **Corrections for main:**
+  - L1's Part 1 item 7 is wrong for main: there is no Undo there (CartographyEntryReportScreen.kt:96); Undo is PR #140 only;
+  - tracks cannot be deleted on main, so the live delete-data line is untrue today. The owner's "keep it" holds for PR #140.
+- **The delete-data page** is unchanged and waits on the owner. The audit's open item 1 lists what it needs.
+- **F5, once released,** changes the privacy page's GPX cache-copy sentences.
+- **9bc0d45's commit message** mentions the sundown sentence being unchanged. It was pushed before the owner's "B remove them all". It is left for the owner: a replacement branch, or a force-push.
+- **Still with the owner, from that session:**
+  - a build-timing section (a shared flock for Gradle, and handing back rather than stopping idle daemons);
+  - a Gradle daemon idle timeout.
+- Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-225
+**Timestamp:** 2026-09-29T20:03:12Z
+**Closes:** 2026-09-28-210 (C1, map chrome takes the navigation bar's colour)
+**Outcome:** completed
+**Observed:**
+- **Record:** docs/audits/2026-09-29-chrome-colour-completion-report.md. It landed at b9679e76.
+- **Built:** one surfaceContainer token for the navigation bar, the rail and every map chrome surface, in both themes, on phone, tablet and entry map.
+  - The search notice keeps its error colour.
+  - Every alpha is unchanged except "Download this area?" (to 0.8).
+  - The snackbar takes the navigation bar's content colours for contrast.
+- **The planner's suite** at fb6bf9ce (containing b9679e76 and the coder's last merge), idle, from a cleared results directory with the hang timeout: 394 files, none stale, 0 compile errors, 3217 / 0 / 0 / 24, in 280 s.
+  - This covers the merge the coder had not re-run.
+- **Device-only:** the report's list. Chiefly: whether the navigation bar and all chrome read as one colour over each basemap, day and night, on the S22 and the tablet; the sheets over their scrims; and the snackbar with an action.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-226
+**Timestamp:** 2026-09-29T20:07:13Z
+**Dispatch:** 2026-09-28-216 (F5)
+**Reason:** the owner, verbatim: "F5 is running".
+**Changes:** F5 runs in an owner-opened window. The planner prepares the S22 device session (Part 3) and J6's tablet check from the device-only lists, starting with a read-only inventory.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-227
+**Timestamp:** 2026-09-29T20:08:11Z
+**Title:** Device check Part 3 before PR #140: S22-A (map, layout, chrome), S22-B (data, backup, restore), and the tablet (J6 and the tablet halves)
+**Dispatch-file:** preserved/2026-09-29-51.md; launch prompts preserved/2026-09-29-52, -53 and -54 (~/Zynergy/launch-prompts/23-part-3-s22-a.md, 24-part-3-s22-b.md, 25-part-3-tablet.md)
+**Change:** no code. The device-only items of the L, F1-F5 and C1, Part 2's not-run items and fixed fails, and J6 on the owner's tablet, including its layout-size sanity test.
+- S22-A builds and installs, and confirms MIGRATION_16_17 on real data.
+- S22-B does the destructive items, then restores from the verified copy.
+- The tablet session installs the same APK, keeps its data, and leaves the owner's Stay Awake, timeout and CAMERA grant alone.
+**Scope boundary:**
+- the S22 and the tablet;
+- "DEVICE CHECK" data only, and the owner's data never edited;
+- sundown alerts excluded;
+- the run record on device-part-3.
+**Baseline:** the head after F5 lands and the planner's suite is clean. BASE is filled in at launch.
+**Prediction (outcome, planner):**
+1. The L and the fan-out pass.
+2. At least one chrome-colour item goes to the owner's eye.
+3. The Gallery date is still missing on a real scan.
+4. The tablet's portrait map tabs pass.
+**Finish line:** all three sections pushed, and both devices restored or read back. The planner merges the record and writes the terminal.
+**Notes:**
+- The checklist file is filed by the planner from a read-only helper, before launch.
+- Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-228
+**Timestamp:** 2026-09-29T20:10:01Z
+**Dispatch:** none (results relayed by the second planner session [05172f])
+**Reason:** the owner answered that session's three questions, verbatim: "1 yes / 2 yes / 3 no answer".
+**Changes:**
+- **zynergy-site PR #3** (https://github.com/slayer8366/zynergy-site/pull/3) is open, from branch site-legal-pages-2026-09-29, cut from main 0688e4d. It is not merged, and merging is the owner's click.
+  - 21eb8de: the privacy page, the same content as 9bc0d45, with no sundown line in its message.
+  - f260b08: the delete-data page, brought up to Forager main faf2f88f.
+- **The branch worktree-bridge-cse_01JoYc3mJXVwBwWBLeCWaqSz is superseded.** Deleting it is the owner's call.
+- **The delete-data changes are recorded in PR #140:** the section "The delete-data page, and the PR" of docs/audits/2026-09-29-privacy-site-update-report.md (feae0947, 15 rows).
+- **The build-timing section was dropped,** since the owner gave no answer.
+- **The site agent's notes** (preserved/2026-09-29-43.md and its copy) now point at PR #3 and cover both pages. Only that paragraph changed. The sundown text is untouched, per the owner.
+**Notes:**
+- **Row D6:** delete-data's "Recorded tracks" bullet moves under "Not yet deletable one by one" for today's app (main), because DeleteTrackUseCase has no caller there. It goes back with L1's wording at PR #140's release. The owner was told before answering "2 yes".
+- **Findings on main:**
+  - deleting a waypoint, region, find or photo leaves the entry's copy (CartographyEntryDao.kt:60-75);
+  - there is no "vehicle" waypoint kind (WaypointDesignation.kt:17-21).
+- Written by the planner by hand.

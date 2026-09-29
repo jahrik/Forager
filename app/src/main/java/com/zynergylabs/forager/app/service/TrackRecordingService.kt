@@ -51,7 +51,7 @@ import kotlinx.coroutines.sync.withLock
  * Controlled by [ACTION_START]/[ACTION_STOP] intents rather than binding — Phase 1a builds this
  * service and its domain logic only; the UI that starts/stops it and observes live progress is
  * Phase 1c, once the map layer it would show breadcrumbs on is on the new renderer (see
- * `docs/plans/forager-navigator-plan.md` §7).
+ * `docs/navigation/forager-navigator-plan.md` §7).
  */
 class TrackRecordingService : Service() {
 

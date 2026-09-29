@@ -110,6 +110,7 @@ import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.formatDistanceKm
 import com.zynergylabs.forager.app.domain.model.TaxonFilter
 import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
+import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPickerOverlay
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_DARK
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_LIGHT
@@ -278,7 +279,7 @@ internal fun SearchEntryBar(
         tonalElevation = 0.dp,
         shadowElevation = 0.dp,
         shape = RectangleShape,
-        modifier = Modifier.fillMaxWidth().testTag(SEARCH_ENTRY_BAR_TAG),
+        modifier = Modifier.fillMaxWidth().testTag(SEARCH_ENTRY_BAR_TAG).mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight),
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.xs)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -411,10 +412,11 @@ internal fun SearchDropdown(
                 .fillMaxWidth()
                 // Rule 1 above: Box + background, never Surface, over the map.
                 .background(
-                    color = if (isDarkTheme) CompassStripBackgroundColorDark else CompassStripBackgroundColorLight,
+                    color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
                     shape = RectangleShape,
                 )
-                .testTag(SEARCH_DROPDOWN_TAG),
+                .testTag(SEARCH_DROPDOWN_TAG)
+                .mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight),
         ) {
             val scrollState = rememberScrollState()
             // Map/navigation search-UI redo dispatch: "scrolling the drawer dismisses the
@@ -1203,8 +1205,8 @@ private fun SpeciesSearchControls(
             // `MapLayersSheet`), as J8's menus do (`journalMenuContentColor`).
             // Owner, verbatim "1 A" (planner message 2026-09-28-77, Q3): at the map chrome's alpha on its
             // own over the Maps tab, stacking over the 0.8 search panel; solid where no map is drawn.
-            val suggestionsColor = mapChromeFill(MenuDefaults.containerColor, suggestionsOverMap)
-            val suggestionsContentColor = contentColorFor(MenuDefaults.containerColor)
+            val suggestionsColor = mapChromeFill(navigationBarContainerColor(), suggestionsOverMap)
+            val suggestionsContentColor = contentColorFor(navigationBarContainerColor())
             ExposedDropdownMenu(
                 expanded = suggestionsOpen,
                 onDismissRequest = onDismissTaxonSuggestions,
@@ -1276,8 +1278,8 @@ private fun MonthSelector(selectedMonth: Int, onMonthSelected: (Int) -> Unit, ov
         )
         // As the species suggestions above: the default role, passed explicitly, and its content colour.
         // As the species suggestions (owner, "1 A"): 0.8 on its own over the Maps tab, stacking.
-        val monthMenuColor = mapChromeFill(MenuDefaults.containerColor, overMap)
-        val monthMenuContentColor = contentColorFor(MenuDefaults.containerColor)
+        val monthMenuColor = mapChromeFill(navigationBarContainerColor(), overMap)
+        val monthMenuContentColor = contentColorFor(navigationBarContainerColor())
         ExposedDropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },

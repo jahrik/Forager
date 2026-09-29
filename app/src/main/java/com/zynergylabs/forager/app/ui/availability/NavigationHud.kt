@@ -44,6 +44,9 @@ import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
 import com.zynergylabs.forager.app.domain.model.formatDistanceWithAccuracy
 import com.zynergylabs.forager.app.domain.relativeBearingDegrees
+import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorDark
+import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorLight
+import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.TrueHeadingReading
 import com.zynergylabs.forager.app.ui.theme.Bark
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
@@ -201,10 +204,11 @@ internal fun NavigationHud(
         Box(
             modifier = modifier
                 .background(
-                    color = if (isDarkTheme) CompassStripBackgroundColorDark else CompassStripBackgroundColorLight,
+                    color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
                     shape = RectangleShape,
                 )
-                .testTag(NAVIGATION_HUD_TAG),
+                .testTag(NAVIGATION_HUD_TAG)
+                .mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight),
         ) {
             Column(
                 modifier = Modifier
