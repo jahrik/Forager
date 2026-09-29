@@ -5816,3 +5816,44 @@ Nothing of either window was pushed. On the phone, the two did only force-stop a
   - (e) Layers and Add as bar rows.
 - **Machine:** the coder's build output is on /tmp, which is tmpfs, so it uses RAM that the memory rule then counts. One wait loop fell through after 10 minutes, and one suite started at 1805 MB of disk (the bar is 2048).
 - Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-172
+**Timestamp:** 2026-09-29T10:25:01Z
+**Continues:** 2026-09-28-160 (the landscape L)
+**Dispatch-file:** preserved/2026-09-29-30.md (to the L coder by SendMessage)
+**Reason:** the owner, verbatim: "1 2 3  I'll take your recommendations / 4 paste it here / 5 defer for tomorrow / 6 authorized and always allowed now".
+**Changes:** the L's four calls are ruled:
+- the top limit pushes the L down;
+- the landscape notice is inset from the L's side;
+- the handle's touch box is 20 × 48;
+- each button's full 48 dp square takes touches.
+**Notes:**
+- The plan records all six answers, under "The L's conflicts, J6c, the investigation, and the rest".
+- Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-173
+**Timestamp:** 2026-09-29T10:25:01Z
+**Continues:** 2026-09-28-152 (J6), item 14
+**Dispatch-file:** preserved/2026-09-29-31.md (to the J6 coder by SendMessage)
+**Reason:** the same answer's item 2.
+**Changes:** J6c:
+- drag, snap and minimise on the tablet;
+- fullscreen hides the drawer and the search bar;
+- the strip across the top, with the chips below it;
+- the compact cluster extracted into a shared composable, with the compact suite as the guard;
+- Layers and "+" as bar rows;
+- the portrait arrangement only.
+**Notes:**
+- **Also ruled in the same answer:**
+  - the intermittent-failure investigation is queued after the builds;
+  - Session 3 is pasted to the owner;
+  - the capture review is deferred to 2026-09-30;
+  - the tablet is authorized, and adb reads it as a device.
+- **Disk** is at 1243 MB free, under the coders' 2048 MB floor, so builds will wait. The owner is told.
+- Written by the planner by hand.
