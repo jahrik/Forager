@@ -4422,3 +4422,28 @@ Held for the owner: items 1, 2 (landscape), 6, 7 and 9.
 - The pulse filing it names is docs/audits/2026-09-28-planned-trips-pulse.md (dispatch-note -96).
 - It is told the tablet result (terminal -101): trips drew on the wide tree after a search, and past dates cannot be created.
 **Notes:** A read-only pulse on the offline-regions start-up path (flag 1 of -102; flag 1 of -101) runs at the same time, reading code only. Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-104
+**Timestamp:** 2026-09-29T00:11:10Z
+**Title:** Map-chrome device check follow-ups: the Offline maps Records sheet 0.8 in short landscape only; the search notice, sheet nav band, suggestions Back, landscape pin row, portrait snackbar, "Show on map" with nothing kept, and the entry map following basemap and Night Maps
+**Dispatch-file:** preserved/2026-09-28-104.md
+**Change:** Eight items from terminal -102's flags:
+- the owner's 1 A for the Records sheet;
+- insets and placement for the notice, sheet band, pin row and snackbar;
+- Back for the suggestions;
+- "Show on map" offered only when something is kept (planner's ruling);
+- the entry map following basemap and Night Maps (planner's ruling, stopping if a deliberate-fixed ruling exists).
+**Scope boundary:** ui/ files the verification names, tests, a completion report, in its own worktree forager-wt/chrome-follow-ups. Not the offline-regions issue, the chips' re-measure, the record, index, CLAUDE.md, plans or prompts.
+**Baseline:** journal-redesign at the base named at launch (queued behind -78).
+**Prediction (outcome — planner):** 1. Items 2, 3, 5 and 6 are inset handling, device-only. 2. Item 8 finds no deliberate-fixed ruling. 3. The suite grows by 10 to 20.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** Verification, build, tests first, revert checks, full suite, report, pushed; the planner writes the terminal; the device items go to the next S22 check.
+**Abort conditions:** An unruled placement, copy or design; a deliberately fixed entry map; a tests-first test passing at base; a non-compiling revert; a non-held failure; disk full or OOM; two failed fixes on one item; a refused push.
+**Notes:**
+- Owner, verbatim: "1 A 2 A". Rule 1 supersedes -77's Q1 (b), which was the planner's error.
+- The planner found that -94's coder created its branch in the planner's own session checkout, because -94 named no worktree; the planner will restore that checkout when the coder is done.
+- Every dispatch from here names its worktree.
+- Written by the planner by hand.
