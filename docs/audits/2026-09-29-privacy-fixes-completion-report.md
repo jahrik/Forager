@@ -76,6 +76,25 @@ On the branch after merging `origin/journal-redesign`, whose tip `f34b73e6` the 
 
 This pre-registration and the tests go to `privacy-fixes-wip` first, as they are broken work (failing tests). The build goes to `journal-redesign` once its tests pass. Before each Gradle run: no Java Gradle process (`pgrep -af '^\S*java .*([G]radleWrapperMain|[G]radleWorkerMain)'` empty), `MemAvailable` at least 2.5 GB, and at least 2048 MB free on disk. D58 is checked on the diff and the commit messages before each push.
 
+## Tests first, at the base (observed after the pre-registration was pushed at `5cffbb10`)
+
+The run was on `5cffbb10` (the base code with the six tests), with the classes `JournalBackupTest`, `TrackGpxExporterTest`, `RecordDetailsSheetTest` and `ForagerApplicationGpxCacheTest`. The results directory was cleared first. The log has 0 `e:` lines and a `BUILD FAILED` line, which comes from the test failures. There are 4 XML files, none older than the run's start. **71 tests, 4 failed, 0 skipped**, exactly the predicted four, each on its predicted message:
+
+- T1: `the backup's snapshot holds no cached_searches rows expected:<0> but was:<2>`
+- T4: `an export more than an hour old is deleted before the next one is written`
+- T5: `the export more than an hour old is deleted before the new one is written`
+- T6: `the export more than an hour old is deleted at app start`. This came after the second `onCreate` ran without an exception, so it is not the wrong-reason failure the pre-registration guarded against.
+
+T2 and T3 **passed at the base**, as predicted (finding 1). They are guards.
+
+**M1**, run at the base and before any build, puts `cached_searches` into `JournalTables.journal` as a record keyed by `key`. It ran `JournalBackupTest` (42 tests) with 0 `e:` lines, 1 XML file and none stale. Result: **4 failed**:
+- T2 (Replace): `the phone's searches are exactly as they were, and none of the backup's arrived`. The dump shows the phone's two searches replaced by the backup's single `key=key-1` row.
+- T3 (Merge): the same message. The dump holds 3 rows, the phone's two plus the backup's `key-1`.
+- the table-list guard: `the journal list, as ruling 3 B names it`.
+- T1, still failing, as it does at the base with no fix; M1 cannot touch it.
+
+The file was restored from the copy saved before the edit, is byte-identical to it, and has its exclusion line present. So T2 and T3 do detect a restore that writes `cached_searches`.
+
 ## Appendix: the governing files, verbatim
 
 ### `prompts/preserved/2026-09-29-48.md` (the dispatch)
