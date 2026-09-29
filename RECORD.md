@@ -7028,3 +7028,19 @@ The planner confirmed each by grep.
 - **From -232:** the secure_delete residue observation, which is in Part 3 S22-B.
 - **From -231, zynergy-site PR #3:** the release wording is going in (5cc9a64, work in progress, not merged). Its F5 sentences follow the landed F5 and change if the redo replaces it.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-237
+**Timestamp:** 2026-09-29T21:32:45Z
+**Dispatch:** 2026-09-28-216 (F5)
+**Reason:** the owner, verbatim, with model identifiers replaced as in the comparison's Appendix B: "Discard the redo and keep the findings in the audit file in PR 140, we are measuring [model B] vs [model A]." Then, before anything was deleted: "We are keeping the F5 that already landed / Keep the branch / Do not delete", and "Don't delete it. Just don't use it".
+**Changes:**
+- **The landed F5 stays** (2fa093ef's code). F5 stays closed (-233).
+- **The redo is kept and not used.** Its branch (head 426786f5) and worktree stay as they are: not merged, not built on, not deleted. It was checked clean and fully pushed.
+- **The findings are in PR 140:** docs/audits/2026-09-29-f5-landed-and-redo-compared.md (99816bff, c0516f82, and this commit). It holds the code diff, the procedure rule by rule, the tests, the owner's decision, and the redo's diff and report as appendices.
+**Notes:**
+- **The measurement's labels:** build A, the landed F5, ran on model A, which its commits' Co-Authored-By trailers name. Build B, the redo, ran on model B, the model the launch prompt sets (preserved/2026-09-29-50.md). Model identifiers are kept out of this file.
+- **Still open for the owner:** the third F5 worktree (-234). Nothing is running in it and nothing was pushed; it is untouched.
+- Written by the planner by hand.
