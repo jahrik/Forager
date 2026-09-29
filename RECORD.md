@@ -5769,3 +5769,24 @@ Nothing of either window was pushed. On the phone, the two did only force-stop a
 - **A process finding:** pushing over a longer file does not truncate it, so the first restore pass silently left 7 files unequal. The read-back caught it.
 - Disk was at 2114 MB available.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-170
+**Timestamp:** 2026-09-29T09:55:57Z
+**Dispatch:** 2026-09-28-160 (the landscape L)
+**Reason:** the L coder handed back with the L built on landscape-l-wip (805ab55a). Nothing is on journal-redesign.
+- **The build:** a fill-less Box replaces the container Surface in landscape. The bar is 240, the gap 8, the horizontal pill 96 × 48, with record under the bar's column on both sides, single-layer 0.8, and the anchor at a 48 dp pitch.
+- **Tests first:** 30 tests, 16 of them failing at base for the pre-registered reasons.
+- **5 revert checks.** One real bug was caught: record sat inboard on the right side.
+- **Full suite:** 2821 / 13 failed / 24 skipped. All 13 come from the conflicts below.
+**Changes:** none. Four decisions go to the owner:
+- (a) T9 ×2: the centred 296 dp L's top (44 dp) is 1 dp above the search bar's bottom (45 dp). The top clamp can pull up but never push down (CMU:846).
+- (b) With a search notice showing, the L overlaps the notice by 49 dp in a 384 dp window, because the notice floor gives way to the lowest edge.
+- (c) T7 ×11: the 72 dp minimise handle now reaches 12 dp into the compass and Layers rows, so real touches at their outer-lower part hit the handle.
+- (d) **The dispatch's corner-clipping stop is triggered.** On the end rows, real touches in the corners of the 48 dp box, outside the 24 dp rounded end (about 5% of the box), fall through to the map.
+**Notes:**
+- The coder used --no-daemon because a crashed run's daemon held a lock.
+- /tmp is shared between sessions: another overwrote a D58 script.
+- Written by the planner by hand.
