@@ -48,14 +48,36 @@ class DataStoreBackupSchedulePreferences(context: Context) : BackupSchedulePrefe
         Unit
     }
 
-    override suspend fun pendingNotice(): Result<ScheduledBackupNotice?> = Result.failure(UnsupportedOperationException("pending notice: not built"))
+    override suspend fun pendingNotice(): Result<ScheduledBackupNotice?> = runCatchingCancellable {
+        when (val stored = dataStore.data.first()[KEY_PENDING_NOTICE]) {
+            null -> null
+            NOTICE_DID_NOT_FINISH -> ScheduledBackupNotice.DidNotFinish
+            else -> if (stored.startsWith(NOTICE_SKIPPED_PREFIX)) {
+                ScheduledBackupNotice.SavedWithSkippedPhotos(stored.removePrefix(NOTICE_SKIPPED_PREFIX).toInt())
+            } else {
+                error("unknown scheduled-backup notice '$stored'")
+            }
+        }
+    }
 
-    override suspend fun setPendingNotice(notice: ScheduledBackupNotice?): Result<Unit> = Result.failure(UnsupportedOperationException("pending notice: not built"))
+    override suspend fun setPendingNotice(notice: ScheduledBackupNotice?): Result<Unit> = runCatchingCancellable {
+        dataStore.edit { prefs ->
+            when (notice) {
+                null -> prefs.remove(KEY_PENDING_NOTICE)
+                ScheduledBackupNotice.DidNotFinish -> prefs[KEY_PENDING_NOTICE] = NOTICE_DID_NOT_FINISH
+                is ScheduledBackupNotice.SavedWithSkippedPhotos -> prefs[KEY_PENDING_NOTICE] = NOTICE_SKIPPED_PREFIX + notice.count
+            }
+        }
+        Unit
+    }
 
     private companion object {
         const val DATA_STORE_NAME = "backup_schedule_preferences"
         val KEY_ENABLED = booleanPreferencesKey("backup.enabled")
         val KEY_FREQUENCY = stringPreferencesKey("backup.frequency")
         val KEY_FOLDER = stringPreferencesKey("backup.folder_uri")
+        val KEY_PENDING_NOTICE = stringPreferencesKey("backup.pending_notice")
+        const val NOTICE_DID_NOT_FINISH = "did_not_finish"
+        const val NOTICE_SKIPPED_PREFIX = "skipped:"
     }
 }

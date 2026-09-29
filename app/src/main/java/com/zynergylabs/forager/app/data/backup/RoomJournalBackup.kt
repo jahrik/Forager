@@ -231,7 +231,31 @@ class RoomJournalBackup(
             hooks.afterPhotosCopied()
             database.runInTransaction(Runnable {
                 for (spec in JournalTables.journal) sql.execSQL("DELETE FROM `${spec.name}`")
-                for (spec in JournalTables.journal) inserted += copyAll(backupDb, sql, spec.name, dropKey = null)
+                // Each restored region gets a fresh id by the rule Merge uses, negative, so that a later MapLibre download
+                // arriving with the backup's old id can never overwrite a restored row (owner, "2 A"). Every reference in the
+                // restored data follows it. The table was just emptied, so the ids count down from -1.
+                val regionIdMap = HashMap<String, String>()
+                var nextRegionId = -1L
+                for (spec in JournalTables.journal) {
+                    inserted += copyAll(backupDb, sql, spec.name, dropKey = null) { values ->
+                        when (spec.name) {
+                            OFFLINE_REGIONS -> {
+                                val old = values.getAsString("id")
+                                val fresh = nextRegionId--
+                                values.put("id", fresh)
+                                regionIdMap[old] = fresh.toString()
+                            }
+                            // A find's link to a region the backup does not hold is cleared: left as it was, its number could
+                            // one day be a MapLibre id and point at a region that is not the one it meant.
+                            "mushroom_log_entries" -> values.getAsString("offlineRegionId")?.let { old ->
+                                regionIdMap[old]?.let { values.put("offlineRegionId", it.toLong()) } ?: values.putNull("offlineRegionId")
+                            }
+                            "cartography_entry_offline_region_refs" -> values.getAsString("offlineRegionId")?.let { old ->
+                                regionIdMap[old]?.let { values.put("offlineRegionId", it.toLong()) }
+                            }
+                        }
+                    }
+                }
                 hooks.afterRowsWritten()
             })
         } catch (t: Throwable) {
@@ -346,11 +370,17 @@ class RoomJournalBackup(
     // ---- rows ----------------------------------------------------------------------------------
 
     /** Every row of [table] in [from], verbatim, into [into]. Returns how many. */
-    private fun copyAll(from: SQLiteDatabase, into: androidx.sqlite.db.SupportSQLiteDatabase, table: String, dropKey: String?): Int {
+    private fun copyAll(
+        from: SQLiteDatabase,
+        into: androidx.sqlite.db.SupportSQLiteDatabase,
+        table: String,
+        dropKey: String?,
+        transform: (ContentValues) -> Unit = {},
+    ): Int {
         var n = 0
         from.rawQuery("SELECT * FROM `$table`", null).use { c ->
             while (c.moveToNext()) {
-                insertRow(into, table, c.toValues(dropKey))
+                insertRow(into, table, c.toValues(dropKey).also(transform))
                 n++
             }
         }

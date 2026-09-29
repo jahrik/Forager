@@ -489,7 +489,7 @@ fun AvailabilityScreen(
     backup: BackupControls = BackupControls(),
     /** Counts up when the person taps Done on the restore page: go to the Maps tab and close the drawer. */
     returnToMapRequest: Int = 0,
-    /** Counts up when a backup notification is tapped: open the Backup section in Tools, then Settings. (Tests-first stub: ignored.) */
+    /** Counts up when a backup notification is tapped: open the Backup section in Tools, then Settings. */
     openBackupRequest: Int = 0,
     /** "Download again" on a restored offline region. */
     onDownloadAgain: (Long) -> Unit = {},
@@ -1037,6 +1037,15 @@ fun AvailabilityScreen(
     // closed. The same two writes as "View on Map" above (onViewSpeciesOnMap): both tab states are set unconditionally,
     // since only the one the active layout reads has any effect. Keyed on the request's count, so a tab the person is
     // already on is set again harmlessly and 0, the default, does nothing.
+    // A backup notification's tap (dispatch 2026-09-28-153): open Tools, then Settings, at the Backup section. The compact
+    // drawer opens over whatever tab is showing; the wide layout's permanent drawer is switched to its Settings panel.
+    LaunchedEffect(openBackupRequest) {
+        if (openBackupRequest > 0) {
+            isDrawerOpen = true
+            drawerPanel = DrawerPanel.Settings
+        }
+    }
+
     LaunchedEffect(returnToMapRequest) {
         if (returnToMapRequest > 0) {
             isDrawerOpen = false
@@ -1218,6 +1227,16 @@ fun AvailabilityScreen(
     val logDraftSnackbarScope = rememberCoroutineScope()
     // Journal redesign J4: the pending deletes' Undo snackbars share this host too.
     PendingDeleteSnackbarEffects(pendingDeleteNotices, logDraftSnackbarHostState)
+    // A scheduled-backup notice that could not be a notification is shown here once, at launch (dispatch 2026-09-28-153,
+    // item 1; owner "1 A"): the approved text through this same host, no action and no new surface. It is forgotten before it
+    // is shown (showSnackbar suspends until it goes), so a launch that is interrupted does not show it twice.
+    LaunchedEffect(backup.state.launchNotice) {
+        val notice = backup.state.launchNotice ?: return@LaunchedEffect
+        backup.onLaunchNoticeShown()
+        // Launched on the host's own scope: forgetting the notice changes this effect's key and cancels it, which would
+        // cancel a snackbar shown from inside it before it was ever drawn.
+        logDraftSnackbarScope.launch { logDraftSnackbarHostState.showSnackbar(message = notice.text, duration = SnackbarDuration.Long) }
+    }
     // Alert-delivery dispatch, Item 3: the trip-start audibility warning shares this host — a host
     // is a slot, not a message — rather than adding a second surface over the map. A foreground
     // moment by construction (the user just tapped record), so a composed effect is the right
@@ -1416,6 +1435,7 @@ fun AvailabilityScreen(
                     onOpenCrashLogs = { drawerPanel = DrawerPanel.CrashLogs },
                     onOpenDiagnostics = { drawerPanel = DrawerPanel.Diagnostics },
                     backup = backup,
+                    showBackupRequest = openBackupRequest,
                 )
                 BuildIdentityFooter()
             }
@@ -1898,6 +1918,7 @@ fun AvailabilityScreen(
                         onThemeModeChanged = onThemeModeChanged,
                         crashFileStore = crashFileStore,
                         backup = backup,
+                        openSettingsRequest = openBackupRequest,
                     )
                     }
                     }

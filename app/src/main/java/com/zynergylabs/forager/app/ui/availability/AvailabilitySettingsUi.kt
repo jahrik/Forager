@@ -41,6 +41,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import kotlinx.coroutines.flow.first
+import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -270,6 +276,7 @@ private fun CompactSettingsTab(
     onThemeModeChanged: (AppThemeMode) -> Unit,
     crashFileStore: CrashFileStore,
     backup: BackupControls,
+    showBackupRequest: Int = 0,
     modifier: Modifier = Modifier,
 ) {
     var showCrashLogs by remember { mutableStateOf(false) }
@@ -319,6 +326,7 @@ private fun CompactSettingsTab(
                     onOpenCrashLogs = { showCrashLogs = true },
                     onOpenDiagnostics = { showDiagnostics = true },
                     backup = backup,
+                    showBackupRequest = showBackupRequest,
                 )
                 BuildIdentityFooter()
             }
@@ -360,10 +368,23 @@ internal fun SettingsContent(
     onOpenDiagnostics: () -> Unit,
     /** The Backup section's state and callbacks (journal backup and restore, dispatch 2026-09-28-127). */
     backup: BackupControls = BackupControls(),
+    /** Counts up when a backup notification is tapped: scroll the Backup section into view. */
+    showBackupRequest: Int = 0,
 ) {
+    // Scrolls to the Backup section when a notification's tap asks (dispatch 2026-09-28-153): its top is measured as it is
+    // laid out, and the scroll waits for that measurement, so a section that is not yet laid out (the drawer still opening)
+    // is not scrolled to a position it does not have yet.
+    val scrollState = rememberScrollState()
+    var backupTop by remember { mutableIntStateOf(-1) }
+    LaunchedEffect(showBackupRequest) {
+        if (showBackupRequest > 0) {
+            val top = snapshotFlow { backupTop }.first { it >= 0 }
+            scrollState.animateScrollTo(top)
+        }
+    }
     Column(
         modifier = modifier
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState)
             .padding(horizontal = Spacing.lg, vertical = Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
@@ -375,7 +396,7 @@ internal fun SettingsContent(
         PhotoLocationSection(checked = autoSaveLocationToPhotos, onCheckedChange = onAutoSaveLocationToPhotosChanged)
         CameraPortraitLockSection(checked = lockCameraToPortrait, onCheckedChange = onLockCameraToPortraitChanged)
         HorizontalDivider()
-        BackupSection(controls = backup)
+        BackupSection(controls = backup, modifier = Modifier.onGloballyPositioned { backupTop = it.positionInParent().y.toInt() })
         HorizontalDivider()
         CrashLogsEntryRow(onClick = onOpenCrashLogs)
         DiagnosticsEntryRow(onClick = onOpenDiagnostics)
@@ -579,6 +600,8 @@ internal fun CompactToolsDrawerContent(
     onThemeModeChanged: (AppThemeMode) -> Unit,
     crashFileStore: CrashFileStore,
     backup: BackupControls = BackupControls(),
+    /** Counts up when a backup notification is tapped: open Settings, at the Backup section. */
+    openSettingsRequest: Int = 0,
 ) {
     // Own drill-in step, same shape as CompactSettingsTab's own CrashLogs submenu — see this
     // composable's own doc comment, item 2. Composed inside this drawer sheet (which the
@@ -587,6 +610,9 @@ internal fun CompactToolsDrawerContent(
     // isDrawerOpen one — the same "most-recently-composed enabled callback wins" precedence
     // AvailabilityScreen's own top-level BackHandler chain already documents.
     var showSettings by remember { mutableStateOf(false) }
+    LaunchedEffect(openSettingsRequest) {
+        if (openSettingsRequest > 0) showSettings = true
+    }
     BackHandler(enabled = showSettings) {
         showSettings = false
     }
@@ -605,6 +631,7 @@ internal fun CompactToolsDrawerContent(
             onThemeModeChanged = onThemeModeChanged,
             crashFileStore = crashFileStore,
             backup = backup,
+            showBackupRequest = openSettingsRequest,
             modifier = Modifier.fillMaxSize(),
         )
         return
