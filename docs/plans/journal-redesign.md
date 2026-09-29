@@ -1091,3 +1091,5 @@ So:
 - Return extends outward, inboard of the screen, forming the L.
 
 **Disk space (owner, 2026-09-29).** The disk filled (about 114 MB free of 67 GB), stopping -160 before any test ran. The planner offered to delete about 4.5 GB of old build output in 28 finished worktrees. The owner, verbatim: "1 C". The owner clears space. The planner deletes nothing.
+
+The owner confirmed the pill's length, verbatim: "2 is  Awith that message". That is option A, 96 dp, together with the "stack fully" message above, which is what -162 carries.
