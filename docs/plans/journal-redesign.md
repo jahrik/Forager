@@ -1142,3 +1142,5 @@ The owner then asked, verbatim: "Unless that's a scaffolding for more map functi
 - In short landscape, only the Maps tab lets its map run under the cut-out. `AvailabilityCompactScaffold.kt:679-683` sets `contentWindowInsets` to the top only, "the map runs the whole width, under the cut-out", and pads the controls one by one (`mapControlsPadding`, :552-575).
 - Every other tab, the Journal included, takes `shortLandscapeContentInsets()` (:684-685). That keeps the whole tab, lists and text included, out of the cut-out band.
 - The entry map lives inside the Journal tab, so it inherits that margin.
+
+**The landscape entry map's left band: dropped (owner, 2026-09-29).** Asked whether "Nevermind that part" meant the entry map's black band in landscape, the owner answered, verbatim: "Yes drop that". The request is withdrawn. The entry map keeps the Journal tab's cut-out margin, and nothing is dispatched.
