@@ -467,6 +467,30 @@ abstract class BackupSettingsScreenTests {
     }
 
     @Test
+    fun `turning it on, off and on again asks for the notification permission once`() {
+        answers[ActivityResultContracts.RequestPermission::class.java] = false
+        turnScheduleOn()
+
+        composeRule.onNodeWithTag(BACKUP_AUTOMATIC_SWITCH_TAG).performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(BACKUP_AUTOMATIC_SWITCH_TAG).performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(BACKUP_AUTOMATIC_SWITCH_TAG).assertIsOn()
+        assertEquals("one ask in all, not one per turn-on", 1, notificationPermissionAsks())
+    }
+
+    @Test
+    fun `having been asked before, turning it on asks for nothing`() {
+        prefs.notificationAsked = true
+
+        turnScheduleOn()
+
+        composeRule.onNodeWithTag(BACKUP_AUTOMATIC_SWITCH_TAG).assertIsOn()
+        assertEquals(0, notificationPermissionAsks())
+    }
+
+    @Test
     fun `a notice kept for launch is shown once, in the app, in the approved words`() {
         prefs.pending = com.zynergylabs.forager.app.domain.ScheduledBackupNotice.DidNotFinish
         setScreen()

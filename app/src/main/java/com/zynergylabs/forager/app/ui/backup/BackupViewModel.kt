@@ -80,6 +80,8 @@ data class BackupUiState(
     val returnToMapRequest: Int = 0,
     /** A scheduled-backup notice that could not be shown as a notification, to be shown in the app once at launch. */
     val launchNotice: ScheduledBackupNotice? = null,
+    /** One-shot (STUB, tests-first commit): the section should ask for the notification permission. */
+    val askNotificationPermission: Boolean = false,
 )
 
 /** The Backup section's state and callbacks, as [com.zynergylabs.forager.app.ui.availability.SettingsContent] takes them. */
@@ -106,6 +108,8 @@ data class BackupControls(
     val onReplaceExistingCancelled: () -> Unit = {},
     /** The screen has shown [BackupUiState.launchNotice]; it is forgotten so it shows once. */
     val onLaunchNoticeShown: () -> Unit = {},
+    /** STUB: the section has acted on [BackupUiState.askNotificationPermission]. */
+    val onNotificationPermissionRequestHandled: () -> Unit = {},
 )
 
 /**
