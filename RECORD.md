@@ -7085,3 +7085,16 @@ The planner confirmed each by grep.
 - whether S22-A resumes for the remaining A1-A3 items;
 - what is done about the A1 item 1 fail.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-243
+**Timestamp:** 2026-09-29T22:33:45Z
+**Dispatch:** 2026-09-28-227 (Part 3), Tablet
+**Reason:** the owner, verbatim: "I took out the last because the tablet mode will need to be redone entirely. Let's skip J6 run and act like the tablet is unsupported for now." The line taken out was the release note's tablet bullet.
+**Changes:**
+- **The Tablet session of Part 3 is cancelled.** An amendment to preserved/2026-09-29-51 says so. Its launch prompt, -54, is withdrawn and was never launched, and the still-open question of correcting its hand-back address (-240, -241) lapses with it.
+- **Tablets are unsupported for PR #140's release.** J6's code stays in the branch but is not device-checked or advertised. The PR body and the release update say so.
+**Open for the owner:** whether "unsupported" should also be enforced, for example by excluding tablets in Play Console's device catalogue or by a manifest change. Nothing has been done for this; it is a separate decision.
+**Notes:** Written by the planner by hand.
