@@ -516,3 +516,15 @@ Runs:
 - **Permission refusals.** The permission system refused the first push ("Out-of-Place Publication") and a local status read ("Data Exfiltration"). Later pushes to `decorations-wip` went through.
 - **`CLAUDE.md`.** The copy loaded into this session came from another worktree (`agent-instructions-now`) and differs from the base's. I followed the base's.
 - **A line break in the registry KDoc.** `MAP_LAYER_REGISTRY`'s KDoc has a line break mid-sentence ("A / halo takes no taps, so M1's tap / routing"). It was there before; I left it.
+
+## Pushed
+
+Before the final push:
+- `git pull --no-rebase` merged the remote's new commits as **`dfd1330`**. They are `RECORD.md`, `docs/plans/journal-redesign.md` and `prompts/preserved/2026-09-28-104.md`, with no `app/` change: `git diff 9d1e4c1 dfd1330 -- app/` is empty, so the full suite above describes the pushed tip's `app/`.
+- **D58, with this report named as well: 0 hits.**
+
+Pushed as `git push origin decorations:journal-redesign`: **`367b439..dfd1330`**. `3660e5b`, `01a3360`, `9d1e4c1` and
+`0fd3944` are now on `journal-redesign` as well as `decorations-wip`. This section is one further commit, pushed
+the same way.
+
+Merge was not authorised, and none was made beyond `git pull --no-rebase` into this branch.
