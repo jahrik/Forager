@@ -5509,3 +5509,23 @@ It also flagged the snackbar lying over the floating nav.
 - Part 2 Session 1's cluster items (38, 39, 42) will need a re-check after the change.
 - The J6 header question (-157) is still open with the owner.
 - Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-159
+**Timestamp:** 2026-09-29T07:46:08Z
+**Continues:** 2026-09-28-152 (J6), and the L-shape request (-158)
+**Dispatch-file:** preserved/2026-09-29-25.md (to the J6 coder by SendMessage)
+**Reason:** the owner, verbatim: "4: Only apply on landscape phone mode. Never on portrait or tablet mode. / The rest I'll take what's recommended."
+**Changes:**
+- **J6's header** is a back-arrow row labelled "Journal", with the Entries / Records switch below it. J6b uses the phone's portrait control arrangement, never the L.
+- **The L** is ruled in full, in the plan under "The L shape: where it applies, and the details":
+  - phone landscape only;
+  - the pill as thick as the bar is wide;
+  - no taller than today, with 48 dp minimums;
+  - the fill removed.
+
+  Its dispatch follows the cluster-geometry pulse.
+- **Part 2 Session 1** starts now. Inventory items 38, 39, 40 and 42 (the landscape cluster, the reshape, and the legend against the cluster) are deferred to after the L.
+**Notes:** Written by the planner by hand.
