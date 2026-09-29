@@ -63,3 +63,92 @@ Tests are Robolectric with a real Room database in a temp file and real files, t
 Predicted counts: 15 to 30 new tests. The suite is expected to stay green apart from those. **Revert checks planned** (saved copy, compile errors checked, forward change confirmed after): drop the write-lock around the snapshot copy (test 1 stays green single-threaded, so that one needs its own concurrent-writer test, added); drop the hash comparison (test 4b must fail naming the mismatch); skip the rollback of moved-aside photos (test 5); null-out the "owner inserted" condition in Merge (test 3); remove the migration step (test 6). If a mechanism has no test that bites when reverted, I will say so and not claim it.
 
 **Device-only, listed, not run** (as the dispatch says): a real backup to a chosen folder and a restore on the S22 (after a backup of the phone's own data); the schedule firing (WorkManager's timing is the OS's); a restore onto the tablet as the "new phone"; whether the system file picker's "Save" and "Open" behave with a cloud provider; and the API 26 to 29 snapshot path (Robolectric runs one SQLite, not the old ones).
+
+---
+
+# Results (appended after building; the sections above are unchanged)
+
+## What landed
+
+Commits on `journal-backup` (tests first on `journal-backup-wip`, `68fede12`; forward `fbdaf0c7`; merge `de2ae432` brought in the photo-export work `edb74209`, which had landed on the remote meanwhile). Paths are under `app/src/main/java/com/zynergylabs/forager/app/`.
+
+- **Backup and restore:** `data/backup/RoomJournalBackup.kt` (snapshot, verify, Replace, Merge), `BackupArchive.kt` (format, staging, hashes), `PhotoFileJournal.kt` (the undoable photo step), `JournalTables.kt` (the table knowledge), behind the domain interface `domain/JournalBackup.kt`.
+- **Schedule:** `domain/BackupSchedule.kt` (`RunScheduledBackupUseCase`, `backupFileName`), `data/repository/DataStoreBackupSchedulePreferences.kt`, `data/backup/ScheduledBackup.kt` (worker and WorkManager job), `data/backup/ContentResolverBackupFiles.kt` (SAF).
+- **UI:** `ui/backup/BackupViewModel.kt`, `ui/backup/BackupSection.kt`, threaded into Tools, then Settings through `ui/availability/AvailabilitySettingsUi.kt` and `AvailabilityScreen.kt`; wiring in `AppContainer.kt`, `ForagerApplication.kt`, `MainActivity.kt`.
+- **Build:** `ForagerDatabase.create` gained a `name` parameter; new `openForRestore` (no destructive fallback in any build); `SCHEMA_VERSION` constant (guarded by a test against the schema files and the database). `gradle/libs.versions.toml` and `app/build.gradle.kts`: **WorkManager was not a dependency; I added `androidx.work:work-runtime` 2.12.0 and `work-testing` 2.12.0, pinned**, from the `<release>` on Google's Maven read 2026-09-29.
+
+## Verified premises, and one the dispatch did not have
+
+- Every claim in the pre-registration held except the count: the journal tables are **thirteen** (six records, seven owned), not twelve as one sentence there says.
+- **The screens do not observe the database.** No DAO returns a `Flow` (`grep Flow<` over `data/local/*Dao.kt` is empty); the ViewModels read once and hold (`CartographyViewModel.kt:90-94`, `MushroomLogViewModel.kt:247`, `TrackRecordingViewModel.kt:572,599`). A restore that wrote the database and stopped would leave every open screen showing the old data until the next launch. So `BackupViewModel` takes an `afterRestore` callback, and `MainActivity` passes the public loaders that exist: `CartographyViewModel.loadEntries`, `MushroomLogViewModel.loadEntries` and `loadGalleryPhotos`, `TrackRecordingViewModel.loadTracks` and `loadWaypoints`. **Not reloaded:** `AvailabilityViewModel`'s offline-region list (its loader is private, `AvailabilityViewModel.kt:923`), the Maps tab's records and highlights (loaded when the map is shown), and anything else I did not find. **Which screens refresh is a design question I settled the smallest way; see Decisions.**
+- **A backup's zip is staged in full before anything is checked against the live phone**, so a restore needs room for the extracted archive as well as the final files; a nearly full phone fails at staging and touches nothing. There is no free-space check.
+
+## Tests first, seen failing at base (`68fede12`, the stubs), and what passed anyway
+
+69 tests ran: **63 failed, 6 passed.** Failure reasons read from the JUnit XML: 16 `UnsupportedOperationException: journal backup: not built`, 2 `...restore: not built`, 2 `backup files: not built`, 2 `backup schedule preferences: not built`, 22 `performScrollTo() failed` (no Backup section on the real screen), and the rest assertions on state the stub never sets (`expected:<AUTOMATIC_NEEDS_FOLDER> but was:<null>`, `expected:<Success> but was:<Failure>`, `List is empty` from a scheduler that recorded nothing).
+
+The 6 that passed at base, each read:
+1. `the default file name is forager-backup, the date, dot zip`: `backupFileName` is pure and was already real. A control, not a biting test.
+2. `the automatic backup is off by default ... approved words`: the stub's defaults are the defaults; a control.
+3. `an enabled setting with no folder is never scheduled`: passed because the stub scheduler did nothing. **It bit later** (revert `schedfolder`).
+4. `a run with the setting off, or with no folder, writes nothing`, 5. `a folder that cannot be written is a failure`, and 6. `Cancel closes the prompt`: each passed **for the wrong reason**, because the stub fails everything or does nothing. I strengthened all three before building (they now assert a `BackupException` naming "off", "folder" and the prompt being up first) and they fail at the stub with the stub's `UnsupportedOperationException` or a null prompt.
+
+## Revert checks (`/tmp/revert2.sh`: saves a copy before editing, restores from that copy, refuses results if the build log has a compile error, confirms the file equals its committed forward version)
+
+All 14 builds had **0 compile errors**, every failure named its own edit, and every file was restored and confirmed.
+
+| mechanism | one-line revert | the failure that named it |
+|---|---|---|
+| write lock during the snapshot copy | `runInTransaction` replaced by a plain block | `a writer started during the copy must still be waiting expected:<false> but was:<true>` |
+| SHA-256 comparison | `if (false) throw` | `a changed photo: expected a failure, got Success(...)` |
+| `integrity_check` | `if (false) throw` | `a damaged snapshot with a matching hash: expected a failure, got Success(...)` (Room's own open did **not** catch it, so this check is not redundant) |
+| photo rollback on failure | `photos.rollback()` removed | `the phone's photo files are unchanged expected:<{photos/own-p.jpg=...}> but was:<{p...` (two tests) |
+| Merge: only rows of an owner this merge inserted | condition removed | `UNIQUE constraint failed: log_entry_photos...` and `only the phone's own ref row for e1 ... expected:<1> but was:<2>` |
+| migration on the scratch copy | `migrateOnScratchCopy` removed | `NOT NULL constraint failed: cartography_entries.shownOnMap` (two tests) |
+| newer-than-app refusal | check disabled | `the reason is logged` (the restore was still refused, by the manifest-versus-database mismatch, but not for the reason the test names; that log assertion is what bites) |
+| Merge drops a row that would dangle | `if (false)` | `gone-w had no record to point at expected:<0> but was:<1>` |
+| old photo files removed after Replace | loop removed | `the phone's own photo file is gone` |
+| unlisted or outside-the-folder entry refused | `?: continue` | `an entry named ../../evil.txt: expected a failure, got Success(...)` |
+| automatic backup needs a folder (ViewModel) | `if (false)` | three tests, incl. both real-screen ones: `ToggleableState = 'Off'` |
+| `afterRestore` after a successful restore | call removed | `after a restore that worked expected:<1> but was:<0>` |
+| scheduler needs a folder | folder test removed | `expected null, but was:<WorkInfo{... state=ENQUEUED` |
+| file opened truncating | `"wt"` to `"w"` | `expected:<2> but was:<100>` |
+
+**Not revert-checked:** the checkpoint before the snapshot (best effort by design; a revert cannot fail a test), `PhotoFileJournal`'s same-bytes skip, and the approved copy strings (asserted as literals, so a reworded one fails, but I did not reword one to see).
+
+## Full suite
+
+`./gradlew :app:testDebugUnitTest` from a cleared `app/build/test-results`, `LC_ALL=C.UTF-8`, on the merged tree `de2ae432` (my forward commit merged with the photo-export work): **BUILD SUCCESSFUL in 3m 24s**. From the JUnit XML: **327 result files, none older than the run's start; 2659 tests, 0 failures, 0 errors, 24 skipped.** A previous full run on my tree before the photo-export merge: 2648 tests, 0 failures. The growth I authored is **70 tests in 7 new classes** (`JournalBackupTest` 20, `ScheduledBackupTest` 11, `ContentResolverBackupFilesTest` 2, `BackupViewModelTest` 15, `BackupSettingsScreenPortraitTest` 11, `BackupSettingsScreenShortLandscapeTest` 11); the photo-export tests are not mine. Above the pre-registered 15 to 30 because the screen tests run in two window shapes.
+
+## Device-only, listed and not run
+
+- A real backup to a folder and a restore on the S22, after a backup of the phone's own data.
+- The **schedule firing** (WorkManager's timing, Doze and battery optimisation, are the operating system's), and a scheduled run's file appearing in the chosen folder.
+- A restore onto the tablet as the "new phone", including a photo-heavy journal's time and disk use.
+- The system pickers on the phone: the create-file picker offering `forager-backup-<date>.zip`, the folder picker, the open-file picker, with a cloud provider as the destination; `takePersistableUriPermission` and `DocumentsContract.createDocument` (`ContentResolverBackupFiles.kt`), which Robolectric has no provider for.
+- The **API 26 to 29 snapshot path**: Robolectric runs one SQLite; the write-lock-and-copy design was chosen because `VACUUM INTO` is missing there, and nothing here ran an old one.
+- What the Backup section looks like in the Tools drawer and the wide layout (`BackupSection` is tested in the compact drawer in two window shapes, not in the wide permanent drawer's call site).
+
+## Decisions I made
+
+1. **What "journal data" is:** thirteen tables; `planned_trips` and `cached_searches` are **not** restored (and, since the snapshot is the whole database, they are in the file but ignored). Consequence: a new phone does not get the old phone's planned trips. Alternative: include `planned_trips`. Ruling 3 B lists neither; the premise pulse calls them not journal data.
+2. **Replace and Merge write through one Room transaction on the live database; the database file is never swapped and the app is not restarted.** Alternative: close, swap files, restart the process.
+3. **The frequency default is Weekly** (the switch is off regardless). No default is ruled and the control needs a selected state.
+4. **The chosen folder is shown by its own name** under "Backup folder" (data from the picker, not new copy). Without it the user cannot tell which folder is set.
+5. **`RestoreReport`/`BackupReport` counts exist but are not shown**: no approved copy carries them, so the user sees only the five messages.
+6. **A photo row whose file is missing on disk is left out of the archive, counted, logged, and the backup is still "Backup saved."** There is no approved copy for "saved, but N photos were missing", so the UI cannot say so. That presents a partial result as success (CLAUDE.md, Errors); the alternative is to fail the whole backup, which loses everything for one missing thumbnail. **Needs the owner's ruling.**
+7. **Post-restore refresh** (above): the five loaders. Alternatives: restart the process, or make every ViewModel observe.
+8. **Merge counts a dependent row of a skipped owner as neither inserted nor dropped**, and drops (counts, logs) a dependent row whose target is on neither phone. So an entry's "kept" snapshot of a since-deleted record is lost by a Merge but kept by a Replace.
+9. **WorkManager job has no constraints** (none ruled): it runs on battery and on any network state, since it only writes a local file.
+
+## Flags outside scope
+
+- **WorkManager adds permissions to the merged manifest:** `RECEIVE_BOOT_COMPLETED`, `WAKE_LOCK`, `ACCESS_NETWORK_STATE` (its own aar manifest declares them, plus `FOREGROUND_SERVICE`, which the app already declares); read from `work-runtime-2.12.0.aar` and the merged debug manifest. The privacy policy and store data-safety text that list permissions need to know. I did not remove them (`tools:node="remove"`), which would be a design choice.
+- **A scheduled run that fails mid-write leaves a partial `forager-backup-<date>.zip` in the folder**, and `BackupFiles` has no delete by design. Restore refuses it (hash or zip error), but the folder holds a useless file. Retention is "one file per run, nothing deleted", so nothing prunes it, and a full disk fills the folder without bound.
+- **A manual backup that fails after the file is created** leaves an empty or partial document the user chose the name of.
+- **Restoring while a track is recording**: Replace deletes the twelve-plus tables' rows including the active track's points while the recorder is writing to them. Nothing blocks it. Unruled; needs a decision.
+- **Restored offline regions: the stop above, plus** the ViewModel does not reload them.
+- **The two legal documents** that say "Nothing is left behind" (`delete-data.md:24-28`, `privacy-policy.md:169-170`) are now false for a user who saves a backup to shared storage; the planner drafts them with the owner (out of scope).
+- **`allowBackup=false`** is unchanged (`AndroidManifest.xml:79-100`); nothing here touches it.
+- `RoomJournalBackupHooks` puts three test seams in production code (named for what they stop at). They default to nothing.
+- A `pgrep` for other builds matched other sessions' shell loops; I checked `Gradle Test Executor` processes and free memory before every build, and waited twice for the photo-export coder's run (it sat idle for several minutes with no CPU before finishing).
