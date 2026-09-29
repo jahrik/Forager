@@ -6025,3 +6025,44 @@ Nothing of either window was pushed. On the phone, the two did only force-stop a
 **Notes:**
 - Scheduled-backup pruning is the first time the app deletes files of its own outside its storage. It is limited to scheduled backups in the chosen folder.
 - Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-181
+**Timestamp:** 2026-09-29T11:24:15Z
+**Title:** Part 2 follow-ups F1, the map and the Journal: bubble on rotation, the "i" in fullscreen, track stops, the Download confirmation, track Delete, the tablet chip guard, the Gallery date, "Welcome back", the camera in landscape, stacked glyphs
+**Dispatch-file:** preserved/2026-09-29-32.md; launch preserved/2026-09-29-34.md (~/Zynergy/launch-prompts/15-followups-map.md)
+**Change:** ten items. They are ruled by the owner or are plain bugs; three are investigate-first.
+**Scope boundary:**
+- the compact and wide map chrome, SightingsMap's track stops, the offline picker's confirmation, the records details, PhotoExporter, the Welcome back trigger, and the camera screen's orientation;
+- not backup;
+- not the L's cluster geometry.
+**Baseline:** journal-redesign after the L (-160) lands. The planner names BASE at launch.
+**Prediction (outcome, planner):**
+1. Items 1-6 build.
+2. Item 7's cause is the publish-time media scan.
+3. Item 10 is reported, not built.
+4. The suite grows by 20 to 40.
+**Prediction (mechanism, coder):** not authored.
+**Finish line:** tests first, the build, revert checks, the full suite at 0, the report with device-only items. The planner re-runs the suite and writes the terminal.
+**Notes:**
+- The owner approved the Download copy verbatim: "Approve the Download Maps wording as is".
+- Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-182
+**Timestamp:** 2026-09-29T11:24:15Z
+**Title:** Part 2 follow-ups F2, backup and restore: no duplicate regions, the first scheduled run waits, keep 5 scheduled, ask permission once, close deleted finds after Replace, drop orphaned refs, Try again with the schedule off
+**Dispatch-file:** preserved/2026-09-29-33.md; launch preserved/2026-09-29-35.md (~/Zynergy/launch-prompts/16-followups-backup.md)
+**Change:** seven items: the owner's four rulings (-180) and three bugs.
+**Scope boundary:** data/backup, ui/backup and the post-restore reload. Not the map.
+**Baseline:** journal-redesign at the commit named at launch. It can launch now, beside the L.
+**Prediction (outcome, planner):**
+1. The keep-5 pruning needs a DataStore list of scheduled URIs.
+2. The suite grows by 15 to 30.
+**Prediction (mechanism, coder):** not authored.
+**Finish line:** as F1.
+**Notes:** Written by the planner by hand.
