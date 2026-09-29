@@ -5184,3 +5184,20 @@ It also flagged the snackbar lying over the floating nav.
 **Notes:**
 - The message asks the coder to say so if it is not on -104.
 - Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-143
+**Timestamp:** 2026-09-29T05:20:48Z
+**Continues:** 2026-09-28-104
+**Dispatch-file:** preserved/2026-09-29-17.md (relaunch prompt; copied to ~/Zynergy/launch-prompts/11-chrome-follow-ups-3.md)
+**Reason:** the planner's -142 message went to 1c29a2, which replied that it is the -127 backup coder on -137, not -104. So the planner's -141 inference was wrong.
+- No live session is on -104. chrome-follow-ups' last push was ce952227, about two hours ago, with a clean tree and no test results since 19:57.
+- ListAgents shows no chrome-follow-ups session.
+**Changes:**
+- The relaunch prompt resumes from ce952227 and adds item 9 (preserved/2026-09-29-16.md).
+- The owner is asked to paste it into a fresh window.
+**Notes:**
+- 1c29a2 did nothing on item 9, and said so.
+- Written by the planner by hand.
