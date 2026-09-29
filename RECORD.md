@@ -5393,3 +5393,31 @@ It also flagged the snackbar lying over the floating nav.
 - Part 2 and J6 (-152) launch after this hands back and the planner's suite is clean, so that they run side by side as the owner asked.
 - The buttons "Replace" and "Cancel" are the planner's reading of the approved question, stated to the owner.
 - Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-154
+**Timestamp:** 2026-09-29T06:27:40Z
+**Title:** Stage device check Part 2 on the S22, in three sessions: layout and the map; the Journal flows; backup and restore
+**Dispatch-file:**
+- preserved/2026-09-29-21.md (dispatch);
+- preserved/2026-09-29-22.md, -23.md and -24.md (launch prompts for Sessions 1-3; copies in ~/Zynergy/launch-prompts/13-part-2-session-1..3.md).
+**Change:** no code. The 76 items of docs/audits/2026-09-29-part-2-device-inventory.md, plus -153's items.
+- They run in three sessions, one at a time, on one build installed by Session 1.
+- Each session starts from a verified full copy of the phone's data.
+- Session 3 runs a full backup-and-restore round trip, then returns the phone to that copy and verifies every hash and count.
+**Scope boundary:**
+- the S22 only;
+- only "DEVICE CHECK" data is created, and it is deleted afterwards;
+- the owner's data is never edited;
+- the run record goes on branch device-part-2.
+**Baseline:** the head after -153 lands and the planner's suite is clean. The planner fills in BASE in Session 1's prompt at launch.
+**Prediction (outcome, planner):**
+1. Most layout items pass.
+2. At least one of the insets items (34-39, 45-46, 62) fails or needs the owner's judgement.
+3. The round trip returns the phone byte-identical.
+**Finish line:** all three sessions' verdicts pushed, and the phone returned to its copy and read back. The planner merges the record and writes the terminal.
+**Notes:**
+- Launches side by side with J6 (-152) after -153 hands back.
+- Written by the planner by hand.
