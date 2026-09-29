@@ -1051,3 +1051,13 @@ The planner's reading, to be confirmed with the owner before any dispatch:
 - mirrored at the right, with return extending toward the middle.
 
 The owner, verbatim: "Oh yeah on either side it looks like an L. On the right side it just looks like an inverse L". The shape and the mirroring are confirmed. The pill's thickness, the height rule, the fill's removal and which screens are still being asked.
+
+**The L shape: where it applies, and the details (owner, 2026-09-29).** Answering the planner's six follow-up questions, the owner said, verbatim: "4: Only apply on landscape phone mode. Never on portrait or tablet mode. / The rest I'll take what's recommended."
+
+So:
+1. **The pill's thickness equals the bar's width,** so the L reads as one piece.
+2. **The whole L is no taller than today's bar and pill,** and every button stays at least 48 dp.
+3. **The translucent fill that joins them today is removed.**
+4. **The L is for phone landscape only** (the compact tree's short window). Phone portrait keeps its current arrangement. The tablet (the wide tree, J6b's controls parity) never takes the L.
+5. **Part 2 Session 1 starts now.** Its landscape cluster items are deferred and re-checked after the L lands.
+6. **J6's header is a back-arrow row labelled "Journal",** with the Entries / Records switch below it. It returns to the Search panel, as the "Mushroom Log" row does today.
