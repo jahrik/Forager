@@ -266,7 +266,9 @@ class WideMapTabsTest {
     fun `FAILS AT BASE before any search the map is drawn with the planned trips`() {
         setScreen(AvailabilityUiState(plannedTrips = listOf(TRIP)))
 
-        assertEquals("no 'choose a region' message stands in for the map", false, composeRule.onAllNodesWithText("Choose a region", substring = true).fetchSemanticsNodes().isNotEmpty())
+        // The map's own message, exactly: the list beside it has its own "Choose a region to see ..." line, which a
+        // substring match on "Choose a region" would take for this one (a first version did, and read the list).
+        assertEquals("no 'choose a region' message stands in for the map", false, composeRule.onAllNodesWithText(MAP_NO_SEARCH_MESSAGE).fetchSemanticsNodes().isNotEmpty())
         assertTrue("the map is showing", mapShowing())
         assertEquals("the planned trips are handed to the map", listOf(TRIP), capturedContent?.plannedTrips)
         assertEquals("no sightings are plotted before a search", emptyList<Sighting>(), capturedContent?.sightings)
@@ -285,6 +287,7 @@ class WideMapTabsTest {
         const val MAP_SLOT = "map-slot"
         const val LIST_PANE = "wide-list-pane"
         const val TAXON_CHIP = "map-taxon-filter-chip"
+        const val MAP_NO_SEARCH_MESSAGE = "Choose a region in search options to see mapped sightings."
 
         val REGION = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
         val TRIP = PlannedTrip(id = "trip-1", name = "Creek loop", location = LatLng(45.33, -122.63), date = LocalDate.of(2026, 10, 3))

@@ -1672,6 +1672,7 @@ fun AvailabilityScreen(
                         taxonFilter = mapTaxonFilter,
                         onClearTaxonFilter = onClearMapTaxonFilter,
                         onViewOnMap = onViewSpeciesOnMap,
+                        selectedTab = selectedTab,
                         modifier = Modifier.weight(1f),
                     )
                     ResultsTab.SEASONAL -> SeasonalTab(uiState = uiState, modifier = Modifier.weight(1f))
