@@ -885,9 +885,11 @@ class AvailabilityViewModel(
      * 2. Re-reads [OfflineMapRepository.listRegions] rather than trusting whatever
      *    [loadOfflineRegions] loaded once at ViewModel construction. Hardware testing found the
      *    list could come up empty right after a cold start with many regions already on disk
-     *    (survived the restart), consistent with `OfflineManager`'s native store still finishing
-     *    its own initialization at construction time. Re-reading on open is good practice
-     *    regardless: this screen should show current state whenever it's opened.
+     *    (survived the restart). The cause, from the device logs, was not the native store still
+     *    starting: the start-up read threw `MapLibreConfigurationException` because MapLibre was
+     *    not yet initialised (fixed by initialising it in `ForagerApplication.onCreate`, dispatch
+     *    2026-09-28-106). Re-reading on open is good practice regardless: this screen should show
+     *    current state whenever it's opened.
      *
      * Both calls are safe unconditionally: [LocationProvider.getCurrentLocation] only checks
      * whether permission is already granted, never triggering the OS permission dialog itself, and
