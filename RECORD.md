@@ -5680,3 +5680,20 @@ The re-check runs in Part 2 with the deferred items 38, 39, 40 and 42.
 - **Process:** once, the no-Gradle check and the run were in one command, and another worker started in between. That run failed to compile and is not cited.
 - J6b continues. The coder expects to stop on item 14 (controls parity), where the drag, snap, minimise and fullscreen state live in the compact scaffold.
 - Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-166
+**Timestamp:** 2026-09-29T09:03:55Z
+**Continues:** 2026-09-28-152 (J6), and the Part 2 follow-up list (-164)
+**Dispatch-file:** none (by SendMessage to the J6 coder; its text is quoted here)
+**Reason:** the owner, verbatim: "I'll take your recommendations".
+**Changes:**
+- **J6:** keep "Details". Delete PhotoGalleryScreen.kt, its test and the stale comments in J6b, as their own commit, with the suite green.
+- **Part 2 follow-ups:**
+  - "Download Maps" gets a confirmation that shows the area; its wording goes to the owner first;
+  - a track's details sheet gets a Delete.
+**Notes:**
+- The message to the J6 coder: "Owner took the recommendations: keep the 'Details' label; delete PhotoGalleryScreen.kt, its test and stale comments in J6b as their own commit."
+- Written by the planner by hand.
