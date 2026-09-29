@@ -1137,3 +1137,8 @@ What the screenshot shows, read by the planner:
 - The Maps tab's own map does reach into the cut-out band: Part 2 Session 1 found its "i" there at 270 (item 37). So the entry map differs from Maps.
 
 The fix's shape goes to the owner as options.
+
+The owner then asked, verbatim: "Unless that's a scaffolding for more map functions". The planner checked the code: the band is not reserved for map functions.
+- In short landscape, only the Maps tab lets its map run under the cut-out. `AvailabilityCompactScaffold.kt:679-683` sets `contentWindowInsets` to the top only, "the map runs the whole width, under the cut-out", and pads the controls one by one (`mapControlsPadding`, :552-575).
+- Every other tab, the Journal included, takes `shortLandscapeContentInsets()` (:684-685). That keeps the whole tab, lists and text included, out of the cut-out band.
+- The entry map lives inside the Journal tab, so it inherits that margin.
