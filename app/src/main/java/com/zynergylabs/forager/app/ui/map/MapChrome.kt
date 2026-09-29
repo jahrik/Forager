@@ -75,6 +75,12 @@ internal val MIN_TOUCH_TARGET = 48.dp
 internal val MAP_ICON_BAR_EDGE_INSET = Spacing.sm
 
 /**
+ * The landscape L's row spacing and end padding (dispatch 2026-09-28-160; the owner's "A"): none. Five 48 dp rows are 240 dp,
+ * and the horizontal pill uses the same zero so its two 48 dp buttons are 96 dp and record sits exactly under the bar's column.
+ */
+internal val MAP_ICON_BAR_LANDSCAPE_ROW_SPACING = 0.dp
+
+/**
  * Offset from [MapIconBar]'s own vertical center (where both `AddActionTile` and [MapModePicker]
  * anchor their `Alignment.CenterEnd`-based popups) to the center of one of its rows, counting from
  * the top. Promoted here from `AvailabilityScreen.kt` (fullscreen-fixes dispatch, Item 2) so the
@@ -87,10 +93,10 @@ internal val MAP_ICON_BAR_EDGE_INSET = Spacing.sm
 // rowCount re-derived directly against the tree, not assumed: this bar sits at 5 rows as of the
 // fullscreen-maps dispatch (fullscreen, orientation-reset, locate-me, map mode, fifth row) — see
 // MapIconBar's own doc comment.
-internal fun mapIconBarRowAnchorOffset(rowIndexFromTop: Int): Dp {
+internal fun mapIconBarRowAnchorOffset(rowIndexFromTop: Int, rowSpacing: Dp = Spacing.xs): Dp {
     val rowCount = 5
-    val contentHeight = MIN_TOUCH_TARGET * rowCount + Spacing.xs * (rowCount - 1)
-    val rowCenterFromTop = (MIN_TOUCH_TARGET + Spacing.xs) * (rowIndexFromTop - 1) + MIN_TOUCH_TARGET / 2
+    val contentHeight = MIN_TOUCH_TARGET * rowCount + rowSpacing * (rowCount - 1)
+    val rowCenterFromTop = (MIN_TOUCH_TARGET + rowSpacing) * (rowIndexFromTop - 1) + MIN_TOUCH_TARGET / 2
     return rowCenterFromTop - contentHeight / 2
 }
 
@@ -305,6 +311,12 @@ internal fun srcOverAlpha(top: Float, bottom: Float): Float = top + bottom * (1f
 internal fun mapIconClusterContainerColor(): Color =
     (if (LocalForagerDarkTheme.current) Bark else Cream).copy(alpha = MAP_ICON_CLUSTER_CONTAINER_ALPHA)
 
+/** The standing single-layer chrome fill ([MapIconStackButtonColorDark]/[MapIconStackButtonColorLight], 0.8) for whichever theme is current — the landscape L's pill, which has no container under it. */
+@Composable
+@ReadOnlyComposable
+internal fun mapIconChromeFillColor(): Color =
+    if (LocalForagerDarkTheme.current) MapIconStackButtonColorDark else MapIconStackButtonColorLight
+
 /** The fill of each child inside the cluster container — see [MAP_ICON_CLUSTER_CHILD_ALPHA]. */
 @Composable
 @ReadOnlyComposable
@@ -414,6 +426,12 @@ internal fun MapIconBar(
      */
     mapModePickerEnabled: Boolean = true,
     /**
+     * Landscape L (dispatch 2026-09-28-160): the gap between rows and the padding at the bar's two ends. [Spacing.xs] for every
+     * caller that has always had it (the portrait cluster, the Cartography entry map); the short-landscape cluster passes
+     * [MAP_ICON_BAR_LANDSCAPE_ROW_SPACING], no spacing at all, so its five 48 dp rows are 240 dp.
+     */
+    rowSpacing: Dp = Spacing.xs,
+    /**
      * The bar's 5th (last) row — fullscreen-maps dispatch: a second map surface (the Cartography
      * entry map) needs this row to mean something other than "plan a trip or log a find here,"
      * since neither concept exists there. A "+" button captioned for trip-planning that actually
@@ -448,8 +466,8 @@ internal fun MapIconBar(
         modifier = modifier,
     ) {
         Column(
-            modifier = Modifier.padding(vertical = Spacing.xs),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+            modifier = Modifier.padding(vertical = rowSpacing),
+            verticalArrangement = Arrangement.spacedBy(rowSpacing),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             MapBarIconButton(
