@@ -6142,3 +6142,30 @@ Nothing of either window was pushed. On the phone, the two did only force-stop a
 - **The planner's suite:** as -185, 2915 / 0 / 0 / 24 at 24b1aac0.
 - **Device-only (S22 at 90 and 270):** the items the report lists, plus Part 2's deferred 38, 39, 40 and 42, all in the next S22 session.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-187
+**Timestamp:** 2026-09-29T12:04:11Z
+**Dispatch:** 2026-09-28-182 (F2)
+**Reason:** the F2 coder handed back all seven items, on journal-redesign at 29d65a26. Report: the "Follow-ups (-182)" section of docs/audits/2026-09-29-journal-backup-completion-report.md.
+- Tests first at base: 263 tests, 30 failures, each with an edit-specific message (b6e69507, pushed to wip first).
+- Two revert runs: 21 and 8 failures, exactly the predicted sets.
+- Its suite on the merged tree: 2949 / 0 / 0 / 24.
+**Changes:**
+- a restore skips regions that match one on the phone (RegionMatch.kt);
+- the first scheduled run waits its interval;
+- keep the newest 5 scheduled backups, deleting only recorded URIs;
+- notification permission asked once;
+- reloadAfterRestore closes deleted finds and entries;
+- Replace drops orphaned region refs;
+- Try again runs with the schedule off.
+**Notes:**
+- **One existing test was rewritten,** because owner 3.1 contradicts it: JournalBackupTest's Merge-into-the-same-phone test.
+- **Not shown to bite:** MainActivity's two calls, and three guards. The report says so.
+- **Flags for the next S22 session:**
+  - Replace deletes Room rows for phone regions the backup lacks, and the MapLibre reconciliation was not read. That may leave tiles on the phone with no visible row, against -106's intent, or re-add the row;
+  - other open editors (track, waypoint, trip, region detail) are not closed by a restore.
+- The D58 check ran after the first push, with 0 hits then and after.
+- Written by the planner by hand.
