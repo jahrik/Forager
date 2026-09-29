@@ -1031,3 +1031,17 @@ What that rules, from the options as they were put:
    1. layout and the map;
    2. the Journal flows;
    3. backup and restore last, after the backup follow-up lands.
+
+**The icon bar and the record pill: an L shape (owner, 2026-09-29).** The owner sent a screenshot of the Maps tab, kept outside the repo at `~/Zynergy/device-evidence/2026-09-29-owner-icon-bar-and-pill.jpg`. It shows:
+- the vertical icon bar: fullscreen, compass, locate, Layers, and the green "+";
+- beside it, the smaller vertical record/return pill;
+- a translucent fill above the pill that joins them.
+
+The owner, verbatim: "This can't ship like this.  That's a UX problem. Have the icon bar shrink a little and turn the small pill 90°, then half of the small pill can fit beneath the icon bar, and extend out. / Make the pill the same size as the bar".
+
+The planner's reading, to be confirmed with the owner before any dispatch:
+- The bar gets a little shorter.
+- The record/return pill turns horizontal and sits beneath the bar. Half of it is under the bar, and the other half extends out toward the middle of the screen, mirrored when the cluster is on the other side.
+- The pill is as thick as the bar is wide, so the two read as one L.
+
+**Status:** a ship blocker. The cluster items of Part 2 Session 1 (inventory items 38, 39 and 42) will need re-checking after it.
