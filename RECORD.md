@@ -6848,3 +6848,30 @@ The planner confirmed each by grep.
 **Reason:** the owner, verbatim: "F5 is running".
 **Changes:** F5 runs in an owner-opened window. The planner prepares the S22 device session (Part 3) and J6's tablet check from the device-only lists, starting with a read-only inventory.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-227
+**Timestamp:** 2026-09-29T20:08:11Z
+**Title:** Device check Part 3 before PR #140: S22-A (map, layout, chrome), S22-B (data, backup, restore), and the tablet (J6 and the tablet halves)
+**Dispatch-file:** preserved/2026-09-29-51.md; launch prompts preserved/2026-09-29-52, -53 and -54 (~/Zynergy/launch-prompts/23-part-3-s22-a.md, 24-part-3-s22-b.md, 25-part-3-tablet.md)
+**Change:** no code. The device-only items of the L, F1-F5 and C1, Part 2's not-run items and fixed fails, and J6 on the owner's tablet, including its layout-size sanity test.
+- S22-A builds and installs, and confirms MIGRATION_16_17 on real data.
+- S22-B does the destructive items, then restores from the verified copy.
+- The tablet session installs the same APK, keeps its data, and leaves the owner's Stay Awake, timeout and CAMERA grant alone.
+**Scope boundary:**
+- the S22 and the tablet;
+- "DEVICE CHECK" data only, and the owner's data never edited;
+- sundown alerts excluded;
+- the run record on device-part-3.
+**Baseline:** the head after F5 lands and the planner's suite is clean. BASE is filled in at launch.
+**Prediction (outcome, planner):**
+1. The L and the fan-out pass.
+2. At least one chrome-colour item goes to the owner's eye.
+3. The Gallery date is still missing on a real scan.
+4. The tablet's portrait map tabs pass.
+**Finish line:** all three sections pushed, and both devices restored or read back. The planner merges the record and writes the terminal.
+**Notes:**
+- The checklist file is filed by the planner from a read-only helper, before launch.
+- Written by the planner by hand.
