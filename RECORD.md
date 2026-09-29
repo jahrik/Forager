@@ -7113,3 +7113,22 @@ The planner confirmed each by grep.
   - The removal's own checks will be the new build's tests and revert checks, plus whatever device check its dispatch names.
 **Open for the owner:** A1 item 1's overlap, fix before merge or record as a known issue.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-245
+**Timestamp:** 2026-09-29T22:46:46Z
+**Title:** Tablets as a big phone: J6 and the tablet layout removed; the landscape L's overlap after fullscreen fixed
+**Dispatch-file:** preserved/2026-09-29-56.md
+**Change:**
+- Every window renders the phone tree.
+- All tablet-only code is deleted, J6's and the older layout's alike. J6's shared icon cluster, which the phone uses, stays.
+- A1 item 1 (-242) is diagnosed, and fixed if it can be tested; otherwise the coder hands back with a proposed fix.
+**Scope boundary:** the ui/availability and ui/log tablet paths, ui/adaptive, their tests, and the L's top limit. No phone behaviour changes, and no device work (S22-A is on the phone).
+**Owner's answers:** scope "All tablet code"; landscape tablet "Portrait layout is fine"; release note "Nothing"; A1 item 1 "fix".
+**Supersedes, in part:** -243's "J6's code stays in the branch". Tablets are now supported as a big phone, not unsupported, and -243's enforcement question lapses.
+**Notes:**
+- The premise pulse (read-only, at 2a2a5b35) was relayed to the planner, not committed.
+- Its findings are in the dispatch as premises to verify.
+- Written by the planner by hand.
