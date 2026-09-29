@@ -620,7 +620,7 @@ fun AvailabilityScreen(
      * real resolver just to compile.
      */
     getCartographyEntryOfflineRegion: suspend (CartographyEntry, List<LatLng>) -> OfflineRegionSummary? = { _, _ -> null },
-    /** STUB (tests first, F3 card thumbnail, owner: "C: list screen loads lazily"): saved track paths of one entry, by track id. Not read yet. */
+    /** F3 (owner, "C: list screen loads lazily"): one entry's saved track paths, by track id, for the Journal cards' thumbnails. Defaulted like [getCartographyEntryMapData]. */
     getSavedTrackPaths: suspend (String) -> Map<String, List<LatLng>> = { emptyMap() },
     /**
      * [com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreen]'s own fullscreen recenter button —
@@ -1522,6 +1522,7 @@ fun AvailabilityScreen(
                     onCartographySaveErrorDismissed = onCartographySaveErrorDismissed,
                     onDeleteCartographyEntry = onDeleteCartographyEntry,
                     getCartographyEntryMapData = getCartographyEntryMapData,
+                    getSavedTrackPaths = getSavedTrackPaths,
                     getCartographyEntryOfflineRegion = getCartographyEntryOfflineRegion,
                     getCartographyEntryCurrentLocation = getCartographyEntryCurrentLocation,
                     // Journal restructure Stage 1: the Records tab's three submenus — see
@@ -1846,6 +1847,7 @@ fun AvailabilityScreen(
             // LogPanel already uses for every find it opens.
             onOpenLogEntryForEditing = onOpenLogEntryForEditing,
             getCartographyEntryMapData = getCartographyEntryMapData,
+            getSavedTrackPaths = getSavedTrackPaths,
             getCartographyEntryOfflineRegion = getCartographyEntryOfflineRegion,
             getCartographyEntryCurrentLocation = getCartographyEntryCurrentLocation,
             onOfflineMapLatChanged = onOfflineMapLatChanged,
