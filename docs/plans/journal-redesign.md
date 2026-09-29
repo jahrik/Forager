@@ -859,3 +859,20 @@ This supersedes the planner launching coders as Agent-tool subagents:
 **Models (owner, 2026-09-29).** The owner, verbatim: "Sonnet and Opus 5.5 just released so I'll use Opus 5.5 to plan and Sonnet 5.5 to code." The planner session runs on Opus 5.5, and coder windows on Sonnet 5.5. The owner sets both.
 
 **MapLibre failing to load at start-up (owner, 2026-09-29).** The offline-safety coder (`-106`) made `ForagerApplication` catch and log a failure to initialise MapLibre (Exception and LinkageError), because under Robolectric the SDK throws UnsatisfiedLinkError. As a result, a device whose map library cannot load starts the app and fails only when a map opens. The planner offered "A. Keep it: the Journal and everything else stay usable, and the failure is logged." The owner, verbatim: **"Option A for the map crash"**.
+
+**Photo export and journal backup: the owner's rulings (2026-09-29).** These sit within the owner's 2026-09-09 backup ruling (`allowBackup=false`; an in-app export and import; "The export stays local unless the user chooses to move it"). They answer the planner's six questions after the premise pulse (`docs/audits/2026-09-29-export-backup-premise-pulse.md`). The owner, verbatim: "1 A / 2 A / 3 B / 4 A / 5 C scheduled set to off by default, must be turned on by user / 6 A - restore to app".
+1. **Photo export goes to the phone's Gallery,** in a "Forager" album (MediaStore).
+2. **Exported photos carry no location.** Captures stay GPS-free as stored, and the database coordinate is not written back.
+3. **A backup holds the journal and everything it refers to:** entries and their ref tables, finds, photos (the files), tracks and points, waypoints, and offline-region details. The map tiles are not included; they are re-downloaded.
+4. **The backup is a file saved where the user chooses** (the Storage Access Framework). It survives uninstall and can move to a new phone.
+5. **Both a manual backup and a scheduled one.** The scheduled one is **off by default**, and only the user turns it on.
+6. **Restore is built in the app,** as part of this work.
+
+Still to rule before a dispatch:
+- the button and setting names (copy);
+- whether restore replaces or merges;
+- the schedule's frequency and destination (a user-chosen folder the app keeps permission for);
+- the API 26-28 Gallery path, which needs WRITE_EXTERNAL_STORAGE for devices below Android 10;
+- where the controls live;
+- the order against J6 and the Journal PR;
+- the user documents to update: the privacy policy, the delete-data page ("Nothing is left behind"), and the beta README.
