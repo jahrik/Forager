@@ -1257,3 +1257,9 @@ So:
 **Delete-data never says tracks cannot be deleted (owner, 2026-09-29).** zynergy-site PR #3 had moved delete-data's "Recorded tracks" bullet under "Not yet deletable one by one", because testers' current build (main) cannot delete a track (record -228, row D6). The owner, verbatim: "Make the tracks deletable so the words are true", then "Do not tell users they can't delete tracks in the same update that allows them to delete them. That's not sensible".
 
 So PR #3 keeps "Recorded tracks" in the deletable list, with L1's wording, not under "Not yet deletable". The page and PR #140, which makes tracks deletable, go out together.
+
+**Part 3's limits, and PR #3's timing (owner, 2026-09-29).** The owner, verbatim: "1 A / 2 A / 3 A / 4 A". Read against the planner's four questions:
+1. **The S22's clock may be moved forward** for the scheduled-backup checks, then set back and read back.
+2. **Doze may be forced from the computer,** then undone.
+3. **The forced-failure checks are skipped for PR #140** and recorded as untested: the save-failure Toasts, and a failed backup write.
+4. **zynergy-site PR #3 is held.** L1's release wording is brought in, so it describes the build PR #140 ships and goes live with it.
