@@ -5034,3 +5034,52 @@ It also flagged the snackbar lying over the floating nav.
 - Copy for five new messages goes to the owner first.
 - The owner also asked for a report of every privacy and data-sharing change, for the site.
 - Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-134
+**Timestamp:** 2026-09-29T04:39:01Z
+**Closes:** 2026-09-28-97
+**Outcome:** completed
+**Observed:**
+- **Record:** docs/audits/2026-09-28-planned-trips-on-map-completion-report.md.
+- **The fix is present at head.** `AvailabilityCompactMapUi.kt:657` reads `plannedTrips = uiState.plannedTrips,`, with the hasSearched gate gone (b427a66).
+- **The planner's own verification,** on an idle machine at d3c16f06, from a cleared results directory with every XML file newer than the start and 0 compile errors:
+  - LeavingTheJournalFixesTest alone, three runs: 34 / 0 / 0 / 0 each time.
+  - Then the full suite: 327 files, 2659 / 0 / 0 / 24, in 193 s.
+- **The earlier red,** at 6133649: F3 "a committed find open in its editor…", `performMeasureAndLayout called during measure layout`. That run broke the one-build-at-a-time rule: the planner's wait loop fell through after 60 minutes.
+  - The wait was not caused by builds. The busy check was fooled by another session's stuck shell loop, whose text contained the pattern (pid 455216, parent 415979).
+  - The check now matches Java Gradle processes only, plus 2.5 GB available.
+- **Device-only:** trips visible before a search, on the S22 and the tablet. This goes to stage device check Part 2.
+**Notes:**
+- LeavingTheJournalFixesTest has now misbehaved in two full-suite runs: the planner's failure at 6133649 and the -126 coder's hang (F3 :1139). Both were in different tests, and neither recurred idle.
+  - It is recorded as an intermittent with an unknown cause, **not** as contention. One clean idle full run is not evidence of absence. It stays open for the investigation queue.
+- Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-135
+**Timestamp:** 2026-09-29T04:39:01Z
+**Closes:** 2026-09-28-126
+**Outcome:** completed
+**Observed:**
+- **Record:** docs/audits/2026-09-29-photo-export-completion-report.md. The build is edb74209, the last push 3e958fd8, and it is present at head (`PhotoViewerDialog.kt:524`).
+- **Tests first:** 11 of 11 failed at base for the missing control.
+- **Revert checks:** 4, each from a saved copy with an edit-specific message.
+- **The coder's suite on the merged tree:** 2589 / 0 / 0 / 24.
+- **The planner's suite at d3c16f06** (see -134): 2659 / 0 / 0 / 24, which includes this work.
+- **The owner's ruling on imports** is recorded in -131 and the plan: imports are exported unchanged, and ruling 2 is narrowed to in-app photos. The dispatch's strip step is dropped on the owner's word.
+- **Device-only, for Part 2:**
+  - the S22 Gallery's "Forager" album, with the date and location from a capture and from an import;
+  - control placement against real insets;
+  - that no permission prompt appears.
+  - The API 26-28 folder picker has no device on hand.
+**Notes:**
+- Coder process flags, noted and not repeated:
+  - it ran `./gradlew --stop`, which stops every Gradle daemon;
+  - it started one run with another build running.
+- A non-JPEG import is still stored under a .jpg name (`FilePhotoStore.kt:120`). This is parked and not dispatched.
+- The site changes are in docs/audits/2026-09-29-privacy-site-update-report.md.
+- Written by the planner by hand.
