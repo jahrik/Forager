@@ -76,7 +76,21 @@ private fun SaveRule.tap(description: String) {
 
 /** Waits for the toast the save ends with (the copy runs off the main thread) and returns its text. */
 private fun SaveRule.awaitToast(): String {
-    waitUntil(timeoutMillis = 5_000) { ShadowToast.getTextOfLatestToast() != null }
+    try {
+        // The message is posted to the main looper from the IO thread; Robolectric's paused looper runs it only when told to
+        // (a real device's runs on its own), and waitUntil pumps the compose clock, not that looper.
+        waitUntil(timeoutMillis = 5_000) {
+            Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+            ShadowToast.getTextOfLatestToast() != null
+        }
+    } catch (timeout: androidx.compose.ui.test.ComposeTimeoutException) {
+        // Say what was going on instead of only that nothing happened: the logs and what the provider saw.
+        val logs = ShadowLog.getLogs().joinToString("\n") { "${it.type} ${it.tag}: ${it.msg} ${it.throwable ?: ""}" }
+        throw AssertionError(
+            "no toast within 5 s. toasts=${ShadowToast.shownToastCount()} latest=${ShadowToast.getLatestToast()} mainLooperIdle=${Shadows.shadowOf(android.os.Looper.getMainLooper()).isIdle} inserted=${FakeMediaProvider.inserted.size} updated=${FakeMediaProvider.updated.size} deleted=${FakeMediaProvider.deleted.size}; logs:\n$logs",
+            timeout,
+        )
+    }
     return ShadowToast.getTextOfLatestToast()
 }
 
