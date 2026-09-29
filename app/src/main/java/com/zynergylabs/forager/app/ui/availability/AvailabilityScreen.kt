@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.map.LocalMapKeepOuts
 import com.zynergylabs.forager.app.ui.map.fanout.MapKeepOuts
 import android.app.Activity
@@ -1934,8 +1935,8 @@ fun AvailabilityScreen(
                 // role exactly; see `MapLayersSheet`).
                 // Over the Maps tab at the map chrome's alpha, following the tab (owner: "80% over Maps
                 // (Recommended)"; planner message -77, Q4); solid over the other tabs.
-                val drawerColor = mapChromeFill(DrawerDefaults.modalContainerColor, compactTab == CompactTab.MAP)
-                val drawerContentColor = contentColorFor(DrawerDefaults.modalContainerColor)
+                val drawerColor = mapChromeFill(navigationBarContainerColor(), compactTab == CompactTab.MAP)
+                val drawerContentColor = contentColorFor(navigationBarContainerColor())
                 ModalDrawerSheet(
                     modifier = Modifier.testTag(TOOLS_DRAWER_SHEET_TAG).mapChromeContainerColor(drawerColor),
                     drawerContainerColor = drawerColor,

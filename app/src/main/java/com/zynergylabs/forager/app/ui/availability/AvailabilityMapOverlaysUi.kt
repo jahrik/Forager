@@ -73,6 +73,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorDark
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorLight
 import com.zynergylabs.forager.app.ui.map.MapBubbleShell
@@ -142,10 +143,10 @@ internal fun TripDatePickerDialog(
     // dialog gives its surface `contentColorFor` of its container, which matches a colour-scheme role
     // exactly (see `MapLayersSheet`), so the content colour is pinned to the default container's own.
     val dialogColors = DatePickerDefaults.colors(
-        containerColor = mapChromeFill(DatePickerDefaults.colors().containerColor, overMap = true),
+        containerColor = mapChromeFill(navigationBarContainerColor(), overMap = true),
     )
     val pickerColors = DatePickerDefaults.colors(containerColor = Color.Transparent)
-    val dialogContentColor = contentColorFor(DatePickerDefaults.colors().containerColor)
+    val dialogContentColor = contentColorFor(navigationBarContainerColor())
     DatePickerDialog(
         onDismissRequest = onDismiss,
         modifier = Modifier.testTag(TRIP_DATE_DIALOG_TAG).mapChromeContainerColor(dialogColors.containerColor),
@@ -213,8 +214,8 @@ internal fun WaypointNameDialog(defaultName: String, onConfirm: (String) -> Unit
     // TripDatePickerDialog left once AlertDialog vs. plain Dialog was ruled out is this property.
     // Raised only after a centre-pin pick on a map (compact and wide): always over a map. The fill at the
     // map chrome's alpha, and its content colour pinned to the fill's own role (see `MapLayersSheet`).
-    val dialogColor = mapChromeFill(MaterialTheme.colorScheme.surface, overMap = true)
-    val dialogContentColor = contentColorFor(MaterialTheme.colorScheme.surface)
+    val dialogColor = mapChromeFill(navigationBarContainerColor(), overMap = true)
+    val dialogContentColor = contentColorFor(navigationBarContainerColor())
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(
             shape = RoundedCornerShape(Spacing.md),

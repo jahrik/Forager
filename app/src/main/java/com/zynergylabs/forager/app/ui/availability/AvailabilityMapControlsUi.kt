@@ -92,12 +92,6 @@ import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import kotlin.math.roundToInt
 
-/** Translucent background for [CompassElevationStripContent] and [SearchDropdown]'s own panel — dark-theme value. Was 0.78, one alpha step off the app's settled 80% map-chrome opacity ([MapIconStackButtonColorDark]'s own value); the map/navigation search-UI redo dispatch names 80% as the one value all map chrome shares, so this now matches rather than carrying its own near-miss. */
-internal val CompassStripBackgroundColorDark = Bark.copy(alpha = MAP_CHROME_OVER_MAP_ALPHA)
-
-/** [CompassStripBackgroundColorDark]'s light-theme counterpart — same reasoning as [MapIconStackButtonColorLight]: picked per [com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme], independent of the map's own night mode, unverified on hardware. */
-internal val CompassStripBackgroundColorLight = Cream.copy(alpha = MAP_CHROME_OVER_MAP_ALPHA)
-
 /** The compass strip's heading text — one of the two places a heading can appear, never both at once (the strip hides while the HUD shows). */
 internal const val COMPASS_STRIP_HEADING_TAG = "compass-strip-heading"
 
@@ -387,7 +381,7 @@ private fun CompassElevationStripContent(
                 // ControlPill (Part B), so this strip wraps its Row's natural text-content height
                 // again, the same as before that dispatch.
                 .background(
-                    color = if (isDarkTheme) CompassStripBackgroundColorDark else CompassStripBackgroundColorLight,
+                    color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
                     shape = RectangleShape,
                 )
                 // Lets CompactMapTab's own onGloballyPositioned measure this strip's real height —
@@ -396,7 +390,7 @@ private fun CompassElevationStripContent(
                 // measured value is the only one that stays correct as font scale or content change
                 // it. Also still what this composable's own regression test targets directly.
                 .testTag("compass-elevation-strip")
-                .mapChromeContainerColor(if (isDarkTheme) CompassStripBackgroundColorDark else CompassStripBackgroundColorLight),
+                .mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight),
         ) {
             Row(
                 // fillMaxWidth, not fillMaxSize — see this Box's own doc comment above for the

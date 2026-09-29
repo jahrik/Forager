@@ -12,6 +12,7 @@ package com.zynergylabs.forager.app.ui.availability
 // in #130. Stage D left CombinedResultsPane behind because it composes MapTab, which was then held.
 
 import androidx.compose.runtime.CompositionLocalProvider
+import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.map.LocalMapKeepOuts
 import com.zynergylabs.forager.app.ui.map.fanout.MapKeepOuts
 import com.zynergylabs.forager.app.ui.map.MapKeepOutIds
@@ -694,7 +695,7 @@ private fun ThreeWayActionDialog(
     onDismiss: () -> Unit,
 ) {
     // Raised only from the Add button over the wide map: always over a map.
-    val dialogColor = mapChromeFill(AlertDialogDefaults.containerColor, overMap = true)
+    val dialogColor = mapChromeFill(navigationBarContainerColor(), overMap = true)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("What would you like to do here?") },

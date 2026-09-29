@@ -64,6 +64,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.JournalEntryHighlights
 import com.zynergylabs.forager.app.domain.MapRecords
+import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.map.layers.COLOUR_FIELDS
 import com.zynergylabs.forager.app.ui.map.layers.ColourFieldMove
 import com.zynergylabs.forager.app.ui.map.layers.ColourFieldSpec
@@ -235,11 +236,12 @@ internal fun MapLayersSheet(
     // chrome's standing opacity (owner: "Can this panel be given 80% opacity like the rest of the map
     // chrome?"). The scrim stays Material3's default, `colorScheme.scrim` (Bark in both themes,
     // Theme.kt) at 0.32 alpha (SheetDefaults.kt:529), so the map reads through both.
-    val containerColor = BottomSheetDefaults.ContainerColor.copy(alpha = MAP_CHROME_OVER_MAP_ALPHA)
+    // C1: the navigation bar's colour, not Material3's surfaceContainerLow (owner: "Make sure any other pop up or bubble, or the tool panel, is the same color as the app navigation bar").
+    val containerColor = mapChromeFill(navigationBarContainerColor(), overMap = true)
     // The content colour is pinned to the default's own (`contentColorFor` of the unaltered
     // container role, `onSurface`), because `contentColorFor` matches a colour-scheme role exactly:
     // given a container at any other alpha it matches none and falls back to `LocalContentColor`.
-    val contentColor = contentColorFor(BottomSheetDefaults.ContainerColor)
+    val contentColor = contentColorFor(navigationBarContainerColor())
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
