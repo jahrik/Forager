@@ -62,3 +62,69 @@ After the build all pass. **Predicted growth: +10 to +11** (the planner predicte
 
 **Device-only, listed not run:** the photo appearing in the S22 Gallery's "Forager" album; whether the Gallery shows it with the right date; that an import's exported copy keeps whatever location it carried (now the owner's ruling); on an API 26-28 device, the folder picker and the written file.
 Robolectric's fake provider is not MediaStore, and it reports zero insets, so none of this proves the Gallery shows the photo.
+
+## What landed
+
+| Commit | What | Suite |
+|---|---|---|
+| `bf41dcb` | pre-registration (above), pushed before any edit | not run (docs) |
+| `c985e3f`-equivalent on `photo-export-wip` | tests first: `PhotoViewerSaveTest.kt` (two classes, 11 tests) and `PhotoExportTestFixtures.kt` (a fake media provider and the format headers) | **11 of 11 fail at base**, for the missing control (below). Pushed to `photo-export-wip` first, since it was red |
+| `edb74209` | the build: `photo/PhotoExporter.kt` (new), the control in `ui/log/PhotoViewerDialog.kt`; tests unchanged since the tests-first commit except the toast wait (below) | **green** (below); pushed to `journal-redesign` inside merge `6dce0bca` |
+
+`AndroidManifest.xml` is **unchanged** (`git diff` empty): no permission and no `<queries>` entry was needed. `git grep WRITE_EXTERNAL_STORAGE|READ_MEDIA|READ_EXTERNAL` in the manifest: none. The five host screens are unchanged
+(the dialog's new `exporter` parameter has a default). The stored photo is never opened for writing anywhere in the new code (read); a test and a revert check hold it.
+
+## The build
+
+- **Control:** an icon-only `ViewerControl` at `TopEnd`, the mirror of Close, inside the same `safeDrawing` box; `contentDescription` "Save to Gallery" on API 29+ and "Save to folder" on 26-28; disabled while a save is in flight. **Placement is natural** (the viewer's controls sit at its corners), so no stop.
+  Insets are zero under Robolectric, so how it sits against the real system bars is device-only.
+- **API 29+:** `FilePhotoExporter.saveToGallery` inserts `DISPLAY_NAME`, `MIME_TYPE`, `RELATIVE_PATH = "Pictures/Forager"`, `IS_PENDING = 1` (and `DATE_TAKEN` when the record has a time), copies the stored bytes, sets `IS_PENDING = 0`; on any failure or cancellation the half-written row is deleted. No location column is ever written.
+- **API 26-28:** `describe` sniffs the file; `CreateDocumentOfType` (a contract, because the stock one fixes its type at construction) launches `ACTION_CREATE_DOCUMENT` with the sniffed type, `CATEGORY_OPENABLE` and `EXTRA_TITLE`; the chosen URI receives the bytes through `saveToDocument`. A cancelled picker says nothing.
+- **Type from the content:** `sniffImageType` reads the first 16 bytes: JPEG, PNG, GIF, WebP, HEIC, HEIF, AVIF, BMP. **An unrecognised header fails** (logged, "Couldn't save that photo."); it does not default to `image/jpeg`.
+- **Messages:** "Saved to Gallery", "Saved", "Couldn't save that photo.", as `Toast`s (the repo's own convention for transient messages). Every failure is logged at WARN under the tag `PhotoExporter`, with its cause.
+- **No location:** for a capture the stored file is already scrubbed and is exported as it is. **For an import, the exported copy is the stored bytes, unchanged**, per the owner's ruling quoted above; the strip step and the "exported import has no GPS" test in the dispatch were dropped on that ruling.
+
+## Tests first, seen failing at base for the stated reason
+
+At base (the viewer without the control), `testDebugUnitTest` on the two classes, **0 compile errors** in the log, every result file newer than the run's start: **11 tests, 11 failed**, each with
+"Failed to inject touch input. Reason: Expected exactly '1' node but could not find any node that satisfies: (ContentDescription = 'Save to Gallery')" (seven, API 36) or "... 'Save to folder')" (four, API 28). That is the pre-registered failure, the control not existing. The API 28 class ran (the SDK 28 jar resolved).
+
+| Class (`@Config`) | Test | What it asserts, through a real touch on the viewer's control |
+|---|---|---|
+| `PhotoViewerSaveToGalleryTest` (sdk 36) | JPEG | one insert; `Pictures/Forager`; `image/jpeg`; a `forager-photo-…jpg` name; pending while written, then published; the bytes equal the stored ones; no location column; "Saved to Gallery" |
+| | PNG, HEIC, WebP in a `.jpg`-named file | the sniffed type and a matching extension (three tests) |
+| | an import carrying a GPS position | exported bytes equal the stored bytes, and the stored file is byte-unchanged (sha-256 before and after) |
+| | the store refuses the row | "Couldn't save that photo.", exactly one toast, one WARN from the exporter, nothing inserted |
+| | bytes that are no image | the failure message, one WARN, **no row created** |
+| `PhotoViewerSaveToFolderTest` (sdk 28) | a tap | `ACTION_CREATE_DOCUMENT`, `image/png`, `CATEGORY_OPENABLE`, a `.png` `EXTRA_TITLE`, nothing inserted into MediaStore, no message yet |
+| | the picker returns a document | the stored bytes are written there, "Saved", the stored file unchanged |
+| | the document cannot be written | the failure message and one WARN |
+| | the picker is cancelled | no message, no warning |
+
+## Two things that went wrong while making them pass, and what the data said
+
+The first green attempt failed five tests; I read the JUnit stack before changing anything.
+1. **"Can't toast on a thread that has not called Looper.prepare()"** (five tests). The stack showed the compose test's continuation interceptor resuming the coroutine on the IO worker. Real Compose resumes on the main dispatcher, so this is very likely test-only, but the Toast's thread requirement is real, so the code now says where the message runs (`sayOnMain`, a `withContext(Dispatchers.Main)`). That cleared two.
+2. **Three tests then timed out with no toast, deterministically and in isolation.** I did not guess a third fix: I made `awaitToast` report the ShadowLog, the provider's counters and the looper state on timeout. It said `inserted=1 updated=1 deleted=0`, no logs, `toasts=0`, **`mainLooperIdle=false`**: the save had succeeded and the toast was posted to Robolectric's *paused* main looper, which `waitUntil` does not run. Passing tests had passed by a race (the post landing before `tap`'s own idle). The wait now idles the main looper (test-side; a device's looper runs itself). After that, four consecutive runs of the two classes: 11 of 11, every time.
+These are the only edits to a test after the tests-first commit; the assertions did not change.
+
+## Revert checks
+
+Runner rules applied: the file was copied **before** each edit and restored **from that copy** (never from git); the build log was checked for compile errors and `compileDebugKotlin` was seen to run; every result file was checked newer than the run's start; after each restore the file's sha-256 was compared with its pre-edit value (`52db5d41…` each time) and `git status` was clean.
+
+| # | Edit | Result | Failures |
+|---|---|---|---|
+| 1 | the type taken from the `.jpg` name (always `image/jpeg`) instead of the bytes | **5 of 11 failed** | PNG, HEIC and WebP ("the type is the content's expected:<image/png> but was:<image/jpeg>"), the "no image" test (a "Saved to Gallery" where the failure message was expected), and the API 28 launch (`image/png` expected) |
+| 2 | `RELATIVE_PATH` "Pictures" instead of "Pictures/Forager" | **4 of 11 failed** | the JPEG, PNG, HEIC and WebP tests: "expected:<Pictures[/Forager]> but was:<Pictures[]>" |
+| 3 | failures not logged | **3 of 11 failed** | the three failure-path tests: "one warning from the exporter expected:<1> but was:<0>" |
+| 4 | `scrubPhotoMetadata(file)` on the **stored** file before the copy | **1 of 11 failed** | the import test: "the exported copy is the stored bytes", two different hashes |
+
+Each failure is one that its own edit produces; none belongs to a different edit.
+
+## The full suite
+
+- **On the tree I built and tested** (my tests-first tree plus the build, before merging others' three commits), from a cleared results directory: `BUILD SUCCESSFUL in 4m 40s`; **321 result files, none older than the run's start; 2589 tests, 0 failures, 0 errors, 24 skipped.**
+  `PhotoViewerSaveToGalleryTest` 7, `PhotoViewerSaveToFolderTest` 4, `PhotoViewerDialogTest` 11, `LeavingTheJournalFixesTest` 34, all passing.
+- **Growth:** +11 tests (mine). The count at my base I did not measure, and other coders' merges changed it while I worked, so I claim only my own 11 (the planner predicted 6 to 12; I pre-registered 10 to 11).
+- **The 24 skipped** are not mine and I did not investigate them (the same 24 in both full runs I have).
+- **An earlier full run of the same tree hung** and was stopped by me at 1800 s; see Flags. It is not a pass and I do not count it as one.
