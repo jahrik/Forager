@@ -119,6 +119,8 @@ Passing at base: TR3, TR5, T5, T9 (unchanged tests, as expected), **and L2 (the 
 | R3 | container `Surface` with the 0.6 fill back under the L | L5 "the gap under the bar shows the map: ... read (0.973, 0.945, 0.976)"-family corner/gap pixel failures and L3 "a real long-press in the empty corner ... reached the map ... expected:<1> but was:<0>" |
 | R4 | the pill's own fill back to the 0.5 child fill | only L5 "the pill reads as one layer at 0.8 over the map: expected (0.941, 0.906, 0.851), read (0.965, 0.929, 0.906)" |
 | R5 | AddActionTile anchor back to the portrait offset | only L6 "the add menu's panel bottom is 32 dp below the add row's centre ... expected:<32.0> but was:<40.0>" |
+**Correction to the R3 row, made after re-reading the result files:** the pixel message `the gap under the bar shows the map ... read (0.973, 0.945, 0.976)` belongs to R1 (the spacing revert moves the pill into the gap), not R3. R3's L5 failure is `the empty corner inboard of the bar shows the map: expected (0.996, 0.969, 1.000), read (0.957, 0.922, 0.890)`, the same reading as at base, as it should be with the container fill back.
+
 Every run also carried T9's two known failures (not caused by these edits). After the last revert, `git status` was clean against `af00f9a0` and the anchor line is the forward one (checked by grep), so the forward change was present. `L3`'s reverted result (R3) confirms the positive control: with a fill the corner really is captured.
 
 ## 6. Three conflicts with existing behaviour. I have not decided any of them.
