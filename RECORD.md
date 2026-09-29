@@ -7177,3 +7177,19 @@ The planner confirmed each by grep.
   - **Chosen:** the phone layout as the base that a future tablet design expands.
 - The dispatch's scope is unchanged.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-249
+**Timestamp:** 2026-09-29T22:59:43Z
+**Dispatch:** 2026-09-28-245 (tablets as a big phone)
+**Reason:** the owner, verbatim: "Continue removing all J6 and prior tablet code, but extract J6 to a separate branch for R&D. I want to see if I can salvage it into something usable."
+**Changes:**
+- **Branch `j6-rnd`** is created on origin at ac3b6a9a, the journal-redesign head before any removal.
+  - It holds J6 working in context, with everything built on it since: the landscape L, F1, F3, F4 and C1. The pre-J6 tablet tree is included.
+  - It builds as the branch did.
+  - It is not merged anywhere and not built on by this project's dispatches.
+- **Also on origin, unchanged:** `j6` (and `j6-wip`), J6's own coder branch, ending at 44c4ff2a (the J6c report), before the later work.
+- **Dispatch -56's removal goes ahead** as written. Its build coder, stopped by the owner before it changed anything, is resumed.
+**Notes:** Written by the planner by hand.
