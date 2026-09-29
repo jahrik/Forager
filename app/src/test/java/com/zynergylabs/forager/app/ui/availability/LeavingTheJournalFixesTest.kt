@@ -1185,9 +1185,18 @@ class LeavingTheJournalFixesTest {
         assertChangedKeptFindInDraftsAtOnce("Open in Journal over a changed kept find")
     }
 
+    /**
+     * J6a (ruling 1, list-detail) changed what this test was about. It used to open a find in the wide
+     * drawer, edit it, and reach the results map's "+" beside it to Log a find over it, checking that
+     * the changed find was left first (F3). An opened find now takes the whole right side, the map
+     * included, so "Log a find" over an open find cannot be reached in the wide tree at all: the "+" is not
+     * on screen. What is left to hold, and what this asserts, is that the changed find stays open and
+     * unsaved while it is covering the map, and that leaving it by Back still keeps its draft with the
+     * "Saved to Drafts" snackbar, as F1's wide tests already show for the unchanged and changed cases.
+     */
     @Test
     @Config(qualifiers = "w1280dp-h900dp-mdpi")
-    fun `F3 wide, Log a find over a changed find open in the drawer leaves it first, its draft in Drafts at once with Saved to Drafts`() {
+    fun `F3 wide, a changed find open in the detail pane covers the map, so Log a find is not reachable over it, and Back still keeps its draft`() {
         setScreen()
         // Setup, not the claim: the wide map draws only after a search (MapTab's `!hasSearched` branch).
         composeRule.runOnIdle {
@@ -1196,18 +1205,20 @@ class LeavingTheJournalFixesTest {
             availabilityViewModel.searchManualCoordinates()
         }
         composeRule.waitForIdle()
+        composeRule.onNodeWithContentDescription("Plan a trip or log a find here").assertIsDisplayed()
         openWideFindEditor()
         typeFindIdentification("Changed, not saved")
 
-        composeRule.onNodeWithContentDescription("Plan a trip or log a find here").performClick()
-        composeRule.waitForIdle()
-        composeRule.onNodeWithText("Log a find").performClick()
-        composeRule.waitForIdle()
-        composeRule.onNodeWithText("OK").performClick()
-        composeRule.waitForIdle()
-        assertEquals("Log a find opened the new find", NEW_FIND_ID, logViewModel.uiState.value.editingEntry?.id)
+        assertEquals(
+            "the map's Add button is not reachable while the find covers the map",
+            0,
+            composeRule.onAllNodesWithContentDescription("Plan a trip or log a find here").fetchSemanticsNodes().size,
+        )
+        assertEquals("the changed find is still open", DRAFT_OF_FIND_ID, logViewModel.uiState.value.editingEntry?.id)
 
-        assertChangedKeptFindInDraftsAtOnce("the wide Log a find over a changed kept find")
+        pressBack()
+
+        assertChangedKeptFindInDraftsAtOnce("Back from the wide editor over the covered map")
     }
 
     private companion object {

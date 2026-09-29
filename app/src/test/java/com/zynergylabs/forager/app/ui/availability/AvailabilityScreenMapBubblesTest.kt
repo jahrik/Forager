@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.ui.log.JOURNAL_DETAIL_PANE_TAG
 import android.app.Application
 import android.content.ComponentName
 import android.content.Intent
@@ -604,14 +605,17 @@ class AvailabilityScreenMapBubblesWideTest {
 
         composeRule.touchCentreOf(MAP_BUBBLE_OPEN_FIND_TAG)
 
-        composeRule.onNodeWithTag(FIND_OVER_VIEW_TAG).assertIsDisplayed()
+        // J6a (ruling 1, list-detail): the find opened from the bubble is the whole right side's detail pane
+        // now, not the overlay (FIND_OVER_VIEW_TAG) it was drawn in over the drawer panel.
+        composeRule.onNodeWithTag(JOURNAL_DETAIL_PANE_TAG).assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
         // J6a header ruling (prompts/preserved/2026-09-29-25.md): the Journal panel's header row reads
         // "Journal" (it read "Mushroom Log"); the Search panel's own "Mushroom Log" row is unchanged.
         composeRule.onNodeWithText("Journal").assertExists()
         assertEquals("find-1", log.editingEntry?.id)
 
         composeRule.back()
-        composeRule.onAllNodesWithTag(FIND_OVER_VIEW_TAG).assertCountEqualsZero()
+        composeRule.onAllNodesWithTag(JOURNAL_DETAIL_PANE_TAG).assertCountEqualsZero()
         assertEquals(null, log.editingEntry)
     }
 }

@@ -548,7 +548,7 @@ class WideJournalTest {
     }
 
     @Test
-    fun `FAILS AT BASE Back unwinds a find one step at a time: picker, editor, Finds chip, Records, then the Journal`() {
+    fun `FAILS AT BASE Back unwinds a find one step at a time, picker then editor then Finds chip then Records then the Journal`() {
         setScreen()
         openFindEditor()
         composeRule.onNodeWithText("Change Location").performScrollTo().performClick()

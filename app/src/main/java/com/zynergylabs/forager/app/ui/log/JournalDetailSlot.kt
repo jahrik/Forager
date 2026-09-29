@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -15,6 +16,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 
 /**
  * Where the wide tree's Journal opens what the person opened (J6a, ruling 1: list-detail). The list
@@ -93,7 +95,9 @@ internal fun JournalDetail(
  */
 @Composable
 internal fun JournalDetailPane(layer: JournalDetailLayer, modifier: Modifier = Modifier) {
-    Surface(modifier = modifier.fillMaxSize().testTag(JOURNAL_DETAIL_PANE_TAG)) {
+    // Solid: no map is drawn beneath it (the results pane under it is covered), so it takes none of the map
+    // chrome's 80% fill; the container colour is marked so a test reads it the way it reads the sheets'.
+    Surface(modifier = modifier.fillMaxSize().testTag(JOURNAL_DETAIL_PANE_TAG).mapChromeContainerColor(MaterialTheme.colorScheme.surface)) {
         androidx.compose.foundation.layout.Box(
             modifier = Modifier
                 .fillMaxSize()

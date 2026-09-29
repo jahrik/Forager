@@ -418,6 +418,11 @@ class AvailabilityScreenWideWindowLayoutTest {
                     val opened = logUiState.entries.first { it.id == id }
                     logUiState = logUiState.copy(editingEntry = if (opened.isDraft) opened else opened.copy(isDraft = true))
                 },
+                // J6a (item 6.5): the wide Journal opens a find in its report, and the report's Edit starts the
+                // edit (the phone's path), so the draft copy is made there, by the same in-place stand-in.
+                onStartEditingLogEntry = {
+                    logUiState = logUiState.copy(editingEntry = logUiState.editingEntry?.let { if (it.isDraft) it else it.copy(isDraft = true) })
+                },
                 onLeaveLogEntryEditingIncidentally = {
                     logUiState = logUiState.copy(editingEntry = null)
                 },
@@ -430,6 +435,9 @@ class AvailabilityScreenWideWindowLayoutTest {
         // J1 S3: the Finds filter chip replaced the "Logged Finds" sub-tab (LogPanel shares RecordsTab).
         composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.FINDS)).performClick()
         composeRule.onNodeWithText("Find on 2026-08-01").performClick()
+        // The find opens in its report; its Edit opens the edit form this test is about leaving.
+        composeRule.onNodeWithContentDescription("Entry options").performClick()
+        composeRule.onNodeWithText("Edit entry").performClick()
         composeRule.onNodeWithContentDescription("Back to your log").performClick()
 
         composeRule.waitUntil(timeoutMillis = 5_000) {

@@ -135,6 +135,10 @@ class LogPanelTest {
                 },
                 onDeleteEntry = { id -> uiState = uiState.copy(entries = uiState.entries.filterNot { it.id == id }, editingEntry = null) },
                 onBackToSearch = {},
+                // J6a: LogPanel is JournalTab under a header, and JournalTab draws an open find in its report
+                // unless told it is being edited. These tests set `editingEntry` directly, the state the old
+                // LogPanel (which had no report step) meant by "open", so they say it is being edited.
+                findEntryModeState = remember { mutableStateOf(JournalEntryMode.EDIT) },
                 onSaveErrorDismissed = { uiState = uiState.copy(saveErrorMessage = null) },
                 // Journal Stage 2b: Cartography's own new-entity navigation — this file tests the
                 // relocated Finds section, so these are inert fixtures, not exercised by any test.
