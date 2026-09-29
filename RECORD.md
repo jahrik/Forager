@@ -5857,3 +5857,21 @@ Nothing of either window was pushed. On the phone, the two did only force-stop a
   - the tablet is authorized, and adb reads it as a device.
 - **Disk** is at 1243 MB free, under the coders' 2048 MB floor, so builds will wait. The owner is told.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-174
+**Timestamp:** 2026-09-29T10:33:41Z
+**Dispatch:** none (machine upkeep, at the owner's instruction)
+**Reason:** the disk fell to 779 MB free, blocking both building coders (the floor is 2048). The owner, verbatim: "A B and C", choosing from the planner's list.
+**Changes:**
+- **A:** forager-wt/journal-redesign/app/build, 394 MB, the planner's own suite output.
+- **B:** ~/Zynergy/device-evidence/2026-09-28-stage-check-1 (768 MB) and 2026-09-28-map-chrome-check (609 MB).
+- **C:** ~/.gradle/caches/build-cache-1 (230 MB). The downloaded libraries (modules-2) and 9.7.0's transforms were kept.
+- Free space went from 779 MB to 2772 MB.
+**Notes:**
+- No Gradle build was running at the deletion.
+- **Kept, not deleted:** six write-protected files in 2026-09-28-map-chrome-check, 1.5 MB in total: db-backup-raw/ and db-end-raw/, each holding forager.db with its -wal and -shm. They are the map-chrome check's copies of the phone database, deliberately made read-only. The planner did not override the protection. They are left for the owner.
+- **Evidence now gone:** the screenshots and dumps cited by Part 1's run record (-71) and the map-chrome run record (-102). That includes the two frames the planner viewed for -145's night correction (c5-street-night-12, c5-topo-day-12). -145's text keeps what was seen.
+- Written by the planner by hand.
