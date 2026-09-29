@@ -471,6 +471,10 @@ internal fun CompactMapTab(
     // cluster's own range, not its own 48dp, so it can never sit where the cluster could not.
     // Keeps its last value while minimised, which is what the handle's drag is clamped against.
     var mapIconClusterHeightPx by remember { mutableStateOf(0f) }
+    // Part 1 layout fixes, items 1 and 2 in landscape (planner message 2026-09-28-109): the container's
+    // measured width, written where the height is, so the legend can sit just inboard of the cluster in a
+    // short landscape window. Keeps its last value while minimised, so the legend does not jump.
+    var mapIconClusterWidthPx by remember { mutableStateOf(0f) }
     // Expanded-panels dispatch: this tab's own ForagerBottomNav overlay's real measured height, in
     // px — kept here (as well as reported up via onBottomNavHeightMeasured) because the drag
     // clamp's downward bound needs it: that nav is composed *after* MapIconBar in this tab's Box
@@ -999,6 +1003,7 @@ internal fun CompactMapTab(
                                 // doc comment. Measured on the container, never on its contents.
                                 .onGloballyPositioned { coordinates ->
                                     mapIconClusterHeightPx = coordinates.size.height.toFloat()
+                                    mapIconClusterWidthPx = coordinates.size.width.toFloat()
                                 }
                                 .testTag(MAP_ICON_CLUSTER_TAG),
                         ) {
@@ -1207,6 +1212,16 @@ internal fun CompactMapTab(
                 // either edge. The cluster keeps clear of it through its clamp above (Q4). Composed
                 // with the ambient chrome, before the nav and the modal overlays. Its placement depends
                 // on real insets Robolectric reports as zero: device-only.
+                // Part 1 layout fixes, items 1 and 2 in landscape (the owner's "2 A", planner message
+                // 2026-09-28-109): in a short landscape window, with the cluster on the legend's side, the
+                // cluster's column reaches the corner the legend sits in, so the legend moves just inboard of
+                // it (the cluster's edge inset and measured width, plus the portrait gap), bottom-aligned as
+                // before, collapsed or expanded. Otherwise it is in its corner as it always was.
+                val legendEndPadding = if (landscapeCluster && !isMapIconBarOnLeftSide) {
+                    MAP_ICON_BAR_EDGE_INSET + with(LocalDensity.current) { mapIconClusterWidthPx.toDp() } + Spacing.sm
+                } else {
+                    Spacing.sm
+                }
                 mapLegendFor(renderMode.layers, MAP_LAYER_REGISTRY, COLOUR_FIELDS, mapLayers.cellsShown)?.let { legend ->
                     DisposableEffect(Unit) { onDispose { legendChipTopPx = null } }
                     MapLegendChip(
@@ -1216,7 +1231,7 @@ internal fun CompactMapTab(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
                             .padding(controlsPadding)
-                            .padding(end = Spacing.sm, bottom = renderMode.bottomInset + LEGEND_ATTRIBUTION_CLEARANCE)
+                            .padding(end = legendEndPadding, bottom = renderMode.bottomInset + LEGEND_ATTRIBUTION_CLEARANCE)
                             .onGloballyPositioned { coordinates ->
                                 legendChipTopPx = coordinates.positionInRoot().y - mapContentBoxTopInRootPx
                             },
