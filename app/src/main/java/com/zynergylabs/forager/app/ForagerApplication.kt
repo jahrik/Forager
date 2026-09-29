@@ -5,6 +5,7 @@ import android.os.Build
 import android.util.Log
 import com.zynergylabs.forager.app.crash.CrashUncaughtExceptionHandler
 import com.zynergylabs.forager.app.diagnostics.DebugDiagnostics
+import com.zynergylabs.forager.app.map.initializeMapLibre
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -37,7 +38,27 @@ class ForagerApplication : Application() {
         diagnostics = DebugDiagnostics.install(this)
         container = AppContainer(this)
         installCrashHandler()
+        initializeMapLibreAtStart()
         sweepOrphanedCaptures(startedAt)
+    }
+
+    /**
+     * MapLibre's native side must be initialised before anything reads offline regions (the
+     * Journal's start-up read runs at ViewModel construction) or composes a map. This is the
+     * earliest point every path goes through. [initializeMapLibre] logs a failure itself and
+     * retries on the next call, so it is caught here only so a device where it fails still starts;
+     * under Robolectric the native library cannot load, so every unit test that boots this class
+     * logs that failure once (an earlier attempt at this call was reverted for throwing there).
+     */
+    private fun initializeMapLibreAtStart() {
+        try {
+            initializeMapLibre(this)
+        } catch (e: Exception) {
+            Log.w(TAG, "MapLibre was not initialised at application start; later callers will retry.")
+        } catch (e: LinkageError) {
+            // The native library did not load (always, under Robolectric). Already logged by the initializer.
+            Log.w(TAG, "MapLibre was not initialised at application start; later callers will retry.")
+        }
     }
 
     /**

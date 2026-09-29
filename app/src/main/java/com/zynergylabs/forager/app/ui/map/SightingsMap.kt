@@ -272,12 +272,8 @@ fun SightingsMap(
     val lifecycleOwner = LocalLifecycleOwner.current
 
     val mapView = remember {
-        // Required once, before any MapLibre API touches the native library, and must also carry
-        // the storage-path redirect — this used to call MapLibre.getInstance(context) directly,
-        // missing that half; see MapLibreStorage.kt's own doc comment on initializeMapLibre for why
-        // that was a real gap, not just tidiness (this is a second, independent consumer of the SDK
-        // alongside com.zynergylabs.forager.app.map.MapLibreOfflineMapRepository, and only one of the two used
-        // to establish the redirect first).
+        // MapLibre is initialised at application start; this call is idempotent and is here so a
+        // map composed on a path that skipped it still fails loudly (logged) rather than crashing later.
         initializeMapLibre(context)
         MapView(context).apply { onCreate(null) }
     }

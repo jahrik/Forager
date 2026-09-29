@@ -51,3 +51,52 @@ New file `map/OfflineRegionReconciliation.kt` holds the decisions and `reconcile
 ### Pass conditions
 
 Part 1: the six tests-first tests fail at step 1 for the stated reasons, pass after step 2, both revert checks fail with edit-specific messages, and the full suite from a cleared results directory has zero failures.
+
+---
+
+# Completion report (same session, after the pre-registration above)
+
+## What landed
+
+| Commit | What |
+|---|---|
+| `9b59a4d` | pre-registration (above), pushed to `journal-redesign` before building |
+| `26632d6` → `offline-safety-wip` | Part 1 step 1: decisions extracted at base behaviour, tests written; **8 of 11 fail** |
+| `a649ac3` → `journal-redesign` | Part 1: P1, P2, P3 |
+| `9b667c0` → `offline-safety-wip` | Part 2 step 1: initialiser stub at base behaviour; **3 of 3 tests fail** |
+| `d9cf4fd` → `journal-redesign` | Part 2: F1, F2 |
+
+**P1** `map/OfflineRegionReconciliation.kt` `reconcileOfflineRegions`: a Room row missing from the read is kept, not shown, and logged at `Log.w` with its id every time. No path but `deleteRegion` removes a row except P3's. **P2** `regionListOrFailure`: null list throws `IOException`, called from `listOfflineRegionsSuspend` and logged there. **P3** `incompleteRegionDecision`: as pre-registered, no schema change, no migration. **F1** `MapLibreStorage.kt` rewritten without the redirect. **F2** `MapLibreInitializer` (once, retry after failure, logs), called from `ForagerApplication.onCreate` (`initializeMapLibreAtStart`); `offlineManager()` and `SightingsMap` still call the idempotent `initializeMapLibre`. Comments corrected in `MapLibreStorage.kt`, `AvailabilityViewModel.kt` (`onOfflineMapsOpened` doc) and `SightingsMap.kt`.
+
+## Evidence
+
+- **Tests first, Part 1 (base behaviour):** 8 of 11 failed by assertion, each for the pre-registered reason (rows deleted by empty/partial read: "row 2 survives a read that lacks it expected:[1, 2] but was:[1]", "both rows survive an empty read expected:[1, 2] but was:[]"; nothing logged; incomplete region with a row / a real timestamp / unreadable metadata deleted; null read: "expected java.io.IOException to be thrown, but nothing was thrown"). The 3 controls passed. One more failed than pre-registered by name (unreadable metadata), for the same reason as the timestamp case. The build log had no compile errors.
+- **Revert checks, Part 1** (saved copy, build log checked first: 0 compile errors each; forward file's sha256 prefix `01618ea7ef949634` identical before and after): restoring the prune failed exactly the empty-read and partial-read tests with those messages; restoring null-to-empty failed exactly the null-read test.
+- **Tests first, Part 2:** 3 of 3 failed by assertion (called 3 times not once; nothing logged; no application-start log).
+- **Revert checks, Part 2** (0 compile errors; hashes `d7627553edaa`, `dbbaa6a15a72` identical after): removing the `ForagerApplication` call failed only the application-start test ("no MapLibre initialisation was attempted at application start: []"); removing the once-only guard failed the two once/retry tests ("expected:<1> but was:<3>", "expected:<2> but was:<3>"). A first attempt at these produced `UnsatisfiedLinkError` failures for all three tests, which is a failure the reverts could not have caused, so I did not cite it (see Decisions).
+- **Full suite** after Part 1: 311 files, 2526 tests, 24 skipped, 0 failures, 0 errors, 0 files older than the run's start. After Part 2: 312 files, **2529 tests, 24 skipped, 0 failures, 0 errors**, 0 stale. Net change against base, from those counts: +11 (Part 1: +11 new, −3 removed; Part 2: +3). The 24 skips are not mine; I did not inspect them.
+
+## Not tested
+
+- The mapping from a real `OfflineRegion` to `LiveRegion`, `OfflineManager` itself, and `MapLibre.getInstance`: none can run on the JVM. `listRegions` is covered up to that mapping only.
+- That the `downloadedAtEpochMillis == 0` marker is what every device's unfinished regions carry (builds before `99606a5` unverified). Such a region is kept, not deleted.
+- That MapLibre initialises at application start on a device without the redirect failing; the application-start test only observes that an attempt was made and logged.
+
+## Device-only (S22, after this lands)
+
+Cold start logs no "Couldn't read offline regions"; regions show in Records and bubbles at once; `files/mbgl-offline.db` still holds the same regions and tiles; every Room row is kept; a log line `MapLibre initialised.` (tag `MapLibreStorage`) appears once per process; `Room region row N has no MapLibre region` warnings, if any, name real mismatches.
+
+## Decisions I made
+
+1. **Extraction shape:** a `LiveRegion` data class and one `reconcileOfflineRegions` function taking the DAO, so the wiring is testable with a fake DAO, rather than only pure predicates. The dispatch asked for decisions extracted and wiring tested as far as a fake allows.
+2. **Deleted `OfflineRegionIdsToDeleteTest.kt`** (3 tests) because its subject, `offlineRegionIdsToDelete`, was replaced by `incompleteRegionDecision`. Its three cases (in flight kept, complete kept, orphan deleted) are covered by the new tests, the orphan case now only under P3's rule. Not a silenced test, but a test removal; say so if you disagree.
+3. **`MapLibreInitializer` catches `Throwable`** (logs, rethrows) and `ForagerApplication` catches `Exception` and `LinkageError` and logs. Under Robolectric the SDK throws `UnsatisfiedLinkError`, an `Error`; without the `LinkageError` catch every Robolectric test that boots the application crashed (my pre-registered prediction 4 named the risk). Consequence: a device whose native library will not load now starts and fails when a map is opened, instead of crashing at launch. This is a behaviour choice the owner may want to rule on.
+4. **Kept the log tag `MapLibreStorage`** for the initialiser, so nothing that greps logs for it changes.
+
+## Flags outside scope
+
+- **Rule slip:** the first Part 2 Gradle runs started while another agent's build (`forager-wt/layout-fixes`) was running; `pgrep` showed it and I ran anyway. No OOM or interference showed in my results, but the rule says wait. I waited on every later run.
+- `ui/availability/AvailabilityOfflineMapsUi.kt:19-20` still says `initializeMapLibre` "is called only from SightingsMap and MapLibreOfflineMapRepository"; it is now also called from `ForagerApplication`. Out of scope; not changed.
+- Audit docs (`2026-09-07-offline-style-swap-*`, `2026-09-08-data-inventory-for-privacy-policy.md:433`, `2026-09-08-backup-exclusion-rules-completion-report.md:284`) name `filesDir/maplibre-offline` as the store; they are wrong per the device listings. Not edited. The backup-exclusion report at `:284` implies exclusion rules may have been written for that path; `app/src/main/res` has no `maplibre`/`mbgl` match, so I found none, but whether the live `files/mbgl-offline.db` is covered by backup rules was not checked.
+- The pulse's `SightingsMap.kt:274/275` are `:281/282` at this base.
+- Merge not done, as instructed.

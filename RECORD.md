@@ -4632,3 +4632,55 @@ Written by the planner by hand.
   - -03 is -94's finish (the S22 trips cleanup).
 
 Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-115
+**Timestamp:** 2026-09-29T01:14:39Z
+**Closes:** 2026-09-28-94
+**Outcome:** completed
+**Observed:**
+- **Record.** docs/audits/2026-09-28-planned-trips-device-check-run-record.md, device-trips at 50c9ae5, merged by the planner.
+- **Coders.**
+  1. The first coder (Agent tool) reproduced the failure and pushed to f35e815. It had created its branch in the planner's own session checkout.
+  2. It was stopped for the model switch. A general-purpose relaunch was stopped by the owner.
+  3. The finishing coder was an owner-opened session, launch prompt preserved/2026-09-29-03.md. Its model is configured as claude-sonnet-5-5 but unverified by the coder. Commits 71c601a (pre-registration), ca2f336 and 50c9ae5.
+- **Reproduced on the compact tree, build 1.0.1457+gb358a4aa.**
+  - With two trips saved and region null, no flag drew across zoom, the switch, day and night, a tab round trip and a relaunch (phase 1).
+  - After a recent search set region, both flags drew at their points (phase 2), and again after a relaunch and re-search.
+  - With the search run: switch off gave 0 trip pixels, and on gave both (19.9 × 27.7 dp). Night #FA01DD, day #9553A4. A real tap opened each bubble.
+- **Supported cause.** Read: AvailabilityCompactMapUi.kt:641 passes an empty trip list while region is null (:573). Observed as above. Inferred to be the owner's S26 report.
+- **Cleanup.** Trips A and B were deleted through the planner. planned_trips reads 0, integrity ok, user_version 16. forager.db is byte-identical to the start copy, with only cached_searches' timestamps differing. The Planned trips switch and Night Maps were restored, and all five DataStore files are byte-identical to the start.
+**Deviations:**
+- Prediction R-0 was wrong: region was already set at the first capture, because the pid taken for a restart was phase 1's own relaunch.
+- Zoom and the tab round trip with the search run were skipped, pre-registered.
+- The trips were identified by name, date and coordinates (the UI shows no id).
+- The coder read the D58 phrases from forager-forecast origin/d55-artifact-contract.
+**Notes:**
+- **Unblocks -97** (the fix, owner option A), still behind -78.
+- **Flags:**
+  - "Couldn't read offline regions" at every cold start (-106 is on it);
+  - "getMetersPerPixelAtLatitude after the MapView was destroyed" logged 2466 times in three processes;
+  - uiautomator dumps cannot show the flags, so a dump-only check of this feature passes either way;
+  - the Trip Planner starts collapsed, and the first tap did not expand it;
+  - the serving model is unverified.
+- Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-116
+**Dispatch-file:** none (pulse dispatched in chat by the planner; read-only)
+**Type:** pulse
+**Outcome:** completed
+**Report:** docs/audits/2026-09-29-export-backup-premise-pulse.md (the planner's condensed filing, citations kept)
+**Notes:** 2026-09-29T01:23:18Z. Read at a7343f5. It found:
+- the owner's 2026-09-09 ruling: allowBackup false for good, restore through an in-app export/import, none of it built;
+- photos app-private, captures EXIF-scrubbed, imports untouched, never written to the gallery, every file named .jpg whatever its type;
+- the GPX share the only release export;
+- no storage permission declared; SAF needs none at any SDK;
+- a backup must cover forager.db (WAL), the photo files, and the offline regions' MapLibre store;
+- several user documents stale, and the backup location in tension with the delete-data promise.
+
+Also recorded: the owner's ruling "So let's do sessions this way now": coders in owner-opened windows with paste-ready prompts (plan). Written by the planner by hand.

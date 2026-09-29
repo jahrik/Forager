@@ -838,3 +838,20 @@ Intent `2026-09-28-106`. It runs ahead of the other queued builds, and an S22 de
 **How coders get Sonnet 5.5 (owner, 2026-09-29).** Launching with the Agent tool's "sonnet" choice gave `claude-sonnet-5`, read from the agents' logs, not 5.5. The planner had said 5.5 without checking. The owner chose, verbatim, "I'll do the .config": the owner sets the default subagent model in `/config`.
 
 From here the planner launches coders **without** a model setting, because an explicit one overrides the default. It reads the served model from the first agent's log and reports it.
+
+### Photo export and on-device journal backup (owner, 2026-09-29)
+
+The owner, verbatim: "Let's also add an export option for photos to the device, and on-device backup for journal entries."
+
+These are new features, not yet specified. A read-only pulse maps what exists first: photo storage, any share, export or backup code, the GPX export, Android's backup rules, and the data inventory. Then the design questions go to the owner: where exports go, which photos, the location metadata, what a backup holds, where it is stored, manual or scheduled, and restore. Where they sit relative to J6 and the Journal PR is the owner's to decide.
+
+### How coders run from now on (owner, 2026-09-29)
+
+The owner, verbatim: **"So let's do sessions this way now."**
+
+This supersedes the planner launching coders as Agent-tool subagents:
+- **Each coder runs in its own Claude Code window,** opened by the owner, who sets `/model claude-sonnet-5-5` there.
+- **The planner writes a paste-ready launch prompt** for each dispatch. It is preserved in `prompts/preserved/` and copied to `~/Zynergy/launch-prompts/`. It carries the coder's rules, names the worktree, says the session is a coder and not the planner, and gives the planner session's ref for hand-back.
+- **The coder hands back** by pushing its report and sending the planner session a `SendMessage`. The planner re-runs the suite, merges run records and writes the record, as before.
+- **Read-only pulses** may still run as subagents of the planner.
+- **The planner can message these windows but cannot drive them.** Stopping one, or answering its prompts, is the owner's.
