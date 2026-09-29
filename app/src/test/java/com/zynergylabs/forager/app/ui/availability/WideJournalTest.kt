@@ -548,7 +548,7 @@ class WideJournalTest {
     }
 
     @Test
-    fun `FAILS AT BASE Back unwinds a find from its picker to its editor to its report to the closed detail, then Records to Entries, then Search`() {
+    fun `FAILS AT BASE Back unwinds a find one step at a time: picker, editor, Finds chip, Records, then the Journal`() {
         setScreen()
         openFindEditor()
         composeRule.onNodeWithText("Change Location").performScrollTo().performClick()
@@ -567,6 +567,11 @@ class WideJournalTest {
         assertEquals("4. no detail pane is left over", false, tagExists("journal-detail-pane"))
         assertTrue("4. the Journal is still on Records, its Finds chip selected", tagExists(RECORDS_FILTER_CHIP_ROW_TAG))
         composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.FINDS)).assertIsSelected()
+
+        // RecordsTab's own existing step (RecordsTab.kt:225, the phone's too): Back from a chip goes to All.
+        pressBack()
+        composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.ALL)).assertIsSelected()
+        assertTrue("4b. still on Records", tagExists(RECORDS_FILTER_CHIP_ROW_TAG))
 
         pressBack()
         assertTrue("5. Records to Entries", tagExists(ENTRIES_HOME_TAG))
