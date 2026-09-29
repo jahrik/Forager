@@ -5306,3 +5306,31 @@ It also flagged the snackbar lying over the floating nav.
 - The owner's "2 A" (launch now) is read together with the sentence that follows it, as launching side by side with Part 2 after -137, not immediately.
 - The planner started the adb server while checking devices. The tablet (R52T506412L) shows "unauthorized"; the owner is told.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-150
+**Timestamp:** 2026-09-29T06:07:54Z
+**Dispatch:** 2026-09-28-127 (continuation -137)
+**Reason:** the -137 coder handed back, pushed to journal-redesign at dd056c6a. Build: 693054b5 and a touch fix 0644574e. Report: the "Resumed" section of docs/audits/2026-09-29-journal-backup-completion-report.md. Its suite: 2749 / 0 / 0 / 24.
+- Items 1-7 and 9 are built.
+- **Item 8 stopped.** The existing notification channels are purpose-named and user-visible ("Track recording", "Sundown alert", "Off-track alert"), so backup notifications need a new channel with an approved name. They also need the POST_NOTIFICATIONS runtime request, which is declared but never asked for this.
+- The scheduled-run behaviour of item 8 is built without the notifications.
+**Changes:** none. The stop and the flags go to the owner.
+**Notes:**
+- **Process slips, self-reported:**
+  - **No tests-first commit.** The tests were run red against stubs (70 failed), but the stub tree was never committed, so the red state cannot be reproduced from git.
+  - **Machine sharing.** Builds ran at about 2.1 GB available, against the 2.5 GB rule, after a 10-minute wait. Idle daemons held memory, and no other Java Gradle process was building.
+- **Revert checks:** 30. One had compile errors, was refused and redone.
+- **Flags that touch data safety, put to the owner:**
+  - (a) Replace keeps the backup's region ids, so a later MapLibre download with the same id upserts over the restored row.
+  - (b) If the user picks an existing file to overwrite and the write fails, that existing file is deleted. The run cannot tell a file it created from one it overwrote.
+- **Coder's decisions:**
+  - Merge assigns negative ids.
+  - Download again replaces the old row.
+  - The Save picker reopens after a failed write.
+  - A reload that throws is logged, and the page still reaches Done.
+  - Tapping outside a dialog counts as Cancel.
+- Not closed. The terminal waits on item 8 and the planner's suite.
+- Written by the planner by hand.
