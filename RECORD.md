@@ -5201,3 +5201,15 @@ It also flagged the snackbar lying over the floating nav.
 **Notes:**
 - 1c29a2 did nothing on item 9, and said so.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-144
+**Timestamp:** 2026-09-29T05:27:04Z
+**Dispatch:** 2026-09-28-104
+**Reason:** the owner, verbatim: "It's on photo import/export session".
+**Changes:** the -143 relaunch prompt runs in the window that built -126 (photo export). That window has finished its dispatch. Its socket is 415979, and its ListAgents title still reads "Device coder session: planned trips on the S22".
+**Notes:**
+- A stale shell wait loop from that session (pid 455216, waiting on a trips-on-map build since about 20:00) is still alive. It uses no build resources. Left alone: it is another session's process.
+- Written by the planner by hand.
