@@ -82,11 +82,9 @@ import java.time.LocalDate
  * that's representable since L3. The centre-pin picker sets a location on an *already-open* entry,
  * reached via [LogEntryDetailScreen]'s own "Add Location" button.
  *
- * This exists alongside [LogPanel] rather than replacing it: [LogPanel] is still what the
- * medium/expanded window's drawer shows (`DrawerPanel.Log` in `AvailabilityScreen.kt`), and gained
- * the identical restructure — see that composable's own doc comment. This is the compact-only
- * equivalent, reached from the bottom nav instead of the drawer, so it owns no "back to search"
- * affordance — there is no drawer to return to, only another bottom nav tab to tap.
+ * It is reached from the bottom nav (or the rail), so it owns no "back to search" affordance —
+ * there is no drawer to return to, only another tab to tap. (The tablet's drawer-hosted `LogPanel`
+ * was removed in dispatch 2026-09-28-245.)
  *
  * [onStartEntry] is the exact same handler the map's "Log a find" option calls (see
  * `AvailabilityScreen.kt`'s `onLogFindHere`) — that option still collects a location via its own map
@@ -105,7 +103,7 @@ import java.time.LocalDate
  * correctly in [MushroomLogUiState.editingEntry] via [onStartEntry] either way); the bug is purely
  * that nothing steered the three-plus layers of local `remember` navigation state this app's
  * no-navigation-library convention has accumulated (this tab's own [selectedTopTab] and [mode],
- * [RecordsTab]'s own `selectedTab`, `LogPanel`'s parallel copies) past the first.
+ * [RecordsTab]'s own `selectedTab`) past the first.
  *
  * [pendingDestination] is the external half of the fix: a single-purpose, one-shot request
  * [AvailabilityScreen] sets and this tab consumes, in the same request-token shape
@@ -158,7 +156,7 @@ internal fun JournalTab(
      * Leaving without answering (Workstream L4b-R) — see [MushroomLogViewModel.onLeaveEditingIncidentally]'s
      * own doc comment. Callers wrap this to offer a dismissible "Discard" action (Gmail-drafts-style)
      * around every incidental exit uniformly — see `AvailabilityScreen`'s own construction of this
-     * callback, shared across this tab, [LogPanel], and the compact bottom nav's tab-switch handler,
+     * callback, shared across this tab and the bottom nav's tab-switch handler,
      * so the same Snackbar covers every exit path from one place rather than three.
      */
     onLeaveEditingIncidentally: () -> Unit,
@@ -168,7 +166,7 @@ internal fun JournalTab(
     onRemovePhoto: (LogPhoto) -> Unit,
     onPullPhoto: (LogPhoto) -> Unit,
     onDeleteEntry: (String) -> Unit,
-    /** Clears [MushroomLogUiState.saveErrorMessage] once its Toast (below) has shown — see [LogPanel]'s identical parameter for the full reasoning. */
+    /** Clears [MushroomLogUiState.saveErrorMessage] once its Toast (below) has shown — the Toast shows it and clears the field. */
     onSaveErrorDismissed: () -> Unit,
     /** Threaded straight through from [MushroomLogUiState] into [CartographyScreen]'s own Album tab. */
     galleryPhotos: List<GalleryPhoto> = emptyList(),
@@ -217,7 +215,7 @@ internal fun JournalTab(
     onRequestDeleteCartographyEntry: ((String) -> Unit)? = null,
     /**
      * A find tile's long-press Edit (journal redesign J4b L1): `MushroomLogViewModel.onOpenEntryForEditing`,
-     * the one call that opens a find and starts editing it atomically (`LogPanel`'s open path). The
+     * the one call that opens a find and starts editing it atomically (the find tile's open path). The
      * tile's menu also offers Delete, which goes through [onDeleteEntry] (J4's pending delete). `null`
      * (the default) gives the tiles a menu of Delete only.
      */
@@ -286,8 +284,7 @@ internal fun JournalTab(
      * and the most recently registered enabled handler wins, so while these were on they took Back
      * and the drawer stayed open. Turned off, not outranked: a handler registered after these to
      * outrank them would also outrank the drawer's own Settings step (`CompactToolsDrawerContent`),
-     * which is registered with the drawer's content. `true` (the default) is every other caller,
-     * the wide tree's [LogPanel] among them, unchanged.
+     * which is registered with the drawer's content. `true` (the default) is every other caller, unchanged.
      */
     backEnabled: Boolean = true,
     /**
@@ -310,7 +307,7 @@ internal fun JournalTab(
     findOverViewState: MutableState<FindOverView?> = remember { mutableStateOf(null) },
     modifier: Modifier = Modifier,
 ) {
-    // See LogPanel's identical effect for why this both shows and immediately clears the field.
+    // The Toast below both shows the field and immediately clears it.
     val context = LocalContext.current
     LaunchedEffect(uiState.saveErrorMessage) {
         uiState.saveErrorMessage?.let {
@@ -339,7 +336,7 @@ internal fun JournalTab(
     var mode by findEntryModeState
     // J4b L1: a find tile's long-press Edit, straight into the edit form (EDIT mode, as a draft opens
     // and as the report's own Edit switches to). onOpenEntryForEditing opens and starts editing in one
-    // critical section, the call LogPanel already uses; null means the tiles offer Delete only.
+    // critical section; null means the tiles offer Delete only.
     val editFind: ((String) -> Unit)? = onOpenEntryForEditing?.let { open ->
         { id: String ->
             mode = JournalEntryMode.EDIT
@@ -463,10 +460,8 @@ internal fun JournalTab(
     // composable's own doc comment. A closure, not a separate file-level composable, so it keeps
     // reading/writing mode/pickingLocationForEditingEntry/pullingPhotoForEditingEntry via this
     // function's own remembered state regardless of which RecordsTab sub-tab slot renders it.
-    // J6a: the Finds section is two parts, so the wide tree can put them in different places. The list
-    // (the gallery) stays with the Records chip; the detail (an open find's report, editor and pickers)
-    // is what the right side shows when there is a slot. With no slot, [findsSection] draws whichever
-    // applies exactly as the one `when` did before the split.
+    // The Finds section is two parts: the list (the gallery) and the detail (an open find's report,
+    // editor and pickers); [findsSection] draws whichever applies.
     val findsDetail: @Composable ColumnScope.() -> Unit = {
         when {
             editing != null && mode == JournalEntryMode.EDIT && pickingLocationForEditingEntry -> CentrePinLocationPicker(
@@ -804,9 +799,8 @@ internal fun JournalSwitch(selected: JournalTopTab, onSelect: (JournalTopTab) ->
 
 /**
  * Which of the Journal's two tabs is selected — Cartography (Journal Stage 2b's new authored entity)
- * or Records (Stage 1, gained a fourth Finds submenu in 2b). Shared between [JournalTab] (compact)
- * and [LogPanel] (medium/expanded), which both use this same two-tab shell — `internal`, not
- * `private`, for exactly that reuse; declared once here rather than in each file, since Kotlin does
+ * or Records (Stage 1, gained a fourth Finds submenu in 2b). Used by [JournalTab]; `internal`, not
+ * `private`, since [JournalScreenState] holds it; declared once here rather than in each file, since Kotlin does
  * not allow two files in the same package to each declare a file-private top-level type of the same
  * name.
  */
@@ -849,9 +843,8 @@ internal enum class JournalEntryMode { REPORT, EDIT }
  * — Stage 2d's routing fix for the map "+" icon bar's "Log a find" flow. See [JournalTab]'s own doc
  * comment, "The map '+' routing bug," for the full trace and for why this is one small enum (not a
  * boolean, so a future caller wanting a different destination adds a case here rather than a second
- * flag) rather than a shared navigation abstraction. `internal`, not `private`: both [JournalTab]
- * and [LogPanel] consume it, and `AvailabilityScreen.kt` owns the single instance both `onLogFindHere`
- * closures set.
+ * flag) rather than a shared navigation abstraction. `internal`, not `private`: [JournalTab] consumes it,
+ * and `AvailabilityScreen.kt` owns the single instance the map's "Log a find" closures set.
  */
 internal enum class PendingJournalDestination {
     /** Land in Records → Finds, editing the entry [MushroomLogViewModel.onStartNewEntry] just created. */
