@@ -4,6 +4,10 @@ import android.app.Application
 import android.os.Build
 import android.util.Log
 import com.zynergylabs.forager.app.crash.CrashUncaughtExceptionHandler
+import com.zynergylabs.forager.app.data.backup.ScheduledBackupDependencies
+import com.zynergylabs.forager.app.data.backup.ScheduledBackupDependenciesProvider
+import com.zynergylabs.forager.app.domain.ErrorLog
+import com.zynergylabs.forager.app.domain.RunScheduledBackupUseCase
 import com.zynergylabs.forager.app.diagnostics.DebugDiagnostics
 import com.zynergylabs.forager.app.map.initializeMapLibre
 import kotlinx.coroutines.CoroutineScope
@@ -11,7 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
-class ForagerApplication : Application() {
+class ForagerApplication : Application(), ScheduledBackupDependenciesProvider {
     lateinit var container: AppContainer
         private set
 
@@ -31,6 +35,13 @@ class ForagerApplication : Application() {
      * cancel the scope for the next.
      */
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    /** What the scheduled backup's worker runs, taken from the container when WorkManager starts it (possibly in a fresh process with no Activity). */
+    override val scheduledBackupDependencies: ScheduledBackupDependencies
+        get() = object : ScheduledBackupDependencies {
+            override val runScheduledBackup: RunScheduledBackupUseCase = container.runScheduledBackupUseCase
+            override val errorLog: ErrorLog = container.errorLog
+        }
 
     override fun onCreate() {
         super.onCreate()
