@@ -631,3 +631,29 @@ private fun ShortLandscapeClusterRow(onLeftSide: Boolean, bar: @Composable () ->
 
 /** The cluster container's own `Surface` — what tests measure the cluster's real extent by (icon-bar-unify-container dispatch). */
 internal const val MAP_ICON_CLUSTER_TAG = "map-icon-cluster"
+
+/**
+ * The two one-shot Toasts the map's controls raise, shared by the phone's Maps tab and the tablet's map: a
+ * locate-me that was refused or failed, and a start-recording that was refused. Moved out of `CompactMapTab`
+ * unchanged (J6c).
+ */
+@Composable
+internal fun MapControlToasts(locateMeStatus: LocateMeStatus, startRecordingErrorMessage: String?) {
+    val context = LocalContext.current
+    LaunchedEffect(locateMeStatus) {
+        when (locateMeStatus) {
+            LocateMeStatus.PermissionDenied ->
+                Toast.makeText(context, "Location permission denied. Can't center on your position.", Toast.LENGTH_SHORT).show()
+            LocateMeStatus.Unavailable ->
+                Toast.makeText(context, "Couldn't determine your location.", Toast.LENGTH_SHORT).show()
+            else -> Unit
+        }
+    }
+    // Same one-shot-per-transition shape as the locateMeStatus effect above: a refused/failed
+    // startRecording() is an event ("the action you just took didn't happen"), not a persistent
+    // condition — the field only clears on the next successful startRecording() (see
+    // TrackRecordingViewModel), so a banner would outlive the moment it's relevant.
+    LaunchedEffect(startRecordingErrorMessage) {
+        startRecordingErrorMessage?.let { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() }
+    }
+}
