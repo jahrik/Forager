@@ -605,7 +605,9 @@ class AvailabilityScreenMapBubblesWideTest {
         composeRule.touchCentreOf(MAP_BUBBLE_OPEN_FIND_TAG)
 
         composeRule.onNodeWithTag(FIND_OVER_VIEW_TAG).assertIsDisplayed()
-        composeRule.onNodeWithText("Mushroom Log").assertExists()
+        // J6a header ruling (prompts/preserved/2026-09-29-25.md): the Journal panel's header row reads
+        // "Journal" (it read "Mushroom Log"); the Search panel's own "Mushroom Log" row is unchanged.
+        composeRule.onNodeWithText("Journal").assertExists()
         assertEquals("find-1", log.editingEntry?.id)
 
         composeRule.back()

@@ -249,26 +249,27 @@ class AvailabilityScreenWideWindowLayoutTest {
     }
 
     /**
-     * Workstream G2 (`docs/plans/pr26-rework.md`) made the gallery a top-level destination on both
-     * window classes; map/navigation redesign dispatch B folded the compact half into
-     * `LogGalleryScreen`'s own Album tab instead (see `PhotoGalleryScreen`'s own doc comment for
-     * why), but left this medium/expanded drawer entry untouched. This is that untouched half;
-     * `AvailabilityScreenBackNavigationTest`'s own "Album" tab test covers the compact one.
+     * Workstream G2 (`docs/plans/pr26-rework.md`) made the gallery a top-level destination with a
+     * Photo Gallery row in this drawer; the owner's J6 ruling 2 (2026-09-28) removed that panel, so the
+     * row is gone and the photo is reached in the Journal's album, as on the phone. This test kept its
+     * setup (a real gallery photo in real state) and its place, and now asserts the ruling.
      */
     @Test
-    fun `the drawer's Photo Gallery entry is shown without opening the drawer, and opens the gallery`() {
+    fun `the drawer has no Photo Gallery entry, and the photo is in the Journal's album`() {
         val photo = com.zynergylabs.forager.app.domain.model.GalleryPhoto(
             photo = com.zynergylabs.forager.app.domain.model.LogPhoto(id = "p1", relativePath = "photos/p1.jpg", createdAtEpochMillis = null),
             referencingEntryIds = emptyList(),
         )
         setScreen(SEARCHED_STATE, logUiState = com.zynergylabs.forager.app.ui.log.MushroomLogUiState(galleryPhotos = listOf(photo)))
-        composeRule.onNodeWithText("Photo Gallery").assertIsDisplayed()
+        // J6a (owner's ruling 2, 2026-09-28: "the old Photo Gallery panel is removed. Only the album
+        // remains, as on the phone"): the drawer no longer has the row this test used to tap.
+        assertEquals("the Photo Gallery row is gone", 0, composeRule.onAllNodesWithText("Photo Gallery").fetchSemanticsNodes().size)
 
-        composeRule.onNodeWithText("Photo Gallery").performClick()
-
-        // Proves the real PhotoGalleryScreen is hosted here, with the real gallery state — not
-        // just that a panel switched to some empty placeholder.
-        composeRule.onNodeWithText("Date unknown").assertIsDisplayed()
+        // The photo, from the same real gallery state, is in the Journal's album.
+        composeRule.onNodeWithText("Mushroom Log").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_VIEW_ALBUM_TAG).performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.albumPhotoTestTag("p1")).assertIsDisplayed()
     }
 
     /**

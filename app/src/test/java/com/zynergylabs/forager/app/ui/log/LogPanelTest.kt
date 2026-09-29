@@ -286,7 +286,8 @@ class LogPanelTest {
         )
         setScreen(MushroomLogUiState(), galleryPhotos = listOf(photo))
         // setScreen lands on Records' Finds chip for this file's find tests; the album is Cartography's.
-        composeRule.onNodeWithText("Cartography").performClick()
+        // J6a header ruling: the "Cartography | Records" tab row is the phone's Entries | Records switch.
+        composeRule.onNodeWithText("Entries").performClick()
         composeRule.onNodeWithTag(ENTRIES_VIEW_ALBUM_TAG).performClick()
         composeRule.waitForIdle()
 

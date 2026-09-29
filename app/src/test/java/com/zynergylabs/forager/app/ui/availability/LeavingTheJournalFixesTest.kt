@@ -636,8 +636,12 @@ class LeavingTheJournalFixesTest {
         composeRule.onNodeWithText("Records").performClick()
         composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.FINDS)).performScrollTo().performClick()
         composeRule.waitForIdle()
-        // LogPanel opens a row straight into its editor (onOpenEntryForEditing): a draft copy.
+        // J6a (item 6.5): the wide Journal opens a find in its report first, as the phone does, and the
+        // report's Edit opens the editor on a draft copy (this used to open the editor from the tile).
         composeRule.onNodeWithText(FIND_TILE_TEXT).performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithContentDescription("Entry options").performClick()
+        composeRule.onNodeWithText("Edit entry").performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Your own identification (optional)").assertExists()
         assertEquals(DRAFT_OF_FIND_ID, logViewModel.uiState.value.editingEntry?.id)

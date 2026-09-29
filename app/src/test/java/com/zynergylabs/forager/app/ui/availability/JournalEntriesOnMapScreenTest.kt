@@ -731,7 +731,8 @@ internal class JournalEntriesOnMapWideTest : JournalEntriesOnMapHarness() {
 
         touchCentreOf(mapBubbleEntryLineTag("entry-a"))
 
-        composeRule.onNodeWithText("Mushroom Log").assertExists()
+        // J6a header ruling (prompts/preserved/2026-09-29-25.md): the panel's header reads "Journal".
+        composeRule.onNodeWithText("Journal").assertExists()
         assertReportShowing(ENTRY_A_TEXT)
         assertEquals("entry-a", cartographyViewModel.uiState.value.editingEntry?.id)
     }
