@@ -6574,3 +6574,13 @@ The planner confirmed each by grep.
 - Only records fan out: finds, photos, waypoints and trips. Sighting dots never do.
 - The fan's centre shifts so every fanned touch area is on screen and clear of the cluster, legend and chips. The leader lines point to the true spot.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-209
+**Timestamp:** 2026-09-29T18:36:23Z
+**Dispatch:** none yet (C1, chrome colour)
+**Reason:** the owner's request that all map chrome match the bottom navigation bar's colour, recorded verbatim in the plan under "Map chrome: one colour, the navigation bar's". The screenshot is kept outside the repo.
+**Changes:** a read-only pulse maps every chrome surface's container colour and alpha against the navigation bar's. One question goes to the owner: the icon bar showing through the open search panel.
+**Notes:** Written by the planner by hand.
