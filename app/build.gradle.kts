@@ -505,6 +505,7 @@ dependencies {
     ksp(libs.androidx.room.compiler)
     implementation(libs.nga.mgrs)
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.work.runtime)
     implementation(libs.androidx.exifinterface)
     // The in-app camera. camera-view (a PreviewView inside AndroidView) rather than
     // androidx.camera:camera-compose's CameraXViewfinder: the Compose-native viewfinder is the
@@ -520,6 +521,7 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
 
     testImplementation(libs.junit)
+    testImplementation(libs.androidx.work.testing)
     // Instrumented tests only — see app/src/androidTest. These land in the androidTest APK, never
     // the app's.
     androidTestImplementation(libs.junit)

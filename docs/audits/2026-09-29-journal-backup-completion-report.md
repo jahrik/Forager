@@ -63,3 +63,213 @@ Tests are Robolectric with a real Room database in a temp file and real files, t
 Predicted counts: 15 to 30 new tests. The suite is expected to stay green apart from those. **Revert checks planned** (saved copy, compile errors checked, forward change confirmed after): drop the write-lock around the snapshot copy (test 1 stays green single-threaded, so that one needs its own concurrent-writer test, added); drop the hash comparison (test 4b must fail naming the mismatch); skip the rollback of moved-aside photos (test 5); null-out the "owner inserted" condition in Merge (test 3); remove the migration step (test 6). If a mechanism has no test that bites when reverted, I will say so and not claim it.
 
 **Device-only, listed, not run** (as the dispatch says): a real backup to a chosen folder and a restore on the S22 (after a backup of the phone's own data); the schedule firing (WorkManager's timing is the OS's); a restore onto the tablet as the "new phone"; whether the system file picker's "Save" and "Open" behave with a cloud provider; and the API 26 to 29 snapshot path (Robolectric runs one SQLite, not the old ones).
+
+---
+
+# Results (appended after building; the sections above are unchanged)
+
+## What landed
+
+Commits on `journal-backup` (tests first on `journal-backup-wip`, `68fede12`; forward `fbdaf0c7`; merge `de2ae432` brought in the photo-export work `edb74209`, which had landed on the remote meanwhile). Paths are under `app/src/main/java/com/zynergylabs/forager/app/`.
+
+- **Backup and restore:** `data/backup/RoomJournalBackup.kt` (snapshot, verify, Replace, Merge), `BackupArchive.kt` (format, staging, hashes), `PhotoFileJournal.kt` (the undoable photo step), `JournalTables.kt` (the table knowledge), behind the domain interface `domain/JournalBackup.kt`.
+- **Schedule:** `domain/BackupSchedule.kt` (`RunScheduledBackupUseCase`, `backupFileName`), `data/repository/DataStoreBackupSchedulePreferences.kt`, `data/backup/ScheduledBackup.kt` (worker and WorkManager job), `data/backup/ContentResolverBackupFiles.kt` (SAF).
+- **UI:** `ui/backup/BackupViewModel.kt`, `ui/backup/BackupSection.kt`, threaded into Tools, then Settings through `ui/availability/AvailabilitySettingsUi.kt` and `AvailabilityScreen.kt`; wiring in `AppContainer.kt`, `ForagerApplication.kt`, `MainActivity.kt`.
+- **Build:** `ForagerDatabase.create` gained a `name` parameter; new `openForRestore` (no destructive fallback in any build); `SCHEMA_VERSION` constant (guarded by a test against the schema files and the database). `gradle/libs.versions.toml` and `app/build.gradle.kts`: **WorkManager was not a dependency; I added `androidx.work:work-runtime` 2.12.0 and `work-testing` 2.12.0, pinned**, from the `<release>` on Google's Maven read 2026-09-29.
+
+## Verified premises, and one the dispatch did not have
+
+- Every claim in the pre-registration held except the count: the journal tables are **thirteen** (six records, seven owned), not twelve as one sentence there says.
+- **The screens do not observe the database.** No DAO returns a `Flow` (`grep Flow<` over `data/local/*Dao.kt` is empty); the ViewModels read once and hold (`CartographyViewModel.kt:90-94`, `MushroomLogViewModel.kt:247`, `TrackRecordingViewModel.kt:572,599`). A restore that wrote the database and stopped would leave every open screen showing the old data until the next launch. So `BackupViewModel` takes an `afterRestore` callback, and `MainActivity` passes the public loaders that exist: `CartographyViewModel.loadEntries`, `MushroomLogViewModel.loadEntries` and `loadGalleryPhotos`, `TrackRecordingViewModel.loadTracks` and `loadWaypoints`. **Not reloaded:** `AvailabilityViewModel`'s offline-region list (its loader is private, `AvailabilityViewModel.kt:923`), the Maps tab's records and highlights (loaded when the map is shown), and anything else I did not find. **Which screens refresh is a design question I settled the smallest way; see Decisions.**
+- **A backup's zip is staged in full before anything is checked against the live phone**, so a restore needs room for the extracted archive as well as the final files; a nearly full phone fails at staging and touches nothing. There is no free-space check.
+
+## Tests first, seen failing at base (`68fede12`, the stubs), and what passed anyway
+
+69 tests ran: **63 failed, 6 passed.** Failure reasons read from the JUnit XML: 16 `UnsupportedOperationException: journal backup: not built`, 2 `...restore: not built`, 2 `backup files: not built`, 2 `backup schedule preferences: not built`, 22 `performScrollTo() failed` (no Backup section on the real screen), and the rest assertions on state the stub never sets (`expected:<AUTOMATIC_NEEDS_FOLDER> but was:<null>`, `expected:<Success> but was:<Failure>`, `List is empty` from a scheduler that recorded nothing).
+
+The 6 that passed at base, each read:
+1. `the default file name is forager-backup, the date, dot zip`: `backupFileName` is pure and was already real. A control, not a biting test.
+2. `the automatic backup is off by default ... approved words`: the stub's defaults are the defaults; a control.
+3. `an enabled setting with no folder is never scheduled`: passed because the stub scheduler did nothing. **It bit later** (revert `schedfolder`).
+4. `a run with the setting off, or with no folder, writes nothing`, 5. `a folder that cannot be written is a failure`, and 6. `Cancel closes the prompt`: each passed **for the wrong reason**, because the stub fails everything or does nothing. I strengthened all three before building (they now assert a `BackupException` naming "off", "folder" and the prompt being up first) and they fail at the stub with the stub's `UnsupportedOperationException` or a null prompt.
+
+## Revert checks (`/tmp/revert2.sh`: saves a copy before editing, restores from that copy, refuses results if the build log has a compile error, confirms the file equals its committed forward version)
+
+All 14 builds had **0 compile errors**, every failure named its own edit, and every file was restored and confirmed.
+
+| mechanism | one-line revert | the failure that named it |
+|---|---|---|
+| write lock during the snapshot copy | `runInTransaction` replaced by a plain block | `a writer started during the copy must still be waiting expected:<false> but was:<true>` |
+| SHA-256 comparison | `if (false) throw` | `a changed photo: expected a failure, got Success(...)` |
+| `integrity_check` | `if (false) throw` | `a damaged snapshot with a matching hash: expected a failure, got Success(...)` (Room's own open did **not** catch it, so this check is not redundant) |
+| photo rollback on failure | `photos.rollback()` removed | `the phone's photo files are unchanged expected:<{photos/own-p.jpg=...}> but was:<{p...` (two tests) |
+| Merge: only rows of an owner this merge inserted | condition removed | `UNIQUE constraint failed: log_entry_photos...` and `only the phone's own ref row for e1 ... expected:<1> but was:<2>` |
+| migration on the scratch copy | `migrateOnScratchCopy` removed | `NOT NULL constraint failed: cartography_entries.shownOnMap` (two tests) |
+| newer-than-app refusal | check disabled | `the reason is logged` (the restore was still refused, by the manifest-versus-database mismatch, but not for the reason the test names; that log assertion is what bites) |
+| Merge drops a row that would dangle | `if (false)` | `gone-w had no record to point at expected:<0> but was:<1>` |
+| old photo files removed after Replace | loop removed | `the phone's own photo file is gone` |
+| unlisted or outside-the-folder entry refused | `?: continue` | `an entry named ../../evil.txt: expected a failure, got Success(...)` |
+| automatic backup needs a folder (ViewModel) | `if (false)` | three tests, incl. both real-screen ones: `ToggleableState = 'Off'` |
+| `afterRestore` after a successful restore | call removed | `after a restore that worked expected:<1> but was:<0>` |
+| scheduler needs a folder | folder test removed | `expected null, but was:<WorkInfo{... state=ENQUEUED` |
+| file opened truncating | `"wt"` to `"w"` | `expected:<2> but was:<100>` |
+
+**Not revert-checked:** the checkpoint before the snapshot (best effort by design; a revert cannot fail a test), `PhotoFileJournal`'s same-bytes skip, and the approved copy strings (asserted as literals, so a reworded one fails, but I did not reword one to see).
+
+## Full suite
+
+`./gradlew :app:testDebugUnitTest` from a cleared `app/build/test-results`, `LC_ALL=C.UTF-8`, on the merged tree `de2ae432` (my forward commit merged with the photo-export work): **BUILD SUCCESSFUL in 3m 24s**. From the JUnit XML: **327 result files, none older than the run's start; 2659 tests, 0 failures, 0 errors, 24 skipped.** A previous full run on my tree before the photo-export merge: 2648 tests, 0 failures. The growth I authored is **70 tests in 7 new classes** (`JournalBackupTest` 20, `ScheduledBackupTest` 11, `ContentResolverBackupFilesTest` 2, `BackupViewModelTest` 15, `BackupSettingsScreenPortraitTest` 11, `BackupSettingsScreenShortLandscapeTest` 11); the photo-export tests are not mine. Above the pre-registered 15 to 30 because the screen tests run in two window shapes.
+
+## Device-only, listed and not run
+
+- A real backup to a folder and a restore on the S22, after a backup of the phone's own data.
+- The **schedule firing** (WorkManager's timing, Doze and battery optimisation, are the operating system's), and a scheduled run's file appearing in the chosen folder.
+- A restore onto the tablet as the "new phone", including a photo-heavy journal's time and disk use.
+- The system pickers on the phone: the create-file picker offering `forager-backup-<date>.zip`, the folder picker, the open-file picker, with a cloud provider as the destination; `takePersistableUriPermission` and `DocumentsContract.createDocument` (`ContentResolverBackupFiles.kt`), which Robolectric has no provider for.
+- The **API 26 to 29 snapshot path**: Robolectric runs one SQLite; the write-lock-and-copy design was chosen because `VACUUM INTO` is missing there, and nothing here ran an old one.
+- What the Backup section looks like in the Tools drawer and the wide layout (`BackupSection` is tested in the compact drawer in two window shapes, not in the wide permanent drawer's call site).
+
+## Decisions I made
+
+1. **What "journal data" is:** thirteen tables; `planned_trips` and `cached_searches` are **not** restored (and, since the snapshot is the whole database, they are in the file but ignored). Consequence: a new phone does not get the old phone's planned trips. Alternative: include `planned_trips`. Ruling 3 B lists neither; the premise pulse calls them not journal data.
+2. **Replace and Merge write through one Room transaction on the live database; the database file is never swapped and the app is not restarted.** Alternative: close, swap files, restart the process.
+3. **The frequency default is Weekly** (the switch is off regardless). No default is ruled and the control needs a selected state.
+4. **The chosen folder is shown by its own name** under "Backup folder" (data from the picker, not new copy). Without it the user cannot tell which folder is set.
+5. **`RestoreReport`/`BackupReport` counts exist but are not shown**: no approved copy carries them, so the user sees only the five messages.
+6. **A photo row whose file is missing on disk is left out of the archive, counted, logged, and the backup is still "Backup saved."** There is no approved copy for "saved, but N photos were missing", so the UI cannot say so. That presents a partial result as success (CLAUDE.md, Errors); the alternative is to fail the whole backup, which loses everything for one missing thumbnail. **Needs the owner's ruling.**
+7. **Post-restore refresh** (above): the five loaders. Alternatives: restart the process, or make every ViewModel observe.
+8. **Merge counts a dependent row of a skipped owner as neither inserted nor dropped**, and drops (counts, logs) a dependent row whose target is on neither phone. So an entry's "kept" snapshot of a since-deleted record is lost by a Merge but kept by a Replace.
+9. **WorkManager job has no constraints** (none ruled): it runs on battery and on any network state, since it only writes a local file.
+
+## Flags outside scope
+
+- **WorkManager adds permissions to the merged manifest:** `RECEIVE_BOOT_COMPLETED`, `WAKE_LOCK`, `ACCESS_NETWORK_STATE` (its own aar manifest declares them, plus `FOREGROUND_SERVICE`, which the app already declares); read from `work-runtime-2.12.0.aar` and the merged debug manifest. The privacy policy and store data-safety text that list permissions need to know. I did not remove them (`tools:node="remove"`), which would be a design choice.
+- **A scheduled run that fails mid-write leaves a partial `forager-backup-<date>.zip` in the folder**, and `BackupFiles` has no delete by design. Restore refuses it (hash or zip error), but the folder holds a useless file. Retention is "one file per run, nothing deleted", so nothing prunes it, and a full disk fills the folder without bound.
+- **A manual backup that fails after the file is created** leaves an empty or partial document the user chose the name of.
+- **Restoring while a track is recording**: Replace deletes the twelve-plus tables' rows including the active track's points while the recorder is writing to them. Nothing blocks it. Unruled; needs a decision.
+- **Restored offline regions: the stop above, plus** the ViewModel does not reload them.
+- **The two legal documents** that say "Nothing is left behind" (`delete-data.md:24-28`, `privacy-policy.md:169-170`) are now false for a user who saves a backup to shared storage; the planner drafts them with the owner (out of scope).
+- **`allowBackup=false`** is unchanged (`AndroidManifest.xml:79-100`); nothing here touches it.
+- `RoomJournalBackupHooks` puts three test seams in production code (named for what they stop at). They default to nothing.
+- A `pgrep` for other builds matched other sessions' shell loops; I checked `Gradle Test Executor` processes and free memory before every build, and waited twice for the photo-export coder's run (it sat idle for several minutes with no CPU before finishing).
+
+
+---
+
+# Resumed: continuation 2026-09-28-137 of -127 (the owner's third rulings)
+
+Same coder window, worktree `/home/zynergy-labs/Zynergy/forager-wt/journal-backup`, branch `journal-backup`. **Model:** configured as `claude-sonnet-5-5`; I cannot read the serving model.
+
+## Governing text, quoted verbatim
+
+The continuation file `prompts/preserved/2026-09-29-14.md` (governs; quoted in full), read at `origin/journal-redesign` after `git pull --no-rebase` (head `6939ad5a`; `4789416e` is an ancestor):
+
+> # Continuation 2026-09-28-137 of dispatch 2026-09-28-127: backup and restore, the owner's rulings
+>
+> *Amended before launch by records 2026-09-28-139 (item 6's tap animation, item 8's scheduled-photo ruling) and 2026-09-28-140 (item 8's notification tap).*
+>
+> **Base:** `origin/journal-redesign` at `4789416e` or later. Your last push was `0400d730`, and only records and reports have landed on top of it since. Verify this at the remote before you act.
+>
+> **What governs:**
+> - This file.
+> - The owner's rulings, verbatim, in `docs/plans/journal-redesign.md`, under "Journal backup and restore: third rulings" and "Journal backup and restore: copy".
+> - `RECORD.md` entries -132, -133 and -136.
+>
+> Where this file paraphrases, the verbatim text in the plan governs. Quote this file in a new "Resumed" section of `docs/audits/2026-09-29-journal-backup-completion-report.md`.
+>
+> ## Build
+>
+> 1. **Restored offline regions: listed, with a re-download** (owner "1 B").
+>    - A Room region row with no MapLibre region shows in Offline maps with the label **"Not downloaded"** and a **Download again** button.
+>    - That button re-downloads from the row's stored centre, radius and zoom, through the existing download path.
+>    - This replaces the -106 behaviour of keeping such a row but not showing it. -106's guarantee stands: no row is deleted because MapLibre lacks it, and only the user's delete removes one.
+>    - **Stop** if the existing download path cannot take a stored centre, radius and zoom without a change to its behaviour for new downloads.
+> 2. **Merge gives incoming regions new ids** (owner "2 A").
+>    - On Merge, each incoming `offline_regions` row is inserted under a new id, never the backup's.
+>    - Every reference to it in the incoming data is rewritten to the new id: `mushroom_log_entries.offlineRegionId` and the cartography ref tables that name regions.
+>    - Replace is unchanged.
+> 3. **Missing photo files** (owner "3 A"; item 5 "A"). A backup that finds photos it cannot read **pauses and asks**:
+>    - Message: **"N photos couldn't be backed up."**
+>    - Buttons: **Try again**, **Continue without file(s)**, **Cancel**.
+>    - **Continue without file(s)** saves the backup without them, then shows **"Backup saved, but N photos couldn't be found and were left out."**
+>    - **Try again** re-reads them. **Cancel** saves nothing and deletes the file this run created.
+>    - Use the correct singular for N = 1 ("1 photo couldn't…"). Beyond that, the exact words are the owner's.
+> 4. **Planned trips are backed up and restored** (owner "4 A"). Merge follows the existing id rule: an id already present is skipped, and the phone's copy wins.
+>    - **Stop** if planned trips' ids are per-phone in the way region ids are.
+> 5. **Restore is blocked while a track records** (owner "5 A"). The message is **"Stop recording before restoring a backup."** Nothing is staged or touched.
+> 6. **After a restore, a loading page, then Done** (owner "6 B"; item 4, "approve have a pulsing app icon with Done in the center, be the done button to tap"; then "Item 4: B").
+>    - After a restore commits, a full-screen page shows the app icon, pulsing, with **"Loading your restored journal…"**.
+>    - Behind it, every screen's data is reloaded. This covers the five loaders you already call, plus those you listed as missed: the offline-region list and the Maps tab's records and highlights. It also covers anything else found that reads the database once. List each one, with file:line.
+>    - When the reload is done, the icon **stops pulsing**, the text reads **"Your journal is restored."**, and **"Done"** appears in the centre of the icon. **The icon is the Done button.**
+>    - Tapping it returns to the Maps tab, the app's home map. There is no visible app restart.
+>    - **The tap animation** (owner, "Give item 4 a nice animation when tapping it", then "1 A"): the icon grows slightly and fades out while the Maps tab fades in beneath it, about 300 ms in all. The map stays in view as the page leaves. Honour the system's reduced-motion setting (animator duration scale 0) by going straight to the map. Test that the tap lands on Maps, not the animation's frames.
+>    - The icon as a button needs a content description of "Done" and a touch target of at least 48 dp. Test it with a coordinate touch.
+> 7. **A backup whose write fails** (owner "7 A"; item 5 "A"):
+>    - The file this run created is deleted, and only that file.
+>    - Message: **"Couldn't finish the backup. The incomplete file was removed."**, with **Try again** and **Cancel**.
+>    - If the delete itself fails, log it at WARN and say nothing extra. **Stop** if that case needs copy.
+> 8. **A failed scheduled backup** (owner "6 option A"):
+>    - A notification reads **"Scheduled backup didn't finish"**, with a **Try again** action that runs one backup to the same folder.
+>    - Use the app's existing notification channel setup. **Stop** if a new channel is needed, because it has a user-visible name.
+>    - **A scheduled run that meets unreadable photos** (owner, "yes that sounds good. Tap on the notify to go to the backup page"): it skips them, saves the backup, and posts a notification reading **"Scheduled backup saved. N photos couldn't be backed up."** ("1 photo" when N = 1). Tapping that notification opens the app at the Backup section in Tools, then Settings.
+>    - Tapping the body of the "didn't finish" notification also opens the Backup section (owner, "Option A, yes same as other"). Its **Try again** action is unchanged.
+> 9. **Default frequency Weekly** (owner "8 weekly to start, with default off, let the user set the frequency from there"). Keep what you built, and confirm it with a test.
+>
+> ## Unchanged from your first pass
+> - The coder's rules in your launch prompt.
+> - Tests first, seen failing for the stated reason.
+> - Revert checks from saved copies, refused on compile errors.
+> - The full suite from a cleared results directory, counted from the XML.
+> - D58 before each push. Push to `journal-redesign`; broken work goes on `journal-backup-wip`.
+> - No phone. Merge not authorised.
+> - **Machine sharing:** a busy check must match Java Gradle processes only, for example `pgrep -f '^\S*java .*([G]radleWrapperMain|[G]radleWorkerMain)'`, plus 2.5 GB available. Never `./gradlew --stop`.
+
+The owner's rulings, verbatim, are in `docs/plans/journal-redesign.md` under "Journal backup and restore: third rulings" and "...: copy" (read in full: "1 B / 2 A / 3 A / 4 A / 5 A / 6 B ... / 7 A ... / 8 weekly to start ..."; the copy replies "1 approve ... 5 approve, add a Continue button, and a  \"continue without file(s)\" option ... 6 option A"; "1 A / 2 not pasted yet / 3 yes that sounds good. Tap on the notify to go to the backup page"; "Option A, yes same as other"). `RECORD.md` -132, -133, -136, -137, -139, -140 read. `CLAUDE.md` is unchanged between `0400d730` and the base.
+
+## Premises checked at this base
+
+- **Item 1, the download path (`-137`'s stop condition).** `OfflineMapRepository.download(name, region, onProgress)` takes a `Region` (centre and radius); zoom is not a parameter but the two constants `MIN_ZOOM`/`MAX_ZOOM` (`domain/OfflineMapRepository.kt`), which `MapLibreOfflineMapRepository.download` writes into **both** MapLibre's metadata and the Room row (`map/MapLibreOfflineMapRepository.kt` ~`:121,155-160`). So every row this code has written holds exactly the zoom the path uses, and re-downloading through the unchanged path reproduces centre, radius and zoom. **Not a stop.** Caveat, stated: a row from a build that used other zoom constants (the code's history has 14, `OfflineMapRepository.kt` doc comments) would be re-downloaded at today's 10 to 15, not its stored zoom, because the path has no zoom parameter and I will not add one (that would be the change the stop warns about).
+- **Item 4, planned trips' ids:** `PlannedTripEntity.id` is a `String` (`data/local/PlannedTripEntity.kt:19`), generated by `UUID.randomUUID()` (`domain/SavePlannedTripUseCase.kt:28`), not a per-phone counter. **Not a stop.**
+- **Item 5:** a recording is `TrackRecordingUiState.isRecording` (`ui/track/TrackRecordingUiState.kt:123`, `activeTrack != null`).
+- **Item 6, what reads the database once (file:line, all read at this base):** `CartographyViewModel.loadEntries` (`ui/log/CartographyViewModel.kt:94`, entries and drafts); `MushroomLogViewModel.loadEntries` (`:247`) and `loadGalleryPhotos` (`:293`, with the photo reference counts); `TrackRecordingViewModel.loadTracks` (`:599`) and `loadWaypoints` (`:572`, with the waypoint reference counts); `AvailabilityViewModel.loadPlannedTrips` (`:810`), `loadOfflineRegions` (`:923`, with the region reference counts) and `onMapShown` (`:479`, the Maps tab's records; the journal highlights are derived from those, the entries and the waypoints in the screen, so they follow). Not restored, so not reloaded: `loadRecentSearches` (`:771`, `cached_searches`). No `Flow` anywhere in `data/local`, so nothing else refreshes.
+- **Item 8, the notification channel (`-137`'s stop condition): STOP.** The app's existing channels are **purpose-named and user-visible**: "Track recording" (`res/values/strings.xml:3`), "Sundown alert" (`:8`, `alert/AndroidAlertDelivery.kt:162`), "Off-track alert" (`:15`, `AndroidAlertDelivery.kt:67`). None is general. A backup notification in any of them would be muted, and named, as something it is not; in its own channel it needs a **new user-visible channel name**, which is new copy nobody has approved. See "Stops" below.
+
+## Stops
+
+**Item 8, the notifications (both kinds, the "Try again" action and the tap-to-open-Backup deep link).** Not built. The continuation says "Use the app's existing notification channel setup. **Stop** if a new channel is needed, because it has a user-visible name." A new channel is needed. Options, none chosen: (a) a new channel, with a name the owner approves ("Backup" is the obvious word, but it is copy); (b) post into an existing channel (wrong name; muting Sundown alerts would mute backup failures); (c) the owner's rejected-for-now alternative, B, a message at next launch. **What I do build of item 8**, because item 3 and item 7 need it and it has no user-visible words: a scheduled run **skips unreadable photos and saves the backup** ("it skips them, saves the backup", the owner's ruling), reports how many it skipped, and **deletes the file it created if the write fails** (item 7). The notification posting, its action, and the deep link into Tools, then Settings, wait for the channel ruling.
+
+## Design choices I am making, and why (each needs the owner or planner to confirm; none is copy)
+
+1. **Merge region ids are negative.** `offline_regions.id` is MapLibre's own positive counter and Room rows are upserted by id when a download finishes (`MapLibreOfflineMapRepository.kt:~150`, `offlineRegionDao.upsert`). A new id drawn from the positive range could equal a future MapLibre id and be **overwritten** by that download. Negative ids cannot collide. Each incoming region gets `min(-1, lowest id on the phone - 1)`, counting down; refs are rewritten in the same transaction. Replace keeps the backup's ids, as ruled, and inherits the collision hazard (flagged in the report).
+2. **"Not downloaded" rows sit in the same list as downloaded ones** (`AvailabilityUiState.offlineRegions`), marked by a new `OfflineRegionSummary.isDownloaded`, so the existing swipe-to-delete, undo, tile budget, reference counts and Records rows work on them unchanged. The **repository's `listRegions()` is not changed** (the map circles, the entry report's covering-region lookup and the trip report read it and must not treat a region with no tiles as downloaded); a new `listNotDownloadedRegions()` returns them, and the ViewModel merges the two for the screens that list regions.
+3. **After a "Download again" succeeds, the old row is replaced by the new one** (the download makes a new MapLibre region with a new id): references to the old id are rewritten to the new id and the old row is deleted, in one Room transaction. Without it the list would show the region twice. This is the one place a row is removed other than by the user's own delete, and it is the user's own "Download again".
+4. **Manual backup flow:** the system Save picker creates the file, then the backup runs into it. Unreadable photos are found **before anything is written** and pause the run (Try again, Continue without file(s), Cancel). A failure after the file exists deletes that file and asks (Try again opens the Save picker again, since the file is gone). A failure before it exists (the picker's file cannot be opened) keeps the existing "Couldn't save the backup."
+5. **"Unreadable" means the file is missing or cannot be opened for reading.** A read error part-way through the copy is a failed write (item 7), not an unreadable photo.
+6. **"1 photo ... was left out"** (singular verb agrees). The owner's words for N > 1 are used exactly; for N = 1 only the noun and verb change.
+7. **The loading page is an overlay above the screen**, drawn by `MainActivity` from the Backup state, and "go to Maps" is one new screen parameter (`returnToMapRequest`) that does what `onViewSpeciesOnMap` already does (`AvailabilityScreen.kt:825-830`): the tab to Maps, the drawer closed, the Maps tab shown. The Maps tab is switched **at the tap**, under the overlay, so the fade reveals it; the animation only reveals.
+
+## Pre-registration: tests and predictions (written before any code; pushed first)
+
+Every test goes through the real entry point (the ViewModel callback, the real `AvailabilityScreen`, the real overlay, a real coordinate touch where the claim is a touch). Tests-first stubs: every new operation exists with the signature and does nothing or reports "unsupported", so a test fails by assertion. Predicted failures at that base:
+
+| # | Test | Predicted at base |
+|---|---|---|
+| 1a | `JournalBackupTest`: Replace/back-up round trip includes `planned_trips` (both directions; Replace deletes the phone's own trips) | fails: `planned_trips` is excluded (`JournalTables.excluded`) |
+| 1b | Merge: a trip id on both sides keeps the phone's copy; a trip only in the backup arrives | fails, same reason |
+| 2 | Merge: an incoming region arrives under a **negative** id, the entries' `offlineRegionId` and the ref rows name that id, and the phone's own region with the same number is untouched | fails: it is skipped as a duplicate (the collision I reported) |
+| 3a | `backUp(sink, ASK)` with a missing photo file fails with `UnreadablePhotosException(n)`, writes **nothing** to the sink; `SKIP` writes the archive and reports n | fails: today it always skips and succeeds |
+| 3b | ViewModel: unreadable photos raise the prompt with the count, "1 photo" singular; Try again re-runs, Continue saves with the "left out" message, Cancel deletes the file this run created and only it | fails |
+| 3c | Real screen: the prompt shows the owner's words and three buttons, each does its thing | fails: no prompt |
+| 5 | ViewModel and screen: with a recording, "Restore from backup" shows "Stop recording before restoring a backup." and launches no picker; nothing staged (the fake backup is never called) | fails |
+| 6a | ViewModel: a successful restore goes LOADING, reloads (held open by the test), then DONE; a failed one shows no page | fails |
+| 6b | The page: pulsing while LOADING with "Loading your restored journal…"; at DONE it reads "Your journal is restored.", "Done" at the icon's centre, the icon has the content description "Done" and a touch target of at least 48 dp; coordinate touches at several points across the icon (not only the centre) land on it; a touch elsewhere does not | fails: no page |
+| 6c | Tapping Done returns to the Maps tab **at the tap** (the Maps item is selected while the clock is stopped mid-animation), the overlay is gone after 300 ms, and with the animator duration scale at 0 it is gone at once | fails |
+| 6d | The reload joins every loader in item 6's list (each fake counts its call) before Done appears | fails |
+| 7 | ViewModel: a backup whose write fails after the file exists deletes that file, shows "Couldn't finish the backup. The incomplete file was removed." with Try again and Cancel; Try again asks for a new file; a delete that fails is logged at WARN and adds nothing to the message | fails |
+| 7b | `RunScheduledBackupUseCase`: a failed write deletes the file it created and only it; unreadable photos are skipped and reported | fails |
+| 1c | Offline maps: a Room-only region is listed with "Not downloaded" and a "Download again" button; the button downloads from the row's stored centre and radius through the existing `download`, then the old row is replaced and the refs follow; a row with no MapLibre region is **not deleted** by listing | fails |
+| 9 | Turning the switch on with a folder leaves Weekly selected; the stored default is Weekly | **passes at base** (built in the first pass; a control, as the continuation says "keep what you built, and confirm it with a test") |
+
+Predicted counts: 35 to 60 new tests. **Revert checks planned**, one per new mechanism (saved copy, compile errors checked, forward change confirmed after): negative-id allocation, ref rewrite, the unreadable-photo pre-check, the sink-untouched guarantee, delete-only-what-this-run-created, the recording block, the staged Done/LOADING states, the Maps-at-the-tap, reduced motion, `isDownloaded` listing, the old-row replacement, planned trips in the journal list. Full suite from a cleared results directory at the end, on the merged tree.
+
+**Device-only, listed, not run:** the pulse and the grow-and-fade on the phone; the system Save picker offering the name again after a failed write; a real SAF delete of a created file (`DocumentsContract.deleteDocument`); a re-download of a restored region against the real tile server and MapLibre; the reduced-motion setting on a device; item 8's notifications when built.
