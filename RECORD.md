@@ -4891,3 +4891,35 @@ All on layout-fixes-wip at 3bbbcfa. It stopped: a two-chip wrapped row reaches 1
 **Reason:** -104 was queued behind -78, which is now closed (terminal -124).
 **Changes:** -104 is launched for an owner-opened Sonnet 5.5 window, with its own worktree forager-wt/chrome-follow-ups. The coder re-verifies against the layout fixes and the trips fix, both of which landed after -104 was written.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-126
+**Timestamp:** 2026-09-29T02:34:45Z
+**Title:** Photo export: "Save to Gallery" on the photo viewer (MediaStore Pictures/Forager on API 29+, a SAF folder on 26-28), no location in exports, the MIME type sniffed from the content
+**Dispatch-file:** preserved/2026-09-29-10.md
+**Change:** A viewer action exports a copy. It adds no storage permission, never changes a stored photo, strips GPS from import copies, and shows only the approved messages.
+**Scope boundary:** PhotoViewerDialog and its hosts, a new photo exporter, the manifest only if queries are needed, tests, a report. Not backup, the legal docs, or stored photos.
+**Baseline:** journal-redesign a3221b4.
+**Prediction (outcome — planner):** 1. No permission is needed on any SDK. 2. The GPS strip for imports reuses PhotoMetadataScrub's approach on the copy. 3. The suite grows by 6 to 12.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** Build, tests first, revert checks, full suite, report; the planner writes the terminal; device items later.
+**Abort conditions:** A permission needed; new copy; a stored-photo change; an unruled placement; a tests-first pass at base; a non-compiling revert; a non-held failure; two failed fixes; a refused push.
+**Notes:** Owner rulings verbatim in the plan (1 A, 2 A, 3 B, 4 A, and copy approved). Launch prompt for an owner-opened Sonnet 5.5 window. It may run beside -104 (different files). Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-127
+**Timestamp:** 2026-09-29T02:34:45Z
+**Title:** Journal backup and restore: a zip of a consistent database snapshot, the referenced photos and a manifest; saved by SAF, manual or scheduled (off by default, daily, weekly or monthly); restore with a Replace or Merge prompt, version-aware, atomic on failure
+**Dispatch-file:** preserved/2026-09-29-11.md
+**Change:** Backup and restore as ruled (3 B, 4 A, 5 C, 6 A; 1 C, 2 C, 4 A; copy approved). Settings are excluded. Offline-region visibility after a restore, and schedule retention, are stops to report.
+**Scope boundary:** A new backup package, the Settings UI, a WorkManager worker if needed (pinned), the manifest as required, tests, a report. Not photo export, the legal docs, or live data outside a confirmed restore.
+**Baseline:** journal-redesign at the base named at launch (queued behind -104).
+**Prediction (outcome — planner):** 1. VACUUM INTO or checkpoint-and-copy gives the snapshot. 2. The coder stops once, on offline-region visibility or retention. 3. The suite grows by 20 to 40.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** Build, tests first, revert checks, full suite, report; the planner writes the terminal; an S22 device check with its own backup first; the legal documents drafted with the owner.
+**Abort conditions:** Any path that could lose live data; new copy; an unruled choice; a tests-first pass at base; a non-compiling revert; a non-held failure; two failed fixes; a refused push.
+**Notes:** Owner rulings verbatim in the plan. Within the 2026-09-09 ruling (allowBackup false). Written by the planner by hand.
