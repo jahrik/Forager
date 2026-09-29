@@ -6422,3 +6422,19 @@ The planner confirmed each by grep.
 **Notes:**
 - The owner, verbatim: "Write a dispatch to deal with the legal docs part". This follows -148, where the owner handed publishing to a site agent. That stays: L1 updates the sources the site agent publishes from.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-201
+**Timestamp:** 2026-09-29T17:15:36Z
+**Dispatch:** 2026-09-28-200 (L1)
+**Reason:** the owner, verbatim: "And write the notes for my site agent to go with the same dispatch".
+**Changes:** notes for the site agent at preserved/2026-09-29-43.md (copy at ~/Zynergy/launch-prompts/19b-site-agent-notes.md). They cover:
+- where the pages and sources are;
+- to wait for L1 before publishing;
+- what can go live now, and what waits for PR #140's release;
+- what to keep, and how to publish.
+**Notes:**
+- **Checked for the notes:** on origin/main (faf2f88f), DeleteTrackUseCase is wired at AppContainer.kt:255 and nothing calls it. So the live delete-data page's "Recorded tracks" line is false for testers today. The notes put that first.
+- Written by the planner by hand.
