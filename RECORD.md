@@ -5790,3 +5790,29 @@ Nothing of either window was pushed. On the phone, the two did only force-stop a
 - The coder used --no-daemon because a crashed run's daemon held a lock.
 - /tmp is shared between sessions: another overwrote a D58 script.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-171
+**Timestamp:** 2026-09-29T10:13:03Z
+**Dispatch:** 2026-09-28-152 (J6), part J6b
+**Reason:** the J6 coder handed back J6b items 11-13, pushed to journal-redesign at 2777cd11, and stopped at item 14 as predicted.
+- Report: the "J6b completion report" and the "Item 14 … STOP" sections of docs/audits/2026-09-29-j6-completion-report.md.
+- Its suite at 109e9c9f: 2832 / 0 / 0 / 24 (13 deleted with PhotoGalleryScreen, 11 added).
+**Changes:**
+- **Item 11:** List/Maps become real tabs below a 480 dp map width (the COMBINED_PANE_MIN_MAP_WIDTH constant). At 824 dp portrait the map is 464 dp across.
+- **Item 12:** an end inset lets the chip row wrap rather than run under Layers.
+- **Item 13:** the wide map draws before any search, with planned trips.
+- The PhotoGalleryScreen deletion is its own commit (3d95cf29).
+**Notes:**
+- **A correction to J6a:** Robolectric's default graphics mode measures text at about 0 width, so the five Records chips need about 656 dp, not 414. In the 328 dp tablet column they therefore always scroll. That is ruling 7's own "If not, then have it scroll", so no new ruling is needed.
+- **Four wrong chip predictions,** each traced to the same graphics-mode cause. The coder did not stop, reading them as a wrong premise about widths. That reading is recorded for the owner.
+- **Item 14's stop: map controls parity on the tablet.** The bar and pill arrangement is inline compact code, about 700 lines, not a composable. Its drag, snap, minimise and clamps key on compact-only surfaces. Unruled:
+  - (a) whether drag, snap and minimise come to the tablet;
+  - (b) what fullscreen means there;
+  - (c) where the compass strip and nav readout go;
+  - (d) extracting a shared cluster, or a tablet arrangement;
+  - (e) Layers and Add as bar rows.
+- **Machine:** the coder's build output is on /tmp, which is tmpfs, so it uses RAM that the memory rule then counts. One wait loop fell through after 10 minutes, and one suite started at 1805 MB of disk (the bar is 2048).
+- Written by the planner by hand.
