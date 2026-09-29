@@ -4987,3 +4987,28 @@ It also flagged the snackbar lying over the floating nav.
   - The coder started a run while another build was running.
   - A non-JPEG import is still stored under a .jpg name (FilePhotoStore.kt:120).
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-132
+**Timestamp:** 2026-09-29T04:20:38Z
+**Dispatch:** 2026-09-28-127
+**Reason:** the -127 coder handed back journal backup and restore, pushed to journal-redesign at 0400d730 (build fbdaf0c7; tests first 68fede12 on journal-backup-wip). Report: docs/audits/2026-09-29-journal-backup-completion-report.md. Its suite on merged tree de2ae432: 2659 / 0 / 0 / 24. It carries 14 revert checks.
+**Changes:** none yet. There is one STOP (item 6, offline regions) and a list of coder decisions that need the owner's eyes.
+**Notes:**
+- **The STOP.** Restored offline_regions rows are invisible after a restore, because the -106 rule keeps a Room row with no MapLibre region but does not show it.
+- **A new finding.** offline_regions.id is MapLibre's per-phone id, so Merge can mistake an unrelated region for a duplicate and point the entry refs at the wrong one.
+- **Found outside the dispatch.**
+  - Screens do not observe the database, so a restore leaves them stale. The coder added a post-restore reload of five loaders. Not covered: the offline-region list and the Maps tab's records.
+- **Legal-docs inputs:**
+  - WorkManager adds RECEIVE_BOOT_COMPLETED, WAKE_LOCK and ACCESS_NETWORK_STATE to the merged manifest.
+  - A backup file makes "Nothing is left behind" false.
+- **Coder decisions put to the owner:**
+  - planned_trips are not restored;
+  - Weekly is the default frequency;
+  - "Backup saved." is shown when photo files are missing (a partial result shown as success, against CLAUDE.md);
+  - restore is not blocked while a track records;
+  - partial files are left after a failed write.
+- Not closed. The terminal waits on the owner's rulings and the planner's own suite.
+- Written by the planner by hand.
