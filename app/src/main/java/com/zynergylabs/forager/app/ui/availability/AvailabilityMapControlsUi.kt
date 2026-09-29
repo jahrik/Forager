@@ -162,6 +162,7 @@ internal fun TrailheadControls(
     ) {
         ControlPill(
             horizontal = horizontal,
+            onLeftSide = onLeftSide,
             fillColor = fillColor,
             rowSpacing = rowSpacing,
             isRecording = isRecording,
@@ -197,6 +198,8 @@ private fun ControlPill(
     distanceUnit: DistanceUnit,
     modifier: Modifier = Modifier,
     horizontal: Boolean = false,
+    /** Which side the cluster is on: the horizontal pill keeps record at the outer end, under the bar, so its order mirrors. */
+    onLeftSide: Boolean = true,
     fillColor: Color = Color.Unspecified,
     rowSpacing: Dp = Spacing.xs,
 ) {
@@ -245,8 +248,13 @@ private fun ControlPill(
                 horizontalArrangement = Arrangement.spacedBy(rowSpacing),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                record()
-                returnToVehicle()
+                if (onLeftSide) {
+                    record()
+                    returnToVehicle()
+                } else {
+                    returnToVehicle()
+                    record()
+                }
             }
         } else {
             Column(

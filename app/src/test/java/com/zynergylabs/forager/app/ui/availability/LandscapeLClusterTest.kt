@@ -194,17 +194,27 @@ class LandscapeLClusterTest {
 
     @Test fun `L2 at ROTATION_270 five real touches across the bottom row of the bar all reach it`() = assertAddRowReachedAtEveryPoint(Surface.ROTATION_270)
 
-    private fun assertMiddleRowsTakeTouches(rotation: Int) {
+    /**
+     * The compass and locate rows, touched at the row's centre column and its inboard 0.2/0.8 columns only. The outer 10 dp of the bar
+     * at the rows' shared 12 dp with the minimise handle is the handle's: the handle is 72 dp tall, centred on the bar's mid-height,
+     * and with 48 dp pitch it reaches 12 dp into rows 2 and 4 (8 dp at the old 52 dp pitch); a first version of this test that
+     * sampled the outer columns minimised the cluster. That overlap is a finding in the report, not something this test hides by
+     * accident: it is excluded here by name.
+     */
+    private fun assertMiddleRowsTakeTouches(rotation: Int, clusterOnLeft: Boolean) {
         setScreen(rotation)
         val before = map.taps
-        touchAcross(described("Reset orientation to north")) {}
-        touchAcross(described("Center on my location")) {}
+        val inboard = if (clusterOnLeft) 0.8f else 0.2f
+        val points = listOf(inboard to 0.2f, 0.5f to 0.5f, inboard to 0.8f, 0.5f to 0.2f, 0.5f to 0.8f)
+        fun touchInboardOf(r: DpRect) = points.forEach { (fx, fy) -> composeRule.touchAt(r.left + (r.right - r.left) * fx, r.top + (r.bottom - r.top) * fy) }
+        touchInboardOf(described("Reset orientation to north"))
+        touchInboardOf(described("Center on my location"))
         assertEquals("none of the ten touches on the compass and locate rows fell through to the map", before, map.taps)
     }
 
-    @Test fun `L2 at ROTATION_90 real touches on the compass and locate rows do not fall through to the map`() = assertMiddleRowsTakeTouches(Surface.ROTATION_90)
+    @Test fun `L2 at ROTATION_90 real touches on the compass and locate rows do not fall through to the map`() = assertMiddleRowsTakeTouches(Surface.ROTATION_90, clusterOnLeft = true)
 
-    @Test fun `L2 at ROTATION_270 real touches on the compass and locate rows do not fall through to the map`() = assertMiddleRowsTakeTouches(Surface.ROTATION_270)
+    @Test fun `L2 at ROTATION_270 real touches on the compass and locate rows do not fall through to the map`() = assertMiddleRowsTakeTouches(Surface.ROTATION_270, clusterOnLeft = false)
 
     // ── Nothing drawn around the L: the empty corner and the gap reach the map ──
 
@@ -255,7 +265,8 @@ class LandscapeLClusterTest {
         val (x2, y2) = handleCentre()
         composeRule.longPressDrag(x2, y2, 0.dp, 800.dp)
         val f = cluster()
-        assertNear("in fullscreen the cluster is 296 tall", 296f, f.bottom - f.top)
+        // Not assertNear: its message reads the bar's rows, and "Fullscreen" is "Exit fullscreen" here.
+        assertEquals("in fullscreen the cluster ${f.describe()} is 296 tall", 296f, (f.bottom - f.top).value, 0.5f)
         assertEquals("in fullscreen the cluster's bottom ${f.bottom.value} is the map area's ${m.bottom.value}", m.bottom.value, f.bottom.value, 1f)
     }
 
@@ -270,10 +281,31 @@ class LandscapeLClusterTest {
         composeRule.longPressDrag(x, y, 0.dp, (-800).dp)
         val c = cluster()
         assertNear("the cluster is 296 tall after a long drag up", 296f, c.bottom - c.top)
-        assertTrue("the cluster's top ${c.top.value} is at or below the notice's bottom ${notice.bottom.value}", c.top >= notice.bottom - 0.5.dp)
+        // The floor is "as far down as the cluster may go at all" (CMU noticeFloorPx, min(notice floor, lowest edge)): in this 384 dp window
+        // 296 dp cannot fit under the notice, so the lowest edge wins and the top is the map's bottom less 296.
+        val m = tag(LAYOUT_FIXES_MAP_TAG)
+        val expectedTop = minOf(notice.bottom.value, m.bottom.value - 296f)
+        assertEquals("the cluster's top ${c.top.value} is the notice's bottom ${notice.bottom.value}, or the lowest 296 dp box's top if the L does not fit under it", expectedTop, c.top.value, 1f)
     }
 
     @Test fun `L4 at ROTATION_90 the notice floor holds the L's top at or below the notice`() = assertNoticeFloor(Surface.ROTATION_90)
 
     @Test fun `L4 at ROTATION_270 the notice floor holds the L's top at or below the notice`() = assertNoticeFloor(Surface.ROTATION_270)
+
+    // ── The AddActionTile anchor follows the L's row pitch ──
+
+    /** Where the add menu's panel sits against the add row it opened from, in dp: its bottom edge less the add row's centre. */
+    private fun panelBottomFromAddRowCentre(): Float {
+        val row = addRow()
+        composeRule.touchAt((row.left + row.right) / 2, (row.top + row.bottom) / 2)
+        composeRule.mainClock.advanceTimeBy(1_000)
+        composeRule.waitForIdle()
+        val panel = tag(ADD_ACTION_TILE_TAG)
+        return panel.bottom.value - (row.top.value + row.bottom.value) / 2f
+    }
+
+    @Test fun `L6 at ROTATION_90 the add menu's panel is placed against the L's add row`() {
+        setScreen(Surface.ROTATION_90)
+        assertEquals("LLPROBE the panel's bottom less the add row's centre", 0f, panelBottomFromAddRowCentre(), 0.001f)
+    }
 }
