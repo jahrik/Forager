@@ -4408,3 +4408,17 @@ Held for the owner: items 1, 2 (landscape), 6, 7 and 9.
   11. The light theme is untested anywhere.
 - Owner-judged captures: c5-{topo,street,satellite}-{day,night}-NN, with contact sheets c5-sheet-*.
 - Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-103
+**Timestamp:** 2026-09-29T00:06:53Z
+**Continues:** 2026-09-28-94
+**Dispatch-file:** none (launch note; -94 governs)
+**Reason:** the S22 is free: the map-chrome device check closed (terminal -102).
+**Changes:**
+- -94 launches on the S22 at build 1.0.1457+gb358a4aa, the one -84 installed. Its base for the report branch is the current journal-redesign head.
+- The pulse filing it names is docs/audits/2026-09-28-planned-trips-pulse.md (dispatch-note -96).
+- It is told the tablet result (terminal -101): trips drew on the wide tree after a search, and past dates cannot be created.
+**Notes:** A read-only pulse on the offline-regions start-up path (flag 1 of -102; flag 1 of -101) runs at the same time, reading code only. Written by the planner by hand.
