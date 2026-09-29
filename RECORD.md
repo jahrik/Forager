@@ -4466,3 +4466,21 @@ Held for the owner: items 1, 2 (landscape), 6, 7 and 9.
 - The silent fallback to the default path breaks CLAUDE.md's "Errors and failure paths".
 
 Put to the owner before any fix is written. Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-106
+**Timestamp:** 2026-09-29T00:28:33Z
+**Title:** Offline regions: protect saved regions (no prune on a missing or empty read, a null read is a failure, the incomplete-region delete limited to never-finished downloads), then fix start-up (drop the storage redirect; initialise MapLibre once before any read)
+**Dispatch-file:** preserved/2026-09-28-106.md
+**Change:**
+- **Part 1, pushed first:** P1 keeps and logs Room rows missing from MapLibre's read; only the user's delete removes a region. P2 makes a null list a failure. P3 limits the incomplete delete to provably never-finished downloads, stopping if that needs a migration.
+- **Part 2:** F1 drops ensureMapLibreStorageOutsideCache and setResourcesCachePath, leaving the store at files/mbgl-offline.db. F2 initialises MapLibre once at app start, idempotent and logged. F3 lets the start-up read succeed.
+**Scope boundary:** map/MapLibreOfflineMapRepository.kt, map/MapLibreStorage.kt, AvailabilityViewModel.kt, the start point, SightingsMap.kt's init call, tests, a completion report, in forager-wt/offline-safety. No Room schema change, no new copy, no offline-maps UI change.
+**Baseline:** journal-redesign d59a628.
+**Prediction (outcome — planner):** 1. P1 and P2 are small, with pure decisions. 2. P3 may stop on a schema need. 3. F2 moves getInstance to the Application. 4. The suite grows by 8 to 15.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** Part 1 pushed, then Part 2, each with tests first, revert checks and the full suite, then the report. The planner writes the terminal and dispatches an S22 check with a full backup of forager.db and mbgl-offline.db.
+**Abort conditions:** A migration needed; new copy; anything reading filesDir/maplibre-offline; a path deleting tiles or a row without the user's delete; a tests-first test passing at base; a non-compiling revert; a non-held failure; disk full or OOM; two failed fixes; a refused push; an unruled design question.
+**Notes:** Owner, verbatim: "Option A. Protect then fix." Runs ahead of the queued builds, as data safety, beside -78 on different files, with Gradle serialised. Launched through a general-purpose agent carrying the coder's rules, because the planner's session checkout is on device-trips (-94's coder created it there) and so lacks .claude/agents. Written by the planner by hand.
