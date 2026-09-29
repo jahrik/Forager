@@ -13,6 +13,8 @@ import com.zynergylabs.forager.app.domain.JournalBackup
 import com.zynergylabs.forager.app.domain.RestoreMode
 import com.zynergylabs.forager.app.domain.RestoreReport
 import com.zynergylabs.forager.app.domain.SystemCurrentTimeProvider
+import com.zynergylabs.forager.app.domain.UnreadablePhotoPolicy
+import com.zynergylabs.forager.app.domain.UnreadablePhotosException
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
@@ -76,8 +78,8 @@ class RoomJournalBackup(
     private val hooks: RoomJournalBackupHooks = RoomJournalBackupHooks(),
 ) : JournalBackup {
 
-    override suspend fun backUp(sink: OutputStream): Result<BackupReport> = withContext(Dispatchers.IO) {
-        attempt("backup failed") { doBackUp(sink) }
+    override suspend fun backUp(sink: OutputStream, unreadablePhotos: UnreadablePhotoPolicy): Result<BackupReport> = withContext(Dispatchers.IO) {
+        attempt("backup failed") { doBackUp(sink, unreadablePhotos) }
     }
 
     override suspend fun restore(source: InputStream, mode: RestoreMode): Result<RestoreReport> = withContext(Dispatchers.IO) {
@@ -99,7 +101,7 @@ class RoomJournalBackup(
 
     // ---- back up -------------------------------------------------------------------------------
 
-    private fun doBackUp(sink: OutputStream): BackupReport {
+    private fun doBackUp(sink: OutputStream, policy: UnreadablePhotoPolicy): BackupReport {
         val scratch = newScratch("backup")
         try {
             val snapshot = File(scratch, BackupManifest.DATABASE_ENTRY)
@@ -115,13 +117,15 @@ class RoomJournalBackup(
             var missing = 0
             for (path in photoPaths.distinct().sorted()) {
                 val file = File(filesDir, path)
-                if (!BackupArchive.isSafeEntryName(path) || !file.isFile) {
+                if (!BackupArchive.isSafeEntryName(path) || !file.isFile || !file.canRead()) {
                     missing++
-                    errorLog.w(TAG, "backup: photo $path has no file on disk and is left out", BackupException("missing photo file $path"))
+                    errorLog.w(TAG, "backup: photo $path could not be read${if (policy == UnreadablePhotoPolicy.SKIP) " and is left out" else ""}", BackupException("unreadable photo file $path"))
                     continue
                 }
                 photos[path] = file
             }
+            // Told to ask (owner, "3 A"): stop here, before a byte reaches the sink, so the person can choose.
+            if (missing > 0 && policy == UnreadablePhotoPolicy.ASK) throw UnreadablePhotosException(missing)
             val listed = buildList {
                 add(describe(BackupManifest.DATABASE_ENTRY, snapshot))
                 photos.forEach { (path, file) -> add(describe(path, file)) }
@@ -255,15 +259,27 @@ class RoomJournalBackup(
             hooks.afterPhotosCopied()
             database.runInTransaction(Runnable {
                 val insertedKeys = HashMap<String, MutableSet<String>>()
+                // Each incoming offline region gets a new id (owner, "2 A"); this maps the backup's id to it, and is the only
+                // way a reference to a region is resolved on the way in (never by the backup's number, which on this phone can
+                // name a different region).
+                val regionIdMap = HashMap<String, String>()
+                var nextRegionId = minOf(-1L, (sql.query("SELECT MIN(id) FROM offline_regions").use { c -> if (c.moveToFirst() && !c.isNull(0)) c.getLong(0) else 0L }) - 1)
                 for (spec in JournalTables.journal.filter { it.kind == JournalTables.Kind.RECORD }) {
                     val keys = insertedKeys.getOrPut(spec.name) { HashSet() }
                     backupDb.rawQuery("SELECT * FROM `${spec.name}`", null).use { c ->
                         while (c.moveToNext()) {
                             val key = keyOf(c, spec)
-                            if (existsIn(sql, spec.name, spec.keyColumns.single(), key.single())) {
+                            if (spec.name == OFFLINE_REGIONS) {
+                                val newId = nextRegionId--
+                                val values = c.toValues(dropColumn = null).also { it.put("id", newId) }
+                                insertRow(sql, spec.name, values)
+                                regionIdMap[key.single()] = newId.toString()
+                                keys += newId.toString()
+                                inserted++
+                            } else if (existsIn(sql, spec.name, spec.keyColumns.single(), key.single())) {
                                 skipped++
                             } else {
-                                check(sql.insert(spec.name, SQLiteDatabase.CONFLICT_ABORT, c.toValues(dropColumn = null)) != -1L) { "insert into ${spec.name} failed" }
+                                insertRow(sql, spec.name, c.toValues(dropColumn = null))
                                 keys += key.single()
                                 inserted++
                             }
@@ -276,7 +292,12 @@ class RoomJournalBackup(
                         val target = sql.query("SELECT `${link.column}` FROM `${spec.name}` WHERE `${spec.keyColumns.single()}` = ?", arrayOf<Any?>(key)).use { c ->
                             if (c.moveToFirst() && !c.isNull(0)) c.getString(0) else null
                         }
-                        if (target != null && !existsIn(sql, link.table, link.targetKey, target)) {
+                        if (target == null) continue
+                        if (link.table == OFFLINE_REGIONS) {
+                            // The backup's region number, resolved only through what this merge inserted: to the new id, or nowhere.
+                            val mapped = regionIdMap[target]
+                            sql.execSQL("UPDATE `${spec.name}` SET `${link.column}` = ? WHERE `${spec.keyColumns.single()}` = ?", arrayOf<Any?>(mapped?.toLong(), key))
+                        } else if (!existsIn(sql, link.table, link.targetKey, target)) {
                             sql.execSQL("UPDATE `${spec.name}` SET `${link.column}` = NULL WHERE `${spec.keyColumns.single()}` = ?", arrayOf<Any?>(key))
                         }
                     }
@@ -289,18 +310,23 @@ class RoomJournalBackup(
                         while (c.moveToNext()) {
                             val ownerValue = c.getString(c.getColumnIndexOrThrow(owner.column))
                             if (ownerValue !in ownerKeys) continue
+                            val values = c.toValues(dropColumn = if (spec.autoKey) spec.keyColumns.single() else null)
                             val dangling = spec.needs.any { need ->
                                 val value = c.getString(c.getColumnIndexOrThrow(need.column))
-                                !existsIn(sql, need.table, need.targetKey, value)
+                                if (need.table == OFFLINE_REGIONS) {
+                                    val mapped = regionIdMap[value]
+                                    if (mapped != null) values.put(need.column, mapped.toLong())
+                                    mapped == null
+                                } else {
+                                    !existsIn(sql, need.table, need.targetKey, value)
+                                }
                             }
                             if (dangling) {
                                 dropped++
                                 errorLog.w(TAG, "merge: a row of ${spec.name} names a record that is on neither phone and is left out", BackupException("dropped ${spec.name} row of $ownerValue"))
                                 continue
                             }
-                            check(sql.insert(spec.name, SQLiteDatabase.CONFLICT_ABORT, c.toValues(dropColumn = if (spec.autoKey) spec.keyColumns.single() else null)) != -1L) {
-                                "insert into ${spec.name} failed"
-                            }
+                            insertRow(sql, spec.name, values)
                             inserted++
                         }
                     }
@@ -324,11 +350,22 @@ class RoomJournalBackup(
         var n = 0
         from.rawQuery("SELECT * FROM `$table`", null).use { c ->
             while (c.moveToNext()) {
-                check(into.insert(table, SQLiteDatabase.CONFLICT_ABORT, c.toValues(dropKey)) != -1L) { "insert into $table failed" }
+                insertRow(into, table, c.toValues(dropKey))
                 n++
             }
         }
         return n
+    }
+
+    /**
+     * One row, inserted with plain SQL so that a failure **throws with SQLite's own message**. `SupportSQLiteDatabase.insert`
+     * swallows the exception and returns -1, which is also the row id of a row inserted under the id -1 (a region a Merge
+     * gave a new id), so its return value cannot say whether an insert worked.
+     */
+    private fun insertRow(into: androidx.sqlite.db.SupportSQLiteDatabase, table: String, values: ContentValues) {
+        val columns = values.keySet().toList()
+        val sql = "INSERT INTO `$table` (${columns.joinToString(", ") { "`$it`" }}) VALUES (${columns.joinToString(", ") { "?" }})"
+        into.execSQL(sql, Array<Any?>(columns.size) { values.get(columns[it]) })
     }
 
     private fun keyOf(c: Cursor, spec: JournalTables.TableSpec): List<String> = spec.keyColumns.map { c.getString(c.getColumnIndexOrThrow(it)) }
@@ -360,6 +397,7 @@ class RoomJournalBackup(
     private fun newScratch(kind: String): File = File(scratchDir, "$kind-${UUID.randomUUID()}").also { it.mkdirs() }
 
     private companion object {
+        const val OFFLINE_REGIONS = "offline_regions"
         const val TAG = "RoomJournalBackup"
     }
 }

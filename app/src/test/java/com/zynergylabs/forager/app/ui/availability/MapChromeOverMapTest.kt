@@ -126,6 +126,9 @@ internal class MapChromeScreenState {
     var tripStartWarning by mutableStateOf<RecordingNotice?>(null)
     var cartography by mutableStateOf(CartographyUiState())
     var entryMapData: CartographyEntryMapData = NO_ENTRY_MAP
+    var returnToMapRequest by mutableStateOf(0)
+    val downloadedAgain = mutableListOf<Long>()
+    var backup by mutableStateOf(com.zynergylabs.forager.app.ui.backup.BackupControls())
 }
 
 private val NO_ENTRY_MAP = CartographyEntryMapData(emptyList(), emptyList(), emptyList(), emptyList(), emptyList())
@@ -136,7 +139,7 @@ private val NO_ENTRY_MAP = CartographyEntryMapData(emptyList(), emptyList(), emp
  * and the roles captured beside it.
  */
 @Composable
-internal fun MapChromeTestScreen(state: MapChromeScreenState, map: BubbleMapSlot, roles: MapChromeRoles) {
+internal fun MapChromeTestScreen(state: MapChromeScreenState, map: BubbleMapSlot, roles: MapChromeRoles, overlay: @Composable () -> Unit = {}) {
     ForagerTheme(darkTheme = true) {
         roles.Capture()
         AvailabilityScreen(
@@ -174,7 +177,11 @@ internal fun MapChromeTestScreen(state: MapChromeScreenState, map: BubbleMapSlot
             tripStartWarning = state.tripStartWarning,
             cartographyUiState = state.cartography,
             getCartographyEntryMapData = { _, _ -> state.entryMapData },
+            backup = state.backup,
+            returnToMapRequest = state.returnToMapRequest,
+            onDownloadAgain = { state.downloadedAgain += it },
         )
+        overlay()
     }
 }
 

@@ -629,6 +629,19 @@ class TrackRecordingViewModelTest {
     }
 
     @Test
+    fun `the loaders return a Job, and once joined show waypoints and tracks written behind the screen's back`() = runRecordingTest {
+        val waypointRepository = FakeWaypointRepository()
+        val vm = viewModel(waypointRepository = waypointRepository)
+        advanceUntilIdle()
+        waypointRepository.save(Waypoint(id = "restored-w", lat = 45.0, lng = -122.0, altitude = null, name = "Restored oak", note = "", createdAtEpochMillis = 1_000L))
+
+        vm.loadWaypoints().join()
+        vm.loadTracks().join()
+
+        assertEquals(listOf("restored-w"), vm.uiState.value.waypoints.map { it.id })
+    }
+
+    @Test
     fun `waypoints load on init and adding one refreshes the list`() = runRecordingTest {
         val waypointRepository = FakeWaypointRepository()
         val vm = viewModel(waypointRepository = waypointRepository)

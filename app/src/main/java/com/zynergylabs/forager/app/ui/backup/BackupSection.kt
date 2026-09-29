@@ -16,6 +16,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -53,6 +54,14 @@ internal fun BackupSection(controls: BackupControls, modifier: Modifier = Modifi
     }
     val chooseBackupFile = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) controls.onRestoreFileChosen(uri.toString())
+    }
+
+    // "Try again" after a failed write asks for a new file: the file it made is gone, so the Save picker opens again.
+    LaunchedEffect(state.createFileRequested) {
+        if (state.createFileRequested) {
+            controls.onCreateFileRequestHandled()
+            createBackupFile.launch(backupFileName(System.currentTimeMillis()))
+        }
     }
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -107,7 +116,7 @@ internal fun BackupSection(controls: BackupControls, modifier: Modifier = Modifi
         OutlinedButton(onClick = { chooseFolder.launch(null) }) { Text("Choose folder") }
 
         OutlinedButton(
-            onClick = { chooseBackupFile.launch(RESTORE_MIME_TYPES) },
+            onClick = { if (controls.onRestoreRequested()) chooseBackupFile.launch(RESTORE_MIME_TYPES) },
             enabled = !state.busy,
         ) { Text("Restore from backup") }
 
@@ -117,6 +126,38 @@ internal fun BackupSection(controls: BackupControls, modifier: Modifier = Modifi
     }
 
     if (state.pendingRestoreUri != null) RestorePrompt(controls)
+    when (val prompt = state.prompt) {
+        is BackupPrompt.UnreadablePhotos -> UnreadablePhotosPrompt(prompt, controls)
+        BackupPrompt.WriteFailed -> WriteFailedPrompt(controls)
+        null -> Unit
+    }
+}
+
+/** "N photos couldn't be backed up." with Try again, Continue without file(s) and Cancel (owner, "3 A"; copy "5 approve, add a Continue button..."). */
+@Composable
+private fun UnreadablePhotosPrompt(prompt: BackupPrompt.UnreadablePhotos, controls: BackupControls) {
+    AlertDialog(
+        onDismissRequest = controls.onPhotosCancel,
+        text = { Text(prompt.text) },
+        dismissButton = { TextButton(onClick = controls.onPhotosCancel) { Text("Cancel") } },
+        confirmButton = {
+            Row {
+                TextButton(onClick = controls.onPhotosTryAgain) { Text("Try again") }
+                TextButton(onClick = controls.onPhotosContinue) { Text("Continue without file(s)") }
+            }
+        },
+    )
+}
+
+/** "Couldn't finish the backup. The incomplete file was removed." with Try again and Cancel (owner, "7 A"). */
+@Composable
+private fun WriteFailedPrompt(controls: BackupControls) {
+    AlertDialog(
+        onDismissRequest = controls.onWriteFailedCancel,
+        text = { Text(BackupPrompt.WriteFailed.TEXT) },
+        dismissButton = { TextButton(onClick = controls.onWriteFailedCancel) { Text("Cancel") } },
+        confirmButton = { TextButton(onClick = controls.onWriteFailedTryAgain) { Text("Try again") } },
+    )
 }
 
 @Composable

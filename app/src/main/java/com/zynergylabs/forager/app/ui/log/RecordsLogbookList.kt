@@ -85,6 +85,7 @@ internal fun RecordsLogbookList(
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
     onDeleteWaypoint: (String) -> Unit,
     onDeleteOfflineRegion: (Long) -> Unit,
+    onDownloadAgain: (Long) -> Unit = {},
     onOpenFind: (String) -> Unit,
     modifier: Modifier = Modifier,
     /** J4b L1: a find tile's long-press Delete (pending, with Undo); `null` leaves the tiles tap-only. */
@@ -194,6 +195,7 @@ internal fun RecordsLogbookList(
                                     isStale = isOfflineRegionStale(record.region.createdAtEpochMillis, now, availabilityUiState.offlineStaleThresholdDays),
                                     distanceUnit = distanceUnit,
                                     nowEpochMillis = now,
+                                    onDownloadAgain = { onDownloadAgain(record.region.id) },
                                 )
                             }
                         }

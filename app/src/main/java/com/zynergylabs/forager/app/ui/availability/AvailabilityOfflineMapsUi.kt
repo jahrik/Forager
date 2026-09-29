@@ -143,6 +143,7 @@ internal fun OfflineMapsPanel(
     onOfflineMapNameChanged: (String) -> Unit,
     onDownloadOfflineMaps: () -> Unit,
     onDeleteOfflineRegion: (Long) -> Unit,
+    onDownloadAgain: (Long) -> Unit = {},
     /**
      * Journal redesign J5c: passed through to the downloaded-region rows, where a tap on a closed row
      * opens that region's details sheet, given its id. The picker and download code above does not
@@ -257,6 +258,7 @@ internal fun OfflineMapsPanel(
             distanceUnit = distanceUnit,
             nowEpochMillis = now,
             onDeleteOfflineRegion = onDeleteOfflineRegion,
+            onDownloadAgain = onDownloadAgain,
             onOpenRegionDetails = onOpenRegionDetails,
         )
     }
@@ -475,6 +477,7 @@ private fun OfflineRegionsSection(
     distanceUnit: DistanceUnit,
     nowEpochMillis: Long,
     onDeleteOfflineRegion: (Long) -> Unit,
+    onDownloadAgain: (Long) -> Unit = {},
     onOpenRegionDetails: ((Long) -> Unit)?,
 ) {
 
@@ -523,6 +526,7 @@ private fun OfflineRegionsSection(
                             distanceUnit = distanceUnit,
                             nowEpochMillis = nowEpochMillis,
                             onClick = onOpenRegionDetails?.let { open -> { open(region.id) } },
+                            onDownloadAgain = { onDownloadAgain(region.id) },
                         )
                     }
                 }
@@ -555,6 +559,8 @@ internal fun OfflineRegionRow(
     distanceUnit: DistanceUnit,
     nowEpochMillis: Long,
     onClick: (() -> Unit)? = null,
+    /** What "Download again" does on a region restored from a backup ([OfflineRegionSummary.isDownloaded] `false`); unused for a downloaded one. */
+    onDownloadAgain: (() -> Unit)? = null,
 ) {
     Row(
         modifier = Modifier
@@ -566,18 +572,31 @@ internal fun OfflineRegionRow(
         Column(modifier = Modifier.weight(1f)) {
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
                 Text(region.name, style = MaterialTheme.typography.bodyMedium)
-                if (isStale) {
+                if (isStale && region.isDownloaded) {
                     Text("Stale", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                 }
             }
-            Text(
-                "${formatDistanceKm(region.region.radiusKm, distanceUnit)} around " +
-                    "${decimalDegreesLabel(region.region.lat, region.region.lng)} — " +
-                    "${region.tileCount} tiles, ${offlineRegionSizeLabel(region)} — " +
-                    "downloaded ${relativeTimeLabel(region.createdAtEpochMillis, nowEpochMillis)}",
-                style = MaterialTheme.typography.bodySmall,
-            )
-            Text(offlineRegionZoomNote(region), style = MaterialTheme.typography.bodySmall)
+            if (!region.isDownloaded) {
+                // A region restored from a backup onto a phone that never downloaded it (owner, "1 B"): its stored centre
+                // and radius, no tile count or "downloaded ... ago" it cannot honestly claim, and a way to get its tiles.
+                Text("Not downloaded", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
+                Text(
+                    "${formatDistanceKm(region.region.radiusKm, distanceUnit)} around ${decimalDegreesLabel(region.region.lat, region.region.lng)}",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                if (onDownloadAgain != null) {
+                    OutlinedButton(onClick = onDownloadAgain) { Text("Download again") }
+                }
+            } else {
+                Text(
+                    "${formatDistanceKm(region.region.radiusKm, distanceUnit)} around " +
+                        "${decimalDegreesLabel(region.region.lat, region.region.lng)} — " +
+                        "${region.tileCount} tiles, ${offlineRegionSizeLabel(region)} — " +
+                        "downloaded ${relativeTimeLabel(region.createdAtEpochMillis, nowEpochMillis)}",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Text(offlineRegionZoomNote(region), style = MaterialTheme.typography.bodySmall)
+            }
         }
     }
 }

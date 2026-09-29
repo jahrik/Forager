@@ -207,6 +207,7 @@ internal fun LogPanel(
     onOfflineMapsOpened: () -> Unit,
     onDownloadOfflineMaps: () -> Unit,
     onDeleteOfflineRegion: (Long) -> Unit,
+    onDownloadAgain: (Long) -> Unit = {},
     tracks: List<Track>,
     onTracksOpened: () -> Unit,
     /** GPX full-record export dispatch — see [com.zynergylabs.forager.app.ui.track.TrackExportList]'s own doc comment. Defaults empty/no-op so no other caller of this panel changes. */
@@ -519,6 +520,7 @@ internal fun LogPanel(
                 onOfflineMapsOpened = onOfflineMapsOpened,
                 onDownloadOfflineMaps = onDownloadOfflineMaps,
                 onDeleteOfflineRegion = onDeleteOfflineRegion,
+                onDownloadAgain = onDownloadAgain,
                 tracks = tracks,
                 onTracksOpened = onTracksOpened,
                 getFullRecord = getFullRecord,

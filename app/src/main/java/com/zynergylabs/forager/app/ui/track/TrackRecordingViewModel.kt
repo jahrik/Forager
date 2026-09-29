@@ -569,8 +569,8 @@ class TrackRecordingViewModel(
         }
     }
 
-    fun loadWaypoints() {
-        viewModelScope.launch {
+    fun loadWaypoints(): Job {
+        return viewModelScope.launch {
             getWaypoints()
                 .onSuccess { waypoints ->
                     _uiState.update { it.copy(waypoints = waypoints, waypointsErrorMessage = null) }
@@ -596,8 +596,8 @@ class TrackRecordingViewModel(
      * recording or saving a waypoint, this isn't a user-triggered write whose outcome needs
      * reporting, only a read backing a read-only export list.
      */
-    fun loadTracks() {
-        viewModelScope.launch {
+    fun loadTracks(): Job {
+        return viewModelScope.launch {
             getTracks()
                 .onSuccess { tracks ->
                     _uiState.update { it.copy(tracks = tracks.sortedByDescending(Track::startedAtEpochMillis)) }

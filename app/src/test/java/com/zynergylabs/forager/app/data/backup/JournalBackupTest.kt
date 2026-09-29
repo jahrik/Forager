@@ -5,6 +5,8 @@ import android.database.sqlite.SQLiteDatabase
 import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.domain.BackupException
 import com.zynergylabs.forager.app.domain.RestoreMode
+import com.zynergylabs.forager.app.domain.UnreadablePhotoPolicy
+import com.zynergylabs.forager.app.domain.UnreadablePhotosException
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
@@ -99,13 +101,13 @@ class JournalBackupTest {
     }
 
     @Test
-    fun `a photo row whose file is missing is left out of the archive, counted, and the backup still succeeds`() {
+    fun `told to skip, a photo row whose file is missing is left out of the archive, counted, and the backup succeeds`() {
         val a = phone().apply {
             seedFullJournal()
             File(filesDir, "photos/p4.jpg").delete()
         }
         val out = java.io.ByteArrayOutputStream()
-        val report = runBlocking { a.service.backUp(out) }.getOrThrow()
+        val report = runBlocking { a.service.backUp(out, UnreadablePhotoPolicy.SKIP) }.getOrThrow()
 
         assertEquals(3, report.photoFiles)
         assertEquals(1, report.photoFilesMissing)
@@ -138,11 +140,53 @@ class JournalBackupTest {
         assertTrue("and gets through once the copy is done", writerDone.get())
     }
 
+    @Test
+    fun `told to ask, a backup with an unreadable photo writes nothing to the sink and reports how many`() {
+        val a = phone().apply {
+            seedFullJournal()
+            File(filesDir, "photos/p4.jpg").delete()
+            File(filesDir, "photos/p2.jpg").delete()
+        }
+        val out = java.io.ByteArrayOutputStream()
+
+        val result = runBlocking { a.service.backUp(out, UnreadablePhotoPolicy.ASK) }
+
+        val e = result.exceptionOrNull()
+        assertTrue("expected UnreadablePhotosException, got $e", e is UnreadablePhotosException)
+        assertEquals(2, (e as UnreadablePhotosException).count)
+        assertEquals("nothing was written before the person chose", 0, out.size())
+        assertEquals("no scratch file is left behind", emptyList<String>(), a.scratchLeftovers())
+    }
+
+    @Test
+    fun `told to ask, a backup with every photo readable is written whole`() {
+        val a = phone().apply { seedFullJournal() }
+
+        val out = java.io.ByteArrayOutputStream()
+        val report = runBlocking { a.service.backUp(out, UnreadablePhotoPolicy.ASK) }.getOrThrow()
+
+        assertEquals(0, report.photoFilesMissing)
+        assertEquals(4, report.photoFiles)
+    }
+
+    @Test
+    fun `a photo file that exists but cannot be read counts as unreadable`() {
+        val a = phone().apply { seedFullJournal() }
+        val file = File(a.filesDir, "photos/p3.jpg")
+        assertTrue(file.setReadable(false, false))
+        // A file this process owns can still be opened by root-like test runners; only assert when the OS honours it.
+        org.junit.Assume.assumeFalse("the OS ignores the read bit here", file.canRead())
+
+        val result = runBlocking { a.service.backUp(java.io.ByteArrayOutputStream(), UnreadablePhotoPolicy.ASK) }
+
+        assertEquals(1, (result.exceptionOrNull() as UnreadablePhotosException).count)
+    }
+
     // ---- Replace -------------------------------------------------------------------------------
 
     @Test
     fun `back up then Replace into an empty phone gives every journal table's rows and every photo file back, equal`() {
-        val a = phone().apply { seedFullJournal(); insert("planned_trips", "id" to "trip-1") }
+        val a = phone().apply { seedFullJournal() }
         for (t in JOURNAL_TABLE_NAMES) assertTrue("the seed fills $t, so equality below is not vacuous", a.count(t) > 0)
         val b = phone()
 
@@ -151,12 +195,12 @@ class JournalBackupTest {
         assertEquals(RestoreMode.REPLACE, report.mode)
         assertEquals(a.dump(JOURNAL_TABLE_NAMES), b.dump(JOURNAL_TABLE_NAMES))
         assertEquals("photo files, byte for byte", a.files(), b.files())
-        assertEquals("planned trips are not journal data and are not restored", 0L, b.count("planned_trips"))
+        assertEquals("planned trips are backed up and restored too (owner, \"4 A\")", 2L, b.count("planned_trips"))
         assertEquals("no scratch file is left behind", emptyList<String>(), b.scratchLeftovers())
     }
 
     @Test
-    fun `Replace deletes the phone's own journal data and the photo files no restored row uses`() {
+    fun `Replace deletes the phone's own journal data, planned trips included, and the photo files no restored row uses`() {
         val a = phone().apply { seedFullJournal() }
         val b = phone().apply {
             insert("waypoints", "id" to "own-w", "name" to "Phone's own")
@@ -170,7 +214,8 @@ class JournalBackupTest {
         assertEquals(a.dump(JOURNAL_TABLE_NAMES), b.dump(JOURNAL_TABLE_NAMES))
         assertFalse("the phone's own photo file is gone", File(b.filesDir, "photos/own-p.jpg").exists())
         assertEquals(a.files(), b.files())
-        assertEquals("its planned trip is not journal data and stays", 1L, b.count("planned_trips"))
+        assertEquals("its own planned trip is gone, the backup's two are in", 2L, b.count("planned_trips"))
+        assertEquals(0L, b.scalar("SELECT COUNT(*) FROM planned_trips WHERE id='own-trip'")!!.toLong())
     }
 
     @Test
@@ -230,6 +275,7 @@ class JournalBackupTest {
         val b = phone().apply {
             insert("waypoints", "id" to "w1", "name" to "Device copy")
             insert("waypoints", "id" to "own-w", "name" to "Phone's own")
+            insert("planned_trips", "id" to "trip-1", "name" to "Device trip")
             addPhoto("p1", ByteArray(10) { 5 })
             insert("cartography_entries", "id" to "e1", "text" to "Device entry", "isDraft" to 0L)
             insert("cartography_entry_track_refs", "entryId" to "e1", "trackId" to "own-t", "name" to "device ref")
@@ -244,6 +290,8 @@ class JournalBackupTest {
         // The phone's copy wins, whole.
         assertEquals("Device copy", b.scalar("SELECT name FROM waypoints WHERE id='w1'"))
         assertEquals("Device entry", b.scalar("SELECT text FROM cartography_entries WHERE id='e1'"))
+        assertEquals("a trip on both phones keeps the phone's copy", "Device trip", b.scalar("SELECT name FROM planned_trips WHERE id='trip-1'"))
+        assertEquals("a trip only the backup has arrives", "1", b.scalar("SELECT COUNT(*) FROM planned_trips WHERE id='trip-2'"))
         assertEquals("only the phone's own ref row for e1: none of the backup's were added", "1", b.scalar("SELECT COUNT(*) FROM cartography_entry_track_refs WHERE entryId='e1'"))
         assertEquals("device ref", b.scalar("SELECT name FROM cartography_entry_track_refs WHERE entryId='e1'"))
         assertTrue("its own photo file is untouched", devicePhoto.contentEquals(File(b.filesDir, "photos/p1.jpg").readBytes()))
@@ -253,7 +301,7 @@ class JournalBackupTest {
         assertEquals("Morning loop", b.scalar("SELECT name FROM tracks WHERE id='t1'"))
         assertEquals("t1's points arrive", "3", b.scalar("SELECT COUNT(*) FROM track_points WHERE trackId='t1'"))
         assertTrue("with ids from this phone's own counter, not the backup's 1 to 3", b.scalar("SELECT MIN(id) FROM track_points WHERE trackId='t1'")!!.toLong() > 5)
-        assertEquals("the region arrives", "Cedar Creek", b.scalar("SELECT name FROM offline_regions WHERE id=7"))
+        assertEquals("the region arrives, under a new id of the phone's own (owner, \"2 A\")", "1", b.scalar("SELECT COUNT(*) FROM offline_regions WHERE name='Cedar Creek' AND id < 0"))
         assertEquals("e2 arrives", "Another day", b.scalar("SELECT text FROM cartography_entries WHERE id='e2'"))
         assertEquals("f1's photo p1 exists on the phone, so the link is kept", "1", b.scalar("SELECT COUNT(*) FROM log_entry_photos WHERE entryId='f1' AND photoId='p1'"))
         // Photo files: only for inserted rows.
@@ -279,15 +327,71 @@ class JournalBackupTest {
     }
 
     @Test
-    fun `a Merge of a backup into the phone that made it changes nothing`() {
+    fun `Merge gives an incoming region a new id, negative so no future MapLibre id can meet it, and rewrites every reference`() {
+        val a = phone().apply {
+            insert("offline_regions", "id" to 7L, "name" to "Cedar Creek")
+            insert("mushroom_log_entries", "id" to "f1", "isDraft" to 0L, "offlineRegionId" to 7L)
+            insert("cartography_entries", "id" to "e1", "isDraft" to 0L)
+            insert("cartography_entry_offline_region_refs", "entryId" to "e1", "offlineRegionId" to 7L, "name" to "Cedar Creek")
+        }
+        val b = phone().apply {
+            // The phone's own, different region that happens to carry the same MapLibre number.
+            insert("offline_regions", "id" to 7L, "name" to "Phone's own region")
+            insert("mushroom_log_entries", "id" to "own-f", "isDraft" to 0L, "offlineRegionId" to 7L)
+        }
+
+        b.restore(a.backUp(), RestoreMode.MERGE).getOrThrow()
+
+        assertEquals("the phone's own region is untouched", "Phone's own region", b.scalar("SELECT name FROM offline_regions WHERE id=7"))
+        assertEquals("and its find still points at it", "7", b.scalar("SELECT offlineRegionId FROM mushroom_log_entries WHERE id='own-f'"))
+        val newId = b.scalar("SELECT id FROM offline_regions WHERE name='Cedar Creek'")!!.toLong()
+        assertTrue("the incoming region has a new id, negative: $newId", newId < 0)
+        assertEquals("the incoming find names the new id", newId.toString(), b.scalar("SELECT offlineRegionId FROM mushroom_log_entries WHERE id='f1'"))
+        assertEquals("so does the entry's ref row", newId.toString(), b.scalar("SELECT offlineRegionId FROM cartography_entry_offline_region_refs WHERE entryId='e1'"))
+        assertEquals(emptyList<String>(), danglingRows(b))
+    }
+
+    @Test
+    fun `two incoming regions get two different new ids`() {
+        val a = phone().apply {
+            insert("offline_regions", "id" to 1L, "name" to "One")
+            insert("offline_regions", "id" to 2L, "name" to "Two")
+        }
+        val b = phone().apply { insert("offline_regions", "id" to 1L, "name" to "Phone's own") }
+
+        b.restore(a.backUp(), RestoreMode.MERGE).getOrThrow()
+
+        val ids = listOf("One", "Two").map { b.scalar("SELECT id FROM offline_regions WHERE name='$it'")!!.toLong() }
+        assertEquals(2, ids.toSet().size)
+        assertTrue(ids.all { it < 0 })
+        assertEquals(3L, b.count("offline_regions"))
+    }
+
+    @Test
+    fun `Replace keeps a region's own id, as ruled`() {
+        val a = phone().apply { insert("offline_regions", "id" to 7L, "name" to "Cedar Creek") }
+        val b = phone()
+
+        b.restore(a.backUp(), RestoreMode.REPLACE).getOrThrow()
+
+        assertEquals("Cedar Creek", b.scalar("SELECT name FROM offline_regions WHERE id=7"))
+    }
+
+    @Test
+    fun `a Merge of a backup into the phone that made it changes nothing except that its regions arrive again under new ids`() {
         val a = phone().apply { seedFullJournal() }
-        val rows = a.dump()
+        val rows = a.dump(JOURNAL_TABLE_NAMES - "offline_regions")
         val files = a.files()
 
         val report = a.restore(a.backUp(), RestoreMode.MERGE).getOrThrow()
 
-        assertEquals(0, report.rowsInserted)
-        assertUnchanged(a, rows, files)
+        // Every record already there is skipped. An incoming region is never skipped (owner, "2 A": it always gets a new
+        // id), so the one region is the one row that arrives; the ruling has no "same region" test, and this says so.
+        assertEquals(1, report.rowsInserted)
+        assertEquals(rows, a.dump(JOURNAL_TABLE_NAMES - "offline_regions"))
+        assertEquals(2L, a.count("offline_regions"))
+        assertEquals(files, a.files())
+        assertEquals("no scratch file is left behind", emptyList<String>(), a.scratchLeftovers())
     }
 
     // ---- refusing a bad backup -----------------------------------------------------------------
@@ -453,6 +557,6 @@ class JournalBackupTest {
 
 internal val JOURNAL_TABLE_NAMES = listOf(
     "mushroom_log_entries", "log_photos", "log_entry_photos", "tracks", "track_points", "waypoints", "offline_regions",
-    "cartography_entries", "cartography_entry_track_refs", "cartography_entry_waypoint_refs",
+    "planned_trips", "cartography_entries", "cartography_entry_track_refs", "cartography_entry_waypoint_refs",
     "cartography_entry_offline_region_refs", "cartography_entry_find_refs", "cartography_entry_photo_refs",
 )

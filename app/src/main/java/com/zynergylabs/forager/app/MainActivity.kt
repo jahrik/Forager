@@ -24,6 +24,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.viewmodel.initializer
+import kotlinx.coroutines.joinAll
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.model.AppThemeMode
@@ -32,6 +33,7 @@ import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
 import com.zynergylabs.forager.app.service.TrackRecordingService
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreen
 import com.zynergylabs.forager.app.ui.availability.AvailabilityViewModel
+import com.zynergylabs.forager.app.ui.backup.BackupRestoreOverlay
 import com.zynergylabs.forager.app.ui.backup.BackupViewModel
 import com.zynergylabs.forager.app.ui.log.CartographyViewModel
 import com.zynergylabs.forager.app.ui.log.CameraAbsenceWatcher
@@ -155,10 +157,14 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Settings' Backup section (journal backup and restore, dispatch 2026-09-28-127). After a restore that worked,
-     * the screens that read the journal once and hold it are told to read again: there is no Flow anywhere in
-     * `data/local`, so nothing else would refresh them. The offline-region list is not reloaded here (its
-     * loader is private to [AvailabilityViewModel]), and restored regions are not shown anyway; see the report.
+     * Settings' Backup section (journal backup and restore, dispatches 2026-09-28-127 and -137). After a restore that
+     * worked, everything that reads the journal once and holds it is told to read again, and the restore's loading
+     * page waits for all of them: there is no Flow anywhere in `data/local`, so nothing else refreshes. The list, with
+     * where each read is: the entries and drafts (`CartographyViewModel.loadEntries`), the finds and drafts and the
+     * gallery photos with their reference counts (`MushroomLogViewModel.loadEntries`, `loadGalleryPhotos`), the tracks
+     * and the waypoints with their reference counts (`TrackRecordingViewModel.loadTracks`, `loadWaypoints`), and the
+     * planned trips, the offline regions with their reference counts, and the Maps tab's records
+     * (`AvailabilityViewModel.reloadAfterRestore`).
      */
     private val backupViewModel: BackupViewModel by viewModels {
         viewModelFactory {
@@ -169,12 +175,16 @@ class MainActivity : ComponentActivity() {
                     scheduler = container.backupScheduler,
                     files = container.backupFiles,
                     errorLog = androidErrorLog,
-                    afterRestore = {
-                        cartographyViewModel.loadEntries()
-                        mushroomLogViewModel.loadEntries()
-                        mushroomLogViewModel.loadGalleryPhotos()
-                        trackRecordingViewModel.loadTracks()
-                        trackRecordingViewModel.loadWaypoints()
+                    isRecording = { trackRecordingViewModel.uiState.value.isRecording },
+                    reloadAfterRestore = {
+                        listOf(
+                            cartographyViewModel.loadEntries(),
+                            mushroomLogViewModel.loadEntries(),
+                            mushroomLogViewModel.loadGalleryPhotos(),
+                            trackRecordingViewModel.loadTracks(),
+                            trackRecordingViewModel.loadWaypoints(),
+                        ).joinAll()
+                        viewModel.reloadAfterRestore()
                     },
                 )
             }
@@ -480,6 +490,8 @@ class MainActivity : ComponentActivity() {
                     onAutoSaveLocationToPhotosChanged = viewModel::onAutoSaveLocationToPhotosChanged,
                     onLockCameraToPortraitChanged = viewModel::onLockCameraToPortraitChanged,
                     backup = backupViewModel.controls(backupUiState),
+                    returnToMapRequest = backupUiState.returnToMapRequest,
+                    onDownloadAgain = viewModel::onDownloadAgain,
                     onThemeModeChanged = viewModel::onThemeModeChanged,
                     onMapFullscreenChanged = viewModel::onMapFullscreenChanged,
                     onMapShown = viewModel::onMapShown,
@@ -635,6 +647,8 @@ class MainActivity : ComponentActivity() {
                         ),
                     ),
                 )
+                // The restore's loading page, over everything (dispatch 2026-09-28-137, item 6); nothing when there is none.
+                BackupRestoreOverlay(backupViewModel.controls(backupUiState))
             }
         }
     }

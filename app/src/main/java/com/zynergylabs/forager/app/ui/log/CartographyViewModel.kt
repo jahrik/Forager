@@ -28,6 +28,7 @@ import com.zynergylabs.forager.app.domain.model.Waypoint
 import java.time.LocalDate
 import com.zynergylabs.forager.app.domain.PendingDeleteSlot
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -91,8 +92,8 @@ class CartographyViewModel(
         loadEntries()
     }
 
-    fun loadEntries() {
-        viewModelScope.launch {
+    fun loadEntries(): Job {
+        return viewModelScope.launch {
             _uiState.update { it.copy(isLoadingEntries = true, loadErrorMessage = null) }
             getEntries().fold(
                 onSuccess = { entries ->

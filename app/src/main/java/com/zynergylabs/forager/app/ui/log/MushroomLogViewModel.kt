@@ -31,6 +31,7 @@ import com.zynergylabs.forager.app.photo.CameraCapturePhotoSource
 import com.zynergylabs.forager.app.domain.PendingDeleteSlot
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -244,8 +245,8 @@ class MushroomLogViewModel(
         loadGalleryPhotos()
     }
 
-    fun loadEntries() {
-        viewModelScope.launch {
+    fun loadEntries(): Job {
+        return viewModelScope.launch {
             _uiState.update { it.copy(isLoadingEntries = true, loadErrorMessage = null) }
             // Workstream L4c: the read and the editingEntry merge it feeds are one critical section
             // — see this class's own "Serialized editing-entry mutations" doc comment. Acquired here
@@ -290,8 +291,8 @@ class MushroomLogViewModel(
     }
 
     /** Loads [MushroomLogUiState.galleryPhotos] for [PhotoGalleryScreen] — Workstream G2, independent of [loadEntries] (see [MushroomLogUiState]'s own doc comment on why the two get separate loading/error fields). */
-    fun loadGalleryPhotos() {
-        viewModelScope.launch {
+    fun loadGalleryPhotos(): Job {
+        return viewModelScope.launch {
             _uiState.update { it.copy(isLoadingGalleryPhotos = true, galleryLoadErrorMessage = null) }
             getGalleryPhotos().fold(
                 onSuccess = { photos ->

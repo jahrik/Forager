@@ -241,6 +241,22 @@ class MushroomLogViewModelTest {
     // never calls PhotoStore at all any more (see its own doc comment on why), so there is no
     // photo-file-deletion step left for this test to prove resilience against.
 
+    /** Restore (dispatch 2026-09-28-137, item 6): each loader returns a Job the caller can wait on, and reads the store again. */
+    @Test
+    fun `the loaders return a Job, and once joined show what was written behind the screen's back`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository()
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        assertEquals(emptyList<String>(), (vm.uiState.value.entries + vm.uiState.value.draftEntries).map { it.id })
+        repository.save(entry)
+
+        vm.loadEntries().join()
+        vm.loadGalleryPhotos().join()
+
+        assertEquals(listOf(entry.id), (vm.uiState.value.entries + vm.uiState.value.draftEntries).map { it.id })
+        assertEquals(false, vm.uiState.value.isLoadingGalleryPhotos)
+    }
+
     /** Workstream G2: [MushroomLogViewModel.loadGalleryPhotos] runs alongside [MushroomLogViewModel.loadEntries] on init, independently populating [MushroomLogUiState.galleryPhotos]. */
     @Test
     fun `the gallery photos load on init, independent of the entry list`() = runTest(dispatcher) {
