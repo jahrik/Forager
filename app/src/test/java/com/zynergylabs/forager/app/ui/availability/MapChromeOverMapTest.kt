@@ -2,6 +2,7 @@
 
 package com.zynergylabs.forager.app.ui.availability
 
+import androidx.compose.ui.test.onAllNodesWithTag
 import com.zynergylabs.forager.app.ui.log.JOURNAL_DETAIL_PANE_TAG
 import android.app.Application
 import android.content.ComponentName
