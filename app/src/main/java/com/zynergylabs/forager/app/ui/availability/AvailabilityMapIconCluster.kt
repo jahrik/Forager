@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.MapKeepOutIds
 import com.zynergylabs.forager.app.ui.map.mapKeepOut
 import androidx.compose.foundation.layout.BoxScope
@@ -587,7 +588,7 @@ internal fun BoxScope.MapIconCluster(
                     color = mapIconClusterContainerColor(),
                     shadowElevation = 2.dp,
                     border = BorderStroke(1.dp, mapIconStackBorderColor()),
-                    modifier = clusterMeasure,
+                    modifier = clusterMeasure.mapChromeContainerColor(mapIconClusterContainerColor()),
                 ) {
                     Column(
                         horizontalAlignment = if (state.isOnLeftSide) Alignment.Start else Alignment.End,

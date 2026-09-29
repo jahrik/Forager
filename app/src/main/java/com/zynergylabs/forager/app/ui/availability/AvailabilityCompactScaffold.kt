@@ -53,6 +53,7 @@ package com.zynergylabs.forager.app.ui.availability
 // behaviour change." The getter pattern and the ResultsTab widening are the planner's rulings on
 // this build's two stops, quoted in RECORD.md intent 2026-09-27-21.
 
+import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.map.MapKeepOutIds
 import com.zynergylabs.forager.app.ui.map.mapKeepOut
 import com.zynergylabs.forager.app.ui.map.MapLayersControls
@@ -645,8 +646,11 @@ internal fun CompactMainScaffold(
                 // colour is its own role (`SnackbarDefaults.contentColor`), not derived from the fill.
                 SnackbarHost(logDraftSnackbarHostState) { data ->
                     // Map chrome at 80% over the Maps tab, following the tab (planner message -77, Q4).
-                    val snackbarColor = mapChromeFill(SnackbarDefaults.color, compactTab() == CompactTab.MAP)
-                    val snackbarContentColor = SnackbarDefaults.contentColor
+                    // C1: the navigation bar's colour (was inverseSurface). Its default content colour, inverseOnSurface, and its
+                    // action, inversePrimary, fail WCAG AA on that colour (ChromeContrastTest), so the text takes the navigation
+                    // bar's own content colour, onSurfaceVariant, and the action `primary`.
+                    val snackbarColor = mapChromeFill(navigationBarContainerColor(), compactTab() == CompactTab.MAP)
+                    val snackbarContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                     Snackbar(
                         snackbarData = data,
                         modifier = Modifier
@@ -679,6 +683,8 @@ internal fun CompactMainScaffold(
                             .mapChromeContentColor(snackbarContentColor),
                         containerColor = snackbarColor,
                         contentColor = snackbarContentColor,
+                        actionContentColor = MaterialTheme.colorScheme.primary,
+                        dismissActionContentColor = snackbarContentColor,
                     )
                 }
             },

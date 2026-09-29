@@ -66,6 +66,7 @@ import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.model.formatDistanceKm
+import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.map.HIDE_FROM_MAP_LABEL
 import com.zynergylabs.forager.app.ui.map.MapBarIconButton
 import com.zynergylabs.forager.app.ui.map.MapIconBar
@@ -407,8 +408,8 @@ internal fun CartographyEntryReportScreen(
                     // The menu's default container role, passed explicitly, and its content colour
                     // pinned to the role's own (see `MapLayersSheet`), as J8's menus do.
                     // The menu drops from the header onto the entry's map, when it has one.
-                    val entryMenuColor = mapChromeFill(MenuDefaults.containerColor, entryMapShown)
-                    val entryMenuContentColor = contentColorFor(MenuDefaults.containerColor)
+                    val entryMenuColor = mapChromeFill(navigationBarContainerColor(), entryMapShown)
+                    val entryMenuContentColor = contentColorFor(navigationBarContainerColor())
                     DropdownMenu(
                         expanded = menuExpanded,
                         onDismissRequest = { menuExpanded = false },
@@ -671,7 +672,7 @@ internal fun CartographyEntryReportScreen(
     }
 
     if (confirmingDelete) {
-        val deleteDialogColor = mapChromeFill(AlertDialogDefaults.containerColor, entryMapShown)
+        val deleteDialogColor = mapChromeFill(navigationBarContainerColor(), entryMapShown)
         AlertDialog(
             onDismissRequest = { confirmingDelete = false },
             title = { Text("Delete this entry?") },

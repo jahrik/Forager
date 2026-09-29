@@ -201,6 +201,7 @@ internal fun MapBubbleShell(
             modifier = Modifier
                 .widthIn(max = 280.dp)
                 .testTag(cardTag)
+                .mapChromeContainerColor(fillColor)
                 .pointerInput(Unit) { detectTapGestures {} },
             shape = RoundedCornerShape(20.dp),
             color = fillColor,

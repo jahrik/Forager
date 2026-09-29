@@ -21,7 +21,7 @@ import com.zynergylabs.forager.app.domain.model.SundownCountdown
  *
  * The walk-back estimate does not have this property, and that is the difference between the two:
  * it reads the walked track, so a recording gap costs it real information. See the amendment in
- * `docs/audits/2026-09-11-sundown-countdown-prebuild-report.md`.
+ * `docs/navigation/2026-09-11-sundown-countdown-prebuild-report.md`.
  */
 class ComputeSundownCountdownUseCase {
 

@@ -42,13 +42,15 @@ class MapLayersSheetTest {
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
 
+    // C1: was `surfaceContainerLow`; the sheet is now the navigation bar's colour, `surfaceContainer`.
     private var surfaceContainerLow = Color.Unspecified
     private var onSurface = Color.Unspecified
 
     private fun setSheet() {
         composeRule.setContent {
             ForagerTheme(darkTheme = true) {
-                surfaceContainerLow = MaterialTheme.colorScheme.surfaceContainerLow
+                // C1 (dispatch 2026-09-28-210), the owner: "Make sure any other pop up or bubble, or the tool panel, is the same color as the app navigation bar also please".
+                surfaceContainerLow = MaterialTheme.colorScheme.surfaceContainer
                 onSurface = MaterialTheme.colorScheme.onSurface
                 MapLayersSheet(
                     mapMode = MapMode.STREET,
