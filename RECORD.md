@@ -4966,3 +4966,24 @@ It also flagged the snackbar lying over the floating nav.
 **Reason:** -129 was sent to window 1c29a2. The owner had meanwhile pasted -127 (backup) into that window, and it proposed doing both in turn. The owner, verbatim: "option B if the coder is busy".
 **Changes:** That window was told to drop -129 and stay on -127. -129 goes to a fresh owner-opened window from launch prompt preserved/2026-09-29-13.md, in forager-wt/chrome-follow-ups.
 **Notes:** The planner's earlier "A" option (sending to 1c29a2) rested on a wrong picture of which window held what. Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-131
+**Timestamp:** 2026-09-29T04:13:16Z
+**Dispatch:** 2026-09-28-126
+**Reason:** the -126 coder handed back. "Save to Gallery" is built and pushed to journal-redesign; the last push is 3e958fd8, and the build commit is edb74209, merged in 6dce0bca. Its suite on the merged tree: 2589 / 0 / 0 / 24. The coder stopped on one gap, the dispatch's strip step for imports. scrubPhotoMetadata only rewrites JPEGs, while imports can be HEIC, PNG or WebP. The coder put that to the owner directly.
+**Changes:**
+- The owner's ruling, given to the coder and quoted verbatim in docs/audits/2026-09-29-photo-export-completion-report.md:19: "Imported photos taken outside the app are not within our scope. They can use a scrubbing app to remove it if they want it removed. All photos taken inside the app are scrubbed either way and that's our scope". The owner confirmed it with "Export imports unchanged (Recommended)" (:21).
+- So the strip step and the test "an exported import has no GPS" are dropped. An import's exported copy is byte-for-byte the stored file. The plan's photo-export ruling 2 is narrowed accordingly (plan, same commit).
+**Notes:**
+- The planner did not hear this ruling itself. It is recorded from the coder's report, which quotes it verbatim.
+- Not closed. The terminal waits on the planner's own full suite on an idle machine.
+- The privacy policy and beta README now need a line that an import's exported copy may keep its location. That goes into the pending legal-docs draft.
+- Coder flags carried:
+  - One full-suite hang, in LeavingTheJournalFixesTest F3 (:1139). That is the same class as the planner's own contended F3 failure at 6133649, so both go into one investigation.
+  - The coder ran `./gradlew --stop`, which stops every daemon on the machine.
+  - The coder started a run while another build was running.
+  - A non-JPEG import is still stored under a .jpg name (FilePhotoStore.kt:120).
+- Written by the planner by hand.
