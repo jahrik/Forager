@@ -6820,3 +6820,21 @@ The planner confirmed each by grep.
   - a build-timing section (a shared flock for Gradle, and handing back rather than stopping idle daemons);
   - a Gradle daemon idle timeout.
 - Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-225
+**Timestamp:** 2026-09-29T20:03:12Z
+**Closes:** 2026-09-28-210 (C1, map chrome takes the navigation bar's colour)
+**Outcome:** completed
+**Observed:**
+- **Record:** docs/audits/2026-09-29-chrome-colour-completion-report.md. It landed at b9679e76.
+- **Built:** one surfaceContainer token for the navigation bar, the rail and every map chrome surface, in both themes, on phone, tablet and entry map.
+  - The search notice keeps its error colour.
+  - Every alpha is unchanged except "Download this area?" (to 0.8).
+  - The snackbar takes the navigation bar's content colours for contrast.
+- **The planner's suite** at fb6bf9ce (containing b9679e76 and the coder's last merge), idle, from a cleared results directory with the hang timeout: 394 files, none stale, 0 compile errors, 3217 / 0 / 0 / 24, in 280 s.
+  - This covers the merge the coder had not re-run.
+- **Device-only:** the report's list. Chiefly: whether the navigation bar and all chrome read as one colour over each basemap, day and night, on the S22 and the tablet; the sheets over their scrims; and the snackbar with an action.
+**Notes:** Written by the planner by hand.
