@@ -1513,3 +1513,66 @@ forward change afterwards.
 
 The chip row's and the legend's placement at 90 and 270 on the S22 (real insets, cut-out, the rail's measured width); where the legend's left
 end reaches relative to the search dropdown; and thumb reach.
+
+## What happened (the `-109` build)
+
+### Base run of the new tests (before any source edit), `1ba17a8`, 0 compile errors, fresh XML
+
+- **Legend (`LayoutFixesLegendLandscapeTest`), both fail as predicted, for the stated reason:**
+  - 270: the collapsed legend `[739.0, 316.0][815.0, 352.0]` against the cluster `[711.0, 60.0][815.0, 324.0]`;
+  - 90 (second phase, cluster snapped right): the legend `[659.0, 316.0][735.0, 352.0]` against the cluster `[631.0, 60.0][735.0, 324.0]`.
+- **Chip row (`LayoutFixesChipRowLandscapeTest`), 4 of 5 fail, and one prediction was wrong (a finding, below):**
+  - 90 default: the row `[0, 53][382, 93]` against the cluster `[8, 60][112, 324]`;
+  - **270 default, predicted to pass, fails:** the row `[439, 53][821, 93]` against the cluster `[711, 60][815, 324]`;
+  - 270 snapped left: the row ends at 821 against the bar's right end 823 (expected 823);
+  - 90 drag-across: the row's left stays at 0;
+  - 90 snapped right passes (the guard).
+
+### Item 7 stopped: the two chips together are as wide as the search bar
+
+**Finding.** With the taxon chip and J8's chip both showing, the chip row is 382 dp wide in a 384 dp search bar (`[0, 53][382, 93]` in the bar `[439, 0][823, 45]`'s width at 270; the same width at 90). Aligning a 382 dp row to either end of a 384 dp bar puts it over the 104 dp cluster whichever end it takes, because the cluster's column is 264 dp tall from y 60 and the row is at y 53 to 93. So `-109`'s item 7 ("the chip row aligns to the end of the search bar away from the cluster ... the chip row does not intersect the cluster") cannot hold by alignment alone in this window with both chips present. The earlier report's 158 dp figure (`[0, 53][158, 101]`) was J8's chip alone; I predicted from that, and the prediction was wrong.
+
+The label I used is "artist's bracket (12)" (as the B2 tests do). Label length varies in the real app, so the row's width varies; I have not measured any other label.
+
+**Options, not chosen (each is a design decision):**
+- **A. Alignment plus a width cap.** Align the row to the away end and cap its width at the bar's width minus the cluster's width and a gap (about 272 dp here), so the `FlowRow` wraps the second chip onto a second line. Both chips then fit beside the cluster; the row is two lines tall.
+- **B. Alignment only** (what `-109` literally says). It clears the cluster only when the chips together are narrower than about 272 dp (J8's chip alone, 158 dp, qualifies). With both chips it does not.
+- **C. The chips leave the bar's column in landscape:** e.g. the row moves below the cluster's top row region or to the other side entirely. That moves chrome to a place no ruling gave.
+
+Nothing for item 7 is in `journal-redesign`. The tests are `LayoutFixesChipRowLandscapeTest` in `LayoutFixesChipRowHeldTest.kt` on `layout-fixes-wip` at `749630d`.
+
+### Items 1 and 2 (landscape) built
+
+`AvailabilityCompactMapUi.kt`: the cluster container's width is measured with its height (`mapIconClusterWidthPx`, kept when minimised). In short landscape with the cluster on the legend's side (`landscapeCluster && !isMapIconBarOnLeftSide`, the same test as the Q4 bound), the legend's end padding is `MAP_ICON_BAR_EDGE_INSET` + the measured width + `Spacing.sm` instead of `Spacing.sm`. Vertical placement and portrait are unchanged.
+
+- **Test:** `LayoutFixesLegendLandscapeTest`, 2 tests (90 and 270), each walking both cluster sides with the legend collapsed and expanded: no intersection; bottom equals the corner's bottom (1 dp); on the legend's side the right edge is 8 dp left of the cluster's left edge (1 dp); four real touches across the chip's bounds each flip it. Passes after the build.
+- **Revert check R1:** the end padding back to `Spacing.sm`, restored from a copy saved before editing (`/tmp/lf/orig/`, not git). Build log 0 compile errors; fresh XML; both T1 tests fail with the base run's own messages (270: legend `[739.0, 316.0][815.0, 352.0]` against cluster `[711.0, 60.0][815.0, 324.0]`, which only the padding revert could produce). The forward change was confirmed present afterwards (`legendEndPadding` in the file; diff 16 insertions, 1 deletion).
+- **Guards run alongside:** `LayoutFixesShortLandscapeTest` and `AvailabilityScreenMapLayersShortLandscapeTest` passed with the build (18 tests in the three classes, 0 failures).
+
+### Item 8, the ruling recorded
+
+The owner, verbatim, in `-109`: "3. The strip between the chip and the coordinates. D. Leave it as map." No code change. J8's chip design (touches only on its pill, `JournalEntriesChip.kt:96`) and its tests stand. My T8 tests remain in history at `d959fb9` (reachable from `origin/layout-fixes-wip`), off the suite.
+
+### The full suite
+
+At the build, from a cleared results directory, `LC_ALL=C.UTF-8`, `./gradlew --offline :app:testDebugUnitTest`, 0 compile errors, 312 files all newer than the run's start: **312 / 2520 / 0 / 0 / 24** (files / tests / failures / errors / skipped), read from the JUnit XML. The planner's figure at `08e9f13` was 311 / 2518 / 0 / 0 / 24; the difference is exactly my one new class, 2 tests.
+
+## Device-only list (`-109`), for the S22 at 90 and 270
+
+- The legend's placement beside the cluster: its right edge 8 dp inboard of the cluster's, bottom-aligned, collapsed and expanded, with the cluster on each side. Depends on the real cut-out, rail width and nav inset.
+- The legend expanded against the search dropdown (the legend is 96 dp tall; the map area is about 354 dp).
+- The one-frame move of the legend when the screen first composes (the width is unmeasured until the first layout).
+- Item 7, once ruled: the chip row's placement at 90 and 270 on the S22.
+
+## Decisions I made (the `-109` build)
+
+7. **"Just inboard" is measured from the cluster's container**, using its measured width, not a constant. Alternative rejected: a constant from the 104 dp figure, which would drift if the pill changes.
+8. **A minimised cluster keeps the legend inboard** (the width is the last measured one). Alternative: the legend returns to the corner while the cluster is minimised. I kept it stable so the legend does not jump on minimise/restore; `-109` says the legend is inboard when "the cluster is on the legend's side", which a minimised cluster still is.
+9. **Q4's clamp is untouched.** `-109` says it "still applies where there is room". With the legend beside the cluster the bound no longer serves a purpose in landscape: `legendBoundPx` (`:799`) still limits how far down the cluster can be dragged when it is on the legend's side. I did not remove it; see the flag.
+10. **I held item 7 whole** (no alignment code shipped) rather than build alignment alone, because alignment alone does not meet the ruling's own test with both chips present.
+
+## Flags outside scope (the `-109` build)
+
+- **Q4's legend bound in landscape.** In short landscape, with the legend beside the cluster, the clamp at `AvailabilityCompactMapUi.kt:799-841` still limits the cluster's downward drag to the legend's top. That limit protected a legend that sat below the cluster; it now protects nothing. It predates this change (the cluster was already held near centre at 270 by the same bound). The planner may want to rule whether landscape drops it.
+- **My prediction for the chip row at 270 was wrong** (above). The earlier report's "at 270 the chip is clear" was measured with J8's chip alone.
+- **`RECORD.md` is not mine to write;** the planner records this.
