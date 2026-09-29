@@ -52,6 +52,7 @@ import com.zynergylabs.forager.app.ui.availability.offlineRegionSizeLabel
 import com.zynergylabs.forager.app.ui.availability.offlineRegionZoomNote
 import com.zynergylabs.forager.app.ui.availability.relativeTimeLabel
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
+import com.zynergylabs.forager.app.ui.map.MapChromeSheetNavigationBar
 import com.zynergylabs.forager.app.ui.map.mapChromeFill
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.theme.Spacing
@@ -185,6 +186,8 @@ internal fun RecordDetailsSheet(
         containerColor = containerColor,
         contentColor = contentColor,
     ) {
+        // Over a map only: the band under the sheet follows the sheet's own container (item 3, -104).
+        if (overMap) MapChromeSheetNavigationBar()
         Column(
             modifier = Modifier
                 .mapChromeContentColor(LocalContentColor.current)

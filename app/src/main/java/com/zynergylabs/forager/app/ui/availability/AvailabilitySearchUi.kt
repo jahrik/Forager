@@ -1210,6 +1210,15 @@ private fun SpeciesSearchControls(
                 }
             }
         }
+        // Back closes the suggestions first, as it does other popups (dispatch 2026-09-28-104, item 4; the
+        // map-chrome device check saw three Backs change nothing). Diagnosed, not assumed: under Robolectric,
+        // with the list open, Back reached none of this screen's handlers (the home handler, the search
+        // panel's, and a first version of this one all stayed silent), and `ExposedDropdownMenuBox`'s bytecode
+        // (material3 1.5.0-alpha26) calls its own internal `BackHandler` after composing its content. That
+        // handler answers with `onExpandedChange(false)`, which this box leaves a no-op on purpose (a tap on
+        // the field must not toggle the list), so Back was taken and did nothing. Handlers win in
+        // registration order, so this one is composed after the box, not inside it or before it.
+        BackHandler(enabled = suggestionsOpen) { onDismissTaxonSuggestions() }
     }
 }
 

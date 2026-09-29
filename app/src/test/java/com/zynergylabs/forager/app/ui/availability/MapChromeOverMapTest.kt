@@ -80,8 +80,8 @@ import org.robolectric.annotation.Config
  * - Over a map: the container is its default role at `MAP_CHROME_OVER_MAP_ALPHA` and the content is
  *   the role's own content colour, opaque. Elsewhere: the container is the role, solid.
  * - "Covers a map" is -77's Q2: a map is drawn on screen beneath the surface. Q4: on the compact Maps
- *   tab, surfaces follow the tab. Q1: the Records details sheet is at 0.8 from the Offline maps
- *   sub-tab only. Q3: the species suggestions and the Month menu are at 0.8 on the Maps tab, stacking
+ *   tab, surfaces follow the tab. Q1, as the owner's "1 A" in -104 changed it: the Records details
+ *   sheet is at 0.8 from the Offline maps sub-tab only in a short landscape window. Q3: the species suggestions and the Month menu are at 0.8 on the Maps tab, stacking
  *   over the 0.8 search panel.
  */
 
@@ -547,11 +547,12 @@ class MapChromeEntryReportPortraitTest : MapChromeEntryReportTests()
 class MapChromeEntryReportShortLandscapeTest : MapChromeEntryReportTests()
 
 // ---------------------------------------------------------------------------------------------------
-// The Records details sheet (-77, Q1 option (b)): at 0.8 from the Offline maps sub-tab, whose picker
-// map is in that panel, and solid from the others, in the compact Journal and the wide drawer.
+// The Records details sheet (-77 Q1 (b), superseded by the owner's "1 A" in -104): at 0.8 from the Offline
+// maps sub-tab only in a short landscape window, where the panel's picker map is beside the list, and solid
+// from every other sub-tab and window, in the compact Journal and the wide drawer.
 // ---------------------------------------------------------------------------------------------------
 
-abstract class MapChromeRecordsTests(private val wide: Boolean) {
+abstract class MapChromeRecordsTests(private val wide: Boolean, private val pickerMapBesideList: Boolean) {
 
     private val composeRule = createAndroidComposeRule<ComponentActivity>()
 
@@ -582,11 +583,18 @@ abstract class MapChromeRecordsTests(private val wide: Boolean) {
         composeRule.waitForIdle()
     }
 
+    // Owner "1 A" (dispatch 2026-09-28-104, superseding -77's Q1 (b)): the sheet opened from the Offline
+    // maps panel is at 0.8 only where the picker map is beside it (short landscape) and solid where it
+    // lies over the region list (portrait, and the wide tree, whose panel is stacked as in portrait).
     @Test
-    fun `an offline region's details sheet from the Offline maps sub-tab is at the map chrome's alpha`() {
+    fun `an offline region's details sheet from the Offline maps sub-tab is at the map chrome's alpha only where the picker map is beside it`() {
         openRecords(RecordsSubTab.OFFLINE_MAPS)
         touchRow("records-swipe-offline-maps-${BUBBLE_REGION.id}")
-        composeRule.assertOverMap(RECORD_DETAILS_SHEET_TAG, roles.sheet, roles.onSurface)
+        if (pickerMapBesideList) {
+            composeRule.assertOverMap(RECORD_DETAILS_SHEET_TAG, roles.sheet, roles.onSurface)
+        } else {
+            composeRule.assertSolid(RECORD_DETAILS_SHEET_TAG, roles.sheet)
+        }
     }
 
     @Test
@@ -613,15 +621,15 @@ abstract class MapChromeRecordsTests(private val wide: Boolean) {
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi")
-class MapChromeRecordsPortraitTest : MapChromeRecordsTests(wide = false)
+class MapChromeRecordsPortraitTest : MapChromeRecordsTests(wide = false, pickerMapBesideList = false)
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi")
-class MapChromeRecordsShortLandscapeTest : MapChromeRecordsTests(wide = false)
+class MapChromeRecordsShortLandscapeTest : MapChromeRecordsTests(wide = false, pickerMapBesideList = true)
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w840dp-h1024dp-mdpi")
-class MapChromeRecordsWideTest : MapChromeRecordsTests(wide = true)
+class MapChromeRecordsWideTest : MapChromeRecordsTests(wide = true, pickerMapBesideList = false)
 
 // ---------------------------------------------------------------------------------------------------
 // The wide Maps results (M2), which show a map only once a region is searched. At w1280dp, as the M1
