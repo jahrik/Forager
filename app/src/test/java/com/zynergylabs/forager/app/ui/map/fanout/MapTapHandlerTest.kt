@@ -167,10 +167,10 @@ class MapTapHandlerTest {
     fun `a tap on another marker folds the fan and opens that marker's bubble`() {
         scene.add(MapLayerIds.PHOTOS, "p1")
         scene.add(MapLayerIds.PHOTOS, "p2")
-        scene.add(MapLayerIds.FINDS, "elsewhere", lat = 45.01, lng = -122.0)
+        scene.add(MapLayerIds.FINDS, "elsewhere", lat = 45.05, lng = -122.0) // about 73 dp away at zoom 10
         tapAtSpot()
         fullyOpen()
-        tapOn(45.01, -122.0)
+        tapOn(45.05, -122.0)
         assertFalse(fan.isOpen)
         assertEquals(listOf("feature:${MapLayerIds.FINDS}:elsewhere"), sinks.events)
     }
