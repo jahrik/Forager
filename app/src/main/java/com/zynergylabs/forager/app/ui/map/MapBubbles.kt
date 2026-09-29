@@ -149,8 +149,10 @@ data class MapRecordSources(
      */
     val snapshotWaypoints: List<Waypoint> = emptyList(),
     /**
-     * STUB (tests first, F3): an entry map's kept track decisions, for a track whose record has since left
-     * [tracks].
+     * An entry map's kept track decisions, for a track whose record has since left [tracks] (F3, dispatch
+     * 2026-09-28-195, item 5: "mirroring `snapshotWaypoints`"). The line is drawn from the path saved at delete
+     * time; its bubble is named from the decision's own snapshot (name, distance, duration), with no details
+     * action (there is no record to open) and no date (the snapshot never held one).
      */
     val snapshotTracks: List<TrackDecision> = emptyList(),
     val waypointEntryReferenceCounts: Map<String, Int> = emptyMap(),
@@ -261,7 +263,7 @@ fun mapBubbleContentFor(target: MapBubbleTarget.FeatureTarget, sources: MapRecor
                 coordinates = decimalDegreesLabel(trip.location.lat, trip.location.lng),
             )
         }
-        MapBubbleKind.TRACK -> sources.tracks.firstOrNull { it.id == id }?.let { track ->
+        MapBubbleKind.TRACK -> (sources.tracks.firstOrNull { it.id == id }?.let { track ->
             // The J5c sheet's derivation (RecordDetailsSheet's TrackDetails), from the points in memory.
             val stats = ComputeTrackStatisticsUseCase()(track.points)
             MapBubbleContent.TrackContent(
@@ -272,7 +274,17 @@ fun mapBubbleContentFor(target: MapBubbleTarget.FeatureTarget, sources: MapRecor
                 duration = formatTrackDuration(stats.durationMillis),
                 keptIn = keptIn(HighlightedRecordKind.TRACK),
             )
-        }
+        } ?: sources.snapshotTracks.firstOrNull { it.trackId == id }?.let { kept ->
+            MapBubbleContent.TrackContent(
+                trackId = kept.trackId,
+                // The entry report's own title for an unnamed kept track (CartographyEntryReportScreen, "Recorded track").
+                title = kept.name ?: "Recorded track",
+                date = null,
+                distance = formatDistanceMeters(kept.distanceMeters, sources.distanceUnit),
+                duration = formatTrackDuration(kept.durationMillis),
+                hasDetails = false,
+            )
+        })
         MapBubbleKind.OFFLINE_REGION -> id.toLongOrNull()?.let { regionId -> sources.offlineRegions.firstOrNull { it.id == regionId } }?.let { region ->
             MapBubbleContent.Region(
                 regionId = region.id,
