@@ -169,6 +169,8 @@ internal fun LogPanel(
     onDeleteCartographyEntry: (String) -> Unit,
     /** [CartographyEntryReportScreen]'s own map, Stage 2d — see that composable's doc comment. */
     getCartographyEntryMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData,
+    /** F3 (owner, "C: list screen loads lazily"): one entry's saved track paths, by track id, for the Journal cards' thumbnails. */
+    getSavedTrackPaths: suspend (String) -> Map<String, List<LatLng>> = { emptyMap() },
     /** [CartographyEntryReportScreen]'s own offline-map toggle, Stage 2e-i — see that composable's doc comment. */
     getCartographyEntryOfflineRegion: suspend (CartographyEntry, List<LatLng>) -> OfflineRegionSummary?,
     /** [CartographyEntryReportScreen]'s own fullscreen recenter button — fullscreen-maps dispatch, see that composable's own doc comment, "Fullscreen." */
@@ -298,6 +300,7 @@ internal fun LogPanel(
             onOpenEntryForEditing = onOpenEntryForEditing,
             onRequestDeleteGalleryPhoto = onRequestDeleteGalleryPhoto,
             getCartographyEntryMapData = getCartographyEntryMapData,
+            getSavedTrackPaths = getSavedTrackPaths,
             getCartographyEntryOfflineRegion = getCartographyEntryOfflineRegion,
             getCartographyEntryCurrentLocation = getCartographyEntryCurrentLocation,
             availabilityUiState = availabilityUiState,
