@@ -136,7 +136,13 @@ private val NO_ENTRY_MAP = CartographyEntryMapData(emptyList(), emptyList(), emp
  * and the roles captured beside it.
  */
 @Composable
-internal fun MapChromeTestScreen(state: MapChromeScreenState, map: BubbleMapSlot, roles: MapChromeRoles) {
+internal fun MapChromeTestScreen(
+    state: MapChromeScreenState,
+    map: BubbleMapSlot,
+    roles: MapChromeRoles,
+    // Continuation 2026-09-29-12: a test that records the render modes of every map brings its own slot.
+    mapSlotOverride: com.zynergylabs.forager.app.ui.map.MapSlot? = null,
+) {
     ForagerTheme(darkTheme = true) {
         roles.Capture()
         AvailabilityScreen(
@@ -167,7 +173,7 @@ internal fun MapChromeTestScreen(state: MapChromeScreenState, map: BubbleMapSlot
             onDeleteOfflineRegion = {},
             onNightModeMapsChanged = {},
             onThemeModeChanged = {},
-            mapSlot = map.slot,
+            mapSlot = mapSlotOverride ?: map.slot,
             waypoints = listOf(BUBBLE_WAYPOINT),
             tracks = listOf(BUBBLE_TRACK),
             isReturning = state.isReturning,
