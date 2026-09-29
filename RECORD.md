@@ -4365,3 +4365,85 @@ Held for the owner: items 1, 2 (landscape), 6, 7 and 9.
   - Two dump files remain on /sdcard.
 - The -97 fix stays gated on -94's reproduction.
 - Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-102
+**Timestamp:** 2026-09-29T00:06:38Z
+**Closes:** 2026-09-28-84
+**Outcome:** completed
+**Observed:**
+- **Record.** docs/audits/2026-09-28-map-chrome-device-check-run-record.md, device-chrome at f668886, merged by the planner. Evidence in device-evidence/2026-09-28-map-chrome-check.
+- **Backup.** Taken before the install; sha256-matched, integrity ok, user_version 16, digests equal to J8's end copy.
+- **Build and install.** b358a4a built (1.0.1457+gb358a4aa, same certificate); install -r with firstInstallTime and inodes unchanged. The database was unchanged after the first launch.
+- **On a real screen the map shows through every surface raised, at 0.80** (fill after dividing out any scrim or dim):
+  - search dropdown 0.800; Tools drawer 0.797 to 0.800; snackbar 0.80 to 0.82 over bare map;
+  - details sheets 0.795 to 0.803; trip-date dialog 0.797 to 0.815; waypoint-name dialog 0.801 to 0.809;
+  - species suggestions 0.80 own fill, 0.965 to 0.975 stacked on the panel (the owner's exception); Month menu 0.80;
+  - centre-pin row, search notice, bottom nav and compass strip 0.80;
+  - Records sheet from Offline maps 0.80, from All solid;
+  - an entry with a map: menu 0.80 and delete dialog 0.796; without a map both solid;
+  - at 90 and 270, the rail, strip, dropdown, notice, drawer, pin row and snackbar all 0.80.
+- **Planner's prediction 2** (one of the three outside surfaces renders opaque) **did not hold.**
+- **Restored.** Database byte-identical to the backup at all 9 checkpoints; system settings and all five DataStore files byte-identical to the start. Crash buffer 0 bytes at 13 reads; no FATAL, am_crash or am_anr.
+**Deviations:**
+- The first snackbar path raised nothing. The coder had missed that since F3 a tab switch no longer leaves an open find; it recorded that before its second attempt.
+- The offline-region bubble opened only after the Journal's Offline maps panel reloaded the list.
+- The measurement thresholds were the coder's.
+- Dialogs were dismissed with Back.
+- Not run: the taxon chip and J8's chip (each needs a data change or a network search, both barred by -84), and item 7's list.
+**Notes:**
+- **Flags:**
+  1. **The offline region list is empty after every launch until the Offline maps panel opens**, so bubbles and Records counts miss regions until then (seen in four processes). The code's listRegions (MapLibreOfflineMapRepository.kt:182-215) can delete Room rows and MapLibre regions at start-up (read, not tested). This probably connects to -101's "Couldn't read offline regions" MapLibreConfigurationException at every start-up.
+  2. The search notice's first line sits under the compass strip in portrait and under the cluster in landscape.
+  3. A bottom sheet's nav-bar band is opaque while the sheet is up.
+  4. The species suggestions ignore Back.
+  5. In landscape the centre-pin row runs under the nav bar and over the rail foot.
+  6. **In portrait the Offline maps Records sheet lies over the list, not the map**, so text shows through text. The planner's Q1 (b) ruling assumed a map beneath.
+  7. The entry map follows neither the basemap nor Night Maps.
+  8. In portrait the snackbar sits under the system nav buttons, with "Discard" beside Back.
+  9. "Show on map" is offered on an entry with nothing kept.
+  10. One trip-dialog box read 0.815.
+  11. The light theme is untested anywhere.
+- Owner-judged captures: c5-{topo,street,satellite}-{day,night}-NN, with contact sheets c5-sheet-*.
+- Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-103
+**Timestamp:** 2026-09-29T00:06:53Z
+**Continues:** 2026-09-28-94
+**Dispatch-file:** none (launch note; -94 governs)
+**Reason:** the S22 is free: the map-chrome device check closed (terminal -102).
+**Changes:**
+- -94 launches on the S22 at build 1.0.1457+gb358a4aa, the one -84 installed. Its base for the report branch is the current journal-redesign head.
+- The pulse filing it names is docs/audits/2026-09-28-planned-trips-pulse.md (dispatch-note -96).
+- It is told the tablet result (terminal -101): trips drew on the wide tree after a search, and past dates cannot be created.
+**Notes:** A read-only pulse on the offline-regions start-up path (flag 1 of -102; flag 1 of -101) runs at the same time, reading code only. Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-104
+**Timestamp:** 2026-09-29T00:11:10Z
+**Title:** Map-chrome device check follow-ups: the Offline maps Records sheet 0.8 in short landscape only; the search notice, sheet nav band, suggestions Back, landscape pin row, portrait snackbar, "Show on map" with nothing kept, and the entry map following basemap and Night Maps
+**Dispatch-file:** preserved/2026-09-28-104.md
+**Change:** Eight items from terminal -102's flags:
+- the owner's 1 A for the Records sheet;
+- insets and placement for the notice, sheet band, pin row and snackbar;
+- Back for the suggestions;
+- "Show on map" offered only when something is kept (planner's ruling);
+- the entry map following basemap and Night Maps (planner's ruling, stopping if a deliberate-fixed ruling exists).
+**Scope boundary:** ui/ files the verification names, tests, a completion report, in its own worktree forager-wt/chrome-follow-ups. Not the offline-regions issue, the chips' re-measure, the record, index, CLAUDE.md, plans or prompts.
+**Baseline:** journal-redesign at the base named at launch (queued behind -78).
+**Prediction (outcome — planner):** 1. Items 2, 3, 5 and 6 are inset handling, device-only. 2. Item 8 finds no deliberate-fixed ruling. 3. The suite grows by 10 to 20.
+**Prediction (mechanism — coder):** not authored
+**Finish line:** Verification, build, tests first, revert checks, full suite, report, pushed; the planner writes the terminal; the device items go to the next S22 check.
+**Abort conditions:** An unruled placement, copy or design; a deliberately fixed entry map; a tests-first test passing at base; a non-compiling revert; a non-held failure; disk full or OOM; two failed fixes on one item; a refused push.
+**Notes:**
+- Owner, verbatim: "1 A 2 A". Rule 1 supersedes -77's Q1 (b), which was the planner's error.
+- The planner found that -94's coder created its branch in the planner's own session checkout, because -94 named no worktree; the planner will restore that checkout when the coder is done.
+- Every dispatch from here names its worktree.
+- Written by the planner by hand.
