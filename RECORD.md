@@ -4775,3 +4775,23 @@ Also recorded: the owner's ruling "So let's do sessions this way now": coders in
 **Finish line:** The run record pushed with backup figures, verdicts, logs and restores. The planner merges it and writes the terminal.
 **Abort conditions:** An unverifiable backup; uninstall, -d or a clear; a signature mismatch; any region missing afterwards; a new crash; any prompt; a locked phone; touching the tablet.
 **Notes:** Run by an owner-opened Sonnet 5.5 window from this launch prompt, per the owner's "So let's do sessions this way now". Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-121
+**Timestamp:** 2026-09-29T01:55:18Z
+**Continues:** 2026-09-28-78
+**Dispatch-file:** preserved/2026-09-29-07.md
+**Reason:** under -119 the coder built:
+- S10's chip case under NATIVE;
+- single-line ellipsized labels;
+- the width cap limited to the cluster's side.
+
+All on layout-fixes-wip at 3bbbcfa. It stopped: a two-chip wrapped row reaches 1 dp into the central third at 90 and 270, with the standard label too. Its touch box ends at 137 and its drawn chip at 129, against the third's top at 128.
+**Changes:**
+- The owner, verbatim: "Option B for the chips".
+- Tighten the wrapped row so the drawn chips clear the central third, keeping the 48 dp touch targets.
+- S10's two-chip case measures drawn bounds (an owner-approved change of the measure).
+- Tests first, a revert check, and the whole suite at 0 before pushing.
+**Notes:** The offline-regions device check (-120) was pasted by the owner and is running. Written by the planner by hand.
