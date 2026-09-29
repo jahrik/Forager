@@ -5374,3 +5374,22 @@ It also flagged the snackbar lying over the floating nav.
 - Launches side by side with stage device check Part 2 (owner, -149), once the backup follow-up is settled.
 - The owner's backup questions (-150) are still open.
 - Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-153
+**Timestamp:** 2026-09-29T06:26:25Z
+**Continues:** 2026-09-28-127
+**Dispatch-file:** preserved/2026-09-29-20.md
+**Reason:** the owner, verbatim: "1 A / 2 A / 3 A / 4 A / For the previous 4 questions".
+**Changes:**
+- Item 8 is finished on a "Backups" channel. The permission is asked when the schedule is turned on, and a declined permission falls back to an in-app message at the next launch.
+- Replace re-ids restored regions.
+- Saving over a file that has contents asks "Replace the existing backup file?".
+- Part 2 includes the two unassigned checks and runs in three sessions: layout and the map, the Journal flows, then backup and restore.
+**Notes:**
+- Sent to the -137 window (1c29a2) by SendMessage.
+- Part 2 and J6 (-152) launch after this hands back and the planner's suite is clean, so that they run side by side as the owner asked.
+- The buttons "Replace" and "Cancel" are the planner's reading of the approved question, stated to the owner.
+- Written by the planner by hand.

@@ -1019,3 +1019,15 @@ What that rules, from the options as they were put:
 **The planner's split, stated to the owner.** J6 is built as two parts, in one coder window, pushed and reported in order:
 - **J6a, the Journal:** rulings 1 and 3-8, 10, and J1-J10 parity.
 - **J6b, the tablet map:** rulings 2, 6.6 and 9, and the chip row's clearance.
+
+**Backup follow-up and Part 2's shape (owner, 2026-09-29).** These answer the -137 stop and flags (record -150), and Part 2's scope. The owner, verbatim: "1 A / 2 A / 3 A / 4 A / For the previous 4 questions".
+
+1. **A new notification channel named "Backups".**
+   - On Android 13 and later, the notification permission is asked when the user turns scheduled backups on.
+   - If it is declined, the schedule still runs. A problem is then shown in the app at its next launch, using the approved notification wording.
+2. **Replace gives restored offline regions fresh ids,** as Merge does, and rewrites the references. A later MapLibre download can then never collide with a restored row.
+3. **Saving over a file that already has contents asks first:** "Replace the existing backup file?"
+4. **Part 2 includes the two unassigned checks** (the search bar after an entry, and drawer Back). It is split into sessions by area:
+   1. layout and the map;
+   2. the Journal flows;
+   3. backup and restore last, after the backup follow-up lands.
