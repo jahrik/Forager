@@ -7970,3 +7970,20 @@ All of them go to S22-B's relaunch.
 
 Both go to the next phone check.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-286
+**Timestamp:** 2026-09-30T16:40:50Z
+**Title:** The planned-trip flag and the find mushroom scaled to about 25 dp tall, everywhere
+**Dispatch-file:** preserved/2026-09-30-09.md
+**The owner's request, verbatim:** "the flag for the planned trip is a bit large compared to the other icons … The finds icon is a bit large also, but not by much. Location pin icon is acceptable. Somewhere between the photo icon and location pin size would be preferable".
+**The planner's reading,** from MarkerGlyphs.kt:34-45: photo is 22×22, the pin 22×28, the find 24×26 and the flag 20×28. The planner proposed scaling to 25 dp tall: the flag to about 17.86×25, the find to about 23.08×25.
+**The owner's answers:** "Everywhere". "Before PR #140 merges".
+**Change:**
+- The shapes and anchors scale evenly, but not the stroke widths.
+- Fan-centring's offsets follow the new sizes.
+- The touch area, the spacing and the circles are unchanged.
+- The work is headless, on branch glyph-resize from ecd79009.
+**Notes:** Written by the planner by hand.
