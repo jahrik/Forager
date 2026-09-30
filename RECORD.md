@@ -7683,3 +7683,67 @@ Its record is on device-part-3 at 32534b45 (checked on origin). The phone reads 
 **Scope boundary:** the fan's fold rule and the return path. The planner merges; the coder does not.
 **Sequencing:** map-return-fixes merges into journal-redesign after the planner's own suite run on the merged tree. Then S22-B relaunches.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-275
+**Timestamp:** 2026-09-30T09:13:50Z
+**Title:** In a fan, each copy's glyph body is centred in its circle
+**Dispatch-file:** preserved/2026-09-30-04.md
+**The owner's report:** with an S22 screenshot, the owner saw that a fanned waypoint pin sits off its circle. The pin's tip is aimed at the circle's centre instead of the two centres lining up.
+**The planner's reading:**
+- The fan draws copies with ICON_ANCHOR_CENTER (FanOutLayers.kt:84) on bitmaps padded about each glyph's anchor (MarkerGlyphs.kt:149-153).
+- So each copy's anchor lands on the circle's centre: the tip for the waypoint, the stem foot for a find, the pole foot for a planned trip (MarkerGlyphs.kt:34-45).
+**The owner's answers:** "All three". A "small separate dispatch".
+**Change:**
+- In a fan, each copy is offset so the centre of its fill extent sits on the circle's centre. Off the fan, anchors are unchanged. Hit-testing is unchanged, and the coder stops if a tap target would move.
+- Headless only, on branch fan-centring, running at the same time as map-return-fixes. It merges before S22-B, which checks the look on the device.
+**Also recorded, for -274:**
+- The Step 1 capture (c-step1-full.log) confirms H4. After a delete, the fan reopened with 7 survivors at 02:08:30.978 PDT (openFanFor true). A content effect folded it 10 s later, at 02:08:40.938.
+- The owner's screenshot at 2:08 shows the reopened fan.
+- The 10 s gap's cause is unconfirmed; the planner's guess is the Undo snackbar's expiry.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-276
+**Timestamp:** 2026-09-30T09:53:12Z
+**Closes:** 2026-09-28-267 (preserved -59, with continuations -270 and -274 and amendment -272)
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as 3029c4fd, no-ff, from map-return-fixes 3e9fca0d:
+  - Part B, the location component stopped before the MapView is destroyed (0f6c894c);
+  - Part A, the reopen waits for the content effect and an idle (0f6c894c, 406eedc0);
+  - "fold only if members change" (e361aeff tests first, d3d68ef2 the fix);
+  - the report, docs/audits/2026-09-30-map-return-fixes-completion-report.md.
+- **The coder's checks:**
+  - H4 was captured before the fix (c-step1-h4-excerpt.txt);
+  - five revert checks, R1 to R5, each failing its own cases;
+  - the suite at 3160/0/24.
+- **The coder's device results** on 1.0.2001+gd3d68ef2:
+  - the deleted-member return: the survivors are open at 1 s and at 10 s;
+  - 8c: pass;
+  - an unrelated layer switch with a fan open: the fan stays open. This was run by a substitute, the Recording trail layer, because the green + leaves the Maps tab;
+  - the Records track sheet round trip: 0 destroyed-view lines and 0 getMetersPerPixelAtLatitude lines in 42,049 lines, against a baseline of 14.
+- **The planner's checks:**
+  - the merged head's app, data and server trees are identical to map-return-fixes 3e9fca0d;
+  - the JUnit XML in the coder's worktree totals 388 files and 3160/0/0/24, which matches the report.
+  - The report calls MarkerFanOutPlacementScreenTest unverified. It is a file with an abstract base; its three concrete classes (PhonePortrait, PhoneLandscape, Tablet) ran 5/0 each. So it was verified, and it was never missing.
+- **The planner did not re-run the suite,** because the code is byte-identical to the code the coder ran.
+- **The coder's premises and choices, recorded:**
+  - The coder worked in its own bridge worktree, detached, and pushed with HEAD:map-return-fixes. The named worktree was left at 4e45d17b.
+  - FanOutTestScene's double was corrected: markersOf no longer hides an open fan's own members, as the live probe never did.
+  - Two superseded tests were updated, each quoting the rule.
+  - **Decided beyond the dispatch's scope** (the planner accepts it, pending the owner): MapTapHandler gained a layerDrawn input. openFanFor's comment claimed that hidden layers are left out, and they never were.
+  - **The effect:** hiding one of a mixed fan's layers re-fans its remaining members instead of folding. That was seen on the device with Photos off, when the fan went to 2 members.
+- **The test finds** ZZTEST274 (f0808a76-5e52-43b0-8c4b-300e590e7450) and ZZFIX1 were created and deleted. None of the owner's records were touched.
+**Open for the owner:**
+- the layerDrawn reading above;
+- a style reload with a fan open still folds, because the rule does not name it;
+- **a stale find marker:** a magenta find marker stays drawn at the deleted find's spot, even with the fan folded, although the Journal has none there. It was seen before this change as well (c-step1-del-10s.png). Its cause is not investigated;
+- the content re-emit about 10 s after a delete is unexplained, and the fix does not depend on it.
+**Device-only:** the owner's S26 on the fixed build (the deleted-member return and 8c), and S22-B's relaunch, which follows.
+**Next:** fan-centring (-275) has not been found on any branch; the owner reports it done. Then S22-B relaunches.
+**Notes:** Written by the planner by hand.

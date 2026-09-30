@@ -67,9 +67,12 @@ internal class FanOutTestScene(override val density: Float = 2f) : MapProbe {
             .filter { abs(px(it) - xPx) <= halfPx && abs(py(it) - yPx) <= halfPx }
             .map { ProbedMarker(FanKey(it.layerId, it.featureId), it.lat, it.lng, px(it), py(it)) }
 
+    // Like the live probe's (MapLibreProbe.markersOf), this reads where a record is from what the map draws, not from what
+    // is rendered: the originals a fan hides are still drawn records, so [hidden] does not apply (intent 2026-09-28-274,
+    // where the fan's own members are asked about while it is open).
     override fun markersOf(keys: List<FanKey>): List<ProbedMarker> =
         keys.mapNotNull { key ->
-            visible(listOf(key.layerId)).firstOrNull { it.featureId == key.featureId }
+            markers.firstOrNull { it.layerId == key.layerId && it.featureId == key.featureId }
                 ?.let { ProbedMarker(key, it.lat, it.lng, px(it), py(it)) }
         }
 

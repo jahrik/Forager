@@ -54,8 +54,8 @@ interface MapTapSinks {
  *  - **The tap resolves to a marker whose touch area overlaps another's** (a stack, rule 1): the stack
  *    fans out and nothing else is reported (rule 2).
  *
- * The camera moving, or what the map draws changing, also folds it ([onCameraMoveStarted],
- * [onContentChanged]).
+ * The camera moving folds it ([onCameraMoveStarted]), and so does a new style ([onStyleChanged]); what the map draws
+ * changing folds it only when a member changed ([onContentChanged]).
  */
 class MapTapHandler(
     private val fan: MarkerFanOutState,
@@ -64,6 +64,8 @@ class MapTapHandler(
     private val sinks: MapTapSinks,
     private val space: FanSpace = FanSpace.Unbounded,
     private val bubbleOpen: () -> Boolean = { false },
+    /** Whether a layer's switch is on. A record on a layer switched off is not drawn, so it is not a fan member. */
+    private val layerDrawn: (String) -> Boolean = { true },
 ) {
     fun onMapTap(at: LatLng, xPx: Float, yPx: Float) {
         val density = probe.density
@@ -98,20 +100,45 @@ class MapTapHandler(
      * opens nothing. `true` when a fan opened.
      */
     fun openFanFor(keys: List<FanKey>): Boolean {
-        val order = drawOrder()
-        // A layer switched off since (or one that never fanned) is left out like a deleted record.
-        val fanLayers = fanOutLayerIds(order)
-        val stack = probe.markersOf(keys.filter { it.layerId in fanLayers }).distinctBy { it.key }
+        val stack = drawnMarkersOf(keys)
         if (stack.size < 2) return false
-        openFan(stack, order)
+        openFan(stack, drawOrder())
         return true
+    }
+
+    /**
+     * The markers [keys] name that the map draws now: a key whose layer does not fan, or is switched off, or whose record
+     * is no longer drawn, is left out (the last is [MapProbe.markersOf]'s own; a record is never guessed at).
+     */
+    private fun drawnMarkersOf(keys: List<FanKey>): List<ProbedMarker> {
+        val fanLayers = fanOutLayerIds(drawOrder())
+        return probe.markersOf(keys.filter { it.layerId in fanLayers && layerDrawn(it.layerId) }).distinctBy { it.key }
     }
 
     /** The camera started to move, by a gesture or by the app: the copies are placed in screen space, so the fan folds. */
     fun onCameraMoveStarted() = fan.fold()
 
-    /** What the map draws changed (its records, its layer switches, its style): the fan folds. */
-    fun onContentChanged() = fan.fold()
+    /**
+     * What the map draws changed (its records, its layer switches): the fan folds only if its members changed (intent
+     * 2026-09-28-274, the owner's "Fold only if members change"). A fan whose members are all still drawn, where they
+     * were, is left alone, not even reopened; if some are gone it is opened again over the survivors, through
+     * [openFanFor]; if fewer than two remain, or a member moved, the rule is the same one: the survivors, at their
+     * current places, or nothing. A switched-off layer takes its members out, and folds the fan when none are left.
+     */
+    fun onContentChanged() {
+        if (!fan.isOpen) {
+            fan.fold()
+            return
+        }
+        val members = fan.members
+        val drawn = drawnMarkersOf(members.map { it.key })
+        val unchanged = drawn.size == members.size && drawn.all { d -> members.any { it.key == d.key && it.lat == d.lat && it.lng == d.lng } }
+        if (unchanged) return
+        if (!openFanFor(drawn.map { it.key })) fan.fold()
+    }
+
+    /** The map's style was replaced: the copies belong to the old one, so the fan folds. */
+    fun onStyleChanged() = fan.fold()
 
     private fun FanRect.scaled(by: Float) = FanRect(left * by, top * by, right * by, bottom * by)
 
