@@ -8153,3 +8153,28 @@ Both go to the next phone check.
 - The fan and SightingsMap.kt are untouched.
 - The work is headless, on branch find-delete-reappears from eb4cf129.
 **Notes:** Written by the planner by hand. It may run in parallel with -290. The two share only docs/audits/README.md, and a conflict there is merged with every row kept.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-292
+**Timestamp:** 2026-09-30T18:04:49Z
+**Closes:** 2026-09-28-290 (preserved -10)
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as f067cc9a, no-ff, from fan-above-puck dcdb8ad6. The owner said "Merge it".
+  - 8811961b, the seam and its test: liveLocationComponentOptions(context), extracted with no behaviour change, and LiveLocationPuckOrderTest (3 tests). It was pushed failing with `expected:<fan-out-legs-casing-layer> but was:<null>`.
+  - 232fee53, the change: `.layerBelow(FanOutIds.LEGS_CASING_LAYER)`, plus the doc comments.
+  - The report, docs/audits/2026-09-30-fan-above-puck-completion-report.md, with its index row.
+- **A premise corrected by the coder:** LocationComponentOptions does build under Robolectric, so the test is a real one and not a proxy.
+- **What the coder found about MapLibre 13.5.0,** by reading its bytecode with javap: every puck layer is added directly under the named layer, one below the next. What happens if that layer is missing was not established. It is present at both call sites.
+- **The owner's device check,** on the S22, verbatim: "The fan above the location puck is included in this version I tested and that fix works". This covers device item 1: an open fan draws above the puck.
+- **The planner's checks:** the merged head's app tree is identical to the branch's. The merge was clean.
+**Not verified by the planner:**
+- **The coder's full suite of 3173/0/0/24.** The worktree's JUnit XML now holds only the revert-check run (1 file, 3 tests, 1 failure, written at 17:55 UTC), which overwrote the full run's XML. That the revert run failed with the edit's own message is consistent with the report.
+- **LiveLocationPuckOrderTest on the merged head.** It was not re-run, because another Gradle build was running on the machine.
+**Device items still open:**
+- **2.** With no fan open, the puck still draws above the ordinary registry markers and tracks.
+- **3.** After a basemap swap, and after leaving Maps and coming back, the order holds.
+- **4.** The puck still tracks, rotates with the heading, and its accuracy circle still shows.
+**Notes:** Written by the planner by hand. The planner's reading, in chat, that the owner's -291 screenshots showed the puck over the fan was wrong. The fix was already in that build.
