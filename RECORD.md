@@ -7928,3 +7928,16 @@ All of them go to S22-B's relaunch.
 - repeat the deleted-member return: "Yes, once";
 - the backup folder picker: "Yes, I'll pick it".
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-284
+**Timestamp:** 2026-09-30T15:40:55Z
+**Title:** The fan's background circles go from 48 dp to 36 dp
+**Dispatch-file:** preserved/2026-09-30-08.md
+**The owner, verbatim,** with an S22 screenshot of a 9-member fan: "The circles are helpful, but I definitely overshot their size. They can crowd each other as a result."
+**What the planner answered:** from MarkerGlyphs.kt:34-45, the glyphs are 20-24 dp wide and 22-28 dp tall, plus a casing of about 1.5 dp each side. The planner offered 34, 36 and 40 dp.
+**The owner's answer:** "Let's try 36dp for size".
+**Change:** FAN_CIRCLE_DIAMETER_DP (FanClarity.kt:25) goes from 48 to 36. The touch area and the spacing (FAN_TOUCH_DP, 48) are unchanged. The work is headless, on branch fan-circle-36 from bc9dc591. The device look is checked afterwards.
+**Notes:** Written by the planner by hand.
