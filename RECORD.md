@@ -7420,3 +7420,21 @@ S22-B's launch prompt (-53) already makes the dispatch and its amendments govern
   - The planner observed that wrapper pid 1083163 and worker pid 1083355 are still alive after about 63 min, with available memory at 1367 MB.
 **Open for the owner:** the four item decisions, and whether the stalled worker is ended so the suite can be re-run.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-262
+**Timestamp:** 2026-09-30T02:40:03Z
+**Dispatch:** 2026-09-28-252 (preserved -57)
+**Reason:** the owner's rulings on the stopped items. Item 1: "Move the 'i'". Item 3: "Push the card clear". Item 4: "Flip below". Item 8: "Remember and reopen". On the stalled suite: "End both".
+**Changes:**
+- **The stalled run is ended.** The planner ended wrapper pid 1083163 and worker pid 1083355, both with a cwd in forager-wt/device-fails. Available memory went from 1367 MB to 2912 MB. The Gradle daemons were left.
+- **An amendment to preserved/2026-09-29-57** carries the four rulings and a continuation on device-fails:
+  - items 1, 3, 4 and 8 are built;
+  - items 2 and 5 stay at diagnosis for S22-B's data;
+  - the full suite is re-run, with a rule for a repeat hang.
+- **Supersedes:**
+  - M1's "no tail when the clamp puts the card over the point", where the card fits below;
+  - the "positioned against the map itself" note for the L and the rail.
+**Notes:** Written by the planner by hand.
