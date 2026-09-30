@@ -7333,3 +7333,29 @@ S22-B's launch prompt (-53) already makes the dispatch and its amendments govern
 - **The Kotlin daemon was ended.** At the owner's choice ("Kill the old Kotlin daemon"), the planner ended the idle Kotlin compile daemon (pid 876355, up 5 h 34 m, 1.9 GB) after confirming no Gradle wrapper or worker was running. Available memory went from 2270 MB to 4182 MB. The two Gradle daemons were left running.
 - **The memory gate is 2048 MB for this planner session's dispatches.** The owner, verbatim: "Reduce the limit to 2GB for this session". This applies to -245's coder, which has been told, and to -252's coder when it launches. The other checks are unchanged: no Gradle wrapper or worker running, 2048 MB of disk, and never `./gradlew --stop`.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-258
+**Timestamp:** 2026-09-30T01:14:36Z
+**Dispatch:** 2026-09-28-245 (tablets as a big phone), with Parts A and B
+**Reason:** the build coder handed back complete. Its report is docs/audits/2026-09-30-tablet-as-phone-completion-report.md on tablet-as-phone at bcecf8c7.
+**Observed by the planner:**
+- origin/tablet-as-phone is at bcecf8c7 and the coder's tree is clean.
+- AvailabilityWideLayoutUi.kt, LogPanel.kt and JournalDetailSlot.kt are absent at bcecf8c7.
+- The coder's results directory holds 376 XML files totalling 3082 / 0 / 0 / 24, newest 18:12 local, which matches its run on 59e5e76d.
+- `git merge-tree` into journal-redesign reports no conflicts.
+- The coder's wrong-premise finding is confirmed: SeasonalTab reads WindowWidthClass at AvailabilityResultsUi.kt:244-254, and a landscape phone (about w823dp) is not COMPACT, so it gets the 640 dp cap.
+**Reported by the coder (not re-checked):**
+- About 105 tablet-only tests were deleted across 18 files, and 13 new tests pass.
+- There were three revert checks, each failing with a message specific to its edit.
+- **Part B's cause:** the cluster's re-clamp is keyed on fullscreen, not on the limit, so on exit it clamps against the animated inset's first frame. The fix gives the landscape L the settled search-bar height.
+- WindowWidthClass and the 640 dp cap were kept, because the phone reads them. isLandscapeJournal() follows landscape. The entry report's height budget was left as short.
+- **Flagged:**
+  - the Journal hides the app search header on a landscape tablet;
+  - Seasonal is capped at 640 dp beside the rail;
+  - `onReopenTaxonSuggestions` is now unread;
+  - there is dead KDoc in about 14 files.
+**Open for the owner:** whether to merge now, and the landscape-tablet questions the coder flagged.
+**Notes:** Written by the planner by hand. The planner has not run the suite itself.
