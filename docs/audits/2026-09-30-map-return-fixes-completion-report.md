@@ -77,3 +77,76 @@ Gone. `grep -rnE '"TEMP ' app/src/main` returns 0 lines on `9d0cdc5a` (a bare `g
 - **Diagnostic build.** I built and installed 1.0.1987+g8f3f282c with temporary `Log.d` lines (`8f3f282c`) to capture it; no fan was left in the phone with a find to delete (the two mushrooms were deleted), so no capture was made. The lines are **reverted** in `5d2eb2a1`; `git diff 9d0cdc5a HEAD -- app` is empty and `grep -rnE '"TEMP ' app/src/main` returns 0. **The phone is still running the diagnostic build 1.0.1987**; S22-B's relaunch replaces it.
 - **Records track sheet round trip: not run.** **The restore to the backup was not needed and not run**; S22-B's relaunch restores the phone (owner's instruction).
 - **Device-only list now:** (1) the deleted-member reopen, with logcat from a cleared buffer, to confirm or refute H4 (needs a find in a fan; create one beside the stack with the green +, then delete it from its Journal page); (2) the Records track sheet round trip; (3) the owner's S26 Ultra.
+
+## Continuation -274: the deleted-member reopen, fixed under the owner's rule "Fold only if members change"
+
+Base verified first: remote `map-return-fixes` was `4e45d17b` (Step 0 merge `39f97501` plus Step 1 logging) before any push from this session. This session ran in a **different worktree** from the one the dispatch names (`forager-wt/map-return-fixes`), detached at `4e45d17b`, and pushed with `git push origin HEAD:map-return-fixes`; the named worktree and its checkout were not touched. Three plain fast-forward pushes, no rebase, no amend.
+
+### What landed
+| Commit | What |
+|---|---|
+| `796ee5e9` | Removes the temporary logging (four files restored to their `39f97501` content). `grep -rnE '"TEMP ' app/src/main` → **0 lines** here and again on the final tree; the installed APK carries 0 `TEMP` strings in its dex. |
+| `e361aeff` | Tests first, failing (8 red of 25 in the three affected classes). |
+| `d3d68ef2` | The fix. |
+
+### Step 0 (merge of fan-clarity), stated as checked
+The 14 targeted classes at `39f97501` (no logging): **111 tests, 0 failures**, no compile error. Only **13 of the 14** produced a result file: `MarkerFanOutPlacementScreenTest` produced none and **I did not find out why**, so it is unverified. At `4e45d17b` 33 of the same 111 failed with `Method d in android.util.Log not mocked`: the Step 1 `Log.d` calls run inside pure-JVM tests. That is the logging, not the merge; it is why the logging came out before the red tests were written.
+
+### Step 1: the hypothesis the log names is H4
+`c-step1-h4-excerpt.txt` (from `step1-logcat.txt`, the capture from a cleared buffer from the app's launch; the owner had asked me to drive, so the taps were mine). Test find `ZZTEST274`, id `f0808a76-5e52-43b0-8c4b-300e590e7450`, created by the green + and deleted from its Journal page, in the same session:
+```
+02:08:30.686 MapReturnMemory: TEMP onFindDeleted(f0808a76-…e590e7450): remembered=f0808a76-…e590e7450 fanKeys=8
+02:08:30.965 MapReturnMemory: TEMP takeFanKeys -> 7
+02:08:30.965 MarkerFanOut: TEMP openFanFor keys=7 found=7
+02:08:30.978 MarkerFanOut: TEMP fan.open 7 members [...]
+02:08:30.978 MarkerFanOut: TEMP reopen keys=7 openFanFor=true
+02:08:40.937 MarkerFanOut: TEMP coordinator.onContentEffect styleLoaded=true
+02:08:40.938 MarkerFanOut: TEMP onContentChanged fanOpen=true from: onContentEffect:26 < ...
+02:08:40.938 MarkerFanOut: TEMP fan.fold, from: onContentChanged:117 < onContentEffect:26 < ...
+```
+The reopen succeeds; a content effect folds it 10 s later. `c-step1-del-1s.png` shows the fan open, `c-step1-del-10s.png` shows it folded. **Not determined:** what re-emits the content 10 s after the reopen with nothing tapped; the fix does not need it (a re-emit that touches no member no longer folds), but it is unexplained.
+
+### The rule and how it is built
+The owner's rule, verbatim: an open fan stays open through map changes that don't touch its members; a member disappearing re-fans the survivors, or closes if fewer than 2 remain; a layer switch that hides the fan's layer still closes it.
+- `MapTapHandler.onContentChanged` (`MapTapHandler.kt`): a fan whose members are all still drawn, at the same lat/lng, on a layer that is switched on, is **left alone** (not reopened, so no animation restart). Otherwise it goes through `openFanFor` with the surviving keys (no second path), and folds if that returns false.
+- **A style change** is not named by the rule and **still folds**: `FanReopenCoordinator.onContentEffect(styleLoaded, style)` now takes the `Style` (`SightingsMap.kt` passes `loadedStyle`), and a style different from the last one calls the new `MapTapHandler.onStyleChanged` (= `fan.fold()`). I did not decide anything about keeping a fan through a style reload.
+- **Premise that was wrong:** `openFanFor`'s comment said a layer switched off "is left out"; the code (`fanOutLayerIds(orderedLayers(...))`) never dropped a hidden layer, since `orderedLayers` orders and does not filter. Case 4 of the rule needs the handler to know layer visibility, so `MapTapHandler` gained a `layerDrawn` input (default all on), and `SightingsMap` passes it from `layerPaintFor(spec, currentLayersState).visible`. This also makes `openFanFor` do what its comment said. **This goes beyond the letter of the dispatch and is a decision the owner may want to look at.**
+
+### The tests
+New `FoldOnlyIfMembersChangeTest` (through `MapTapHandler.onMapTap`/`onContentChanged` and `FanReopenCoordinator`; the return case uses the real `MapReturnMemory`): case 1 unrelated change (also asserts no restart via `generation`), 2 survivors re-fan, 3 fewer than two folds, 4a/4b layer switched off, 5 the deleted-member return (still open after the effects that follow), 6 a new style still folds, 7 a moved member re-fans at its current place, plus a reopen that leaves out a layer switched off. Case 6 fails at its **setup** line in the red state (same always-fold cause); its real assertion is exercised by revert R3 below. Cases 3 and 4a pass in the red state too (the old rule folds); they guard the other half and are covered by R4/R5.
+- **Updated, superseded tests:** `FanReopenCoordinatorTest` `a later content change folds the reopened fan` → `…that leaves the members alone keeps the reopened fan` (named in the dispatch). **Also** `MapTapHandlerTest` `a change to what the map draws folds the fan` → `…that takes the fan's members folds the fan`: it asserted the same superseded rule on a change touching no member, so it could not stay; the dispatch did not name it. Both say so in a comment quoting the rule.
+- **Test double changed:** `FanOutTestScene.markersOf` no longer applies the fan's hidden originals. The live `MapLibreProbe.markersOf` reads the record lists, not the rendering (`FanOutLayers.kt:278`, `locate`), so the double was reporting an open fan's own members as absent, and after the fix 6 of the new cases still failed until this was corrected. The red-state evidence for cases 1, 2, 5 and 7 was therefore taken with the old double; the revert checks below were run with the corrected double and are what shows those tests bite.
+
+### Revert checks (saved copies restored, never from git; results deleted before each run; build log checked; forward files verified identical afterwards; `git diff` empty)
+Each ran the three affected classes: 25 tests every time.
+- **R1 any content change folds** → 7 fail, including case 1 (`the fan stayed open through changes that don't touch its members`) and case 5 (`the fan of the survivors is still open after the effects that follow the delete`); case 6 fails at its setup line.
+- **R2 no survivor re-fan** → 3 fail: cases 2, 7, 4b. Case 1 still passes, as it should.
+- **R3 a replaced style routed as a content change** → 1 fails: case 6 on its real assertion, `a replaced style folds the fan, unchanged`.
+- **R4 never fold on content** → 6 fail: 2, 3 (`one survivor is not a fan`), 4a, 4b, 7 and the updated `MapTapHandlerTest`.
+- **R5 layer switch ignored** → 3 fail: 4a, 4b, and the reopen-leaves-out-a-layer test.
+
+### Suite
+`./gradlew :app:testDebugUnitTest` on `d3d68ef2`: **BUILD SUCCESSFUL, 388 classes, 3160 tests, 0 failed, 24 skipped.** The 24 skips are in five classes this change does not touch (`AvailabilityScreenMapIconStackTest` 19, `…TripPlanningFlowTest` 2, `…WaypointFlowTest` 1, `…OfflineCacheTest` 1, `GenerateFungiIndexDbAsset` 1); my diff adds no `@Ignore`, `@Disabled` or assume line. No owner-held flake and no `DiagnosticsPanelTest` failure appeared in this run.
+
+### Device (S22 Ultra, `R5CT321008R`), fixed build `1.0.2001+gd3d68ef2`, installed with `install -r`, logcat from a cleared buffer from the app's start (`c-fixed-full.log`, 42,049 lines, 02:44 to 02:50). Evidence in `~/Zynergy/device-evidence/2026-09-30-map-return-fixes/`.
+1. **Deleted-member return: pass.** `ZZFIX1` (created, opened in Journal from the fan, deleted from its page): the fan of the 7 survivors is open at 1 s (`c-1-deleted-1s.png`) and at 10 s (`c-1-deleted-10s.png`).
+2. **Unrelated change with a fan open: pass, by a substitute.** Adding a find with the green + goes to the Journal form and leaves the Maps tab, so it cannot test a fan staying open. I switched the **Recording trail** layer (not a fan layer) off with the fan open: fan still open at 10 s (`c-2-toggle-off.png`, `c-2-after-1s.png`, `c-2-after-10s.png`), then back on. Not the dispatch's own example.
+3. **8c, Back with no delete: pass.** Fan open (8 members) with `ZZFIX1`'s bubble at 1 s and 10 s (`c-3-back-1s.png`, `c-3-back-10s.png`).
+4. **Records track sheet round trip: pass.** Journal → Records → Tracks → the 18-point track sheet (`c-4-track-sheet.png`), closed, Maps, a tap on the stack opened the fan (`c-4-map-tap-answers.png`), Journal ↔ Maps once more. `grep -c 'after the .MapView. was destroyed'` → **0**, `getMetersPerPixelAtLatitude` → **0**, `FATAL EXCEPTION` → 0, in a log that includes 333 `PositionManager … receive gps location` lines (location component live) and every tab switch above. The two lines matching a bare `destroyed` are `InputTransport` and `SurfaceFlinger`, unrelated. The unfixed baseline was 14 lines on a Journal round trip (`b1-roundtrip.log`).
+5. **Extra, not required:** with a fan open, switching **Photos** (one of the fan's own layers) off re-fanned the fan to its 2 remaining members (the find and the waypoint) and did not fold it (`c-4-sheet.png`, `c-4-photos-off-2s.png`); switched back on (`c-4-sheet-restored.png`). This is the `layerDrawn` wiring the unit tests cannot reach.
+
+### Test data
+Created and deleted, by name: `ZZTEST274` (id above) and `ZZFIX1` (id not captured: the fixed build has no logging). Nothing else created or deleted; none of the owner's records touched; the database was not read. The Journal afterwards shows Finds 3, All 10, all three dated 2026-09-29, as before. Layer switches changed and restored: Recording trail, Photos. I did not tap Undo. The phone is left on the fixed build.
+
+### Observation, not explained and not caused by this change
+After `ZZFIX1` (and, earlier, `ZZTEST274`) was deleted, a magenta find marker stays drawn on top of the stack at that spot, even folded (`c-1-folded-after-delete.png`), while the Journal has no find there. The same marker is in `c-step1-del-10s.png` on the diagnostic build, so it precedes this change. Cause not investigated; a stale marker in the map's find source is a guess, not a finding.
+
+### Housekeeping
+- Logcat: this session started three streams and stopped its own two (PIDs 1210760 and 1223820). PID 1207282 (`c-step1-full.log`) belongs to another session and was not touched.
+- The other session and this one both drove the phone; my `install -r`, `logcat -c` and app restart at about 01:45 may have appeared in its capture.
+- Machine gates were checked before every build (available memory 2915 to 7623 MB across the run; disk about 7.5 GB; no Gradle wrapper running). One reading, 1999 MB, came before a build and no build was started on it.
+- A local `local.properties` was copied into this worktree (gitignored) with its SDK path case fixed (`Sdk` → `sdk`).
+- **Not done:** `docs/audits/README.md` was not given a row (it is the serialization point and the dispatch did not ask for one); `RECORD.md` was not touched.
+
+### Device-only list now
+(1) The owner's S26 Ultra on the fixed build (`1.0.2001+gd3d68ef2`), the deleted-member return and 8c; (2) the stale find marker above, if it matters to the owner; (3) whether a style reload with a fan open should keep the fan, which the rule does not name and I left folding.
