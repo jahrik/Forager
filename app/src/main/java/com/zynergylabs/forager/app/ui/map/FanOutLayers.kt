@@ -54,6 +54,9 @@ internal object FanOutIds {
 
     /** The feature property naming the bitmap a copy draws. */
     const val IMAGE_PROPERTY = "image"
+
+    /** The feature property holding a copy's `icon-offset`, `[x, y]` in dp (dispatch 2026-09-28-275). */
+    const val ICON_OFFSET_PROPERTY = "iconOffset"
 }
 
 /** The leg's own line width, in dp: "a thin line". Its casing is [CASING_WIDTH_DP] wider on each side, as a track's is. */
