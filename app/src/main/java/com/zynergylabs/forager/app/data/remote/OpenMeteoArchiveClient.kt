@@ -17,13 +17,9 @@ object OpenMeteoArchiveClient {
 
     private const val BASE_URL = "https://archive-api.open-meteo.com/"
 
-    fun create(debug: Boolean): OpenMeteoArchiveApi {
-        val json = Json {
-            ignoreUnknownKeys = true
-            explicitNulls = false
-        }
-
-        val okHttpClient = OkHttpClient.Builder()
+    /** The built client, separate from [create] so a test can send a request through the real one. */
+    internal fun httpClient(debug: Boolean): OkHttpClient =
+        OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
             .apply {
@@ -36,6 +32,14 @@ object OpenMeteoArchiveClient {
                 }
             }
             .build()
+
+    fun create(debug: Boolean): OpenMeteoArchiveApi {
+        val json = Json {
+            ignoreUnknownKeys = true
+            explicitNulls = false
+        }
+
+        val okHttpClient = httpClient(debug)
 
         val contentType = "application/json".toMediaType()
 

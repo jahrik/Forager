@@ -4,6 +4,7 @@ import android.os.Build
 import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.BuildConfig
 import com.zynergylabs.forager.app.ForagerApplication
+import com.zynergylabs.forager.app.net.AppUserAgent
 import okhttp3.Call
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
@@ -34,23 +35,23 @@ class MapUserAgentTest {
     fun `the string is exactly the agreed shape, built from the given parts`() {
         assertEquals(
             "Forager/1.0.7+gabc123 (Android 15; com.example.app; +https://zynergy-labs.com; support@zynergy-labs.com)",
-            MapUserAgent.build(versionName = "1.0.7+gabc123", androidRelease = "15", applicationId = "com.example.app"),
+            AppUserAgent.build(versionName = "1.0.7+gabc123", androidRelease = "15", applicationId = "com.example.app"),
         )
     }
 
     @Test
     fun `the app's own string takes its version and id from BuildConfig and its release from the device`() {
         val expected = "Forager/${BuildConfig.VERSION_NAME} (Android ${Build.VERSION.RELEASE}; " +
-            "${BuildConfig.APPLICATION_ID}; ${MapUserAgent.CONTACT})"
+            "${BuildConfig.APPLICATION_ID}; ${AppUserAgent.CONTACT})"
 
-        assertEquals(expected, MapUserAgent.forThisApp())
+        assertEquals(expected, AppUserAgent.forThisApp())
         assertTrue(BuildConfig.VERSION_NAME.isNotEmpty())
-        assertTrue(MapUserAgent.forThisApp().startsWith("Forager/${BuildConfig.VERSION_NAME} (Android "))
+        assertTrue(AppUserAgent.forThisApp().startsWith("Forager/${BuildConfig.VERSION_NAME} (Android "))
     }
 
     @Test
     fun `the contact is the owner's, not the placeholder`() {
-        assertEquals("+https://zynergy-labs.com; support@zynergy-labs.com", MapUserAgent.CONTACT)
+        assertEquals("+https://zynergy-labs.com; support@zynergy-labs.com", AppUserAgent.CONTACT)
     }
 
     @Test
@@ -76,7 +77,7 @@ class MapUserAgentTest {
         assertNotNull("ForagerApplication.onCreate installed no HTTP client into MapLibre", installed)
 
         val seen = sendThrough(installed as OkHttpClient, libraryUserAgent = "MapLibre Android/13.5.0")
-        assertEquals(listOf(MapUserAgent.forThisApp()), seen.headers("User-Agent"))
+        assertEquals(listOf(AppUserAgent.forThisApp()), seen.headers("User-Agent"))
     }
 
     /** Sends a request carrying [libraryUserAgent] through [client]; returns the request as the last interceptor saw it. */
