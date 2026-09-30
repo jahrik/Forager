@@ -57,6 +57,7 @@ import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.map.initializeMapLibre
 import com.zynergylabs.forager.app.ui.map.fanout.FanMember
+import com.zynergylabs.forager.app.ui.map.fanout.FanReopenCoordinator
 import com.zynergylabs.forager.app.ui.map.fanout.MapTapHandler
 import com.zynergylabs.forager.app.ui.map.fanout.MapTapSinks
 import com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutBackHandler
@@ -353,6 +354,14 @@ fun SightingsMap(
     // which exists once the map is ready (getMapAsync below).
     val fanOut = remember { MarkerFanOutState() }
     val tapHandlerRef = remember { TapHandlerRef() }
+    // Item 8 (dispatch -267): reopens the fan a user left; see FanReopenCoordinator.
+    val fanReopen = remember {
+        FanReopenCoordinator(
+            handler = { tapHandlerRef.handler },
+            takeKeys = { currentReturnMemory?.takeFanKeys() },
+            onUnavailable = { count -> Log.w(FAN_OUT_RESTORE_TAG, "The fan of $count markers could not be reopened: fewer than two of them are still drawn.") },
+        )
+    }
     // The room a fan has: this view's bounds, and the controls over it that the screen has measured (MapKeepOut.kt).
     val fanSpace = rememberMapFanSpace()
     // Guards against re-running setStyle on every recomposition, mirroring the deleted osmdroid
@@ -406,8 +415,17 @@ fun SightingsMap(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
-            mapLibreMap?.locationComponent?.onDestroy()
-            mapView.onDestroy()
+            tearDownMap(object : MapTeardownTarget {
+                override fun stopLocationUpdates() {
+                    mapLibreMap?.locationComponent?.onStop()
+                }
+
+                override fun destroyLocationComponent() {
+                    mapLibreMap?.locationComponent?.onDestroy()
+                }
+
+                override fun destroyMapView() = mapView.onDestroy()
+            })
         }
     }
 
@@ -480,6 +498,8 @@ fun SightingsMap(
                 // what a fanned marker's bubble is, means an empty-map tap closes it and leaves the fan.
                 bubbleOpen = { currentFocusedObservationId != null || currentFocusedFeature != null },
                 drawOrder = { orderedLayers(MAP_LAYER_REGISTRY, currentLayersState) },
+                // A record on a layer switched off is not drawn, so it is not a fan member.
+                layerDrawn = { id -> MAP_LAYER_REGISTRY.firstOrNull { it.id == id }?.let { layerPaintFor(it, currentLayersState).visible } ?: false },
                 sinks = object : MapTapSinks {
                     override fun onPlainTap() = currentOnTap()
 
@@ -568,13 +588,7 @@ fun SightingsMap(
                 // restore has been applied by then, and the style load's own content fold, onContentChanged, has run), through
                 // openFanFor. A reopen that comes to nothing is logged, never silent. Whether a later camera move or content
                 // change folds it again is device-only: a real MapView cannot be built under Robolectric.
-                if (loadedStyle != null) {
-                    currentReturnMemory?.takeFanKeys()?.let { keys ->
-                        if (tapHandlerRef.handler?.openFanFor(keys) != true) {
-                            Log.w(FAN_OUT_RESTORE_TAG, "The fan of ${keys.size} markers could not be reopened: fewer than two of them are still drawn.")
-                        }
-                    }
-                }
+                fanReopen.onCameraIdle(loadedStyle != null)
                 // Keeps a shown bubble glued to its glyph across a pan, zoom or rotate gesture: see
                 // reanchorFocusedBubble, which a rotation of the device also calls (onViewportResized below).
                 reanchorFocusedBubble(map)
@@ -764,10 +778,11 @@ fun SightingsMap(
     // loaded style's own layers — no setStyle, so nothing is rebuilt. Keyed on loadedStyle as well,
     // so a freshly loaded style gets the current state; initializeOverlayLayers has already built
     // each layer with it, so for that case this re-sets the same values.
-    // A fanned stack folds when what the map draws changes: its records, its layer switches, its style.
+    // A fanned stack folds when its style is replaced, or when what the map draws changes a member (a record gone or moved, its
+    // layer switched off); a change that leaves its members alone keeps it (intent 2026-09-28-274, "Fold only if members change").
     // Not when a bubble opens (focusedObservationId, focusedFeature): tapping a fanned marker keeps the fan up.
     LaunchedEffect(loadedStyle, sightings, plannedTrips, waypoints, findMarkers, photoMarkers, drawnLayersState, journalHighlights) {
-        tapHandlerRef.handler?.onContentChanged()
+        fanReopen.onContentEffect(loadedStyle != null, loadedStyle)
     }
 
     // Draws the fan: hides the originals of the fanned markers while it is up, and pushes the copies and
