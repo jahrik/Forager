@@ -7658,3 +7658,28 @@ Its record is on device-part-3 at 32534b45 (checked on origin). The phone reads 
 - the fade ending when the fold starts.
 **Next:** map-return-fixes (-267/-270) merges second and resolves the adjacent SightingsMap.kt hunks near :761-785.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-274
+**Timestamp:** 2026-09-30T08:28:53Z
+**Title:** Before map-return-fixes merges: fix the deleted-member reopen under a new fold rule, and run the track sheet round trip
+**Dispatch-file:** preserved/2026-09-30-03.md
+**What came before:** map-return-fixes' report, at head c1f6f282, has the following results:
+- **Passing:** both revert checks, the suite at 3137/0/24, 8c on the fixed build (the fan is up at 1 s and 10 s), and three Journal→Maps round trips with 0 destroyed-view lines (a baseline of 14).
+- **Failing, run by the owner:** after a fan member is deleted from its page, the return closes the fan. The cause is unconfirmed. The coder's leading hypothesis, H4, is that the delete re-emits the markers and the content effect folds the reopened fan.
+- **Not run:** the Records track sheet round trip.
+- **The phone:** at the owner's request, the coder backed up the app's data to ~/Zynergy/device-backup/2026-09-30-forager-s22/, uninstalled and reinstalled the app and restored that data. The owner deleted two test finds. The phone is on the diagnostic build 1.0.1987, whose logging is reverted in the code.
+- **A machine gate was breached once:** a build started at 1918 MB.
+**The owner's answers:**
+- "Fix before merge". The planner's other options were to merge with this as a known issue, or to merge and fix before un-drafting.
+- The rule: **"Fold only if members change"**. A fan stays open through changes that don't touch its members. It re-fans the survivors when a member disappears, and folds when fewer than 2 remain. Hiding its layer folds it.
+**Change:**
+- **Capture first:** the owner taps and the coder logs; if H4 is refuted, the coder stops.
+- Then tests first, the fix, revert checks, the suite and the device checks, including the track sheet round trip.
+- A style reload is not covered by the rule: the coder stops if the rule would need a decision on it.
+- It supersedes the behaviour in FanReopenCoordinatorTest's "a later content change folds the reopened fan".
+**Scope boundary:** the fan's fold rule and the return path. The planner merges; the coder does not.
+**Sequencing:** map-return-fixes merges into journal-redesign after the planner's own suite run on the merged tree. Then S22-B relaunches.
+**Notes:** Written by the planner by hand.
