@@ -41,12 +41,10 @@ class MapReturnMemory(
     /** Remembers that [findId] was opened from the map, with the fan that was open then and the bubble's anchor. */
     fun remember(findId: String, anchorPx: Offset, bearingDeg: Float) {
         request = MapReturnRequest(findId, openFanKeys.toList(), anchorPx, bearingDeg)
-        Log.d(MAP_RETURN_LOG_TAG, "TEMP remember($findId) openFanKeys=${openFanKeys.size}")
     }
 
     /** The user left the find any other way (another tab, an edit, another record): Back does what it did before. */
     fun forget() {
-        Log.d(MAP_RETURN_LOG_TAG, "TEMP forget() hadRequest=${request != null} from: ${Throwable().stackTrace.drop(1).take(4).joinToString(" < ") { it.methodName + ':' + it.lineNumber }}")
         request = null
     }
 
@@ -56,7 +54,6 @@ class MapReturnMemory(
      * request (it belongs to a record the user has since left).
      */
     fun onFindClosed(findId: String): Boolean {
-        Log.d(MAP_RETURN_LOG_TAG, "TEMP onFindClosed($findId) hadRequest=${request != null}")
         val remembered = request ?: return false
         request = null
         if (remembered.findId != findId) return false
@@ -67,9 +64,8 @@ class MapReturnMemory(
 
     /** The find [findId] was deleted from its page: the same return, without its bubble, and a fan that no longer counts it. */
     fun onFindDeleted(findId: String): Boolean {
-        val remembered = request ?: run { Log.d(MAP_RETURN_LOG_TAG, "TEMP onFindDeleted($findId): NO REQUEST"); return false }
+        val remembered = request ?: return false
         request = null
-        Log.d(MAP_RETURN_LOG_TAG, "TEMP onFindDeleted($findId): remembered=${remembered.findId} fanKeys=${remembered.fanKeys.size}")
         if (remembered.findId != findId) return false
         bubbleRestore = null
         fanRestore = remembered.fanKeys.filterNot { it.layerId == MapLayerIds.FINDS && it.featureId == findId }.takeIf { it.isNotEmpty() }
@@ -99,13 +95,11 @@ class MapReturnMemory(
     fun takeFanKeys(): List<FanKey>? {
         val keys = fanRestore
         fanRestore = null
-        Log.d(MAP_RETURN_LOG_TAG, "TEMP takeFanKeys -> ${keys?.size}")
         return keys
     }
 
     /** The Maps tab left composition without using what was waiting: it does not keep it for a later map. */
     fun clearRestore() {
-        Log.d(MAP_RETURN_LOG_TAG, "TEMP clearRestore() hadFan=${fanRestore != null} from: ${Throwable().stackTrace.drop(1).take(4).joinToString(" < ") { it.methodName + ':' + it.lineNumber }}")
         bubbleRestore = null
         fanRestore = null
     }
