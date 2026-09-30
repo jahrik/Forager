@@ -8726,3 +8726,21 @@ The owner picks from the images. Nothing merges from topo-night as built.
   - **(b)** OSM Standard tiles below 9.5 under topo night. -310 reported that OSM Standard does not show the problem. The costs to report: both attributions, OSM's tile usage policy, and offline regions.
 - The owner picks from the images.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-323
+**Timestamp:** 2026-09-30T22:02:09Z
+**Continues:** 2026-09-28-310, after -322
+**The owner's question, verbatim:** "Can we apply hillsides and such after the inversion to keep the natural hues?"
+**The planner's reading:**
+- A layer drawn above the inverted raster is not inverted.
+- No hillshade or raster-dem source exists in main/: MapChrome.kt:242 names hillshade as "later", and docs/audits/2026-09-27-map-layers-and-forecast-data-pulse.md:32 confirms none exists.
+- OpenTopoMap's relief is baked into its tiles, so V1 inverts it.
+**Change:** a third render, **(c)**: OSM Standard below 9.5 with pure V1, plus a non-inverted MapLibre hillshade layer from a raster-dem source (AWS Open Data Terrain Tiles, Terrarium), in night colours. It is also rendered over the V1 topo at 11.
+**Open for the owner:**
+- the DEM's licence against the commercial-safe ruling, reported source by source by the coder;
+- the offline-region cost;
+- building it would be a new feature with its own dispatch.
+**Notes:** Written by the planner by hand.
