@@ -92,8 +92,9 @@ internal const val TOPO_NIGHT_LOW_ZOOM_BRIGHTNESS_MIN = 0.5
  * "Change the zoomed out colors to match the zoomed in colors so that night mode can stay active".
  * Night was not switching off: the paint has no zoom dependence. OpenTopoMap's own low-zoom tiles are
  * tinted (green lowlands, tan hills) and V1, which flips lightness about each pixel's channel mean,
- * turns the saturated greens light (the zoomed-out screenshot's (136,232,120) is V1 of the day
- * screenshot's (56,152,56)). At trail zoom its tiles are pale and V1 makes them dark.
+ * turns the saturated greens light (the zoomed-out night screenshot's dominant (120,216,120) is V1 of
+ * the day screenshot's (72,168,72), which gives (119,215,119); both quantised to 16 levels). At
+ * trail zoom its tiles are pale and V1 makes them dark.
  *
  * **Why half-amplitude V1 and not something else** (measured per zoom in the completion report):
  *  - *Dimming with no inversion* (a `raster-brightness-max` cap, the kind of block the August 2026
@@ -104,6 +105,8 @@ internal const val TOPO_NIGHT_LOW_ZOOM_BRIGHTNESS_MIN = 0.5
  *    applied at every zoom, to pale day ground and dark linework alike, which is the legibility
  *    problem; this paint leaves trail zoom as it is, changes only the zooms below 9.5, and keeps the
  *    inversion there, so labels and linework still flip against the ground.
+ *    The owner, shown both options: "Option A. No dimming. That's tacky and not a true night mode
+ *    option".
  *  - *A blend of V1 and non-inverted paint across the change-over.* `raster-brightness-min` and `-max`
  *    mix `min + (max - min) * rgb`: moving from min above max to min below it passes through
  *    min = max, which renders every pixel the same flat grey. Keeping both ends inverted (`min` 0.5
@@ -114,8 +117,8 @@ internal const val TOPO_NIGHT_LOW_ZOOM_BRIGHTNESS_MIN = 0.5
  *    no raster paint can put both black labels and pale roads above a mid-tone ground.
  *
  * **The known gap.** Low-zoom OpenTopoMap roads are pale yellow, and V1's polarity turns them into
- * the darker thing on the ground: about 0.04 to 0.08 darker than it, where zoomed in they are about
- * 0.1 lighter. Labels come out lighter than the ground at every zoom. The planner withdrew "roads
+ * the darker thing on the ground: 0.03 to 0.07 darker than it (measured), where zoomed in they are
+ * 0.07 to 0.13 lighter. Labels come out lighter than the ground at every zoom. The planner withdrew "roads
  * lighter than the ground" as a condition for this reason (dispatch 2026-09-28-310).
  *
  * Only Topographical takes this: Street is pale at every zoom (mean V1 lightness 0.15 to 0.22 on one
