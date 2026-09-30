@@ -21,8 +21,14 @@ import com.zynergylabs.forager.app.ui.map.layers.TapGroup
  */
 internal const val FAN_FADE_OPACITY = 0.8f
 
-/** The circle behind each fanned copy: 48 dp across, the touch size (the owner: "around 48dp"). */
-internal const val FAN_CIRCLE_DIAMETER_DP = 48f
+/**
+ * The circle behind each fanned copy: 36 dp across (dispatch 2026-09-28-284). It was 48 dp, the touch size (the owner:
+ * "around 48dp"); then, of an open 9-member fan, "The circles are helpful, but I definitely overshot their size. They can
+ * crowd each other as a result.", and "Let's try 36dp for size". The tallest glyphs (the pin and the flag) are about 31 dp
+ * with their casing, so 36 dp leaves them about 2.5 dp around. Only the circle shrinks: the touch area and the spacing
+ * ([com.zynergylabs.forager.app.ui.map.fanout.FAN_TOUCH_DP]) stay 48 dp.
+ */
+internal const val FAN_CIRCLE_DIAMETER_DP = 36f
 
 /** The circle's opacity: the standing 80% of chrome over the map ([MAP_CHROME_OVER_MAP_ALPHA]). */
 internal const val FAN_CIRCLE_OPACITY = MAP_CHROME_OVER_MAP_ALPHA
@@ -54,7 +60,7 @@ internal data class FanCircleStyle(val radiusDp: Float, val colour: Int, val opa
 
 /**
  * The circle in [chromeColour], the map chrome's own colour (the navigation bar's and icon cluster's
- * container, day or night as the app is), 48 dp across at 80%.
+ * container, day or night as the app is), [FAN_CIRCLE_DIAMETER_DP] (36 dp, dispatch 2026-09-28-284) across at 80%.
  */
 internal fun fanCircleStyle(chromeColour: Int): FanCircleStyle =
     FanCircleStyle(radiusDp = FAN_CIRCLE_DIAMETER_DP / 2f, colour = chromeColour, opacity = FAN_CIRCLE_OPACITY)
