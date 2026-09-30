@@ -7438,3 +7438,28 @@ S22-B's launch prompt (-53) already makes the dispatch and its amendments govern
   - M1's "no tail when the clamp puts the card over the point", where the card fits below;
   - the "positioned against the map itself" note for the L and the rail.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-263
+**Timestamp:** 2026-09-30T03:19:03Z
+**Closes:** 2026-09-28-252 (preserved -57, with -255, -256 and -262)
+**Outcome:** completed, with items 2 and 5 at diagnosis by design
+**Observed:**
+- **The planner's full suite** at device-fails b4747cc9: the coder's tree was clean and idle, the results directory was cleared first, and the run used `--offline testDebugUnitTest --continue`. BUILD SUCCESSFUL in 4 m 27 s, 0 `e:` lines. 384 result files, 3132 / 0 / 0 / 24.
+- **The coder's own run** had 1 failure, DiagnosticsPanelTest "the log row shows the log's own text" with CalledFromWrongThreadException, in a class nobody touched. It passed alone and passed in the planner's run, so it is recorded as intermittent and not investigated.
+- **What merged** into journal-redesign, no-ff, from device-fails:
+  - item 6, stack distance 32 dp (e064a071);
+  - item 7, one layer at a time (27a3cf80);
+  - item 4, flip below (9c9019e3);
+  - item 3, the card clear of the L and the rail (af5b4dfe);
+  - item 1, the "i" clear of the L (83e1d35c);
+  - item 8, Back returns to the map (72849a82);
+  - the report: docs/audits/2026-09-30-part-3-device-fails-completion-report.md.
+- **The coder's calls, accepted by the planner:**
+  - item 1 moves the "i" only when the L's bounds intersect it, so 270 is unchanged;
+  - item 8's request also holds the bubble's anchor and bearing.
+- **Superseded, and the source documents not edited:** F4's checklist item 17 (by -255), and M1's "no tail when the clamp puts the card over the point" where the card fits below (by -262).
+**Device-only:** the eight-item recheck table in the report goes to S22-B, together with items 2 and 5's data collection.
+**Notes:** Written by the planner by hand.
