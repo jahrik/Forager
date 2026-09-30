@@ -9019,3 +9019,19 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 - The data rules of -319 and -335 hold unchanged.
 - **If one of the three has not merged when the owner wants the check,** its items are left out and marked "not built". They are never judged on a build without the fix.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-341
+**Timestamp:** 2026-09-30T23:37:49Z
+**Continues:** 2026-09-28-317 (preserved -21)
+**Why:**
+- The dispatch's worktree premise was wrong: branch album-gesture already existed, pushed at be3bcc18 from base b90164b2 by an earlier -317 coder, with a draft report only and nothing built.
+- That draft reports, from the compiled classes, that Image sets Role.Image and that merged semantics make both of the dispatch's approaches (a wrapper Box, or a stable outer node) drop Role.Image on the merged tile, at 4 sites: two album tiles, the find thumbnail in the editor, and the report thumbnail. It proposes (c): DecodedPhoto always composes the same Image, and only the painter changes.
+- This is unverified by the new coder or the planner.
+**Rulings, by the planner, within the dispatch:**
+1. Resume album-gesture and merge journal-redesign in; do not rebase. The draft's claims are re-verified, not trusted.
+2. Build (c), with a test proving that the merged semantics at all 4 sites are unchanged, loaded and not yet loaded. Any difference is a stop, and the owner decides, per the dispatch's stop-and-ask on a semantics change.
+- The test seam is approved: a test-only Robolectric BitmapFactory shadow with a latch, and no production hook.
+**Notes:** Written by the planner by hand.
