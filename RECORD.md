@@ -8863,3 +8863,44 @@ The owner picks from the images. Nothing merges from topo-night as built.
 - One shared interceptor on those three clients sets exactly one User-Agent, from the same single source as the map's (MapUserAgent, which may be moved to an app-wide home).
 - Nothing else about the clients changes.
 **Notes:** Written by the planner by hand. It is queued for Gradle.
+
+---
+
+**Kind:** device-note
+**ID:** 2026-09-28-332
+**Timestamp:** 2026-09-30T22:57:14Z
+**Covers:** installing -310's crossfade build (-328, -329) on the S22 for the owner's check
+**The build:** 1.0.2198+gd072859b, from forager-wt/topo-night. APK sha256 64eb5fb6854b5414…. The planner read the worktree's XML: 394 files and 3214/0/0/24, written at 15:56.
+**The install:** `adb install -r --user 0` at 2026-09-30 15:57:03. User 0's ceDataInode stayed 2259049. databases/forager.db's sha256 is e1188b00…, unchanged.
+**Not done:** no launch, input or screenshot by the planner.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-333
+**Timestamp:** 2026-09-30T23:01:36Z
+**Closes:** 2026-09-28-310 (preserved -18), with continuations -313, -314, -321, -322, -323, -324, -328 and -329
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as 301c67b3, no-ff, from topo-night e595244c. docs/audits/README.md conflicted with -325's row, and both rows were kept.
+- **The owner, verbatim:** "Crossfade works good. I'll keep this design" and "Merge it". That is the owner's device check of 1.0.2198+gd072859b (device-note -332).
+- **The design:**
+  - at topo night only, an OSM Standard raster layer (maxzoom 9.7, opacity 1) sits under the topo layer (minzoom 9.5, raster-opacity interpolated from 0 at 9.5 to 1 at 9.7);
+  - both carry today's V1 NIGHT_RASTER_PAINT, unchanged;
+  - topo day, Street, Satellite and the offline style are byte-identical;
+  - the caption credits both sources at topo night.
+- **The rationale** is in BasemapStyles.kt's KDoc: the owner's "only one can break confidence in the app", and eight rejected alternatives.
+- **The coder's checks:**
+  - TopoNightStreetSwitchTest, with a pin that a fading topo layer never shows tile level 10;
+  - the red run, 3 of 18;
+  - two revert checks;
+  - the full suite, 3214/0/0/24. The planner read that XML (-332).
+- **The planner's check:** the merged head's ui/map code is identical to topo-night's.
+**Not verified:**
+- the merged tree combining -310 and -325 was not built or tested together. They touch disjoint files (ui/map/BasemapStyles and its tests; map/MapHttpClient and map/MapUserAgent). CI on the push is the first combined run;
+- that SightingsMap passes nightMode to the caption, which no test covers. The owner's device check saw the caption.
+**Superseded within the dispatch,** each recorded:
+- the half-amplitude A (-313, -314), rejected on the device (-321);
+- 9.4-9.6 (-328), replaced by 9.5-9.7 (-329).
+**Notes:** Written by the planner by hand.
