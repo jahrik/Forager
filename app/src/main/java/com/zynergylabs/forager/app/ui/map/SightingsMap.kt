@@ -1418,6 +1418,30 @@ internal fun locationIndicatorTrackingAnimationMultiplier(): Float =
     MotionTokens.LOCATION_INDICATOR_MOVE_DURATION_MS / LOCATION_COMPONENT_BASE_ANIMATION_DURATION_MS
 
 /**
+ * The options [activateLiveLocationIfPermitted] hands MapLibre for the puck. Its own function so the
+ * options are unit-testable: `LocationComponentOptions` is a plain value class, unlike the
+ * native-backed `Style` the activation itself needs.
+ */
+internal fun liveLocationComponentOptions(context: Context): LocationComponentOptions =
+    LocationComponentOptions.builder(context)
+        // Duration ratio, not an absolute value: see locationIndicatorTrackingAnimationMultiplier()
+        // above — its base (750ms) came from javap-inspecting the pinned MapLibre artifact, not
+        // public API or documentation, so it can silently go stale on a MapLibre version bump.
+        .trackingAnimationDurationMultiplier(locationIndicatorTrackingAnimationMultiplier())
+        // Below the fan's lowest layer, so an open fan draws over the puck (dispatch 2026-09-28-290).
+        // The owner, on seeing the puck over an open fan: "When the icon expands over user location,
+        // the user location overlaps it. Can the fan icons move on top of the user location instead
+        // of beneath?" With no position given MapLibre adds the puck on top of the style, over the
+        // fan. Only the puck's topmost layer is placed by this; the rest of its layers (accuracy
+        // circle, background, shadow, and the bearing or foreground) are each added directly below
+        // the one before, so the whole puck sits just under the fan, above every registry layer
+        // (13.5.0, read with javap on LocationComponentPositionManager and
+        // SymbolLocationLayerRenderer). The layer must already be in the style: see
+        // addFanOutLayers, which initializeOverlayLayers runs before either activation call.
+        .layerBelow(FanOutIds.LEGS_CASING_LAYER)
+        .build()
+
+/**
  * Turns on MapLibre's own "blue dot" location puck and has the camera follow it — "like regular
  * GPS," the project owner's own framing, rather than the compass strip's pre-existing one-shot
  * locate-me fetch (which still exists unchanged, feeding that strip's own text readout, not the
@@ -1463,15 +1487,9 @@ private fun activateLiveLocationIfPermitted(
 ) {
     if (!hasLocationPermission(context)) return
     val locationComponent = map.locationComponent
-    val locationComponentOptions = LocationComponentOptions.builder(context)
-        // Duration ratio, not an absolute value: see locationIndicatorTrackingAnimationMultiplier()
-        // above — its base (750ms) came from javap-inspecting the pinned MapLibre artifact, not
-        // public API or documentation, so it can silently go stale on a MapLibre version bump.
-        .trackingAnimationDurationMultiplier(locationIndicatorTrackingAnimationMultiplier())
-        .build()
     locationComponent.activateLocationComponent(
         LocationComponentActivationOptions.builder(context, style)
-            .locationComponentOptions(locationComponentOptions)
+            .locationComponentOptions(liveLocationComponentOptions(context))
             .useDefaultLocationEngine(true)
             .build(),
     )
