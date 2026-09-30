@@ -98,10 +98,19 @@ fun MarkerFanOutHost(state: MarkerFanOutState) {
  * simply not composed while the bubble shows, so the bubble's own handler is the one asked; once the bubble
  * closes it is composed again, later than every handler on the screen, and the next Back folds the fan.
  * `AvailabilityScreenFanBubbleDismissalTest` asserts the order against the real screen and dispatcher.
+ *
+ * **And except while the Tools drawer is open ([backEnabled] false):** the drawer goes first and the fan
+ * stays open (dispatch 2026-09-28-293, the owner: "When a fan is spread out and I call the tool panel,
+ * hitting the back button closes the fan instead of the tool panel, when it's expected to close the tool
+ * panel"). Same mechanism as [bubbleOpen]: not composed, so the drawer's own handler is the one asked, and
+ * composed again once the drawer closes, later than everything else, so the next Back folds the fan. This is
+ * deliberately not an always-composed `BackHandler(enabled = ...)`: that would sit where it was first
+ * composed, below the handlers composed since, which is the order the paragraph above exists to avoid.
+ * `AvailabilityScreenFanBackDrawerTest` asserts it against the real screen and dispatcher.
  */
 @Composable
-fun MarkerFanOutBackHandler(state: MarkerFanOutState, bubbleOpen: Boolean = false) {
-    if (state.isOpen && !bubbleOpen) {
+fun MarkerFanOutBackHandler(state: MarkerFanOutState, bubbleOpen: Boolean = false, backEnabled: Boolean = true) {
+    if (state.isOpen && !bubbleOpen && backEnabled) {
         BackHandler { state.fold() }
     }
 }

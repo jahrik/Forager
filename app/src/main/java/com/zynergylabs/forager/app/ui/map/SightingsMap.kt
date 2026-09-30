@@ -280,6 +280,8 @@ fun SightingsMap(
     attributionKeepClear: androidx.compose.ui.geometry.Rect? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.returnMemory]'s own doc comment. */
     returnMemory: MapReturnMemory? = null,
+    /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.backEnabled]'s own doc comment. */
+    backEnabled: Boolean = true,
 ) {
     val context = LocalContext.current
 
@@ -947,7 +949,7 @@ fun SightingsMap(
 
     // The fan's clock, and Back closing it before anything else Back would close.
     MarkerFanOutHost(fanOut)
-    MarkerFanOutBackHandler(fanOut, bubbleOpen = focusedObservationId != null || focusedFeature != null)
+    MarkerFanOutBackHandler(fanOut, bubbleOpen = focusedObservationId != null || focusedFeature != null, backEnabled = backEnabled)
 
     Box(modifier = modifier.fillMaxSize()) {
         AndroidView(
