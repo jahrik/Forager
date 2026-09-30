@@ -7578,3 +7578,37 @@ Its record is on device-part-3 at 32534b45 (checked on origin). The phone reads 
   - 1, 2, 4 and 5 accepted: the fade set is the MARKER kind and tap group; the fade is a multiplier; it ends when the fold starts; the circle replaces the halo.
   - 3 kept: the circle follows the app theme through navigationBarContainerColor(), as the chrome does.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-269
+**Timestamp:** 2026-09-30T07:40:00Z
+**Dispatch:** 2026-09-28-267 (map-return-fixes), and -265 (fan-clarity)
+**Reason:** both coders went silent without handing back. A new planner session found this at about 07:25Z.
+- **map-return-fixes:** the last push was `406eedc0` at 04:33Z. Its worktree held two uncommitted edits, last written at 04:37Z:
+  - `FanReopen.kt` (+13);
+  - `MapTeardown.kt` (+1).
+- **fan-clarity:** nothing after `95b36d76` (04:20Z, "WIP, NOT BUILT OR RUN"), although it was resumed at 04:21Z (record -268).
+- Neither coder's session is reachable. Why they stopped is not known.
+**Changes:**
+- **The uncommitted edits were rescued.** The owner said "Commit and push", and the planner's session committed the two edits as they stood, as `0f6c894c` on `map-return-fixes`. The planner did not write, build or test them, and the commit message says so.
+- **What the edits do:**
+  - the fan reopen waits for both the style-loaded content effect and a camera idle;
+  - `tearDownMap` calls `LocationComponent.onStop()` before the two destroys.
+- **What the coder's own device logs show** (`~/Zynergy/device-evidence/2026-09-30-map-return-fixes/`, read by the planner):
+  - **`a-reopen.log`:** `openFanFor(9) -> true` at 21:30:28.977, then `fan.fold` from `onContentChanged` at .979. This matches the pre-registration's H3.
+  - **`b1-roundtrip.log`:** 14 destroyed-MapView lines on the unfixed build.
+  
+  These are logs of the diagnosis, not a check of the fix.
+- **Continuations were written:**
+  - `-270` (`prompts/preserved/2026-09-30-01.md`) for map-return-fixes;
+  - `-271` (`prompts/preserved/2026-09-30-02.md`) for fan-clarity.
+  
+  They go to Sonnet coders in owner-opened windows. Each resumes from its branch head, and both run at the same time under the existing machine gates.
+- **Flagged:** both branches change `SightingsMap.kt` in adjacent hunks, near :761-785. Whichever merges second will probably need to resolve a textual conflict there.
+- **Left alone:**
+  - an idle Gradle daemon started at about 04:28Z;
+  - S22-B's `adb logcat`, running since about 04:05Z.
+**Sequencing (unchanged from -267):** both fixes merge into journal-redesign, and then S22-B relaunches.
+**Notes:** Written by the planner by hand.
