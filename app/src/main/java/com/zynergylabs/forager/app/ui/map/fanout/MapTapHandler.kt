@@ -102,6 +102,7 @@ class MapTapHandler(
         // A layer switched off since (or one that never fanned) is left out like a deleted record.
         val fanLayers = fanOutLayerIds(order)
         val stack = probe.markersOf(keys.filter { it.layerId in fanLayers }).distinctBy { it.key }
+        android.util.Log.d("MarkerFanOut", "TEMP openFanFor keys=${keys.size} found=${stack.size}")
         if (stack.size < 2) return false
         openFan(stack, order)
         return true
@@ -111,7 +112,10 @@ class MapTapHandler(
     fun onCameraMoveStarted() = fan.fold()
 
     /** What the map draws changed (its records, its layer switches, its style): the fan folds. */
-    fun onContentChanged() = fan.fold()
+    fun onContentChanged() {
+        android.util.Log.d("MarkerFanOut", "TEMP onContentChanged fanOpen=${fan.isOpen} from: ${Throwable().stackTrace.drop(1).take(3).joinToString(" < ") { it.methodName + ':' + it.lineNumber }}")
+        fan.fold()
+    }
 
     private fun FanRect.scaled(by: Float) = FanRect(left * by, top * by, right * by, bottom * by)
 

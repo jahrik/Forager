@@ -22,12 +22,14 @@ class FanReopenCoordinator(
     private var idleSeen = false
 
     fun onContentEffect(styleLoaded: Boolean) {
+        android.util.Log.d("MarkerFanOut", "TEMP coordinator.onContentEffect styleLoaded=$styleLoaded")
         handler()?.onContentChanged()
         if (styleLoaded) contentEffectRan = true
         reopenWhenReady()
     }
 
     fun onCameraIdle(styleLoaded: Boolean) {
+        android.util.Log.d("MarkerFanOut", "TEMP coordinator.onCameraIdle styleLoaded=$styleLoaded")
         if (styleLoaded) idleSeen = true
         reopenWhenReady()
     }
@@ -35,7 +37,9 @@ class FanReopenCoordinator(
     private fun reopenWhenReady() {
         if (!contentEffectRan || !idleSeen) return
         takeKeys()?.let { keys ->
-            if (handler()?.openFanFor(keys) != true) onUnavailable(keys.size)
+            val ok = handler()?.openFanFor(keys) == true
+            android.util.Log.d("MarkerFanOut", "TEMP reopen keys=${keys.size} openFanFor=$ok")
+            if (!ok) onUnavailable(keys.size)
         }
     }
 }

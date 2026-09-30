@@ -64,8 +64,9 @@ class MapReturnMemory(
 
     /** The find [findId] was deleted from its page: the same return, without its bubble, and a fan that no longer counts it. */
     fun onFindDeleted(findId: String): Boolean {
-        val remembered = request ?: return false
+        val remembered = request ?: run { Log.d(MAP_RETURN_LOG_TAG, "TEMP onFindDeleted($findId): no request"); return false }
         request = null
+        Log.d(MAP_RETURN_LOG_TAG, "TEMP onFindDeleted($findId): remembered=${remembered.findId} fanKeys=${remembered.fanKeys.size}")
         if (remembered.findId != findId) return false
         bubbleRestore = null
         fanRestore = remembered.fanKeys.filterNot { it.layerId == MapLayerIds.FINDS && it.featureId == findId }.takeIf { it.isNotEmpty() }
@@ -95,6 +96,7 @@ class MapReturnMemory(
     fun takeFanKeys(): List<FanKey>? {
         val keys = fanRestore
         fanRestore = null
+        Log.d(MAP_RETURN_LOG_TAG, "TEMP takeFanKeys -> ${keys?.size}")
         return keys
     }
 
