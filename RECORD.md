@@ -8744,3 +8744,25 @@ The owner picks from the images. Nothing merges from topo-night as built.
 - the offline-region cost;
 - building it would be a new feature with its own dispatch.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-324
+**Timestamp:** 2026-09-30T22:18:37Z
+**Continues:** 2026-09-28-310, after -323 (renders at topo-night 14ebcc12)
+**The owner's choice, verbatim:** "I notice street maps doesn't have this problem. Maybe switch to street maps instead of topo maps when zoomed out? Only when night maps mode is on. With it off no switch to street occurs."
+**Change:** render (b), night-only.
+- Topo night gets an OSM_STANDARD raster layer (Basemap.kt:165-172, tile.openstreetmap.org) with maxzoom 9.5, under the topo layer with minzoom 9.5. Both carry pure V1.
+- The half-amplitude paint is removed.
+- Topo day, the other basemaps, Satellite and the offline style are byte-identical to today's.
+- Both credits show at topo night.
+- A hard switch at 9.5. A crossfade is reported, not added.
+**Rejected:**
+- (a) deeper topo tiles: labels unreadable below about 8.5, and 30× or more the tiles at zoom 7;
+- (c) OSM plus a DEM hillshade: small gain, a new DEM source, about 15 MB of offline cost per region;
+- a zoom limit on topo.
+**For the owner, reported by the coder and not fixed:**
+- nothing in main/ sets a User-Agent, and OSM's tile policy blocks library defaults. That touches the Street basemap today;
+- OSM's policy forbids offline use and warns commercial users. Offline regions are unaffected, since they use the vector style.
+**Notes:** Written by the planner by hand.
