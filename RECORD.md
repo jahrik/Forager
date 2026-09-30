@@ -8818,3 +8818,17 @@ The owner picks from the images. Nothing merges from topo-night as built.
 - Both keep pure V1. By the coder's reading of 13.5.0, opacity applies after the brightness mix, so there is no grey crossing.
 - Accepted costs: both sources load tiles across 9.4-9.6, and the two sets of roads show through each other in that range.
 **Notes:** Written by the planner by hand. It is queued behind -325 for Gradle.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-329
+**Timestamp:** 2026-09-30T22:44:52Z
+**Continues:** 2026-09-28-310, after -328
+**Why:** the coder measured co-registered samples with V1 on both layers. Over -328's 9.4-9.6 range, topo still shows OpenTopoMap tile level 10 until 9.5, so the fade lightens to a median of 0.353 just under 9.5 (the limit is 0.345), then snaps dark at tile level 11.
+**The owner's reasons,** recorded for the KDoc, verbatim: "But it does look a lot better than switching to day mode suddenly. We have two tradeoffs and only one can break confidence in the app."
+**Ruling, by the planner, within the owner's rule of never showing a light map:** the fade is **9.5-9.7**.
+- Street maxzoom 9.7 at opacity 1; topo minzoom 9.5, with opacity from 0 at 9.5 to 1 at 9.7.
+- Only tile level 11 ever fades in. The modelled blend has a mean of 0.22-0.27, and the dark limit stays with no allowance.
+- -328's 9.4-9.6 is superseded.
+**Notes:** Written by the planner by hand.
