@@ -10,7 +10,7 @@ import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
-import androidx.compose.ui.test.onNode
+import androidx.compose.ui.semantics.getOrNull
 import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.LatLng
@@ -190,19 +190,140 @@ class DecodedPhotoSemanticsTest {
         const val SEMDUMP_MARKER = "NOT-RECORDED"
 
         /**
-         * Captured on the unfixed build; see the class doc. `NOT-RECORDED` entries are filled from the
-         * first run's failure message, then the class is re-run on the unfixed build to show it passes
-         * there before the fix is applied.
+         * Captured on the unfixed build (`DecodedPhoto` a `Box` until loaded, then an `Image`) from the
+         * failure message of the first run, whose goldens were still [SEMDUMP_MARKER]; see the class doc.
+         * Read off them: the not-yet-loaded placeholder carries no ContentDescription and no Role, and
+         * the loaded node carries exactly those two more, so the fix must add them only on load.
          */
         val GOLDEN: Map<String, String> = mapOf(
-            "album-wired/not yet loaded" to SEMDUMP_MARKER,
-            "album-wired/loaded" to SEMDUMP_MARKER,
-            "album-unwired/not yet loaded" to SEMDUMP_MARKER,
-            "album-unwired/loaded" to SEMDUMP_MARKER,
-            "editor/not yet loaded" to SEMDUMP_MARKER,
-            "editor/loaded" to SEMDUMP_MARKER,
-            "report/not yet loaded" to SEMDUMP_MARKER,
-            "report/loaded" to SEMDUMP_MARKER,
+            "album-wired/not yet loaded" to listOf(
+                "-- merged --",
+                "CustomActions=[custom(Delete)]",
+                "Focused=false",
+                "OnClick=action(label=Open full screen)",
+                "OnLongClick=action(label=Options for photo)",
+                "RequestFocus=action(label=null)",
+                "Shape=RectangleShape",
+                "-- unmerged --",
+                "CustomActions=[custom(Delete)]",
+                "Focused=false",
+                "OnClick=action(label=Open full screen)",
+                "OnLongClick=action(label=Options for photo)",
+                "RequestFocus=action(label=null)",
+                "Shape=RectangleShape",
+                "-- unmerged children: 0 --",
+            ).joinToString("\n"),
+            "album-wired/loaded" to listOf(
+                "-- merged --",
+                "ContentDescription=[Log photo]",
+                "CustomActions=[custom(Delete)]",
+                "Focused=false",
+                "OnClick=action(label=Open full screen)",
+                "OnLongClick=action(label=Options for photo)",
+                "RequestFocus=action(label=null)",
+                "Role=Image",
+                "Shape=RectangleShape",
+                "-- unmerged --",
+                "ContentDescription=[Log photo]",
+                "CustomActions=[custom(Delete)]",
+                "Focused=false",
+                "OnClick=action(label=Open full screen)",
+                "OnLongClick=action(label=Options for photo)",
+                "RequestFocus=action(label=null)",
+                "Role=Image",
+                "Shape=RectangleShape",
+                "-- unmerged children: 0 --",
+            ).joinToString("\n"),
+            "album-unwired/not yet loaded" to listOf(
+                "-- merged --",
+                "Focused=false",
+                "OnClick=action(label=Open full screen)",
+                "RequestFocus=action(label=null)",
+                "Shape=RectangleShape",
+                "-- unmerged --",
+                "Focused=false",
+                "OnClick=action(label=Open full screen)",
+                "RequestFocus=action(label=null)",
+                "Shape=RectangleShape",
+                "-- unmerged children: 0 --",
+            ).joinToString("\n"),
+            "album-unwired/loaded" to listOf(
+                "-- merged --",
+                "ContentDescription=[Log photo]",
+                "Focused=false",
+                "OnClick=action(label=Open full screen)",
+                "RequestFocus=action(label=null)",
+                "Role=Image",
+                "Shape=RectangleShape",
+                "-- unmerged --",
+                "ContentDescription=[Log photo]",
+                "Focused=false",
+                "OnClick=action(label=Open full screen)",
+                "RequestFocus=action(label=null)",
+                "Role=Image",
+                "Shape=RectangleShape",
+                "-- unmerged children: 0 --",
+            ).joinToString("\n"),
+            "editor/not yet loaded" to listOf(
+                "-- merged --",
+                "Focused=false",
+                "OnClick=action(label=Open full screen)",
+                "RequestFocus=action(label=null)",
+                "Shape=RectangleShape",
+                "-- unmerged --",
+                "Focused=false",
+                "OnClick=action(label=Open full screen)",
+                "RequestFocus=action(label=null)",
+                "Shape=RectangleShape",
+                "-- unmerged children: 0 --",
+            ).joinToString("\n"),
+            "editor/loaded" to listOf(
+                "-- merged --",
+                "ContentDescription=[Log photo]",
+                "Focused=false",
+                "OnClick=action(label=Open full screen)",
+                "RequestFocus=action(label=null)",
+                "Role=Image",
+                "Shape=RectangleShape",
+                "-- unmerged --",
+                "ContentDescription=[Log photo]",
+                "Focused=false",
+                "OnClick=action(label=Open full screen)",
+                "RequestFocus=action(label=null)",
+                "Role=Image",
+                "Shape=RectangleShape",
+                "-- unmerged children: 0 --",
+            ).joinToString("\n"),
+            "report/not yet loaded" to listOf(
+                "-- merged --",
+                "Focused=false",
+                "OnClick=action(label=Open full screen)",
+                "RequestFocus=action(label=null)",
+                "Shape=RectangleShape",
+                "-- unmerged --",
+                "Focused=false",
+                "OnClick=action(label=Open full screen)",
+                "RequestFocus=action(label=null)",
+                "Shape=RectangleShape",
+                "-- unmerged children: 0 --",
+            ).joinToString("\n"),
+            "report/loaded" to listOf(
+                "-- merged --",
+                "ContentDescription=[Log photo]",
+                "Focused=false",
+                "OnClick=action(label=Open full screen)",
+                "RequestFocus=action(label=null)",
+                "Role=Image",
+                "Shape=RectangleShape",
+                "-- unmerged --",
+                "ContentDescription=[Log photo]",
+                "Focused=false",
+                "OnClick=action(label=Open full screen)",
+                "RequestFocus=action(label=null)",
+                "Role=Image",
+                "Shape=RectangleShape",
+                "-- unmerged children: 0 --",
+            ).joinToString("\n"),
         )
     }
 }
