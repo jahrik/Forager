@@ -7278,3 +7278,17 @@ The planner confirmed each by grep.
 **Changes:** an amendment to preserved/2026-09-29-51. At its end, S22-B restores the phone to S22-A's a-copy (schema 16, before Part 3), not to its own copy, and re-reads the migration.
 **Note:** the three S22-A coders dismissed a system prompt twice, deleted a record that was not theirs, and changed a setting by a stray tap. A device dispatch's rules did not prevent any of these. That is the owner's to weigh for S22-B's launch prompt.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-254
+**Timestamp:** 2026-09-30T00:24:02Z
+**Dispatch:** 2026-09-28-227 (Part 3), S22-B
+**Reason:** the owner, verbatim: "Yes add the two rules to S22B", after S22-A's incidents (-251, -253).
+**Changes:** an amendment to preserved/2026-09-29-51, with two rules for S22-B:
+- any system prompt means stop for the owner, and no Back or Home key is sent unattended;
+- a record's name is read from a dump before any delete and checked again while Undo is on screen, one delete per command.
+
+S22-B's launch prompt (-53) already makes the dispatch and its amendments govern, so it is unchanged.
+**Notes:** Written by the planner by hand.
