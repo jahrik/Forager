@@ -20,9 +20,14 @@ class FanReopenCoordinator(
     // open fan, so a fan opened before it runs is folded at once) and a camera idle (the camera restore has settled).
     private var contentEffectRan = false
     private var idleSeen = false
+    private var lastStyle: Any? = NO_STYLE_YET
 
     fun onContentEffect(styleLoaded: Boolean, style: Any? = styleLoaded) {
-        handler()?.onContentChanged()
+        // A replaced style is not named by the owner's rule ("Fold only if members change", intent 2026-09-28-274) and
+        // folds the fan as it always did; any other content change folds it only if a member changed.
+        val replaced = style != lastStyle
+        lastStyle = style
+        if (replaced) handler()?.onStyleChanged() else handler()?.onContentChanged()
         if (styleLoaded) contentEffectRan = true
         reopenWhenReady()
     }
@@ -39,3 +44,5 @@ class FanReopenCoordinator(
         }
     }
 }
+
+private val NO_STYLE_YET = Any()

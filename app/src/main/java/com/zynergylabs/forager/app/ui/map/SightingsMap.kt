@@ -498,6 +498,8 @@ fun SightingsMap(
                 // what a fanned marker's bubble is, means an empty-map tap closes it and leaves the fan.
                 bubbleOpen = { currentFocusedObservationId != null || currentFocusedFeature != null },
                 drawOrder = { orderedLayers(MAP_LAYER_REGISTRY, currentLayersState) },
+                // A record on a layer switched off is not drawn, so it is not a fan member.
+                layerDrawn = { id -> MAP_LAYER_REGISTRY.firstOrNull { it.id == id }?.let { layerPaintFor(it, currentLayersState).visible } ?: false },
                 sinks = object : MapTapSinks {
                     override fun onPlainTap() = currentOnTap()
 
@@ -776,10 +778,11 @@ fun SightingsMap(
     // loaded style's own layers — no setStyle, so nothing is rebuilt. Keyed on loadedStyle as well,
     // so a freshly loaded style gets the current state; initializeOverlayLayers has already built
     // each layer with it, so for that case this re-sets the same values.
-    // A fanned stack folds when what the map draws changes: its records, its layer switches, its style.
+    // A fanned stack folds when its style is replaced, or when what the map draws changes a member (a record gone or moved, its
+    // layer switched off); a change that leaves its members alone keeps it (intent 2026-09-28-274, "Fold only if members change").
     // Not when a bubble opens (focusedObservationId, focusedFeature): tapping a fanned marker keeps the fan up.
     LaunchedEffect(loadedStyle, sightings, plannedTrips, waypoints, findMarkers, photoMarkers, drawnLayersState, journalHighlights) {
-        fanReopen.onContentEffect(loadedStyle != null)
+        fanReopen.onContentEffect(loadedStyle != null, loadedStyle)
     }
 
     // Draws the fan: hides the originals of the fanned markers while it is up, and pushes the copies and
