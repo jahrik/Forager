@@ -50,10 +50,13 @@ internal enum class MarkerGlyph(val widthDp: Float, val heightDp: Float, val anc
 }
 
 /**
- * STUB (tests first): the `icon-offset` that puts [this] glyph's fill-extent centre on the point its
- * image is anchored to, in dp. Not yet implemented.
+ * The `icon-offset`, in dp, that puts this glyph's fill-extent centre on the point its image is placed
+ * at with `icon-anchor: center` (dispatch 2026-09-28-275). The image is centred on the glyph's anchor,
+ * and `icon-offset` moves it from there, positive right and down, so it moves by the anchor minus the
+ * extent's half: a pin whose body centre is 14dp above its tip moves 14dp down. Zero for a glyph
+ * anchored at its centre. Only a fan's copies apply it; everywhere else the anchor is on the coordinate.
  */
-internal fun MarkerGlyph.fanCentringOffsetDp(): FanOffset = FanOffset(0f, 0f)
+internal fun MarkerGlyph.fanCentringOffsetDp(): FanOffset = FanOffset(anchorXDp - widthDp / 2, anchorYDp - heightDp / 2)
 
 /** How a [GlyphPart] is painted. Only [FILL] parts are cased. */
 internal enum class GlyphPaint {
