@@ -8960,3 +8960,14 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 - A test fails when SightingsMap stops passing nightMode to the caption.
 - For the crossfade: first confirm what is uncovered. Either add the smallest test that fails on the hard-switch style, or report that the existing tests already cover it.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** device-note
+**ID:** 2026-09-28-337
+**Timestamp:** 2026-09-30T23:21:43Z
+**Covers:** the build -319 runs on (-335)
+**The build:** 1.0.2220+g46b28a74, built by the planner with `--offline :app:assembleDebug` in the journal-redesign worktree at 46b28a74. It carries -310, -325 and -331. BUILD SUCCESSFUL, 0 `e:` lines.
+**The install:** `adb install -r --user 0`. User 0's ceDataInode stayed 2259049. databases/forager.db's sha256 was read and recorded before -319 starts.
+**Not done:** no launch or input by the planner.
+**Notes:** Written by the planner by hand.
