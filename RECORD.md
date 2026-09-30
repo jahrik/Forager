@@ -7612,3 +7612,17 @@ Its record is on device-part-3 at 32534b45 (checked on origin). The phone reads 
   - S22-B's `adb logcat`, running since about 04:05Z.
 **Sequencing (unchanged from -267):** both fixes merge into journal-redesign, and then S22-B relaunches.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-272
+**Timestamp:** 2026-09-30T07:50:00Z
+**Title:** Amendment to -270: the deleted-member reopen case may change test records
+**Dispatch-file:** preserved/2026-09-30-01.md (the amendment is appended there)
+**Change:** the map-return-fixes coder may run Part A's deleted-member case.
+- It may delete one member of a fan. S22-B's test finds are used if they fan; if not, at most two test finds are created so that they do.
+- The owner's own records are never touched.
+- Every find created or deleted is named in the report.
+**The owner's answer:** "The coder has my authorization to run it".
+**Notes:** Written by the planner by hand. The planner read "run it" as this case, the one the -270 hand-off named as needing a record change.
