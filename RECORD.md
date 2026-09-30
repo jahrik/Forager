@@ -7292,3 +7292,18 @@ The planner confirmed each by grep.
 
 S22-B's launch prompt (-53) already makes the dispatch and its amendments govern, so it is unchanged.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-255
+**Timestamp:** 2026-09-30T00:31:37Z
+**Dispatch:** 2026-09-28-252 (the Part 3 device fails)
+**Reason:** the owner, from their own use of the S22, with two screenshots: the fan triggers for markers that do not overlap, and an empty-map tap from a fan member's bubble closes both the bubble and the fan. Asked, the owner chose "32 dp" and Back "Yes, same order".
+**Changes:** an amendment to preserved/2026-09-29-57 adds two items.
+- **Item 6:** the stacking distance goes from 48 dp to 32 dp, as its own constant. FAN_TOUCH_DP and the fan's spacing are unchanged.
+- **Item 7:** an empty-map tap or Back closes the bubble first, and a second one folds the fan.
+**Supersedes, in part:** F4's "Back folds the fan first" order, which S22-A observed as A2 items 15 and 17.
+**Notes:**
+- The 15 dp by 35 dp distance of the owner's example is the planner's estimate from the screenshot, not a measurement.
+- Written by the planner by hand.
