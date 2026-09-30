@@ -210,7 +210,7 @@ class FoldOnlyIfMembersChangeTest {
         remove(b)
         reopen.onContentEffect(styleLoaded = true, style = secondStyle)
 
-        assertTrue(fan.isOpen)
+        assertTrue("a replaced style that removed a member re-fans the survivors, it does not fold", fan.isOpen)
         assertEquals("the survivors, without the one gone", setOf(a, c), fan.members.map { it.key }.toSet())
         assertNotEquals("re-fanned over the survivors, through openFanFor", generation, fan.generation)
     }
@@ -261,7 +261,7 @@ class FoldOnlyIfMembersChangeTest {
         assertEquals("setup: the survivors", setOf(a, c), fan.members.map { it.key }.toSet())
         reopen.onContentEffect(styleLoaded = true, style = Any()) // night mode switched
 
-        assertTrue(fan.isOpen)
+        assertTrue("the reopened survivors stay open through a night-mode style reload", fan.isOpen)
         assertEquals(setOf(a, c), fan.members.map { it.key }.toSet())
     }
 }
