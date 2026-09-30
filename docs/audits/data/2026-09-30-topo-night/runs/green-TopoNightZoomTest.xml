@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.TopoNightZoomTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-09-30T21:18:10.887Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="11.693">
+  <properties/>
+  <testcase name="labels stay lighter than the ground at every sampled zoom" classname="com.zynergylabs.forager.app.ui.map.TopoNightZoomTest" time="8.034"/>
+  <testcase name="topo night at every sampled zoom is in the band of today's zoomed-in night" classname="com.zynergylabs.forager.app.ui.map.TopoNightZoomTest" time="0.904"/>
+  <testcase name="zoomed-in tiles come out exactly as today's V1" classname="com.zynergylabs.forager.app.ui.map.TopoNightZoomTest" time="1.38"/>
+  <testcase name="the model's V1 is nightColorOf over every sampled tile colour" classname="com.zynergylabs.forager.app.ui.map.TopoNightZoomTest" time="0.618"/>
+  <testcase name="zoom expressions evaluate as the style spec defines them, and anything else is refused" classname="com.zynergylabs.forager.app.ui.map.TopoNightZoomTest" time="0.069"/>
+  <testcase name="raster tile zoom is one ahead of the map zoom for 256 px tiles and rounds half up" classname="com.zynergylabs.forager.app.ui.map.TopoNightZoomTest" time="0.054"/>
+  <testcase name="Street's night style JSON is byte-identical to before" classname="com.zynergylabs.forager.app.ui.map.TopoNightZoomTest" time="0.063"/>
+  <testcase name="Satellite's night style JSON is byte-identical to its day JSON" classname="com.zynergylabs.forager.app.ui.map.TopoNightZoomTest" time="0.059"/>
+  <testcase name="day style JSON is byte-identical to before for every basemap" classname="com.zynergylabs.forager.app.ui.map.TopoNightZoomTest" time="0.06"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

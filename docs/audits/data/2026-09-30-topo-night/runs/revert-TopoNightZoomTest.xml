@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.TopoNightZoomTest" tests="9" skipped="0" failures="1" errors="0" timestamp="2026-09-30T21:20:39.573Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="10.39">
+  <properties/>
+  <testcase name="labels stay lighter than the ground at every sampled zoom" classname="com.zynergylabs.forager.app.ui.map.TopoNightZoomTest" time="6.992"/>
+  <testcase name="topo night at every sampled zoom is in the band of today's zoomed-in night" classname="com.zynergylabs.forager.app.ui.map.TopoNightZoomTest" time="0.937">
+    <failure message="java.lang.AssertionError: topo night leaves the zoomed-in band:&#10;tile z7 at map zoom 5.5: mean lightness 0.466, band [0.201, 0.345]&#10;tile z7 at map zoom 5.5: ground (median) lightness 0.481, band [0.145, 0.261]&#10;tile z7 at map zoom 6.0: mean lightness 0.466, band [0.201, 0.345]&#10;tile z7 at map zoom 6.0: ground (median) lightness 0.481, band [0.145, 0.261]&#10;tile z7 at map zoom 6.499999: mean lightness 0.466, band [0.201, 0.345]&#10;tile z7 at map zoom 6.499999: ground (median) lightness 0.481, band [0.145, 0.261]&#10;tile z8 at map zoom 6.5: mean lightness 0.429, band [0.201, 0.345]&#10;tile z8 at map zoom 6.5: ground (median) lightness 0.408, band [0.145, 0.261]&#10;tile z8 at map zoom 7.0: mean lightness 0.429, band [0.201, 0.345]&#10;tile z8 at map zoom 7.0: ground (median) lightness 0.408, band [0.145, 0.261]&#10;tile z8 at map zoom 7.499999: mean lightness 0.429, band [0.201, 0.345]&#10;tile z8 at map zoom 7.499999: ground (median) lightness 0.408, band [0.145, 0.261]&#10;tile z9 at map zoom 7.5: mean lightness 0.416, band [0.201, 0.345]&#10;tile z9 at map zoom 7.5: ground (median) lightness 0.392, band [0.145, 0.261]&#10;tile z9 at map zoom 8.0: mean lightness 0.416, band [0.201, 0.345]&#10;tile z9 at map zoom 8.0: ground (median) lightness 0.392, band [0.145, 0.261]&#10;tile z9 at map zoom 8.499999: mean lightness 0.416, band [0.201, 0.345]&#10;tile z9 at map zoom 8.499999: ground (median) lightness 0.392, band [0.145, 0.261]&#10;tile z10 at map zoom 8.5: mean lightness 0.444, band [0.201, 0.345]&#10;tile z10 at map zoom 8.5: ground (median) lightness 0.438, band [0.145, 0.261]&#10;tile z10 at map zoom 9.0: mean lightness 0.444, band [0.201, 0.345]&#10;tile z10 at map zoom 9.0: ground (median) lightness 0.438, band [0.145, 0.261]&#10;tile z10 at map zoom 9.499999: mean lightness 0.444, band [0.201, 0.345]&#10;tile z10 at map zoom 9.499999: ground (median) lightness 0.438, band [0.145, 0.261]" type="java.lang.AssertionError">java.lang.AssertionError: topo night leaves the zoomed-in band:
+tile z7 at map zoom 5.5: mean lightness 0.466, band [0.201, 0.345]
+tile z7 at map zoom 5.5: ground (median) lightness 0.481, band [0.145, 0.261]
+tile z7 at map zoom 6.0: mean lightness 0.466, band [0.201, 0.345]
+tile z7 at map zoom 6.0: ground (median) lightness 0.481, band [0.145, 0.261]
+tile z7 at map zoom 6.499999: mean lightness 0.466, band [0.201, 0.345]
+tile z7 at map zoom 6.499999: ground (median) lightness 0.481, band [0.145, 0.261]
+tile z8 at map zoom 6.5: mean lightness 0.429, band [0.201, 0.345]
+tile z8 at map zoom 6.5: ground (median) lightness 0.408, band [0.145, 0.261]
+tile z8 at map zoom 7.0: mean lightness 0.429, band [0.201, 0.345]
+tile z8 at map zoom 7.0: ground (median) lightness 0.408, band [0.145, 0.261]
+tile z8 at map zoom 7.499999: mean lightness 0.429, band [0.201, 0.345]
+tile z8 at map zoom 7.499999: ground (median) lightness 0.408, band [0.145, 0.261]
+tile z9 at map zoom 7.5: mean lightness 0.416, band [0.201, 0.345]
+tile z9 at map zoom 7.5: ground (median) lightness 0.392, band [0.145, 0.261]
+tile z9 at map zoom 8.0: mean lightness 0.416, band [0.201, 0.345]
+tile z9 at map zoom 8.0: ground (median) lightness 0.392, band [0.145, 0.261]
+tile z9 at map zoom 8.499999: mean lightness 0.416, band [0.201, 0.345]
+tile z9 at map zoom 8.499999: ground (median) lightness 0.392, band [0.145, 0.261]
+tile z10 at map zoom 8.5: mean lightness 0.444, band [0.201, 0.345]
+tile z10 at map zoom 8.5: ground (median) lightness 0.438, band [0.145, 0.261]
+tile z10 at map zoom 9.0: mean lightness 0.444, band [0.201, 0.345]
+tile z10 at map zoom 9.0: ground (median) lightness 0.438, band [0.145, 0.261]
+tile z10 at map zoom 9.499999: mean lightness 0.444, band [0.201, 0.345]
+tile z10 at map zoom 9.499999: ground (median) lightness 0.438, band [0.145, 0.261]
+	at org.junit.Assert.fail(Assert.java:89)
+	at com.zynergylabs.forager.app.ui.map.TopoNightZoomTest.topo night at every sampled zoom is in the band of today's zoomed-in night(TopoNightZoomTest.kt:125)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate(RobolectricTestRunner.java:524)
+	at org.robolectric.internal.SandboxTestRunner.executeInSandbox(SandboxTestRunner.java:494)
+	at org.robolectric.internal.SandboxTestRunner.access$900(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$7.evaluate(SandboxTestRunner.java:442)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.robolectric.internal.SandboxTestRunner.access$600(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$6.evaluate(SandboxTestRunner.java:333)
+	at org.robolectric.internal.SandboxTestRunner$3.evaluate(SandboxTestRunner.java:233)
+	at org.robolectric.internal.SandboxTestRunner$5.lambda$evaluate$0(SandboxTestRunner.java:317)
+	at org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0(Sandbox.java:101)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</failure>
+  </testcase>
+  <testcase name="zoomed-in tiles come out exactly as today's V1" classname="com.zynergylabs.forager.app.ui.map.TopoNightZoomTest" time="1.215"/>
+  <testcase name="the model's V1 is nightColorOf over every sampled tile colour" classname="com.zynergylabs.forager.app.ui.map.TopoNightZoomTest" time="0.56"/>
+  <testcase name="zoom expressions evaluate as the style spec defines them, and anything else is refused" classname="com.zynergylabs.forager.app.ui.map.TopoNightZoomTest" time="0.075"/>
+  <testcase name="raster tile zoom is one ahead of the map zoom for 256 px tiles and rounds half up" classname="com.zynergylabs.forager.app.ui.map.TopoNightZoomTest" time="0.052"/>
+  <testcase name="Street's night style JSON is byte-identical to before" classname="com.zynergylabs.forager.app.ui.map.TopoNightZoomTest" time="0.049"/>
+  <testcase name="Satellite's night style JSON is byte-identical to its day JSON" classname="com.zynergylabs.forager.app.ui.map.TopoNightZoomTest" time="0.05"/>
+  <testcase name="day style JSON is byte-identical to before for every basemap" classname="com.zynergylabs.forager.app.ui.map.TopoNightZoomTest" time="0.05"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
