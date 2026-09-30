@@ -40,7 +40,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -48,7 +47,6 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -129,21 +127,15 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.PermanentDrawerSheet
-import androidx.compose.material3.PermanentNavigationDrawer
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
-import androidx.compose.material3.Tab
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.VerticalDivider
@@ -169,7 +161,6 @@ import kotlinx.coroutines.launch
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
@@ -192,7 +183,6 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.VisualTransformation
@@ -204,8 +194,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.zynergylabs.forager.app.BuildConfig
@@ -257,8 +245,6 @@ import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import com.zynergylabs.forager.app.sensor.AndroidCompassProvider
 import com.zynergylabs.forager.app.sensor.AndroidDeclinationProvider
-import com.zynergylabs.forager.app.ui.adaptive.WindowWidthClass
-import com.zynergylabs.forager.app.ui.adaptive.currentWindowWidthClass
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.ime
@@ -269,15 +255,14 @@ import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.ui.platform.LocalConfiguration
 import com.zynergylabs.forager.app.ui.log.ScreenEdge
-import com.zynergylabs.forager.app.ui.adaptive.isShortWindow
 import com.zynergylabs.forager.app.ui.backup.BackupControls
 import com.zynergylabs.forager.app.ui.adaptive.currentWindowPortEdge
+import com.zynergylabs.forager.app.ui.adaptive.isLandscapeWindow
 import com.zynergylabs.forager.app.ui.adaptive.punchHoleEdgeFor
 import com.zynergylabs.forager.app.ui.log.currentDisplayRotation
 import com.zynergylabs.forager.app.ui.crash.CrashLogPanel
 import com.zynergylabs.forager.app.ui.crash.CrashLogsEntryRow
 import com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsEntryRow
-import com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsPanel
 import com.zynergylabs.forager.app.ui.log.CartographyUiState
 import com.zynergylabs.forager.app.ui.log.CameraXInAppCamera
 import com.zynergylabs.forager.app.ui.log.InAppCameraHost
@@ -290,10 +275,7 @@ import com.zynergylabs.forager.app.ui.log.JournalTab
 import com.zynergylabs.forager.app.ui.log.leaveKeepsDraft
 import com.zynergylabs.forager.app.ui.log.PendingDeleteNotice
 import com.zynergylabs.forager.app.ui.log.PendingDeleteSnackbarEffects
-import com.zynergylabs.forager.app.ui.log.JournalDetailPane
-import com.zynergylabs.forager.app.ui.log.JournalDetailSlot
 import com.zynergylabs.forager.app.ui.log.rememberJournalScreenState
-import com.zynergylabs.forager.app.ui.log.LogPanel
 import com.zynergylabs.forager.app.ui.log.MushroomLogUiState
 import com.zynergylabs.forager.app.ui.log.PendingJournalDestination
 import com.zynergylabs.forager.app.ui.map.MapRecordSources
@@ -365,45 +347,6 @@ internal enum class ResultsTab(val label: String) {
     SEASONAL("Seasonal"),
 }
 
-/**
- * The medium/expanded window's drawer panels — see [AvailabilityScreen]'s doc comment on
- * `drawerPanel` for how they're switched between. [Settings] and [Log] are both reached from
- * sticky entries at the bottom of [Search] (see [SettingsEntryRow]/`MushroomLogEntryRow`).
- * Closing the drawer entirely resets all the way back to [Search] regardless of which panel was
- * showing.
- *
- * **No longer holds [OfflineMaps] or `Tracks`.** Journal restructure Stage 1 moved both into the
- * Journal's own Records tab ([RecordsTab] in `ui/log/`) — [Settings] now goes straight to
- * [CrashLogs] as its only remaining submenu.
- *
- * [Log] additionally opens directly — bypassing [Search] — from the map's "Log a find" option
- * (chosen from [ThreeWayActionDialog], then placed via [com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker]);
- * see [MapTab]'s `onLogFindHere` call site in [AvailabilityScreen].
- *
- * **Compact windows no longer use this at all.** [Log] moved to the bottom nav
- * ([CompactTab.JOURNAL] — see [ForagerBottomNav]'s doc comment); [Settings] is reached one level
- * deeper still, from a sticky entry at the bottom of the compact drawer's own content (see
- * [CompactToolsDrawerContent]'s `showSettings` state, which hosts [CompactSettingsTab] the same
- * way this enum's own [Settings] does here). That compact drawer is now [CompactTab.TOOLS]'s
- * destination (map/navigation redesign dispatch B) rather than search-only, so unlike [Search]
- * above it is not the drawer's single fixed content — [Settings] there is a nested state within
- * it, not a sibling reached by closing and reopening. This enum, [drawerSheetContent], and the
- * `PermanentNavigationDrawer` it feeds stay exactly as they were before any of that — untouched,
- * medium/expanded-only — see docs/plans/map-redesign.md's "Scope decision" section.
- */
-private enum class DrawerPanel {
-    Search,
-    Settings,
-    CrashLogs,
-    // Debug builds only: the entry row that reaches it composes nothing in release, so this
-    // value is unreachable there — see ui/diagnostics/DiagnosticsPanel.kt (both source sets).
-    Diagnostics,
-    Log,
-    // The standalone Photo Gallery panel that stood here (Workstream G2) was removed in J6a (owner,
-    // 2026-09-28, ruling 2: "the old Photo Gallery panel is removed. Only the album remains, as on the
-    // phone"); its photos, and now their long-press delete, are the Journal's album.
-}
-
 /** How long a first back press keeps "exit on the next one" armed — see [AvailabilityScreen]. */
 private const val DOUBLE_BACK_EXIT_WINDOW_MS = 2000L
 
@@ -455,8 +398,7 @@ fun AvailabilityScreen(
     onDeletePlannedTrip: (String) -> Unit,
     /**
      * Called when one of the recent searches is tapped; see [RecentSearchesSection]. Reached from
-     * the medium/expanded drawer's own [DrawerPanel.Search] panel, or from [SearchDropdown] on
-     * compact windows.
+     * [SearchDropdown].
      */
     onRecentSearchSelected: (CachedSearchSummary) -> Unit,
     /**
@@ -506,7 +448,7 @@ fun AvailabilityScreen(
      */
     onMapFullscreenChanged: (Boolean) -> Unit = {},
     /**
-     * The mushroom log drawer destination's own state — see [com.zynergylabs.forager.app.ui.log.LogPanel].
+     * The mushroom log's own state, read by the Journal tab ([JournalTab]).
      * Defaulted, like [mapSlot] below, so the many existing tests of this screen that have nothing
      * to do with the log don't need to pass log-specific state and callbacks just to compile.
      */
@@ -536,9 +478,8 @@ fun AvailabilityScreen(
     /**
      * Opens a row and, if it's a committed entry, immediately begins editing it — one atomic
      * ViewModel operation ([com.zynergylabs.forager.app.ui.log.MushroomLogViewModel.onOpenEntryForEditing]),
-     * not [onOpenLogEntry] and [onStartEditingLogEntry] chained here. [LogPanel]'s own entry list
-     * is the one caller (see that composable's own doc comment on why its "no report step" shape
-     * needs this instead of the two-callback chain [JournalTab] still uses).
+     * not [onOpenLogEntry] and [onStartEditingLogEntry] chained here. A find tile's long-press Edit
+     * in [JournalTab] calls it.
      */
     onOpenLogEntryForEditing: (String) -> Unit = {},
     /** Save — commits the currently-open entry. See [com.zynergylabs.forager.app.ui.log.MushroomLogViewModel.onSaveEntry]'s own doc comment. */
@@ -554,9 +495,9 @@ fun AvailabilityScreen(
     onPullLogPhoto: (LogPhoto) -> Unit = {},
     onDeleteLogEntry: (String) -> Unit = {},
     onDeleteGalleryPhoto: (GalleryPhoto) -> Unit = {},
-    /** Standalone-photos dispatch: Camera/Gallery acquisition, no owning find — the album's own Camera/Import buttons (the Journal's Entries album, on both trees). */
+    /** Standalone-photos dispatch: Camera/Gallery acquisition, no owning find — the album's own Camera/Import buttons (the Journal's Entries album). */
     onAddGalleryPhoto: (PhotoSource) -> Unit = {},
-    /** Clears [logUiState]'s `saveErrorMessage` once its Toast has shown — see [LogPanel]/[JournalTab]'s identical parameter. */
+    /** Clears [logUiState]'s `saveErrorMessage` once its Toast has shown — see [JournalTab]'s identical parameter. */
     onSaveLogErrorDismissed: () -> Unit = {},
     /** Journal Stage 2b's new authored entity — see [com.zynergylabs.forager.app.ui.log.CartographyScreen]'s own doc comment for all of the following. Defaulted, same reasoning as [logUiState]. */
     cartographyUiState: CartographyUiState = CartographyUiState(),
@@ -582,14 +523,13 @@ fun AvailabilityScreen(
     onDeleteCartographyEntry: (String) -> Unit = {},
     /**
      * An Entries card's swipe Delete (journal redesign J4b L2): a *pending* delete with Undo
-     * (`CartographyViewModel.requestDeleteEntry`), passed to the compact tree's `JournalTab` only.
-     * `null` (the default) leaves the cards without the swipe; the wide tree's `LogPanel` is not
-     * given it (J6 owns the wide tree).
+     * (`CartographyViewModel.requestDeleteEntry`), passed to `JournalTab`.
+     * `null` (the default) leaves the cards without the swipe.
      */
     onRequestDeleteCartographyEntry: ((String) -> Unit)? = null,
     /**
      * J8-3: shows or hides a saved entry on the Maps tab (`CartographyViewModel.onSetShownOnMap`): the
-     * entry report's "Show on map" and "Hide from map", on both trees, and the Maps-tab chip's "Hide"
+     * entry report's "Show on map" and "Hide from map", and the Maps-tab chip's "Hide"
      * and "Hide all". Defaulted, so the many tests of this screen that never show an entry are unchanged.
      */
     onSetCartographyEntryShownOnMap: (entryId: String, shown: Boolean) -> Unit = { _, _ -> },
@@ -597,8 +537,8 @@ fun AvailabilityScreen(
     onCartographyShownOnMapErrorDismissed: () -> Unit = {},
     /**
      * Clears [cartographyUiState]'s `saveErrorMessage` once its Toast has shown. That Toast is hosted
-     * by the Journal itself, [JournalTab] (compact) and [LogPanel] (wide), not here, so this is
-     * threaded to them (intent `2026-09-28-68`, continuation `2026-09-28-76`).
+     * by the Journal itself, [JournalTab], not here, so this is
+     * threaded to it (intent `2026-09-28-68`, continuation `2026-09-28-76`).
      */
     onCartographySaveErrorDismissed: () -> Unit = {},
     /**
@@ -758,14 +698,14 @@ fun AvailabilityScreen(
     /**
      * The Journal's pending deletes, one per record type at most (journal redesign J4): each is shown
      * as an Undo snackbar in this screen's one snackbar host, the same slot "Saved to Drafts" and
-     * the trip-start warning use, so it docks where those do in both window classes and outlives a
+     * the trip-start warning use, so it docks where those do and outlives a
      * Journal tab change. `MainActivity` builds them from the owning ViewModels' pending state; see
      * [PendingDeleteSnackbarEffects]. Empty by default, so no other caller changes.
      */
     pendingDeleteNotices: List<PendingDeleteNotice> = emptyList(),
     /**
-     * Map layers L0b. [onMapShown] runs every time the Maps tab comes into view (compact: the Maps
-     * bottom-nav tab; medium and expanded: the List and Map pane, which always shows the map), which
+     * Map layers L0b. [onMapShown] runs every time the Maps tab comes into view (the Maps
+     * bottom-nav tab or rail item), which
      * is how the saved records and the forecast availability stay fresh (the dispatch, B2:
      * `AvailabilityViewModel.onMapShown`). The next three are the Layers sheet's changes, and
      * [forecastCellStore] is where the Maps tab's colour fields read their cells (the app's one store,
@@ -788,11 +728,9 @@ fun AvailabilityScreen(
     var selectedTab by rememberSaveable { mutableStateOf(ResultsTab.MAP) }
 
     // The compact bottom nav's own 5-way selection — see [CompactTab]'s doc comment for why this
-    // is separate from selectedTab rather than extending ResultsTab itself (which the medium/
-    // expanded window's tab row also reads and must stay 3-way). Kept in sync with selectedTab
+    // is separate from selectedTab rather than extending ResultsTab itself (a 3-way enum). Kept in sync with selectedTab
     // below whenever the tapped destination is one of the three they share, so onMapTabSelected/
-    // onSeasonalTabSelected's LaunchedEffect keeps firing correctly and a later resize to a wider
-    // window lands on the same List/Maps/Seasonal tab compact was just showing.
+    // onSeasonalTabSelected's LaunchedEffect keeps firing correctly .
     //
     // Journal redesign J2, T5 (owner ruling "Yes, fold into J2 (Recommended)"): saveable, so an
     // Activity recreation (a night-mode toggle, a fold, process death; a plain rotation does not
@@ -818,13 +756,9 @@ fun AvailabilityScreen(
     // plain remember: it survives the tab change the ruling is about, not a recreation.
     val findEntryModeState = rememberSaveable { mutableStateOf(JournalEntryMode.REPORT) }
     val findOverViewState = remember { mutableStateOf<FindOverView?>(null) }
-    // J6a (ruling 1, list-detail): the wide tree's right side. The Journal's open entry, find, record
-    // details and pickers register here (JournalDetailSlot); the wide branch below draws the top one over
-    // the results pane. The compact tree never reads it.
-    val journalDetailSlot = remember { JournalDetailSlot() }
 
     // Device-check patch, Items 2/3: whether a find's camera/gallery round-trip is currently in
-    // flight, reported up from whichever of JournalTab/LogPanel is composed via
+    // flight, reported up from JournalTab via
     // onPhotoAcquisitionInFlightChanged (see LogEntryDetailScreen's own doc comment on that
     // parameter). Read by this screen's own ON_STOP hook below, to suppress the "user backgrounded
     // the app" incidental-exit heuristic while the backgrounding is this app's own doing.
@@ -832,15 +766,12 @@ fun AvailabilityScreen(
 
     // "View on Map" on a List-tab species row: which taxon (if any) the map tabs should limit
     // their sightings to. Lives here, alongside selectedTab/compactTab, because both the List and
-    // Map tabs read and clear it and neither is an ancestor of the other in either window-class
-    // layout (CombinedResultsPane and compactMainScaffold each show only one at a time, but both
-    // are built from this same function's state). Null means "no filter" — the ordinary, every
+    // Map tabs read and clear it and neither is an ancestor of the other
+    // (compactMainScaffold shows one at a time, but both are built from this same function's state). Null means "no filter" — the ordinary, every
     // sighting view.
     var mapTaxonFilter by remember { mutableStateOf<Long?>(null) }
 
-    // Sets the filter and jumps to whichever map surface the current window class actually shows —
-    // both selectedTab and compactTab are updated unconditionally rather than branching on
-    // windowWidthClass here, since only the one the active layout reads has any effect; see
+    // Sets the filter and jumps to the Maps tab — both selectedTab and compactTab are updated; see
     // CompactTab's own doc comment for why the two are kept as separate state instead of one.
     val onViewSpeciesOnMap: (Long) -> Unit = { taxonId ->
         mapTaxonFilter = taxonId
@@ -859,16 +790,15 @@ fun AvailabilityScreen(
     // into this one line, and the strip, the HUD and the map cannot drift apart because none of
     // them was ever written against isReturning directly.
     val isNavigating = isReturning
-    // Navigation HUD stage one's display rules, applied once here so the compact map and the
-    // wide-layout MapTab agree — see mapVisibleWaypoints. Records keeps the full list.
+    // Navigation HUD stage one's display rules, applied once here so the map and the
+    // Records list agree — see mapVisibleWaypoints. Records keeps the full list.
     val mapWaypoints = remember(waypoints, isNavigating, navigationTarget) {
         mapVisibleWaypoints(waypoints, isNavigating = isNavigating, target = navigationTarget)
     }
 
     // Local remembered state, same reasoning as selectedTab/mapMode below: purely a display
     // decision the ViewModel has no part in. The compact map icon stack's fullscreen toggle sets
-    // this — see CompactMapTab's call site. Compact-only: WindowWidthClass.MEDIUM/EXPANDED never
-    // render the icon stack that can set it, so it stays false there. Only reachable while on the
+    // this — see CompactMapTab's call site. Only reachable while on the
     // Maps tab (the toggle icon lives in that tab's own icon stack), so this being true while
     // selectedTab != MAP cannot happen in practice.
     var isMapFullscreen by remember { mutableStateOf(false) }
@@ -992,10 +922,6 @@ fun AvailabilityScreen(
     // Persisted via the ViewModel/DataStore — see AvailabilityUiState.distanceUnit's own doc
     // comment. mapMode above is still session-local; see the observation in that same doc comment.
     val distanceUnit = uiState.distanceUnit
-    var drawerPanel by remember { mutableStateOf(DrawerPanel.Search) }
-    // The medium/expanded search summary's one-shot "open Advanced search" (continuation 2026-09-28-38);
-    // see SearchControls' expandAdvancedSearchRequested.
-    var expandAdvancedSearchRequested by remember { mutableStateOf(false) }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val context = LocalContext.current
 
@@ -1021,11 +947,9 @@ fun AvailabilityScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
     var isDrawerOpen by remember { mutableStateOf(false) }
 
-    // Stage 2d's routing fix: a one-shot request into whichever of LogPanel/JournalTab is about to
-    // show, set by both onLogFindHere closures below alongside their existing drawerPanel/compactTab
+    // Stage 2d's routing fix: a one-shot request into JournalTab, set alongside the compactTab
     // switch — see JournalTab's own doc comment, "The map '+' routing bug," for why this exists and
-    // why it stays a single-purpose token rather than a shared navigation type. One instance covers
-    // both window classes: only whichever of LogPanel/JournalTab is actually composed reads it.
+    // why it stays a single-purpose token rather than a shared navigation type. Only JournalTab reads it.
     var pendingJournalDestination by remember { mutableStateOf<PendingJournalDestination?>(null) }
     // M1: the find a PendingJournalDestination.VIEW_FIND request opens, cleared with the request.
     var pendingJournalFindId by remember { mutableStateOf<String?>(null) }
@@ -1039,7 +963,6 @@ fun AvailabilityScreen(
             // Reset to the Search panel on every close — scrim tap, back button, or a search action
             // that closes the drawer itself — rather than leaving Settings showing the next time the
             // drawer opens. A minor, easily-revisited default: see this task's own notes.
-            drawerPanel = DrawerPanel.Search
             focusManager.clearFocus(force = true)
             keyboardController?.hide()
         }
@@ -1050,11 +973,10 @@ fun AvailabilityScreen(
     // since only the one the active layout reads has any effect. Keyed on the request's count, so a tab the person is
     // already on is set again harmlessly and 0, the default, does nothing.
     // A backup notification's tap (dispatch 2026-09-28-153): open Tools, then Settings, at the Backup section. The compact
-    // drawer opens over whatever tab is showing; the wide layout's permanent drawer is switched to its Settings panel.
+    // drawer opens over whatever tab is showing.
     LaunchedEffect(openBackupRequest) {
         if (openBackupRequest > 0) {
             isDrawerOpen = true
-            drawerPanel = DrawerPanel.Settings
         }
     }
 
@@ -1088,10 +1010,7 @@ fun AvailabilityScreen(
     // before that composable was renamed. Navigation-chrome amendment: a fifth step, navigation,
     // sits between "return to the Maps tab" and the exit handler — see its own comment below.
     //
-    // Only isDrawerOpen/isMapFullscreen/compactTab drive this — all three are compact-only state
-    // that a medium/expanded window never changes away from its own defaults (isDrawerOpen stays
-    // false there; a PermanentNavigationDrawer is never "closed"), so none of this fires on that
-    // width class.
+    // Only isDrawerOpen/isMapFullscreen/compactTab drive this — all three are state of this one tree.
     //
     // The drawer opens over whatever tab is showing, and that tab's nested handlers are registered
     // after this one, so they would win while the drawer is open. The Journal's are turned off while
@@ -1172,32 +1091,21 @@ fun AvailabilityScreen(
         }
     }
 
-    val windowWidthClass = currentWindowWidthClass()
-    // Landscape B1 (docs/plans/landscape-phone-design.md, P1-P3, Resolutions R1 and R12-R18). A
-    // short window (under 480dp tall — a phone held sideways) takes the compact tree whatever its
-    // width; see the branch at the bottom of this function. In a short *landscape* window the
-    // compact tree swaps its bottom bar for a navigation rail on the charger-port edge — see
-    // compactMainScaffold's own showRail. portEdge is only read while showRail is true.
-    val isShortWindow = isShortWindow()
+    // Tablets as a big phone (dispatch 2026-09-28-245, amended by -246): this tree is drawn at every
+    // window size, and a window that is in landscape, tall or short, gets the phone's landscape
+    // layout: a navigation rail on the charger-port edge in place of the bottom bar (see
+    // compactMainScaffold's own showRail), and the L. portEdge is only read while showRail is true.
+    val isLandscapeWindow = isLandscapeWindow()
     // Map layers L0b, B2: the Maps tab's freshness mechanism. Whenever the Maps tab comes into view
-    // (compact, the Maps bottom-nav tab, the same layout test as below; medium and expanded, the List
-    // and Map pane, whose map is always on screen) the saved records reload and the forecast store is
+    // (the Maps bottom-nav tab or rail item) the saved records reload and the forecast store is
     // asked again, so a find saved on the Journal tab, or the Diagnostics switch turned on, shows the
     // next time the map is shown.
-    val isMapsTabShown = if (windowWidthClass == WindowWidthClass.COMPACT || isShortWindow) {
-        compactTab == CompactTab.MAP
-    } else {
-        selectedTab == ResultsTab.MAP || selectedTab == ResultsTab.LIST
-    }
+    val isMapsTabShown = compactTab == CompactTab.MAP
     LaunchedEffect(isMapsTabShown) {
         if (isMapsTabShown) onMapShown()
     }
-    // Map chrome at 80% (dispatch 2026-09-28-56 as amended by -58; planner message -77, Q2 and Q5): on
-    // the medium and expanded layout a map is drawn on screen when the results pane shows List or Map
-    // and its MapTab draws its map, which is exactly a searched region that is neither loading nor in
-    // error (MapTab's own branches). A surface spanning the window, or the pane, covers it then.
-    val wideResultsMapShown = (selectedTab == ResultsTab.LIST || selectedTab == ResultsTab.MAP) &&
-        uiState.region != null && !uiState.isLoadingSightings && uiState.sightingsErrorMessage == null
+    // Map chrome at 80% (dispatch 2026-09-28-56 as amended by -58; planner message -77, Q4): raised
+    // only on the Maps tab, and follows the tab.
     if (showExitNavigationPrompt) {
         ExitNavigationPrompt(
             onExit = {
@@ -1205,18 +1113,9 @@ fun AvailabilityScreen(
                 onToggleReturning()
             },
             onKeepNavigating = { showExitNavigationPrompt = false },
-            // Compact: raised only on the Maps tab, and follows the tab (-77, Q4). Medium and expanded,
-            // reached only when the window changes class while navigating: over the results map when
-            // it is drawn (-77, Q5).
-            overMap = if (windowWidthClass == WindowWidthClass.COMPACT || isShortWindow) {
-                compactTab == CompactTab.MAP
-            } else {
-                wideResultsMapShown
-            },
+            overMap = compactTab == CompactTab.MAP,
         )
     }
-    val isShortLandscapeWindow = isShortWindow &&
-        LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val portEdge = currentWindowPortEdge()
     // Landscape B2 (S1): the punch-hole edge, where the search bar, its filter chip and the icon
     // cluster's default side go in a short landscape window. From punchHoleEdgeFor — the port
@@ -1228,10 +1127,9 @@ fun AvailabilityScreen(
     )
 
     // Workstream L4b-R2: the one wrapped "leaving without answering" callback, hoisted here (rather
-    // than declared separately inside compactMainScaffold and again wherever the drawer's own
-    // LogPanel needed it) so "every in-app exit offers a discard action" stays one fact about one
-    // callback shared by every caller — the compact bottom nav's JournalTab, its own tab-switch
-    // handler, and DrawerPanel.Log's LogPanel below — rather than N independently-maintained copies.
+    // than declared separately inside compactMainScaffold) so "every in-app exit offers a discard action" stays one fact about one
+    // callback shared by every caller — the bottom nav's JournalTab and its own tab-switch
+    // handler — rather than N independently-maintained copies.
     // Backgrounding is the deliberate, sole exception: see compactMainScaffold's own
     // DisposableEffect, which calls the *raw* onLeaveLogEntryEditingIncidentally directly, never this
     // wrapper, since there is no window left to show a Snackbar in by the time that fires.
@@ -1297,12 +1195,11 @@ fun AvailabilityScreen(
     // M1 (B3, B4): what the Maps tab's glyph bubbles look records up in, and the J5c sheet's inputs,
     // all already in hand here. A find's "Open in Journal" opens the find in its report over whatever
     // the Journal was showing (PendingJournalDestination.VIEW_FIND), so the saved Records chip and top
-    // tab are never changed (planner's ruling on F3, continuation 2026-09-28-30). Compact: the
-    // Journal tab. Medium and expanded: the drawer's LogPanel (owner, Q3: "Open drawer to the find").
+    // tab are never changed (planner's ruling on F3, continuation 2026-09-28-30). The
+    // Journal tab comes up.
     // Checked against the Maps search-bar gate (AvailabilityCompactScaffold's isEditingJournalEntry):
     // the find opens as the Journal tab comes up, where that gate hides the header as it does for any
     // open find; the Maps tab's own bar is gated on the Journal showing, so it is unaffected.
-    val usesCompactTree = windowWidthClass == WindowWidthClass.COMPACT || isShortWindow
     val mapBubbleSources = MapRecordSources(
         finds = logUiState.entries,
         galleryPhotos = logUiState.galleryPhotos,
@@ -1325,20 +1222,14 @@ fun AvailabilityScreen(
             pendingJournalFindId = findId
             pendingJournalDestination = PendingJournalDestination.VIEW_FIND
             onOpenLogEntry(findId)
-            if (usesCompactTree) {
-                compactTab = CompactTab.JOURNAL
-            } else {
-                // J6a, ruling 5: the wide Journal's Back is one order whatever the route; no
-                // `isDrawerOpen` (the compact drawer's flag) is set for it.
-                drawerPanel = DrawerPanel.Log
-            }
+            compactTab = CompactTab.JOURNAL
         },
         openFindLabel = OPEN_IN_JOURNAL_LABEL,
         // J8-4: a highlighted record's keeping entries, while the Layers sheet's "Journal entries"
         // switch shows the highlights; with it off no record is highlighted, so no bubble names one.
         journalEntriesKeeping = if (drawnMapLayers.stateOf(JOURNAL_ENTRIES_SWITCH_LAYER_ID).visible) journalHighlights.keptIn else emptyMap(),
         // J8-4, the owner's Q1 ruling ("Open in Journal, prompt first (Recommended)"): switches to the
-        // Journal (compact) or opens the drawer's LogPanel (wide, as M1's find route does) with the
+        // Journal with the
         // entry in its report on Entries, the one top-tab change opening it requires; the saved Records
         // chip is untouched. The Journal side (CartographyScreen's openEntryRequest) asks the existing
         // "Save your changes?" first when another entry is open in its editor with unsaved changes, and
@@ -1348,11 +1239,7 @@ fun AvailabilityScreen(
             if (logUiState.editingEntry != null) leaveLogEntryEditingOfferingDiscard()
             pendingJournalEntryId = entryId
             pendingJournalDestination = PendingJournalDestination.VIEW_ENTRY
-            if (usesCompactTree) {
-                compactTab = CompactTab.JOURNAL
-            } else {
-                drawerPanel = DrawerPanel.Log
-            }
+            compactTab = CompactTab.JOURNAL
         },
     )
 
@@ -1363,361 +1250,6 @@ fun AvailabilityScreen(
         cartographyUiState.shownOnMapErrorMessage?.let {
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
             onCartographyShownOnMapErrorDismissed()
-        }
-    }
-
-    // Workstream L4c pre-work: corrects this comment's own claim, found stale by the L4 close-out
-    // pulse (2026-08-25). This has exactly one call site — the `PermanentNavigationDrawer` medium+
-    // windows get, below — not the compact `ModalNavigationDrawer`, which renders
-    // `CompactToolsDrawerContent` instead, a separate composable. [showCloseButton] is therefore
-    // always `false` in practice today; it is not dead code removed here only because that is a
-    // separate cleanup this pulse's own dispatch did not ask for, not because it still does
-    // anything.
-    //
-    // A local composable lambda rather than a top-level one so it closes over this function's ~25
-    // params and local state directly instead of re-threading all of it through an explicit
-    // parameter list a second time. ColumnScope receiver, not a plain function type: the drawer
-    // sheet that hosts this hands it a ColumnScope (that's what lets the `Modifier.weight(1f)`
-    // calls inside resolve at all), and a lambda assigned to a receiver-typed val keeps that
-    // receiver rather than losing it.
-    val drawerSheetContent: @Composable ColumnScope.(showCloseButton: Boolean) -> Unit = { showCloseButton ->
-        when (drawerPanel) {
-            DrawerPanel.Search -> {
-                if (showCloseButton) {
-                    // The one visible way to close this drawer: tapping the scrim and
-                    // swipe-to-close (on only while the drawer is open, see gesturesEnabled
-                    // below) are both undiscoverable.
-                    DrawerHeader(onClose = { isDrawerOpen = false })
-                }
-                SearchControls(
-                    // The controls take whatever height is left over so the settings entry
-                    // row stays pinned to the bottom of the sheet rather than sitting past
-                    // the end of the controls' own scroll, where nobody would find it.
-                    modifier = Modifier.weight(1f),
-                    uiState = uiState,
-                    distanceUnit = distanceUnit,
-                    onUseCurrentLocation = {
-                        isDrawerOpen = false
-                        onUseCurrentLocation()
-                    },
-                    onManualLatChanged = onManualLatChanged,
-                    onManualLngChanged = onManualLngChanged,
-                    onSearchManualCoordinates = {
-                        isDrawerOpen = false
-                        onSearchManualCoordinates()
-                    },
-                    onRadiusChanged = onRadiusChanged,
-                    onMonthSelected = onMonthSelected,
-                    onDeletePlannedTrip = onDeletePlannedTrip,
-                    onRecentSearchSelected = { summary ->
-                        // Closed for the same reason searching from this drawer closes it:
-                        // the tap starts a search, and the results are behind the sheet.
-                        isDrawerOpen = false
-                        onRecentSearchSelected(summary)
-                    },
-                    currentTime = currentTime,
-                    expandAdvancedSearchRequested = expandAdvancedSearchRequested,
-                    onAdvancedSearchExpandConsumed = { expandAdvancedSearchRequested = false },
-                )
-                // Sticky footer rows: the log is the newer of the two pre-existing ones, placed
-                // above Settings so it isn't the last thing in the sheet — see
-                // MushroomLogEntryRow.
-                MushroomLogEntryRow(onClick = { drawerPanel = DrawerPanel.Log })
-                // Occupies the search panel's old sticky-footer slot — BuildIdentityFooter
-                // moved to the bottom of the Settings panel below.
-                SettingsEntryRow(onClick = { drawerPanel = DrawerPanel.Settings })
-            }
-
-            DrawerPanel.Settings -> {
-                SettingsHeader(onBack = { drawerPanel = DrawerPanel.Search })
-                SettingsContent(
-                    modifier = Modifier.weight(1f),
-                    distanceUnit = distanceUnit,
-                    onDistanceUnitSelected = onDistanceUnitSelected,
-                    themeMode = uiState.themeMode,
-                    onThemeModeChanged = onThemeModeChanged,
-                    nightModeMaps = uiState.nightModeMaps,
-                    onNightModeMapsChanged = onNightModeMapsChanged,
-                    autoSaveLocationToPhotos = uiState.autoSaveLocationToPhotos,
-                    onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
-                    lockCameraToPortrait = uiState.lockCameraToPortrait,
-                    onLockCameraToPortraitChanged = onLockCameraToPortraitChanged,
-                    onOpenCrashLogs = { drawerPanel = DrawerPanel.CrashLogs },
-                    onOpenDiagnostics = { drawerPanel = DrawerPanel.Diagnostics },
-                    backup = backup,
-                    showBackupRequest = openBackupRequest,
-                )
-                BuildIdentityFooter()
-            }
-
-            DrawerPanel.CrashLogs -> {
-                // Back returns to Settings, one level up — not all the way to Search.
-                CrashLogPanel(
-                    modifier = Modifier.weight(1f),
-                    files = crashFileStore.list(),
-                    onBack = { drawerPanel = DrawerPanel.Settings },
-                )
-            }
-
-            DrawerPanel.Diagnostics -> {
-                // Same one-level-up back as CrashLogs. Debug builds only; see the enum entry.
-                DiagnosticsPanel(
-                    modifier = Modifier.weight(1f),
-                    onBack = { drawerPanel = DrawerPanel.Settings },
-                )
-            }
-
-            DrawerPanel.Log -> {
-                LogPanel(
-                    modifier = Modifier.weight(1f),
-                    uiState = logUiState,
-                    onOpenCameraForLogEntry = { onOpenCamera(InAppCameraTarget.LOG_ENTRY) },
-                    onOpenCameraForAlbum = { onOpenCamera(InAppCameraTarget.ALBUM) },
-                    onOpenCameraForCartographyEntry = { onOpenCamera(InAppCameraTarget.CARTOGRAPHY_ENTRY) },
-                    mapSlot = mapSlot,
-                    region = uiState.region ?: JOURNAL_PICKER_DEFAULT_REGION,
-                    deviceLocation = uiState.liveFix?.let { LatLng(it.lat, it.lng) },
-                    basemap = basemap,
-                    night = isNightMode,
-                    mapLayers = mapLayersControls.stored,
-                    onMapLayerVisibilityChanged = mapLayersControls.onVisibilityChanged,
-                    onOpenEntryForEditing = onOpenLogEntryForEditing,
-                    onOpenEntryForReport = onOpenLogEntry,
-                    onCloseEntry = onCloseLogEntry,
-                    onEntryChanged = onLogEntryChanged,
-                    onSaveEntry = onSaveLogEntry,
-                    onCancelEditing = onCancelLogEntryEditing,
-                    // Workstream L4b-R2: shares the same wrapped callback as the compact bottom
-                    // nav's JournalTab — see this function's own top-level construction of
-                    // leaveLogEntryEditingOfferingDiscard for why one callback, not a
-                    // window-class-specific copy. The PermanentNavigationDrawer's own drawer sheet
-                    // (below) hosts the Snackbar this shows.
-                    onLeaveEditingIncidentally = leaveLogEntryEditingOfferingDiscard,
-                    onPhotoAcquisitionInFlightChanged = { inFlight -> logPhotoAcquisitionInFlight = inFlight },
-                    onAddPhoto = onAddLogPhoto,
-                    onRemovePhoto = onRemoveLogPhoto,
-                    onPullPhoto = onPullLogPhoto,
-                    onDeleteEntry = onDeleteLogEntry,
-                    onBackToSearch = { drawerPanel = DrawerPanel.Search },
-                    onSaveErrorDismissed = onSaveLogErrorDismissed,
-                    galleryPhotos = logUiState.galleryPhotos,
-                    isLoadingGalleryPhotos = logUiState.isLoadingGalleryPhotos,
-                    onDeleteGalleryPhoto = onDeleteGalleryPhoto,
-                    onAddGalleryPhoto = onAddGalleryPhoto,
-                    galleryLoadErrorMessage = logUiState.galleryLoadErrorMessage,
-                    galleryPhotoEntryReferenceCounts = logUiState.cartographyEntryPhotoReferenceCounts,
-                    cartographyUiState = cartographyUiState,
-                    onOpenCartographyEntry = onOpenCartographyEntry,
-                    onStartCartographyEntry = onStartCartographyEntry,
-                    onCloseCartographyEntry = onCloseCartographyEntry,
-                    onCartographyTextChanged = onCartographyTextChanged,
-                    onCartographyTagsChanged = onCartographyTagsChanged,
-                    onSetFindDecision = onSetFindDecision,
-                    onSetTrackDecision = onSetTrackDecision,
-                    onSetWaypointDecision = onSetWaypointDecision,
-                    onSetOfflineRegionDecision = onSetOfflineRegionDecision,
-                    onToggleKeptPhoto = onToggleKeptPhoto,
-                    onAcquirePhotoForCartographyEntry = onAcquirePhotoForCartographyEntry,
-                    onFinishCartographyEntry = onFinishCartographyEntry,
-                    onSaveCartographyEntry = onSaveCartographyEntry,
-                    onDiscardCartographyEntryChanges = onDiscardCartographyEntryChanges,
-                    onSaveCartographyEntryAsDraft = onSaveCartographyEntryAsDraft,
-                    onCartographySaveErrorDismissed = onCartographySaveErrorDismissed,
-                    onDeleteCartographyEntry = onDeleteCartographyEntry,
-                    getCartographyEntryMapData = getCartographyEntryMapData,
-                    getSavedTrackPaths = getSavedTrackPaths,
-                    getCartographyEntryOfflineRegion = getCartographyEntryOfflineRegion,
-                    getCartographyEntryCurrentLocation = getCartographyEntryCurrentLocation,
-                    // Journal restructure Stage 1: the Records tab's three submenus — see
-                    // RecordsTab's own doc comment. availabilityUiState is what OfflineMapsPanel
-                    // reads its offline-map-specific fields off; distanceUnit/currentTime are the
-                    // same values SearchControls/CompactSettingsTab already used for it.
-                    availabilityUiState = uiState,
-                    distanceUnit = distanceUnit,
-                    currentTime = currentTime,
-                    onOfflineMapLatChanged = onOfflineMapLatChanged,
-                    onOfflineMapLngChanged = onOfflineMapLngChanged,
-                    onOfflineMapRadiusChanged = onOfflineMapRadiusChanged,
-                    onOfflineMapNameChanged = onOfflineMapNameChanged,
-                    onOfflineMapsOpened = onOfflineMapsOpened,
-                    onDownloadOfflineMaps = onDownloadOfflineMaps,
-                    onDeleteOfflineRegion = onDeleteOfflineRegion,
-                    onDownloadAgain = onDownloadAgain,
-                    tracks = tracks,
-                    onTracksOpened = onTracksOpened,
-                    getFullRecord = getFullRecord,
-                    waypoints = waypoints,
-                    waypointsErrorMessage = waypointsErrorMessage,
-                    onDeleteWaypoint = onDeleteWaypoint,
-                    onDeleteTrack = onDeleteTrack,
-                    tracksErrorMessage = tracksErrorMessage,
-                    waypointEntryReferenceCounts = waypointEntryReferenceCounts,
-                    pendingDestination = pendingJournalDestination,
-                    pendingFindId = pendingJournalFindId,
-                    pendingEntryId = pendingJournalEntryId,
-                    onPendingDestinationConsumed = {
-                        pendingJournalDestination = null
-                        pendingJournalFindId = null
-                        pendingJournalEntryId = null
-                    },
-                    onSetCartographyEntryShownOnMap = onSetCartographyEntryShownOnMap,
-                    // J6a: the same holders the compact tree gets (ruling 5, J10), so an open detail, the
-                    // view choice, the Records chip and a find over a view survive a panel switch and a
-                    // change of tree; the phone's find "+" tile and report step; the J4b delete paths.
-                    onStartEntry = onStartLogEntry,
-                    onStartEditingEntry = onStartEditingLogEntry,
-                    onRequestDeleteCartographyEntry = onRequestDeleteCartographyEntry,
-                    onRequestDeleteGalleryPhoto = onRequestDeleteGalleryPhoto,
-                    journalState = journalScreenState,
-                    cartographyEntryModeState = cartographyEntryModeState,
-                    findEntryModeState = findEntryModeState,
-                    findOverViewState = findOverViewState,
-                    detailSlot = journalDetailSlot,
-                )
-            }
-        }
-    }
-
-    // The Scaffold + tab content for MEDIUM/EXPANDED windows only — shared with drawerSheetContent
-    // for the same reason: it closes over this function's state rather than re-threading it.
-    // COMPACT windows use [compactMainScaffold] below instead, a separate composable rather than a
-    // conditional threaded through this one, per CLAUDE.md — the map redesign (full-bleed map,
-    // bottom nav, icon stack, fullscreen toggle) is compact-only (see docs/plans/map-redesign.md's
-    // "Scope decision" section), and this scaffold is what stays byte-for-byte what MEDIUM/EXPANDED
-    // already had before that redesign, untouched by any of it.
-    val mainScaffold: @Composable () -> Unit = {
-        Scaffold(
-            topBar = {
-                // J6c: fullscreen hides the search bar (and, below, the summary, the notice, the tab row and the
-                // drawer), so the map fills the window; exit restores them.
-                if (!isMapFullscreen) AvailabilitySearchTopBar(
-                    uiState = uiState,
-                    onOpenDrawer = {
-                        // Dismissed here, not just left to whatever state the drawer's own
-                        // content happens to leave it in: the suggestion popup is anchored to
-                        // this bar and the drawer opens as an overlay above it, so without this
-                        // the popup stayed visible underneath/behind the drawer instead of
-                        // collapsing along with it.
-                        onDismissTaxonSuggestions()
-                        // Medium+ windows show the drawer's panel permanently (see
-                        // PermanentNavigationDrawer below) — there is nothing to open, so this
-                        // icon instead jumps the always-visible panel back to Search, the same
-                        // "get back to search options" job it does on compact.
-                        drawerPanel = DrawerPanel.Search
-                    },
-                    onUseCurrentLocation = onUseCurrentLocation,
-                    onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
-                    onTaxonSearchResultSelected = onTaxonSearchResultSelected,
-                    onDismissTaxonSuggestions = onDismissTaxonSuggestions,
-                    // The suggestions span the results pane, over its map when it draws one (-77, Q2).
-                    suggestionsOverMap = wideResultsMapShown,
-                )
-            },
-        ) { padding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    // Scaffold's padding carries the system bar insets, so nothing here is laid
-                    // out under the status or navigation bar.
-                    .padding(padding),
-            ) {
-                // The summary's tap opens the search (owner, 2026-09-28, "Make the tap open search"):
-                // the permanent drawer comes back to its search panel from whichever panel it shows,
-                // even before any search, and the last species query is reopened as before.
-                if (!isMapFullscreen) {
-                    ActiveSearchSummary(
-                        uiState,
-                        distanceUnit,
-                        onClick = {
-                            drawerPanel = DrawerPanel.Search
-                            // Continuation 2026-09-28-38 (owner: "Yes it should"): straight to the
-                            // location controls, with "Advanced search" open. A one-shot request that
-                            // the section consumes, so a later collapse by the user stands.
-                            expandAdvancedSearchRequested = true
-                            onReopenTaxonSuggestions()
-                        },
-                    )
-                    SearchNotice(uiState)
-
-                    SecondaryTabRow(selectedTabIndex = selectedTab.ordinal) {
-                        ResultsTab.entries.forEach { tab ->
-                            Tab(
-                                selected = selectedTab == tab,
-                                onClick = { selectedTab = tab },
-                                text = { Text(tab.label) },
-                            )
-                        }
-                    }
-                }
-
-                val onLogFindHere: (LatLng) -> Unit = { location ->
-                    // F3 (continuation 2026-09-28-45): the find open in the drawer's LogPanel is left
-                    // first, as on compact; see onOpenFind above.
-                    if (logUiState.editingEntry != null) leaveLogEntryEditingOfferingDiscard()
-                    drawerPanel = DrawerPanel.Log
-                    // Stage 2d: lands LogPanel on Records -> Finds for the entry onStartLogEntry is
-                    // about to create — see JournalTab's own doc comment, "The map '+' routing bug."
-                    pendingJournalDestination = PendingJournalDestination.EDIT_NEW_FIND
-                    onStartLogEntry(location, LocalDate.now())
-                }
-
-                // weight(1f) states the intent: the results get whatever is left after the
-                // wrap-content siblings above, and Compose measures weighted children last, so
-                // that height is definite and bounded instead of a remainder that can reach zero.
-                //
-                // MEDIUM/EXPANDED windows reveal List and Map together in [CombinedResultsPane] —
-                // the M3 "reveal" pattern: a wider window shows list and detail/map side by side
-                // rather than making the user switch between them. Seasonal isn't part of that
-                // pairing (it's not a view onto the same sightings), so it stays its own tab.
-                when (selectedTab) {
-                    ResultsTab.LIST, ResultsTab.MAP -> CombinedResultsPane(
-                        uiState = uiState,
-                        currentTime = currentTime,
-                        distanceUnit = distanceUnit,
-                        mapSlot = mapSlot,
-                        renderMode = mapRenderMode,
-                        mapMode = mapMode,
-                        onMapModeSelected = { mapMode = it },
-                        mapLayers = mapLayersControls,
-                        bubbleSources = mapBubbleSources,
-                        onPlaceTripPin = onPlaceTripPin,
-                        onLogFindHere = onLogFindHere,
-                        breadcrumbPoints = breadcrumbPoints,
-                        waypoints = mapWaypoints,
-                        onDropWaypoint = onDropWaypoint,
-                        taxonFilter = mapTaxonFilter,
-                        onClearTaxonFilter = onClearMapTaxonFilter,
-                        onViewOnMap = onViewSpeciesOnMap,
-                        selectedTab = selectedTab,
-                        controls = WideMapControls(
-                            isFullscreen = isMapFullscreen,
-                            // The phone's own toggle and its persistence (the one preference), so fullscreen
-                            // behaves as it does there, restarts included (J6c).
-                            onToggleFullscreen = {
-                                isMapFullscreen = !isMapFullscreen
-                                onMapFullscreenChanged(isMapFullscreen)
-                            },
-                            onLocateMe = onLocateMe,
-                            isRecording = isRecording,
-                            onToggleRecording = onToggleRecording,
-                            startRecordingErrorMessage = startRecordingErrorMessage,
-                            returnToStart = returnToStart,
-                            isReturning = isReturning,
-                            isNavigating = isNavigating,
-                            isOffTrack = isOffTrack,
-                            onToggleReturning = onToggleReturning,
-                            compassProvider = compassProvider,
-                            computeTrueHeading = computeTrueHeading,
-                            navigationTarget = navigationTarget,
-                            pathHomeMeters = pathHomeMeters,
-                            currentTime = currentTime,
-                            clusterPosition = mapIconClusterPosition,
-                        ),
-                        modifier = Modifier.weight(1f),
-                    )
-                    ResultsTab.SEASONAL -> SeasonalTab(uiState = uiState, modifier = Modifier.weight(1f))
-                }
-            }
         }
     }
 
@@ -1745,7 +1277,7 @@ fun AvailabilityScreen(
             logPhotoAcquisitionInFlight = { logPhotoAcquisitionInFlight },
             cartographyUiState = cartographyUiState,
             isDrawerOpen = { isDrawerOpen },
-            isShortLandscapeWindow = isShortLandscapeWindow,
+            isLandscapeWindow = isLandscapeWindow,
             portEdge = portEdge,
             punchHoleEdge = punchHoleEdge,
             logDraftSnackbarHostState = logDraftSnackbarHostState,
@@ -1846,8 +1378,7 @@ fun AvailabilityScreen(
             onDeleteCartographyEntry = onDeleteCartographyEntry,
             onRequestDeleteCartographyEntry = onRequestDeleteCartographyEntry,
             onRequestDeleteGalleryPhoto = onRequestDeleteGalleryPhoto,
-            // J4b L1: a find tile's long-press Edit uses the same open-and-edit call the wide tree's
-            // LogPanel already uses for every find it opens.
+            // J4b L1: a find tile's long-press Edit uses the one open-and-edit call.
             onOpenLogEntryForEditing = onOpenLogEntryForEditing,
             getCartographyEntryMapData = getCartographyEntryMapData,
             getSavedTrackPaths = getSavedTrackPaths,
@@ -1877,163 +1408,106 @@ fun AvailabilityScreen(
     }
 
 
-    // Landscape B1, P1 and Resolution R1 ("Classify by window"): a short window takes the compact
-    // tree whatever its width. Every other window is chosen by width exactly as before.
-    if (windowWidthClass == WindowWidthClass.COMPACT || isShortWindow) {
-        // Landscape B3 (P12 as corrected by R2; owner ruling 1 in
-        // docs/audits/2026-09-27-landscape-b3-prebuild-report.md, section 5). With gestures on
-        // while the drawer is open, M3's scrim tap and swipe-to-close call drawerState.close()
-        // themselves and never touch isDrawerOpen, the authority for "should the drawer be open"
-        // (its comment, above). Left alone, the flag stays true after such a close: the drawer is
-        // visibly shut, but Back is still routed to the close-drawer handler and Tools sets a flag
-        // that is already true, so the drawer will not open again (seen in CompactToolsDrawerTest
-        // with only the gesturesEnabled change applied). So the flag follows a close the drawer
-        // made itself, once that close has settled. Only the settled-closed edge is acted on: a
-        // just-requested open (flag true, drawer still closed and idle) emits nothing, because
-        // the watched value has not changed.
-        LaunchedEffect(drawerState) {
-            snapshotFlow { drawerState.currentValue == DrawerValue.Closed && !drawerState.isAnimationRunning }
-                .collect { settledClosed -> if (settledClosed && isDrawerOpen) isDrawerOpen = false }
-        }
-        // Landscape B3 (P12, owner ruling 2, "Flip layout direction"): in a short landscape window
-        // the drawer opens from the rail side, the port edge. ModalNavigationDrawer has no edge
-        // parameter; it anchors to the start edge of LocalLayoutDirection. So the direction is
-        // set around the drawer to the one whose start edge is the port edge, and the ambient
-        // direction is restored inside both the sheet's content and the screen content, so only
-        // the drawer's anchoring changes. Portrait and every non-short window keep the ambient
-        // direction untouched. The mapping is physical (port on the right -> Rtl, on the left ->
-        // Ltr), not "the opposite of ambient": in an RTL locale the drawer already starts on the
-        // right, and flipping it would move it away from the rail. With the app's LTR locale
-        // this is exactly "flip at ROTATION_90, unchanged at ROTATION_270". See the B3 drawer
-        // completion report for that choice, which is open for the planner to confirm.
-        val ambientDirection = LocalLayoutDirection.current
-        val drawerDirection = if (isShortLandscapeWindow) {
-            if (portEdge == ScreenEdge.Right) LayoutDirection.Rtl else LayoutDirection.Ltr
-        } else {
-            ambientDirection
-        }
-        // Where the controls over the map are, for the marker fan-out to keep clear of (MapKeepOut.kt).
-        val mapKeepOuts = remember { MapKeepOuts() }
-        CompositionLocalProvider(LocalLayoutDirection provides drawerDirection, LocalMapKeepOuts provides mapKeepOuts) {
-        ModalNavigationDrawer(
-            drawerState = drawerState,
-            // Swipe-to-open is off on purpose: the content behind the drawer is a full-screen
-            // pannable map, and a horizontal drag there means "pan", not "open the drawer". Tools
-            // is the way in. Gestures are on only while the drawer is open, which is what lets a
-            // scrim tap close it: in material3 1.5.0-alpha26 both the scrim's dismiss and the
-            // drag are gated on this flag (`if (gesturesEnabled && ...)` and
-            // `anchoredDraggable(enabled = gesturesEnabled)`), so with it off neither a scrim tap
-            // nor swipe-to-close worked. While open it also re-enables swipe-to-close; while
-            // closed it stays false, so swipe-to-open stays off. See the pre-build report above.
-            gesturesEnabled = drawerState.isOpen,
-            drawerContent = {
-                // The sheet itself stays in drawerDirection, so its rounded edge faces the
-                // content and its start-side inset padding lands on the window edge it sits on.
-                // Only what is inside it goes back to the ambient direction.
-                // Material3's own default container role for a modal drawer, passed explicitly, and
-                // its content colour pinned to the role's own (`contentColorFor` matches a colour-scheme
-                // role exactly; see `MapLayersSheet`).
-                // Over the Maps tab at the map chrome's alpha, following the tab (owner: "80% over Maps
-                // (Recommended)"; planner message -77, Q4); solid over the other tabs.
-                val drawerColor = mapChromeFill(navigationBarContainerColor(), compactTab == CompactTab.MAP)
-                val drawerContentColor = contentColorFor(navigationBarContainerColor())
-                ModalDrawerSheet(
-                    modifier = Modifier.testTag(TOOLS_DRAWER_SHEET_TAG).mapChromeContainerColor(drawerColor),
-                    drawerContainerColor = drawerColor,
-                    drawerContentColor = drawerContentColor,
-                ) {
-                    CompositionLocalProvider(LocalLayoutDirection provides ambientDirection) {
-                    Box(modifier = Modifier.mapChromeContentColor(LocalContentColor.current)) {
-                    CompactToolsDrawerContent(
-                        uiState = uiState,
-                        distanceUnit = distanceUnit,
-                        onDistanceUnitSelected = onDistanceUnitSelected,
-                        onClose = { isDrawerOpen = false },
-                        onDeletePlannedTrip = onDeletePlannedTrip,
-                        currentTime = currentTime,
-                        isNightMode = isNightMode,
-                        onNightModeMapsChanged = onNightModeMapsChanged,
-                        autoSaveLocationToPhotos = uiState.autoSaveLocationToPhotos,
-                        onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
-                        lockCameraToPortrait = uiState.lockCameraToPortrait,
-                        onLockCameraToPortraitChanged = onLockCameraToPortraitChanged,
-                        themeMode = uiState.themeMode,
-                        onThemeModeChanged = onThemeModeChanged,
-                        crashFileStore = crashFileStore,
-                        backup = backup,
-                        openSettingsRequest = openBackupRequest,
-                    )
-                    }
-                    }
-                }
-            },
-            content = {
-                CompositionLocalProvider(LocalLayoutDirection provides ambientDirection) {
-                    compactMainScaffold()
-                }
-            },
-        )
-        }
-    } else {
-        // M3's "swapped" adaptive pattern: the same drawer panel, but always on screen and never
-        // covering the content — see drawerSheetContent's own doc comment for what's shared.
-        // PERMANENT_DRAWER_WIDTH keeps the panel's text at a readable line length rather than
-        // stretching it as the window grows past the medium breakpoint.
-        PermanentNavigationDrawer(
-            drawerContent = {
-                // J6c: fullscreen hides the Journal column (this drawer); exit restores it. Nothing is
-                // composed here meanwhile, so the drawer takes no width and the map fills the window.
-                if (!isMapFullscreen) PermanentDrawerSheet(modifier = Modifier.width(PERMANENT_DRAWER_WIDTH)) {
-                    // Workstream L4b-R2: the drawer sheet is DrawerPanel.Log's own visual area, so
-                    // its discard-offer Snackbar docks here — at the bottom of this sheet — rather
-                    // than in mainScaffold's Scaffold, which is the search/results pane beside it,
-                    // not where the edit session the Snackbar is about actually lives.
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            drawerSheetContent(false)
-                        }
-                        SnackbarHost(
-                            logDraftSnackbarHostState,
-                            modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
-                        )
-                    }
-                }
-            },
-            content = {
-                // J6a (ruling 1, list-detail): an opened Journal entry, find, record's details or picker
-                // takes the whole right side, in place of the results pane and its search bar, while the
-                // list stays in the drawer's 360 dp column. The pane is drawn over mainScaffold, which stays
-                // composed beneath it so what the person had there (the chosen tab, the list's scroll, the
-                // map's camera) is as it was when the detail closes; while covered its semantics are cleared,
-                // so nothing beneath is reachable by TalkBack or a test, and its focus is dropped so a
-                // keyboard left up over the search field goes. The pane is opaque and takes every touch.
-                val journalDetail = if (drawerPanel == DrawerPanel.Log) journalDetailSlot.top else null
-                LaunchedEffect(journalDetail != null) {
-                    if (journalDetail != null) {
-                        focusManager.clearFocus(force = true)
-                        keyboardController?.hide()
-                    }
-                }
-                Box(modifier = Modifier.fillMaxSize()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .then(if (journalDetail != null) Modifier.clearAndSetSemantics { } else Modifier),
-                    ) {
-                        mainScaffold()
-                    }
-                    if (journalDetail != null) JournalDetailPane(journalDetail)
-                }
-            },
-        )
+    // The phone tree at every window size (dispatch 2026-09-28-245): a tablet is a big phone, so the tree does not
+    // depend on the width. Landscape windows get the phone's landscape layout (the rail, the L), see isLandscapeWindow.
+    // Landscape B3 (P12 as corrected by R2; owner ruling 1 in
+    // docs/audits/2026-09-27-landscape-b3-prebuild-report.md, section 5). With gestures on
+    // while the drawer is open, M3's scrim tap and swipe-to-close call drawerState.close()
+    // themselves and never touch isDrawerOpen, the authority for "should the drawer be open"
+    // (its comment, above). Left alone, the flag stays true after such a close: the drawer is
+    // visibly shut, but Back is still routed to the close-drawer handler and Tools sets a flag
+    // that is already true, so the drawer will not open again (seen in CompactToolsDrawerTest
+    // with only the gesturesEnabled change applied). So the flag follows a close the drawer
+    // made itself, once that close has settled. Only the settled-closed edge is acted on: a
+    // just-requested open (flag true, drawer still closed and idle) emits nothing, because
+    // the watched value has not changed.
+    LaunchedEffect(drawerState) {
+        snapshotFlow { drawerState.currentValue == DrawerValue.Closed && !drawerState.isAnimationRunning }
+            .collect { settledClosed -> if (settledClosed && isDrawerOpen) isDrawerOpen = false }
     }
-    // The in-app camera, once, outside the width-class branch above — deliberately not inside
-    // either tree, so the flip a rotation causes on a phone (COMPACT to MEDIUM) does not dispose
-    // it. Its own open flag lives in InAppCameraViewModel, which survives the recreation.
-    // See InAppCameraHost for both mechanisms and the owner's decision.
-    // Landscape B1 (2026-09-26): a phone's landscape window is now short and stays in the compact
-    // tree, so a phone's rotation no longer flips trees; a window crossing 600dp while tall (a
-    // foldable, a resized window) still does, which is why the placement stays as it is.
+    // Landscape B3 (P12, owner ruling 2, "Flip layout direction"): in a short landscape window
+    // the drawer opens from the rail side, the port edge. ModalNavigationDrawer has no edge
+    // parameter; it anchors to the start edge of LocalLayoutDirection. So the direction is
+    // set around the drawer to the one whose start edge is the port edge, and the ambient
+    // direction is restored inside both the sheet's content and the screen content, so only
+    // the drawer's anchoring changes. Portrait and every non-short window keep the ambient
+    // direction untouched. The mapping is physical (port on the right -> Rtl, on the left ->
+    // Ltr), not "the opposite of ambient": in an RTL locale the drawer already starts on the
+    // right, and flipping it would move it away from the rail. With the app's LTR locale
+    // this is exactly "flip at ROTATION_90, unchanged at ROTATION_270". See the B3 drawer
+    // completion report for that choice, which is open for the planner to confirm.
+    val ambientDirection = LocalLayoutDirection.current
+    val drawerDirection = if (isLandscapeWindow) {
+        if (portEdge == ScreenEdge.Right) LayoutDirection.Rtl else LayoutDirection.Ltr
+    } else {
+        ambientDirection
+    }
+    // Where the controls over the map are, for the marker fan-out to keep clear of (MapKeepOut.kt).
+    val mapKeepOuts = remember { MapKeepOuts() }
+    CompositionLocalProvider(LocalLayoutDirection provides drawerDirection, LocalMapKeepOuts provides mapKeepOuts) {
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        // Swipe-to-open is off on purpose: the content behind the drawer is a full-screen
+        // pannable map, and a horizontal drag there means "pan", not "open the drawer". Tools
+        // is the way in. Gestures are on only while the drawer is open, which is what lets a
+        // scrim tap close it: in material3 1.5.0-alpha26 both the scrim's dismiss and the
+        // drag are gated on this flag (`if (gesturesEnabled && ...)` and
+        // `anchoredDraggable(enabled = gesturesEnabled)`), so with it off neither a scrim tap
+        // nor swipe-to-close worked. While open it also re-enables swipe-to-close; while
+        // closed it stays false, so swipe-to-open stays off. See the pre-build report above.
+        gesturesEnabled = drawerState.isOpen,
+        drawerContent = {
+            // The sheet itself stays in drawerDirection, so its rounded edge faces the
+            // content and its start-side inset padding lands on the window edge it sits on.
+            // Only what is inside it goes back to the ambient direction.
+            // Material3's own default container role for a modal drawer, passed explicitly, and
+            // its content colour pinned to the role's own (`contentColorFor` matches a colour-scheme
+            // role exactly; see `MapLayersSheet`).
+            // Over the Maps tab at the map chrome's alpha, following the tab (owner: "80% over Maps
+            // (Recommended)"; planner message -77, Q4); solid over the other tabs.
+            val drawerColor = mapChromeFill(navigationBarContainerColor(), compactTab == CompactTab.MAP)
+            val drawerContentColor = contentColorFor(navigationBarContainerColor())
+            ModalDrawerSheet(
+                modifier = Modifier.testTag(TOOLS_DRAWER_SHEET_TAG).mapChromeContainerColor(drawerColor),
+                drawerContainerColor = drawerColor,
+                drawerContentColor = drawerContentColor,
+            ) {
+                CompositionLocalProvider(LocalLayoutDirection provides ambientDirection) {
+                Box(modifier = Modifier.mapChromeContentColor(LocalContentColor.current)) {
+                CompactToolsDrawerContent(
+                    uiState = uiState,
+                    distanceUnit = distanceUnit,
+                    onDistanceUnitSelected = onDistanceUnitSelected,
+                    onClose = { isDrawerOpen = false },
+                    onDeletePlannedTrip = onDeletePlannedTrip,
+                    isNightMode = isNightMode,
+                    onNightModeMapsChanged = onNightModeMapsChanged,
+                    autoSaveLocationToPhotos = uiState.autoSaveLocationToPhotos,
+                    onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
+                    lockCameraToPortrait = uiState.lockCameraToPortrait,
+                    onLockCameraToPortraitChanged = onLockCameraToPortraitChanged,
+                    themeMode = uiState.themeMode,
+                    onThemeModeChanged = onThemeModeChanged,
+                    crashFileStore = crashFileStore,
+                    backup = backup,
+                    openSettingsRequest = openBackupRequest,
+                )
+                }
+                }
+            }
+        },
+        content = {
+            CompositionLocalProvider(LocalLayoutDirection provides ambientDirection) {
+                compactMainScaffold()
+            }
+        },
+    )
+    }
+    // The in-app camera, once, after the tree above. Its own open flag lives in InAppCameraViewModel,
+    // which survives a recreation. See InAppCameraHost for both mechanisms and the owner's decision.
+    // Until dispatch 2026-09-28-245 a window crossing 600 dp flipped between two trees, which is why
+    // it stayed outside them; there is one tree now, and the placement (after it) is kept for the
+    // reason below.
     //
     // It sits *after* the branch rather than before it (2026-09-19): since the camera draws in the
     // Activity's own window instead of a dialog's, nothing but composition order puts it on top,

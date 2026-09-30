@@ -1,6 +1,5 @@
 package com.zynergylabs.forager.app.ui.log
 
-import android.content.res.Configuration
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -36,10 +35,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import com.zynergylabs.forager.app.ui.adaptive.isShortWindow
+import com.zynergylabs.forager.app.ui.adaptive.isLandscapeWindow
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
 /**
@@ -52,16 +50,17 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
  * is hidden on this tab until the row's search icon brings it up (ruling 1; the header's condition
  * is `CompactMainScaffold`'s, reading [JournalScreenState.searchHeaderRevealed]).
  *
- * Portrait is untouched: every composable here is used only where [isShortLandscapeJournal] is
+ * Portrait is untouched: every composable here is used only where [isLandscapeJournal] is
  * true, and the callers keep the same composition structure in both orientations (a frame whose
  * header slot is empty in portrait), so a rotation, which does not recreate the Activity, keeps
  * every piece of `remember` state below it (plan L7).
  */
 @Composable
-internal fun isShortLandscapeJournal(): Boolean =
-    // The same two tests B1-B3 use (`AvailabilityScreen`'s isShortLandscapeWindow): a window under
-    // 480 dp tall (isShortWindow) and landscape (R15), not a new helper.
-    isShortWindow() && LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+internal fun isLandscapeJournal(): Boolean =
+    // The same test B1-B3 use (`AvailabilityScreen`'s isLandscapeWindow): a window in landscape (R15).
+    // Until dispatch 2026-09-28-246 it was "under 480 dp tall and landscape", which no tablet meets;
+    // now a landscape tablet gets the phone's sideways Journal too.
+    isLandscapeWindow()
 
 /**
  * L1: one pinned row, 48 dp tall, holding the Entries | Records switch at its start and, at its end,

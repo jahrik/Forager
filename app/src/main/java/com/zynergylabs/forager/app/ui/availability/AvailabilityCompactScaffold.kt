@@ -23,7 +23,7 @@ package com.zynergylabs.forager.app.ui.availability
 // onPendingJournalDestinationChange, logPhotoAcquisitionInFlight and
 // onLogPhotoAcquisitionInFlightChange. Getter only (1): mapTaxonFilter. Setter only (1):
 // onSelectedTabChange. Values (95): focusManager, keyboardController, logUiState,
-// cartographyUiState, isShortLandscapeWindow, portEdge, logDraftSnackbarHostState, uiState,
+// cartographyUiState, isLandscapeWindow, portEdge, logDraftSnackbarHostState, uiState,
 // distanceUnit, currentTime, mapSlot, mapIconClusterPosition, mapRenderMode, isNightMode,
 // isRecording, startRecordingErrorMessage, breadcrumbPoints, mapWaypoints, returnToStart,
 // isReturning, isNavigating, isOffTrack, compassProvider, computeTrueHeading, navigationTarget,
@@ -176,7 +176,7 @@ internal fun CompactMainScaffold(
     logPhotoAcquisitionInFlight: () -> Boolean,
     cartographyUiState: CartographyUiState,
     isDrawerOpen: () -> Boolean,
-    isShortLandscapeWindow: Boolean,
+    isLandscapeWindow: Boolean,
     portEdge: ScreenEdge,
     /** Landscape B2 (S1): the punch-hole edge from `punchHoleEdgeFor`; read only while the rail shows. */
     punchHoleEdge: ScreenEdge,
@@ -469,9 +469,8 @@ internal fun CompactMainScaffold(
         // Workstream L4b-R2: every *in-app* incidental exit (back arrow inside the edit form, the
         // journal tab's own BackHandler, switching to another bottom-nav tab, and — via the shared
         // leaveLogEntryEditingOfferingDiscard/logDraftSnackbarHostState this function hoisted to its
-        // own top level — DrawerPanel.Log's LogPanel too) shares this one wrapped callback, so the
-        // same Snackbar covers every one of them from a single place rather than a
-        // window-class-specific copy per host. Backgrounding above is the deliberate exception (see
+        // own top level) shares this one wrapped callback, so the
+        // same Snackbar covers every one of them from a single place. Backgrounding above is the deliberate exception (see
         // that effect's own comment on why). The exit itself is never blocked on this:
         // onLeaveLogEntryEditingIncidentally() already ran, and the Snackbar only offers an undo: a
         // dismissed or ignored one leaves the draft exactly where that call already put it (owner
@@ -546,8 +545,9 @@ internal fun CompactMainScaffold(
         //    In fullscreen the rail is absent, with no animation (R13 revised, interim until B2).
         //  - Every other tab: an opaque rail beside the content (railBeside), since there is no
         //    map to keep the size of and text under a translucent rail would hurt reading.
-        // Portrait, and every window that is not short, is exactly as before.
-        val showRail = isShortLandscapeWindow
+        // Portrait windows, short or not, are exactly as before. Since dispatch 2026-09-28-246 the rail is the
+        // landscape layout of any window, tall or short, so a landscape tablet has it too.
+        val showRail = isLandscapeWindow
         val railBeside = showRail && compactTab() != CompactTab.MAP
         // R18: no bottom band for a bar that is not there. The measured height is the portrait
         // bar's while turning into landscape (onGloballyPositioned stops firing once the bar
@@ -803,8 +803,8 @@ internal fun CompactMainScaffold(
                     // hidden, since height is the scarce axis there, until the Journal's own
                     // short-window header row brings it up (JournalScreenState.searchHeaderRevealed;
                     // its search icon and Back clear it again). Portrait, every other tab and
-                    // windows that are not short are unchanged. The rail shows exactly in a short
-                    // landscape window (showRail), the dispatch's "isShortWindow() and landscape".
+                    // portrait windows are unchanged. The rail shows exactly in a landscape
+                    // window (showRail), since -246 whatever its height.
                     val journalHidesSearchHeader = showRail && compactTab() == CompactTab.JOURNAL && !journalScreenState.searchHeaderRevealed
                     // Hiding the header closes its dropdown too, so the dropdown's dismiss scrim
                     // (below) is never left over content with no bar above it.
@@ -854,7 +854,7 @@ internal fun CompactMainScaffold(
                     // alone (AdvancedSearchDropdown's own doc comment). weight(1f) here (unchanged from
                     // before this dispatch) states the intent: this gets whatever is left after the
                     // wrap-content siblings above (empty in fullscreen, so the map then gets the entire
-                    // padded area) — see mainScaffold's own doc comment on this same pattern. Each branch
+                    // padded area) (the same pattern the removed tablet Scaffold used). Each branch
                     // below now fills this Box (fillMaxSize()) rather than carrying its own weight(1f),
                     // since a Box — unlike the Column this used to be a direct child of — doesn't
                     // distribute weight among its children.
@@ -972,6 +972,8 @@ internal fun CompactMainScaffold(
                                 // slide into the space it vacates in the same motion, not jump ahead of
                                 // it.
                                 topInset = safeAnimatedTopInset,
+                                // The L's top limit: the bar's bottom whether or not fullscreen is hiding it (Part B, A1 item 1).
+                                searchBarBottom = searchBarHeight,
                                 // Item 2: only while a notice shows, and not in fullscreen, where the whole search column slides away.
                                 searchNoticeBottom = if (searchNoticeMessage(uiState) != null && !isMapFullscreen()) {
                                     with(LocalDensity.current) { searchChromeHeightPx.toDp() }
