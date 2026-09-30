@@ -8133,3 +8133,23 @@ Both go to the next phone check.
 - No other layer order changes, and nothing else about the puck changes.
 - The work is headless, on branch fan-above-puck from 35f65c47.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-291
+**Timestamp:** 2026-09-30T18:01:07Z
+**Title:** A deleted find never comes back on the Maps tab after its Undo ends
+**Dispatch-file:** preserved/2026-09-30-11.md
+**The owner's report, verbatim:** "When selecting a find from the fan, and the navigating to the find page, and then deleting the find, it properly removes it from the fan upon exit of the page and back to the map. When exiting the fan, it is still gone, but after highlighting another find, it reappears and will be collected in the fan all over again. Tapping it after this yields no results since its source has been deleted."
+**The planner's reading,** at eb4cf129, inferred and not observed:
+- The map's records are a snapshot, loaded by onMapShown (AvailabilityViewModel.kt:478-498).
+- A pending find delete is only filtered out of that snapshot (AvailabilityScreen.kt:887-891).
+- When Undo ends, the delete commits and the filter stops, so the stale snapshot draws the find again.
+- The owner's "highlighting another find" is probably coincidental with the snackbar timing out.
+**Change:**
+- Once its delete commits, the find is gone from the Maps tab's records. Undo still restores it.
+- Photo and offline-region deletes are checked and reported, not fixed.
+- The fan and SightingsMap.kt are untouched.
+- The work is headless, on branch find-delete-reappears from eb4cf129.
+**Notes:** Written by the planner by hand. It may run in parallel with -290. The two share only docs/audits/README.md, and a conflict there is merged with every row kept.
