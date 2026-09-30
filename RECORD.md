@@ -8458,3 +8458,30 @@ Both go to the next phone check.
 - mid-fold, the circle is smaller than the glyph and off its centre: check that it looks acceptable;
 - day and night.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-308
+**Timestamp:** 2026-09-30T20:07:34Z
+**Closes:** 2026-09-28-298 (preserved -15), with continuation -303
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as 009ad2b0, no-ff, from fan-back-others 107d356c. The owner said "Merge first", on the condition that the report was clean.
+  - The fan's Back gate covers fullscreen, the add-action menu, pendingAction and pickingSearchLocation, beside -293's drawer term.
+  - Under -303's Option A, the search dropdown is **not** covered.
+  - The report map gets the fullscreen line, beyond the dispatch's letter under its "apply where the items exist". It has no test.
+- **The coder's checks:**
+  - the red run: 5 of 6 failed at 6b6f46c1's main, before Option A removed the dropdown test;
+  - a revert check per gate term, each failing only its own test;
+  - -293's AvailabilityScreenFanBackDrawerTest 4/4, unchanged.
+- **The planner's check:** the worktree's XML gives 393 files and 3200/0/0/24, written at 13:06 on the merged tree (dd3c0279, pushed as 107d356c). The merged head's app tree is identical to the branch's.
+**Findings, for the owner:**
+- the dropdown's refocus-reopen is observed in the Robolectric harness only. On the device, the dropdown's Back works (-305);
+- the bubble's gate excludes neither the dropdown nor fullscreen. Reasoned from code, the bubble closes before both. Not tested;
+- the taxon suggestions are reachable only through the dropdown, so they are not covered.
+**Device items open:**
+- with a fan open, Back closes fullscreen, the add-action menu, the pin picker, and Set on map before folding the fan;
+- a bubble with fullscreen or the dropdown;
+- the report map with fullscreen.
+**Notes:** Written by the planner by hand.
