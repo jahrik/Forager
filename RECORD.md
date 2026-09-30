@@ -8832,3 +8832,20 @@ The owner picks from the images. Nothing merges from topo-night as built.
 - Only tile level 11 ever fades in. The modelled blend has a mean of 0.22-0.27, and the dark limit stays with no allowance.
 - -328's 9.4-9.6 is superseded.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-330
+**Timestamp:** 2026-09-30T22:54:19Z
+**Closes:** 2026-09-28-325 (preserved -24), with continuation -326
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as 4d552bf0, no-ff, from map-user-agent dc244b4e. The owner said "Merge -325".
+- **The mechanism,** by javap on 13.5.0: HttpRequestImpl adds a fixed "MapLibre Android/13.5.0 …" User-Agent that cannot be configured. The app installs its own OkHttpClient through HttpRequestUtil.setOkHttpClient at start, and an interceptor replaces the header with `Forager/<versionName> (Android <release>; <applicationId>; +https://zynergy-labs.com; support@zynergy-labs.com)`.
+- **The tests:** MapUserAgentTest, 6 tests. A request carries exactly one User-Agent, the app's. The revert check (the install removed) fails only its own test.
+- **The planner's checks:** the worktree's XML gives 394 files and 3206/0/0/24, written at 15:44. The merged app tree is identical to the branch's.
+**Inferred, not observed:** offline downloads share the client.
+**Found and not changed:** INaturalistClient, OpenMeteoClient and OpenMeteoArchiveClient send OkHttp's default User-Agent. This is open with the owner.
+**Device item open:** capture one tile request's headers from the S22, and one offline-download request's.
+**Notes:** Written by the planner by hand.
