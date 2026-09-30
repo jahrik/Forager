@@ -401,8 +401,17 @@ fun SightingsMap(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
-            mapLibreMap?.locationComponent?.onDestroy()
-            mapView.onDestroy()
+            tearDownMap(object : MapTeardownTarget {
+                override fun stopLocationUpdates() {
+                    mapLibreMap?.locationComponent?.onStop()
+                }
+
+                override fun destroyLocationComponent() {
+                    mapLibreMap?.locationComponent?.onDestroy()
+                }
+
+                override fun destroyMapView() = mapView.onDestroy()
+            })
         }
     }
 
