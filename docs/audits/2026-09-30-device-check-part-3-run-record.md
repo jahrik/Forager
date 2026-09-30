@@ -527,3 +527,6 @@ The control editor "DEVICE CHECK 2026-09-30 ctl-editor" left open and dirty in t
 
 ### R4 setup and picker stop (09:01 PDT): a Merge of the pre-F5 backup `A.zip`
 The control editor is still open and dirty. Complete snapshot before: `b3-snap-before-R4.txt`. One tap on "Restore from backup" after a focus read opened `com.google.android.documentsui` `PickActivity` (`b3-restore-r4-picker.png`, `.xml`). **System window: stopped, nothing sent to it.** The owner is to pick **`DEVICE-CHECK-2026-09-30-preF5-A.zip`** ("from yesterday", Sep 29, 5.52 MB). I will choose **Merge** (F5 item 4, the Merge half) and compare the phone's search list, regions and counts.
+
+### A naming note on the pre-F5 file (owner, 09:0x PDT)
+The owner: "Yesterday's device check file is from 9/29 not 9/30." Correct, and the fault is my file name: I copied Part 2's `s3-files/A.zip` (app 1685, made 2026-09-29) to the phone as `DEVICE-CHECK-2026-09-30-preF5-A.zip` to fit the "DEVICE CHECK 2026-09-30" naming rule, so **the name says 09-30 but the backup's content and its modified time are 2026-09-29 03:31** (`ls -la /sdcard/backups`; the picker lists it as "Sep 29, 5.52 MB"). The other file, `forager-backup-2026-09-30.zip`, is today's (08:40). The two are told apart in the picker by date, not by the name's date.
