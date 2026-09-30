@@ -7498,3 +7498,48 @@ S22-B's launch prompt (-53) already makes the dispatch and its amendments govern
 **Owner's answers:** "26 dp"; the circle is "Map chrome colour"; "Circle replaces halo".
 **Also recorded:** the owner saw item 8's fan not reopen after Back, on their S26 Ultra with the 5d429f19 CI build ("bubble stays, but the fan is no longer spread out"). This is sent to S22-B's item 8 recheck for logs. A fix follows S22-B's data and is not part of this dispatch.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-266
+**Timestamp:** 2026-09-30T04:13:22Z
+**Dispatch:** 2026-09-28-227 (Part 3), S22-B
+**Reason:** S22-B **stopped unfinished.** The permission system refused two commands, and the rule is to stop and hand back:
+- a MediaStore delete of the coder's own Save-to-Gallery copy;
+- a read-only pgrep/ls of its own background logcat.
+
+Its record is on device-part-3 at 32534b45 (checked on origin). The phone reads build 1.0.1971+g5d429f19, and user_rotation and accelerometer_rotation are both 0 (checked by the planner).
+**Reported by the coder (not re-checked):**
+- **Build:** 5d429f19, sha256 d1e7628f…c2475, versionCode 1971. The signature and firstInstallTime are unchanged. b-copy/ was verified at 22 of 22.
+- **PASS:**
+  - A1 item 1, the L after leaving fullscreen, at 90 and 270, by the button and by Back;
+  - device-fails item 7;
+  - item 4 (the case run);
+  - item 3 (three cases);
+  - item 1 (four cases);
+  - item 8 cases a, b, e, f and g.
+- **Partial:** item 6. The 35 dp pair does not fan and the 31 dp pair fans; the 20 dp pair was not run.
+- **FAIL:**
+  - **Item 8c:** a fan member's return reopens the bubble but never the fan. There is no MapReturnMemory, MarkerFanOut or SightingsMap log line, so the reopen path appears never to run. This matches the owner's S26 observation.
+  - **A4 item 32:** a dirty editor, backgrounded (Home plus a warm relaunch, and am kill plus a cold relaunch), was saved as a draft with no "Welcome back" prompt. That breaks the checklist's "the prompt appears". Tested at 90 only.
+  - **A5 item 37 (F1 7):** a Save-to-Gallery copy has datetaken NULL and no EXIF DateTimeOriginal. The Gallery shows the save time.
+- **Observed:**
+  - A5 item 36: at 270 the camera opens turned 180° from the app, while user_rotation is unchanged.
+  - Item 2 data: the bubble title rose 36 px after 0→90→0.
+- **Flag:** a runaway `Mbgl-NativeMapView ... after the MapView was destroyed` loop. It runs about once a second after a Journal-to-Maps round trip, and once reached 100% CPU at about 16 ms per call. The map stopped answering taps until a force-stop. Its start was not found, because the log buffer rolled over.
+- **Not runnable:** item 5, because no track passes under a photo on the phone's data.
+- **Not done:** item 8 cases d, h and i; parts of A4; the data group; F5's items 1-8; A6; the restore to a-copy.
+- **The phone holds the coder's test data:**
+  - finds 6a, 6b and 6d;
+  - drafts, including 31n and 31m;
+  - one Save-to-Gallery file in /sdcard/Pictures/Forager;
+  - a distance_unit DataStore file that a-copy lacks.
+  
+  The app is still running. A background adb logcat of the coder's may still be running.
+- **The coder's own slip:** one chained Back after a focus read, against -254. Nothing visible happened.
+**Open for the owner:**
+- how to handle the two refused actions;
+- whether S22-B's remainder and the restore are relaunched;
+- what is done about the item 8c, A4 item 32 and A5 item 37 fails, and the MapView loop.
+**Notes:** Written by the planner by hand. The planner has not retried either refused command, in any form.
