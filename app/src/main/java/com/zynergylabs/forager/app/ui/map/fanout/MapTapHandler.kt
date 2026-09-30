@@ -54,8 +54,8 @@ interface MapTapSinks {
  *  - **The tap resolves to a marker whose touch area overlaps another's** (a stack, rule 1): the stack
  *    fans out and nothing else is reported (rule 2).
  *
- * The camera moving folds it ([onCameraMoveStarted]), and so does a new style ([onStyleChanged]); what the map draws
- * changing folds it only when a member changed ([onContentChanged]).
+ * The camera moving folds it ([onCameraMoveStarted]); what the map draws changing, a new style included, folds it only
+ * when a member changed ([onContentChanged]).
  */
 class MapTapHandler(
     private val fan: MarkerFanOutState,
@@ -136,9 +136,6 @@ class MapTapHandler(
         if (unchanged) return
         if (!openFanFor(drawn.map { it.key })) fan.fold()
     }
-
-    /** The map's style was replaced: the copies belong to the old one, so the fan folds. */
-    fun onStyleChanged() = fan.fold()
 
     private fun FanRect.scaled(by: Float) = FanRect(left * by, top * by, right * by, bottom * by)
 
