@@ -7941,3 +7941,32 @@ All of them go to S22-B's relaunch.
 **The owner's answer:** "Let's try 36dp for size".
 **Change:** FAN_CIRCLE_DIAMETER_DP (FanClarity.kt:25) goes from 48 to 36. The touch area and the spacing (FAN_TOUCH_DP, 48) are unchanged. The work is headless, on branch fan-circle-36 from bc9dc591. The device look is checked afterwards.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-285
+**Timestamp:** 2026-09-30T16:19:56Z
+**Closes:** 2026-09-28-284 (preserved -08)
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as 2dc1061e, no-ff, from fan-circle-36 96b9437f:
+  - the tests first (bce3a33c), which failed against 48 with "radius expected 18 but was 24";
+  - the change (510121c6), FAN_CIRCLE_DIAMETER_DP from 48f to 36f, with both doc comments updated and quoting the owner;
+  - the report, docs/audits/2026-09-30-fan-circle-36-completion-report.md, with its README index row.
+- **The coder's checks:**
+  - it has two readers (FanClarity.kt:60, FanClarityTest.kt:100), and nothing derives a tap target or the spacing from it;
+  - the revert check fails FanClarityTest with a message naming the diameter;
+  - the suite gave 3168/0/0/24;
+  - LeavingTheJournalFixesTest ran 31/31 with no stall.
+- **The planner's checks:**
+  - the merged head's app, data and server trees are identical to the branch's;
+  - the worktree's JUnit XML gives 388 files and 3168/0/0/24, written at 09:19 PDT.
+- **The suite waited on memory:** the 2048 MB gate was unmet from 08:44 to 09:13 PDT. The planner asked Gradle (`./gradlew --status`), which read both Gradle daemons IDLE with no wrapper or worker running. With the owner's "Yes, stop them", the planner stopped PIDs 1283744, 1284065 and 1294752, and about 6.6 GB was freed.
+- **The coder's own slip,** disclosed: a wrapper started below the gate. It stopped that wrapper, PID 1297960, within seconds, and it produced no results.
+**Device-only:**
+- the 36 dp circles by day and by night in a 9-member fan, not crowding each other;
+- every glyph inside its circle with its outline unclipped.
+
+Both go to the next phone check.
+**Notes:** Written by the planner by hand.
