@@ -55,6 +55,7 @@ import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.map.initializeMapLibre
 import com.zynergylabs.forager.app.ui.map.fanout.FanMember
+import com.zynergylabs.forager.app.ui.map.fanout.FanReopenCoordinator
 import com.zynergylabs.forager.app.ui.map.fanout.MapTapHandler
 import com.zynergylabs.forager.app.ui.map.fanout.MapTapSinks
 import com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutBackHandler
@@ -348,6 +349,14 @@ fun SightingsMap(
     // which exists once the map is ready (getMapAsync below).
     val fanOut = remember { MarkerFanOutState() }
     val tapHandlerRef = remember { TapHandlerRef() }
+    // Item 8 (dispatch -267): reopens the fan a user left; see FanReopenCoordinator.
+    val fanReopen = remember {
+        FanReopenCoordinator(
+            handler = { tapHandlerRef.handler },
+            takeKeys = { currentReturnMemory?.takeFanKeys() },
+            onUnavailable = { count -> Log.w(FAN_OUT_RESTORE_TAG, "The fan of $count markers could not be reopened: fewer than two of them are still drawn.") },
+        )
+    }
     // The room a fan has: this view's bounds, and the controls over it that the screen has measured (MapKeepOut.kt).
     val fanSpace = rememberMapFanSpace()
     // Guards against re-running setStyle on every recomposition, mirroring the deleted osmdroid
@@ -401,7 +410,6 @@ fun SightingsMap(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
-            Log.d(SIGHTINGS_MAP_TAG, "TEMP teardown mapView#${System.identityHashCode(mapView)} locationActivated=${mapLibreMap?.locationComponent?.isLocationComponentActivated}")
             tearDownMap(object : MapTeardownTarget {
                 override fun stopLocationUpdates() {
                     mapLibreMap?.locationComponent?.onStop()
@@ -533,7 +541,6 @@ fun SightingsMap(
             map.addOnCameraMoveStartedListener { reason ->
                 // A fanned stack folds on any camera move, a gesture or the app's own: its copies are placed
                 // in screen space (fanMemberLatLng), and a camera that moves under them would strand them.
-                Log.d(FAN_OUT_RESTORE_TAG, "TEMP cameraMoveStarted reason=$reason")
                 tapHandlerRef.handler?.onCameraMoveStarted()
                 if (isUserCameraGesture(reason)) currentOnUserCameraGesture()
             }
@@ -544,7 +551,6 @@ fun SightingsMap(
             // addOnMapLongClickListener's latLng is.
             map.addOnCameraIdleListener {
                 cameraIdleCount++
-                Log.d(SIGHTINGS_MAP_TAG, "TEMP idle #$cameraIdleCount mapView#${System.identityHashCode(mapView)} loadedStyle=${loadedStyle != null} pendingFan=${currentReturnMemory?.pendingFanKeys?.size}")
                 // CameraPosition.target is declared `LatLng?` in the pinned SDK itself (verified via
                 // javap: the vendor's own constructor carries an org.jetbrains.annotations.Nullable
                 // on this parameter) — null before the map has finished laying out a first camera
@@ -575,15 +581,7 @@ fun SightingsMap(
                 // restore has been applied by then, and the style load's own content fold, onContentChanged, has run), through
                 // openFanFor. A reopen that comes to nothing is logged, never silent. Whether a later camera move or content
                 // change folds it again is device-only: a real MapView cannot be built under Robolectric.
-                if (loadedStyle != null) {
-                    currentReturnMemory?.takeFanKeys()?.let { keys ->
-                        val opened = tapHandlerRef.handler?.openFanFor(keys)
-                        Log.d(FAN_OUT_RESTORE_TAG, "TEMP openFanFor(${keys.size}) -> $opened")
-                        if (opened != true) {
-                            Log.w(FAN_OUT_RESTORE_TAG, "The fan of ${keys.size} markers could not be reopened: fewer than two of them are still drawn.")
-                        }
-                    }
-                }
+                fanReopen.onCameraIdle(loadedStyle != null)
                 // Keeps a shown bubble glued to its glyph across a pan, zoom or rotate gesture: see
                 // reanchorFocusedBubble, which a rotation of the device also calls (onViewportResized below).
                 reanchorFocusedBubble(map)
@@ -707,7 +705,6 @@ fun SightingsMap(
             }
             appliedStyle = requested
             loadedStyle = style
-            Log.d(SIGHTINGS_MAP_TAG, "TEMP style loaded mapView#${System.identityHashCode(mapView)}")
             // setStyle discards the previous style's LocationComponent state the same way it does
             // this composable's own layers (see initializeOverlayLayers' own doc comment on why
             // that function re-runs here) — so the live-location "puck" needs the same
@@ -776,8 +773,7 @@ fun SightingsMap(
     // A fanned stack folds when what the map draws changes: its records, its layer switches, its style.
     // Not when a bubble opens (focusedObservationId, focusedFeature): tapping a fanned marker keeps the fan up.
     LaunchedEffect(loadedStyle, sightings, plannedTrips, waypoints, findMarkers, photoMarkers, drawnLayersState, journalHighlights) {
-        Log.d(FAN_OUT_RESTORE_TAG, "TEMP onContentChanged effect fired loadedStyle=${loadedStyle != null}")
-        tapHandlerRef.handler?.onContentChanged()
+        fanReopen.onContentEffect(loadedStyle != null)
     }
 
     // Draws the fan: hides the originals of the fanned markers while it is up, and pushes the copies and
@@ -803,7 +799,7 @@ fun SightingsMap(
     // A map that is left (a tab switch) writes nothing on the way out, so the last list survives until the tap that read it.
     LaunchedEffect(returnMemory) {
         val memory = returnMemory ?: return@LaunchedEffect
-        snapshotFlow { if (fanOut.isOpen) fanOut.members.map { it.key } else emptyList() }.collect { keys -> Log.d(SIGHTINGS_MAP_TAG, "TEMP writer openFanKeys=${keys.size}"); memory.openFanKeys = keys }
+        snapshotFlow { if (fanOut.isOpen) fanOut.members.map { it.key } else emptyList() }.collect { keys -> memory.openFanKeys = keys }
     }
 
     LaunchedEffect(loadedStyle, drawnLayersState) {
