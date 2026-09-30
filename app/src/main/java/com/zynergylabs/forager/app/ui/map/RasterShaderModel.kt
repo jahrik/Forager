@@ -5,6 +5,7 @@ import kotlin.math.log2
 import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -74,6 +75,35 @@ internal fun rasterPaintOf(paint: JsonObject): RasterPaint {
 
 private fun number(element: JsonElement, key: String): Double =
     (element as? JsonPrimitive)?.doubleOrNull ?: error("$key: expected a number, found $element (expressions are not evaluated)")
+
+/**
+ * A layer's `raster-opacity` at [zoom]: 1 when absent (the style spec's default), a number as written, or
+ * `["interpolate", ["linear"], ["zoom"], z0, v0, z1, v1, ...]` evaluated as the spec defines it (linear between
+ * stops, the end values held outside them). Anything else throws: reading another expression as a guessed
+ * number would be a fabricated value. `raster-opacity` accepts a zoom expression in the style spec at the
+ * pinned tag (`expression.interpolated` true, parameter `zoom`).
+ */
+internal fun rasterOpacityAt(paint: JsonObject, zoom: Double): Double {
+    val element = paint["raster-opacity"] ?: return 1.0
+    if (element is JsonPrimitive) return number(element, "raster-opacity")
+    val array = element as? JsonArray ?: error("raster-opacity: $element is neither a number nor an expression")
+    val linear = (array.getOrNull(1) as? JsonArray)?.let { it.size == 1 && (it[0] as? JsonPrimitive)?.content == "linear" } == true
+    val zoomInput = (array.getOrNull(2) as? JsonArray)?.let { it.size == 1 && (it[0] as? JsonPrimitive)?.content == "zoom" } == true
+    require((array.firstOrNull() as? JsonPrimitive)?.content == "interpolate" && linear && zoomInput && array.size >= 5 && array.size % 2 == 1) {
+        "raster-opacity: unsupported expression $array"
+    }
+    val stops = (3 until array.size step 2).map { number(array[it], "raster-opacity") to number(array[it + 1], "raster-opacity") }
+    return when {
+        zoom <= stops.first().first -> stops.first().second
+        zoom >= stops.last().first -> stops.last().second
+        else -> {
+            val upper = stops.indexOfFirst { it.first >= zoom }
+            val (z0, v0) = stops[upper - 1]
+            val (z1, v1) = stops[upper]
+            v0 + (v1 - v0) * (zoom - z0) / (z1 - z0)
+        }
+    }
+}
 
 /**
  * One opaque pixel (ARGB, alpha carried through) as the shader renders it under [paint]. With
