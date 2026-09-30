@@ -591,3 +591,7 @@ Build `1.0.2027+gbc9dc591`, Forager's own Settings (Tools, Settings: a **drawer 
 
 ### Item 40 skipped by the owner's word
 The owner: "No, skip the real recording." Item 40 (F3 kept track paths: an entry keeping a track, then deleting the track) is **not run**, for lack of a recorded track with more than one point. Item 39's remaining cases are also not run (see above).
+
+### F5 items 5-8 (GPX Share), on the owner's "Run them, I'll tap" (via the planner)
+- **Item 5, first half: PASS.** Before the Share, `run-as ls -l cache/tracks` -> `No such file or directory`. After one tap on the Share icon of the 18-point track "Sep 27, 2026, 7:23 PM" (09:53:26), `cache/tracks` holds **`forager-track-2026-09-27-192346.gpx`, 8,739 bytes, mtime 09:53**, mode `-rw-------` (`b3-f5-chooser.png`).
+- **The chooser** is Android's (`com.android.intentresolver` `ChooserActivityLauncher`, 81 nodes), titled "1 item: forager-track-2026-09-27-192346.gpx". **System window: stopped, nothing sent to it.** Targets on screen include **My Drive (Google Drive upload), Gmail, Messenger, Chat, Meta Business, three people's Messenger shortcuts, Bluetooth and Quick Share**; **several would send the file off the phone.** The owner is told so before tapping.
