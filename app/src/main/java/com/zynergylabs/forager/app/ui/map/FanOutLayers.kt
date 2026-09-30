@@ -58,6 +58,9 @@ internal object FanOutIds {
 
     /** The feature property holding a copy's `icon-offset`, `[x, y]` in dp (dispatch 2026-09-28-275). */
     const val ICON_OFFSET_PROPERTY = "iconOffset"
+
+    /** The feature property holding a circle's scale, 0 to 1 (dispatch 2026-09-28-299). */
+    const val CIRCLE_SCALE_PROPERTY = "circleScale"
 }
 
 /** The leg's own line width, in dp: "a thin line". Its casing is [CASING_WIDTH_DP] wider on each side, as a track's is. */
@@ -154,6 +157,7 @@ internal fun fanFrameCollections(
     members: List<FanMember>,
     at: (FanMember) -> LatLng,
     focusedObservationId: Long?,
+    progress: Float,
 ): FanFrame {
     if (members.isEmpty()) return EMPTY_FRAME
     val legs = mutableListOf<Feature>()
