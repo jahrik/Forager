@@ -8632,3 +8632,66 @@ Both go to the next phone check.
 - **Process:** two permission refusals, resolved by the owner (-300, -301). A first probe build did not compile, and no results were read from it. Build overlaps with -310 are disclosed.
 **Open:** an audit of the other DecodedPhoto call sites for the same gesture-on-a-swapped-node pattern, including WideJournalTest's album long-press.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-317
+**Timestamp:** 2026-09-30T21:50:03Z
+**Title:** Album taps are never lost to a photo decode; JournalTabTest From Album waits for its decode
+**Dispatch-file:** preserved/2026-09-30-21.md
+**The owner, verbatim:** "1 dispatch" (the album fix) and "2 a" (From Album: the test waits)
+**The planner's reading:**
+- -296's diagnosis (terminal -316): the gesture is on the node DecodedPhoto swaps.
+- The trial fix gave 0 in 18 pinned runs.
+**Change:**
+- The gesture moves to a stable node at every affected DecodedPhoto call site.
+- The From Album test waits for the decode; a test-only change.
+- Tested by deterministic regression tests and 12 pinned runs.
+- After merge, the planner tracks about 6 consecutive green CI runs.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-318
+**Timestamp:** 2026-09-30T21:50:03Z
+**Title:** Fixes for -311's two fails: the puck under the stack after a Street swap, and the fan's z-order pop at the fold's ends
+**Dispatch-file:** preserved/2026-09-30-22.md
+**The owner, verbatim:** "3 yes"
+**The planner's reading:**
+- Fail 3: after a swap to the Street basemap, the folded stack's camera glyph covers the puck. It is fine after leaving Maps.
+- Fail 5: the front glyph's stacking order pops at the fold's last frames and the open's first.
+- Each rests on a single cropped run.
+**Change:**
+- Reproduce each headless first; stop if one does not reproduce.
+- Then fix it, with a failing test first and a revert check.
+- Fail 3 goes device-only if it has no headless seam.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-319
+**Timestamp:** 2026-09-30T21:50:03Z
+**Title:** A follow-up S22 session for -311's items not run, under a stricter data rule
+**Dispatch-file:** preserved/2026-09-30-23.md
+**The owner, verbatim:** "4 yes"
+**The planner's reading:**
+- -311 deleted the owner's only track with an undumped chip-row gesture, and restored it (-315).
+**Change:**
+- A dump before every gesture on any list, no swipes on list or chip rows, only D records, stop at the first unexpected change, and count read-backs.
+- It starts only on the planner's go, after the owner's topo night check.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** device-note
+**ID:** 2026-09-28-320
+**Timestamp:** 2026-09-30T21:50:03Z
+**Covers:** installing -310's build on the S22 for the owner's topo night check
+**Run by:** the planner, at the owner's "5 yes".
+**The build:** 1.0.2174+ga88d6f25.dirty, from forager-wt/topo-night. The coder built it from a88d6f25 plus uncommitted edits to KDoc comments only. APK sha256 2aa80d2a9c678fa0….
+**The install:** `adb install -r --user 0` over 1.0.2160+gc849ae99, at 2026-09-30 14:48:34. User 0's ceDataInode stayed 2259049. databases/forager.db's sha256 is e1188b00…, the same as -311's before-copy.
+**Not done:** no launch, input or screenshot by the planner.
+**Notes:** Written by the planner by hand.
