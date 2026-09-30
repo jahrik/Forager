@@ -8379,3 +8379,25 @@ Both go to the next phone check.
 - The Set-on-map test stays if it passes, and is reported if it does not.
 **Open:** whether the refocus reopening happens on a device. The planner has asked the owner for a quick S22 check. A separate dispatch waits on that result.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-304
+**Timestamp:** 2026-09-30T19:49:45Z
+**Title:** Back closes the Maps tab's search dropdown, and it stays closed
+**Dispatch-file:** preserved/2026-09-30-17.md
+**The owner's device check,** on the S22, verbatim:
+- "Open Tools, then press Back. Does the search dropdown pop open by itself? No"
+- "Open the search dropdown, then press Back. Does it close and stay closed? No"
+**The planner's reading:**
+- -298's harness showed Back closing the dropdown, then requestFocus returning focus to the search field, then onFieldFocused (AvailabilityCompactScaffold.kt:838) reopening it.
+- The device agrees on the dropdown and disagrees on the drawer case.
+- The keyboard consuming the first Back is also a candidate.
+- Neither has been observed on the device.
+**Change:**
+- Back leaves the dropdown closed until a touch reopens it.
+- A stop-and-ask if the fix changes keyboard or accessibility opening.
+- The fan's Back gate is untouched.
+- The work is headless, on branch dropdown-back from bbc503ff.
+**Notes:** Written by the planner by hand. It is queued after -298 and before -296.
