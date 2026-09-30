@@ -8553,3 +8553,20 @@ Both go to the next phone check.
   - -293's tests stay unchanged.
 - The work is headless, on branch map-residuals.
 **Notes:** Written by the planner by hand. It is queued for Gradle behind -296 and -310.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-313
+**Timestamp:** 2026-09-30T21:04:59Z
+**Continues:** 2026-09-28-310 (preserved -18)
+**Why:** The coder measured 81 OpenTopoMap tiles (z7-15, Oregon City; topo-night a4471cbd).
+- Mean lightness after V1 is 0.23-0.32 at tile z11-15 and 0.42-0.47 at tile z7-10.
+- MapLibre 13.5.0 picks the tile zoom as round(mapZoom + 1), so the switch is at map zoom 9.5.
+- All five raster paint properties accept zoom expressions.
+- The coder showed that no per-pixel raster paint can make both OpenTopoMap's pale low-zoom roads and its black labels lighter than the ground.
+**Correction to -310:** the dispatch's "roads and labels lighter than the ground" was the planner's own addition, not the owner's. It is withdrawn. The owner's rule stands: "match the zoomed in colors".
+**Ruling, by the planner, within the owner's rule:** option A. Below map zoom about 9.5, the paint keeps V1's polarity with a reduced brightness-min (about 0.45-0.55, max 0, hue 180), and an interpolate between two inverted paints, so it never passes through flat grey. The ground lands at 0.18-0.24, in the zoomed-in band. Labels stay light. Roads are about 0.04-0.08 darker than the ground at low zoom.
+- Rejected: B, no inversion at low zoom. It looks like a dimmed day map and needs a hard step. Its figures stay in the report's table.
+**The owner judges** A from S22 screenshots before any merge, and can still choose B.
+**Notes:** Written by the planner by hand.
