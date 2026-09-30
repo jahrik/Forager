@@ -8611,3 +8611,24 @@ Both go to the next phone check.
 - **Not run:** 7's night half (night was on all along; day not run?), 13 at 270°, 19 and 20.
 - **Both fails rest on cropped frames from a single run.**
 **Notes:** Written by the planner by hand. The data rule that failed was rule 3, "read a record's name before any delete". The gesture was not meant as a delete. So a follow-up device session needs a stricter rule: a dump before **any** gesture on a list row in Journal or Records.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-316
+**Timestamp:** 2026-09-30T21:45:04Z
+**Closes:** 2026-09-28-296 (preserved -13), with continuations -300 and -301
+**Outcome:** completed, diagnosis only. No fix was applied, and ci-flake is never merged.
+**Observed:**
+- **The report:** docs/audits/2026-09-30-ci-flake-diagnosis.md, on ci-flake 3246ead8. It supersedes the partial report's README row, and every row is kept.
+- **The cause:** DecodedPhoto swaps from placeholder to Image off the test clock, and the swap replaces the node that carries AlbumPhotoTile's combinedClickable, so a gesture in flight is lost.
+- **The evidence:**
+  - the probes (a scratch DecodeProbe hook plus the ui/log/probe tests) are deterministic: 6/6 each way;
+  - all 82 CI album failures are that same outcome, since "is not displayed" is what a missing node gives;
+  - locally it appears only under CPU starvation: 4 in 18 pinned runs (2 CPUs 2/12, 1 CPU 2/6), against 0 in 6 unpinned and 0 in 3 full suites.
+- **The proposed fix, trialled and reverted:** the gesture on a stable wrapper Box. The probe arms go 3/3 green, the class 52/52, and 0 in 18 pinned runs against 4 in 18. 2 of those fix runs overlapped -310's build and are marked; 1 overlap is unknown.
+- **JournalTabTest From Album** is the same decode, read with no wait, and needs its own fix (an owner decision). This supersedes the 09-15 report's "exists and is not displayed".
+- **-297's DrawerBackOverJournalTest stall** was not reproduced: 0 in 9 runs, with the watchdog kept.
+- **Process:** two permission refusals, resolved by the owner (-300, -301). A first probe build did not compile, and no results were read from it. Build overlaps with -310 are disclosed.
+**Open:** an audit of the other DecodedPhoto call sites for the same gesture-on-a-swapped-node pattern, including WideJournalTest's album long-press.
+**Notes:** Written by the planner by hand.
