@@ -7498,3 +7498,131 @@ S22-B's launch prompt (-53) already makes the dispatch and its amendments govern
 **Owner's answers:** "26 dp"; the circle is "Map chrome colour"; "Circle replaces halo".
 **Also recorded:** the owner saw item 8's fan not reopen after Back, on their S26 Ultra with the 5d429f19 CI build ("bubble stays, but the fan is no longer spread out"). This is sent to S22-B's item 8 recheck for logs. A fix follows S22-B's data and is not part of this dispatch.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-266
+**Timestamp:** 2026-09-30T04:13:22Z
+**Dispatch:** 2026-09-28-227 (Part 3), S22-B
+**Reason:** S22-B **stopped unfinished.** The permission system refused two commands, and the rule is to stop and hand back:
+- a MediaStore delete of the coder's own Save-to-Gallery copy;
+- a read-only pgrep/ls of its own background logcat.
+
+Its record is on device-part-3 at 32534b45 (checked on origin). The phone reads build 1.0.1971+g5d429f19, and user_rotation and accelerometer_rotation are both 0 (checked by the planner).
+**Reported by the coder (not re-checked):**
+- **Build:** 5d429f19, sha256 d1e7628f…c2475, versionCode 1971. The signature and firstInstallTime are unchanged. b-copy/ was verified at 22 of 22.
+- **PASS:**
+  - A1 item 1, the L after leaving fullscreen, at 90 and 270, by the button and by Back;
+  - device-fails item 7;
+  - item 4 (the case run);
+  - item 3 (three cases);
+  - item 1 (four cases);
+  - item 8 cases a, b, e, f and g.
+- **Partial:** item 6. The 35 dp pair does not fan and the 31 dp pair fans; the 20 dp pair was not run.
+- **FAIL:**
+  - **Item 8c:** a fan member's return reopens the bubble but never the fan. There is no MapReturnMemory, MarkerFanOut or SightingsMap log line, so the reopen path appears never to run. This matches the owner's S26 observation.
+  - **A4 item 32:** a dirty editor, backgrounded (Home plus a warm relaunch, and am kill plus a cold relaunch), was saved as a draft with no "Welcome back" prompt. That breaks the checklist's "the prompt appears". Tested at 90 only.
+  - **A5 item 37 (F1 7):** a Save-to-Gallery copy has datetaken NULL and no EXIF DateTimeOriginal. The Gallery shows the save time.
+- **Observed:**
+  - A5 item 36: at 270 the camera opens turned 180° from the app, while user_rotation is unchanged.
+  - Item 2 data: the bubble title rose 36 px after 0→90→0.
+- **Flag:** a runaway `Mbgl-NativeMapView ... after the MapView was destroyed` loop. It runs about once a second after a Journal-to-Maps round trip, and once reached 100% CPU at about 16 ms per call. The map stopped answering taps until a force-stop. Its start was not found, because the log buffer rolled over.
+- **Not runnable:** item 5, because no track passes under a photo on the phone's data.
+- **Not done:** item 8 cases d, h and i; parts of A4; the data group; F5's items 1-8; A6; the restore to a-copy.
+- **The phone holds the coder's test data:**
+  - finds 6a, 6b and 6d;
+  - drafts, including 31n and 31m;
+  - one Save-to-Gallery file in /sdcard/Pictures/Forager;
+  - a distance_unit DataStore file that a-copy lacks.
+  
+  The app is still running. A background adb logcat of the coder's may still be running.
+- **The coder's own slip:** one chained Back after a focus read, against -254. Nothing visible happened.
+**Open for the owner:**
+- how to handle the two refused actions;
+- whether S22-B's remainder and the restore are relaunched;
+- what is done about the item 8c, A4 item 32 and A5 item 37 fails, and the MapView loop.
+**Notes:** Written by the planner by hand. The planner has not retried either refused command, in any form.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-267
+**Timestamp:** 2026-09-30T04:19:10Z
+**Title:** Two fixes before PR #140 merges: the fan never reopens after Back (item 8c), and the destroyed-MapView loop
+**Dispatch-file:** preserved/2026-09-29-59.md
+**Change:**
+- **Item 8c:** the real SightingsMap reopen path is diagnosed against the test stub, fixed and device-rechecked.
+- **The MapView loop:** it is reproduced with full logs from the app's start, the stale reference is diagnosed and fixed, and the fixed build is checked for zero "after the MapView was destroyed" lines.
+**Scope boundary:** the map's return and reopen path, and the map's lifecycle. Device use on the S22 is for diagnosis and rechecks only, with no record changes and no restore.
+**The owner's answers:** "Relaunch after fixes". Fix before merge: "8c: fan reopen, Map loop".
+**Known issues for after the merge (not fixed for PR #140):**
+- **A5-37:** Save to Gallery writes no datetaken or EXIF DateTimeOriginal, so the phone's gallery app dates the copy by the save time. The owner pointed out that Forager's own Album shows the right dates, and it does. The issue is only in the system gallery's copy.
+- **A4-32:** a backgrounded dirty editor is saved as a draft without a "Welcome back" prompt. Tested at 90 only.
+**Sequencing:** S22-B relaunches after this merges and after fan-clarity (-265). It runs the data group, F5's items, A6, the rechecks and the restore to a-copy.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-268
+**Timestamp:** 2026-09-30T04:21:58Z
+**Dispatch:** 2026-09-28-265 (fan-clarity), and -267 (map-return-fixes)
+**Reason:** fan-clarity's coder handed back unbuilt after its gates failed for 30 minutes (available memory about 1.3-1.5 GB). Its commits are c2cd00d2 (tests first) and 95b36d76 (the implementation, never compiled).
+- **Three idle daemons held about 5 GB:** Kotlin 1060105 (3 h 26 m), Gradle 1125171 (1 h 07 m, likely the planner's suite run) and Gradle 1029115 (4 h 35 m).
+- **The owner's answer:** "End all 3 idle daemons".
+**Changes:**
+- **The daemons were ended.** The planner ended all three after confirming no Gradle wrapper or worker was running. Available memory went from 1567 MB to 6718 MB.
+- **fan-clarity's coder was resumed** to build, test and revert-check its work.
+- **The planner's answers on its decisions:**
+  - 1, 2, 4 and 5 accepted: the fade set is the MARKER kind and tap group; the fade is a multiplier; it ends when the fold starts; the circle replaces the halo.
+  - 3 kept: the circle follows the app theme through navigationBarContainerColor(), as the chrome does.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-269
+**Timestamp:** 2026-09-30T07:40:00Z
+**Dispatch:** 2026-09-28-267 (map-return-fixes), and -265 (fan-clarity)
+**Reason:** both coders went silent without handing back. A new planner session found this at about 07:25Z.
+- **map-return-fixes:** the last push was `406eedc0` at 04:33Z. Its worktree held two uncommitted edits, last written at 04:37Z:
+  - `FanReopen.kt` (+13);
+  - `MapTeardown.kt` (+1).
+- **fan-clarity:** nothing after `95b36d76` (04:20Z, "WIP, NOT BUILT OR RUN"), although it was resumed at 04:21Z (record -268).
+- Neither coder's session is reachable. Why they stopped is not known.
+**Changes:**
+- **The uncommitted edits were rescued.** The owner said "Commit and push", and the planner's session committed the two edits as they stood, as `0f6c894c` on `map-return-fixes`. The planner did not write, build or test them, and the commit message says so.
+- **What the edits do:**
+  - the fan reopen waits for both the style-loaded content effect and a camera idle;
+  - `tearDownMap` calls `LocationComponent.onStop()` before the two destroys.
+- **What the coder's own device logs show** (`~/Zynergy/device-evidence/2026-09-30-map-return-fixes/`, read by the planner):
+  - **`a-reopen.log`:** `openFanFor(9) -> true` at 21:30:28.977, then `fan.fold` from `onContentChanged` at .979. This matches the pre-registration's H3.
+  - **`b1-roundtrip.log`:** 14 destroyed-MapView lines on the unfixed build.
+  
+  These are logs of the diagnosis, not a check of the fix.
+- **Continuations were written:**
+  - `-270` (`prompts/preserved/2026-09-30-01.md`) for map-return-fixes;
+  - `-271` (`prompts/preserved/2026-09-30-02.md`) for fan-clarity.
+  
+  They go to Sonnet coders in owner-opened windows. Each resumes from its branch head, and both run at the same time under the existing machine gates.
+- **Flagged:** both branches change `SightingsMap.kt` in adjacent hunks, near :761-785. Whichever merges second will probably need to resolve a textual conflict there.
+- **Left alone:**
+  - an idle Gradle daemon started at about 04:28Z;
+  - S22-B's `adb logcat`, running since about 04:05Z.
+**Sequencing (unchanged from -267):** both fixes merge into journal-redesign, and then S22-B relaunches.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-272
+**Timestamp:** 2026-09-30T07:50:00Z
+**Title:** Amendment to -270: the deleted-member reopen case may change test records
+**Dispatch-file:** preserved/2026-09-30-01.md (the amendment is appended there)
+**Change:** the map-return-fixes coder may run Part A's deleted-member case.
+- It may delete one member of a fan. S22-B's test finds are used if they fan; if not, at most two test finds are created so that they do.
+- The owner's own records are never touched.
+- Every find created or deleted is named in the report.
+**The owner's answer:** "The coder has my authorization to run it".
+**Notes:** Written by the planner by hand. The planner read "run it" as this case, the one the -270 hand-off named as needing a record change.
