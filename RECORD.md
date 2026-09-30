@@ -7683,3 +7683,24 @@ Its record is on device-part-3 at 32534b45 (checked on origin). The phone reads 
 **Scope boundary:** the fan's fold rule and the return path. The planner merges; the coder does not.
 **Sequencing:** map-return-fixes merges into journal-redesign after the planner's own suite run on the merged tree. Then S22-B relaunches.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-275
+**Timestamp:** 2026-09-30T09:13:50Z
+**Title:** In a fan, each copy's glyph body is centred in its circle
+**Dispatch-file:** preserved/2026-09-30-04.md
+**The owner's report:** with an S22 screenshot, the owner saw that a fanned waypoint pin sits off its circle. The pin's tip is aimed at the circle's centre instead of the two centres lining up.
+**The planner's reading:**
+- The fan draws copies with ICON_ANCHOR_CENTER (FanOutLayers.kt:84) on bitmaps padded about each glyph's anchor (MarkerGlyphs.kt:149-153).
+- So each copy's anchor lands on the circle's centre: the tip for the waypoint, the stem foot for a find, the pole foot for a planned trip (MarkerGlyphs.kt:34-45).
+**The owner's answers:** "All three". A "small separate dispatch".
+**Change:**
+- In a fan, each copy is offset so the centre of its fill extent sits on the circle's centre. Off the fan, anchors are unchanged. Hit-testing is unchanged, and the coder stops if a tap target would move.
+- Headless only, on branch fan-centring, running at the same time as map-return-fixes. It merges before S22-B, which checks the look on the device.
+**Also recorded, for -274:**
+- The Step 1 capture (c-step1-full.log) confirms H4. After a delete, the fan reopened with 7 survivors at 02:08:30.978 PDT (openFanFor true). A content effect folded it 10 s later, at 02:08:40.938.
+- The owner's screenshot at 2:08 shows the reopened fan.
+- The 10 s gap's cause is unconfirmed; the planner's guess is the Undo snackbar's expiry.
+**Notes:** Written by the planner by hand.
