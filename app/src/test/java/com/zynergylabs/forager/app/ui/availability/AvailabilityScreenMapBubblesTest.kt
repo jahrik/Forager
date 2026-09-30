@@ -479,7 +479,11 @@ class AvailabilityScreenMapBubblesTest {
     }
 
     @Test
-    fun `Open in Journal opens the find in its report over the Journal, and Back returns to the Journal with its saved chip`() {
+    // Re-based 2026-09-30 (dispatch 2026-09-29-57, item 8, the owner's amendment -256): this test asserted that Back from a find
+    // opened with "Open in Journal" lands on the Journal, which the owner has ruled is wrong ("it should return you to the
+    // map"). Back now arrives on the Maps tab; the claim about the Journal, that it keeps its saved chip, is now checked when the
+    // user next goes there. The new behaviour's own tests are AvailabilityScreenReturnToMapTest.
+    fun `Open in Journal opens the find in its report over the Journal, Back returns to the Maps tab, and the Journal keeps its saved chip`() {
         setScreen()
         // The user's own Journal state first: Records, with the Waypoints chip.
         composeRule.onNodeWithText("Journal").performTouchInput { click(center) }
@@ -503,6 +507,11 @@ class AvailabilityScreenMapBubblesTest {
 
         composeRule.onAllNodesWithTag(FIND_OVER_VIEW_TAG).assertCountEqualsZero()
         assertEquals(null, log.editingEntry)
+        // This fixture's ViewModel loads no map records, so the find is not drawn and no bubble reopens (that case is logged); the
+        // bubble coming back is asserted with the records loaded, in AvailabilityScreenReturnToMapTest.
+        composeRule.onNodeWithTag("map-slot").assertIsDisplayed()
+        composeRule.onNodeWithText("Journal").performTouchInput { click(center) }
+        composeRule.waitForIdle()
         composeRule.onNodeWithTag("records-chip-waypoints").assertIsSelected()
     }
 }

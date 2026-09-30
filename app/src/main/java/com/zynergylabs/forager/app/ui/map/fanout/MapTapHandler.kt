@@ -25,6 +25,9 @@ interface MapProbe {
 
     /** The markers of the given layers whose own position is within a square of half-side [halfPx] about the point. */
     fun markersInBox(xPx: Float, yPx: Float, halfPx: Float, layerIds: List<String>): List<ProbedMarker>
+
+    /** The markers named by [keys] that the map still draws, at their positions now; a key no longer drawn is left out. */
+    fun markersOf(keys: List<FanKey>): List<ProbedMarker>
 }
 
 /**
@@ -89,6 +92,21 @@ class MapTapHandler(
         dispatch(mapTapOutcome(winner), at, xPx, yPx)
     }
 
+    /**
+     * Opens a fan over the markers [keys] name, as the one they were in when the user left the map (dispatch 2026-09-29-57,
+     * item 8: Back from a find opened on the map). A key whose marker is no longer there is dropped; fewer than two left
+     * opens nothing. `true` when a fan opened.
+     */
+    fun openFanFor(keys: List<FanKey>): Boolean {
+        val order = drawOrder()
+        // A layer switched off since (or one that never fanned) is left out like a deleted record.
+        val fanLayers = fanOutLayerIds(order)
+        val stack = probe.markersOf(keys.filter { it.layerId in fanLayers }).distinctBy { it.key }
+        if (stack.size < 2) return false
+        openFan(stack, order)
+        return true
+    }
+
     /** The camera started to move, by a gesture or by the app: the copies are placed in screen space, so the fan folds. */
     fun onCameraMoveStarted() = fan.fold()
 
@@ -108,6 +126,13 @@ class MapTapHandler(
         val stack = stackOf(self, nearby, density)
         if (stack.size < 2) return false
 
+        openFan(stack, order)
+        return true
+    }
+
+    /** Fans [stack] (at least two markers), top layer first, from where they are on screen now. */
+    private fun openFan(stack: List<ProbedMarker>, order: List<MapLayerSpec>) {
+        val density = probe.density
         val heightOf = order.withIndex().associate { it.value.id to it.index }
         val topFirst = stack.sortedWith(compareByDescending<ProbedMarker> { heightOf.getValue(it.key.layerId) }.thenBy { it.key.featureId })
         // The ring is about the stack's centre, so its markers are a touch size apart whatever their true spots (each
@@ -133,7 +158,6 @@ class MapTapHandler(
                 FanMember(m.key, m.lat, m.lng, trueX, trueY, offset)
             },
         )
-        return true
     }
 
     private fun dispatch(outcome: MapTapOutcome, at: LatLng, xPx: Float, yPx: Float) {

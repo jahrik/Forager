@@ -157,6 +157,7 @@ import com.zynergylabs.forager.app.ui.map.MapMode
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
 import com.zynergylabs.forager.app.ui.map.MapCameraMemory
+import com.zynergylabs.forager.app.ui.map.MapReturnMemory
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
@@ -197,6 +198,14 @@ internal fun CompactMainScaffold(
     mapIconClusterPosition: MapIconClusterPositionState,
     /** Part 1 layout fixes, item 4: the Maps tab's camera, kept above the tab switch; threaded to [CompactMapTab]. */
     mapCameraMemory: MapCameraMemory,
+    /** Item 8 (dispatch 2026-09-29-57): what "Open in Journal" leaves for the Maps tab that Back returns to; see [MapReturnMemory]. */
+    mapReturnMemory: MapReturnMemory,
+    /** Item 8: a find's report was closed (Back or its arrow); the id is the find that was open. The screen decides whether that is a return to the map. */
+    onFindReportClosed: (String?) -> Unit,
+    /** Item 8: a find was deleted from its page or its tile. */
+    onFindDeleted: (String) -> Unit,
+    /** Item 8: the user began editing a find (from its report or a tile), which ends "return to the map" for it. */
+    onFindEditStarted: () -> Unit,
     mapRenderMode: MapRenderMode,
     /**
      * Map layers L0b: the Maps tab's Layers sheet, legend and saved records ([MapLayersControls]),
@@ -891,6 +900,7 @@ internal fun CompactMainScaffold(
                                 mapSlot = mapSlot,
                                 clusterPosition = mapIconClusterPosition,
                                 cameraMemory = mapCameraMemory,
+                                returnMemory = mapReturnMemory,
                                 // Landscape B2: the punch-hole side, and the search bar's capped
                                 // width there (the chip sits under it, within it).
                                 punchHoleEdge = if (showRail) punchHoleEdge else null,
@@ -1092,10 +1102,19 @@ internal fun CompactMainScaffold(
                                 mapLayers = mapLayers.stored,
                                 onMapLayerVisibilityChanged = mapLayers.onVisibilityChanged,
                                 onOpenEntry = onOpenLogEntry,
-                                onCloseEntry = onCloseLogEntry,
+                                // Item 8: the find open when the report closes, read before the close lands; Back and the report's own arrow
+                                // both come through here, and the screen says whether the find came from the map.
+                                onCloseEntry = {
+                                    val closing = logUiState.editingEntry?.id
+                                    onCloseLogEntry()
+                                    onFindReportClosed(closing)
+                                },
                                 onStartEntry = onStartLogEntry,
                                 onEntryChanged = onLogEntryChanged,
-                                onStartEditingEntry = onStartEditingLogEntry,
+                                onStartEditingEntry = {
+                                    onFindEditStarted()
+                                    onStartEditingLogEntry()
+                                },
                                 onSaveEntry = onSaveLogEntry,
                                 onCancelEditing = onCancelLogEntryEditing,
                                 onLeaveEditingIncidentally = leaveLogEntryEditingOfferingDiscard,
@@ -1103,7 +1122,10 @@ internal fun CompactMainScaffold(
                                 onAddPhoto = onAddLogPhoto,
                                 onRemovePhoto = onRemoveLogPhoto,
                                 onPullPhoto = onPullLogPhoto,
-                                onDeleteEntry = onDeleteLogEntry,
+                                onDeleteEntry = { id ->
+                                    onDeleteLogEntry(id)
+                                    onFindDeleted(id)
+                                },
                                 onSaveErrorDismissed = onSaveLogErrorDismissed,
                                 // Album folded into this tab as a third top tab (Log/Drafts/Album) — see
                                 // LogGalleryScreen's own doc comment. Threaded through unchanged from
@@ -1136,7 +1158,14 @@ internal fun CompactMainScaffold(
                                 onDeleteCartographyEntry = onDeleteCartographyEntry,
                                 onRequestDeleteCartographyEntry = onRequestDeleteCartographyEntry,
                                 onRequestDeleteGalleryPhoto = onRequestDeleteGalleryPhoto,
-                                onOpenEntryForEditing = onOpenLogEntryForEditing,
+                                // Null stays null (the tiles then offer Delete only); when set, starting an edit forgets the map origin (item 8).
+                                onOpenEntryForEditing = onOpenLogEntryForEditing?.let { open ->
+                                    val editing: (String) -> Unit = { id ->
+                                        onFindEditStarted()
+                                        open(id)
+                                    }
+                                    editing
+                                },
                                 getCartographyEntryMapData = getCartographyEntryMapData,
                                 getSavedTrackPaths = getSavedTrackPaths,
                                 getCartographyEntryOfflineRegion = getCartographyEntryOfflineRegion,
