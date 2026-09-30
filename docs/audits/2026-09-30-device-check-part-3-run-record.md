@@ -442,3 +442,7 @@ The **~30 dp pair from the owner's screenshots** was an estimate and is not a se
 
 ### Item 8, case (i), the fan while GPS is following — observation
 The locate button turned following on. A fan opened by a tap **did not stay open**: the first frame shows the members still bunched at the hub (`b2-del-fan.png`) and the next, 5 s later, has no fan (`b2-del-fan2.png`), while the scale readout changed (129, 130, 131 m) as the camera followed. That fits the camera-move fold. Two frames only; no log line names it. After a manual pan dropped following, the same fan stayed open for 6 s.
+
+### Item 8, cases (d) and (h) — (d) PASS; (h) not run
+- **(d) PASS.** Before: the Journal read Records tab, Finds chip (7), Log sub-tab, Drafts (7) (`b2-del-journal-after.png`). Then with my unfanned find "DEVICE CHECK 2026-09-30 i6A" (bubble title from a dump): Open in Journal (the page read "Your own identification: DEVICE CHECK 2026-09-30 i6A"), one Back after a focus read: the **Maps tab with the same find's bubble open** (`b2-i8d-back.xml`, so (a) again); then the Journal tab: the same tab, chip, sub-tab and tiles as before (`b2-i8d-journal.png` against `b2-del-journal-after.png`).
+- **(h) not run:** "a member of the fan deleted first, and with all but one deleted" needs deleting fan members. The owner's word covered deleting my find 8c only, and that is spent. My finds "i6C" and "i6D" form a 2-member fan and could serve the "all but one deleted" half if the owner authorises deleting one of them.
