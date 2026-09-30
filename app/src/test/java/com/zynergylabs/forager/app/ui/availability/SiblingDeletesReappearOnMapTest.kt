@@ -171,6 +171,8 @@ class SiblingDeletesReappearOnMapTest {
             deleteGalleryPhoto = DeleteGalleryPhotoUseCase(photoRepo, photoStore),
             locationProvider = SibNoLocationProvider,
             updatePhotoLocation = UpdatePhotoLocationUseCase(photoRepo),
+            // As MainActivity wires it.
+            onPhotoDeleted = { id -> availability.onPhotoDeleted(id) },
         )
         return Rig(photoRepo, regionStore, log, availability)
     }

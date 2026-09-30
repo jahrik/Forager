@@ -501,6 +501,31 @@ class AvailabilityViewModel(
         }
     }
 
+    /**
+     * An album photo's delete has finished (dispatch 2026-09-28-297): [onFindDeleted]'s reasoning, for the
+     * photo markers. Removed from the snapshot, not re-read, for the same reason.
+     */
+    fun onPhotoDeleted(id: String) {
+        _uiState.update { state ->
+            state.copy(mapRecords = state.mapRecords.copy(photoMarkers = state.mapRecords.photoMarkers.filterNot { it.recordId == id }))
+        }
+    }
+
+    /**
+     * An offline region's delete has finished (dispatch 2026-09-28-297): [onFindDeleted]'s reasoning, for the
+     * region circles. A record's id here is the region's id as a string, as [GetMapRecordsUseCase] makes it.
+     * Called from [commitOfflineRegionDelete]'s own success path, so no wiring through `MainActivity` is needed.
+     */
+    private fun dropOfflineRegionFromMapRecords(id: Long) {
+        _uiState.update { state ->
+            state.copy(
+                mapRecords = state.mapRecords.copy(
+                    offlineRegionCircles = state.mapRecords.offlineRegionCircles.filterNot { it.recordId == id.toString() },
+                ),
+            )
+        }
+    }
+
     /** The Maps tab's saved records, read now; the read [onMapShown] does and [reloadAfterRestore] repeats. */
     private suspend fun loadMapRecords() {
         val records = getMapRecords()
@@ -1402,7 +1427,10 @@ class AvailabilityViewModel(
         _uiState.update { state -> state.copy(offlineRegions = state.offlineRegions.filterNot { it.id == region.id }) }
         viewModelScope.launch {
             offlineMapRepository.deleteRegion(region.id).fold(
-                onSuccess = { loadOfflineRegions() },
+                onSuccess = {
+                    dropOfflineRegionFromMapRecords(region.id)
+                    loadOfflineRegions()
+                },
                 onFailure = { error ->
                     errorLog.w(TAG, "Couldn't delete that region.", error)
                     _uiState.update { state ->
