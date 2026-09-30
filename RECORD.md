@@ -8794,3 +8794,14 @@ The owner picks from the images. Nothing merges from topo-night as built.
 **Change:** the contact constant replaces CONTACT_PENDING with `+https://zynergy-labs.com; support@zynergy-labs.com`. The planner added the https:// scheme, the form the zynergy-site repo publishes 32 times and the form OSM's policy example uses.
 **The full User-Agent:** `Forager/<versionName> (Android <release>; <applicationId>; +https://zynergy-labs.com; support@zynergy-labs.com)`.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** device-note
+**ID:** 2026-09-28-327
+**Timestamp:** 2026-09-30T22:37:48Z
+**Covers:** installing -310's Street-switch build (-324) on the S22 for the owner's check
+**The build:** 1.0.2190+g811508db, from forager-wt/topo-night. APK sha256 12cbe4a33f8d5367…. The coder built it after a full suite of 3211/0/0/24. The planner read the worktree's XML: 394 files and 3211/0/0/24, written at 15:36.
+**The install:** `adb install -r --user 0` at 2026-09-30 15:37:37. User 0's ceDataInode stayed 2259049. databases/forager.db's sha256 is e1188b00…, unchanged.
+**Not done:** no launch, input or screenshot by the planner.
+**Notes:** Written by the planner by hand.
