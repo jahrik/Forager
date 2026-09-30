@@ -8805,3 +8805,16 @@ The owner picks from the images. Nothing merges from topo-night as built.
 **The install:** `adb install -r --user 0` at 2026-09-30 15:37:37. User 0's ceDataInode stayed 2259049. databases/forager.db's sha256 is e1188b00…, unchanged.
 **Not done:** no launch, input or screenshot by the planner.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-328
+**Timestamp:** 2026-09-30T22:43:42Z
+**Continues:** 2026-09-28-310, after -324 (topo-night b1fc980d, installed as 1.0.2190+g811508db, -327)
+**The owner, verbatim:** "Add the cross fade to the topo switch. I honestly considered that myself".
+**Change:**
+- At topo night, the Street layer's maxzoom becomes 9.6 at opacity 1, and the topo layer's minzoom 9.4, with raster-opacity interpolated from 0 at 9.4 to 1 at 9.6.
+- Both keep pure V1. By the coder's reading of 13.5.0, opacity applies after the brightness mix, so there is no grey crossing.
+- Accepted costs: both sources load tiles across 9.4-9.6, and the two sets of roads show through each other in that range.
+**Notes:** Written by the planner by hand. It is queued behind -325 for Gradle.
