@@ -916,7 +916,9 @@ internal fun CompactMainScaffold(
                                 // Text's own padding — no map effect keys on it or on renderMode as a
                                 // whole (SightingsMap's own LaunchedEffects, checked), so nothing here
                                 // re-measures or re-fits the map.
-                                renderMode = mapRenderMode.copy(bottomInset = safeAttributionBottomInset, attributionEndInset = safeAttributionEndInset, attributionBottomInset = attributionButtonBottomInset),
+                                // backEnabled: while the Tools drawer is open its Back goes first, so the fan's handler
+                                // is not composed (dispatch 2026-09-28-293; MarkerFanOutBackHandler's doc comment).
+                                renderMode = mapRenderMode.copy(bottomInset = safeAttributionBottomInset, attributionEndInset = safeAttributionEndInset, attributionBottomInset = attributionButtonBottomInset, backEnabled = !isDrawerOpen()),
                                 mapMode = mapMode(),
                                 onMapModeSelected = { onMapModeChange(it) },
                                 mapLayers = mapLayers,

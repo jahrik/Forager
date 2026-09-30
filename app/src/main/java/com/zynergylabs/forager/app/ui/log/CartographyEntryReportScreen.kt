@@ -494,6 +494,9 @@ internal fun CartographyEntryReportScreen(
                         layers = layersState,
                         onFeatureTap = onFeatureTap,
                         cameraRequest = openingCameraRequest,
+                        // Off while the Tools drawer is open over the Journal, so Back closes the drawer and
+                        // not this map's fan (dispatch 2026-09-28-293). backEnabled is the Journal's own flag.
+                        backEnabled = backEnabled,
                     ),
                     focusOverrideTarget,
                     {},
