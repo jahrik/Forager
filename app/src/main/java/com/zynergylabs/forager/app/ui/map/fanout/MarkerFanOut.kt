@@ -20,6 +20,15 @@ import kotlin.math.sin
  */
 const val FAN_TOUCH_DP = 48f
 
+/**
+ * Two markers are a stack, and fan out on a tap, only when both axis distances between them are under
+ * this many dp: the owner's "32 dp" (dispatch 2026-09-29-57, item 6, amendment -255). Deliberately not
+ * [FAN_TOUCH_DP]: the owner found that markers whose 48 dp touch squares merely overlapped were fanning
+ * when the fan barely helped ("actually hinders me from tapping it the first time"). The touch size stays
+ * the floor for the ring and spiral spacing and for the tap box; only the decision to fan uses this.
+ */
+const val FAN_STACK_DP = 32f
+
 /** Up to this many markers fan out in a ring; more go in a spiral (the owner's rule 3). */
 const val FAN_RING_MAX = 8
 
