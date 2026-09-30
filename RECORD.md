@@ -8288,3 +8288,49 @@ Both go to the next phone check.
 - A bubble's gap is reported, not fixed.
 - The work is headless, on branch fan-back-others from 9c806ae1.
 **Notes:** Written by the planner by hand. -296, -297 and -298 may run in parallel, and their builds are serialised.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-299
+**Timestamp:** 2026-09-30T19:06:52Z
+**Title:** Fanned icons land exactly on their markers when the fan folds
+**Dispatch-file:** preserved/2026-09-30-16.md
+**The owner's report, verbatim:** "After being fanned out, the icons return to their start position. But sometimes they don't perfectly align back in their position when the animation finishes, resulting in the icons snapping into place."
+**The planner's reading,** at 4f3a02ad, inferred and not observed:
+- The original marker's anchor sits on the coordinate (markerSymbolLayer).
+- A fan copy adds fanCentringOffsetDp() at every progress (FanOutLayers.kt:176), so at progress 0 it is off by that offset and snaps on release.
+- The predicted jumps: the pin about 14 dp, the find 12.5 dp, the flag (−7.6, 12.5) dp, and the photo and sighting dots 0. That accounts for "sometimes".
+**Change:**
+- The centring offset is scaled by progress.
+- The circle's behaviour near the end of the fold is reported, with a stop-and-ask if it would visibly separate.
+- The ring and the timing are unchanged.
+- The work is headless, on branch fan-fold-snap from 4f3a02ad.
+**Notes:** Written by the planner by hand. It may run in parallel with -296, -297 and -298, and their builds are serialised.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-300
+**Timestamp:** 2026-09-30T19:29:16Z
+**Continues:** 2026-09-28-296 (preserved -13)
+**Why:** -296 stopped at a permission refusal before any reproduction. Its partial report is ci-flake 808644de, docs/audits/2026-09-30-ci-flake-diagnosis.md.
+- The CI data: 67 of 119 test-reaching runs had an album-photo test fail. All 82 of those failures are a real touch that had no effect, and the one album test that uses a semantics click has 0 failures in 77.
+- The candidate mechanism, not confirmed: DecodedPhoto's placeholder-to-image swap replaces the node that carries the tile's combinedClickable during a gesture (EntriesAlbum.kt:256-259; DecodedPhoto.kt:57-81).
+**The owner's decision, verbatim:** "Allow the temp hook". This is the report's §6 option 1, chosen over option 2 (a test-only probe) and option 3 (fix without confirmation).
+**Change:**
+- -296 may add a scratch latch hook to app/src/main/…/DecodedPhoto.kt, on ci-flake only, never merged, to put the swap between down and up, before down, and after up.
+- It then tries the proposed fix (the gesture on a stable wrapping node) in a throwaway commit on ci-flake.
+- It is still diagnosis only. The fix itself goes to the owner.
+**Notes:** Written by the planner by hand. The build queue is -297, then -298, then -299, then -296.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-301
+**Timestamp:** 2026-09-30T19:35:51Z
+**Continues:** 2026-09-28-296 (preserved -13), after -300
+**Why:** -296's hook landed on ci-flake as d63e103a. The owner approved it in the coder's window. The probe tests were refused as "Modify Shared Resources" when added to JournalPendingDeleteTest.kt.
+**The owner's decision, verbatim:** "Option 1". That is, the probes go in a new scratch test file on ci-flake, never merged, chosen over appending them to JournalPendingDeleteTest.kt and JournalTabTest.kt.
+**Change:** The six probe arms (tap and long-press, each with the swap before down, between down and up or the timeout, and after up) go in a new SCRATCH test file on ci-flake. No existing test file is edited.
+**Notes:** Written by the planner by hand.
