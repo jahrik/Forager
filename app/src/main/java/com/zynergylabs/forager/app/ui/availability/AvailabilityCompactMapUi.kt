@@ -571,6 +571,10 @@ internal fun CompactMapTab(
                         journalHighlights = mapLayers.journalHighlights,
                     ),
                     renderMode.copy(
+                        // The fan's Back goes after the add-action menu and the pin pickers (dispatch 2026-09-28-298):
+                        // their handler above is the one asked while they are up. Kept apart from the bubble's gate
+                        // below, which is the bubble's own.
+                        backEnabled = renderMode.backEnabled && pendingAction == null && !pickingSearchLocation && !showActionMenu,
                         onFeatureTap = onFeatureTap,
                         cameraMemory = cameraMemory,
                         returnMemory = returnMemory,
