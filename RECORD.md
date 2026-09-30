@@ -8971,3 +8971,22 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **The install:** `adb install -r --user 0`. User 0's ceDataInode stayed 2259049. databases/forager.db's sha256 was read and recorded before -319 starts.
 **Not done:** no launch or input by the planner.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-338
+**Timestamp:** 2026-09-30T23:25:08Z
+**Subject:** reliance on tile.openstreetmap.org for the Street basemap, and for topo night below zoom 9.5 (-310)
+**The policy as read** by the planner on 2026-09-30 from operations.osmfoundation.org/policies/tiles (no date shown):
+- no SLA; blocking without notice;
+- "Commercial services, or those that seek donations, should be especially aware that access may be withdrawn at any point";
+- a unique User-Agent is required (done by -325, with the device check in -319);
+- the attribution must be visible;
+- cache headers must be honoured, or tiles kept 7 days (**not verified** for MapLibre's cache);
+- "Offline use is not permitted" (the app's offline regions use its own vector style, so this is met).
+**The owner's decision, verbatim:** "3 for now but 2 intrigues me. Maybe tiling our own maps should be a project".
+- **For now:** keep tile.openstreetmap.org.
+- **Before release:** the owner decides between a commercial tile provider (option 1) and the app's own tiles (option 2). This goes beside the Open-Meteo subscription on the pre-release list.
+- **Option 2 is a candidate project:** "tiling our own maps". It is not started; scoping comes first.
+**Notes:** Written by the planner by hand.
