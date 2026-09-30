@@ -7802,3 +7802,22 @@ All of them go to S22-B's relaunch.
 - **The restore is stopped whole,** never done partially, if its database read-back is refused.
 - **A planner-message clause:** session [f2eaef] may move S22-B along, but may not widen its scope.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-279
+**Timestamp:** 2026-09-30T14:10:14Z
+**Title:** An open fan survives a style reload (fan-restyle), before PR #140 merges
+**Dispatch-file:** preserved/2026-09-30-06.md
+**What prompted it:** S22-B's relaunch (device-part-3 at 8a44f71) saw an open fan fold on a night-mode switch. A theme switch reloads the map's style, and map-return-fixes kept "a new style folds" because -274's rule did not name it.
+**The owner's answers:**
+- "yes it should" survive;
+- **"Any style reload"**;
+- **"Before PR #140 merges"**.
+**Change:** a replaced style hands the decision to -274's members check (stay, re-fan or fold) once the new style's layers exist. It supersedes "a new style still folds". The work is headless only, on branch fan-restyle, based at 2efc2163. The device check follows S22-B.
+**Also recorded, relayed to S22-B by the planner:**
+- **The planned trip:** the owner said "yes it can be tested". S22-B may create one planned trip, "DEVICE CHECK 2026-09-30 trip", for the fan-centring flag check.
+- **The deleted-member recheck:** the owner said "Yes, delete 8c". S22-B may delete only its own "DEVICE CHECK 2026-09-30 8c".
+- **The owner says resume:** S22-B was told to resume.
+**Notes:** Written by the planner by hand.
