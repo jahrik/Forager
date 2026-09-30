@@ -7987,3 +7987,46 @@ Both go to the next phone check.
 - The touch area, the spacing and the circles are unchanged.
 - The work is headless, on branch glyph-resize from ecd79009.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-287
+**Timestamp:** 2026-09-30T16:58:03Z
+**Closes:** 2026-09-28-286 (preserved -09)
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as 38542709, no-ff, from glyph-resize a2a7a9e4:
+  - the tests first (18205e12), plus stem-foot probes (4148f228);
+  - the change (38428fe1). MarkerGlyph has a scale; its sizes and anchors are the design value times the scale; parts() scales FIND's and PLANNED_TRIP's coordinates; the paints and strokes are not scaled;
+  - a FanOutLayersTest re-base (5ed12bed);
+  - the report, docs/audits/2026-09-30-glyph-resize-completion-report.md, with its index row.
+- **The new sizes:**
+
+  | Glyph | Size (dp) | Anchor | Fan offset |
+  |---|---|---|---|
+  | FIND | 23.08 × 25.00 | (11.54, 25.00) | (0, 12.5) |
+  | PLANNED_TRIP | 17.86 × 25.00 | (1.34, 25.00) | (−7.59, 12.5) |
+
+  WAYPOINT, PHOTO and SEARCH_CENTRE are unchanged, and a test guards that.
+- **The draw sites:**
+  - SightingsMap.kt:1071, the images for the map and the fan;
+  - FanOutLayers.kt:173, which reads the offsets;
+  - the FIND journal halo follows the new size (JournalHaloGlyphTest re-based from -26 to -25).
+  
+  No legend or list uses MarkerGlyph, and no hit box is derived from a glyph's size.
+- **The coder's checks:**
+  - the revert checks set each glyph back to scale 1, and each fails its own glyph's tests only;
+  - the suite gave 3170/0/0/24;
+  - LeavingTheJournalFixesTest ran 31/31 with no stall;
+  - an earlier run had the owner-held JournalTabTest From Album flake fail, and it passed on the final run.
+- **The planner's checks:**
+  - the merged head's app, data and server trees are identical to the branch's;
+  - the worktree's XML gives 388 files and 3170/0/0/24, written at 09:56 PDT;
+  - every assertion removed from MarkerGlyphsTest reappears re-based, scaled by the same factor or with a float tolerance, and new guards are added for the height, the proportions and the unchanged glyphs.
+- **Not pinned by a test:** that the strokes are unscaled is true by construction, but too fine to measure at density 3.
+**Device-only, on the final phone recheck:**
+- the flag and the find beside the pin and the photo, on the map and in the fan, by day and by night;
+- the pole foot and the stem foot on their coordinate;
+- both centred in their 36 dp circles.
+**Notes:** Written by the planner by hand.
