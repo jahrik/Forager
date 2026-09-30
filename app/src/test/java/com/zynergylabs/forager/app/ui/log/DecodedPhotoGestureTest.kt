@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.ui.log
 
 import android.app.Application
 import android.content.ComponentName
+import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
@@ -91,6 +92,12 @@ class DecodedPhotoGestureTest {
         startGesture()
         GatedDecode.release()
         assertTrue("the gated decode never finished on its IO thread", GatedDecode.awaitFinished())
+        // The decode returning on its IO thread and its result reaching the main thread are two steps;
+        // the second is a post to the main looper. The test clock is manual here (a long-press timeout
+        // must not run), so idle the looper, without advancing any clock, for a short real interval so
+        // the bitmap is published; the frames below then apply it.
+        val settleUntil = System.nanoTime() + SETTLE_NANOS
+        while (System.nanoTime() < settleUntil) Shadows.shadowOf(Looper.getMainLooper()).idle()
         var frames = 0
         while (placeholderShowing() && frames < MAX_SWAP_FRAMES) {
             composeRule.mainClock.advanceTimeByFrame()
@@ -138,9 +145,12 @@ class DecodedPhotoGestureTest {
         gestureAcrossTheSwap(
             startGesture = { albumTile().performTouchInput { down(center) } },
             finishGesture = {
-                // Past the long-press timeout, with the pointer still down: the long-press fires here or not at all.
-                albumTile().performTouchInput { advanceEventTime(viewConfiguration.longPressTimeoutMillis + 200) }
-                composeRule.mainClock.advanceTimeByFrame()
+                // Past the long-press timeout, with the pointer still down: the long-press fires here or not
+                // at all. The clock is manual, so the timeout is advanced on the main clock, where the
+                // pointer-input coroutine's delay lives; advancing only the event time would not fire it.
+                var timeoutMillis = 0L
+                albumTile().performTouchInput { timeoutMillis = viewConfiguration.longPressTimeoutMillis }
+                composeRule.mainClock.advanceTimeBy(timeoutMillis + 200)
                 albumTile().performTouchInput { up() }
             },
         )
@@ -217,5 +227,8 @@ class DecodedPhotoGestureTest {
     private companion object {
         /** Whole frames allowed for the swap to apply; far under any gesture timeout (16 ms each against a 500 ms long-press). */
         const val MAX_SWAP_FRAMES = 8
+
+        /** Real time the main looper is idled after the IO decode returns, so its result is published before the frames. */
+        const val SETTLE_NANOS = 150_000_000L
     }
 }
