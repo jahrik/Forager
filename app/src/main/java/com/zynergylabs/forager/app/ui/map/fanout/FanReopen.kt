@@ -20,14 +20,16 @@ class FanReopenCoordinator(
     // open fan, so a fan opened before it runs is folded at once) and a camera idle (the camera restore has settled).
     private var contentEffectRan = false
     private var idleSeen = false
-    private var lastStyle: Any? = NO_STYLE_YET
 
+    /**
+     * [style] is the style the map has loaded. A replaced one is not a reason to fold (dispatch 2026-09-28-279, the
+     * owner: "yes it should" survive, for "Any style reload"): it is decided like any other content change, by
+     * [MapTapHandler.onContentChanged], once the new style's layers exist. The map's own effects draw the fan's layers,
+     * frame, circle colour and fade again on the new style.
+     */
+    @Suppress("UNUSED_PARAMETER")
     fun onContentEffect(styleLoaded: Boolean, style: Any? = styleLoaded) {
-        // A replaced style is not named by the owner's rule ("Fold only if members change", intent 2026-09-28-274) and
-        // folds the fan as it always did; any other content change folds it only if a member changed.
-        val replaced = style != lastStyle
-        lastStyle = style
-        if (replaced) handler()?.onStyleChanged() else handler()?.onContentChanged()
+        handler()?.onContentChanged()
         if (styleLoaded) contentEffectRan = true
         reopenWhenReady()
     }
@@ -44,5 +46,3 @@ class FanReopenCoordinator(
         }
     }
 }
-
-private val NO_STYLE_YET = Any()
