@@ -46,6 +46,28 @@ class MarkerGlyphsTest {
         MarkerGlyph.SEARCH_CENTRE to floatArrayOf(26f, 26f, 13f, 13f),
     )
 
+    /**
+     * Dispatch 2026-09-28-275. `icon-offset` moves the image from its anchor, positive right and down. The
+     * image is anchored (`icon-anchor: center`) at the glyph's anchor, so to put the fill extent's centre
+     * on the point the image moves by anchor minus half-extent: a pin whose body centre is 14dp above its
+     * tip moves 14dp down.
+     */
+    @Test
+    fun `the fan centring offset moves each glyph's fill-extent centre onto the point`() {
+        val expected = mapOf(
+            MarkerGlyph.PHOTO to (0f to 0f),
+            MarkerGlyph.WAYPOINT to (0f to 14f),
+            MarkerGlyph.FIND to (0f to 13f),
+            MarkerGlyph.PLANNED_TRIP to (-8.5f to 14f),
+            MarkerGlyph.SEARCH_CENTRE to (0f to 0f),
+        )
+        for ((glyph, xy) in expected) {
+            val offset = glyph.fanCentringOffsetDp()
+            assertEquals("$glyph fan centring offset x", xy.first, offset.xDp, 1e-4f)
+            assertEquals("$glyph fan centring offset y", xy.second, offset.yDp, 1e-4f)
+        }
+    }
+
     @Test
     fun `each glyph's fill extent and anchor are the glyph board's`() {
         for ((glyph, dims) in expected) {

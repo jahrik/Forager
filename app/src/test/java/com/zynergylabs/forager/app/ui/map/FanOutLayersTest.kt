@@ -9,6 +9,7 @@ import com.zynergylabs.forager.app.ui.map.fanout.FanOffset
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -55,6 +56,39 @@ class FanOutLayersTest {
             assertEquals(movedTo.lat, at.latitude(), 1e-9)
             assertEquals(movedTo.lng, at.longitude(), 1e-9)
         }
+    }
+
+    @Test
+    fun `each copy carries the icon-offset that centres its glyph's body on its circle`() {
+        val f = frame(
+            listOf(
+                member(MapLayerIds.FINDS, "find"),
+                member(MapLayerIds.PHOTOS, "photo"),
+                member(MapLayerIds.WAYPOINTS, "waypoint"),
+                member(MapLayerIds.PLANNED_TRIPS, "trip"),
+            ),
+        )
+        val offsets = f.icons.features().orEmpty().associate { feature ->
+            val id = feature.getStringProperty("featureId")
+            val raw = feature.getProperty(FanOutIds.ICON_OFFSET_PROPERTY)
+            assertNotNull("the $id copy carries no ${FanOutIds.ICON_OFFSET_PROPERTY} property", raw)
+            val xy = raw.asJsonArray
+            id to (xy[0].asFloat to xy[1].asFloat)
+        }
+        assertEquals(
+            mapOf("find" to (0f to 13f), "photo" to (0f to 0f), "waypoint" to (0f to 14f), "trip" to (-8.5f to 14f)),
+            offsets,
+        )
+    }
+
+    @Test
+    fun `centring a copy moves neither its circle nor its leg`() {
+        val f = frame(listOf(member(MapLayerIds.WAYPOINTS, "w", lat = 45.0, lng = -122.0)))
+        val circle = f.circles.features().orEmpty().single().geometry() as Point
+        assertEquals(movedTo.lat, circle.latitude(), 1e-9)
+        assertEquals(movedTo.lng, circle.longitude(), 1e-9)
+        val leg = (f.legs.features().orEmpty().single().geometry() as LineString).coordinates()
+        assertEquals(listOf(Point.fromLngLat(-122.0, 45.0), Point.fromLngLat(movedTo.lng, movedTo.lat)), leg)
     }
 
     @Test
