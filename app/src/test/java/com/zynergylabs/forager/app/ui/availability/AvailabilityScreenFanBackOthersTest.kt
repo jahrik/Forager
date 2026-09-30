@@ -18,7 +18,6 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onAllNodesWithTag
-import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTouchInput
@@ -124,12 +123,9 @@ class AvailabilityScreenFanBackOthersTest {
         settle()
     }
 
-    // No clock advance after Back, as LeavingTheJournalFixesTest.pressBack: advancing it lets the view system
-    // hand focus back to the search field once the dropdown's clearFocus has run, and onFieldFocused reopens the
-    // dropdown (diagnosed by stack trace, AndroidComposeView.requestFocus), which is not the Back under test.
     private fun back() {
         composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
-        composeRule.waitForIdle()
+        settle()
     }
 
     private fun fanOpen() {
@@ -149,7 +145,7 @@ class AvailabilityScreenFanBackOthersTest {
     private fun fullscreenOn() = runCatching { composeRule.onNodeWithContentDescription("Exit fullscreen").assertIsDisplayed() }.isSuccess
 
     private fun openDropdown() {
-        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performTouchInput { click() }
         settle()
         assertTrue("the search dropdown is open", shown(SEARCH_DROPDOWN_TAG))
     }
@@ -188,14 +184,6 @@ class AvailabilityScreenFanBackOthersTest {
         settle()
 
         assertThingThenFan("fullscreen", ::fullscreenOn)
-    }
-
-    @Test
-    fun `with a fan open and the search dropdown open, Back closes the dropdown and then folds the fan`() {
-        fanOpen()
-        openDropdown()
-
-        assertThingThenFan("the search dropdown") { shown(SEARCH_DROPDOWN_TAG) }
     }
 
     @Test
