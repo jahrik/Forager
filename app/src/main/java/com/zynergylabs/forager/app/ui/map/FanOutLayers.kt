@@ -66,7 +66,10 @@ internal const val FAN_LEG_WIDTH_DP = 1.5f
 /**
  * Adds the fan-out's sources and layers, empty, above everything already in [style]: legs (a casing
  * and its line), then the background circles, sighting dots, and marker icons. Called once per style
- * load, after the registry's layers, since a layer added later draws on top. [chromeColour] is the
+ * load, after the registry's layers, since a layer added later draws on top. The live-location puck
+ * is placed below the fan's lowest layer, [FanOutIds.LEGS_CASING_LAYER] (`liveLocationComponentOptions`
+ * in SightingsMap.kt), so it draws above the registry's layers and below the whole fan; it is
+ * activated after this runs, which is what lets it name a layer here. [chromeColour] is the
  * circles' colour to begin with; it is set again when the app's theme changes ([applyFanCircleStyle]).
  */
 internal fun addFanOutLayers(style: Style, palette: MapPalette, chromeColour: Int) {
