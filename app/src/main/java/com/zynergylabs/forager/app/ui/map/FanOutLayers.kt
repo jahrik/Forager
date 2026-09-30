@@ -3,9 +3,7 @@ package com.zynergylabs.forager.app.ui.map
 import android.graphics.PointF
 import android.graphics.RectF
 import android.util.Log
-import com.zynergylabs.forager.app.domain.JournalEntryHighlights
 import com.zynergylabs.forager.app.domain.model.LatLng
-import com.zynergylabs.forager.app.domain.model.RecordPoint
 import com.zynergylabs.forager.app.ui.map.fanout.FanKey
 import com.zynergylabs.forager.app.ui.map.fanout.FanMember
 import com.zynergylabs.forager.app.ui.map.fanout.MapProbe
@@ -23,6 +21,7 @@ import org.maplibre.android.style.layers.CircleLayer
 import org.maplibre.android.style.layers.LineLayer
 import org.maplibre.android.style.layers.Property
 import org.maplibre.android.style.layers.PropertyFactory
+import org.maplibre.android.style.layers.PropertyValue
 import org.maplibre.android.style.layers.SymbolLayer
 import org.maplibre.android.style.sources.GeoJsonSource
 import org.maplibre.geojson.Feature
@@ -45,14 +44,15 @@ internal object FanOutIds {
     const val LEGS_SOURCE = "fan-out-legs-source"
     const val LEGS_CASING_LAYER = "fan-out-legs-casing-layer"
     const val LEGS_LAYER = "fan-out-legs-layer"
-    const val HALOS_SOURCE = "fan-out-halos-source"
-    const val HALOS_LAYER = "fan-out-halos-layer"
+    /** The background circle under each copy (dispatch 2026-09-28-265); it replaced the white halo. */
+    const val CIRCLES_SOURCE = "fan-out-circles-source"
+    const val CIRCLES_LAYER = "fan-out-circles-layer"
     const val DOTS_SOURCE = "fan-out-dots-source"
     const val DOTS_LAYER = "fan-out-dots-layer"
     const val ICONS_SOURCE = "fan-out-icons-source"
     const val ICONS_LAYER = "fan-out-icons-layer"
 
-    /** The feature property naming the bitmap a copy or a halo draws. */
+    /** The feature property naming the bitmap a copy draws. */
     const val IMAGE_PROPERTY = "image"
 }
 
@@ -61,12 +61,13 @@ internal const val FAN_LEG_WIDTH_DP = 1.5f
 
 /**
  * Adds the fan-out's sources and layers, empty, above everything already in [style]: legs (a casing
- * and its line), then halos, sighting dots, and marker icons. Called once per style load, after the
- * registry's layers, since a layer added later draws on top.
+ * and its line), then the background circles, sighting dots, and marker icons. Called once per style
+ * load, after the registry's layers, since a layer added later draws on top. [chromeColour] is the
+ * circles' colour to begin with; it is set again when the app's theme changes ([applyFanCircleStyle]).
  */
-internal fun addFanOutLayers(style: Style, palette: MapPalette) {
+internal fun addFanOutLayers(style: Style, palette: MapPalette, chromeColour: Int) {
     val empty = FeatureCollection.fromFeatures(emptyList())
-    listOf(FanOutIds.LEGS_SOURCE, FanOutIds.HALOS_SOURCE, FanOutIds.DOTS_SOURCE, FanOutIds.ICONS_SOURCE)
+    listOf(FanOutIds.LEGS_SOURCE, FanOutIds.CIRCLES_SOURCE, FanOutIds.DOTS_SOURCE, FanOutIds.ICONS_SOURCE)
         .forEach { style.addSource(GeoJsonSource(it, empty)) }
 
     fun leg(id: String, colour: Int, widthDp: Float) = LineLayer(id, FanOutIds.LEGS_SOURCE).withProperties(
@@ -82,16 +83,39 @@ internal fun addFanOutLayers(style: Style, palette: MapPalette) {
         PropertyFactory.iconAllowOverlap(true),
         PropertyFactory.iconAnchor(Property.ICON_ANCHOR_CENTER),
     )
-    style.addLayer(symbols(FanOutIds.HALOS_LAYER, FanOutIds.HALOS_SOURCE))
+    // Below the dots and the icons, above the legs: the circle is the copy's background.
+    style.addLayer(CircleLayer(FanOutIds.CIRCLES_LAYER, FanOutIds.CIRCLES_SOURCE).withProperties(*fanCircleProperties(fanCircleStyle(chromeColour))))
     // The dot: the sighting layer's own paint, so a fanned dot is the dot it was, ring and all.
     style.addLayer(CircleLayer(FanOutIds.DOTS_LAYER, FanOutIds.DOTS_SOURCE).withProperties(*sightingCircleProperties(palette)))
     style.addLayer(symbols(FanOutIds.ICONS_LAYER, FanOutIds.ICONS_SOURCE))
 }
 
+/** [style]'s paint as MapLibre property values: radius (dp), colour, opacity, no ring. Device-only, like every SDK call here. */
+private fun fanCircleProperties(style: FanCircleStyle): Array<PropertyValue<*>> = arrayOf(
+    PropertyFactory.circleRadius(style.radiusDp),
+    PropertyFactory.circleColor(style.colour),
+    PropertyFactory.circleOpacity(style.opacity),
+    PropertyFactory.circleStrokeWidth(0f),
+)
+
+/**
+ * Sets the circle layer's paint to [chromeColour]'s [fanCircleStyle], on a style already loaded, so a
+ * change of the app's theme recolours the circles without reloading the map. A layer the style does not
+ * have is logged, not skipped silently.
+ */
+internal fun applyFanCircleStyle(style: Style, chromeColour: Int) {
+    val layer = style.getLayer(FanOutIds.CIRCLES_LAYER)
+    if (layer == null) {
+        Log.w(FAN_OUT_TAG, "The ${FanOutIds.CIRCLES_LAYER} layer is not in the loaded style; the circles were not recoloured.")
+        return
+    }
+    layer.setProperties(*fanCircleProperties(fanCircleStyle(chromeColour)))
+}
+
 /** The four sources' contents at one moment of the fan. */
 internal data class FanFrame(
     val legs: FeatureCollection,
-    val halos: FeatureCollection,
+    val circles: FeatureCollection,
     val dots: FeatureCollection,
     val icons: FeatureCollection,
 )
@@ -109,8 +133,8 @@ private val EMPTY_FRAME = FanFrame(
  *  - **legs:** a line from each member's true position to where it is now, so the line back to the
  *    true spot is there at every frame, including the first;
  *  - **icons:** each bitmap marker's own image ([markerIconForLayer]), so a copy keeps its icon;
- *  - **halos:** the journal-entry halo image under a copy whose record the shown entries keep
- *    ([highlights]), as the original's was;
+ *  - **circles:** one point per copy, where the copy is now: the layer draws the copy's background
+ *    circle there (dispatch 2026-09-28-265; it replaced the journal-entry halo a kept record's copy had);
  *  - **dots:** a sighting, with its `observationId` and its `selected` flag from [focusedObservationId],
  *    the properties the dot layer's own paint reads.
  *
@@ -119,12 +143,11 @@ private val EMPTY_FRAME = FanFrame(
 internal fun fanFrameCollections(
     members: List<FanMember>,
     at: (FanMember) -> LatLng,
-    highlights: JournalEntryHighlights,
     focusedObservationId: Long?,
 ): FanFrame {
     if (members.isEmpty()) return EMPTY_FRAME
     val legs = mutableListOf<Feature>()
-    val halos = mutableListOf<Feature>()
+    val circles = mutableListOf<Feature>()
     val dots = mutableListOf<Feature>()
     val icons = mutableListOf<Feature>()
     for (member in members) {
@@ -142,38 +165,23 @@ internal fun fanFrameCollections(
                     addStringProperty(FanOutIds.IMAGE_PROPERTY, image)
                     addStringProperty(FEATURE_ID_PROPERTY, member.key.featureId)
                 }
-                haloImageFor(layerId, member.key.featureId, highlights)?.let { halo ->
-                    halos += Feature.fromGeometry(Point.fromLngLat(now.lng, now.lat)).apply {
-                        addStringProperty(FanOutIds.IMAGE_PROPERTY, halo)
-                    }
-                }
             }
             else -> {
                 Log.w(FAN_OUT_TAG, "A fanned marker on $layerId has no icon to draw; it is left out.")
                 continue
             }
         }
+        circles += Feature.fromGeometry(Point.fromLngLat(now.lng, now.lat))
         legs += Feature.fromGeometry(
             LineString.fromLngLats(listOf(Point.fromLngLat(member.lng, member.lat), Point.fromLngLat(now.lng, now.lat))),
         )
     }
     return FanFrame(
         legs = FeatureCollection.fromFeatures(legs),
-        halos = FeatureCollection.fromFeatures(halos),
+        circles = FeatureCollection.fromFeatures(circles),
         dots = FeatureCollection.fromFeatures(dots),
         icons = FeatureCollection.fromFeatures(icons),
     )
-}
-
-/** The halo image under a copy of record [featureId] on [layerId], when the shown entries keep that record; `null` otherwise. */
-private fun haloImageFor(layerId: String, featureId: String, highlights: JournalEntryHighlights): String? {
-    fun kept(points: List<RecordPoint>) = points.any { it.recordId == featureId }
-    return when (layerId) {
-        MapLayerIds.WAYPOINTS -> MarkerIcon.WAYPOINT_JOURNAL_HALO.takeIf { kept(highlights.waypointMarkers) }
-        MapLayerIds.FINDS -> MarkerIcon.FIND_JOURNAL_HALO.takeIf { kept(highlights.findMarkers) }
-        MapLayerIds.PHOTOS -> MarkerIcon.PHOTO_JOURNAL_HALO.takeIf { kept(highlights.photoMarkers) }
-        else -> null
-    }?.imageId
 }
 
 /**
@@ -226,7 +234,7 @@ internal fun applyFanOutHiding(style: Style, members: List<FanMember>) {
 internal fun pushFanFrame(style: Style, frame: FanFrame) {
     listOf(
         FanOutIds.LEGS_SOURCE to frame.legs,
-        FanOutIds.HALOS_SOURCE to frame.halos,
+        FanOutIds.CIRCLES_SOURCE to frame.circles,
         FanOutIds.DOTS_SOURCE to frame.dots,
         FanOutIds.ICONS_SOURCE to frame.icons,
     ).forEach { (sourceId, collection) ->

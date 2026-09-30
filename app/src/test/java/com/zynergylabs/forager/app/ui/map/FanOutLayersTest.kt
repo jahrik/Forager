@@ -32,8 +32,8 @@ class FanOutLayersTest {
 
     private val movedTo = LatLng(45.001, -122.002)
 
-    private fun frame(members: List<FanMember>, highlights: JournalEntryHighlights = JournalEntryHighlights.NONE, focused: Long? = null) =
-        fanFrameCollections(members, { movedTo }, highlights, focused)
+    private fun frame(members: List<FanMember>, focused: Long? = null) =
+        fanFrameCollections(members, { movedTo }, focused)
 
     @Test
     fun `a copy keeps its own icon and is drawn where it now is`() {
@@ -67,35 +67,6 @@ class FanOutLayersTest {
     }
 
     @Test
-    fun `a halo goes under a copy whose record an entry keeps, and only that one`() {
-        val highlights = JournalEntryHighlights.NONE.copy(
-            findMarkers = listOf(RecordPoint("kept-find", LatLng(45.0, -122.0))),
-            photoMarkers = listOf(RecordPoint("kept-photo", LatLng(45.0, -122.0))),
-            waypointMarkers = listOf(RecordPoint("kept-waypoint", LatLng(45.0, -122.0))),
-        )
-        val f = frame(
-            listOf(
-                member(MapLayerIds.FINDS, "kept-find"),
-                member(MapLayerIds.FINDS, "other-find"),
-                member(MapLayerIds.PHOTOS, "kept-photo"),
-                member(MapLayerIds.WAYPOINTS, "kept-waypoint"),
-                member(MapLayerIds.PLANNED_TRIPS, "trip"),
-            ),
-            highlights,
-        )
-        assertEquals(
-            listOf("find-journal-halo", "photo-journal-halo", "waypoint-journal-halo"),
-            f.halos.features().orEmpty().map { it.getStringProperty("image") }.sorted(),
-        )
-        assertEquals("all five copies still have their icon", 5, f.icons.features().orEmpty().size)
-    }
-
-    @Test
-    fun `with no entry shown there is no halo`() {
-        assertTrue(frame(listOf(member(MapLayerIds.FINDS, "f"))).halos.features().orEmpty().isEmpty())
-    }
-
-    @Test
     fun `a sighting is a dot carrying its observation id, and the focused one is selected`() {
         val f = frame(listOf(member(MapLayerIds.SIGHTINGS, "9001"), member(MapLayerIds.SIGHTINGS, "9002")), focused = 9002L)
         val dots = f.dots.features().orEmpty()
@@ -111,10 +82,46 @@ class FanOutLayersTest {
         assertEquals("no leg to a marker that is not drawn", 1, f.legs.features().orEmpty().size)
     }
 
+    // Dispatch 2026-09-28-265, item 3: a background circle under every fanned copy, replacing the halo.
+
+    @Test
+    fun `every fanned copy, icon or dot, has one circle centred where it now is`() {
+        val f = frame(
+            listOf(
+                member(MapLayerIds.FINDS, "find"),
+                member(MapLayerIds.PHOTOS, "photo"),
+                member(MapLayerIds.SIGHTINGS, "9001"),
+            ),
+        )
+        val circles = f.circles.features().orEmpty()
+        assertEquals("one circle per copy: two icons and a dot", 3, circles.size)
+        circles.forEach {
+            val at = it.geometry() as Point
+            assertEquals(movedTo.lat, at.latitude(), 1e-9)
+            assertEquals(movedTo.lng, at.longitude(), 1e-9)
+        }
+    }
+
+    @Test
+    fun `a kept record's copy gets a circle and no halo, since the circle replaces the halo`() {
+        val f = frame(listOf(member(MapLayerIds.FINDS, "kept-find")))
+        assertEquals(1, f.circles.features().orEmpty().size)
+        assertFalse(
+            "the frame no longer carries a halo source's features: ${FanFrame::class.java.declaredFields.map { it.name }}",
+            FanFrame::class.java.declaredFields.any { it.name == "halos" },
+        )
+    }
+
+    @Test
+    fun `a member with nothing of ours to draw gets no circle either`() {
+        val f = frame(listOf(member(MapLayerIds.KEPT_TRACKS, "track"), member(MapLayerIds.FINDS, "find")))
+        assertEquals(1, f.circles.features().orEmpty().size)
+    }
+
     @Test
     fun `no members is an empty frame`() {
         val f = frame(emptyList())
-        assertTrue(f.legs.features().orEmpty().isEmpty() && f.icons.features().orEmpty().isEmpty() && f.halos.features().orEmpty().isEmpty() && f.dots.features().orEmpty().isEmpty())
+        assertTrue(f.legs.features().orEmpty().isEmpty() && f.icons.features().orEmpty().isEmpty() && f.circles.features().orEmpty().isEmpty() && f.dots.features().orEmpty().isEmpty())
     }
 
     @Test

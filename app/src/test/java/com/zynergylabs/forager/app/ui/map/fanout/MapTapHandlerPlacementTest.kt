@@ -29,11 +29,11 @@ class MapTapHandlerPlacementTest {
 
     @Test
     fun `markers up to the stacking distance apart fan into places that clear each other, and their true spots stay where they were`() {
-        // In dp at density 2: p1 at (200, 400), p2 30 dp up and left of it, p3 on p1. All within the stacking distance
-        // (32 dp, amendment -255; the p2 offset was 40 dp under the old 48 dp rule) of p1, so one stack; a ring drawn
-        // round each marker's own spot would put p1 and p2 about 30 dp apart.
+        // In dp at density 2: p1 at (200, 400), p2 20 dp up and left of it, p3 on p1. All within the stacking distance
+        // (26 dp, dispatch -265; the p2 offset was 30 dp under 32 dp and 40 under the old 48 dp rule) of p1, so one stack; a ring drawn
+        // round each marker's own spot would put p1 and p2 about 20 dp apart.
         scene.addAtScreen(MapLayerIds.PHOTOS, "p1", 400f, 800f)
-        scene.addAtScreen(MapLayerIds.PHOTOS, "p2", 340f, 740f)
+        scene.addAtScreen(MapLayerIds.PHOTOS, "p2", 360f, 760f)
         scene.addAtScreen(MapLayerIds.PHOTOS, "p3", 400f, 800f)
         at(handler(), 400f, 800f)
         assertEquals(3, fan.members.size)
@@ -44,7 +44,7 @@ class MapTapHandlerPlacementTest {
         }
         val trueSpots = fan.members.associate { it.key.featureId to (it.trueXDp to it.trueYDp) }
         assertEquals(200f to 400f, trueSpots.getValue("p1"))
-        assertEquals(170f to 370f, trueSpots.getValue("p2"))
+        assertEquals(180f to 380f, trueSpots.getValue("p2"))
         assertEquals(200f to 400f, trueSpots.getValue("p3"))
     }
 
