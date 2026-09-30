@@ -9002,3 +9002,20 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 - It covers: the reason, what exists as read on 2026-09-30 (marked as a claim to re-verify), scope A (own Street) or B (own topo too) for the owner, three steps (a read-only survey, then a spec, then dispatches), and the constraints carried forward.
 - Nothing is dispatched. It starts after PR #140 leaves draft.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-340
+**Timestamp:** 2026-09-30T23:33:08Z
+**Continues:** 2026-09-28-319 (preserved -23), with -335; not yet started
+**The owner, verbatim:** "Get the CI fix in place, start on 2, and prep for 3", where 3 is the device check.
+**Change:**
+- **When:** -319 starts on the planner's go, **after -317, -318 and -312 have merged**. The planner then builds journal-redesign and installs it, and names the versionName. That replaces the build named in -337, 1.0.2220+g46b28a74.
+- **Its items become** -319's list, plus -335's User-Agent capture, plus the device-only items of the merged fixes, as their reports list them:
+  - **-317:** tap and long-press album photos straight after opening the album, on a cold start, repeated, in portrait and landscape. Not one gesture is ignored.
+  - **-318:** with a folded stack over the puck, swap to Topo, Street and Satellite: the puck is above the markers and below an open fan. Fold and open a mixed fan, recorded: no z-order pop at either end. This **replaces** -319's "3 and 5, second run, do not judge"; they are now judged.
+  - **-312:** delete a find, a photo and a region, and watch the moment Undo ends: no flash. Check a bubble with fullscreen, and with the dropdown. Check fan plus dropdown, with the keyboard up and down: the Back order, as -312's report defines it.
+- The data rules of -319 and -335 hold unchanged.
+- **If one of the three has not merged when the owner wants the check,** its items are left out and marked "not built". They are never judged on a build without the fix.
+**Notes:** Written by the planner by hand.
