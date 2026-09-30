@@ -8783,3 +8783,14 @@ The owner picks from the images. Nothing merges from topo-night as built.
 - The other HTTP clients are reported, not changed.
 **Open:** the contact value is the owner's to give. It stays CONTACT_PENDING until then.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-326
+**Timestamp:** 2026-09-30T22:23:40Z
+**Continues:** 2026-09-28-325 (preserved -24)
+**The owner's contact values, verbatim:** "zynergy-labs.com for the website" and "support@zynergy-labs.com for the email".
+**Change:** the contact constant replaces CONTACT_PENDING with `+https://zynergy-labs.com; support@zynergy-labs.com`. The planner added the https:// scheme, the form the zynergy-site repo publishes 32 times and the form OSM's policy example uses.
+**The full User-Agent:** `Forager/<versionName> (Android <release>; <applicationId>; +https://zynergy-labs.com; support@zynergy-labs.com)`.
+**Notes:** Written by the planner by hand.
