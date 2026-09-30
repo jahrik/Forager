@@ -99,9 +99,19 @@ class MarkerFanOutGeometryTest {
     @Test
     fun `two markers under the stacking distance apart are a stack, and the tapped one comes first`() {
         val a = marker("a", 100f, 100f)
-        val b = marker("b", 100f + 2 * 31f, 100f) // 31 dp at density 2 (was 47 under the 48 dp rule, before amendment -255)
+        val b = marker("b", 100f + 2 * 25f, 100f) // 25 dp at density 2 (was 31 under the 32 dp rule, 47 under the 48 dp rule)
         assertEquals(listOf(a, b), stackOf(a, listOf(b), density = 2f))
         assertEquals(listOf(b, a), stackOf(b, listOf(a), density = 2f))
+    }
+
+    @Test
+    fun `just under the stacking distance is a stack on either axis, and the stacking distance is 26`() {
+        assertEquals(26f, FAN_STACK_DP, 0f)
+        val a = marker("a", 0f, 0f)
+        assertEquals(listOf(a, marker("h", 2 * 25f, 0f)), stackOf(a, listOf(marker("h", 2 * 25f, 0f)), density = 2f))
+        assertEquals(listOf(a, marker("v", 0f, 2 * 25f)), stackOf(a, listOf(marker("v", 0f, 2 * 25f)), density = 2f))
+        assertEquals(listOf(a), stackOf(a, listOf(marker("h", 2 * 26f, 0f)), density = 2f))
+        assertEquals(listOf(a), stackOf(a, listOf(marker("v", 0f, 2 * 26f)), density = 2f))
     }
 
     @Test
@@ -128,8 +138,8 @@ class MarkerFanOutGeometryTest {
     @Test
     fun `a chain is not a stack - a marker that overlaps only a neighbour of the tapped one is left out`() {
         val a = marker("a", 0f, 0f)
-        val b = marker("b", 2 * 30f, 0f)
-        val c = marker("c", 2 * 60f, 0f) // 60 dp from a, 30 from b (was 40 and 80 under the 48 dp rule)
+        val b = marker("b", 2 * 20f, 0f)
+        val c = marker("c", 2 * 40f, 0f) // 40 dp from a, 20 from b (was 60 and 30 under the 32 dp rule)
         assertEquals(listOf(a, b), stackOf(a, listOf(b, c), density = 2f))
     }
 

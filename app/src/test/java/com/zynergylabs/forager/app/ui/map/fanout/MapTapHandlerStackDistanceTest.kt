@@ -11,8 +11,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The stacking distance (dispatch 2026-09-29-57, item 6, amendment -255; the owner: "32 dp"): two
- * markers are a stack, and fan out on a tap, only when both axis distances between them are under 32 dp.
+ * The stacking distance (dispatch 2026-09-29-57, item 6, amendment -255, tightened to 26 dp by dispatch
+ * 2026-09-28-265; the owner: "Let's try for 26 dp"): two markers are a stack, and fan out on a tap, only when
+ * both axis distances between them are under 26 dp.
  * Their touch squares (48 dp, `FAN_TOUCH_DP`) may overlap without that: the owner's example is two find
  * glyphs about 15 dp apart horizontally and 35 dp vertically, which used to fan and now open their own
  * bubbles. Every tap goes through [MapTapHandler.onMapTap], the one entry `SightingsMap`'s click listener
@@ -65,34 +66,41 @@ class MapTapHandlerStackDistanceTest {
     }
 
     @Test
-    fun `vertical boundary - 31 dp apart fans, 32 dp apart does not`() {
-        tapAWithBAt(0f, 31f)
-        assertTrue("31 dp down is under the stacking distance", fan.isOpen)
+    fun `vertical boundary - 25 dp apart fans, 26 dp apart does not`() {
+        tapAWithBAt(0f, 25f)
+        assertTrue("25 dp down is under the stacking distance", fan.isOpen)
     }
 
     @Test
-    fun `vertical boundary - exactly 32 dp apart does not fan`() {
-        tapAWithBAt(0f, 32f)
-        assertFalse("32 dp down is not under the stacking distance", fan.isOpen)
+    fun `vertical boundary - exactly 26 dp apart does not fan`() {
+        tapAWithBAt(0f, 26f)
+        assertFalse("26 dp down is not under the stacking distance", fan.isOpen)
         assertEquals(listOf("feature:${MapLayerIds.FINDS}:a"), sinks.events)
     }
 
     @Test
-    fun `horizontal boundary - 31 dp apart fans, 32 dp apart does not`() {
-        tapAWithBAt(31f, 0f)
-        assertTrue("31 dp across is under the stacking distance", fan.isOpen)
+    fun `horizontal boundary - 25 dp apart fans, 26 dp apart does not`() {
+        tapAWithBAt(25f, 0f)
+        assertTrue("25 dp across is under the stacking distance", fan.isOpen)
     }
 
     @Test
-    fun `horizontal boundary - exactly 32 dp apart does not fan`() {
-        tapAWithBAt(32f, 0f)
-        assertFalse("32 dp across is not under the stacking distance", fan.isOpen)
+    fun `horizontal boundary - exactly 26 dp apart does not fan`() {
+        tapAWithBAt(26f, 0f)
+        assertFalse("26 dp across is not under the stacking distance", fan.isOpen)
+        assertEquals(listOf("feature:${MapLayerIds.FINDS}:a"), sinks.events)
+    }
+
+    @Test
+    fun `two finds about 30 dp apart, the owner's screenshot pair, no longer fan (30 dp is the planner's estimate, not a measurement)`() {
+        tapAWithBAt(0f, 30f)
+        assertFalse("30 dp down is not a stack under 26 dp", fan.isOpen)
         assertEquals(listOf("feature:${MapLayerIds.FINDS}:a"), sinks.events)
     }
 
     @Test
     fun `the stacking distance is its own constant and the touch size is unchanged`() {
-        assertEquals(32f, FAN_STACK_DP, 0f)
+        assertEquals(26f, FAN_STACK_DP, 0f)
         assertEquals("the owner's touch floor stays 48 dp", 48f, FAN_TOUCH_DP, 0f)
     }
 }
