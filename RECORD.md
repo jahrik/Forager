@@ -7821,3 +7821,27 @@ All of them go to S22-B's relaunch.
 - **The deleted-member recheck:** the owner said "Yes, delete 8c". S22-B may delete only its own "DEVICE CHECK 2026-09-30 8c".
 - **The owner says resume:** S22-B was told to resume.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-280
+**Timestamp:** 2026-09-30T14:47:08Z
+**Title:** The deleted-member return fails on the merged build: diagnose and fix before S22-B restores
+**Dispatch-file:** preserved/2026-09-30-07.md
+**What S22-B reported** (to the planner by cross-session message, and in its run record on device-part-3):
+- **Build:** 1.0.2011+g2efc2163.
+- **The run:** a 9-member fan (find 8c, a waypoint, six photos and S22-B's new planned trip), with only 8c deleted from its page.
+- **The result:** no fan and no bubble at about 1.5, 6, 12 and 18 s. A single run, not diagnosed.
+- **Other results:**
+  - **Pass:** 8c; fan-centring for the waypoint, the find, the trip and photos, with the offset unit dp; the fade and its restore, including after a Layers change; item 6 at 26 dp.
+  - **Fail:** the theme change folds the fan, which is a FAIL against the owner's ruling (-279).
+  - **Did not reproduce:** the stale find marker.
+  - **Observed:** a fan opened while GPS is following folds within about 5 s.
+**What the planner read:** b2-logcat-full.log has no MarkerFanOut (FAN_OUT_RESTORE_TAG, SightingsMap.kt:2051) warning and no MapReturnMemory (MapReturnMemory.kt:108) warning. So the reopen either folded silently or never ran.
+**The owner's answer:** "Diagnose before restore". The planner's other options were "Diagnose after restore" and "Known issue".
+**Change:**
+- S22-B finishes everything but the restore, pauses and hands the phone back.
+- The map-return coder, on the new branch map-return-delete, captures with temporary logging and fixes it tests first. It stops for the owner if the cause is GPS following, which would need a new rule.
+- S22-B then restores.
+**Notes:** Written by the planner by hand.
