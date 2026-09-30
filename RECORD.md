@@ -9035,3 +9035,23 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 2. Build (c), with a test proving that the merged semantics at all 4 sites are unchanged, loaded and not yet loaded. Any difference is a stop, and the owner decides, per the dispatch's stop-and-ask on a semantics change.
 - The test seam is approved: a test-only Robolectric BitmapFactory shadow with a latch, and no production hook.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-342
+**Timestamp:** 2026-09-30T23:57:05Z
+**Continues:** 2026-09-28-317, after -341
+**Why:** the coder's results on option (c):
+- all 5 gesture tests fail at base with the lost-gesture messages and pass with (c). The revert check fails the same 5;
+- the merged and unmerged semantics at all 4 sites, not yet loaded and loaded, equal the base goldens;
+- **one difference: size only.** An **unsized** placeholder measures 0×0 at base and fills its max bounds under (c), 320×470 in the test, because an Image with a ColorPainter has no intrinsic size. The three sized shapes the app uses measure the same in both builds;
+- the coder's grep found all ten DecodedPhoto call sites in main/ pass bounded constraints.
+**Ruling, by the planner, within the dispatch's "stop and ask if the choice changes any photo's size": option A.** No shipped photo changes size. The conditions:
+1. the coder re-verifies all ten call sites itself, with file:line;
+2. the changed expectation is quoted, old and new, and recorded as a deliberate behaviour change for an unsized placeholder only, not as a test fixed to pass;
+3. a KDoc on DecodedPhoto says callers must give it bounded constraints.
+**Rejected:**
+- (B), preserving 0×0 through a zero-intrinsic-size painter: untested, with a divide-by-zero risk under ContentScale.Crop;
+- (C), the wrapper: it loses Role.Image on the merged tile.
+**Notes:** Written by the planner by hand.
