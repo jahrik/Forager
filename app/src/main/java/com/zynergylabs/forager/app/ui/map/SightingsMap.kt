@@ -548,7 +548,6 @@ fun SightingsMap(
             map.addOnCameraMoveStartedListener { reason ->
                 // A fanned stack folds on any camera move, a gesture or the app's own: its copies are placed
                 // in screen space (fanMemberLatLng), and a camera that moves under them would strand them.
-                android.util.Log.d("MarkerFanOut", "TEMP cameraMoveStarted reason=$reason gesture=${isUserCameraGesture(reason)} following=${map.locationComponent.isLocationComponentActivated && map.locationComponent.cameraMode != CameraMode.NONE}")
                 tapHandlerRef.handler?.onCameraMoveStarted()
                 if (isUserCameraGesture(reason)) currentOnUserCameraGesture()
             }
@@ -681,7 +680,6 @@ fun SightingsMap(
         // does), and the tracking mode (so the zoom-in does not run). Only on this MapView's first
         // style; a later style swap keeps its own camera, as before.
         val cameraRestore = cameraRestoreFor(if (appliedStyle == null) currentCameraMemory?.saved else null, previousCameraMode)
-        android.util.Log.d("MarkerFanOut", "TEMP styleLoad firstStyle=${appliedStyle == null} savedSnapshot=${currentCameraMemory?.saved != null} savedFollowing=${currentCameraMemory?.saved?.following} previousMode=$previousCameraMode restoreMode=${cameraRestore?.cameraMode} (TRACKING=${CameraMode.TRACKING} NONE=${CameraMode.NONE})")
         cameraRestore?.let { applyCameraRestore(map, it) }
         map.setMaxZoomPreference(basemap.maxZoom.toDouble())
         val builder = when (val source = mapStyleSourceFor(basemap, night = requested.night, useOfflineTiles = useOfflineTiles)) {

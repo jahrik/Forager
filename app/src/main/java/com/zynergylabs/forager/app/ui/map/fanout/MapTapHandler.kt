@@ -101,7 +101,6 @@ class MapTapHandler(
      */
     fun openFanFor(keys: List<FanKey>): Boolean {
         val stack = drawnMarkersOf(keys)
-        android.util.Log.d("MarkerFanOut", "TEMP openFanFor keys=${keys.size} found=${stack.size} missing=${keys.filter { k -> stack.none { it.key == k } }.map { it.layerId.take(8) + ':' + it.featureId.takeLast(6) }}")
         if (stack.size < 2) return false
         openFan(stack, drawOrder())
         return true
@@ -117,10 +116,7 @@ class MapTapHandler(
     }
 
     /** The camera started to move, by a gesture or by the app: the copies are placed in screen space, so the fan folds. */
-    fun onCameraMoveStarted() {
-        android.util.Log.d("MarkerFanOut", "TEMP onCameraMoveStarted fanOpen=${fan.isOpen}")
-        fan.fold()
-    }
+    fun onCameraMoveStarted() = fan.fold()
 
     /**
      * What the map draws changed (its records, its layer switches): the fan folds only if its members changed (intent
@@ -137,16 +133,12 @@ class MapTapHandler(
         val members = fan.members
         val drawn = drawnMarkersOf(members.map { it.key })
         val unchanged = drawn.size == members.size && drawn.all { d -> members.any { it.key == d.key && it.lat == d.lat && it.lng == d.lng } }
-        android.util.Log.d("MarkerFanOut", "TEMP onContentChanged fanOpen=true members=${members.size} drawn=${drawn.size} unchanged=$unchanged")
         if (unchanged) return
         if (!openFanFor(drawn.map { it.key })) fan.fold()
     }
 
     /** The map's style was replaced: the copies belong to the old one, so the fan folds. */
-    fun onStyleChanged() {
-        android.util.Log.d("MarkerFanOut", "TEMP onStyleChanged fanOpen=${fan.isOpen}")
-        fan.fold()
-    }
+    fun onStyleChanged() = fan.fold()
 
     private fun FanRect.scaled(by: Float) = FanRect(left * by, top * by, right * by, bottom * by)
 

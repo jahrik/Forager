@@ -26,7 +26,6 @@ class FanReopenCoordinator(
         // A replaced style is not named by the owner's rule ("Fold only if members change", intent 2026-09-28-274) and
         // folds the fan as it always did; any other content change folds it only if a member changed.
         val replaced = style != lastStyle
-        android.util.Log.d("MarkerFanOut", "TEMP coordinator.onContentEffect styleLoaded=$styleLoaded replaced=$replaced")
         lastStyle = style
         if (replaced) handler()?.onStyleChanged() else handler()?.onContentChanged()
         if (styleLoaded) contentEffectRan = true
@@ -34,7 +33,6 @@ class FanReopenCoordinator(
     }
 
     fun onCameraIdle(styleLoaded: Boolean) {
-        android.util.Log.d("MarkerFanOut", "TEMP coordinator.onCameraIdle styleLoaded=$styleLoaded contentEffectRan=$contentEffectRan idleSeen=$idleSeen")
         if (styleLoaded) idleSeen = true
         reopenWhenReady()
     }
@@ -42,9 +40,7 @@ class FanReopenCoordinator(
     private fun reopenWhenReady() {
         if (!contentEffectRan || !idleSeen) return
         takeKeys()?.let { keys ->
-            val ok = handler()?.openFanFor(keys) == true
-            android.util.Log.d("MarkerFanOut", "TEMP reopen keys=${keys.size} handlerNull=${handler() == null} openFanFor=$ok")
-            if (!ok) onUnavailable(keys.size)
+            if (handler()?.openFanFor(keys) != true) onUnavailable(keys.size)
         }
     }
 }
