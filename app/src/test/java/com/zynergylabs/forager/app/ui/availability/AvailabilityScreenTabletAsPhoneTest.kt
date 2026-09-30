@@ -16,7 +16,10 @@ import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -111,8 +114,17 @@ class AvailabilityScreenTabletAsPhoneTest {
 
     private fun DpRect.centre(): Pair<Dp, Dp> = (left + right) / 2 to (top + bottom) / 2
 
-    private fun realTapOnLabel(text: String) {
-        val (x, y) = labelBounds(text).centre()
+    /**
+     * A real touch at the centre of the label [text] that sits inside the container tagged [containerTag] (the bottom nav or the
+     * rail), so the touch is the container's item's, and a tab row's "List" elsewhere on screen (the removed tablet tree had one) can
+     * not stand in for it. The point is asserted to lie inside the container's bounds.
+     */
+    private fun realTapOnItemIn(containerTag: String, text: String) {
+        val item = composeRule.onNode(hasText(text) and hasAnyAncestor(hasTestTag(containerTag)))
+        val b = item.getUnclippedBoundsInRoot()
+        val (x, y) = b.centre()
+        val container = tag(containerTag)
+        assertTrue("the item $text at ($x, $y) is inside $containerTag $container", x >= container.left && x <= container.right && y >= container.top && y <= container.bottom)
         composeRule.onRoot().performTouchInput { click(with(composeRule.density) { Offset(x.toPx(), y.toPx()) }) }
         composeRule.waitForIdle()
     }
@@ -149,11 +161,11 @@ class AvailabilityScreenTabletAsPhoneTest {
     @Config(sdk = [36], qualifiers = "w824dp-h1318dp")
     fun `on a portrait tablet a real touch on a bottom nav tab switches the tab`() {
         setScreen(uiState = LAYOUT_FIXES_FIX_STATE.copy(forecast = TABLET_FORECAST, selectedMonth = LocalDate.now().monthValue))
-        composeRule.onNodeWithText("Maps").assertIsSelected()
+        composeRule.onNode(hasText("Maps") and hasAnyAncestor(hasTestTag(COMPACT_BOTTOM_NAV_TAG))).assertIsSelected()
 
-        realTapOnLabel("List")
+        realTapOnItemIn(COMPACT_BOTTOM_NAV_TAG, "List")
 
-        composeRule.onNodeWithText("List").assertIsSelected()
+        composeRule.onNode(hasText("List") and hasAnyAncestor(hasTestTag(COMPACT_BOTTOM_NAV_TAG))).assertIsSelected()
         assertTrue("the map is gone with the Maps tab", !exists(LAYOUT_FIXES_MAP_TAG))
     }
 
@@ -192,11 +204,11 @@ class AvailabilityScreenTabletAsPhoneTest {
     @Config(sdk = [36], qualifiers = "w1318dp-h824dp-land")
     fun `at a landscape tablet a real touch on a rail item switches the tab`() {
         setScreen(Surface.ROTATION_90, LAYOUT_FIXES_FIX_STATE.copy(forecast = TABLET_FORECAST, selectedMonth = LocalDate.now().monthValue))
-        composeRule.onNodeWithText("Maps").assertIsSelected()
+        composeRule.onNode(hasText("Maps") and hasAnyAncestor(hasTestTag(RAIL_TAG))).assertIsSelected()
 
-        realTapOnLabel("List")
+        realTapOnItemIn(RAIL_TAG, "List")
 
-        composeRule.onNodeWithText("List").assertIsSelected()
+        composeRule.onNode(hasText("List") and hasAnyAncestor(hasTestTag(RAIL_TAG))).assertIsSelected()
         assertTrue("the map is gone with the Maps tab", !exists(LAYOUT_FIXES_MAP_TAG))
         composeRule.onNodeWithTag(RAIL_TAG).assertIsDisplayed()
     }
