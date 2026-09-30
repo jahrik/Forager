@@ -59,8 +59,7 @@ import com.zynergylabs.forager.app.ui.log.ScreenEdge
  * The compact bottom nav's five destinations, in trip order left to right — Pre-trip surfaces
  * (List, Seasonal) then the surface the user is actually in (Maps, a true centre — depends on
  * this being an odd count; a sixth destination would break the centring), then Post-trip and rare
- * (Journal, Tools). [ResultsTab] itself stays a 3-way enum, unchanged, since the medium/expanded
- * window's tab row still switches only between List/Maps/Seasonal, kept in sync with this enum's
+ * (Journal, Tools). [ResultsTab] stays a 3-way enum, kept in sync with this enum's
  * own `selectedTab` (see [AvailabilityScreen]'s `ForagerBottomNav` call site) whenever the tapped
  * destination is one of those three.
  *

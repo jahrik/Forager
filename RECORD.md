@@ -7243,3 +7243,241 @@ The planner confirmed each by grep.
 **Note on the coder's flag:** "-245 will replace this L code" is not right. -245 keeps the phone's icon cluster, and only its Part B touches the L's top limit. The fails at items 9, 11, 12, 13 and 18 are expected to stand on the new build unless shown otherwise.
 **Open for the owner:** what is done about the fails at items 9, 11, 12, 13 and 18, and the observation at item 5.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-252
+**Timestamp:** 2026-09-30T00:19:56Z
+**Title:** Five Part 3 S22-A device fails fixed before PR #140 merges: A1 item 9, A2 items 11, 12, 13 and 18
+**Dispatch-file:** preserved/2026-09-29-57.md
+**Change:**
+- One fix per fail, each tested first where Robolectric can reproduce it.
+- Where no existing rule defines the correct behaviour, that item stops and comes to the owner.
+- Where the failure needs real insets or projection, that item stops at a diagnosis and a proposed fix.
+**Scope boundary:** the map's icon cluster and L, map bubbles, and marker and track hit-testing. A1 item 5 is excluded.
+**Sequencing:** launches after the tablet-as-phone build (-245) is merged into journal-redesign, from that commit. S22-B rechecks these fixes on the fresh build.
+**Owner's answer:** "Option 1. Fix all five before merge".
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-253
+**Timestamp:** 2026-09-30T00:20:19Z
+**Dispatch:** 2026-09-28-227 (Part 3), S22-A and S22-B
+**Reason:** S22-A's addendum, on device-part-3 at f953bf42. It **supersedes -251's restore read-back.**
+**Reported by the coder (not re-checked):**
+- **Now run, after the owner allowed the notification prompt:** A1 item 3's record row and item 7's record and return while recording both PASS at 90. The return HUD is drawn over the right part of the search bar and the compass strip.
+- **Its mistake:** while deleting its own waypoints, one swipe too many deleted the offline region "DEVICE CHECK 2026-09-28 B". That region was test data from an earlier check. Undo had expired before the mistake was seen.
+- **Data left changed:**
+  - offline_regions: 1 row against 2 in the copy;
+  - tracks: 3 rows against 1, two of them unnamed and unlisted;
+  - cached_searches: 3 rows against 2.
+- The permission is granted for user 0, as the owner set it.
+**Changes:** an amendment to preserved/2026-09-29-51. At its end, S22-B restores the phone to S22-A's a-copy (schema 16, before Part 3), not to its own copy, and re-reads the migration.
+**Note:** the three S22-A coders dismissed a system prompt twice, deleted a record that was not theirs, and changed a setting by a stray tap. A device dispatch's rules did not prevent any of these. That is the owner's to weigh for S22-B's launch prompt.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-254
+**Timestamp:** 2026-09-30T00:24:02Z
+**Dispatch:** 2026-09-28-227 (Part 3), S22-B
+**Reason:** the owner, verbatim: "Yes add the two rules to S22B", after S22-A's incidents (-251, -253).
+**Changes:** an amendment to preserved/2026-09-29-51, with two rules for S22-B:
+- any system prompt means stop for the owner, and no Back or Home key is sent unattended;
+- a record's name is read from a dump before any delete and checked again while Undo is on screen, one delete per command.
+
+S22-B's launch prompt (-53) already makes the dispatch and its amendments govern, so it is unchanged.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-255
+**Timestamp:** 2026-09-30T00:31:37Z
+**Dispatch:** 2026-09-28-252 (the Part 3 device fails)
+**Reason:** the owner, from their own use of the S22, with two screenshots: the fan triggers for markers that do not overlap, and an empty-map tap from a fan member's bubble closes both the bubble and the fan. Asked, the owner chose "32 dp" and Back "Yes, same order".
+**Changes:** an amendment to preserved/2026-09-29-57 adds two items.
+- **Item 6:** the stacking distance goes from 48 dp to 32 dp, as its own constant. FAN_TOUCH_DP and the fan's spacing are unchanged.
+- **Item 7:** an empty-map tap or Back closes the bubble first, and a second one folds the fan.
+**Supersedes, in part:** F4's "Back folds the fan first" order, which S22-A observed as A2 items 15 and 17.
+**Notes:**
+- The 15 dp by 35 dp distance of the owner's example is the planner's estimate from the screenshot, not a measurement.
+- Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-256
+**Timestamp:** 2026-09-30T00:50:35Z
+**Dispatch:** 2026-09-28-252 (the Part 3 device fails)
+**Reason:** the owner, from their own use of the S22: Back from a find opened with the map bubble's "Open in Journal" lands on the Journal, not back on the map as a photo does. Asked how, the owner chose "Remember where it came from".
+**Changes:** an amendment to preserved/2026-09-29-57 adds item 8.
+- The find still opens on the Journal tab, under the same label.
+- Back from it returns to the Maps tab with the same bubble, and the fan if one was open.
+- The origin is forgotten on any other exit.
+- A deleted find returns to the map with no bubble.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-257
+**Timestamp:** 2026-09-30T00:55:22Z
+**Dispatch:** 2026-09-28-245 (tablets as a big phone) and 2026-09-28-252 (the device fails)
+**Reason:** -245's coder sat for over an hour in its pre-Gradle wait loop at 2270 MB available against a 2.5 GB gate. Three idle JVMs held about 4 GB between them.
+**Changes:**
+- **The Kotlin daemon was ended.** At the owner's choice ("Kill the old Kotlin daemon"), the planner ended the idle Kotlin compile daemon (pid 876355, up 5 h 34 m, 1.9 GB) after confirming no Gradle wrapper or worker was running. Available memory went from 2270 MB to 4182 MB. The two Gradle daemons were left running.
+- **The memory gate is 2048 MB for this planner session's dispatches.** The owner, verbatim: "Reduce the limit to 2GB for this session". This applies to -245's coder, which has been told, and to -252's coder when it launches. The other checks are unchanged: no Gradle wrapper or worker running, 2048 MB of disk, and never `./gradlew --stop`.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-258
+**Timestamp:** 2026-09-30T01:14:36Z
+**Dispatch:** 2026-09-28-245 (tablets as a big phone), with Parts A and B
+**Reason:** the build coder handed back complete. Its report is docs/audits/2026-09-30-tablet-as-phone-completion-report.md on tablet-as-phone at bcecf8c7.
+**Observed by the planner:**
+- origin/tablet-as-phone is at bcecf8c7 and the coder's tree is clean.
+- AvailabilityWideLayoutUi.kt, LogPanel.kt and JournalDetailSlot.kt are absent at bcecf8c7.
+- The coder's results directory holds 376 XML files totalling 3082 / 0 / 0 / 24, newest 18:12 local, which matches its run on 59e5e76d.
+- `git merge-tree` into journal-redesign reports no conflicts.
+- The coder's wrong-premise finding is confirmed: SeasonalTab reads WindowWidthClass at AvailabilityResultsUi.kt:244-254, and a landscape phone (about w823dp) is not COMPACT, so it gets the 640 dp cap.
+**Reported by the coder (not re-checked):**
+- About 105 tablet-only tests were deleted across 18 files, and 13 new tests pass.
+- There were three revert checks, each failing with a message specific to its edit.
+- **Part B's cause:** the cluster's re-clamp is keyed on fullscreen, not on the limit, so on exit it clamps against the animated inset's first frame. The fix gives the landscape L the settled search-bar height.
+- WindowWidthClass and the 640 dp cap were kept, because the phone reads them. isLandscapeJournal() follows landscape. The entry report's height budget was left as short.
+- **Flagged:**
+  - the Journal hides the app search header on a landscape tablet;
+  - Seasonal is capped at 640 dp beside the rail;
+  - `onReopenTaxonSuggestions` is now unread;
+  - there is dead KDoc in about 14 files.
+**Open for the owner:** whether to merge now, and the landscape-tablet questions the coder flagged.
+**Notes:** Written by the planner by hand. The planner has not run the suite itself.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-259
+**Timestamp:** 2026-09-30T01:16:22Z
+**Closes:** 2026-09-28-245 (tablets as a big phone), with -246
+**Outcome:** completed
+**Observed:**
+- tablet-as-phone (bcecf8c7) is merged into journal-redesign, no-ff, at the owner's word "Merge now".
+- The coder's full suite was 3082 / 0 / 0 / 24 on code identical to bcecf8c7 (-258). The planner has not re-run it.
+- **The owner's rulings on the coder's landscape-tablet flags:**
+  - the Journal hides the search header on a landscape tablet, as on a phone: "Keep it";
+  - Seasonal's 640 dp cap beside the rail: "Keep the cap".
+  
+  Both stand as built.
+- **Device-only:** the S22 recheck of A1 item 1 at 90 and 270, exiting by tap and by Back, is S22-B's. The owner may smoke-test on a tablet.
+- **Left as flagged, not done:**
+  - `onReopenTaxonSuggestions` is unread;
+  - the cluster's `?: bar` fallback is dead;
+  - there is stale KDoc in about 14 files.
+**Next:** dispatch -252 (preserved -57) launches from this merge.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-260
+**Timestamp:** 2026-09-30T01:26:26Z
+**Dispatch:** none (a parked idea)
+**Reason:** the owner raised a free companion app carrying the full forecast without commercial licensing, asked whether donations would stand in, then said "Park it".
+**Changes:**
+- **The plan records it as parked** until after PR #140 merges: docs/plans/journal-redesign.md, "A free companion app with the full forecast: parked". It holds the planner's not-legal-advice reading and four open questions: Open-Meteo's terms, a legal read on CC BY-NC, iNaturalist's terms, and forager-forecast D57.
+- **Nothing is dispatched.** The commercial-use ruling for Forager is unchanged.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-261
+**Timestamp:** 2026-09-30T02:36:21Z
+**Dispatch:** 2026-09-28-252 (preserved -57, with -255 and -256)
+**Reason:** the coder handed back. Its report is docs/audits/2026-09-30-part-3-device-fails-completion-report.md on device-fails at 65b50e80.
+**Reported by the coder (planner checked the head and the stalled processes only):**
+- **Built:**
+  - item 6, a stacking distance of 32 dp: 21a8dbcf and e064a071;
+  - item 7, one layer at a time on an empty-map tap and Back: c721e531 and 27a3cf80.
+  
+  Both were tested first and revert-checked. Four older tests were re-based from 48 dp to 31 and 30 dp.
+- **Stopped, for the owner:**
+  - **Item 1:** move MapLibre's "i", or raise the L's bottom limit.
+  - **Item 3:** extend the bubble clamp past the L and the rail, flip the card, or cap its width. Any fix reverses the "against the map itself" comment at AvailabilityCompactMapUi.kt:256-260.
+  - **Item 4:** flip the card below, keep M1's "no tail when the clamp puts the card over the point", or shrink the card.
+  - **Item 8:** hoist the bubble and fan state, keep the Maps tab composed, or remember only a return request.
+- **Stopped at a diagnosis:** item 2 (a projection re-anchor, partly unexplained) and item 5 (candidates listed). S22-B collects the data.
+- **The full suite did not finish.**
+  - The test worker has stalled in LeavingTheJournalFixesTest "F3 the Maps search bar shows on Maps while a find is kept open" (:971), in Espresso onIdle. The jstack is at ~/Zynergy/device-evidence/2026-09-30-device-fails-full-suite-hang-jstack.txt.
+  - The coder did not kill it, under the session's no-kill rule.
+  - The planner observed that wrapper pid 1083163 and worker pid 1083355 are still alive after about 63 min, with available memory at 1367 MB.
+**Open for the owner:** the four item decisions, and whether the stalled worker is ended so the suite can be re-run.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-262
+**Timestamp:** 2026-09-30T02:40:03Z
+**Dispatch:** 2026-09-28-252 (preserved -57)
+**Reason:** the owner's rulings on the stopped items. Item 1: "Move the 'i'". Item 3: "Push the card clear". Item 4: "Flip below". Item 8: "Remember and reopen". On the stalled suite: "End both".
+**Changes:**
+- **The stalled run is ended.** The planner ended wrapper pid 1083163 and worker pid 1083355, both with a cwd in forager-wt/device-fails. Available memory went from 1367 MB to 2912 MB. The Gradle daemons were left.
+- **An amendment to preserved/2026-09-29-57** carries the four rulings and a continuation on device-fails:
+  - items 1, 3, 4 and 8 are built;
+  - items 2 and 5 stay at diagnosis for S22-B's data;
+  - the full suite is re-run, with a rule for a repeat hang.
+- **Supersedes:**
+  - M1's "no tail when the clamp puts the card over the point", where the card fits below;
+  - the "positioned against the map itself" note for the L and the rail.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-263
+**Timestamp:** 2026-09-30T03:19:03Z
+**Closes:** 2026-09-28-252 (preserved -57, with -255, -256 and -262)
+**Outcome:** completed, with items 2 and 5 at diagnosis by design
+**Observed:**
+- **The planner's full suite** at device-fails b4747cc9: the coder's tree was clean and idle, the results directory was cleared first, and the run used `--offline testDebugUnitTest --continue`. BUILD SUCCESSFUL in 4 m 27 s, 0 `e:` lines. 384 result files, 3132 / 0 / 0 / 24.
+- **The coder's own run** had 1 failure, DiagnosticsPanelTest "the log row shows the log's own text" with CalledFromWrongThreadException, in a class nobody touched. It passed alone and passed in the planner's run, so it is recorded as intermittent and not investigated.
+- **What merged** into journal-redesign, no-ff, from device-fails:
+  - item 6, stack distance 32 dp (e064a071);
+  - item 7, one layer at a time (27a3cf80);
+  - item 4, flip below (9c9019e3);
+  - item 3, the card clear of the L and the rail (af5b4dfe);
+  - item 1, the "i" clear of the L (83e1d35c);
+  - item 8, Back returns to the map (72849a82);
+  - the report: docs/audits/2026-09-30-part-3-device-fails-completion-report.md.
+- **The coder's calls, accepted by the planner:**
+  - item 1 moves the "i" only when the L's bounds intersect it, so 270 is unchanged;
+  - item 8's request also holds the bubble's anchor and bearing.
+- **Superseded, and the source documents not edited:** F4's checklist item 17 (by -255), and M1's "no tail when the clamp puts the card over the point" where the card fits below (by -262).
+**Device-only:** the eight-item recheck table in the report goes to S22-B, together with items 2 and 5's data collection.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-264
+**Timestamp:** 2026-09-30T03:19:42Z
+**Dispatch:** 2026-09-28-227 (Part 3), S22-B
+**Reason:** the owner, verbatim: "Launch S22-B now".
+**Changes:**
+- **An amendment to preserved/2026-09-29-51.** S22-B builds and installs 5d429f19, which has both merges, and runs, in order:
+  1. the rechecks: A1 item 1 after fullscreen, and the device-fails items 1-8, with 2 and 5 as data only;
+  2. A4 and A5;
+  3. the data group, F5's items and A6;
+  4. the restore to S22-A's a-copy, which re-runs MIGRATION_16_17.
+  
+  The rules of -241, -253 and -254 all hold.
+- **S22-B is launched** as an Agent-tool coder of planner [303193].
+**Notes:** Written by the planner by hand.

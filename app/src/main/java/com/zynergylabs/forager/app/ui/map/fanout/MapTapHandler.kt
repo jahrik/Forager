@@ -25,6 +25,9 @@ interface MapProbe {
 
     /** The markers of the given layers whose own position is within a square of half-side [halfPx] about the point. */
     fun markersInBox(xPx: Float, yPx: Float, halfPx: Float, layerIds: List<String>): List<ProbedMarker>
+
+    /** The markers named by [keys] that the map still draws, at their positions now; a key no longer drawn is left out. */
+    fun markersOf(keys: List<FanKey>): List<ProbedMarker>
 }
 
 /**
@@ -45,7 +48,9 @@ interface MapTapSinks {
  *  - **A fan is open and the tap is on a fanned marker:** that marker's own outcome, as a tap on it
  *    would have been (the owner's rule 4). The fan stays open behind its bubble.
  *  - **A fan is open and the tap is anywhere else:** the fan folds, and the tap goes on as it would
- *    have (a plain tap dismisses a bubble, a tap on another marker opens that one).
+ *    have (a plain tap dismisses a bubble, a tap on another marker opens that one). **Except** while a
+ *    bubble is showing ([bubbleOpen]) and the tap is on empty map: that tap closes the bubble only and
+ *    the fan stays, so the next empty tap folds it (dispatch 2026-09-29-57, item 7, amendment -255).
  *  - **The tap resolves to a marker whose touch area overlaps another's** (a stack, rule 1): the stack
  *    fans out and nothing else is reported (rule 2).
  *
@@ -58,16 +63,21 @@ class MapTapHandler(
     private val drawOrder: () -> List<MapLayerSpec>,
     private val sinks: MapTapSinks,
     private val space: FanSpace = FanSpace.Unbounded,
+    private val bubbleOpen: () -> Boolean = { false },
 ) {
     fun onMapTap(at: LatLng, xPx: Float, yPx: Float) {
         val density = probe.density
+        var holdFanForEmptyTap = false
         if (fan.isOpen) {
             val picked = fanMemberAt(fan.members, fan.progress, xPx / density, yPx / density)
             if (picked != null) {
                 dispatch(mapTapOutcome(TapHit(picked.key.layerId, picked.key.featureId)), at, xPx, yPx)
                 return
             }
-            fan.fold()
+            // One layer at a time (amendment -255): with a bubble showing, a tap on empty map closes the bubble and
+            // leaves the fan, which the next one folds. A tap that lands on something else folds the fan as it did.
+            holdFanForEmptyTap = bubbleOpen()
+            if (!holdFanForEmptyTap) fan.fold()
         }
 
         val order = drawOrder()
@@ -77,8 +87,24 @@ class MapTapHandler(
             boxHits = { probe.hitsInBox(xPx, yPx, TAP_BOX_HALF_DP * density, tappable) },
             drawOrder = order,
         )
+        if (holdFanForEmptyTap && winner != null) fan.fold()
         if (winner != null && openStackAround(winner, order, xPx, yPx)) return
         dispatch(mapTapOutcome(winner), at, xPx, yPx)
+    }
+
+    /**
+     * Opens a fan over the markers [keys] name, as the one they were in when the user left the map (dispatch 2026-09-29-57,
+     * item 8: Back from a find opened on the map). A key whose marker is no longer there is dropped; fewer than two left
+     * opens nothing. `true` when a fan opened.
+     */
+    fun openFanFor(keys: List<FanKey>): Boolean {
+        val order = drawOrder()
+        // A layer switched off since (or one that never fanned) is left out like a deleted record.
+        val fanLayers = fanOutLayerIds(order)
+        val stack = probe.markersOf(keys.filter { it.layerId in fanLayers }).distinctBy { it.key }
+        if (stack.size < 2) return false
+        openFan(stack, order)
+        return true
     }
 
     /** The camera started to move, by a gesture or by the app: the copies are placed in screen space, so the fan folds. */
@@ -100,6 +126,13 @@ class MapTapHandler(
         val stack = stackOf(self, nearby, density)
         if (stack.size < 2) return false
 
+        openFan(stack, order)
+        return true
+    }
+
+    /** Fans [stack] (at least two markers), top layer first, from where they are on screen now. */
+    private fun openFan(stack: List<ProbedMarker>, order: List<MapLayerSpec>) {
+        val density = probe.density
         val heightOf = order.withIndex().associate { it.value.id to it.index }
         val topFirst = stack.sortedWith(compareByDescending<ProbedMarker> { heightOf.getValue(it.key.layerId) }.thenBy { it.key.featureId })
         // The ring is about the stack's centre, so its markers are a touch size apart whatever their true spots (each
@@ -125,7 +158,6 @@ class MapTapHandler(
                 FanMember(m.key, m.lat, m.lng, trueX, trueY, offset)
             },
         )
-        return true
     }
 
     private fun dispatch(outcome: MapTapOutcome, at: LatLng, xPx: Float, yPx: Float) {

@@ -253,13 +253,24 @@ internal fun fanMemberLatLng(map: MapLibreMap, member: FanMember, progress: Floa
  * returned feature does not say which layer drew it (as the click listener always did), and the
  * projection for each marker's own position.
  */
-internal class MapLibreProbe(private val map: MapLibreMap, override val density: Float) : MapProbe {
+internal class MapLibreProbe(
+    private val map: MapLibreMap,
+    override val density: Float,
+    /** Where a marker's record is now, from the lists the map draws; `null` when it is no longer drawn (never guessed). */
+    private val locate: (FanKey) -> LatLng? = { null },
+) : MapProbe {
     override fun hitsAt(xPx: Float, yPx: Float, layerIds: List<String>): List<TapHit> =
         layerIds.flatMap { id -> map.queryRenderedFeatures(PointF(xPx, yPx), id).map { tapHitOf(id, it) } }
 
     override fun hitsInBox(xPx: Float, yPx: Float, halfPx: Float, layerIds: List<String>): List<TapHit> {
         val box = RectF(xPx - halfPx, yPx - halfPx, xPx + halfPx, yPx + halfPx)
         return layerIds.flatMap { id -> map.queryRenderedFeatures(box, id).map { tapHitOf(id, it) } }
+    }
+
+    override fun markersOf(keys: List<FanKey>): List<ProbedMarker> = keys.mapNotNull { key ->
+        val at = locate(key) ?: return@mapNotNull null
+        val screen = map.projection.toScreenLocation(MapLibreLatLng(at.lat, at.lng))
+        ProbedMarker(key, at.lat, at.lng, screen.x, screen.y)
     }
 
     override fun markersInBox(xPx: Float, yPx: Float, halfPx: Float, layerIds: List<String>): List<ProbedMarker> {

@@ -32,8 +32,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
@@ -63,7 +61,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.BuildConfig
 import com.zynergylabs.forager.app.crash.CrashFileStore
-import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.model.AppThemeMode
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.UnitSystem
@@ -137,28 +134,6 @@ internal fun DrawerHeader(onClose: () -> Unit) {
 }
 
 /**
- * The Search panel's sticky-footer entry into the mushroom log, right above [SettingsEntryRow] —
- * see [DrawerPanel]'s doc comment for the two sticky rows this drawer now has. No
- * `navigationBarsPadding()` here: [SettingsEntryRow] below is still the last row in the sheet and
- * carries that inset, so both rows don't independently pad for the same nav-bar gap.
- */
-@Composable
-internal fun MushroomLogEntryRow(onClick: () -> Unit) {
-    HorizontalDivider()
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(Icons.Filled.MenuBook, contentDescription = null)
-        Text("Mushroom Log", style = MaterialTheme.typography.titleSmall)
-    }
-}
-
-/**
  * The Search panel's sticky-footer entry into Settings — the exact slot [BuildIdentityFooter] used
  * to occupy, same divider-plus-navigation-bar-padding treatment, so the footer's move to the bottom
  * of the Settings panel doesn't leave this slot looking or behaving any differently to a user who
@@ -182,27 +157,6 @@ internal fun SettingsEntryRow(onClick: () -> Unit) {
     ) {
         Icon(Icons.Filled.Settings, contentDescription = null)
         Text("Settings", style = MaterialTheme.typography.titleSmall)
-    }
-}
-
-/**
- * The Settings panel's header: unlike [DrawerHeader] this carries a visible back arrow and title,
- * because — unlike closing the drawer entirely, which the app bar's tune icon already visually
- * "undoes" — there is nothing else on screen suggesting how to get back from Settings to Search.
- */
-@Composable
-internal fun SettingsHeader(onBack: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .clickable(role = Role.Button, onClick = onBack)
-            .padding(horizontal = Spacing.lg),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to search options")
-        Text("Settings", style = MaterialTheme.typography.titleMedium)
     }
 }
 
@@ -536,7 +490,7 @@ private fun DistanceUnitSection(distanceUnit: DistanceUnit, onDistanceUnitSelect
  * ambitious planner" — species search is gone from here for good, and the name should say so. Two
  * things live here now, none of them search:
  *
- * 1. **[SearchControls]**, `includeRecentSearches = false` — Trip Planner only. Waypoints moved
+ * 1. **[SearchControls]** — Trip Planner only. Waypoints moved
  *    out (Journal restructure Stage 1) into the Journal's own Records tab.
  * 2. **Settings** ([showSettings]) — new as of the map redesign's Dispatch B, per the owner's own
  *    call: this drawer *is* the Tools destination now, so Settings (which had its own bottom-nav
@@ -554,7 +508,6 @@ internal fun CompactToolsDrawerContent(
     onDistanceUnitSelected: (DistanceUnit) -> Unit,
     onClose: () -> Unit,
     onDeletePlannedTrip: (String) -> Unit,
-    currentTime: CurrentTimeProvider,
     isNightMode: Boolean,
     onNightModeMapsChanged: (Boolean) -> Unit,
     autoSaveLocationToPhotos: Boolean,
@@ -607,13 +560,7 @@ internal fun CompactToolsDrawerContent(
         SearchControls(
             modifier = Modifier.weight(1f),
             uiState = uiState,
-            distanceUnit = distanceUnit,
             onDeletePlannedTrip = onDeletePlannedTrip,
-            currentTime = currentTime,
-            // See SearchControls' own doc comment on these params: species search, Recent
-            // searches, and Advanced search all now live in SearchDropdown, over the map, not here.
-            includeAdvancedSearch = false,
-            includeRecentSearches = false,
         )
         SettingsEntryRow(onClick = { showSettings = true })
     }
