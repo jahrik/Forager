@@ -460,6 +460,9 @@ fun SightingsMap(
                 fan = fanOut,
                 probe = MapLibreProbe(map, context.resources.displayMetrics.density),
                 space = fanSpace,
+                // One layer at a time (amendment -255): a bubble showing on a sighting or a point glyph, which is
+                // what a fanned marker's bubble is, means an empty-map tap closes it and leaves the fan.
+                bubbleOpen = { currentFocusedObservationId != null || currentFocusedFeature != null },
                 drawOrder = { orderedLayers(MAP_LAYER_REGISTRY, currentLayersState) },
                 sinks = object : MapTapSinks {
                     override fun onPlainTap() = currentOnTap()
@@ -858,7 +861,7 @@ fun SightingsMap(
 
     // The fan's clock, and Back closing it before anything else Back would close.
     MarkerFanOutHost(fanOut)
-    MarkerFanOutBackHandler(fanOut)
+    MarkerFanOutBackHandler(fanOut, bubbleOpen = focusedObservationId != null || focusedFeature != null)
 
     Box(modifier = modifier.fillMaxSize()) {
         AndroidView(

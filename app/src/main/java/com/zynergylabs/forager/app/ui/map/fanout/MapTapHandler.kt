@@ -45,7 +45,9 @@ interface MapTapSinks {
  *  - **A fan is open and the tap is on a fanned marker:** that marker's own outcome, as a tap on it
  *    would have been (the owner's rule 4). The fan stays open behind its bubble.
  *  - **A fan is open and the tap is anywhere else:** the fan folds, and the tap goes on as it would
- *    have (a plain tap dismisses a bubble, a tap on another marker opens that one).
+ *    have (a plain tap dismisses a bubble, a tap on another marker opens that one). **Except** while a
+ *    bubble is showing ([bubbleOpen]) and the tap is on empty map: that tap closes the bubble only and
+ *    the fan stays, so the next empty tap folds it (dispatch 2026-09-29-57, item 7, amendment -255).
  *  - **The tap resolves to a marker whose touch area overlaps another's** (a stack, rule 1): the stack
  *    fans out and nothing else is reported (rule 2).
  *
@@ -62,13 +64,17 @@ class MapTapHandler(
 ) {
     fun onMapTap(at: LatLng, xPx: Float, yPx: Float) {
         val density = probe.density
+        var holdFanForEmptyTap = false
         if (fan.isOpen) {
             val picked = fanMemberAt(fan.members, fan.progress, xPx / density, yPx / density)
             if (picked != null) {
                 dispatch(mapTapOutcome(TapHit(picked.key.layerId, picked.key.featureId)), at, xPx, yPx)
                 return
             }
-            fan.fold()
+            // One layer at a time (amendment -255): with a bubble showing, a tap on empty map closes the bubble and
+            // leaves the fan, which the next one folds. A tap that lands on something else folds the fan as it did.
+            holdFanForEmptyTap = bubbleOpen()
+            if (!holdFanForEmptyTap) fan.fold()
         }
 
         val order = drawOrder()
@@ -78,6 +84,7 @@ class MapTapHandler(
             boxHits = { probe.hitsInBox(xPx, yPx, TAP_BOX_HALF_DP * density, tappable) },
             drawOrder = order,
         )
+        if (holdFanForEmptyTap && winner != null) fan.fold()
         if (winner != null && openStackAround(winner, order, xPx, yPx)) return
         dispatch(mapTapOutcome(winner), at, xPx, yPx)
     }
