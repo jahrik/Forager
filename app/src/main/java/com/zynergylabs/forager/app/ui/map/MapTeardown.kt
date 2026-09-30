@@ -21,6 +21,7 @@ internal interface MapTeardownTarget {
 }
 
 internal fun tearDownMap(target: MapTeardownTarget) {
+    target.stopLocationUpdates()
     target.destroyLocationComponent()
     target.destroyMapView()
 }
