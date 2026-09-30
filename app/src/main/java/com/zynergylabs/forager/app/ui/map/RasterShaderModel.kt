@@ -5,18 +5,17 @@ import kotlin.math.log2
 import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
-import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.doubleOrNull
 
 /**
- * A headless model of MapLibre Native's raster shader, for night-mode paints that vary with zoom
- * (dispatch 2026-09-28-310, topo night). Pure Kotlin, no Android or MapLibre types, so
- * `TopoNightZoomTest` runs sampled tiles through the paint that `styleJsonFor` actually produces.
+ * A headless model of MapLibre Native's raster shader, for night-mode paints (dispatch
+ * 2026-09-28-310, topo night). Pure Kotlin, no Android or MapLibre types, so
+ * `TopoNightStreetSwitchTest` runs sampled tiles through the paint that `styleJsonFor` actually produces.
  * [nightColorOf] is the same model frozen at V1 for colours this project sets itself; this one takes
- * the five paint properties as they arrive, including zoom expressions.
+ * the five paint properties as they arrive.
  *
  * **What it models.** `shaders/raster.fragment.glsl` and `raster_layer_tweaker.cpp` at the pinned
  * `13.5.0` (read from the tag for this change, and cited from the same files in
@@ -32,10 +31,10 @@ import kotlinx.serialization.json.doubleOrNull
  * (`raster-fade-duration`, where two tile levels blend under one paint); premultiplied-alpha edges;
  * the GPU's own rounding; or the paint transition (`raster-*-transition`) that eases a property
  * change. The swatch board measured the V1 case of this model against S22 captures at a mean
- * per-channel error of 0.63/255; the zoom-dependent paint has not been measured on a device.
+ * per-channel error of 0.63/255; the paint has not been measured on a device.
  */
 
-/** The five raster paint properties the shader reads, at one zoom. Defaults are the style spec's. */
+/** The five raster paint properties the shader reads. Defaults are the style spec's. */
 internal data class RasterPaint(
     val brightnessMin: Double = 0.0,
     val brightnessMax: Double = 1.0,
@@ -55,14 +54,15 @@ internal fun rasterTileZoomFor(mapZoom: Double, tileSize: Int = 256): Int =
     (mapZoom + log2(512.0 / tileSize)).roundToInt()
 
 /**
- * The raster paint [paint] (a layer's `"paint"` object) gives at [zoom]. A missing property is the
- * style spec's default. Each value is a number or a zoom expression: `["step", ["zoom"], ...]` or
- * `["interpolate", ["linear"], ["zoom"], ...]`. Anything else (another input, another interpolation
- * type, another operator) throws, because reading it as a guessed number would be a fabricated value.
+ * The raster paint [paint] (a layer's `"paint"` object) gives: each property is a number, or the style
+ * spec's default when missing. Night topo's two layers carry constant paints (V1), so nothing here reads a
+ * zoom; a property that is an expression (`["step", ...]`, `["interpolate", ...]`) throws, because reading
+ * it as a guessed number would be a fabricated value. (An earlier version of this model evaluated `step`
+ * and `interpolate` on `["zoom"]` for the half-amplitude paint; it was removed with that paint.)
  */
-internal fun rasterPaintAt(paint: JsonObject, zoom: Double): RasterPaint {
+internal fun rasterPaintOf(paint: JsonObject): RasterPaint {
     val defaults = RasterPaint()
-    fun value(key: String, default: Double): Double = paint[key]?.let { evaluateZoomValue(it, zoom, key) } ?: default
+    fun value(key: String, default: Double): Double = paint[key]?.let { number(it, key) } ?: default
     return RasterPaint(
         brightnessMin = value("raster-brightness-min", defaults.brightnessMin),
         brightnessMax = value("raster-brightness-max", defaults.brightnessMax),
@@ -72,51 +72,12 @@ internal fun rasterPaintAt(paint: JsonObject, zoom: Double): RasterPaint {
     )
 }
 
-private fun evaluateZoomValue(element: JsonElement, zoom: Double, key: String): Double {
-    if (element is JsonPrimitive) {
-        return element.doubleOrNull ?: error("$key: \"$element\" is not a number")
-    }
-    val array = element as? JsonArray ?: error("$key: $element is neither a number nor an expression")
-    val operator = (array.firstOrNull() as? JsonPrimitive)?.content
-    return when (operator) {
-        "step" -> {
-            require(array.size >= 5 && array.size % 2 == 1 && isZoomInput(array[1])) { "$key: unsupported step expression $array" }
-            var result = number(array[2], key)
-            var i = 3
-            while (i + 1 < array.size && zoom >= number(array[i], key)) {
-                result = number(array[i + 1], key)
-                i += 2
-            }
-            result
-        }
-        "interpolate" -> {
-            val linear = (array.getOrNull(1) as? JsonArray)?.let { (it.firstOrNull() as? JsonPrimitive)?.content == "linear" && it.size == 1 } == true
-            require(linear && array.size >= 5 && array.size % 2 == 1 && isZoomInput(array[2])) { "$key: unsupported interpolate expression $array" }
-            val stops = (3 until array.size step 2).map { number(array[it], key) to number(array[it + 1], key) }
-            when {
-                zoom <= stops.first().first -> stops.first().second
-                zoom >= stops.last().first -> stops.last().second
-                else -> {
-                    val upper = stops.indexOfFirst { it.first >= zoom }
-                    val (z0, v0) = stops[upper - 1]
-                    val (z1, v1) = stops[upper]
-                    v0 + (v1 - v0) * (zoom - z0) / (z1 - z0)
-                }
-            }
-        }
-        else -> error("$key: unsupported expression operator \"$operator\" in $array")
-    }
-}
-
-private fun isZoomInput(element: JsonElement): Boolean =
-    element is JsonArray && element.size == 1 && (element[0] as? JsonPrimitive)?.content == "zoom"
-
 private fun number(element: JsonElement, key: String): Double =
-    (element as? JsonPrimitive)?.doubleOrNull ?: error("$key: expected a number, found $element")
+    (element as? JsonPrimitive)?.doubleOrNull ?: error("$key: expected a number, found $element (expressions are not evaluated)")
 
 /**
  * One opaque pixel (ARGB, alpha carried through) as the shader renders it under [paint]. With
- * `RasterPaint(1.0, 0.0, 180.0)` this is [nightColorOf] up to rounding, which `TopoNightZoomTest`
+ * `RasterPaint(1.0, 0.0, 180.0)` this is [nightColorOf] up to rounding, which `TopoNightStreetSwitchTest`
  * asserts over the sampled tiles.
  */
 internal fun rasterShade(argb: Int, paint: RasterPaint): Int {
