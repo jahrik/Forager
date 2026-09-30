@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.data.remote
 
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
+import com.zynergylabs.forager.app.net.UserAgentInterceptor
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -16,6 +17,7 @@ object INaturalistClient {
     /** The built client, separate from [create] so a test can send a request through the real one. */
     internal fun httpClient(debug: Boolean): OkHttpClient =
         OkHttpClient.Builder()
+            .addInterceptor(UserAgentInterceptor())
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
             .apply {
