@@ -8030,3 +8030,56 @@ Both go to the next phone check.
 - the pole foot and the stem foot on their coordinate;
 - both centred in their 36 dp circles.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-288
+**Timestamp:** 2026-09-30T17:07:55Z
+**Closes:** 2026-09-28-227 (preserved -51), S22-B, with relaunch -277 (preserved -05). S22-A closed earlier; the Tablet session was cancelled (-243).
+**Outcome:** completed. The phone is restored to a-copy/.
+**Observed** (the coder's report, docs/audits/2026-09-30-device-check-part-3-run-record.md at device-part-3 a09bbaa9, merged here as 07f4ad77, documents only):
+- **The build:** 1.0.2027+gbc9dc591, user 0 only; the Dual App (user 95) has no Forager.
+- **Passes:**
+  - fan-centring for all four kinds, with the offset unit dp;
+  - fan-clarity's circle, and the fade and its restore, including after a Layers change;
+  - item 6 at 26 dp;
+  - 8c;
+  - the deleted-member return, but from a fresh launch only. It failed once, in a long session on 2011, and was not diagnosed (-280, -283);
+  - fan-restyle for a basemap change and for the in-app Night Mode setting, both ways;
+  - restores R1-R6. Replace closes another open editor and Merge keeps it; the search list was never touched. A Replace from a backup lacking a region drops that region row;
+  - A6 39's track delete, Undo and timeout;
+  - F5 items 5-7.
+- **Fails:**
+  - **the system `cmd uimode night` switch folds a fan,** because MainActivity restarts: CONFIG_UI_MODE is not handled. The owner's ruling: a post-merge item, since the in-app setting keeps the fan;
+  - the known A4-32 and A5-37.
+- **Observations:**
+  - the search panel stayed drawn over the Journal after a cold relaunch, twice;
+  - a fan opened while GPS is following folds within about 5 s;
+  - the stale find marker after a delete, seen by the -280 coder, not by S22-B.
+- **Not run:**
+  - 40 (the owner skipped it);
+  - 41, 44-46, 48 and 50-52;
+  - A4 35;
+  - the true test of -187 flag 1;
+  - F5 8;
+  - A6 39's All-view, detail and waypoint cases;
+  - fan-restyle's offline-tiles case, which has no visible control.
+- **The restore:**
+  - the phone's 28 app files were removed and a-copy's 22 were pushed;
+  - the device sha256 matched a-copy/device.sha256 for 22 of 22, before any launch;
+  - the read-back: integrity ok, user_version 17 (migrated from 16), and every table count equal to a-copy's plus cartography_entry_track_paths 0;
+  - b2-copy was not restored.
+- **The phone's final state:**
+  - night mode yes, rotation 0/0, auto_time 1, and the clock on real time;
+  - crash buffer 0;
+  - the session log: 0 destroyed-MapView lines and 0 FATAL in 1.87M lines.
+**For the owner:**
+- **The restore reset two settings to a-copy's state:** the backup folder choice (backup_schedule_preferences) and the app theme. Re-choose them if wanted.
+- **To delete by hand:**
+  - /sdcard/Pictures/Forager/forager-photo-20260929-210521.jpg;
+  - the file manager's saved forager-track GPX copies, including one "(1)";
+  - /sdcard/backups/DEVICE-CHECK-2026-09-30-preF5-A.zip;
+  - /sdcard/backups/forager-backup-2026-09-30.zip.
+**Still before un-drafting PR #140:** a short phone recheck at 291aa911 of the 36 dp circles (-284) and the resized glyphs (-286).
+**Notes:** Written by the planner by hand. The planner did not re-read the phone.
