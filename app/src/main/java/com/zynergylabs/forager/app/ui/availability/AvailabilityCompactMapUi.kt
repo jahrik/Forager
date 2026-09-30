@@ -312,6 +312,15 @@ internal fun CompactMapTab(
      */
     topInset: Dp = 0.dp,
     /**
+     * The search bar's bottom edge, settled: the L's top limit in a landscape window (`topLimitPx` below). Not [topInset], which
+     * is animated to 0 while fullscreen hides the bar and back when it returns: the cluster re-clamps only when its own keys
+     * change (`MapIconCluster`'s `LaunchedEffect`, keyed on `isFullscreen` but not on the limit), so on leaving fullscreen it
+     * re-clamped against the animation's first frame, near 0, and the L settled at its centred position, above the search bar's
+     * bottom (dispatch 2026-09-28-245, Part B; the S22-A record, A1 item 1). Defaults to [topInset], the previous behaviour, for
+     * a caller that passes nothing.
+     */
+    searchBarBottom: Dp = topInset,
+    /**
      * SearchEntryBar (plus its SearchNotice), composed as a slot inside this composable's own
      * Box rather than passed up and rendered at the call site — a deliberate, load-bearing
      * placement, not a style choice: this bar's own 80%-alpha fill needs to blend against real
@@ -635,10 +644,10 @@ internal fun CompactMapTab(
                     // The cluster cannot rise above where SearchDropdown itself starts: topInset (about the
                     // search bar's height) plus the strip's own clearance (icon-bar-drag-refinements, Item 4).
                     // Owner's ruling (a), continuation 2026-09-28-172 ("never above the search bar's bottom"): in the landscape L the limit is
-                    // topInset, the search bar's own bottom, without the strip clearance (the compass strip is in the other corner there,
+                    // searchBarBottom, the search bar's own bottom (settled, not animated), without the strip clearance (the compass strip is in the other corner there,
                     // nothing else is drawn in that band beside the notice and the chips, which make room for the L, and the SearchDropdown
                     // starts below it); the L pushes down to it as well as up. Portrait keeps topInset + the clearance.
-                    topLimitPx = with(compassStripDensity) { (if (landscapeCluster) topInset else topInset + compassStripClearance).toPx() },
+                    topLimitPx = with(compassStripDensity) { (if (landscapeCluster) searchBarBottom else topInset + compassStripClearance).toPx() },
                     noticeBottomPx = with(compassStripDensity) { searchNoticeBottom.toPx() },
                     controlsPadding = controlsPadding,
                     bar = { barModifier -> phoneBar(barModifier, mapIconClusterChildColor(), Spacing.xs, false) },

@@ -972,6 +972,8 @@ internal fun CompactMainScaffold(
                                 // slide into the space it vacates in the same motion, not jump ahead of
                                 // it.
                                 topInset = safeAnimatedTopInset,
+                                // The L's top limit: the bar's bottom whether or not fullscreen is hiding it (Part B, A1 item 1).
+                                searchBarBottom = searchBarHeight,
                                 // Item 2: only while a notice shows, and not in fullscreen, where the whole search column slides away.
                                 searchNoticeBottom = if (searchNoticeMessage(uiState) != null && !isMapFullscreen()) {
                                     with(LocalDensity.current) { searchChromeHeightPx.toDp() }
