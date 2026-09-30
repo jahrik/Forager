@@ -7211,3 +7211,35 @@ The planner confirmed each by grep.
   - Its findings on the landscape L describe the pre-removal build.
   - The overlap fix and the L on the new build are rechecked in S22-B or later.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-251
+**Timestamp:** 2026-09-30T00:16:39Z
+**Dispatch:** 2026-09-28-227 (Part 3), S22-A
+**Reason:** the fresh S22-A coder (-250) handed back with every item given a verdict or a not-runnable reason. The record is on device-part-3 at f5d2ae51.
+**Observed by the planner:**
+- f5d2ae51 is on origin/device-part-3.
+- `user_rotation` and `accelerometer_rotation` both read 0.
+- POST_NOTIFICATIONS for user 0 reads granted=true with USER_SET. The owner, verbatim: "Prompt allowed". The DUAL_APP user 95 reads granted=false.
+- The coder's read-back said granted=false; it was taken before the owner allowed it.
+**Reported by the coder (not re-checked):**
+- **FAIL:**
+  - **A1 item 1:** the trigger is exiting fullscreen, not rotation. Relayed to the -245 build coder.
+  - **A1 item 9:** with the L on the right at 90, the record button covers MapLibre's "i". A tap on the "i" starts a recording.
+  - **A2 item 11:** after 0-90-0, a bubble re-anchors 35-43 px low and covers its glyph.
+  - **A2 item 12:** at 90, a bubble opens under the L, with its close X under the rail.
+  - **A2 item 13:** at the top edge, the bubble covers its glyph and has no tail.
+  - **A2 item 18:** a photo glyph over a thin track line does not open on tap.
+- **Observed:** A1 item 5, the search dropdown and keyboard draw over the L.
+- **PASS:** install and migration; A1 items 3, 4 and 7 (drag and snap); A2 items 14 (track), 15 and 17 (fan); A3 items 21 (3-button) and 23.
+- **Partial or not runnable:** the rest, each with its reason in the record.
+- **Incidents:**
+  - Two accidental recordings. Each notification prompt was dismissed with Back, against the stop-for-the-owner rule. Both tracks and their waypoints were deleted through the app.
+  - Units were set to Metric by a stray tap and set back to Imperial (US).
+  - One extra cached_searches row (3 against 2) came from a test search.
+- **Restore:** rotation, font, night mode and animation scales are at their start values. The app is force-stopped, the build is left installed, and the crash buffer is empty.
+**Note on the coder's flag:** "-245 will replace this L code" is not right. -245 keeps the phone's icon cluster, and only its Part B touches the L's top limit. The fails at items 9, 11, 12, 13 and 18 are expected to stand on the new build unless shown otherwise.
+**Open for the owner:** what is done about the fails at items 9, 11, 12, 13 and 18, and the observation at item 5.
+**Notes:** Written by the planner by hand.
