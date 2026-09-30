@@ -7394,3 +7394,29 @@ S22-B's launch prompt (-53) already makes the dispatch and its amendments govern
 - **The plan records it as parked** until after PR #140 merges: docs/plans/journal-redesign.md, "A free companion app with the full forecast: parked". It holds the planner's not-legal-advice reading and four open questions: Open-Meteo's terms, a legal read on CC BY-NC, iNaturalist's terms, and forager-forecast D57.
 - **Nothing is dispatched.** The commercial-use ruling for Forager is unchanged.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-261
+**Timestamp:** 2026-09-30T02:36:21Z
+**Dispatch:** 2026-09-28-252 (preserved -57, with -255 and -256)
+**Reason:** the coder handed back. Its report is docs/audits/2026-09-30-part-3-device-fails-completion-report.md on device-fails at 65b50e80.
+**Reported by the coder (planner checked the head and the stalled processes only):**
+- **Built:**
+  - item 6, a stacking distance of 32 dp: 21a8dbcf and e064a071;
+  - item 7, one layer at a time on an empty-map tap and Back: c721e531 and 27a3cf80.
+  
+  Both were tested first and revert-checked. Four older tests were re-based from 48 dp to 31 and 30 dp.
+- **Stopped, for the owner:**
+  - **Item 1:** move MapLibre's "i", or raise the L's bottom limit.
+  - **Item 3:** extend the bubble clamp past the L and the rail, flip the card, or cap its width. Any fix reverses the "against the map itself" comment at AvailabilityCompactMapUi.kt:256-260.
+  - **Item 4:** flip the card below, keep M1's "no tail when the clamp puts the card over the point", or shrink the card.
+  - **Item 8:** hoist the bubble and fan state, keep the Maps tab composed, or remember only a return request.
+- **Stopped at a diagnosis:** item 2 (a projection re-anchor, partly unexplained) and item 5 (candidates listed). S22-B collects the data.
+- **The full suite did not finish.**
+  - The test worker has stalled in LeavingTheJournalFixesTest "F3 the Maps search bar shows on Maps while a find is kept open" (:971), in Espresso onIdle. The jstack is at ~/Zynergy/device-evidence/2026-09-30-device-fails-full-suite-hang-jstack.txt.
+  - The coder did not kill it, under the session's no-kill rule.
+  - The planner observed that wrapper pid 1083163 and worker pid 1083355 are still alive after about 63 min, with available memory at 1367 MB.
+**Open for the owner:** the four item decisions, and whether the stalled worker is ended so the suite can be re-run.
+**Notes:** Written by the planner by hand.
