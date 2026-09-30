@@ -8863,3 +8863,14 @@ The owner picks from the images. Nothing merges from topo-night as built.
 - One shared interceptor on those three clients sets exactly one User-Agent, from the same single source as the map's (MapUserAgent, which may be moved to an app-wide home).
 - Nothing else about the clients changes.
 **Notes:** Written by the planner by hand. It is queued for Gradle.
+
+---
+
+**Kind:** device-note
+**ID:** 2026-09-28-332
+**Timestamp:** 2026-09-30T22:57:14Z
+**Covers:** installing -310's crossfade build (-328, -329) on the S22 for the owner's check
+**The build:** 1.0.2198+gd072859b, from forager-wt/topo-night. APK sha256 64eb5fb6854b5414…. The planner read the worktree's XML: 394 files and 3214/0/0/24, written at 15:56.
+**The install:** `adb install -r --user 0` at 2026-09-30 15:57:03. User 0's ceDataInode stayed 2259049. databases/forager.db's sha256 is e1188b00…, unchanged.
+**Not done:** no launch, input or screenshot by the planner.
+**Notes:** Written by the planner by hand.
