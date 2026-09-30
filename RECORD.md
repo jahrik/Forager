@@ -8766,3 +8766,20 @@ The owner picks from the images. Nothing merges from topo-night as built.
 - nothing in main/ sets a User-Agent, and OSM's tile policy blocks library defaults. That touches the Street basemap today;
 - OSM's policy forbids offline use and warns commercial users. Offline regions are unaffected, since they use the vector style.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-325
+**Timestamp:** 2026-09-30T22:20:15Z
+**Title:** The app identifies itself to map tile servers with a proper User-Agent
+**Dispatch-file:** preserved/2026-09-30-24.md
+**The owner, verbatim:** "Yes set a proper app identifier".
+**The planner's reading:**
+- -310 reported that nothing in main/ sets a User-Agent, and that OSM's tile policy blocks library defaults.
+- This touches the Street basemap today, and topo night below 9.5 after -324.
+**Change:**
+- One User-Agent, Forager/<versionName> (Android <release>; <applicationId>; +<contact>), installed once at start for every MapLibre request, verified against 13.5.0.
+- The other HTTP clients are reported, not changed.
+**Open:** the contact value is the owner's to give. It stays CONTACT_PENDING until then.
+**Notes:** Written by the planner by hand.
