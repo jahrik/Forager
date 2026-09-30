@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" tests="10" skipped="0" failures="4" errors="0" timestamp="2026-09-30T22:29:11.616Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="7.484">
+  <properties/>
+  <testcase name="the caption is unchanged everywhere else" classname="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" time="4.986"/>
+  <testcase name="at every sampled map zoom the parsed night-topo style shows one layer, pure V1, and a dark map" classname="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" time="1.027">
+    <failure message="java.lang.AssertionError: night topo is not dark, pure V1 at every sampled zoom:&#10;tile z7 at map zoom 5.5: the drawn layer's paint is RasterPaint(brightnessMin=0.5, brightnessMax=0.0, hueRotate=180.0, saturation=0.0, contrast=0.0), not pure V1&#10;tile z7 at map zoom 5.5, day #CECFCD: today's V1 FF313230, this paint FF181918&#10;tile z7 at map zoom 5.5, day #AFAFAC: today's V1 FF52524F, this paint FF292928&#10;tile z7 at map zoom 5.5, day #2E2F2B: today's V1 FFD2D3CF, this paint FF696A68&#10;tile z7 at map zoom 5.5, day #1C2F17: today's V1 FFDAEDD5, this paint FF6D766A&#10;tile z7 at map zoom 5.5, day #1D6F13: today's V1 FFB2FFA8, this paint FF598254&#10;tile z7 at map zoom 5.5, day #5AAF55: today's V1 FF70C56B, this paint FF386235&#10;tile z7 at map zoom 5.5, day #9BAF8C: today's V1 FF617552, this paint FF303A29&#10;tile z7 at map zoom 5.5, day #524F4B: today's V1 FFB4B1AD, this paint FF5A5856&#10;tile z7 at map zoom 5.5, day #356F2F: today's V1 FFA7E1A1, this paint FF547151&#10;tile z7 at map zoom 5.5, day #346F2F: today's V1 FFA7E2A2, this paint FF547151&#10;tile z7 at map zoom 5.5, day #516F4D: today's V1 FF9DBB99, this paint FF4E5D4C&#10;tile z7 at map zoom 5.5, day #B0AFAD: today's V1 FF52514F, this paint FF292827&#10;tile z7 at map zoom 5.5, day #526F4F: today's V1 FF9CB999, this paint FF4E5C4C&#10;tile z7 at map zoom 5.5, day #98CF86: today's V1 FF4E853C, this paint FF27431E&#10;tile z7 at map zoom 5.5, day #D0CFCF: today's V1 FF302F2F, this paint FF181818&#10;tile z7 at map zoom 5.5, day #F4EFD1: today's V1 FF262103, this paint FF131001&#10;tile z7 at map zoom 5.5, day #B5CF93: today's V1 FF4F692D, this paint FF283517&#10;tile z7 at map zoom 5.5, day #CEDFE1: today's V1 FF192A2C, this paint FF0D1516&#10;tile z7 at map zoom 5.5, day #2B2F1B: today's V1 FFDCE0CC, this paint FF6E7066&#10;tile z7 at map zoom 5.5, day #595F60: today's V1 FF9DA3A4, this paint FF4F5252&#10;tile z7 at map zoom 5.5, day #9A9FA0: today's V1 FF5E6364, this paint FF2F3132&#10;tile z7 at map zoom 5.5, day #6B8F51: today's V1 FF8DB173, this paint FF47593A&#10;tile z7 at map zoom 5.5, day #6E6F55: today's V1 FFA1A288, this paint FF515144&#10;tile z7 at map zoom 5.5, day #FFFFC3: today's V1 FF282800, this paint FF141400&#10;tile z7 at map zoom 5.5, day #5F9F62: today's V1 FF73B376, this paint FF3A5A3B&#10;tile z7 at map zoom 5.5, day #84AFB9: today's V1 FF3B6670, this paint FF1E3338&#10;tile z7 at map zoom 5.5, day #AFDF90: today's V1 FF457526, this paint FF223A13&#10;tile z7 at map zoom 5.5, day #516F1A: today's V1 FFBFDD88, this paint FF5F6E44&#10;tile z7 at map zoom 5.5, day #4F2F17: today's V1 FFEBCBB3, this paint FF756559&#10;tile z7 at map zoom 5.5, day #D1CF8F: today's V1 FF5B5919, this paint FF2E2D0D&#10;tile z7 at map zoom 5.5, day #9BBFC4: today's V1 FF31555A, this paint FF182A2D&#10;tile z7 at map zoom 5.5, day #F3CF91: today's V1 FF654103, this paint FF332102&#10;tile z7 at map zoom 5.5, day #773F14: today's V1 FFEFB78C, this paint FF785C46&#10;tile z7 at map zoom 5.5, day #F2CF91: today's V1 FF654204, this paint FF332102&#10;tile z7 at map zoom 5.5, day #D2CFB1: today's V1 FF454224, this paint FF232112&#10;tile z7 at map zoom 5.5, day #744F10: today's V1 FFE6C182, this paint FF736141&#10;tile z7 at map zoom 5.5, day #771F11: today's V1 FFFFAFA1, this paint FF835750&#10;tile z7 at map zoom 5.5, day #642F0B: today's V1 FFFAC5A1, this paint FF7D6250&#10;tile z7 at map zoom 5.5, day #E5DF8A: today's V1 FF5B5500, this paint FF2D2A00" type="java.lang.AssertionError">java.lang.AssertionError: night topo is not dark, pure V1 at every sampled zoom:
+tile z7 at map zoom 5.5: the drawn layer's paint is RasterPaint(brightnessMin=0.5, brightnessMax=0.0, hueRotate=180.0, saturation=0.0, contrast=0.0), not pure V1
+tile z7 at map zoom 5.5, day #CECFCD: today's V1 FF313230, this paint FF181918
+tile z7 at map zoom 5.5, day #AFAFAC: today's V1 FF52524F, this paint FF292928
+tile z7 at map zoom 5.5, day #2E2F2B: today's V1 FFD2D3CF, this paint FF696A68
+tile z7 at map zoom 5.5, day #1C2F17: today's V1 FFDAEDD5, this paint FF6D766A
+tile z7 at map zoom 5.5, day #1D6F13: today's V1 FFB2FFA8, this paint FF598254
+tile z7 at map zoom 5.5, day #5AAF55: today's V1 FF70C56B, this paint FF386235
+tile z7 at map zoom 5.5, day #9BAF8C: today's V1 FF617552, this paint FF303A29
+tile z7 at map zoom 5.5, day #524F4B: today's V1 FFB4B1AD, this paint FF5A5856
+tile z7 at map zoom 5.5, day #356F2F: today's V1 FFA7E1A1, this paint FF547151
+tile z7 at map zoom 5.5, day #346F2F: today's V1 FFA7E2A2, this paint FF547151
+tile z7 at map zoom 5.5, day #516F4D: today's V1 FF9DBB99, this paint FF4E5D4C
+tile z7 at map zoom 5.5, day #B0AFAD: today's V1 FF52514F, this paint FF292827
+tile z7 at map zoom 5.5, day #526F4F: today's V1 FF9CB999, this paint FF4E5C4C
+tile z7 at map zoom 5.5, day #98CF86: today's V1 FF4E853C, this paint FF27431E
+tile z7 at map zoom 5.5, day #D0CFCF: today's V1 FF302F2F, this paint FF181818
+tile z7 at map zoom 5.5, day #F4EFD1: today's V1 FF262103, this paint FF131001
+tile z7 at map zoom 5.5, day #B5CF93: today's V1 FF4F692D, this paint FF283517
+tile z7 at map zoom 5.5, day #CEDFE1: today's V1 FF192A2C, this paint FF0D1516
+tile z7 at map zoom 5.5, day #2B2F1B: today's V1 FFDCE0CC, this paint FF6E7066
+tile z7 at map zoom 5.5, day #595F60: today's V1 FF9DA3A4, this paint FF4F5252
+tile z7 at map zoom 5.5, day #9A9FA0: today's V1 FF5E6364, this paint FF2F3132
+tile z7 at map zoom 5.5, day #6B8F51: today's V1 FF8DB173, this paint FF47593A
+tile z7 at map zoom 5.5, day #6E6F55: today's V1 FFA1A288, this paint FF515144
+tile z7 at map zoom 5.5, day #FFFFC3: today's V1 FF282800, this paint FF141400
+tile z7 at map zoom 5.5, day #5F9F62: today's V1 FF73B376, this paint FF3A5A3B
+tile z7 at map zoom 5.5, day #84AFB9: today's V1 FF3B6670, this paint FF1E3338
+tile z7 at map zoom 5.5, day #AFDF90: today's V1 FF457526, this paint FF223A13
+tile z7 at map zoom 5.5, day #516F1A: today's V1 FFBFDD88, this paint FF5F6E44
+tile z7 at map zoom 5.5, day #4F2F17: today's V1 FFEBCBB3, this paint FF756559
+tile z7 at map zoom 5.5, day #D1CF8F: today's V1 FF5B5919, this paint FF2E2D0D
+tile z7 at map zoom 5.5, day #9BBFC4: today's V1 FF31555A, this paint FF182A2D
+tile z7 at map zoom 5.5, day #F3CF91: today's V1 FF654103, this paint FF332102
+tile z7 at map zoom 5.5, day #773F14: today's V1 FFEFB78C, this paint FF785C46
+tile z7 at map zoom 5.5, day #F2CF91: today's V1 FF654204, this paint FF332102
+tile z7 at map zoom 5.5, day #D2CFB1: today's V1 FF454224, this paint FF232112
+tile z7 at map zoom 5.5, day #744F10: today's V1 FFE6C182, this paint FF736141
+tile z7 at map zoom 5.5, day #771F11: today's V1 FFFFAFA1, this paint FF835750
+tile z7 at map zoom 5.5, day #642F0B: today's V1 FFFAC5A1, this paint FF7D6250
+tile z7 at map zoom 5.5, day #E5DF8A: today's V1 FF5B5500, this paint FF2D2A00
+	at org.junit.Assert.fail(Assert.java:89)
+	at com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest.at every sampled map zoom the parsed night-topo style shows one layer, pure V1, and a dark map(TopoNightStreetSwitchTest.kt:191)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate(RobolectricTestRunner.java:524)
+	at org.robolectric.internal.SandboxTestRunner.executeInSandbox(SandboxTestRunner.java:494)
+	at org.robolectric.internal.SandboxTestRunner.access$900(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$7.evaluate(SandboxTestRunner.java:442)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.robolectric.internal.SandboxTestRunner.access$600(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$6.evaluate(SandboxTestRunner.java:333)
+	at org.robolectric.internal.SandboxTestRunner$3.evaluate(SandboxTestRunner.java:233)
+	at org.robolectric.internal.SandboxTestRunner$5.lambda$evaluate$0(SandboxTestRunner.java:317)
+	at org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0(Sandbox.java:101)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</failure>
+  </testcase>
+  <testcase name="the model's V1 is nightColorOf over every sampled tile colour" classname="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" time="0.757"/>
+  <testcase name="the Street sample is what the style shows below 9_5 and the topo sample from 9_5" classname="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" time="0.062">
+    <failure message="java.lang.AssertionError: below 9.5 the Street source" type="java.lang.AssertionError">java.lang.AssertionError: below 9.5 the Street source
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest.the Street sample is what the style shows below 9_5 and the topo sample from 9_5(TopoNightStreetSwitchTest.kt:203)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate(RobolectricTestRunner.java:524)
+	at org.robolectric.internal.SandboxTestRunner.executeInSandbox(SandboxTestRunner.java:494)
+	at org.robolectric.internal.SandboxTestRunner.access$900(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$7.evaluate(SandboxTestRunner.java:442)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.robolectric.internal.SandboxTestRunner.access$600(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$6.evaluate(SandboxTestRunner.java:333)
+	at org.robolectric.internal.SandboxTestRunner$3.evaluate(SandboxTestRunner.java:233)
+	at org.robolectric.internal.SandboxTestRunner$5.lambda$evaluate$0(SandboxTestRunner.java:317)
+	at org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0(Sandbox.java:101)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</failure>
+  </testcase>
+  <testcase name="raster tile zoom is one ahead of the map zoom for 256 px tiles and rounds half up" classname="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" time="0.047"/>
+  <testcase name="Street's night style JSON is byte-identical to before" classname="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" time="0.044"/>
+  <testcase name="night topo is the Street layer below 9_5 under the topo layer from 9_5, V1 on both" classname="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" time="0.053">
+    <failure message="java.lang.AssertionError: night topo must carry two raster layers, Street first (drawn first, so under) expected:&lt;2&gt; but was:&lt;1&gt;" type="java.lang.AssertionError">java.lang.AssertionError: night topo must carry two raster layers, Street first (drawn first, so under) expected:&lt;2&gt; but was:&lt;1&gt;
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest.night topo is the Street layer below 9_5 under the topo layer from 9_5, V1 on both(TopoNightStreetSwitchTest.kt:128)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate(RobolectricTestRunner.java:524)
+	at org.robolectric.internal.SandboxTestRunner.executeInSandbox(SandboxTestRunner.java:494)
+	at org.robolectric.internal.SandboxTestRunner.access$900(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$7.evaluate(SandboxTestRunner.java:442)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.robolectric.internal.SandboxTestRunner.access$600(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$6.evaluate(SandboxTestRunner.java:333)
+	at org.robolectric.internal.SandboxTestRunner$3.evaluate(SandboxTestRunner.java:233)
+	at org.robolectric.internal.SandboxTestRunner$5.lambda$evaluate$0(SandboxTestRunner.java:317)
+	at org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0(Sandbox.java:101)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</failure>
+  </testcase>
+  <testcase name="Satellite's night style JSON is byte-identical to its day JSON" classname="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" time="0.064"/>
+  <testcase name="the caption at topo night credits both sources" classname="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" time="0.055">
+    <failure message="java.lang.AssertionError: expected:&lt;[© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA), © OpenStreetMap contributors]&gt; but was:&lt;[© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA)]&gt;" type="java.lang.AssertionError">java.lang.AssertionError: expected:&lt;[© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA), © OpenStreetMap contributors]&gt; but was:&lt;[© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA)]&gt;
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest.the caption at topo night credits both sources(TopoNightStreetSwitchTest.kt:214)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate(RobolectricTestRunner.java:524)
+	at org.robolectric.internal.SandboxTestRunner.executeInSandbox(SandboxTestRunner.java:494)
+	at org.robolectric.internal.SandboxTestRunner.access$900(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$7.evaluate(SandboxTestRunner.java:442)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.robolectric.internal.SandboxTestRunner.access$600(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$6.evaluate(SandboxTestRunner.java:333)
+	at org.robolectric.internal.SandboxTestRunner$3.evaluate(SandboxTestRunner.java:233)
+	at org.robolectric.internal.SandboxTestRunner$5.lambda$evaluate$0(SandboxTestRunner.java:317)
+	at org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0(Sandbox.java:101)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</failure>
+  </testcase>
+  <testcase name="day style JSON is byte-identical to before for every basemap" classname="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" time="0.041"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
