@@ -8794,3 +8794,41 @@ The owner picks from the images. Nothing merges from topo-night as built.
 **Change:** the contact constant replaces CONTACT_PENDING with `+https://zynergy-labs.com; support@zynergy-labs.com`. The planner added the https:// scheme, the form the zynergy-site repo publishes 32 times and the form OSM's policy example uses.
 **The full User-Agent:** `Forager/<versionName> (Android <release>; <applicationId>; +https://zynergy-labs.com; support@zynergy-labs.com)`.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** device-note
+**ID:** 2026-09-28-327
+**Timestamp:** 2026-09-30T22:37:48Z
+**Covers:** installing -310's Street-switch build (-324) on the S22 for the owner's check
+**The build:** 1.0.2190+g811508db, from forager-wt/topo-night. APK sha256 12cbe4a33f8d5367…. The coder built it after a full suite of 3211/0/0/24. The planner read the worktree's XML: 394 files and 3211/0/0/24, written at 15:36.
+**The install:** `adb install -r --user 0` at 2026-09-30 15:37:37. User 0's ceDataInode stayed 2259049. databases/forager.db's sha256 is e1188b00…, unchanged.
+**Not done:** no launch, input or screenshot by the planner.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-328
+**Timestamp:** 2026-09-30T22:43:42Z
+**Continues:** 2026-09-28-310, after -324 (topo-night b1fc980d, installed as 1.0.2190+g811508db, -327)
+**The owner, verbatim:** "Add the cross fade to the topo switch. I honestly considered that myself".
+**Change:**
+- At topo night, the Street layer's maxzoom becomes 9.6 at opacity 1, and the topo layer's minzoom 9.4, with raster-opacity interpolated from 0 at 9.4 to 1 at 9.6.
+- Both keep pure V1. By the coder's reading of 13.5.0, opacity applies after the brightness mix, so there is no grey crossing.
+- Accepted costs: both sources load tiles across 9.4-9.6, and the two sets of roads show through each other in that range.
+**Notes:** Written by the planner by hand. It is queued behind -325 for Gradle.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-329
+**Timestamp:** 2026-09-30T22:44:52Z
+**Continues:** 2026-09-28-310, after -328
+**Why:** the coder measured co-registered samples with V1 on both layers. Over -328's 9.4-9.6 range, topo still shows OpenTopoMap tile level 10 until 9.5, so the fade lightens to a median of 0.353 just under 9.5 (the limit is 0.345), then snaps dark at tile level 11.
+**The owner's reasons,** recorded for the KDoc, verbatim: "But it does look a lot better than switching to day mode suddenly. We have two tradeoffs and only one can break confidence in the app."
+**Ruling, by the planner, within the owner's rule of never showing a light map:** the fade is **9.5-9.7**.
+- Street maxzoom 9.7 at opacity 1; topo minzoom 9.5, with opacity from 0 at 9.5 to 1 at 9.7.
+- Only tile level 11 ever fades in. The modelled blend has a mean of 0.22-0.27, and the dark limit stays with no allowance.
+- -328's 9.4-9.6 is superseded.
+**Notes:** Written by the planner by hand.
