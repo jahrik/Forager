@@ -107,6 +107,16 @@ fun MarkerFanOutHost(state: MarkerFanOutState) {
  * deliberately not an always-composed `BackHandler(enabled = ...)`: that would sit where it was first
  * composed, below the handlers composed since, which is the order the paragraph above exists to avoid.
  * `AvailabilityScreenFanBackDrawerTest` asserts it against the real screen and dispatcher.
+ *
+ * **And the same for fullscreen, the add-action menu and the pin pickers ([backEnabled] false while any is up):** a
+ * "Log a find" or trip pick, and the search dropdown's "Set on map". The owner, dispatch 2026-09-28-298: "apply the
+ * change to the other Back cases". Back closes that thing and the fan stays open; the next Back folds the fan. The
+ * gate is computed where each one's state lives, `AvailabilityCompactScaffold` for the drawer and fullscreen,
+ * `CompactMapTab` for the menu and the pickers. **Not covered, by the owner's ruling ("Option A"): the search
+ * dropdown and the taxon suggestions list**, which keep the Back order they had. The bubble, the Layers sheet and
+ * the navigation-exit dialog are unchanged: a bubble still closes before the fan, the drawer before both, the
+ * sheet and the dialog in their own windows. `AvailabilityScreenFanBackOthersTest` asserts each covered one against
+ * the real screen and dispatcher.
  */
 @Composable
 fun MarkerFanOutBackHandler(state: MarkerFanOutState, bubbleOpen: Boolean = false, backEnabled: Boolean = true) {
