@@ -778,8 +778,9 @@ fun SightingsMap(
     // loaded style's own layers — no setStyle, so nothing is rebuilt. Keyed on loadedStyle as well,
     // so a freshly loaded style gets the current state; initializeOverlayLayers has already built
     // each layer with it, so for that case this re-sets the same values.
-    // A fanned stack folds when its style is replaced, or when what the map draws changes a member (a record gone or moved, its
-    // layer switched off); a change that leaves its members alone keeps it (intent 2026-09-28-274, "Fold only if members change").
+    // A fanned stack folds only when what the map draws changes a member (a record gone or moved, its layer switched off); a change
+    // that leaves its members alone keeps it (intent 2026-09-28-274, "Fold only if members change"), and so does a replaced style
+    // (dispatch 2026-09-28-279): the effects below draw the fan's layers, frame, circle colour and fade again on the new one.
     // Not when a bubble opens (focusedObservationId, focusedFeature): tapping a fanned marker keeps the fan up.
     LaunchedEffect(loadedStyle, sightings, plannedTrips, waypoints, findMarkers, photoMarkers, drawnLayersState, journalHighlights) {
         fanReopen.onContentEffect(loadedStyle != null, loadedStyle)
