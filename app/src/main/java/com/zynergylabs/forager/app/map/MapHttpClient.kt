@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.map
 
+import com.zynergylabs.forager.app.net.AppUserAgent
 import okhttp3.Dispatcher
 import okhttp3.OkHttpClient
 import org.maplibre.android.module.http.HttpRequestUtil
@@ -31,6 +32,6 @@ internal fun mapHttpClient(userAgent: String): OkHttpClient =
  * `HttpRequestImpl`, whose static initialiser reads `MapLibre.getApplicationContext()`. Safe to
  * call again; the client is read per request, so a call before the first request is enough.
  */
-internal fun installMapHttpClient(userAgent: String = MapUserAgent.forThisApp()) {
+internal fun installMapHttpClient(userAgent: String = AppUserAgent.forThisApp()) {
     HttpRequestUtil.setOkHttpClient(mapHttpClient(userAgent))
 }
