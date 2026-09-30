@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.ui.map
 
 import androidx.compose.ui.graphics.toArgb
+import com.zynergylabs.forager.app.ui.map.fanout.FAN_TOUCH_DP
 import com.zynergylabs.forager.app.ui.map.layers.LayerPaint
 import com.zynergylabs.forager.app.ui.map.layers.LayerState
 import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
@@ -89,14 +90,22 @@ class FanClarityTest {
         }
     }
 
+    // Dispatch 2026-09-28-284. The owner, of an open 9-member fan: "The circles are helpful, but I definitely overshot
+    // their size. They can crowd each other as a result." Then: "Let's try 36dp for size". Only the circle shrinks; the
+    // touch area (FAN_TOUCH_DP) and the spacing built on it stay 48 dp.
     @Test
-    fun `the circle is 48 dp across, so 24 dp in radius, at 80 percent, in the chrome colour it is given`() {
+    fun `the circle is 36 dp across, so 18 dp in radius, at 80 percent, in the chrome colour it is given`() {
         val day = fanCircleStyle(SurfaceContainerLight.toArgb())
         val night = fanCircleStyle(SurfaceContainerDark.toArgb())
-        assertEquals(24f, day.radiusDp, 0f)
+        assertEquals("the circle's radius is half of its 36 dp diameter", 18f, day.radiusDp, 0f)
         assertEquals(0.8f, day.opacity, 0f)
         assertEquals(SurfaceContainerLight.toArgb(), day.colour)
         assertEquals(SurfaceContainerDark.toArgb(), night.colour)
-        assertEquals(48f, FAN_CIRCLE_DIAMETER_DP, 0f)
+        assertEquals("the circle's diameter is 36 dp (the owner: \"Let's try 36dp for size\")", 36f, FAN_CIRCLE_DIAMETER_DP, 0f)
+    }
+
+    @Test
+    fun `the touch area stays 48 dp, so the circle is smaller than the touch square it sits in`() {
+        assertEquals("the touch area, and the spacing built on it, are not the circle's size", 48f, FAN_TOUCH_DP, 0f)
     }
 }
