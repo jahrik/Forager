@@ -46,22 +46,34 @@ class BasemapNightStyleTest {
      * exactly `raster-brightness-min 1`, `raster-brightness-max 0` and `raster-hue-rotate 180`, and
      * nothing else. Replaces the earlier desaturate-and-contrast block, whose `raster-saturation` and
      * `raster-contrast` are asserted absent here on purpose, as is the old "no brightness at all".
+     * Street carries it at every zoom; Topographical carries it from map zoom 9.5 up (next test).
      */
     @Test
-    fun `night mode on Topographical and Street carries exactly the three V1 properties`() {
-        for (basemap in listOf(Basemap.OPEN_TOPO_MAP, Basemap.OSM_STANDARD)) {
-            val paint = rasterLayer(basemap, night = true)["paint"]
-                ?: error("${basemap.name} has no raster paint in night mode")
-            val obj = paint.jsonObject
+    fun `night mode on Street carries exactly the three V1 properties`() {
+        val paint = rasterLayer(Basemap.OSM_STANDARD, night = true)["paint"]
+            ?: error("OSM_STANDARD has no raster paint in night mode")
+        val obj = paint.jsonObject
 
-            assertEquals(
-                "${basemap.name}: the night paint is exactly the V1 properties",
-                setOf("raster-brightness-min", "raster-brightness-max", "raster-hue-rotate"),
-                obj.keys,
-            )
-            assertEquals("${basemap.name}: brightness-min", 1.0, obj.getValue("raster-brightness-min").jsonPrimitive.double, 0.0)
-            assertEquals("${basemap.name}: brightness-max", 0.0, obj.getValue("raster-brightness-max").jsonPrimitive.double, 0.0)
-            assertEquals("${basemap.name}: hue-rotate", 180.0, obj.getValue("raster-hue-rotate").jsonPrimitive.double, 0.0)
+        assertEquals("the night paint is exactly the V1 properties", setOf("raster-brightness-min", "raster-brightness-max", "raster-hue-rotate"), obj.keys)
+        assertEquals("brightness-min", 1.0, obj.getValue("raster-brightness-min").jsonPrimitive.double, 0.0)
+        assertEquals("brightness-max", 0.0, obj.getValue("raster-brightness-max").jsonPrimitive.double, 0.0)
+        assertEquals("hue-rotate", 180.0, obj.getValue("raster-hue-rotate").jsonPrimitive.double, 0.0)
+    }
+
+    /**
+     * Topographical's night paint is the same three properties, and at and above map zoom 9.5 (tile
+     * zoom 11, where OpenTopoMap's tiles turn pale) their values are V1's exactly: read through the
+     * model at several zooms, since `raster-brightness-min` is a zoom expression there. Below 9.5 it is
+     * deliberately not V1 (`TopoNightZoomTest`).
+     */
+    @Test
+    fun `night mode on Topographical carries the three V1 properties from map zoom 9_5 up`() {
+        val paint = rasterLayer(Basemap.OPEN_TOPO_MAP, night = true)["paint"]?.jsonObject
+            ?: error("OPEN_TOPO_MAP has no raster paint in night mode")
+
+        assertEquals(setOf("raster-brightness-min", "raster-brightness-max", "raster-hue-rotate"), paint.keys)
+        for (zoom in listOf(9.5, 10.0, 12.0, 15.0, 17.0, 22.0)) {
+            assertEquals("map zoom $zoom", RasterPaint(brightnessMin = 1.0, brightnessMax = 0.0, hueRotate = 180.0), rasterPaintAt(paint, zoom))
         }
     }
 
