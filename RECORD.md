@@ -7359,3 +7359,26 @@ S22-B's launch prompt (-53) already makes the dispatch and its amendments govern
   - there is dead KDoc in about 14 files.
 **Open for the owner:** whether to merge now, and the landscape-tablet questions the coder flagged.
 **Notes:** Written by the planner by hand. The planner has not run the suite itself.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-259
+**Timestamp:** 2026-09-30T01:16:22Z
+**Closes:** 2026-09-28-245 (tablets as a big phone), with -246
+**Outcome:** completed
+**Observed:**
+- tablet-as-phone (bcecf8c7) is merged into journal-redesign, no-ff, at the owner's word "Merge now".
+- The coder's full suite was 3082 / 0 / 0 / 24 on code identical to bcecf8c7 (-258). The planner has not re-run it.
+- **The owner's rulings on the coder's landscape-tablet flags:**
+  - the Journal hides the search header on a landscape tablet, as on a phone: "Keep it";
+  - Seasonal's 640 dp cap beside the rail: "Keep the cap".
+  
+  Both stand as built.
+- **Device-only:** the S22 recheck of A1 item 1 at 90 and 270, exiting by tap and by Back, is S22-B's. The owner may smoke-test on a tablet.
+- **Left as flagged, not done:**
+  - `onReopenTaxonSuggestions` is unread;
+  - the cluster's `?: bar` fallback is dead;
+  - there is stale KDoc in about 14 files.
+**Next:** dispatch -252 (preserved -57) launches from this merge.
+**Notes:** Written by the planner by hand.
