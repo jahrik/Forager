@@ -7845,3 +7845,20 @@ All of them go to S22-B's relaunch.
 - The map-return coder, on the new branch map-return-delete, captures with temporary logging and fixes it tests first. It stops for the owner if the cause is GPS following, which would need a new rule.
 - S22-B then restores.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-281
+**Timestamp:** 2026-09-30T14:52:59Z
+**Dispatch:** 2026-09-28-227 (S22-B relaunch, -277) and -280 (map-return-delete)
+**Reason:** S22-B stopped for the owner at the data group. The reinstall dropped the backup folder grant, and "Choose folder" opens Android's picker, which is a -254 stop (device-part-3 c3e631ca). The phone was otherwise idle.
+**The owner's answer:** "Give the map-return coder the phone now".
+**Changes:**
+- **S22-B was told to stop driving the S22 and wait.** Its logcat may keep reading. Its folder-picker stop and its restore both wait.
+- **-280's coder was told the phone is its own,** with a focus read and a capture before its first input, and a stop on any system window. It says "phone free" when it's done.
+- **The Delete tap time was sent to -280's coder:** 14:15:49Z to 14:16:01Z. GPS following was off at the delete, by S22-B's record.
+**Also from S22-B, not yet decided:**
+- **Item 8 case h:** not run. It needs the owner's word to delete i6C or i6D.
+- **A new observation, not a gate:** after a cold relaunch, the search panel's expanded contents stayed drawn over the Journal (b2-a4-32-r0-cold*.png). It is a candidate for the post-merge list.
+**Notes:** Written by the planner by hand.
