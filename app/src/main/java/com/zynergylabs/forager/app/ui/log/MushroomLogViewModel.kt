@@ -226,6 +226,14 @@ class MushroomLogViewModel(
      * redesign J4): `viewModelScope` is cancelled by then. See [PendingDeleteCommitScope].
      */
     private val pendingDeleteCommitScope: CoroutineScope = PendingDeleteCommitScope,
+    /**
+     * Told, with the find's id, after a find's delete has finished and succeeded (dispatch
+     * 2026-09-28-291): the Maps tab reads its records once per showing, so a find deleted after that
+     * read would be drawn again as soon as its Undo window ended. A plain function, the shape of
+     * [currentFix]: `MainActivity` wires it to `AvailabilityViewModel.onFindDeleted`. Not called when the
+     * delete fails, since the find is still saved.
+     */
+    private val onFindDeleted: (String) -> Unit = {},
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MushroomLogUiState())
@@ -739,7 +747,10 @@ class MushroomLogViewModel(
         viewModelScope.launch {
             editingEntryMutex.withLock {
                 deleteEntry(entry.id).fold(
-                    onSuccess = { _uiState.update { it.copy(saveErrorMessage = null) } },
+                    onSuccess = {
+                        _uiState.update { it.copy(saveErrorMessage = null) }
+                        onFindDeleted(entry.id)
+                    },
                     onFailure = { error ->
                         Log.w(TAG, "Couldn't delete entry '${entry.id}'.", error)
                         _uiState.update { state ->
