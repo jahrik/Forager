@@ -8570,3 +8570,15 @@ Both go to the next phone check.
 - Rejected: B, no inversion at low zoom. It looks like a dimmed day map and needs a hard step. Its figures stay in the report's table.
 **The owner judges** A from S22 screenshots before any merge, and can still choose B.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-314
+**Timestamp:** 2026-09-30T21:13:39Z
+**Continues:** 2026-09-28-310, after -313
+**The owner's ruling, verbatim:** "Option A. No dimming. That's tacky and not a true night mode option".
+**Change:**
+- -313's A is confirmed by the owner: the V1 inversion is kept below map zoom about 9.5, with its output range scaled so that the ground matches the zoomed-in band.
+- B, a dimmed day map with no inversion, is rejected by the owner. It stays in the report only as the rejected alternative.
+**Notes:** Written by the planner by hand.
