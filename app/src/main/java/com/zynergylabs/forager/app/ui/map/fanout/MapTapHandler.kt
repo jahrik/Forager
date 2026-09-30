@@ -64,6 +64,8 @@ class MapTapHandler(
     private val sinks: MapTapSinks,
     private val space: FanSpace = FanSpace.Unbounded,
     private val bubbleOpen: () -> Boolean = { false },
+    /** Whether a layer's switch is on. A record on a layer switched off is not drawn, so it is not a fan member. */
+    private val layerDrawn: (String) -> Boolean = { true },
 ) {
     fun onMapTap(at: LatLng, xPx: Float, yPx: Float) {
         val density = probe.density
@@ -112,6 +114,9 @@ class MapTapHandler(
 
     /** What the map draws changed (its records, its layer switches, its style): the fan folds. */
     fun onContentChanged() = fan.fold()
+
+    /** The map's style was replaced: the copies belong to the old one, so the fan folds. */
+    fun onStyleChanged() = fan.fold()
 
     private fun FanRect.scaled(by: Float) = FanRect(left * by, top * by, right * by, bottom * by)
 
