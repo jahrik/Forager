@@ -79,6 +79,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpOffset
@@ -118,6 +119,7 @@ import com.zynergylabs.forager.app.ui.map.layers.mapLegendFor
 import com.zynergylabs.forager.app.ui.map.MapOverlayContent
 import com.zynergylabs.forager.app.ui.map.MapBubbleLayer
 import com.zynergylabs.forager.app.ui.map.MapCameraMemory
+import com.zynergylabs.forager.app.ui.map.MapReturnMemory
 import com.zynergylabs.forager.app.ui.map.MapBubbleTarget
 import com.zynergylabs.forager.app.ui.map.MapFeatureTap
 import com.zynergylabs.forager.app.ui.map.MapRecordSources
@@ -209,6 +211,12 @@ internal fun CompactMapTab(
      * The default keeps any other caller self-contained.
      */
     cameraMemory: MapCameraMemory = remember { MapCameraMemory() },
+    /**
+     * Dispatch 2026-09-29-57, item 8 (amendment -262, "Remember and reopen"): what "Open in Journal" leaves for the Maps
+     * tab that comes back after Back from that find, held by the caller so it outlives this tab, as [cameraMemory] does.
+     * See [MapReturnMemory]. The default keeps any other caller self-contained.
+     */
+    returnMemory: MapReturnMemory = remember { MapReturnMemory() },
     mapMode: MapMode,
     onMapModeSelected: (MapMode) -> Unit,
     onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
@@ -256,8 +264,14 @@ internal fun CompactMapTab(
      * [compactMainScaffold]'s `mapControlsPadding` (the rail's measured width or, in fullscreen,
      * the navigation-bar inset on the port side; the cut-out inset on the sides). Applied to each
      * control's own modifier, the way portrait keeps controls clear of the bottom bar by its
-     * measured height. Not applied to the tapped-sighting bubble or the centre-pin picker, which
-     * are positioned against the map itself. Zero by default, so portrait is unchanged.
+     * measured height. Not applied to the centre-pin picker, which is positioned against the map
+     * itself. **The tapped bubble is positioned against the map itself too, except that its clamp
+     * box now stops short of the rail and of the L** (dispatch 2026-09-29-57, amendment -262, item 3,
+     * the owner's "Push the card clear"): the left and right values here, plus the L's own width on
+     * its side, narrow where the card may sit, the tip still landing on its glyph. That reverses the
+     * earlier "positioned against the map itself" for those two only, because on a real S22 at 90 a
+     * card opened under the L and past the rail, its close X under the rail, where no touch could
+     * reach it. Zero by default, so portrait is unchanged.
      */
     controlsPadding: PaddingValues = PaddingValues(0.dp),
     onLocateMe: () -> Unit,
@@ -363,7 +377,10 @@ internal fun CompactMapTab(
     var pendingTripLocation by remember { mutableStateOf<LatLng?>(null) }
     var pendingWaypointLocation by remember { mutableStateOf<LatLng?>(null) }
     // M1 (planner's ruling: one bubble at a time): the one tapped thing, a sighting or any glyph.
-    var tapped by remember { mutableStateOf<TappedMapThing?>(null) }
+    // Item 8: a bubble waiting from "Open in Journal" comes back open, once, when this tab is created again by Back from that find.
+    var tapped by remember { mutableStateOf<TappedMapThing?>(returnMemory.takeBubble(mapLayers.records.findMarkers)) }
+    // A fan the map did not use before this tab left composition is not kept for a later map.
+    DisposableEffect(returnMemory) { onDispose { returnMemory.clearRestore() } }
     val onFeatureTap: (MapFeatureTap) -> Unit = remember { { tap -> tappedThingOf(tap)?.let { tapped = it } } }
     // See MapOverlayContent.resumeTrackingRequestId's own doc comment — incremented alongside the
     // existing onLocateMe() call below, not instead of it: that call still drives the compass
@@ -529,6 +546,7 @@ internal fun CompactMapTab(
                     .onGloballyPositioned { coordinates ->
                         mapContentBoxHeightPx = coordinates.size.height.toFloat()
                         mapContentBoxTopInRootPx = coordinates.positionInRoot().y
+                        cluster.mapContentBoxLeftInRootPx = coordinates.positionInRoot().x
                     },
             ) {
                 mapSlot(
@@ -552,7 +570,19 @@ internal fun CompactMapTab(
                         // J8-2: the shown entries' kept records, highlighted under their own glyphs.
                         journalHighlights = mapLayers.journalHighlights,
                     ),
-                    renderMode.copy(onFeatureTap = onFeatureTap, cameraMemory = cameraMemory),
+                    renderMode.copy(
+                        onFeatureTap = onFeatureTap,
+                        cameraMemory = cameraMemory,
+                        returnMemory = returnMemory,
+                        // Item 1 (dispatch 2026-09-29-57, amendment -262, "Move the 'i'"): the landscape L's measured bounds, in the map's own
+                        // pixels, for MapLibre's attribution button to keep clear of. The L keeps its bottom limit at the nav inset; the
+                        // button moves (SightingsMap, attributionEndInsetClearOf). Only the landscape L: portrait is unchanged.
+                        attributionKeepClear = if (landscapeCluster) {
+                            cluster.clusterBoundsInRoot?.translate(-cluster.mapContentBoxLeftInRootPx, -cluster.mapContentBoxTopInRootPx)
+                        } else {
+                            null
+                        },
+                    ),
                     focusOverride,
                     {},
                     // Tapping the map restores chrome while fullscreen — decision #5 — AND dismisses
@@ -595,10 +625,30 @@ internal fun CompactMapTab(
                 //
                 // Back closes the bubble (M1), except while something above the map owns Back: the
                 // Tools drawer (intent 2026-09-28-28's precedence), the add menu or a picker.
+                // The bubble's clamp box stops short of the rail (the measured width, in controlsPadding) and, on its
+                // side, of the L: the value already worked out for the search notice above, 8 + the L's measured width + 8,
+                // and inside the rail's own padding because the L is (MapIconCluster applies controlsPadding first).
+                // Only in the landscape L; portrait's cluster is a column at the edge and keeps the old clamp.
+                val bubbleLayoutDirection = LocalLayoutDirection.current
+                val bubbleClusterInset = if (landscapeCluster) noticeInsetDp else 0.dp
+                val bubbleInsetLeft = controlsPadding.calculateLeftPadding(bubbleLayoutDirection) + if (cluster.isOnLeftSide) bubbleClusterInset else 0.dp
+                val bubbleInsetRight = controlsPadding.calculateRightPadding(bubbleLayoutDirection) + if (cluster.isOnLeftSide) 0.dp else bubbleClusterInset
                 MapBubbleLayer(
                     tapped = tapped,
                     onDismiss = { tapped = null },
-                    sources = bubbleSources,
+                    // Item 8: "Open in Journal" remembers where the find was opened from (its id, the fan open then, the bubble's
+                    // anchor) before the screen switches to the Journal. `tapped` is read here, in composition, so the closure holds
+                    // the bubble that is showing, not the null the dismissal inside the layer leaves behind.
+                    sources = bubbleSources.copy(
+                        onOpenFind = bubbleSources.onOpenFind?.let { open ->
+                            val shown = tapped
+                            val remembering: (String) -> Unit = { id ->
+                                returnMemory.remember(id, shown?.anchorPx ?: Offset.Zero, shown?.bearingDeg ?: 0f)
+                                open(id)
+                            }
+                            remembering
+                        },
+                    ),
                     forecast = renderMode.forecast,
                     onViewSightingOnINaturalist = { sighting ->
                         launchINaturalistObservation(context, sighting.observationId)
@@ -606,6 +656,8 @@ internal fun CompactMapTab(
                     },
                     minY = topInset + compassStripClearance,
                     backEnabled = !isDrawerOpen && pendingAction == null && !pickingSearchLocation && !showActionMenu,
+                    insetLeft = bubbleInsetLeft,
+                    insetRight = bubbleInsetRight,
                 )
                 // The icon cluster (the bar and the record | return pill, their handles, drag, snap and clamps):
                 // MapIconCluster, shared with the tablet's map (J6c). Composed *before* CompassElevationStrip,

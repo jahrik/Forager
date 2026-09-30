@@ -321,6 +321,7 @@ import com.zynergylabs.forager.app.ui.map.mapIconBarRecordAccent
 import com.zynergylabs.forager.app.ui.map.mapIconBarRowAnchorOffset
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
 import com.zynergylabs.forager.app.ui.map.MapCameraMemory
+import com.zynergylabs.forager.app.ui.map.MapReturnMemory
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.theme.Bark
 import com.zynergylabs.forager.app.ui.theme.Cream
@@ -834,6 +835,9 @@ fun AvailabilityScreen(
     // camera the user left on the Maps tab, held here for the same reason, since the map and its camera
     // leave composition with the tab. See MapCameraMemory. Session only.
     val mapCameraMemory = remember { MapCameraMemory() }
+    // Dispatch 2026-09-29-57, item 8 (amendments -256 and -262): the return request "Open in Journal" leaves, held here for the
+    // same reason as the camera. Session only, like the camera: a recreation forgets it and Back does what it did before.
+    val mapReturnMemory = remember { MapReturnMemory() }
 
     // Local remembered state, alongside selectedTab and for the same reason: which basemap is under
     // the overlays changes nothing the ViewModel owns. It triggers no fetch, filters no result, and
@@ -1191,6 +1195,25 @@ fun AvailabilityScreen(
             }
         }
     }
+    // Item 8: leaving the find that was opened from the Maps tab with Back, its own arrow, or a delete returns to the Maps tab,
+    // where the bubble (and the fan) reopen; any other way of leaving it (another bottom tab, an edit, another record) forgets
+    // the origin, and Back does what it did before. The origin is forgotten on a tab change here; the edit and the other
+    // record are forgotten where they happen (the callbacks below and `onOpenEntry`).
+    LaunchedEffect(compactTab) {
+        if (compactTab != CompactTab.JOURNAL) mapReturnMemory.forget()
+    }
+    val onFindReportClosed: (String?) -> Unit = { closing ->
+        if (closing != null && mapReturnMemory.onFindClosed(closing)) {
+            compactTab = CompactTab.MAP
+            selectedTab = ResultsTab.MAP
+        }
+    }
+    val onFindDeleted: (String) -> Unit = { deleted ->
+        if (mapReturnMemory.onFindDeleted(deleted)) {
+            compactTab = CompactTab.MAP
+            selectedTab = ResultsTab.MAP
+        }
+    }
     // Declared after leaveLogEntryEditingOfferingDiscard, which its onOpenFind calls (F3).
     // M1 (B3, B4): what the Maps tab's glyph bubbles look records up in, and the J5c sheet's inputs,
     // all already in hand here. A find's "Open in Journal" opens the find in its report over whatever
@@ -1237,6 +1260,7 @@ fun AvailabilityScreen(
         // wrapper, as M1's find route does (F3), since it would otherwise show over the entry.
         onOpenEntry = { entryId ->
             if (logUiState.editingEntry != null) leaveLogEntryEditingOfferingDiscard()
+            mapReturnMemory.forget()
             pendingJournalEntryId = entryId
             pendingJournalDestination = PendingJournalDestination.VIEW_ENTRY
             compactTab = CompactTab.JOURNAL
@@ -1288,6 +1312,10 @@ fun AvailabilityScreen(
             mapSlot = mapSlot,
             mapIconClusterPosition = mapIconClusterPosition,
             mapCameraMemory = mapCameraMemory,
+            mapReturnMemory = mapReturnMemory,
+            onFindReportClosed = onFindReportClosed,
+            onFindDeleted = onFindDeleted,
+            onFindEditStarted = mapReturnMemory::forget,
             mapRenderMode = mapRenderMode,
             mapLayers = mapLayersControls,
             mapMode = { mapMode },
