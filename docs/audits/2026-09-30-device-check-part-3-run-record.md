@@ -336,3 +336,36 @@ No track passes under a photo glyph on this phone's data (the owner's one real t
 1. `adb shell content delete --uri content://media/external/images/media/1001239305` (removing my own Save-to-Gallery copy, path `/sdcard/Pictures/Forager/forager-photo-20260929-210521.jpg`) was refused by the permission system as an "Unverifiable Deletion Target".
 2. The next command, a read-only `pgrep -af "^adb logcat"` plus `ls -la` of my own log, was refused as "Irreversible Local Destruction".
 Per the dispatch, both refusals are a stop. **Not done: the data group (items 39-52), F5's items 1-8, A6, and the restore to `a-copy/` with its read-back.** The phone is **not** restored. **Leftovers on the phone** (all mine, to be cleared by the restore): finds "DEVICE CHECK 2026-09-30 6a" (now with 3 photos and a title unchanged), "6b", "6d" (6c deleted); several drafts (Drafts count 6 to 7); a new-entry draft "31n"/"31m"; the Gallery copy above; the app is running on the Journal in portrait; `user_rotation` 0 and `accelerometer_rotation` 0 (the start values); night mode yes. **My own background `adb logcat` writing `b-x-c36.log` may still be running** (I could not check or stop it).
+
+---
+
+# S22-B relaunch (record 2026-09-28-277, prompt `prompts/preserved/2026-09-30-05.md`): finish the S22, then restore it
+
+**Model:** `claude-sonnet-5-5`, read from the session's system prompt only.
+
+**Governing files read in full** at `origin/journal-redesign` (`2efc2163`): `prompts/preserved/2026-09-30-05.md`, the dispatch `-29-51.md` with amendments -231, -232, -241, -243, -253, -254, -264, `CLAUDE.md`, the run record's S22-B section at `32534b45`, RECORD entries -266, -276 and -278, and the three completion reports (`fan-centring`, `fan-clarity`, `map-return-fixes`). Worktree `/home/zynergy-labs/Zynergy/forager-wt/device-part-3`, branch `device-part-3` at `32534b45`, clean at start. Merge is not authorised.
+
+## Premises checked before acting (the prompt's list of phone changes was verified, not trusted)
+- `3029c4fd`, `04e652c5` and `4f16e3b1` are each an ancestor of `origin/journal-redesign` (`2efc2163`) (`git merge-base --is-ancestor`, true for all three).
+- Phone before anything (read from the phone, 06:32 PDT 2026-09-30): versionName `1.0.2001+gd3d68ef2`, versionCode 2001, `firstInstallTime` **2026-09-30 01:07:14** (post-reinstall; this is the value the new install is compared against), `lastUpdateTime` 02:44:29, signature `d59f30b8` (same as the 1971 install).
+- **The prompt's "the notification permission may no longer be granted" is false on this phone:** user 0 has `POST_NOTIFICATIONS`, `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`, `CAMERA` and `READ_MEDIA_VISUAL_USER_SELECTED` all `granted=true` (`USER_SET`). -264's "recording raises no prompt" holds. Any prompt is still a stop.
+- `user_rotation` **0**, `accelerometer_rotation` **0**, `font_scale` 1.0, `auto_time` 1, `stay_on_while_plugged_in` 15, `wm size` 1080x2316, density 450, `cmd uimode night` **yes**, Doze ACTIVE, crash buffer 0 lines. The app was running (pid 25040) and Forager was the focused window.
+- App data on the phone now: `forager.db` (+wal, shm), `fungi_index.db`, six DataStore files (`distance_unit_preferences` is still there, and `a-copy/` lacks it), `mbgl-offline.db`, **six** photo files (`a-copy/` has three), the three `workdb` files, two shared_prefs. The Save-to-Gallery file `/sdcard/Pictures/Forager/forager-photo-20260929-210521.jpg` (1,820,843 bytes) is still there.
+- Machine gates before the build: 7421 MB available, 7042 MB free on `/`, no Gradle wrapper or worker. `adb logcat` PID 1207282 (`R5CT321008R`, another session's) is running and is left alone.
+
+## Pre-registration (written before the build, the copy, or any device step)
+**Order (prompt):** build; install; new verified copy `b2-copy/`; item 1 (fan-centring first, then fan-clarity, item 6 at 26 dp, map-return, item 8 d/h/i); A4/A5 remainder; the data group, F5, -187's flags, then A6; the restore to `a-copy/`.
+
+**Build.** A debug APK at `2efc2163`, versionName `1.0.<code>+g2efc2163` with no `.dirty`. `install -r` over 1.0.2001 keeps the signature (`d59f30b8`) and `firstInstallTime` 2026-09-30 01:07:14. No migration at install (schema stays 17).
+
+**Copy before install (a decision, stated up front).** The prompt lists install (step 2) before the copy (step 3). I take `b2-copy/` first, with the app force-stopped, then install. The copy is the reference for anything the install could touch, so taking it first is the stricter reading; nothing in the prompt needs the copy to come from the new build. If the copy fails, I stop.
+
+**Predictions (fan-centring).** The unit of `icon-offset` is dp, so each glyph's body sits in the centre of its circle, and a wrong unit would show as about a 3x offset (density 450 / 160 = 2.8). Kinds on the phone: find (yes: "DEVICE CHECK find ..." and 6a/6b/6d), waypoint (three in `waypoints`, if they sit in a stack), photo (yes). Planned trip: `planned_trips` is 0, so **not runnable** without an owner-authorised planned trip. The data-driven array `iconOffset` may not parse natively, which would show as every glyph unshifted (body below centre by 13-14 dp). The legs meet the circle centres, and the originals do not move on the fold.
+
+**Predictions (fan-clarity).** Circle by day and night: the chrome colour at 80%, 48 dp, under the icon. The fade to 80% while open, restored exactly on fold, including after a Layers change with the fan open. The theme change recolours the circle. The fade ends when the fold starts. This one rests on `isOpen`, is read not run, and is the likeliest to be hard to see in a still capture (I use a burst).
+
+**Predictions (item 6 at 26 dp).** The owner's 15 x 35 dp pair: no fan. The 31 dp pair: no fan (supersedes the 32 dp pass). A pair at about 25 dp or less: fans. The owner's ~30 dp screenshot pair: no fan. These need real finds that close; my own "DEVICE CHECK 2026-09-30" finds are created for them.
+
+**Predictions (map-return).** 8c passes once on this build (the coder saw it pass). The deleted-member return **runs only if the owner authorises a test find in this window**; not run otherwise. Observations, not gates: whether a deleted find's magenta marker stays drawn (-276), and whether a style reload with a fan open folds it (the coder's code says it folds). Destroyed-MapView count: predicted 0; a logcat from a cleared buffer runs the whole session.
+
+**Method and rules (unchanged, -254):** `am start -n` only; real `adb shell input`; one Back or Home per command, only after a `dumpsys window` focus read showing Forager's window; any system window over the app is a stop and a hand-back with a capture; read the record's name from a dump before and after every delete, one delete per command; no `h.sh`. **A permission refusal is a stop and a hand-back with the exact command; if the restore's copy or read-back is refused, I stop before the restore and hand back, and do not restore partially.** Evidence goes in `/home/zynergy-labs/Zynergy/device-evidence/2026-09-30-part-3/`, prefixed `b2-`.
