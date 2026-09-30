@@ -1,4 +1,4 @@
-# Dispatch 2026-09-28-284, fan-circle-36: completion report (PARTIAL: the full suite has not been run)
+# Dispatch 2026-09-28-284, fan-circle-36: completion report
 
 Base `bc9dc591` (verified: `git rev-parse bc9dc591` matches; `origin/journal-redesign` was `3f9c13b6`, which adds only the
 dispatch file). Branch `fan-circle-36`, worktree `forager-wt/fan-circle-36`. No device, no adb.
@@ -31,15 +31,20 @@ dispatch file). Branch `fan-circle-36`, worktree `forager-wt/fan-circle-36`. No 
   `compileDebugUnitTestKotlin` ran; `FanClarityTest` failed with the same message naming the diameter; forward file restored from
   a second copy, `git status` clean and `FAN_CIRCLE_DIAMETER_DP = 36f` present afterwards.
 
-## Suite: NOT RUN
+## Suite
 
-The full unit suite has not been run on this branch. The machine gate held it back: **2048 MB available memory was never
-reached** from 08:44 to 09:13 (1213 to 1547 MB available at each check; free disk 5.4 GB; no Gradle wrapper or test
-executor running). Three idle Gradle/Kotlin daemons belonging to other sessions hold about 6.7 GB resident (PIDs 1283744,
-1284065, 1294752); they were not touched. One full-suite launch was started at 1547 MB by mistake (a chained command ran past
-the gate check); its wrapper was stopped within seconds, its log discarded, and it produced no results.
-The last full-suite number on the parent line is -279's, at `74537fb4`: 3167 tests, 0 failures, 24 skipped; this change adds
-one test (3168 expected), which is a prediction, not a result. `LeavingTheJournalFixesTest` has not been observed this dispatch.
+`:app:testDebugUnitTest` at `48ce83c9` (nothing new on `origin/journal-redesign` since, still `3f9c13b6`): 388 classes,
+**3168 tests, 0 failures, 0 errors, 24 skipped**, BUILD SUCCESSFUL in 4m43s (`/tmp/fc36-full.log`, run 09:14 to 09:19).
+The parent line's last count was -279's 3167; this change adds one case (the touch-area pin), so 3168 is the expected figure.
+`LeavingTheJournalFixesTest` ran all 31 cases, none failed or skipped, and the run did not stall (the results file kept
+advancing until the end); `DiagnosticsPanelTest` and the owner-held flakes did not fail on this run.
+
+**How it got here, disclosed.** The first attempt was held back by the memory gate: 2048 MB available was never reached from
+08:44 to 09:13 (1213 to 1547 MB), because three idle daemons of other sessions held about 6.7 GB (PIDs 1283744, 1284065,
+1294752). They were not touched by this session; the planner stopped them with the owner's "Yes, stop them", after which
+7782 MB was available, 5268 MB of disk was free and no wrapper or worker ran, and the suite was run. One full-suite launch had
+been started at 1547 MB by mistake (a chained command ran past the gate check); its wrapper (PID 1297960, started by this
+session) was stopped within seconds, its log discarded, and it produced no results.
 
 ## Device-only list (S22-B)
 
