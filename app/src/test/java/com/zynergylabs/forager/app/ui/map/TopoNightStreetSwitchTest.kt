@@ -159,11 +159,6 @@ class TopoNightStreetSwitchTest {
             assertEquals("street opacity at $zoom", 1.0, rasterOpacityAt(streetPaint, zoom), 0.0)
         }
 
-        // The pin that the fade never shows OpenTopoMap's tinted tile level: the lowest zoom at which the topo layer is
-        // drawn is on tile level 11 or deeper. A minzoom of 9.4 (tile level 10) fails here.
-        val topoMinZoom = topo.getValue("minzoom").jsonPrimitive.double()
-        assertTrue("topo minzoom $topoMinZoom is on tile level ${rasterTileZoomFor(topoMinZoom)}; a fading topo layer must not show level 10 (the tinted regime)", rasterTileZoomFor(topoMinZoom) >= 11)
-
         val sources = style.getValue("sources").jsonObject
         assertEquals(setOf(RASTER_SOURCE_ID, street.getValue("source").jsonPrimitive.content), sources.keys)
         val streetSource = sources.getValue(street.getValue("source").jsonPrimitive.content).jsonObject
@@ -208,6 +203,25 @@ class TopoNightStreetSwitchTest {
             }
         }
         if (failures.isNotEmpty()) fail("night topo is not dark, pure V1 at every sampled zoom:\n" + failures.distinct().take(40).joinToString("\n"))
+    }
+
+    /**
+     * The pin that the fade never shows OpenTopoMap's tinted tile level (7 to 10): at every zoom the topo layer is
+     * drawn at all, including the first, the tile level is 11 or deeper. A `minzoom` of 9.4 (tile level 10) fails.
+     */
+    @Test
+    fun `the fading topo layer is never drawn on tile level 10 or shallower`() {
+        val (street, topo) = layers(topoNightStyle())
+        val topoMinZoom = topo.getValue("minzoom").jsonPrimitive.double()
+        assertTrue(
+            "topo minzoom $topoMinZoom is on tile level ${rasterTileZoomFor(topoMinZoom)}; a fading topo layer must not show level 10 (the tinted regime)",
+            rasterTileZoomFor(topoMinZoom) >= 11,
+        )
+        var zoom = topoMinZoom
+        while (zoom < street.getValue("maxzoom").jsonPrimitive.double()) {
+            assertTrue("map zoom $zoom: the fade is on tile level ${rasterTileZoomFor(zoom)}", rasterTileZoomFor(zoom) >= 11)
+            zoom += 0.01
+        }
     }
 
     @Test
