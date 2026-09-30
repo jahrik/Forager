@@ -8695,3 +8695,19 @@ Both go to the next phone check.
 **The install:** `adb install -r --user 0` over 1.0.2160+gc849ae99, at 2026-09-30 14:48:34. User 0's ceDataInode stayed 2259049. databases/forager.db's sha256 is e1188b00…, the same as -311's before-copy.
 **Not done:** no launch, input or screenshot by the planner.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-321
+**Timestamp:** 2026-09-30T21:56:16Z
+**Continues:** 2026-09-28-310, after -313 and -314
+**The owner's device check** of 1.0.2174+ga88d6f25.dirty (device-note -320), with two S22 screenshots, verbatim: "Coder took the dimming route anyway. The map needs to not be dimmed, but match what we see when zoomed in".
+**The planner's correction:** the coder built -313/-314's A exactly as ruled. The error is the planner's: it described the half-amplitude V1 as "the zoomed-in look, darker", but on the device it reads as dimmed and muddy. So A, as built, is **rejected by the owner**.
+**The target now:** the zoomed-in look itself: near-black ground, green forest, olive and yellow roads, blue water, light labels.
+**Why per-pixel tuning probably cannot reach it:** at low zoom OpenTopoMap colours the ground green, so ground and forest share colours. That is inferred from the samples, and the coder will measure it.
+**Change, and the next step before any build:** the coder renders stills from its saved tiles through its shader model, for the owner to compare. The two approaches:
+1. deeper tiles when zoomed out, via a second source with a smaller declared tileSize below 9.5, drawn with today's V1. The report covers label size, the tile-count multiplier, and OpenTopoMap usage;
+2. the strongest per-pixel mapping: V1 with contrast and saturation.
+The owner picks from the images. Nothing merges from topo-night as built.
+**Notes:** Written by the planner by hand.
