@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.data.remote
 
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
+import com.zynergylabs.forager.app.net.UserAgentInterceptor
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -17,13 +18,10 @@ object OpenMeteoArchiveClient {
 
     private const val BASE_URL = "https://archive-api.open-meteo.com/"
 
-    fun create(debug: Boolean): OpenMeteoArchiveApi {
-        val json = Json {
-            ignoreUnknownKeys = true
-            explicitNulls = false
-        }
-
-        val okHttpClient = OkHttpClient.Builder()
+    /** The built client, separate from [create] so a test can send a request through the real one. */
+    internal fun httpClient(debug: Boolean): OkHttpClient =
+        OkHttpClient.Builder()
+            .addInterceptor(UserAgentInterceptor())
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
             .apply {
@@ -36,6 +34,14 @@ object OpenMeteoArchiveClient {
                 }
             }
             .build()
+
+    fun create(debug: Boolean): OpenMeteoArchiveApi {
+        val json = Json {
+            ignoreUnknownKeys = true
+            explicitNulls = false
+        }
+
+        val okHttpClient = httpClient(debug)
 
         val contentType = "application/json".toMediaType()
 
