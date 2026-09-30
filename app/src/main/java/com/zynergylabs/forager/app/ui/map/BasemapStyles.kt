@@ -118,7 +118,7 @@ internal const val TOPO_NIGHT_LOW_ZOOM_BRIGHTNESS_MIN = 0.5
  *
  * **The known gap.** Low-zoom OpenTopoMap roads are pale yellow, and V1's polarity turns them into
  * the darker thing on the ground: 0.03 to 0.07 darker than it (measured), where zoomed in they are
- * 0.07 to 0.13 lighter. Labels come out lighter than the ground at every zoom. The planner withdrew "roads
+ * 0.06 to 0.13 lighter. Labels come out lighter than the ground at every zoom. The planner withdrew "roads
  * lighter than the ground" as a condition for this reason (dispatch 2026-09-28-310).
  *
  * Only Topographical takes this: Street is pale at every zoom (mean V1 lightness 0.15 to 0.22 on one
