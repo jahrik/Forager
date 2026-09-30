@@ -58,6 +58,9 @@ internal object FanOutIds {
 
     /** The feature property holding a copy's `icon-offset`, `[x, y]` in dp (dispatch 2026-09-28-275). */
     const val ICON_OFFSET_PROPERTY = "iconOffset"
+
+    /** The feature property holding a circle's scale, 0 to 1 (dispatch 2026-09-28-299). */
+    const val CIRCLE_SCALE_PROPERTY = "circleScale"
 }
 
 /** The leg's own line width, in dp: "a thin line". Its casing is [CASING_WIDTH_DP] wider on each side, as a track's is. */
@@ -89,7 +92,8 @@ internal fun addFanOutLayers(style: Style, palette: MapPalette, chromeColour: In
         PropertyFactory.iconImage(Expression.get(FanOutIds.IMAGE_PROPERTY)),
         PropertyFactory.iconAllowOverlap(true),
         PropertyFactory.iconAnchor(Property.ICON_ANCHOR_CENTER),
-        // Each copy's own offset, so its body, not its tip or foot, sits on its circle's centre.
+        // Each copy's own offset: the glyph's centring offset times the fold's progress, so a copy's body is on its circle's
+        // centre when spread and its anchor is on the coordinate, exactly where its original draws, when folded.
         PropertyFactory.iconOffset(Expression.get(FanOutIds.ICON_OFFSET_PROPERTY)),
     )
     // Below the dots and the icons, above the legs: the circle is the copy's background.
@@ -99,9 +103,13 @@ internal fun addFanOutLayers(style: Style, palette: MapPalette, chromeColour: In
     style.addLayer(symbols(FanOutIds.ICONS_LAYER, FanOutIds.ICONS_SOURCE))
 }
 
-/** [style]'s paint as MapLibre property values: radius (dp), colour, opacity, no ring. Device-only, like every SDK call here. */
+/**
+ * [style]'s paint as MapLibre property values: radius (dp), colour, opacity, no ring. The radius is [FanCircleStyle.radiusDp] times
+ * each circle's [FanOutIds.CIRCLE_SCALE_PROPERTY] (the fold's progress), so it grows from nothing as the fan opens and is gone
+ * when it has folded (dispatch 2026-09-28-299). Device-only, like every SDK call here.
+ */
 private fun fanCircleProperties(style: FanCircleStyle): Array<PropertyValue<*>> = arrayOf(
-    PropertyFactory.circleRadius(style.radiusDp),
+    PropertyFactory.circleRadius(Expression.product(Expression.literal(style.radiusDp), Expression.get(FanOutIds.CIRCLE_SCALE_PROPERTY))),
     PropertyFactory.circleColor(style.colour),
     PropertyFactory.circleOpacity(style.opacity),
     PropertyFactory.circleStrokeWidth(0f),
@@ -142,9 +150,20 @@ private val EMPTY_FRAME = FanFrame(
  *  - **legs:** a line from each member's true position to where it is now, so the line back to the
  *    true spot is there at every frame, including the first;
  *  - **icons:** each bitmap marker's own image ([markerIconForLayer]), so a copy keeps its icon, and
- *    its [FanOutIds.ICON_OFFSET_PROPERTY], so the glyph's body is centred on the copy's circle;
+ *    its [FanOutIds.ICON_OFFSET_PROPERTY]: [fanCentringOffsetDp] **times [progress]**. Spread (1) the glyph's
+ *    body is centred on the copy's circle; folded (0) the offset is nothing, so the copy draws exactly where its
+ *    original marker does (anchor on the coordinate, `markerSymbolLayer` has no offset) and clearing the copies
+ *    moves nothing. The owner, dispatch 2026-09-28-299: "After being fanned out, the icons return to their start
+ *    position. But sometimes they don't perfectly align back in their position when the animation finishes,
+ *    resulting in the icons snapping into place." The offset was the full centring offset at every progress, so the
+ *    pin (14 dp), the find (12.5 dp) and the flag (7.59 dp across, 12.5 down) jumped by that much at the end of a
+ *    fold and the start of an open; the photo and search centre, whose anchor is their centre, and the dots, which
+ *    have no offset, never did;
  *  - **circles:** one point per copy, where the copy is now: the layer draws the copy's background
- *    circle there (dispatch 2026-09-28-265; it replaced the journal-entry halo a kept record's copy had);
+ *    circle there (dispatch 2026-09-28-265; it replaced the journal-entry halo a kept record's copy had), its
+ *    radius times its [FanOutIds.CIRCLE_SCALE_PROPERTY], which is [progress]: with the glyph's offset scaled, a
+ *    full circle at the coordinate would leave a pin's body up to 14 dp off its centre near 0, so the owner chose
+ *    to shrink it with the fold (-299);
  *  - **dots:** a sighting, with its `observationId` and its `selected` flag from [focusedObservationId],
  *    the properties the dot layer's own paint reads.
  *
@@ -154,6 +173,8 @@ internal fun fanFrameCollections(
     members: List<FanMember>,
     at: (FanMember) -> LatLng,
     focusedObservationId: Long?,
+    /** The fold's progress, 0 folded to 1 spread: what the icon offsets and the circles' scale are multiplied by. */
+    progress: Float,
 ): FanFrame {
     if (members.isEmpty()) return EMPTY_FRAME
     val legs = mutableListOf<Feature>()
@@ -174,7 +195,7 @@ internal fun fanFrameCollections(
                 icons += Feature.fromGeometry(Point.fromLngLat(now.lng, now.lat)).apply {
                     addStringProperty(FanOutIds.IMAGE_PROPERTY, image)
                     val offset = markerIconForLayer(layerId)!!.glyph.fanCentringOffsetDp()
-                    addProperty(FanOutIds.ICON_OFFSET_PROPERTY, JsonArray().apply { add(offset.xDp); add(offset.yDp) })
+                    addProperty(FanOutIds.ICON_OFFSET_PROPERTY, JsonArray().apply { add(offset.xDp * progress); add(offset.yDp * progress) })
                     addStringProperty(FEATURE_ID_PROPERTY, member.key.featureId)
                 }
             }
@@ -183,7 +204,7 @@ internal fun fanFrameCollections(
                 continue
             }
         }
-        circles += Feature.fromGeometry(Point.fromLngLat(now.lng, now.lat))
+        circles += Feature.fromGeometry(Point.fromLngLat(now.lng, now.lat)).apply { addNumberProperty(FanOutIds.CIRCLE_SCALE_PROPERTY, progress) }
         legs += Feature.fromGeometry(
             LineString.fromLngLats(listOf(Point.fromLngLat(member.lng, member.lat), Point.fromLngLat(now.lng, now.lat))),
         )

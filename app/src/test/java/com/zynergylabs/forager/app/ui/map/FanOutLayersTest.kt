@@ -33,8 +33,8 @@ class FanOutLayersTest {
 
     private val movedTo = LatLng(45.001, -122.002)
 
-    private fun frame(members: List<FanMember>, focused: Long? = null) =
-        fanFrameCollections(members, { movedTo }, focused)
+    private fun frame(members: List<FanMember>, focused: Long? = null, progress: Float = 1f) =
+        fanFrameCollections(members, { movedTo }, focused, progress)
 
     @Test
     fun `a copy keeps its own icon and is drawn where it now is`() {
@@ -175,5 +175,65 @@ class FanOutLayersTest {
         val text = fanOutHiddenFilter("featureId", emptyList()).toString()
         assertEquals("[\"all\"]", text)
         assertFalse("!=" in text)
+    }
+
+    // Dispatch 2026-09-28-299: a fold ends exactly on the original. The owner: "After being fanned out, the icons
+    // return to their start position. But sometimes they don't perfectly align back in their position when the
+    // animation finishes, resulting in the icons snapping into place."
+
+    private val allGlyphLayers = listOf(MapLayerIds.WAYPOINTS, MapLayerIds.FINDS, MapLayerIds.PLANNED_TRIPS, MapLayerIds.PHOTOS, MapLayerIds.SEARCH_CENTRE)
+
+    private fun offsetsAt(progress: Float): Map<String, Pair<Float, Float>> =
+        frame(allGlyphLayers.map { member(it, it) }, progress = progress).icons.features().orEmpty().associate { feature ->
+            val xy = feature.getProperty(FanOutIds.ICON_OFFSET_PROPERTY).asJsonArray
+            feature.getStringProperty("featureId") to (xy[0].asFloat to xy[1].asFloat)
+        }
+
+    @Test
+    fun `at progress 0 every copy's icon-offset is zero, so it draws where its original does`() {
+        val offsets = offsetsAt(0f)
+        assertEquals(allGlyphLayers.toSet(), offsets.keys)
+        for ((id, xy) in offsets) {
+            assertEquals("the $id copy's icon-offset x at progress 0", 0f, xy.first, 1e-6f)
+            assertEquals("the $id copy's icon-offset y at progress 0", 0f, xy.second, 1e-6f)
+        }
+    }
+
+    @Test
+    fun `at progress 1 every copy carries its glyph's full centring offset`() {
+        val offsets = offsetsAt(1f)
+        val expected = mapOf(
+            MapLayerIds.WAYPOINTS to (0f to 14f), MapLayerIds.FINDS to (0f to 12.5f), MapLayerIds.PLANNED_TRIPS to (-7.5893f to 12.5f),
+            MapLayerIds.PHOTOS to (0f to 0f), MapLayerIds.SEARCH_CENTRE to (0f to 0f),
+        )
+        for ((id, xy) in expected) {
+            assertEquals("the $id copy's icon-offset x at progress 1", xy.first, offsets.getValue(id).first, 1e-3f)
+            assertEquals("the $id copy's icon-offset y at progress 1", xy.second, offsets.getValue(id).second, 1e-3f)
+        }
+    }
+
+    @Test
+    fun `at progress half every copy carries half its glyph's centring offset`() {
+        val offsets = offsetsAt(0.5f)
+        val expected = mapOf(
+            MapLayerIds.WAYPOINTS to (0f to 7f), MapLayerIds.FINDS to (0f to 6.25f), MapLayerIds.PLANNED_TRIPS to (-3.79465f to 6.25f),
+            MapLayerIds.PHOTOS to (0f to 0f), MapLayerIds.SEARCH_CENTRE to (0f to 0f),
+        )
+        for ((id, xy) in expected) {
+            assertEquals("the $id copy's icon-offset x at progress 0.5", xy.first, offsets.getValue(id).first, 1e-3f)
+            assertEquals("the $id copy's icon-offset y at progress 0.5", xy.second, offsets.getValue(id).second, 1e-3f)
+        }
+    }
+
+    // The owner chose to shrink the circle with the fold (dispatch -299 step 2): with the glyph's offset scaled, the circle would
+    // otherwise sit on the coordinate while the body is up to 14 dp off it. Each circle carries the progress; the layer's radius
+    // is its full radius times it, so nothing is drawn behind a glyph at rest and nothing pops when the copies clear.
+    @Test
+    fun `each circle carries the fold's progress as its scale, for icon and dot alike`() {
+        for (progress in listOf(0f, 0.5f, 1f)) {
+            val f = frame(listOf(member(MapLayerIds.WAYPOINTS, "w"), member(MapLayerIds.SIGHTINGS, "9001")), progress = progress)
+            val scales = f.circles.features().orEmpty().map { it.getNumberProperty(FanOutIds.CIRCLE_SCALE_PROPERTY)?.toFloat() }
+            assertEquals("the circles' scale at progress $progress", listOf(progress, progress), scales)
+        }
     }
 }
