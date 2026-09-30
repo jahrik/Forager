@@ -8307,3 +8307,19 @@ Both go to the next phone check.
 - The ring and the timing are unchanged.
 - The work is headless, on branch fan-fold-snap from 4f3a02ad.
 **Notes:** Written by the planner by hand. It may run in parallel with -296, -297 and -298, and their builds are serialised.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-300
+**Timestamp:** 2026-09-30T19:29:16Z
+**Continues:** 2026-09-28-296 (preserved -13)
+**Why:** -296 stopped at a permission refusal before any reproduction. Its partial report is ci-flake 808644de, docs/audits/2026-09-30-ci-flake-diagnosis.md.
+- The CI data: 67 of 119 test-reaching runs had an album-photo test fail. All 82 of those failures are a real touch that had no effect, and the one album test that uses a semantics click has 0 failures in 77.
+- The candidate mechanism, not confirmed: DecodedPhoto's placeholder-to-image swap replaces the node that carries the tile's combinedClickable during a gesture (EntriesAlbum.kt:256-259; DecodedPhoto.kt:57-81).
+**The owner's decision, verbatim:** "Allow the temp hook". This is the report's §6 option 1, chosen over option 2 (a test-only probe) and option 3 (fix without confirmation).
+**Change:**
+- -296 may add a scratch latch hook to app/src/main/…/DecodedPhoto.kt, on ci-flake only, never merged, to put the swap between down and up, before down, and after up.
+- It then tries the proposed fix (the gesture on a stable wrapping node) in a throwaway commit on ci-flake.
+- It is still diagnosis only. The fix itself goes to the owner.
+**Notes:** Written by the planner by hand. The build queue is -297, then -298, then -299, then -296.
