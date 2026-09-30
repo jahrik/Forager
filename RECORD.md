@@ -8418,3 +8418,16 @@ Both go to the next phone check.
 - The second shows the dropdown's own Back works: the first Back hides the IME, as is Android's convention, and the second closes the dropdown. The owner's earlier "No" to "does it close and stay closed" is explained by the IME taking the first Back.
 **Consequence for -304:** its premise, that Back does not close the dropdown, is not supported by the device. The planner recommends withdrawing it, pending the owner's word.
 **Notes:** Written by the planner by hand. The planner's own error: it recorded -292 without checking the build on the phone.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-306
+**Timestamp:** 2026-09-30T19:52:28Z
+**Closes:** 2026-09-28-304 (preserved -17)
+**Outcome:** abandoned
+**Observed:**
+- Its premise, that Back does not close the search dropdown, was not supported on the device (-305). The owner's "Back dismisses the keyboard, then the search drawer" shows the first Back hides the IME, as is Android's convention, and the second closes the dropdown.
+- The owner, verbatim: "1 withdraw. Nothing was sent to coders".
+- No branch, worktree or code exists for it.
+**Notes:** Written by the planner by hand. -298's harness observation, that focus returns and reopens the dropdown, stays recorded as harness-only.
