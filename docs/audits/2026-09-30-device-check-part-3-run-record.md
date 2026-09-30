@@ -620,3 +620,53 @@ Read-only check at 19:02:07: the chooser is gone, Forager focused, `cache/tracks
 ### The clock, restored by the owner (10:04 PDT)
 Sequence on the phone (owner's steps, read by me): Sep 30 09:56 (`auto_time` 1, true start) -> Oct 2 18:56 (owner, before I asked) -> Oct 3 19:00 -> **Oct 4 19:02** (a further forward step, not the back step I asked for; I told the owner) -> **Wed Sep 30 10:04:30 PDT 2026, equal to the host's clock, `auto_time` 1**: restored and read back. Side effect, not a finding: the app and logs carry Oct 2-3 time stamps for about 10 minutes (the GPX export mtimes above, and `ForagerApplication` at 10-02 18:56:53).
 At that read, `mCurrentFocus` is **`com.android.settings/SubSettings`**, a system window over Forager, so I am **stopped for the owner** to leave it; I have sent it nothing.
+
+## S22-B relaunch: the restore to `a-copy/` (-253) and the hand-back (10:05-10:07 PDT)
+
+### The restore
+Authorised by the planner ([f2eaef]) after the owner's "Run them, I'll tap" and the F5 items. `a-copy/` checked intact on this machine first (`sha256sum -c device.sha256`: **22 of 22 OK**). Force-stop (`am force-stop --user 0`, no pid). **Hashes of the phone's 28 app files before the restore** in `b3-prerestore.sha256` (these included files `a-copy/` lacks: `app_theme_preferences` (the in-app Night Mode, reverts to its default **System Default**, which is what it was set to), **`backup_schedule_preferences` (holds the backup folder the owner chose today: it is gone, so the owner must choose the folder again if they want backups)**, `distance_unit_preferences`, three photo files, and the Oct 3 GPX export). Removed each file with `run-as rm -f` (**not refused**), then wrote `a-copy/`'s 22 files with `run-as sh -c 'cat > file'` from the pulled copies (**not refused**). **Device sha256 against `a-copy/device.sha256`: 22 of 22 EQUAL** (`b3-restored.sha256`; the two files' own sha256 are equal, `0155ea3a…e1a09b37`), and only those 22 app files were on the device (plus cache lock files).
+**A re-read 5 s later did not match, for a stated reason: Forager was launched from the home-screen icon at 10:05:57 (logcat `START ... cat=[android.intent.category.LAUNCHER]`, the owner's tap) in that window, so the app ran, migrated the database and rewrote its WAL, shm, workdb, `mbgl-offline.db`, `profileInstalled` and the IDS prefs.** The first comparison, made before any launch, is the restore's proof; nothing else is claimed for the post-launch hashes.
+
+### The read-back (after that launch; `b3-restored-db-verify.txt`)
+`forager.db` on a scratch copy of db, wal and shm: header `SQLite format 3`, **integrity `ok`, `user_version` 17** (a-copy was 16, so **MIGRATION_16_17 ran on the owner's real data**, the second time it is confirmed on this phone), and **every table count equals `a-copy/forager-db-verify.txt`** (cached_searches 2, cartography_entries 7, ..._find_refs 2, ..._offline_region_refs 1, ..._photo_refs 1, ..._track_refs 1, ..._waypoint_refs 3, log_entry_photos 1, log_photos 3, mushroom_log_entries 3, offline_regions 2, planned_trips 0, track_points 23, tracks 1, waypoints 3, android_metadata 1, room_master_table 1, sqlite_sequence 1) **plus `cartography_entry_track_paths` 0** (new, empty).
+
+### Both copies, and which was restored
+- **`b2-copy/`** (S22-B relaunch's own working reference, taken 06:34, 25 files, schema 17): `device.sha256` file sha256 `0e66b314457a9423bdd0ef7aefe4aac265501477fc11c7e9d897840d1f88245b`; its `forager.db` `90d800c3…defe0`. **Not restored.**
+- **`a-copy/`** (S22-A's, 22 files, schema 16, taken before the 1910 install): `device.sha256` file sha256 `0155ea3af26565dd1f75e296db969801d2b53d100c6b30478296e0d1e1a09b37`. **This is the copy restored**, as -253 says.
+
+### The phone's final state
+- **Build `1.0.2027+gbc9dc591`, user 0**, signature `[d59f30b8]` (same), `firstInstallTime` `2026-09-30 01:07:14`. User 95 (Dual App) has no Forager and was not touched.
+- `user_rotation` 0, `accelerometer_rotation` 0, `font_scale` 1.0, `cmd uimode night` **yes**, `auto_time` 1, clock `Wed Sep 30 10:06:36 PDT 2026` (equals the host's). Basemap: Topographical when I last drove the map (`map_preferences` is also back to `a-copy`'s). Doze ACTIVE. The app is running (started by the owner from the launcher) with the launcher in front; crash buffer 0 lines.
+- **Test data left on the phone: none in the app's data** (the restore replaced it). **Outside the app's data, for the owner's hand-delete list:** (1) `/sdcard/Pictures/Forager/forager-photo-20260929-210521.jpg` (the Save-to-Gallery copy; the permission system refused my delete, and I tried no other route); (2) the GPX copies the file manager saved under "forager-track-..." and "... (1)" (location not found); (3) `/sdcard/backups/DEVICE-CHECK-2026-09-30-preF5-A.zip` and `/sdcard/backups/forager-backup-2026-09-30.zip` (both mine; the second holds today's test journal).
+
+### Session counts (`b2-logcat-full.log`, 1,873,947 lines, from a cleared buffer before the first launch, stopped after the restore)
+**`after the .MapView. was destroyed` lines: 0. `FATAL EXCEPTION`: 0 (`FATAL` anywhere: 0).** Crash buffer at the end: 0 lines.
+**Two caveats on those counts:** other sessions' `logcat -c` would have cleared the buffer under my stream but my stream was live throughout; and the -280 coder drove the phone for a stretch, so the log includes its session.
+
+### Verdicts, one line each (details in the sections above)
+- **Build/install/copy:** done; 2011 then 2027 installed `install -r --user 0`; `b2-copy/` 25 of 25.
+- **Fan-centring:** PASS for waypoint, find, planned trip (owner-authorised) and photo at night; day by eye; legs meet circle centres; originals unmoved on fold.
+- **Fan-clarity:** PASS for the circle look, the 80% fade and exact restore, including after a Layers change; FAIL-by-design only for the system `cmd uimode` switch (Activity restart), PASS for the in-app Night Mode; fade ending at fold start not observed.
+- **Item 6 at 26 dp:** PASS (15x35 dp: no fan; 30.9 dp: no fan; 20.3 dp: fans).
+- **Map-return:** 8c PASS (2011 and 2027). Deleted-member return: FAIL once on 2011 in a long session (one run, undiagnosed), PASS on 2027 from a fresh launch. Stale find marker did not reproduce.
+- **Item 8:** d PASS; h not run; i observation (a fan folds under GPS following).
+- **A4/A5:** item 32 at 0: no prompt (known A4-32); the rest not run.
+- **Data group:** F5 1, 2, 3 PASS; 4 PASS (Merge and Replace leave the phone's searches alone); 5 PASS (file written, receiver kept a copy); 6 PASS; 7 PASS; 8 not observed. -187 flag 2: a Replace closes another open editor (and deletes its draft), a Merge keeps it; flag 1 untested for a region the backup lacks. Item 42: no duplicate regions; a region the phone has no tiles for gets a negative placeholder id and no tiles.
+- **A6:** 39 partly (swipe, Undo, timeout PASS); 40 skipped by the owner; 38 not runnable as written.
+- **Not run:** 41, 44, 45, 46, 48, 50, 51, 52, A4 35, most of A4 30-34 at 270, A5 36/37 re-runs, item 5 and A1 re-runs on 2027.
+
+## Decisions I made
+1. Took `b2-copy/` **before** the install, not after (stricter).
+2. Chose `A.zip` (Part 2's real pre-F5 backup, renamed on the phone) for F5 4 instead of building one.
+3. Used a control editor to show that the restore (not the Settings trip) closed the editor.
+4. Hashed the phone's files before the restore and removed **all** 28 app files, including ones `a-copy/` lacks, so the end state equals `a-copy/`.
+5. Ran the restore on the planner's go-ahead while the owner's own launch was racing it; I did not stop it, because the comparison before the launch was already made.
+6. Stopped my own background logcat (the stream I started) after the restore; I left PID 1207282 (another session's) alone throughout.
+
+## Flags outside scope
+- **The system night-mode switch restarts the Activity** (`CONFIG_UI_MODE` not handled), which loses a fan and any open editor state: post-merge item, per the owner.
+- **The search panel can stay stuck open** over the Journal/Maps after a cold relaunch or a tap on the search bar (seen on 2011 and 2027); a force-stop clears it. Cause not found.
+- **"Back up now" opens the system Save dialog every time**, even with a folder chosen, so every manual backup needs an owner tap.
+- **Restoring to `a-copy/` drops the backup-folder choice** (`backup_schedule_preferences`).
+- **My slips, all recorded above:** an unscripted Home key from tapping the "Close sheet" node over the nav bar; a stray "9" typed into the trip name; an `ls` that listed the owner's Download folder; a mis-tapped search bar that cost the long-running fan state; the record note that first mislabelled the clock's start state (corrected).
+- **Permission refusals:** the MediaStore delete (earlier, by the prior coder, not retried) and the combined force-stop/hash/install call (resolved by the owner's approval). Nothing else was refused.
