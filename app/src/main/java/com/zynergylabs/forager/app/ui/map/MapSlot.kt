@@ -231,6 +231,19 @@ data class MapRenderMode(
      * system navigation band, where real taps opened nothing.
      */
     val attributionBottomInset: Dp? = null,
+    /**
+     * The landscape L's measured bounds, in this map's own pixels, for MapLibre's attribution button ("i") to
+     * keep clear of (dispatch 2026-09-29-57, amendment -262, item 1): [SightingsMap] moves the button's end
+     * margin inboard of it when the two would intersect (`attributionEndInsetClearOf`). `null` for every caller
+     * but the compact Maps tab in a short landscape window, which is where the L is.
+     */
+    val attributionKeepClear: androidx.compose.ui.geometry.Rect? = null,
+    /**
+     * Where a fan's member keys are written while it is open, and where the fan to reopen after Back from a
+     * find opened on the map is waiting (dispatch 2026-09-29-57, item 8). `null` for every caller but the compact
+     * Maps tab. Here rather than on [MapSlot] for the parameter-count reason [layers] gives.
+     */
+    val returnMemory: MapReturnMemory? = null,
 )
 
 /**
@@ -519,6 +532,8 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
         cameraMemory = renderMode.cameraMemory,
         attributionEndInset = renderMode.attributionEndInset,
         attributionBottomInset = renderMode.attributionBottomInset,
+        attributionKeepClear = renderMode.attributionKeepClear,
+        returnMemory = renderMode.returnMemory,
         modifier = modifier,
     )
 }

@@ -192,6 +192,10 @@ internal fun MapLayersTestScreen(
     tracks: List<Track> = emptyList(),
     onOpenLogEntry: (String) -> Unit = {},
     onCloseLogEntry: () -> Unit = {},
+    // Item 8 (dispatch 2026-09-29-57): the report's delete and its edit and save, for the return-to-map tests.
+    onDeleteLogEntry: (String) -> Unit = {},
+    onStartEditingLogEntry: () -> Unit = {},
+    onSaveLogEntry: () -> Unit = {},
     cartographyUiState: CartographyUiState = CartographyUiState(),
     getCartographyEntryMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData = { _, _ -> CartographyEntryMapData(emptyList(), emptyList(), emptyList(), emptyList(), emptyList()) },
     // Applied to the ViewModel's state before the screen reads it, for a state the ViewModel cannot reach (sightings
@@ -238,6 +242,9 @@ internal fun MapLayersTestScreen(
         tracks = tracks,
         onOpenLogEntry = onOpenLogEntry,
         onCloseLogEntry = onCloseLogEntry,
+        onDeleteLogEntry = onDeleteLogEntry,
+        onStartEditingLogEntry = onStartEditingLogEntry,
+        onSaveLogEntry = onSaveLogEntry,
         cartographyUiState = cartographyUiState,
         getCartographyEntryMapData = getCartographyEntryMapData,
     )

@@ -396,6 +396,55 @@ class MapBubblesTest {
         }
     }
 
+    // Item 4 (dispatch 2026-09-29-57, amendment -262, "Flip below"): a card that does not fit above its glyph opens below it.
+
+    private fun placeNearTop(anchorY: Float, maxHeight: Int = 2000) = bubblePlacement(
+        anchor = Offset(600f, anchorY),
+        arrowAngleDeg = 135f,
+        bubbleWidth = 300,
+        bubbleHeight = 250,
+        tailPx = 24f,
+        maxWidth = 1000,
+        maxHeight = maxHeight,
+        minY = 0,
+    )
+
+    /** The visible card (the placed bubble less the tail's margin on every side), in the map box. */
+    private fun visibleCard(p: BubblePlacement, width: Int = 300, height: Int = 250, tail: Int = 24) =
+        androidx.compose.ui.geometry.Rect(
+            (p.topLeftX + tail).toFloat(), (p.topLeftY + tail).toFloat(), (p.topLeftX + width - tail).toFloat(), (p.topLeftY + height - tail).toFloat(),
+        )
+
+    @Test
+    fun `a glyph 175 px below the top with a 250 px card gets the card below it, the tail pointing up to the glyph`() {
+        val anchor = Offset(600f, 175f)
+        val placement = placeNearTop(175f)
+        val card = visibleCard(placement)
+        assertTipOnAnchor(anchor, placement.copy())
+        assertTrue("the card ${card} does not cover its own glyph at $anchor", !card.contains(anchor))
+        assertTrue("the card's top edge (${card.top}) is below the glyph (175): it opened below", card.top > anchor.y)
+        // The tail leaves the card's top edge and points up: the tip is above the card's visible top edge.
+        assertTrue("the tip (${placement.tipInBubble.y}) is above the card's own top edge (24 px into the bubble)", placement.tipInBubble.y < 24f)
+    }
+
+    @Test
+    fun `a glyph with room above keeps the card above it, unchanged`() {
+        val anchor = Offset(600f, 900f)
+        val placement = placeNearTop(900f)
+        val card = visibleCard(placement)
+        assertTipOnAnchor(anchor, placement)
+        assertTrue("the card's bottom edge (${card.bottom}) is above the glyph (900)", card.bottom <= anchor.y)
+    }
+
+    @Test
+    fun `where the card fits neither above nor below the glyph M1's clamp stands, and the tip stays on the anchor`() {
+        val anchor = Offset(600f, 175f)
+        // 300 px of map: a 250 px card has room for neither side of a glyph at 175.
+        val placement = placeNearTop(175f, maxHeight = 300)
+        assertTipOnAnchor(anchor, placement)
+        assertEquals("clamped to the top of the box as M1 left it", 0, placement.topLeftY)
+    }
+
     private companion object {
         val SIGHTING = Sighting(42L, 1L, "Cantharellus formosus", "Chanterelle", 45.5, -122.6, LocalDate.of(2026, 8, 1), null, 10)
     }
