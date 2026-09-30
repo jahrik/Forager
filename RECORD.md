@@ -7382,3 +7382,15 @@ S22-B's launch prompt (-53) already makes the dispatch and its amendments govern
   - there is stale KDoc in about 14 files.
 **Next:** dispatch -252 (preserved -57) launches from this merge.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-260
+**Timestamp:** 2026-09-30T01:26:26Z
+**Dispatch:** none (a parked idea)
+**Reason:** the owner raised a free companion app carrying the full forecast without commercial licensing, asked whether donations would stand in, then said "Park it".
+**Changes:**
+- **The plan records it as parked** until after PR #140 merges: docs/plans/journal-redesign.md, "A free companion app with the full forecast: parked". It holds the planner's not-legal-advice reading and four open questions: Open-Meteo's terms, a legal read on CC BY-NC, iNaturalist's terms, and forager-forecast D57.
+- **Nothing is dispatched.** The commercial-use ruling for Forager is unchanged.
+**Notes:** Written by the planner by hand.

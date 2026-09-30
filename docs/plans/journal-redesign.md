@@ -1263,3 +1263,17 @@ So PR #3 keeps "Recorded tracks" in the deletable list, with L1's wording, not u
 2. **Doze may be forced from the computer,** then undone.
 3. **The forced-failure checks are skipped for PR #140** and recorded as untested: the save-failure Toasts, and a failed backup write.
 4. **zynergy-site PR #3 is held.** L1's release wording is brought in, so it describes the build PR #140 ships and goes live with it.
+
+**A free companion app with the full forecast: parked (owner, 2026-09-29).** The owner, verbatim: "I'm thinking of doing a companion app that's free, and includes the full forecast suite without the commercial licensing needed". Then: "Would donations be a good stand-in for commercial use?" Then: "Park it".
+
+Parked until after PR #140 merges. None of it is decided, and nothing is dispatched. The planner's reading, which is **not legal advice**, and whose licence wording was **not checked at the time**:
+- **"Free" alone probably doesn't make it non-commercial.** The same reasoning as the commercial-use ruling above applies: a free app from the seller of a paid app in the same space can be read as serving that business. That is especially so if it links to Forager, cross-promotes it, or shares users or data with it.
+- **Donations probably make it riskier, not safer.** They are monetary compensation, and here they would reach the same owner that sells the paid app. The least risky form is donations that openly cover running costs only, in a project with no tie to Forager.
+- **Open questions, to settle before building:**
+  1. **Open-Meteo's free-tier terms** for a free, possibly donation-supported companion to a paid app. Ask them directly, since one reply settles it.
+  2. **A legal read on CC BY-NC records** (iNaturalist and GBIF): whether a model trained on them carries the NC restriction, and whether donations change that when the same owner sells a related paid app.
+  3. **iNaturalist's API and photo terms,** still unchecked for either app.
+  4. **forager-forecast's D57** makes the existing Forager app the forecast's target. A second target app needs a new decision there.
+- **The alternative that avoids the question:** a companion on CC0/CC BY data only, like Forager. Donations, or even charging, are then fine, but it is not the "full" model.
+
+**Unchanged:** Forager ships the commercial-safe model and moves to a paid Open-Meteo subscription before release.
