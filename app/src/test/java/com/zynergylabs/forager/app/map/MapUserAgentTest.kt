@@ -66,7 +66,9 @@ class MapUserAgentTest {
 
     @Test
     fun `starting the application installs the client MapLibre will use, carrying the app's User-Agent`() {
-        ForagerApplication::class.java.cast(ApplicationProvider.getApplicationContext<android.content.Context>())
+        // Robolectric has already booted the manifest's ForagerApplication; its onCreate is what is under test.
+        assertTrue(ApplicationProvider.getApplicationContext<android.content.Context>() is ForagerApplication)
+
 
         val installed = Class.forName("org.maplibre.android.module.http.HttpRequestImpl")
             .getDeclaredField("client").apply { isAccessible = true }.get(null) as? Call.Factory
