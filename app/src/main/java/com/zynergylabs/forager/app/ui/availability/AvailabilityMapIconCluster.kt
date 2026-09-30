@@ -59,6 +59,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.boundsInParent
+import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInRoot
@@ -192,6 +193,12 @@ internal class MapIconClusterState(
     /** The map pane's real measured height and top in the root, written by the caller's content box: what the clamps are against. */
     var mapContentBoxHeightPx by mutableFloatStateOf(0f)
     var mapContentBoxTopInRootPx by mutableFloatStateOf(0f)
+
+    /** The map pane's left in the root, written with the top above; with [clusterBoundsInRoot] it gives the cluster's rectangle in the map's own pixels (attribution clearance, dispatch 2026-09-29-57, item 1). */
+    var mapContentBoxLeftInRootPx by mutableFloatStateOf(0f)
+
+    /** The cluster container's measured bounds in the root, written by the container only; null until first measured. */
+    var clusterBoundsInRoot: androidx.compose.ui.geometry.Rect? by mutableStateOf(null)
 
     /** The cluster container's real measured height and width, written by the container only; kept while minimised. */
     var clusterHeightPx by mutableFloatStateOf(0f)
@@ -564,6 +571,7 @@ internal fun BoxScope.MapIconCluster(
                 .onGloballyPositioned { coordinates ->
                     state.clusterHeightPx = coordinates.size.height.toFloat()
                     state.clusterWidthPx = coordinates.size.width.toFloat()
+                    state.clusterBoundsInRoot = coordinates.boundsInRoot()
                 }
                 .testTag(MAP_ICON_CLUSTER_TAG)
             // Feeds the panels' and handles' anchors — see MapIconClusterState.centreInClusterPx.
