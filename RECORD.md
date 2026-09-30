@@ -7561,3 +7561,20 @@ Its record is on device-part-3 at 32534b45 (checked on origin). The phone reads 
 - **A4-32:** a backgrounded dirty editor is saved as a draft without a "Welcome back" prompt. Tested at 90 only.
 **Sequencing:** S22-B relaunches after this merges and after fan-clarity (-265). It runs the data group, F5's items, A6, the rechecks and the restore to a-copy.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-268
+**Timestamp:** 2026-09-30T04:21:58Z
+**Dispatch:** 2026-09-28-265 (fan-clarity), and -267 (map-return-fixes)
+**Reason:** fan-clarity's coder handed back unbuilt after its gates failed for 30 minutes (available memory about 1.3-1.5 GB). Its commits are c2cd00d2 (tests first) and 95b36d76 (the implementation, never compiled).
+- **Three idle daemons held about 5 GB:** Kotlin 1060105 (3 h 26 m), Gradle 1125171 (1 h 07 m, likely the planner's suite run) and Gradle 1029115 (4 h 35 m).
+- **The owner's answer:** "End all 3 idle daemons".
+**Changes:**
+- **The daemons were ended.** The planner ended all three after confirming no Gradle wrapper or worker was running. Available memory went from 1567 MB to 6718 MB.
+- **fan-clarity's coder was resumed** to build, test and revert-check its work.
+- **The planner's answers on its decisions:**
+  - 1, 2, 4 and 5 accepted: the fade set is the MARKER kind and tap group; the fade is a multiplier; it ends when the fold starts; the circle replaces the halo.
+  - 3 kept: the circle follows the app theme through navigationBarContainerColor(), as the chrome does.
+**Notes:** Written by the planner by hand.
