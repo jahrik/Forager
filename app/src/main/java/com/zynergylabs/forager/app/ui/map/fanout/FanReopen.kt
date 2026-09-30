@@ -16,12 +16,24 @@ class FanReopenCoordinator(
     /** A reopen that comes to nothing is reported here, never silent. */
     private val onUnavailable: (Int) -> Unit,
 ) {
+    // The reopen waits for both of the map's own events after its style loads: the content effect (which folds any
+    // open fan, so a fan opened before it runs is folded at once) and a camera idle (the camera restore has settled).
+    private var contentEffectRan = false
+    private var idleSeen = false
+
     fun onContentEffect(styleLoaded: Boolean) {
         handler()?.onContentChanged()
+        if (styleLoaded) contentEffectRan = true
+        reopenWhenReady()
     }
 
     fun onCameraIdle(styleLoaded: Boolean) {
-        if (!styleLoaded) return
+        if (styleLoaded) idleSeen = true
+        reopenWhenReady()
+    }
+
+    private fun reopenWhenReady() {
+        if (!contentEffectRan || !idleSeen) return
         takeKeys()?.let { keys ->
             if (handler()?.openFanFor(keys) != true) onUnavailable(keys.size)
         }
