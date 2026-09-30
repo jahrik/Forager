@@ -80,7 +80,7 @@ private fun evaluateZoomValue(element: JsonElement, zoom: Double, key: String): 
     val operator = (array.firstOrNull() as? JsonPrimitive)?.content
     return when (operator) {
         "step" -> {
-            require(array.size >= 4 && array.size % 2 == 0 && isZoomInput(array[1])) { "$key: unsupported step expression $array" }
+            require(array.size >= 5 && array.size % 2 == 1 && isZoomInput(array[1])) { "$key: unsupported step expression $array" }
             var result = number(array[2], key)
             var i = 3
             while (i + 1 < array.size && zoom >= number(array[i], key)) {
