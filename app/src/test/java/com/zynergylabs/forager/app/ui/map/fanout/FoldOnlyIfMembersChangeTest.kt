@@ -176,17 +176,92 @@ class FoldOnlyIfMembersChangeTest {
         assertEquals("nothing was reported unavailable", emptyList<Int>(), unavailable)
     }
 
+    // Dispatch 2026-09-28-279, fan-restyle. The owner's ruling, verbatim, on an open fan when night mode changed (S22-B's
+    // relaunch, "Theme change with a fan open"): asked whether it should survive, "yes it should"; scope chosen, "Any style
+    // reload". One rule with "fold only if members change" (-274): a replaced style is not a reason to fold. It replaces
+    // this case's old half, "a new style still folds", which -274 did not name and left as it was. After the new style
+    // loads the content effect hands the decision to the same members check as any content change.
     @Test
-    fun `6 - a new style still folds an open fan, as before - the owner's rule does not name it`() {
+    fun `6 - an open fan survives a replaced style while every member is still drawn`() {
         val firstStyle = Any()
         val secondStyle = Any()
         reopen.onContentEffect(styleLoaded = true, style = firstStyle) // the style's own load
         openStackOfThree()
+        val members = fan.members
+        val generation = fan.generation
         reopen.onContentEffect(styleLoaded = true, style = firstStyle) // a content change in the same style
         assertTrue("setup: the same style's effect leaves the fan", fan.isOpen)
 
         reopen.onContentEffect(styleLoaded = true, style = secondStyle)
 
-        assertFalse("a replaced style folds the fan, unchanged", fan.isOpen)
+        assertTrue("a replaced style is not a reason to fold", fan.isOpen)
+        assertEquals(members, fan.members)
+        assertEquals("not folded and reopened either: the members are all still drawn", generation, fan.generation)
+    }
+
+    @Test
+    fun `6b - a replaced style that also removes a member re-fans the survivors`() {
+        val firstStyle = Any()
+        val secondStyle = Any()
+        reopen.onContentEffect(styleLoaded = true, style = firstStyle)
+        openStackOfThree()
+        val generation = fan.generation
+
+        remove(b)
+        reopen.onContentEffect(styleLoaded = true, style = secondStyle)
+
+        assertTrue(fan.isOpen)
+        assertEquals("the survivors, without the one gone", setOf(a, c), fan.members.map { it.key }.toSet())
+        assertNotEquals("re-fanned over the survivors, through openFanFor", generation, fan.generation)
+    }
+
+    @Test
+    fun `6c - a replaced style that leaves fewer than two folds`() {
+        val firstStyle = Any()
+        val secondStyle = Any()
+        reopen.onContentEffect(styleLoaded = true, style = firstStyle)
+        openStackOfThree()
+
+        remove(b)
+        remove(c)
+        reopen.onContentEffect(styleLoaded = true, style = secondStyle)
+
+        assertFalse("one survivor is not a fan", fan.isOpen)
+    }
+
+    @Test
+    fun `6d - the return after Back still reopens when the first style it sees is a real one`() {
+        scene.add(a.layerId, a.featureId, 45.0, -122.0)
+        scene.add(b.layerId, b.featureId, 45.0, -122.0001)
+        memory.openFanKeys = listOf(a, b)
+        memory.remember("b", Offset(200f, 300f), 0f) // "Open in Journal" on b
+        assertTrue(memory.onFindClosed("b")) // Back: the keys now wait for the new map
+        val firstStyle = Any()
+
+        reopen.onContentEffect(styleLoaded = true, style = firstStyle) // lastStyle starts at "none yet": the first load is not a replacement
+        reopen.onCameraIdle(styleLoaded = true)
+        reopen.onContentEffect(styleLoaded = true, style = firstStyle)
+
+        assertTrue("the fan is open after Back", fan.isOpen)
+        assertEquals(setOf(a, b), fan.members.map { it.key }.toSet())
+        assertEquals(emptyList<Int>(), unavailable)
+    }
+
+    @Test
+    fun `6e - the return after a delete still reopens the survivors, and a later replaced style keeps them`() {
+        scene.add(a.layerId, a.featureId, 45.0, -122.0)
+        scene.add(c.layerId, c.featureId, 45.0, -122.0001)
+        memory.openFanKeys = listOf(a, b, c)
+        memory.remember("b", Offset(200f, 300f), 0f)
+        assertTrue(memory.onFindDeleted("b"))
+        val firstStyle = Any()
+
+        reopen.onContentEffect(styleLoaded = true, style = firstStyle)
+        reopen.onCameraIdle(styleLoaded = true)
+        assertEquals("setup: the survivors", setOf(a, c), fan.members.map { it.key }.toSet())
+        reopen.onContentEffect(styleLoaded = true, style = Any()) // night mode switched
+
+        assertTrue(fan.isOpen)
+        assertEquals(setOf(a, c), fan.members.map { it.key }.toSet())
     }
 }
