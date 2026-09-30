@@ -1418,6 +1418,19 @@ internal fun locationIndicatorTrackingAnimationMultiplier(): Float =
     MotionTokens.LOCATION_INDICATOR_MOVE_DURATION_MS / LOCATION_COMPONENT_BASE_ANIMATION_DURATION_MS
 
 /**
+ * The options [activateLiveLocationIfPermitted] hands MapLibre for the puck. Its own function so the
+ * options are unit-testable: `LocationComponentOptions` is a plain value class, unlike the
+ * native-backed `Style` the activation itself needs.
+ */
+internal fun liveLocationComponentOptions(context: Context): LocationComponentOptions =
+    LocationComponentOptions.builder(context)
+        // Duration ratio, not an absolute value: see locationIndicatorTrackingAnimationMultiplier()
+        // above — its base (750ms) came from javap-inspecting the pinned MapLibre artifact, not
+        // public API or documentation, so it can silently go stale on a MapLibre version bump.
+        .trackingAnimationDurationMultiplier(locationIndicatorTrackingAnimationMultiplier())
+        .build()
+
+/**
  * Turns on MapLibre's own "blue dot" location puck and has the camera follow it — "like regular
  * GPS," the project owner's own framing, rather than the compass strip's pre-existing one-shot
  * locate-me fetch (which still exists unchanged, feeding that strip's own text readout, not the
@@ -1463,15 +1476,9 @@ private fun activateLiveLocationIfPermitted(
 ) {
     if (!hasLocationPermission(context)) return
     val locationComponent = map.locationComponent
-    val locationComponentOptions = LocationComponentOptions.builder(context)
-        // Duration ratio, not an absolute value: see locationIndicatorTrackingAnimationMultiplier()
-        // above — its base (750ms) came from javap-inspecting the pinned MapLibre artifact, not
-        // public API or documentation, so it can silently go stale on a MapLibre version bump.
-        .trackingAnimationDurationMultiplier(locationIndicatorTrackingAnimationMultiplier())
-        .build()
     locationComponent.activateLocationComponent(
         LocationComponentActivationOptions.builder(context, style)
-            .locationComponentOptions(locationComponentOptions)
+            .locationComponentOptions(liveLocationComponentOptions(context))
             .useDefaultLocationEngine(true)
             .build(),
     )
