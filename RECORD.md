@@ -8582,3 +8582,215 @@ Both go to the next phone check.
 - -313's A is confirmed by the owner: the V1 inversion is kept below map zoom about 9.5, with its output range scaled so that the ground matches the zoomed-in band.
 - B, a dimmed day map with no inversion, is rejected by the owner. It stays in the report only as the rejected alternative.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-315
+**Timestamp:** 2026-09-30T21:38:59Z
+**Closes:** 2026-09-28-311 (preserved -19)
+**Outcome:** partial, stopped early after an incident
+**The incident, as the device coder reported it:**
+- In Journal > Records, a chip-row swipe plus a tap deleted **the owner's only track** (tracks 1 → 0, track_points 23 → 0), without the uiautomator dump that rule 3 requires. Undo had expired when it was tapped.
+- The coder stopped and restored the phone from its before-copy: 22 of 22 sha256 equal; integrity ok; user_version 17; every count equal after one launch.
+- Settings were read back at their start values: animator 1.0, user_rotation 0, basemap Topographical, night on. The in-app Camera had left user_rotation at 1, and the coder reset it.
+**The planner's independent check,** read-only over adb, at about 21:38 UTC:
+- databases/forager.db has the same sha256 as the before-copy (e1188b00…);
+- read with sqlite3 from a pulled copy, tracks = 1, track_points = 23, user_version 17, the same as the before-copy;
+- the only files that differ are runtime state: forager.db-shm, files/mbgl-offline.db (MapLibre's tile cache), the androidx.work workdb -shm and -wal files, and shared_prefs/android.app.ActivityThread.IDS.xml.
+**Verdicts** (record: docs/audits/2026-09-30-s22-session-check.md on s22-session-check c8cead47; evidence: ~/Zynergy/device-evidence/2026-09-30-session-check/):
+- **FAIL 3 (-290):** after a swap to the Street basemap, the folded stack's camera glyph covers the puck. It is fine after leaving Maps and coming back.
+- **FAIL 5 (-299):** the front glyph's stacking order pops at the fold's last frames and the open's first (frames 610-614 and 134-142 of c5-fold-day.mp4).
+- **PASS:** 2, 8, 9, 10 (all three), 13 at 90°, 15, 16, 17, 18 path 1 (album long-press), and 14's Tools half.
+- **Recorded, for the owner:** 6 (mid-fold, the circle is smaller than the glyph and off its centre), 11 and 12.
+- **Not determinable:**
+  - 1 (only the legs reach the puck);
+  - 4 (it needs movement);
+  - 14's fullscreen half (the entry map has no fullscreen control);
+  - 18 paths 2 and 3 (there is no trash button in the album viewer, the gallery or the bubble; F5 removed the album's corner trash).
+- **Not run:** 7's night half (night was on all along; day not run?), 13 at 270°, 19 and 20.
+- **Both fails rest on cropped frames from a single run.**
+**Notes:** Written by the planner by hand. The data rule that failed was rule 3, "read a record's name before any delete". The gesture was not meant as a delete. So a follow-up device session needs a stricter rule: a dump before **any** gesture on a list row in Journal or Records.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-316
+**Timestamp:** 2026-09-30T21:45:04Z
+**Closes:** 2026-09-28-296 (preserved -13), with continuations -300 and -301
+**Outcome:** completed, diagnosis only. No fix was applied, and ci-flake is never merged.
+**Observed:**
+- **The report:** docs/audits/2026-09-30-ci-flake-diagnosis.md, on ci-flake 3246ead8. It supersedes the partial report's README row, and every row is kept.
+- **The cause:** DecodedPhoto swaps from placeholder to Image off the test clock, and the swap replaces the node that carries AlbumPhotoTile's combinedClickable, so a gesture in flight is lost.
+- **The evidence:**
+  - the probes (a scratch DecodeProbe hook plus the ui/log/probe tests) are deterministic: 6/6 each way;
+  - all 82 CI album failures are that same outcome, since "is not displayed" is what a missing node gives;
+  - locally it appears only under CPU starvation: 4 in 18 pinned runs (2 CPUs 2/12, 1 CPU 2/6), against 0 in 6 unpinned and 0 in 3 full suites.
+- **The proposed fix, trialled and reverted:** the gesture on a stable wrapper Box. The probe arms go 3/3 green, the class 52/52, and 0 in 18 pinned runs against 4 in 18. 2 of those fix runs overlapped -310's build and are marked; 1 overlap is unknown.
+- **JournalTabTest From Album** is the same decode, read with no wait, and needs its own fix (an owner decision). This supersedes the 09-15 report's "exists and is not displayed".
+- **-297's DrawerBackOverJournalTest stall** was not reproduced: 0 in 9 runs, with the watchdog kept.
+- **Process:** two permission refusals, resolved by the owner (-300, -301). A first probe build did not compile, and no results were read from it. Build overlaps with -310 are disclosed.
+**Open:** an audit of the other DecodedPhoto call sites for the same gesture-on-a-swapped-node pattern, including WideJournalTest's album long-press.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-317
+**Timestamp:** 2026-09-30T21:50:03Z
+**Title:** Album taps are never lost to a photo decode; JournalTabTest From Album waits for its decode
+**Dispatch-file:** preserved/2026-09-30-21.md
+**The owner, verbatim:** "1 dispatch" (the album fix) and "2 a" (From Album: the test waits)
+**The planner's reading:**
+- -296's diagnosis (terminal -316): the gesture is on the node DecodedPhoto swaps.
+- The trial fix gave 0 in 18 pinned runs.
+**Change:**
+- The gesture moves to a stable node at every affected DecodedPhoto call site.
+- The From Album test waits for the decode; a test-only change.
+- Tested by deterministic regression tests and 12 pinned runs.
+- After merge, the planner tracks about 6 consecutive green CI runs.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-318
+**Timestamp:** 2026-09-30T21:50:03Z
+**Title:** Fixes for -311's two fails: the puck under the stack after a Street swap, and the fan's z-order pop at the fold's ends
+**Dispatch-file:** preserved/2026-09-30-22.md
+**The owner, verbatim:** "3 yes"
+**The planner's reading:**
+- Fail 3: after a swap to the Street basemap, the folded stack's camera glyph covers the puck. It is fine after leaving Maps.
+- Fail 5: the front glyph's stacking order pops at the fold's last frames and the open's first.
+- Each rests on a single cropped run.
+**Change:**
+- Reproduce each headless first; stop if one does not reproduce.
+- Then fix it, with a failing test first and a revert check.
+- Fail 3 goes device-only if it has no headless seam.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-319
+**Timestamp:** 2026-09-30T21:50:03Z
+**Title:** A follow-up S22 session for -311's items not run, under a stricter data rule
+**Dispatch-file:** preserved/2026-09-30-23.md
+**The owner, verbatim:** "4 yes"
+**The planner's reading:**
+- -311 deleted the owner's only track with an undumped chip-row gesture, and restored it (-315).
+**Change:**
+- A dump before every gesture on any list, no swipes on list or chip rows, only D records, stop at the first unexpected change, and count read-backs.
+- It starts only on the planner's go, after the owner's topo night check.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** device-note
+**ID:** 2026-09-28-320
+**Timestamp:** 2026-09-30T21:50:03Z
+**Covers:** installing -310's build on the S22 for the owner's topo night check
+**Run by:** the planner, at the owner's "5 yes".
+**The build:** 1.0.2174+ga88d6f25.dirty, from forager-wt/topo-night. The coder built it from a88d6f25 plus uncommitted edits to KDoc comments only. APK sha256 2aa80d2a9c678fa0….
+**The install:** `adb install -r --user 0` over 1.0.2160+gc849ae99, at 2026-09-30 14:48:34. User 0's ceDataInode stayed 2259049. databases/forager.db's sha256 is e1188b00…, the same as -311's before-copy.
+**Not done:** no launch, input or screenshot by the planner.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-321
+**Timestamp:** 2026-09-30T21:56:16Z
+**Continues:** 2026-09-28-310, after -313 and -314
+**The owner's device check** of 1.0.2174+ga88d6f25.dirty (device-note -320), with two S22 screenshots, verbatim: "Coder took the dimming route anyway. The map needs to not be dimmed, but match what we see when zoomed in".
+**The planner's correction:** the coder built -313/-314's A exactly as ruled. The error is the planner's: it described the half-amplitude V1 as "the zoomed-in look, darker", but on the device it reads as dimmed and muddy. So A, as built, is **rejected by the owner**.
+**The target now:** the zoomed-in look itself: near-black ground, green forest, olive and yellow roads, blue water, light labels.
+**Why per-pixel tuning probably cannot reach it:** at low zoom OpenTopoMap colours the ground green, so ground and forest share colours. That is inferred from the samples, and the coder will measure it.
+**Change, and the next step before any build:** the coder renders stills from its saved tiles through its shader model, for the owner to compare. The two approaches:
+1. deeper tiles when zoomed out, via a second source with a smaller declared tileSize below 9.5, drawn with today's V1. The report covers label size, the tile-count multiplier, and OpenTopoMap usage;
+2. the strongest per-pixel mapping: V1 with contrast and saturation.
+The owner picks from the images. Nothing merges from topo-night as built.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-322
+**Timestamp:** 2026-09-30T22:00:19Z
+**Continues:** 2026-09-28-310, after -321
+**The owner's ruling, verbatim:** "Pure inverted colors is the way, not fine tuned pixel manipulation. We may need to lose some of the topo rendering to make that happen".
+**Change:**
+- Every topo night option uses today's V1 exactly, at every zoom. No contrast, no saturation, no scaled brightness. -321's approach 2 is dropped.
+- The renders to compare, at 7, 8.5 and 9.4 against the zoomed-in 11:
+  - **(a)** deeper OpenTopoMap tiles below 9.5, via the tileSize trick;
+  - **(b)** OSM Standard tiles below 9.5 under topo night. -310 reported that OSM Standard does not show the problem. The costs to report: both attributions, OSM's tile usage policy, and offline regions.
+- The owner picks from the images.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-323
+**Timestamp:** 2026-09-30T22:02:09Z
+**Continues:** 2026-09-28-310, after -322
+**The owner's question, verbatim:** "Can we apply hillsides and such after the inversion to keep the natural hues?"
+**The planner's reading:**
+- A layer drawn above the inverted raster is not inverted.
+- No hillshade or raster-dem source exists in main/: MapChrome.kt:242 names hillshade as "later", and docs/audits/2026-09-27-map-layers-and-forecast-data-pulse.md:32 confirms none exists.
+- OpenTopoMap's relief is baked into its tiles, so V1 inverts it.
+**Change:** a third render, **(c)**: OSM Standard below 9.5 with pure V1, plus a non-inverted MapLibre hillshade layer from a raster-dem source (AWS Open Data Terrain Tiles, Terrarium), in night colours. It is also rendered over the V1 topo at 11.
+**Open for the owner:**
+- the DEM's licence against the commercial-safe ruling, reported source by source by the coder;
+- the offline-region cost;
+- building it would be a new feature with its own dispatch.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-324
+**Timestamp:** 2026-09-30T22:18:37Z
+**Continues:** 2026-09-28-310, after -323 (renders at topo-night 14ebcc12)
+**The owner's choice, verbatim:** "I notice street maps doesn't have this problem. Maybe switch to street maps instead of topo maps when zoomed out? Only when night maps mode is on. With it off no switch to street occurs."
+**Change:** render (b), night-only.
+- Topo night gets an OSM_STANDARD raster layer (Basemap.kt:165-172, tile.openstreetmap.org) with maxzoom 9.5, under the topo layer with minzoom 9.5. Both carry pure V1.
+- The half-amplitude paint is removed.
+- Topo day, the other basemaps, Satellite and the offline style are byte-identical to today's.
+- Both credits show at topo night.
+- A hard switch at 9.5. A crossfade is reported, not added.
+**Rejected:**
+- (a) deeper topo tiles: labels unreadable below about 8.5, and 30× or more the tiles at zoom 7;
+- (c) OSM plus a DEM hillshade: small gain, a new DEM source, about 15 MB of offline cost per region;
+- a zoom limit on topo.
+**For the owner, reported by the coder and not fixed:**
+- nothing in main/ sets a User-Agent, and OSM's tile policy blocks library defaults. That touches the Street basemap today;
+- OSM's policy forbids offline use and warns commercial users. Offline regions are unaffected, since they use the vector style.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-325
+**Timestamp:** 2026-09-30T22:20:15Z
+**Title:** The app identifies itself to map tile servers with a proper User-Agent
+**Dispatch-file:** preserved/2026-09-30-24.md
+**The owner, verbatim:** "Yes set a proper app identifier".
+**The planner's reading:**
+- -310 reported that nothing in main/ sets a User-Agent, and that OSM's tile policy blocks library defaults.
+- This touches the Street basemap today, and topo night below 9.5 after -324.
+**Change:**
+- One User-Agent, Forager/<versionName> (Android <release>; <applicationId>; +<contact>), installed once at start for every MapLibre request, verified against 13.5.0.
+- The other HTTP clients are reported, not changed.
+**Open:** the contact value is the owner's to give. It stays CONTACT_PENDING until then.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-326
+**Timestamp:** 2026-09-30T22:23:40Z
+**Continues:** 2026-09-28-325 (preserved -24)
+**The owner's contact values, verbatim:** "zynergy-labs.com for the website" and "support@zynergy-labs.com for the email".
+**Change:** the contact constant replaces CONTACT_PENDING with `+https://zynergy-labs.com; support@zynergy-labs.com`. The planner added the https:// scheme, the form the zynergy-site repo publishes 32 times and the form OSM's policy example uses.
+**The full User-Agent:** `Forager/<versionName> (Android <release>; <applicationId>; +https://zynergy-labs.com; support@zynergy-labs.com)`.
+**Notes:** Written by the planner by hand.
