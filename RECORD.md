@@ -7821,3 +7821,86 @@ All of them go to S22-B's relaunch.
 - **The deleted-member recheck:** the owner said "Yes, delete 8c". S22-B may delete only its own "DEVICE CHECK 2026-09-30 8c".
 - **The owner says resume:** S22-B was told to resume.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-280
+**Timestamp:** 2026-09-30T14:47:08Z
+**Title:** The deleted-member return fails on the merged build: diagnose and fix before S22-B restores
+**Dispatch-file:** preserved/2026-09-30-07.md
+**What S22-B reported** (to the planner by cross-session message, and in its run record on device-part-3):
+- **Build:** 1.0.2011+g2efc2163.
+- **The run:** a 9-member fan (find 8c, a waypoint, six photos and S22-B's new planned trip), with only 8c deleted from its page.
+- **The result:** no fan and no bubble at about 1.5, 6, 12 and 18 s. A single run, not diagnosed.
+- **Other results:**
+  - **Pass:** 8c; fan-centring for the waypoint, the find, the trip and photos, with the offset unit dp; the fade and its restore, including after a Layers change; item 6 at 26 dp.
+  - **Fail:** the theme change folds the fan, which is a FAIL against the owner's ruling (-279).
+  - **Did not reproduce:** the stale find marker.
+  - **Observed:** a fan opened while GPS is following folds within about 5 s.
+**What the planner read:** b2-logcat-full.log has no MarkerFanOut (FAN_OUT_RESTORE_TAG, SightingsMap.kt:2051) warning and no MapReturnMemory (MapReturnMemory.kt:108) warning. So the reopen either folded silently or never ran.
+**The owner's answer:** "Diagnose before restore". The planner's other options were "Diagnose after restore" and "Known issue".
+**Change:**
+- S22-B finishes everything but the restore, pauses and hands the phone back.
+- The map-return coder, on the new branch map-return-delete, captures with temporary logging and fixes it tests first. It stops for the owner if the cause is GPS following, which would need a new rule.
+- S22-B then restores.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-281
+**Timestamp:** 2026-09-30T14:52:59Z
+**Dispatch:** 2026-09-28-227 (S22-B relaunch, -277) and -280 (map-return-delete)
+**Reason:** S22-B stopped for the owner at the data group. The reinstall dropped the backup folder grant, and "Choose folder" opens Android's picker, which is a -254 stop (device-part-3 c3e631ca). The phone was otherwise idle.
+**The owner's answer:** "Give the map-return coder the phone now".
+**Changes:**
+- **S22-B was told to stop driving the S22 and wait.** Its logcat may keep reading. Its folder-picker stop and its restore both wait.
+- **-280's coder was told the phone is its own,** with a focus read and a capture before its first input, and a stop on any system window. It says "phone free" when it's done.
+- **The Delete tap time was sent to -280's coder:** 14:15:49Z to 14:16:01Z. GPS following was off at the delete, by S22-B's record.
+**Also from S22-B, not yet decided:**
+- **Item 8 case h:** not run. It needs the owner's word to delete i6C or i6D.
+- **A new observation, not a gate:** after a cold relaunch, the search panel's expanded contents stayed drawn over the Journal (b2-a4-32-r0-cold*.png). It is a candidate for the post-merge list.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-282
+**Timestamp:** 2026-09-30T15:16:41Z
+**Closes:** 2026-09-28-279 (preserved -06)
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as d3de2059, no-ff, from fan-restyle 81866f17:
+  - the tests first (ac1cc9bb);
+  - the change (eb9c32a6): FanReopenCoordinator.onContentEffect sends every content effect, a replaced style included, to MapTapHandler.onContentChanged. onStyleChanged had no other caller and is removed;
+  - assertion messages (ec2599df);
+  - the report, docs/audits/2026-09-30-fan-restyle-completion-report.md, with its README index row.
+- **The coder's premises:**
+  - the existing loadedStyle-keyed effects redraw the fan's layers, frame, circle colour and fade on a new style, so no re-push was needed;
+  - markersOf reads record lists, not rendered features;
+  - there are four style-reload causes, the AppliedMapStyle fields: basemap, palette, useOfflineTiles and night.
+- **The coder's checks:**
+  - the revert checks fail cases 6, 6b and 6e with messages specific to the edit;
+  - the suite gave 3167/0/0/24.
+- **The planner's checks:**
+  - the merged head's app, data and server trees are identical to fan-restyle's;
+  - the fan-restyle worktree's JUnit XML gives 388 files and 3167/0/0/24, written at 08:14 PDT, which matches the report.
+- **The planner did not re-run the suite,** because the code is byte-identical.
+- **Superseded:** -274's case 6, "a new style still folds an open fan". The comment in its place cites -279 and the owner's words.
+- **The planner's mistake:** at about 15:05Z, on the owner's "kill some idle processes", the planner stopped this coder's Gradle daemon and test worker. It took the absence of a wrapper process and 0% CPU as idle.
+  - The coder's result files show that that run had **already stalled** at 07:26:58 PDT, 2.7 min in and about 40 min before it was stopped.
+  - The last recorded test was in LeavingTheJournalFixesTest. By prefix it was probably "F3 a bubble's Open in Journal over a changed kept find leaves it first…" (:1128). That is inferred, and no thread dump was taken.
+  - The re-run was green in 4 min. The run was discarded.
+  - **From now on, the planner stops a Gradle process only after asking Gradle which daemons are busy, and only one it can match to a finished task.**
+- **LeavingTheJournalFixesTest has now misbehaved twice:**
+  - a failure in fan-centring's run (-278, :476);
+  - a probable stall in fan-restyle's first run.
+  
+  It passed in every other run. CLAUDE.md's unstopped-poll-loop entry describes the stall shape. It is recorded for the owner, and not touched.
+**Device-only:** the report's list goes to S22-B or a short recheck:
+- a fan open through a night-mode switch, both ways, with the circle recoloured;
+- a basemap change;
+- the offline-tiles toggle;
+- 8c after the change.
+**Notes:** Written by the planner by hand.
