@@ -8323,3 +8323,14 @@ Both go to the next phone check.
 - It then tries the proposed fix (the gesture on a stable wrapping node) in a throwaway commit on ci-flake.
 - It is still diagnosis only. The fix itself goes to the owner.
 **Notes:** Written by the planner by hand. The build queue is -297, then -298, then -299, then -296.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-301
+**Timestamp:** 2026-09-30T19:35:51Z
+**Continues:** 2026-09-28-296 (preserved -13), after -300
+**Why:** -296's hook landed on ci-flake as d63e103a. The owner approved it in the coder's window. The probe tests were refused as "Modify Shared Resources" when added to JournalPendingDeleteTest.kt.
+**The owner's decision, verbatim:** "Option 1". That is, the probes go in a new scratch test file on ci-flake, never merged, chosen over appending them to JournalPendingDeleteTest.kt and JournalTabTest.kt.
+**Change:** The six probe arms (tap and long-press, each with the swap before down, between down and up or the timeout, and after up) go in a new SCRATCH test file on ci-flake. No existing test file is edited.
+**Notes:** Written by the planner by hand.
