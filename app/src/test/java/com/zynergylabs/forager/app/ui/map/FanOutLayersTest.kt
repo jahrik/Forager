@@ -32,8 +32,8 @@ class FanOutLayersTest {
 
     private val movedTo = LatLng(45.001, -122.002)
 
-    private fun frame(members: List<FanMember>, highlights: JournalEntryHighlights = JournalEntryHighlights.NONE, focused: Long? = null) =
-        fanFrameCollections(members, { movedTo }, highlights, focused)
+    private fun frame(members: List<FanMember>, focused: Long? = null) =
+        fanFrameCollections(members, { movedTo }, focused)
 
     @Test
     fun `a copy keeps its own icon and is drawn where it now is`() {
@@ -64,35 +64,6 @@ class FanOutLayersTest {
         assertEquals(2, legs.size)
         assertEquals(listOf(Point.fromLngLat(-122.0, 45.0), Point.fromLngLat(movedTo.lng, movedTo.lat)), legs[0])
         assertEquals(listOf(Point.fromLngLat(-121.5, 45.5), Point.fromLngLat(movedTo.lng, movedTo.lat)), legs[1])
-    }
-
-    @Test
-    fun `a halo goes under a copy whose record an entry keeps, and only that one`() {
-        val highlights = JournalEntryHighlights.NONE.copy(
-            findMarkers = listOf(RecordPoint("kept-find", LatLng(45.0, -122.0))),
-            photoMarkers = listOf(RecordPoint("kept-photo", LatLng(45.0, -122.0))),
-            waypointMarkers = listOf(RecordPoint("kept-waypoint", LatLng(45.0, -122.0))),
-        )
-        val f = frame(
-            listOf(
-                member(MapLayerIds.FINDS, "kept-find"),
-                member(MapLayerIds.FINDS, "other-find"),
-                member(MapLayerIds.PHOTOS, "kept-photo"),
-                member(MapLayerIds.WAYPOINTS, "kept-waypoint"),
-                member(MapLayerIds.PLANNED_TRIPS, "trip"),
-            ),
-            highlights,
-        )
-        assertEquals(
-            listOf("find-journal-halo", "photo-journal-halo", "waypoint-journal-halo"),
-            f.halos.features().orEmpty().map { it.getStringProperty("image") }.sorted(),
-        )
-        assertEquals("all five copies still have their icon", 5, f.icons.features().orEmpty().size)
-    }
-
-    @Test
-    fun `with no entry shown there is no halo`() {
-        assertTrue(frame(listOf(member(MapLayerIds.FINDS, "f"))).halos.features().orEmpty().isEmpty())
     }
 
     @Test
@@ -133,8 +104,7 @@ class FanOutLayersTest {
 
     @Test
     fun `a kept record's copy gets a circle and no halo, since the circle replaces the halo`() {
-        val highlights = JournalEntryHighlights.NONE.copy(findMarkers = listOf(RecordPoint("kept-find", LatLng(45.0, -122.0))))
-        val f = frame(listOf(member(MapLayerIds.FINDS, "kept-find")), highlights)
+        val f = frame(listOf(member(MapLayerIds.FINDS, "kept-find")))
         assertEquals(1, f.circles.features().orEmpty().size)
         assertFalse(
             "the frame no longer carries a halo source's features: ${FanFrame::class.java.declaredFields.map { it.name }}",
