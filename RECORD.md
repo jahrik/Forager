@@ -7307,3 +7307,17 @@ S22-B's launch prompt (-53) already makes the dispatch and its amendments govern
 **Notes:**
 - The 15 dp by 35 dp distance of the owner's example is the planner's estimate from the screenshot, not a measurement.
 - Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-256
+**Timestamp:** 2026-09-30T00:50:35Z
+**Dispatch:** 2026-09-28-252 (the Part 3 device fails)
+**Reason:** the owner, from their own use of the S22: Back from a find opened with the map bubble's "Open in Journal" lands on the Journal, not back on the map as a photo does. Asked how, the owner chose "Remember where it came from".
+**Changes:** an amendment to preserved/2026-09-29-57 adds item 8.
+- The find still opens on the Journal tab, under the same label.
+- Back from it returns to the Maps tab with the same bubble, and the fan if one was open.
+- The origin is forgotten on any other exit.
+- A deleted find returns to the map with no bubble.
+**Notes:** Written by the planner by hand.
