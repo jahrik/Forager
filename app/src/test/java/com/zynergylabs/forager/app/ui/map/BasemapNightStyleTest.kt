@@ -61,15 +61,15 @@ class BasemapNightStyleTest {
     }
 
     /**
-     * Topographical's night style carries V1 on its topo layer exactly as Street does, from map zoom 9.5
-     * (`minzoom`); below that a Street layer carries the same V1 (`TopoNightStreetSwitchTest`).
+     * Topographical's night style carries V1 on its topo layer exactly as Street does, plus a `raster-opacity` fade-in,
+     * from map zoom 9.5 (`minzoom`); below that a Street layer carries the same V1 (`TopoNightStreetSwitchTest`).
      */
     @Test
-    fun `night mode on Topographical carries the three V1 properties on its topo layer`() {
+    fun `night mode on Topographical carries the three V1 properties and the opacity fade on its topo layer`() {
         val layer = rasterLayer(Basemap.OPEN_TOPO_MAP, night = true)
         val paint = layer["paint"]?.jsonObject ?: error("OPEN_TOPO_MAP has no raster paint in night mode")
 
-        assertEquals(setOf("raster-brightness-min", "raster-brightness-max", "raster-hue-rotate"), paint.keys)
+        assertEquals(setOf("raster-brightness-min", "raster-brightness-max", "raster-hue-rotate", "raster-opacity"), paint.keys)
         assertEquals(1.0, paint.getValue("raster-brightness-min").jsonPrimitive.double, 0.0)
         assertEquals(0.0, paint.getValue("raster-brightness-max").jsonPrimitive.double, 0.0)
         assertEquals(180.0, paint.getValue("raster-hue-rotate").jsonPrimitive.double, 0.0)

@@ -19,11 +19,12 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Topo night stays dark at every zoom by showing the Street map below map zoom 9.5 (dispatch
- * 2026-09-28-310, the owner's choice: "I notice street maps doesn't have this problem. Maybe switch to
- * street maps instead of topo maps when zoomed out? Only when night maps mode is on."). The night-topo
- * style JSON must carry an OSM Standard layer (`maxzoom` 9.5) under the topo layer (`minzoom` 9.5), both
- * with today's V1 paint and nothing else; every other style document must be byte-for-byte what it was.
+ * Topo night stays dark at every zoom by showing the Street map below map zoom 9.5 and crossfading to topo
+ * over 9.5 to 9.7 (dispatch 2026-09-28-310, the owner's choice: "I notice street maps doesn't have this
+ * problem. Maybe switch to street maps instead of topo maps when zoomed out? Only when night maps mode is
+ * on.", then "Add the cross fade to the topo switch"). The night-topo style JSON must carry an OSM Standard
+ * layer (`maxzoom` 9.7, opacity 1) under the topo layer (`minzoom` 9.5, `raster-opacity` 0 at 9.5 rising
+ * to 1 at 9.7), both with today's V1 paint; every other style document must be byte-for-byte what it was.
  *
  * The sampled tiles (`docs/audits/data/2026-09-30-topo-night/`: 81 OpenTopoMap tiles, 15 OSM tiles, tile
  * zoom 7 to 15 over Oregon City) are run through the paint of whichever layer the **parsed JSON** shows at
@@ -122,7 +123,7 @@ class TopoNightStreetSwitchTest {
     // ---- the document --------------------------------------------------------------------------------------
 
     @Test
-    fun `night topo is the Street layer below 9_5 under the topo layer from 9_5, V1 on both`() {
+    fun `night topo is the Street layer under the topo layer, overlapping 9_5 to 9_7, V1 on both`() {
         val style = topoNightStyle()
         val layers = layers(style)
         assertEquals("night topo must carry two raster layers, Street first (drawn first, so under)", 2, layers.size)
@@ -132,18 +133,36 @@ class TopoNightStreetSwitchTest {
         assertEquals("raster", topo.getValue("type").jsonPrimitive.content)
         assertEquals("the topo layer keeps the id and source the day style uses", RASTER_LAYER_ID, topo.getValue("id").jsonPrimitive.content)
         assertEquals(RASTER_SOURCE_ID, topo.getValue("source").jsonPrimitive.content)
-        assertEquals("street layer maxzoom", 9.5, street.getValue("maxzoom").jsonPrimitive.double(), 0.0)
+        assertEquals("street layer maxzoom: it stays drawn until the fade has finished", 9.7, street.getValue("maxzoom").jsonPrimitive.double(), 0.0)
         assertNull("street layer has no minzoom", street["minzoom"])
-        assertEquals("topo layer minzoom", 9.5, topo.getValue("minzoom").jsonPrimitive.double(), 0.0)
+        assertEquals("topo layer minzoom: where the fade starts", 9.5, topo.getValue("minzoom").jsonPrimitive.double(), 0.0)
         assertNull("topo layer has no maxzoom", topo["maxzoom"])
         assertTrue("two distinct sources", street.getValue("source").jsonPrimitive.content != topo.getValue("source").jsonPrimitive.content)
+        assertTrue("the zoom ranges overlap: Street maxzoom above topo minzoom", street.getValue("maxzoom").jsonPrimitive.double() > topo.getValue("minzoom").jsonPrimitive.double())
 
-        for ((name, layer) in listOf("street" to street, "topo" to topo)) {
-            val paint = layer.getValue("paint").jsonObject
-            assertEquals("$name: the paint is exactly the three V1 properties", setOf("raster-brightness-min", "raster-brightness-max", "raster-hue-rotate"), paint.keys)
+        val v1Keys = setOf("raster-brightness-min", "raster-brightness-max", "raster-hue-rotate")
+        val streetPaint = street.getValue("paint").jsonObject
+        val topoPaint = topo.getValue("paint").jsonObject
+        assertEquals("street: exactly the three V1 properties, so opacity is the default 1", v1Keys, streetPaint.keys)
+        assertEquals("topo: the three V1 properties and raster-opacity", v1Keys + "raster-opacity", topoPaint.keys)
+        for ((name, paint) in listOf("street" to streetPaint, "topo" to topoPaint)) {
             assertEquals("$name: V1", v1, rasterPaintOf(paint))
             assertEquals("$name: brightness-min is a plain number, not an expression", 1.0, paint.getValue("raster-brightness-min").jsonPrimitive.double(), 0.0)
         }
+        assertEquals(
+            "topo opacity: a linear zoom interpolate, 0 at 9.5 and 1 at 9.7",
+            json.parseToJsonElement("""["interpolate", ["linear"], ["zoom"], 9.5, 0, 9.7, 1]"""),
+            topoPaint.getValue("raster-opacity"),
+        )
+        for ((zoom, expected) in listOf(9.4 to 0.0, 9.5 to 0.0, 9.6 to 0.5, 9.7 to 1.0, 12.0 to 1.0)) {
+            assertEquals("topo opacity at $zoom", expected, rasterOpacityAt(topoPaint, zoom), 1e-9)
+            assertEquals("street opacity at $zoom", 1.0, rasterOpacityAt(streetPaint, zoom), 0.0)
+        }
+
+        // The pin that the fade never shows OpenTopoMap's tinted tile level: the lowest zoom at which the topo layer is
+        // drawn is on tile level 11 or deeper. A minzoom of 9.4 (tile level 10) fails here.
+        val topoMinZoom = topo.getValue("minzoom").jsonPrimitive.double()
+        assertTrue("topo minzoom $topoMinZoom is on tile level ${rasterTileZoomFor(topoMinZoom)}; a fading topo layer must not show level 10 (the tinted regime)", rasterTileZoomFor(topoMinZoom) >= 11)
 
         val sources = style.getValue("sources").jsonObject
         assertEquals(setOf(RASTER_SOURCE_ID, street.getValue("source").jsonPrimitive.content), sources.keys)
@@ -161,6 +180,7 @@ class TopoNightStreetSwitchTest {
         val failures = mutableListOf<String>()
         for (z in 7..15) for (mapZoom in mapZoomsShowing(z)) {
             val drawn = layers(style).filter { drawnAt(it, mapZoom) }
+            if (drawn.size == 2 && mapZoom >= 9.5 && mapZoom < 9.7) continue // the crossfade: its own test below blends both layers
             if (drawn.size != 1) { failures += "map zoom $mapZoom: ${drawn.size} layers drawn, expected 1"; continue }
             val layer = drawn.single()
             val tilesUrl = style.getValue("sources").jsonObject.getValue(layer.getValue("source").jsonPrimitive.content).jsonObject
@@ -191,19 +211,83 @@ class TopoNightStreetSwitchTest {
     }
 
     @Test
-    fun `the Street sample is what the style shows below 9_5 and the topo sample from 9_5`() {
-        // The sample covers tile levels 7-15, map zooms 5.5 up to 14.5; the switch at 9.5 is where level 10 becomes 11.
-        assertEquals(10, rasterTileZoomFor(9.499))
-        assertEquals(11, rasterTileZoomFor(9.5))
+    fun `which layers the style draws on each side of the crossfade`() {
         val style = topoNightStyle()
-        val tilesOf = { mapZoom: Double ->
-            layers(style).single { drawnAt(it, mapZoom) }.getValue("source").jsonPrimitive.content
-        }
-        assertTrue("below 9.5 the Street source", tilesOf(9.499) != RASTER_SOURCE_ID)
-        assertEquals("at 9.5 the topo source", RASTER_SOURCE_ID, tilesOf(9.5))
-        assertTrue("far out: the Street source", tilesOf(2.0) != RASTER_SOURCE_ID)
-        assertEquals("far in: the topo source", RASTER_SOURCE_ID, tilesOf(18.0))
+        val drawnIds = { mapZoom: Double -> layers(style).filter { drawnAt(it, mapZoom) }.map { it.getValue("id").jsonPrimitive.content } }
+        assertEquals("just below 9.5: Street only", listOf(NIGHT_STREET_ID_FOR_TEST), drawnIds(9.499))
+        assertEquals("far out: Street only", listOf(NIGHT_STREET_ID_FOR_TEST), drawnIds(2.0))
+        assertEquals("at 9.5 both, Street under", listOf(NIGHT_STREET_ID_FOR_TEST, RASTER_LAYER_ID), drawnIds(9.5))
+        assertEquals("at 9.699 both", listOf(NIGHT_STREET_ID_FOR_TEST, RASTER_LAYER_ID), drawnIds(9.699))
+        assertEquals("at 9.7 topo only (maxzoom is exclusive)", listOf(RASTER_LAYER_ID), drawnIds(9.7))
+        assertEquals("far in: topo only", listOf(RASTER_LAYER_ID), drawnIds(18.0))
     }
+
+    /**
+     * The crossfade, blended as the shader composites it: each layer's V1 output (opaque, from its own tile) times
+     * the layer's `raster-opacity` at that zoom, over what is beneath (premultiplied alpha, `out = c x a + beneath x
+     * (1 - a)`; the blend mode is inferred from MapLibre's default, not read). Both sources' real tile 11/326/733 at
+     * the same pixels, so this is a pixelwise blend, not a blend of two histograms. The dark limit applies with no
+     * allowance: the fade only ever mixes tile level 11 (see the `minzoom` pin above).
+     */
+    @Test
+    fun `across the crossfade the blended map stays dark, pixel for pixel`() {
+        val style = topoNightStyle()
+        val ls = layers(style)
+        val limit = darkLimit()
+        val topoPx = decodeTile("$data/tiles/11_326_733.png")
+        val streetPx = decodeTile("$data/osm-tiles/11_326_733.png")
+        val failures = mutableListOf<String>()
+        for (mapZoom in listOf(9.5, 9.55, 9.6, 9.65, 9.6999, 9.7, 10.0)) {
+            assertEquals("map zoom $mapZoom should be on tile level 11", 11, rasterTileZoomFor(mapZoom))
+            val drawn = ls.filter { drawnAt(it, mapZoom) }
+            val blended = IntArray(topoPx.size) { i ->
+                var out = doubleArrayOf(0.0, 0.0, 0.0)
+                for (layer in drawn) {
+                    val src = if (layer.getValue("id").jsonPrimitive.content == RASTER_LAYER_ID) topoPx[i] else streetPx[i]
+                    val paint = layer.getValue("paint").jsonObject
+                    val shaded = rasterShade(src, rasterPaintOf(paint))
+                    val a = rasterOpacityAt(paint, mapZoom)
+                    out = doubleArrayOf(
+                        ((shaded shr 16) and 0xFF) * a + out[0] * (1 - a),
+                        ((shaded shr 8) and 0xFF) * a + out[1] * (1 - a),
+                        (shaded and 0xFF) * a + out[2] * (1 - a),
+                    )
+                }
+                (0xFF shl 24) or (Math.round(out[0]).toInt() shl 16) or (Math.round(out[1]).toInt() shl 8) or Math.round(out[2]).toInt()
+            }
+            val sorted = blended.map { lightness(it) }.sorted()
+            val mean = sorted.average(); val median = sorted[sorted.size / 2]
+            if (mean > limit) failures += "map zoom $mapZoom (${drawn.size} layers): blended mean lightness %.3f, limit %.3f".format(mean, limit)
+            if (median > limit) failures += "map zoom $mapZoom: blended ground (median) lightness %.3f, limit %.3f".format(median, limit)
+        }
+        if (failures.isNotEmpty()) fail("the crossfade leaves the dark band:\n" + failures.joinToString("\n"))
+    }
+
+    @Test
+    fun `raster-opacity evaluates as the style spec defines it, and other expressions are refused`() {
+        fun opacity(paint: String, zoom: Double) = rasterOpacityAt(json.parseToJsonElement(paint).jsonObject, zoom)
+        assertEquals(1.0, opacity("{}", 9.0), 0.0)
+        assertEquals(0.25, opacity("""{"raster-opacity": 0.25}""", 9.0), 0.0)
+        val fade = """{"raster-opacity": ["interpolate", ["linear"], ["zoom"], 9.5, 0, 9.7, 1]}"""
+        assertEquals(0.0, opacity(fade, 3.0), 0.0)
+        assertEquals(0.0, opacity(fade, 9.5), 0.0)
+        assertEquals(0.5, opacity(fade, 9.6), 1e-12)
+        assertEquals(1.0, opacity(fade, 9.7), 0.0)
+        assertEquals(1.0, opacity(fade, 20.0), 0.0)
+        for (unsupported in listOf("""{"raster-opacity": ["step", ["zoom"], 0, 9.5, 1]}""", """{"raster-opacity": ["interpolate", ["exponential", 2], ["zoom"], 9.5, 0, 9.7, 1]}""", """{"raster-opacity": ["get", "x"]}""")) {
+            try { opacity(unsupported, 9.6); fail("$unsupported should be refused, not guessed at") }
+            catch (expected: IllegalStateException) {} catch (expected: IllegalArgumentException) {}
+        }
+    }
+
+    private fun decodeTile(path: String): IntArray {
+        val bitmap = BitmapFactory.decodeFile(path) ?: error("$path did not decode")
+        val pixels = IntArray(256 * 256)
+        bitmap.getPixels(pixels, 0, 256, 0, 0, 256, 256)
+        return IntArray(pixels.size) { pixels[it] or (0xFF shl 24) }
+    }
+
+    private val NIGHT_STREET_ID_FOR_TEST = "basemap-street"
 
     // ---- attribution -----------------------------------------------------------------------------------------
 
