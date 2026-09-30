@@ -61,20 +61,19 @@ class BasemapNightStyleTest {
     }
 
     /**
-     * Topographical's night paint is the same three properties, and at and above map zoom 9.5 (tile
-     * zoom 11, where OpenTopoMap's tiles turn pale) their values are V1's exactly: read through the
-     * model at several zooms, since `raster-brightness-min` is a zoom expression there. Below 9.5 it is
-     * deliberately not V1 (`TopoNightZoomTest`).
+     * Topographical's night style carries V1 on its topo layer exactly as Street does, from map zoom 9.5
+     * (`minzoom`); below that a Street layer carries the same V1 (`TopoNightStreetSwitchTest`).
      */
     @Test
-    fun `night mode on Topographical carries the three V1 properties from map zoom 9_5 up`() {
-        val paint = rasterLayer(Basemap.OPEN_TOPO_MAP, night = true)["paint"]?.jsonObject
-            ?: error("OPEN_TOPO_MAP has no raster paint in night mode")
+    fun `night mode on Topographical carries the three V1 properties on its topo layer`() {
+        val layer = rasterLayer(Basemap.OPEN_TOPO_MAP, night = true)
+        val paint = layer["paint"]?.jsonObject ?: error("OPEN_TOPO_MAP has no raster paint in night mode")
 
         assertEquals(setOf("raster-brightness-min", "raster-brightness-max", "raster-hue-rotate"), paint.keys)
-        for (zoom in listOf(9.5, 10.0, 12.0, 15.0, 17.0, 22.0)) {
-            assertEquals("map zoom $zoom", RasterPaint(brightnessMin = 1.0, brightnessMax = 0.0, hueRotate = 180.0), rasterPaintAt(paint, zoom))
-        }
+        assertEquals(1.0, paint.getValue("raster-brightness-min").jsonPrimitive.double, 0.0)
+        assertEquals(0.0, paint.getValue("raster-brightness-max").jsonPrimitive.double, 0.0)
+        assertEquals(180.0, paint.getValue("raster-hue-rotate").jsonPrimitive.double, 0.0)
+        assertEquals(9.5, layer.getValue("minzoom").jsonPrimitive.double, 0.0)
     }
 
     /** Owner ruling: "Satellite stays as it is at night". Its night document is its day document. */
@@ -100,7 +99,15 @@ class BasemapNightStyleTest {
         for (basemap in Basemap.entries) {
             val day = json.parseToJsonElement(styleJsonFor(basemap, night = false)).jsonObject
             val night = json.parseToJsonElement(styleJsonFor(basemap, night = true)).jsonObject
-            assertEquals("${basemap.name}: sources must be identical", day["sources"], night["sources"])
+            if (basemap == Basemap.OPEN_TOPO_MAP) {
+                // Topo night adds the Street source and nothing else; the topo source itself is the day one.
+                val dayMap = day.getValue("sources").jsonObject
+                val nightMap = night.getValue("sources").jsonObject
+                assertEquals("${basemap.name}: the topo source is unchanged", dayMap.getValue(RASTER_SOURCE_ID), nightMap.getValue(RASTER_SOURCE_ID))
+                assertEquals("${basemap.name}: night adds one source", dayMap.size + 1, nightMap.size)
+            } else {
+                assertEquals("${basemap.name}: sources must be identical", day["sources"], night["sources"])
+            }
             assertEquals("${basemap.name}: glyphs must be identical", day["glyphs"], night["glyphs"])
             assertEquals("${basemap.name}: version must be identical", day["version"], night["version"])
 

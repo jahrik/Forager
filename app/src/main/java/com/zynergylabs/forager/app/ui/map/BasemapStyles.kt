@@ -211,7 +211,12 @@ internal fun mapAttributionFor(basemap: Basemap, useOfflineTiles: Boolean): Stri
  * one credit) first, then each of [layerCredits] (the active layers' own, `activeLayerCredits`),
  * without repeating one already present. Map layers L0a, A5.
  */
-internal fun mapCreditsFor(basemap: Basemap, useOfflineTiles: Boolean, layerCredits: List<String> = emptyList()): List<String> =
+internal fun mapCreditsFor(
+    basemap: Basemap,
+    useOfflineTiles: Boolean,
+    layerCredits: List<String> = emptyList(),
+    nightMode: Boolean = false,
+): List<String> =
     (listOf(mapAttributionFor(basemap, useOfflineTiles)) + layerCredits).distinct()
 
 /** [credits] as the one line the caption draws, joined by [ATTRIBUTION_SEPARATOR]. */
