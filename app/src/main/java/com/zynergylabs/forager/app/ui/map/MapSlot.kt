@@ -244,6 +244,13 @@ data class MapRenderMode(
      * Maps tab. Here rather than on [MapSlot] for the parameter-count reason [layers] gives.
      */
     val returnMemory: MapReturnMemory? = null,
+    /**
+     * `false` while something sits over this map that owns Back, so an open fan's Back handler is not composed
+     * and that thing's is the one asked (dispatch 2026-09-28-293: the Tools drawer). Default `true`: the pickers
+     * and any caller with nothing over the map. Here rather than on [MapSlot] for the parameter-count reason
+     * [layers] gives.
+     */
+    val backEnabled: Boolean = true,
 )
 
 /**
@@ -534,6 +541,7 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
         attributionBottomInset = renderMode.attributionBottomInset,
         attributionKeepClear = renderMode.attributionKeepClear,
         returnMemory = renderMode.returnMemory,
+        backEnabled = renderMode.backEnabled,
         modifier = modifier,
     )
 }
