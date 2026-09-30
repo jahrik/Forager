@@ -202,13 +202,16 @@ class MarkerGlyphsTest {
         val image = markerIconImage(MarkerIcon.FIND, MapPalette.DAY, density)
         val find = MapPalette.DAY.find
         assertEquals("find icon size", drawGlyph(MarkerGlyph.FIND, density, find, MapPalette.DAY.casing).bitmap.width, image.bitmap.width)
-        // Relative to the stem foot (12, 26): the dome's left rim just above its underside (0.5, 13.5)...
-        assertColour("the dome's rim at its widest", find, image, -11.5f, -12.5f)
-        // ...the stem's foot corners (8.5, 25.5) and (15.5, 25.5)...
-        assertColour("the stem foot, left", find, image, -3.5f, -0.5f)
-        assertColour("the stem foot, right", find, image, 3.5f, -0.5f)
-        // ...and nothing beside the stem, under the dome (4, 22).
-        assertTransparent("beside the stem, under the dome", image, -8f, -4f)
+        // Relative to the stem foot. The design's (12, 26) is scaled to 25 dp tall (dispatch 2026-09-28-286), so each probe
+        // is the design's offset times that scale: the dome's left rim just above its underside (0.5, 13.5) is
+        // (-11.5, -12.5) from the foot...
+        val s = 25f / 26f
+        assertColour("the dome's rim at its widest", find, image, -11.5f * s, -12.5f * s)
+        // ...the stem's foot corners (8.5, 25.5) and (15.5, 25.5), (+-3.5, -0.5) from it...
+        assertColour("the stem foot, left", find, image, -3.5f * s, -0.5f * s)
+        assertColour("the stem foot, right", find, image, 3.5f * s, -0.5f * s)
+        // ...and nothing beside the stem, under the dome (4, 22), (-8, -4) from it.
+        assertTransparent("beside the stem, under the dome", image, -8f * s, -4f * s)
     }
 
     @Test
