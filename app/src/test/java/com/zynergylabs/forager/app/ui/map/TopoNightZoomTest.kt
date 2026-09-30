@@ -1,7 +1,7 @@
 package com.zynergylabs.forager.app.ui.map
 
+import android.graphics.BitmapFactory
 import java.io.File
-import javax.imageio.ImageIO
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
@@ -11,6 +11,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 /**
  * Topo night stays dark at every zoom (dispatch 2026-09-28-310). The owner's S22 report: topo night
@@ -24,6 +28,9 @@ import org.junit.Test
  * `["zoom"]` is the map zoom, so each tile zoom is sampled at both ends and the middle of its own
  * map-zoom range.
  */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36])
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class TopoNightZoomTest {
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -38,16 +45,19 @@ class TopoNightZoomTest {
         files.groupBy { it.name.substringBefore('_').toInt() }.mapValues { (z, group) ->
             val counts = HashMap<Int, Int>()
             for (file in group) {
-                val image = ImageIO.read(file)
-                assertEquals("${file.name} is 256 px", 256, image.width)
-                for (y in 0 until image.height) for (x in 0 until image.width) {
-                    counts.merge(image.getRGB(x, y) or (0xFF shl 24), 1, Int::plus)
-                }
+                val bitmap = BitmapFactory.decodeFile(file.path) ?: error("${file.name} did not decode")
+                assertEquals("${file.name} is 256 px square", 256 to 256, bitmap.width to bitmap.height)
+                val pixels = IntArray(256 * 256)
+                bitmap.getPixels(pixels, 0, 256, 0, 0, 256, 256)
+                for (pixel in pixels) counts.merge(pixel or (0xFF shl 24), 1, Int::plus)
             }
             TileSet(z, group.size, counts)
         }.also { byZoom ->
             assertEquals((7..15).toList(), byZoom.keys.sorted())
             byZoom.values.forEach { assertEquals("tiles at z${it.tileZoom}", 9, it.tileCount) }
+            // Pillow (measure.py) counts 17,832 distinct colours across these tiles, summed per zoom; a
+            // decoder that quantised, colour-managed or dropped pixels would not reproduce it.
+            assertEquals("distinct colours summed per tile zoom, against Pillow's count", 17832, byZoom.values.sumOf { it.colours.size })
         }
     }
 
