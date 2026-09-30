@@ -8117,3 +8117,19 @@ Both go to the next phone check.
 **Evidence:** ~/Zynergy/device-evidence/2026-09-30-final-recheck/ (fr-launch.png, fr-fan-open.png, fr-fan-crop.png, fr-build.log).
 **The phone after:** on 1.0.2108+g4cdf840b, with the fan left open on Maps. Night mode (system) yes and rotation 0 are unchanged.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-290
+**Timestamp:** 2026-09-30T17:41:20Z
+**Title:** The open fan draws on top of the live-location puck
+**Dispatch-file:** preserved/2026-09-30-10.md
+**The owner's request, verbatim:** "When the icon expands over user location, the user location overlaps it. Can the fan icons move on top of the user location instead of beneath?"
+**The planner's reading,** at 35f65c47: the fan's layers are added at style load (SightingsMap.kt:1087). The puck's layers are added later by activateLiveLocationIfPermitted (:1455), which gives no layer position, so they land on top. The planner proposed `.layerBelow(FanOutIds.LEGS_CASING_LAYER)` on the puck's options. This is inferred and has not been built.
+**The owner's answer:** "Option 1, new branch off journal-redesign".
+**Change:**
+- The puck is placed below the fan's lowest layer, and stays above every registry layer.
+- No other layer order changes, and nothing else about the puck changes.
+- The work is headless, on branch fan-above-puck from 35f65c47.
+**Notes:** Written by the planner by hand.
