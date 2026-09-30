@@ -8334,3 +8334,28 @@ Both go to the next phone check.
 **The owner's decision, verbatim:** "Option 1". That is, the probes go in a new scratch test file on ci-flake, never merged, chosen over appending them to JournalPendingDeleteTest.kt and JournalTabTest.kt.
 **Change:** The six probe arms (tap and long-press, each with the swap before down, between down and up or the timeout, and after up) go in a new SCRATCH test file on ci-flake. No existing test file is edited.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-302
+**Timestamp:** 2026-09-30T19:38:08Z
+**Closes:** 2026-09-28-297 (preserved -14)
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as dce27bb7, no-ff, from delete-siblings cd9f2414. The owner said "1 go ahead".
+  - 41d6ae94, the tests first, which did not compile.
+  - 9f224373, the rename that let them compile. They were pushed failing: 5 of 9 failed, naming the deleted photo or region.
+  - 7e378848, the fix. For photos, onPhotoDeleted runs on success and is wired through MainActivity to AvailabilityViewModel. For regions, dropOfflineRegionFromMapRecords runs on the success path of commitOfflineRegionDelete.
+  - The report, docs/audits/2026-09-30-delete-siblings-completion-report.md.
+- **Found by the coder:** the drawer gallery's and the album trash button's photo deletes are immediate, with no Undo, and had the same gap.
+- **Beyond scope, kept:** the fix also covers onDeleteGalleryPhoto, the immediate path. It is revert-checked. The owner merged it with that fix included.
+- **The planner's checks:**
+  - the saved XML in /tmp/sib-xml gives 391 files and 3185/0/0/24, with DrawerBackOverJournalTest absent. That is the full suite minus that class, as the report says. The report says 392 files, a slip;
+  - the merged head's app tree is identical to the branch's.
+**Open:**
+- **DrawerBackOverJournalTest stalled once in the full run,** at touchTools :420, from the album-view test at :538. The class alone gave 6/6 on the branch and 6/6 on base. It is passed to -296, since it is an album-view test. The owner said "2 yes".
+- The MainActivity wiring line is not covered by any test.
+- -291's residuals apply here too.
+**Device items open:** each delete path (the drawer gallery, the album long-press, the album trash button, and the Offline maps and Records rows): go back to Maps, and the record does not come back and no fan collects it. Undo restores it.
+**Notes:** Written by the planner by hand.
