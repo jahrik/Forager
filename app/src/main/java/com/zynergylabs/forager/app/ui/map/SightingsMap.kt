@@ -802,7 +802,7 @@ fun SightingsMap(
             }
             pushFanFrame(
                 style,
-                fanFrameCollections(members, { fanMemberLatLng(map, it, progress, density) }, focusedObservationId),
+                fanFrameCollections(members, { fanMemberLatLng(map, it, progress, density) }, focusedObservationId, progress),
             )
         }
     }

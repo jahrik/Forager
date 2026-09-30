@@ -8197,3 +8197,264 @@ Both go to the next phone check.
 - Other things on Maps that Back closes are reported, not fixed.
 - The work is headless, on branch fan-back-drawer from 4a250dc9.
 **Notes:** Written by the planner by hand. It may run in parallel with -291. Their builds are serialised, and a conflict is merged with every row kept.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-294
+**Timestamp:** 2026-09-30T18:55:49Z
+**Closes:** 2026-09-28-291 (preserved -11)
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as 1b1e65cf, no-ff, from find-delete-reappears dc8e2356. The owner said "Merge both".
+  - dd4a3d57, the tests first: FindDeleteReappearsOnMapTest, 5 tests. Three failed at base with `find-a was deleted and is still drawn`.
+  - 0aba4562, the fix: MushroomLogViewModel's onFindDeleted hook, called on the delete's success. It is wired in MainActivity, and AvailabilityViewModel.onFindDeleted removes the find from mapRecords.
+  - The report, docs/audits/2026-09-30-find-delete-reappears-completion-report.md.
+- **A premise corrected by the coder, in a stronger form:** any find deleted after the tab was last shown reappears once Undo ends. It does not have to be the owner's path. The timeout alone reproduces it, with no tap.
+- **The planner's check:** the worktree's JUnit XML gives 390 files and 3178/0/0/24, written at 18:12 UTC, which matches the report.
+**Residuals the coder named:**
+- a window of one frame as Undo ends;
+- an in-flight load that could put the find back;
+- the MainActivity wiring line, which no test covers.
+**The siblings,** photos and offline regions, have the same gap. They go to -297.
+**Device items open:** the owner's path with a wait past Undo; the same path, then a tap; Undo restores the find; a delete from the Journal tab; a watch for the one-frame flash.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-295
+**Timestamp:** 2026-09-30T18:55:49Z
+**Closes:** 2026-09-28-293 (preserved -12)
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as 9c806ae1, no-ff, from fan-back-drawer 4b676723. The owner said "Merge both". docs/audits/README.md conflicted with -291's row. Both rows were kept, and the count was checked: 214 before and after.
+  - 48e3bc20, the tests first: AvailabilityScreenFanBackDrawerTest, 4 tests. Two failed at base, one because the drawer stayed open and one because the fan folded.
+  - 7bc8e26f, the fix: MapRenderMode.backEnabled is set to !isDrawerOpen() at AvailabilityCompactScaffold.kt:919 and forwarded to MarkerFanOutBackHandler.
+  - The report, docs/audits/2026-09-30-fan-back-drawer-completion-report.md.
+- **A premise corrected by the coder:** AvailabilityCompactScaffold.kt:1204 feeds the Journal tab, not the map.
+- **Beyond scope, kept by the owner** ("keep the report fix"): the Journal entry report map gets the same gate. It has no test.
+- **The planner's check:** the coder's saved XML copy gives 390 files and 3177/0/0/24. The report said 391 files, a slip in the report.
+**Not tested:** SightingsMap's forwarding to the handler, and landscape.
+**Device items open:** open Tools over a fan, then Back and Back again; the same in landscape; with a bubble open, the drawer then the bubble then the fan; the report map.
+**The other Back cases** go to -298. The owner said "apply the change to the other Back cases".
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-296
+**Timestamp:** 2026-09-30T18:55:49Z
+**Title:** Diagnose why CI keeps failing on journal-redesign (F6 released)
+**Dispatch-file:** preserved/2026-09-30-13.md
+**The owner, verbatim:** "Dispatch a coder to figure out why the CI keeps failing"
+**The planner's reading:**
+- Of the last 13 finished runs, 6 failed, all in testDebugUnitTest.
+- Five of the six are the album-photo tests in JournalPendingDeleteTest, and one is JournalTabTest From Album.
+- F6 is released from the owner's hold of 2026-09-27 (RECORD.md:2664).
+**Change:**
+- Diagnosis only, on branch ci-flake, which is never merged.
+- No change to shared code or tests, no test silenced, no CI re-run.
+- The fix goes to the owner.
+**Notes:** Written by the planner by hand. -296, -297 and -298 may run in parallel, and their builds are serialised.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-297
+**Timestamp:** 2026-09-30T18:55:49Z
+**Title:** Deleted photos and offline regions never come back on the Maps tab
+**Dispatch-file:** preserved/2026-09-30-14.md
+**The owner, verbatim:** "dispatch photos and regions"
+**The planner's reading:**
+- These are -291's siblings, which have the same stale-mapRecords gap, found by reading only.
+**Change:**
+- -291's rule applies to photos and offline regions.
+- The work is headless, on branch delete-siblings from 9c806ae1.
+**Notes:** Written by the planner by hand. -296, -297 and -298 may run in parallel, and their builds are serialised.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-298
+**Timestamp:** 2026-09-30T18:55:49Z
+**Title:** Back closes the Maps tab's other open things before it folds a fan
+**Dispatch-file:** preserved/2026-09-30-15.md
+**The owner, verbatim:** "apply the change to the other Back cases"
+**The planner's reading:**
+- -293's findings, reasoned from code: the action menu and the pickers, the search dropdown, fullscreen and the taxon suggestions all lose to the fan.
+**Change:**
+- The fan's backEnabled is widened to cover them.
+- A bubble's gap is reported, not fixed.
+- The work is headless, on branch fan-back-others from 9c806ae1.
+**Notes:** Written by the planner by hand. -296, -297 and -298 may run in parallel, and their builds are serialised.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-299
+**Timestamp:** 2026-09-30T19:06:52Z
+**Title:** Fanned icons land exactly on their markers when the fan folds
+**Dispatch-file:** preserved/2026-09-30-16.md
+**The owner's report, verbatim:** "After being fanned out, the icons return to their start position. But sometimes they don't perfectly align back in their position when the animation finishes, resulting in the icons snapping into place."
+**The planner's reading,** at 4f3a02ad, inferred and not observed:
+- The original marker's anchor sits on the coordinate (markerSymbolLayer).
+- A fan copy adds fanCentringOffsetDp() at every progress (FanOutLayers.kt:176), so at progress 0 it is off by that offset and snaps on release.
+- The predicted jumps: the pin about 14 dp, the find 12.5 dp, the flag (−7.6, 12.5) dp, and the photo and sighting dots 0. That accounts for "sometimes".
+**Change:**
+- The centring offset is scaled by progress.
+- The circle's behaviour near the end of the fold is reported, with a stop-and-ask if it would visibly separate.
+- The ring and the timing are unchanged.
+- The work is headless, on branch fan-fold-snap from 4f3a02ad.
+**Notes:** Written by the planner by hand. It may run in parallel with -296, -297 and -298, and their builds are serialised.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-300
+**Timestamp:** 2026-09-30T19:29:16Z
+**Continues:** 2026-09-28-296 (preserved -13)
+**Why:** -296 stopped at a permission refusal before any reproduction. Its partial report is ci-flake 808644de, docs/audits/2026-09-30-ci-flake-diagnosis.md.
+- The CI data: 67 of 119 test-reaching runs had an album-photo test fail. All 82 of those failures are a real touch that had no effect, and the one album test that uses a semantics click has 0 failures in 77.
+- The candidate mechanism, not confirmed: DecodedPhoto's placeholder-to-image swap replaces the node that carries the tile's combinedClickable during a gesture (EntriesAlbum.kt:256-259; DecodedPhoto.kt:57-81).
+**The owner's decision, verbatim:** "Allow the temp hook". This is the report's §6 option 1, chosen over option 2 (a test-only probe) and option 3 (fix without confirmation).
+**Change:**
+- -296 may add a scratch latch hook to app/src/main/…/DecodedPhoto.kt, on ci-flake only, never merged, to put the swap between down and up, before down, and after up.
+- It then tries the proposed fix (the gesture on a stable wrapping node) in a throwaway commit on ci-flake.
+- It is still diagnosis only. The fix itself goes to the owner.
+**Notes:** Written by the planner by hand. The build queue is -297, then -298, then -299, then -296.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-301
+**Timestamp:** 2026-09-30T19:35:51Z
+**Continues:** 2026-09-28-296 (preserved -13), after -300
+**Why:** -296's hook landed on ci-flake as d63e103a. The owner approved it in the coder's window. The probe tests were refused as "Modify Shared Resources" when added to JournalPendingDeleteTest.kt.
+**The owner's decision, verbatim:** "Option 1". That is, the probes go in a new scratch test file on ci-flake, never merged, chosen over appending them to JournalPendingDeleteTest.kt and JournalTabTest.kt.
+**Change:** The six probe arms (tap and long-press, each with the swap before down, between down and up or the timeout, and after up) go in a new SCRATCH test file on ci-flake. No existing test file is edited.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-302
+**Timestamp:** 2026-09-30T19:38:08Z
+**Closes:** 2026-09-28-297 (preserved -14)
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as dce27bb7, no-ff, from delete-siblings cd9f2414. The owner said "1 go ahead".
+  - 41d6ae94, the tests first, which did not compile.
+  - 9f224373, the rename that let them compile. They were pushed failing: 5 of 9 failed, naming the deleted photo or region.
+  - 7e378848, the fix. For photos, onPhotoDeleted runs on success and is wired through MainActivity to AvailabilityViewModel. For regions, dropOfflineRegionFromMapRecords runs on the success path of commitOfflineRegionDelete.
+  - The report, docs/audits/2026-09-30-delete-siblings-completion-report.md.
+- **Found by the coder:** the drawer gallery's and the album trash button's photo deletes are immediate, with no Undo, and had the same gap.
+- **Beyond scope, kept:** the fix also covers onDeleteGalleryPhoto, the immediate path. It is revert-checked. The owner merged it with that fix included.
+- **The planner's checks:**
+  - the saved XML in /tmp/sib-xml gives 391 files and 3185/0/0/24, with DrawerBackOverJournalTest absent. That is the full suite minus that class, as the report says. The report says 392 files, a slip;
+  - the merged head's app tree is identical to the branch's.
+**Open:**
+- **DrawerBackOverJournalTest stalled once in the full run,** at touchTools :420, from the album-view test at :538. The class alone gave 6/6 on the branch and 6/6 on base. It is passed to -296, since it is an album-view test. The owner said "2 yes".
+- The MainActivity wiring line is not covered by any test.
+- -291's residuals apply here too.
+**Device items open:** each delete path (the drawer gallery, the album long-press, the album trash button, and the Offline maps and Records rows): go back to Maps, and the record does not come back and no fan collects it. Undo restores it.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-303
+**Timestamp:** 2026-09-30T19:45:20Z
+**Continues:** 2026-09-28-298 (preserved -15)
+**Why:** -298 stopped at 55fae470.
+- Its fix passes for fullscreen, the add-action menu and the Log-a-find picker, each red at 6b6f46c1's main.
+- The dropdown term turned two of -293's unchanged tests red: "a second Back … folds the fan", and the bubble order.
+- The cause, from a stack trace in the Robolectric harness: after the drawer or the dropdown closes, requestFocus hands focus to the search field, and onFieldFocused (AvailabilityCompactScaffold.kt:838) reopens the dropdown. A no-fan dropdown-Back test fails the same way in that harness.
+- Two fix attempts on the tests changed nothing, and the coder stopped.
+**The owner's ruling, verbatim:** "Option A". The dropdown term is dropped, and -293's tests stay unchanged.
+**Change:**
+- The fan's Back gate covers the drawer, fullscreen, pendingAction, pickingSearchLocation and showActionMenu, but not the search dropdown.
+- The dropdown and the refocus finding go to device-only.
+- The coder's own dropdown test is removed, and its failure is recorded in the report.
+- The Set-on-map test stays if it passes, and is reported if it does not.
+**Open:** whether the refocus reopening happens on a device. The planner has asked the owner for a quick S22 check. A separate dispatch waits on that result.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-304
+**Timestamp:** 2026-09-30T19:49:45Z
+**Title:** Back closes the Maps tab's search dropdown, and it stays closed
+**Dispatch-file:** preserved/2026-09-30-17.md
+**The owner's device check,** on the S22, verbatim:
+- "Open Tools, then press Back. Does the search dropdown pop open by itself? No"
+- "Open the search dropdown, then press Back. Does it close and stay closed? No"
+**The planner's reading:**
+- -298's harness showed Back closing the dropdown, then requestFocus returning focus to the search field, then onFieldFocused (AvailabilityCompactScaffold.kt:838) reopening it.
+- The device agrees on the dropdown and disagrees on the drawer case.
+- The keyboard consuming the first Back is also a candidate.
+- Neither has been observed on the device.
+**Change:**
+- Back leaves the dropdown closed until a touch reopens it.
+- A stop-and-ask if the fix changes keyboard or accessibility opening.
+- The fan's Back gate is untouched.
+- The work is headless, on branch dropdown-back from bbc503ff.
+**Notes:** Written by the planner by hand. It is queued after -298 and before -296.
+
+---
+
+**Kind:** device-note
+**ID:** 2026-09-28-305
+**Timestamp:** 2026-09-30T19:50:58Z
+**Corrects:** 2026-09-28-292's "The owner's device check" and "This covers device item 1"
+**Observed** by the planner, read-only over adb, with nothing installed or changed: the S22's com.zynergylabs.forager.app is versionName 1.0.2108+g4cdf840b, lastUpdateTime 2026-09-30 10:17:45, which is -289's build. It predates -290's fix (232fee53, written about 10:55 PDT) and everything after it.
+**So:**
+- The owner's "that fix works" (-292) cannot have been a check of -290 on the S22. The owner's -291 screenshots show the puck drawn over an open fan, which is the pre-fix behaviour.
+- -290's device item 1 is **open**, not passed.
+- Unless it was checked on another device or build, which is not recorded, no fix from this session (-290, -291, -293, -297) has been device-checked.
+**The owner's report on this build, verbatim:** "Back dismisses the fan, then the tool drawer. Back dismisses the keyboard, then the search drawer".
+- The first is the pre-(-293) behaviour, as expected on g4cdf840b.
+- The second shows the dropdown's own Back works: the first Back hides the IME, as is Android's convention, and the second closes the dropdown. The owner's earlier "No" to "does it close and stay closed" is explained by the IME taking the first Back.
+**Consequence for -304:** its premise, that Back does not close the dropdown, is not supported by the device. The planner recommends withdrawing it, pending the owner's word.
+**Notes:** Written by the planner by hand. The planner's own error: it recorded -292 without checking the build on the phone.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-306
+**Timestamp:** 2026-09-30T19:52:28Z
+**Closes:** 2026-09-28-304 (preserved -17)
+**Outcome:** abandoned
+**Observed:**
+- Its premise, that Back does not close the search dropdown, was not supported on the device (-305). The owner's "Back dismisses the keyboard, then the search drawer" shows the first Back hides the IME, as is Android's convention, and the second closes the dropdown.
+- The owner, verbatim: "1 withdraw. Nothing was sent to coders".
+- No branch, worktree or code exists for it.
+**Notes:** Written by the planner by hand. -298's harness observation, that focus returns and reopens the dropdown, stays recorded as harness-only.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-307
+**Timestamp:** 2026-09-30T19:53:18Z
+**Closes:** 2026-09-28-299 (preserved -16)
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as 15710d71, no-ff, from fan-fold-snap 6d79dbdc. The owner said "Merge first".
+  - c9437d6b, the tests first. 3 of 16 FanOutLayersTest tests failed for the predicted reason, for example `icon-offset y at progress 0 expected 0.0 but was 14.0`.
+  - 4063f0ee, the fix: offset = centring offset × progress, and each circle carries circleScale = progress, with circleRadius = 18 dp × circleScale.
+  - The report, docs/audits/2026-09-30-fan-fold-snap-completion-report.md.
+- **The owner's circle ruling,** in the coder's window: shrink with the fold. The coder chose radius only, without an opacity fade.
+- **The planner's checks:**
+  - /tmp/s299/fullxml gives 391 files and 3186/0/0/24, with no class excluded;
+  - the merged head's app tree is identical to the branch's.
+**Not verified:**
+- the circle-scale revert, which has only the red run as evidence;
+- the suite after the coder's merge of journal-redesign, which was not re-run;
+- that the data-driven circleRadius expression renders on a device.
+**Device items open:**
+- no jump at a fold's last frame or an open's first frame, for pins, finds, flags and photos;
+- the circles grow and shrink with nothing popping;
+- mid-fold, the circle is smaller than the glyph and off its centre: check that it looks acceptable;
+- day and night.
+**Notes:** Written by the planner by hand.
