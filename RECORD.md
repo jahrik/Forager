@@ -8485,3 +8485,15 @@ Both go to the next phone check.
 - a bubble with fullscreen or the dropdown;
 - the report map with fullscreen.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** device-note
+**ID:** 2026-09-28-309
+**Timestamp:** 2026-09-30T20:08:55Z
+**Covers:** installing the merged journal-redesign on the S22 for the owner's check of -290, -291, -293, -297, -298 and -299
+**Run by:** the planner, at the owner's "2 yes" (put the current build on the S22), after "Merge first".
+**The build:** 1.0.2160+gc849ae99, built with `--offline :app:assembleDebug` in the journal-redesign worktree: BUILD SUCCESSFUL, 0 `e:` lines. APK sha256 8d577c509192f8c8….
+**The install:** `adb install -r --user 0` over 1.0.2108+g4cdf840b. User 0's ceDataInode stayed 2259049 before and after, so the data was kept. lastUpdateTime was 2026-09-30 13:08:37.
+**Not done:** no launch, input or screenshot by the planner. The device checks are the owner's.
+**Notes:** Written by the planner by hand.
