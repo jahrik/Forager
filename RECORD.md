@@ -8359,3 +8359,23 @@ Both go to the next phone check.
 - -291's residuals apply here too.
 **Device items open:** each delete path (the drawer gallery, the album long-press, the album trash button, and the Offline maps and Records rows): go back to Maps, and the record does not come back and no fan collects it. Undo restores it.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-303
+**Timestamp:** 2026-09-30T19:45:20Z
+**Continues:** 2026-09-28-298 (preserved -15)
+**Why:** -298 stopped at 55fae470.
+- Its fix passes for fullscreen, the add-action menu and the Log-a-find picker, each red at 6b6f46c1's main.
+- The dropdown term turned two of -293's unchanged tests red: "a second Back … folds the fan", and the bubble order.
+- The cause, from a stack trace in the Robolectric harness: after the drawer or the dropdown closes, requestFocus hands focus to the search field, and onFieldFocused (AvailabilityCompactScaffold.kt:838) reopens the dropdown. A no-fan dropdown-Back test fails the same way in that harness.
+- Two fix attempts on the tests changed nothing, and the coder stopped.
+**The owner's ruling, verbatim:** "Option A". The dropdown term is dropped, and -293's tests stay unchanged.
+**Change:**
+- The fan's Back gate covers the drawer, fullscreen, pendingAction, pickingSearchLocation and showActionMenu, but not the search dropdown.
+- The dropdown and the refocus finding go to device-only.
+- The coder's own dropdown test is removed, and its failure is recorded in the report.
+- The Set-on-map test stays if it passes, and is reported if it does not.
+**Open:** whether the refocus reopening happens on a device. The planner has asked the owner for a quick S22 check. A separate dispatch waits on that result.
+**Notes:** Written by the planner by hand.
