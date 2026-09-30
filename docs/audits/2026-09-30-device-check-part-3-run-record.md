@@ -235,3 +235,15 @@ The map shows through the translucent chrome, so these are not the tokens. `c1-m
 - The record and the stop buttons are 48 dp squares and the "i" sits under the pill when the L is on the right at 90; a tap on the "i" starts a recording and raises the notification-permission prompt.
 - The phone's soft keyboard opened over the top of the screen at 90 (not the app's layout).
 - `fanprobe.py`, `probe.py` and the other helper scripts in the evidence folder send Back keys; do not reuse them where a system prompt may be up.
+
+### Resumed addendum: the owner's "Prompt allowed", and what I ran after it
+
+**Start-state change, made by the owner** (planner message, verbatim: "Prompt allowed"). `dumpsys package` for the app now reads `POST_NOTIFICATIONS: granted=true, flags=[ USER_SET|...]` for user 0 (line 143); a second entry (line 158) reads `granted=false` with no USER_SET and belongs to user 95, `DUAL_APP`, where the app is `stopped=true, notLaunched=true`. I read both myself. The permission is left as the owner set it. My incident notes above stand as written.
+
+**A1 item 3 (record row) and item 7 (record and return while recording): PASS at 90.** With the permission granted, a real tap at the record square's top-left (102,915) started a recording with no system prompt (`r2-recording.png`: stop icon, a "Do Not Disturb is on. If you go off track, the alert may not be felt." snackbar drawn over the pill for about 6 s). The return row's node then reads "Return: 120° SE · 2 ft · -1 m" and a real tap at (300,978) opened the return HUD ("within 34 ft, Approaching", `r4-return.png`); the HUD is drawn over the search bar's right part and the compass strip and does not cover the L. The stop button at the record row stopped the recording. The record row's other corners and the 270 case were not run. A first tap on the "i"-side of the pill at 90 is the item 9 finding.
+
+**Mistake (mine): I deleted one record that is not mine.** Deleting my recording's two waypoints through the Records list, I swiped one row too many on the last of four swipes and removed the offline map region "DEVICE CHECK 2026-09-28 B" (from an earlier device check; 3 mi around 45.3198, -122.6247, 244 tiles). The Undo window had passed when I saw it (Records All 10 to 7, `r8.png`). `offline_regions` now has 1 row ("DEVICE CHECK"); it had 2; `cartography_entry_offline_region_refs` still has its 1 row. It is recoverable only by restoring from `a-copy/`, which S22-B does at its end.
+
+**Residue I could not remove through the app:** two `tracks` rows from my own recordings (started 2026-09-30 00:15:43 and 00:16:47 UTC, no name; the Records list shows Tracks 1, so the app does not list them). `tracks` is 3 rows against 1 in the copy; `waypoints` 3 (equal). `forager.db` at the end is therefore further from the copy than the read-back above says: tracks 3, offline_regions 1, cached_searches 3. S22-B's return to the verified copy covers all of it.
+
+**Restore read-back after this addendum:** `accelerometer_rotation` 0, `user_rotation` 0, `font_scale` 1.0, night mode yes, app force-stopped, crash buffer 0 lines, notification permission left granted (owner's).
