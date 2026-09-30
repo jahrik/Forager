@@ -61,80 +61,59 @@ private const val NIGHT_RASTER_PAINT = """,
           }"""
 
 /**
- * The map zoom at and above which Topographical's night paint is [NIGHT_RASTER_PAINT] unchanged, and
- * below which it is [TOPO_NIGHT_LOW_ZOOM_BRIGHTNESS_MIN] of it. 9.5 is where OpenTopoMap's tiles
- * change character: MapLibre Native 13.5.0 fetches raster tile zoom `round(mapZoom + 1)` for a 256 px
- * source (`util::coveringZoomLevel`, cited on [rasterTileZoomFor]), so tile zoom 11 starts at map zoom
- * 9.5. Measured on the 81-tile sample (`docs/audits/2026-09-30-topo-night-completion-report.md`),
- * V1's mean lightness is 0.42 to 0.47 on tile zoom 7 to 10 and 0.23 to 0.32 on tile zoom 11 to 15.
- * The change-over is a step, on the zoom where the tile level itself changes, not a ramp: a ramp
- * ending at 9.5 would light the last half zoom of the old tiles, and one running past it would
- * darken tiles that already look right.
+ * The map zoom below which a night Topographical map shows Street instead: [nightLowZoomBasemap]'s layer
+ * is drawn under this zoom, Topographical's from it (a layer's `maxzoom` is exclusive and its `minzoom`
+ * inclusive, style spec v8). 9.5 is where OpenTopoMap's tiles change character: MapLibre Native 13.5.0
+ * fetches raster tile zoom `round(mapZoom + 1)` for a 256 px source (`util::coveringZoomLevel`, cited on
+ * [rasterTileZoomFor]), so tile zoom 11 starts at map zoom 9.5. Measured on an 81-tile sample
+ * (`docs/audits/2026-09-30-topo-night-completion-report.md`), V1's mean lightness is 0.42 to 0.47 on
+ * OpenTopoMap tile zoom 7 to 10 and 0.23 to 0.32 on 11 to 15.
  */
-internal const val TOPO_NIGHT_CHANGEOVER_ZOOM = 9.5
+internal const val NIGHT_STREET_SWITCH_ZOOM = 9.5
+
+/** The id of the Street source and layer a night Topographical style adds under [RASTER_LAYER_ID]'s. */
+internal const val NIGHT_STREET_SOURCE_ID = "basemap-street"
+internal const val NIGHT_STREET_LAYER_ID = "basemap-street"
 
 /**
- * Topographical's `raster-brightness-min` below [TOPO_NIGHT_CHANGEOVER_ZOOM]: V1 at half amplitude.
- * `raster-brightness-max` stays 0 and `raster-hue-rotate` stays 180, so the output is `0.5 * V1`, the
- * same polarity and hue as the zoomed-in night. 0.5 puts the low-zoom tiles' mean and median
- * lightness (0.21 to 0.23 and 0.20 to 0.24 on tile zoom 7 to 10) inside the band of today's zoomed-in
- * night (means 0.23 to 0.32, medians 0.17 to 0.23, each widened by 0.03).
+ * The basemap a night [basemap] shows below [NIGHT_STREET_SWITCH_ZOOM], or `null` when it shows itself at
+ * every zoom. Only Topographical has one: [Basemap.OSM_STANDARD]. A per-basemap decision rather than an
+ * inline `if`, like [basemapTakesNightPaint], so the style and the attribution caption read the same
+ * answer and a test can pin the set.
+ *
+ * **Why.** The owner, on the S22, with three screenshots: "When maps are in topo night mode, they are in
+ * night mode when zoomed in, but after zooming out to a certain point, it goes back to day mode. I
+ * checked the diff between night and day and they have light colors, just a different palette". Night was
+ * never switching off: [NIGHT_RASTER_PAINT] has no zoom dependence. OpenTopoMap's own low-zoom tiles
+ * (tile zoom 7 to 10) are tinted, green lowlands and tan hills, and V1, which flips lightness about each
+ * pixel's channel mean, turns the saturated greens light (the zoomed-out night screenshot's dominant
+ * (120,216,120) is V1 of the day screenshot's (72,168,72), which gives (119,215,119); both quantised to
+ * 16 levels). At trail zoom its tiles are pale and V1 makes them dark.
+ *
+ * **What was tried and rejected, in this order.**
+ *  1. *Half-amplitude V1 below 9.5* (`raster-brightness-min` 0.5; the planner's ruling, built, then run on
+ *     the S22). Owner: "Coder took the dimming route anyway. The map needs to not be dimmed, but match
+ *     what we see when zoomed in". It dimmed the map, as the August 2026 dimming attempts above did.
+ *  2. *Dimming with no inversion*, rejected before it was built: "Option A. No dimming. That's tacky and
+ *     not a true night mode option".
+ *  3. *Anything per pixel* (contrast, saturation, scaled brightness): "Pure inverted colors is the way,
+ *     not fine tuned pixel manipulation. We may need to lose some of the topo rendering to make that
+ *     happen". The shader keeps each pixel's channel mean through the hue rotate, so the output's channel
+ *     mean is an affine function of the input's whatever the paint: no raster paint can make the low-zoom
+ *     tinted tiles look like the pale zoomed-in ones.
+ *  4. *Deeper OpenTopoMap tiles* (a second source with a smaller `tileSize`): the tinted look belongs to
+ *     tile levels 7 to 10 however they are fetched, so reaching level 11 at map zoom 7 needs `tileSize`
+ *     32, where labels are about 1 dp and each view is about 34 times the tiles.
+ *
+ * **What the owner chose**, shown the renders: "I notice street maps doesn't have this problem. Maybe
+ * switch to street maps instead of topo maps when zoomed out? Only when night maps mode is on. With it
+ * off no switch to street occurs." So at topo night, below 9.5, the layer is OSM Standard, which V1 turns
+ * dark at every zoom (mean 0.15 to 0.23 on tile zoom 7 to 15, one to four tiles each), with the same
+ * [NIGHT_RASTER_PAINT] on both layers, unchanged. The switch is hard; the owner accepted a switch.
+ * Topo day, every other basemap, Satellite and the offline style are untouched.
  */
-internal const val TOPO_NIGHT_LOW_ZOOM_BRIGHTNESS_MIN = 0.5
-
-/**
- * Topographical's night paint: [NIGHT_RASTER_PAINT] at and above [TOPO_NIGHT_CHANGEOVER_ZOOM], and
- * the same paint with `raster-brightness-min` at [TOPO_NIGHT_LOW_ZOOM_BRIGHTNESS_MIN] below it.
- *
- * **Why.** The owner, on the S22, with three screenshots: "When maps are in topo night mode, they are
- * in night mode when zoomed in, but after zooming out to a certain point, it goes back to day mode. I
- * checked the diff between night and day and they have light colors, just a different palette". Then:
- * "Change the zoomed out colors to match the zoomed in colors so that night mode can stay active".
- * Night was not switching off: the paint has no zoom dependence. OpenTopoMap's own low-zoom tiles are
- * tinted (green lowlands, tan hills) and V1, which flips lightness about each pixel's channel mean,
- * turns the saturated greens light (the zoomed-out night screenshot's dominant (120,216,120) is V1 of
- * the day screenshot's (72,168,72), which gives (119,215,119); both quantised to 16 levels). At
- * trail zoom its tiles are pale and V1 makes them dark.
- *
- * **Why half-amplitude V1 and not something else** (measured per zoom in the completion report):
- *  - *Dimming with no inversion* (a `raster-brightness-max` cap, the kind of block the August 2026
- *    attempts above used; one was removed 2026-08-26 because it "left the map brighter than the dark
- *    chrome around it", and a lower cap "had already failed on legibility"). Measured here at a cap of
- *    0.3 it keeps the pale low-zoom roads above the ground, but leaves black labels at lightness 0.04
- *    against a ground of 0.17, and its polarity is the opposite of the zoomed-in night. Those attempts
- *    applied at every zoom, to pale day ground and dark linework alike, which is the legibility
- *    problem; this paint leaves trail zoom as it is, changes only the zooms below 9.5, and keeps the
- *    inversion there, so labels and linework still flip against the ground.
- *    The owner, shown both options: "Option A. No dimming. That's tacky and not a true night mode
- *    option".
- *  - *A blend of V1 and non-inverted paint across the change-over.* `raster-brightness-min` and `-max`
- *    mix `min + (max - min) * rgb`: moving from min above max to min below it passes through
- *    min = max, which renders every pixel the same flat grey. Keeping both ends inverted (`min` 0.5
- *    and 1, `max` 0 throughout) means the slope never reaches zero, so no change-over can pass
- *    through it.
- *  - *Hue-rotate or saturation tricks.* The shader keeps each pixel's channel mean through the spin,
- *    so the output's channel mean is always an affine function of the input's, whatever the paint:
- *    no raster paint can put both black labels and pale roads above a mid-tone ground.
- *
- * **The known gap.** Low-zoom OpenTopoMap roads are pale yellow, and V1's polarity turns them into
- * the darker thing on the ground: 0.03 to 0.07 darker than it (measured), where zoomed in they are
- * 0.06 to 0.13 lighter. Labels come out lighter than the ground at every zoom. The planner withdrew "roads
- * lighter than the ground" as a condition for this reason (dispatch 2026-09-28-310).
- *
- * Only Topographical takes this: Street is pale at every zoom (mean V1 lightness 0.15 to 0.22 on one
- * tile per zoom, zoom 7 to 15) and keeps [NIGHT_RASTER_PAINT]. Day, Satellite and the offline
- * style are untouched.
- */
-private const val TOPO_NIGHT_RASTER_PAINT = """,
-          "paint": {
-            "raster-brightness-min": ["step", ["zoom"], $TOPO_NIGHT_LOW_ZOOM_BRIGHTNESS_MIN, $TOPO_NIGHT_CHANGEOVER_ZOOM, 1],
-            "raster-brightness-max": 0,
-            "raster-hue-rotate": 180
-          }"""
-
-/** The night paint block [basemap]'s style carries, for a basemap that [basemapTakesNightPaint]. */
-private fun nightRasterPaintFor(basemap: Basemap): String =
-    if (basemap == Basemap.OPEN_TOPO_MAP) TOPO_NIGHT_RASTER_PAINT else NIGHT_RASTER_PAINT
+internal fun nightLowZoomBasemap(basemap: Basemap): Basemap? =
+    if (basemap == Basemap.OPEN_TOPO_MAP) Basemap.OSM_STANDARD else null
 
 /**
  * Whether [basemap]'s raster style takes [NIGHT_RASTER_PAINT] when night mode is on. `false` only
@@ -145,7 +124,45 @@ private fun nightRasterPaintFor(basemap: Basemap): String =
  */
 internal fun basemapTakesNightPaint(basemap: Basemap): Boolean = basemap != Basemap.USGS_IMAGERY_ONLY
 
-internal fun styleJsonFor(basemap: Basemap, night: Boolean = false): String = """
+internal fun styleJsonFor(basemap: Basemap, night: Boolean = false): String {
+    val below = nightLowZoomBasemap(basemap)
+    return if (night && below != null && basemapTakesNightPaint(basemap)) nightStyleJsonWithBasemapBelow(basemap, below) else singleLayerStyleJson(basemap, night)
+}
+
+/**
+ * [basemap]'s night style with [below]'s raster layer under it: [below] is drawn under
+ * [NIGHT_STREET_SWITCH_ZOOM] (`maxzoom`), [basemap] from it (`minzoom`), both carrying [NIGHT_RASTER_PAINT].
+ * [basemap]'s source and layer keep the ids and content the day style gives them. Layers draw in array
+ * order, so [below] is first; at any one zoom exactly one of the two is drawn.
+ */
+private fun nightStyleJsonWithBasemapBelow(basemap: Basemap, below: Basemap): String = """
+    {
+      "version": 8,
+      "glyphs": "$GLYPHS_URL_TEMPLATE",
+      "sources": {
+        "$NIGHT_STREET_SOURCE_ID": {
+          "type": "raster",
+          "tiles": ["${below.tileUrlTemplate}"],
+          "tileSize": 256,
+          "maxzoom": ${below.maxZoom},
+          "attribution": ${below.attribution.toJsonStringLiteral()}
+        },
+        "$RASTER_SOURCE_ID": {
+          "type": "raster",
+          "tiles": ["${basemap.tileUrlTemplate}"],
+          "tileSize": 256,
+          "maxzoom": ${basemap.maxZoom},
+          "attribution": ${basemap.attribution.toJsonStringLiteral()}
+        }
+      },
+      "layers": [
+        {"id": "$NIGHT_STREET_LAYER_ID", "type": "raster", "source": "$NIGHT_STREET_SOURCE_ID", "maxzoom": $NIGHT_STREET_SWITCH_ZOOM$NIGHT_RASTER_PAINT},
+        {"id": "$RASTER_LAYER_ID", "type": "raster", "source": "$RASTER_SOURCE_ID", "minzoom": $NIGHT_STREET_SWITCH_ZOOM$NIGHT_RASTER_PAINT}
+      ]
+    }
+""".trimIndent()
+
+private fun singleLayerStyleJson(basemap: Basemap, night: Boolean): String = """
     {
       "version": 8,
       "glyphs": "$GLYPHS_URL_TEMPLATE",
@@ -159,7 +176,7 @@ internal fun styleJsonFor(basemap: Basemap, night: Boolean = false): String = ""
         }
       },
       "layers": [
-        {"id": "$RASTER_LAYER_ID", "type": "raster", "source": "$RASTER_SOURCE_ID"${if (night && basemapTakesNightPaint(basemap)) nightRasterPaintFor(basemap) else ""}}
+        {"id": "$RASTER_LAYER_ID", "type": "raster", "source": "$RASTER_SOURCE_ID"${if (night && basemapTakesNightPaint(basemap)) NIGHT_RASTER_PAINT else ""}}
       ]
     }
 """.trimIndent()
@@ -216,8 +233,13 @@ internal fun mapCreditsFor(
     useOfflineTiles: Boolean,
     layerCredits: List<String> = emptyList(),
     nightMode: Boolean = false,
-): List<String> =
-    (listOf(mapAttributionFor(basemap, useOfflineTiles)) + layerCredits).distinct()
+): List<String> {
+    // At topo night the style also draws Street below 9.5 ([nightLowZoomBasemap]), so its credit is owed. The
+    // caption has no zoom input, so both credits show at every zoom; hiding one above 9.5 would need a zoom
+    // listener for no gain. Offline is the vector style, which carries neither.
+    val below = if (!useOfflineTiles && nightMode && basemapTakesNightPaint(basemap)) nightLowZoomBasemap(basemap) else null
+    return (listOf(mapAttributionFor(basemap, useOfflineTiles)) + listOfNotNull(below?.attribution) + layerCredits).distinct()
+}
 
 /** [credits] as the one line the caption draws, joined by [ATTRIBUTION_SEPARATOR]. */
 internal fun attributionCaption(credits: List<String>): String = credits.joinToString(ATTRIBUTION_SEPARATOR)

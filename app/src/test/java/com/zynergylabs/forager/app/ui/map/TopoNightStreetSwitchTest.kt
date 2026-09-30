@@ -141,8 +141,7 @@ class TopoNightStreetSwitchTest {
         for ((name, layer) in listOf("street" to street, "topo" to topo)) {
             val paint = layer.getValue("paint").jsonObject
             assertEquals("$name: the paint is exactly the three V1 properties", setOf("raster-brightness-min", "raster-brightness-max", "raster-hue-rotate"), paint.keys)
-            assertEquals("$name: V1 at every zoom", v1, rasterPaintAt(paint, 5.0))
-            assertEquals("$name: V1 at every zoom", v1, rasterPaintAt(paint, 12.0))
+            assertEquals("$name: V1", v1, rasterPaintOf(paint))
             assertEquals("$name: brightness-min is a plain number, not an expression", 1.0, paint.getValue("raster-brightness-min").jsonPrimitive.double(), 0.0)
         }
 
@@ -171,7 +170,7 @@ class TopoNightStreetSwitchTest {
                 "opentopomap" in tilesUrl -> topoTiles.getValue(z)
                 else -> error("unexpected tile source $tilesUrl")
             }
-            val raster = try { rasterPaintAt(layer.getValue("paint").jsonObject, mapZoom) } catch (e: IllegalStateException) { failures += "map zoom $mapZoom: ${e.message}"; continue }
+            val raster = try { rasterPaintOf(layer.getValue("paint").jsonObject) } catch (e: IllegalStateException) { failures += "map zoom $mapZoom: ${e.message}"; continue }
             if (raster != v1) failures += "tile z$z at map zoom $mapZoom: the drawn layer's paint is $raster, not pure V1"
             val (mean, median) = meanAndMedian(set) { rasterShade(it, raster) }
             if (mean > limit) failures += "tile z$z at map zoom $mapZoom (${if ("openstreetmap" in tilesUrl) "Street" else "topo"}): mean lightness %.3f, limit %.3f".format(mean, limit)
