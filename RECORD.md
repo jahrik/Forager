@@ -8927,3 +8927,36 @@ The owner picks from the images. Nothing merges from topo-night as built.
   - the merged head's app tree is identical to the branch's. So this is the first local run over the combined -310, -325 and -331 tree.
 **Device item open:** one iNaturalist request and one Open-Meteo request captured from the S22, to read the header.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-335
+**Timestamp:** 2026-09-30T23:20:20Z
+**Continues:** 2026-09-28-319 (preserved -23), not yet started
+**The owner, verbatim:** "Go ahead", folding the planner's open item 1 into -319.
+**Change:** -319 also confirms the app's User-Agent on the wire (-325, -331) on the S22, with one request each from:
+- a map tile, on Street (tile.openstreetmap.org);
+- an offline region download, which settles -325's inference;
+- iNaturalist;
+- Open-Meteo.
+
+Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.forager.app; +https://zynergy-labs.com; support@zynergy-labs.com)`.
+- **The build must carry -325 and -331.** The planner installs a journal-redesign build at or after 6ac9c4d9 before -319 starts, and names it.
+- **Method:** the coder's choice, stated. **Stop and ask before any change to the phone's system settings,** including a Wi-Fi proxy or installing a CA certificate, and before any change to app code. Restore anything touched, and read it back.
+- The data rules of -319 hold throughout.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-336
+**Timestamp:** 2026-09-30T23:20:20Z
+**Title:** Two test gaps left by -310: the caption's night wiring, and a test that tells the crossfade from the hard switch
+**Dispatch-file:** preserved/2026-09-30-26.md
+**The owner, verbatim:** "Go ahead", for the planner's open items 2 and 3.
+**Change:**
+- Tests only.
+- A test fails when SightingsMap stops passing nightMode to the caption.
+- For the crossfade: first confirm what is uncovered. Either add the smallest test that fails on the hard-switch style, or report that the existing tests already cover it.
+**Notes:** Written by the planner by hand.
