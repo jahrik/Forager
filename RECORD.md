@@ -7626,3 +7626,35 @@ Its record is on device-part-3 at 32534b45 (checked on origin). The phone reads 
 - Every find created or deleted is named in the report.
 **The owner's answer:** "The coder has my authorization to run it".
 **Notes:** Written by the planner by hand. The planner read "run it" as this case, the one the -270 hand-off named as needing a record change.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-273
+**Timestamp:** 2026-09-30T08:23:42Z
+**Closes:** 2026-09-28-265 (preserved -58, with continuation -271)
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as 04e652c5, no-ff, from fan-clarity 2c95fd70:
+  - the tests first (c2cd00d2);
+  - the implementation (95b36d76). It built and passed unchanged on the continuation;
+  - the report, docs/audits/2026-09-30-fan-clarity-completion-report.md.
+- **The coder's checks:**
+  - the stub commit gave 15 fail and 43 pass, an exact match to the pre-registration;
+  - the five revert checks, (a) to (e), each failed only its own tests, with 0 compile errors;
+  - the full suite gave 3146 / 0 / 24.
+- **The planner's checks:**
+  - `git diff 95b36d76 origin/fan-clarity -- app data server` is empty;
+  - the merged head's app, data and server trees are identical to fan-clarity's;
+  - the JUnit XML in the fan-clarity worktree totals 3146 tests, 0 failures, 0 errors and 24 skipped, in 385 files written at 07:56Z. That matches the report.
+- **The planner did not re-run the suite.** The merged code is byte-identical to the code the coder ran. The map-return-fixes coder was building on the same machine, and memory was at about 2.8 GB.
+- **Accepted:** 95b36d76 removed two FanOutLayersTest halo cases. That follows from the owner's "Circle replaces halo", and the circle test "kept record has a circle and no halo" covers the halo's absence.
+- **The owner's go-ahead:** "Go ahead and merge when ready".
+**Device-only:** the report's five items go to S22-B's relaunch:
+- the look by day and night;
+- the fade and its exact restore, including after a Layers change made with a fan open;
+- the ~30 dp pair;
+- the theme change with a fan open;
+- the fade ending when the fold starts.
+**Next:** map-return-fixes (-267/-270) merges second and resolves the adjacent SightingsMap.kt hunks near :761-785.
+**Notes:** Written by the planner by hand.
