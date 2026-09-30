@@ -7463,3 +7463,21 @@ S22-B's launch prompt (-53) already makes the dispatch and its amendments govern
 - **Superseded, and the source documents not edited:** F4's checklist item 17 (by -255), and M1's "no tail when the clamp puts the card over the point" where the card fits below (by -262).
 **Device-only:** the eight-item recheck table in the report goes to S22-B, together with items 2 and 5's data collection.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-264
+**Timestamp:** 2026-09-30T03:19:42Z
+**Dispatch:** 2026-09-28-227 (Part 3), S22-B
+**Reason:** the owner, verbatim: "Launch S22-B now".
+**Changes:**
+- **An amendment to preserved/2026-09-29-51.** S22-B builds and installs 5d429f19, which has both merges, and runs, in order:
+  1. the rechecks: A1 item 1 after fullscreen, and the device-fails items 1-8, with 2 and 5 as data only;
+  2. A4 and A5;
+  3. the data group, F5's items and A6;
+  4. the restore to S22-A's a-copy, which re-runs MIGRATION_16_17.
+  
+  The rules of -241, -253 and -254 all hold.
+- **S22-B is launched** as an Agent-tool coder of planner [303193].
+**Notes:** Written by the planner by hand.
