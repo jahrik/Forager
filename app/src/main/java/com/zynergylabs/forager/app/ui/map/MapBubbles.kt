@@ -396,7 +396,8 @@ data class BubblePlacement(val topLeftX: Int, val topLeftY: Int, val tipInBubble
  * Places a bubble of [bubbleWidth] by [bubbleHeight] px (the card plus [tailPx] of margin on every
  * side) so that, unclamped, its tail of [tailPx] ends on [anchor] along [arrowAngleDeg] (screen
  * space, clockwise from up, pointing from the card back to the anchor); then clamps it into the box
- * [maxWidth] by [maxHeight], no higher than [minY]. The tip stays on [anchor] either way.
+ * [maxWidth] by [maxHeight], no higher than [minY]. The tip stays on [anchor] either way. A card that
+ * does not fit above its glyph opens below it when it fits there (amendment -262, "Flip below").
  */
 fun bubblePlacement(
     anchor: Offset,
@@ -412,12 +413,26 @@ fun bubblePlacement(
     // padding), so the tail's base sits on the visible card's edge.
     val halfWidth = bubbleWidth / 2f
     val halfHeight = bubbleHeight / 2f
-    val edge = rectEdgeIntersection(halfWidth - tailPx, halfHeight - tailPx, arrowAngleDeg)
-    val radians = Math.toRadians(arrowAngleDeg.toDouble())
-    val tipFromCentre = Offset(edge.x + sin(radians).toFloat() * tailPx, edge.y - cos(radians).toFloat() * tailPx)
-    val idealCentre = anchor - tipFromCentre
-    val x = (idealCentre.x - halfWidth).roundToInt().coerceIn(0, (maxWidth - bubbleWidth).coerceAtLeast(0))
-    val y = (idealCentre.y - halfHeight).roundToInt().coerceIn(minY, (maxHeight - bubbleHeight).coerceAtLeast(minY))
+    /** The card's unclamped top-left along [angleDeg]: where it would sit if the box did not limit it. */
+    fun idealTopLeft(angleDeg: Float): Offset {
+        val edge = rectEdgeIntersection(halfWidth - tailPx, halfHeight - tailPx, angleDeg)
+        val radians = Math.toRadians(angleDeg.toDouble())
+        val tipFromCentre = Offset(edge.x + sin(radians).toFloat() * tailPx, edge.y - cos(radians).toFloat() * tailPx)
+        val idealCentre = anchor - tipFromCentre
+        return Offset(idealCentre.x - halfWidth, idealCentre.y - halfHeight)
+    }
+    var ideal = idealTopLeft(arrowAngleDeg)
+    // Flip below (dispatch 2026-09-29-57, amendment -262, the owner's "Flip below"): a card whose top would be
+    // above [minY] does not fit above its glyph, and clamped down it would sit over the glyph it names. It opens
+    // below instead, the arrow mirrored top to bottom so the tail points up from the card's top edge to the glyph
+    // (this supersedes M1's "no tail when the clamp puts the card over the point" where below fits). Where it fits
+    // neither above nor below, M1's clamp stands.
+    if (ideal.y < minY) {
+        val below = idealTopLeft((180f - arrowAngleDeg).mod(360f))
+        if (below.y >= minY && below.y + bubbleHeight <= maxHeight) ideal = below
+    }
+    val x = ideal.x.roundToInt().coerceIn(0, (maxWidth - bubbleWidth).coerceAtLeast(0))
+    val y = ideal.y.roundToInt().coerceIn(minY, (maxHeight - bubbleHeight).coerceAtLeast(minY))
     // The tip is the anchor itself, in the bubble's coordinates: wherever the clamp put the card, the
     // tail is drawn from the card's edge to here (planner's M1 ruling).
     return BubblePlacement(x, y, Offset(anchor.x - x, anchor.y - y))
