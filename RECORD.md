@@ -8744,3 +8744,294 @@ The owner picks from the images. Nothing merges from topo-night as built.
 - the offline-region cost;
 - building it would be a new feature with its own dispatch.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-324
+**Timestamp:** 2026-09-30T22:18:37Z
+**Continues:** 2026-09-28-310, after -323 (renders at topo-night 14ebcc12)
+**The owner's choice, verbatim:** "I notice street maps doesn't have this problem. Maybe switch to street maps instead of topo maps when zoomed out? Only when night maps mode is on. With it off no switch to street occurs."
+**Change:** render (b), night-only.
+- Topo night gets an OSM_STANDARD raster layer (Basemap.kt:165-172, tile.openstreetmap.org) with maxzoom 9.5, under the topo layer with minzoom 9.5. Both carry pure V1.
+- The half-amplitude paint is removed.
+- Topo day, the other basemaps, Satellite and the offline style are byte-identical to today's.
+- Both credits show at topo night.
+- A hard switch at 9.5. A crossfade is reported, not added.
+**Rejected:**
+- (a) deeper topo tiles: labels unreadable below about 8.5, and 30× or more the tiles at zoom 7;
+- (c) OSM plus a DEM hillshade: small gain, a new DEM source, about 15 MB of offline cost per region;
+- a zoom limit on topo.
+**For the owner, reported by the coder and not fixed:**
+- nothing in main/ sets a User-Agent, and OSM's tile policy blocks library defaults. That touches the Street basemap today;
+- OSM's policy forbids offline use and warns commercial users. Offline regions are unaffected, since they use the vector style.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-325
+**Timestamp:** 2026-09-30T22:20:15Z
+**Title:** The app identifies itself to map tile servers with a proper User-Agent
+**Dispatch-file:** preserved/2026-09-30-24.md
+**The owner, verbatim:** "Yes set a proper app identifier".
+**The planner's reading:**
+- -310 reported that nothing in main/ sets a User-Agent, and that OSM's tile policy blocks library defaults.
+- This touches the Street basemap today, and topo night below 9.5 after -324.
+**Change:**
+- One User-Agent, Forager/<versionName> (Android <release>; <applicationId>; +<contact>), installed once at start for every MapLibre request, verified against 13.5.0.
+- The other HTTP clients are reported, not changed.
+**Open:** the contact value is the owner's to give. It stays CONTACT_PENDING until then.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-326
+**Timestamp:** 2026-09-30T22:23:40Z
+**Continues:** 2026-09-28-325 (preserved -24)
+**The owner's contact values, verbatim:** "zynergy-labs.com for the website" and "support@zynergy-labs.com for the email".
+**Change:** the contact constant replaces CONTACT_PENDING with `+https://zynergy-labs.com; support@zynergy-labs.com`. The planner added the https:// scheme, the form the zynergy-site repo publishes 32 times and the form OSM's policy example uses.
+**The full User-Agent:** `Forager/<versionName> (Android <release>; <applicationId>; +https://zynergy-labs.com; support@zynergy-labs.com)`.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** device-note
+**ID:** 2026-09-28-327
+**Timestamp:** 2026-09-30T22:37:48Z
+**Covers:** installing -310's Street-switch build (-324) on the S22 for the owner's check
+**The build:** 1.0.2190+g811508db, from forager-wt/topo-night. APK sha256 12cbe4a33f8d5367…. The coder built it after a full suite of 3211/0/0/24. The planner read the worktree's XML: 394 files and 3211/0/0/24, written at 15:36.
+**The install:** `adb install -r --user 0` at 2026-09-30 15:37:37. User 0's ceDataInode stayed 2259049. databases/forager.db's sha256 is e1188b00…, unchanged.
+**Not done:** no launch, input or screenshot by the planner.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-328
+**Timestamp:** 2026-09-30T22:43:42Z
+**Continues:** 2026-09-28-310, after -324 (topo-night b1fc980d, installed as 1.0.2190+g811508db, -327)
+**The owner, verbatim:** "Add the cross fade to the topo switch. I honestly considered that myself".
+**Change:**
+- At topo night, the Street layer's maxzoom becomes 9.6 at opacity 1, and the topo layer's minzoom 9.4, with raster-opacity interpolated from 0 at 9.4 to 1 at 9.6.
+- Both keep pure V1. By the coder's reading of 13.5.0, opacity applies after the brightness mix, so there is no grey crossing.
+- Accepted costs: both sources load tiles across 9.4-9.6, and the two sets of roads show through each other in that range.
+**Notes:** Written by the planner by hand. It is queued behind -325 for Gradle.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-329
+**Timestamp:** 2026-09-30T22:44:52Z
+**Continues:** 2026-09-28-310, after -328
+**Why:** the coder measured co-registered samples with V1 on both layers. Over -328's 9.4-9.6 range, topo still shows OpenTopoMap tile level 10 until 9.5, so the fade lightens to a median of 0.353 just under 9.5 (the limit is 0.345), then snaps dark at tile level 11.
+**The owner's reasons,** recorded for the KDoc, verbatim: "But it does look a lot better than switching to day mode suddenly. We have two tradeoffs and only one can break confidence in the app."
+**Ruling, by the planner, within the owner's rule of never showing a light map:** the fade is **9.5-9.7**.
+- Street maxzoom 9.7 at opacity 1; topo minzoom 9.5, with opacity from 0 at 9.5 to 1 at 9.7.
+- Only tile level 11 ever fades in. The modelled blend has a mean of 0.22-0.27, and the dark limit stays with no allowance.
+- -328's 9.4-9.6 is superseded.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-330
+**Timestamp:** 2026-09-30T22:54:19Z
+**Closes:** 2026-09-28-325 (preserved -24), with continuation -326
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as 4d552bf0, no-ff, from map-user-agent dc244b4e. The owner said "Merge -325".
+- **The mechanism,** by javap on 13.5.0: HttpRequestImpl adds a fixed "MapLibre Android/13.5.0 …" User-Agent that cannot be configured. The app installs its own OkHttpClient through HttpRequestUtil.setOkHttpClient at start, and an interceptor replaces the header with `Forager/<versionName> (Android <release>; <applicationId>; +https://zynergy-labs.com; support@zynergy-labs.com)`.
+- **The tests:** MapUserAgentTest, 6 tests. A request carries exactly one User-Agent, the app's. The revert check (the install removed) fails only its own test.
+- **The planner's checks:** the worktree's XML gives 394 files and 3206/0/0/24, written at 15:44. The merged app tree is identical to the branch's.
+**Inferred, not observed:** offline downloads share the client.
+**Found and not changed:** INaturalistClient, OpenMeteoClient and OpenMeteoArchiveClient send OkHttp's default User-Agent. This is open with the owner.
+**Device item open:** capture one tile request's headers from the S22, and one offline-download request's.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-331
+**Timestamp:** 2026-09-30T22:54:59Z
+**Title:** iNaturalist and Open-Meteo requests carry the app's User-Agent
+**Dispatch-file:** preserved/2026-09-30-25.md
+**The owner, verbatim:** "And same identifier for inaturalist and open-meteo".
+**The planner's reading:** -325 found that INaturalistClient, OpenMeteoClient and OpenMeteoArchiveClient send OkHttp's default User-Agent.
+**Change:**
+- One shared interceptor on those three clients sets exactly one User-Agent, from the same single source as the map's (MapUserAgent, which may be moved to an app-wide home).
+- Nothing else about the clients changes.
+**Notes:** Written by the planner by hand. It is queued for Gradle.
+
+---
+
+**Kind:** device-note
+**ID:** 2026-09-28-332
+**Timestamp:** 2026-09-30T22:57:14Z
+**Covers:** installing -310's crossfade build (-328, -329) on the S22 for the owner's check
+**The build:** 1.0.2198+gd072859b, from forager-wt/topo-night. APK sha256 64eb5fb6854b5414…. The planner read the worktree's XML: 394 files and 3214/0/0/24, written at 15:56.
+**The install:** `adb install -r --user 0` at 2026-09-30 15:57:03. User 0's ceDataInode stayed 2259049. databases/forager.db's sha256 is e1188b00…, unchanged.
+**Not done:** no launch, input or screenshot by the planner.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-333
+**Timestamp:** 2026-09-30T23:01:36Z
+**Closes:** 2026-09-28-310 (preserved -18), with continuations -313, -314, -321, -322, -323, -324, -328 and -329
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as 301c67b3, no-ff, from topo-night e595244c. docs/audits/README.md conflicted with -325's row, and both rows were kept.
+- **The owner, verbatim:** "Crossfade works good. I'll keep this design" and "Merge it". That is the owner's device check of 1.0.2198+gd072859b (device-note -332).
+- **The design:**
+  - at topo night only, an OSM Standard raster layer (maxzoom 9.7, opacity 1) sits under the topo layer (minzoom 9.5, raster-opacity interpolated from 0 at 9.5 to 1 at 9.7);
+  - both carry today's V1 NIGHT_RASTER_PAINT, unchanged;
+  - topo day, Street, Satellite and the offline style are byte-identical;
+  - the caption credits both sources at topo night.
+- **The rationale** is in BasemapStyles.kt's KDoc: the owner's "only one can break confidence in the app", and eight rejected alternatives.
+- **The coder's checks:**
+  - TopoNightStreetSwitchTest, with a pin that a fading topo layer never shows tile level 10;
+  - the red run, 3 of 18;
+  - two revert checks;
+  - the full suite, 3214/0/0/24. The planner read that XML (-332).
+- **The planner's check:** the merged head's ui/map code is identical to topo-night's.
+**Not verified:**
+- the merged tree combining -310 and -325 was not built or tested together. They touch disjoint files (ui/map/BasemapStyles and its tests; map/MapHttpClient and map/MapUserAgent). CI on the push is the first combined run;
+- that SightingsMap passes nightMode to the caption, which no test covers. The owner's device check saw the caption.
+**Superseded within the dispatch,** each recorded:
+- the half-amplitude A (-313, -314), rejected on the device (-321);
+- 9.4-9.6 (-328), replaced by 9.5-9.7 (-329).
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-334
+**Timestamp:** 2026-09-30T23:13:10Z
+**Closes:** 2026-09-28-331 (preserved -25)
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as 6ac9c4d9, no-ff, from client-user-agent. The owner said "Merge it".
+- **What landed:**
+  - MapUserAgent moved to net/AppUserAgent, so there is one source for the format and the contact;
+  - a shared interceptor on INaturalistClient, OpenMeteoClient and OpenMeteoArchiveClient replaces the User-Agent with the app's own;
+  - timeouts and logging are unchanged.
+- **The coder's checks:**
+  - the red run: 4 of 5 new tests failed at the header;
+  - green, 5/5, and MapUserAgentTest 6/6;
+  - a revert on OpenMeteoClient alone fails only its own tests.
+- **The planner's checks:**
+  - the post-merge suite, on c14c7bcb (which carries -310 and -325), from /tmp/suite2-xml: 396 files and 3225/0/0/24;
+  - the merged head's app tree is identical to the branch's. So this is the first local run over the combined -310, -325 and -331 tree.
+**Device item open:** one iNaturalist request and one Open-Meteo request captured from the S22, to read the header.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-335
+**Timestamp:** 2026-09-30T23:20:20Z
+**Continues:** 2026-09-28-319 (preserved -23), not yet started
+**The owner, verbatim:** "Go ahead", folding the planner's open item 1 into -319.
+**Change:** -319 also confirms the app's User-Agent on the wire (-325, -331) on the S22, with one request each from:
+- a map tile, on Street (tile.openstreetmap.org);
+- an offline region download, which settles -325's inference;
+- iNaturalist;
+- Open-Meteo.
+
+Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.forager.app; +https://zynergy-labs.com; support@zynergy-labs.com)`.
+- **The build must carry -325 and -331.** The planner installs a journal-redesign build at or after 6ac9c4d9 before -319 starts, and names it.
+- **Method:** the coder's choice, stated. **Stop and ask before any change to the phone's system settings,** including a Wi-Fi proxy or installing a CA certificate, and before any change to app code. Restore anything touched, and read it back.
+- The data rules of -319 hold throughout.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-336
+**Timestamp:** 2026-09-30T23:20:20Z
+**Title:** Two test gaps left by -310: the caption's night wiring, and a test that tells the crossfade from the hard switch
+**Dispatch-file:** preserved/2026-09-30-26.md
+**The owner, verbatim:** "Go ahead", for the planner's open items 2 and 3.
+**Change:**
+- Tests only.
+- A test fails when SightingsMap stops passing nightMode to the caption.
+- For the crossfade: first confirm what is uncovered. Either add the smallest test that fails on the hard-switch style, or report that the existing tests already cover it.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** device-note
+**ID:** 2026-09-28-337
+**Timestamp:** 2026-09-30T23:21:43Z
+**Covers:** the build -319 runs on (-335)
+**The build:** 1.0.2220+g46b28a74, built by the planner with `--offline :app:assembleDebug` in the journal-redesign worktree at 46b28a74. It carries -310, -325 and -331. BUILD SUCCESSFUL, 0 `e:` lines.
+**The install:** `adb install -r --user 0`. User 0's ceDataInode stayed 2259049. databases/forager.db's sha256 was read and recorded before -319 starts.
+**Not done:** no launch or input by the planner.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-338
+**Timestamp:** 2026-09-30T23:25:08Z
+**Subject:** reliance on tile.openstreetmap.org for the Street basemap, and for topo night below zoom 9.5 (-310)
+**The policy as read** by the planner on 2026-09-30 from operations.osmfoundation.org/policies/tiles (no date shown):
+- no SLA; blocking without notice;
+- "Commercial services, or those that seek donations, should be especially aware that access may be withdrawn at any point";
+- a unique User-Agent is required (done by -325, with the device check in -319);
+- the attribution must be visible;
+- cache headers must be honoured, or tiles kept 7 days (**not verified** for MapLibre's cache);
+- "Offline use is not permitted" (the app's offline regions use its own vector style, so this is met).
+**The owner's decision, verbatim:** "3 for now but 2 intrigues me. Maybe tiling our own maps should be a project".
+- **For now:** keep tile.openstreetmap.org.
+- **Before release:** the owner decides between a commercial tile provider (option 1) and the app's own tiles (option 2). This goes beside the Open-Meteo subscription on the pre-release list.
+- **Option 2 is a candidate project:** "tiling our own maps". It is not started; scoping comes first.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-339
+**Timestamp:** 2026-09-30T23:28:18Z
+**Subject:** the own-map-tiles project, recorded as a plan for later (follows -338)
+**The owner, verbatim:** "Save it for after PR 140. Write it as a plan for later".
+**Change:** docs/plans/own-map-tiles.md, with its index row in docs/plans/README.md.
+- It covers: the reason, what exists as read on 2026-09-30 (marked as a claim to re-verify), scope A (own Street) or B (own topo too) for the owner, three steps (a read-only survey, then a spec, then dispatches), and the constraints carried forward.
+- Nothing is dispatched. It starts after PR #140 leaves draft.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-340
+**Timestamp:** 2026-09-30T23:33:08Z
+**Continues:** 2026-09-28-319 (preserved -23), with -335; not yet started
+**The owner, verbatim:** "Get the CI fix in place, start on 2, and prep for 3", where 3 is the device check.
+**Change:**
+- **When:** -319 starts on the planner's go, **after -317, -318 and -312 have merged**. The planner then builds journal-redesign and installs it, and names the versionName. That replaces the build named in -337, 1.0.2220+g46b28a74.
+- **Its items become** -319's list, plus -335's User-Agent capture, plus the device-only items of the merged fixes, as their reports list them:
+  - **-317:** tap and long-press album photos straight after opening the album, on a cold start, repeated, in portrait and landscape. Not one gesture is ignored.
+  - **-318:** with a folded stack over the puck, swap to Topo, Street and Satellite: the puck is above the markers and below an open fan. Fold and open a mixed fan, recorded: no z-order pop at either end. This **replaces** -319's "3 and 5, second run, do not judge"; they are now judged.
+  - **-312:** delete a find, a photo and a region, and watch the moment Undo ends: no flash. Check a bubble with fullscreen, and with the dropdown. Check fan plus dropdown, with the keyboard up and down: the Back order, as -312's report defines it.
+- The data rules of -319 and -335 hold unchanged.
+- **If one of the three has not merged when the owner wants the check,** its items are left out and marked "not built". They are never judged on a build without the fix.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-341
+**Timestamp:** 2026-09-30T23:37:49Z
+**Continues:** 2026-09-28-317 (preserved -21)
+**Why:**
+- The dispatch's worktree premise was wrong: branch album-gesture already existed, pushed at be3bcc18 from base b90164b2 by an earlier -317 coder, with a draft report only and nothing built.
+- That draft reports, from the compiled classes, that Image sets Role.Image and that merged semantics make both of the dispatch's approaches (a wrapper Box, or a stable outer node) drop Role.Image on the merged tile, at 4 sites: two album tiles, the find thumbnail in the editor, and the report thumbnail. It proposes (c): DecodedPhoto always composes the same Image, and only the painter changes.
+- This is unverified by the new coder or the planner.
+**Rulings, by the planner, within the dispatch:**
+1. Resume album-gesture and merge journal-redesign in; do not rebase. The draft's claims are re-verified, not trusted.
+2. Build (c), with a test proving that the merged semantics at all 4 sites are unchanged, loaded and not yet loaded. Any difference is a stop, and the owner decides, per the dispatch's stop-and-ask on a semantics change.
+- The test seam is approved: a test-only Robolectric BitmapFactory shadow with a latch, and no production hook.
+**Notes:** Written by the planner by hand.
