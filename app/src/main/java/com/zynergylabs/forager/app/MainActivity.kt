@@ -134,6 +134,8 @@ class MainActivity : ComponentActivity() {
                     recordCaptureWithoutEditingEntry = { photoId, error ->
                         (application as? ForagerApplication)?.diagnostics?.recordCaptureWithoutEditingEntry(photoId, error)
                     },
+                    // A find whose delete has finished leaves the Maps tab's records (dispatch 2026-09-28-291).
+                    onFindDeleted = { id -> viewModel.onFindDeleted(id) },
                 )
             }
         }

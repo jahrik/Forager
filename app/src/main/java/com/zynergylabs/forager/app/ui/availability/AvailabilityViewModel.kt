@@ -488,6 +488,19 @@ class AvailabilityViewModel(
         }
     }
 
+    /**
+     * A find's delete has finished (dispatch 2026-09-28-291): the map no longer holds it. The records are a
+     * snapshot taken when the tab was shown, and while the delete was pending the screen hid the find with a
+     * filter; once the delete commits that filter stops, so the snapshot itself must lose the find or it is
+     * drawn, and collected by a fan, again. Removed from the snapshot rather than re-read: the database row
+     * is already gone, so there is nothing to wait for and no read that could still see it.
+     */
+    fun onFindDeleted(id: String) {
+        _uiState.update { state ->
+            state.copy(mapRecords = state.mapRecords.copy(findMarkers = state.mapRecords.findMarkers.filterNot { it.recordId == id }))
+        }
+    }
+
     /** The Maps tab's saved records, read now; the read [onMapShown] does and [reloadAfterRestore] repeats. */
     private suspend fun loadMapRecords() {
         val records = getMapRecords()
