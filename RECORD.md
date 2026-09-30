@@ -8083,3 +8083,37 @@ Both go to the next phone check.
   - /sdcard/backups/forager-backup-2026-09-30.zip.
 **Still before un-drafting PR #140:** a short phone recheck at 291aa911 of the 36 dp circles (-284) and the resized glyphs (-286).
 **Notes:** Written by the planner by hand. The planner did not re-read the phone.
+
+---
+
+**Kind:** device-note
+**ID:** 2026-09-28-289
+**Timestamp:** 2026-09-30T17:19:32Z
+**Covers:** the device-only items of -284 (36 dp circles) and -286 (the glyph resize)
+**Run by:** the planner, at the owner's "Go ahead and do the check". No record was created, edited or deleted.
+**The build:**
+- 1.0.2108+g4cdf840b, built with `--offline assembleDebug` in the journal-redesign worktree, 0 `e:` lines. APK sha256 5624132e68f43056….
+- Installed with `install -r --user 0` over 1.0.2027. User 0's ceDataInode stayed 2259049, so the data was kept.
+- Launched with `am start --user 0`. The focus read showed Forager's MainActivity before each input.
+**The owner's restored data:** a 6-member fan at the stack (one waypoint, three photos, two finds). It was opened by one real tap. There is no planned trip in this data, so **the flag was not checked on the device**.
+**Measured on fr-fan-open.png,** at 450 dpi (2.8125 px per dp):
+- **The circles** are 35.6-37.7 dp across on both axes, which is 36 dp within anti-aliasing and legs. There are visible gaps between neighbours.
+- **The glyphs with their outline:**
+
+  | Glyph | Measured (dp) | Expected (dp) |
+  |---|---|---|
+  | find | 25.6 × 27.7 | 23.08 × 25 plus about 1.5 dp of casing each side |
+  | pin | 24.9 × 30.9 | 22 × 28 plus casing |
+  | photo | 24.9 × 24.9-25.2 | 22 × 22 plus casing |
+
+  The find's fill alone measured 22.8 × 24.9 dp.
+- **Centring:** every glyph's box centre is within 1.2 dp of its disc's centre.
+- **Margin:** the tallest glyph, the pin at 30.9 dp, leaves about 2.5 dp inside a 36 dp circle.
+**Not checked:**
+- the flag (no planned trip);
+- night: the app's theme was reset by the restore (-288), the map showed the day style, and the planner did not change the owner's settings. The size does not depend on the theme; fan-clarity's night colours were checked by S22-B;
+- that the glyphs' feet sit on their true coordinate, by pixel. Fan-centring's device check covered that mechanism.
+**The first measurement pass was invalid and was discarded:** its search window equalled the result. It was redone by radial scans.
+**Evidence:** ~/Zynergy/device-evidence/2026-09-30-final-recheck/ (fr-launch.png, fr-fan-open.png, fr-fan-crop.png, fr-build.log).
+**The phone after:** on 1.0.2108+g4cdf840b, with the fan left open on Maps. Night mode (system) yes and rotation 0 are unchanged.
+**Notes:** Written by the planner by hand.
