@@ -8532,3 +8532,24 @@ Both go to the next phone check.
 - Part 3's data rules hold: a copy first and a restore at the end, checked by hash; only records the coder creates, named DEVICE CHECK 2026-09-30 C; a name read before any delete; a stop on any system prompt.
 - The run record goes on branch s22-session-check. Nothing merges.
 **Notes:** Written by the planner by hand. It takes no Gradle slot. -310's S22 screenshots come after this, so the two never share the phone.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-312
+**Timestamp:** 2026-09-30T21:01:08Z
+**Title:** Four loose ends: the delete flash and race, the delete-hook wiring test, the bubble's Back order, and the dropdown in the fan's Back gate
+**Dispatch-file:** preserved/2026-09-30-20.md
+**The owner, verbatim:** "Write a dispatch to investigate and fix 9 to 12", the planner's open-items list.
+**Change:**
+- **Part A:**
+  - a deleted record is never drawn between the delete and Undo, including the commit window and an in-flight load;
+  - a test fails if MainActivity's hook lines (:138, :140) are removed;
+  - the owner's "fix" authorises changing PendingDelete.kt, with a stop-and-ask before an observed Flow, a change the Journal lists would see, or a DI restructure.
+- **Part B:**
+  - the bubble's order against the dropdown and fullscreen is tested, and fixed if it breaks the rule;
+  - the dropdown goes back into the fan's gate only if the harness refocus turns out to be production behaviour worth fixing.
+  - If the refocus is harness-only, Part B stops, and Option A (-303) stands.
+  - -293's tests stay unchanged.
+- The work is headless, on branch map-residuals.
+**Notes:** Written by the planner by hand. It is queued for Gradle behind -296 and -310.
