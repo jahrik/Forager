@@ -422,3 +422,12 @@ Fan open (8 members), tapped the find member: the bubble's title read "DEVICE CH
 
 ### Item 1, fan-clarity, theme change with a fan open — FAIL against the owner's ruling
 **Restated:** the owner, through the planner, rules that a fan must **survive a theme (night-mode) change**, and, in a second message, **any style reload**, and that this is fixed before PR #140 merges. My observation from earlier in this section stands as the evidence: with the fan open, `cmd uimode night` from no to yes folded it (`b2-fc-theme-open.png`). That is one observation: the second time (night to day, then to night with the trip in the stack) I folded the fan myself with an empty-map tap before re-opening it, so it is **not** a second observation of a fold. I record this as a **FAIL**. No code was changed. The planner is dispatching the fix separately.
+
+### Item 6 at the new stack distance (26 dp, fan-clarity): PASS on all three pairs
+Four finds of mine, made through the green +, Find, OK, name, Save (`b2-mkfind.sh`; each name read from a dump before saving and again on the saved page): **"DEVICE CHECK 2026-09-30 i6A", "i6B", "i6C", "i6D"**, away from the stack. Separations were measured on the screenshots, not assumed: the find glyphs are the same shape, so the centroid difference in px is the separation, and dp = px / 2.8125 (density 450). The locator is `b2-locate.py`. A real `input tap` on a glyph in each pair:
+| Pair | Measured | Result | Evidence |
+|---|---|---|---|
+| A and B, the owner's 15 x 35 dp pair | dx 42 px = 14.9 dp, dy 98 px = 34.8 dp | **no fan**: B's bubble opened ("DEVICE CHECK 2026-09-30 i6B", from a dump) | `b2-i6-AB.png`, `b2-i6-AB-tap.png` |
+| B and C, the 31 dp pair | dx 0, dy 87 px = 30.9 dp | **no fan** (this **supersedes S22-B's 32 dp pass**): C's bubble opened | `b2-i6-BC.png`, `b2-i6-BC-tapC.png` |
+| C and D, about 20 dp | dx 0, dy 57 px = 20.3 dp | **fans**: two circles with legs, no bubble | `b2-i6-CD.png`, `b2-i6-CD-tap.png` |
+The **~30 dp pair from the owner's screenshots** was an estimate and is not a separate case: the 31 dp pair above is the nearest I measured, and it does not fan. A pair at about 25 dp exactly was not run (20 dp is the "25 dp or less" case). The strictness at 26 dp itself (a pair at 25 vs 27 dp) was not probed. All four finds stay on the phone until the restore.
