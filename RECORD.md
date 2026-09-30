@@ -8582,3 +8582,32 @@ Both go to the next phone check.
 - -313's A is confirmed by the owner: the V1 inversion is kept below map zoom about 9.5, with its output range scaled so that the ground matches the zoomed-in band.
 - B, a dimmed day map with no inversion, is rejected by the owner. It stays in the report only as the rejected alternative.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-315
+**Timestamp:** 2026-09-30T21:38:59Z
+**Closes:** 2026-09-28-311 (preserved -19)
+**Outcome:** partial, stopped early after an incident
+**The incident, as the device coder reported it:**
+- In Journal > Records, a chip-row swipe plus a tap deleted **the owner's only track** (tracks 1 → 0, track_points 23 → 0), without the uiautomator dump that rule 3 requires. Undo had expired when it was tapped.
+- The coder stopped and restored the phone from its before-copy: 22 of 22 sha256 equal; integrity ok; user_version 17; every count equal after one launch.
+- Settings were read back at their start values: animator 1.0, user_rotation 0, basemap Topographical, night on. The in-app Camera had left user_rotation at 1, and the coder reset it.
+**The planner's independent check,** read-only over adb, at about 21:38 UTC:
+- databases/forager.db has the same sha256 as the before-copy (e1188b00…);
+- read with sqlite3 from a pulled copy, tracks = 1, track_points = 23, user_version 17, the same as the before-copy;
+- the only files that differ are runtime state: forager.db-shm, files/mbgl-offline.db (MapLibre's tile cache), the androidx.work workdb -shm and -wal files, and shared_prefs/android.app.ActivityThread.IDS.xml.
+**Verdicts** (record: docs/audits/2026-09-30-s22-session-check.md on s22-session-check c8cead47; evidence: ~/Zynergy/device-evidence/2026-09-30-session-check/):
+- **FAIL 3 (-290):** after a swap to the Street basemap, the folded stack's camera glyph covers the puck. It is fine after leaving Maps and coming back.
+- **FAIL 5 (-299):** the front glyph's stacking order pops at the fold's last frames and the open's first (frames 610-614 and 134-142 of c5-fold-day.mp4).
+- **PASS:** 2, 8, 9, 10 (all three), 13 at 90°, 15, 16, 17, 18 path 1 (album long-press), and 14's Tools half.
+- **Recorded, for the owner:** 6 (mid-fold, the circle is smaller than the glyph and off its centre), 11 and 12.
+- **Not determinable:**
+  - 1 (only the legs reach the puck);
+  - 4 (it needs movement);
+  - 14's fullscreen half (the entry map has no fullscreen control);
+  - 18 paths 2 and 3 (there is no trash button in the album viewer, the gallery or the bubble; F5 removed the album's corner trash).
+- **Not run:** 7's night half (night was on all along; day not run?), 13 at 270°, 19 and 20.
+- **Both fails rest on cropped frames from a single run.**
+**Notes:** Written by the planner by hand. The data rule that failed was rule 3, "read a record's name before any delete". The gesture was not meant as a delete. So a follow-up device session needs a stricter rule: a dump before **any** gesture on a list row in Journal or Records.
