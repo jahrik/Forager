@@ -7626,3 +7626,60 @@ Its record is on device-part-3 at 32534b45 (checked on origin). The phone reads 
 - Every find created or deleted is named in the report.
 **The owner's answer:** "The coder has my authorization to run it".
 **Notes:** Written by the planner by hand. The planner read "run it" as this case, the one the -270 hand-off named as needing a record change.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-273
+**Timestamp:** 2026-09-30T08:23:42Z
+**Closes:** 2026-09-28-265 (preserved -58, with continuation -271)
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as 04e652c5, no-ff, from fan-clarity 2c95fd70:
+  - the tests first (c2cd00d2);
+  - the implementation (95b36d76). It built and passed unchanged on the continuation;
+  - the report, docs/audits/2026-09-30-fan-clarity-completion-report.md.
+- **The coder's checks:**
+  - the stub commit gave 15 fail and 43 pass, an exact match to the pre-registration;
+  - the five revert checks, (a) to (e), each failed only its own tests, with 0 compile errors;
+  - the full suite gave 3146 / 0 / 24.
+- **The planner's checks:**
+  - `git diff 95b36d76 origin/fan-clarity -- app data server` is empty;
+  - the merged head's app, data and server trees are identical to fan-clarity's;
+  - the JUnit XML in the fan-clarity worktree totals 3146 tests, 0 failures, 0 errors and 24 skipped, in 385 files written at 07:56Z. That matches the report.
+- **The planner did not re-run the suite.** The merged code is byte-identical to the code the coder ran. The map-return-fixes coder was building on the same machine, and memory was at about 2.8 GB.
+- **Accepted:** 95b36d76 removed two FanOutLayersTest halo cases. That follows from the owner's "Circle replaces halo", and the circle test "kept record has a circle and no halo" covers the halo's absence.
+- **The owner's go-ahead:** "Go ahead and merge when ready".
+**Device-only:** the report's five items go to S22-B's relaunch:
+- the look by day and night;
+- the fade and its exact restore, including after a Layers change made with a fan open;
+- the ~30 dp pair;
+- the theme change with a fan open;
+- the fade ending when the fold starts.
+**Next:** map-return-fixes (-267/-270) merges second and resolves the adjacent SightingsMap.kt hunks near :761-785.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-274
+**Timestamp:** 2026-09-30T08:28:53Z
+**Title:** Before map-return-fixes merges: fix the deleted-member reopen under a new fold rule, and run the track sheet round trip
+**Dispatch-file:** preserved/2026-09-30-03.md
+**What came before:** map-return-fixes' report, at head c1f6f282, has the following results:
+- **Passing:** both revert checks, the suite at 3137/0/24, 8c on the fixed build (the fan is up at 1 s and 10 s), and three Journal→Maps round trips with 0 destroyed-view lines (a baseline of 14).
+- **Failing, run by the owner:** after a fan member is deleted from its page, the return closes the fan. The cause is unconfirmed. The coder's leading hypothesis, H4, is that the delete re-emits the markers and the content effect folds the reopened fan.
+- **Not run:** the Records track sheet round trip.
+- **The phone:** at the owner's request, the coder backed up the app's data to ~/Zynergy/device-backup/2026-09-30-forager-s22/, uninstalled and reinstalled the app and restored that data. The owner deleted two test finds. The phone is on the diagnostic build 1.0.1987, whose logging is reverted in the code.
+- **A machine gate was breached once:** a build started at 1918 MB.
+**The owner's answers:**
+- "Fix before merge". The planner's other options were to merge with this as a known issue, or to merge and fix before un-drafting.
+- The rule: **"Fold only if members change"**. A fan stays open through changes that don't touch its members. It re-fans the survivors when a member disappears, and folds when fewer than 2 remain. Hiding its layer folds it.
+**Change:**
+- **Capture first:** the owner taps and the coder logs; if H4 is refuted, the coder stops.
+- Then tests first, the fix, revert checks, the suite and the device checks, including the track sheet round trip.
+- A style reload is not covered by the rule: the coder stops if the rule would need a decision on it.
+- It supersedes the behaviour in FanReopenCoordinatorTest's "a later content change folds the reopened fan".
+**Scope boundary:** the fan's fold rule and the return path. The planner merges; the coder does not.
+**Sequencing:** map-return-fixes merges into journal-redesign after the planner's own suite run on the merged tree. Then S22-B relaunches.
+**Notes:** Written by the planner by hand.
