@@ -24,12 +24,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color as ComposeColor
 import com.zynergylabs.forager.app.ui.theme.MapPalette
+import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -315,6 +317,9 @@ fun SightingsMap(
         withUnavailableColourFieldsHidden(layersState, MAP_LAYER_REGISTRY, forecast?.groupsByLayer?.keys.orEmpty())
     }
     val currentLayersState by rememberUpdatedState(drawnLayersState)
+    // The map chrome's colour (the navigation bar's), read here because it follows the app's theme.
+    val chromeColour = navigationBarContainerColor().toArgb()
+    val currentChromeColour by rememberUpdatedState(chromeColour)
     val currentForecast by rememberUpdatedState(forecast)
     // Counts camera idles (map layers L0b, B5): the colour fields' cell feed below is keyed on it, so
     // the store is asked for the blocks in view each time the camera goes idle.
@@ -692,6 +697,7 @@ fun SightingsMap(
                 palette = requested.palette,
                 drawOrder = orderedLayers(MAP_LAYER_REGISTRY, currentLayersState),
                 layersState = currentLayersState,
+                chromeColour = currentChromeColour,
             )
             // The data+camera refresh effect below re-pushes every source right after this, keyed
             // on loadedStyle among other things — including the sighting source, with "selected"
@@ -778,7 +784,7 @@ fun SightingsMap(
 
     // Draws the fan: hides the originals of the fanned markers while it is up, and pushes the copies and
     // their legs at every step of its progress (fanFrameCollections). Device-only: see FanOutLayers.kt.
-    LaunchedEffect(loadedStyle, mapLibreMap, focusedObservationId, journalHighlights) {
+    LaunchedEffect(loadedStyle, mapLibreMap, focusedObservationId) {
         val style = loadedStyle ?: return@LaunchedEffect
         val map = mapLibreMap ?: return@LaunchedEffect
         val density = context.resources.displayMetrics.density
@@ -790,7 +796,7 @@ fun SightingsMap(
             }
             pushFanFrame(
                 style,
-                fanFrameCollections(members, { fanMemberLatLng(map, it, progress, density) }, journalHighlights, focusedObservationId),
+                fanFrameCollections(members, { fanMemberLatLng(map, it, progress, density) }, focusedObservationId),
             )
         }
     }
@@ -802,9 +808,22 @@ fun SightingsMap(
         snapshotFlow { if (fanOut.isOpen) fanOut.members.map { it.key } else emptyList() }.collect { keys -> memory.openFanKeys = keys }
     }
 
+    // Item 2 (dispatch 2026-09-28-265): while a fan is open the marker icons outside it draw at 80% of
+    // what they drew. The one writer of these opacities, so the fade composes with the Layers sheet's
+    // state (fanFadedPaint multiplies the resolved paint) and the restore on folding is the state's own
+    // value. Device-only: see FanClarity.kt.
     LaunchedEffect(loadedStyle, drawnLayersState) {
         val style = loadedStyle ?: return@LaunchedEffect
-        MAP_LAYER_REGISTRY.forEach { spec -> applyLayerPaint(style, layerPaintFor(spec, drawnLayersState)) }
+        snapshotFlow { fanOut.isOpen }.collect { fanOpen ->
+            MAP_LAYER_REGISTRY.forEach { spec -> applyLayerPaint(style, fanFadedPaint(spec, layerPaintFor(spec, drawnLayersState), fanOpen)) }
+        }
+    }
+
+    // Item 3: the circles' colour is the map chrome's, which follows the app's theme, so a theme change
+    // recolours them on the loaded style (the layer was built with the colour current at style load).
+    LaunchedEffect(loadedStyle, chromeColour) {
+        val style = loadedStyle ?: return@LaunchedEffect
+        applyFanCircleStyle(style, chromeColour)
     }
 
     // Colour-field cells (map layers L0b, B5): each time the camera goes idle, and after every style
@@ -1042,6 +1061,7 @@ private fun initializeOverlayLayers(
     palette: MapPalette,
     drawOrder: List<MapLayerSpec>,
     layersState: MapLayersState,
+    chromeColour: Int,
 ) {
     // Every bitmap marker's image, in this palette's colours. Registered here and nowhere else.
     MarkerIcon.entries.forEach { style.addImage(it.imageId, markerIconImage(it, palette, density).bitmap) }
@@ -1060,7 +1080,7 @@ private fun initializeOverlayLayers(
         style.addLayer(layer)
     }
     // The marker fan-out's own layers, above every registry layer (FanOutLayers.kt).
-    addFanOutLayers(style, palette)
+    addFanOutLayers(style, palette, chromeColour)
 }
 
 /**

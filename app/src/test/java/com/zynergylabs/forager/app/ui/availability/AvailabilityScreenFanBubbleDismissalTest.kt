@@ -241,6 +241,42 @@ class AvailabilityScreenFanBubbleDismissalTest {
     }
 
     @Test
+    fun `two finds 30 dp apart, the owner's screenshot pair, do not fan on a real touch (30 dp is the planner's estimate)`() {
+        setScreen()
+        val s = checkNotNull(scene)
+        s.addAtScreen(MapLayerIds.FINDS, "find-1", SPOT_X * density, SPOT_Y * density)
+        s.addAtScreen(MapLayerIds.FINDS, "find-2", SPOT_X * density, (SPOT_Y + 30f) * density)
+
+        touchMap(SPOT_X, SPOT_Y)
+        assertFalse("30 dp apart is not a stack under 26 dp", fan.isOpen)
+        composeRule.onNodeWithText("Golden chanterelle", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun `two finds 26 dp apart do not fan on a real touch`() {
+        setScreen()
+        val s = checkNotNull(scene)
+        s.addAtScreen(MapLayerIds.FINDS, "find-1", SPOT_X * density, SPOT_Y * density)
+        s.addAtScreen(MapLayerIds.FINDS, "find-2", SPOT_X * density, (SPOT_Y + 26f) * density)
+
+        touchMap(SPOT_X, SPOT_Y)
+        assertFalse("26 dp apart is not under the stacking distance", fan.isOpen)
+        composeRule.onNodeWithText("Golden chanterelle", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun `two finds 25 dp apart fan on a real touch`() {
+        setScreen()
+        val s = checkNotNull(scene)
+        s.addAtScreen(MapLayerIds.FINDS, "find-1", SPOT_X * density, SPOT_Y * density)
+        s.addAtScreen(MapLayerIds.FINDS, "find-2", SPOT_X * density, (SPOT_Y + 25f) * density)
+
+        touchMap(SPOT_X, SPOT_Y)
+        assertTrue("25 dp apart is under the stacking distance", fan.isOpen)
+        composeRule.onNodeWithTag(MAP_BUBBLE_TAG).assertDoesNotExist()
+    }
+
+    @Test
     fun `two finds 20 dp apart fan on a real touch`() {
         setScreen()
         val s = checkNotNull(scene)
