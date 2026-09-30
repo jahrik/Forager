@@ -40,8 +40,9 @@ class MarkerGlyphsTest {
     /** The glyph board §1 fill extents and anchors, and the reticle's own dimensions (C2), in dp. */
     private val expected = mapOf(
         MarkerGlyph.WAYPOINT to floatArrayOf(22f, 28f, 11f, 28f),
-        MarkerGlyph.FIND to floatArrayOf(24f, 26f, 12f, 26f),
-        MarkerGlyph.PLANNED_TRIP to floatArrayOf(20f, 28f, 1.5f, 28f),
+        // Dispatch 2026-09-28-286: the find and the flag are scaled evenly to 25 dp tall (25/26 and 25/28), anchors included.
+        MarkerGlyph.FIND to floatArrayOf(23.0769f, 25f, 11.5385f, 25f),
+        MarkerGlyph.PLANNED_TRIP to floatArrayOf(17.8571f, 25f, 1.3393f, 25f),
         MarkerGlyph.PHOTO to floatArrayOf(22f, 22f, 11f, 11f),
         MarkerGlyph.SEARCH_CENTRE to floatArrayOf(26f, 26f, 13f, 13f),
     )
@@ -57,8 +58,8 @@ class MarkerGlyphsTest {
         val expected = mapOf(
             MarkerGlyph.PHOTO to (0f to 0f),
             MarkerGlyph.WAYPOINT to (0f to 14f),
-            MarkerGlyph.FIND to (0f to 13f),
-            MarkerGlyph.PLANNED_TRIP to (-8.5f to 14f),
+            MarkerGlyph.FIND to (0f to 12.5f),
+            MarkerGlyph.PLANNED_TRIP to (-7.5893f to 12.5f),
             MarkerGlyph.SEARCH_CENTRE to (0f to 0f),
         )
         for ((glyph, xy) in expected) {
@@ -71,16 +72,36 @@ class MarkerGlyphsTest {
     @Test
     fun `each glyph's fill extent and anchor are the glyph board's`() {
         for ((glyph, dims) in expected) {
-            assertEquals("$glyph width", dims[0], glyph.widthDp)
-            assertEquals("$glyph height", dims[1], glyph.heightDp)
-            assertEquals("$glyph anchor x", dims[2], glyph.anchorXDp)
-            assertEquals("$glyph anchor y", dims[3], glyph.anchorYDp)
+            assertEquals("$glyph width", dims[0], glyph.widthDp, 1e-3f)
+            assertEquals("$glyph height", dims[1], glyph.heightDp, 1e-3f)
+            assertEquals("$glyph anchor x", dims[2], glyph.anchorXDp, 1e-3f)
+            assertEquals("$glyph anchor y", dims[3], glyph.anchorYDp, 1e-3f)
             val bounds = fillBounds(glyph)
             assertEquals("$glyph path left", 0f, bounds.left, 0.01f)
             assertEquals("$glyph path top", 0f, bounds.top, 0.01f)
             assertEquals("$glyph path right", dims[0], bounds.right, 0.01f)
             assertEquals("$glyph path bottom", dims[1], bounds.bottom, 0.01f)
         }
+    }
+
+    // Dispatch 2026-09-28-286. The owner: "I noticed the flag for the planned trip is a bit large compared to the other
+    // icons... The finds icon is a bit large also, but not by much. Location pin icon is acceptable. Somewhere between the
+    // photo icon and location pin size would be preferable"; scope "Everywhere". Both are 25 dp tall, between the photo's
+    // 22 and the pin's 28, with their proportions kept.
+    @Test
+    fun `the flag and the find are 25 dp tall with their proportions kept, between the photo and the pin`() {
+        assertEquals("the flag's height", 25f, MarkerGlyph.PLANNED_TRIP.heightDp, 1e-3f)
+        assertEquals("the find's height", 25f, MarkerGlyph.FIND.heightDp, 1e-3f)
+        assertEquals("the flag keeps its 20:28 proportions", 20f / 28f, MarkerGlyph.PLANNED_TRIP.widthDp / MarkerGlyph.PLANNED_TRIP.heightDp, 1e-4f)
+        assertEquals("the find keeps its 24:26 proportions", 24f / 26f, MarkerGlyph.FIND.widthDp / MarkerGlyph.FIND.heightDp, 1e-4f)
+        assertTrue("between the photo's height and the pin's", MarkerGlyph.PHOTO.heightDp < 25f && 25f < MarkerGlyph.WAYPOINT.heightDp)
+    }
+
+    @Test
+    fun `the waypoint, the photo and the search centre are not resized`() {
+        assertEquals("waypoint", listOf(22f, 28f, 11f, 28f), MarkerGlyph.WAYPOINT.let { listOf(it.widthDp, it.heightDp, it.anchorXDp, it.anchorYDp) })
+        assertEquals("photo", listOf(22f, 22f, 11f, 11f), MarkerGlyph.PHOTO.let { listOf(it.widthDp, it.heightDp, it.anchorXDp, it.anchorYDp) })
+        assertEquals("search centre", listOf(26f, 26f, 13f, 13f), MarkerGlyph.SEARCH_CENTRE.let { listOf(it.widthDp, it.heightDp, it.anchorXDp, it.anchorYDp) })
     }
 
     @Test
