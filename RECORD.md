@@ -8518,3 +8518,67 @@ Both go to the next phone check.
 - Day, Satellite and the offline style are unchanged.
 - The owner judges S22 screenshots before any merge.
 **Notes:** Written by the planner by hand. It is queued behind -296's loops for Gradle.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-311
+**Timestamp:** 2026-09-30T20:59:44Z
+**Title:** A device check on the S22 of this session's fixes (-290, -291, -293, -297, -298, -299)
+**Dispatch-file:** preserved/2026-09-30-19.md
+**The owner, verbatim:** "Have the coder do the S22 chexk"
+**Change:**
+- The 20 checks run on the installed 1.0.2160+gc849ae99 (device-note -309), with no build or install.
+- Part 3's data rules hold: a copy first and a restore at the end, checked by hash; only records the coder creates, named DEVICE CHECK 2026-09-30 C; a name read before any delete; a stop on any system prompt.
+- The run record goes on branch s22-session-check. Nothing merges.
+**Notes:** Written by the planner by hand. It takes no Gradle slot. -310's S22 screenshots come after this, so the two never share the phone.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-312
+**Timestamp:** 2026-09-30T21:01:08Z
+**Title:** Four loose ends: the delete flash and race, the delete-hook wiring test, the bubble's Back order, and the dropdown in the fan's Back gate
+**Dispatch-file:** preserved/2026-09-30-20.md
+**The owner, verbatim:** "Write a dispatch to investigate and fix 9 to 12", the planner's open-items list.
+**Change:**
+- **Part A:**
+  - a deleted record is never drawn between the delete and Undo, including the commit window and an in-flight load;
+  - a test fails if MainActivity's hook lines (:138, :140) are removed;
+  - the owner's "fix" authorises changing PendingDelete.kt, with a stop-and-ask before an observed Flow, a change the Journal lists would see, or a DI restructure.
+- **Part B:**
+  - the bubble's order against the dropdown and fullscreen is tested, and fixed if it breaks the rule;
+  - the dropdown goes back into the fan's gate only if the harness refocus turns out to be production behaviour worth fixing.
+  - If the refocus is harness-only, Part B stops, and Option A (-303) stands.
+  - -293's tests stay unchanged.
+- The work is headless, on branch map-residuals.
+**Notes:** Written by the planner by hand. It is queued for Gradle behind -296 and -310.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-313
+**Timestamp:** 2026-09-30T21:04:59Z
+**Continues:** 2026-09-28-310 (preserved -18)
+**Why:** The coder measured 81 OpenTopoMap tiles (z7-15, Oregon City; topo-night a4471cbd).
+- Mean lightness after V1 is 0.23-0.32 at tile z11-15 and 0.42-0.47 at tile z7-10.
+- MapLibre 13.5.0 picks the tile zoom as round(mapZoom + 1), so the switch is at map zoom 9.5.
+- All five raster paint properties accept zoom expressions.
+- The coder showed that no per-pixel raster paint can make both OpenTopoMap's pale low-zoom roads and its black labels lighter than the ground.
+**Correction to -310:** the dispatch's "roads and labels lighter than the ground" was the planner's own addition, not the owner's. It is withdrawn. The owner's rule stands: "match the zoomed in colors".
+**Ruling, by the planner, within the owner's rule:** option A. Below map zoom about 9.5, the paint keeps V1's polarity with a reduced brightness-min (about 0.45-0.55, max 0, hue 180), and an interpolate between two inverted paints, so it never passes through flat grey. The ground lands at 0.18-0.24, in the zoomed-in band. Labels stay light. Roads are about 0.04-0.08 darker than the ground at low zoom.
+- Rejected: B, no inversion at low zoom. It looks like a dimmed day map and needs a hard step. Its figures stay in the report's table.
+**The owner judges** A from S22 screenshots before any merge, and can still choose B.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-314
+**Timestamp:** 2026-09-30T21:13:39Z
+**Continues:** 2026-09-28-310, after -313
+**The owner's ruling, verbatim:** "Option A. No dimming. That's tacky and not a true night mode option".
+**Change:**
+- -313's A is confirmed by the owner: the V1 inversion is kept below map zoom about 9.5, with its output range scaled so that the ground matches the zoomed-in band.
+- B, a dimmed day map with no inversion, is rejected by the owner. It stays in the report only as the rejected alternative.
+**Notes:** Written by the planner by hand.
