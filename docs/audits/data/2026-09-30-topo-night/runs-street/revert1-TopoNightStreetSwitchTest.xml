@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" tests="10" skipped="0" failures="4" errors="0" timestamp="2026-09-30T22:30:30.288Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="7.436">
+  <properties/>
+  <testcase name="the caption is unchanged everywhere else" classname="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" time="4.766"/>
+  <testcase name="at every sampled map zoom the parsed night-topo style shows one layer, pure V1, and a dark map" classname="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" time="0.992">
+    <failure message="java.lang.AssertionError: night topo is not dark, pure V1 at every sampled zoom:&#10;tile z7 at map zoom 5.5 (topo): mean lightness 0.466, limit 0.345&#10;tile z7 at map zoom 5.5: ground (median) lightness 0.481, limit 0.345&#10;tile z7 at map zoom 6.0 (topo): mean lightness 0.466, limit 0.345&#10;tile z7 at map zoom 6.0: ground (median) lightness 0.481, limit 0.345&#10;tile z7 at map zoom 6.499999 (topo): mean lightness 0.466, limit 0.345&#10;tile z7 at map zoom 6.499999: ground (median) lightness 0.481, limit 0.345&#10;tile z8 at map zoom 6.5 (topo): mean lightness 0.429, limit 0.345&#10;tile z8 at map zoom 6.5: ground (median) lightness 0.408, limit 0.345&#10;tile z8 at map zoom 7.0 (topo): mean lightness 0.429, limit 0.345&#10;tile z8 at map zoom 7.0: ground (median) lightness 0.408, limit 0.345&#10;tile z8 at map zoom 7.499999 (topo): mean lightness 0.429, limit 0.345&#10;tile z8 at map zoom 7.499999: ground (median) lightness 0.408, limit 0.345&#10;tile z9 at map zoom 7.5 (topo): mean lightness 0.416, limit 0.345&#10;tile z9 at map zoom 7.5: ground (median) lightness 0.392, limit 0.345&#10;tile z9 at map zoom 8.0 (topo): mean lightness 0.416, limit 0.345&#10;tile z9 at map zoom 8.0: ground (median) lightness 0.392, limit 0.345&#10;tile z9 at map zoom 8.499999 (topo): mean lightness 0.416, limit 0.345&#10;tile z9 at map zoom 8.499999: ground (median) lightness 0.392, limit 0.345&#10;tile z10 at map zoom 8.5 (topo): mean lightness 0.444, limit 0.345&#10;tile z10 at map zoom 8.5: ground (median) lightness 0.438, limit 0.345&#10;tile z10 at map zoom 9.0 (topo): mean lightness 0.444, limit 0.345&#10;tile z10 at map zoom 9.0: ground (median) lightness 0.438, limit 0.345&#10;tile z10 at map zoom 9.499999 (topo): mean lightness 0.444, limit 0.345&#10;tile z10 at map zoom 9.499999: ground (median) lightness 0.438, limit 0.345" type="java.lang.AssertionError">java.lang.AssertionError: night topo is not dark, pure V1 at every sampled zoom:
+tile z7 at map zoom 5.5 (topo): mean lightness 0.466, limit 0.345
+tile z7 at map zoom 5.5: ground (median) lightness 0.481, limit 0.345
+tile z7 at map zoom 6.0 (topo): mean lightness 0.466, limit 0.345
+tile z7 at map zoom 6.0: ground (median) lightness 0.481, limit 0.345
+tile z7 at map zoom 6.499999 (topo): mean lightness 0.466, limit 0.345
+tile z7 at map zoom 6.499999: ground (median) lightness 0.481, limit 0.345
+tile z8 at map zoom 6.5 (topo): mean lightness 0.429, limit 0.345
+tile z8 at map zoom 6.5: ground (median) lightness 0.408, limit 0.345
+tile z8 at map zoom 7.0 (topo): mean lightness 0.429, limit 0.345
+tile z8 at map zoom 7.0: ground (median) lightness 0.408, limit 0.345
+tile z8 at map zoom 7.499999 (topo): mean lightness 0.429, limit 0.345
+tile z8 at map zoom 7.499999: ground (median) lightness 0.408, limit 0.345
+tile z9 at map zoom 7.5 (topo): mean lightness 0.416, limit 0.345
+tile z9 at map zoom 7.5: ground (median) lightness 0.392, limit 0.345
+tile z9 at map zoom 8.0 (topo): mean lightness 0.416, limit 0.345
+tile z9 at map zoom 8.0: ground (median) lightness 0.392, limit 0.345
+tile z9 at map zoom 8.499999 (topo): mean lightness 0.416, limit 0.345
+tile z9 at map zoom 8.499999: ground (median) lightness 0.392, limit 0.345
+tile z10 at map zoom 8.5 (topo): mean lightness 0.444, limit 0.345
+tile z10 at map zoom 8.5: ground (median) lightness 0.438, limit 0.345
+tile z10 at map zoom 9.0 (topo): mean lightness 0.444, limit 0.345
+tile z10 at map zoom 9.0: ground (median) lightness 0.438, limit 0.345
+tile z10 at map zoom 9.499999 (topo): mean lightness 0.444, limit 0.345
+tile z10 at map zoom 9.499999: ground (median) lightness 0.438, limit 0.345
+	at org.junit.Assert.fail(Assert.java:89)
+	at com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest.at every sampled map zoom the parsed night-topo style shows one layer, pure V1, and a dark map(TopoNightStreetSwitchTest.kt:190)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate(RobolectricTestRunner.java:524)
+	at org.robolectric.internal.SandboxTestRunner.executeInSandbox(SandboxTestRunner.java:494)
+	at org.robolectric.internal.SandboxTestRunner.access$900(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$7.evaluate(SandboxTestRunner.java:442)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.robolectric.internal.SandboxTestRunner.access$600(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$6.evaluate(SandboxTestRunner.java:333)
+	at org.robolectric.internal.SandboxTestRunner$3.evaluate(SandboxTestRunner.java:233)
+	at org.robolectric.internal.SandboxTestRunner$5.lambda$evaluate$0(SandboxTestRunner.java:317)
+	at org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0(Sandbox.java:101)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</failure>
+  </testcase>
+  <testcase name="the model's V1 is nightColorOf over every sampled tile colour" classname="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" time="0.922"/>
+  <testcase name="the Street sample is what the style shows below 9_5 and the topo sample from 9_5" classname="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" time="0.084">
+    <failure message="java.lang.AssertionError: below 9.5 the Street source" type="java.lang.AssertionError">java.lang.AssertionError: below 9.5 the Street source
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest.the Street sample is what the style shows below 9_5 and the topo sample from 9_5(TopoNightStreetSwitchTest.kt:202)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate(RobolectricTestRunner.java:524)
+	at org.robolectric.internal.SandboxTestRunner.executeInSandbox(SandboxTestRunner.java:494)
+	at org.robolectric.internal.SandboxTestRunner.access$900(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$7.evaluate(SandboxTestRunner.java:442)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.robolectric.internal.SandboxTestRunner.access$600(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$6.evaluate(SandboxTestRunner.java:333)
+	at org.robolectric.internal.SandboxTestRunner$3.evaluate(SandboxTestRunner.java:233)
+	at org.robolectric.internal.SandboxTestRunner$5.lambda$evaluate$0(SandboxTestRunner.java:317)
+	at org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0(Sandbox.java:101)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</failure>
+  </testcase>
+  <testcase name="raster tile zoom is one ahead of the map zoom for 256 px tiles and rounds half up" classname="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" time="0.064"/>
+  <testcase name="Street's night style JSON is byte-identical to before" classname="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" time="0.051"/>
+  <testcase name="night topo is the Street layer below 9_5 under the topo layer from 9_5, V1 on both" classname="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" time="0.046">
+    <failure message="java.lang.AssertionError: night topo must carry two raster layers, Street first (drawn first, so under) expected:&lt;2&gt; but was:&lt;1&gt;" type="java.lang.AssertionError">java.lang.AssertionError: night topo must carry two raster layers, Street first (drawn first, so under) expected:&lt;2&gt; but was:&lt;1&gt;
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest.night topo is the Street layer below 9_5 under the topo layer from 9_5, V1 on both(TopoNightStreetSwitchTest.kt:128)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate(RobolectricTestRunner.java:524)
+	at org.robolectric.internal.SandboxTestRunner.executeInSandbox(SandboxTestRunner.java:494)
+	at org.robolectric.internal.SandboxTestRunner.access$900(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$7.evaluate(SandboxTestRunner.java:442)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.robolectric.internal.SandboxTestRunner.access$600(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$6.evaluate(SandboxTestRunner.java:333)
+	at org.robolectric.internal.SandboxTestRunner$3.evaluate(SandboxTestRunner.java:233)
+	at org.robolectric.internal.SandboxTestRunner$5.lambda$evaluate$0(SandboxTestRunner.java:317)
+	at org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0(Sandbox.java:101)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</failure>
+  </testcase>
+  <testcase name="Satellite's night style JSON is byte-identical to its day JSON" classname="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" time="0.048"/>
+  <testcase name="the caption at topo night credits both sources" classname="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" time="0.089">
+    <failure message="java.lang.AssertionError: expected:&lt;[© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA), © OpenStreetMap contributors]&gt; but was:&lt;[© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA)]&gt;" type="java.lang.AssertionError">java.lang.AssertionError: expected:&lt;[© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA), © OpenStreetMap contributors]&gt; but was:&lt;[© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA)]&gt;
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest.the caption at topo night credits both sources(TopoNightStreetSwitchTest.kt:213)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate(RobolectricTestRunner.java:524)
+	at org.robolectric.internal.SandboxTestRunner.executeInSandbox(SandboxTestRunner.java:494)
+	at org.robolectric.internal.SandboxTestRunner.access$900(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$7.evaluate(SandboxTestRunner.java:442)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.robolectric.internal.SandboxTestRunner.access$600(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$6.evaluate(SandboxTestRunner.java:333)
+	at org.robolectric.internal.SandboxTestRunner$3.evaluate(SandboxTestRunner.java:233)
+	at org.robolectric.internal.SandboxTestRunner$5.lambda$evaluate$0(SandboxTestRunner.java:317)
+	at org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0(Sandbox.java:101)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</failure>
+  </testcase>
+  <testcase name="day style JSON is byte-identical to before for every basemap" classname="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" time="0.071"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
