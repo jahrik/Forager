@@ -8518,3 +8518,17 @@ Both go to the next phone check.
 - Day, Satellite and the offline style are unchanged.
 - The owner judges S22 screenshots before any merge.
 **Notes:** Written by the planner by hand. It is queued behind -296's loops for Gradle.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-311
+**Timestamp:** 2026-09-30T20:59:44Z
+**Title:** A device check on the S22 of this session's fixes (-290, -291, -293, -297, -298, -299)
+**Dispatch-file:** preserved/2026-09-30-19.md
+**The owner, verbatim:** "Have the coder do the S22 chexk"
+**Change:**
+- The 20 checks run on the installed 1.0.2160+gc849ae99 (device-note -309), with no build or install.
+- Part 3's data rules hold: a copy first and a restore at the end, checked by hash; only records the coder creates, named DEVICE CHECK 2026-09-30 C; a name read before any delete; a stop on any system prompt.
+- The run record goes on branch s22-session-check. Nothing merges.
+**Notes:** Written by the planner by hand. It takes no Gradle slot. -310's S22 screenshots come after this, so the two never share the phone.
