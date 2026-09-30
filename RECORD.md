@@ -8401,3 +8401,20 @@ Both go to the next phone check.
 - The fan's Back gate is untouched.
 - The work is headless, on branch dropdown-back from bbc503ff.
 **Notes:** Written by the planner by hand. It is queued after -298 and before -296.
+
+---
+
+**Kind:** device-note
+**ID:** 2026-09-28-305
+**Timestamp:** 2026-09-30T19:50:58Z
+**Corrects:** 2026-09-28-292's "The owner's device check" and "This covers device item 1"
+**Observed** by the planner, read-only over adb, with nothing installed or changed: the S22's com.zynergylabs.forager.app is versionName 1.0.2108+g4cdf840b, lastUpdateTime 2026-09-30 10:17:45, which is -289's build. It predates -290's fix (232fee53, written about 10:55 PDT) and everything after it.
+**So:**
+- The owner's "that fix works" (-292) cannot have been a check of -290 on the S22. The owner's -291 screenshots show the puck drawn over an open fan, which is the pre-fix behaviour.
+- -290's device item 1 is **open**, not passed.
+- Unless it was checked on another device or build, which is not recorded, no fix from this session (-290, -291, -293, -297) has been device-checked.
+**The owner's report on this build, verbatim:** "Back dismisses the fan, then the tool drawer. Back dismisses the keyboard, then the search drawer".
+- The first is the pre-(-293) behaviour, as expected on g4cdf840b.
+- The second shows the dropdown's own Back works: the first Back hides the IME, as is Android's convention, and the second closes the dropdown. The owner's earlier "No" to "does it close and stay closed" is explained by the IME taking the first Back.
+**Consequence for -304:** its premise, that Back does not close the dropdown, is not supported by the device. The planner recommends withdrawing it, pending the owner's word.
+**Notes:** Written by the planner by hand. The planner's own error: it recorded -292 without checking the build on the phone.
