@@ -916,9 +916,12 @@ internal fun CompactMainScaffold(
                                 // Text's own padding — no map effect keys on it or on renderMode as a
                                 // whole (SightingsMap's own LaunchedEffects, checked), so nothing here
                                 // re-measures or re-fits the map.
-                                // backEnabled: while the Tools drawer is open its Back goes first, so the fan's handler
-                                // is not composed (dispatch 2026-09-28-293; MarkerFanOutBackHandler's doc comment).
-                                renderMode = mapRenderMode.copy(bottomInset = safeAttributionBottomInset, attributionEndInset = safeAttributionEndInset, attributionBottomInset = attributionButtonBottomInset, backEnabled = !isDrawerOpen()),
+                                // backEnabled: while the Tools drawer, the search dropdown or fullscreen is open, its Back
+                                // goes first, so the fan's handler is not composed (dispatches 2026-09-28-293 and -298;
+                                // MarkerFanOutBackHandler's doc comment). The add-action menu and the pin pickers are
+                                // state of CompactMapTab, which narrows this further at its own mapSlot call. The taxon
+                                // suggestions have no term of their own: typing in the field opens the dropdown.
+                                renderMode = mapRenderMode.copy(bottomInset = safeAttributionBottomInset, attributionEndInset = safeAttributionEndInset, attributionBottomInset = attributionButtonBottomInset, backEnabled = !isDrawerOpen() && !showSearchDropdown && !isMapFullscreen()),
                                 mapMode = mapMode(),
                                 onMapModeSelected = { onMapModeChange(it) },
                                 mapLayers = mapLayers,
