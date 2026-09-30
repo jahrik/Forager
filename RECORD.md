@@ -8711,3 +8711,18 @@ Both go to the next phone check.
 2. the strongest per-pixel mapping: V1 with contrast and saturation.
 The owner picks from the images. Nothing merges from topo-night as built.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-322
+**Timestamp:** 2026-09-30T22:00:19Z
+**Continues:** 2026-09-28-310, after -321
+**The owner's ruling, verbatim:** "Pure inverted colors is the way, not fine tuned pixel manipulation. We may need to lose some of the topo rendering to make that happen".
+**Change:**
+- Every topo night option uses today's V1 exactly, at every zoom. No contrast, no saturation, no scaled brightness. -321's approach 2 is dropped.
+- The renders to compare, at 7, 8.5 and 9.4 against the zoomed-in 11:
+  - **(a)** deeper OpenTopoMap tiles below 9.5, via the tileSize trick;
+  - **(b)** OSM Standard tiles below 9.5 under topo night. -310 reported that OSM Standard does not show the problem. The costs to report: both attributions, OSM's tile usage policy, and offline regions.
+- The owner picks from the images.
+**Notes:** Written by the planner by hand.
