@@ -8288,3 +8288,22 @@ Both go to the next phone check.
 - A bubble's gap is reported, not fixed.
 - The work is headless, on branch fan-back-others from 9c806ae1.
 **Notes:** Written by the planner by hand. -296, -297 and -298 may run in parallel, and their builds are serialised.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-299
+**Timestamp:** 2026-09-30T19:06:52Z
+**Title:** Fanned icons land exactly on their markers when the fan folds
+**Dispatch-file:** preserved/2026-09-30-16.md
+**The owner's report, verbatim:** "After being fanned out, the icons return to their start position. But sometimes they don't perfectly align back in their position when the animation finishes, resulting in the icons snapping into place."
+**The planner's reading,** at 4f3a02ad, inferred and not observed:
+- The original marker's anchor sits on the coordinate (markerSymbolLayer).
+- A fan copy adds fanCentringOffsetDp() at every progress (FanOutLayers.kt:176), so at progress 0 it is off by that offset and snaps on release.
+- The predicted jumps: the pin about 14 dp, the find 12.5 dp, the flag (−7.6, 12.5) dp, and the photo and sighting dots 0. That accounts for "sometimes".
+**Change:**
+- The centring offset is scaled by progress.
+- The circle's behaviour near the end of the fold is reported, with a stop-and-ask if it would visibly separate.
+- The ring and the timing are unchanged.
+- The work is headless, on branch fan-fold-snap from 4f3a02ad.
+**Notes:** Written by the planner by hand. It may run in parallel with -296, -297 and -298, and their builds are serialised.
