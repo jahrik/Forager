@@ -412,3 +412,13 @@ Fan open (8 members), tapped the find member: the bubble's title read "DEVICE CH
 
 ### Test data I created and still hold on the phone
 "DEVICE CHECK 2026-09-30 8c" (a find, at the stack). Everything I create is covered by the restore to `a-copy/`.
+
+### Item 1, fan-centring, the planned-trip kind — PASS (night measured, day by eye)
+**Authorised by the owner through the planner [f2eaef]** (owner: "yes it can be tested"; one planned trip, "DEVICE CHECK 2026-09-30 trip", at the stack). Created through the green +, Trip, OK, then the trip dialog. The name was read from a dump before I saved (`b2-trip3.xml`: "DEVICE CHECK 2026-09-30 trip") and again from the bubble after (`b2-trip-bubble.xml`: "DEVICE CHECK 2026-09-30 trip").
+- **A slip while creating it (mine, harmless):** the on-screen keyboard reflowed the dialog, so my tap at the old Plan trip position landed on a key and typed a stray "9" (`b2-trip4.xml`: "...trip9"). Nothing was saved. I deleted that one character, hid the keyboard with its own Done key (no Back), re-read the name from a dump (`b2-trip5.xml`), and tapped Plan trip at its new bounds.
+- **The fan now has 9 members** (trip flag, waypoint, find, six photos; `b2-trip-fan.png`). Flag on a 3x crop (`b2-fc-trip-crop.png`): the circle spans x 100-500 and y 98-497, so its centre is (300,298); the flag with its outline spans x 203-395 and y 168-430, centred at (299,299). Centred to about 1 px on the crop. The coder's offset (-8.5,+14) is right. The leg runs to the circle's centre.
+- **Day** (`b2-fc-day-all.png`, crops `b2-fc-day-trip-crop.png`, `b2-fc-day-find-crop.png`): all four kinds sit in the middle of their cream circles by eye; not measured in pixels. Night mode was set back to **yes** and read back.
+- **Fan-centring is now: waypoint, find, planned trip and photo, all centred at night; day by eye. Legs meet the circle centres; the originals do not move on the fold.**
+
+### Item 1, fan-clarity, theme change with a fan open — FAIL against the owner's ruling
+**Restated:** the owner, through the planner, rules that a fan must **survive a theme (night-mode) change**, and, in a second message, **any style reload**, and that this is fixed before PR #140 merges. My observation from earlier in this section stands as the evidence: with the fan open, `cmd uimode night` from no to yes folded it (`b2-fc-theme-open.png`). It folded again when I changed to day and back with the trip in the fan (`b2-fc-day-all.png` was taken after re-opening it). I record this as a **FAIL**. No code was changed. The planner is dispatching the fix separately.
