@@ -8197,3 +8197,94 @@ Both go to the next phone check.
 - Other things on Maps that Back closes are reported, not fixed.
 - The work is headless, on branch fan-back-drawer from 4a250dc9.
 **Notes:** Written by the planner by hand. It may run in parallel with -291. Their builds are serialised, and a conflict is merged with every row kept.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-294
+**Timestamp:** 2026-09-30T18:55:49Z
+**Closes:** 2026-09-28-291 (preserved -11)
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as 1b1e65cf, no-ff, from find-delete-reappears dc8e2356. The owner said "Merge both".
+  - dd4a3d57, the tests first: FindDeleteReappearsOnMapTest, 5 tests. Three failed at base with `find-a was deleted and is still drawn`.
+  - 0aba4562, the fix: MushroomLogViewModel's onFindDeleted hook, called on the delete's success. It is wired in MainActivity, and AvailabilityViewModel.onFindDeleted removes the find from mapRecords.
+  - The report, docs/audits/2026-09-30-find-delete-reappears-completion-report.md.
+- **A premise corrected by the coder, in a stronger form:** any find deleted after the tab was last shown reappears once Undo ends. It does not have to be the owner's path. The timeout alone reproduces it, with no tap.
+- **The planner's check:** the worktree's JUnit XML gives 390 files and 3178/0/0/24, written at 18:12 UTC, which matches the report.
+**Residuals the coder named:**
+- a window of one frame as Undo ends;
+- an in-flight load that could put the find back;
+- the MainActivity wiring line, which no test covers.
+**The siblings,** photos and offline regions, have the same gap. They go to -297.
+**Device items open:** the owner's path with a wait past Undo; the same path, then a tap; Undo restores the find; a delete from the Journal tab; a watch for the one-frame flash.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-295
+**Timestamp:** 2026-09-30T18:55:49Z
+**Closes:** 2026-09-28-293 (preserved -12)
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as 9c806ae1, no-ff, from fan-back-drawer 4b676723. The owner said "Merge both". docs/audits/README.md conflicted with -291's row. Both rows were kept, and the count was checked: 214 before and after.
+  - 48e3bc20, the tests first: AvailabilityScreenFanBackDrawerTest, 4 tests. Two failed at base, one because the drawer stayed open and one because the fan folded.
+  - 7bc8e26f, the fix: MapRenderMode.backEnabled is set to !isDrawerOpen() at AvailabilityCompactScaffold.kt:919 and forwarded to MarkerFanOutBackHandler.
+  - The report, docs/audits/2026-09-30-fan-back-drawer-completion-report.md.
+- **A premise corrected by the coder:** AvailabilityCompactScaffold.kt:1204 feeds the Journal tab, not the map.
+- **Beyond scope, kept by the owner** ("keep the report fix"): the Journal entry report map gets the same gate. It has no test.
+- **The planner's check:** the coder's saved XML copy gives 390 files and 3177/0/0/24. The report said 391 files, a slip in the report.
+**Not tested:** SightingsMap's forwarding to the handler, and landscape.
+**Device items open:** open Tools over a fan, then Back and Back again; the same in landscape; with a bubble open, the drawer then the bubble then the fan; the report map.
+**The other Back cases** go to -298. The owner said "apply the change to the other Back cases".
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-296
+**Timestamp:** 2026-09-30T18:55:49Z
+**Title:** Diagnose why CI keeps failing on journal-redesign (F6 released)
+**Dispatch-file:** preserved/2026-09-30-13.md
+**The owner, verbatim:** "Dispatch a coder to figure out why the CI keeps failing"
+**The planner's reading:**
+- Of the last 13 finished runs, 6 failed, all in testDebugUnitTest.
+- Five of the six are the album-photo tests in JournalPendingDeleteTest, and one is JournalTabTest From Album.
+- F6 is released from the owner's hold of 2026-09-27 (RECORD.md:2664).
+**Change:**
+- Diagnosis only, on branch ci-flake, which is never merged.
+- No change to shared code or tests, no test silenced, no CI re-run.
+- The fix goes to the owner.
+**Notes:** Written by the planner by hand. -296, -297 and -298 may run in parallel, and their builds are serialised.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-297
+**Timestamp:** 2026-09-30T18:55:49Z
+**Title:** Deleted photos and offline regions never come back on the Maps tab
+**Dispatch-file:** preserved/2026-09-30-14.md
+**The owner, verbatim:** "dispatch photos and regions"
+**The planner's reading:**
+- These are -291's siblings, which have the same stale-mapRecords gap, found by reading only.
+**Change:**
+- -291's rule applies to photos and offline regions.
+- The work is headless, on branch delete-siblings from 9c806ae1.
+**Notes:** Written by the planner by hand. -296, -297 and -298 may run in parallel, and their builds are serialised.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-298
+**Timestamp:** 2026-09-30T18:55:49Z
+**Title:** Back closes the Maps tab's other open things before it folds a fan
+**Dispatch-file:** preserved/2026-09-30-15.md
+**The owner, verbatim:** "apply the change to the other Back cases"
+**The planner's reading:**
+- -293's findings, reasoned from code: the action menu and the pickers, the search dropdown, fullscreen and the taxon suggestions all lose to the fan.
+**Change:**
+- The fan's backEnabled is widened to cover them.
+- A bubble's gap is reported, not fixed.
+- The work is headless, on branch fan-back-others from 9c806ae1.
+**Notes:** Written by the planner by hand. -296, -297 and -298 may run in parallel, and their builds are serialised.
