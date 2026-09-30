@@ -61,22 +61,32 @@ private const val NIGHT_RASTER_PAINT = """,
           }"""
 
 /**
- * The map zoom below which a night Topographical map shows Street instead: [nightLowZoomBasemap]'s layer
- * is drawn under this zoom, Topographical's from it (a layer's `maxzoom` is exclusive and its `minzoom`
- * inclusive, style spec v8). 9.5 is where OpenTopoMap's tiles change character: MapLibre Native 13.5.0
- * fetches raster tile zoom `round(mapZoom + 1)` for a 256 px source (`util::coveringZoomLevel`, cited on
- * [rasterTileZoomFor]), so tile zoom 11 starts at map zoom 9.5. Measured on an 81-tile sample
- * (`docs/audits/2026-09-30-topo-night-completion-report.md`), V1's mean lightness is 0.42 to 0.47 on
- * OpenTopoMap tile zoom 7 to 10 and 0.23 to 0.32 on 11 to 15.
+ * Where a night Topographical map's crossfade from Street to topo begins and ends. Below
+ * [NIGHT_FADE_START_ZOOM] only Street is drawn; from it the topo layer fades in (`raster-opacity` 0 at the
+ * start, 1 at [NIGHT_FADE_END_ZOOM]) over the Street layer, which is drawn, at opacity 1, until the end
+ * (a layer's `maxzoom` is exclusive and its `minzoom` inclusive, style spec v8); from the end only topo.
+ *
+ * **Why 9.5 to 9.7 and not 9.4 to 9.6.** 9.5 is where OpenTopoMap's tiles change character: MapLibre Native
+ * 13.5.0 fetches raster tile zoom `round(mapZoom + 1)` for a 256 px source (`util::coveringZoomLevel`, cited
+ * on [rasterTileZoomFor]), so tile zoom 11 starts at map zoom 9.5, and V1's mean lightness is 0.42 to 0.47 on
+ * OpenTopoMap tile zoom 7 to 10 and 0.23 to 0.32 on 11 to 15 (81-tile sample, completion report). A fade that
+ * started at 9.4 would fade the tinted tile level 10 back in over 9.4 to 9.5. Measured pixelwise on the real
+ * tiles of both sources at the same x/y, V1 on both: blended mean / median lightness 0.186 / 0.180 at 9.40
+ * (topo opacity 0), 0.249 / 0.246 at 9.44, 0.296 / 0.290 at 9.47, **0.342 / 0.353 at 9.4999** (the edge of
+ * "light", where the test's dark limit is 0.345), then **0.224 / 0.201 at 9.50**, the instant the tile level
+ * becomes 11: a lightening and a snap back, the opposite of what the owner chose the switch for. Starting the
+ * fade at 9.5 means only tile level 11 ever fades in, and the blend stays at mean 0.22 to 0.27 (test). The
+ * topo layer's `minzoom` is pinned to tile level 11 or deeper by `TopoNightStreetSwitchTest`.
  */
-internal const val NIGHT_STREET_SWITCH_ZOOM = 9.5
+internal const val NIGHT_FADE_START_ZOOM = 9.5
+internal const val NIGHT_FADE_END_ZOOM = 9.7
 
 /** The id of the Street source and layer a night Topographical style adds under [RASTER_LAYER_ID]'s. */
 internal const val NIGHT_STREET_SOURCE_ID = "basemap-street"
 internal const val NIGHT_STREET_LAYER_ID = "basemap-street"
 
 /**
- * The basemap a night [basemap] shows below [NIGHT_STREET_SWITCH_ZOOM], or `null` when it shows itself at
+ * The basemap a night [basemap] shows below [NIGHT_FADE_START_ZOOM] (and under its own layer until [NIGHT_FADE_END_ZOOM]), or `null` when it shows itself at
  * every zoom. Only Topographical has one: [Basemap.OSM_STANDARD]. A per-basemap decision rather than an
  * inline `if`, like [basemapTakesNightPaint], so the style and the attribution caption read the same
  * answer and a test can pin the set.
@@ -90,27 +100,39 @@ internal const val NIGHT_STREET_LAYER_ID = "basemap-street"
  * (120,216,120) is V1 of the day screenshot's (72,168,72), which gives (119,215,119); both quantised to
  * 16 levels). At trail zoom its tiles are pale and V1 makes them dark.
  *
- * **What was tried and rejected, in this order.**
+ * **Every alternative, and why it lost.** The owner's test for the choice: "it does look a lot better than
+ * switching to day mode suddenly. We have two tradeoffs and only one can break confidence in the app." A
+ * visible change of map style that stays night is a tradeoff; a map that turns light below a zoom reads as
+ * night mode failing, which is the one that breaks confidence.
  *  1. *Half-amplitude V1 below 9.5* (`raster-brightness-min` 0.5; the planner's ruling, built, then run on
- *     the S22). Owner: "Coder took the dimming route anyway. The map needs to not be dimmed, but match
- *     what we see when zoomed in". It dimmed the map, as the August 2026 dimming attempts above did.
- *  2. *Dimming with no inversion*, rejected before it was built: "Option A. No dimming. That's tacky and
- *     not a true night mode option".
- *  3. *Anything per pixel* (contrast, saturation, scaled brightness): "Pure inverted colors is the way,
- *     not fine tuned pixel manipulation. We may need to lose some of the topo rendering to make that
- *     happen". The shader keeps each pixel's channel mean through the hue rotate, so the output's channel
- *     mean is an affine function of the input's whatever the paint: no raster paint can make the low-zoom
- *     tinted tiles look like the pale zoomed-in ones.
+ *     the S22). Owner: "Coder took the dimming route anyway. The map needs to not be dimmed, but match what
+ *     we see when zoomed in". It dimmed the map, as the August 2026 dimming attempts above did.
+ *  2. *Dimming with no inversion*, rejected before it was built: "Option A. No dimming. That's tacky and not
+ *     a true night mode option".
+ *  3. *Anything per pixel* (contrast, saturation, scaled brightness): "Pure inverted colors is the way, not
+ *     fine tuned pixel manipulation. We may need to lose some of the topo rendering to make that happen". The
+ *     shader keeps each pixel's channel mean through the hue rotate, so the output's channel mean is an
+ *     affine function of the input's whatever the paint: no raster paint can make the low-zoom tinted tiles
+ *     look like the pale zoomed-in ones.
  *  4. *Deeper OpenTopoMap tiles* (a second source with a smaller `tileSize`): the tinted look belongs to
- *     tile levels 7 to 10 however they are fetched, so reaching level 11 at map zoom 7 needs `tileSize`
- *     32, where labels are about 1 dp and each view is about 34 times the tiles.
+ *     tile levels 7 to 10 however they are fetched, so reaching level 11 at map zoom 7 needs `tileSize` 32,
+ *     where labels are about 1 dp and each view is about 34 times the tiles, from a server that publishes no
+ *     limit and asks "bigger projects" to get in touch.
+ *  5. *A hillshade layer over Street (Terrarium DEM)*: adds only subtle relief, does not keep hues, does not
+ *     help above 9.5, and needs a licence credit block (a composite of public-domain and CC BY sources) and
+ *     its own tiles, offline included.
+ *  6. *A minimum zoom of 9.5 for topo*: pure V1, but it stops topo zooming out past about 31 by 68 km on a
+ *     phone, and the app's own opening zoom for a region over 30 km is 9.0.
+ *  7. *A hard switch at 9.5* (built, then superseded by the crossfade the owner asked for: "Add the cross
+ *     fade to the topo switch. I honestly considered that myself").
+ *  8. *A fade over 9.4 to 9.6*, rejected by measurement (table on [NIGHT_FADE_START_ZOOM]).
  *
  * **What the owner chose**, shown the renders: "I notice street maps doesn't have this problem. Maybe
  * switch to street maps instead of topo maps when zoomed out? Only when night maps mode is on. With it
  * off no switch to street occurs." So at topo night, below 9.5, the layer is OSM Standard, which V1 turns
  * dark at every zoom (mean 0.15 to 0.23 on tile zoom 7 to 15, one to four tiles each), with the same
- * [NIGHT_RASTER_PAINT] on both layers, unchanged. The switch is hard; the owner accepted a switch.
- * Topo day, every other basemap, Satellite and the offline style are untouched.
+ * [NIGHT_RASTER_PAINT] on both layers, unchanged, and the topo layer fading in over 9.5 to 9.7. Topo day,
+ * every other basemap, Satellite and the offline style are untouched.
  */
 internal fun nightLowZoomBasemap(basemap: Basemap): Basemap? =
     if (basemap == Basemap.OPEN_TOPO_MAP) Basemap.OSM_STANDARD else null
@@ -130,8 +152,21 @@ internal fun styleJsonFor(basemap: Basemap, night: Boolean = false): String {
 }
 
 /**
+ * [NIGHT_RASTER_PAINT] with `raster-opacity` added: a linear interpolate on zoom, 0 at [NIGHT_FADE_START_ZOOM]
+ * and 1 at [NIGHT_FADE_END_ZOOM]. Built from [NIGHT_RASTER_PAINT] itself so the three V1 properties cannot drift
+ * from it. The shader applies opacity **after** the brightness mix (`raster.fragment.glsl` at `android-v13.5.0`:
+ * `color.a *= u_opacity` at line 33, `fragColor = vec4(mix(u_high_vec, u_low_vec, rgb) * color.a, color.a)` at
+ * line 53), so V1 is untouched and, unlike interpolating `raster-brightness-min`/`-max`, a fade cannot pass
+ * through a flat grey.
+ */
+private val NIGHT_RASTER_PAINT_FADING_IN: String =
+    NIGHT_RASTER_PAINT.removeSuffix("\n          }") +
+        ",\n            \"raster-opacity\": [\"interpolate\", [\"linear\"], [\"zoom\"], $NIGHT_FADE_START_ZOOM, 0, $NIGHT_FADE_END_ZOOM, 1]\n          }"
+
+/**
  * [basemap]'s night style with [below]'s raster layer under it: [below] is drawn under
- * [NIGHT_STREET_SWITCH_ZOOM] (`maxzoom`), [basemap] from it (`minzoom`), both carrying [NIGHT_RASTER_PAINT].
+ * [NIGHT_FADE_END_ZOOM] (`maxzoom`, at opacity 1), [basemap] from [NIGHT_FADE_START_ZOOM] (`minzoom`) fading in
+ * over it. Both carry [NIGHT_RASTER_PAINT]'s V1 properties; the topo layer's paint adds `raster-opacity`.
  * [basemap]'s source and layer keep the ids and content the day style gives them. Layers draw in array
  * order, so [below] is first; at any one zoom exactly one of the two is drawn.
  */
@@ -156,8 +191,8 @@ private fun nightStyleJsonWithBasemapBelow(basemap: Basemap, below: Basemap): St
         }
       },
       "layers": [
-        {"id": "$NIGHT_STREET_LAYER_ID", "type": "raster", "source": "$NIGHT_STREET_SOURCE_ID", "maxzoom": $NIGHT_STREET_SWITCH_ZOOM$NIGHT_RASTER_PAINT},
-        {"id": "$RASTER_LAYER_ID", "type": "raster", "source": "$RASTER_SOURCE_ID", "minzoom": $NIGHT_STREET_SWITCH_ZOOM$NIGHT_RASTER_PAINT}
+        {"id": "$NIGHT_STREET_LAYER_ID", "type": "raster", "source": "$NIGHT_STREET_SOURCE_ID", "maxzoom": $NIGHT_FADE_END_ZOOM$NIGHT_RASTER_PAINT},
+        {"id": "$RASTER_LAYER_ID", "type": "raster", "source": "$RASTER_SOURCE_ID", "minzoom": $NIGHT_FADE_START_ZOOM$NIGHT_RASTER_PAINT_FADING_IN}
       ]
     }
 """.trimIndent()
@@ -234,8 +269,8 @@ internal fun mapCreditsFor(
     layerCredits: List<String> = emptyList(),
     nightMode: Boolean = false,
 ): List<String> {
-    // At topo night the style also draws Street below 9.5 ([nightLowZoomBasemap]), so its credit is owed. The
-    // caption has no zoom input, so both credits show at every zoom; hiding one above 9.5 would need a zoom
+    // At topo night the style also draws Street below 9.7 ([nightLowZoomBasemap]), so its credit is owed. The
+    // caption has no zoom input, so both credits show at every zoom; hiding one above the crossfade would need a zoom
     // listener for no gain. Offline is the vector style, which carries neither.
     val below = if (!useOfflineTiles && nightMode && basemapTakesNightPaint(basemap)) nightLowZoomBasemap(basemap) else null
     return (listOf(mapAttributionFor(basemap, useOfflineTiles)) + listOfNotNull(below?.attribution) + layerCredits).distinct()
