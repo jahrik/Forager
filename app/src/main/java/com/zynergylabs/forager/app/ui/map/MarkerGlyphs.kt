@@ -5,6 +5,7 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
+import com.zynergylabs.forager.app.ui.map.fanout.FanOffset
 import com.zynergylabs.forager.app.ui.theme.MapPalette
 import kotlin.math.ceil
 import kotlin.math.max
@@ -47,6 +48,15 @@ internal enum class MarkerGlyph(val widthDp: Float, val heightDp: Float, val anc
     /** A reticle: a ring with crosshair arms that pass beyond it; anchored at its centre. */
     SEARCH_CENTRE(2 * SEARCH_CENTRE_ARM_DP, 2 * SEARCH_CENTRE_ARM_DP, SEARCH_CENTRE_ARM_DP, SEARCH_CENTRE_ARM_DP),
 }
+
+/**
+ * The `icon-offset`, in dp, that puts this glyph's fill-extent centre on the point its image is placed
+ * at with `icon-anchor: center` (dispatch 2026-09-28-275). The image is centred on the glyph's anchor,
+ * and `icon-offset` moves it from there, positive right and down, so it moves by the anchor minus the
+ * extent's half: a pin whose body centre is 14dp above its tip moves 14dp down. Zero for a glyph
+ * anchored at its centre. Only a fan's copies apply it; everywhere else the anchor is on the coordinate.
+ */
+internal fun MarkerGlyph.fanCentringOffsetDp(): FanOffset = FanOffset(anchorXDp - widthDp / 2, anchorYDp - heightDp / 2)
 
 /** How a [GlyphPart] is painted. Only [FILL] parts are cased. */
 internal enum class GlyphPaint {

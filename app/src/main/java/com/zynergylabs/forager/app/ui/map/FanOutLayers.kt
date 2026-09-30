@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app.ui.map
 import android.graphics.PointF
 import android.graphics.RectF
 import android.util.Log
+import com.google.gson.JsonArray
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.ui.map.fanout.FanKey
 import com.zynergylabs.forager.app.ui.map.fanout.FanMember
@@ -54,6 +55,9 @@ internal object FanOutIds {
 
     /** The feature property naming the bitmap a copy draws. */
     const val IMAGE_PROPERTY = "image"
+
+    /** The feature property holding a copy's `icon-offset`, `[x, y]` in dp (dispatch 2026-09-28-275). */
+    const val ICON_OFFSET_PROPERTY = "iconOffset"
 }
 
 /** The leg's own line width, in dp: "a thin line". Its casing is [CASING_WIDTH_DP] wider on each side, as a track's is. */
@@ -82,6 +86,8 @@ internal fun addFanOutLayers(style: Style, palette: MapPalette, chromeColour: In
         PropertyFactory.iconImage(Expression.get(FanOutIds.IMAGE_PROPERTY)),
         PropertyFactory.iconAllowOverlap(true),
         PropertyFactory.iconAnchor(Property.ICON_ANCHOR_CENTER),
+        // Each copy's own offset, so its body, not its tip or foot, sits on its circle's centre.
+        PropertyFactory.iconOffset(Expression.get(FanOutIds.ICON_OFFSET_PROPERTY)),
     )
     // Below the dots and the icons, above the legs: the circle is the copy's background.
     style.addLayer(CircleLayer(FanOutIds.CIRCLES_LAYER, FanOutIds.CIRCLES_SOURCE).withProperties(*fanCircleProperties(fanCircleStyle(chromeColour))))
@@ -132,7 +138,8 @@ private val EMPTY_FRAME = FanFrame(
  *
  *  - **legs:** a line from each member's true position to where it is now, so the line back to the
  *    true spot is there at every frame, including the first;
- *  - **icons:** each bitmap marker's own image ([markerIconForLayer]), so a copy keeps its icon;
+ *  - **icons:** each bitmap marker's own image ([markerIconForLayer]), so a copy keeps its icon, and
+ *    its [FanOutIds.ICON_OFFSET_PROPERTY], so the glyph's body is centred on the copy's circle;
  *  - **circles:** one point per copy, where the copy is now: the layer draws the copy's background
  *    circle there (dispatch 2026-09-28-265; it replaced the journal-entry halo a kept record's copy had);
  *  - **dots:** a sighting, with its `observationId` and its `selected` flag from [focusedObservationId],
@@ -163,6 +170,8 @@ internal fun fanFrameCollections(
             image != null -> {
                 icons += Feature.fromGeometry(Point.fromLngLat(now.lng, now.lat)).apply {
                     addStringProperty(FanOutIds.IMAGE_PROPERTY, image)
+                    val offset = markerIconForLayer(layerId)!!.glyph.fanCentringOffsetDp()
+                    addProperty(FanOutIds.ICON_OFFSET_PROPERTY, JsonArray().apply { add(offset.xDp); add(offset.yDp) })
                     addStringProperty(FEATURE_ID_PROPERTY, member.key.featureId)
                 }
             }
