@@ -46,6 +46,13 @@ import kotlinx.coroutines.withContext
  * area, not the DI'd `ErrorLog` seam [AvailabilityViewModel]/`TrackRecordingViewModel` use
  * elsewhere: this is a `@Composable`, not a ViewModel, so there's no constructor to inject a seam
  * into, and Robolectric's `ShadowLog` already lets a test assert on a raw `Log.w` call without one.
+ *
+ * **Callers must give it bounded size constraints** (`fillMaxSize`, `size`, or a width and a
+ * height). Until the photo loads this draws the same `Image` with a flat-colour painter so that a
+ * caller's click stays on one layout node (see the comment at the `Image`), and an `Image` whose
+ * painter has no intrinsic size fills whatever bounded space it is given, where the old placeholder
+ * `Box` wrapped to nothing. Every call site in `main/` already bounds it; an unsized call would show
+ * a placeholder that fills its parent and then jumps to the photo's size.
  */
 @Composable
 internal fun DecodedPhoto(
