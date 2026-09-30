@@ -135,23 +135,23 @@ class SiblingDeletesReappearOnMapTest {
         val photoStore = SucceedingPhotoStore
         val searchCache = InMemorySearchCacheRepository()
         val availability = AvailabilityViewModel(
-            locationProvider = NoLocationProvider,
-            locationTracker = NoLocationTracker,
-            getAvailability = GetAvailabilityUseCase(PredictAvailabilityUseCase(NoMushroomData), searchCache),
+            locationProvider = SibNoLocationProvider,
+            locationTracker = SibNoLocationTracker,
+            getAvailability = GetAvailabilityUseCase(PredictAvailabilityUseCase(SibNoMushroomData), searchCache),
             getRecentSearches = GetRecentSearchesUseCase(searchCache),
-            getSightings = GetSightingsUseCase(NoMushroomData),
-            searchTaxa = SearchTaxaUseCase(NoMushroomData),
-            getConditions = GetConditionsUseCase(NoWeather),
-            getTripWindows = GetTripWindowsUseCase(NoWeather, ComputeTripWindowsUseCase()),
-            getPlannedTrips = GetPlannedTripsUseCase(NoTrips),
-            savePlannedTrip = SavePlannedTripUseCase(NoTrips),
-            deletePlannedTrip = DeletePlannedTripUseCase(NoTrips),
-            getSeasonalPattern = GetSeasonalPatternUseCase(GetSightingsUseCase(NoMushroomData), NoWeather, ComputeFruitingLagDistributionUseCase()),
+            getSightings = GetSightingsUseCase(SibNoMushroomData),
+            searchTaxa = SearchTaxaUseCase(SibNoMushroomData),
+            getConditions = GetConditionsUseCase(SibNoWeather),
+            getTripWindows = GetTripWindowsUseCase(SibNoWeather, ComputeTripWindowsUseCase()),
+            getPlannedTrips = GetPlannedTripsUseCase(SibNoTrips),
+            savePlannedTrip = SavePlannedTripUseCase(SibNoTrips),
+            deletePlannedTrip = DeletePlannedTripUseCase(SibNoTrips),
+            getSeasonalPattern = GetSeasonalPatternUseCase(GetSightingsUseCase(SibNoMushroomData), SibNoWeather, ComputeFruitingLagDistributionUseCase()),
             offlineMapRepository = regionStore,
-            mapPreferencesRepository = NoMapPreferences,
-            unitSystemPreferenceRepository = ImperialUnits,
-            appThemePreferenceRepository = LightTheme,
-            getTodaysForecast = GetTodaysForecastUseCase(NoWeather),
+            mapPreferencesRepository = SibNoMapPreferences,
+            unitSystemPreferenceRepository = SibImperialUnits,
+            appThemePreferenceRepository = SibLightTheme,
+            getTodaysForecast = GetTodaysForecastUseCase(SibNoWeather),
             // The real reads are the stores the deletes remove from, read at the moment they are asked.
             getMapRecords = { MapRecords.NONE.copy(photoMarkers = photoRepo.markers(), offlineRegionCircles = regionStore.circles()) },
         )
@@ -169,7 +169,7 @@ class SiblingDeletesReappearOnMapTest {
             getGalleryPhotos = GetGalleryPhotosUseCase(photoRepo),
             pullPhotoIntoEntry = PullPhotoIntoEntryUseCase(photoRepo),
             deleteGalleryPhoto = DeleteGalleryPhotoUseCase(photoRepo, photoStore),
-            locationProvider = NoLocationProvider,
+            locationProvider = SibNoLocationProvider,
             updatePhotoLocation = UpdatePhotoLocationUseCase(photoRepo),
         )
         return Rig(photoRepo, regionStore, log, availability)
@@ -407,22 +407,22 @@ private class RegionStore(initial: List<Long>, private val deleteShouldFail: Boo
     override suspend fun listRegions(): Result<List<OfflineRegionSummary>> = Result.success(regions.values.toList())
 }
 
-private object NoLocationProvider : LocationProvider {
+private object SibNoLocationProvider : LocationProvider {
     override suspend fun getCurrentLocation(): LocationResult = LocationResult.LocationUnavailable
 }
 
-private object NoLocationTracker : LocationTracker {
+private object SibNoLocationTracker : LocationTracker {
     override val fixes: Flow<LocationFix> = emptyFlow()
 }
 
-private object NoMushroomData : MushroomRepository, TaxonSearchRepository {
+private object SibNoMushroomData : MushroomRepository, TaxonSearchRepository {
     override suspend fun getSpeciesCounts(region: Region, month: Int, filter: TaxonFilter) = Result.success(emptyList<SpeciesObservationCount>())
     override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter) =
         Result.success(SightingsPage(sightings = emptyList<Sighting>(), totalResults = 0))
     override suspend fun searchTaxa(query: String) = Result.success(emptyList<TaxonSearchResult>())
 }
 
-private object NoWeather : WeatherProvider, TripPlanningWeatherProvider, HistoricalWeatherProvider {
+private object SibNoWeather : WeatherProvider, TripPlanningWeatherProvider, HistoricalWeatherProvider {
     override suspend fun getRecentPrecipitation(region: Region) =
         Result.success(ConditionsSummary(region = region, totalPrecipitationMm = 0.0, daysSinceSignificantRain = null))
     override suspend fun getWeatherSeries(region: Region): Result<WeatherSeries> =
@@ -431,13 +431,13 @@ private object NoWeather : WeatherProvider, TripPlanningWeatherProvider, Histori
         Result.failure(UnsupportedOperationException("not part of this test's path"))
 }
 
-private object NoTrips : PlannedTripRepository {
+private object SibNoTrips : PlannedTripRepository {
     override suspend fun getAll(): Result<List<PlannedTrip>> = Result.success(emptyList())
     override suspend fun save(trip: PlannedTrip): Result<Unit> = Result.failure(UnsupportedOperationException("not part of this test's path"))
     override suspend fun delete(id: String): Result<Unit> = Result.failure(UnsupportedOperationException("not part of this test's path"))
 }
 
-private object NoMapPreferences : MapPreferencesRepository {
+private object SibNoMapPreferences : MapPreferencesRepository {
     override suspend fun getLastPickedRegion(): Result<Region?> = Result.success(null)
     override suspend fun setLastPickedRegion(region: Region): Result<Unit> = Result.success(Unit)
     override suspend fun getStaleThresholdDays(): Result<Int> = Result.success(DEFAULT_STALE_THRESHOLD_DAYS)
@@ -448,12 +448,12 @@ private object NoMapPreferences : MapPreferencesRepository {
     override suspend fun setMapFullscreen(fullscreen: Boolean): Result<Unit> = Result.success(Unit)
 }
 
-private object ImperialUnits : UnitSystemPreferenceRepository {
+private object SibImperialUnits : UnitSystemPreferenceRepository {
     override suspend fun getUnitSystem(): Result<UnitSystem> = Result.success(UnitSystem.IMPERIAL)
     override suspend fun setUnitSystem(system: UnitSystem): Result<Unit> = Result.success(Unit)
 }
 
-private object LightTheme : AppThemePreferenceRepository {
+private object SibLightTheme : AppThemePreferenceRepository {
     override suspend fun getThemeMode(): Result<AppThemeMode> = Result.success(AppThemeMode.LIGHT)
     override suspend fun setThemeMode(mode: AppThemeMode): Result<Unit> = Result.success(Unit)
 }
