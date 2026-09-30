@@ -7747,3 +7747,58 @@ Its record is on device-part-3 at 32534b45 (checked on origin). The phone reads 
 **Device-only:** the owner's S26 on the fixed build (the deleted-member return and 8c), and S22-B's relaunch, which follows.
 **Next:** fan-centring (-275) has not been found on any branch; the owner reports it done. Then S22-B relaunches.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-278
+**Timestamp:** 2026-09-30T10:08:40Z
+**Closes:** 2026-09-28-275 (preserved -04)
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as 4f16e3b1, no-ff, from fan-centring ec14bb28:
+  - the tests first (7d41515e);
+  - the implementation (28bfe095): MarkerGlyph.fanCentringOffsetDp() and a per-feature iconOffset read by a data-driven iconOffset on the fan's icons layer;
+  - the report, docs/audits/2026-09-30-fan-centring-completion-report.md.
+- **The dispatch's signs were corrected by the coder.** icon-offset moves the image from its anchor, so the offsets are waypoint (0,+14), find (0,+13) and planned trip (-8.5,+14); photo is (0,0). The dispatch had given the anchor-to-body vector.
+- **The coder's checks:**
+  - both revert checks failed with messages specific to their edits;
+  - tap targets derive from each member's coordinate, so nothing moves.
+- **The coder's full suite had 1 failure,** LeavingTheJournalFixesTest "F1 viewing a committed find…" (IllegalArgumentException at :476). It is not on the owner-held list. It passed on its own rerun.
+- **The planner's full suite** on the merged tree 4f16e3b1: the results were cleared first, and the run used `--offline :app:testDebugUnitTest --continue`. BUILD SUCCESSFUL in 4 m 29 s, 0 `e:` lines. 388 result files, **3163 / 0 / 0 / 24**, and LeavingTheJournalFixesTest passed.
+- **LeavingTheJournalFixesTest is recorded as a possible new intermittent** for the owner to rule on. It is not investigated and not touched.
+**Device-only:**
+- the unit of icon-offset (dp was inferred; an error would show as about a 3× offset);
+- the data-driven array iconOffset through the native parser;
+- each kind centred by day and by night;
+- the legs meeting the circle centres;
+- the originals unmoved on the fold.
+
+All of them go to S22-B's relaunch.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-277
+**Timestamp:** 2026-09-30T10:08:40Z
+**Dispatch:** 2026-09-28-227 (Part 3), S22-B relaunch
+**Dispatch-file:** preserved/2026-09-30-05.md
+**Reason:** the three fixes S22-B was waiting on have merged: map-return-fixes (-276), fan-clarity (-273) and fan-centring (-278). The owner's "Relaunch after fixes" (-267) applies.
+**Changes from -264:**
+- **A fresh build** at the journal-redesign head containing 3029c4fd, 04e652c5 and 4f16e3b1. firstInstallTime is compared with its post-reinstall value.
+- **A new verified copy, b2-copy/,** is taken first.
+- **The items:**
+  - the three fixes' device lists, with fan-centring first;
+  - item 6 re-based to 26 dp, so the 31 dp pair must now not fan;
+  - one 8c recheck;
+  - item 8 cases d, h and i;
+  - the rest of A4 and A5;
+  - the data group, F5 1-8 and -187's flags;
+  - A6;
+  - the restore to a-copy/.
+- **The deleted-member recheck** runs only with the owner's word in S22-B's own window.
+- **The Save-to-Gallery file** is listed for the owner to delete by hand.
+- **The restore is stopped whole,** never done partially, if its database read-back is refused.
+- **A planner-message clause:** session [f2eaef] may move S22-B along, but may not widen its scope.
+**Notes:** Written by the planner by hand.
