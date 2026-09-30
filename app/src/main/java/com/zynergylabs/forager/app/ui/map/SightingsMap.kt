@@ -30,6 +30,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color as ComposeColor
 import com.zynergylabs.forager.app.ui.theme.MapPalette
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -272,6 +273,8 @@ fun SightingsMap(
     attributionEndInset: Dp = 0.dp,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.attributionBottomInset]'s own doc comment. */
     attributionBottomInset: Dp? = null,
+    /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.attributionKeepClear]'s own doc comment. */
+    attributionKeepClear: androidx.compose.ui.geometry.Rect? = null,
 ) {
     val context = LocalContext.current
 
@@ -842,7 +845,28 @@ fun SightingsMap(
     // under Robolectric.
     val layoutDirection = LocalLayoutDirection.current
     val attributionBottomPx = with(LocalDensity.current) { (attributionBottomInset ?: bottomInset).roundToPx() }
-    val attributionEndPx = with(LocalDensity.current) { attributionEndInset.roundToPx() }
+    // Item 1 (dispatch 2026-09-29-57, amendment -262, "Move the 'i'"): moved inboard of the landscape L, which the host
+    // hands over as its measured bounds, when the two would intersect. The map's own size is tracked here for it.
+    var mapSizePx by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
+    val attributionEndPx = with(LocalDensity.current) {
+        val defaults = attributionDefaultMargins
+        val endInsetPx = attributionEndInset.roundToPx()
+        if (defaults == null) {
+            endInsetPx
+        } else {
+            attributionEndInsetClearOf(
+                keepClear = attributionKeepClear,
+                mapWidthPx = mapSizePx.width,
+                mapHeightPx = mapSizePx.height,
+                defaults = defaults,
+                bottomInsetPx = attributionBottomPx,
+                endInsetPx = endInsetPx,
+                isRtl = layoutDirection == LayoutDirection.Rtl,
+                buttonPx = ATTRIBUTION_BUTTON_DP.dp.roundToPx(),
+                gapPx = ATTRIBUTION_CLEAR_GAP_DP.dp.roundToPx(),
+            )
+        }
+    }
     LaunchedEffect(mapLibreMap, attributionDefaultMargins, attributionBottomPx, attributionEndPx, layoutDirection) {
         val map = mapLibreMap ?: return@LaunchedEffect
         val defaults = attributionDefaultMargins ?: return@LaunchedEffect
@@ -909,6 +933,7 @@ fun SightingsMap(
                 // After the view's own layout has taken the new size (the post), so the projection is the new
                 // one; a no-op while no map is ready or nothing is focused.
                 .trackMapFanSpace(fanSpace)
+                .onSizeChanged { mapSizePx = it }
                 .onViewportResized { mapView.post { mapLibreMap?.let(::reanchorFocusedBubble) } },
         )
         // The always-visible attribution line CopyrightOverlay used to draw directly onto the

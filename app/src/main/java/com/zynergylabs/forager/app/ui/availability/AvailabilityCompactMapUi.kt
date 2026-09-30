@@ -536,6 +536,7 @@ internal fun CompactMapTab(
                     .onGloballyPositioned { coordinates ->
                         mapContentBoxHeightPx = coordinates.size.height.toFloat()
                         mapContentBoxTopInRootPx = coordinates.positionInRoot().y
+                        cluster.mapContentBoxLeftInRootPx = coordinates.positionInRoot().x
                     },
             ) {
                 mapSlot(
@@ -559,7 +560,18 @@ internal fun CompactMapTab(
                         // J8-2: the shown entries' kept records, highlighted under their own glyphs.
                         journalHighlights = mapLayers.journalHighlights,
                     ),
-                    renderMode.copy(onFeatureTap = onFeatureTap, cameraMemory = cameraMemory),
+                    renderMode.copy(
+                        onFeatureTap = onFeatureTap,
+                        cameraMemory = cameraMemory,
+                        // Item 1 (dispatch 2026-09-29-57, amendment -262, "Move the 'i'"): the landscape L's measured bounds, in the map's own
+                        // pixels, for MapLibre's attribution button to keep clear of. The L keeps its bottom limit at the nav inset; the
+                        // button moves (SightingsMap, attributionEndInsetClearOf). Only the landscape L: portrait is unchanged.
+                        attributionKeepClear = if (landscapeCluster) {
+                            cluster.clusterBoundsInRoot?.translate(-cluster.mapContentBoxLeftInRootPx, -cluster.mapContentBoxTopInRootPx)
+                        } else {
+                            null
+                        },
+                    ),
                     focusOverride,
                     {},
                     // Tapping the map restores chrome while fullscreen — decision #5 — AND dismisses
