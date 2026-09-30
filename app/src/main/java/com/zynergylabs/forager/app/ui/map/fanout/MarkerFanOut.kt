@@ -22,12 +22,12 @@ const val FAN_TOUCH_DP = 48f
 
 /**
  * Two markers are a stack, and fan out on a tap, only when both axis distances between them are under
- * this many dp: the owner's "32 dp" (dispatch 2026-09-29-57, item 6, amendment -255). Deliberately not
+ * this many dp: the owner's "32 dp" (dispatch 2026-09-29-57, item 6, amendment -255), tightened to "26 dp" (dispatch 2026-09-28-265: "The goal is to solve overlap, not hotdog fingers"). Deliberately not
  * [FAN_TOUCH_DP]: the owner found that markers whose 48 dp touch squares merely overlapped were fanning
  * when the fan barely helped ("actually hinders me from tapping it the first time"). The touch size stays
  * the floor for the ring and spiral spacing and for the tap box; only the decision to fan uses this.
  */
-const val FAN_STACK_DP = 32f
+const val FAN_STACK_DP = 26f
 
 /** Up to this many markers fan out in a ring; more go in a spiral (the owner's rule 3). */
 const val FAN_RING_MAX = 8
@@ -60,8 +60,8 @@ data class FanMember(
 /**
  * [tapped] and every marker in [nearby] whose touch area overlaps [tapped]'s, [tapped] first, each once.
  * Two markers are stacked when both the horizontal and the vertical distance between them are under
- * [FAN_STACK_DP] (32 dp; it was [FAN_TOUCH_DP], 48, until the owner's amendment -255), so markers whose
- * touch squares overlap but that are 32 dp or more apart on an axis are not fanned. Not transitive: a marker that overlaps only
+ * [FAN_STACK_DP] (26 dp; 32 until dispatch -265, [FAN_TOUCH_DP], 48, until amendment -255), so markers whose
+ * touch squares overlap but that are 26 dp or more apart on an axis are not fanned. Not transitive: a marker that overlaps only
  * a neighbour of [tapped] is not in its stack, which keeps a stack to what is under the finger.
  * [density] converts the px positions to dp.
  */
