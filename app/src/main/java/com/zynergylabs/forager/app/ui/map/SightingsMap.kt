@@ -548,6 +548,7 @@ fun SightingsMap(
             map.addOnCameraMoveStartedListener { reason ->
                 // A fanned stack folds on any camera move, a gesture or the app's own: its copies are placed
                 // in screen space (fanMemberLatLng), and a camera that moves under them would strand them.
+                android.util.Log.d("MarkerFanOut", "TEMP cameraMoveStarted reason=$reason gesture=${isUserCameraGesture(reason)} following=${map.locationComponent.isLocationComponentActivated && map.locationComponent.cameraMode != CameraMode.NONE}")
                 tapHandlerRef.handler?.onCameraMoveStarted()
                 if (isUserCameraGesture(reason)) currentOnUserCameraGesture()
             }
