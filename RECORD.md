@@ -7481,3 +7481,20 @@ S22-B's launch prompt (-53) already makes the dispatch and its amendments govern
   The rules of -241, -253 and -254 all hold.
 - **S22-B is launched** as an Agent-tool coder of planner [303193].
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-265
+**Timestamp:** 2026-09-30T03:44:02Z
+**Title:** The fan-out: a stack distance of 26 dp; while a fan is open, other marker icons fade to 80%; fanned copies get a 48 dp chrome-colour circle at 80% in place of the halo
+**Dispatch-file:** preserved/2026-09-29-58.md
+**Change:**
+- FAN_STACK_DP goes from 32 to 26.
+- A fade on the registry's point and glyph layers while a fan is open, restored exactly when it folds.
+- A background circle layer for the fanned copies replaces the halo layer.
+- The 48 dp touch area is unchanged.
+**Scope boundary:** ui/map/fanout, FanOutLayers, and the registry's marker-layer opacity while a fan is open. No device work, since S22-B is on the S22.
+**Owner's answers:** "26 dp"; the circle is "Map chrome colour"; "Circle replaces halo".
+**Also recorded:** the owner saw item 8's fan not reopen after Back, on their S26 Ultra with the 5d429f19 CI build ("bubble stays, but the fan is no longer spread out"). This is sent to S22-B's item 8 recheck for logs. A fix follows S22-B's data and is not part of this dispatch.
+**Notes:** Written by the planner by hand.
