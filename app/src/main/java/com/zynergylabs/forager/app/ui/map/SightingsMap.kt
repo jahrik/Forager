@@ -681,6 +681,7 @@ fun SightingsMap(
         // does), and the tracking mode (so the zoom-in does not run). Only on this MapView's first
         // style; a later style swap keeps its own camera, as before.
         val cameraRestore = cameraRestoreFor(if (appliedStyle == null) currentCameraMemory?.saved else null, previousCameraMode)
+        android.util.Log.d("MarkerFanOut", "TEMP styleLoad firstStyle=${appliedStyle == null} savedSnapshot=${currentCameraMemory?.saved != null} savedFollowing=${currentCameraMemory?.saved?.following} previousMode=$previousCameraMode restoreMode=${cameraRestore?.cameraMode} (TRACKING=${CameraMode.TRACKING} NONE=${CameraMode.NONE})")
         cameraRestore?.let { applyCameraRestore(map, it) }
         map.setMaxZoomPreference(basemap.maxZoom.toDouble())
         val builder = when (val source = mapStyleSourceFor(basemap, night = requested.night, useOfflineTiles = useOfflineTiles)) {
