@@ -21,7 +21,7 @@ class FanReopenCoordinator(
     private var contentEffectRan = false
     private var idleSeen = false
 
-    fun onContentEffect(styleLoaded: Boolean) {
+    fun onContentEffect(styleLoaded: Boolean, style: Any? = styleLoaded) {
         handler()?.onContentChanged()
         if (styleLoaded) contentEffectRan = true
         reopenWhenReady()

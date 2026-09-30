@@ -60,12 +60,18 @@ class FanReopenCoordinatorTest {
         assertEquals(keys, waiting)
     }
 
+    // Superseded by the owner's rule, intent 2026-09-28-274: "Fold only if members change". This test used to be
+    // `a later content change folds the reopened fan`, which is the rule the device log showed folding a good reopen
+    // 10 s after it opened. A later content change that leaves the members alone now leaves the fan open; the cases
+    // that do fold (a member gone, a layer off, a new style) are in FoldOnlyIfMembersChangeTest.
     @Test
-    fun `a later content change folds the reopened fan`() {
+    fun `a later content change that leaves the members alone keeps the reopened fan`() {
         reopen.onContentEffect(styleLoaded = true)
         reopen.onCameraIdle(styleLoaded = true)
+        val members = fan.members
         reopen.onContentEffect(styleLoaded = true)
 
-        assertEquals(false, fan.isOpen)
+        assertTrue(fan.isOpen)
+        assertEquals(members, fan.members)
     }
 }
