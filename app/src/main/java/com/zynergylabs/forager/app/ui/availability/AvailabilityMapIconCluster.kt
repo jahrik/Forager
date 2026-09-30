@@ -59,6 +59,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.boundsInParent
+import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInRoot
@@ -121,21 +122,21 @@ import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
 /**
- * The map icon cluster's state and layout, shared by the phone's Maps tab ([CompactMapTab]) and the
- * tablet's map pane ([CombinedResultsPane]'s map), extracted from `CompactMapTab` in J6c (dispatch
- * 2026-09-28-152 item 14, continuation 2026-09-28-173: "Extract, don't copy").
+ * The map icon cluster's state and layout, used by the Maps tab ([CompactMapTab]). It was extracted from
+ * `CompactMapTab` in J6c (dispatch 2026-09-28-152 item 14, continuation 2026-09-28-173: "Extract, don't
+ * copy") to be shared with the tablet's map pane, which was removed in dispatch 2026-09-28-245; the
+ * extraction stays.
  *
  * What moved is the cluster as it was, not a rewrite: the container holding the bar and the record | return
  * pill, the minimise and restore handles, the long-press drag, the side snap, and the clamps, with the
- * comments that recorded why each is as it is. What the two trees supply differs and comes in as inputs:
- * the compact tree's bottom navigation, search dropdown, notice and legend bound the drag; the tablet has
- * none of the first three and bounds it with the strip and chip row above and the pane's own edges. The
- * bar and the pill are slots, so each tree wires its own callbacks (locate, orient, layers, add, record,
- * return) without this file knowing them.
+ * comments that recorded why each is as it is. The bottom navigation, search dropdown, notice and legend
+ * bound the drag. The bar and the pill are slots, so the Maps tab wires its own callbacks (locate,
+ * orient, layers, add, record, return) without this file knowing them.
  *
  * The landscape L (a short window's `LandscapeLCluster`, dispatch 2026-09-28-160) is chosen by [MapIconClusterState.landscape],
- * true only when the compact scaffold gives the rail and punch-hole edges; the tablet never does, so it
- * never takes the L (the owner's ruling, 2026-09-29: "Never on portrait or tablet mode").
+ * true only when the compact scaffold gives the rail and punch-hole edges, that is in a landscape window,
+ * whatever its size (dispatch 2026-09-28-246). The owner's ruling of 2026-09-29, "Never on portrait or
+ * tablet mode", is superseded for a landscape tablet by -246.
  */
 
 /**
@@ -192,6 +193,12 @@ internal class MapIconClusterState(
     /** The map pane's real measured height and top in the root, written by the caller's content box: what the clamps are against. */
     var mapContentBoxHeightPx by mutableFloatStateOf(0f)
     var mapContentBoxTopInRootPx by mutableFloatStateOf(0f)
+
+    /** The map pane's left in the root, written with the top above; with [clusterBoundsInRoot] it gives the cluster's rectangle in the map's own pixels (attribution clearance, dispatch 2026-09-29-57, item 1). */
+    var mapContentBoxLeftInRootPx by mutableFloatStateOf(0f)
+
+    /** The cluster container's measured bounds in the root, written by the container only; null until first measured. */
+    var clusterBoundsInRoot: androidx.compose.ui.geometry.Rect? by mutableStateOf(null)
 
     /** The cluster container's real measured height and width, written by the container only; kept while minimised. */
     var clusterHeightPx by mutableFloatStateOf(0f)
@@ -564,6 +571,7 @@ internal fun BoxScope.MapIconCluster(
                 .onGloballyPositioned { coordinates ->
                     state.clusterHeightPx = coordinates.size.height.toFloat()
                     state.clusterWidthPx = coordinates.size.width.toFloat()
+                    state.clusterBoundsInRoot = coordinates.boundsInRoot()
                 }
                 .testTag(MAP_ICON_CLUSTER_TAG)
             // Feeds the panels' and handles' anchors — see MapIconClusterState.centreInClusterPx.

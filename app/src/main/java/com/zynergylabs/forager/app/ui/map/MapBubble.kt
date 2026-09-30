@@ -111,6 +111,10 @@ private val BUBBLE_TAIL_BASE_HALF_WIDTH = Spacing.xs
  * placement, and draws its tail to it: so when the clamp moves the card near an edge, the tail moves
  * with the anchor, not with the card (planner's M1 ruling), and the tip still touches the point.
  *
+ * [insetLeft] and [insetRight] narrow the box the card is clamped into on each side, for chrome that sits over
+ * the map there (the landscape L and the overlaid rail; dispatch 2026-09-29-57, amendment -262, item 3, the owner's
+ * "Push the card clear"): the card moves, the tip stays on the anchor. Zero for a host with no such chrome.
+ *
  * A custom [Layout] reporting the whole incoming size, with the child placed freely inside it, for
  * the reason the sighting bubble's placement always had: placing a child outside its parent's own
  * bounds would leave it undependably hit-testable. The layout itself takes no touches; only the
@@ -122,6 +126,8 @@ internal fun AnchoredAtScreenPoint(
     bearingDeg: Float,
     minY: Dp = 0.dp,
     modifier: Modifier = Modifier,
+    insetLeft: Dp = 0.dp,
+    insetRight: Dp = 0.dp,
     content: @Composable (tipInBubble: State<Offset?>) -> Unit,
 ) {
     val screenDirectionFromPointDeg = (BUBBLE_BASE_DIRECTION_DEG - bearingDeg).mod(360f)
@@ -135,9 +141,10 @@ internal fun AnchoredAtScreenPoint(
             bubbleWidth = placeable.width,
             bubbleHeight = placeable.height,
             tailPx = BUBBLE_TAIL_LENGTH.toPx(),
-            maxWidth = constraints.maxWidth,
+            maxWidth = constraints.maxWidth - insetRight.roundToPx(),
             maxHeight = constraints.maxHeight,
             minY = minY.roundToPx(),
+            minX = insetLeft.roundToPx(),
         )
         layout(constraints.maxWidth, constraints.maxHeight) {
             // Read by the shell's tail at draw time, after this placement.
@@ -246,6 +253,8 @@ internal fun MapBubbleLayer(
     modifier: Modifier = Modifier,
     minY: Dp = 0.dp,
     backEnabled: Boolean = true,
+    insetLeft: Dp = 0.dp,
+    insetRight: Dp = 0.dp,
 ) {
     val context = LocalContext.current
     var detailsTarget by rememberSaveable(stateSaver = RecordDetailsTargetSaver) { mutableStateOf<RecordDetailsTarget?>(null) }
@@ -255,7 +264,7 @@ internal fun MapBubbleLayer(
 
     if (tapped != null) {
         when (val target = tapped.target) {
-            is MapBubbleTarget.SightingTarget -> AnchoredAtScreenPoint(tapped.anchorPx, tapped.bearingDeg, minY, modifier.fillMaxSize()) { tip ->
+            is MapBubbleTarget.SightingTarget -> AnchoredAtScreenPoint(tapped.anchorPx, tapped.bearingDeg, minY, modifier.fillMaxSize(), insetLeft, insetRight) { tip ->
                 ObservationBubble(
                     sighting = target.sighting,
                     onViewOnINaturalist = { onViewSightingOnINaturalist(target.sighting) },
@@ -291,7 +300,7 @@ internal fun MapBubbleLayer(
                     }
                 }
                 if (content != null) {
-                    AnchoredAtScreenPoint(tapped.anchorPx, tapped.bearingDeg, minY, modifier.fillMaxSize()) { tip ->
+                    AnchoredAtScreenPoint(tapped.anchorPx, tapped.bearingDeg, minY, modifier.fillMaxSize(), insetLeft, insetRight) { tip ->
                         MapFeatureBubble(
                             content = content,
                             tipInBubble = tip,

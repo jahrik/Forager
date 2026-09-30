@@ -47,9 +47,9 @@ import java.time.LocalDate
 
 /**
  * Cartography, unified — Journal Stage 2b, owner decision #3: **one implementation, responsive
- * layout**, not two composables. [JournalTab] (compact) and [LogPanel] (expanded) both host this
- * same composable for their Cartography tab; the only thing that varies between them is [columns]
- * (more grid columns on expanded — "more of the same thing at once," not a different arrangement).
+ * layout**, not two composables. [JournalTab] hosts it for the Cartography tab; the only thing that
+ * varies with the window is [columns]. (A second host, the tablet's `LogPanel`, was removed in dispatch
+ * 2026-09-28-245: a tablet is a big phone.)
  *
  * **Journal redesign J2 replaced the three submenus** (Entries, Drafts, Album, a `SecondaryTabRow`)
  * with one screen: a toolbar whose toggle switches between the entries timeline
@@ -57,7 +57,7 @@ import java.time.LocalDate
  * every gallery photo grouped by day), and, when there are drafts, a banner ([DraftsBanner]) whose
  * Continue opens the one draft or the full-screen [DraftsListScreen] over
  * [CartographyUiState.draftEntries]. The toggle's value is `JournalScreenState`'s when [JournalTab]
- * hosts this; [LogPanel] gets a local default. Back unwinds, innermost first: an open entry, the
+ * hosts this. Back unwinds, innermost first: an open entry, the
  * drafts list, the album view.
  *
  * [uiState].editingEntry doubles as this screen's own navigation state, the same convention
@@ -130,32 +130,32 @@ internal fun CartographyScreen(
     onSaveEntryAsDraft: () -> Unit,
     onDeleteEntry: (String) -> Unit,
     modifier: Modifier = Modifier,
-    /** Grid column count for the Entries/Drafts lists — 2 for compact, more for expanded/tablet. */
+    /** Grid column count for the Entries/Drafts lists — two on the phone. */
     columns: Int = 2,
     /**
      * Timeline or album (journal redesign J2, T3). `JournalTab` passes `JournalScreenState`'s, so
-     * the choice survives a tab change and a restore; `LogPanel` (the wide tree, J6) passes none and
-     * gets this local, unsaved default.
+     * the choice survives a tab change and a restore; the default is local and unsaved, for a caller that hosts this
+     * screen on its own (tests).
      */
     entriesViewState: MutableState<EntriesViewMode> = remember { mutableStateOf(EntriesViewMode.TIMELINE) },
     /**
      * The already-loaded recorded tracks (`TrackRecordingUiState.tracks`), for the cards' track
      * thumbnails (J3, C3; owner ruling "Join in memory (Recommended)"). `JournalTab` passes its own;
-     * `LogPanel` (J6) passes none, so its cards draw no thumbnail.
+     * the default draws no thumbnail.
      */
     tracks: List<Track> = emptyList(),
     /** F3 (owner, "C: list screen loads lazily"): one entry's saved track paths, by track id; see [CartographyEntryListScreen]. */
     getSavedTrackPaths: suspend (String) -> Map<String, List<LatLng>> = { emptyMap() },
-    /** Ids of draft finds, for the album's find badge (J3, C5); see [EntriesAlbum]. `LogPanel` passes none. */
+    /** Ids of draft finds, for the album's find badge (J3, C5); see [EntriesAlbum]. */
     draftFindIds: Set<String> = emptySet(),
     /**
      * An entry card's swipe Delete (J4b L2): a *pending* delete with Undo
      * (`CartographyViewModel.requestDeleteEntry`), on the timeline and in the drafts list. [onDeleteEntry]
      * stays the report's and edit screen's immediate delete behind their confirm dialogs. `null`
-     * (the default; `LogPanel` passes none) leaves the cards without the swipe.
+     * (the default) leaves the cards without the swipe.
      */
     onRequestDeleteEntry: ((String) -> Unit)? = null,
-    /** An album photo's long-press Delete (J4b L3): a *pending* delete with Undo. `null` (the default; `LogPanel`) leaves the photos without the menu. */
+    /** An album photo's long-press Delete (J4b L3): a *pending* delete with Undo. `null` (the default) leaves the photos without the menu. */
     onRequestDeleteGalleryPhoto: ((String) -> Unit)? = null,
     /**
      * Journal redesign J5 (plan L1-L4, L6): the short window's pinned L1 row, which `JournalTab`
@@ -164,7 +164,7 @@ internal fun CartographyScreen(
      * album, nothing while an entry or the drafts list is open. Non-null means a short landscape
      * window, and with it: no floating button (L2), the drafts chip and view toggle in a second row
      * that hides on scroll (L3), sideways cards with the long-press menu (L4) and a 5-column album
-     * (L6). `null` (portrait, `LogPanel`) is this screen exactly as before.
+     * (L6). `null` (portrait) is this screen exactly as before.
      */
     shortWindowHeader: (@Composable ((@Composable () -> Unit)?) -> Unit)? = null,
     /** Off while the Tools drawer is open over the Journal, so Back closes the drawer (intent 2026-09-28-28); see [JournalTab]'s parameter of the same name. `true` (the default) is every other caller, unchanged. */
@@ -183,12 +183,12 @@ internal fun CartographyScreen(
      * draws an unsaved edit as if it were saved. It was a plain `remember` here, so every return to
      * the Journal reset it to [CartographyEntryMode.VIEW] while the unsaved edit stayed open in the
      * ViewModel (`docs/audits/2026-09-28-leaving-the-journal-investigation.md`, Behaviour 2). The
-     * default, local and unsaved, is for callers that host this screen on its own (`LogPanel`, tests).
+     * default, local and unsaved, is for callers that host this screen on its own (tests).
      */
     entryModeState: MutableState<CartographyEntryMode> = remember { mutableStateOf(CartographyEntryMode.VIEW) },
     /**
      * J8-4, the Maps tab's "Open entry" (the owner's Q1 ruling, "Open in Journal, prompt first
-     * (Recommended)"): an entry to open in its report, handed down once by `JournalTab` or `LogPanel`,
+     * (Recommended)"): an entry to open in its report, handed down once by `JournalTab`,
      * which [onOpenEntryRequestConsumed] clears. An entry open in its editor with unsaved changes gets
      * the existing "Save your changes?" first, and the requested one opens only after Save or Discard;
      * Cancel keeps the edit open and opens nothing. Any other open entry (a report, an unchanged editor,
@@ -198,14 +198,6 @@ internal fun CartographyScreen(
     onOpenEntryRequestConsumed: () -> Unit = {},
     /** J8-3: the report menu's "Show on map" and "Hide from map" for a saved entry. `null` (the default) offers neither. */
     onSetShownOnMap: ((entryId: String, shown: Boolean) -> Unit)? = null,
-    /**
-     * J6a (ruling 1, list-detail): where the wide tree opens the entry that is open. With a slot, the
-     * open entry's report or editor registers there ([JournalDetailPriority.ENTRY]) and this screen
-     * keeps drawing its list, so the entry takes the whole right side while the list stays in the left
-     * column. `null` (the default; the compact `JournalTab`, tests) draws the open entry here in place
-     * of the list, exactly as before.
-     */
-    detailSlot: JournalDetailSlot? = null,
 ) {
     var mode by entryModeState
     val shortWindow = shortWindowHeader != null
@@ -222,8 +214,8 @@ internal fun CartographyScreen(
     // entry... unwinds itself first via its own local BackHandler," but no such handler existed
     // here, so back fell straight through to that outer go-home one regardless of depth, on a
     // draft exactly as much as a committed entry. One definition here, not duplicated into
-    // JournalTab/LogPanel: both simply host this composable, so this covers both window classes
-    // for free — see this file's own class doc comment on why [JournalTab]/[LogPanel] share this
+    // JournalTab: both simply host this composable, so this covers both window classes
+    // for free — see this file's own class doc comment on why [JournalTab] share this
     // one implementation.
     //
     // requestLeaveEntry() is the single decision both the arrow (CartographyEntryEditScreen's own
@@ -297,7 +289,7 @@ internal fun CartographyScreen(
 
     // Enabled only while an entry is open — disabled the instant editingEntry is null, so back at
     // this screen's own top level (the Entries/Drafts/Album tabs) falls straight through to
-    // whatever's next (JournalTab/LogPanel's own selectedTopTab step, then AvailabilityScreen's
+    // whatever's next (JournalTab's own selectedTopTab step, then AvailabilityScreen's
     // go-home). That fallthrough is the fix's whole point: this adds a step before go-home, it
     // never replaces it — a Journal back could never exit at all would be worse than the bug this
     // dispatch reports.
@@ -308,7 +300,7 @@ internal fun CartographyScreen(
     // Pending-edit-and-fixes dispatch, Item 1: backgrounding must not commit a dirty committed
     // entry. Self-contained here (owner decision, over threading through AvailabilityScreen's own
     // observer) — one new parameter (onSaveEntryAsDraft) instead of a boolean plus two callbacks
-    // crossing JournalTab/LogPanel/AvailabilityScreen, and it keeps this screen's whole
+    // crossing JournalTab/AvailabilityScreen, and it keeps this screen's whole
     // backgrounding-and-return story next to the leave-prompt's own identical hoisted-state shape.
     // On ON_STOP: no ViewModel call at all — the pending edit already sits live in
     // CartographyUiState.editingEntry/hasUnsavedChanges (see CartographyViewModel.persist's own doc
@@ -430,17 +422,10 @@ internal fun CartographyScreen(
             }
         }
     }
-    if (editingEntry != null && detailSlot == null) {
+    if (editingEntry != null) {
         ShortWindowFrame(shortWindowHeader, action = null, modifier = modifier) { contentModifier -> entryDetail(contentModifier) }
         return
     }
-    // J6a: with a slot the entry is a detail beside the list, not a replacement for it. Registered while
-    // an entry is open; its content is read through state, so it follows the entry, its mode and its
-    // prompts without re-registering.
-    JournalDetail(detailSlot, active = editingEntry != null, priority = JournalDetailPriority.ENTRY) {
-        entryDetail(Modifier.fillMaxSize())
-    }
-
     if (uiState.isLoadingCandidates) {
         ShortWindowFrame(shortWindowHeader, action = null, modifier = modifier) { contentModifier ->
             Box(modifier = contentModifier, contentAlignment = Alignment.Center) {
