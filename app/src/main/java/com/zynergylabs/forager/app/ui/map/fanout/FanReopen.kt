@@ -35,9 +35,7 @@ class FanReopenCoordinator(
     private fun reopenWhenReady() {
         if (!contentEffectRan || !idleSeen) return
         takeKeys()?.let { keys ->
-            val ok = handler()?.openFanFor(keys) == true
-            android.util.Log.d("MarkerFanOut", "TEMP reopen keys=${keys.size} openFanFor=$ok")
-            if (!ok) onUnavailable(keys.size)
+            if (handler()?.openFanFor(keys) != true) onUnavailable(keys.size)
         }
     }
 }

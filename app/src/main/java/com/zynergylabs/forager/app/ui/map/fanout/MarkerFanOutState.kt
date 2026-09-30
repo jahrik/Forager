@@ -42,7 +42,6 @@ class MarkerFanOutState {
 
     /** Fans [members] out from wherever they are now. A fan still folding is replaced, not resumed. */
     fun open(members: List<FanMember>) {
-        android.util.Log.d("MarkerFanOut", "TEMP fan.open ${members.size} members ${members.map { it.key.featureId.takeLast(6) }}")
         this.members = members
         progress = 0f
         wantOpen = true
@@ -52,7 +51,6 @@ class MarkerFanOutState {
     /** Starts folding; a no-op when nothing is open. The members stay until [release]. */
     fun fold() {
         if (!wantOpen) return
-        android.util.Log.d("MarkerFanOut", "TEMP fan.fold, from: ${Throwable().stackTrace.drop(1).take(4).joinToString(" < ") { it.methodName + ':' + it.lineNumber }}")
         wantOpen = false
         generation++
     }
