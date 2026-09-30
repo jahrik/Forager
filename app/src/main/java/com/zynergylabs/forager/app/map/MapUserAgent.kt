@@ -1,0 +1,24 @@
+package com.zynergylabs.forager.app.map
+
+import android.os.Build
+import com.zynergylabs.forager.app.BuildConfig
+
+/**
+ * The one place the map's User-Agent is built (dispatch 2026-09-28-325; owner, "Yes set a proper
+ * app identifier"). OpenStreetMap's tile usage policy blocks library-default User-Agents and asks
+ * apps to identify themselves, and the Street basemap depends on its servers. The shape is
+ * `Forager/<versionName> (Android <release>; <applicationId>; +<contact>)`.
+ */
+internal object MapUserAgent {
+    /**
+     * Where a tile server's operator can reach the app's owner: the website and support address the
+     * owner gave (RECORD.md, 2026-09-28-326). The planner added the `https://` scheme, the form
+     * OSM's policy example uses.
+     */
+    const val CONTACT = "+https://zynergy-labs.com; support@zynergy-labs.com"
+
+    fun build(versionName: String, androidRelease: String, applicationId: String): String =
+        "Forager/$versionName (Android $androidRelease; $applicationId; $CONTACT)"
+
+    fun forThisApp(): String = build(BuildConfig.VERSION_NAME, Build.VERSION.RELEASE, BuildConfig.APPLICATION_ID)
+}
