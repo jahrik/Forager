@@ -136,6 +136,8 @@ class MainActivity : ComponentActivity() {
                     },
                     // A find whose delete has finished leaves the Maps tab's records (dispatch 2026-09-28-291).
                     onFindDeleted = { id -> viewModel.onFindDeleted(id) },
+                    // An album photo whose delete has finished leaves them too (dispatch 2026-09-28-297).
+                    onPhotoDeleted = { id -> viewModel.onPhotoDeleted(id) },
                 )
             }
         }
