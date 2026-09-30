@@ -7243,3 +7243,19 @@ The planner confirmed each by grep.
 **Note on the coder's flag:** "-245 will replace this L code" is not right. -245 keeps the phone's icon cluster, and only its Part B touches the L's top limit. The fails at items 9, 11, 12, 13 and 18 are expected to stand on the new build unless shown otherwise.
 **Open for the owner:** what is done about the fails at items 9, 11, 12, 13 and 18, and the observation at item 5.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-252
+**Timestamp:** 2026-09-30T00:19:56Z
+**Title:** Five Part 3 S22-A device fails fixed before PR #140 merges: A1 item 9, A2 items 11, 12, 13 and 18
+**Dispatch-file:** preserved/2026-09-29-57.md
+**Change:**
+- One fix per fail, each tested first where Robolectric can reproduce it.
+- Where no existing rule defines the correct behaviour, that item stops and comes to the owner.
+- Where the failure needs real insets or projection, that item stops at a diagnosis and a proposed fix.
+**Scope boundary:** the map's icon cluster and L, map bubbles, and marker and track hit-testing. A1 item 5 is excluded.
+**Sequencing:** launches after the tablet-as-phone build (-245) is merged into journal-redesign, from that commit. S22-B rechecks these fixes on the fresh build.
+**Owner's answer:** "Option 1. Fix all five before merge".
+**Notes:** Written by the planner by hand.
