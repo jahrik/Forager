@@ -94,6 +94,8 @@ internal data class FanFrame(
     val halos: FeatureCollection,
     val dots: FeatureCollection,
     val icons: FeatureCollection,
+    /** STUB (failing-tests commit): empty until the circles are built. */
+    val circles: FeatureCollection = FeatureCollection.fromFeatures(emptyList()),
 )
 
 private val EMPTY_FRAME = FanFrame(
