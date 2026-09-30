@@ -531,13 +531,10 @@ internal fun returnToStartStripText(isRecording: Boolean, info: ReturnToStartInf
 }
 
 /**
- * [CompactMapTab]'s own version of the same three-way chooser [ThreeWayActionDialog] shows on
- * medium/expanded windows — same three choices, same shared [PendingMapAction] state, but
+ * [CompactMapTab]'s three-way chooser — three choices over the shared [PendingMapAction] state,
  * presented as a small tile that grows out of the add button's own corner of the icon bar rather
  * than [AlertDialog]'s centered scale-in, per the project owner's own description of how it should
- * open. Compact-only: the medium/expanded window's own add button (added alongside this rework —
- * see [MapTab]'s doc comment) has no icon bar for a tile to grow out of, so [MapTab] keeps the
- * plain dialog instead.
+ * open. (The tablet's plain `ThreeWayActionDialog` was removed in dispatch 2026-09-28-245.)
  *
  * **Real [AssistChip]s, short labels, no title row.** The original had a "Add..." title plus four
  * full-width [TextButton]s (three choices, and its own "Cancel") — a real hardware-reported

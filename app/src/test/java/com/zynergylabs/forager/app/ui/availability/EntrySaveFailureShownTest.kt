@@ -592,21 +592,3 @@ internal class EntrySaveFailureShownShortLandscapeTest : EntrySaveFailureShownCo
         touchCentreOf(composeRule.onNodeWithTag("tile-options-delete"))
     }
 }
-
-/**
- * The wide window, where the Journal is the drawer's Mushroom Log panel (`LogPanel`). Leaving it is
- * the panel's own back arrow to the search options, after which `LogPanel` is not composed.
- */
-@RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], qualifiers = "w1280dp-h900dp-mdpi")
-internal class EntrySaveFailureShownWideTest : EntrySaveFailureShownTests() {
-    override fun openJournal() {
-        touchCentreOf(composeRule.onNodeWithText("Mushroom Log"))
-        composeRule.onNodeWithContentDescription("Back to search options").assertIsDisplayed()
-    }
-
-    override fun leaveJournal() {
-        touchCentreOf(composeRule.onNodeWithContentDescription("Back to search options"))
-        composeRule.onNodeWithText("Mushroom Log").assertIsDisplayed()
-    }
-}

@@ -3,7 +3,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
 import androidx.compose.ui.test.onAllNodesWithTag
-import com.zynergylabs.forager.app.ui.log.JOURNAL_DETAIL_PANE_TAG
 import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
@@ -578,10 +577,10 @@ class MapChromeEntryReportShortLandscapeTest : MapChromeEntryReportTests()
 // ---------------------------------------------------------------------------------------------------
 // The Records details sheet (-77 Q1 (b), superseded by the owner's "1 A" in -104): at 0.8 from the Offline
 // maps sub-tab only in a short landscape window, where the panel's picker map is beside the list, and solid
-// from every other sub-tab and window, in the compact Journal and the wide drawer.
+// from every other sub-tab and window, in the Journal.
 // ---------------------------------------------------------------------------------------------------
 
-abstract class MapChromeRecordsTests(private val wide: Boolean, private val pickerMapBesideList: Boolean) {
+abstract class MapChromeRecordsTests(private val pickerMapBesideList: Boolean) {
 
     private val composeRule = createAndroidComposeRule<ComponentActivity>()
 
@@ -592,11 +591,11 @@ abstract class MapChromeRecordsTests(private val wide: Boolean, private val pick
     private val state = MapChromeScreenState()
     private val roles = MapChromeRoles()
 
-    /** Records, in whichever tree the window gives, on the chip for [subTab]. */
+    /** Records, on the chip for [subTab]. */
     private fun openRecords(subTab: RecordsSubTab) {
         composeRule.setContent { MapChromeTestScreen(state, map, roles) }
         composeRule.waitForIdle()
-        composeRule.onNodeWithText(if (wide) "Mushroom Log" else "Journal").performClick()
+        composeRule.onNodeWithText("Journal").performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Records").performClick()
         composeRule.waitForIdle()
@@ -604,18 +603,9 @@ abstract class MapChromeRecordsTests(private val wide: Boolean, private val pick
         composeRule.waitForIdle()
     }
 
-    /**
-     * The details are solid, not at the map chrome's alpha. In the compact Journal they are a sheet; in
-     * the wide tree they are the right side's detail pane (J6a, ruling 6.1: "The record details open in
-     * the right side, not as a sheet"), whose container is `surface`.
-     */
+    /** The details are solid, not at the map chrome's alpha: in the Journal they are a sheet. */
     private fun assertDetailsSolid() {
-        if (wide) {
-            composeRule.assertSolid(JOURNAL_DETAIL_PANE_TAG, roles.surface)
-            assertEquals("the wide tree has no details sheet", 0, composeRule.onAllNodesWithTag(RECORD_DETAILS_SHEET_TAG).fetchSemanticsNodes().size)
-        } else {
-            composeRule.assertSolid(RECORD_DETAILS_SHEET_TAG, roles.sheet)
-        }
+        composeRule.assertSolid(RECORD_DETAILS_SHEET_TAG, roles.sheet)
     }
 
     /** A real touch on [rowTag], upper middle, after scrolling it into view. */
@@ -628,7 +618,7 @@ abstract class MapChromeRecordsTests(private val wide: Boolean, private val pick
 
     // Owner "1 A" (dispatch 2026-09-28-104, superseding -77's Q1 (b)): the sheet opened from the Offline
     // maps panel is at 0.8 only where the picker map is beside it (short landscape) and solid where it
-    // lies over the region list (portrait, and the wide tree, whose panel is stacked as in portrait).
+    // lies over the region list (portrait, where the panel is stacked).
     @Test
     fun `an offline region's details sheet from the Offline maps sub-tab is at the map chrome's alpha only where the picker map is beside it`() {
         openRecords(RecordsSubTab.OFFLINE_MAPS)
@@ -664,136 +654,8 @@ abstract class MapChromeRecordsTests(private val wide: Boolean, private val pick
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi")
-class MapChromeRecordsPortraitTest : MapChromeRecordsTests(wide = false, pickerMapBesideList = false)
+class MapChromeRecordsPortraitTest : MapChromeRecordsTests(pickerMapBesideList = false)
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi")
-class MapChromeRecordsShortLandscapeTest : MapChromeRecordsTests(wide = false, pickerMapBesideList = true)
-
-@RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], qualifiers = "w840dp-h1024dp-mdpi")
-class MapChromeRecordsWideTest : MapChromeRecordsTests(wide = true, pickerMapBesideList = false)
-
-// ---------------------------------------------------------------------------------------------------
-// The wide Maps results (M2), which show a map only once a region is searched. At w1280dp, as the M1
-// bubble tests use: the drawer and the list pane take 720 dp.
-// ---------------------------------------------------------------------------------------------------
-
-@RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], qualifiers = "w1280dp-h900dp-mdpi")
-class MapChromeWideTest {
-
-    private val composeRule = createAndroidComposeRule<ComponentActivity>()
-
-    @get:Rule
-    val rules: RuleChain = RuleChain.outerRule(mapChromeHostActivityRule()).around(composeRule)
-
-    private val map = BubbleMapSlot(chromeGlyphs(60.dp, 300.dp, 40.dp))
-    private val state = MapChromeScreenState()
-    private val roles = MapChromeRoles()
-
-    /** The screen, with a searched region (so the results pane draws its map) when [searched]. */
-    private fun setScreen(searched: Boolean = true) {
-        if (searched) state.ui = state.ui.copy(region = Region(45.5, -122.6, 10))
-        composeRule.setContent { MapChromeTestScreen(state, map, roles) }
-        composeRule.waitForIdle()
-    }
-
-    private fun openChooserAndPick(option: String) {
-        composeRule.onNodeWithContentDescription("Plan a trip or log a find here").performTouchInput { click(center) }
-        composeRule.waitForIdle()
-        composeRule.touchText(option)
-    }
-
-    @Test
-    fun `on the wide layout a waypoint's details sheet opened from its bubble is at the map chrome's alpha`() {
-        setScreen()
-        composeRule.touchCentreOf(glyphTag(BUBBLE_WAYPOINT.id))
-        composeRule.touchCentreOf(MAP_BUBBLE_DETAILS_TAG)
-        composeRule.assertOverMap(RECORD_DETAILS_SHEET_TAG, roles.sheet, roles.onSurface)
-    }
-
-    @Test
-    fun `on the wide layout the three-way dialog over the map is at the map chrome's alpha`() {
-        setScreen()
-        composeRule.onNodeWithContentDescription("Plan a trip or log a find here").performTouchInput { click(center) }
-        composeRule.waitForIdle()
-        composeRule.assertOverMap(THREE_WAY_ACTION_DIALOG_TAG, roles.dialog, roles.dialogText)
-    }
-
-    @Test
-    fun `on the wide layout the centre-pin confirm row over the map is at the map chrome's alpha`() {
-        setScreen()
-        openChooserAndPick("Drop a waypoint")
-        composeRule.assertOverMap(CENTRE_PIN_CONFIRM_ROW_TAG, roles.surface, roles.onSurface)
-    }
-
-    @Test
-    fun `on the wide layout the waypoint name dialog over the map is at the map chrome's alpha`() {
-        setScreen()
-        openChooserAndPick("Drop a waypoint")
-        composeRule.touchText("OK")
-        composeRule.assertOverMap(WAYPOINT_NAME_DIALOG_TAG, roles.surface, roles.onSurface)
-    }
-
-    @Test
-    fun `on the wide layout the trip date dialog over the map is at the map chrome's alpha`() {
-        setScreen()
-        openChooserAndPick("Plan a trip")
-        composeRule.touchText("OK")
-        composeRule.assertOverMap(TRIP_DATE_DIALOG_TAG, roles.datePicker, roles.onSurface)
-    }
-
-    @Test
-    fun `on the wide layout the trip date dialog's picker draws no fill of its own over the dialog's`() {
-        setScreen()
-        openChooserAndPick("Plan a trip")
-        composeRule.touchText("OK")
-        assertEquals("trip-date-picker: container", Color.Transparent, composeRule.colourOn(TRIP_DATE_PICKER_TAG, MapChromeContainerColor))
-    }
-
-    /**
-     * J6c (the owner's item 5: "The tablet's separate Layers button and "+" are replaced by the bar's Layers
-     * and "+" rows"): the wide map's own Layers button, which this test read at the map chrome's alpha, no
-     * longer exists. Its replacement is a row of the icon cluster, the same `MapIconBar` and container the phone's
-     * Maps tab draws, whose fill the compact tests guard. What is asserted here is what is left to say about the
-     * wide map: the separate button is gone and the Layers control is the cluster's row. A direct alpha
-     * assertion on that row is not made: the cluster's fill is not marked with `MapChromeContainerColor`.
-     */
-    @Test
-    fun `on the wide layout the Layers control is the icon cluster's row, and the separate Layers button is gone`() {
-        setScreen()
-        assertEquals("the cluster is on the wide map", 1, composeRule.onAllNodesWithTag(MAP_ICON_CLUSTER_TAG).fetchSemanticsNodes().size)
-        assertEquals("the separate Layers button is gone", 0, composeRule.onAllNodesWithTag("wide-layers-button").fetchSemanticsNodes().size)
-    }
-
-    @Test
-    fun `on the wide layout the species suggestions over the searched map are at the map chrome's alpha`() {
-        state.ui = state.ui.copy(taxonSearchQuery = "zzz", taxonSearchHasNoResults = true)
-        setScreen(searched = true)
-        composeRule.assertOverMap(TAXON_SUGGESTIONS_MENU_TAG, roles.menu, roles.onSurface)
-    }
-
-    @Test
-    fun `on the wide layout the species suggestions before any search, with no map drawn, stay solid`() {
-        state.ui = state.ui.copy(taxonSearchQuery = "zzz", taxonSearchHasNoResults = true)
-        setScreen(searched = false)
-        composeRule.assertSolid(TAXON_SUGGESTIONS_MENU_TAG, roles.menu)
-    }
-
-    @Test
-    fun `on the wide layout the exit-navigation prompt over the searched map is at the map chrome's alpha`() {
-        state.isReturning = true
-        setScreen(searched = true)
-        composeRule.back()
-        composeRule.assertOverMap(EXIT_NAVIGATION_PROMPT_TAG, roles.dialog, roles.dialogText)
-    }
-
-    @Test
-    fun `on the wide layout the exit-navigation prompt with no map drawn stays solid`() {
-        state.isReturning = true
-        setScreen(searched = false)
-        composeRule.back()
-        composeRule.assertSolid(EXIT_NAVIGATION_PROMPT_TAG, roles.dialog)
-    }
-}
+class MapChromeRecordsShortLandscapeTest : MapChromeRecordsTests(pickerMapBesideList = true)

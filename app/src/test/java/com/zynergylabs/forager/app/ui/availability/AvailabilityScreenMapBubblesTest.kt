@@ -1,6 +1,5 @@
 package com.zynergylabs.forager.app.ui.availability
 
-import com.zynergylabs.forager.app.ui.log.JOURNAL_DETAIL_PANE_TAG
 import android.app.Application
 import android.content.ComponentName
 import android.content.Intent
@@ -543,82 +542,6 @@ class AvailabilityScreenMapBubblesShortLandscapeTest {
         composeRule.touchAt(600.dp, 330.dp)
         assertEquals(before + 1, map.taps)
         composeRule.onAllNodesWithTag(MAP_BUBBLE_TAG).assertCountEqualsZero()
-    }
-}
-
-/**
- * The bubble on the wide layout, and its find route to the drawer's LogPanel. At `w1280dp`: the
- * permanent drawer and the list pane take 720 dp, so the L0b wide tests' `w840dp` leaves the map
- * 119 dp wide, too narrow for a bubble.
- */
-@RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], qualifiers = "w1280dp-h900dp-mdpi")
-class AvailabilityScreenMapBubblesWideTest {
-
-    private val composeRule = createAndroidComposeRule<ComponentActivity>()
-
-    @get:Rule
-    val rules: RuleChain = RuleChain.outerRule(hostActivityRule()).around(composeRule)
-
-    private val map = BubbleMapSlot(glyphsAt(60.dp, 300.dp))
-    private var log by mutableStateOf(MushroomLogUiState(entries = listOf(BUBBLE_FIND), galleryPhotos = listOf(BUBBLE_PHOTO)))
-
-    /** The wide map shows only once a region is searched, so a search is run first. */
-    private fun setScreen() {
-        val store = OneCellStore()
-        val viewModel = mapLayersViewModel(store = store)
-        viewModel.onManualLatChanged("45.5")
-        viewModel.onManualLngChanged("-122.6")
-        viewModel.searchManualCoordinates()
-        composeRule.setContent {
-            MapLayersTestScreen(
-                viewModel = viewModel,
-                mapSlot = map.slot,
-                store = store,
-                logUiState = log,
-                waypoints = listOf(BUBBLE_WAYPOINT),
-                onOpenLogEntry = { id -> log = log.copy(editingEntry = log.entries.firstOrNull { it.id == id }) },
-                onCloseLogEntry = { log = log.copy(editingEntry = null) },
-            )
-        }
-        composeRule.waitForIdle()
-    }
-
-    @Test
-    fun `on the wide layout a glyph shows its bubble, touches on it stay on it, and a touch on empty map dismisses it`() {
-        setScreen()
-        composeRule.touchCentreOf(glyphTag("wp-1"))
-        composeRule.onNodeWithTag(MAP_BUBBLE_TAG).assertIsDisplayed()
-        val before = map.taps
-
-        composeRule.touchAcrossBubbleText("Creek pin")
-        assertEquals(before, map.taps)
-
-        val slot = composeRule.onNodeWithTag("map-slot").getUnclippedBoundsInRoot()
-        composeRule.touchAt(slot.right - 120.dp, slot.bottom - 200.dp)
-        assertEquals(before + 1, map.taps)
-        composeRule.onAllNodesWithTag(MAP_BUBBLE_TAG).assertCountEqualsZero()
-    }
-
-    @Test
-    fun `on the wide layout Open in Journal opens the drawer's log panel with the find in its report, and Back closes it`() {
-        setScreen()
-        composeRule.touchCentreOf(glyphTag("find-1"))
-
-        composeRule.touchCentreOf(MAP_BUBBLE_OPEN_FIND_TAG)
-
-        // J6a (ruling 1, list-detail): the find opened from the bubble is the whole right side's detail pane
-        // now, not the overlay (FIND_OVER_VIEW_TAG) it was drawn in over the drawer panel.
-        composeRule.onNodeWithTag(JOURNAL_DETAIL_PANE_TAG).assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
-        // J6a header ruling (prompts/preserved/2026-09-29-25.md): the Journal panel's header row reads
-        // "Journal" (it read "Mushroom Log"); the Search panel's own "Mushroom Log" row is unchanged.
-        composeRule.onNodeWithText("Journal").assertExists()
-        assertEquals("find-1", log.editingEntry?.id)
-
-        composeRule.back()
-        composeRule.onAllNodesWithTag(JOURNAL_DETAIL_PANE_TAG).assertCountEqualsZero()
-        assertEquals(null, log.editingEntry)
     }
 }
 

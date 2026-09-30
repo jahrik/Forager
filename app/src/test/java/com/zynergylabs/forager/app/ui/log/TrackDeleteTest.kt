@@ -367,54 +367,6 @@ class TrackDeleteTest {
         composeRule.onNodeWithTag(RECORD_DETAILS_SHEET_TAG).assertIsDisplayed()
         composeRule.onNodeWithTag(RECORD_DETAILS_DELETE_TAG).assertDoesNotExist()
     }
-
-    // ── The details' Delete: the tablet's pane ──
-
-    private fun setPane(track: Track, onDelete: ((String) -> Unit)?) {
-        composeRule.setContent {
-            RecordDetailsPane(
-                target = RecordDetailsTarget.TrackDetails(track.id),
-                waypoints = emptyList(),
-                tracks = listOf(track),
-                offlineRegions = emptyList(),
-                waypointEntryReferenceCounts = emptyMap(),
-                distanceUnit = DistanceUnit.MILES,
-                nowEpochMillis = 0L,
-                staleThresholdDays = 30,
-                getFullRecord = { Result.success(emptyList()) },
-                onDeleteTrack = onDelete,
-                onDismiss = {},
-            )
-        }
-        composeRule.waitForIdle()
-    }
-
-    @Test
-    fun `the tablet details pane of a finished track has a Delete that asks for the delete`() {
-        val asked = mutableListOf<String>()
-        setPane(DONE_TRACK) { asked += it }
-
-        composeRule.onNodeWithTag(RECORD_DETAILS_DELETE_TAG).assertIsDisplayed().assert(hasText("Delete"))
-        composeRule.onNodeWithTag(RECORD_DETAILS_DELETE_TAG).performTouchInput { click() }
-        composeRule.waitForIdle()
-
-        assertEquals(listOf("t-done"), asked)
-    }
-
-    @Test
-    fun `the tablet details pane of a recording track has no Delete`() {
-        setPane(RECORDING_TRACK) { }
-
-        composeRule.onNodeWithTag(RECORD_DETAILS_PANE_TAG).assertIsDisplayed()
-        composeRule.onNodeWithTag(RECORD_DETAILS_DELETE_TAG).assertDoesNotExist()
-    }
-
-    @Test
-    fun `a details pane handed no delete shows none, even for a finished track`() {
-        setPane(DONE_TRACK, null)
-
-        composeRule.onNodeWithTag(RECORD_DETAILS_DELETE_TAG).assertDoesNotExist()
-    }
 }
 
 private const val SNACKBAR_LONG_MILLIS = 10_000L

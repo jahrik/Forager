@@ -12,7 +12,6 @@ import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import com.zynergylabs.forager.app.ui.map.MAP_BUBBLE_TAG
 import com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag
 import com.zynergylabs.forager.app.ui.log.RecordsSubTab
-import com.zynergylabs.forager.app.ui.log.JOURNAL_DETAIL_PANE_TAG
 import com.zynergylabs.forager.app.domain.model.LatLng
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.performTouchInput
@@ -168,53 +167,3 @@ class MapChromeColourPixelsDarkTest : MapChromeColourPixelsTests(dark = true)
 @Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class MapChromeColourPixelsLightTest : MapChromeColourPixelsTests(dark = false)
-
-/**
- * The wide record-details pane: opaque, and now the token (planner: "It takes the token colour and STAYS solid"). It was
- * `surface`; the pulse read it as surfaceContainerLow. Read from pixels because its semantic seam repeats the colour it is given.
- */
-abstract class MapChromeColourPanePixelsTests(private val dark: Boolean) {
-    private val composeRule = createAndroidComposeRule<ComponentActivity>()
-
-    @get:Rule
-    val rules: RuleChain = RuleChain.outerRule(mapChromeHostActivityRule()).around(composeRule)
-
-    private val map = BubbleMapSlot(emptyList())
-    private val state = MapChromeScreenState()
-    private val roles = MapChromeRoles()
-
-    @Test
-    fun `the wide details pane is drawn as the token, solid`() {
-        composeRule.setContent { MapChromeTestScreen(state, map, roles, darkTheme = dark) }
-        composeRule.waitForIdle()
-        composeRule.onNodeWithText("Mushroom Log").performClick()
-        composeRule.waitForIdle()
-        composeRule.onNodeWithText("Records").performClick()
-        composeRule.waitForIdle()
-        composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.WAYPOINTS)).performScrollTo().performClick()
-        composeRule.waitForIdle()
-        val row = "records-swipe-waypoints-${BUBBLE_WAYPOINT.id}"
-        composeRule.onNodeWithTag(row).performScrollTo()
-        composeRule.waitForIdle()
-        composeRule.onNodeWithTag(row).performTouchInput { click(androidx.compose.ui.geometry.Offset(width * 0.4f, height * 0.25f)) }
-        composeRule.waitForIdle()
-        val image = composeRule.onRoot().captureToImage().toPixelMap()
-        val density = composeRule.density
-        val pane = composeRule.onNodeWithTag(JOURNAL_DETAIL_PANE_TAG).getUnclippedBoundsInRoot()
-        val token = if (dark) SurfaceContainerDark else SurfaceContainerLight
-        // The pane's own corner, inside its bounds, clear of the content and of the system-bar padding.
-        val px = with(density) { image[(pane.left + 3.dp).toPx().toInt(), (pane.top + 3.dp).toPx().toInt()] }
-        val ok = abs(px.red - token.red) <= 2f / 255f && abs(px.green - token.green) <= 2f / 255f && abs(px.blue - token.blue) <= 2f / 255f
-        assertTrue("the pane's fill is the token, solid: expected (%.3f, %.3f, %.3f), read (%.3f, %.3f, %.3f)".format(token.red, token.green, token.blue, px.red, px.green, px.blue), ok)
-    }
-}
-
-@RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], qualifiers = "w840dp-h1024dp-mdpi")
-@GraphicsMode(GraphicsMode.Mode.NATIVE)
-class MapChromeColourPanePixelsDarkTest : MapChromeColourPanePixelsTests(dark = true)
-
-@RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], qualifiers = "w840dp-h1024dp-mdpi")
-@GraphicsMode(GraphicsMode.Mode.NATIVE)
-class MapChromeColourPanePixelsLightTest : MapChromeColourPanePixelsTests(dark = false)

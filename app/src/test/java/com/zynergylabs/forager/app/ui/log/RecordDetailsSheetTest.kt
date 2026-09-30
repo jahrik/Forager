@@ -66,10 +66,9 @@ import org.robolectric.shadows.ShadowDialog
  * offline-region row opens a Material 3 modal bottom sheet with the record's full information and
  * its actions.
  *
- * Driven through the real [AvailabilityScreen] in the three window shapes the Records rows appear
- * in: compact portrait (`w411dp-h891dp`, `JournalTab`), a short landscape window
- * (`w823dp-h384dp-land`, `JournalTab` beside the rail) and the wide tree (`w840dp-h1024dp-mdpi`,
- * `LogPanel` in the drawer), since all three share `RecordsTab`.
+ * Driven through the real [AvailabilityScreen] in the two window shapes the Records rows appear
+ * in: portrait (`w411dp-h891dp`, `JournalTab`) and a landscape window (`w823dp-h384dp-land`,
+ * `JournalTab` beside the rail).
  *
  * - **Row taps are real touches** (`performTouchInput`) at several points across each row's own
  *   bounds (CLAUDE.md, "A semantic `performClick` asserts wiring, not routing"), each sample a fresh
@@ -147,9 +146,9 @@ class RecordDetailsSheetTest {
         composeRule.waitForIdle()
     }
 
-    /** Opens Records in whichever tree the window gives: the Journal tab (compact) or the Mushroom Log drawer panel (wide). */
-    private fun openRecords(wide: Boolean = false) {
-        composeRule.onNodeWithText(if (wide) "Mushroom Log" else "Journal").performClick()
+    /** Opens Records in the Journal tab. */
+    private fun openRecords() {
+        composeRule.onNodeWithText("Journal").performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Records").performClick()
         composeRule.waitForIdle()
@@ -516,39 +515,6 @@ class RecordDetailsSheetTest {
         assertTrue("a scrim touch closed the sheet", !sheetShowing())
     }
 
-    // ── The wide tree (LogPanel shares RecordsTab) ──
-
-    /**
-     * J6a (ruling 6.1, "The record details open in the right side, not as a sheet"): on the wide tree a
-     * Records row opens its details in the detail pane, not `RecordDetailsSheet`, with the same content
-     * (the body is shared) and closes on Back. The compact Journal's sheet tests above are unchanged.
-     */
-    @Config(qualifiers = WIDE)
-    @Test
-    fun `wide tree - a waypoint row in LogPanel's Records opens its details in the right side pane`() {
-        setScreen()
-        openRecords(wide = true)
-        tapAcrossRowOpensPane(waypointRow("W1"), "Creek pin") { assertWaypointCreekContent() }
-        tapAcrossRowOpensPane(regionRow(), "Molalla Ridge") { assertRegionContent() }
-    }
-
-    private fun paneShowing(): Boolean = composeRule.onAllNodesWithTag(RECORD_DETAILS_PANE_TAG).fetchSemanticsNodes().isNotEmpty()
-
-    private fun tapAcrossRowOpensPane(rowTag: String, expectedTitle: String, whileOpen: () -> Unit = {}) {
-        for (point in ROW_SAMPLES) {
-            assertTrue("no pane before the tap at $point", !paneShowing())
-            touch(rowTag, point)
-            assertTrue("a tap at $point of $rowTag opens the details pane", paneShowing())
-            assertTrue("not as a sheet", !sheetShowing())
-            composeRule.onNodeWithTag(RECORD_DETAILS_PANE_TAG).assertIsDisplayed()
-            composeRule.onNodeWithTag(TITLE).assertTextEquals(expectedTitle)
-            whileOpen()
-            composeRule.activity.onBackPressedDispatcher.onBackPressed()
-            composeRule.waitForIdle()
-            assertTrue("Back closes the pane (after the tap at $point)", !paneShowing())
-        }
-    }
-
     // ── Helpers ──
 
     private fun shortSwipeLeft(tag: String, distanceDp: Float = 64f) {
@@ -592,7 +558,6 @@ class RecordDetailsSheetTest {
 
 private const val PORTRAIT = "w411dp-h891dp"
 private const val SHORT_LANDSCAPE = "w823dp-h384dp-land"
-private const val WIDE = "w840dp-h1024dp-mdpi"
 
 private const val SHEET = "record-details-sheet"
 private const val TITLE = "record-details-title"
