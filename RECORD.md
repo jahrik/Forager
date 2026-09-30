@@ -8849,3 +8849,17 @@ The owner picks from the images. Nothing merges from topo-night as built.
 **Found and not changed:** INaturalistClient, OpenMeteoClient and OpenMeteoArchiveClient send OkHttp's default User-Agent. This is open with the owner.
 **Device item open:** capture one tile request's headers from the S22, and one offline-download request's.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-331
+**Timestamp:** 2026-09-30T22:54:59Z
+**Title:** iNaturalist and Open-Meteo requests carry the app's User-Agent
+**Dispatch-file:** preserved/2026-09-30-25.md
+**The owner, verbatim:** "And same identifier for inaturalist and open-meteo".
+**The planner's reading:** -325 found that INaturalistClient, OpenMeteoClient and OpenMeteoArchiveClient send OkHttp's default User-Agent.
+**Change:**
+- One shared interceptor on those three clients sets exactly one User-Agent, from the same single source as the map's (MapUserAgent, which may be moved to an app-wide home).
+- Nothing else about the clients changes.
+**Notes:** Written by the planner by hand. It is queued for Gradle.
