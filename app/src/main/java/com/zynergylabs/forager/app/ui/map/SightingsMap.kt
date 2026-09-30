@@ -401,6 +401,7 @@ fun SightingsMap(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
+            Log.d(SIGHTINGS_MAP_TAG, "TEMP teardown mapView#${System.identityHashCode(mapView)} locationActivated=${mapLibreMap?.locationComponent?.isLocationComponentActivated}")
             tearDownMap(object : MapTeardownTarget {
                 override fun stopLocationUpdates() {
                     mapLibreMap?.locationComponent?.onStop()
@@ -532,6 +533,7 @@ fun SightingsMap(
             map.addOnCameraMoveStartedListener { reason ->
                 // A fanned stack folds on any camera move, a gesture or the app's own: its copies are placed
                 // in screen space (fanMemberLatLng), and a camera that moves under them would strand them.
+                Log.d(FAN_OUT_RESTORE_TAG, "TEMP cameraMoveStarted reason=$reason")
                 tapHandlerRef.handler?.onCameraMoveStarted()
                 if (isUserCameraGesture(reason)) currentOnUserCameraGesture()
             }
@@ -542,6 +544,7 @@ fun SightingsMap(
             // addOnMapLongClickListener's latLng is.
             map.addOnCameraIdleListener {
                 cameraIdleCount++
+                Log.d(SIGHTINGS_MAP_TAG, "TEMP idle #$cameraIdleCount mapView#${System.identityHashCode(mapView)} loadedStyle=${loadedStyle != null} pendingFan=${currentReturnMemory?.pendingFanKeys?.size}")
                 // CameraPosition.target is declared `LatLng?` in the pinned SDK itself (verified via
                 // javap: the vendor's own constructor carries an org.jetbrains.annotations.Nullable
                 // on this parameter) — null before the map has finished laying out a first camera
@@ -574,7 +577,9 @@ fun SightingsMap(
                 // change folds it again is device-only: a real MapView cannot be built under Robolectric.
                 if (loadedStyle != null) {
                     currentReturnMemory?.takeFanKeys()?.let { keys ->
-                        if (tapHandlerRef.handler?.openFanFor(keys) != true) {
+                        val opened = tapHandlerRef.handler?.openFanFor(keys)
+                        Log.d(FAN_OUT_RESTORE_TAG, "TEMP openFanFor(${keys.size}) -> $opened")
+                        if (opened != true) {
                             Log.w(FAN_OUT_RESTORE_TAG, "The fan of ${keys.size} markers could not be reopened: fewer than two of them are still drawn.")
                         }
                     }
@@ -702,6 +707,7 @@ fun SightingsMap(
             }
             appliedStyle = requested
             loadedStyle = style
+            Log.d(SIGHTINGS_MAP_TAG, "TEMP style loaded mapView#${System.identityHashCode(mapView)}")
             // setStyle discards the previous style's LocationComponent state the same way it does
             // this composable's own layers (see initializeOverlayLayers' own doc comment on why
             // that function re-runs here) — so the live-location "puck" needs the same
@@ -770,6 +776,7 @@ fun SightingsMap(
     // A fanned stack folds when what the map draws changes: its records, its layer switches, its style.
     // Not when a bubble opens (focusedObservationId, focusedFeature): tapping a fanned marker keeps the fan up.
     LaunchedEffect(loadedStyle, sightings, plannedTrips, waypoints, findMarkers, photoMarkers, drawnLayersState, journalHighlights) {
+        Log.d(FAN_OUT_RESTORE_TAG, "TEMP onContentChanged effect fired loadedStyle=${loadedStyle != null}")
         tapHandlerRef.handler?.onContentChanged()
     }
 
@@ -796,7 +803,7 @@ fun SightingsMap(
     // A map that is left (a tab switch) writes nothing on the way out, so the last list survives until the tap that read it.
     LaunchedEffect(returnMemory) {
         val memory = returnMemory ?: return@LaunchedEffect
-        snapshotFlow { if (fanOut.isOpen) fanOut.members.map { it.key } else emptyList() }.collect { keys -> memory.openFanKeys = keys }
+        snapshotFlow { if (fanOut.isOpen) fanOut.members.map { it.key } else emptyList() }.collect { keys -> Log.d(SIGHTINGS_MAP_TAG, "TEMP writer openFanKeys=${keys.size}"); memory.openFanKeys = keys }
     }
 
     LaunchedEffect(loadedStyle, drawnLayersState) {

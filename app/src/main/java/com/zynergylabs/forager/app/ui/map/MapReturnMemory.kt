@@ -40,6 +40,7 @@ class MapReturnMemory(
 
     /** Remembers that [findId] was opened from the map, with the fan that was open then and the bubble's anchor. */
     fun remember(findId: String, anchorPx: Offset, bearingDeg: Float) {
+        Log.d(MAP_RETURN_LOG_TAG, "TEMP remember($findId): openFanKeys=${openFanKeys.size}")
         request = MapReturnRequest(findId, openFanKeys.toList(), anchorPx, bearingDeg)
     }
 
@@ -54,9 +55,10 @@ class MapReturnMemory(
      * request (it belongs to a record the user has since left).
      */
     fun onFindClosed(findId: String): Boolean {
-        val remembered = request ?: return false
+        val remembered = request ?: run { Log.d(MAP_RETURN_LOG_TAG, "TEMP onFindClosed($findId): no request"); return false }
         request = null
         if (remembered.findId != findId) return false
+        Log.d(MAP_RETURN_LOG_TAG, "TEMP onFindClosed($findId): fanKeys=${remembered.fanKeys.size}")
         bubbleRestore = remembered
         fanRestore = remembered.fanKeys.takeIf { it.isNotEmpty() }
         return true
@@ -94,12 +96,14 @@ class MapReturnMemory(
     /** The fan keys to reopen, once; `null` when none. */
     fun takeFanKeys(): List<FanKey>? {
         val keys = fanRestore
+        Log.d(MAP_RETURN_LOG_TAG, "TEMP takeFanKeys -> ${keys?.size}")
         fanRestore = null
         return keys
     }
 
     /** The Maps tab left composition without using what was waiting: it does not keep it for a later map. */
     fun clearRestore() {
+        Log.d(MAP_RETURN_LOG_TAG, "TEMP clearRestore fan=${fanRestore?.size} bubble=${bubbleRestore != null}")
         bubbleRestore = null
         fanRestore = null
     }
