@@ -2,7 +2,7 @@
 
 Branch `fan-back-others`, cut from `9c806ae1` (verified an ancestor of `origin/journal-redesign` `4f3a02ad`, which adds only dispatch files and RECORD entries). No device, no adb, nothing merged to a shared branch. The owner: "apply the change to the other Back cases". Rule: with a fan open and another thing open, Back closes that thing and the fan stays; the next Back folds the fan.
 
-**Status of the final checks: see "Suite" — the post-merge suite and `assembleDebug` are marked there as run or not run.**
+**Final checks: run on the merged tree at `dd3c0279`; see "Suite".**
 
 ## Premises (read at `9c806ae1`)
 - **-293's mechanism: confirmed.** `MapRenderMode.backEnabled`; `AvailabilityCompactScaffold.kt:921` set it to `!isDrawerOpen()`; it reaches `SightingsMap.kt:952` and `MarkerFanOutBackHandler`, which is not composed while it is false (`MarkerFanOutState.kt`).
@@ -58,7 +58,7 @@ After each, the forward file was restored from the saved copy and `git diff --qu
 
 ## Suite
 Full `:app:testDebugUnitTest` at `bafa0fde`, before the report-map line and the merge: **3187 tests, 24 skipped (existing files), 0 failures, 0 errors**, 392 result files (XML saved at `/tmp/fbo-xml-full`). Affected classes: `FanBackOthersTest` 5/0, `FanBackDrawerTest` 4/0, `FanBubbleDismissalTest` 10/0, `MarkerFanOutHostTest` 10/0, unchanged. The owner-held flakes (`DrawerBackOverJournalTest` 6/0, `DiagnosticsPanelTest` 8/0 in that run) did not fail; no stall. `:app:assembleDebug` at the same commit: BUILD SUCCESSFUL, 0 `e:` lines.
-POST-MERGE: see the last section of this file, added when the post-merge run finishes.
+**Post-merge, at `dd3c0279` (after the report-map line and the merge of `origin/journal-redesign`): 3200 tests, 24 skipped, 0 failures, 0 errors**, 393 result files (XML at `/tmp/fbo-xml-post`, read by summing each file's `tests/skipped/failures/errors`). `FanBackOthersTest` 5/0, `FanBackDrawerTest` 4/0, `FanBubbleDismissalTest` 10/0, `MarkerFanOutHostTest` 10/0 (-293's tests unchanged). No stall. `:app:assembleDebug`: BUILD SUCCESSFUL, 0 `e:` lines. The report-map line has no test of its own; this run shows only that it compiles and breaks nothing.
 
 ## Disclosures
 - **Confirmed vs inferred:** confirmed by tests: four covered items and the gate terms. Inferred from code only: suggestions coverage, the bubble's order against the dropdown and fullscreen, fullscreen not folding the fan, the report-map fullscreen line, `SightingsMap`'s pass-through (unchanged since -293).
