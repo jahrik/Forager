@@ -8990,3 +8990,15 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 - **Before release:** the owner decides between a commercial tile provider (option 1) and the app's own tiles (option 2). This goes beside the Open-Meteo subscription on the pre-release list.
 - **Option 2 is a candidate project:** "tiling our own maps". It is not started; scoping comes first.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-339
+**Timestamp:** 2026-09-30T23:28:18Z
+**Subject:** the own-map-tiles project, recorded as a plan for later (follows -338)
+**The owner, verbatim:** "Save it for after PR 140. Write it as a plan for later".
+**Change:** docs/plans/own-map-tiles.md, with its index row in docs/plans/README.md.
+- It covers: the reason, what exists as read on 2026-09-30 (marked as a claim to re-verify), scope A (own Street) or B (own topo too) for the owner, three steps (a read-only survey, then a spec, then dispatches), and the constraints carried forward.
+- Nothing is dispatched. It starts after PR #140 leaves draft.
+**Notes:** Written by the planner by hand.
