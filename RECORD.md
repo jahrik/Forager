@@ -8497,3 +8497,24 @@ Both go to the next phone check.
 **The install:** `adb install -r --user 0` over 1.0.2108+g4cdf840b. User 0's ceDataInode stayed 2259049 before and after, so the data was kept. lastUpdateTime was 2026-09-30 13:08:37.
 **Not done:** no launch, input or screenshot by the planner. The device checks are the owner's.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-310
+**Timestamp:** 2026-09-30T20:46:21Z
+**Title:** Topo night mode stays dark at every zoom
+**Dispatch-file:** preserved/2026-09-30-18.md
+**The owner, verbatim:**
+- "When maps are in topo night mode, they are in night mode when zoomed in, but after zooming out to a certain point, it goes back to day mode. I checked the diff between night and day and they have light colors, just a different palette"
+- then "Change the zoomed out colors to match the zoomed in colors so that night mode can stay active".
+**The planner's reading,** headless:
+- Nothing in the app depends on zoom: one raster layer, one fixed NIGHT_RASTER_PAINT (BasemapStyles.kt:56-62, :86).
+- The zoomed-out night screenshot's dominant colours match nightColorOf applied to the day screenshot's, within quantisation. For example, the green (72,168,72) is predicted (119,215,119) and observed (120,216,120).
+- So OpenTopoMap's low-zoom tiles are darker than mid-grey, and V1's lightness flip makes them light. The zoom where the tiles change is not measured.
+**Change:**
+- A zoom-dependent topo night paint: today's paint where it already looks right, and a treatment below a measured zoom that gives a dark ground with lighter roads.
+- It is measured on a sampled tile set and modelled headless.
+- Day, Satellite and the offline style are unchanged.
+- The owner judges S22 screenshots before any merge.
+**Notes:** Written by the planner by hand. It is queued behind -296's loops for Gradle.
