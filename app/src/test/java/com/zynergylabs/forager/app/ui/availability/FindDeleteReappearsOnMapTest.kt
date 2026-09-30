@@ -88,7 +88,7 @@ import org.robolectric.annotation.Config
  * Dispatch 2026-09-28-291 (find-delete-reappears): once a find is deleted the Maps tab never draws it
  * again. The real [MushroomLogViewModel] (request, Undo and commit calls) and the real
  * [AvailabilityViewModel] (`onMapShown`, its records read from the same in-memory find store the
- * delete removes from), wired as `MainActivity` wires them.
+ * delete removes from), wired as `MainActivity` wires them (the log ViewModel's `onFindDeleted` to the availability one's).
  *
  * What the map draws is [drawn]: `AvailabilityScreen`'s own `mapRecordsDrawn` expression
  * (`uiState.mapRecords.withoutPending(findId = logUiState.pendingDelete?.item?.id, ...)`), which is
@@ -133,23 +133,6 @@ class FindDeleteReappearsOnMapTest {
         val repository = FindStore(finds.toList(), deleteShouldFail)
         val photoStore = NoPhotoStore
         val searchCache = InMemorySearchCacheRepository()
-        val log = MushroomLogViewModel(
-            getEntries = GetMushroomLogEntriesUseCase(repository),
-            getDraftEntries = GetDraftEntriesUseCase(repository),
-            createEntry = CreateMushroomLogEntryUseCase(repository, today = { LocalDate.of(2026, 9, 30) }, idGenerator = { "find-new" }),
-            startEditingEntry = StartEditingLogEntryUseCase(repository, idGenerator = { "draft-of-find" }),
-            saveEntry = SaveMushroomLogEntryUseCase(repository),
-            commitDraftEntry = CommitDraftEntryUseCase(repository),
-            deleteEntry = DeleteMushroomLogEntryUseCase(repository),
-            addPhoto = AddPhotoToLogEntryUseCase(photoStore, repository),
-            addPhotoToGallery = AddPhotoToGalleryUseCase(photoStore, repository),
-            removePhoto = RemovePhotoFromLogEntryUseCase(repository),
-            getGalleryPhotos = GetGalleryPhotosUseCase(repository),
-            pullPhotoIntoEntry = PullPhotoIntoEntryUseCase(repository),
-            deleteGalleryPhoto = DeleteGalleryPhotoUseCase(repository, photoStore),
-            locationProvider = NoLocationProvider,
-            updatePhotoLocation = UpdatePhotoLocationUseCase(repository),
-        )
         val availability = AvailabilityViewModel(
             locationProvider = NoLocationProvider,
             locationTracker = NoLocationTracker,
@@ -170,6 +153,25 @@ class FindDeleteReappearsOnMapTest {
             getTodaysForecast = GetTodaysForecastUseCase(NoWeather),
             // The real read is the database the delete removes from: the same store, read at the moment it is asked.
             getMapRecords = { MapRecords.NONE.copy(findMarkers = repository.markers()) },
+        )
+        val log = MushroomLogViewModel(
+            getEntries = GetMushroomLogEntriesUseCase(repository),
+            getDraftEntries = GetDraftEntriesUseCase(repository),
+            createEntry = CreateMushroomLogEntryUseCase(repository, today = { LocalDate.of(2026, 9, 30) }, idGenerator = { "find-new" }),
+            startEditingEntry = StartEditingLogEntryUseCase(repository, idGenerator = { "draft-of-find" }),
+            saveEntry = SaveMushroomLogEntryUseCase(repository),
+            commitDraftEntry = CommitDraftEntryUseCase(repository),
+            deleteEntry = DeleteMushroomLogEntryUseCase(repository),
+            addPhoto = AddPhotoToLogEntryUseCase(photoStore, repository),
+            addPhotoToGallery = AddPhotoToGalleryUseCase(photoStore, repository),
+            removePhoto = RemovePhotoFromLogEntryUseCase(repository),
+            getGalleryPhotos = GetGalleryPhotosUseCase(repository),
+            pullPhotoIntoEntry = PullPhotoIntoEntryUseCase(repository),
+            deleteGalleryPhoto = DeleteGalleryPhotoUseCase(repository, photoStore),
+            locationProvider = NoLocationProvider,
+            updatePhotoLocation = UpdatePhotoLocationUseCase(repository),
+            // As MainActivity wires it.
+            onFindDeleted = { id -> availability.onFindDeleted(id) },
         )
         return Rig(repository, log, availability)
     }
