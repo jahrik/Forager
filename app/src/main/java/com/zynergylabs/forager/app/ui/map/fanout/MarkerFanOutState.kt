@@ -94,7 +94,7 @@ fun MarkerFanOutHost(state: MarkerFanOutState) {
  * opens). `MarkerFanOutHostTest` asserts that order against a real dispatcher.
  */
 @Composable
-fun MarkerFanOutBackHandler(state: MarkerFanOutState) {
+fun MarkerFanOutBackHandler(state: MarkerFanOutState, bubbleOpen: Boolean = false) {
     if (state.isOpen) {
         BackHandler { state.fold() }
     }
