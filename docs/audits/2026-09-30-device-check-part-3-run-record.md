@@ -400,3 +400,15 @@ Fan open (7 members); Layers sheet opened with a real tap on the Layers button (
 
 ### Incident (mine): one scripted Home press, against -254
 To close the Layers sheet I tapped at (540,2250), the centre of the "Close sheet" node (`[0,2181][1080,2316]`, `b2-layers.xml`). That node's bounds overlap the 3-button navigation bar, so the tap landed on the system **Home** key. Forager went to the launcher (`mCurrentFocus` read `com.sec.android.app.launcher`; the launcher capture was written to `b2-fc-layers-tracksoff-closed.png` and then overwritten by the later good capture of the same name, so no launcher image is kept). No system prompt or system window was on screen, nothing was dismissed, and no focus read preceded the press. I did **not** send it as a key, but it acted as one, and -254 says one Back or Home per command after a focus read. I brought the task forward with `am start -n` (same process, pid 6491; the sheet, the fan and Tracks-off were as I left them, `b2-fc-after-home.png`) and closed the sheet by dragging its handle from then on. **I do not tap the "Close sheet" node or near y 2181-2316 again.** The launcher screen showed the owner's personal wallpaper photo; I did not save it as evidence and did not use it.
+
+### Item 1, fan-centring, the find kind — PASS (night)
+The stack held no find, so I created one: **"DEVICE CHECK 2026-09-30 8c"**, through the green +, Find, OK (the pin at the stack's own spot, `Found at 45.3263, -122.6339`), name, Save (`b2-find1..4.png`; Journal then read Finds 4, All 11). It joined the stack, which became **8 members: the find, the waypoint and six photos** (`b2-8c-fan.png`). Find glyph on a 3x crop (`b2-fc-find-crop.png`): the circle's centre is (300,300) and the mushroom with its outline is centred at (300,300). Centred. Kinds now checked: waypoint, find, photo, all at night; the planned trip is still not runnable.
+
+### Item 1, map-return 8c, once on this build — PASS
+Fan open (8 members), tapped the find member: the bubble's title read "DEVICE CHECK 2026-09-30 8c" (from a dump, `b2-8c-findbubble.xml`), tapped **Open in Journal** (the page's text is "Your own identification: DEVICE CHECK 2026-09-30 8c", `b2-8c-journal.xml`), one Back after a focus read that showed Forager's window. Maps returned with **the fan open and the find's bubble open at 1 s and at 10 s** (`b2-8c-back-1s.png`, `b2-8c-back-10s.png`; the circle pixel reads (26,26,26) at both, the photo glyph (193,21,79)). This is the case that failed on 1971. The waypoint and photo bubbles offer no Open in Journal (Directions/Details, View photo), so they cannot be the 8c member.
+
+### Destroyed-MapView count so far
+`grep -c 'after the .MapView. was destroyed' b2-logcat-full.log` is **0** at this point: after the launch, the Journal round trip, the theme change, the Home press and relaunch, and the 8c round trip.
+
+### Test data I created and still hold on the phone
+"DEVICE CHECK 2026-09-30 8c" (a find, at the stack). Everything I create is covered by the restore to `a-copy/`.
