@@ -37,7 +37,7 @@ class JournalHaloGlyphTest {
      */
     private val edges = mapOf(
         MarkerGlyph.WAYPOINT to Triple(0f, -28f, 0f to -1f),
-        MarkerGlyph.FIND to Triple(0f, -26f, 0f to -1f),
+        MarkerGlyph.FIND to Triple(0f, -25f, 0f to -1f), // 26 before the find was scaled to 25 dp tall (dispatch 2026-09-28-286)
         MarkerGlyph.PHOTO to Triple(0f, -11f, 0f to -1f),
     )
 
