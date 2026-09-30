@@ -91,9 +91,19 @@ class DecodedPhotoPlaceholderSizeTest {
         })
     }
 
+    /**
+     * A deliberate behaviour change, for an unsized placeholder only, not a fix to a test. On the
+     * unfixed build this expected `"0.0x0.0"` (an empty `Box` wraps to nothing); with one `Image` in
+     * both states (dispatch 2026-09-28-317, option c) an `Image` with a `ColorPainter` has no
+     * intrinsic size and fills bounded constraints, measured as the test root's 320x470. The expected
+     * value was changed to say so, and this is not the assertion-weakening CLAUDE.md forbids only
+     * because no call site is affected: all eleven `DecodedPhoto(` calls in `main/` pass a modifier
+     * that fixes both axes (audit in the completion report). `DecodedPhotoTest` has this test's
+     * shape (no size) and is unchanged: it waits for the load before it measures.
+     */
     @Test
-    fun `no size at all`() {
-        assertEquals("0.0x0.0", placeholderSize {
+    fun `no size at all - the placeholder now fills its bounds, where the old Box was 0x0`() {
+        assertEquals("320.0x470.0", placeholderSize {
             Column { DecodedPhoto("photos/none.jpg", Modifier.testTag("sized-photo")) }
         })
     }
