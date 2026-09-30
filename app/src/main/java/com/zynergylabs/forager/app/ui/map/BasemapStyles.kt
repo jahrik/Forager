@@ -119,9 +119,8 @@ internal const val TOPO_NIGHT_LOW_ZOOM_BRIGHTNESS_MIN = 0.5
  * lighter than the ground" as a condition for this reason (dispatch 2026-09-28-310).
  *
  * Only Topographical takes this: Street is pale at every zoom (mean V1 lightness 0.15 to 0.22 on one
- * tile per zoom,
- * zoom 7 to 15) and keeps [NIGHT_RASTER_PAINT]. Day, Satellite and the offline style are
- * untouched.
+ * tile per zoom, zoom 7 to 15) and keeps [NIGHT_RASTER_PAINT]. Day, Satellite and the offline
+ * style are untouched.
  */
 private const val TOPO_NIGHT_RASTER_PAINT = """,
           "paint": {
