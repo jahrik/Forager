@@ -8904,3 +8904,26 @@ The owner picks from the images. Nothing merges from topo-night as built.
 - the half-amplitude A (-313, -314), rejected on the device (-321);
 - 9.4-9.6 (-328), replaced by 9.5-9.7 (-329).
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-334
+**Timestamp:** 2026-09-30T23:13:10Z
+**Closes:** 2026-09-28-331 (preserved -25)
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as 6ac9c4d9, no-ff, from client-user-agent. The owner said "Merge it".
+- **What landed:**
+  - MapUserAgent moved to net/AppUserAgent, so there is one source for the format and the contact;
+  - a shared interceptor on INaturalistClient, OpenMeteoClient and OpenMeteoArchiveClient replaces the User-Agent with the app's own;
+  - timeouts and logging are unchanged.
+- **The coder's checks:**
+  - the red run: 4 of 5 new tests failed at the header;
+  - green, 5/5, and MapUserAgentTest 6/6;
+  - a revert on OpenMeteoClient alone fails only its own tests.
+- **The planner's checks:**
+  - the post-merge suite, on c14c7bcb (which carries -310 and -325), from /tmp/suite2-xml: 396 files and 3225/0/0/24;
+  - the merged head's app tree is identical to the branch's. So this is the first local run over the combined -310, -325 and -331 tree.
+**Device item open:** one iNaturalist request and one Open-Meteo request captured from the S22, to read the header.
+**Notes:** Written by the planner by hand.
