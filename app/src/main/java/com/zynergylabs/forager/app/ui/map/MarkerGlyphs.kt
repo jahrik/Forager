@@ -29,25 +29,53 @@ import kotlin.math.max
  *    is stroked 3dp wide with round joins in the casing colour, then filled on top. That is the same
  *    footprint, drawn with the platform's stroker instead of a polygon approximation.
  *  - **Curves.** Arcs are true Path arcs and circles, not the board's 120- to 180-point polygons.
+ *  - **Flag and find size.** The board's flag is 20 x 28 and its mushroom 24 x 26. Dispatch 2026-09-28-286 draws both
+ *    evenly scaled to 25 dp tall, anchors included (the flag 17.86 x 25, the mushroom 23.08 x 25); the casing and detail
+ *    strokes are not scaled. The owner, of an S22 photo: "I noticed the flag for the planned trip is a bit large compared
+ *    to the other icons. Can its size be reduced a bit to visually align with the other icons? The finds icon is a bit
+ *    large also, but not by much. Location pin icon is acceptable. Somewhere between the photo icon and location pin size
+ *    would be preferable"; scope, "Everywhere". The coordinates in [parts] below are the design's, times [MarkerGlyph.scale].
  *  - **Search centre.** The board drew a plus 3dp from the centre, inside the ring. The owner's
  *    tweak puts the arms beyond the ring: see [SEARCH_CENTRE_ARM_DP].
  */
-internal enum class MarkerGlyph(val widthDp: Float, val heightDp: Float, val anchorXDp: Float, val anchorYDp: Float) {
+internal enum class MarkerGlyph(
+    designWidthDp: Float,
+    designHeightDp: Float,
+    designAnchorXDp: Float,
+    designAnchorYDp: Float,
+    /**
+     * An even scale applied to the design shape and its anchor, and to nothing else: the casing and detail strokes stay
+     * the width they are (dispatch 2026-09-28-286). 1 for every glyph but the two it resized.
+     */
+    internal val scale: Float = 1f,
+) {
     /** A teardrop pin with a 7dp hollow ring on its head; anchored at the tip. */
     WAYPOINT(22f, 28f, 11f, 28f),
 
-    /** A mushroom: a half-ellipse dome with a flat underside and a straight 8dp stem; anchored at the stem foot. */
-    FIND(24f, 26f, 12f, 26f),
+    /** A mushroom: a half-ellipse dome with a flat underside and a straight stem; anchored at the stem foot. Designed 24 x 26, drawn at 25 dp tall ([GLYPH_TARGET_HEIGHT_DP]). */
+    FIND(24f, 26f, 12f, 26f, scale = GLYPH_TARGET_HEIGHT_DP / 26f),
 
-    /** A flag: a 3dp pole with a rectangular pennant at its top; anchored at the pole foot. */
-    PLANNED_TRIP(20f, 28f, 1.5f, 28f),
+    /** A flag: a pole with a rectangular pennant at its top; anchored at the pole foot. Designed 20 x 28, drawn at 25 dp tall ([GLYPH_TARGET_HEIGHT_DP]). */
+    PLANNED_TRIP(20f, 28f, 1.5f, 28f, scale = GLYPH_TARGET_HEIGHT_DP / 28f),
 
     /** A 22dp rounded square with a camera in the casing colour; anchored at its centre. */
     PHOTO(22f, 22f, 11f, 11f),
 
     /** A reticle: a ring with crosshair arms that pass beyond it; anchored at its centre. */
-    SEARCH_CENTRE(2 * SEARCH_CENTRE_ARM_DP, 2 * SEARCH_CENTRE_ARM_DP, SEARCH_CENTRE_ARM_DP, SEARCH_CENTRE_ARM_DP),
+    SEARCH_CENTRE(2 * SEARCH_CENTRE_ARM_DP, 2 * SEARCH_CENTRE_ARM_DP, SEARCH_CENTRE_ARM_DP, SEARCH_CENTRE_ARM_DP);
+
+    /** The drawn size and anchor, in dp: the design's, times [scale]. */
+    val widthDp: Float = designWidthDp * scale
+    val heightDp: Float = designHeightDp * scale
+    val anchorXDp: Float = designAnchorXDp * scale
+    val anchorYDp: Float = designAnchorYDp * scale
 }
+
+/**
+ * The height the flag and the find are drawn at (dispatch 2026-09-28-286): between the photo's 22 dp and the pin's 28 dp.
+ * Each glyph's scale is this over its designed height, so its proportions are kept.
+ */
+internal const val GLYPH_TARGET_HEIGHT_DP = 25f
 
 /**
  * The `icon-offset`, in dp, that puts this glyph's fill-extent centre on the point its image is placed
@@ -114,19 +142,20 @@ internal fun MarkerGlyph.parts(): List<GlyphPart> = when (this) {
         GlyphPart(annulus(11f, 11f, outer = 3.5f, inner = 2f), GlyphPaint.DETAIL_IN_CASING),
     )
     MarkerGlyph.FIND -> listOf(
-        // The dome: the upper half of an ellipse rx 12, ry 14 centred at (12, 14), flat underside at y 14.
+        // The dome: the upper half of an ellipse rx 12, ry 14 centred at (12, 14), flat underside at y 14, in design
+        // coordinates times [scale] (the design is 24 x 26; see [MarkerGlyph.scale]).
         GlyphPart(
             Path().apply {
-                arcTo(RectF(0f, 0f, 24f, 28f), 180f, 180f, true)
+                arcTo(RectF(0f, 0f, 24f * scale, 28f * scale), 180f, 180f, true)
                 close()
             },
             GlyphPaint.FILL,
         ),
-        GlyphPart(rect(8f, 13.5f, 16f, 26f), GlyphPaint.FILL),
+        GlyphPart(rect(8f * scale, 13.5f * scale, 16f * scale, 26f * scale), GlyphPaint.FILL),
     )
     MarkerGlyph.PLANNED_TRIP -> listOf(
-        GlyphPart(rect(0f, 0f, 3f, 28f), GlyphPaint.FILL),
-        GlyphPart(rect(3f, 0f, 20f, 12f), GlyphPaint.FILL),
+        GlyphPart(rect(0f, 0f, 3f * scale, 28f * scale), GlyphPaint.FILL),
+        GlyphPart(rect(3f * scale, 0f, 20f * scale, 12f * scale), GlyphPaint.FILL),
     )
     MarkerGlyph.PHOTO -> listOf(
         GlyphPart(roundRect(0f, 0f, 22f, 22f, 5f), GlyphPaint.FILL),
