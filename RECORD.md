@@ -7862,3 +7862,45 @@ All of them go to S22-B's relaunch.
 - **Item 8 case h:** not run. It needs the owner's word to delete i6C or i6D.
 - **A new observation, not a gate:** after a cold relaunch, the search panel's expanded contents stayed drawn over the Journal (b2-a4-32-r0-cold*.png). It is a candidate for the post-merge list.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-282
+**Timestamp:** 2026-09-30T15:16:41Z
+**Closes:** 2026-09-28-279 (preserved -06)
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as d3de2059, no-ff, from fan-restyle 81866f17:
+  - the tests first (ac1cc9bb);
+  - the change (eb9c32a6): FanReopenCoordinator.onContentEffect sends every content effect, a replaced style included, to MapTapHandler.onContentChanged. onStyleChanged had no other caller and is removed;
+  - assertion messages (ec2599df);
+  - the report, docs/audits/2026-09-30-fan-restyle-completion-report.md, with its README index row.
+- **The coder's premises:**
+  - the existing loadedStyle-keyed effects redraw the fan's layers, frame, circle colour and fade on a new style, so no re-push was needed;
+  - markersOf reads record lists, not rendered features;
+  - there are four style-reload causes, the AppliedMapStyle fields: basemap, palette, useOfflineTiles and night.
+- **The coder's checks:**
+  - the revert checks fail cases 6, 6b and 6e with messages specific to the edit;
+  - the suite gave 3167/0/0/24.
+- **The planner's checks:**
+  - the merged head's app, data and server trees are identical to fan-restyle's;
+  - the fan-restyle worktree's JUnit XML gives 388 files and 3167/0/0/24, written at 08:14 PDT, which matches the report.
+- **The planner did not re-run the suite,** because the code is byte-identical.
+- **Superseded:** -274's case 6, "a new style still folds an open fan". The comment in its place cites -279 and the owner's words.
+- **The planner's mistake:** at about 15:05Z, on the owner's "kill some idle processes", the planner stopped this coder's Gradle daemon and test worker. It took the absence of a wrapper process and 0% CPU as idle.
+  - The coder's result files show that that run had **already stalled** at 07:26:58 PDT, 2.7 min in and about 40 min before it was stopped.
+  - The last recorded test was in LeavingTheJournalFixesTest. By prefix it was probably "F3 a bubble's Open in Journal over a changed kept find leaves it first…" (:1128). That is inferred, and no thread dump was taken.
+  - The re-run was green in 4 min. The run was discarded.
+  - **From now on, the planner stops a Gradle process only after asking Gradle which daemons are busy, and only one it can match to a finished task.**
+- **LeavingTheJournalFixesTest has now misbehaved twice:**
+  - a failure in fan-centring's run (-278, :476);
+  - a probable stall in fan-restyle's first run.
+  
+  It passed in every other run. CLAUDE.md's unstopped-poll-loop entry describes the stall shape. It is recorded for the owner, and not touched.
+**Device-only:** the report's list goes to S22-B or a short recheck:
+- a fan open through a night-mode switch, both ways, with the circle recoloured;
+- a basemap change;
+- the offline-tiles toggle;
+- 8c after the change.
+**Notes:** Written by the planner by hand.
