@@ -60,9 +60,63 @@ def mean_lightness(paths, paint):
             n += cnt
     return tot/n
 
-if __name__ == "__main__":
+if __name__ == "__main__" and len(sys.argv) == 1:
     by = tiles_by_zoom()
     print("tile z | map zoom | tiles | day L | V1 L")
     for z in sorted(by):
         ps = by[z]
         print(f"{z:2d} | {z-1:2d} | {len(ps)} | {mean_lightness(ps, DAY):.3f} | {mean_lightness(ps, V1):.3f}")
+
+
+# --- per-zoom report (run: python3 measure.py report [dir]) ---------------------------------------
+def _classify(c):
+    r, g, b = c
+    mu = (r + g + b) / 3
+    if max(c) - min(c) < 0.08 and mu < 0.25:
+        return "label"
+    if r >= 0.85 and g >= 0.6 and b <= 0.45:
+        return "road"
+    return "ground"
+
+def _stats(paths, paint):
+    """mean, median, label mean, road mean of 8-bit-rounded channel-mean lightness."""
+    allp, acc = [], {"label": [0.0, 0], "road": [0.0, 0]}
+    for p in paths:
+        for n, c in colours(p):
+            o = sum(round(v * 255) for v in shade(c, **paint)) / (3 * 255)
+            allp.append((o, n))
+            k = _classify(c)
+            if k in acc:
+                acc[k][0] += o * n
+                acc[k][1] += n
+    allp.sort()
+    tot = sum(n for _, n in allp)
+    mean = sum(v * n for v, n in allp) / tot
+    seen = 0
+    for v, n in allp:
+        seen += n
+        if seen >= tot / 2:
+            med = v
+            break
+    return mean, med, acc["label"][0] / max(1, acc["label"][1]), acc["road"][0] / max(1, acc["road"][1])
+
+PAINTS = [
+    ("day", DAY),
+    ("V1 (today)", V1),
+    ("A: min 0.5, max 0, hue 180 (built below map zoom 9.5)", dict(mn=0.5, mx=0.0, hue=180.0)),
+    ("B: no inversion, max 0.3 (not built)", dict(mn=0.0, mx=0.3)),
+]
+
+def report(by):
+    lines = []
+    for name, paint in PAINTS:
+        lines.append(f"\n### {name}\n")
+        lines.append("| tile z | map zoom shown | mean | ground (median) | labels | roads |")
+        lines.append("|---|---|---|---|---|---|")
+        for z in sorted(by):
+            mean, med, lab, road = _stats(by[z], paint)
+            lines.append(f"| {z} | {z-1.5:g} to <{z-0.5:g} | {mean:.3f} | {med:.3f} | {lab:.3f} | {road:.3f} |")
+    return "\n".join(lines)
+
+if __name__ == "__main__" and len(sys.argv) > 1 and sys.argv[1] == "report":
+    print(report(tiles_by_zoom()))
