@@ -8288,3 +8288,116 @@ Both go to the next phone check.
 - A bubble's gap is reported, not fixed.
 - The work is headless, on branch fan-back-others from 9c806ae1.
 **Notes:** Written by the planner by hand. -296, -297 and -298 may run in parallel, and their builds are serialised.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-299
+**Timestamp:** 2026-09-30T19:06:52Z
+**Title:** Fanned icons land exactly on their markers when the fan folds
+**Dispatch-file:** preserved/2026-09-30-16.md
+**The owner's report, verbatim:** "After being fanned out, the icons return to their start position. But sometimes they don't perfectly align back in their position when the animation finishes, resulting in the icons snapping into place."
+**The planner's reading,** at 4f3a02ad, inferred and not observed:
+- The original marker's anchor sits on the coordinate (markerSymbolLayer).
+- A fan copy adds fanCentringOffsetDp() at every progress (FanOutLayers.kt:176), so at progress 0 it is off by that offset and snaps on release.
+- The predicted jumps: the pin about 14 dp, the find 12.5 dp, the flag (−7.6, 12.5) dp, and the photo and sighting dots 0. That accounts for "sometimes".
+**Change:**
+- The centring offset is scaled by progress.
+- The circle's behaviour near the end of the fold is reported, with a stop-and-ask if it would visibly separate.
+- The ring and the timing are unchanged.
+- The work is headless, on branch fan-fold-snap from 4f3a02ad.
+**Notes:** Written by the planner by hand. It may run in parallel with -296, -297 and -298, and their builds are serialised.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-300
+**Timestamp:** 2026-09-30T19:29:16Z
+**Continues:** 2026-09-28-296 (preserved -13)
+**Why:** -296 stopped at a permission refusal before any reproduction. Its partial report is ci-flake 808644de, docs/audits/2026-09-30-ci-flake-diagnosis.md.
+- The CI data: 67 of 119 test-reaching runs had an album-photo test fail. All 82 of those failures are a real touch that had no effect, and the one album test that uses a semantics click has 0 failures in 77.
+- The candidate mechanism, not confirmed: DecodedPhoto's placeholder-to-image swap replaces the node that carries the tile's combinedClickable during a gesture (EntriesAlbum.kt:256-259; DecodedPhoto.kt:57-81).
+**The owner's decision, verbatim:** "Allow the temp hook". This is the report's §6 option 1, chosen over option 2 (a test-only probe) and option 3 (fix without confirmation).
+**Change:**
+- -296 may add a scratch latch hook to app/src/main/…/DecodedPhoto.kt, on ci-flake only, never merged, to put the swap between down and up, before down, and after up.
+- It then tries the proposed fix (the gesture on a stable wrapping node) in a throwaway commit on ci-flake.
+- It is still diagnosis only. The fix itself goes to the owner.
+**Notes:** Written by the planner by hand. The build queue is -297, then -298, then -299, then -296.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-301
+**Timestamp:** 2026-09-30T19:35:51Z
+**Continues:** 2026-09-28-296 (preserved -13), after -300
+**Why:** -296's hook landed on ci-flake as d63e103a. The owner approved it in the coder's window. The probe tests were refused as "Modify Shared Resources" when added to JournalPendingDeleteTest.kt.
+**The owner's decision, verbatim:** "Option 1". That is, the probes go in a new scratch test file on ci-flake, never merged, chosen over appending them to JournalPendingDeleteTest.kt and JournalTabTest.kt.
+**Change:** The six probe arms (tap and long-press, each with the swap before down, between down and up or the timeout, and after up) go in a new SCRATCH test file on ci-flake. No existing test file is edited.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-302
+**Timestamp:** 2026-09-30T19:38:08Z
+**Closes:** 2026-09-28-297 (preserved -14)
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as dce27bb7, no-ff, from delete-siblings cd9f2414. The owner said "1 go ahead".
+  - 41d6ae94, the tests first, which did not compile.
+  - 9f224373, the rename that let them compile. They were pushed failing: 5 of 9 failed, naming the deleted photo or region.
+  - 7e378848, the fix. For photos, onPhotoDeleted runs on success and is wired through MainActivity to AvailabilityViewModel. For regions, dropOfflineRegionFromMapRecords runs on the success path of commitOfflineRegionDelete.
+  - The report, docs/audits/2026-09-30-delete-siblings-completion-report.md.
+- **Found by the coder:** the drawer gallery's and the album trash button's photo deletes are immediate, with no Undo, and had the same gap.
+- **Beyond scope, kept:** the fix also covers onDeleteGalleryPhoto, the immediate path. It is revert-checked. The owner merged it with that fix included.
+- **The planner's checks:**
+  - the saved XML in /tmp/sib-xml gives 391 files and 3185/0/0/24, with DrawerBackOverJournalTest absent. That is the full suite minus that class, as the report says. The report says 392 files, a slip;
+  - the merged head's app tree is identical to the branch's.
+**Open:**
+- **DrawerBackOverJournalTest stalled once in the full run,** at touchTools :420, from the album-view test at :538. The class alone gave 6/6 on the branch and 6/6 on base. It is passed to -296, since it is an album-view test. The owner said "2 yes".
+- The MainActivity wiring line is not covered by any test.
+- -291's residuals apply here too.
+**Device items open:** each delete path (the drawer gallery, the album long-press, the album trash button, and the Offline maps and Records rows): go back to Maps, and the record does not come back and no fan collects it. Undo restores it.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-303
+**Timestamp:** 2026-09-30T19:45:20Z
+**Continues:** 2026-09-28-298 (preserved -15)
+**Why:** -298 stopped at 55fae470.
+- Its fix passes for fullscreen, the add-action menu and the Log-a-find picker, each red at 6b6f46c1's main.
+- The dropdown term turned two of -293's unchanged tests red: "a second Back … folds the fan", and the bubble order.
+- The cause, from a stack trace in the Robolectric harness: after the drawer or the dropdown closes, requestFocus hands focus to the search field, and onFieldFocused (AvailabilityCompactScaffold.kt:838) reopens the dropdown. A no-fan dropdown-Back test fails the same way in that harness.
+- Two fix attempts on the tests changed nothing, and the coder stopped.
+**The owner's ruling, verbatim:** "Option A". The dropdown term is dropped, and -293's tests stay unchanged.
+**Change:**
+- The fan's Back gate covers the drawer, fullscreen, pendingAction, pickingSearchLocation and showActionMenu, but not the search dropdown.
+- The dropdown and the refocus finding go to device-only.
+- The coder's own dropdown test is removed, and its failure is recorded in the report.
+- The Set-on-map test stays if it passes, and is reported if it does not.
+**Open:** whether the refocus reopening happens on a device. The planner has asked the owner for a quick S22 check. A separate dispatch waits on that result.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-304
+**Timestamp:** 2026-09-30T19:49:45Z
+**Title:** Back closes the Maps tab's search dropdown, and it stays closed
+**Dispatch-file:** preserved/2026-09-30-17.md
+**The owner's device check,** on the S22, verbatim:
+- "Open Tools, then press Back. Does the search dropdown pop open by itself? No"
+- "Open the search dropdown, then press Back. Does it close and stay closed? No"
+**The planner's reading:**
+- -298's harness showed Back closing the dropdown, then requestFocus returning focus to the search field, then onFieldFocused (AvailabilityCompactScaffold.kt:838) reopening it.
+- The device agrees on the dropdown and disagrees on the drawer case.
+- The keyboard consuming the first Back is also a candidate.
+- Neither has been observed on the device.
+**Change:**
+- Back leaves the dropdown closed until a touch reopens it.
+- A stop-and-ask if the fix changes keyboard or accessibility opening.
+- The fan's Back gate is untouched.
+- The work is headless, on branch dropdown-back from bbc503ff.
+**Notes:** Written by the planner by hand. It is queued after -298 and before -296.
