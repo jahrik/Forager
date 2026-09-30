@@ -8178,3 +8178,22 @@ Both go to the next phone check.
 - **3.** After a basemap swap, and after leaving Maps and coming back, the order holds.
 - **4.** The puck still tracks, rotates with the heading, and its accuracy circle still shows.
 **Notes:** Written by the planner by hand. The planner's reading, in chat, that the owner's -291 screenshots showed the puck over the fan was wrong. The fix was already in that build.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-293
+**Timestamp:** 2026-09-30T18:20:27Z
+**Title:** Back closes the Tools drawer before it folds an open fan
+**Dispatch-file:** preserved/2026-09-30-12.md
+**The owner's report, verbatim:** "When a fan is spread out and I call the tool panel, hitting the back button closes the fan instead of the tool panel, when it's expected to close the tool panel"
+**The planner's reading,** at 4a250dc9, inferred and not observed:
+- The drawer's BackHandler (AvailabilityScreen.kt:1022) is registered first.
+- The fan's MarkerFanOutBackHandler (MarkerFanOutState.kt:102-107, called at SightingsMap.kt:950) is composed later and has no drawer gate, so it wins.
+- The bubble already has that gate (MapBubble.kt:263, fed !isDrawerOpen at AvailabilityCompactMapUi.kt:658).
+**Change:**
+- The fan's Back handler is not composed while the drawer is open, so Back closes the drawer and the fan stays open. The next Back folds the fan.
+- Bubble-before-fan is unchanged.
+- Other things on Maps that Back closes are reported, not fixed.
+- The work is headless, on branch fan-back-drawer from 4a250dc9.
+**Notes:** Written by the planner by hand. It may run in parallel with -291. Their builds are serialised, and a conflict is merged with every row kept.
