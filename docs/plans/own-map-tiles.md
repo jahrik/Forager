@@ -4,6 +4,11 @@
 
 **When:** after PR #140 (the Journal redesign) leaves draft. **Do not start before then.**
 
+**The update it belongs to** (the owner, 2026-09-30, verbatim): "Next update we will focus on navigation, predictive forecast layers, and trip planning. So map tiling will fit neatly." All three draw on or over the basemap. So the scope choice at step 2 (A or B, and the coverage) is made together with that update's plans, not on its own:
+- navigation: the Navigator plan, `docs/navigation/forager-navigator-plan.md`, audited on 2026-09-28;
+- forecast layers: forager-forecast, and the map-layers pulse `docs/audits/2026-09-27-map-layers-and-forecast-data-pulse.md`;
+- trip planning: the planned trips already drawn on the map.
+
 **This is a claim about the past.** Everything under "What exists" was read by the planner on 2026-09-30, at `journal-redesign` `f2b941dc`, from docs dated August 2026. Per CLAUDE.md ("A planner's picture of the repository is a claim about the past"), the first step below re-reads all of it before anything is decided.
 
 ## Why
