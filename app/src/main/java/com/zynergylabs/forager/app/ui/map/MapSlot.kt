@@ -238,6 +238,12 @@ data class MapRenderMode(
      * but the compact Maps tab in a short landscape window, which is where the L is.
      */
     val attributionKeepClear: androidx.compose.ui.geometry.Rect? = null,
+    /**
+     * Where a fan's member keys are written while it is open, and where the fan to reopen after Back from a
+     * find opened on the map is waiting (dispatch 2026-09-29-57, item 8). `null` for every caller but the compact
+     * Maps tab. Here rather than on [MapSlot] for the parameter-count reason [layers] gives.
+     */
+    val returnMemory: MapReturnMemory? = null,
 )
 
 /**
@@ -527,6 +533,7 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
         attributionEndInset = renderMode.attributionEndInset,
         attributionBottomInset = renderMode.attributionBottomInset,
         attributionKeepClear = renderMode.attributionKeepClear,
+        returnMemory = renderMode.returnMemory,
         modifier = modifier,
     )
 }

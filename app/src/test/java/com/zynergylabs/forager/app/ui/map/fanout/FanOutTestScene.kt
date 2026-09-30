@@ -67,6 +67,12 @@ internal class FanOutTestScene(override val density: Float = 2f) : MapProbe {
             .filter { abs(px(it) - xPx) <= halfPx && abs(py(it) - yPx) <= halfPx }
             .map { ProbedMarker(FanKey(it.layerId, it.featureId), it.lat, it.lng, px(it), py(it)) }
 
+    override fun markersOf(keys: List<FanKey>): List<ProbedMarker> =
+        keys.mapNotNull { key ->
+            visible(listOf(key.layerId)).firstOrNull { it.featureId == key.featureId }
+                ?.let { ProbedMarker(key, it.lat, it.lng, px(it), py(it)) }
+        }
+
     companion object {
         const val ICON_HALF_DP = 12f
     }

@@ -119,6 +119,7 @@ import com.zynergylabs.forager.app.ui.map.layers.mapLegendFor
 import com.zynergylabs.forager.app.ui.map.MapOverlayContent
 import com.zynergylabs.forager.app.ui.map.MapBubbleLayer
 import com.zynergylabs.forager.app.ui.map.MapCameraMemory
+import com.zynergylabs.forager.app.ui.map.MapReturnMemory
 import com.zynergylabs.forager.app.ui.map.MapBubbleTarget
 import com.zynergylabs.forager.app.ui.map.MapFeatureTap
 import com.zynergylabs.forager.app.ui.map.MapRecordSources
@@ -210,6 +211,12 @@ internal fun CompactMapTab(
      * The default keeps any other caller self-contained.
      */
     cameraMemory: MapCameraMemory = remember { MapCameraMemory() },
+    /**
+     * Dispatch 2026-09-29-57, item 8 (amendment -262, "Remember and reopen"): what "Open in Journal" leaves for the Maps
+     * tab that comes back after Back from that find, held by the caller so it outlives this tab, as [cameraMemory] does.
+     * See [MapReturnMemory]. The default keeps any other caller self-contained.
+     */
+    returnMemory: MapReturnMemory = remember { MapReturnMemory() },
     mapMode: MapMode,
     onMapModeSelected: (MapMode) -> Unit,
     onPlaceTripPin: (LatLng, LocalDate, String) -> Unit,
@@ -370,7 +377,10 @@ internal fun CompactMapTab(
     var pendingTripLocation by remember { mutableStateOf<LatLng?>(null) }
     var pendingWaypointLocation by remember { mutableStateOf<LatLng?>(null) }
     // M1 (planner's ruling: one bubble at a time): the one tapped thing, a sighting or any glyph.
-    var tapped by remember { mutableStateOf<TappedMapThing?>(null) }
+    // Item 8: a bubble waiting from "Open in Journal" comes back open, once, when this tab is created again by Back from that find.
+    var tapped by remember { mutableStateOf<TappedMapThing?>(returnMemory.takeBubble(mapLayers.records.findMarkers)) }
+    // A fan the map did not use before this tab left composition is not kept for a later map.
+    DisposableEffect(returnMemory) { onDispose { returnMemory.clearRestore() } }
     val onFeatureTap: (MapFeatureTap) -> Unit = remember { { tap -> tappedThingOf(tap)?.let { tapped = it } } }
     // See MapOverlayContent.resumeTrackingRequestId's own doc comment — incremented alongside the
     // existing onLocateMe() call below, not instead of it: that call still drives the compass
@@ -563,6 +573,7 @@ internal fun CompactMapTab(
                     renderMode.copy(
                         onFeatureTap = onFeatureTap,
                         cameraMemory = cameraMemory,
+                        returnMemory = returnMemory,
                         // Item 1 (dispatch 2026-09-29-57, amendment -262, "Move the 'i'"): the landscape L's measured bounds, in the map's own
                         // pixels, for MapLibre's attribution button to keep clear of. The L keeps its bottom limit at the nav inset; the
                         // button moves (SightingsMap, attributionEndInsetClearOf). Only the landscape L: portrait is unchanged.
@@ -625,7 +636,19 @@ internal fun CompactMapTab(
                 MapBubbleLayer(
                     tapped = tapped,
                     onDismiss = { tapped = null },
-                    sources = bubbleSources,
+                    // Item 8: "Open in Journal" remembers where the find was opened from (its id, the fan open then, the bubble's
+                    // anchor) before the screen switches to the Journal. `tapped` is read here, in composition, so the closure holds
+                    // the bubble that is showing, not the null the dismissal inside the layer leaves behind.
+                    sources = bubbleSources.copy(
+                        onOpenFind = bubbleSources.onOpenFind?.let { open ->
+                            val shown = tapped
+                            val remembering: (String) -> Unit = { id ->
+                                returnMemory.remember(id, shown?.anchorPx ?: Offset.Zero, shown?.bearingDeg ?: 0f)
+                                open(id)
+                            }
+                            remembering
+                        },
+                    ),
                     forecast = renderMode.forecast,
                     onViewSightingOnINaturalist = { sighting ->
                         launchINaturalistObservation(context, sighting.observationId)

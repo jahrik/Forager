@@ -275,6 +275,8 @@ fun SightingsMap(
     attributionBottomInset: Dp? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.attributionKeepClear]'s own doc comment. */
     attributionKeepClear: androidx.compose.ui.geometry.Rect? = null,
+    /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.returnMemory]'s own doc comment. */
+    returnMemory: MapReturnMemory? = null,
 ) {
     val context = LocalContext.current
 
@@ -331,6 +333,8 @@ fun SightingsMap(
     // Part 1 layout fixes, item 4: read by the camera-idle listener (registered once) and by the first
     // style load, for the reason the lines above give.
     val currentCameraMemory by rememberUpdatedState(cameraMemory)
+    // Item 8: read by the camera-idle listener (registered once), for the reason the lines above give.
+    val currentReturnMemory by rememberUpdatedState(returnMemory)
     val currentPlannedTrips by rememberUpdatedState(plannedTrips)
     val currentWaypoints by rememberUpdatedState(waypoints)
     val currentFindMarkers by rememberUpdatedState(findMarkers)
@@ -461,7 +465,11 @@ fun SightingsMap(
             // The four outcomes come back through the sinks below, unchanged from what the listener did.
             val handler = MapTapHandler(
                 fan = fanOut,
-                probe = MapLibreProbe(map, context.resources.displayMetrics.density),
+                probe = MapLibreProbe(map, context.resources.displayMetrics.density) { key ->
+                    // Where a fanned record is now, from the lists the map draws (the projection of it is the probe's): the
+                    // same lookup a shown bubble's re-anchoring uses. Null once the record is no longer drawn.
+                    focusedFeaturePosition(FocusedMapFeature(key.layerId, key.featureId), currentPlannedTrips, currentWaypoints, currentFindMarkers, currentPhotoMarkers)
+                },
                 space = fanSpace,
                 // One layer at a time (amendment -255): a bubble showing on a sighting or a point glyph, which is
                 // what a fanned marker's bubble is, means an empty-map tap closes it and leaves the fan.
@@ -548,6 +556,18 @@ fun SightingsMap(
                                 map.locationComponent.cameraMode != CameraMode.NONE,
                             appliedTarget = lastAppliedCameraTarget,
                         )
+                    }
+                }
+                // Item 8 (dispatch 2026-09-29-57, amendment -262, "Remember and reopen"): the fan a user left when they opened a
+                // find on the Journal reopens here, at the first idle after this map's style has loaded (the camera memory's
+                // restore has been applied by then, and the style load's own content fold, onContentChanged, has run), through
+                // openFanFor. A reopen that comes to nothing is logged, never silent. Whether a later camera move or content
+                // change folds it again is device-only: a real MapView cannot be built under Robolectric.
+                if (loadedStyle != null) {
+                    currentReturnMemory?.takeFanKeys()?.let { keys ->
+                        if (tapHandlerRef.handler?.openFanFor(keys) != true) {
+                            Log.w(FAN_OUT_RESTORE_TAG, "The fan of ${keys.size} markers could not be reopened: fewer than two of them are still drawn.")
+                        }
                     }
                 }
                 // Keeps a shown bubble glued to its glyph across a pan, zoom or rotate gesture: see
@@ -761,6 +781,13 @@ fun SightingsMap(
                 fanFrameCollections(members, { fanMemberLatLng(map, it, progress, density) }, journalHighlights, focusedObservationId),
             )
         }
+    }
+
+    // Item 8: the open fan's member keys, written where "Open in Journal" reads them (a closed fan writes an empty list).
+    // A map that is left (a tab switch) writes nothing on the way out, so the last list survives until the tap that read it.
+    LaunchedEffect(returnMemory) {
+        val memory = returnMemory ?: return@LaunchedEffect
+        snapshotFlow { if (fanOut.isOpen) fanOut.members.map { it.key } else emptyList() }.collect { keys -> memory.openFanKeys = keys }
     }
 
     LaunchedEffect(loadedStyle, drawnLayersState) {
@@ -1986,6 +2013,7 @@ private fun nightPropertyValue(property: String, night: StyleColourValue): Prope
 }
 
 private const val SIGHTINGS_MAP_TAG = "SightingsMap"
+private const val FAN_OUT_RESTORE_TAG = "MarkerFanOut"
 private const val BREADCRUMB_STROKE_WIDTH_PX = 6f
 
 
