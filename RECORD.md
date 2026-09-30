@@ -7543,3 +7543,21 @@ Its record is on device-part-3 at 32534b45 (checked on origin). The phone reads 
 - whether S22-B's remainder and the restore are relaunched;
 - what is done about the item 8c, A4 item 32 and A5 item 37 fails, and the MapView loop.
 **Notes:** Written by the planner by hand. The planner has not retried either refused command, in any form.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-267
+**Timestamp:** 2026-09-30T04:19:10Z
+**Title:** Two fixes before PR #140 merges: the fan never reopens after Back (item 8c), and the destroyed-MapView loop
+**Dispatch-file:** preserved/2026-09-29-59.md
+**Change:**
+- **Item 8c:** the real SightingsMap reopen path is diagnosed against the test stub, fixed and device-rechecked.
+- **The MapView loop:** it is reproduced with full logs from the app's start, the stale reference is diagnosed and fixed, and the fixed build is checked for zero "after the MapView was destroyed" lines.
+**Scope boundary:** the map's return and reopen path, and the map's lifecycle. Device use on the S22 is for diagnosis and rechecks only, with no record changes and no restore.
+**The owner's answers:** "Relaunch after fixes". Fix before merge: "8c: fan reopen, Map loop".
+**Known issues for after the merge (not fixed for PR #140):**
+- **A5-37:** Save to Gallery writes no datetaken or EXIF DateTimeOriginal, so the phone's gallery app dates the copy by the save time. The owner pointed out that Forager's own Album shows the right dates, and it does. The issue is only in the system gallery's copy.
+- **A4-32:** a backgrounded dirty editor is saved as a draft without a "Welcome back" prompt. Tested at 90 only.
+**Sequencing:** S22-B relaunches after this merges and after fan-clarity (-265). It runs the data group, F5's items, A6, the rechecks and the restore to a-copy.
+**Notes:** Written by the planner by hand.
