@@ -7259,3 +7259,22 @@ The planner confirmed each by grep.
 **Sequencing:** launches after the tablet-as-phone build (-245) is merged into journal-redesign, from that commit. S22-B rechecks these fixes on the fresh build.
 **Owner's answer:** "Option 1. Fix all five before merge".
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-253
+**Timestamp:** 2026-09-30T00:20:19Z
+**Dispatch:** 2026-09-28-227 (Part 3), S22-A and S22-B
+**Reason:** S22-A's addendum, on device-part-3 at f953bf42. It **supersedes -251's restore read-back.**
+**Reported by the coder (not re-checked):**
+- **Now run, after the owner allowed the notification prompt:** A1 item 3's record row and item 7's record and return while recording both PASS at 90. The return HUD is drawn over the right part of the search bar and the compass strip.
+- **Its mistake:** while deleting its own waypoints, one swipe too many deleted the offline region "DEVICE CHECK 2026-09-28 B". That region was test data from an earlier check. Undo had expired before the mistake was seen.
+- **Data left changed:**
+  - offline_regions: 1 row against 2 in the copy;
+  - tracks: 3 rows against 1, two of them unnamed and unlisted;
+  - cached_searches: 3 rows against 2.
+- The permission is granted for user 0, as the owner set it.
+**Changes:** an amendment to preserved/2026-09-29-51. At its end, S22-B restores the phone to S22-A's a-copy (schema 16, before Part 3), not to its own copy, and re-reads the migration.
+**Note:** the three S22-A coders dismissed a system prompt twice, deleted a record that was not theirs, and changed a setting by a stray tap. A device dispatch's rules did not prevent any of these. That is the owner's to weigh for S22-B's launch prompt.
+**Notes:** Written by the planner by hand.
