@@ -234,6 +234,12 @@ class MushroomLogViewModel(
      * delete fails, since the find is still saved.
      */
     private val onFindDeleted: (String) -> Unit = {},
+    /**
+     * Told, with the photo's id, after an album photo's delete has finished and succeeded (dispatch
+     * 2026-09-28-297): the same reason and shape as [onFindDeleted], for the photo markers. `MainActivity`
+     * wires it to `AvailabilityViewModel.onPhotoDeleted`. Not called when the delete fails.
+     */
+    private val onPhotoDeleted: (String) -> Unit = {},
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MushroomLogUiState())
@@ -1100,6 +1106,7 @@ class MushroomLogViewModel(
             }.fold(
                 onSuccess = {
                     _uiState.update { it.copy(saveErrorMessage = null) }
+                    onPhotoDeleted(photo.photo.id)
                     loadGalleryPhotos()
                     // Deliberately not acquiring editingEntryMutex here first — loadEntries()
                     // acquires and releases its own below. Calling into it is not a nested
@@ -1172,6 +1179,7 @@ class MushroomLogViewModel(
             }.fold(
                 onSuccess = {
                     _uiState.update { it.copy(saveErrorMessage = null) }
+                    onPhotoDeleted(photo.photo.id)
                     loadGalleryPhotos()
                     // As onDeleteGalleryPhoto: loadEntries() takes editingEntryMutex itself.
                     loadEntries()

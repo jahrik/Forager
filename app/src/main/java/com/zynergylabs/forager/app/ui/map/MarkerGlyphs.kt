@@ -82,7 +82,13 @@ internal const val GLYPH_TARGET_HEIGHT_DP = 25f
  * at with `icon-anchor: center` (dispatch 2026-09-28-275). The image is centred on the glyph's anchor,
  * and `icon-offset` moves it from there, positive right and down, so it moves by the anchor minus the
  * extent's half: a pin whose body centre is 14dp above its tip moves 14dp down. Zero for a glyph
- * anchored at its centre. Only a fan's copies apply it; everywhere else the anchor is on the coordinate.
+ * anchored at its centre. Only a fan's copies apply it, and **times the fold's progress** (dispatch 2026-09-28-299): this is
+ * the offset when the fan is fully spread. Folded, a copy must draw where its original does, and the original has no offset
+ * (its anchor is on the coordinate), so the copy's is nothing there. The owner: "After being fanned out, the icons return
+ * to their start position. But sometimes they don't perfectly align back in their position when the animation finishes,
+ * resulting in the icons snapping into place." At the full offset the pin (0, 14), the find (0, 12.5) and the flag
+ * (-7.59, 12.5) jumped by that much when the copies were cleared; the photo and the search centre, at (0, 0), did not.
+ * Everywhere else the anchor is on the coordinate.
  */
 internal fun MarkerGlyph.fanCentringOffsetDp(): FanOffset = FanOffset(anchorXDp - widthDp / 2, anchorYDp - heightDp / 2)
 
