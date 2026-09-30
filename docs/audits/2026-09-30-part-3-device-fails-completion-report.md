@@ -135,3 +135,26 @@ Items 1, 2, 3, 4, 5, 8: stopped, above, each with its reason and options. The fu
 - **The F4 checklist item 17** in `docs/audits/2026-09-29-device-inventories-s22-and-tablet.md` ("Back closes it before a bubble") is superseded by amendment -255 as to Back and a bubble; I did not edit that document.
 - **`SightingsMap` wiring for item 7 is untested** (no `MapView` under Robolectric).
 - **The M1 design "no tail when the clamp puts the card over the point"** (item 4) conflicts with checklist item 13's "tail tip on the glyph at the top edge": one of the two documents is wrong for that case.
+
+---
+
+# Continuation (dispatch 2026-09-29-57, amendment -262)
+
+**Coder model:** Sonnet 5.5 (`claude-sonnet-5-5`), read from the system prompt only.
+**Base:** `device-fails` at `65b50e80` merged with `origin/journal-redesign` at `c3d89f71` (merge commit `36a9ca5f`); the amendment's text is in `prompts/preserved/2026-09-29-57.md` in this history. `CLAUDE.md` read at this base.
+**Machine gate at start:** 2942 MB available, 9142 MB disk free, no Java Gradle process.
+
+The first report above is left as written. Items 6 and 7 are not touched again.
+
+## Pre-registration (written and pushed before any code edit)
+
+Reachability first (`git grep`, at this base): `bubblePlacement` (`ui/map/MapBubbles.kt:401`) has one production caller, `AnchoredAtScreenPoint` (`ui/map/MapBubble.kt:120-148`), which `MapBubbleLayer` (`MapBubble.kt:240`) calls from the Maps tab (`ui/availability/AvailabilityCompactMapUi.kt:598`) and the entry map (`ui/log/CartographyEntryReportScreen.kt:523`). `attributionMarginsPx` (`ui/map/SightingsMap.kt:1263`) has one caller (`SightingsMap.kt:849`). `PendingJournalDestination.VIEW_FIND` is set at one place (`AvailabilityScreen.kt:1223`, `onOpenFind`).
+
+| Item | Ruling | Plan | Prediction (base -> after) |
+|---|---|---|---|
+| 4 flip below | -262 "Flip below" | `bubblePlacement` (`MapBubbles.kt:401`) tries the card below, mirrored arrow, when the card's top would sit above `minY` and the mirrored card fits; else M1's clamp stays | `MapBubblesTest`: glyph 175 px from the top, 250 px card. Base: card is clamped to `minY`, so its visible bottom edge is below the glyph (card covers the glyph), no room to see a tail. After: card's visible top edge is below the glyph, `topLeft + tipInBubble == anchor`. Control (room above): identical before and after. Neither fits: identical before and after. |
+| 3 clamp insets | -262 "Push the card clear" | `AnchoredAtScreenPoint` / `bubblePlacement` gain left and right clamp insets; `CompactMapTab` passes the rail side (`controlsPadding`, `AvailabilityCompactMapUi.kt:256-260` sets what it holds) and the L's side (`MAP_ICON_BAR_EDGE_INSET + clusterWidth + Spacing.sm`) | New screen test at `w823dp-h384dp-land`, `ROTATION_90`, real screen, real L and rail bounds. Base: a bubble for a glyph 30 dp from the L overlaps the L's bounds; after: it does not, and the close X is in the clear area. Portrait: unchanged (test at `w384dp-h823dp`, same claim as today). |
+| 1 move the "i" | -262 "Move the 'i'" | pure function in `SightingsMap.kt` beside `attributionMarginsPx`: the end inset the "i" needs to stand clear of the L when the L is on the "i"'s end edge; `CompactMapTab` adds it into `renderMode.attributionEndInset` | Pure test: L on the end side -> inset = rail/cut-out side + `MAP_ICON_BAR_EDGE_INSET` + L width + gap; L on the other side -> unchanged. Host test at 90, L snapped right and dragged to its lower limit: base, the "i" rect (end inset from `renderMode`, worst-case default margin 0, 24 dp square at the bottom corner) intersects the record button; after, it does not. Real position of the "i" is device-only. |
+| 8 remember and reopen | -262 "Remember and reopen" | a return request (find id, fan member keys, plus the bubble's anchor and bearing, see Decisions) held at `AvailabilityScreen` beside `mapCameraMemory` (`AvailabilityScreen.kt:836`); set when "Open in Journal" is tapped; applied when the find's report is closed (Back or arrow, both are `onCloseEntry`, `JournalTab.kt:442`/`:525`) or the find is deleted; forgotten on another tab, an edit start, or another record; the new Maps tab opens the bubble; the map opens the fan from the keys through a new `MapTapHandler` path | Base: Open in Journal then real Back lands on the Journal (no Maps tab, no bubble), so the new tests fail at the first assertion. After: Maps tab, the bubble for that find, camera memory untouched; fan keys handed to the map. Existing tests at `AvailabilityScreenMapBubblesTest.kt:482`, `:652`, `:745` assert the superseded "Back returns to the Journal" and will be re-based (disclosed). |
+
+Pass conditions: each new test fails at the base for the reason in the table and passes after; each revert of the one edit fails with a message specific to it; full unit suite 0 failures apart from the two owner-held flakes (and `LeavingTheJournalFixesTest` reported, not touched, if it hangs again). Device-only and not claimed: the real "i" position and tap, the real cut-out, `SightingsMap` consuming the fan restore (style-load and camera-move folds), MapLibre's projection.
