@@ -7321,3 +7321,15 @@ S22-B's launch prompt (-53) already makes the dispatch and its amendments govern
 - The origin is forgotten on any other exit.
 - A deleted find returns to the map with no bubble.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** dispatch-note
+**ID:** 2026-09-28-257
+**Timestamp:** 2026-09-30T00:55:22Z
+**Dispatch:** 2026-09-28-245 (tablets as a big phone) and 2026-09-28-252 (the device fails)
+**Reason:** -245's coder sat for over an hour in its pre-Gradle wait loop at 2270 MB available against a 2.5 GB gate. Three idle JVMs held about 4 GB between them.
+**Changes:**
+- **The Kotlin daemon was ended.** At the owner's choice ("Kill the old Kotlin daemon"), the planner ended the idle Kotlin compile daemon (pid 876355, up 5 h 34 m, 1.9 GB) after confirming no Gradle wrapper or worker was running. Available memory went from 2270 MB to 4182 MB. The two Gradle daemons were left running.
+- **The memory gate is 2048 MB for this planner session's dispatches.** The owner, verbatim: "Reduce the limit to 2GB for this session". This applies to -245's coder, which has been told, and to -252's coder when it launches. The other checks are unchanged: no Gradle wrapper or worker running, 2048 MB of disk, and never `./gradlew --stop`.
+**Notes:** Written by the planner by hand.
