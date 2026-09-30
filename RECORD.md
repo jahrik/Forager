@@ -7904,3 +7904,27 @@ All of them go to S22-B's relaunch.
 - the offline-tiles toggle;
 - 8c after the change.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-283
+**Timestamp:** 2026-09-30T15:30:22Z
+**Closes:** 2026-09-28-280 (preserved -07)
+**Outcome:** completed, not reproduced. No code changed.
+**Observed:**
+- **What merged, as 7b020c72:** map-return-delete 4fa26272. It carries only the report section "Continuation -280"; the app, data and server trees are unchanged. The temporary logging (eebb9650, 39392484) was reverted from saved copies, and `grep '"TEMP '` gives 0.
+- **Four deletes on 1.0.2014,** which is 2011's code plus logging. Every one reopened the survivors and held them at 1, 6 and 12 s:
+  - 280a, on a fresh launch;
+  - 280b, S22-B's exact sequence. Following was on, then a hand pan gave savedFollowing=false and restoreMode=NONE;
+  - 280c, a second delete on the same process;
+  - 280d, with deep idle forced. That was undone and read back.
+- **The suspects:** following, the trip and the keys were refuted, and fan-centring was not implicated.
+- **The only lead left:** S22-B's session log has 531 "FreecessHandler: freeze com.zynergylabs.forager.app … result : 12" lines (06:37:53 to 08:03:29 PDT) and restrictJobsByOlaf restrict=true. The coder's captures have none. Forcing deep idle did not produce them, so run 280d was not S22-B's state.
+- **The phone was left** on S22-B's 2011 APK (sha256 4f124d3e…), installed with `install -r --user 0 -d`. The data was kept (ceDataInode unchanged), and user 95 has no Forager.
+- **An extra draft** came from the coder's mis-sequenced taps, as disclosed. S22-B's restore covers it.
+- **The stale magenta marker** was seen again after 280a, 280b and 280c.
+**The owner's answers for S22-B's resume:**
+- repeat the deleted-member return: "Yes, once";
+- the backup folder picker: "Yes, I'll pick it".
+**Notes:** Written by the planner by hand.
