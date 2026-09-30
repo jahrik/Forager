@@ -10,6 +10,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Protocol
 import okhttp3.Request
 import okhttp3.Response
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -83,7 +84,7 @@ class MapUserAgentTest {
         lateinit var seen: Request
         val recording = Interceptor { chain ->
             seen = chain.request()
-            Response.Builder().request(seen).protocol(Protocol.HTTP_1_1).code(204).message("No Content").build()
+            Response.Builder().request(seen).protocol(Protocol.HTTP_1_1).code(200).message("OK").body("".toResponseBody(null)).build()
         }
         client.newBuilder().addInterceptor(recording).build()
             .newCall(Request.Builder().url("https://tile.openstreetmap.org/1/0/0.png").addHeader("User-Agent", libraryUserAgent).build())
