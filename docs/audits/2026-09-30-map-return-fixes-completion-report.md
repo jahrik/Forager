@@ -150,3 +150,61 @@ After `ZZFIX1` (and, earlier, `ZZTEST274`) was deleted, a magenta find marker st
 
 ### Device-only list now
 (1) The owner's S26 Ultra on the fixed build (`1.0.2001+gd3d68ef2`), the deleted-member return and 8c; (2) the stale find marker above, if it matters to the owner; (3) whether a style reload with a fan open should keep the fan, which the rule does not name and I left folding.
+
+## Continuation -280: the deleted-member return on the merged build, diagnosed and **not reproduced**
+
+Base verified first: `d2e23b3e` is an ancestor of `origin/journal-redesign` (`6e34c700`, one docs commit ahead) and contains `d3d68ef2` and `3e9fca0d`; the app code at `d2e23b3e` is identical to the build S22-B failed on (`2efc2163`, 1.0.2011). Branch `map-return-delete`, worktree `/home/zynergy-labs/Zynergy/forager-wt/map-return-delete`, pushed to `map-return-delete` only.
+
+### What was asked, and the result in one line
+S22-B saw "Find deleted", **no fan and no bubble** at 1.5/6/12/18 s after deleting the 8c member of a 9-member fan on 1.0.2011. **I could not reproduce it in four runs on a diagnostic build of the same code, and the log names none of the four suspects.** No fix was built, because there is nothing that failed to fix; the report is negative and says so.
+
+### The diagnostic build
+`eebb9650` and `39392484` (temporary `Log.d` on `MapReturnMemory`, the coordinator, `openFanFor`, `onContentChanged`, `onStyleChanged`, `onCameraMoveStarted` with the MapLibre reason and whether GPS following is on, every `fan.open`/`fan.fold` with caller, and the camera-restore decision on a first style load). Built as 1.0.2014+g39392484, installed with `install -r --user 0` over 1.0.2011. **Reverted** in the commit that carries this section, from the saved copies of the files taken before the logging went in (never from git); `grep -rnE '"TEMP ' app/src/main` returns **0 lines**, and `git diff d2e23b3e -- app/src` is empty.
+
+### The four runs (S22 Ultra, user 0 only; all logs in `~/Zynergy/device-evidence/2026-09-30-map-return-delete/`)
+All on a 9-member fan at S22-B's stack (the trip flag, a waypoint, my test find, six photos), tapped open with a real tap, the test find opened from the fan, page name read before every delete, Entry options, Delete entry.
+| Run | Route | Result | Key log lines |
+|---|---|---|---|
+| 1 `280a` | fresh launch | fan of 8 open at 1/6/12 s | `08:05:02.077 onFindDeleted(0bad53da…) fanKeys=9`, `08:05:02.337 takeFanKeys -> 8`, `openFanFor keys=8 found=8 missing=[]`, `reopen … openFanFor=true`, `08:05:12.332 onContentChanged fanOpen=true members=8 drawn=8 unchanged=true` |
+| 3′ `280b` | S22-B's sequence: locate button (following ON, 494 GPS-driven camera moves in 30 s), hand pan of 100 px (`reason=1 gesture=true following=false`), waited ~19 s, then the fan | open at 1/12 s | `08:09:10.437 styleLoad firstStyle=true savedSnapshot=true savedFollowing=false previousMode=null restoreMode=8`, `takeFanKeys -> 8`, `openFanFor=true`, `unchanged=true`; no camera move after the return |
+| 2 `280c` | same process as 3′, second delete | open at 1/6/12 s | `08:12:20.539 takeFanKeys -> 8`, `openFanFor found=8`, `08:12:30.535 unchanged=true` |
+| 4 `280d` | same, with the device forced into deep idle | open at 1/6/12 s | `08:17:52.822 onFindDeleted … fanKeys=9`, `08:17:53.106 takeFanKeys -> 8`, `openFanFor found=8 missing=[]`, `08:18:03.050 unchanged=true` |
+
+### The four suspects, against these runs
+1. **GPS following: refuted for S22-B's sequence.** A hand pan clears the *saved* flag as well as the live one (`savedFollowing=false`, `restoreMode=8` = `CameraMode.NONE`); the return did not re-enable following, and no camera move followed the fan opening.
+2. **The planned trip in the fan: refuted.** It was a member of every fan and `found=8 missing=[]` after each delete.
+3. **Fan-centring (`4f16e3b1`): not implicated**; the runs are on code that contains it.
+4. **Keys never remembered or taken: refuted.** `remember(…) openFanKeys=9`, then `takeFanKeys -> 8`, every run.
+The dispatch says to stop and report when none is named; I did.
+
+### The power-state lead (relayed by the planner) and what run 4 does and does not show
+S22-B's `b2-logcat-full.log` carries 531 `FreecessHandler: freeze com.zynergylabs.forager.app(10424) result : 12` lines every 6 s through its delete, and `restrictJobsByOlaf: restrict=true, uid=10424` at 06:35:33; its premises check read "Doze ACTIVE". My four captures have **0** of those lines (re-counted in `g-run4-full.log`: 0 freeze lines naming the app, 0 `restrictJobsByOlaf` for uid 10424).
+Run 4 recorded and then changed the power state (`g-power-before.txt`, `g-power-forced.txt`, `g-power-after.txt`):
+- before: `deviceidle` deep and light `ACTIVE`, force `false`, charging `true`, USB powered, level 100, status 5, standby bucket 5;
+- `dumpsys deviceidle force-idle` → deep `IDLE`, light `OVERRIDE`, force `true`, held through the delete (`IDLE` read at the tap and again after);
+- undone with `dumpsys deviceidle unforce` and `dumpsys battery reset`; read back: deep and light `ACTIVE`, force `false`, `mForceIdle=false`, USB powered, level 100, status 5, bucket 5. (I did not run `battery set`, so `reset` changed nothing that I had changed.)
+**What run 4 does not show:** forcing deep idle did **not** make the app produce the Freecess/Olaf freeze lines S22-B's process had (0 in my capture), so run 4 is not S22-B's state, only a deep-idle run. The difference in the Freecess record between S22-B's log and mine is the only concrete lead left, and I could not induce it.
+
+### Not determined
+- **Why S22-B's run failed.** Left standing: (a) something specific to S22-B's device state (its process had been up since ~07:20 and the Freecess/Olaf restriction was on from 06:35; my runs never had it); (b) a timing effect that adding logging removes (I cannot exclude it, and think it unlikely); (c) a route that never reached `MapReturnMemory.onFindDeleted` (the 2011 build had no such logging, so its log could not show one).
+- **A single failure, one device, one run.** S22-B's report is one observation. I reproduced nothing in four attempts. I am not claiming the return is proven correct in S22-B's state, only that on this code, in the ways I could put the device, it works.
+
+### Tests, revert checks, suite
+None added, none changed: no code changed, so there is nothing for a revert check to bite and no new suite run is claimed. The `-274` tests (`FoldOnlyIfMembersChangeTest` and the updated coordinator and handler tests) stand as recorded above. The base's own suite result (3163 / 0 / 0 / 24 at `2efc2163`, per the planner's record) is **not re-run here and is cited, not verified, on this branch**.
+
+### Test data
+Created and deleted, by name: `DEVICE CHECK 2026-09-30 280a` (`0bad53da-8628-4eae-bd6a-699dead6a38e`), `…280b` (`1726c24a-4c5d-42c2-808d-75f87a4a33b7`), `…280c` (`bd2c3a81-d85b-40bd-a341-bc502424af2e`), `…280d` (`8c303a98-0907-45e6-a123-0831fdc38559`). Journal after every run: Finds 7, All 14, Tracks 3, as S22-B left it. S22-B's trip, its finds i6A to i6D, its drafts and the owner's own records were not touched; the database was not read; the Dual App profile (user 95, no Forager) was not touched.
+**One draft was added by my own mistake.** After run 3′ I sent five taps in a row without a screenshot between them; the sequence left the app on Journal → Entries with "Saved to Drafts / Discard" at 08:09:42. I did not tap Discard and deleted no draft. Drafts read 7 before S22-B's work, 8 at the start of this continuation, 9 afterwards and did not change during the clean runs. I cannot tell from the list which draft is mine; the planner ruled that S22-B's restore to `a-copy/` covers it.
+
+### Observations, not investigated
+- After a delete, a magenta find marker stays drawn at the stack while the Journal has no find there (`d-1-after-12s.png`, `f-2-after-12s.png`); seen on 1.0.2001 earlier today too, so not this change's.
+- The tap coordinates for the stack and the Open in Journal button move with the fan and the map's pan; I re-read the screen before each.
+
+### Device-only list
+(1) S22-B, or the owner on the S26 Ultra, repeating the deleted-member return on a build with **no** logging, in the state that produced the failure, now that the code path is known to work in four runs: a second failure with the same code would make the Freecess/Olaf lead the next thing to instrument. (2) The stale find marker above, if it matters to the owner.
+
+### State left on the phone
+- **Build:** 1.0.2011+g2efc2163, S22-B's own `b2-app-debug-2efc2163.apk` (sha256 `4f124d3ef9d56efa…`, matching the planner's `4f124d3e…`; 0 `TEMP` strings in its dex), installed with `install -r --user 0 -d` over my diagnostic 1.0.2014 (`-d` because the version code goes down). Read back: `versionName=1.0.2011+g2efc2163`; user 0's `ceDataInode` is unchanged (2259049), so the data was kept; user 95 still has no Forager. The app was launched once (focus: Forager `MainActivity`).
+- **Power state:** deep and light `ACTIVE`, force `false`, as at the start of this continuation.
+- **Logcat:** my streams are stopped (`d-step1-full.log`, `d-run3-full.log`, `g-run4-full.log`); S22-B's stream (PID 1261930) was not touched.
+- **Phone free** for S22-B's restore.
