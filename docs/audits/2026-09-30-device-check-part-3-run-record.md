@@ -159,3 +159,79 @@ Method: `probe.py` (in the evidence folder) takes a PNG and a dump before and af
 - A sighting dot stacked under the records stays put while the records fan (the grey dot under the top camera glyph, `f0-open.png`), which is item 16's "records over dots fan and the dots stay put". A tap on a dot alone was not run.
 - Separating zoom: after three double-taps the find separates from the stack and a tap opens a plain bubble, with no fan (`f4-find-bubble.png`, item 17). At that zoom the photos and pin still fan together.
 - Items 15's "photo over a find, tap the find opens its bubble", nine or more (needs data), "Remove animations", 18's halos and thin track line, and 19's edge, cluster, HUD and large-stack cases have no verdict yet.
+
+### Resumed results, third slice (A2 rest, A3), and the S22-A verdict table
+
+**A1 item 10 (OWNER): values only.** Pixel means over 11x11 grids on the night topo map, on translucent chrome so the map shows through. At 90 (`z-corner-vis.png`): L bar (54,55,48) and (63,62,62); rail (62,62,61) and (49,49,49). At 270 (`c12-270a.png`, L on the left beside the rail): L bar (91,91,91) and (88,88,88); rail (56,56,56) and (59,59,59), about 30 levels apart there. I do not judge "one colour".
+
+**A2 item 12 (bubbles clear the strip, nav, rail, cut-out): FAIL near the L and the rail at 90.** With the find glyph 30 px from the L (`c12-c.png`), the bubble opens under the L and extends about 60 px past the rail's inner edge, so its close X is under the rail and dimmed. Portrait: the top clamp keeps the bubble below the compass strip (bubble top 284 against strip bottom 255). At 270 against the right screen edge the bubble is clamped inside the display with about 30 px of margin (`c12-270b.png`).
+
+**A2 item 14 (hit tests): track cell PASS; colour-field cell not runnable.** At maximum zoom a real tap on the track line at (530,1199) opened the track's bubble ("Sep 27, 2026, 7:23 PM, 379 ft, 1h 27m, Details", `q15-open.png`). Colour-field cells: no colour-field layer exists on this build (see item 8).
+
+**A2 item 15 (in part).** "Photo over a find, tap the find opens its bubble": not run as such. Ring, legs, no map move, member tap: see the second slice.
+
+**A2 item 16.** A dot stacked under records stays put while the records fan (`f0-open.png`). Not run: a tap on a dot alone, and a stack of records over dots away from the owner's stack.
+
+**A2 item 17.** Fold on map tap, pan, Back (bubble, fullscreen), and separating zoom: PASS (second slice). Pinch: not runnable (no multitouch). "Remove animations": not run (would change the three animation scales; not needed for another verdict).
+
+**A2 item 18: halos PASS by capture; night colours captured for the owner; thin track line FAIL.** Halos: the fanned copies carry white halos (`f0-open.png`). A stack over the owner's thin track line: at maximum zoom three taps on the photo glyph over the track (`q18-*`) opened nothing, not a fan, not a bubble, not the track's; a tap 40 px above it opened the track's bubble. I do not know why; not investigated.
+
+**A2 item 19.** Portrait, the owner's 6-marker stack: near the cluster (`g19-right-open.png`) every marker stays on screen and clear of the cluster (rightmost glyph edge about 890 px against the cluster's left edge about 925); near the top (`g19-top-open.png`) clear of the compass strip (top glyph edge about 288 px against strip bottom 255); near the bottom (`g19-bottom-open.png`) clear of the bottom navigation (fan bottom 1923 against nav top about 1960) but its lowest glyph overlaps the attribution text strip, which is not a keep-out. At 90 beside the L on its dragged-to side (`g19-90-open.png`) clear of the L (rightmost glyph edge about 1728 against the L's left edge 1804), so the keep-out followed the drag and snap. Not run: 270, the left and right screen edges, the legend and chip row, the HUD, a very large stack.
+
+**A2 item 20 (observe).** On the entry map (`j3.png`, `j4.png`) a tap on the stack fans it, Back folds it, and a glyph sits about 30 px from the map's left edge. I did not test keep-outs there, and the centre-pin picker was not tested.
+
+**A3 item 21: PASS with 3-button navigation; gesture navigation not runnable.** Portrait fullscreen (`a3-21-fs.png`): the "i" `[1010,2111][1069,2170]` sits above the navigation bar (frame top 2181, from `dumpsys window`) and a real tap on it opened the "MapLibre Android" attribution dialog. The attribution text and the MapLibre logo sit inside the navigation bar's area, behind its buttons. Gesture navigation: `cmd overlay enable-exclusive --category com.samsung.internal.systemui.navbar.sec_gestural` changed nothing (the three-button overlay stayed enabled, read back), and driving Samsung's Settings screens is beyond this session; nothing was left changed.
+
+**A3 item 22 (OWNER): captured.** Eight-step zoom sequence in `z22-step1..5.png`. The track is drawn (purple pixels present) only from the third step (174 px) and the fourth (651 px, the maximum zoom); steps 1 and 2 show none. The zoom levels are unverified (I counted double-taps, not zoom numbers).
+
+**A3 item 23: PASS at 0, 90 and 270; Download not tapped.** Path: Journal, Records, "Offline maps", "OK", then "Download Maps" opens "Download this area?" with body "3 mi around the pin · about 248 tiles" (radius in miles, the units setting; `d0.png`, `d90.png`, `d270.png`). Cancel dismissed it at 0, 90 and 270 and no download started (I never tapped "Download"). The dialog is translucent and the page's text shows through it, most at 90 and 270 (the "Pin at" line and the OK button behind the buttons). A saved dialog survives rotation (opened at 0, seen at 90 and 270).
+
+**A3 item 24 (OWNER, NET): pixel values only.** Portrait, 13x13 grid means, points (800,112) search panel, (950,232) strip, (945,1000) icon bar, (300,2000) bottom nav.
+- Topo night: (64,67,52), (56,56,56), (41,41,41), (60,62,50).
+- Satellite night: (35,41,41), (44,48,47), (32,34,33), (34,40,39).
+- Topo day: (233,232,207), (225,221,211), (197,194,184), (229,227,205).
+- Satellite day: (204,206,196), (213,213,202), (188,187,176), (203,205,194).
+The map shows through the translucent chrome, so these are not the tokens. `c1-montage.png` shows the four. A first "satellite by day" capture actually showed topo: the day switch reverted the map type; the satellite-by-day figure is from a second capture. Not run: the drawer, Layers and details sheets over scrims, and a snackbar with an action.
+
+**A3 item 25: partly run.** Offline maps in portrait shows the picker, the form and the "Downloaded Maps" list. At 90 (`e25-90*.png`) the right pane scrolls and reaches the name field, radius, OK, Cancel and Download Maps; the "~248 tiles" line is cut at the pane's top edge in one scroll position. The downloaded-maps list is not visible in that pane; the code places it in the layout (`AvailabilityOfflineMapsUi.kt:416`) but I could not reach it, because a swipe over the left pane pans the picker map. Unverified. The nav band: at 90 the rail is at the side and the content is clear of it.
+
+**A3 item 26: not judged.** At font scale 1.5 at 90 the soft keyboard opened over the top of the screen on this phone and covered the search field (`f26-b.png`), so the auto-scroll cannot be read from it. Refocus after `clearFocus()` was not isolated.
+
+**A3 items 27 and 28: not run.** The entry map (`j3.png`) shows the track, a photo and a find; no ring is distinguishable at the track's ends in these frames, and I created no entry. The "In <find>", ">3 entries" and off states need data I did not create.
+
+**A3 item 29, partly:**
+- 10 (pan, then open and close a find): opened and closed by Back several times after pans; no fault seen.
+- 36 (bearing and tilt): not runnable (no two-finger input).
+- 44 (entry map at night): captured, `j3.png` (the map is light because Night Maps is off).
+- 47 (Layers chips in landscape): PASS, the three chips fit one row (`k47-90.png`); the sheet extends over the side rail and its switches overlap the rail's labels.
+- 48 (landscape Records sheet's nav band): see item 25.
+- 58 and 59 (by day, entry report at night): captured, `k-report-night*.png`, `k-report-day*.png`.
+- 60 (planned trips by day): not run; no planned trips exist.
+
+**Sundown alerts:** skipped, out of scope.
+
+### Verdict table (S22-A, this Resumed run)
+- **A1:** 1 FAIL (reproduced at 90 and 270; trigger is a fullscreen exit, not rotation). 2 empty-corner look PASS, touch half not runnable. 3 PASS on every row with an observable effect; north, return and record not runnable. 4 PASS (90, 270). 5 observed: the dropdown draws over the L. 7 PASS on drag, snap and both handles; recording halves not runnable; thumb reach OWNER. 8 not runnable (no colour-field layer). 9 FAIL with the L on the right at 90; PASS on the left and at 270. 10 OWNER, values only.
+- **A2:** 11 FAIL (bubble re-anchors 35 to 43 px low and covers its glyph after a rotation). 12 FAIL near the L and rail at 90; portrait and 270 edge observed clear. 13 FAIL at the top edge; right edge PASS at 270; bottom not run. 14 track PASS, colour field not runnable. 15 and 17: ring, legs, no move, member bubble, Back order, fold on tap and pan, separating zoom PASS; 0.4 s unverified; pinch and "Remove animations" not run. 16 partial. 18 halos PASS, thin-line FAIL, night colours captured. 19 partial PASS. 20 observed on the entry map.
+- **A3:** 21 PASS (3-button), gesture not runnable. 22 captured. 23 PASS. 24 values captured. 25 partial. 26 not judged. 27, 28 not run. 29 partial as listed.
+
+### Restore read-back (end of the Resumed run)
+- Settings read back after restoring: `accelerometer_rotation` 0, `user_rotation` 0, `font_scale` 1.0, `cmd uimode night` yes, the three animation scales 1.0, `navigation_mode` 0 with the three-button overlay still the enabled one, display rotation 0, map type Topographical, Units Imperial (US). App force-stopped (no pid). Build `1.0.1910+g06b394b9` left installed. Crash buffer at the end: 0 lines.
+- **Data.** The two accidental recordings' tracks and waypoints were deleted through the app (Records back to All 8, Finds 2, Tracks 1, Waypoints 3). `forager.db` at the end: integrity ok, `user_version` 17, every table's count equal to `a-migration-verify.txt` except **`cached_searches` 3 against 2**: my "Search this location" at 45.3263, -122.6339 (5 mi, September) added a Recent-searches row that the app offers no way to delete (`v-end/counts.txt`). That is residue, and S22-B's F5 item 1 (0 cached_searches rows in a fresh backup) and item 2 (the list unchanged after the backup) read from a list that now has 3 entries, not 2.
+- **A mistaken tap set Units to Metric** in Settings for about a minute (I meant to tap a tab; `o3.png`); I set it back to Imperial (US) (`o4.png`). That created `files/datastore/distance_unit_preferences.preferences_pb`, which did not exist in `a-copy/` (the default was in use). I left it: deleting it is a restore step for S22-B's final return to the copy, not for me.
+- Comparison of the device against `a-copy/device.sha256` at the end (`v-end/vs-copy.txt`): 13 of 22 equal; the 9 unequal are the gpx (removed by the app at the first launch, recorded earlier), `forager.db` and its `-shm` and `-wal` (migration and normal activity), `mbgl-offline.db` (the map's tile cache), `profileInstalled`, `androidx.work.workdb-shm` and `-wal`, and `android.app.ActivityThread.IDS.xml`. `forager.db`'s counts are read above; I did not pull `mbgl-offline.db`'s content.
+
+### Decisions I made (Resumed run)
+- Read "A1 item 3's remaining touches ... without starting a recording" as: taps in each row's corners and a tap just outside a square, judging by the button's own effect; record, return and north are unobservable without an effect, so I marked them not runnable instead of starting a recording.
+- Stopped and deleted my own accidental recording twice through the app, rather than leaving them for S22-B.
+- Turned the app's units to Metric by mistake and back; and changed `font_scale`, the day/night mode and the map type, each restored and read back.
+- Used `input draganddrop` for the L's drag (the L drags by long-press then move; `input swipe` does not).
+- Tried Samsung's gesture navigation once through the overlay service; it had no effect and I did not go further.
+- Did not tap "Download", change the network, or touch the tablet.
+
+### Flags outside scope
+- The tablet-as-phone build (-245) will replace the L code this run describes; the A1 item 1, 9, 11, 12, 13 findings are on the pre-removal build.
+- A fullscreen exit leaving the L 47 px high applies to the two exits I tried (button and Back) and to a relaunch from persisted fullscreen: relaunching into fullscreen and leaving it gives the raised L again.
+- The record and the stop buttons are 48 dp squares and the "i" sits under the pill when the L is on the right at 90; a tap on the "i" starts a recording and raises the notification-permission prompt.
+- The phone's soft keyboard opened over the top of the screen at 90 (not the app's layout).
+- `fanprobe.py`, `probe.py` and the other helper scripts in the evidence folder send Back keys; do not reuse them where a system prompt may be up.
