@@ -59,16 +59,17 @@ data class FanMember(
 
 /**
  * [tapped] and every marker in [nearby] whose touch area overlaps [tapped]'s, [tapped] first, each once.
- * Two touch areas overlap when both the horizontal and the vertical distance between the markers are
- * under [FAN_TOUCH_DP], so squares that only touch do not. Not transitive: a marker that overlaps only
+ * Two markers are stacked when both the horizontal and the vertical distance between them are under
+ * [FAN_STACK_DP] (32 dp; it was [FAN_TOUCH_DP], 48, until the owner's amendment -255), so markers whose
+ * touch squares overlap but that are 32 dp or more apart on an axis are not fanned. Not transitive: a marker that overlaps only
  * a neighbour of [tapped] is not in its stack, which keeps a stack to what is under the finger.
  * [density] converts the px positions to dp.
  */
 fun stackOf(tapped: ProbedMarker, nearby: List<ProbedMarker>, density: Float): List<ProbedMarker> {
     val overlapping = nearby.filter {
         it.key != tapped.key &&
-            abs(it.xPx - tapped.xPx) / density < FAN_TOUCH_DP &&
-            abs(it.yPx - tapped.yPx) / density < FAN_TOUCH_DP
+            abs(it.xPx - tapped.xPx) / density < FAN_STACK_DP &&
+            abs(it.yPx - tapped.yPx) / density < FAN_STACK_DP
     }
     return (listOf(tapped) + overlapping).distinctBy { it.key }
 }
