@@ -8431,3 +8431,30 @@ Both go to the next phone check.
 - The owner, verbatim: "1 withdraw. Nothing was sent to coders".
 - No branch, worktree or code exists for it.
 **Notes:** Written by the planner by hand. -298's harness observation, that focus returns and reopens the dropdown, stays recorded as harness-only.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-307
+**Timestamp:** 2026-09-30T19:53:18Z
+**Closes:** 2026-09-28-299 (preserved -16)
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as 15710d71, no-ff, from fan-fold-snap 6d79dbdc. The owner said "Merge first".
+  - c9437d6b, the tests first. 3 of 16 FanOutLayersTest tests failed for the predicted reason, for example `icon-offset y at progress 0 expected 0.0 but was 14.0`.
+  - 4063f0ee, the fix: offset = centring offset × progress, and each circle carries circleScale = progress, with circleRadius = 18 dp × circleScale.
+  - The report, docs/audits/2026-09-30-fan-fold-snap-completion-report.md.
+- **The owner's circle ruling,** in the coder's window: shrink with the fold. The coder chose radius only, without an opacity fade.
+- **The planner's checks:**
+  - /tmp/s299/fullxml gives 391 files and 3186/0/0/24, with no class excluded;
+  - the merged head's app tree is identical to the branch's.
+**Not verified:**
+- the circle-scale revert, which has only the red run as evidence;
+- the suite after the coder's merge of journal-redesign, which was not re-run;
+- that the data-driven circleRadius expression renders on a device.
+**Device items open:**
+- no jump at a fold's last frame or an open's first frame, for pins, finds, flags and photos;
+- the circles grow and shrink with nothing popping;
+- mid-fold, the circle is smaller than the glyph and off its centre: check that it looks acceptable;
+- day and night.
+**Notes:** Written by the planner by hand.
