@@ -10009,3 +10009,20 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **What this supersedes:** -390's statement that the README's last section carries the known issue and the two paths not run on a phone. Those lines were added at the planner's request and are among what the owner has deferred. The known issue itself stays recorded in -389 and -390 and in the bubble-paths report's addendum; whether it is an issue at all is now with the owner's review.
 **Holds:** PR #140's merge into pre-main, which waits for this and for CI on the head that follows. Nothing has been merged into pre-main or main.
 **Notes:** Written by the planner session that wrote -370 to -390.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-392
+**Timestamp:** 2026-10-01T19:51:56Z
+**Closes:** 2026-09-28-391 (preserved 2026-10-01-12)
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as f8d04789, no-ff, from readme-section-move at 3f5028d5, on the owner's "Remove the what is not verified area and move it. Some of it contains items I may consider features that incorrectly reports it as an issue. So defer that for now". Docs only. The coder ran on Sonnet 5.5.
+- **The README** loses its last section, 19 lines and nothing added, and is 134 lines, ending with "Where the project's memory lives". No other sentence in it pointed at the section.
+- **The section is kept** in docs/audits/2026-10-01-readme-deferred-section.md, under a header saying it is deferred for the owner's review and is not a list of faults. The planner diffed the moved text against the section as it stood in the README: identical. The README does not link to it.
+- **The README's checks, re-run by the coder on the README as it stands:** 172 claims rows, 0 unresolved; 52 links and paths, 0 missing. The 19 rows that belonged to the section are listed in the report's dated note as moved with it.
+- **The planner's checks:** only README.md and three files under docs/audits changed; no audits index row removed; the README has no line left that says "not verified", "known to be limited" or "known issue"; app/ is unchanged since b79e2ae0.
+**Lesson, for the planner:** the known-issue line and the two "not run on a phone" lines in that section were added at the planner's request an hour earlier. What is unverified, limited or surprising goes to the owner for review before it is written into a document that presents it as an issue.
+**Next:** CI on this head; then PR #140 into pre-main, the backup already written (forager-repo-backups/2026-10-01-01); then pre-main into main.
+**Notes:** Written by the planner session that wrote -370 to -391.
