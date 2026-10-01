@@ -689,6 +689,8 @@ fun SightingsMap(
             is MapStyleSource.Uri -> Style.Builder().fromUri(source.uri)
         }
         map.setStyle(builder) { style ->
+            // The symbol fade off for the whole style, before anything is drawn on it (PlacementTransitions.kt).
+            disableSymbolFade(style)
             // Offline night (colour build C1 (d)): the offline style has no raster layer for
             // NIGHT_RASTER_PAINT to act on, so its own layers are recoloured here, after it loads
             // from its one URL and before the overlays are added, so the overlays' own line and
