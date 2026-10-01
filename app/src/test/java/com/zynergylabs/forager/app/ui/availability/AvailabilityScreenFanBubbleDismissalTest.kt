@@ -88,6 +88,7 @@ class AvailabilityScreenFanBubbleDismissalTest {
         val density = LocalDensity.current.density
         val currentOnTap by rememberUpdatedState(onTap)
         val currentOnFeatureTap by rememberUpdatedState(renderMode.onFeatureTap)
+        val currentOnCloseBubble by rememberUpdatedState(renderMode.onCloseBubble)
         val bubbleShown = content.focusedFeature != null || content.focusedObservationId != null
         val currentBubbleShown by rememberUpdatedState(bubbleShown)
         val probe = remember { FanOutTestScene(density).also { scene = it; it.hidden = { fan.members.map { m -> m.key }.toSet() } } }
@@ -105,6 +106,7 @@ class AvailabilityScreenFanBubbleDismissalTest {
                     override fun onFeatureTap(layerId: String, featureId: String, xPx: Float, yPx: Float, at: LatLng) =
                         currentOnFeatureTap(MapFeatureTap(layerId, featureId, Offset(xPx, yPx), 0f, at))
                     override fun onUnidentifiedFeature(layerId: String) = currentOnTap()
+                    override fun onCloseBubble() = currentOnCloseBubble()
                 },
                 bubbleOpen = { currentBubbleShown },
             )
@@ -210,6 +212,42 @@ class AvailabilityScreenFanBubbleDismissalTest {
 
         back()
         assertFalse(fan.isOpen)
+    }
+
+    // Part A of dispatch 2026-09-28-387, through the real screen and a real touch: `Fan A open, X's bubble over it > tap stack B > X's bubble closes,
+    // fan A closes, fan B opens`.
+
+    private fun addStackB() {
+        val s = checkNotNull(scene)
+        s.addAtScreen(MapLayerIds.WAYPOINTS, "b-waypoint", OTHER_X * density, OTHER_Y * density)
+        s.addAtScreen(MapLayerIds.PLANNED_TRIPS, "b-trip", OTHER_X * density, OTHER_Y * density)
+    }
+
+    @Test
+    fun `with a fan and a bubble over it, a real touch on another stack closes the bubble, folds fan A and opens fan B`() {
+        fanWithFindBubbleOpen()
+        addStackB()
+
+        touchMap(OTHER_X, OTHER_Y)
+
+        composeRule.onNodeWithTag(MAP_BUBBLE_TAG).assertDoesNotExist()
+        assertTrue("a fan is open", fan.isOpen)
+        assertEquals("and it is fan B", setOf("b-waypoint", "b-trip"), fan.members.map { it.key.featureId }.toSet())
+    }
+
+    @Test
+    fun `with a bubble showing and no fan, a real touch on a stack closes the bubble and opens the fan`() {
+        setScreen()
+        val s = checkNotNull(scene)
+        s.addAtScreen(MapLayerIds.FINDS, "find-1", SPOT_X * density, SPOT_Y * density)
+        touchMap(SPOT_X, SPOT_Y)
+        composeRule.onNodeWithTag(MAP_BUBBLE_TAG).assertIsDisplayed()
+        addStackB()
+
+        touchMap(OTHER_X, OTHER_Y)
+
+        composeRule.onNodeWithTag(MAP_BUBBLE_TAG).assertDoesNotExist()
+        assertTrue("the stack fanned", fan.isOpen)
     }
 
     @Test

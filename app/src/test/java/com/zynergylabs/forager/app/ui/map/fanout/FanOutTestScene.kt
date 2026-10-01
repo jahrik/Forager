@@ -98,4 +98,6 @@ internal class RecordingSinks : MapTapSinks {
     }
 
     override fun onUnidentifiedFeature(layerId: String) { events += "unidentified:$layerId" }
+
+    override fun onCloseBubble() { events += "closeBubble" }
 }

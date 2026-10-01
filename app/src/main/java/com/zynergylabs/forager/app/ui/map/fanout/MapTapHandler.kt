@@ -39,6 +39,9 @@ interface MapTapSinks {
     fun onSightingTap(observationId: Long?, xPx: Float, yPx: Float)
     fun onFeatureTap(layerId: String, featureId: String, xPx: Float, yPx: Float, at: LatLng)
     fun onUnidentifiedFeature(layerId: String)
+
+    /** A tap on a stack closes the bubble that is showing (dispatch 2026-09-28-387, Part A). Not the plain tap: that one also leaves fullscreen. */
+    fun onCloseBubble()
 }
 
 /**
@@ -52,7 +55,8 @@ interface MapTapSinks {
  *    bubble is showing ([bubbleOpen]) and the tap is on empty map: that tap closes the bubble only and
  *    the fan stays, so the next empty tap folds it (dispatch 2026-09-29-57, item 7, amendment -255).
  *  - **The tap resolves to a marker whose touch area overlaps another's** (a stack): the stack
- *    fans out and nothing else is reported (the owner's choice, dispatch 2026-09-28-197).
+ *    fans out (the owner's choice, dispatch 2026-09-28-197). If a bubble is showing, it is closed (dispatch 2026-09-28-387, Part A, [MapTapSinks.onCloseBubble]);
+ *    nothing else is reported.
  *
  * The camera moving folds it unless it is the map following the location ([onCameraMoveStarted]); what the map draws changing, a new style included, folds it only
  * when a member changed ([onContentChanged]).
@@ -72,6 +76,7 @@ class MapTapHandler(
     fun onMapTap(at: LatLng, xPx: Float, yPx: Float) {
         val density = probe.density
         var holdFanForEmptyTap = false
+        val bubbleWasUp = bubbleOpen()
         if (fan.isOpen) {
             val picked = fanMemberAt(liveMembers(), fan.progress, xPx / density, yPx / density)
             if (picked != null) {
@@ -92,7 +97,12 @@ class MapTapHandler(
             drawOrder = order,
         )
         if (holdFanForEmptyTap && winner != null) fan.fold()
-        if (winner != null && openStackAround(winner, order, xPx, yPx)) return
+        if (winner != null && openStackAround(winner, order, xPx, yPx)) {
+            // A tap on a stack closes a bubble that is showing, as the fan opens (the owner, dispatch 2026-09-28-387, Part A: "1 yes"). By the bubble's
+            // own sink, not the plain tap, which also leaves fullscreen. Before this the bubble stayed, now beside the new fan.
+            if (bubbleWasUp) sinks.onCloseBubble()
+            return
+        }
         dispatch(mapTapOutcome(winner), at, xPx, yPx)
     }
 

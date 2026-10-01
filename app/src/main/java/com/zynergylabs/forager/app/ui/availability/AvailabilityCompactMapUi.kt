@@ -382,6 +382,8 @@ internal fun CompactMapTab(
     // A fan the map did not use before this tab left composition is not kept for a later map.
     DisposableEffect(returnMemory) { onDispose { returnMemory.clearRestore() } }
     val onFeatureTap: (MapFeatureTap) -> Unit = remember { { tap -> tappedThingOf(tap)?.let { tapped = it } } }
+    // Part A of dispatch 2026-09-28-387: a tap on a stack closes the bubble that is showing. Remembered, like onFeatureTap, so renderMode compares equal across recompositions.
+    val onCloseBubble: () -> Unit = remember { { tapped = null } }
     // See MapOverlayContent.resumeTrackingRequestId's own doc comment — incremented alongside the
     // existing onLocateMe() call below, not instead of it: that call still drives the compass
     // strip's own one-shot position/elevation text, this drives the map's live GPS camera puck.
@@ -576,6 +578,7 @@ internal fun CompactMapTab(
                         // below, which is the bubble's own.
                         backEnabled = renderMode.backEnabled && pendingAction == null && !pickingSearchLocation && !showActionMenu,
                         onFeatureTap = onFeatureTap,
+                        onCloseBubble = onCloseBubble,
                         cameraMemory = cameraMemory,
                         returnMemory = returnMemory,
                         // Item 1 (dispatch 2026-09-29-57, amendment -262, "Move the 'i'"): the landscape L's measured bounds, in the map's own
