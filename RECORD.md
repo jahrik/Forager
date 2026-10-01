@@ -9803,3 +9803,20 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **After it, by the same words of the owner:** PR #140 into pre-main, then pre-main into main, by the planner.
 **Not dispatched, waiting:** the fan's tap and movement rules the owner decided (quoted in -378). The owner reports two of them already true on the new build; no app file that handles taps or Back changed under -369, so they predate it. The rule that a fan stays open through the app's own map movement is not built.
 **Notes:** Written by the planner session that wrote -370 to -378.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-380
+**Timestamp:** 2026-10-01T16:30:25Z
+**Title:** fan-holds: an open fan stays open when the map moves by itself (the location following), and closes when the user moves the map
+**Dispatch-file:** preserved/2026-10-01-09.md; sent by message to the coder window that ran -369, ahead of -379
+**The owner, verbatim:** "Fan should close on map movement. The user attempting to pan away means they have to tap to put it away first, which is an extra step"; on the map's own re-centring, "No the reasoning doesn't apply to it. The movement isn't intentional and shouldn't be regarded as intentional"; told the README was dispatched and the merges next, "And the fan rule also" and "All in the same merge session"; and then "Wait, let's fix the fan closing upon location movement part first. If a small jump will close the fan then we shouldn't let that pass".
+**Order, by the owner's words:** this fix first, then the README (-379, already with the coder, parked as work in progress), then PR #140 into pre-main and pre-main into main.
+**What is known going in:** an open fan folds on every camera move, the location following's included (SightingsMap.kt:553-557, MapTapHandler.kt:119), confirmed on the S22 under -369 with mode 24 and reason 3, five of five.
+**The planner's reading of the owner's line,** stated in the dispatch for the coder to challenge: movement the user did not mean is the location following's own, small or large; a move the app makes because the user just asked for it still closes the fan.
+**Change:** a location-following move no longer folds a fan; a touch still does; a fan off screen is left alone; a tap finds a fanned icon where it is drawn after the map has moved. Unit tests first; five opens with following on, on the S22. What a tap does and every Back order are not changed.
+**Confirmed only, not built, under this dispatch:** the owner reports that a tap on a fanned icon already dismisses the fan and that Back from a find's page already returns to the same fan. No file that handles taps or Back changed under -369, and MapTapHandler.kt:48-49 says the fan stays open behind a bubble. The coder reports from the code which holds, per kind of marker. The owner's two tap rules quoted in -378 are built later only where that report shows them not true.
+**The phone rules for this dispatch:** a tap on the locate button is allowed, to switch following on, beside a tap on a stack and Back. The planner added it and told the owner; the owner had allowed one such tap under -369.
+**A first draft of this dispatch,** covering the tap rules as well, was written and not sent; the owner stopped it before it was recorded and narrowed the work to the location-movement fault.
+**Notes:** Written by the planner session that wrote -370 to -379.
