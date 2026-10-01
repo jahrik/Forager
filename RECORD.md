@@ -9339,3 +9339,56 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **The install:** `adb install -r --user 0` on the S22 (SM-S908U, R5CT321008R) at 2026-10-01T03:46:07Z, on the owner's "Go ahead". Read before and after: versionName 1.0.2220+g46b28a74 before, 1.0.2290+g6e503d02 after; user 0's ceDataInode stayed 2259049; databases/forager.db's sha256 is e1188b00f0da4b71…, unchanged.
 **Not done:** no launch, input or screenshot by the planner.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-357
+**Timestamp:** 2026-10-01T05:07:50Z
+**Closes:** 2026-09-28-319 (preserved 2026-09-30-23), with continuations -335, -340 and -355
+**Outcome:** completed as far as it could run; several items not determinable, listed below
+**Observed:**
+- **The record:** docs/audits/2026-09-30-s22-followup.md on s22-followup at b2a644dc, pushed and not merged. The evidence is in ~/Zynergy/device-evidence/2026-09-30-followup/. The device coder ran on Sonnet 5.5, read from its session record.
+- **The build:** 1.0.2290+g6e503d02 (device-note -356), read back by the coder before its first touch.
+- **Judged, as the coder reports them:**
+  - -318's items 3 and 5: pass. The puck stays above a folded stack on Topo, Street and Satellite; no icon order change at the fold's end or the open's start, by day and by night;
+  - -312's items 2, 3 and 4 (the Back orders with a bubble, a fan, fullscreen and the dropdown): pass;
+  - -312's item 7 (out of touch mode, closing Tools does not open the dropdown): pass. Item 5: the dropdown stays closed. Item 6: recorded;
+  - -317's album gestures: 6 of 6, portrait and landscape, with an adb gap of about 0.2 s stated;
+  - -351: photos load at once in the find form, the find page and the viewer;
+  - 13 at 270 degrees: pass.
+- **Touch mode:** a Tab key over adb flips mInTouchMode from true to false, and a tap flips it back. keyevent 4 (Back) does not flip it. The planner's belief in -355 held.
+- **Item 6, the planner's question:** touch only, on the Maps and Journal tabs, Back clears the field's focus and one tap reopens the dropdown. The "tap does not reopen" reading came only from the key-driven sequence on the Journal tab, where Back leaves the field focused. A person who closes the dropdown with a keyboard and then taps cannot reopen it without moving focus away and back.
+- **The taxon suggestions list,** with a fan open: Back closes the keyboard, the list, the dropdown, then the fan.
+- **Refusals:** the auto-mode classifier refused a swipe on the Offline maps column and the coder's deletes of its own records. The coder did not retry or work round them. The owner approved them in the coder's window; the planner's relay did not count as approval there.
+- **The region delete:** region rows have no Delete button; a short horizontal swipe on the row reveals it (AvailabilityOfflineMapsUi.kt:505, :556-566; TwoStageSwipe.kt:168). The planner's rule had assumed a button. The coder tied the revealed Delete to its own row by the container's bounds, not by its name, and flagged that. offline_regions went 2, 3, 2, with ids 1 and 2 unchanged.
+- **Two slips by the coder,** both on its own records or restored: a tap that saved its blank draft, and taps after a key walk that opened an existing entry page and typed at it. The live database was read straight after each; the before-copy rows were all present and unchanged.
+- **The restore:** 21 of 21 sha256 equal, all 16 counts equal to the before-copy's. **The planner read the phone afterwards:** versionName 1.0.2290+g6e503d02, user 0's ceDataInode 2259049, databases/forager.db sha256 e1188b00f0da4b71…, equal to the value before the session, and the app not running.
+**Not determinable or not run:**
+- **The Undo flash on the Maps tab, for a find, a photo and a region.** Switching to the Maps tab ends the Undo at once and commits the delete. The find's Undo end was watched on the Journal list only (no flash there); the photo's recording ended early. -312's unit tests are the only evidence for the map rule.
+- **Item 19's circle after Undo:** not watched.
+- **-335's User-Agent on the wire, all four:** HTTPS, and the app has no networkSecurityConfig, so a user-installed certificate would not be trusted. No proxy or certificate was touched. The owner has not ruled on recording this as not determinable.
+- **Item 1's icons over the puck** (the legs pass), and **item 4's heading and movement,** which the owner will check by hand.
+**Observation for the owner, not judged:** at the fan's open, the first three 60 fps frames show the stack gone and only the bare puck, by day and by night.
+**Also noted:** /sdcard/c5-fold.mp4 is on the phone from the -311 session and was left alone. files/photos and files/datastore read mode 777 after the restore, inside the app's private data root.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-358
+**Timestamp:** 2026-10-01T05:07:50Z
+**Title:** The planned-trip flag drawn 23 dp tall, everywhere
+**Dispatch-file:** preserved/2026-10-01-03.md; launch ~/Zynergy/launch-prompts/34-trip-flag-size.md
+**The owner, verbatim:** "Okay never mind, it's fine as is. But one quick thing, the trip icon is a bit large still. Scale it down very slightly so that it fits more comfortably inside the circle."
+**What came before it:**
+- The owner sent an S26 screenshot of a 17-member fan and asked whether the circles had shrunk or the icons had grown, then said the circles were "not 36dp anymore".
+- The planner measured: the circle is 36 dp in FanClarity.kt:31; 100 px, 35.6 dp, on the S22 at 450 dpi on build 1.0.2290; and about 36.7 dp in the owner's screenshot against the 22 dp camera glyph. It has changed once, 48 to 36, in -284.
+- The owner: "The circle size was perfect at 36dp since the trip icon fit neatly in it". The cluster-radius question the owner raised is dropped: "never mind, it's fine as is".
+**Change:**
+- PLANNED_TRIP is scaled evenly from 25 dp tall to 23 dp tall (about 16.43 x 23), with its anchor, and gets a height of its own; FIND stays 25 dp tall.
+- **The number is the planner's.** The owner said "very slightly" and gave no size. At 23 dp the flag's corners clear the 36 dp circle by about 2.4 dp, against about 1.1 dp today and 2.5 dp for the pin.
+- Everywhere the glyph is drawn, as the owner ruled for -286.
+- Unchanged: the other glyphs, the stroke widths, the circle (36 dp), the touch area and spacing (48 dp) and the stack distance (26 dp).
+**Also recorded:** the planner archived two full-suite XML sets that existed only in worktree build folders: docs/audits/data/2026-10-01-photo-decode-dispatcher/full-suite-xml.tgz (406 files, 3272/0/0/24, the set terminal -354 said was not committed) and docs/audits/data/2026-09-30-s22-fails/full-suite-xml.tgz (401 files, 3246/0/0/24, the set terminal -350 counted). The planner deleted forager-wt/map-residuals/app/build (425 MB) on the owner's "Go ahead delete map-residuals/app/build"; its XML was already committed.
+**Notes:** Written by the planner by hand.
