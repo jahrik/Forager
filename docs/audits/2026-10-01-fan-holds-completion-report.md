@@ -93,3 +93,110 @@ view the locate button sets), not from a read mode. The `revfollow` runs were ta
 - The final installed build is the clean commit: `builds/fan-holds-951feea7-final.apk`, byte-identical (same sha256) to the first
   clean build; version name `1.0.2378+g951feea7`, no `.dirty`.
 - Evidence folder: `clip_state.py` and `runs.sh` (copied and edited from `2026-10-01-fan-flicker/runs.sh` to write here).
+
+---
+
+# Addendum, same dispatch: the planner's review, the mark with no move, the instrumented run (supersedes where stated)
+
+Code now at `c170cf54` (tests first `d6068c5e`, fix `669adb2b`, second flaw tests first `7c68d989`, fix `c170cf54`). Evidence in
+`~/Zynergy/device-evidence/2026-10-01-fan-holds/hole/` unless a path says otherwise. The text above is left as written; this section
+corrects it where it says so.
+
+## Premises that were wrong (the planner's and mine)
+
+1. **A mark with no move.** The planner accepted the marking design in Part 1 without asking what happens to a mark whose move never
+   starts, and so did I; my own class comment named the case ("lasts until the next idle") and accepted it as "the old behaviour". The old
+   behaviour is the fault the owner asked to fix ("If a small jump will close the fan then we shouldn't let that pass"). A mark set for a
+   frame that could not be applied, a camera already in place, or a locate tap with no fix would have waited for the follower's next move and
+   been taken for the app's. Fixed in `669adb2b`.
+2. **"Following on" in `follow_r1..5` and `revfollow_r1..5` was an inference that this run shows to be unsupported.** The report above says
+   following was "apparently on" because the stack sat at screen centre. The instrumented build reads the camera mode: a fresh launch gives
+   mode 8 (none), the stack sits at the same centred place, and only the locate tap makes it 24 (tracking) [`probe-launch-1046.txt`,
+   `probe-all-final.txt`]. So the stack at centre says nothing about the mode, and those ten clips were most likely taken in mode 8, which
+   is why the reverted variant held the fan there too and logged nothing. I cannot prove the mode for those clips; I can say the inference
+   was wrong as a method. They remain what the report above said: nothing regressed on a still phone.
+3. **"A still phone gives the follower nothing to move" (said above) is false.** With the mode at 24 the follower moved the camera 7288 times
+   in two minutes, about 60 a second, on a phone lying still [`probe-watchB-window.txt`].
+
+## The finding that shaped the fix (read from bytecode, not run)
+
+`javap -c` of SDK 13.5.0 (`android-sdk-13.5.0/jars/classes.jar` in the Gradle transforms cache): `Transform.moveCamera`, `easeCamera` and
+`animateCamera` each call `CameraChangeDispatcher.onCameraMoveStarted`, which stores the reason and queues a message
+(`CameraChangeHandler.scheduleMessage`, a no-argument `Handler`, so the main looper, no delay). The app's listener runs on a later looper
+turn, not inside the camera call. `scheduleMessage` also removes a pending message and queues a new one at the back. So "clear the mark when
+the call returns" would clear it before the listener runs, and a single hop after the mark could run before the message that belongs to it.
+The classifier therefore has three mark states (none, armed, in flight) and a settle step that hops twice through the looper; an armed mark
+still there then had no move and is dropped. No time limit. The cost, in the class comment: a site that moves the camera more than two
+looper turns after marking would be classed as the follower's.
+
+## A second flaw, found by the instrumented launch log
+
+The first fix (`669adb2b`) let any settle step drop the current armed mark. At launch, with the main thread busy, mark 1's second hop ran
+after its move had gone idle and mark 3 had been set; it dropped mark 3, and mark 3's own move then started unmarked and was classed
+`UNKNOWN` (`probe-launch-1046.txt`, 10:46:31.375 to .465, on the `669adb2b` instrumented build). With following on it would have been taken
+as the follower's. `c170cf54` numbers each mark and a settle step may drop only the latest mark's own. On the `c170cf54` build the same
+launch shows the stale steps ignored (`settle: for=1 current=3 mark was IN_FLIGHT`, `for=2 current=3`) and no `UNKNOWN` [`probe-all-final.txt`,
+11:06:46]. The planner's review found the first hole by reading; this one only the instrumented log showed. The instrumented build is why.
+
+## Device evidence that sees the follower move (instrumented build, throwaway, not in the tree)
+
+The instrumentation (`instrumentation-c170cf54.patch`, sha256 `e9b22a23e4b28de9…`; apk `instrumented-c170cf54.apk`, `a80cf09904af926e…`)
+logs under the tag `FanProbe` every mark (with its site), every move start (reason, following, camera mode, mark state, cause), every idle,
+every settle step, every fan open (with the camera mode) and fold (with its caller). It crashed once on first install: my probe read the
+camera mode before the location component was activated (`LocationComponentNotInitializedException`, crash buffer); guarded and rebuilt.
+It is not in the repository.
+
+- **Locate tap with a fan open** [`probe-locA.txt`, `runs/locA*`]: fan opened in mode 8 (11:07:27). Locate tapped at 11:07:33.390: mark
+  `site=locate-tap`, 24 ms later `move-started following=true mode=24 markBefore=ARMED cause=APP_REQUESTED`, and `fan FOLD wasOpen=true`
+  with caller `onCameraMoveStarted`. **The locate tap folds an open fan**, as a move the user asked for should. The transition into following
+  starts inside the call and does not wait for a fix. After it, bursts of `LOCATION_FOLLOW` moves with the fan already folded.
+- **Two-minute watch, fan open, mode 24** [`probe-watchB-window.txt`, `runs/watchB.mp4`, `watchB_open.png`, `watchB_end.png`]: fan opened
+  11:08:20.319 (`cameraMode=24`). Between 11:08:19 and 11:10:26 there were 7288 `move-started`, every one `following=true mode=24
+  markBefore=NONE cause=LOCATION_FOLLOW`, and one fan line in the window, the open. The fan was open in the screenshots at +3 s and at
+  +2 min and closed only on Back at 11:11:04.9 (`fold` caller `MarkerFanOutBackHandler`).
+- **The check that could fail** [`probe-revwatch-window.txt`, `runs/revwatch*`]: the same run on an instrumented variant with the follower
+  branch returning `UNKNOWN` (`instrumentation-c170cf54-revertvariant.patch`, `instrumented-c170cf54-revertvariant.apk`, `9d68b3c115413733…`),
+  mode 24 after a locate tap: fan `OPEN` 11:12:15.118, `FOLD wasOpen=true` at 11:12:15.218 from `onCameraMoveStarted`, 2080 moves classed
+  `UNKNOWN`, 2076 `SightingsMap` warnings in the window. **So this device run can tell the fix from the old behaviour, and the fix holds
+  where the old behaviour folds in 100 ms.** (The variant's warning count, 2076, is below its move count, 2080, by 4: the first moves in the
+  window were not warned; I did not look into why.)
+- **Which mark sites the runs reached** (`probe-all-final.txt`, `c170cf54` builds): `activate-after-style` (2 marks, move classed
+  `APP_REQUESTED`), `region-focus` (4 marks, `APP_REQUESTED`), `locate-tap` (2 marks, `APP_REQUESTED`). **Not reached:** `restore-init`,
+  `restore-styleload`, `frame` (`applyCameraFrame`) and `orientation-reset`. Their marks are tested only in the classifier's unit tests; whether
+  each makes its move inside the two-turn window is unproved. The live-location activation site (`SightingsMap.kt`, `activate-after-style`),
+  the one the planner named, was reached twice and its move started inside the window both times.
+- Warnings on the fix builds: no `SightingsMap` "not a touch, not marked" warning on the `c170cf54` fix build in any run.
+
+## The owner's own check, as theirs, on an earlier build
+
+The owner, to the planner: "Device tested myself, map moves with fan moving off screen and not closing." That was on build 951feea7, before
+the mark's lifetime changed, and is evidence that a follower's real move leaves the fan open. It is not evidence for the changes in
+`669adb2b` or `c170cf54`, which change which moves count as the app's. Their screenshot of the walk (dot centred, fan open, partly off the
+right edge): `~/Zynergy/device-evidence/planner-fan-flicker-2026-10-01/owner-s22-fan-holds-walk-1037.png`.
+
+## Verification of the changes in this addendum
+
+- Tests: `CameraMoveClassifierTest` 13 (5 new), `MapTapHandlerFanHoldsTest` 13 (3 new), new `FakeLooper` test helper. Stubs failed 4 of 37
+  (`stub-failing-build.log`); the stale-settle test failed 1 of 26 on `669adb2b`'s code (`stub2/`); on the fix 13/13, 13/13, `MapTapHandlerTest`
+  12/12, `FoldOnlyIfMembersChangeTest` 13/13, `MapTapHandlerReopenFanTest` 5/5 (`fix-build.log`, `fix/`, `fix2-build.log`, `fix2/`), 0 compile errors
+  each.
+- Revert checks, compile log first, 0 `e:` lines each, files restored from git (safe: the changes are committed) and hash-checked:
+  settle step disabled (`669adb2b`'s change) fails 4 tests (`revert-settle.log`, `revert-settle/`); generation guard removed (`c170cf54`'s change)
+  fails the 1 stale-settle test, specific message "mark 2's move is the app's whichever settle step runs first" (`revert-generation.log`,
+  `revert-generation/`).
+- Full suite on `c170cf54`: 412 classes, 3351 tests, 0 failures, 0 errors, 24 skipped (`suite-c170cf54.log`, `suite/`, `suite_tally_c170cf54.txt`).
+  An earlier full run on `669adb2b` (3350 tests, 0 failures) is `suite-669adb2b.log`; the `951feea7` run in the folder above was 3343.
+- The Gradle transforms cache was deleted by the owner during this work; the first build after regenerated it (the suite took one normal run).
+
+## End state
+
+Phone: clean `1.0.2385+gc170cf54` (no `.dirty`), `builds/fan-holds-c170cf54-final.apk`, ceDataInode 2259049 unchanged, `forager.db` sha256
+`6357bd01…` unchanged, animator 1.0, portrait, Forager in focus. The camera mode after launch is none until the locate button is tapped.
+
+## Not verified
+
+- Walking: the owner's check is on `951feea7`; the owner repeats it on `c170cf54`. A phone lying still already gives the follower at ~60 moves
+  a second once the mode is tracking, so the walk adds position changes, not the first follower move.
+- Four mark sites unreached (above).
+- A pan/zoom/rotate by finger, a search result and a style switch with a fan open on the final code: classifier and handler unit tests only.
+- Touch areas after the map has moved by real travel; the tap on a fanned icon after the map moved on the phone (the owner has not tried it).
