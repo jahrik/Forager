@@ -21,7 +21,6 @@ import androidx.compose.ui.platform.LocalContext
 import com.zynergylabs.forager.app.photo.oriented
 import com.zynergylabs.forager.app.photo.readPhotoOrientation
 import java.io.File
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
@@ -63,7 +62,7 @@ internal fun DecodedPhoto(
     val context = LocalContext.current
     var bitmap by remember(relativePath) { mutableStateOf<ImageBitmap?>(null) }
     LaunchedEffect(relativePath) {
-        bitmap = withContext(Dispatchers.IO) {
+        bitmap = withContext(PhotoDecodeDispatcher.current) {
             runCatching {
                 val file = File(context.filesDir, relativePath)
                 val options = BitmapFactory.Options().apply { inSampleSize = DECODE_SAMPLE_SIZE }
