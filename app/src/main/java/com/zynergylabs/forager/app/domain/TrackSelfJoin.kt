@@ -34,7 +34,7 @@ const val SELF_JOIN_EPSILON_METERS = 10.0
 
 /**
  * The shortest way home along a track joined to itself — the track-network candidate the owner
- * ruled inside the retrace ruling. The track is a graph: every consecutive pair of stored points
+ * decided inside the retrace ruling. The track is a graph: every consecutive pair of stored points
  * is an edge, and additionally any two points within [epsilonMeters] of each other are an edge
  * (a *join*). The result is the shortest route through that graph from the most recent point to
  * the first, in metres.

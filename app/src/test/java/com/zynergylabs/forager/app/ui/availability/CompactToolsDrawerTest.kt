@@ -43,7 +43,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowDisplay
 
 /**
- * Landscape build B3, P12 as corrected by R2 (`docs/plans/landscape-phone-design.md`) and ruled on
+ * Landscape build B3, P12 as corrected by R2 (`docs/plans/landscape-phone-design.md`) and decided
  * in `docs/audits/2026-09-27-landscape-b3-prebuild-report.md` section 5: the compact Tools drawer.
  *
  * 1. **A scrim tap closes it, in both orientations** (owner ruling 1, `gesturesEnabled =
