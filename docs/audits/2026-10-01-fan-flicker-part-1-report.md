@@ -7,8 +7,14 @@ Evidence: `~/Zynergy/device-evidence/2026-10-01-fan-flicker/` (videos, per-frame
 ## Result in one paragraph
 The cause is MapLibre's **placement transition** (the symbol fade-in), not out-of-step sources. Turning placement transitions off, with nothing else changed, removed every flicker measure on the S22 at animator 1 and 5, for the open and the fold-back (tests below). Hypothesis A is confirmed by its effect; hypothesis B was **not run** (see "Test B").
 
+> **Correction, amendment 3 (completion report):** the placement fade is the cause of the dimming, the late fade-in and the blinking icons, and removing it fixed those. It is not the cause of every fault: with it off, the four layers still show different pushes in 85 to 88% of animating frames, the circles ahead of the icons (measured on the S22; the owner saw it on the S26). Test B, below, was needed after all.
+
+
 ## Conditions (the same for every recording)
 S22 (R5CT321008R), 1440x3088 screen recorded at 720x1544, nominal 120 fps (timestamps about 8.3 ms apart; the recorder repeats frames, so only frames whose fan region changed are counted). Night map style, the same stack at the same zoom: seven members (three photo tiles, a flag, a pin, two mushrooms). One recording per condition (n = 1 each); the open and the fold are the two halves of each recording. Animator scale 1 and 5, restored to 1.0 and read back after each use. Tap on the stack's visible pink cap (map tap only); Back sent only after reading that Forager's window had focus; no swipes.
+
+> **Correction, amendment 3:** the S22 was in 120 Hz mode for these recordings (the owner: "The S22 is currently in 120hz mode" and "It has been during this part of the test"; the planner read the active display mode; the 8.3 ms steps between changed frames in the rows). So those frames are real displayed frames, not recorder repeats, and every "60 Hz" said about the S22 in messages on this dispatch was wrong for these recordings. What the phone was set to on earlier days is not established, and where the dispatch's "60 on the S22" came from is not either.
+
 
 ## Measurement (`measure.py`)
 Per unique frame in the fan region (480x520 crop), against two reference frames of the same recording: the folded stack before the tap (background) and the open fan at rest.
@@ -34,6 +40,9 @@ What it looks like (a1 open, frames 265 to 306): the stack disappears for a fram
 - **Code facts (file:line, read at `b6617c5c`): confirmed.** `SightingsMap.kt:798-809` pushes on every progress change; `FanOutLayers.kt:79-80` makes four sources, `:92-99` the circle and symbol layers; `fanIconLayerProperties()` at `:105-118` has no ignore-placement, opacity or transition property; `pushFanFrame` at `:286-296` calls `setGeoJson` on each. `grep -rn "TransitionOptions\|\.transition" app/src/main` at `b6617c5c` finds nothing: no style transition is set anywhere, so the SDK default (placement transitions on, 300 ms) applies.
 - **A, the symbol fade: confirmed by effect, mechanism inferred.** `Style.transition = TransitionOptions(300, 0, false)` (the third argument is `enablePlacementTransitions`, present in the pinned SDK 13.5.0: `javap` of `TransitionOptions` shows `isEnablePlacementTransitions`) removed the fault (table below). I did not read MapLibre's placement code, so "each `setGeoJson` makes the copies new symbols whose fade restarts" is the planner's account and fits the result; the test shows the fade is necessary for the fault, not which step restarts it.
 - **B, sources out of step: not run.** Prediction recorded below. A already removes the alternation with four sources still pushed separately, which is evidence against B being needed to explain it; it is not a test of B.
+
+> **Superseded by amendment 3:** B was tested as probe 2 against probe 3 (completion report). The reasoning here, that A removing the coverage mismatches meant sources out of step did not matter, was wrong: the coverage measure could not see a circle and its icon at different places. The planner recorded the same error for its own call.
+
 - **"Not explained":** which glyphs stay solid. In my base clips the flag stays solid and the photo tiles, pin and mushrooms blink; the planner's S26 clip had the mushrooms solid; -319's S22 clip had the mushrooms and pin dim. **I could not determine why.** I have a guess (the flag moves least and its symbol is matched across tile versions, so keeps its opacity) that I did not test; treat it as unverified.
 - **Other candidates not ruled out** (push rate, `symbolSortKey`, -299's per-frame properties): not tested individually. Test A leaves all three in place and the fault is gone, so none is *necessary* for it; I did not test whether any is sufficient on its own.
 
@@ -47,6 +56,9 @@ Change: one line at the start of the fan-draw effect, `style.transition = Transi
 | reversals | **0** (base 7) | 0 (base 4) | 0 | 0 |
 | icons at final brightness | **116 ms, before rest at 200 ms** (base 259 ms after) | n/a | 634 ms, before rest (1067 ms) | n/a |
 Result: the prediction for A held and the alternation went with it, so B is not needed to explain it.
+
+> **Superseded by amendment 3:** "B is not needed" holds for the coverage mismatches and the alternation, not for the circles running ahead of the icons.
+
 **The icon-without-circle counts are a flaw in the dispatch's pass criterion, not residual flicker.** At animator 5 frame 312 (full-resolution crop checked) the icons are clustered at the stack and the circles are not yet visible: -299 grows each circle's radius from 0 with the progress, so early in the ease a circle exists with a radius of a pixel or two. The criterion "no frame shows an icon without its circle" fails there by design on any build. It needs a floor (for example, a radius under 4 dp does not count as shown); that is the owner's or planner's call, so I applied none.
 Not measured: the front glyph at either end, and the icon offset at the fold's last frame and the open's first (-299 and -318); those are Part 2 checks.
 
@@ -77,6 +89,9 @@ I recommend asking the owner about option 1 or 2, since they are the only ones m
 ## Four disclosures
 - **Confirmed vs inferred.** Confirmed by measurement: the base fault (n = 1 per condition), and that test A removes it. Inferred: the mechanism inside MapLibre (restarting fade), and that the alternation is the same cause (consistent with test A, not isolated). Read in the SDK: that `TransitionOptions` has `enablePlacementTransitions` (javap), not its behaviour.
 - **Could not determine.** Why one glyph stays solid; B; what turning the setting off does to the rest of the map; the S26 at 120 Hz.
+
+> **Correction:** the S22 was also in 120 Hz mode (see the note under Conditions). What separates the S22's runs from the owner's S26 clip is the stack (7 members against 12), the style (night against day) and the phone, not the refresh rate.
+
 - **Wrong premises.** See above.
 - **Decided beyond scope.** I wrote `measure.py`'s thresholds and flags myself, as the dispatch allowed ("or your own"); I chose animator scale 5 and 1 only as asked; when a command failed with a disk-quota error I deleted three scratch frame caches of my own (about 1 GB each, in `/tmp/ff`); `/tmp` is a separate tmpfs (`df` shows 5633 MB, mounted on `/tmp`), so that deletion freed nothing on `/` and the 2011 MB figure is unaffected by it.
 
