@@ -6,10 +6,11 @@ Base: `origin/journal-redesign` at `19f159fd` when I started; it moved to `be04d
 ## What landed
 - `d6c49445`: the comment edits (6 files).
 - `3f17cc73`: compile log, test log and the three classes' XML under `docs/audits/data/2026-10-01-fan-comment-wording/`.
-- `cfb1d091`: merge of `origin/journal-redesign`; this report and the README row follow.
+- `cfb1d091`: merge of `origin/journal-redesign`; `c1e79101`: first report and README row.
+- Widening, after the owner's "Go ahead" relayed by the planner (the un-numbered -274 "rule" comments): the commit "The -274 comments say the owner's choice, not rule" (hash in `git log`), a second run's XML under `data/.../second-run/`, and this report updated.
 
 ## The diff is comments only
-`git diff -U0 origin/journal-redesign -- app` (at `19f159fd`, and after the merge `git diff be04d42d -- app` is the same 6 files): 41 changed lines (20 added, 21 removed). I counted by listing every added or removed line and dropping those whose first non-blank token is `//`, `/*`, `*` or `*/`: **0 remain**. That test would call a code line that happens to start with `*` a comment, which no line here is; the changed lines were also read in full (below). No code, test name, constant or assertion changed.
+`git diff -U0 origin/journal-redesign -- app`, recounted after the widening: **8 files, 49 changed lines** (24 added, 25 removed). Before the widening it was 6 files, 41 lines. I counted by listing every added or removed line and dropping those whose first non-blank token is `//`, `/*`, `*` or `*/`: **0 remain**. That test would call a code line that happens to start with `*` a comment, which no line here is; the changed lines were also read in full (below). No code, test name, constant or assertion changed.
 
 ## Each comment, before and after
 | Where | Before | After |
@@ -28,19 +29,24 @@ Base: `origin/journal-redesign` at `19f159fd` when I started; it moved to `be04d
 | `MarkerFanOutHostTest.kt:33-34` | "the owner's rules 5 and 6: "Give it a .4s animation speed", the system's animations off..." | "the owner's choices: "And increase the animation speed to 250ms" (dispatch 2026-09-28-358 amendment -359), the system's animations off..." |
 | `MarkerFanOutHostTest.kt:113` (mine, from -359; not on list) | "Rule 6 was 0.4 s; the owner, dispatch -358 amendment -359: ..." | "The owner, dispatch -358 amendment -359: ..." |
 | `MarkerFanOutHostTest.kt:202` (not on list) | "Rule 5: Back." | "Back." |
+| **-274 widening** `FanReopenCoordinatorTest.kt:63` | "Superseded by the owner's rule, intent 2026-09-28-274: "Fold only if members change"." | "Superseded by the owner's choice, intent 2026-09-28-274: ..." |
+| `MapTapHandlerTest.kt:183` | same sentence | same change |
+| `FoldOnlyIfMembersChangeTest.kt:17` | "The owner's rule, verbatim: "Fold only if members change"." | "The owner's words, verbatim: ..." |
+| `FoldOnlyIfMembersChangeTest.kt:181` | "One rule with "fold only if members change" (-274): a replaced style..." | "The same behaviour as "fold only if members change" (-274): a replaced style..." |
 
 Where a bare label was removed from a section comment I did not add a dispatch cite, because the class comment already cites -197; this is a judgement call within "keep the meaning". No pronoun for the owner is used; the one "his" is gone.
 
 ## Checks
 - `:app:compileDebugKotlin :app:compileDebugUnitTestKotlin`: BUILD SUCCESSFUL, 0 `e:` lines.
-- `MarkerFanOutHostTest`, `MapTapHandlerTest`, `MarkerFanOutGeometryTest`: 11, 12 and 18 tests, 0 failures, 0 errors, 0 skipped. Base counts: each file's `@Test` count at `19f159fd` is 11, 12 and 18, and the -358 run of the first two gave 11 and 12; so the counts match. (I compared `@Test` annotations in source, not a base test run.)
+- First run (before the widening): `MarkerFanOutHostTest`, `MapTapHandlerTest`, `MarkerFanOutGeometryTest`: 11, 12 and 18 tests, 0 failures.
+- Second run (after the widening, compile and tests in one invocation): 0 `e:` lines, BUILD SUCCESSFUL; those three classes plus `FanReopenCoordinatorTest` (4) and `FoldOnlyIfMembersChangeTest` (13): 58 tests, 0 failures, 0 errors, 0 skipped. Base counts: each file's `@Test` count at `19f159fd` is 11, 12, 18, 4 and 13, the same. (I compared `@Test` annotations in source, not a base test run.)
 - **No full suite and no revert check: a decision of this dispatch, not an omission.** Nothing executable changed; CI runs the suite on the merge.
 - Final grep `git grep -nE "[Rr]ules? [0-9]|rules [0-9]" -- app/src`, excluding the out-of-scope Understory and `CameraBands` hits, returns nothing.
 
 ## Four disclosures
 - **Confirmed vs inferred:** confirmed by reading the changed lines, the count, the compile and the three classes. Inferred: that the section-label hits are the -197 numbered answers (they carry the same numbers as the list; I did not re-read `prompts/preserved/2026-09-29-39.md`).
-- **Could not determine / left for the owner:** the un-numbered "owner's rule" from intent -274 ("Fold only if members change") at `FanReopenCoordinatorTest.kt:63-64`, `FoldOnlyIfMembersChangeTest.kt:17` and `:181`, and `MapTapHandlerTest.kt:183`. It is an owner answer outside the -197 list; the planner is putting it to the owner and I did not change it. Non-owner uses of "rule" were also left: `MarkerFanOut.kt:91` (an algorithm), `MapTapHandler.kt:125`, "32 dp rule"/"48 dp rule" in `MapTapHandlerPlacementTest.kt:33` and `MarkerFanOutGeometryTest.kt:102`, `:142`, and the JUnit `@Rule` and `RuleChain` identifiers.
+- **Left, reported:** `FanReopenCoordinatorTest.kt:64` "which is the rule the device log showed folding a good reopen" (the old behaviour, not an owner answer); `FoldOnlyIfMembersChangeTest.kt:180` "The owner's ruling" (dispatch -279, the word is "ruling", not "rule"); `CameraOverlay.kt:24` "Owner's rule" and `JournalTabTest.kt:364` "The owner's rule, \"Follow until you touch it\"" (other features, outside the fan-out; I am unsure they are in the owner's intent and left them). `main/` has no -274 "rule" label (`SightingsMap.kt:784` and `MapTapHandler.kt:122-123` quote the words without it). No test NAME contains "rule" (grep of backticked function names under `ui/map`). Non-owner uses of "rule" were also left: `MarkerFanOut.kt:91` (an algorithm), `MapTapHandler.kt:125`, "32 dp rule"/"48 dp rule" in `MapTapHandlerPlacementTest.kt:33` and `MarkerFanOutGeometryTest.kt:102`, `:142`, and the JUnit `@Rule` and `RuleChain` identifiers.
 - **Premises that were wrong:** the planner's list was incomplete: it missed `MarkerFanOut.kt:10` and the seven section-label comments above. The list otherwise matched (read at `18c7f301`, still true at `19f159fd`).
-- **Decided beyond scope:** none beyond changing the extra numbered hits, which the planner confirmed in scope.
+- **Decided beyond scope:** none beyond changing the extra numbered hits, which the planner confirmed in scope; the -274 widening was the owner's ("Go ahead", relayed by the planner). In `FoldOnlyIfMembersChangeTest.kt:181` I chose "The same behaviour as" for "One rule with"; say so if another wording is wanted.
 
 Nothing to check on a device.
