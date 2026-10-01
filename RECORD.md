@@ -9508,3 +9508,33 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 - Comment lines only, the manifest's XML comment among them, so the check becomes assembleDebug plus a unit-test compile.
 - Not changed: the noun "ruling" (about 190 lines naming an owner's ruling and 53 a planner's, mostly citations of recorded decisions or document names), and one test name, BackupSettingsScreenTest.kt:358. Both are put to the owner.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-366
+**Timestamp:** 2026-10-01T05:47:31Z
+**Closes:** 2026-09-28-364 (preserved 2026-10-01-05), with continuation -365
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as aff5b106, no-ff, from owner-wording 87b0f670. The owner said "Go ahead and do as you proposed", the proposal being to merge this and then dispatch the rest as one last change.
+- **The change:** eleven comment lines, one in each of eleven files. Two "owner's rule" labels became "The owner," and "The owner's words,"; nine "the owner ruled" became "decided" (seven), "chose" (two) and "has said" (one).
+- **The planner's check:** it read all eleven changed lines; each is a comment line and only the verb or label changed. The manifest's line is inside the XML comment from line 78 to 131. No @Ignore is added. The merged head's whole tree is identical to the branch's.
+- **The coder's check, not re-run by the planner:** :app:assembleDebug and :app:compileDebugUnitTestKotlin, BUILD SUCCESSFUL, 0 "e:" lines. No test run, by the dispatch.
+- **Left as it is, by the coder's reading:** AvailabilityCompactScaffold.kt:1046 still says "so that the rule reads as the owner decided it"; the coder read "the rule" there as the behaviour the code encodes. The planner read that line only.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-367
+**Timestamp:** 2026-10-01T05:47:31Z
+**Title:** The last "ruled" phrasings in comments, and one test's name
+**Dispatch-file:** preserved/2026-10-01-06.md
+**The owner, verbatim:** "Go ahead and do as you proposed".
+**Change:**
+- **Comments:** the four "ruled" phrasings the coder found in -365 (BackupSchedule.kt:14, EntryMapFrame.kt:8, DrawerBackOverJournalTest.kt:165, CompactToolsDrawerTest.kt:46), and any other verb "ruled" in app/src that describes a decision of the owner's, each read and reported. "Ruled out", the app user's own decisions and the planner's are left.
+- **One rename:** BackupSettingsScreenTest.kt:358, "… the default the owner ruled". The name and BackupSchedule.kt:14 disagree on whether the owner chose Weekly, so the coder finds which is true from the record first, and stops if it cannot tell.
+- **Not changed:** the noun "ruling", about 240 lines, by the owner's acceptance of the planner's proposal to leave it.
+**Checks:** the comment-lines-only count; a build and a unit-test compile; the classes that run the renamed test, with the same counts as at the base.
+**Notes:** Written by the planner by hand.
