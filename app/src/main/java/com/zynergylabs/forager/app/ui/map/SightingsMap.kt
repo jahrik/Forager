@@ -57,6 +57,7 @@ import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.map.initializeMapLibre
 import com.zynergylabs.forager.app.ui.map.fanout.FanMember
+import com.zynergylabs.forager.app.ui.map.fanout.FanOutHideGate
 import com.zynergylabs.forager.app.ui.map.fanout.FanReopenCoordinator
 import com.zynergylabs.forager.app.ui.map.fanout.MapTapHandler
 import com.zynergylabs.forager.app.ui.map.fanout.MapTapSinks
@@ -87,6 +88,8 @@ import com.zynergylabs.forager.app.ui.map.layers.tappableLayerIds
 import com.zynergylabs.forager.app.ui.map.layers.TRACK_WIDTH_ZOOM_STOPS
 import com.zynergylabs.forager.app.ui.map.layers.ZoomWidthStop
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng as MapLibreLatLng
@@ -790,21 +793,37 @@ fun SightingsMap(
         fanReopen.onContentEffect(loadedStyle != null, loadedStyle)
     }
 
-    // Draws the fan: hides the originals of the fanned markers while it is up, and pushes the copies and
-    // their legs at every step of its progress (fanFrameCollections). Device-only: see FanOutLayers.kt.
+    // Draws the fan: pushes the copies and their legs at every step of its progress (fanFrameCollections), and hides the
+    // originals of the fanned markers while it is up, but not before the renderer reports the copies drawn: hiding first
+    // left a frame or two with neither on screen, the blink at the open's start (dispatch 2026-09-28-369, amendment -371).
+    // The order is FanOutHideGate's; the signal is FanOutRenderSignal's. Device-only: see FanOutLayers.kt.
     LaunchedEffect(loadedStyle, mapLibreMap, focusedObservationId) {
         val style = loadedStyle ?: return@LaunchedEffect
         val map = mapLibreMap ?: return@LaunchedEffect
         val density = context.resources.displayMetrics.density
+        val effectScope = this
+        val gate = FanOutHideGate()
+        var waiting: Job? = null
         var hiddenFor: List<FanMember>? = null
-        val probeScope = this
-        snapshotFlow { fanOut.members to fanOut.progress }.collect { (members, progress) ->
-            var probeNow = false
+        var wasOpen = false
+        snapshotFlow { Triple(fanOut.members, fanOut.progress, fanOut.wantOpen) }.collect { (members, progress, wantOpen) ->
             if (hiddenFor !== members) {
-                applyFanOutHiding(style, members)
                 hiddenFor = members
-                probeNow = members.isNotEmpty() // THROWAWAY probe (FanGapProbe.kt)
+                waiting?.cancel()
+                val step = gate.onMembers(members)
+                applyFanOutHiding(style, step.hide)
+                if (step.awaiting) {
+                    waiting = effectScope.launch {
+                        hideWhenCopiesDrawn(style, map, mapView, gate, members, step.generation) { fanOut.progress >= 1f }
+                    }
+                }
             }
+            if (wasOpen && !wantOpen) {
+                // Folding: a hide still waiting is dropped, so the originals stay shown until the release shows everything.
+                gate.onFold()
+                waiting?.cancel()
+            }
+            wasOpen = wantOpen
             pushFanFrame(
                 style,
                 fanFrameCollections(
@@ -812,7 +831,6 @@ fun SightingsMap(
                     drawOrder = orderedLayers(MAP_LAYER_REGISTRY, currentLayersState),
                 ),
             )
-            if (probeNow) FanGapProbe.start(probeScope, mapView, map, members, density) { fanOut.progress } // THROWAWAY
         }
     }
 
