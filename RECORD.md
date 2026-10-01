@@ -9406,3 +9406,27 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 - MarkerFanOutHostTest's 400 ms expectations are re-based to 250; that is authorised for those tests only.
 - Same worktree and branch as -358, its own commits after the flag part, one report and one suite run for both.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-360
+**Timestamp:** 2026-10-01T05:24:13Z
+**Closes:** 2026-09-28-358 (preserved 2026-10-01-03), with continuation -359
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as e8ae807f, no-ff, from trip-flag-size f9e27a7c. The owner said "Merge". The coder ran on Sonnet 5.5.
+- **The flag (-358):** PLANNED_TRIP is drawn 23 dp tall through its own constant, PLANNED_TRIP_HEIGHT_DP: 16.43 x 23, anchor (1.23, 23), fan offset (-6.98, 11.5). FIND stays 25 dp tall. The 23 is the planner's number; the owner said "very slightly".
+- **The fan's duration (-359):** FAN_DURATION_MS goes from 400 to 250. MarkerFanOutHostTest's 400 ms expectations are re-based to 250, as the amendment authorised.
+- **A wrong premise of the planner's:** the dispatch listed the tests that pin the flag's numbers and said there were no others. FanOutLayersTest.kt:79 pinned the offset too. It failed on the first run; the coder re-based it (c6a2d2b2) and flagged it.
+- **The tests-first commits were never run as pushed.** Tests and changes were pushed before the first build, so the revert checks are the only evidence that the tests can fail. The report says so.
+- **The planner's checks,** from the XML saved in docs/audits/data/2026-10-01-trip-flag-size/:
+  - the full suite: 406 files, 3275/0/0/24;
+  - the flag back at 25: 6 failures, each naming the flag ("the flag's height, was 25 expected:<23.0> but was:<25.0>");
+  - the duration back at 400: 5 failures ("the fan-out ran 400 ms, not 250");
+  - the branch's app tree at f9e27a7c is identical to c6a2d2b2, the last app commit, and the merged head's whole tree is identical to the branch's;
+  - main changes are the two constants and their comments; no @Ignore is added.
+- **Not established:** the corner clearance, 1.14 dp before and 2.37 dp after, is arithmetic and not a rendered measurement.
+**Device-only, for the owner:** the flag in its 36 dp circle by day and by night, with room at its corners; the flag beside the pin, the find and the photo on the map; the pole foot on its true coordinate; the fan opening and folding in 250 ms with no icon jump at either end; the open's first frames, where -319 saw three blank frames at 400 ms.
+**Open:** a comment on FAN_DURATION_MS refers to the owner's earlier rule as "his earlier rule 6"; the owner has been asked whether to reword it.
+**Notes:** Written by the planner by hand.
