@@ -39,6 +39,16 @@ internal fun expectedCopies(members: List<FanMember>): ExpectedCopies {
     return ExpectedCopies(icons, dots, unnumbered)
 }
 
+/**
+ * The ids (`image:featureId`) of the glyph copies among [features] the renderer reported in the icons layer. A circle feature carries an image but no
+ * feature id, so it is never taken for a copy (amendment 3, option A: the circle is a symbol in the same layer).
+ */
+internal fun renderedCopyIds(features: List<org.maplibre.geojson.Feature>): Set<String> = features.mapNotNull { feature ->
+    val image = feature.getStringProperty(FanOutIds.IMAGE_PROPERTY)
+    val id = feature.getStringProperty(FEATURE_ID_PROPERTY)
+    if (image != null && id != null) "$image:$id" else null
+}.toSet()
+
 /** True when every expected copy is among what the renderer reported: the signal that the copies are drawn. An empty expectation is true at once. */
 internal fun copiesDrawn(expected: ExpectedCopies, renderedIconIds: Set<String>, renderedDotIds: Set<String>, renderedUnnumberedDots: Int): Boolean =
     renderedIconIds.containsAll(expected.iconIds) &&
@@ -69,11 +79,7 @@ internal suspend fun awaitCopiesRendered(
             frames++
             onFrame(frames)
             val box = RectF(0f, 0f, mapView.width.toFloat(), mapView.height.toFloat())
-            val icons = map.queryRenderedFeatures(box, FanOutIds.ICONS_LAYER).mapNotNull { feature ->
-                val image = feature.getStringProperty(FanOutIds.IMAGE_PROPERTY)
-                val id = feature.getStringProperty(FEATURE_ID_PROPERTY)
-                if (image != null && id != null) "$image:$id" else null
-            }.toSet()
+            val icons = renderedCopyIds(map.queryRenderedFeatures(box, FanOutIds.ICONS_LAYER))
             val dotFeatures = map.queryRenderedFeatures(box, FanOutIds.DOTS_LAYER)
             val dotIds = dotFeatures.mapNotNull { it.getNumberProperty("observationId")?.toLong()?.toString() }.toSet()
             val unnumbered = dotFeatures.count { it.getNumberProperty("observationId") == null }
