@@ -9067,3 +9067,38 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 - -342's option A is now the owner's decision, replacing the planner's own ruling. The owner had said "Yeah let me know instead": stop-and-ask triggers go to the owner even when no screen is affected.
 - The three conditions of -342 stand.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-344
+**Timestamp:** 2026-10-01T00:15:59Z
+**Continues:** 2026-09-28-336 (preserved -26)
+**Why:** gap 1 cannot be tested without changing production code.
+- SightingsMap.kt:293-297 builds MapView unconditionally, which throws UnsatisfiedLinkError under Robolectric (SightingsMapOverlayDataTest.kt:37, BasemapStyleTest.kt:29, MapLibreInitializerTest.kt:17).
+- No test composes the real SightingsMap. That is read from source and not run.
+**The owner's ruling, verbatim:** "C".
+- Gap 1 stays device-only: known untested wiring, with no code change.
+- The device evidence so far is the owner's S22 sighting of both credits at topo night (-332). -319 checks it again.
+**Rejected:**
+- (A), extracting the caption: it moves the untested call up one level and does not close it;
+- (B), a MapView factory seam: thought infeasible, since MapView needs the native library. Unverified.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-345
+**Timestamp:** 2026-10-01T00:26:06Z
+**Continues:** 2026-09-28-317, after -343
+**Why:** the coder's results at ac815871:
+- the full suite, 3238/0/0/24, and assembleDebug clean;
+- 12 pinned runs of 87 tests: 11 clean, with JournalPendingDeleteTest 12/12 and JournalTabTest 12/12;
+- **run 3 had one failure:** DecodedPhotoTest "contentDescription is passed through", a CalledFromWrongThreadException. Recomposition was applied on DefaultDispatcher-worker-2, inside PainterElement.update, then requestLayout: the in-place painter update that option (c) introduces. It was 0/12 in DecodedPhotoTest-alone pinned runs. The cause is not established.
+- The planner read DecodedPhoto.kt:64-66: the bitmap state is assigned after withContext(Dispatchers.IO) returns, in a LaunchedEffect, so in production it is assigned on the composition's effect context (main). That is inferred: the run-3 failure is most likely a harness effect, not proven.
+**The owner's ruling, verbatim:** "Option 1". Diagnose before any merge:
+- read the test and the trace for the thread that drives recomposition, with at most two hypotheses, then instrumentation;
+- compare base and fix under the same pinned condition, sized per CLAUDE.md;
+- fix where the cause is. A harness cause is fixed in the test, with the assertion kept. A (c) cause is fixed in DecodedPhoto, with a stop-and-ask on any change to semantics, size or behaviour.
+**Rejected:** merging now and tracking it on CI. A new 1-in-12 failure would undermine the post-merge green-run count.
+**Notes:** Written by the planner by hand.
