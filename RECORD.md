@@ -9460,3 +9460,22 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Not done:** no launch, input or screenshot by the planner.
 **For the owner to look at:** the flag in its 36 dp circle, by day and by night; the fan opening and folding in 250 ms; the open's first frames; and item 4 of -319, the puck's heading and movement.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-363
+**Timestamp:** 2026-10-01T05:39:53Z
+**Closes:** 2026-09-28-361 (preserved 2026-10-01-04)
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as a00d2d35, no-ff, from fan-comment-wording 6b7ede48. The owner said "Merge". The coder ran on Sonnet 5.5, in the window opened for -358.
+- **The change:** comment lines only, in eight files under ui/map/fanout (three in main, five in test). FAN_DURATION_MS's comment is the dispatch's text. The other comments say "the owner's choice" or "the owner's words" and cite their dispatch, -197 or -274.
+- **Widened once, by the owner:** the un-numbered "owner's rule" comments from -274 ("fold only if members change"). The planner asked "Do you want that one reworded as well?" and the owner said "Go ahead".
+- **More hits than the planner listed:** MarkerFanOut.kt:10, the "Rule N:" section labels in MapTapHandlerTest and MarkerFanOutGeometryTest, and MarkerFanOutHostTest.kt:113 and :202. The coder changed them as the same numbered -197 answers and reported them.
+- **The planner's checks:** its own count of the diff is 49 changed lines, 0 of them non-comment; no "owner's rule", "rule N" or "his earlier" remains in the fan-out's main or test folders; no @Ignore is added; the merged head's whole tree is identical to the branch's.
+- **The coder's checks, not re-run by the planner:** a compile of main and unit tests with 0 "e:" lines; the five edited test classes, 58 tests, 0 failures, with the same test counts as at the base. No test name contained "rule".
+- **No full suite and no revert check,** by the dispatch: nothing executable changed. CI runs the suite on this merge.
+**Left, with the owner:** "Owner's rule" at CameraOverlay.kt:24 and "The owner's rule, 'Follow until you touch it'" at JournalTabTest.kt:364, in other features. The owner has been asked and has not ruled.
+**The installed build is unaffected:** 1.0.2306+g19f159fd on the S22 (device-note -362) has the same app behaviour.
+**Notes:** Written by the planner by hand.
