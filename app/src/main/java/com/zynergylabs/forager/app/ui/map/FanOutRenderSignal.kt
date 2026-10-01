@@ -136,3 +136,79 @@ internal suspend fun hideWhenCopiesDrawn(
     }
     step?.let { applyFanOutHiding(style, it.hide) }
 }
+
+/**
+ * What the renderer must report once the originals of [members] are drawn again after a release (the mirror of [expectedCopies]):
+ * per marker layer, the ids of its members' originals, as that layer's features carry them ([FEATURE_ID_PROPERTY], or the numeric
+ * `observationId` of a sighting; a sighting with no numeric id cannot be matched and is left out).
+ */
+internal fun expectedOriginals(members: List<FanMember>): Map<String, Set<String>> =
+    members.groupBy { it.key.layerId }.mapValues { (layerId, group) ->
+        if (layerId == MapLayerIds.SIGHTINGS) group.mapNotNull { it.key.featureId.toLongOrNull()?.toString() }.toSet() else group.map { it.key.featureId }.toSet()
+    }.filterValues { it.isNotEmpty() }
+
+/** True when every expected original is among what the renderer reported for its layer. An empty expectation is true at once. */
+internal fun originalsDrawn(expected: Map<String, Set<String>>, rendered: Map<String, Set<String>>): Boolean =
+    expected.all { (layerId, ids) -> rendered[layerId].orEmpty().containsAll(ids) }
+
+/**
+ * Suspends until the renderer reports the originals of [members] drawn, then returns true; returns false when [giveUp], asked on each rendered
+ * frame that did not complete it with the number queried so far, says yes. The listener is removed either way, and on cancellation.
+ * Main thread; device-only.
+ */
+internal suspend fun awaitOriginalsRendered(
+    mapView: MapView,
+    map: MapLibreMap,
+    members: List<FanMember>,
+    giveUp: (framesQueried: Int) -> Boolean,
+): Boolean {
+    val expected = expectedOriginals(members)
+    if (expected.isEmpty()) return true
+    return suspendCancellableCoroutine { continuation ->
+        var frames = 0
+        lateinit var listener: MapView.OnDidFinishRenderingFrameListener
+        listener = MapView.OnDidFinishRenderingFrameListener { _, _, _ ->
+            frames++
+            val box = RectF(0f, 0f, mapView.width.toFloat(), mapView.height.toFloat())
+            val rendered = expected.keys.associateWith { layerId ->
+                map.queryRenderedFeatures(box, layerId).mapNotNull { feature ->
+                    if (layerId == MapLayerIds.SIGHTINGS) feature.getNumberProperty("observationId")?.toLong()?.toString() else feature.getStringProperty(FEATURE_ID_PROPERTY)
+                }.toSet()
+            }
+            val done = originalsDrawn(expected, rendered)
+            if (done || giveUp(frames)) {
+                mapView.removeOnDidFinishRenderingFrameListener(listener)
+                if (continuation.isActive) continuation.resume(done)
+            }
+        }
+        mapView.addOnDidFinishRenderingFrameListener(listener)
+        continuation.invokeOnCancellation { mapView.removeOnDidFinishRenderingFrameListener(listener) }
+    }
+}
+
+/**
+ * The rendered frames after a release at which the copies are cleared anyway, and a warning says so, when the renderer has not reported the
+ * revealed originals: 6, twice the 3 to 4 frames the copies took to be reported at the open (the probe's six opens). It is a last resort, and
+ * the case that reaches it is an original that is not drawn at all (its layer switched off, say), so there is nothing to wait for.
+ */
+internal const val REVEAL_FRAMES_BEFORE_GIVING_UP = 6
+
+/**
+ * After a release: the copies stay on screen (at progress 0 they stand exactly on their originals) until the renderer reports the revealed
+ * [originals] drawn, then [clear] runs. With none of them on screen there is nothing to wait for and [clear] runs at once. Cancelled with its
+ * caller when the fan reopens. Device-only.
+ */
+internal suspend fun clearCopiesWhenOriginalsDrawn(
+    map: MapLibreMap,
+    mapView: MapView,
+    originals: List<FanMember>,
+    clear: () -> Unit,
+) {
+    if (!anyMemberOnScreen(map, mapView, originals)) {
+        clear()
+        return
+    }
+    val drawn = awaitOriginalsRendered(mapView, map, originals) { it >= REVEAL_FRAMES_BEFORE_GIVING_UP }
+    if (!drawn) Log.w(SIGNAL_TAG, "The renderer did not report the ${originals.size} originals drawn within $REVEAL_FRAMES_BEFORE_GIVING_UP rendered frames of the release; the copies were cleared anyway.")
+    clear()
+}

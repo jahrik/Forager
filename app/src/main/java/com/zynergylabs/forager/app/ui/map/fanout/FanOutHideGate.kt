@@ -13,7 +13,9 @@ data class FanOutHideStep(
     val viaFallback: Boolean = false,
     /**
      * The originals this step shows again because the fan was released, empty otherwise. The copies that stand on them should
-     * stay until the renderer reports these drawn, the mirror of waiting for the copies at the open (STUB: never set yet).
+     * stay until the renderer reports these drawn, the mirror of waiting for the copies at the open: un-hiding an original needs
+     * its tile laid out again, while clearing the copies is a small source, and either can land first (a one-frame empty
+     * stack at the fold's end, seen in 3 of about 35 runs).
      */
     val reveal: List<FanMember> = emptyList(),
 )
@@ -51,9 +53,10 @@ class FanOutHideGate {
         if (members.isEmpty()) {
             if (hidden.isEmpty() && pending == null) return FanOutHideStep(emptyList(), generation, awaiting = false)
             generation++
+            val revealed = hidden
             hidden = emptyList()
             pending = null
-            return FanOutHideStep(emptyList(), generation, awaiting = false)
+            return FanOutHideStep(emptyList(), generation, awaiting = false, reveal = revealed)
         }
         val keys = members.map { it.key }.toSet()
         val waitingFor = pending

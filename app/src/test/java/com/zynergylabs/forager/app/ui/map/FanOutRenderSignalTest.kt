@@ -74,4 +74,34 @@ class FanOutRenderSignalTest {
         assertFalse(copiesDrawn(expected, emptySet(), emptySet(), 1))
         assertTrue(copiesDrawn(expected, emptySet(), emptySet(), 2))
     }
+
+    // --- the fold's end: the originals that must be drawn again before the copies are cleared
+
+    @Test
+    fun `the originals of a fan are expected per layer by their feature ids`() {
+        val expected = expectedOriginals(listOf(member(MapLayerIds.FINDS, "7"), member(MapLayerIds.FINDS, "8"), member(MapLayerIds.PHOTOS, "7")))
+
+        assertEquals(mapOf(MapLayerIds.FINDS to setOf("7", "8"), MapLayerIds.PHOTOS to setOf("7")), expected)
+    }
+
+    @Test
+    fun `a sighting's original is expected by its numeric observation id and one without is left out`() {
+        val expected = expectedOriginals(listOf(member(MapLayerIds.SIGHTINGS, "42"), member(MapLayerIds.SIGHTINGS, "x")))
+
+        assertEquals(mapOf(MapLayerIds.SIGHTINGS to setOf("42")), expected)
+    }
+
+    @Test
+    fun `the copies are not cleared until every original is reported on its own layer`() {
+        val expected = expectedOriginals(listOf(member(MapLayerIds.FINDS, "7"), member(MapLayerIds.PHOTOS, "7")))
+
+        assertFalse("the photo is missing", originalsDrawn(expected, mapOf(MapLayerIds.FINDS to setOf("7"))))
+        assertFalse("a find with the same id on the wrong layer does not stand in", originalsDrawn(expected, mapOf(MapLayerIds.FINDS to setOf("7"), MapLayerIds.PHOTOS to emptySet())))
+        assertTrue(originalsDrawn(expected, mapOf(MapLayerIds.FINDS to setOf("7"), MapLayerIds.PHOTOS to setOf("7", "9"))))
+    }
+
+    @Test
+    fun `nothing to reveal is drawn at once`() {
+        assertTrue(originalsDrawn(expectedOriginals(emptyList()), emptyMap()))
+    }
 }

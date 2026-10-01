@@ -808,6 +808,7 @@ fun SightingsMap(
         val effectScope = this
         val gate = fanHideGate
         var waiting: Job? = null
+        var clearing: Job? = null
         var hiddenFor: List<FanMember>? = null
         // True to start with, so a restart that finds the fan folding drops a wait that was still pending (gate.onFold) on its first pass.
         var wasOpen = true
@@ -815,8 +816,18 @@ fun SightingsMap(
             if (hiddenFor !== members) {
                 hiddenFor = members
                 waiting?.cancel()
+                clearing?.cancel()
                 val step = gate.onMembers(members, spread = progress > 0f)
                 applyFanOutHiding(style, step.hide)
+                if (step.reveal.isNotEmpty()) {
+                    // A release: the originals are shown again, but the copies stay (they stand on them at progress 0) until the
+                    // renderer reports the originals drawn, so the stack is never empty for a frame at the fold's end.
+                    clearing = effectScope.launch {
+                        clearCopiesWhenOriginalsDrawn(map, mapView, step.reveal) {
+                            pushFanFrame(style, fanFrameCollections(emptyList(), { fanMemberLatLng(map, it, 0f, density) }, focusedObservationId, 0f, drawOrder = orderedLayers(MAP_LAYER_REGISTRY, currentLayersState)))
+                        }
+                    }
+                }
                 if (step.awaiting) {
                     waiting = effectScope.launch {
                         hideWhenCopiesDrawn(style, map, mapView, gate, members, step.generation) { fanOut.progress >= 1f }
@@ -829,6 +840,7 @@ fun SightingsMap(
                 waiting?.cancel()
             }
             wasOpen = wantOpen
+            if (members.isEmpty() && clearing?.isActive == true) return@collect // the copies stay until the originals are drawn
             pushFanFrame(
                 style,
                 fanFrameCollections(
