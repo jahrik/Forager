@@ -797,20 +797,25 @@ fun SightingsMap(
     // originals of the fanned markers while it is up, but not before the renderer reports the copies drawn: hiding first
     // left a frame or two with neither on screen, the blink at the open's start (dispatch 2026-09-28-369, amendment -371).
     // The order is FanOutHideGate's; the signal is FanOutRenderSignal's. Device-only: see FanOutLayers.kt.
+    // The gate outlives a restart of this effect (it is keyed on focusedObservationId too, so tapping a fanned sighting restarts it with
+    // the fan up) and is new only with a new style, whose layers start unfiltered: a restart then asks it again for the same members and
+    // changes nothing, and the originals stay hidden (the planner's review of a5185a2f).
+    val fanHideGate = remember(loadedStyle) { FanOutHideGate() }
     LaunchedEffect(loadedStyle, mapLibreMap, focusedObservationId) {
         val style = loadedStyle ?: return@LaunchedEffect
         val map = mapLibreMap ?: return@LaunchedEffect
         val density = context.resources.displayMetrics.density
         val effectScope = this
-        val gate = FanOutHideGate()
+        val gate = fanHideGate
         var waiting: Job? = null
         var hiddenFor: List<FanMember>? = null
-        var wasOpen = false
+        // True to start with, so a restart that finds the fan folding drops a wait that was still pending (gate.onFold) on its first pass.
+        var wasOpen = true
         snapshotFlow { Triple(fanOut.members, fanOut.progress, fanOut.wantOpen) }.collect { (members, progress, wantOpen) ->
             if (hiddenFor !== members) {
                 hiddenFor = members
                 waiting?.cancel()
-                val step = gate.onMembers(members)
+                val step = gate.onMembers(members, spread = progress > 0f)
                 applyFanOutHiding(style, step.hide)
                 if (step.awaiting) {
                     waiting = effectScope.launch {

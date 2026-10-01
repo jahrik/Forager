@@ -31,18 +31,35 @@ class FanOutHideGate {
     private var pending: List<FanMember>? = null
 
     /**
-     * The fanned markers changed to [members] (a fan opened, another replaced it, or it was released: empty). Originals
-     * that stay fanned stay hidden, every other original is shown at once (so a replaced fan's markers return as its
-     * copies go), and the rest wait for [onCopiesDrawn]. An empty [members] shows everything and cancels any wait.
+     * The fanned markers are [members] (a fan opened, another replaced it, or it was released: empty), or are asked about again by a
+     * caller that kept this gate across a restart of its effect. Asking again for the members already hidden, or already waited for,
+     * changes nothing: the originals stay hidden and the wait keeps its [FanOutHideStep.generation], so the signal for it still counts.
+     * Otherwise originals that stay fanned stay hidden, every other original is shown at once (so a replaced fan's markers return as
+     * its copies go), and the rest wait for [onCopiesDrawn]. An empty [members] shows everything and cancels any wait.
+     *
+     * [spread] is true when the fan is already away from its originals (its progress is above zero). The wait exists because at progress 0
+     * the copies sit exactly on their originals (-299), so showing both for a frame or two is not seen; once they are apart, showing
+     * both would be a marker drawn twice, so a fan first seen already spread (an effect restarted by a focus change, a style reloaded
+     * with a fan up) is hidden at once, as it was before amendment -371.
      */
     fun onMembers(members: List<FanMember>, spread: Boolean = false): FanOutHideStep {
-        generation++
         if (members.isEmpty()) {
+            if (hidden.isEmpty() && pending == null) return FanOutHideStep(emptyList(), generation, awaiting = false)
+            generation++
             hidden = emptyList()
             pending = null
             return FanOutHideStep(emptyList(), generation, awaiting = false)
         }
         val keys = members.map { it.key }.toSet()
+        val waitingFor = pending
+        if (waitingFor != null && waitingFor.map { it.key }.toSet() == keys) return FanOutHideStep(hidden, generation, awaiting = true)
+        if (waitingFor == null && hidden.isNotEmpty() && hidden.map { it.key }.toSet() == keys) return FanOutHideStep(hidden, generation, awaiting = false)
+        generation++
+        if (spread) {
+            hidden = members
+            pending = null
+            return FanOutHideStep(members, generation, awaiting = false)
+        }
         val keep = hidden.filter { it.key in keys }
         if (keep.size == members.size) {
             hidden = members
