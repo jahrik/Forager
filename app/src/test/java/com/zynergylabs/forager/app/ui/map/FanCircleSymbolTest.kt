@@ -19,6 +19,7 @@ import org.maplibre.geojson.Feature
 import org.maplibre.geojson.Point
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 import kotlin.math.ceil
 
 /**
@@ -29,6 +30,7 @@ import kotlin.math.ceil
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
+@GraphicsMode(GraphicsMode.Mode.NATIVE) // the circle bitmap is read back pixel by pixel, as MarkerGlyphsTest reads the glyphs
 class FanCircleSymbolTest {
 
     private fun member(layerId: String, id: String) = FanMember(FanKey(layerId, id), 45.0, -122.0, 0f, 0f, FanOffset(0f, -48f))

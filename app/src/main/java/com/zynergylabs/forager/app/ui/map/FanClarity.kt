@@ -55,7 +55,7 @@ internal fun fanFadedPaint(spec: MapLayerSpec, paint: LayerPaint, fanOpen: Boole
         paint.copy(opacities = paint.opacities.map { OpacityValue(it.property, it.value * FAN_FADE_OPACITY) })
     }
 
-/** The paint of the circle layer behind the fanned copies: radius in dp, colour as ARGB, opacity 0 to 1. */
+/** The circle behind the fanned copies: radius in dp (its image is 2 x radius across), colour as ARGB, opacity 0 to 1. */
 internal data class FanCircleStyle(val radiusDp: Float, val colour: Int, val opacity: Float)
 
 /**
