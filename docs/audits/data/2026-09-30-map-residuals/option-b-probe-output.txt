@@ -1,0 +1,10 @@
+PROBE journal before open: dropdown=false fieldFocused=false
+PROBE journal opened: dropdown=true fieldFocused=true
+PROBE journal after Back: dropdown=false fieldFocused=true
+PROBE journal after a touch on the field: dropdown=false fieldFocused=true
+PROBE journal after a second Back: dropdown=false fieldFocused=false
+PROBE maps before open: dropdown=false fieldFocused=false
+PROBE maps opened: dropdown=true fieldFocused=true
+PROBE maps after Back: dropdown=false fieldFocused=true
+PROBE maps after a touch on the field: dropdown=false fieldFocused=true
+PROBE maps after a second Back: dropdown=false fieldFocused=true

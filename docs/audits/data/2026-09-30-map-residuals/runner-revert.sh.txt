@@ -1,0 +1,22 @@
+#!/bin/bash
+# usage: revert.sh <label> <file-relative> <old-text-file> <new-text-file> <prediction> <tests...>
+# Saves the file, applies ONE exact edit, runs, restores from the saved copy (never git), confirms the file equals HEAD.
+W=/home/zynergy-labs/Zynergy/forager-wt/map-residuals
+L=$1; F=$2; OLD=$3; NEW=$4; PRED=$5; shift 5
+cd $W || exit 9
+echo "################ REVERT CHECK $L"
+echo "prediction: $PRED"
+if [ -n "$(git status --short)" ]; then echo "REFUSED: tree not clean before the edit"; git status --short; exit 6; fi
+mkdir -p /tmp/mr312/saved/$L && cp "$F" /tmp/mr312/saved/$L/$(basename $F) || exit 5
+python3 - "$F" "$OLD" "$NEW" <<'PY' || { echo "EDIT FAILED, nothing run"; cp /tmp/mr312/saved/$L/$(basename $F) "$F"; exit 4; }
+import sys
+p,o,n=sys.argv[1:4]; s=open(p).read(); old=open(o).read(); new=open(n).read()
+c=s.count(old)
+if c!=1: print('old text occurs',c,'times'); sys.exit(1)
+open(p,'w').write(s.replace(old,new))
+PY
+echo "--- the edit:"; git diff -U0 -- "$F" | grep -E '^[+-]' | grep -v -E '^(\+\+\+|---)' | cut -c1-220
+/tmp/mr312/run.sh $L "$@"
+git diff -- "$F" > /tmp/mr312/$L.edit.diff
+cp /tmp/mr312/saved/$L/$(basename $F) "$F"
+if git diff --quiet -- "$F" && [ -z "$(git status --short)" ]; then echo "restored from the saved copy: file equals HEAD, tree clean"; else echo "RESTORE PROBLEM"; git status --short; fi
