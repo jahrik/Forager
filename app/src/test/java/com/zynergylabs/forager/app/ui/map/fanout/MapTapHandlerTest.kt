@@ -180,7 +180,7 @@ class MapTapHandlerTest {
         assertEquals(emptyList<String>(), sinks.events)
     }
 
-    // Superseded by the owner's rule, intent 2026-09-28-274: "Fold only if members change". This test used to be
+    // Superseded by the owner's choice, intent 2026-09-28-274: "Fold only if members change". This test used to be
     // `a change to what the map draws folds the fan`, with a change that touched no member. It now takes a change
     // that removes members: both markers go, fewer than two are left, and the fan folds.
     @Test
