@@ -30,8 +30,8 @@ import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 
 /**
- * The fan-out's clock and its Back (dispatch 2026-09-28-197; the owner's rules 5 and 6: "Give it a
- * .4s animation speed", the system's animations off means "spread out at once", Back closes the
+ * The fan-out's clock and its Back (dispatch 2026-09-28-197; the owner's choices: "And increase the
+ * animation speed to 250ms" (dispatch 2026-09-28-358 amendment -359), the system's animations off means "spread out at once", Back closes the
  * fan-out before anything else). The host is the composable `SightingsMap` composes beside its
  * `MapView`, so these run without a map. The main clock is driven by hand.
  */
@@ -110,7 +110,7 @@ class MarkerFanOutHostTest {
         assertEquals(250, com.zynergylabs.forager.app.ui.map.fanout.FAN_DURATION_MS)
     }
 
-    // Rule 6 was 0.4 s; the owner, dispatch -358 amendment -359: "And increase the animation speed to 250ms".
+    // The owner, dispatch -358 amendment -359: "And increase the animation speed to 250ms".
 
     /**
      * Frames stepped, from the first frame on which [progress] has left its start until it reaches
@@ -199,7 +199,7 @@ class MarkerFanOutHostTest {
         assertTrue(state.members.isEmpty())
     }
 
-    // Rule 5: Back.
+    // Back.
 
     @Test
     fun `Back folds an open fan and does not reach a handler that was there first`() {

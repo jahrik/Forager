@@ -87,14 +87,14 @@ fun MarkerFanOutHost(state: MarkerFanOutState) {
 }
 
 /**
- * Back folds an open fan, before anything else Back would close (the owner's rule 5). The handler is
+ * Back folds an open fan, before anything else Back would close (the owner's choice, dispatch 2026-09-28-197). The handler is
  * composed **only while the fan is open**: a `BackHandler` composed later is asked first, so this one
  * sits above every handler already on the screen, whether or not that handler is enabled yet (a
  * bubble's own is always composed and enabled when its bubble shows, which happens after the fan
  * opens). `MarkerFanOutHostTest` asserts that order against a real dispatcher.
  *
  * **Except while a bubble shows ([bubbleOpen]):** then the bubble goes first and the fan second (dispatch
- * 2026-09-29-57, item 7, amendment -255, which supersedes rule 5's "fan before bubble"). The handler is
+ * 2026-09-29-57, item 7, amendment -255, which supersedes the earlier "fan before bubble"). The handler is
  * simply not composed while the bubble shows, so the bubble's own handler is the one asked; once the bubble
  * closes it is composed again, later than every handler on the screen, and the next Back folds the fan.
  * `AvailabilityScreenFanBubbleDismissalTest` asserts the order against the real screen and dispatcher.

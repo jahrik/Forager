@@ -46,13 +46,13 @@ interface MapTapSinks {
  * resolution (`resolveTap`, then `mapTapOutcome`, unchanged) with the fan-out in front of and behind it:
  *
  *  - **A fan is open and the tap is on a fanned marker:** that marker's own outcome, as a tap on it
- *    would have been (the owner's rule 4). The fan stays open behind its bubble.
+ *    would have been (the owner's choice, dispatch 2026-09-28-197). The fan stays open behind its bubble.
  *  - **A fan is open and the tap is anywhere else:** the fan folds, and the tap goes on as it would
  *    have (a plain tap dismisses a bubble, a tap on another marker opens that one). **Except** while a
  *    bubble is showing ([bubbleOpen]) and the tap is on empty map: that tap closes the bubble only and
  *    the fan stays, so the next empty tap folds it (dispatch 2026-09-29-57, item 7, amendment -255).
- *  - **The tap resolves to a marker whose touch area overlaps another's** (a stack, rule 1): the stack
- *    fans out and nothing else is reported (rule 2).
+ *  - **The tap resolves to a marker whose touch area overlaps another's** (a stack): the stack
+ *    fans out and nothing else is reported (the owner's choice, dispatch 2026-09-28-197).
  *
  * The camera moving folds it ([onCameraMoveStarted]); what the map draws changing, a new style included, folds it only
  * when a member changed ([onContentChanged]).
