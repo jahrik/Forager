@@ -73,7 +73,7 @@ import com.zynergylabs.forager.app.ui.adaptive.portEdgeFor
  * never produced a reverse-portrait window and `SCREEN_ORIENTATION_PORTRAIT` excludes one, which is
  * why "portrait was already correct at all four rotations" held. Measured on the emulator with the
  * window following the device: shutter at [446,2033]-[635,2222] of a 1080x2400 window at
- * `mRotation=2`. A fourth arrangement was ruled and then **withdrawn** the same day: the owner's
+ * `mRotation=2`. A fourth arrangement was decided and then **withdrawn** the same day: the owner's
  * reading of the reference app is that its camera window simply does not turn on a half turn, so
  * ours does not either ([RequestWindowOrientation] now asks for `SCREEN_ORIENTATION_SENSOR`, which
  * the platform refuses to resolve to `ROTATION_180` on a phone). The gill shot — phone flipped end

@@ -5,7 +5,7 @@ import com.zynergylabs.forager.app.domain.model.LatLng
 
 /**
  * Where a day entry's map opens (owner, 2026-09-28: "Can the entry map open to their last recorded
- * track location, zoomed in to where you see in the next photo?", ruled "Fit all kept records").
+ * track location, zoomed in to where you see in the next photo?", chose "Fit all kept records").
  */
 sealed interface EntryMapFrame {
     /** Fit [bounds] with [paddingDp] on every side, zoomed no closer than [maxZoom]. */
