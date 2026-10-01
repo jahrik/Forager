@@ -9430,3 +9430,21 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Device-only, for the owner:** the flag in its 36 dp circle by day and by night, with room at its corners; the flag beside the pin, the find and the photo on the map; the pole foot on its true coordinate; the fan opening and folding in 250 ms with no icon jump at either end; the open's first frames, where -319 saw three blank frames at 400 ms.
 **Open:** a comment on FAN_DURATION_MS refers to the owner's earlier rule as "his earlier rule 6"; the owner has been asked whether to reword it.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-361
+**Timestamp:** 2026-10-01T05:32:47Z
+**Title:** The fan-out's comments stop calling the owner's answers "rules"; comments only
+**Dispatch-file:** preserved/2026-10-01-04.md
+**The owner, verbatim, in order:** "Remove that earlier rule 6 part"; then, after asking what it was, "Yeah remove that. It was never a rule"; then, of the other comments with the same label, "Leave them.", and then "Change them too".
+**What prompted it:** -359's new comment on FAN_DURATION_MS said 250 ms "replaces his earlier rule 6". The label comes from -197 (preserved 2026-09-29-39), where the owner answered a numbered list of seven points, and the fan-out's code has called those answers "the owner's rule 1" to "rule 6" since. The planner's own dispatch -359 used the label too.
+**Change:**
+- FAN_DURATION_MS's comment keeps the owner's "And increase the animation speed to 250ms" and drops the sentence about the earlier value.
+- The other fan-out comments, in main and in three test class comments, lose the "rule N" label and keep their meaning, citing dispatch -197 where a source helps. No pronoun is used for the owner.
+- Comment lines only: no code, test name, constant or assertion changes. The records under docs/ and prompts/ are not edited.
+- The planner listed three such comments to the owner and found more of the same kind when writing this: MapTapHandler.kt:54 and :55, MarkerFanOutState.kt:97 and three test class comments. They are included, and the owner has been told.
+- Not in scope: "Understory rule 1/2" and CameraBands.kt's "rule 9", which are not the owner's answers to that list.
+**Checks:** the diff touches comment lines only; a compile of main and unit tests; the three edited test classes. No full suite and no revert check, since nothing executable changes; CI runs the suite on the merge.
+**Notes:** Written by the planner by hand.
