@@ -54,16 +54,6 @@ internal object FanOutIds {
     const val ICONS_SOURCE = "fan-out-icons-source"
     const val ICONS_LAYER = "fan-out-icons-layer"
 
-    /** The one source every fan feature goes into, so one push is one `setGeoJson` (dispatch 2026-09-28-369, amendment -373). */
-    const val FAN_SOURCE = "fan-out-source"
-
-    /** The feature property naming what a feature is, so each layer can pick its own out of [FAN_SOURCE]. */
-    const val KIND_PROPERTY = "kind"
-    const val KIND_LEG = "leg"
-    const val KIND_CIRCLE = "circle"
-    const val KIND_DOT = "dot"
-    const val KIND_ICON = "icon"
-
     /** The feature property naming the bitmap a copy draws. */
     const val IMAGE_PROPERTY = "image"
 
@@ -288,20 +278,6 @@ internal fun applyFanOutHiding(style: Style, members: List<FanMember>) {
         }
     }
 }
-
-/**
- * STUB, written before the fix so its tests can be seen to fail: the four pushes the map made before amendment -373, one
- * source each and no [FanOutIds.KIND_PROPERTY].
- */
-internal fun fanPushPlan(frame: FanFrame): List<Pair<String, FeatureCollection>> = listOf(
-    FanOutIds.LEGS_SOURCE to frame.legs,
-    FanOutIds.CIRCLES_SOURCE to frame.circles,
-    FanOutIds.DOTS_SOURCE to frame.dots,
-    FanOutIds.ICONS_SOURCE to frame.icons,
-)
-
-/** STUB: matches everything, as the layers did before they shared a source. */
-internal fun fanKindFilter(kind: String): Expression = Expression.all()
 
 /**
  * Pushes [frame] into the four sources. A source missing from the style is logged, not skipped
