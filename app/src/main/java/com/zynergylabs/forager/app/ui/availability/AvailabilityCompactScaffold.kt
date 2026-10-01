@@ -1043,7 +1043,7 @@ internal fun CompactMainScaffold(
                                 // Journal tab is the one showing"; on Maps the bar shows normally. This
                                 // slot composes only in this MAP branch, where the second half is false,
                                 // so here the conjunction always resolves to the bar; it is written out
-                                // so that the rule reads as the owner ruled it, not as its consequence.
+                                // so that the rule reads as the owner decided it, not as its consequence.
                                 searchBarSlot = if (isEditingJournalEntry && compactTab() == CompactTab.JOURNAL) {
                                     { _ -> }
                                 } else {
