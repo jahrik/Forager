@@ -12,6 +12,7 @@ import com.zynergylabs.forager.app.ui.map.fanout.ProbedMarker
 import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
 import com.zynergylabs.forager.app.ui.map.layers.LayerKind
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
+import com.zynergylabs.forager.app.ui.map.layers.MapLayerSpec
 import com.zynergylabs.forager.app.ui.map.layers.TapGroup
 import com.zynergylabs.forager.app.ui.map.layers.TapHit
 import com.zynergylabs.forager.app.ui.theme.MapPalette
@@ -61,6 +62,9 @@ internal object FanOutIds {
 
     /** The feature property holding a circle's scale, 0 to 1 (dispatch 2026-09-28-299). */
     const val CIRCLE_SCALE_PROPERTY = "circleScale"
+
+    /** The feature property holding a copy's `symbol-sort-key`: its registry layer's place in the draw order (dispatch 2026-09-28-318). */
+    const val SORT_KEY_PROPERTY = "sortKey"
 }
 
 /** The leg's own line width, in dp: "a thin line". Its casing is [CASING_WIDTH_DP] wider on each side, as a track's is. */
@@ -88,20 +92,30 @@ internal fun addFanOutLayers(style: Style, palette: MapPalette, chromeColour: In
     style.addLayer(leg(FanOutIds.LEGS_CASING_LAYER, palette.casing, FAN_LEG_WIDTH_DP + 2 * CASING_WIDTH_DP))
     style.addLayer(leg(FanOutIds.LEGS_LAYER, palette.searchCentre, FAN_LEG_WIDTH_DP))
 
-    fun symbols(id: String, sourceId: String) = SymbolLayer(id, sourceId).withProperties(
-        PropertyFactory.iconImage(Expression.get(FanOutIds.IMAGE_PROPERTY)),
-        PropertyFactory.iconAllowOverlap(true),
-        PropertyFactory.iconAnchor(Property.ICON_ANCHOR_CENTER),
-        // Each copy's own offset: the glyph's centring offset times the fold's progress, so a copy's body is on its circle's
-        // centre when spread and its anchor is on the coordinate, exactly where its original draws, when folded.
-        PropertyFactory.iconOffset(Expression.get(FanOutIds.ICON_OFFSET_PROPERTY)),
-    )
     // Below the dots and the icons, above the legs: the circle is the copy's background.
     style.addLayer(CircleLayer(FanOutIds.CIRCLES_LAYER, FanOutIds.CIRCLES_SOURCE).withProperties(*fanCircleProperties(fanCircleStyle(chromeColour))))
     // The dot: the sighting layer's own paint, so a fanned dot is the dot it was, ring and all.
     style.addLayer(CircleLayer(FanOutIds.DOTS_LAYER, FanOutIds.DOTS_SOURCE).withProperties(*sightingCircleProperties(palette)))
-    style.addLayer(symbols(FanOutIds.ICONS_LAYER, FanOutIds.ICONS_SOURCE))
+    style.addLayer(SymbolLayer(FanOutIds.ICONS_LAYER, FanOutIds.ICONS_SOURCE).withProperties(*fanIconLayerProperties()))
 }
+
+/**
+ * The icon layer's own properties, a function so the test can read the values it is built with (a
+ * `SymbolLayer` cannot be built under Robolectric, a `PropertyValue` can).
+ */
+internal fun fanIconLayerProperties(): Array<PropertyValue<*>> = arrayOf(
+    PropertyFactory.iconImage(Expression.get(FanOutIds.IMAGE_PROPERTY)),
+    PropertyFactory.iconAllowOverlap(true),
+    PropertyFactory.iconAnchor(Property.ICON_ANCHOR_CENTER),
+    // Each copy's own offset: the glyph's centring offset times the fold's progress, so a copy's body is on its circle's
+    // centre when spread and its anchor is on the coordinate, exactly where its original draws, when folded.
+    PropertyFactory.iconOffset(Expression.get(FanOutIds.ICON_OFFSET_PROPERTY)),
+    // Which copy is on top where they overlap: the place of its original's layer in the draw order, so the copies stack as
+    // the originals do (dispatch 2026-09-28-318, fail 5). Without a sort key, `icon-allow-overlap` makes this layer order its
+    // copies by viewport y, which says nothing about the registry, and the front glyph changed when the copies gave way to
+    // the originals. Rejected: ordering the features alone, which the y-ordering overrides.
+    PropertyFactory.symbolSortKey(Expression.get(FanOutIds.SORT_KEY_PROPERTY)),
+)
 
 /**
  * [style]'s paint as MapLibre property values: radius (dp), colour, opacity, no ring. The radius is [FanCircleStyle.radiusDp] times
@@ -175,6 +189,8 @@ internal fun fanFrameCollections(
     focusedObservationId: Long?,
     /** The fold's progress, 0 folded to 1 spread: what the icon offsets and the circles' scale are multiplied by. */
     progress: Float,
+    /** The registry's layers in draw order, bottom to top: where a copy's original draws among the others. */
+    drawOrder: List<MapLayerSpec> = MAP_LAYER_REGISTRY,
 ): FanFrame {
     if (members.isEmpty()) return EMPTY_FRAME
     val legs = mutableListOf<Feature>()
@@ -197,6 +213,9 @@ internal fun fanFrameCollections(
                     val offset = markerIconForLayer(layerId)!!.glyph.fanCentringOffsetDp()
                     addProperty(FanOutIds.ICON_OFFSET_PROPERTY, JsonArray().apply { add(offset.xDp * progress); add(offset.yDp * progress) })
                     addStringProperty(FEATURE_ID_PROPERTY, member.key.featureId)
+                    val place = drawOrder.indexOfFirst { it.id == layerId }
+                    if (place < 0) Log.w(FAN_OUT_TAG, "$layerId is not in the draw order; its copy sorts below every other.")
+                    addNumberProperty(FanOutIds.SORT_KEY_PROPERTY, place)
                 }
             }
             else -> {
