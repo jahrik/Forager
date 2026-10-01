@@ -9864,3 +9864,22 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **For a later release, the owner, verbatim:** "At some point, not this release, maybe next one, have an update that allows the icons to move when they're about ready to fall off screen, and have them card stack on the edge instead". Not dispatched.
 **Next:** -381 (fan-tap), then -379 (the README), then PR #140 into pre-main and pre-main into main.
 **Notes:** Written by the planner session that wrote -370 to -381.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-383
+**Timestamp:** 2026-10-01T18:27:35Z
+**Continues:** 2026-09-28-381 (preserved 2026-10-01-10, where the amendment is appended); the coder has verified the dispatch's premises at 9cf1cfca on branch fan-tap and is writing tests
+**The owner, verbatim,** to three questions the planner put from the coder's verification: "1 yes, / 2 fan and the find's bubble, back out one step at a time. That's how I initially asked for it / 3 yes, and it should return to the same bubble also. I had requested it to be that way for the same rule I mentioned in 2: back out one step at a time, going exactly the way they came. That's how Forager defines back. Otherwise returning to map is a home function, and that's called for in different ways, but not with the back button".
+**The questions:** (1) should a tap on a stack close a bubble that is showing; (2) on Back from a find's page, the fan and the find's bubble as today, or the fan only; (3) should Back from a journal entry opened from a bubble's "kept in" line return to the same fan. The planner had recommended yes, the fan only, and yes. Its recommendation on (2) was against the owner's rule and is not followed.
+**What the coder's verification found** (~/Zynergy/device-evidence/2026-10-01-fan-tap/verification-at-9cf1cfca.md; read by the planner, not re-traced):
+- The dispatch's three "so today" points hold at the base.
+- A tap on a stack while a bubble is up leaves the bubble beside the new fan (MapTapHandler.kt:95 returns before any sink runs). Read from the code, not yet pinned by a test.
+- Back from a find's page restores the find's bubble and the fan together (AvailabilityCompactMapUi.kt:381, FanReopen.kt:45), pinned by MapReturnMemoryTest.
+- A bubble's "kept in" line opens the journal entry and deliberately forgets the return (AvailabilityScreen.kt:1277). The planner found no recorded decision of the owner's about that.
+**The planner's error:** the dispatch's rule 3 said a bubble and a fan would never be up together once a tap on a fanned icon dismisses the fan, and told the coder to remove what that left unreachable. Two paths keep them together, and the owner wants one of them kept. Rule 3 is withdrawn; nothing is removed.
+**Change:** a tap on a stack closes a showing bubble as the fan opens; rule 4 stays the fan and the find's bubble, backed out one step at a time; Back from a journal entry opened from a "kept in" line returns the bubble it was tapped in and the fan it was picked from, the coder to establish first where that Back lands today. The owner's definition of Back is stated in the dispatch as the test for every Back path touched.
+**Open with the owner:** after a tap on a fanned icon puts the fan away and shows the item's bubble, whether Back closes the bubble and brings the fan back, or closes it and leaves the stack folded. Not built either way.
+**Also from the owner, on -380:** they repeated their walk on the final build and sent a second screenshot, "Same result"; the planner read 1.0.2385+gc170cf54 on the phone, installed 11:13:22, the screenshot timed 11:18. That closes the walk -382 listed as still theirs.
+**Notes:** Written by the planner session that wrote -370 to -382.
