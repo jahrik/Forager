@@ -32,8 +32,12 @@ const val FAN_STACK_DP = 26f
 /** Up to this many markers fan out in a ring; more go in a spiral (the owner's rule 3). */
 const val FAN_RING_MAX = 8
 
-/** The fan-out, and the fold-back, take this long (the owner's rule 6: "Give it a .4s animation speed"). */
-const val FAN_DURATION_MS = 400
+/**
+ * The fan-out, and the fold-back, take this long. The owner, dispatch 2026-09-28-358 amendment -359: "And increase the
+ * animation speed to 250ms". It replaces his earlier rule 6, "Give it a .4s animation speed" (400). Only the duration
+ * changed: the easing, what the progress drives and the reduce-motion behaviour are as they were.
+ */
+const val FAN_DURATION_MS = 250
 
 /** A marker by the layer that draws it and its own id, the pair a tap resolves to. */
 data class FanKey(val layerId: String, val featureId: String)
