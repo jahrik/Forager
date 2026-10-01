@@ -15,7 +15,7 @@ import org.junit.Test
  * owner's rules 1 to 5): a stack fans out, a fanned marker opens its bubble, and every fold-back
  * trigger folds. The handler is the real class the listener delegates to; only the SDK behind
  * [MapProbe] is the test's own ([FanOutTestScene], a real Web-Mercator projection). A fully open
- * fan is `progress = 1`, which `MarkerFanOutHostTest` shows the host reaching in 400 ms.
+ * fan is `progress = 1`, which `MarkerFanOutHostTest` shows the host reaching in 250 ms.
  */
 class MapTapHandlerTest {
 

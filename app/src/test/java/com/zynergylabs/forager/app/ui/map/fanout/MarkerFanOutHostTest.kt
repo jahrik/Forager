@@ -101,16 +101,16 @@ class MarkerFanOutHostTest {
     private companion object {
         const val FRAME_MS = 16
 
-        /** The owner's ".4s", written out on purpose: comparing to the production constant would move with it. */
-        const val OWNER_DURATION_MS = 400
+        /** The owner's "250ms" (dispatch 2026-09-28-358 amendment -359), written out on purpose: comparing to the production constant would move with it. Was ".4s", 400. */
+        const val OWNER_DURATION_MS = 250
     }
 
     @Test
-    fun `the duration constant is the owner's 400 ms`() {
-        assertEquals(400, com.zynergylabs.forager.app.ui.map.fanout.FAN_DURATION_MS)
+    fun `the duration constant is the owner's 250 ms`() {
+        assertEquals(250, com.zynergylabs.forager.app.ui.map.fanout.FAN_DURATION_MS)
     }
 
-    // Rule 6: 0.4 s.
+    // Rule 6 was 0.4 s; the owner, dispatch -358 amendment -359: "And increase the animation speed to 250ms".
 
     /**
      * Frames stepped, from the first frame on which [progress] has left its start until it reaches
@@ -130,7 +130,7 @@ class MarkerFanOutHostTest {
     }
 
     @Test
-    fun `the fan-out takes 0_4 s`() {
+    fun `the fan-out takes 0_25 s`() {
         show()
         write { state.open(members) }
         val frames = framesToReach(end = 1f, start = 0f)
@@ -141,19 +141,37 @@ class MarkerFanOutHostTest {
     }
 
     @Test
-    fun `the fan-out is part way at 200 ms and not done a frame before 400`() {
+    fun `the fan-out is part way at 125 ms, not done a frame before 250, and done at 250`() {
         show()
         write { state.open(members) }
         composeRule.mainClock.advanceTimeByFrame() // effect launches
         composeRule.mainClock.advanceTimeByFrame() // animation clock starts
-        advance(200)
-        assertTrue("part way at about 200 ms, was ${state.progress}", state.progress in 0.05f..0.95f)
-        advance(OWNER_DURATION_MS - 200L - 2 * FRAME_MS)
-        assertTrue("about 384 ms in, not done: ${state.progress}", state.progress < 1f)
+        advance(125)
+        assertTrue("part way at about 125 ms, was ${state.progress}", state.progress in 0.05f..0.95f)
+        advance(OWNER_DURATION_MS - 125L - 2 * FRAME_MS)
+        assertTrue("about 218 ms in, not done: ${state.progress}", state.progress < 1f)
+        advance(3 * FRAME_MS.toLong())
+        assertEquals("done by about 266 ms", 1f, state.progress, 0f)
     }
 
     @Test
-    fun `the fold-back takes the same 0_4 s and then lets go of its markers`() {
+    fun `the fold-back is part way at 125 ms, not done a frame before 250, and done at 250`() {
+        show()
+        write { state.open(members) }
+        framesToReach(end = 1f, start = 0f)
+        write { state.fold() }
+        composeRule.mainClock.advanceTimeByFrame() // effect launches
+        composeRule.mainClock.advanceTimeByFrame() // animation clock starts
+        advance(125)
+        assertTrue("part way at about 125 ms, was ${state.progress}", state.progress in 0.05f..0.95f)
+        advance(OWNER_DURATION_MS - 125L - 2 * FRAME_MS)
+        assertTrue("about 218 ms in, not done: ${state.progress}", state.progress > 0f)
+        advance(3 * FRAME_MS.toLong())
+        assertEquals("done by about 266 ms", 0f, state.progress, 0f)
+    }
+
+    @Test
+    fun `the fold-back takes the same 0_25 s and then lets go of its markers`() {
         show()
         write { state.open(members) }
         framesToReach(end = 1f, start = 0f)
