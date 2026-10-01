@@ -5,6 +5,8 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.RectF
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.MotionEvent
 import android.view.Gravity
@@ -332,7 +334,7 @@ fun SightingsMap(
     val fanCircleColour = remember { arrayOfNulls<Int>(1) }
     // Which camera moves are the location follower's and which are the user's or the app's own (dispatch 2026-09-28-380): MapLibre reports every
     // programmatic move with one reason, so each camera move this file makes marks itself here first, and the camera-idle listener clears the mark.
-    val cameraMoveClassifier = remember { CameraMoveClassifier() }
+    val cameraMoveClassifier = remember { CameraMoveClassifier { task -> Handler(Looper.getMainLooper()).post(task) } }
     val currentForecast by rememberUpdatedState(forecast)
     // Counts camera idles (map layers L0b, B5): the colour fields' cell feed below is keyed on it, so
     // the store is asked for the blocks in view each time the camera goes idle.

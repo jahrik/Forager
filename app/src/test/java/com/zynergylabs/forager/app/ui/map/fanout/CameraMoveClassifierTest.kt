@@ -10,7 +10,8 @@ import org.junit.Test
  */
 class CameraMoveClassifierTest {
 
-    private val classifier = CameraMoveClassifier()
+    private val looper = FakeLooper()
+    private val classifier = CameraMoveClassifier(looper::post)
 
     @Test
     fun `a touch is the user's, marked or not, following or not`() {
@@ -70,5 +71,62 @@ class CameraMoveClassifierTest {
     @Test
     fun `an unmarked move that is not a touch while not following is unknown`() {
         assertEquals(CameraMoveCause.UNKNOWN, classifier.classify(isGesture = false, followingLocation = false))
+    }
+
+    // A mark covers only the move it was set for (dispatch -380, planner review). MapLibre does not call the app's listener inside the camera call: it
+    // queues a message on the main looper. So the settle step is queued behind that message, not run when the call returns.
+
+    /** The SDK starting a move: its listener message is queued when the app's camera call runs, behind whatever is already queued. */
+    private fun sdkStartsAMove(causes: MutableList<CameraMoveCause>, following: Boolean = true) {
+        looper.post { causes += classifier.classify(isGesture = false, followingLocation = following) }
+    }
+
+    @Test
+    fun `a mark whose move never starts does not catch the follower's next move`() {
+        classifier.markAppMove() // the app asked for a move (a frame it could not apply, a camera already there); the SDK starts none
+        looper.runAll()
+
+        val causes = mutableListOf<CameraMoveCause>()
+        sdkStartsAMove(causes) // much later: the follower re-centres
+        looper.runAll()
+
+        assertEquals("the follower's, not the app's", listOf(CameraMoveCause.LOCATION_FOLLOW), causes)
+    }
+
+    @Test
+    fun `a mark whose move starts is the app's, though the settle step was queued before the move`() {
+        val causes = mutableListOf<CameraMoveCause>()
+        classifier.markAppMove() // the mark is set before the camera call, so the settle step is queued first
+        sdkStartsAMove(causes) // the camera call queues the SDK's listener message behind it
+        looper.runAll()
+
+        assertEquals(listOf(CameraMoveCause.APP_REQUESTED), causes)
+    }
+
+    @Test
+    fun `the follower's moves during a marked move that did start are still classed with it`() {
+        val causes = mutableListOf<CameraMoveCause>()
+        classifier.markAppMove()
+        sdkStartsAMove(causes)
+        looper.runAll() // the app's move has started and the settle step has run
+        sdkStartsAMove(causes) // the follower ticks while the app's move is still in flight
+        sdkStartsAMove(causes)
+        looper.runAll()
+
+        assertEquals(List(3) { CameraMoveCause.APP_REQUESTED }, causes)
+
+        classifier.onCameraIdle()
+        sdkStartsAMove(causes)
+        looper.runAll()
+        assertEquals("after the idle it is the follower's again", CameraMoveCause.LOCATION_FOLLOW, causes.last())
+    }
+
+    @Test
+    fun `the locate tap with no move to make leaves the follower's next move the follower's`() {
+        // The locate button marks, then sets the camera mode; with no fix yet, or already centred, nothing moves.
+        classifier.markAppMove()
+        looper.runAll()
+
+        assertEquals(CameraMoveCause.LOCATION_FOLLOW, classifier.classify(isGesture = false, followingLocation = true))
     }
 }
