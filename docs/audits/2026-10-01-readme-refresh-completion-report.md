@@ -31,7 +31,7 @@ project's memory lives; what is not verified or is limited. Differences, with th
 - The fan is described in the Maps entry in four lines: it stays open while the map follows the location and closes when the user moves the map; a fanned icon's bubble shows over the open fan;
   tapping another stack closes the bubble and opens that stack's fan; Back steps out one thing at a time, including the return from a "kept in" journal entry.
 - The "Which build am I running?" answer of the old README (`Build <versionCode> · <versionName>` in Settings) is kept and corrected: it said the footer moved there from the drawer; the footer is in
-  Settings, reached from Tools. The example `Build 9 · 1.0.9+g85fa6245` is an illustration of the format (carried over from the old README), not a build; its format is anchored in rows 72 to 75 below.
+  Settings, reached from Tools. The example `Build 9 · 1.0.9+g85fa6245` is an illustration of the format (carried over from the old README), not a build; its format is anchored in the rows for the footer text, the version code and the version name below.
 
 ## The claims table
 
@@ -301,9 +301,8 @@ OK      path data/species-index/README.md  (exists)
 ## Stale things found elsewhere, not touched
 
 - `data/species-index/README.md:7` says the index is "not wired into the app yet"; the app bundles and reads a fungi index (`LocalFungiIndexRepository.kt`, `app/src/main/assets/databases/fungi_index.db`).
-- The old README (archived) describes six tabs, a compact/medium/expanded split, no device verification and CI "on every push to main"; all of that is wrong now (rows 9, 10, 90 to 98).
+- The old README (archived) describes six tabs (`List / Maps / Seasonal / Journal / Album / Settings`, archive line 77), a split between compact and medium/expanded windows (line 120), a "Not yet verified" section opening with "nothing has been *rendered* on a device or emulator" (line 683), and CI on "every push to `main` and every pull request" (line 628). The app has five tabs and one layout at every window size, device checks are recorded throughout `docs/audits/`, and CI also runs on `pre-main`.
 - `MapReturnMemory.takeEntryBubble` returns null without a log line when the bubble's target is not a feature (`MapReturnMemory.kt`, the `as? MapBubbleTarget.FeatureTarget ?: return null`). The planner asked for the `warn` to go in with the next change to that file; this dispatch is docs only, so it is **not** done here and is still pending.
-- `docs/audits/2026-10-01-fan-tap-*` does not exist; the withdrawn fan-tap work is on its own branch only.
 
 ## The four disclosures
 
@@ -312,8 +311,7 @@ secret, authorization and bearer found nothing; this is a negative search over t
 
 **Could not determine.** What the example `Build 9 · 1.0.9+g85fa6245` was originally; that the S22 Ultra is the project's test phone as a matter of record beyond what `docs/audits/` and `RECORD.md` show (the README says only that device checks on an S22 Ultra are recorded there).
 
-**Premises that were wrong.** The dispatch says the old README's Seasonal/weather and tabs claims were stale and its last section answered "which build": all true. It also says to keep the CI badge: kept, and its repository
-is the one `git config --get remote.origin.url` returns (`git@github.com:slayer8366/Forager.git`). My first draft said the S22 Ultra "is the test phone" and described STATUS.md as "from early September"; neither is in a file, so both were reworded before this commit.
+**Premises that were wrong.** None of the dispatch's own checks failed: the five tabs, the old README's tab-and-device claims, and the stale opening paragraph were as it said. Two of my own draft statements were wrong and were reworded before this commit: that the S22 Ultra "is the test phone" (no file says so; the README now says device checks on an S22 Ultra are recorded) and that STATUS.md is "from early September" (its header gives no date; the README now says only that it is redacted 2026-09-09). One of my own notes said the old README put CI "on every push to main" as an error; it says "every push to `main` and every pull request", so it is incomplete (no `pre-main`), not wrong.
 
 **Decided beyond scope.** The README states once that source paths without a top-level folder are under the package root, so the path check can resolve them; and it points at the fan-holds report for the fan claim.
 
