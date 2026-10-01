@@ -9116,3 +9116,32 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 - **Gap 2, the crossfade:** nothing uncovered. With b1fc980d's hard-switch style swapped in, 2 of TopoNightStreetSwitchTest's 13 fail with messages specific to that edit ("street layer maxzoom … expected:<9.7> but was:<9.5>"; "at 9.5 both, Street under …"). There were 0 `e:` lines, and the forward file was restored (sha256 b8321b06).
 - **The coder's suite:** 396 files, 3225/0/0/24.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-347
+**Timestamp:** 2026-10-01T00:51:30Z
+**Closes:** 2026-09-28-317 (preserved -21), with continuations -341, -342, -343 and -345
+**Outcome:** completed, with one open item carried to a follow-up
+**Observed:**
+- **What merged** into journal-redesign as 851e28fd, no-ff, from album-gesture 90e272c4. docs/audits/README.md conflicted with -336's row; both were kept, and the rows went from 221 and 221 to 222.
+- **The owner, verbatim:** "Option 1 with 3 as a followup". That is: merge now and watch CI, and capture the failing thread afterwards.
+- **The fix, option (c):** DecodedPhoto composes one Image in both states, and only the painter changes (a ColorPainter placeholder, then a BitmapPainter). The contentDescription is null until loaded. The owner confirmed option A for the unsized-placeholder size (-343). The JournalTabTest From Album test waits for its decode with waitUntil, and its assertion is unchanged.
+- **The coder's evidence:**
+  - 5 gesture tests fail at base with CI's lost-gesture messages and pass with the fix. The revert check fails the same 5;
+  - the merged and unmerged semantics equal the base goldens at 4 sites, loaded and not;
+  - 11 call sites are listed, and all are sized.
+- **The planner's checks:**
+  - the saved full-suite XML (album-gesture-evidence/full1) gives 399 files and 3238/0/0/24;
+  - the branch's app tree at 90e272c4 is identical to the tested ac815871, with the scratch probe reverted;
+  - the merged head's app tree is identical to the branch's.
+- **The pinned condition:** 11 of 12 clean; JournalPendingDeleteTest 12/12 and JournalTabTest 12/12.
+**Open, carried to a follow-up dispatch:**
+- **Pinned run 3 had one DecodedPhotoTest failure:** a CalledFromWrongThreadException. The harness resumed the effect inline on the IO worker, and the recompose-and-apply ran there too, into PainterElement.update, then requestLayout.
+- It was not reproduced in 46 other runs. Two hypotheses were tried, and neither was decided.
+- Production is inferred safe: AndroidUiDispatcher posts back to the UI thread. That is not observed on a device.
+- It is unknown whether the unfixed build can fail the same way.
+**Next:** the planner tracks CI for about 6 consecutive green runs (-296 §7).
+**Device items open:** tap and long-press album photos straight after opening, on a cold start, in portrait and landscape and on the tablet tree. These are in -319 through -340.
+**Notes:** Written by the planner by hand.
