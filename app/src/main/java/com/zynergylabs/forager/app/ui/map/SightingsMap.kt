@@ -797,10 +797,13 @@ fun SightingsMap(
         val map = mapLibreMap ?: return@LaunchedEffect
         val density = context.resources.displayMetrics.density
         var hiddenFor: List<FanMember>? = null
+        val probeScope = this
         snapshotFlow { fanOut.members to fanOut.progress }.collect { (members, progress) ->
+            var probeNow = false
             if (hiddenFor !== members) {
                 applyFanOutHiding(style, members)
                 hiddenFor = members
+                probeNow = members.isNotEmpty() // THROWAWAY probe (FanGapProbe.kt)
             }
             pushFanFrame(
                 style,
@@ -809,6 +812,7 @@ fun SightingsMap(
                     drawOrder = orderedLayers(MAP_LAYER_REGISTRY, currentLayersState),
                 ),
             )
+            if (probeNow) FanGapProbe.start(probeScope, mapView, map, members, density) { fanOut.progress } // THROWAWAY
         }
     }
 
