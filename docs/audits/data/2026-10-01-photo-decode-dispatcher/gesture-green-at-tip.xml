@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.DecodedPhotoGestureTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-01T03:20:51.866Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="9.623">
+  <properties/>
+  <testcase name="album tile with delete wired - a tap whose decode lands between down and up opens the viewer" classname="com.zynergylabs.forager.app.ui.log.DecodedPhotoGestureTest" time="7.355"/>
+  <testcase name="album tile with no delete wired - a tap whose decode lands between down and up opens the viewer" classname="com.zynergylabs.forager.app.ui.log.DecodedPhotoGestureTest" time="0.481"/>
+  <testcase name="find editor thumbnail - a tap whose decode lands between down and up opens the viewer" classname="com.zynergylabs.forager.app.ui.log.DecodedPhotoGestureTest" time="0.678"/>
+  <testcase name="find report thumbnail - a tap whose decode lands between down and up opens the viewer" classname="com.zynergylabs.forager.app.ui.log.DecodedPhotoGestureTest" time="0.371"/>
+  <testcase name="album tile with delete wired - a long-press whose decode lands before the timeout opens the Delete menu" classname="com.zynergylabs.forager.app.ui.log.DecodedPhotoGestureTest" time="0.411"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
