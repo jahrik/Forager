@@ -9895,3 +9895,17 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Also the planner's reading, told to the owner:** only Back retraces. A tap on empty map with that bubble showing closes the bubble and brings no fan back.
 **Change:** the open question of -383 is closed as above and built under -381, tests first.
 **Notes:** Written by the planner session that wrote -370 to -383.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-385
+**Timestamp:** 2026-10-01T18:39:24Z
+**Continues:** 2026-09-28-381 (preserved 2026-10-01-10, where the withdrawal is appended), after -383 and -384; the coder told to stop
+**The owner, verbatim:** "The fan isn't put away while the bubble shows. The bubble should display over the fan and stay until tapping the map, or tapping back button" and "The fan should also stay until tapping the map, or the back button".
+**What it means for -381:** its main change is withdrawn. A tap on a fanned icon is to open its bubble over the open fan, which is what journal-redesign does today; the bubble closes on a tap on the map or a Back, and the fan on the next (-255 item 7); Back from a find's page returns the fan and the bubble. The owner's path recorded in -384 says the same and the planner read a fan put away into it that was not there.
+**The planner's error, stated so it is not repeated:** the owner's "when an icon gets tapped, immediately display the icon and dismiss the fan upon that single tap" and "Act as normal taps when the old fan is out, while dismissing it at the same time" (quoted in -378) were about a tap on another marker or stack while a fan is open, which already folds the old fan. The planner read "an icon" as an icon of the open fan, restated the rule to the owner in prose, took "That's the correct order" as agreement with the reading, and dispatched -381 on it. When the owner had said the behaviour was "confirmed on the new build", the planner explained it away with the coder's finding about fanned icons instead of asking what they had tapped. -383's and -384's readings (rule 4 by a new mechanism; Back from the bubble bringing the fan back) built on the same error. The owner's own step path is what exposed it.
+**Cost:** about an hour of the coder's work on branch fan-tap (3ae08bc8 when last reported: rule 1 and its tests, a suite of 3369 tests at 0 failures on the wrong behaviour, and ten existing tests changed to fit it). None of it was merged; journal-redesign's app code is as -382 left it. fan-tap stays pushed as the record and is not merged.
+**Withdrawn:** -381's rules 1, 3, 4's new mechanism and 5; -384's change. **Not withdrawn, the owner's, not built:** a tap on a stack closes a showing bubble as the fan opens (-383, "1 yes"); Back from a journal entry opened from a "kept in" line returns to the same bubble and fan (-383, "3 yes"), six main files by the coder's write-up, its timing still with the owner.
+**Practice from here:** a change to how the app behaves is put to the owner as a step path, in the notation they used, and confirmed before it is dispatched.
+**Notes:** Written by the planner session that wrote -370 to -384.
