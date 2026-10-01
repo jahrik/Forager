@@ -111,12 +111,16 @@ fun MarkerFanOutHost(state: MarkerFanOutState) {
  * **And the same for fullscreen, the add-action menu and the pin pickers ([backEnabled] false while any is up):** a
  * "Log a find" or trip pick, and the search dropdown's "Set on map". The owner, dispatch 2026-09-28-298: "apply the
  * change to the other Back cases". Back closes that thing and the fan stays open; the next Back folds the fan. The
- * gate is computed where each one's state lives, `AvailabilityCompactScaffold` for the drawer and fullscreen,
- * `CompactMapTab` for the menu and the pickers. **Not covered, by the owner's ruling ("Option A"): the search
- * dropdown and the taxon suggestions list**, which keep the Back order they had. The bubble, the Layers sheet and
+ * gate is computed where each one's state lives, `AvailabilityCompactScaffold` for the drawer, fullscreen and the
+ * search dropdown, `CompactMapTab` for the menu and the pickers. `AvailabilityScreenFanBackOthersTest` asserts each
+ * of -298's against the real screen and dispatcher.
+ *
+ * **And for the search dropdown (dispatch 2026-09-28-312, item 12):** the owner, "Yes dropdown should go away first
+ * when hitting back". Its term waited, under continuation -303, on the dropdown staying closed after Back in the
+ * Robolectric harness; the scaffold's focus fix ended that. `AvailabilityScreenBubbleAndDropdownBackTest` asserts it.
+ * **Not covered: the taxon suggestions list**, which keeps the Back order it had. The bubble, the Layers sheet and
  * the navigation-exit dialog are unchanged: a bubble still closes before the fan, the drawer before both, the
- * sheet and the dialog in their own windows. `AvailabilityScreenFanBackOthersTest` asserts each covered one against
- * the real screen and dispatcher.
+ * sheet and the dialog in their own windows.
  */
 @Composable
 fun MarkerFanOutBackHandler(state: MarkerFanOutState, bubbleOpen: Boolean = false, backEnabled: Boolean = true) {

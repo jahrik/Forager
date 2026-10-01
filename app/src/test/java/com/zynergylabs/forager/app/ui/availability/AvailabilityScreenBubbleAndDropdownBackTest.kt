@@ -57,8 +57,8 @@ import org.robolectric.annotation.Config
  * stays closed, in touch mode.
  *
  * A bubble against the dropdown (item 11's other half) and a fan against the dropdown (item 12): the dropdown,
- * drawn on top and opened after them, closes first, and the bubble or the fan stays. Red until the dropdown is in
- * the bubble's and the fan's Back gates, which is the next commit.
+ * drawn on top and opened after them, closes first, and the bubble or the fan stays; the next Back closes the bubble
+ * or folds the fan. Every test here runs in touch mode ([declareHostActivity]).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi")

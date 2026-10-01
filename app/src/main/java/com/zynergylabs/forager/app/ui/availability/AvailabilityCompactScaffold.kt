@@ -932,13 +932,16 @@ internal fun CompactMainScaffold(
                                 // Text's own padding — no map effect keys on it or on renderMode as a
                                 // whole (SightingsMap's own LaunchedEffects, checked), so nothing here
                                 // re-measures or re-fits the map.
-                                // backEnabled: while the Tools drawer or fullscreen is open, its Back goes first, so the fan's
-                                // handler is not composed (dispatches 2026-09-28-293 and -298; MarkerFanOutBackHandler's doc
-                                // comment). The add-action menu and the pin pickers are state of CompactMapTab, which narrows
-                                // this further at its own mapSlot call. The search dropdown and the taxon suggestions are
-                                // deliberately NOT here (owner, "Option A"): the dropdown keeps its Back order, because in the
-                                // Robolectric harness it reopens itself after closing, see the -298 report.
-                                renderMode = mapRenderMode.copy(bottomInset = safeAttributionBottomInset, attributionEndInset = safeAttributionEndInset, attributionBottomInset = attributionButtonBottomInset, backEnabled = !isDrawerOpen() && !isMapFullscreen()),
+                                // backEnabled: while the Tools drawer, fullscreen or the search dropdown is open, its Back goes
+                                // first, so the fan's handler is not composed (dispatches 2026-09-28-293, -298 and -312;
+                                // MarkerFanOutBackHandler's doc comment). The add-action menu and the pin pickers are state of
+                                // CompactMapTab, which narrows this further at its own mapSlot call, and gates the bubble on the
+                                // same value. The dropdown is here as of -312: what is drawn on top closes first (the owner:
+                                // "Yes dropdown should go away first when hitting back ... I never said to have the fan close
+                                // before what's drawn on top"). Its term was held out under continuation -303 only while the
+                                // Robolectric harness reopened the dropdown after it closed, which the focus fix above
+                                // (dropdownCloseIsClearingFocus) ended. The taxon suggestions list is still not here.
+                                renderMode = mapRenderMode.copy(bottomInset = safeAttributionBottomInset, attributionEndInset = safeAttributionEndInset, attributionBottomInset = attributionButtonBottomInset, backEnabled = !isDrawerOpen() && !isMapFullscreen() && !showSearchDropdown),
                                 mapMode = mapMode(),
                                 onMapModeSelected = { onMapModeChange(it) },
                                 mapLayers = mapLayers,
