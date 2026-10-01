@@ -11,6 +11,9 @@ Coder: Sonnet 5.5 (`claude-sonnet-5-5`). Branch `fan-flicker`. Evidence: `~/Zyne
 - The fix: `style.transition = TransitionOptions(current.duration, current.delay, false)`: MapLibre's placement (symbol-fade) transition off, duration and delay kept. Applied wherever a style finishes loading, so it holds for every basemap, day and night, online and offline (not shown on a second style by any test here; see below).
 - Alternatives rejected, and why: the Part 1 report's options 2, 3 and 4 (untested, or a risk to the look at rest), and test B (not run; test A with four sources already had 0 mismatch frames). The planner and the owner chose option 1.
 
+  > **Superseded by amendment 3:** test B was not needed for what this fix did, but the single source was then tried for the circles-ahead fault and did not close it (Amendment 3 section below).
+
+
 ## Verify-before-building (the amendment's two items and its code list)
 - **Transition values before the change, read from a loaded style on the S22:** `duration=300 delay=0 placement=true`, exactly as expected (`builds/fix-with-log-logcat.txt`; one style load logged). The temporary `Log.i` that read them is not in the recorded or committed build: it is in the log-build apk's dex (1 hit for "before: duration") and absent from the final apk (0 hits).
 - **One place:** `setStyle` is called once (`SightingsMap.kt:691`, one `MapView` at `:297`). `grep -rn "TransitionOptions\|\.transition\b\|setTransition" app/src/main` found nothing before the fix, so nothing replaces the style's transition afterwards. The inline style JSON (`BasemapStyles.kt:170-216`) has no `"transition"` key; I did not read the offline style's served JSON, and the logged values (300, 0, true) are what it, or the default, gave.
@@ -82,8 +85,143 @@ Start: `1.0.2306+g19f159fd`, user 0 ceDataInode 2259049, `forager.db` sha256 `e1
 ## The four disclosures
 - **Confirmed vs inferred.** Confirmed by measurement (n = 1 per cell): the base fault at animator 1 and 5, open and fold, and that the fix removes the circle-without-icon frames and the reversals and brings the icons to final brightness by the time the fan rests. Confirmed by unit test: the function's output. Inferred: the mechanism inside MapLibre; the fix's effect on every other symbol layer and on the dot while it moves (not observed); that it holds on a second basemap (no test). Read in the SDK by `javap`: the `enablePlacementTransitions` flag, the location component's renderer choice, and the absence of a per-layer fade control (not a reading of MapLibre's native placement code).
 - **Could not determine.** Why one glyph stays solid in the base clips (Part 1); the S26 at 120 Hz; what a user sees elsewhere on the map; the first-frame gap's cause (inferred: the originals are hidden a render before the copies are drawn).
+
+  > **Correction:** the S22 was in 120 Hz mode too; see the note under Conditions in the Part 1 report.
+
 - **Premises that were wrong.** The pass criterion (the Part 1 report's flaw, then the 4 dp floor); the amendment's and the Part 1 report's expectation that markers pop in at a cold start (not seen on the base); the comment at `BasemapStyles.kt:19-20`.
 - **Decided beyond scope.** The thresholds in `measure.py`, `floor.py` and `visible.py` are mine, set against stills; the 1500 px disc threshold; deleting three scratch frame caches of mine on the `/tmp` tmpfs when it filled (they freed nothing on `/`); one contact sheet that included the pre-launch frames of the base cold start was made, viewed and deleted, at the planner's instruction; and two cold-start sheets regenerated to start at a full-bleed splash frame. The cold-start clips themselves open with the phone's own screen (a personal photo); they were left untrimmed in the local evidence folder, outside the repository, on the planner's instruction.
 
 ## For the owner afterwards (device-only, on the merged build)
 As the amendment lists them, plus: the first frame or two of an open may show an icon before its circle has grown, and the stack is absent for one frame as the fan starts (both predate this fix); the pass criterion above is yours to settle.
+
+---
+
+# Amendment 2 (continuation -371): the blink at the open's start
+
+**Status: done, with one flagged frame and one case not reachable on the phone (both below). Ready to merge; the planner merges.**
+
+## The owner's words, as theirs
+- On the first fix build: "The flickering is better, but now there is a brief moment when the icons blink before fanning out". Then "Go ahead".
+- Later: "It's clean on the spread now", and, of the first fix: "I ran it on super slow motion and I verified no flickering beyond the blink occurs." They did not say which phone or how it was slowed.
+- Beside the pass criterion (above): "It's clean on the spread now" is the owner's word about what they watched. The planner reads it as support for not making icon-without-circle a pass item. That is the planner's reading, not the owner's ruling, and the criterion is still theirs to settle.
+
+## Diagnosis: confirmed, in two independent records that agree run by run
+- **Setup.** A throwaway probe build (kept out of the tree, copies in the evidence folder) logged per rendered frame how many original markers and how many copies the renderer reported at the stack (`queryRenderedFeatures`), while the same run was screen-recorded. Six opens (five at animator 1, one at 5), `amend2/probe-logcat.txt` and `runs/probe_r*.mp4`, `runs/probe5_r1.mp4`.
+- **Result.** The log has a rendered frame with copies=0 and originals=0 (1 or 2 frames) in opens 2, 4, 5 and 6 (the animator-5 open), and none in opens 1 and 3. `gap.py` on the recordings of those runs finds one empty screen frame (8, 8, 9 and 7 ms) in exactly those four and none in runs 1 and 3. So the originals' filter takes effect before the copies are drawn, and which comes first varies from run to run (the copies are re-tiled off the main thread), which is why the gap is 0, 1 or 2 frames.
+- **How `gap.py` decides** (checked against stills, e.g. a2_r2 frames 267 to 276): a frame is empty when the fan region (the 480x520 crop) holds fewer than 60 glyph-coloured pixels (hue 125 to 179 or 0 to 4, S>110, V>110); the folded stack has about 1800 and the copies about 2500. A gap's time is the clip timestamp of the first non-empty frame after it minus that of its first frame.
+- **Not ruled out and not tested:** the planner's other candidates (a visibility or image step landing late; the first push before positions settle; the gap depending on the number of members). The data fits the one mechanism above in every run, but a stack of two or twelve was not tried.
+
+## Gap before and after (S22, 120 Hz mode, animator 1 unless noted; empty frames at the stack, time on screen)
+| build | runs with a gap | per run |
+|---|---|---|
+| first fix, zoomed view (`pre1_r1..4`, `pre2_r1`, a5 `pre5_r1`) | 6 of 6 | 25 ms (2 frames), 9, 9, 8, 8, and 17 ms (2 frames, animator 5) |
+| first fix, earlier view (`ff_fix_a1`, `ff_fix_a5`) | 2 of 2 | 33 ms (1 frame); 16 ms (2 frames, animator 5) |
+| old order + probes, the restored view the "after" runs share (`probe_r1..5`, `probe5_r1`; `p2_r1..5`, `p2a5_r1`) | 9 of 12 | 8, 8, 9, 7 ms (probe) and 25, 9, 8, 8, 8 ms (p2); 3 runs none |
+| **Amendment 2, the same view (`a2_r1..5`, a5 `a2a5_r1`)** | **0 of 6** | **none** (the whole clips scanned, so the fold's end too) |
+The length varies (0 to 2 frames, 7 to 33 ms); the 33 ms was the longest, not the typical. Six runs after the fix is a small sample: if the gap showed in two thirds of runs, 0 of 6 would be about a 1 in 700 chance, but it is still six runs on one stack.
+
+## The fix
+- `FanOutHideGate` (new, pure, `ui/map/fanout/`): the order. A new fan hides nothing until its copies are drawn; the originals that stay fanned stay hidden; every other original is shown at once; the rest are hidden when `onCopiesDrawn(generation)` is called for the current wait. `onFold` drops a wait; an empty members list shows everything and drops any wait.
+- `FanOutRenderSignal.kt` (new): `awaitCopiesRendered` adds an `OnDidFinishRenderingFrameListener` and, on each rendered frame, asks `queryRenderedFeatures` of the fan's icon and dot layers for the ids of the expected copies; it completes when all are reported and removes the listener when it completes or is cancelled. `hideWhenCopiesDrawn` applies the gate's step to the filters. The matching (`expectedCopies`, `copiesDrawn`) is pure.
+- `SightingsMap.kt` (the fan effect, +30 -4): the copies are pushed first as before; the hide is the wait above; a fold drops the wait.
+- **The signal is not a fixed wait.** It is the renderer's own report, 3 or 4 rendered frames after the push in the six probe opens (28 to 46 ms, the copies 0.2 to 3.7 dp from their originals), and its listener was removed each time (the probe logged `its listener is removed`; it queries nothing once the answer is in or the fan is folded, released or replaced, because the wait is cancelled with its coroutine).
+- **Where the signal cannot come, and what happens (logged, none reached in these runs):**
+  1. No fanned marker is on screen: the originals are hidden at once, with one info line (`None of the N fanned markers is on screen`); there is nothing to blink.
+  2. On screen but not reported: when the fan has been at rest for 3 rendered frames, the originals are hidden anyway and a warning says so (`The renderer did not report the N copies drawn ...`). This is the last resort. With animations off (the owner's "spread out at once") the fan is at rest at once, so this fires about 3 frames after the open; I did not test that case.
+  The `MarkerFanOut` tag logged neither line during the Amendment 2 runs (`amend2/final/a2-markerfanout-log.txt`, bounded by a marker line, 06:07 to 06:12).
+- **Not done:** the single source and the probe code are not in this tree. They were reverted as new commits (below).
+
+## Commits
+`f6a7ed0b` (the wiring, work in progress when written), reverts of `9bc4fec7` (the single source) and `10ccca53` (its stub and failing tests; reverting the first alone would have left seven failing tests and a stub), the removal of `FanGapProbe.kt`, and the merge of `journal-redesign`: the tree is `d5d51ba0`. `FanOutLayers.kt` is byte-identical to `origin/journal-redesign` (0 differing files); `grep` finds 0 probe references; the diff against `journal-redesign` is exactly the five Amendment 2 files (`FanOutHideGate.kt`, `FanOutRenderSignal.kt`, `SightingsMap.kt`, and the two test classes): 470 insertions, 4 deletions. The single source can be re-applied by reverting the two revert commits.
+
+## "No state where a marker shows twice or not at all", case by case
+| case | how shown |
+|---|---|
+| a fan opens | recordings: no empty frame in 6 of 6; the glyph-pixel count goes from the folded level (about 1837) to the copy level (about 2507) in one step and never exceeds it before the spread (`a2_r1..5`), so there is no sign of a frame with the originals beside offset copies (originals and copies at one place would not show in the count); full-resolution crops of `a2_r2` frames 267 to 276 show no ghost |
+| a fold, Back during the spread | recordings `q2_r1`, `q2_r2` (Back 0.3 s after the tap): the stack is back (7565 glyph px, a folded stack), no empty frame; unit tests for the gate |
+| Back before the signal | **not reachable by adb.** A Back 0.08 s after the tap was not delivered to the fan at all (the fan stayed open until a later Back): the Back handler is composed only once the fan is open, and the two adb calls land in the same input batch. The signal itself arrives about 45 ms after the push, earlier than any Back adb can place after the handler exists. Covered by the gate's tests (a fold or release before the signal leaves the originals shown and the late signal does nothing), not on the phone. This Back behaviour is not new with this change; I did not run it on the base |
+| another stack tapped while a fan is open | gate tests only (the first fan's originals return at once, the new ones hide on the signal, a marker in both stays hidden). No second stack was in view; not on the phone |
+| a style reload | the effect, and so the gate, is re-created with the style, whose filters hide nothing, and the open fan goes through the same push-then-signal path (gate test "a fan re-drawn on a fresh style"). Not on the phone |
+| members off screen / no signal | the two logged branches above; neither reached on the phone |
+| reduce motion | not tested |
+
+## Evidence that the first amendment's measures still hold (`measure.py`, the same script)
+| run | circle-without-icon | reversals | rest | icons at final brightness |
+|---|---|---|---|---|
+| a2_r1 open | **1** (frame 284) | 0 | 216 ms | 75 ms before rest |
+| a2_r2 / r3 / r4 / r5 open | 0 / 0 / 0 / 0 | 0 | 200 / 216 / 208 / 175 ms | 84 / 75 / 75 / 67 ms before rest |
+| a2a5_r1 open (animator 5) | 0 | 0 | 950 ms | 408 ms before rest |
+| folds, six runs | 0 | 0 | gone at 158, 142, 150, 158, 174 ms (a1), 484 ms (a5) | n/a |
+**The one flagged frame, stated plainly:** `a2_r1` frame 284 is flagged circle-without-icon (icon coverage 0.37, circle 0.22, thresholds 0.5 and 0.2). It sits on a smooth rising edge (icon 0.23, 0.37, 0.74; circle 0.09, 0.11, 0.22, 0.30), nothing reverses or dims, and the early copies lie inside the metric's 40 px hub exclusion disc, which depresses icon coverage there. I read it as the threshold edge and not a blink, but by the dispatch's strict count the pass ("0 circle-without-icon frames") is met in five runs of six and not in one. icon-without-circle (reported, not a pass item here): 1 to 2 frames at animator 1 open, 3 to 6 at the fold, 9 and 6 at animator 5.
+
+## -299 and -318, viewed at animator 1 and 5
+Full-resolution crops: `a2_r2` frames 267 to 276 (open start), `a2_r1` frames 626 to 636 (fold end), `a2a5_r1` frames 282 to 296 (open start) and 1092 to 1104 (fold end). The camera tile is the front glyph in the same place before the open, in the copies, in the last fan frames and after the fold; no position jump at either end, at either speed (-299, -318). The location dot is covered by the copies from the first copy frame (-290) and returns about 5 to 6 frames after the copies clear at the fold's end (`a2_r1..3`, measured by blue pixels at the hub); in the first fix's clip it returned 4 frames after. I did not look into that difference.
+
+## Tests
+- **`FanOutHideGateTest` (12):** test first. On the stub (hides at once) 6 of 12 failed, each with a message specific to the order ("no original may be hidden before the signal expected [] but was [FanMember(...)]"; "a1 is in both fans, so its original stays hidden ..."; "the first fan's originals come back as its copies go ..."). The other 6 passed on the stub because it returns nothing from the signal paths: they guard the implementation and do not bite on the stub. Pushed failing (`a96b0686`), then the implementation: 12/12.
+- **`FanOutRenderSignalTest` (7):** the pure matching. **These were written with the implementation, not before it**; their bite is shown only by the revert check below.
+- **Revert check, from saved copies** (`FanOutHideGate.kt` sha256 `d655e88d…`, `FanOutRenderSignal.kt` `31e6974d…`): `onMembers` made to hide at once, and `copiesDrawn` made to accept any one copy. The compile tasks ran, **0 `e:` lines, read before the XML**; 8 of 19 failed: 6 in the gate (the same set that failed on the stub) and 2 in the signal ("one icon missing" and one more), failures only these edits can produce. Restored from the saved copies (sha256 equal), forward change confirmed present, `git status` empty. Evidence `amend2/final/revert-*.xml`.
+- **What no unit test reaches:** that the renderer reports the frames the code asks it about and that the listener is removed (the probe log shows it, 3 or 4 frames per open); that the filters then change on the next frame; the signal on the S26; reduce motion; another stack; a style reload.
+- **Full suite, `d5d51ba0`:** BUILD SUCCESSFUL in 4m 17s, 0 `e:` lines; 409 suites, 3297 tests, 24 skipped, **0 failures, 0 errors** (19 more than the first fix's 3278: the 12 and the 7). XML in `amend2/final/full-suite-xml/`, saved before the revert run. `assembleDebug`: 0 `e:` lines.
+
+## The phone
+Installs since the first fix, in order (`install -r --user 0`, forward only, no `-d`; the three values read back after each, always inode 2259049 and db `e1188b00…`): the probe build (apk `43eea7fc…`, `1.0.2342+g69e004e9.dirty`), probe 2 (`c3b44af7…`, `1.0.2344+gf6a7ed0b.dirty`), probe 3 (`bc8c7a64…`, `1.0.2345+g10ccca53.dirty`; the single source plus the probe), and **the Amendment 2 build (apk `accbaa72fbcf5c8d…`, `1.0.2352+gd5d51ba0`, `lastUpdateTime` 06:06:43), which is on the phone now**. It is built from a clean tree (no `.dirty`).
+- Animator set to 5.0 for one run per batch and read back as 1.0. Settings otherwise unchanged.
+- **Deviations from the phone rules, stated:** I ran `adb logcat -c` once (at the start of the probe 3 batch), which clears the phone's log buffer and touches no data; it is not in the dispatch's list and I will not run it again. I wrote one marker line into the log (`log -t FANMARK`) at the planner's suggestion, to bound a read.
+- **The owner used the phone while I recorded**, which I found and stopped for: `runs/pre1_r2.mp4` shows, for about 4 seconds, a settings screen sliding over the dimmed map, and the end of `pre1_r4.mp4` is the same kind of overlay; I sent no input then. The map had also been panned and zoomed between my first clips and later ones, so the earlier "before" clips (`ff_*`, `pre*`) are on a different view from the matched "before" and "after" runs (`probe*`, `p2*`, `a2*`), which share the view the app restores after an install. I did not restore the earlier view (a pinch is a swipe). Nothing from the owner's own use of the phone is in a sheet or the repository; the clips are local.
+- Re-reads before taps and installs always matched what I left; each run's pre-tap check confirmed the folded stack at the tap point, and stopped run 5 of the first batch and two runs of the interruption batch when it was not there.
+
+## The four disclosures
+- **Confirmed vs inferred.** Confirmed: the mechanism of the blink (two independent records agreeing run by run); that the Amendment 2 build shows no empty frame in 6 of 6 runs; the unit tests. Inferred: why the order races (re-tiling off the main thread), and that 0 of 6 will hold in general.
+- **Could not determine.** A Back between the push and the signal on the phone; another stack; a style reload; reduce motion; the S26; the late return of the dot.
+- **Premises that were wrong.** "The S22 is 60 Hz" (it was 120 Hz mode for these recordings; origin not established); "test B is not needed" (see Amendment 3). (The first fix's report did name the one-or-two-frame gap at the open's start as a residual, correctly; what it did not know was that its length varies from 0 to 2 frames and that the order races.)
+- **Decided beyond scope.** The thresholds in `gap.py`; the three-frame give-up and its info and warning lines; adding `onFold` to the gate beyond the dispatch's list (so a fold drops a wait); reverting `10ccca53` as well as `9bc4fec7` (the planner named only the second; the first alone would have left seven failing tests); a sheet that included the owner's settings screen was made, viewed and deleted.
+
+---
+
+# Amendment 3 (continuation -373): the circles run ahead of the icons — STOPPED, measured, not fixed
+
+**Status: a stop, as the amendment defines it ("if one source does not close the gap ... a stop with what you measured"). No fix is in this tree. The single source was built and measured and is set aside (reverted as two new commits); the owner decides the next step.** Nothing about options A, B or C was built.
+
+## The owner's words, as theirs
+- "While we're at it, there is a moment where the circles jump ahead of the icons and it is visible during usual animation speed."
+- Asked whether the recording was on the S26 and on GitHub's build 2340: "Yes on 2340 on my S26" (build 2340 holds the first fix and nothing of Amendments 2 or 3; a stack of twelve, day style).
+- "I noticed the circles grow when expanding. It's acceptable if they fade instead of grow, if the growth is causing uneven physics."
+- "The S22 is currently in 120hz mode", and "It has been during this part of the test".
+
+## What was measured, and how
+A throwaway probe build (`amend2/probe2-build.apk`, `amend2/probe3-single-source-build.apk`, log files `probe2-logcat.txt` and `probe3-logcat.txt`, `lag.py` to reproduce) tagged every pushed fan feature with a push sequence number, the progress it was pushed at and its member, and on every rendered frame asked `queryRenderedFeatures` of all four layers which push each showed, and for each member the distance on screen between its circle's point and its icon's point. Five opens at animator 1 and one at animator 5 per build, on the S22 (120 Hz mode), the night style, a stack of seven (three photos, two finds, a pin, a flag).
+
+| | four sources (today) | one source (built, set aside) |
+|---|---|---|
+| animating frames, animator 1 (5 opens) | 289 | 295 |
+| frames with the layers on different pushes | 255 (88%) | 252 (85%) |
+| frames with every layer on the same push | 34 (12%) | 43 (15%) |
+| circle point to icon point, same member: median | 1.35 dp | 0.00 dp |
+| frames with the two 3 dp or more apart | 100 (35%) | 72 (24%) |
+| largest distance | 35.7 dp | 23.0 dp |
+| animator 5 (1 open): out of step / animating | 126 / 144, largest 5.5 dp | 125 / 142, largest 6.1 dp |
+The usual pattern with four sources (lag behind the newest push, for circles, icons, legs): circles and legs current with the icons one push behind in 130 frames, icons two behind in 38; with one source: icons one behind in 108, and the legs one push ahead of both circles and icons in 87 (40 before).
+
+## The owner's question: position, size, or both?
+**Position.** Where the circle was ahead of the icon, the circle's drawn radius (18 dp times the progress it was pushed at) differed from the radius of the icon's push by a median of 0.09 dp (largest 8.6 dp), while the circle's point differed from the icon's by a median of 3.7 dp (90th percentile 12.8 dp, largest 35.7 dp). That is (a) in the planner's list: the circles are displaced, and would look wrong at any size. The growth is not what makes it look uneven on this evidence, so the condition the owner attached to allowing a fade ("if the growth is causing uneven physics") is not met by these measurements, and no fade was built. At what progress a circle first shows beside its glyph with the growth in place: about 0.66 to 0.81 on the fix builds (12 to 15 dp radius, the first amendment's table).
+
+## Two limits on this result (carried to the owner as written)
+1. **The queries are not shown to equal what is drawn.** `queryRenderedFeatures` on a symbol layer may report the previous placement's state, a frame behind the drawn one; if so, the icon lag in the log is overstated by up to one push. For presence the query agreed with the screen run by run (Amendment 2), but not for position. I tried to check the position in the recordings, with the legs' end points against the glyphs, and it failed: the basemap's own white lines and the static accuracy ring swallow the legs, so there is no independent pixel confirmation on the S22. The owner's S26 clip is the visual evidence that the fault is real.
+2. **The per-layer lag patterns use the newest push in each layer, and the fan spans several map tiles**, which update separately: a leg crossing into an early tile can make the legs look ahead. The per-member circle-to-icon distance is tile-independent, so it is the figure to rely on.
+Also: five opens per build and one at animator 5; one stack of seven on the night style; the S26's stack of twelve in the day style is not what was measured.
+
+## Why the single source does not close it (inferred, not shown)
+A GeoJSON source is cut into map tiles and each push re-tiles the ones it touches; the layers of a tile come from the same data, but the symbol layer needs a further step (its images and glyphs are requested from the main thread, then placement) that a circle or line layer does not, so the icons can arrive a push after the circles even from one source. I did not read MapLibre's code; the evidence is only that one source moved the median to 0 and left a quarter of the frames 3 dp or more apart.
+
+## Options, each with its cost; none built, none tested on the phone
+- **A. Draw the circle as a symbol too** (an SDF circle bitmap in a second symbol layer, its size and opacity following the progress): the circle and the glyph then go through the same symbol pass. Cost: the circle's antialiasing at rest must be shown to match the native circle (the dispatch's bar is pixel for pixel); the legs, a line layer, would still arrive ahead of both; -299's growth becomes an `icon-size` expression; a fade instead of a grow is the owner's conditional permission. The planner has asked the owner for a throwaway test of this, in a later step of the dispatch file; not started.
+- **B. Gate the pushes on the render:** do not push the next frame until all four layers show the last. Cost: fewer pushes (the motion would step more coarsely), and frames mixing two pushes still occur while one lands. At 120 Hz the cost in coarseness is not what I first wrote ("every 2 to 3 frames at 60 Hz"): that premise was wrong, see the correction under Conditions in the Part 1 report.
+- **C. Move the fan out of the map's layers** into a Compose overlay positioned each frame from the projection, with no tile pipeline. Cost: the largest change; the dot would be under it by construction (-290 holds), but touch areas, Back, stacking (-318) and the look at rest must all be re-shown, and it is more than "confined to the fan's layers".
+- **D. Keep the single source** as a partial improvement (median 0, 24% of frames 3 dp or more apart) and accept the rest. The owner's call; it leaves a fault they have seen on the S26.
+
+## Test B, corrected
+The Part 1 report and the planner both said test B was not needed. It was: probe 2 against probe 3 is that test, run late, and it shows a single source helps and is not enough. The notes beside the earlier statements say so.
+
+## What exists in the tree and the evidence
+The single-source code and its tests (`FanPushPlanTest`, 7/7 on the implementation, 7/7 failing on the stub) are in the history (`10ccca53`, `9bc4fec7`) and were reverted by two new commits; reverting those reverts re-applies them. The probe code is not in the tree; its copies are in `amend2/saved-copies/`. `legs_vs_icons.py` in the evidence folder is the failed pixel check, kept so that nobody repeats it as written.
