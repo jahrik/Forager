@@ -10,7 +10,7 @@ import kotlin.math.abs
 import kotlin.math.hypot
 
 /**
- * The fan-out's arithmetic (dispatch 2026-09-28-197; the owner's rules 1 to 3): what is a stack,
+ * The fan-out's arithmetic (dispatch 2026-09-28-197; the owner's choices): what is a stack,
  * where the ring and the spiral put each marker. Everything is derived from the 48 dp touch size, so
  * the checks are on the property that matters (no two touch areas overlap), not on hand-copied
  * coordinates. Pure Kotlin: no map, no Compose.
@@ -29,7 +29,7 @@ class MarkerFanOutGeometryTest {
     private fun member(id: String, trueX: Float, trueY: Float, offset: FanOffset) =
         FanMember(FanKey("layer", id), 0.0, 0.0, trueX, trueY, offset)
 
-    // Rule 2: the ring.
+    // The ring.
 
     @Test
     fun `a ring of two to eight leaves no two touch squares overlapping`() {
@@ -64,7 +64,7 @@ class MarkerFanOutGeometryTest {
         assertEquals(67.88f, radius, 0.05f)
     }
 
-    // Rule 3: the spiral.
+    // The spiral.
 
     @Test
     fun `more than eight are a spiral, not a ring of the same radius`() {
@@ -94,7 +94,7 @@ class MarkerFanOutGeometryTest {
         assertTrue(hypot(one.xDp, one.yDp) >= FAN_TOUCH_DP - 0.01f)
     }
 
-    // Rule 1: what is a stack.
+    // What is a stack.
 
     @Test
     fun `two markers under the stacking distance apart are a stack, and the tapped one comes first`() {
