@@ -9067,3 +9067,20 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 - -342's option A is now the owner's decision, replacing the planner's own ruling. The owner had said "Yeah let me know instead": stop-and-ask triggers go to the owner even when no screen is affected.
 - The three conditions of -342 stand.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-344
+**Timestamp:** 2026-10-01T00:15:59Z
+**Continues:** 2026-09-28-336 (preserved -26)
+**Why:** gap 1 cannot be tested without changing production code.
+- SightingsMap.kt:293-297 builds MapView unconditionally, which throws UnsatisfiedLinkError under Robolectric (SightingsMapOverlayDataTest.kt:37, BasemapStyleTest.kt:29, MapLibreInitializerTest.kt:17).
+- No test composes the real SightingsMap. That is read from source and not run.
+**The owner's ruling, verbatim:** "C".
+- Gap 1 stays device-only: known untested wiring, with no code change.
+- The device evidence so far is the owner's S22 sighting of both credits at topo night (-332). -319 checks it again.
+**Rejected:**
+- (A), extracting the caption: it moves the untested call up one level and does not close it;
+- (B), a MapView factory seam: thought infeasible, since MapView needs the native library. Unverified.
+**Notes:** Written by the planner by hand.
