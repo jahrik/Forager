@@ -802,7 +802,10 @@ fun SightingsMap(
             }
             pushFanFrame(
                 style,
-                fanFrameCollections(members, { fanMemberLatLng(map, it, progress, density) }, focusedObservationId, progress),
+                fanFrameCollections(
+                    members, { fanMemberLatLng(map, it, progress, density) }, focusedObservationId, progress,
+                    drawOrder = orderedLayers(MAP_LAYER_REGISTRY, currentLayersState),
+                ),
             )
         }
     }
@@ -1444,6 +1447,14 @@ internal fun liveLocationComponentOptions(context: Context): LocationComponentOp
         .build()
 
 /**
+ * The options to apply to an already-initialised LocationComponent just before [liveLocationComponentOptions],
+ * or `null` when nothing is needed first (dispatch 2026-09-28-318, fail 3).
+ *
+ * `null` for now: the seam, before the fix.
+ */
+internal fun puckReplacementOptions(alreadyInitialised: Boolean, options: LocationComponentOptions): LocationComponentOptions? = null
+
+/**
  * Turns on MapLibre's own "blue dot" location puck and has the camera follow it — "like regular
  * GPS," the project owner's own framing, rather than the compass strip's pre-existing one-shot
  * locate-me fetch (which still exists unchanged, feeding that strip's own text readout, not the
@@ -1489,9 +1500,11 @@ private fun activateLiveLocationIfPermitted(
 ) {
     if (!hasLocationPermission(context)) return
     val locationComponent = map.locationComponent
+    val options = liveLocationComponentOptions(context)
+    puckReplacementOptions(locationComponent.isLocationComponentActivated, options)?.let { locationComponent.applyStyle(it) }
     locationComponent.activateLocationComponent(
         LocationComponentActivationOptions.builder(context, style)
-            .locationComponentOptions(liveLocationComponentOptions(context))
+            .locationComponentOptions(options)
             .useDefaultLocationEngine(true)
             .build(),
     )
