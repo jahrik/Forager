@@ -3,6 +3,8 @@ package com.zynergylabs.forager.app.ui.availability
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -113,6 +115,29 @@ class AvailabilityScreenDropdownCloseOutOfTouchModeTest {
         composeRule.mainClock.advanceTimeBy(2_000)
         composeRule.waitForIdle()
         assertFalse("the dropdown stayed closed on the Journal tab", dropdownShown())
+    }
+
+    /**
+     * The owner's option (A): the Tools drawer's close clears focus too (`AvailabilityScreen`'s effect on `isDrawerOpen`),
+     * and out of touch mode that handed focus to the search field, which opened a dropdown nobody asked for. That
+     * dropdown then took the next Back ahead of a fan or a bubble (-293's two tests, once the dropdown was in their gates).
+     */
+    @Test
+    fun `out of touch mode, closing the Tools drawer with Back does not open the dropdown`() {
+        showMapsTab()
+        composeRule.onNodeWithText("Tools").performTouchInput { click() }
+        settle()
+        composeRule.onNodeWithText("Trip Planner").assertIsDisplayed()
+        assertFalse("positive control: the dropdown is not open under the drawer", dropdownShown())
+
+        back()
+        composeRule.onNodeWithText("Trip Planner").assertIsNotDisplayed()
+        assertFalse("closing the Tools drawer did not open the dropdown", dropdownShown())
+
+        composeRule.waitForIdle()
+        composeRule.mainClock.advanceTimeBy(2_000)
+        composeRule.waitForIdle()
+        assertFalse("the dropdown is still not open", dropdownShown())
     }
 
     private companion object {
