@@ -115,6 +115,34 @@ class AvailabilityScreenDropdownCloseOutOfTouchModeTest {
         assertFalse("the dropdown stayed closed on the Journal tab", dropdownShown())
     }
 
+    // PROBE-START (not committed): what the default mode does after a close
+    private fun fieldFocused(): String = composeRule.onAllNodesWithTag(ACTIVE_SEARCH_SUMMARY_TAG).fetchSemanticsNodes().joinToString {
+        if (it.config.contains(androidx.compose.ui.semantics.SemanticsProperties.Focused)) it.config[androidx.compose.ui.semantics.SemanticsProperties.Focused].toString() else "n/a"
+    }
+
+    private fun probe(label: String) {
+        println("PROBE $label before open: dropdown=${dropdownShown()} fieldFocused=${fieldFocused()}")
+        openDropdownByTouch()
+        println("PROBE $label opened: dropdown=${dropdownShown()} fieldFocused=${fieldFocused()}")
+        back()
+        println("PROBE $label after Back: dropdown=${dropdownShown()} fieldFocused=${fieldFocused()}")
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performTouchInput { click() }
+        settle()
+        println("PROBE $label after a touch on the field: dropdown=${dropdownShown()} fieldFocused=${fieldFocused()}")
+        back()
+        println("PROBE $label after a second Back: dropdown=${dropdownShown()} fieldFocused=${fieldFocused()}")
+    }
+
+    @Test fun probeMapsTab() { showMapsTab(); probe("maps") }
+
+    @Test fun probeJournalTab() {
+        showMapsTab()
+        composeRule.onNodeWithText("Journal").performTouchInput { click() }
+        settle()
+        probe("journal")
+    }
+    // PROBE-END
+
     private companion object {
         const val MAP_TAG = "dropdown-close-map"
     }
