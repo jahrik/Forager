@@ -44,15 +44,19 @@ class CameraMoveClassifier(
 
     private var mark = Mark.NONE
 
+    /** Which mark is current, so a settle step queued by an earlier mark, running late, cannot drop a newer one (seen on the S22 at launch, main thread busy). */
+    private var generation = 0
+
     /** The app is about to move the camera itself (a control the user pressed, a search result, a style change). Call just before the move. */
     fun markAppMove() {
         if (mark == Mark.NONE) mark = Mark.ARMED
-        afterQueuedMessages { afterQueuedMessages { settle() } }
+        val thisMark = ++generation
+        afterQueuedMessages { afterQueuedMessages { settle(thisMark) } }
     }
 
-    /** Two looper turns after a mark: a mark no move has started under was for a move that did not happen. */
-    private fun settle() {
-        if (mark == Mark.ARMED) mark = Mark.NONE
+    /** Two looper turns after a mark: a mark no move has started under was for a move that did not happen. Only the latest mark's own step may drop it. */
+    private fun settle(forMark: Int) {
+        if (forMark == generation && mark == Mark.ARMED) mark = Mark.NONE
     }
 
     /** The camera is idle: the marked move, if any, is over. */
