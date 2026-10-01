@@ -9163,3 +9163,21 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 - Watch CI since 851e28fd.
 - A fix is proposed, not applied.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-349
+**Timestamp:** 2026-10-01T01:07:14Z
+**Title:** Diagnose the intermittent LeavingTheJournalFixesTest failure on CI
+**Dispatch-file:** preserved/2026-10-01-01.md
+**The owner, verbatim:** "Make that 2 I did open it already". Option 2 was a separate diagnosis dispatch, not a fold into -348.
+**The planner's reading,** from CI:
+- Run 36798317295, on 60d626b9, was the first with -317 to complete. Its album tests all passed.
+- It had one failure: LeavingTheJournalFixesTest "F3 Log a find on Maps over a changed kept find…", an IllegalArgumentException at :497 (typeFindIdentification's performScrollTo().performTextReplacement).
+- -296's data has the same class failing 3 times in 119 runs.
+- The cause is not known.
+**Change:**
+- Diagnosis only, on scratch branch leaving-journal-flake, never merged.
+- Collect the full messages, read the path, check for a shared cause with -296/-317, -348 and -297's stall, reproduce pinned, and propose a fix.
+**Notes:** Written by the planner by hand. This push also starts a CI run. The planner batches record-only pushes from here on, so that runs can complete.
