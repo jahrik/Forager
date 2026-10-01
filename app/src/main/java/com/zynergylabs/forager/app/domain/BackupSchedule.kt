@@ -11,8 +11,9 @@ enum class BackupFrequency { DAILY, WEEKLY, MONTHLY }
 /**
  * The automatic backup's settings (owner, "5 C scheduled set to off by default, must be turned on by user").
  * [enabled] is false until the user turns it on, and it can only be true with a [folderUri]. [frequency] starts
- * at [BackupFrequency.WEEKLY], the owner's choice (3rd rulings, 8: "weekly to start, with default off, let the user set the
- * frequency from there", `docs/plans/journal-redesign.md`); the user changes it before or after turning the switch on.
+ * at [BackupFrequency.WEEKLY], the owner's choice (the owner, 2026-09-29, item 8: "weekly to start, with default off, let
+ * the user set the frequency from there", `docs/plans/journal-redesign.md`); the user changes it before or after turning
+ * the switch on.
  */
 data class BackupScheduleSettings(
     val enabled: Boolean = false,
