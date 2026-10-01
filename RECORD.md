@@ -9784,3 +9784,22 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 - On how to build it: "I'm sure the coder can figure the logistics out for that just fine"
 **Also raised by the owner, no dispatch yet:** the README is "severely stale"; and, once this is finished, merging PR #140 into pre-main and then main ("Main is getting dusty"). main and journal-redesign conflict in .claude/settings.json only (modified on main by c5b2a10b, deleted on journal-redesign), by a trial merge that wrote nothing.
 **Notes:** Written by the planner session that wrote -370 to -377. The original planner of -369 went offline before the coder started.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-379
+**Timestamp:** 2026-10-01T16:26:03Z
+**Title:** readme-refresh: the README rewritten from what the code does today, the old one archived whole
+**Dispatch-file:** preserved/2026-10-01-08.md; sent by message to the coder window that ran -369
+**The owner, verbatim:** "We also need to update the Forager ReadMe. It's severely stale", and "Do the readme and then begin work on merging PR 140 to pre main and then to main. You have my auth for that full stack".
+**What the planner read:** README.md is 1,446 lines, identical on main and journal-redesign; its opening describes the app only as a species ranking; lines 677 to 1430, "Not yet verified", open by saying nothing has been rendered on a device. The planner did not read it line by line.
+**Two choices the planner made,** put to the owner as recommendations and not answered before "Do the readme": the README is for the owner and for whoever works on the repository; the old README is archived whole at docs/audits/2026-10-01-readme-archive.md, not deleted.
+**Change:**
+- A new README of about 250 lines: what the app is and does today by tab, which build is running, building, CI and its builds, outside services, the layout, where the project's memory lives, and a short list of what is not verified.
+- Every statement read from the code or configuration first, with a claims table in the completion report; what cannot be confirmed is left out.
+- Docs only: README.md, the archive, docs/audits/README.md rows and the report. No app code, no Gradle run, nothing on the phone.
+- Branch readme-refresh from origin/journal-redesign, in the trip-flag-size worktree. The planner merges it.
+**After it, by the same words of the owner:** PR #140 into pre-main, then pre-main into main, by the planner.
+**Not dispatched, waiting:** the fan's tap and movement rules the owner decided (quoted in -378). The owner reports two of them already true on the new build; no app file that handles taps or Back changed under -369, so they predate it. The rule that a fan stays open through the app's own map movement is not built.
+**Notes:** Written by the planner session that wrote -370 to -378.
