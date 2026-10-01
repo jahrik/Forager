@@ -35,7 +35,7 @@ class FanOutHideGate {
      * that stay fanned stay hidden, every other original is shown at once (so a replaced fan's markers return as its
      * copies go), and the rest wait for [onCopiesDrawn]. An empty [members] shows everything and cancels any wait.
      */
-    fun onMembers(members: List<FanMember>): FanOutHideStep {
+    fun onMembers(members: List<FanMember>, spread: Boolean = false): FanOutHideStep {
         generation++
         if (members.isEmpty()) {
             hidden = emptyList()

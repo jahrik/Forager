@@ -148,4 +148,63 @@ class FanOutHideGateTest {
         assertEquals(emptyList<FanMember>(), step.hide)
         assertTrue(step.awaiting)
     }
+
+    // --- the restart cases (amendment -371, the planner's review of a5185a2f): the fan-draw effect restarts when the focused
+    // observation changes while a fan is up, and on a style reload; the gate must not forget what it knows.
+
+    @Test
+    fun `asking again for the members it is already waiting for keeps the same wait`() {
+        val gate = FanOutHideGate()
+        val first = gate.onMembers(fanA)
+
+        val again = gate.onMembers(fanA)
+
+        assertEquals("the wait is the same wait", first.generation, again.generation)
+        assertTrue(again.awaiting)
+        assertEquals(emptyList<FanMember>(), again.hide)
+        assertNotNull("the signal for the first ask still counts", gate.onCopiesDrawn(first.generation))
+    }
+
+    @Test
+    fun `asking again for members it has already hidden keeps them hidden with no wait`() {
+        val gate = FanOutHideGate()
+        val waiting = gate.onMembers(fanA)
+        gate.onCopiesDrawn(waiting.generation)
+
+        val again = gate.onMembers(fanA)
+
+        assertEquals("a restart must not bring the originals back", fanA, again.hide)
+        assertFalse("and must not start a wait", again.awaiting)
+        assertNull("nothing is left waiting for a signal", gate.onCopiesDrawn(again.generation))
+    }
+
+    @Test
+    fun `a fan that is already spread when the gate first sees it is hidden at once`() {
+        val step = FanOutHideGate().onMembers(fanA, spread = true)
+
+        assertEquals("copies are away from their originals, so there is nothing to wait for", fanA, step.hide)
+        assertFalse(step.awaiting)
+        assertNull(FanOutHideGate().also { it.onMembers(fanA, spread = true) }.onRest())
+    }
+
+    @Test
+    fun `a fan seen at progress zero still waits`() {
+        val step = FanOutHideGate().onMembers(fanA, spread = false)
+
+        assertEquals(emptyList<FanMember>(), step.hide)
+        assertTrue(step.awaiting)
+    }
+
+    @Test
+    fun `a restart during a fold, which asks again and then folds, leaves nothing waiting`() {
+        val gate = FanOutHideGate()
+        gate.onMembers(fanA)
+        gate.onFold()
+
+        val restarted = gate.onMembers(fanA, spread = true)
+        gate.onFold()
+
+        assertFalse(restarted.awaiting)
+        assertNull(gate.onRest())
+    }
 }
