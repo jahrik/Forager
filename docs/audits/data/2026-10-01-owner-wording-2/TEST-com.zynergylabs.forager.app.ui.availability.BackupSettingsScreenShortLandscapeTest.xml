@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.BackupSettingsScreenShortLandscapeTest" tests="27" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:49:43.433Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="4.928">
+  <properties/>
+  <testcase name="having been asked before, turning it on asks for nothing" classname="com.zynergylabs.forager.app.ui.availability.BackupSettingsScreenShortLandscapeTest" time="0.176"/>
+  <testcase name="turning it off asks for nothing more" classname="com.zynergylabs.forager.app.ui.availability.BackupSettingsScreenShortLandscapeTest" time="0.285"/>
+  <testcase name="with the permission already granted it is not asked for" classname="com.zynergylabs.forager.app.ui.availability.BackupSettingsScreenShortLandscapeTest" time="0.172"/>
+  <testcase name="Continue without files saves the backup and says how many photos were left out" classname="com.zynergylabs.forager.app.ui.availability.BackupSettingsScreenShortLandscapeTest" time="0.2"/>
+  <testcase name="turning scheduled backups on asks for the notification permission" classname="com.zynergylabs.forager.app.ui.availability.BackupSettingsScreenShortLandscapeTest" time="0.166"/>
+  <testcase name="turning it on with no folder asks for nothing" classname="com.zynergylabs.forager.app.ui.availability.BackupSettingsScreenShortLandscapeTest" time="0.151"/>
+  <testcase name="Back up now offers the default file name, writes the backup where the user chose, and says Backup saved" classname="com.zynergylabs.forager.app.ui.availability.BackupSettingsScreenShortLandscapeTest" time="0.166"/>
+  <testcase name="Replace restores the chosen file in Replace mode and shows Restore complete" classname="com.zynergylabs.forager.app.ui.availability.BackupSettingsScreenShortLandscapeTest" time="0.179"/>
+  <testcase name="Cancel on the unreadable photos prompt deletes the file this run created" classname="com.zynergylabs.forager.app.ui.availability.BackupSettingsScreenShortLandscapeTest" time="0.253"/>
+  <testcase name="Cancel on the prompt restores nothing and closes it" classname="com.zynergylabs.forager.app.ui.availability.BackupSettingsScreenShortLandscapeTest" time="0.184"/>
+  <testcase name="How often changes the scheduled frequency" classname="com.zynergylabs.forager.app.ui.availability.BackupSettingsScreenShortLandscapeTest" time="0.142"/>
+  <testcase name="Choose folder opens the folder picker, and with a folder chosen the switch turns on and schedules the backup" classname="com.zynergylabs.forager.app.ui.availability.BackupSettingsScreenShortLandscapeTest" time="0.153"/>
+  <testcase name="the Automatic backup switch is off, and turning it on with no folder leaves it off and says why" classname="com.zynergylabs.forager.app.ui.availability.BackupSettingsScreenShortLandscapeTest" time="0.147"/>
+  <testcase name="Settings has a Backup section with exactly the approved labels" classname="com.zynergylabs.forager.app.ui.availability.BackupSettingsScreenShortLandscapeTest" time="0.196"/>
+  <testcase name="while a track is recording, Restore from backup says so and opens no picker" classname="com.zynergylabs.forager.app.ui.availability.BackupSettingsScreenShortLandscapeTest" time="0.155"/>
+  <testcase name="a file that already has contents is asked about before anything is written, with the owner's words" classname="com.zynergylabs.forager.app.ui.availability.BackupSettingsScreenShortLandscapeTest" time="0.246"/>
+  <testcase name="declining the permission does not stop the schedule" classname="com.zynergylabs.forager.app.ui.availability.BackupSettingsScreenShortLandscapeTest" time="0.159"/>
+  <testcase name="turning it on, off and on again asks for the notification permission once" classname="com.zynergylabs.forager.app.ui.availability.BackupSettingsScreenShortLandscapeTest" time="0.173"/>
+  <testcase name="a failed write shows the owner's message with Try again and Cancel, and Try again opens the Save picker again" classname="com.zynergylabs.forager.app.ui.availability.BackupSettingsScreenShortLandscapeTest" time="0.216"/>
+  <testcase name="Merge restores the chosen file in Merge mode and shows Restore complete" classname="com.zynergylabs.forager.app.ui.availability.BackupSettingsScreenShortLandscapeTest" time="0.183"/>
+  <testcase name="Restore from backup opens the file picker, then asks with the approved title, body and buttons" classname="com.zynergylabs.forager.app.ui.availability.BackupSettingsScreenShortLandscapeTest" time="0.162"/>
+  <testcase name="turning the automatic backup on leaves Weekly selected, the default the owner chose" classname="com.zynergylabs.forager.app.ui.availability.BackupSettingsScreenShortLandscapeTest" time="0.152"/>
+  <testcase name="Replace on that question writes the backup, and Cancel writes nothing" classname="com.zynergylabs.forager.app.ui.availability.BackupSettingsScreenShortLandscapeTest" time="0.287"/>
+  <testcase name="unreadable photos pause the backup with the owner's words and three buttons" classname="com.zynergylabs.forager.app.ui.availability.BackupSettingsScreenShortLandscapeTest" time="0.176"/>
+  <testcase name="a backup whose file cannot be opened shows Couldn't save the backup and not Backup saved" classname="com.zynergylabs.forager.app.ui.availability.BackupSettingsScreenShortLandscapeTest" time="0.14"/>
+  <testcase name="a restore that fails shows Couldn't restore that backup" classname="com.zynergylabs.forager.app.ui.availability.BackupSettingsScreenShortLandscapeTest" time="0.167"/>
+  <testcase name="a notice kept for launch is shown once, in the app, in the approved words" classname="com.zynergylabs.forager.app.ui.availability.BackupSettingsScreenShortLandscapeTest" time="0.133"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
