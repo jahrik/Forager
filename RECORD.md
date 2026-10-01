@@ -9978,3 +9978,21 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Still with the owner, device-only:** the three lines under "For the owner afterwards" in the dispatch; an entry deleted after being opened from a bubble; Back from the entry's editor.
 **Next:** the README (-379), then PR #140 into pre-main and pre-main into main.
 **Notes:** Written by the planner session that wrote -370 to -388.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-390
+**Timestamp:** 2026-10-01T19:42:48Z
+**Closes:** 2026-09-28-379 (preserved 2026-10-01-08)
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as 65a3436b, no-ff, from readme-refresh at 766db910, under the owner's "Do the readme and then begin work on merging PR 140 to pre main and then to main. You have my auth for that full stack" and, on 2026-10-01, "Mister Scotty, run the final stack. You have ny authorization.". Docs only: README.md, docs/audits/2026-10-01-readme-archive.md, the README's completion report, two README index rows, and an addendum to the bubble-paths report. The coder ran on Sonnet 5.5.
+- **The new README** is 153 lines against the old 1,446: what the app is and does today by tab, which build is running, building, CI, outside services, the layout, where the project's records live, and what is not verified or is known to be limited. The old README is archived whole under a header; the planner checked the archive's body against the old file's sha256 (18f9e2d5…).
+- **Every statement has a row:** 191 rows in the claims table, each to a file and line, checked by a script that exits on a missing anchor; the coder showed it failing on a broken anchor. 57 links and paths, 0 missing. Statements without an anchor were cut, which is why it is shorter than the 250 lines aimed at. The planner read the README in full and checked the tabs, the Records sub-tabs, the SDK levels, the Gradle version and CI's triggers and artifacts against the code itself.
+- **Added at the planner's request before the merge:** in the README's last section, the known issue and the two paths not run on a phone; and in the bubble-paths report, an addendum with the phone run made after that report was written.
+**The known issue that ships, by the owner's decision:** a bubble over an open fan is placed again for its record's own position at each camera idle, the middle of the stack for a fanned record. **Observed on the S22** (1.0.2401+g64be86f8) on the return from a find's page: the bubble's card settles about 88 dp lower than where it was, over the middle of the fan; the tail is not drawn, so where it points is inferred from the card. Expected from the code, and not observed, while the map follows the location (-380 keeps a fan open there). It predates today's work. The owner, verbatim: "I'll sort the old PRs out later. Your finish line is merging this to main.", "I'll triage after the release", and "Ship with known issue and next release will carry the fix to live".
+**For the owner's triage after the release:** that known issue, with the path the planner proposed for its fix (the bubble stays beside X's icon in the fan when the map settles and on the return from X's page), not yet answered; the two paths of -387 not run on a phone; Back from a journal entry's editor landing on the Entries list; an entry deleted after being opened from a bubble; the card-stack idea (-382); the fan's unreachable dots source and layer (-378); the camera-move listener firing about 60 times a second while following (-382); the silent return in MapReturnMemory.takeEntryBubble (-389); stale documents the README's report lists (data/species-index/README.md:7, BasemapStyles.kt:19-20); the old intents -200, -272 and -274 with no terminal; pull requests #101, #104 and #109, which the owner keeps for later.
+**Before this merge,** main was merged into journal-redesign as c73bd68f so that both merges ahead are clean: main's only commits were the owner's "Disable Claude-kit hooks" (c5b2a10b, PR #138), one line in .claude/settings.json; the conflict (modified on main, deleted here by the owner's e1363308) was resolved by keeping the file deleted; the tree was identical before and after.
+**Next:** CI on this head; a backup; PR #140 into pre-main; then pre-main into main.
+**Notes:** Written by the planner session that wrote -370 to -389.
