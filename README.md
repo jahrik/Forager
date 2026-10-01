@@ -20,6 +20,8 @@ old README, which described an earlier app, is kept whole in
 The app has five tabs along the bottom (`CompactTab` in
 `ui/availability/AvailabilityNavigationUi.kt`): **List**, **Seasonal**, **Maps**, **Journal** and **Tools**.
 The same layout is used at every window size, phone or tablet, portrait or landscape.
+Source paths named below that do not start with a top-level folder are under
+`app/src/main/java/com/zynergylabs/forager/app/`.
 
 - **Search** floats over the top of the screen, not on a tab. You pick a species or a broad category
   (Fungi, Plants, or an approximate Lichens), a place, a radius and a month. Species names are looked up in
@@ -36,7 +38,9 @@ The same layout is used at every window size, phone or tablet, portrait or lands
   - **Stacks.** Records that sit on top of each other (finds, photos, waypoints, planned trips) form a stack.
     Tapping a stack fans it out so each can be tapped. A fan stays open while the map follows your location
     and closes when you move the map yourself. Tapping a fanned icon shows that item's bubble over the open
-    fan; Back closes the bubble first and the fan next.
+    fan; tapping another stack closes the bubble and opens that stack's fan. Back steps out one thing at a time:
+    the bubble first, then the fan; and Back from a journal entry opened from a bubble's "kept in" line returns
+    to the map with that bubble and the fan it was opened from.
   - **Forecast layers.** Two colour-field layers for forecast data exist in the map, but the app has no real
     source for that data today: the debug build draws a synthetic test set behind a Diagnostics switch, and
     the release build reports that there is no forecast data.
@@ -96,12 +100,12 @@ What the code talks to, and what each needs. No API key or token for any of them
 
 | Path | What it is |
 |---|---|
-| `app/` | the Android app: `src/main`, `src/debug`, `src/release`, `src/test` (JVM tests), `src/androidTest` |
+| `app/` | the Android app: `app/src/main`, `app/src/debug`, `app/src/release`, `app/src/test` (JVM tests), `app/src/androidTest` |
 | `app/src/main/java/.../domain/` | the rules: ranking, trips, tracks, records |
 | `.../data/` | the Room database, the iNaturalist and Open-Meteo clients, repositories, backup |
 | `.../ui/` | Compose screens: `availability` (tabs, search, settings), `map`, `log` (Journal), `track`, `backup`, `crash`, `theme`, `motion`, `adaptive` |
 | `.../map/` | MapLibre set-up and the offline-region repository |
-| `.../photo/`, `location/`, `sensor/`, `service/`, `alert/`, `export/`, `crash/`, `net/` | camera and photo storage; location; compass and level; the recording service; alerts; GPX export; crash files; the HTTP user-agent |
+| `.../photo/`, `.../location/`, `.../sensor/`, `.../service/`, `.../alert/`, `.../export/`, `.../crash/`, `.../net/` | camera and photo storage; location; compass and level; the recording service; alerts; GPX export; crash files; the HTTP user-agent |
 | `data/species-index/` | how the bundled species-name index is built, and its inputs |
 | `server/pmtiles-worker/` | the tile worker behind offline downloads |
 | `scripts/` | SDK set-up and the checks that probe outside services |
@@ -109,10 +113,9 @@ What the code talks to, and what each needs. No API key or token for any of them
 | `.github/workflows/` | CI |
 
 Top-level files besides this one: `CLAUDE.md` (the standing working rules), `RECORD.md` (the log of dispatched
-work), `STATUS.md` (a status audit from early September, redacted 2026-09-09), `TRACK-PULSE.md` and
-`DISPATCH-REPORT.md` (older reports), and `NAVIGATION-SHELL-DISPATCH.md`, `PANEL-CONTENTS-DISPATCH.md` and
-`STRIP-REVERT-AND-PILL-DISPATCH.md` (older dispatch specifications). They are history, not current
-documentation.
+work), `STATUS.md`, `TRACK-PULSE.md` and `DISPATCH-REPORT.md` (reports, redacted 2026-09-09), and
+`NAVIGATION-SHELL-DISPATCH.md`, `PANEL-CONTENTS-DISPATCH.md` and `STRIP-REVERT-AND-PILL-DISPATCH.md` (dispatch
+specifications). Treat them as history, not current documentation.
 
 ## Where the project's memory lives
 
@@ -132,7 +135,7 @@ Work here is dispatched and recorded, so much of what is known about the app is 
 
 ## What is not verified, or is known to be limited
 
-- Device checks (the S22 Ultra is the test phone) are recorded in `docs/audits/` and `RECORD.md`. A green
+- Device checks on an S22 Ultra are recorded in `docs/audits/` and `RECORD.md`. A green
   unit-test run shows nothing that depends on real window insets, a real `MapView` or a moving phone;
   `CLAUDE.md` lists these.
 - That a fan stays open while the map follows a moving location is covered by unit tests and by device runs
