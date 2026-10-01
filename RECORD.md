@@ -9479,3 +9479,19 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Left, with the owner:** "Owner's rule" at CameraOverlay.kt:24 and "The owner's rule, 'Follow until you touch it'" at JournalTabTest.kt:364, in other features. The owner has been asked and has not ruled.
 **The installed build is unaffected:** 1.0.2306+g19f159fd on the S22 (device-note -362) has the same app behaviour.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-364
+**Timestamp:** 2026-10-01T05:41:13Z
+**Title:** The last two comments that call the owner's words a "rule" are reworded; comments only
+**Dispatch-file:** preserved/2026-10-01-05.md
+**The owner, verbatim:** "Yeah change them too", of the two comments terminal -363 left with the owner.
+**Change:**
+- CameraOverlay.kt:24: "Owner's rule, 2026-09-18:" becomes "The owner, 2026-09-18:".
+- JournalTabTest.kt:364: "The owner's rule, …" becomes "The owner's words, …".
+- Comment lines only. These are the only two such labels left in app/src, by grep at f0f09675.
+- Not changed: "the owner ruled …" and "the owner's ruling", which eight other comments use; the owner has been told they exist.
+**Checks:** the diff touches comment lines only; a compile of main and unit tests. No test run, by the dispatch.
+**Notes:** Written by the planner by hand.
