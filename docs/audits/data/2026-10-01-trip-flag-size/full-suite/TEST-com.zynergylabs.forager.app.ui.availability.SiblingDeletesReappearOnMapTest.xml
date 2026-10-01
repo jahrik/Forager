@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.SiblingDeletesReappearOnMapTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:23.759Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.325">
+  <properties/>
+  <testcase name="Undo brings the offline region back on the map" classname="com.zynergylabs.forager.app.ui.availability.SiblingDeletesReappearOnMapTest" time="0.027"/>
+  <testcase name="a photo deleted while the map was re-shown is not drawn after the Undo window ends" classname="com.zynergylabs.forager.app.ui.availability.SiblingDeletesReappearOnMapTest" time="0.024"/>
+  <testcase name="a region deleted while the map was re-shown is not drawn after the Undo window ends" classname="com.zynergylabs.forager.app.ui.availability.SiblingDeletesReappearOnMapTest" time="0.042"/>
+  <testcase name="a photo deleted at once by the drawer gallery or the album trash button is not drawn" classname="com.zynergylabs.forager.app.ui.availability.SiblingDeletesReappearOnMapTest" time="0.055"/>
+  <testcase name="a photo delete that fails leaves the photo drawn" classname="com.zynergylabs.forager.app.ui.availability.SiblingDeletesReappearOnMapTest" time="0.034"/>
+  <testcase name="Undo brings the photo back on the map" classname="com.zynergylabs.forager.app.ui.availability.SiblingDeletesReappearOnMapTest" time="0.026"/>
+  <testcase name="an offline region delete that fails leaves the region drawn" classname="com.zynergylabs.forager.app.ui.availability.SiblingDeletesReappearOnMapTest" time="0.029"/>
+  <testcase name="a deleted offline region is not drawn after its delete commits, with nothing tapped" classname="com.zynergylabs.forager.app.ui.availability.SiblingDeletesReappearOnMapTest" time="0.06"/>
+  <testcase name="a deleted photo is not drawn after its delete commits, with nothing tapped" classname="com.zynergylabs.forager.app.ui.availability.SiblingDeletesReappearOnMapTest" time="0.027"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

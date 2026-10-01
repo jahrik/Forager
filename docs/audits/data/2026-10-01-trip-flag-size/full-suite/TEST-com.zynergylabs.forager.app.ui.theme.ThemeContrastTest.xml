@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.theme.ThemeContrastTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:13.788Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.0">
+  <properties/>
+  <testcase name="every on-role pair clears WCAG AA in both themes" classname="com.zynergylabs.forager.app.ui.theme.ThemeContrastTest" time="0.0"/>
+  <testcase name="the contrast calculation itself is correct" classname="com.zynergylabs.forager.app.ui.theme.ThemeContrastTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.TrackWidthByZoomTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:12.901Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.002">
+  <properties/>
+  <testcase name="a track's line-width is a linear zoom interpolation from its stops" classname="com.zynergylabs.forager.app.ui.map.TrackWidthByZoomTest" time="0.0"/>
+  <testcase name="the stops are 25 percent at zoom 12, 42 at 14, 67 at 16 and the full width at 18" classname="com.zynergylabs.forager.app.ui.map.TrackWidthByZoomTest" time="0.0"/>
+  <testcase name="each casing keeps today's 1,5 ratio to its line at every zoom" classname="com.zynergylabs.forager.app.ui.map.TrackWidthByZoomTest" time="0.001"/>
+  <testcase name="the offline outline stays a constant 1,5 dp while the tracks thin out" classname="com.zynergylabs.forager.app.ui.map.TrackWidthByZoomTest" time="0.0"/>
+  <testcase name="below zoom 12 and above zoom 18 the width holds, and between the stops it is linear" classname="com.zynergylabs.forager.app.ui.map.TrackWidthByZoomTest" time="0.001"/>
+  <testcase name="each track line is 1,5 2,52 4,02 and 6 dp at zoom 12 14 16 and 18, and each casing 2,25 3,78 6,03 and 9 dp" classname="com.zynergylabs.forager.app.ui.map.TrackWidthByZoomTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

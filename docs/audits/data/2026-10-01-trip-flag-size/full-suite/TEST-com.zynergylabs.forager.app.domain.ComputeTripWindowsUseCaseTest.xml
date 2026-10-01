@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCaseTest" tests="23" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:52.553Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.008">
+  <properties/>
+  <testcase name="drizzle below the per-day threshold never starts an event" classname="com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCaseTest" time="0.001"/>
+  <testcase name="rain forecast during the window itself is reported separately from the preceding event" classname="com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCaseTest" time="0.001"/>
+  <testcase name="rain too recent for the lag range reports the range it points at instead" classname="com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCaseTest" time="0.001"/>
+  <testcase name="a window covered by two events carries both, most recent first" classname="com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCaseTest" time="0.0"/>
+  <testcase name="every window is reported as a plain interval, never ordered by preference" classname="com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCaseTest" time="0.0"/>
+  <testcase name="a soaking event produces a window at the stated lag" classname="com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCaseTest" time="0.0"/>
+  <testcase name="a run just under the soaking threshold does not qualify" classname="com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCaseTest" time="0.0"/>
+  <testcase name="no trip-planning type exposes a score, rank, probability or rating" classname="com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCaseTest" time="0.001"/>
+  <testcase name="the window starts exactly at the lower lag bound" classname="com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCaseTest" time="0.0"/>
+  <testcase name="a dry day splits one wet stretch into two events" classname="com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCaseTest" time="0.001"/>
+  <testcase name="a series with no forecast days says so rather than reporting an empty search" classname="com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCaseTest" time="0.0"/>
+  <testcase name="a day exactly at the per-day rain threshold counts toward a run" classname="com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCaseTest" time="0.0"/>
+  <testcase name="a day one short of the lower lag bound is excluded" classname="com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCaseTest" time="0.0"/>
+  <testcase name="a window carries the soil state measured across its days" classname="com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCaseTest" time="0.001"/>
+  <testcase name="drying is reported as unknown rather than as a partial sum" classname="com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCaseTest" time="0.0"/>
+  <testcase name="the window carries the rain event that produced it" classname="com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCaseTest" time="0.0"/>
+  <testcase name="the report echoes the region, reference day and horizon it searched" classname="com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCaseTest" time="0.0"/>
+  <testcase name="a completely dry series identifies no window and says why" classname="com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCaseTest" time="0.0"/>
+  <testcase name="a rain event still in the forecast is marked as not yet fallen" classname="com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCaseTest" time="0.001"/>
+  <testcase name="a run totalling exactly the soaking threshold qualifies" classname="com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCaseTest" time="0.0"/>
+  <testcase name="soil fields stay null when the location served no soil data" classname="com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCaseTest" time="0.0"/>
+  <testcase name="drying since the rain is summed from the day after the event through the window start" classname="com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCaseTest" time="0.0"/>
+  <testcase name="the window ends exactly at the upper lag bound" classname="com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCaseTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

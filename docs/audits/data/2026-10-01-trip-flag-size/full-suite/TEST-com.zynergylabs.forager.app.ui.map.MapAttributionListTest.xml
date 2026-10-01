@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.MapAttributionListTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:08.822Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.0">
+  <properties/>
+  <testcase name="a credit already present is not repeated" classname="com.zynergylabs.forager.app.ui.map.MapAttributionListTest" time="0.0"/>
+  <testcase name="with no layer credits the list is the one credit the caption has always shown" classname="com.zynergylabs.forager.app.ui.map.MapAttributionListTest" time="0.0"/>
+  <testcase name="over the offline style the offline credit comes first" classname="com.zynergylabs.forager.app.ui.map.MapAttributionListTest" time="0.0"/>
+  <testcase name="a layer's credit follows the basemap's, joined by a middle dot" classname="com.zynergylabs.forager.app.ui.map.MapAttributionListTest" time="0.0"/>
+  <testcase name="a single credit's caption is that credit exactly, for every basemap and the offline style" classname="com.zynergylabs.forager.app.ui.map.MapAttributionListTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

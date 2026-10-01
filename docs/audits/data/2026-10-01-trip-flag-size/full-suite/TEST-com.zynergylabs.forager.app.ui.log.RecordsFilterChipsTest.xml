@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.RecordsFilterChipsTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:58.119Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="1.035">
+  <properties/>
+  <testcase name="touching Offline maps shows the offline-maps panel and fires the offline-maps-opened callback" classname="com.zynergylabs.forager.app.ui.log.RecordsFilterChipsTest" time="0.13"/>
+  <testcase name="every All row carries its type badge, and each row is its chip's own row with its own controls" classname="com.zynergylabs.forager.app.ui.log.RecordsFilterChipsTest" time="0.052"/>
+  <testcase name="Back from a single-type chip returns to All, and Back from All steps to Cartography" classname="com.zynergylabs.forager.app.ui.log.RecordsFilterChipsTest" time="0.076"/>
+  <testcase name="the chip row shows All, Finds, Tracks, Waypoints and Offline maps in that order, with counts matching the data, All selected" classname="com.zynergylabs.forager.app.ui.log.RecordsFilterChipsTest" time="0.074"/>
+  <testcase name="deleting a waypoint or a region from All is a swipe, with no dialog" classname="com.zynergylabs.forager.app.ui.log.RecordsFilterChipsTest" time="0.089"/>
+  <testcase name="touching Tracks shows the recorded-track list and fires the tracks-opened callback" classname="com.zynergylabs.forager.app.ui.log.RecordsFilterChipsTest" time="0.113"/>
+  <testcase name="touching a find in All selects the Finds chip and opens its report, and Back goes to the Finds gallery, then All" classname="com.zynergylabs.forager.app.ui.log.RecordsFilterChipsTest" time="0.125"/>
+  <testcase name="leaving the Finds chip while editing is an incidental exit" classname="com.zynergylabs.forager.app.ui.log.RecordsFilterChipsTest" time="0.056"/>
+  <testcase name="leaving the Finds chip with nothing being edited is not an incidental exit" classname="com.zynergylabs.forager.app.ui.log.RecordsFilterChipsTest" time="0.057"/>
+  <testcase name="All shows every committed record grouped by day, days newest first, finds first in their day, then timed records newest first" classname="com.zynergylabs.forager.app.ui.log.RecordsFilterChipsTest" time="0.046"/>
+  <testcase name="touching Finds shows the finds gallery" classname="com.zynergylabs.forager.app.ui.log.RecordsFilterChipsTest" time="0.054"/>
+  <testcase name="touching Waypoints shows the waypoint list" classname="com.zynergylabs.forager.app.ui.log.RecordsFilterChipsTest" time="0.088"/>
+  <testcase name="EDIT_NEW_FIND lands on Finds editing with the Finds chip selected" classname="com.zynergylabs.forager.app.ui.log.RecordsFilterChipsTest" time="0.071"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

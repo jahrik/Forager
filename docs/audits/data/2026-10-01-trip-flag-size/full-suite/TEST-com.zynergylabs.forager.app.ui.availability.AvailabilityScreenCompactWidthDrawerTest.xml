@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenCompactWidthDrawerTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:18:27.129Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.19">
+  <properties/>
+  <testcase name="the map mode toggle meets the 48dp minimum touch target" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenCompactWidthDrawerTest" time="0.088"/>
+  <testcase name="the drawer's search controls are not shown until the drawer is opened" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenCompactWidthDrawerTest" time="0.101"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

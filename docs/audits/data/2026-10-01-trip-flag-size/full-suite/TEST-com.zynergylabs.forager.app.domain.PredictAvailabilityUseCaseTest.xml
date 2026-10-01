@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.PredictAvailabilityUseCaseTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:53.692Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.009">
+  <properties/>
+  <testcase name="passes the requested region, month, and filter through unchanged" classname="com.zynergylabs.forager.app.domain.PredictAvailabilityUseCaseTest" time="0.001"/>
+  <testcase name="repository failure propagates as failure, not a fabricated empty result" classname="com.zynergylabs.forager.app.domain.PredictAvailabilityUseCaseTest" time="0.001"/>
+  <testcase name="rejects a month outside 1-12" classname="com.zynergylabs.forager.app.domain.PredictAvailabilityUseCaseTest" time="0.001"/>
+  <testcase name="empty results produce an empty forecast without dividing by zero" classname="com.zynergylabs.forager.app.domain.PredictAvailabilityUseCaseTest" time="0.002"/>
+  <testcase name="top species has relative likelihood of 1 and others scale proportionally" classname="com.zynergylabs.forager.app.domain.PredictAvailabilityUseCaseTest" time="0.001"/>
+  <testcase name="ranks species by observation count descending" classname="com.zynergylabs.forager.app.domain.PredictAvailabilityUseCaseTest" time="0.001"/>
+  <testcase name="forecast carries the filter it was computed for" classname="com.zynergylabs.forager.app.domain.PredictAvailabilityUseCaseTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

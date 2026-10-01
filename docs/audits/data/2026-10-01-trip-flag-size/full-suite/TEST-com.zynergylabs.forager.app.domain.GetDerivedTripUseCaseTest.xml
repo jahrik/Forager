@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.GetDerivedTripUseCaseTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:53.321Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.212">
+  <properties/>
+  <testcase name="finds are not filtered by draft state - this dispatch does not decide entries-vs-drafts curation" classname="com.zynergylabs.forager.app.domain.GetDerivedTripUseCaseTest" time="0.03"/>
+  <testcase name="a find at 11-59pm local belongs to that evening's trip, not the next day's" classname="com.zynergylabs.forager.app.domain.GetDerivedTripUseCaseTest" time="0.033"/>
+  <testcase name="an offline region downloaded that day is included, without live tile-status fields it cannot honestly have" classname="com.zynergylabs.forager.app.domain.GetDerivedTripUseCaseTest" time="0.033"/>
+  <testcase name="a track from 10pm to 1am appears in both days' derived trips" classname="com.zynergylabs.forager.app.domain.GetDerivedTripUseCaseTest" time="0.037"/>
+  <testcase name="a waypoint dropped just after local midnight on a DST transition day is bucketed into that transition day" classname="com.zynergylabs.forager.app.domain.GetDerivedTripUseCaseTest" time="0.039"/>
+  <testcase name="a day with no data at all succeeds with every list empty, not a failure" classname="com.zynergylabs.forager.app.domain.GetDerivedTripUseCaseTest" time="0.038"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

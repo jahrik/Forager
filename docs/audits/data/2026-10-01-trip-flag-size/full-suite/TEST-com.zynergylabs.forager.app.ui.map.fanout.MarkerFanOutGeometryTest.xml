@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutGeometryTest" tests="18" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:13.019Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.011">
+  <properties/>
+  <testcase name="a member sits on its true spot at progress 0 and on its ring place at 1" classname="com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutGeometryTest" time="0.0"/>
+  <testcase name="the ring of eight is as tight as square touch areas allow - its radius is derived, not a round number" classname="com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutGeometryTest" time="0.001"/>
+  <testcase name="a spiral's markers are all distinct" classname="com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutGeometryTest" time="0.001"/>
+  <testcase name="the first marker of a ring is straight above the spot" classname="com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutGeometryTest" time="0.0"/>
+  <testcase name="just under the stacking distance is a stack on either axis, and the stacking distance is 26" classname="com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutGeometryTest" time="0.0"/>
+  <testcase name="a spiral of nine to sixty leaves no two touch squares overlapping and clears the spot" classname="com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutGeometryTest" time="0.005"/>
+  <testcase name="a ring of two to eight leaves no two touch squares overlapping" classname="com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutGeometryTest" time="0.001"/>
+  <testcase name="a chain is not a stack - a marker that overlaps only a neighbour of the tapped one is left out" classname="com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutGeometryTest" time="0.0"/>
+  <testcase name="overlap needs both axes - a marker far above is not in the stack" classname="com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutGeometryTest" time="0.0"/>
+  <testcase name="progress moves the places a touch is tested against" classname="com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutGeometryTest" time="0.0"/>
+  <testcase name="a ring is a circle about the stack's own spot, a touch size or more from it" classname="com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutGeometryTest" time="0.003"/>
+  <testcase name="the tapped marker is not counted twice when the query returned it too" classname="com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutGeometryTest" time="0.0"/>
+  <testcase name="more than eight are a spiral, not a ring of the same radius" classname="com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutGeometryTest" time="0.0"/>
+  <testcase name="a single marker still gets a real offset, never NaN" classname="com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutGeometryTest" time="0.0"/>
+  <testcase name="where two squares would both contain a touch the nearer marker wins" classname="com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutGeometryTest" time="0.0"/>
+  <testcase name="at exactly the stacking distance apart it is not a stack" classname="com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutGeometryTest" time="0.0"/>
+  <testcase name="a touch anywhere in a fanned marker's own 48 dp square finds it, and outside does not" classname="com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutGeometryTest" time="0.0"/>
+  <testcase name="two markers under the stacking distance apart are a stack, and the tapped one comes first" classname="com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutGeometryTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

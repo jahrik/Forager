@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.GetSeasonalPatternUseCaseTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:53.561Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.01">
+  <properties/>
+  <testcase name="the total_results from the sightings page reaches the distribution" classname="com.zynergylabs.forager.app.domain.GetSeasonalPatternUseCaseTest" time="0.004"/>
+  <testcase name="a weather fetch failure is reported as a failure, not an empty distribution" classname="com.zynergylabs.forager.app.domain.GetSeasonalPatternUseCaseTest" time="0.001"/>
+  <testcase name="sightings with no observed date are excluded from the fetch-range calculation" classname="com.zynergylabs.forager.app.domain.GetSeasonalPatternUseCaseTest" time="0.001"/>
+  <testcase name="a sightings fetch failure propagates without calling the weather provider" classname="com.zynergylabs.forager.app.domain.GetSeasonalPatternUseCaseTest" time="0.001"/>
+  <testcase name="fetches the historical weather padded back by FRUITING_LAG_DAYS_last from the earliest sighting through the latest" classname="com.zynergylabs.forager.app.domain.GetSeasonalPatternUseCaseTest" time="0.001"/>
+  <testcase name="no dated sightings at all skips the weather fetch entirely and still reports a distribution" classname="com.zynergylabs.forager.app.domain.GetSeasonalPatternUseCaseTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

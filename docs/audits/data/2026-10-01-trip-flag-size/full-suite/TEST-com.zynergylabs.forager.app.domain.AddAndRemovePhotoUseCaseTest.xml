@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.AddAndRemovePhotoUseCaseTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:52.495Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.011">
+  <properties/>
+  <testcase name="RemovePhotoFromLogEntryUseCase detaches the reference and returns the updated entry, never touching PhotoStore" classname="com.zynergylabs.forager.app.domain.AddAndRemovePhotoUseCaseTest" time="0.005"/>
+  <testcase name="RemovePhotoFromLogEntryUseCase reports failure and returns nothing when detach fails" classname="com.zynergylabs.forager.app.domain.AddAndRemovePhotoUseCaseTest" time="0.001"/>
+  <testcase name="AddPhotoToLogEntryUseCase does not touch the gallery or attach anything when persist fails" classname="com.zynergylabs.forager.app.domain.AddAndRemovePhotoUseCaseTest" time="0.003"/>
+  <testcase name="AddPhotoToLogEntryUseCase persists the photo, adds it to the gallery, attaches it, and returns the updated entry" classname="com.zynergylabs.forager.app.domain.AddAndRemovePhotoUseCaseTest" time="0.001"/>
+  <testcase name="AddPhotoToLogEntryUseCase does not attach when adding to the gallery fails" classname="com.zynergylabs.forager.app.domain.AddAndRemovePhotoUseCaseTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

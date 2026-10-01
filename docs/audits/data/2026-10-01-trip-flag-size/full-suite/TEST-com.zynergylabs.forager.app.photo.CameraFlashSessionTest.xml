@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.photo.CameraFlashSessionTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:56.912Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.328">
+  <properties/>
+  <testcase name="the fake reports the flash mode it was told, and a composition reading it follows" classname="com.zynergylabs.forager.app.photo.CameraFlashSessionTest" time="0.229"/>
+  <testcase name="the fake has no flash unit until open, reports it once opened, and close resets the mode" classname="com.zynergylabs.forager.app.photo.CameraFlashSessionTest" time="0.05"/>
+  <testcase name="every setFlashMode is counted, and a camera with no flash unit stays Off" classname="com.zynergylabs.forager.app.photo.CameraFlashSessionTest" time="0.047"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

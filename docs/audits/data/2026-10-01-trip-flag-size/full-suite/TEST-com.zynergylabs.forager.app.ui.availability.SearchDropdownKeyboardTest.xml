@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.SearchDropdownKeyboardTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:23.263Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.087">
+  <properties/>
+  <testcase name="T3b guard once the user drags the dropdown back up, a later viewport change leaves it where they put it" classname="com.zynergylabs.forager.app.ui.availability.SearchDropdownKeyboardTest" time="0.051"/>
+  <testcase name="T3a when the viewport shrinks after the scroll to the end, the coordinates stay in view" classname="com.zynergylabs.forager.app.ui.availability.SearchDropdownKeyboardTest" time="0.034"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

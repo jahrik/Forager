@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.LayoutFixesShortLandscapeTest" tests="14" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:55.867Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="1.18">
+  <properties/>
+  <testcase name="TR2 at ROTATION_90 the pill sits beneath the bar, flush on its outer end, extending inboard" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesShortLandscapeTest" time="0.055"/>
+  <testcase name="TR1 at ROTATION_90 the cluster fits the map area and its pill's rows are whole" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesShortLandscapeTest" time="0.053"/>
+  <testcase name="TR2 at ROTATION_270 the pill sits beneath the bar, flush on its outer end, extending inboard" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesShortLandscapeTest" time="0.063"/>
+  <testcase name="TR1 at ROTATION_270 the cluster fits the map area and its pill's rows are whole" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesShortLandscapeTest" time="0.043"/>
+  <testcase name="TR3 guard at ROTATION_270 real touches across the pill's record and return buttons reach them" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesShortLandscapeTest" time="0.044"/>
+  <testcase name="T5 at ROTATION_90 the map is handed the rail's width as the attribution end inset, and none in fullscreen" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesShortLandscapeTest" time="0.066"/>
+  <testcase name="TR3 guard at ROTATION_90 real touches across the pill's record and return buttons reach them" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesShortLandscapeTest" time="0.057"/>
+  <testcase name="TR4 at ROTATION_270 a snap to the far side keeps the pill beneath the bar, extending inboard" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesShortLandscapeTest" time="0.104"/>
+  <testcase name="T5 guard at ROTATION_270 the attribution end inset is zero, the end side being the punch-hole side" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesShortLandscapeTest" time="0.064"/>
+  <testcase name="TR4 at ROTATION_90 a snap to the far side keeps the pill beneath the bar, extending inboard" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesShortLandscapeTest" time="0.115"/>
+  <testcase name="T9 at ROTATION_270 the search bar and the cluster do not intersect" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesShortLandscapeTest" time="0.123"/>
+  <testcase name="TR5 at ROTATION_270 the handle drags the cluster down and minimises and restores it" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesShortLandscapeTest" time="0.15"/>
+  <testcase name="T9 at ROTATION_90 the search bar and the cluster do not intersect" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesShortLandscapeTest" time="0.096"/>
+  <testcase name="TR5 at ROTATION_90 the handle drags the cluster down and minimises and restores it" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesShortLandscapeTest" time="0.141"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

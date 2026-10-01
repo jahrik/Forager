@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.CartographyEntryMapBubblesTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:27.469Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.2">
+  <properties/>
+  <testcase name="Open find opens the find over the day entry, and Back returns to the entry as it was, still fullscreen" classname="com.zynergylabs.forager.app.ui.availability.CartographyEntryMapBubblesTest" time="0.07"/>
+  <testcase name="on the entry map a kept waypoint's bubble names it from the entry, with no details for a waypoint gone from Records" classname="com.zynergylabs.forager.app.ui.availability.CartographyEntryMapBubblesTest" time="0.073"/>
+  <testcase name="on the entry map a kept track's bubble names it from the entry, with no details, for a track gone from Records" classname="com.zynergylabs.forager.app.ui.availability.CartographyEntryMapBubblesTest" time="0.056"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

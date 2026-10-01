@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelSeasonalPatternTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:21.701Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.016">
+  <properties/>
+  <testcase name="opening the Seasonal tab before any region is chosen is a no-op" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelSeasonalPatternTest" time="0.004"/>
+  <testcase name="a seasonal pattern fetch failure is reported, not swallowed, without the provider's own message" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelSeasonalPatternTest" time="0.003"/>
+  <testcase name="opening the Seasonal tab after a search fetches and populates the distribution" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelSeasonalPatternTest" time="0.002"/>
+  <testcase name="nothing is fetched until the Seasonal tab is actually opened" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelSeasonalPatternTest" time="0.001"/>
+  <testcase name="changing the category invalidates the cached seasonal pattern and refetches on next open" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelSeasonalPatternTest" time="0.003"/>
+  <testcase name="revisiting the Seasonal tab without changing the search does not refetch" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelSeasonalPatternTest" time="0.001"/>
+  <testcase name="an IconicCategory filter and a SpecificTaxon filter both reach the seasonal fetch unchanged" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelSeasonalPatternTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

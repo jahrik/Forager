@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenOfflineCacheTest" tests="6" skipped="1" failures="0" errors="0" timestamp="2026-10-01T05:19:11.303Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.377">
+  <properties/>
+  <testcase name="tapping a recent search reports that entry and closes the dropdown" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenOfflineCacheTest" time="0.0">
+    <skipped/>
+  </testcase>
+  <testcase name="the offline banner is displayed on the list tab when results came from the cache" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenOfflineCacheTest" time="0.08"/>
+  <testcase name="the recent searches picker lists its entries on screen" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenOfflineCacheTest" time="0.087"/>
+  <testcase name="the recent searches picker states when nothing is saved yet" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenOfflineCacheTest" time="0.066"/>
+  <testcase name="the offline banner reports the age of the cached results it is labelling" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenOfflineCacheTest" time="0.073"/>
+  <testcase name="the offline banner is absent when the results are live" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenOfflineCacheTest" time="0.067"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

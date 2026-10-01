@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.FindDeleteNoticeTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:32.213Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.076">
+  <properties/>
+  <testcase name="a new find's own draft, with no committed original, says Find deleted" classname="com.zynergylabs.forager.app.ui.log.FindDeleteNoticeTest" time="0.018"/>
+  <testcase name="nothing pending is no notice" classname="com.zynergylabs.forager.app.ui.log.FindDeleteNoticeTest" time="0.019"/>
+  <testcase name="a committed find says Find deleted" classname="com.zynergylabs.forager.app.ui.log.FindDeleteNoticeTest" time="0.018"/>
+  <testcase name="a re-edit's draft of a committed find says Changes discarded" classname="com.zynergylabs.forager.app.ui.log.FindDeleteNoticeTest" time="0.019"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

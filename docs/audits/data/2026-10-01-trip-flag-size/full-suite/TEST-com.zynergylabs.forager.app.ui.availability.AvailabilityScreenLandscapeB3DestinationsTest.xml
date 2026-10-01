@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB3DestinationsTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:18:48.922Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="1.254">
+  <properties/>
+  <testcase name="T1 at ROTATION_90 List is capped at 640 and centred beside the rail" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB3DestinationsTest" time="0.083"/>
+  <testcase name="T1 at ROTATION_270 Journal is capped at 640 and centred beside the rail" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB3DestinationsTest" time="0.081"/>
+  <testcase name="T4 at ROTATION_270 real touches across a rail item switch tab beside capped content" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB3DestinationsTest" time="0.151"/>
+  <testcase name="T1 at ROTATION_270 Records is capped at 640 and centred beside the rail" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB3DestinationsTest" time="0.079"/>
+  <testcase name="T1 at ROTATION_270 List is capped at 640 and centred beside the rail" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB3DestinationsTest" time="0.077"/>
+  <testcase name="T1 at ROTATION_90 Journal is capped at 640 and centred beside the rail" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB3DestinationsTest" time="0.077"/>
+  <testcase name="the search bar above the tab content is capped and centred with it" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB3DestinationsTest" time="0.133"/>
+  <testcase name="T4 at ROTATION_90 real touches across a rail item switch tab beside capped content" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB3DestinationsTest" time="0.214"/>
+  <testcase name="T1 at ROTATION_90 Records is capped at 640 and centred beside the rail" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB3DestinationsTest" time="0.108"/>
+  <testcase name="T2 at ROTATION_270 Seasonal is 640 wide and centred beside the rail" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB3DestinationsTest" time="0.068"/>
+  <testcase name="T3 portrait List content fills the width, as today" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB3DestinationsTest" time="0.1"/>
+  <testcase name="T2 at ROTATION_90 Seasonal is 640 wide and centred beside the rail" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB3DestinationsTest" time="0.077"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.TrackSelfJoinTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:54.183Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="1.701">
+  <properties/>
+  <testcase name="the loop reads its full retrace until the rim is regained, never the chord" classname="com.zynergylabs.forager.app.domain.TrackSelfJoinTest" time="0.012"/>
+  <testcase name="at 12 m the switchback reads the report's 228 m through more joins" classname="com.zynergylabs.forager.app.domain.TrackSelfJoinTest" time="0.001"/>
+  <testcase name="a return leg beside the outbound one falls at every point at 10 m and rises at every point at 0 m" classname="com.zynergylabs.forager.app.domain.TrackSelfJoinTest" time="0.042"/>
+  <testcase name="measured cost at 135, 1000 and 2880 points - printed for the report, equal to the naive scan" classname="com.zynergylabs.forager.app.domain.TrackSelfJoinTest" time="0.815"/>
+  <testcase name="on the return leg the way home decreases at every point and reaches zero at the car" classname="com.zynergylabs.forager.app.domain.TrackSelfJoinTest" time="0.214"/>
+  <testcase name="the distant walker's outbound track is the full retrace at 10 m - and would not be at 12" classname="com.zynergylabs.forager.app.domain.TrackSelfJoinTest" time="0.0"/>
+  <testcase name="parallel legs join at 9 point 5 m apart and not at 10 point 5" classname="com.zynergylabs.forager.app.domain.TrackSelfJoinTest" time="0.0"/>
+  <testcase name="the patch collapses to its straight line at 10 m" classname="com.zynergylabs.forager.app.domain.TrackSelfJoinTest" time="0.0"/>
+  <testcase name="a patch 100 m from the car reads the approach plus the straight line" classname="com.zynergylabs.forager.app.domain.TrackSelfJoinTest" time="0.0"/>
+  <testcase name="one point is a zero-length way home, and a negative epsilon is refused" classname="com.zynergylabs.forager.app.domain.TrackSelfJoinTest" time="0.0"/>
+  <testcase name="the grid scan finds the same joins and distance as the all-pairs scan" classname="com.zynergylabs.forager.app.domain.TrackSelfJoinTest" time="0.456"/>
+  <testcase name="the switchback closes at 10 m and not below - the floor the constant sits on" classname="com.zynergylabs.forager.app.domain.TrackSelfJoinTest" time="0.0"/>
+  <testcase name="measured lateral offset at which the join stops firing at 10 m - printed for the report" classname="com.zynergylabs.forager.app.domain.TrackSelfJoinTest" time="0.16"/>
+  <system-out><![CDATA[PATH-HOME-JOIN cost n=135 joins=176 home=480.8 m grid median=0.21 ms min=0.19 ms max=0.24 ms naive=2.7 ms
+PATH-HOME-JOIN cost n=1000 joins=3479 home=3685.2 m grid median=2.66 ms min=2.64 ms max=2.96 ms naive=69.7 ms
+PATH-HOME-JOIN cost n=2880 joins=26960 home=10627.5 m grid median=20.88 ms min=16.26 ms max=32.76 ms naive=412.3 ms
+PATH-HOME-JOIN offset spacing= 5.0 m phasing=worst join<= 9.68 m after<= 9.68 m turn<= 6.61 m (pace: 1 m/s and below, the 5 m distance floor governing)
+PATH-HOME-JOIN offset spacing= 5.0 m phasing=best  join<= 8.66 m after<=10.00 m turn<= none  (pace: 1 m/s and below, the 5 m distance floor governing)
+PATH-HOME-JOIN offset spacing= 7.0 m phasing=worst join<= 9.37 m after<= 9.37 m turn<= 6.06 m (pace: 1.4 m/s, ordinary walking, the 5 s interval governing)
+PATH-HOME-JOIN offset spacing= 7.0 m phasing=best  join<= 7.14 m after<=10.00 m turn<= none  (pace: 1.4 m/s, ordinary walking, the 5 s interval governing)
+PATH-HOME-JOIN offset spacing=10.0 m phasing=worst join<= 8.66 m after<= 8.66 m turn<= 8.66 m (pace: 2 m/s, brisk)
+PATH-HOME-JOIN offset spacing=10.0 m phasing=best  join<= none  after<=10.00 m turn<= none  (pace: 2 m/s, brisk)
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

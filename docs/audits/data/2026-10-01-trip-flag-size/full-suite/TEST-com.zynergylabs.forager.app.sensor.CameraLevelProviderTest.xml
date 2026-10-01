@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.sensor.CameraLevelProviderTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:59.695Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.121">
+  <properties/>
+  <testcase name="the provider reads the framework's rotation matrix, upright is zero and a turn is its angle" classname="com.zynergylabs.forager.app.sensor.CameraLevelProviderTest" time="0.027"/>
+  <testcase name="upright is zero, a clockwise turn is positive, a quarter turn either way is ninety" classname="com.zynergylabs.forager.app.sensor.CameraLevelProviderTest" time="0.024"/>
+  <testcase name="the fake's roll is observable, and a tilt reaches a collector" classname="com.zynergylabs.forager.app.sensor.CameraLevelProviderTest" time="0.027"/>
+  <testcase name="no rotation-vector sensor emits null once, not a silent flow" classname="com.zynergylabs.forager.app.sensor.CameraLevelProviderTest" time="0.041"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

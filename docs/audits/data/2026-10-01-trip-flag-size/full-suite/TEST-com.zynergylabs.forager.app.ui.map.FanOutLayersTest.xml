@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.FanOutLayersTest" tests="16" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:07.660Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.455">
+  <properties/>
+  <testcase name="a member with nothing of ours to draw gets no circle either" classname="com.zynergylabs.forager.app.ui.map.FanOutLayersTest" time="0.02"/>
+  <testcase name="centring a copy moves neither its circle nor its leg" classname="com.zynergylabs.forager.app.ui.map.FanOutLayersTest" time="0.034"/>
+  <testcase name="a sighting is a dot carrying its observation id, and the focused one is selected" classname="com.zynergylabs.forager.app.ui.map.FanOutLayersTest" time="0.048"/>
+  <testcase name="a kept record's copy gets a circle and no halo, since the circle replaces the halo" classname="com.zynergylabs.forager.app.ui.map.FanOutLayersTest" time="0.032"/>
+  <testcase name="each copy carries the icon-offset that centres its glyph's body on its circle" classname="com.zynergylabs.forager.app.ui.map.FanOutLayersTest" time="0.024"/>
+  <testcase name="every fanned copy, icon or dot, has one circle centred where it now is" classname="com.zynergylabs.forager.app.ui.map.FanOutLayersTest" time="0.023"/>
+  <testcase name="at progress 0 every copy's icon-offset is zero, so it draws where its original does" classname="com.zynergylabs.forager.app.ui.map.FanOutLayersTest" time="0.024"/>
+  <testcase name="each circle carries the fold's progress as its scale, for icon and dot alike" classname="com.zynergylabs.forager.app.ui.map.FanOutLayersTest" time="0.051"/>
+  <testcase name="the hiding filter names every hidden id, by the property the layer's features carry" classname="com.zynergylabs.forager.app.ui.map.FanOutLayersTest" time="0.048"/>
+  <testcase name="a copy keeps its own icon and is drawn where it now is" classname="com.zynergylabs.forager.app.ui.map.FanOutLayersTest" time="0.023"/>
+  <testcase name="no members is an empty frame" classname="com.zynergylabs.forager.app.ui.map.FanOutLayersTest" time="0.019"/>
+  <testcase name="a member whose layer has no icon of ours is left out entirely, leg included" classname="com.zynergylabs.forager.app.ui.map.FanOutLayersTest" time="0.019"/>
+  <testcase name="every copy has a leg from its true position to where it is" classname="com.zynergylabs.forager.app.ui.map.FanOutLayersTest" time="0.02"/>
+  <testcase name="at progress 1 every copy carries its glyph's full centring offset" classname="com.zynergylabs.forager.app.ui.map.FanOutLayersTest" time="0.02"/>
+  <testcase name="no hidden ids is a filter that shows everything" classname="com.zynergylabs.forager.app.ui.map.FanOutLayersTest" time="0.03"/>
+  <testcase name="at progress half every copy carries half its glyph's centring offset" classname="com.zynergylabs.forager.app.ui.map.FanOutLayersTest" time="0.017"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

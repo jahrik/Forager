@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.FindsGalleryScreenTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:32.301Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.374">
+  <properties/>
+  <testcase name="a committed find with nothing recorded shows its date alone, no Incomplete badge" classname="com.zynergylabs.forager.app.ui.log.FindsGalleryScreenTest" time="0.038"/>
+  <testcase name="there is no Album tab" classname="com.zynergylabs.forager.app.ui.log.FindsGalleryScreenTest" time="0.054"/>
+  <testcase name="an entry with a cover photo renders it" classname="com.zynergylabs.forager.app.ui.log.FindsGalleryScreenTest" time="0.032"/>
+  <testcase name="a set loadErrorMessage does not hide entries already showing" classname="com.zynergylabs.forager.app.ui.log.FindsGalleryScreenTest" time="0.03"/>
+  <testcase name="with onAddEntry null, no add tile is shown even on the Log tab" classname="com.zynergylabs.forager.app.ui.log.FindsGalleryScreenTest" time="0.03"/>
+  <testcase name="by default the Log tab shows only committed entries, with the add tile, and no draft is visible" classname="com.zynergylabs.forager.app.ui.log.FindsGalleryScreenTest" time="0.03"/>
+  <testcase name="a set loadErrorMessage shows the unavailable text when there are no entries to show" classname="com.zynergylabs.forager.app.ui.log.FindsGalleryScreenTest" time="0.031"/>
+  <testcase name="an entry with no photos shows the placeholder icon, not a broken image" classname="com.zynergylabs.forager.app.ui.log.FindsGalleryScreenTest" time="0.074"/>
+  <testcase name="tapping the Drafts tab shows only drafts, hides the committed entry and the add tile" classname="com.zynergylabs.forager.app.ui.log.FindsGalleryScreenTest" time="0.053"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.FanIconStackingOrderTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:07.522Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.118">
+  <properties/>
+  <testcase name="sorted by sort key the copies stack as their originals' layers do, bottom to top" classname="com.zynergylabs.forager.app.ui.map.FanIconStackingOrderTest" time="0.035"/>
+  <testcase name="every copy carries the place of its original's layer in the draw order, per glyph" classname="com.zynergylabs.forager.app.ui.map.FanIconStackingOrderTest" time="0.025"/>
+  <testcase name="the icon layer sorts by that property" classname="com.zynergylabs.forager.app.ui.map.FanIconStackingOrderTest" time="0.03"/>
+  <testcase name="the key follows the draw order it is given, not a fixed table" classname="com.zynergylabs.forager.app.ui.map.FanIconStackingOrderTest" time="0.025"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

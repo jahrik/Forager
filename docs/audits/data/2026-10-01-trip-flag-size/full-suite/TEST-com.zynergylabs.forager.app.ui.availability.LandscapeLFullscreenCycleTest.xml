@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.LandscapeLFullscreenCycleTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:43.866Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="1.453">
+  <properties/>
+  <testcase name="at ROTATION_270 the L after a real tap into and out of fullscreen is not above the search bar's bottom" classname="com.zynergylabs.forager.app.ui.availability.LandscapeLFullscreenCycleTest" time="0.568"/>
+  <testcase name="at ROTATION_90 leaving fullscreen with the Back key does the same" classname="com.zynergylabs.forager.app.ui.availability.LandscapeLFullscreenCycleTest" time="0.481"/>
+  <testcase name="at ROTATION_90 the L after a real tap into and out of fullscreen is not above the search bar's bottom" classname="com.zynergylabs.forager.app.ui.availability.LandscapeLFullscreenCycleTest" time="0.402"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.export.TrackGpxExporterTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:55.895Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.004">
+  <properties/>
+  <testcase name="the written file's content is exactly what GpxCodec encode produces for this track" classname="com.zynergylabs.forager.app.export.TrackGpxExporterTest" time="0.002"/>
+  <testcase name="exporting the same track twice overwrites the same file rather than creating a second one" classname="com.zynergylabs.forager.app.export.TrackGpxExporterTest" time="0.001"/>
+  <testcase name="before it writes, an export deletes the exports more than an hour old and keeps the ones within the hour" classname="com.zynergylabs.forager.app.export.TrackGpxExporterTest" time="0.0"/>
+  <testcase name="the filename is derived from the track's own start time, not the export time" classname="com.zynergylabs.forager.app.export.TrackGpxExporterTest" time="0.0"/>
+  <testcase name="write creates the export directory if it does not exist yet, and returns a file that exists" classname="com.zynergylabs.forager.app.export.TrackGpxExporterTest" time="0.001"/>
+  <testcase name="waypoints handed to write reach the file, same as GpxCodec encode would produce" classname="com.zynergylabs.forager.app.export.TrackGpxExporterTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

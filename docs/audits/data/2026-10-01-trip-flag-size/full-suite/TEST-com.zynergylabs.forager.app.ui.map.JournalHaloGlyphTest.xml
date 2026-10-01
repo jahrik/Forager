@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.JournalHaloGlyphTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:08.337Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.217">
+  <properties/>
+  <testcase name="each halo icon is its record's glyph drawn as a halo in the journal-entry colour, day and night" classname="com.zynergylabs.forager.app.ui.map.JournalHaloGlyphTest" time="0.059"/>
+  <testcase name="each halo image is anchored at its exact centre, like the marker it sits under, and its padding holds the whole halo" classname="com.zynergylabs.forager.app.ui.map.JournalHaloGlyphTest" time="0.091"/>
+  <testcase name="beyond the marker's casing, and only there, the halo shows a ring of its own colour" classname="com.zynergylabs.forager.app.ui.map.JournalHaloGlyphTest" time="0.065"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

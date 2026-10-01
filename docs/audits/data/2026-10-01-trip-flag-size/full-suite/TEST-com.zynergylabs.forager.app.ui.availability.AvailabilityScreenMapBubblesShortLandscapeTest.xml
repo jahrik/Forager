@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapBubblesShortLandscapeTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:18:56.972Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.086">
+  <properties/>
+  <testcase name="in a short landscape window touches across the bubble stay on it, and a touch on empty map dismisses it" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapBubblesShortLandscapeTest" time="0.084"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
