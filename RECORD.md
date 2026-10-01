@@ -9302,3 +9302,29 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Device item open,** in -319: photos still load in the album, the find editor, the report and the viewer, with no visible delay or change.
 **CI before this merge:** e9dfa9db green (run 36808986914), the fourth green run in a row.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-355
+**Timestamp:** 2026-10-01T03:36:37Z
+**Continues:** 2026-09-28-319 (preserved -23), with -335 and -340; not yet started
+**Why:** -312 (terminal -353) and -351 (terminal -354) merged after -340 was written, and their reports add device items that -319's dispatch and -340 do not list.
+**The owner, verbatim:** "Go ahead. And paste 3 here please", to the planner's steps: amend -319 for today's work; build the merged head and install it on the S22 once CI is green; the owner opens the device-coder window.
+**Change:**
+- **The build:** journal-redesign at or after 3b9e0e13, which carries -317, -318, -312 and -351. The planner builds and installs it over the app on the S22, keeping its data, and names the versionName in its go. That replaces the build -340 expected. The phone read 1.0.2220+g46b28a74 before the install.
+- **-312's items replace -340's -312 bullet.** They are the seven in docs/audits/2026-09-30-map-residuals-completion-report.md, "Device-only list":
+  1. delete a find, a photo and a region, and watch the moment Undo ends: no flash;
+  2. a bubble over a fan, then fullscreen: Back leaves fullscreen, then closes the bubble, then folds the fan;
+  3. a bubble over a fan, then the dropdown, keyboard up and down: Back hides the keyboard, closes the dropdown, then the bubble, then the fan;
+  4. a fan, then the dropdown, keyboard up and down: Back hides the keyboard, closes the dropdown and the fan stays; Back again folds the fan;
+  5. out of touch mode, on the Maps tab and on the Journal tab: open the dropdown, press Back or Esc. Where does focus go, and does the dropdown stay closed?
+  6. out of touch mode, after that close: how is the dropdown opened again? In the test harness a tap on the still-focused field does not reopen it;
+  7. out of touch mode: open Tools, close it with Back or Esc. Does the search dropdown open?
+- **Items 2 to 4 are judged** against the owner's rule: what is drawn on top closes first.
+- **Items 5 to 7 need the window out of touch mode.** There is no hardware keyboard: use key events over adb (Tab, a D-pad key, Esc, Back). That a key event sent over adb takes the window out of touch mode is the planner's belief and is not verified. Establish it first and say how it was confirmed. If it cannot be confirmed, record 5 to 7 as "not determinable" and do not judge them. If it can: 5 and 7 pass when the dropdown stays closed; 6 is recorded, not judged.
+- **The taxon suggestions list,** recorded and not judged: with a fan open, type in the search field until suggestions show, press Back, and record what closes in what order. Clear the query afterwards.
+- **-351's item:** photos still load in the album tiles, the find editor, the find report and the viewer, with no visible delay and no placeholder that stays. Use the coder's own records.
+- **A key event is a gesture** under -319's data rules: a dump first whenever a list, a record or an Undo snackbar is on screen.
+- The data rules of -319, -335 and -340 hold unchanged, and so does every other item they list.
+**Notes:** Written by the planner by hand.
