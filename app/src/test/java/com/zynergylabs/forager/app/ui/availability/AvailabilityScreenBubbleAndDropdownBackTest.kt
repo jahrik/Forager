@@ -56,11 +56,9 @@ import org.robolectric.annotation.Config
  * A bubble closes before the fan and after fullscreen, which was opened after it. The dropdown closes on Back and
  * stays closed, in touch mode.
  *
- * **Not here, and not fixed:** a bubble against the dropdown (item 11's other half) and a fan against the dropdown
- * (item 12). Both need a dropdown term in a Back gate, which the owner has not ruled on; with the gates as they
- * are, Back closes the bubble, or folds the fan, before the dropdown. The two tests that said otherwise were red
- * in touch mode for that reason and were taken out, not ignored: the completion report, Part B, has them and
- * their output.
+ * A bubble against the dropdown (item 11's other half) and a fan against the dropdown (item 12): the dropdown,
+ * drawn on top and opened after them, closes first, and the bubble or the fan stays. Red until the dropdown is in
+ * the bubble's and the fan's Back gates, which is the next commit.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi")
@@ -192,6 +190,37 @@ class AvailabilityScreenBubbleAndDropdownBackTest {
 
         back()
         assertFalse("the third Back folded the fan", fan.isOpen)
+    }
+
+    @Test
+    fun `a bubble over a fan, then the dropdown open, Back closes the dropdown, then the bubble, then folds the fan`() {
+        openBubbleOverFan()
+        openDropdown()
+
+        back()
+        assertFalse("the first Back closed the dropdown [seen: bubble=${bubbleShown()} dropdown=${shown(SEARCH_DROPDOWN_TAG)} fan=${fan.isOpen}]", shown(SEARCH_DROPDOWN_TAG))
+        assertTrue("the first Back left the bubble", bubbleShown())
+        assertTrue("the first Back left the fan", fan.isOpen)
+
+        back()
+        assertFalse("the second Back closed the bubble", bubbleShown())
+        assertTrue("the second Back left the fan", fan.isOpen)
+
+        back()
+        assertFalse("the third Back folded the fan", fan.isOpen)
+    }
+
+    @Test
+    fun `with a fan open and the dropdown open, Back closes the dropdown and the fan stays, then the next Back folds the fan`() {
+        fanOpen()
+        openDropdown()
+
+        back()
+        assertFalse("the first Back closed the dropdown [seen: dropdown=${shown(SEARCH_DROPDOWN_TAG)} fan=${fan.isOpen}]", shown(SEARCH_DROPDOWN_TAG))
+        assertTrue("the first Back left the fan open", fan.isOpen)
+
+        back()
+        assertFalse("the second Back folded the fan", fan.isOpen)
     }
 
     /**
