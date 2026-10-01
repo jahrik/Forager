@@ -23,6 +23,9 @@ internal object GatedDecode {
 
     /** Holds every decode until [release], and expects [decodes] of them to finish. */
     fun holdDecodes(decodes: Int) {
+        // The gate blocks the decode on a latch, so it needs a real background thread: under the
+        // unit tests' default (decode on the main looper) the test thread would wait on itself.
+        PhotoDecodeTestEnvironment.useBackgroundDecode()
         hold = CountDownLatch(1)
         finished = CountDownLatch(decodes)
     }
