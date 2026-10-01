@@ -9686,3 +9686,20 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Deviation:** the coder ran adb logcat -c once, clearing the S22's log buffer; it touches no data and is not in the phone rules. Disclosed by the coder; not to be repeated.
 **The phone:** on the throwaway probe build 1.0.2345+g10ccca53.dirty when this was written; the database hash and inode as at the start, by the coder's reads.
 **Notes:** Written by the planner session that wrote -370 to -373.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-375
+**Timestamp:** 2026-10-01T13:09:19Z
+**Continues:** 2026-09-28-369 (preserved 2026-10-01-07, where the next step of amendment 3 is appended), after -370 to -374
+**The owner, verbatim,** to the planner's two asks in -374's hand-over (go ahead with a throwaway test of option A, the circle drawn as a symbol; switch the S22 to the day map with a large stack in view when asked): "1 go ahead" and "2 sounds good".
+**Change:**
+- Amendment 2 is finished and handed back first, on the view its "before" runs used.
+- Then, on the day style with a large stack in view: a pixel baseline of the circle-to-icon distance on the amendment 2 build; one probe build recorded while it logs, to show whether the renderer's queries match the screen; and option A in a throwaway build, at most two variants, each with a prediction.
+- The test keeps -299's growth (no fade), -318, -290, the duration and the easing, so only how the circle is drawn changes.
+- It ends with a report and a stop. No fix for amendment 3 is built before the owner has seen the result.
+- The phone's end state after the test is an amendment-2-only build, reached without a downgrade.
+**Not chosen:** option C (the fan in an overlay above the map) is held as the fallback: it is the largest change and overlays above the map are where this repository has had touch-interception faults (CLAUDE.md, "Known pitfalls"). Options B and D are not being pursued; the owner was shown all four.
+**State when written:** the coder has set the single-source change aside with two revert commits (c9a5b49f, 4683308e) and is building amendment 2 alone; fan-flicker's FanOutLayers.kt is byte-identical to journal-redesign's by the coder's diff.
+**Notes:** Written by the planner session that wrote -370 to -374.
