@@ -9645,3 +9645,23 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Still with the owner for the first fix, device-only:** the S26 at 120 Hz; a fan after a basemap swap and a night switch; a layer switched off and on, and markers coming into view on pan and zoom, now that they no longer fade in; the location dot turning and following (item 4 of -319), which this setting reaches.
 **Amendment 2 so far, from the coder:** on the fix build at animator 1 the empty moment at the open's start measured 25, 9, 9 and 8 ms over four runs, and 33 ms in the earlier clip; none at the fold's end. The coder stopped phone actions when it saw the owner using the S22 (the backup settings screen opened during a run, and the map was panned and zoomed); its pre-tap check refused the fifth tap. Waiting on the owner's word that the phone is free.
 **Notes:** Written by the planner session that wrote -370 and -371.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-373
+**Timestamp:** 2026-10-01T12:49:13Z
+**Continues:** 2026-09-28-369 (preserved 2026-10-01-07, where the third amendment is appended), after -370, -371 and -372; amendment 2 is in progress on fan-flicker (work in progress at 77898597)
+**The owner, verbatim,** with a screen recording and then a still ("What I mean"): "While we're at it, there is a moment where the circles jump ahead of the icons and it is visible during usual animation speed." Also, earlier: "S22 is ready for the codsr", handing the test phone back to the coder.
+**Which phone and build:** not said. The recording is 480 x 1040 at 120 frames a second, the format of the owner's S26 recording of 2026-09-30, and its icons stay solid, which fits a build with the first fix (CI's 2340). Inferred; the owner has been asked.
+**What the planner saw** (owner-recording-054247.mp4 in ~/Zynergy/device-evidence/planner-fan-flicker-2026-10-01/, first open, times from frame 94): at 42 ms circles and icons together; at 50 ms the icons further out with no circle beside them; at 66 ms (frame 102) every circle further from the hub than its icon, which is the owner's still; at 83 ms the icons further out again; from 92 ms the circles behind their icons. A stack of twelve, day style.
+**What the planner read:** fanFrameCollections builds a member's circle and icon from the same point, and a photo's icon has no offset, so no single push can draw a photo away from its circle; the four collections go to four sources, one setGeoJson each (FanOutLayers.kt:286-296).
+**The diagnosis, inferred:** hypothesis B of the dispatch, the sources out of step, so a drawn frame holds the circles of one push and the icons of another.
+**The planner's error:** test B was the test of this, and this planner told the coder not to run it (the deviation recorded in -370), reasoning from test A that no frame on the S22 was missing its icons or circles. That measure counted coverage and could not see a circle and its icon at different places, and it was never taken on the S26. The owner had been told the test "would not change the diagnosis"; that was wrong.
+**Change:**
+- Reproduce on the S22 in the rendered data (the probe extended to each member's drawn circle and icon per frame) and in recordings; if the S22 does not show it, a stop.
+- A fix confined to the fan's code, in step for all four collections, designed together with amendment 2's signal and wired once; the look at rest and every "Do not touch" decision unchanged.
+- The S26 is where it was seen and no recording in this dispatch is from it: the owner's check there is the evidence for that phone.
+**Amendment 2 so far, from the coder:** the empty moment at the open's start on the fix build measured 25, 9, 9, 8 and 8 ms over five runs at animator 1 and 17 ms at animator 5, with none at the fold's end. FanOutHideGate passes its 12 tests, which failed 6 of 12 on the stub. The planner has not re-run them.
+**CI:** green on 67e54b24, the head holding the first fix.
+**Notes:** Written by the planner session that wrote -370 to -372.
