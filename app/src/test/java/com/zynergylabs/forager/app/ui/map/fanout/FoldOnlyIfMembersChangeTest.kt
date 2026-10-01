@@ -14,7 +14,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Intent 2026-09-28-274, Step 2. The owner's rule, verbatim: "Fold only if members change". An open fan stays open
+ * Intent 2026-09-28-274, Step 2. The owner's words, verbatim: "Fold only if members change". An open fan stays open
  * through map changes that don't touch its members. If a member disappears, the fan re-fans the survivors, or closes
  * if fewer than 2 remain. A layer switch that hides the fan's layer still closes it, because its members disappear.
  *
@@ -178,7 +178,7 @@ class FoldOnlyIfMembersChangeTest {
 
     // Dispatch 2026-09-28-279, fan-restyle. The owner's ruling, verbatim, on an open fan when night mode changed (S22-B's
     // relaunch, "Theme change with a fan open"): asked whether it should survive, "yes it should"; scope chosen, "Any style
-    // reload". One rule with "fold only if members change" (-274): a replaced style is not a reason to fold. It replaces
+    // reload". The same behaviour as "fold only if members change" (-274): a replaced style is not a reason to fold. It replaces
     // this case's old half, "a new style still folds", which -274 did not name and left as it was. After the new style
     // loads the content effect hands the decision to the same members check as any content change.
     @Test

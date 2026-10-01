@@ -60,7 +60,7 @@ class FanReopenCoordinatorTest {
         assertEquals(keys, waiting)
     }
 
-    // Superseded by the owner's rule, intent 2026-09-28-274: "Fold only if members change". This test used to be
+    // Superseded by the owner's choice, intent 2026-09-28-274: "Fold only if members change". This test used to be
     // `a later content change folds the reopened fan`, which is the rule the device log showed folding a good reopen
     // 10 s after it opened. A later content change that leaves the members alone now leaves the fan open; the cases
     // that do fold (a member gone, a layer off, a new style) are in FoldOnlyIfMembersChangeTest.
