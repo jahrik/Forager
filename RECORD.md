@@ -9909,3 +9909,36 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Withdrawn:** -381's rules 1, 3, 4's new mechanism and 5; -384's change. **Not withdrawn, the owner's, not built:** a tap on a stack closes a showing bubble as the fan opens (-383, "1 yes"); Back from a journal entry opened from a "kept in" line returns to the same bubble and fan (-383, "3 yes"), six main files by the coder's write-up, its timing still with the owner.
 **Practice from here:** a change to how the app behaves is put to the owner as a step path, in the notation they used, and confirmed before it is dispatched.
 **Notes:** Written by the planner session that wrote -370 to -384.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-386
+**Timestamp:** 2026-10-01T18:45:08Z
+**Closes:** 2026-09-28-381 (preserved 2026-10-01-10), with continuations -383, -384 and -385
+**Outcome:** abandoned
+**Observed:**
+- **Nothing merged.** Branch fan-tap is pushed at 099875da, labelled by the coder "WORK IN PROGRESS, WITHDRAWN BY THE OWNER'S CORRECTION, NOT TO BE MERGED", and stays as the record. journal-redesign's app code is as -382 left it.
+- **Why:** the dispatch's main change, a tap on a fanned icon folding the fan, was the planner's misreading of the owner (-385). The owner, after it was withdrawn, quoting the planner's sentence about Back bringing the fan back: "Back from the bubble dismisses the bubble. The fan should be already spread out from the previous tap. It never goes away when displaying their icon bubbles".
+- **What was on the branch, from the coder's reports:** rule 1 and its mechanisms at 3ae08bc8, with a full suite of 413 classes, 3369 tests, 0 failures, 24 skipped on that wrong behaviour; tests first at aa1db78e (11 of 70 failing); a later commit 29fdab9d with tests for a stack tap closing a bubble; and the head 099875da, which the coder says does not pass its own suite and was never run. Existing tests changed to fit rule 1, by the coder's corrected count from the diff: 2 in MapTapHandlerTest, 1 in MarkerFanOutHostTest, 15 cases in the three MarkerFanOutPlacement test classes, and one assertion in MapTapHandlerFanHoldsTest; its earlier "nine" was wrong and it said so. None of those changes is on journal-redesign.
+- **The phone was not touched by -381:** 1.0.2385+gc170cf54, the clean build of what is merged; inode and database hash as before, by the coder's read.
+- **Kept from it, as findings:** the coder's verification at 9cf1cfca (what a tap does with a fan open, per kind; where the return to a fan is remembered), its step-by-step of a tap on another stack with a bubble showing, and its write-up of where Back lands from a journal entry opened from a "kept in" line (~/Zynergy/device-evidence/2026-10-01-fan-tap/). Both feed -387.
+**Notes:** Written by the planner session that wrote -370 to -385.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-387
+**Timestamp:** 2026-10-01T18:45:08Z
+**Title:** bubble-paths: a tap on another stack closes the bubble that is showing; Back from a journal entry opened from a "kept in" line returns to the map as it was
+**Dispatch-file:** preserved/2026-10-01-11.md; sent by message to the coder window that ran -369 and -380, ahead of -379
+**The owner, verbatim,** to two step paths the planner wrote out and asked them to confirm or correct, and whether the second should be built now or after the merges: "1 yes, 2 yes, build it now".
+**The paths, as put to the owner:**
+- "Fan A open, X's bubble over it > tap stack B > X's bubble closes, fan A closes, fan B opens". Today the bubble stays, over fan B (MapTapHandler.kt:72-97, the coder's reading, not run).
+- "Fan open, X's bubble over it > tap "kept in <entry>" > journal entry opens > Back > map, with the fan and X's bubble as they were". Today that Back lands on the Journal's Entries list and a second goes to the map with nothing open (the coder's write-up, read from the code).
+**The owner's definition of Back,** quoted in the dispatch as the test for both: -383's and -384's lines, and -385's "The fan isn't put away while the bubble shows".
+**The planner's readings, stated in the dispatch for the coder to challenge and told to the owner:** the first path also covers a bubble with no fan open; the second holds for every kind of bubble that carries the line, with a fan or without, and leaves an entry opened from inside the Journal going back to the Entries list; every other way out of the entry behaves as the find's page does.
+**Change:** Part A, small, handed back and merged first; Part B, six main files by the coder's write-up (the return memory widened from a find to any bubble, a hook on the entry's close, a wrapper for the "kept in" action). Unit tests first, each named for the step it holds. What a tap on a fanned icon does is not changed.
+**Practice applied:** both changes were confirmed by the owner as step paths before this was written (-385).
+**Order now:** this, then the README (-379, parked again), then PR #140 into pre-main and pre-main into main.
+**Notes:** Written by the planner session that wrote -370 to -386.
