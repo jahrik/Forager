@@ -317,6 +317,8 @@ internal fun CartographyEntryReportScreen(
     // See openingCameraRequest below.
     val openingFrameToken = remember(entry.id) { "entry-map-${entry.id}-${UUID.randomUUID()}" }
     val onFeatureTap: (MapFeatureTap) -> Unit = remember(entry.id) { { tap -> tappedThingOf(tap)?.let { tapped = it } } }
+    // Dispatch 2026-09-28-387, Part A: a tap on a stack in this map closes the bubble that is showing. Not the plain tap, which here enters fullscreen when no bubble is up.
+    val onCloseBubble: () -> Unit = remember(entry.id) { { tapped = null } }
 
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -493,6 +495,7 @@ internal fun CartographyEntryReportScreen(
                         showSearchCentre = false,
                         layers = layersState,
                         onFeatureTap = onFeatureTap,
+                        onCloseBubble = onCloseBubble,
                         cameraRequest = openingCameraRequest,
                         // Off while the Tools drawer is open over the Journal, so Back closes the drawer and
                         // not this map's fan (dispatch 2026-09-28-293). backEnabled is the Journal's own flag. Off
