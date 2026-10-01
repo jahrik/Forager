@@ -172,4 +172,22 @@ class FanCircleSymbolTest {
         assertTrue(ids.isEmpty())
         assertFalse(copiesDrawn(expectedCopies(glyphMembers), ids, emptySet(), 0))
     }
+
+    // Registering the image a second time, as the map did at every style load, moved the glyphs' sampling: the open fan's rest frame differed from the
+    // current build's in about 9,500 pixels instead of about 4,600 (amendment 3 fix, measured on the S22). So the image is registered again only when
+    // the colour changes: a night switch or a palette change.
+    @Test
+    fun `the circle image is not registered again when its colour is already the wanted one`() {
+        assertFalse(fanCircleNeedsRecolour(registered = Color.rgb(240, 235, 225), wanted = Color.rgb(240, 235, 225)))
+    }
+
+    @Test
+    fun `the circle image is registered again when the chrome colour changes`() {
+        assertTrue(fanCircleNeedsRecolour(registered = Color.rgb(240, 235, 225), wanted = Color.rgb(40, 40, 45)))
+    }
+
+    @Test
+    fun `a style with no registered colour yet gets the image`() {
+        assertTrue(fanCircleNeedsRecolour(registered = null, wanted = Color.rgb(240, 235, 225)))
+    }
 }

@@ -155,6 +155,12 @@ internal fun fanIconLayerProperties(): Array<PropertyValue<*>> = arrayOf(
 )
 
 /**
+ * Whether the circle image must be registered again: when the colour the style holds is not the one wanted. STUB, written before the fix so its tests can
+ * be seen to fail: always yes, as the map did when it re-registered the image at every style load.
+ */
+internal fun fanCircleNeedsRecolour(registered: Int?, wanted: Int): Boolean = true
+
+/**
  * Re-registers the circle image in [chromeColour] on a style already loaded, so a change of the app's theme recolours the circles without reloading the
  * map (the image was built with the colour current at style load). The old image is removed first so the symbols take the new one; an image the style does
  * not have is not an error (it is added).
