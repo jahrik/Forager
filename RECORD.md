@@ -9703,3 +9703,26 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Not chosen:** option C (the fan in an overlay above the map) is held as the fallback: it is the largest change and overlays above the map are where this repository has had touch-interception faults (CLAUDE.md, "Known pitfalls"). Options B and D are not being pursued; the owner was shown all four.
 **State when written:** the coder has set the single-source change aside with two revert commits (c9a5b49f, 4683308e) and is building amendment 2 alone; fan-flicker's FanOutLayers.kt is byte-identical to journal-redesign's by the coder's diff.
 **Notes:** Written by the planner session that wrote -370 to -374.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-376
+**Timestamp:** 2026-10-01T13:59:55Z
+**Continues:** 2026-09-28-369 (preserved 2026-10-01-07), after -370 to -375; amendment 2 is merged, the dispatch stays open for amendment 3
+**What merged** into journal-redesign as 0833887e, no-ff, from fan-flicker at d5cb9bc8, under the owner's "Merge when ready" (-372): the blink fix. FanOutHideGate (the order), FanOutRenderSignal (the renderer's report), the wiring in SightingsMap.kt's fan-draw effect, and their two test classes; the reports. The coder ran on Sonnet 5.5.
+**The fix:** a fan's copies are pushed first and its originals hidden when the renderer reports every copy drawn; on a release the copies stay until the renderer reports the originals drawn again. Last resorts, each logged as a warning when reached: 3 rendered frames at rest for the hide, 6 for the clear. Neither fired in the runs.
+**Found by the planner's reading of the first hand-back (a5185a2f), and not merged then:** the gate was created inside the effect, so a restart of the effect with a fan up (it is keyed on focusedObservationId, so tapping a fanned sighting restarts it) would have shown every original again until the next signal. The coder confirmed it at SightingsMap.kt:800-806 and fixed it: the gate is remembered per style, asking it again for the same members changes nothing, and a fan first seen already spread is hidden at once. **Not reproduced on the phone:** the S22's stack has no sighting in it.
+**Found by the coder while re-running, correcting its own earlier report:** the fold's end has the mirror gap (2 of 6 runs on the restart-fix build, 1 of 5 on the first fix's own runs; it had read only the first line of its script's output for several sets). Fixed in the same merge by the reveal step.
+**The coder's device evidence, S22, same view, not re-run by the planner:** before, a gap at the open's start in 9 of 12 runs, 7 to 25 ms; on the final build 1.0.2360+g3c82194a, eleven runs (ten at animator 1, one at 5), 0 gaps at the open's start and 0 at the fold's end, no warning logged; the first amendment's measures hold; -299 and -318 viewed at both speeds.
+**The planner's checks on the merge:** app/ in the merged head is identical to 3c82194a, the commit the suite and the device runs used; the merged tree is identical to d5cb9bc8; FanOutLayers.kt and MarkerFanOutState.kt are untouched by the branch; no probe file, no single-source file, no @Ignore added, no README row removed; the saved XML tallies to 409 suites, 3310 tests, 0 failures, 0 errors, 24 skipped, with FanOutHideGateTest at 21 and FanOutRenderSignalTest at 11; the suite's and the revert run's build logs have 0 e: lines; the planner read the gate, the signal and the wiring.
+**Left, each disclosed by the coder:**
+- A fan replaced by another (a tap on a second stack while one is open) can still blink for a frame at the first stack: not handled, not tested.
+- That the gate survives a restart of the effect is device-only (Compose's keying is not exercised headless); what the gate answers when asked twice is tested.
+- A Back within about 80 ms of the tap does not reach the fan, which stays open until the next Back. MarkerFanOutState.kt, where the handler is composed only while the fan is open, is not in the diff, so it predates this work. Which handler took that Back was not determined; nothing visible changed.
+- In one of the first hand-back's six runs a single frame met the circle-without-icon thresholds (icon 0.37, circle 0.22) on a rising edge with no reversal. The planner has not viewed it.
+**A premise corrected:** the dispatch said the S22 runs at 60 Hz. The owner: "The S22 is currently in 120hz mode", then "It has been during this part of the test". The planner read the active display mode at 120 fps on the phone, and the coder's rows change every 8.3 ms. Wrong for this dispatch's recordings; where the 60 came from is not established.
+**The phone:** on 1.0.2360+g3c82194a, the coder's final build of this amendment, read by the planner; the merged build is not installed, being the same app code.
+**Still with the owner, device-only:** tap a fanned sighting with the fan up (no stack flashing at the hub); tap a second stack while one fan is open; a Back the instant a fan starts to open; all of it on the S26.
+**Next:** the owner sets the S22 to the day style with a large stack in view; then amendment 3's pixel baseline, the query-against-screen check and the throwaway test of option A (-375).
+**Notes:** Written by the planner session that wrote -370 to -375.
