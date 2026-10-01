@@ -99,45 +99,15 @@ class MainActivity : ComponentActivity() {
     private val mushroomLogViewModel: MushroomLogViewModel by viewModels {
         viewModelFactory {
             initializer {
-                MushroomLogViewModel(
-                    container.getMushroomLogEntriesUseCase,
-                    container.getDraftEntriesUseCase,
-                    container.createMushroomLogEntryUseCase,
-                    container.startEditingLogEntryUseCase,
-                    container.saveMushroomLogEntryUseCase,
-                    container.commitDraftEntryUseCase,
-                    container.deleteMushroomLogEntryUseCase,
-                    container.addPhotoToLogEntryUseCase,
-                    container.addPhotoToGalleryUseCase,
-                    container.removePhotoFromLogEntryUseCase,
-                    container.getGalleryPhotosUseCase,
-                    container.pullPhotoIntoEntryUseCase,
-                    container.deleteGalleryPhotoUseCase,
-                    container.locationProvider,
-                    container.updatePhotoLocationUseCase,
-                    getPhotoEntryReferenceCount = { id -> photoEntryReferenceCountOrZero(id, container.getEntryReferenceCountUseCase::forPhoto, androidErrorLog) },
-                    // Find-location-at-creation dispatch, Fix 1: the held live fix, read at the
-                    // moment a find is started. AvailabilityViewModel is the one live collector.
-                    currentFix = { viewModel.uiState.value.liveFix },
-                    // A failed read fails *closed*, unlike the never-set default: the preference
-                    // defaults to on for an install that predates the setting, but an unreadable
-                    // one must not capture a position the user may have switched off. Logged, never
-                    // silent (CLAUDE.md: no default fallback that isn't logged when it fires).
-                    autoSaveLocationToPhotos = {
-                        container.photoLocationPreferenceRepository.getAutoSaveLocationToPhotos().getOrElse { error ->
-                            androidErrorLog.w("PhotoLocation", "Couldn't read the photo-location preference; not capturing a location.", error)
-                            false
-                        }
-                    },
+                createMushroomLogViewModel(
+                    container,
+                    viewModel,
+                    androidErrorLog,
                     // A capture that lands with no find open is saved to the album and recorded where the
                     // device check can read it — see MushroomLogViewModel.rescueCaptureWithNoEditingEntry.
                     recordCaptureWithoutEditingEntry = { photoId, error ->
                         (application as? ForagerApplication)?.diagnostics?.recordCaptureWithoutEditingEntry(photoId, error)
                     },
-                    // A find whose delete has finished leaves the Maps tab's records (dispatch 2026-09-28-291).
-                    onFindDeleted = { id -> viewModel.onFindDeleted(id) },
-                    // An album photo whose delete has finished leaves them too (dispatch 2026-09-28-297).
-                    onPhotoDeleted = { id -> viewModel.onPhotoDeleted(id) },
                 )
             }
         }
