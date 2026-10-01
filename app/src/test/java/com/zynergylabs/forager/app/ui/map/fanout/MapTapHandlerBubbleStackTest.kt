@@ -13,7 +13,7 @@ import org.junit.Test
 /**
  * A tap on a stack with a bubble showing (dispatch 2026-09-28-387, Part A; the owner, "1 yes"):
  * `Fan A open, X's bubble over it > tap stack B > X's bubble closes, fan A closes, fan B opens`, and with no fan open, the bubble closes and the
- * fan opens. The bubble is closed by the plain tap, the one a tap on empty map sends. The handler is the real class; the map SDK behind it is
+ * fan opens. The bubble is closed through its own sink, not the plain tap, which also leaves fullscreen. The handler is the real class; the map SDK behind it is
  * [FanOutTestScene]; "a bubble is up" is the host's flag, as `SightingsMap` passes it.
  */
 class MapTapHandlerBubbleStackTest {
@@ -68,7 +68,7 @@ class MapTapHandlerBubbleStackTest {
 
         assertEquals("fan B is the open fan", setOf("b-waypoint", "b-trip"), fan.members.map { it.key.featureId }.toSet())
         assertTrue(fan.isOpen)
-        assertEquals("the bubble was closed, once, by the plain tap that closes a bubble", listOf("plain"), sinks.events)
+        assertEquals("the bubble was closed, once, and not by the plain tap, which also leaves fullscreen", listOf("closeBubble"), sinks.events)
     }
 
     @Test
@@ -80,7 +80,7 @@ class MapTapHandlerBubbleStackTest {
         tapAtSpot()
 
         assertTrue("the stack fanned", fan.isOpen)
-        assertEquals(listOf("plain"), sinks.events)
+        assertEquals(listOf("closeBubble"), sinks.events)
     }
 
     // What stays as it was.
