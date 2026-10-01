@@ -246,3 +246,69 @@ tile: it should read "Log photo, image" only after the photo has loaded, and kee
 
 **After merge, CI needs about 6 consecutive green runs** to separate the fix from luck at the old rate (-296 §7);
 the planner tracks that.
+
+## Addendum: the run-3 `DecodedPhotoTest` failure (owner: "Option 1", diagnose before any merge)
+
+**Status: not diagnosed to a cause.** What the harness does is established; why it threw once in 12 is not, and
+no fix was made. Nothing in `DecodedPhoto`, `DecodedPhotoTest` or any existing test was changed for it.
+
+**Which thread drives recomposition in that test (read from the ui-test 1.12.1 classes with `javap`; the test,
+`DecodedPhotoTest.kt:105-116`, uses `setContent` + `waitUntil`, no `runTest`, no `setMain`):**
+- `ComposeUiTest_androidKt.createDefaultTestDispatcher` returns `UnconfinedTestDispatcher` when
+  `useStandardTestDispatcherForComposition` is false. That the rule's default is false is **inferred from the
+  trace**, not read.
+- The effect context is that dispatcher wrapped in `ApplyingContinuationInterceptor(FrameDeferringContinuationInterceptor(..))`.
+  `FrameDeferredContinuation.resumeWith` queues the continuation only while `isDeferringContinuations` is true
+  (the main thread inside a frame or idle step); otherwise it resumes inline on the calling thread, and
+  `SendApplyContinuation.resumeWith` then calls `Snapshot.sendApplyNotifications()`.
+- The `pin-3` trace (kept in `pin-3/`) runs, newest first: `PainterElement.update` (`PainterModifier.kt:122`) to
+  `invalidateMeasurement` to `AndroidComposeView.scheduleMeasureAndLayout` to `View.requestLayout`, inside
+  `CompositionImpl.applyChanges` and `TestMonotonicFrameClock.performFrame`, resumed by `SendApplyContinuation`
+  (:52, :53) and `FrameDeferredContinuation.resumeWith` (:187) from `DispatchedCoroutine.afterResume`, on
+  `DefaultDispatcher-worker-2`. So in that run the effect resumed inline on the IO worker and the whole
+  recompose-and-apply ran there.
+- **Production:** `WindowRecomposer_androidKt` builds the window recomposer on
+  `AndroidUiDispatcher.Companion.getCurrentThread`; `AndroidUiDispatcher` is a real `CoroutineDispatcher` whose
+  `dispatch` posts to the thread's handler (no `isDispatchNeeded` override in its member list), so the
+  post-decode continuation goes back to the UI thread. I infer no production risk from this; **not run on a device**.
+
+**Hypotheses (two, as the planner bounded):** H1, the harness exposes the unfixed build to the same race, at a
+lower rate or none seen; H2, the old swap's apply does not call `View.requestLayout` synchronously and (c)'s
+in-place painter update does. A third was not formed.
+
+**Probes (scratch, `950d64ec` and its instrumentation commit, both reverted; results kept in the evidence
+folder, `probe-fixed-1..6`, `probe-fixed-instr`, `probe2-fixed-1..4`):**
+- *Probe 1* (decode released while the test thread sleeps, 6 runs on the fixed build): 6 of 6 passed, 0 compile
+  errors, fresh timestamps. H1 and H2 both predict an exception on the fixed build here, so **neither prediction
+  held, which means the probe did not force the failing condition.**
+- *Instrumented* (a global-write observer and a `layout` hook, test-only): the `bitmap` state write ran on
+  `DefaultDispatcher-worker-3` (the IO thread, inline resume confirmed), but both measure passes ran on the main
+  thread. So the probe reached the inline state write but not the inline recompose-and-apply.
+- *Probe 2* (40 photos, decodes released together by a helper thread while the test thread was inside
+  `waitUntil`, 4 runs on the fixed build): in each run 40 `bitmap` writes ran on 40 different IO workers and 10 on
+  the main thread, and the test completed with **no exception, 0 of 160 inline writes**. The inline state write is
+  the harness's normal behaviour; the exception needs the apply to run there too, and 160 attempts never did.
+- **Base not probed.** The inline write comes from `DecodedPhoto`'s `LaunchedEffect`, unchanged by (c), so a
+  base run of a probe that does not fail on the fixed build could not separate H1 from H2 (0 against 0). Per the
+  planner's instruction, the 35-run same-condition comparison was **not started**.
+
+**What is established:** the inline resume on the IO worker is the unconfined-dispatcher harness's normal path in
+this test class, seen in 164 of 164 instrumented attempts; the `pin-3` failure is that path continuing into
+`applyChanges` on the worker; the failure site is the painter update that (c) adds; the old swap's apply was not
+instrumented. **Not established:** whether the unfixed build can fail the same way, and what puts the apply on the
+worker only sometimes (it happened 1 in 12 in the mixed pinned set, 0 in 12 class-only runs, 0 in the suite and 0
+in the 22 probe runs). H1 and H2 are both undecided.
+
+**Proposed fix:** none yet, because the cause is not found. The one option I can see for the code, writing
+`bitmap` through `withContext(Dispatchers.Main)`, would change production behaviour to accommodate a harness
+that production does not use, so I did not try it. The options for the planner and owner: (1) accept it and watch
+CI, with the observed rate (1 in 12 pinned mixed, Wilson 95% 1.5% to 35.4%) as the thing to watch; (2) the 35-run
+same-condition comparison on base and fixed (sizing in the message of record: n = ceil(ln 0.05 / ln(11/12)) = 35
+to see a failure with 95% probability at 1/12; 0 of 35 excludes a rate above 9.9%), which would at least say
+whether the unfixed build ever fails this way; (3) capture the failing run's thread for the *apply* (a
+`layout` hook in a copy of `DecodedPhotoTest`) while repeating the pinned set, since the apply thread is the one
+datum the failing run has and the probes lack.
+
+**Reverted:** the scratch probe, by `git revert` (history kept), and the app tree compared with `ac815871` shows
+no difference (`git diff ac815871 HEAD -- app` empty), `DecodedPhoto.kt` hash `5eab4b57b30a1511` = the saved copy.
+Last Gradle run: probe 2, fixed build 4 of 4; nothing is running.
