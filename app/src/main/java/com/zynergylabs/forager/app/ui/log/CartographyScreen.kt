@@ -198,6 +198,12 @@ internal fun CartographyScreen(
     onOpenEntryRequestConsumed: () -> Unit = {},
     /** J8-3: the report menu's "Show on map" and "Hide from map" for a saved entry. `null` (the default) offers neither. */
     onSetShownOnMap: ((entryId: String, shown: Boolean) -> Unit)? = null,
+    /**
+     * Dispatch 2026-09-28-387, Part B: the open entry was left. [fromReport] is whether it was in its report, not its editor, when it went. Called when the user
+     * leaves it (Back, the arrow) and again when the open entry goes by any other route, so a request that is stale is dropped. The caller decides whether that
+     * is a return to the map; `{}` by default is every other caller.
+     */
+    onEntryClosed: (entryId: String, fromReport: Boolean) -> Unit = { _, _ -> },
 ) {
     var mode by entryModeState
     val shortWindow = shortWindowHeader != null
@@ -235,6 +241,14 @@ internal fun CartographyScreen(
     var pendingOpenEntryId by rememberSaveable { mutableStateOf<String?>(null) }
     var leavePromptResolved by rememberSaveable { mutableStateOf(false) }
 
+    // Leaving the open entry the way the user does (Back, the arrow): read which entry it is, and whether it was in its report, before the close lands, then say so.
+    fun closeEntryByUser() {
+        val closing = editingEntry?.id
+        val inReport = mode == CartographyEntryMode.VIEW
+        onCloseEntry()
+        if (closing != null) onEntryClosed(closing, inReport)
+    }
+
     fun requestLeaveEntry() {
         // A leave the user starts themselves is not the request's: it no longer waits on this prompt.
         pendingOpenEntryId = null
@@ -242,7 +256,7 @@ internal fun CartographyScreen(
         if (mode == CartographyEntryMode.EDIT && editingEntry != null && !editingEntry.isDraft && uiState.hasUnsavedChanges) {
             confirmingLeaveEntry = true
         } else {
-            onCloseEntry()
+            closeEntryByUser()
         }
     }
 
@@ -271,6 +285,16 @@ internal fun CartographyScreen(
                 openEntryInReport(requested)
             }
         }
+    }
+    // The same notice for every other way the open entry goes (a Save or Discard answered at the leave prompt, a deletion, a swap by an "Open entry" request): the
+    // last entry seen open and whether it was in its report. Idempotent with [closeEntryByUser], which has already said it.
+    var lastOpenEntry by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
+    val openEntryId = editingEntry?.id
+    val openEntryInReport = mode == CartographyEntryMode.VIEW
+    LaunchedEffect(openEntryId, openEntryInReport) {
+        val before = lastOpenEntry
+        if (before != null && before.first != openEntryId) onEntryClosed(before.first, before.second)
+        lastOpenEntry = openEntryId?.let { it to openEntryInReport }
     }
     LaunchedEffect(pendingOpenEntryId, editingEntry == null, confirmingLeaveEntry, leavePromptResolved) {
         val pending = pendingOpenEntryId ?: return@LaunchedEffect
@@ -394,7 +418,7 @@ internal fun CartographyScreen(
                     onCommit = { returnPrompt.showReturnPrompt = false; onSaveEntry() },
                     onSaveAsDraft = { returnPrompt.showReturnPrompt = false; onSaveEntryAsDraft() },
                     onDeleteEntry = { onDeleteEntry(editingEntry.id) },
-                    onBack = onCloseEntry,
+                    onBack = ::closeEntryByUser,
                     modifier = contentModifier,
                     backEnabled = backEnabled,
                 )
@@ -415,7 +439,7 @@ internal fun CartographyScreen(
                     onSetShownOnMap = onSetShownOnMap?.let { set -> { shown: Boolean -> set(editingEntry.id, shown) } },
                     onEdit = { mode = CartographyEntryMode.EDIT },
                     onDeleteEntry = { onDeleteEntry(editingEntry.id) },
-                    onBack = onCloseEntry,
+                    onBack = ::closeEntryByUser,
                     modifier = contentModifier,
                     backEnabled = backEnabled,
                 )
