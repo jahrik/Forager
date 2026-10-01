@@ -492,6 +492,17 @@ class JournalTabTest {
 
         // Back on the edit form (not stuck in the picker), now showing the pulled-in photo.
         composeRule.onNodeWithText("From Album").assertIsDisplayed()
+        // Dispatch 2026-09-28-317: the edit form's own DecodedPhoto is newly composed, and its decode
+        // runs on Dispatchers.IO off the test clock. The wait above covered only the picker's decode,
+        // so this node was read unwaited (docs/audits/2026-09-30-ci-flake-diagnosis.md section 8:
+        // CI's "'Log photo' ... is not displayed!", with 0 such nodes at that moment). The assertion
+        // below is unchanged; it now runs once the pulled-in photo has decoded.
+        composeRule.waitUntil(
+            conditionDescription = "the edit form's pulled-in photo ('Log photo') to finish decoding",
+            timeoutMillis = 5_000,
+        ) {
+            composeRule.onAllNodesWithContentDescription("Log photo").fetchSemanticsNodes().isNotEmpty()
+        }
         composeRule.onNodeWithContentDescription("Log photo").assertIsDisplayed()
     }
 
