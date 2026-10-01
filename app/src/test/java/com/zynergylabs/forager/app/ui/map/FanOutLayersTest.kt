@@ -75,8 +75,8 @@ class FanOutLayersTest {
             val xy = raw.asJsonArray
             id to (xy[0].asFloat to xy[1].asFloat)
         }
-        // The find and the flag are drawn 25 dp tall (dispatch 2026-09-28-286), so their offsets are (0, 12.5) and (-7.5893, 12.5).
-        val expected = mapOf("find" to (0f to 12.5f), "photo" to (0f to 0f), "waypoint" to (0f to 14f), "trip" to (-7.5893f to 12.5f))
+        // The find is drawn 25 dp tall (dispatch 2026-09-28-286) and the flag 23 (dispatch 2026-09-28-358), so their offsets are (0, 12.5) and (-6.9821, 11.5).
+        val expected = mapOf("find" to (0f to 12.5f), "photo" to (0f to 0f), "waypoint" to (0f to 14f), "trip" to (-6.9821f to 11.5f))
         assertEquals(expected.keys, offsets.keys)
         for ((id, xy) in expected) {
             assertEquals("the $id copy's icon-offset x", xy.first, offsets.getValue(id).first, 1e-3f)
