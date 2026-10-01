@@ -21,12 +21,28 @@ enum class CameraMoveCause {
  * makes itself ([markAppMove], before making it), and the mark lasts until the camera is idle ([onCameraIdle]). A move that is not a touch,
  * not marked, while the map follows the location is the follower's.
  *
- * STUB, written before the fix so its tests can be seen to fail: classifies every move as [CameraMoveCause.UNKNOWN].
+ * Held where the map is built and used on the main thread only. A mark whose move never happens (the camera was already there) lasts until the next
+ * idle; until then a follower's move is taken for the app's and closes the fan, which is what it did before this class existed, so the failure is the
+ * old behaviour and not a fan that stays open wrongly.
  */
 class CameraMoveClassifier {
-    fun markAppMove() {}
+    private var appMoveMarked = false
 
-    fun onCameraIdle() {}
+    /** The app is about to move the camera itself (a control the user pressed, a search result, a style change). Call before the move. */
+    fun markAppMove() {
+        appMoveMarked = true
+    }
 
-    fun classify(isGesture: Boolean, followingLocation: Boolean): CameraMoveCause = CameraMoveCause.UNKNOWN
+    /** The camera is idle: the marked move, if any, is over. */
+    fun onCameraIdle() {
+        appMoveMarked = false
+    }
+
+    /** What started a camera move that has just begun. [isGesture] is the SDK's gesture reason; [followingLocation] is whether the location component is tracking. */
+    fun classify(isGesture: Boolean, followingLocation: Boolean): CameraMoveCause = when {
+        isGesture -> CameraMoveCause.USER_GESTURE
+        appMoveMarked -> CameraMoveCause.APP_REQUESTED
+        followingLocation -> CameraMoveCause.LOCATION_FOLLOW
+        else -> CameraMoveCause.UNKNOWN
+    }
 }
