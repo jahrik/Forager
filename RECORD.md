@@ -9392,3 +9392,17 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 - Unchanged: the other glyphs, the stroke widths, the circle (36 dp), the touch area and spacing (48 dp) and the stack distance (26 dp).
 **Also recorded:** the planner archived two full-suite XML sets that existed only in worktree build folders: docs/audits/data/2026-10-01-photo-decode-dispatcher/full-suite-xml.tgz (406 files, 3272/0/0/24, the set terminal -354 said was not committed) and docs/audits/data/2026-09-30-s22-fails/full-suite-xml.tgz (401 files, 3246/0/0/24, the set terminal -350 counted). The planner deleted forager-wt/map-residuals/app/build (425 MB) on the owner's "Go ahead delete map-residuals/app/build"; its XML was already committed.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-359
+**Timestamp:** 2026-10-01T05:08:57Z
+**Continues:** 2026-09-28-358 (preserved 2026-10-01-03, where the amendment is appended); not yet started
+**The owner, verbatim:** "And increase the animation speed to 250ms".
+**The planner's reading:** the fan's open and fold animation. FAN_DURATION_MS (MarkerFanOut.kt:36) is 400 today, from the owner's earlier rule 6, "Give it a .4s animation speed"; 250 ms is faster. The owner was told this reading.
+**Change:**
+- FAN_DURATION_MS goes from 400 to 250, for the fan-out and the fold-back. The easing, what the progress drives and reduce-motion are unchanged.
+- MarkerFanOutHostTest's 400 ms expectations are re-based to 250; that is authorised for those tests only.
+- Same worktree and branch as -358, its own commits after the flag part, one report and one suite run for both.
+**Notes:** Written by the planner by hand.
