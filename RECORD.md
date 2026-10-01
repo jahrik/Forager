@@ -9625,3 +9625,23 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 - The phone's end state becomes the final build with both fixes, on the planner's call: the base cannot be installed over the fix build without a downgrade (INSTALL_FAILED_VERSION_DOWNGRADE, 2329 under 2334), which is not authorised. To be confirmed by the owner.
 **Open with the owner:** whether anything still flickers while the fan moves ("better", not "gone"); whether "no icon without its circle" is a pass item (the planner's 4 dp floor was wrong: the flagged circles are 6 to 13 dp and hidden behind their glyphs, which is -299's growth; the planner recommends dropping it as a pass item); the phone's end state; the merge.
 **Notes:** Written by the planner session that wrote -370. The cold-start recordings open on the phone's own wallpaper for about 1.4 s; they are kept untrimmed in the evidence folder, outside the repository, and a scratch sheet that included those frames was deleted.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-372
+**Timestamp:** 2026-10-01T12:27:18Z
+**Continues:** 2026-09-28-369 (preserved 2026-10-01-07), after continuations -370 and -371; the first fix is merged, the dispatch stays open for amendment 2
+**The owner, verbatim, in order,** each after looking at the fix build 1.0.2334+g2b5e9f88.dirty on the S22:
+- "It's clean on the spread now"
+- "I ran it on super slow motion and I verified no flickering beyond the blink occurs." Asked which phone: "S22".
+- "Build 2332 the flicker occurs. Build 2334 it is gone", then "2332 is what just ran on GH. 2334 is on the S22". Build 2332 is CI's build of PR #140's merge ref 91f0adda at head 62fa9a00, which did not hold the fix; the planner derived that from the commit count and the owner confirmed it. The owner did not say which phone ran 2332.
+- "Merge when ready"
+**What merged** into journal-redesign as 665ac3a4, no-ff, from fan-flicker at 49d1c38b: the first fix (1ead81ea) and its two reports. The branch's later commits (2c81d683, a96b0686: the stub and tests for amendment 2, pushed failing on purpose) are **not** in this merge; the planner merged the commit, not the branch tip.
+**How the planner read "Merge when ready":** the first fix is ready, so it is merged now; the blink fix merges when it passes amendment 2's checks. The planner had proposed holding the merge until the blink was done and the owner had said "Go ahead" to that, so this reading is the planner's and the owner has been told.
+**The planner's checks on the merge:** app/ in the merged head is identical to 1ead81ea, the commit the full suite ran on (407 suites, 3278 tests, 0 failures, 0 errors, 24 skipped, tallied by the planner from the saved XML); the merged tree differs from 49d1c38b only in RECORD.md and the dispatch file; no FanOutHideGate file, no @Ignore added, no README row removed.
+**The pass criterion "no icon without its circle":** not ruled on by the owner. The planner's 4 dp floor was wrong (the flagged circles are 6 to 13 dp and sit behind their glyphs, which is -299's growth). The planner does not treat it as a pass item, on the strength of the owner's own slow-motion check; the counts are in the completion report.
+**Not installed:** the merged build is not on the S22. The phone stays on 1.0.2334+g2b5e9f88.dirty, the same app code, because the coder's before-and-after runs for amendment 2 are being made on it and the owner has had the phone in hand.
+**Still with the owner for the first fix, device-only:** the S26 at 120 Hz; a fan after a basemap swap and a night switch; a layer switched off and on, and markers coming into view on pan and zoom, now that they no longer fade in; the location dot turning and following (item 4 of -319), which this setting reaches.
+**Amendment 2 so far, from the coder:** on the fix build at animator 1 the empty moment at the open's start measured 25, 9, 9 and 8 ms over four runs, and 33 ms in the earlier clip; none at the fold's end. The coder stopped phone actions when it saw the owner using the S22 (the backup settings screen opened during a run, and the map was panned and zoomed); its pre-tap check refused the fifth tap. Waiting on the owner's word that the phone is free.
+**Notes:** Written by the planner session that wrote -370 and -371.
