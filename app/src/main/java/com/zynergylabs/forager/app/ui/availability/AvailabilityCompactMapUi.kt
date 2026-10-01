@@ -378,7 +378,9 @@ internal fun CompactMapTab(
     var pendingWaypointLocation by remember { mutableStateOf<LatLng?>(null) }
     // M1 (planner's ruling: one bubble at a time): the one tapped thing, a sighting or any glyph.
     // Item 8: a bubble waiting from "Open in Journal" comes back open, once, when this tab is created again by Back from that find.
-    var tapped by remember { mutableStateOf<TappedMapThing?>(returnMemory.takeBubble(mapLayers.records.findMarkers)) }
+    var tapped by remember {
+        mutableStateOf<TappedMapThing?>(returnMemory.takeBubble(mapLayers.records.findMarkers) ?: returnMemory.takeEntryBubble(bubbleSources))
+    }
     // A fan the map did not use before this tab left composition is not kept for a later map.
     DisposableEffect(returnMemory) { onDispose { returnMemory.clearRestore() } }
     val onFeatureTap: (MapFeatureTap) -> Unit = remember { { tap -> tappedThingOf(tap)?.let { tapped = it } } }
@@ -652,6 +654,15 @@ internal fun CompactMapTab(
                             val remembering: (String) -> Unit = { id ->
                                 returnMemory.remember(id, shown?.anchorPx ?: Offset.Zero, shown?.bearingDeg ?: 0f)
                                 open(id)
+                            }
+                            remembering
+                        },
+                        // Part B of dispatch 2026-09-28-387: a bubble's "kept in" line remembers the bubble it was tapped in, and the fan open then, before it opens the entry.
+                        onOpenEntry = bubbleSources.onOpenEntry?.let { open ->
+                            val shown = tapped
+                            val remembering: (String) -> Unit = { entryId ->
+                                if (shown != null) returnMemory.rememberEntryOpen(entryId, shown)
+                                open(entryId)
                             }
                             remembering
                         },

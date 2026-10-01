@@ -264,6 +264,8 @@ internal fun JournalTab(
     pendingFindId: String? = null,
     /** J8-4: the day entry a [PendingJournalDestination.VIEW_ENTRY] request opens. */
     pendingEntryId: String? = null,
+    /** Dispatch 2026-09-28-387, Part B: an entry's report or editor was left; see [CartographyScreen]'s `onEntryClosed`. */
+    onEntryClosed: (entryId: String, fromReport: Boolean) -> Unit = { _, _ -> },
     /** Fires once [pendingDestination] has been applied, so [AvailabilityScreen] clears its own copy and is ready for the next request. */
     onPendingDestinationConsumed: () -> Unit = {},
     /** J8-3: the entry report's "Show on map" and "Hide from map", threaded to [CartographyScreen]. `null` offers neither. */
@@ -695,6 +697,7 @@ internal fun JournalTab(
                 openEntryRequest = entryOpenRequest,
                 onOpenEntryRequestConsumed = { entryOpenRequest = null },
                 onSetShownOnMap = onSetCartographyEntryShownOnMap,
+                onEntryClosed = onEntryClosed,
             )
 
             // J5: a Column in every window, so RecordsTab keeps one place in the composition when

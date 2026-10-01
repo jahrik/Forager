@@ -208,6 +208,8 @@ internal fun CompactMainScaffold(
     onFindDeleted: (String) -> Unit,
     /** Item 8: the user began editing a find (from its report or a tile), which ends "return to the map" for it. */
     onFindEditStarted: () -> Unit,
+    /** Dispatch 2026-09-28-387, Part B: a journal entry's report or editor was left. The screen decides whether that is a return to the map. */
+    onEntryClosed: (entryId: String, fromReport: Boolean) -> Unit = { _, _ -> },
     mapRenderMode: MapRenderMode,
     /**
      * Map layers L0b: the Maps tab's Layers sheet, legend and saved records ([MapLayersControls]),
@@ -1217,6 +1219,7 @@ internal fun CompactMainScaffold(
                                 pendingDestination = pendingJournalDestination(),
                                 pendingFindId = pendingJournalFindId(),
                                 pendingEntryId = pendingJournalEntryId(),
+                                onEntryClosed = onEntryClosed,
                                 onPendingDestinationConsumed = { onPendingJournalDestinationChange(null) },
                                 onSetCartographyEntryShownOnMap = onSetCartographyEntryShownOnMap,
                                 journalState = journalScreenState,
