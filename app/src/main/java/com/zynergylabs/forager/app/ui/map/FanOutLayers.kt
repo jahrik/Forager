@@ -54,6 +54,9 @@ internal object FanOutIds {
     const val ICONS_SOURCE = "fan-out-icons-source"
     const val ICONS_LAYER = "fan-out-icons-layer"
 
+    /** The image of the circle behind a copy, drawn as a symbol beside the copy's glyph (dispatch 2026-09-28-369, amendment 3, option A). */
+    const val CIRCLE_IMAGE = "fan-out-circle-image"
+
     /** The feature property naming the bitmap a copy draws. */
     const val IMAGE_PROPERTY = "image"
 
@@ -98,6 +101,27 @@ internal fun addFanOutLayers(style: Style, palette: MapPalette, chromeColour: In
     style.addLayer(CircleLayer(FanOutIds.DOTS_LAYER, FanOutIds.DOTS_SOURCE).withProperties(*sightingCircleProperties(palette)))
     style.addLayer(SymbolLayer(FanOutIds.ICONS_LAYER, FanOutIds.ICONS_SOURCE).withProperties(*fanIconLayerProperties()))
 }
+
+/** The circle symbol's `symbol-sort-key`: below every glyph's (a glyph's is its layer's place in the draw order, or -1 when absent from it). */
+internal const val FAN_CIRCLE_SORT_KEY = -1000
+
+/**
+ * STUB, written before the fix so its tests can be seen to fail: a transparent bitmap of the right size, not the circle.
+ */
+internal fun fanCircleBitmap(density: Float, colour: Int): android.graphics.Bitmap {
+    val px = kotlin.math.ceil(FAN_CIRCLE_DIAMETER_DP * density).toInt()
+    return android.graphics.Bitmap.createBitmap(px, px, android.graphics.Bitmap.Config.ARGB_8888)
+}
+
+/**
+ * STUB: what the map pushes where, as the map pushed before the circle became a symbol: four sources, one push each.
+ */
+internal fun fanPushPlan(frame: FanFrame): List<Pair<String, FeatureCollection>> = listOf(
+    FanOutIds.LEGS_SOURCE to frame.legs,
+    FanOutIds.CIRCLES_SOURCE to frame.circles,
+    FanOutIds.DOTS_SOURCE to frame.dots,
+    FanOutIds.ICONS_SOURCE to frame.icons,
+)
 
 /**
  * The icon layer's own properties, a function so the test can read the values it is built with (a
@@ -284,12 +308,7 @@ internal fun applyFanOutHiding(style: Style, members: List<FanMember>) {
  * silently: every style load adds all four ([addFanOutLayers]).
  */
 internal fun pushFanFrame(style: Style, frame: FanFrame) {
-    listOf(
-        FanOutIds.LEGS_SOURCE to frame.legs,
-        FanOutIds.CIRCLES_SOURCE to frame.circles,
-        FanOutIds.DOTS_SOURCE to frame.dots,
-        FanOutIds.ICONS_SOURCE to frame.icons,
-    ).forEach { (sourceId, collection) ->
+    fanPushPlan(frame).forEach { (sourceId, collection) ->
         val source = style.getSourceAs<GeoJsonSource>(sourceId)
         if (source == null) Log.w(FAN_OUT_TAG, "The $sourceId source is not in the loaded style; the fan was not drawn.") else source.setGeoJson(collection)
     }
