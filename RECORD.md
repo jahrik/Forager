@@ -9665,3 +9665,24 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Amendment 2 so far, from the coder:** the empty moment at the open's start on the fix build measured 25, 9, 9, 8 and 8 ms over five runs at animator 1 and 17 ms at animator 5, with none at the fold's end. FanOutHideGate passes its 12 tests, which failed 6 of 12 on the stub. The planner has not re-run them.
 **CI:** green on 67e54b24, the head holding the first fix.
 **Notes:** Written by the planner session that wrote -370 to -372.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-374
+**Timestamp:** 2026-10-01T13:05:17Z
+**Continues:** 2026-09-28-369 (preserved 2026-10-01-07, where an addendum is appended), after -370 to -373; amendment 3 is stopped for the owner, amendment 2 goes on alone
+**The owner, verbatim:**
+- "Yes on 2340 on my S26", to the planner's question about the circles-ahead recording. Build 2340 is CI's build of PR #140's merge ref at journal-redesign 67e54b24: the first fix, and nothing of amendments 2 or 3.
+- "I noticed the circles grow when expanding. It's acceptable if they fade instead of grow, if the growth is causing uneven physics". The planner treats it as a conditional permission on -299's growth, not a change order.
+**Amendment 2's diagnosis, confirmed by the coder's first probe** (amend2/probe-logcat.txt in ~/Zynergy/device-evidence/2026-10-01-fan-flicker/): over six opens on the S22, the renderer reported a frame with neither originals nor copies drawn in four, and the recordings of those same four show the empty frame (7 to 9 ms), the other two none. The hide lands before the copies are drawn, and the order races. The hide-on-signal fired at the 3rd or 4th rendered frame, 28 to 46 ms in, the copies 0.2 to 3.7 dp from their originals. Not re-run or re-read by the planner.
+**Amendment 3, from the coder's second and third probes** (probe2-logcat.txt, probe3-logcat.txt, lag.py; S22, 5 opens at animator 1 and 1 at animator 5 per build; the renderer asked per frame which push each layer shows):
+- It reproduces on the S22 in the rendered data. Four sources: 255 of 289 animating frames have the layers on different pushes; a member's circle and icon are 3 dp or more apart in 100 of 289 frames, median 1.35 dp, maximum 35.7 dp.
+- Position, not size: where the circle is ahead, the radius difference has a median of 0.09 dp against a point distance with a median of 3.7 dp. Nothing in the data says the circles need to fade.
+- The single source (one source, each layer filtered by kind, one setGeoJson a push; FanPushPlanTest 7 of 7, failing 7 of 7 on the stub) did not close it: 252 of 295 frames still out of step; 3 dp or more apart in 72 of 295, median 0.00 dp, maximum 23 dp.
+- **The coder's two limits, carried as written:** it is not shown that the renderer's queries equal what is drawn (a symbol query may report the previous placement, overstating the icon lag by up to one push), and a pixel check on the S22's night style failed; and the per-layer patterns depend on which tile updated first, where the per-member distance does not. The owner's S26 clip is the visual evidence.
+- The coder's options, none built: (A) draw the circle as a symbol so circle and glyph share the symbol pass; (B) hold each push until the last is drawn; (C) draw the fan in an overlay outside the map's layers; (D) keep the single source as a partial improvement.
+**Change:** amendment 2 is finished alone on the four-source layers, the single-source commit 9bc4fec7 set aside by a revert commit; amendment 3 builds nothing until the owner chooses.
+**Deviation:** the coder ran adb logcat -c once, clearing the S22's log buffer; it touches no data and is not in the phone rules. Disclosed by the coder; not to be repeated.
+**The phone:** on the throwaway probe build 1.0.2345+g10ccca53.dirty when this was written; the database hash and inode as at the start, by the coder's reads.
+**Notes:** Written by the planner session that wrote -370 to -373.
