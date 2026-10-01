@@ -945,6 +945,19 @@ fun AvailabilityScreen(
     // leave a device's keyboard visibly "stuck" over whatever's shown next.
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
+    // Dispatch 2026-09-28-312, items 11 and 12. The rule: a focus handed back by the app's own clearFocus never
+    // opens the search dropdown. Up only while one of two clearFocus(force = true) calls is running: the Tools
+    // drawer's close just below, and the search dropdown's own close in CompactMainScaffold. Out of touch mode (a
+    // hardware keyboard, a D-pad) View.clearFocus hands focus to the first focusable view inside that same call;
+    // when that is the search field, its focus callback opened the dropdown: Back could never close the dropdown,
+    // and closing Tools opened one nobody asked for, which then took the next Back ahead of a fan or a bubble.
+    // The scaffold's two onFieldFocused ignore a focus gain while this is up; a focus the user gives the field
+    // opens the dropdown as before. No timer: the hand-back is synchronous (traced: clearOwnerFocus,
+    // View.clearFocus, rootViewRequestFocus, AndroidComposeView.requestFocus, onFieldFocused, one call stack).
+    // The other two clearFocus calls are outside it on purpose: SearchDropdown's, on its own scroll, runs with
+    // the dropdown already open, and ReturnPromptState's runs while an entry is open, when the bar is not composed.
+    // A one-element array, not snapshot state: nothing draws from it (TwoStageSwipe's holder is the precedent).
+    val appClearFocusInProgress = remember { booleanArrayOf(false) }
     var isDrawerOpen by remember { mutableStateOf(false) }
 
     // Stage 2d's routing fix: a one-shot request into JournalTab, set alongside the compactTab
@@ -963,7 +976,12 @@ fun AvailabilityScreen(
             // Reset to the Search panel on every close — scrim tap, back button, or a search action
             // that closes the drawer itself — rather than leaving Settings showing the next time the
             // drawer opens. A minor, easily-revisited default: see this task's own notes.
-            focusManager.clearFocus(force = true)
+            appClearFocusInProgress[0] = true
+            try {
+                focusManager.clearFocus(force = true)
+            } finally {
+                appClearFocusInProgress[0] = false
+            }
             keyboardController?.hide()
         }
     }
@@ -1291,6 +1309,7 @@ fun AvailabilityScreen(
         CompactMainScaffold(
             isMapFullscreen = { isMapFullscreen },
             focusManager = focusManager,
+            appClearFocusInProgress = appClearFocusInProgress,
             keyboardController = keyboardController,
             compactTab = { compactTab },
             logUiState = logUiState,

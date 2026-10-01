@@ -171,6 +171,8 @@ import androidx.compose.ui.platform.SoftwareKeyboardController
 internal fun CompactMainScaffold(
     isMapFullscreen: () -> Boolean,
     focusManager: FocusManager,
+    /** Up while the app's own clearFocus is running: see its declaration in [AvailabilityScreen] (dispatch 2026-09-28-312). */
+    appClearFocusInProgress: BooleanArray,
     keyboardController: SoftwareKeyboardController?,
     compactTab: () -> CompactTab,
     logUiState: MushroomLogUiState,
@@ -426,24 +428,19 @@ internal fun CompactMainScaffold(
         // Same "actually hide the IME" fix as isDrawerOpen's own LaunchedEffect above — this panel
         // holds the manual-coordinate TextFields, so it's exactly as prone to a stuck keyboard on
         // close (the BackHandler above, or collapsing the bar again) as the drawer's own fields are.
-        // Dispatch 2026-09-28-312, item 12, the owner's "Option B": true only while the clearFocus below is running.
-        // Out of touch mode (a hardware keyboard, a D-pad) View.clearFocus hands focus to the first focusable view
-        // inside that same call, and when that is the search field its focus callback reopened the dropdown this
-        // effect had just seen close, so Back could never close it (traced: clearOwnerFocus, View.clearFocus,
-        // rootViewRequestFocus, AndroidComposeView.requestFocus, onFieldFocused, one call stack). The field's two
-        // onFieldFocused below ignore a focus gain while this is set; every other focus gain opens the dropdown as
-        // before. No timer: the hand-back is synchronous, so the flag is down again before anything else can run.
-        // Rejected, option (a), not clearing focus on close: the field would stay focused, a second tap on it would
-        // gain no focus, and the dropdown would not open again; the keyboard would need another way to be hidden.
-        // A one-element array, not snapshot state: nothing draws from it (TwoStageSwipe's holder is the precedent).
-        val dropdownCloseIsClearingFocus = remember { booleanArrayOf(false) }
+        // Dispatch 2026-09-28-312, item 12: appClearFocusInProgress is up while the clearFocus below runs, so the focus
+        // the framework hands back to the search field, out of touch mode, does not reopen the dropdown this effect
+        // has just seen close (the holder's own comment in AvailabilityScreen has the rule and the trace). The field's
+        // two onFieldFocused below read it. Rejected: not clearing focus on close at all. The field would stay
+        // focused, a second tap on it would gain no focus, and the dropdown would not open again; the keyboard would
+        // need another way to be hidden.
         LaunchedEffect(showSearchDropdown) {
             if (!showSearchDropdown) {
-                dropdownCloseIsClearingFocus[0] = true
+                appClearFocusInProgress[0] = true
                 try {
                     focusManager.clearFocus(force = true)
                 } finally {
-                    dropdownCloseIsClearingFocus[0] = false
+                    appClearFocusInProgress[0] = false
                 }
                 keyboardController?.hide()
             }
@@ -850,7 +847,7 @@ internal fun CompactMainScaffold(
                                 showSearchDropdown = false
                             },
                             onDismissTaxonSuggestions = onDismissTaxonSuggestions,
-                            onFieldFocused = { if (!dropdownCloseIsClearingFocus[0]) showSearchDropdown = true },
+                            onFieldFocused = { if (!appClearFocusInProgress[0]) showSearchDropdown = true },
                         )
                         SearchNotice(uiState)
                     }
@@ -939,8 +936,8 @@ internal fun CompactMainScaffold(
                                 // same value. The dropdown is here as of -312: what is drawn on top closes first (the owner:
                                 // "Yes dropdown should go away first when hitting back ... I never said to have the fan close
                                 // before what's drawn on top"). Its term was held out under continuation -303 only while the
-                                // Robolectric harness reopened the dropdown after it closed, which the focus fix above
-                                // (dropdownCloseIsClearingFocus) ended. The taxon suggestions list is still not here.
+                                // Robolectric harness reopened the dropdown after it closed, which the focus fix
+                                // (appClearFocusInProgress) ended. The taxon suggestions list is still not here.
                                 renderMode = mapRenderMode.copy(bottomInset = safeAttributionBottomInset, attributionEndInset = safeAttributionEndInset, attributionBottomInset = attributionButtonBottomInset, backEnabled = !isDrawerOpen() && !isMapFullscreen() && !showSearchDropdown),
                                 mapMode = mapMode(),
                                 onMapModeSelected = { onMapModeChange(it) },
@@ -1095,7 +1092,7 @@ internal fun CompactMainScaffold(
                                                     showSearchDropdown = false
                                                 },
                                                 onDismissTaxonSuggestions = onDismissTaxonSuggestions,
-                                                onFieldFocused = { if (!dropdownCloseIsClearingFocus[0]) showSearchDropdown = true },
+                                                onFieldFocused = { if (!appClearFocusInProgress[0]) showSearchDropdown = true },
                                                 // The Maps tab's own bar, over its map (map chrome at 80%;
                                                 // owner, "1 A": its suggestions stack over the 0.8 panel).
                                                 overMap = true,
