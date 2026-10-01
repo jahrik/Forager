@@ -10040,3 +10040,21 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Change:** the Search bullet corrected from the search UI; every statement of what the app does or offers given a second anchor, the place in production code where a user reaches it, or removed; a list of what is defined but not reachable, for the owner's triage. Docs only.
 **Holds:** PR #140's merge, again. Nothing has been merged into pre-main or main.
 **Notes:** Written by the planner session that wrote -370 to -392.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-394
+**Timestamp:** 2026-10-01T20:00:55Z
+**Closes:** 2026-09-28-393 (preserved 2026-10-01-13, where the owner's narrowing is appended)
+**Outcome:** partial
+**Observed:**
+- **What merged** into journal-redesign as 579d8ca9, no-ff, from readme-reachability at 59ed5f3a. Docs only. The coder ran on Sonnet 5.5.
+- **Narrowed by the owner while it ran,** verbatim: "Readme needs to be checked against actual code sometime. Add to the known issues section that the readme is severely stale"; "Add to that the codebase needs an overhaul and remove all strings of dead code that aren't functional, and identify and create a bug list"; and, to the planner's reading that these are recorded now and done after the release, "Yep. Post release triage material".
+- **Done:** the README's Search bullet now says the search is fungi only, traced by the coder from the search UI (the category chip row is gone; the species field, the radius, the month; the default filter Fungi). No line of the README names Plants or Lichens. The README is 133 lines.
+- **Not done, deferred at the owner's word:** the reachability pass over every other statement of what the app does. The coder examined none beyond Search and says so in the report; every other feature statement in the README is unexamined against its callers.
+- **Added to the deferred known-issues section** (docs/audits/2026-10-01-readme-deferred-section.md), under "Added at the owner's word, 2026-10-01", below the eight moved items, which the planner diffed and found unchanged: the README is severely stale and needs checking against the actual code; the codebase needs an overhaul, including removing dead code, with a starting list (TaxonFilter.PLANTS and LICHENS, defined and not offered; the fan's dots source and layer); a bug list is to be identified and created. Nothing of the three has been started.
+- **The planner's checks:** only README.md and two files under docs/audits changed; the README's diff is the Search bullet alone; app/ is unchanged since b79e2ae0. The coder's re-run of the README's checks: 177 claims rows, 0 unresolved; 52 links and paths, 0 missing.
+**For the owner's triage after the release, added to -390's list:** the README checked against the code, statement by statement, by where a user reaches each thing; the codebase overhaul and the removal of dead code; a bug list.
+**Next:** CI on this head; then PR #140 into pre-main, the backup already written; then pre-main into main.
+**Notes:** Written by the planner session that wrote -370 to -393.
