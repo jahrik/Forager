@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.SightingsMapOverlayDataTest" tests="31" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:09.871Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.005">
+  <properties/>
+  <testcase name="at night the offline outline has a solid white border beneath it, the casing width wider on each side" classname="com.zynergylabs.forager.app.ui.map.SightingsMapOverlayDataTest" time="0.0"/>
+  <testcase name="no breadcrumb points produces no trail feature" classname="com.zynergylabs.forager.app.ui.map.SightingsMapOverlayDataTest" time="0.0"/>
+  <testcase name="the selected sighting ring is 3dp wide and every other ring half that" classname="com.zynergylabs.forager.app.ui.map.SightingsMapOverlayDataTest" time="0.0"/>
+  <testcase name="the search-centre source is empty when the caller turns the marker off, and unchanged when it does not" classname="com.zynergylabs.forager.app.ui.map.SightingsMapOverlayDataTest" time="0.0"/>
+  <testcase name="no markers produces no point features" classname="com.zynergylabs.forager.app.ui.map.SightingsMapOverlayDataTest" time="0.0"/>
+  <testcase name="no sighting feature is marked selected when nothing is focused" classname="com.zynergylabs.forager.app.ui.map.SightingsMapOverlayDataTest" time="0.0"/>
+  <testcase name="sightingStrokeColorExpression branches on the feature's own selected property" classname="com.zynergylabs.forager.app.ui.map.SightingsMapOverlayDataTest" time="0.0"/>
+  <testcase name="sightingStrokeColorExpression carries the caller's own palette, not a hardcoded one" classname="com.zynergylabs.forager.app.ui.map.SightingsMapOverlayDataTest" time="0.0"/>
+  <testcase name="each offline region becomes a closed polygon ring centred on its own coordinates" classname="com.zynergylabs.forager.app.ui.map.SightingsMapOverlayDataTest" time="0.001"/>
+  <testcase name="no kept tracks produces no LineString features" classname="com.zynergylabs.forager.app.ui.map.SightingsMapOverlayDataTest" time="0.0"/>
+  <testcase name="two kept tracks become two separate LineStrings, not one joined trail" classname="com.zynergylabs.forager.app.ui.map.SightingsMapOverlayDataTest" time="0.0"/>
+  <testcase name="no waypoints produces no marker features" classname="com.zynergylabs.forager.app.ui.map.SightingsMapOverlayDataTest" time="0.0"/>
+  <testcase name="the offline region's outline is a thin dashed casing line, dash 6dp and gap 4dp" classname="com.zynergylabs.forager.app.ui.map.SightingsMapOverlayDataTest" time="0.0"/>
+  <testcase name="a single breadcrumb point produces no trail feature" classname="com.zynergylabs.forager.app.ui.map.SightingsMapOverlayDataTest" time="0.0"/>
+  <testcase name="zoomForRadiusKm opens tighter for a small search radius and wider for a large one" classname="com.zynergylabs.forager.app.ui.map.SightingsMapOverlayDataTest" time="0.0"/>
+  <testcase name="every waypoint becomes a point feature at its own coordinates" classname="com.zynergylabs.forager.app.ui.map.SightingsMapOverlayDataTest" time="0.0"/>
+  <testcase name="each planned trip becomes a point feature carrying its own date" classname="com.zynergylabs.forager.app.ui.map.SightingsMapOverlayDataTest" time="0.0"/>
+  <testcase name="every sighting feature carries its own observationId as a number property" classname="com.zynergylabs.forager.app.ui.map.SightingsMapOverlayDataTest" time="0.0"/>
+  <testcase name="a track with fewer than two points produces no LineString" classname="com.zynergylabs.forager.app.ui.map.SightingsMapOverlayDataTest" time="0.0"/>
+  <testcase name="a waypoint's title and snippet are its own name and note" classname="com.zynergylabs.forager.app.ui.map.SightingsMapOverlayDataTest" time="0.0"/>
+  <testcase name="every sighting becomes a point feature at its own coordinates" classname="com.zynergylabs.forager.app.ui.map.SightingsMapOverlayDataTest" time="0.0"/>
+  <testcase name="a sighting's title and snippet fall back when common name and date are missing" classname="com.zynergylabs.forager.app.ui.map.SightingsMapOverlayDataTest" time="0.0"/>
+  <testcase name="by day the offline outline is unchanged and its border draws nothing" classname="com.zynergylabs.forager.app.ui.map.SightingsMapOverlayDataTest" time="0.001"/>
+  <testcase name="overlay data is identical regardless of which basemap is active" classname="com.zynergylabs.forager.app.ui.map.SightingsMapOverlayDataTest" time="0.001"/>
+  <testcase name="the breadcrumb dash pattern is non-empty, so it renders as dots and not a solid trail" classname="com.zynergylabs.forager.app.ui.map.SightingsMapOverlayDataTest" time="0.0"/>
+  <testcase name="the breadcrumb trail runs through every recorded point in order" classname="com.zynergylabs.forager.app.ui.map.SightingsMapOverlayDataTest" time="0.0"/>
+  <testcase name="each track has a solid casing line directly below it, wider by the casing on each side at full width, thinning with it, in the casing colour" classname="com.zynergylabs.forager.app.ui.map.SightingsMapOverlayDataTest" time="0.0"/>
+  <testcase name="no offline regions produces no circle features" classname="com.zynergylabs.forager.app.ui.map.SightingsMapOverlayDataTest" time="0.001"/>
+  <testcase name="only the focused observation's own feature is marked selected" classname="com.zynergylabs.forager.app.ui.map.SightingsMapOverlayDataTest" time="0.0"/>
+  <testcase name="pointsFeatureCollection places one point feature per marker at its own coordinates" classname="com.zynergylabs.forager.app.ui.map.SightingsMapOverlayDataTest" time="0.0"/>
+  <testcase name="search centre feature carries the region's own coordinates and radius" classname="com.zynergylabs.forager.app.ui.map.SightingsMapOverlayDataTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

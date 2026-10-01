@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.GetTodaysForecastUseCaseTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:53.582Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.006">
+  <properties/>
+  <testcase name="returns null when the series has no forecast days" classname="com.zynergylabs.forager.app.domain.GetTodaysForecastUseCaseTest" time="0.002"/>
+  <testcase name="passes the requested region through unchanged" classname="com.zynergylabs.forager.app.domain.GetTodaysForecastUseCaseTest" time="0.001"/>
+  <testcase name="provider failure propagates as failure" classname="com.zynergylabs.forager.app.domain.GetTodaysForecastUseCaseTest" time="0.002"/>
+  <testcase name="returns the reference day's own forecast entry, not an observed day or a later forecast day" classname="com.zynergylabs.forager.app.domain.GetTodaysForecastUseCaseTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

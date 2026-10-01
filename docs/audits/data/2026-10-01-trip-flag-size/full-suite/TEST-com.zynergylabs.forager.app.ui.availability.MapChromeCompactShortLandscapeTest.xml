@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.MapChromeCompactShortLandscapeTest" tests="19" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:13.160Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="1.695">
+  <properties/>
+  <testcase name="a track's details sheet opened from its bubble on the Maps tab is at the map chrome's alpha" classname="com.zynergylabs.forager.app.ui.availability.MapChromeCompactShortLandscapeTest" time="0.079"/>
+  <testcase name="the Month menu from the search panel on the Maps tab is at the map chrome's alpha" classname="com.zynergylabs.forager.app.ui.availability.MapChromeCompactShortLandscapeTest" time="0.099"/>
+  <testcase name="the trip date dialog's picker draws no fill of its own over the dialog's" classname="com.zynergylabs.forager.app.ui.availability.MapChromeCompactShortLandscapeTest" time="0.104"/>
+  <testcase name="the centre-pin confirm row over the Maps tab's map is at the map chrome's alpha" classname="com.zynergylabs.forager.app.ui.availability.MapChromeCompactShortLandscapeTest" time="0.087"/>
+  <testcase name="the search notice over the Maps tab's map is at the map chrome's alpha" classname="com.zynergylabs.forager.app.ui.availability.MapChromeCompactShortLandscapeTest" time="0.056"/>
+  <testcase name="the waypoint name dialog over the Maps tab's map is at the map chrome's alpha" classname="com.zynergylabs.forager.app.ui.availability.MapChromeCompactShortLandscapeTest" time="0.071"/>
+  <testcase name="the species suggestions typed on the List tab stay solid" classname="com.zynergylabs.forager.app.ui.availability.MapChromeCompactShortLandscapeTest" time="0.119"/>
+  <testcase name="a snackbar over the Maps tab while sightings load follows the tab, at the map chrome's alpha" classname="com.zynergylabs.forager.app.ui.availability.MapChromeCompactShortLandscapeTest" time="0.06"/>
+  <testcase name="the trip date dialog over the Maps tab's map is at the map chrome's alpha" classname="com.zynergylabs.forager.app.ui.availability.MapChromeCompactShortLandscapeTest" time="0.161"/>
+  <testcase name="the search notice on the List tab stays solid" classname="com.zynergylabs.forager.app.ui.availability.MapChromeCompactShortLandscapeTest" time="0.07"/>
+  <testcase name="the species suggestions typed on the Maps tab are at the map chrome's alpha" classname="com.zynergylabs.forager.app.ui.availability.MapChromeCompactShortLandscapeTest" time="0.088"/>
+  <testcase name="a snackbar over the Maps tab is at the map chrome's alpha" classname="com.zynergylabs.forager.app.ui.availability.MapChromeCompactShortLandscapeTest" time="0.055"/>
+  <testcase name="the Tools drawer over the List tab stays solid" classname="com.zynergylabs.forager.app.ui.availability.MapChromeCompactShortLandscapeTest" time="0.064"/>
+  <testcase name="a waypoint's details sheet opened from its bubble on the Maps tab is at the map chrome's alpha" classname="com.zynergylabs.forager.app.ui.availability.MapChromeCompactShortLandscapeTest" time="0.086"/>
+  <testcase name="the Month menu from the search panel on the List tab stays solid" classname="com.zynergylabs.forager.app.ui.availability.MapChromeCompactShortLandscapeTest" time="0.097"/>
+  <testcase name="a snackbar over the List tab stays solid" classname="com.zynergylabs.forager.app.ui.availability.MapChromeCompactShortLandscapeTest" time="0.065"/>
+  <testcase name="the exit-navigation prompt raised by Back on the Maps tab is at the map chrome's alpha" classname="com.zynergylabs.forager.app.ui.availability.MapChromeCompactShortLandscapeTest" time="0.061"/>
+  <testcase name="an offline region's details sheet opened from its bubble on the Maps tab is at the map chrome's alpha" classname="com.zynergylabs.forager.app.ui.availability.MapChromeCompactShortLandscapeTest" time="0.136"/>
+  <testcase name="the Tools drawer over the Maps tab is at the map chrome's alpha" classname="com.zynergylabs.forager.app.ui.availability.MapChromeCompactShortLandscapeTest" time="0.133"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

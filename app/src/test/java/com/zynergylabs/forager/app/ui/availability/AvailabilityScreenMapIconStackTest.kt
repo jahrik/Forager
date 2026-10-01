@@ -101,7 +101,7 @@ import com.zynergylabs.forager.app.domain.model.TaxonFilter
 import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
 import com.zynergylabs.forager.app.domain.model.WeatherSeries
 import com.zynergylabs.forager.app.ui.map.CENTRE_PIN_CONFIRM_ROW_TAG
-import com.zynergylabs.forager.app.ui.map.MAP_MODE_PICKER_TAG
+import com.zynergylabs.forager.app.ui.map.MAP_LAYERS_SHEET_TAG
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.centrePinFillPixel
 import com.zynergylabs.forager.app.ui.theme.MapPalette
@@ -834,7 +834,7 @@ class AvailabilityScreenMapIconStackTest {
      * The ✕ is a deliberate press and still exits directly, with no prompt composed. (The control
      * pill's toggle is wired the same way — `onClick = onToggleReturning`, nothing in between —
      * but its semantic click is this suite's documented Robolectric no-op, see
-     * docs/audits/2026-08-30-return-to-vehicle-semantics-click-noop.md, so it is not asserted
+     * docs/navigation/2026-08-30-return-to-vehicle-semantics-click-noop.md, so it is not asserted
      * here; the real-touch exit test above covers the ✕ by coordinates.)
      */
     @Test
@@ -886,9 +886,9 @@ class AvailabilityScreenMapIconStackTest {
      * and this helper makes none.
      */
     private fun searchAReferenceRegion() {
+        // The bar's tap opens "Advanced search" and "Enter coordinates manually" expanded (owner,
+        // continuation 2026-09-28-40, "Also open manual coordinates"), so no header is tapped here.
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
-        composeRule.onNodeWithText("Advanced search").performClick()
-        composeRule.onNodeWithText("Enter coordinates manually").performClick()
         composeRule.onNodeWithText("Latitude").performScrollTo().performTextReplacement("45.326")
         composeRule.onNodeWithText("Longitude").performTextReplacement("-122.634")
         // performScrollTo(): radius and month, promoted to SearchDropdown's own top level ahead of
@@ -980,7 +980,7 @@ class AvailabilityScreenMapIconStackTest {
      * A commit bisection then showed the failure is genuinely absent before `72f0a54` (the search-
      * bar redesign) and genuinely present after it — a real regression introduced by that commit,
      * not cross-test contamination. See
-     * `docs/audits/2026-08-30-return-to-vehicle-semantics-click-noop.md` for the full investigation:
+     * `docs/navigation/2026-08-30-return-to-vehicle-semantics-click-noop.md` for the full investigation:
      * what's ruled out (the compass-strip-clearance padding specifically; a moved semantics merge
      * boundary around this row, checked by comparing the merged/unmerged tree before and after
      * `72f0a54`), the confirmed-working real-device result (three real `adb shell input tap` events
@@ -1014,7 +1014,7 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNodeWithContentDescription("Fullscreen").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Reset orientation to north").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Center on my location").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Map mode: Topographical. Choose Street, Topographical, or Satellite. Night mode off.").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Layers: Topographical map. Choose the map type and overlays.").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Plan a trip or log a find here").assertIsDisplayed()
     }
 
@@ -1650,7 +1650,7 @@ class AvailabilityScreenMapIconStackTest {
     //   node when the identical production wiring fires correctly on a real touch. Not yet looked
     //   at: the gesture-detector/pointer-input node beneath the semantics layer, inside
     //   MapBarIconButton's own Icon child — below the level the merge-tree check compared.
-    // Full writeup: docs/audits/2026-08-30-return-to-vehicle-semantics-click-noop.md
+    // Full writeup: docs/navigation/2026-08-30-return-to-vehicle-semantics-click-noop.md
     @Ignore("Harness-only failure, confirmed working on a real device — see this test's own comment and the linked audit doc")
     @Test
     fun `tapping the control pill's return-to-vehicle button calls onToggleReturning`() {
@@ -1714,7 +1714,7 @@ class AvailabilityScreenMapIconStackTest {
     // @Ignore for the same harness-only reason as `tapping the control pill's return-to-vehicle
     // button calls onToggleReturning` above — see that test's own comment for the full provenance
     // (commit boundary `72f0a54`, the on-device result on `3df717b`, the merge-tree finding, and
-    // the open question) and docs/audits/2026-08-30-return-to-vehicle-semantics-click-noop.md.
+    // the open question) and docs/navigation/2026-08-30-return-to-vehicle-semantics-click-noop.md.
     // Not deleted: same reason, this is the follow-up's own subject.
     @Ignore("Harness-only failure, confirmed working on a real device — see the sibling test's comment and the linked audit doc")
     @Test
@@ -1746,7 +1746,7 @@ class AvailabilityScreenMapIconStackTest {
      */
     // @Ignore for the same harness-only reason as its twin above — see `tapping the control pill's
     // return-to-vehicle button calls onToggleReturning`'s own comment for the full provenance and
-    // docs/audits/2026-08-30-return-to-vehicle-semantics-click-noop.md. Not deleted: same reason.
+    // docs/navigation/2026-08-30-return-to-vehicle-semantics-click-noop.md. Not deleted: same reason.
     @Ignore("Harness-only failure, confirmed working on a real device — see the sibling test's comment and the linked audit doc")
     @Test
     fun `a real touch at each trailhead control's own screen coordinates reaches that control while not returning`() {
@@ -1814,7 +1814,7 @@ class AvailabilityScreenMapIconStackTest {
      * the bar sits at its own default (right) edge, before any drag has happened — control-pill-
      * record specifically, not control-pill-return-to-vehicle, which has its own pre-existing,
      * unrelated Robolectric-only click no-op documented in
-     * docs/audits/2026-08-30-return-to-vehicle-semantics-click-noop.md.
+     * docs/navigation/2026-08-30-return-to-vehicle-semantics-click-noop.md.
      */
     @Test
     fun `a real touch on the record button reaches it while the bar is on its default right edge`() {
@@ -2178,10 +2178,10 @@ class AvailabilityScreenMapIconStackTest {
      *
      * **Must tap below [SearchDropdown]'s own bottom edge, not the scrim's own geometric centre.**
      * [SEARCH_DROPDOWN_SCRIM_TAG]'s own node is `fillMaxSize()`, so its centre sits well inside
-     * [SearchDropdown]'s own (opaque, composed-after-the-scrim, so on top per this file's own
+     * [SearchDropdown]'s own (filled, composed-after-the-scrim, so on top per this file's own
      * composition-order rule) bounds — a plain `performTouchInput { click() }` on the scrim node
      * lands there and gets absorbed by [SearchDropdown] itself before it ever reaches the scrim's
-     * own `detectTapGestures`, the same "opaque background blocks every touch within its bounds"
+     * own `detectTapGestures`, the same "background blocks every touch within its bounds"
      * rule [SearchDropdown]'s own doc comment already documents. A real point past that panel's own
      * bottom edge, still within the scrim's `fillMaxSize()`, is what actually exercises dismiss.
      */
@@ -2267,10 +2267,11 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNodeWithText("Cancel").assertIsDisplayed()
     }
 
-    // ── Expanded-panels dispatch: MapModePicker/AddActionTile follow the bar's live position ──
+    // ── Expanded-panels dispatch: AddActionTile follows the bar's live position (the map mode ──
+    // ── popover did too, until map layers L0b replaced it with the Layers sheet)             ──
 
-    /** [MapIconBar]'s layers row, as it reads at this file's default (Topographical, night mode off). */
-    private val layersRowDescription = "Map mode: Topographical. Choose Street, Topographical, or Satellite. Night mode off."
+    /** [MapIconBar]'s layers row, as it reads at this file's default basemap (Topographical). */
+    private val layersRowDescription = "Layers: Topographical map. Choose the map type and overlays."
 
     /** [MapIconBar]'s add row. */
     private val addRowDescription = "Plan a trip or log a find here"
@@ -2314,7 +2315,8 @@ class AvailabilityScreenMapIconStackTest {
      * now is* — the panel's own outer edge lands on the bar's own outer edge on whichever side the
      * bar is on, and the panel is vertically centred on the row that opened it — and *fully on
      * screen*, checked against the root's own real bounds. The panel is measured by its own
-     * `Surface` ([MAP_MODE_PICKER_TAG]/[ADD_ACTION_TILE_TAG]), not by its chips: under
+     * `Surface` ([ADD_ACTION_TILE_TAG]; the map mode picker's own tag went with the picker, map
+     * layers L0b), not by its chips: under
      * Robolectric's near-zero-width fonts each chip is under 48dp wide, so Material's
      * `minimumInteractiveComponentSize` wrapper pads it out and the chip's own semantics bounds
      * stop a font-dependent ~6dp short of the panel's real edge (measured, not assumed — see
@@ -2409,36 +2411,31 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     /**
-     * The dispatch's own bug, reproduced then disproven for [MapModePicker] on the default (right)
-     * edge: the bar is dragged to the bottom of its range, the picker opened by a real touch on
-     * the layers row *at its new position*, then checked against where the bar now is (see
-     * [assertPanelAnchoredToBar]) — previously it opened at the bar's old, centred position. A real
-     * touch on the "Street" chip then proves the panel's own buttons are tappable where it
-     * landed: the layers row's own contentDescription reflects the new mode.
+     * Map layers L0b (planner's ruling on F3): the popover these two tests used to anchor-check is
+     * gone, replaced by the Layers sheet, which is a modal bottom sheet with no anchor to the bar. What
+     * still holds, and what these check with real touches, is that the layers row opens it from
+     * wherever the bar has been dragged, on either edge, and that the sheet's map-type chips work: a
+     * touch on "Street" changes the row's description. The sheet is its own window, so the touch on
+     * the chip is through the chip's own node rather than the app's root.
      */
     @Test
-    fun `with the bar dragged to the bottom on the right, the map mode picker opens beside the layers row and its chips are tappable`() {
+    fun `with the bar dragged to the bottom on the right, a real touch on the layers row opens the Layers sheet and its map types work`() {
         setScreen()
 
         dragIconBarHandle(tag = "map-icon-bar-minimize-handle", dyDp = 2000.dp)
         composeRule.onRoot().performTouchInput { click(centerOfContentDescription(layersRowDescription)) }
         composeRule.waitForIdle()
 
-        assertPanelAnchoredToBar(
-            panelTag = MAP_MODE_PICKER_TAG,
-            openedFromRow = layersRowDescription,
-            onLeftSide = false,
-        )
-
-        composeRule.onRoot().performTouchInput { click(centerOfText("Street")) }
+        composeRule.onNodeWithTag(MAP_LAYERS_SHEET_TAG).assertIsDisplayed()
+        composeRule.onNodeWithText("Street").performTouchInput { click() }
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithContentDescription("Map mode: Street. Choose Street, Topographical, or Satellite. Night mode off.").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Layers: Street map. Choose the map type and overlays.").assertIsDisplayed()
     }
 
-    /** [MapModePicker], left edge — the horizontal case the dispatch asked to confirm, not assume: one drag snaps the bar left and drops it to the bottom of its range. */
+    /** The same on the left edge: one drag snaps the bar left and drops it to the bottom of its range. */
     @Test
-    fun `with the bar dragged to the bottom on the left, the map mode picker opens beside the layers row and its chips are tappable`() {
+    fun `with the bar dragged to the bottom on the left, a real touch on the layers row opens the Layers sheet and its map types work`() {
         setScreen()
         val fullscreenLeftBefore = composeRule.onNodeWithContentDescription("Fullscreen").getUnclippedBoundsInRoot().left
 
@@ -2453,16 +2450,11 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onRoot().performTouchInput { click(centerOfContentDescription(layersRowDescription)) }
         composeRule.waitForIdle()
 
-        assertPanelAnchoredToBar(
-            panelTag = MAP_MODE_PICKER_TAG,
-            openedFromRow = layersRowDescription,
-            onLeftSide = true,
-        )
-
-        composeRule.onRoot().performTouchInput { click(centerOfText("Street")) }
+        composeRule.onNodeWithTag(MAP_LAYERS_SHEET_TAG).assertIsDisplayed()
+        composeRule.onNodeWithText("Street").performTouchInput { click() }
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithContentDescription("Map mode: Street. Choose Street, Topographical, or Satellite. Night mode off.").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Layers: Street map. Choose the map type and overlays.").assertIsDisplayed()
     }
 
     /**

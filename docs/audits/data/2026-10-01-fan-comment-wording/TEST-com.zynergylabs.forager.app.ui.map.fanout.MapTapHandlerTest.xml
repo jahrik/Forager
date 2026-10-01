@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.fanout.MapTapHandlerTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:35:55.538Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.111">
+  <properties/>
+  <testcase name="the same two markers are a stack when zoomed out and are not once zoom separates them" classname="com.zynergylabs.forager.app.ui.map.fanout.MapTapHandlerTest" time="0.075"/>
+  <testcase name="while a fan folds, its hidden originals take no tap" classname="com.zynergylabs.forager.app.ui.map.fanout.MapTapHandlerTest" time="0.001"/>
+  <testcase name="more than eight fan out and every one can be opened" classname="com.zynergylabs.forager.app.ui.map.fanout.MapTapHandlerTest" time="0.008"/>
+  <testcase name="a tap on each fanned marker opens that marker's bubble, from the centre and from every corner of its own square" classname="com.zynergylabs.forager.app.ui.map.fanout.MapTapHandlerTest" time="0.008"/>
+  <testcase name="a change to what the map draws that takes the fan's members folds the fan" classname="com.zynergylabs.forager.app.ui.map.fanout.MapTapHandlerTest" time="0.001"/>
+  <testcase name="a tap on another marker folds the fan and opens that marker's bubble" classname="com.zynergylabs.forager.app.ui.map.fanout.MapTapHandlerTest" time="0.001"/>
+  <testcase name="a tap on the empty map folds the fan and is also the plain tap it would have been" classname="com.zynergylabs.forager.app.ui.map.fanout.MapTapHandlerTest" time="0.001"/>
+  <testcase name="the layer drawn on top comes first in the ring" classname="com.zynergylabs.forager.app.ui.map.fanout.MapTapHandlerTest" time="0.0"/>
+  <testcase name="a camera move folds the fan, whether a pan or a zoom, and reports nothing" classname="com.zynergylabs.forager.app.ui.map.fanout.MapTapHandlerTest" time="0.001"/>
+  <testcase name="a tap on two photos at one spot fans them out and opens no bubble" classname="com.zynergylabs.forager.app.ui.map.fanout.MapTapHandlerTest" time="0.009"/>
+  <testcase name="a photo over a find fans both, so the find is reachable" classname="com.zynergylabs.forager.app.ui.map.fanout.MapTapHandlerTest" time="0.0"/>
+  <testcase name="a lone marker opens its bubble as it always did, and no fan opens" classname="com.zynergylabs.forager.app.ui.map.fanout.MapTapHandlerTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

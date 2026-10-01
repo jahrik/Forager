@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.LandscapeEntryReportTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:41.508Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.427">
+  <properties/>
+  <testcase name="L2 the header row shows above the map, not under it, and Back takes real touches across its bounds" classname="com.zynergylabs.forager.app.ui.availability.LandscapeEntryReportTest" time="0.174"/>
+  <testcase name="L2 portrait keeps the 4 by 3 map across the width" classname="com.zynergylabs.forager.app.ui.availability.LandscapeEntryReportTest" time="0.074"/>
+  <testcase name="L2 the map is capped at the stated fraction of the window height" classname="com.zynergylabs.forager.app.ui.availability.LandscapeEntryReportTest" time="0.056"/>
+  <testcase name="L2 the offline switch below the map is shown whole in the window and takes real touches" classname="com.zynergylabs.forager.app.ui.availability.LandscapeEntryReportTest" time="0.068"/>
+  <testcase name="L2 a real touch on a glyph in the capped map opens its bubble, and the map asked for its opening frame once" classname="com.zynergylabs.forager.app.ui.availability.LandscapeEntryReportTest" time="0.052"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

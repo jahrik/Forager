@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.GetTripReportOfflineRegionsUseCaseTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:53.595Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.008">
+  <properties/>
+  <testcase name="a coordinate just outside a tiny region's footprint is correctly excluded, not trivially true" classname="com.zynergylabs.forager.app.domain.GetTripReportOfflineRegionsUseCaseTest" time="0.003"/>
+  <testcase name="each region is tested at its own maxZoom, and a coarser maxZoom is at least as inclusive" classname="com.zynergylabs.forager.app.domain.GetTripReportOfflineRegionsUseCaseTest" time="0.001"/>
+  <testcase name="candidate coordinates are gathered from finds, tracks, and waypoints alike" classname="com.zynergylabs.forager.app.domain.GetTripReportOfflineRegionsUseCaseTest" time="0.001"/>
+  <testcase name="a region whose tiles cover one of the trip's coordinates is included" classname="com.zynergylabs.forager.app.domain.GetTripReportOfflineRegionsUseCaseTest" time="0.002"/>
+  <testcase name="a region whose tiles cover none of the trip's coordinates is excluded" classname="com.zynergylabs.forager.app.domain.GetTripReportOfflineRegionsUseCaseTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

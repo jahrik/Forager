@@ -28,7 +28,9 @@ import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -47,14 +49,17 @@ import androidx.compose.foundation.layout.add
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.NavigationRailItemDefaults
+import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
+import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
+import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
+import com.zynergylabs.forager.app.ui.map.mapChromeFill
 import com.zynergylabs.forager.app.ui.log.ScreenEdge
 
 /**
  * The compact bottom nav's five destinations, in trip order left to right — Pre-trip surfaces
  * (List, Seasonal) then the surface the user is actually in (Maps, a true centre — depends on
  * this being an odd count; a sixth destination would break the centring), then Post-trip and rare
- * (Journal, Tools). [ResultsTab] itself stays a 3-way enum, unchanged, since the medium/expanded
- * window's tab row still switches only between List/Maps/Seasonal, kept in sync with this enum's
+ * (Journal, Tools). [ResultsTab] stays a 3-way enum, kept in sync with this enum's
  * own `selectedTab` (see [AvailabilityScreen]'s `ForagerBottomNav` call site) whenever the tapped
  * destination is one of those three.
  *
@@ -139,12 +144,12 @@ internal fun ForagerBottomNav(
      * went opaque, reasoning it was never both visible and over the map at once; this restores
      * translucency for the non-fullscreen state, where it *is* always over the map.
      */
-    containerColor: Color = MaterialTheme.colorScheme.surfaceContainer,
+    containerColor: Color = navigationBarContainerColor(),
 ) {
     NavigationBar(
         containerColor = containerColor,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier,
+        modifier = modifier.testTag(COMPACT_BOTTOM_NAV_TAG).mapChromeContainerColor(containerColor),
     ) {
         CompactTab.entries.forEach { tab ->
             NavigationBarItem(
@@ -201,13 +206,13 @@ internal fun ForagerNavigationRail(
     onTabSelected: (CompactTab) -> Unit,
     portEdge: ScreenEdge,
     modifier: Modifier = Modifier,
-    containerColor: Color = MaterialTheme.colorScheme.surfaceContainer,
+    containerColor: Color = navigationBarContainerColor(),
 ) {
     NavigationRail(
         containerColor = containerColor,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         windowInsets = WindowInsets.navigationBars.only(portEdge.horizontalInsetsSide()),
-        modifier = modifier.fillMaxHeight().testTag(COMPACT_NAVIGATION_RAIL_TAG),
+        modifier = modifier.fillMaxHeight().testTag(COMPACT_NAVIGATION_RAIL_TAG).mapChromeContainerColor(containerColor),
     ) {
         CompactTab.entries.forEach { tab ->
             NavigationRailItem(
@@ -240,6 +245,9 @@ internal fun shortLandscapeContentInsets(): WindowInsets =
         .add(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
         .add(WindowInsets.ime.only(WindowInsetsSides.Bottom))
 
+/** The bottom navigation bar (either instance), for tests (dispatch 2026-09-28-104, continuation -12, item 6). */
+internal const val COMPACT_BOTTOM_NAV_TAG = "compact-bottom-nav"
+
 /** Tags [ForagerNavigationRail]'s container, so a test can measure the rail's own bounds. */
 internal const val COMPACT_NAVIGATION_RAIL_TAG = "compact-navigation-rail"
 
@@ -265,17 +273,21 @@ internal const val EXIT_NAVIGATION_PROMPT_KEEP_TAG = "exit-navigation-prompt-kee
 internal fun ExitNavigationPrompt(
     onExit: () -> Unit,
     onKeepNavigating: () -> Unit,
+    /** Whether a map is drawn on screen beneath the prompt: its container is then at the map chrome's alpha. */
+    overMap: Boolean = false,
 ) {
+    val dialogColor = mapChromeFill(navigationBarContainerColor(), overMap)
     AlertDialog(
         onDismissRequest = onKeepNavigating,
         title = { Text("Exit navigation?") },
-        text = { Text("Your track will keep recording.") },
+        text = { Text("Your track will keep recording.", modifier = Modifier.mapChromeContentColor(LocalContentColor.current)) },
         confirmButton = {
             TextButton(onClick = onExit, modifier = Modifier.testTag(EXIT_NAVIGATION_PROMPT_EXIT_TAG)) { Text("Exit") }
         },
         dismissButton = {
             TextButton(onClick = onKeepNavigating, modifier = Modifier.testTag(EXIT_NAVIGATION_PROMPT_KEEP_TAG)) { Text("Keep navigating") }
         },
-        modifier = Modifier.testTag(EXIT_NAVIGATION_PROMPT_TAG),
+        modifier = Modifier.testTag(EXIT_NAVIGATION_PROMPT_TAG).mapChromeContainerColor(dialogColor),
+        containerColor = dialogColor,
     )
 }

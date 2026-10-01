@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenTripPlanningFlowTest" tests="8" skipped="2" failures="0" errors="0" timestamp="2026-10-01T05:19:18.509Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="1.555">
+  <properties/>
+  <testcase name="choosing Log a find calls onStartLogEntry with the picked location instead of planning a trip" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenTripPlanningFlowTest" time="0.0">
+    <skipped/>
+  </testcase>
+  <testcase name="choosing Plan a trip, panning to a location, and confirming saves a planned trip at that location" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenTripPlanningFlowTest" time="0.0">
+    <skipped/>
+  </testcase>
+  <testcase name="dismissing the plan-or-log chooser without picking either saves nothing" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenTripPlanningFlowTest" time="0.136"/>
+  <testcase name="a second planned trip defaults its name to Trip 2" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenTripPlanningFlowTest" time="0.661"/>
+  <testcase name="clearing the trip name disables confirming" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenTripPlanningFlowTest" time="0.287"/>
+  <testcase name="the trip name field can be edited before confirming, and the edited name is saved" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenTripPlanningFlowTest" time="0.182"/>
+  <testcase name="dismissing the centre-pin picker after choosing Plan a trip saves nothing" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenTripPlanningFlowTest" time="0.116"/>
+  <testcase name="dismissing the date picker after confirming a location saves nothing" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenTripPlanningFlowTest" time="0.171"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

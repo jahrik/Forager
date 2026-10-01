@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.BasemapNightStyleTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:06.929Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.009">
+  <properties/>
+  <testcase name="night mode on Topographical carries the three V1 properties and the opacity fade on its topo layer" classname="com.zynergylabs.forager.app.ui.map.BasemapNightStyleTest" time="0.004"/>
+  <testcase name="only Satellite opts out of the night paint" classname="com.zynergylabs.forager.app.ui.map.BasemapNightStyleTest" time="0.0"/>
+  <testcase name="Satellite's night style JSON equals its day style JSON" classname="com.zynergylabs.forager.app.ui.map.BasemapNightStyleTest" time="0.002"/>
+  <testcase name="day mode adds no paint block at all" classname="com.zynergylabs.forager.app.ui.map.BasemapNightStyleTest" time="0.001"/>
+  <testcase name="night mode on Street carries exactly the three V1 properties" classname="com.zynergylabs.forager.app.ui.map.BasemapNightStyleTest" time="0.0"/>
+  <testcase name="night mode changes nothing else about the style" classname="com.zynergylabs.forager.app.ui.map.BasemapNightStyleTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

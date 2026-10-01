@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.ForecastCellParsingTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:52.595Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.028">
+  <properties/>
+  <testcase name="the week of a date is the Monday that starts its ISO week" classname="com.zynergylabs.forager.app.domain.ForecastCellParsingTest" time="0.001"/>
+  <testcase name="a malformed feature is rejected and counted, and the rest of the file still parses" classname="com.zynergylabs.forager.app.domain.ForecastCellParsingTest" time="0.021"/>
+  <testcase name="a cell belongs to the block holding its centre, whole degrees included, south and west of zero too" classname="com.zynergylabs.forager.app.domain.ForecastCellParsingTest" time="0.001"/>
+  <testcase name="a file that is not a feature collection fails as a whole" classname="com.zynergylabs.forager.app.domain.ForecastCellParsingTest" time="0.0"/>
+  <testcase name="the absent store answers no forecast data explicitly, never an empty list" classname="com.zynergylabs.forager.app.domain.ForecastCellParsingTest" time="0.002"/>
+  <testcase name="a well-formed block file parses every feature into a cell with all its properties" classname="com.zynergylabs.forager.app.domain.ForecastCellParsingTest" time="0.001"/>
+  <testcase name="a chance or bound outside 0 to 1 is rejected and counted, never clamped" classname="com.zynergylabs.forager.app.domain.ForecastCellParsingTest" time="0.001"/>
+  <testcase name="the blocks touching an area are every block it overlaps and no other" classname="com.zynergylabs.forager.app.domain.ForecastCellParsingTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

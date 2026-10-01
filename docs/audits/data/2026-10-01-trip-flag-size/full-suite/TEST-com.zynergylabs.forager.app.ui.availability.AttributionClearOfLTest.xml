@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AttributionClearOfLTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:18:00.644Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="1.516">
+  <properties/>
+  <testcase name="at ROTATION_90 with the L on its own left side the button stays where the rail put it" classname="com.zynergylabs.forager.app.ui.availability.AttributionClearOfLTest" time="0.954"/>
+  <testcase name="at ROTATION_90 with the L on the right at its lower limit the button does not intersect the record button or the L" classname="com.zynergylabs.forager.app.ui.availability.AttributionClearOfLTest" time="0.328"/>
+  <testcase name="the map is handed the L's own measured bounds to keep clear of, in its own px" classname="com.zynergylabs.forager.app.ui.availability.AttributionClearOfLTest" time="0.231"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[System.logW: A resource failed to call close. 
+System.logW: A resource failed to call close. 
+]]></system-err>
+</testsuite>

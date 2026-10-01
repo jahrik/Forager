@@ -1,8 +1,15 @@
 package com.zynergylabs.forager.app.ui.log
 
 import android.graphics.Bitmap
+import android.content.Context
+import android.content.Intent
 import android.graphics.BitmapFactory
+import android.net.Uri
+import android.os.Build
 import android.util.Log
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContract
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -20,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -27,6 +35,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -56,6 +65,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.zynergylabs.forager.app.domain.model.LogPhoto
+import com.zynergylabs.forager.app.photo.ExportFile
+import com.zynergylabs.forager.app.photo.FilePhotoExporter
+import com.zynergylabs.forager.app.photo.PhotoExporter
 import com.zynergylabs.forager.app.photo.oriented
 import com.zynergylabs.forager.app.photo.readPhotoOrientation
 import com.zynergylabs.forager.app.ui.theme.Spacing
@@ -65,6 +77,7 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
@@ -72,7 +85,9 @@ import kotlinx.coroutines.withContext
  * tapping a thumbnail on [LogEntryDetailScreen] or [LogEntryReportScreen]; fit to screen on open,
  * pinch to zoom, drag to pan while zoomed, double-tap to jump between fit and [DOUBLE_TAP_SCALE].
  * Dismissed by the system back gesture and by its own close control — the dispatch asks for both,
- * not back alone. A viewer only: no editing, cropping, rotation or sharing.
+ * not back alone. A viewer with one action: no editing, cropping, rotation or sharing, but a control at the
+ * top end that saves a copy of the photo to the Gallery (API 29+) or to a folder the user picks (API 26-28); see
+ * [PhotoExporter] for what is written and [SaveControl] for the flow (owner, 2026-09-29, intent 2026-09-28-126).
  *
  * **Why a [Dialog] and not an overlay inside the screen.** Both host screens are composed into a
  * `weight(1f)` slot under [JournalTab]'s tab row and above the bottom nav, so "full screen" from
@@ -107,10 +122,15 @@ internal fun PhotoViewerDialog(
     photos: List<LogPhoto>,
     initialIndex: Int,
     onDismiss: () -> Unit,
+    // The default is the real exporter, so the five hosts pass nothing; a test passes its own to see what the control does.
+    exporter: PhotoExporter = rememberPhotoExporter(),
 ) {
-    // rememberSaveable, not remember: the host Activity declares no configChanges, so a rotation
-    // while zoomed in on a gill photo recreates it, and the host's own viewer state comes back
-    // through rememberSaveable too — losing which of several photos was open would be a reset of
+    // rememberSaveable, not remember. A plain rotation no longer recreates the Activity (the
+    // manifest's configChanges handles orientation|screenSize|screenLayout|keyboardHidden, pinned
+    // by MainActivityConfigChangesTest; this comment used to say it declared none), but a
+    // night-mode toggle, a fold or other smallest-width change, a locale, font-scale or density
+    // change, and process death still do, and the host's own viewer state comes back through
+    // rememberSaveable too — losing which of several photos was open would be a reset of
     // something the user set (CLAUDE.md, UX defaults). Clamped rather than trusted: the list can
     // shrink underneath a saved index.
     var currentIndex by rememberSaveable(initialIndex) { mutableIntStateOf(initialIndex) }
@@ -149,6 +169,8 @@ internal fun PhotoViewerDialog(
                     modifier = Modifier.align(Alignment.TopStart).padding(Spacing.sm),
                 ) { Icon(Icons.Filled.Close, contentDescription = null, tint = Color.White) }
 
+                SaveControl(photo = photo, exporter = exporter, modifier = Modifier.align(Alignment.TopEnd).padding(Spacing.sm))
+
                 if (photos.size > 1) {
                     Row(
                         modifier = Modifier.align(Alignment.BottomCenter).padding(Spacing.sm),
@@ -181,9 +203,10 @@ private fun ViewerControl(
     onClick: () -> Unit,
     description: String,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
     icon: @Composable () -> Unit,
 ) {
-    IconButton(onClick = onClick, modifier = modifier.semantics { contentDescription = description }) {
+    IconButton(onClick = onClick, enabled = enabled, modifier = modifier.semantics { contentDescription = description }) {
         Box(
             modifier = Modifier
                 .size(VIEWER_CONTROL_SCRIM_SIZE_DP.dp)
@@ -192,6 +215,94 @@ private fun ViewerControl(
             contentAlignment = Alignment.Center,
         ) { icon() }
     }
+}
+
+/**
+ * The viewer's one action: save a copy of [photo] where the user can reach it outside the app. Placed at the top end,
+ * the mirror of the close control, where the viewer's other controls already sit.
+ *
+ * **API 29+:** a tap inserts the photo into the Gallery's "Forager" album through [PhotoExporter.saveToGallery], with no
+ * storage permission, and says "Saved to Gallery". **API 26-28** (owner, "3 B"): the same control reads "Save to folder",
+ * a tap asks the exporter for the copy's type and name ([PhotoExporter.describe]), opens the create-document picker, and
+ * writes where the user chose, saying "Saved". A cancelled picker says nothing. Any failure says "Couldn't save that
+ * photo." and the exporter has already logged it. The three messages are the approved copy, and there is no other.
+ *
+ * The control is disabled while a save is in flight so one tap is one copy. The photo the picker was opened for is kept
+ * with `rememberSaveable`, so a recreation while the picker is up (a night-mode toggle, say) still saves the right one.
+ */
+@Composable
+private fun SaveControl(photo: LogPhoto, exporter: PhotoExporter, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val toFolder = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
+    var saving by remember { mutableStateOf(false) }
+    var pendingPath by rememberSaveable { mutableStateOf<String?>(null) }
+    fun say(message: String) = Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+    // A Toast needs a thread with a Looper. The save's result arrives from a suspend call that ran off the main thread, and
+    // which thread the continuation resumes on is the coroutine dispatcher's business (a test's interceptor resumed it on the IO
+    // worker), so the message says where it must run instead of relying on that.
+    suspend fun sayOnMain(message: String) = withContext(Dispatchers.Main) { say(message) }
+
+    val pickDocument = rememberLauncherForActivityResult(CreateDocumentOfType()) { chosen ->
+        val path = pendingPath
+        pendingPath = null
+        when {
+            chosen == null -> saving = false // the user backed out: nothing was written, nothing to say
+            path == null -> {
+                Log.w(TAG, "The picker returned $chosen but no photo was waiting for it.")
+                say(SAVE_FAILED_MESSAGE)
+                saving = false
+            }
+            else -> scope.launch {
+                sayOnMain(if (exporter.saveToDocument(path, chosen).isSuccess) SAVED_TO_FOLDER_MESSAGE else SAVE_FAILED_MESSAGE)
+                saving = false
+            }
+        }
+    }
+
+    ViewerControl(
+        onClick = {
+            saving = true
+            scope.launch {
+                if (toFolder) {
+                    exporter.describe(photo).fold(
+                        onSuccess = { file ->
+                            pendingPath = photo.relativePath
+                            pickDocument.launch(file)
+                        },
+                        onFailure = {
+                            sayOnMain(SAVE_FAILED_MESSAGE)
+                            saving = false
+                        },
+                    )
+                } else {
+                    sayOnMain(if (exporter.saveToGallery(photo).isSuccess) SAVED_TO_GALLERY_MESSAGE else SAVE_FAILED_MESSAGE)
+                    saving = false
+                }
+            }
+        },
+        description = if (toFolder) SAVE_TO_FOLDER_DESCRIPTION else SAVE_TO_GALLERY_DESCRIPTION,
+        modifier = modifier,
+        enabled = !saving,
+    ) { Icon(Icons.Filled.Download, contentDescription = null, tint = Color.White) }
+}
+
+/** The create-document picker for a type only known at launch: the stock contract fixes its type when it is built. */
+private class CreateDocumentOfType : ActivityResultContract<ExportFile, Uri?>() {
+    override fun createIntent(context: Context, input: ExportFile): Intent =
+        Intent(Intent.ACTION_CREATE_DOCUMENT)
+            .addCategory(Intent.CATEGORY_OPENABLE)
+            .setType(input.mimeType)
+            .putExtra(Intent.EXTRA_TITLE, input.displayName)
+
+    override fun parseResult(resultCode: Int, intent: Intent?): Uri? =
+        if (resultCode == android.app.Activity.RESULT_OK) intent?.data else null
+}
+
+@Composable
+private fun rememberPhotoExporter(): PhotoExporter {
+    val context = LocalContext.current.applicationContext
+    return remember(context) { FilePhotoExporter(context) }
 }
 
 /**
@@ -408,5 +519,12 @@ internal const val PHOTO_VIEWER_TAG = "photo-viewer"
 internal const val PHOTO_VIEWER_COUNTER_TAG = "photo-viewer-counter"
 internal const val PHOTO_VIEWER_FAILED_TAG = "photo-viewer-failed"
 internal const val VIEWER_PHOTO_DESCRIPTION = "Full-screen photo"
+
+// The save control's label (an icon, so this is its accessibility description) and its three messages: the owner's approved copy, 2026-09-29.
+internal const val SAVE_TO_GALLERY_DESCRIPTION = "Save to Gallery"
+internal const val SAVE_TO_FOLDER_DESCRIPTION = "Save to folder"
+internal const val SAVED_TO_GALLERY_MESSAGE = "Saved to Gallery"
+internal const val SAVED_TO_FOLDER_MESSAGE = "Saved"
+internal const val SAVE_FAILED_MESSAGE = "Couldn't save that photo."
 
 private const val TAG = "PhotoViewer"

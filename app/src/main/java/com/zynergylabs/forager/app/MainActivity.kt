@@ -24,6 +24,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.viewmodel.initializer
+import kotlinx.coroutines.joinAll
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.model.AppThemeMode
@@ -32,11 +33,21 @@ import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
 import com.zynergylabs.forager.app.service.TrackRecordingService
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreen
 import com.zynergylabs.forager.app.ui.availability.AvailabilityViewModel
+import com.zynergylabs.forager.app.data.backup.EXTRA_OPEN_BACKUP_SECTION
+import com.zynergylabs.forager.app.data.backup.opensBackupSection
+import com.zynergylabs.forager.app.ui.backup.BackupRestoreOverlay
+import com.zynergylabs.forager.app.ui.backup.BackupViewModel
 import com.zynergylabs.forager.app.ui.log.CartographyViewModel
 import com.zynergylabs.forager.app.ui.log.CameraAbsenceWatcher
 import com.zynergylabs.forager.app.ui.log.CameraGridModeViewModel
 import com.zynergylabs.forager.app.ui.log.InAppCameraViewModel
 import com.zynergylabs.forager.app.ui.log.MushroomLogViewModel
+import com.zynergylabs.forager.app.ui.log.cartographyEntryDeleteNotice
+import com.zynergylabs.forager.app.ui.log.findDeleteNotice
+import com.zynergylabs.forager.app.ui.log.galleryPhotoDeleteNotice
+import com.zynergylabs.forager.app.ui.log.offlineRegionDeleteNotice
+import com.zynergylabs.forager.app.ui.log.trackDeleteNotice
+import com.zynergylabs.forager.app.ui.log.waypointDeleteNotice
 import com.zynergylabs.forager.app.ui.theme.ForagerTheme
 import com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel
 
@@ -72,11 +83,14 @@ class MainActivity : ComponentActivity() {
                     container.unitSystemPreferenceRepository,
                     container.appThemePreferenceRepository,
                     container.getTodaysForecastUseCase,
-                    getOfflineRegionReferenceCount = { id -> container.getEntryReferenceCountUseCase.forOfflineRegion(id).getOrDefault(0) },
+                    getOfflineRegionReferenceCount = { id -> offlineRegionEntryReferenceCountOrZero(id, container.getEntryReferenceCountUseCase::forOfflineRegion, androidErrorLog) },
                     getAutoSaveLocationToPhotos = container.photoLocationPreferenceRepository::getAutoSaveLocationToPhotos,
                     setAutoSaveLocationToPhotos = container.photoLocationPreferenceRepository::setAutoSaveLocationToPhotos,
                     getLockCameraToPortrait = container.cameraOrientationPreferenceRepository::getLockCameraToPortrait,
                     setLockCameraToPortrait = container.cameraOrientationPreferenceRepository::setLockCameraToPortrait,
+                    getMapRecords = { container.getMapRecordsUseCase() },
+                    mapLayerPreferencesRepository = container.mapLayerPreferencesRepository,
+                    forecastCellStore = container.forecastCellStore,
                 )
             }
         }
@@ -85,36 +99,10 @@ class MainActivity : ComponentActivity() {
     private val mushroomLogViewModel: MushroomLogViewModel by viewModels {
         viewModelFactory {
             initializer {
-                MushroomLogViewModel(
-                    container.getMushroomLogEntriesUseCase,
-                    container.getDraftEntriesUseCase,
-                    container.createMushroomLogEntryUseCase,
-                    container.startEditingLogEntryUseCase,
-                    container.saveMushroomLogEntryUseCase,
-                    container.commitDraftEntryUseCase,
-                    container.deleteMushroomLogEntryUseCase,
-                    container.addPhotoToLogEntryUseCase,
-                    container.addPhotoToGalleryUseCase,
-                    container.removePhotoFromLogEntryUseCase,
-                    container.getGalleryPhotosUseCase,
-                    container.pullPhotoIntoEntryUseCase,
-                    container.deleteGalleryPhotoUseCase,
-                    container.locationProvider,
-                    container.updatePhotoLocationUseCase,
-                    getPhotoEntryReferenceCount = { id -> container.getEntryReferenceCountUseCase.forPhoto(id).getOrDefault(0) },
-                    // Find-location-at-creation dispatch, Fix 1: the held live fix, read at the
-                    // moment a find is started. AvailabilityViewModel is the one live collector.
-                    currentFix = { viewModel.uiState.value.liveFix },
-                    // A failed read fails *closed*, unlike the never-set default: the preference
-                    // defaults to on for an install that predates the setting, but an unreadable
-                    // one must not capture a position the user may have switched off. Logged, never
-                    // silent (CLAUDE.md: no default fallback that isn't logged when it fires).
-                    autoSaveLocationToPhotos = {
-                        container.photoLocationPreferenceRepository.getAutoSaveLocationToPhotos().getOrElse { error ->
-                            androidErrorLog.w("PhotoLocation", "Couldn't read the photo-location preference; not capturing a location.", error)
-                            false
-                        }
-                    },
+                createMushroomLogViewModel(
+                    container,
+                    viewModel,
+                    androidErrorLog,
                     // A capture that lands with no find open is saved to the album and recorded where the
                     // device check can read it — see MushroomLogViewModel.rescueCaptureWithNoEditingEntry.
                     recordCaptureWithoutEditingEntry = { photoId, error ->
@@ -139,6 +127,43 @@ class MainActivity : ComponentActivity() {
                     container.getDerivedTripUseCase,
                     container.getTripReportOfflineRegionsUseCase,
                     container.computeTrackStatisticsUseCase,
+                    container.setCartographyEntryShownOnMapUseCase,
+                )
+            }
+        }
+    }
+
+    /**
+     * Settings' Backup section (journal backup and restore, dispatches 2026-09-28-127 and -137). After a restore that
+     * worked, everything that reads the journal once and holds it is told to read again, and the restore's loading
+     * page waits for all of them: there is no Flow anywhere in `data/local`, so nothing else refreshes. The list, with
+     * where each read is: the entries and drafts (`CartographyViewModel.reloadAfterRestore`), the finds and drafts
+     * (`MushroomLogViewModel.reloadAfterRestore`; both also close an open entry or find whose record the restore removed,
+     * dispatch 2026-09-28-182 item 5) and the gallery photos with their reference counts (`MushroomLogViewModel.loadGalleryPhotos`), the tracks
+     * and the waypoints with their reference counts (`TrackRecordingViewModel.loadTracks`, `loadWaypoints`), and the
+     * planned trips, the offline regions with their reference counts, and the Maps tab's records
+     * (`AvailabilityViewModel.reloadAfterRestore`).
+     */
+    private val backupViewModel: BackupViewModel by viewModels {
+        viewModelFactory {
+            initializer {
+                BackupViewModel(
+                    backup = container.journalBackup,
+                    preferences = container.backupSchedulePreferences,
+                    scheduler = container.backupScheduler,
+                    files = container.backupFiles,
+                    errorLog = androidErrorLog,
+                    isRecording = { trackRecordingViewModel.uiState.value.isRecording },
+                    reloadAfterRestore = {
+                        listOf(
+                            cartographyViewModel.reloadAfterRestore(),
+                            mushroomLogViewModel.reloadAfterRestore(),
+                            mushroomLogViewModel.loadGalleryPhotos(),
+                            trackRecordingViewModel.loadTracks(),
+                            trackRecordingViewModel.loadWaypoints(),
+                        ).joinAll()
+                        viewModel.reloadAfterRestore()
+                    },
                 )
             }
         }
@@ -176,7 +201,9 @@ class MainActivity : ComponentActivity() {
                     container.alertDelivery,
                     container.alertAudibility,
                     androidErrorLog,
-                    getWaypointReferenceCount = { id -> container.getEntryReferenceCountUseCase.forWaypoint(id).getOrDefault(0) },
+                    getWaypointReferenceCount = { id -> waypointEntryReferenceCountOrZero(id, container.getEntryReferenceCountUseCase::forWaypoint, androidErrorLog) },
+                    getTrackReferenceCount = { id -> trackEntryReferenceCountOrZero(id, container.getEntryReferenceCountUseCase::forTrack, androidErrorLog) },
+                    deleteTrack = container.deleteTrackUseCase,
                 )
             }
         }
@@ -244,8 +271,29 @@ class MainActivity : ComponentActivity() {
         return fine == PackageManager.PERMISSION_GRANTED || coarse == PackageManager.PERMISSION_GRANTED
     }
 
+    /**
+     * Counts up each time a backup notification's tap reaches the app (dispatch 2026-09-28-153): the screen opens Tools, then
+     * Settings, at the Backup section. Read from the launching intent and from every later one ([onNewIntent]); the extra is
+     * removed once read, so a rotation does not open it again.
+     */
+    private var openBackupRequest by androidx.compose.runtime.mutableIntStateOf(0)
+
+    private fun noteBackupIntent(intent: Intent?) {
+        if (opensBackupSection(intent)) {
+            openBackupRequest++
+            intent?.removeExtra(EXTRA_OPEN_BACKUP_SECTION)
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        noteBackupIntent(intent)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (savedInstanceState == null) noteBackupIntent(intent)
         // The off-track alert's channel is created by AndroidAlertDelivery when AppContainer
         // builds it (alert-delivery dispatch) — nothing alert-related lives in this Activity now.
         // Release the live-fix OS subscription whenever this Activity is not started, and
@@ -296,6 +344,7 @@ class MainActivity : ComponentActivity() {
             // AvailabilityUiState.themeMode (Settings' Light/Dark/System Default choice), so
             // ForagerTheme needs the resolved boolean below rather than the other way around.
             val uiState by viewModel.uiState.collectAsState()
+            val backupUiState by backupViewModel.uiState.collectAsState()
             // AppThemeMode.SYSTEM_DEFAULT is the one choice this app doesn't store as an explicit
             // light/dark value — it means "follow the device" — and isSystemInDarkTheme() is a
             // @Composable-only signal (backed by LocalConfiguration), so this resolution has to
@@ -434,14 +483,27 @@ class MainActivity : ComponentActivity() {
                     onOfflineMapNameChanged = viewModel::onOfflineMapNameChanged,
                     onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
                     onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
-                    onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
+                    // Journal redesign J4: a region row's swipe asks for a pending delete; the
+                    // tile delete runs when its Undo snackbar ends (pendingDeleteNotices below).
+                    onDeleteOfflineRegion = viewModel::requestDeleteOfflineRegion,
                     onDistanceUnitSelected = viewModel::onDistanceUnitSelected,
                     onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
                     onAutoSaveLocationToPhotosChanged = viewModel::onAutoSaveLocationToPhotosChanged,
                     onLockCameraToPortraitChanged = viewModel::onLockCameraToPortraitChanged,
+                    backup = backupViewModel.controls(backupUiState),
+                    returnToMapRequest = backupUiState.returnToMapRequest,
+                    openBackupRequest = openBackupRequest,
+                    onDownloadAgain = viewModel::onDownloadAgain,
                     onThemeModeChanged = viewModel::onThemeModeChanged,
                     onMapFullscreenChanged = viewModel::onMapFullscreenChanged,
-                    logUiState = logUiState,
+                    onMapShown = viewModel::onMapShown,
+                    onMapLayerVisibilityChanged = viewModel::onMapLayerVisibilityChanged,
+                    onMapLayerOpacityChanged = viewModel::onMapLayerOpacityChanged,
+                    onColourFieldMoved = viewModel::onColourFieldMoved,
+                    forecastCellStore = container.forecastCellStore,
+                    // Journal redesign J4: a find whose delete is pending (Undo snackbar up) is left
+                    // out of the lists the screen gets.
+                    logUiState = logUiState.hidingPendingDelete(),
                     cameraCaptureFiles = container.cameraCaptureFiles,
                     inAppCameraTarget = inAppCameraTarget,
                     onOpenCamera = inAppCameraViewModel::open,
@@ -461,11 +523,14 @@ class MainActivity : ComponentActivity() {
                     onAddLogPhoto = mushroomLogViewModel::onAddPhoto,
                     onRemoveLogPhoto = mushroomLogViewModel::onRemovePhoto,
                     onPullLogPhoto = mushroomLogViewModel::onPullPhoto,
-                    onDeleteLogEntry = mushroomLogViewModel::onDeleteEntry,
+                    // J4: the find report's (and edit form's) Delete asks for a pending delete; the
+                    // "Saved to Drafts" snackbar's Discard (onDiscardLogDraft above) stays immediate.
+                    onDeleteLogEntry = mushroomLogViewModel::requestDeleteEntry,
                     onDeleteGalleryPhoto = mushroomLogViewModel::onDeleteGalleryPhoto,
                     onAddGalleryPhoto = mushroomLogViewModel::onAddGalleryPhoto,
                     onSaveLogErrorDismissed = mushroomLogViewModel::onSaveErrorDismissed,
-                    cartographyUiState = cartographyUiState,
+                    // J4b L2: a pending entry delete is left out of the lists, as J4 does for finds.
+                    cartographyUiState = cartographyUiState.hidingPendingDelete(),
                     onOpenCartographyEntry = cartographyViewModel::onOpenEntry,
                     onStartCartographyEntry = cartographyViewModel::onStartEntry,
                     onCloseCartographyEntry = cartographyViewModel::onCloseEntry,
@@ -491,8 +556,24 @@ class MainActivity : ComponentActivity() {
                     onSaveCartographyEntry = cartographyViewModel::onSaveEntry,
                     onDiscardCartographyEntryChanges = cartographyViewModel::onDiscardEntryChanges,
                     onSaveCartographyEntryAsDraft = cartographyViewModel::onSaveEntryAsDraft,
+                    // Intent 2026-09-28-68: a failed entry save's Toast, hosted by the Journal, clears
+                    // the message once shown (continuation 2026-09-28-76).
+                    onCartographySaveErrorDismissed = cartographyViewModel::onSaveErrorDismissed,
                     onDeleteCartographyEntry = cartographyViewModel::onDeleteEntry,
+                    onRequestDeleteCartographyEntry = cartographyViewModel::requestDeleteEntry,
+                    // J8-3: the entry report's Show or Hide on map and the Maps-tab chip's Hide and Hide
+                    // all, and the Toast of a failed one (continuation 2026-09-28-65).
+                    onSetCartographyEntryShownOnMap = cartographyViewModel::onSetShownOnMap,
+                    onCartographyShownOnMapErrorDismissed = cartographyViewModel::onShownOnMapErrorDismissed,
+                    onRequestDeleteGalleryPhoto = mushroomLogViewModel::requestDeleteGalleryPhoto,
                     getCartographyEntryMapData = { entry, photos -> container.getCartographyEntryMapDataUseCase(entry, photos) },
+                    // F3: the Journal cards' saved track paths. A failed read is logged, and that entry's card draws no thumbnail for its deleted track.
+                    getSavedTrackPaths = { entryId ->
+                        container.keptTrackPathRepository.getForEntry(entryId).getOrElse { error ->
+                            androidErrorLog.w("KeptTrackPath", "Couldn't read entry $entryId's saved track paths; its card draws no thumbnail for a deleted track.", error)
+                            emptyMap()
+                        }
+                    },
                     getCartographyEntryOfflineRegion = { entry, points -> container.getCartographyEntryOfflineRegionUseCase(entry, points) },
                     getCartographyEntryCurrentLocation = { container.locationProvider.getCurrentLocation() },
                     isRecording = trackUiState.isRecording,
@@ -525,11 +606,14 @@ class MainActivity : ComponentActivity() {
                     tripStartWarning = trackUiState.tripStartWarning,
                     networkFixesNotice = trackUiState.networkFixesNotice,
                     breadcrumbPoints = trackUiState.breadcrumbPoints.map { LatLng(it.lat, it.lng) },
-                    waypoints = trackUiState.waypoints,
+                    // Journal redesign J4: the visible list leaves out a waypoint whose delete is
+                    // pending (Undo snackbar up), everywhere this screen shows waypoints, the map
+                    // included; a row's swipe asks for that pending delete.
+                    waypoints = trackUiState.visibleWaypoints,
                     waypointsErrorMessage = trackUiState.waypointsErrorMessage,
                     waypointEntryReferenceCounts = trackUiState.waypointEntryReferenceCounts,
                     onDropWaypoint = { location, name -> trackRecordingViewModel.addWaypoint(location.lat, location.lng, name) },
-                    onDeleteWaypoint = trackRecordingViewModel::removeWaypoint,
+                    onDeleteWaypoint = trackRecordingViewModel::requestRemoveWaypoint,
                     returnToStart = trackUiState.returnToStart,
                     isReturning = trackUiState.isReturning,
                     isOffTrack = trackUiState.isOffTrack,
@@ -541,11 +625,115 @@ class MainActivity : ComponentActivity() {
                     navigationTarget = trackUiState.originWaypoint,
                     pathHomeMeters = trackUiState.pathHome?.totalMeters,
                     crashFileStore = container.crashFileStore,
-                    tracks = trackUiState.tracks,
+                    // Part 2 follow-ups F1 item 5: the visible list leaves out a track whose delete is pending
+                    // (Undo snackbar up), as the waypoints' does; a swipe or the details' Delete asks for that
+                    // pending delete, and never for a track that is still recording.
+                    tracks = trackUiState.visibleTracks,
+                    onDeleteTrack = trackRecordingViewModel::requestRemoveTrack,
+                    tracksErrorMessage = trackUiState.tracksErrorMessage,
                     onTracksOpened = trackRecordingViewModel::loadTracks,
                     getFullRecord = trackRecordingViewModel::getFullRecord,
+                    pendingDeleteNotices = listOfNotNull(
+                        waypointDeleteNotice(
+                            trackUiState.pendingWaypointDelete,
+                            onUndo = trackRecordingViewModel::undoRemoveWaypoint,
+                            onCommit = trackRecordingViewModel::commitRemoveWaypoint,
+                        ),
+                        trackDeleteNotice(
+                            trackUiState.pendingTrackDelete,
+                            onUndo = trackRecordingViewModel::undoRemoveTrack,
+                            onCommit = trackRecordingViewModel::commitRemoveTrack,
+                        ),
+                        offlineRegionDeleteNotice(
+                            uiState.pendingOfflineRegionDelete,
+                            onUndo = viewModel::undoDeleteOfflineRegion,
+                            onCommit = viewModel::commitDeleteOfflineRegion,
+                        ),
+                        findDeleteNotice(
+                            logUiState.pendingDelete,
+                            onUndo = mushroomLogViewModel::undoDeleteEntry,
+                            onCommit = mushroomLogViewModel::commitDeleteEntry,
+                        ),
+                        cartographyEntryDeleteNotice(
+                            cartographyUiState.pendingDelete,
+                            onUndo = cartographyViewModel::undoDeleteEntry,
+                            onCommit = cartographyViewModel::commitDeleteEntry,
+                        ),
+                        galleryPhotoDeleteNotice(
+                            logUiState.pendingPhotoDelete,
+                            onUndo = mushroomLogViewModel::undoDeleteGalleryPhoto,
+                            onCommit = mushroomLogViewModel::commitDeleteGalleryPhoto,
+                        ),
+                    ),
                 )
+                // The restore's loading page, over everything (dispatch 2026-09-28-137, item 6); nothing when there is none.
+                BackupRestoreOverlay(backupViewModel.controls(backupUiState))
             }
         }
     }
+}
+
+/**
+ * How many journal (Cartography) entries keep photo [photoId], for the album's entry badge and the
+ * photo delete dialog (`MushroomLogViewModel.loadGalleryPhotos`).
+ *
+ * A failed count still shows as 0, as it always has, but the fallback is now logged when it fires
+ * (journal redesign J3, C6; CLAUDE.md, "no default fallback that isn't logged when it fires"),
+ * through the same [ErrorLog] seam and `getOrElse { log; fallback }` shape the photo-location
+ * preference read uses in `MainActivity`'s ViewModel factory. Shown as 0, a failed read means no
+ * entry badge and no "appears in N journal entries" warning in the delete dialog; the log is what
+ * tells that apart from a real 0.
+ */
+internal suspend fun photoEntryReferenceCountOrZero(
+    photoId: String,
+    countEntriesReferencingPhoto: suspend (String) -> Result<Int>,
+    errorLog: ErrorLog,
+): Int = countEntriesReferencingPhoto(photoId).getOrElse { error ->
+    errorLog.w("PhotoReferenceCount", "Couldn't count journal entries keeping photo $photoId; showing 0.", error)
+    0
+}
+
+/**
+ * How many journal entries keep waypoint [waypointId], for the Records Undo snackbar's warning
+ * (`TrackRecordingViewModel.loadWaypoints`, read by `requestRemoveWaypoint`). A failed count still
+ * shows as 0, as it always has, but the fallback is now logged when it fires (journal redesign J4,
+ * D6; owner ruling "Fix in J4 (Recommended)"), the same way [photoEntryReferenceCountOrZero] was fixed
+ * in J3. Shown as 0, a failed read means the snackbar says only "Waypoint deleted" for a waypoint
+ * entries do use; the log is what tells that apart from a real 0.
+ */
+internal suspend fun waypointEntryReferenceCountOrZero(
+    waypointId: String,
+    countEntriesReferencingWaypoint: suspend (String) -> Result<Int>,
+    errorLog: ErrorLog,
+): Int = countEntriesReferencingWaypoint(waypointId).getOrElse { error ->
+    errorLog.w("WaypointReferenceCount", "Couldn't count journal entries keeping waypoint $waypointId; showing 0.", error)
+    0
+}
+
+/**
+ * How many journal entries keep track [trackId], for the Records Undo snackbar's warning
+ * (`TrackRecordingViewModel.loadTracks`, read by `requestRemoveTrack`). Logged when the 0 fallback
+ * fires, as [waypointEntryReferenceCountOrZero] (Part 2 follow-ups F1 item 5).
+ */
+internal suspend fun trackEntryReferenceCountOrZero(
+    trackId: String,
+    countEntriesReferencingTrack: suspend (String) -> Result<Int>,
+    errorLog: ErrorLog,
+): Int = countEntriesReferencingTrack(trackId).getOrElse { error ->
+    errorLog.w("TrackReferenceCount", "Couldn't count journal entries keeping track $trackId; showing 0.", error)
+    0
+}
+
+/**
+ * How many journal entries keep offline region [offlineRegionId], for the Records Undo snackbar's
+ * warning (`AvailabilityViewModel.loadOfflineRegions`, read by `requestDeleteOfflineRegion`). Logged
+ * when the 0 fallback fires, as [waypointEntryReferenceCountOrZero] (J4, D6).
+ */
+internal suspend fun offlineRegionEntryReferenceCountOrZero(
+    offlineRegionId: Long,
+    countEntriesReferencingOfflineRegion: suspend (Long) -> Result<Int>,
+    errorLog: ErrorLog,
+): Int = countEntriesReferencingOfflineRegion(offlineRegionId).getOrElse { error ->
+    errorLog.w("OfflineRegionReferenceCount", "Couldn't count journal entries keeping offline region $offlineRegionId; showing 0.", error)
+    0
 }

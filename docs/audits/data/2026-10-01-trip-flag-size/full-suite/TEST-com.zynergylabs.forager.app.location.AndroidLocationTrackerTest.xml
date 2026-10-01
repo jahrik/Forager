@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.location.AndroidLocationTrackerTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:56.417Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.13">
+  <properties/>
+  <testcase name="a GPS fix with Doppler speed delivers the speed and its accuracy on the update" classname="com.zynergylabs.forager.app.location.AndroidLocationTrackerTest" time="0.05"/>
+  <testcase name="a fresh collection after the grant registers a listener and delivers the fix" classname="com.zynergylabs.forager.app.location.AndroidLocationTrackerTest" time="0.03"/>
+  <testcase name="every fix is logged with its provider, speed and speed accuracy for the instrument walk" classname="com.zynergylabs.forager.app.location.AndroidLocationTrackerTest" time="0.027"/>
+  <testcase name="a collection started before the grant completes with PermissionDenied and registers no listener" classname="com.zynergylabs.forager.app.location.AndroidLocationTrackerTest" time="0.022"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[Intent = Intent { act=android.location.PROVIDERS_CHANGED (has extras) }; Matching wrappers: []
+Intent = Intent { act=android.location.PROVIDERS_CHANGED (has extras) }; Matching wrappers: []
+Intent = Intent { act=android.location.PROVIDERS_CHANGED (has extras) }; Matching wrappers: []
+Intent = Intent { act=android.location.PROVIDERS_CHANGED (has extras) }; Matching wrappers: []
+]]></system-err>
+</testsuite>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.fanout.FoldOnlyIfMembersChangeTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:37:09.888Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.023">
+  <properties/>
+  <testcase name="2 - a member disappears with two or more surviving, and the fan re-fans the survivors" classname="com.zynergylabs.forager.app.ui.map.fanout.FoldOnlyIfMembersChangeTest" time="0.01"/>
+  <testcase name="6d - the return after Back still reopens when the first style it sees is a real one" classname="com.zynergylabs.forager.app.ui.map.fanout.FoldOnlyIfMembersChangeTest" time="0.002"/>
+  <testcase name="7 - a member that moved re-fans at its current position" classname="com.zynergylabs.forager.app.ui.map.fanout.FoldOnlyIfMembersChangeTest" time="0.001"/>
+  <testcase name="1 - an unrelated change leaves the open fan open, with the same members and no restart" classname="com.zynergylabs.forager.app.ui.map.fanout.FoldOnlyIfMembersChangeTest" time="0.001"/>
+  <testcase name="6b - a replaced style that also removes a member re-fans the survivors" classname="com.zynergylabs.forager.app.ui.map.fanout.FoldOnlyIfMembersChangeTest" time="0.001"/>
+  <testcase name="6 - an open fan survives a replaced style while every member is still drawn" classname="com.zynergylabs.forager.app.ui.map.fanout.FoldOnlyIfMembersChangeTest" time="0.001"/>
+  <testcase name="6c - a replaced style that leaves fewer than two folds" classname="com.zynergylabs.forager.app.ui.map.fanout.FoldOnlyIfMembersChangeTest" time="0.001"/>
+  <testcase name="a layer switched off since is left out of a reopen, as the reopen's own comment says" classname="com.zynergylabs.forager.app.ui.map.fanout.FoldOnlyIfMembersChangeTest" time="0.001"/>
+  <testcase name="4a - the fan's layer is switched off so all its members disappear, and it folds" classname="com.zynergylabs.forager.app.ui.map.fanout.FoldOnlyIfMembersChangeTest" time="0.001"/>
+  <testcase name="5 - Back after a delete gives a fan of the survivors, still open after the content effects that follow" classname="com.zynergylabs.forager.app.ui.map.fanout.FoldOnlyIfMembersChangeTest" time="0.001"/>
+  <testcase name="3 - a member disappears and fewer than two survive, and the fan folds" classname="com.zynergylabs.forager.app.ui.map.fanout.FoldOnlyIfMembersChangeTest" time="0.001"/>
+  <testcase name="6e - the return after a delete still reopens the survivors, and a later replaced style keeps them" classname="com.zynergylabs.forager.app.ui.map.fanout.FoldOnlyIfMembersChangeTest" time="0.001"/>
+  <testcase name="4b - a layer switched off takes its members out of the fan, and the rest are re-fanned" classname="com.zynergylabs.forager.app.ui.map.fanout.FoldOnlyIfMembersChangeTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

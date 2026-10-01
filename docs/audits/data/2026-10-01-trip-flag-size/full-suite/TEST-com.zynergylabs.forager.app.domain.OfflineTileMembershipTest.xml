@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.OfflineTileMembershipTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:53.682Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.001">
+  <properties/>
+  <testcase name="a region's own center point is within its own tile footprint" classname="com.zynergylabs.forager.app.domain.OfflineTileMembershipTest" time="0.0"/>
+  <testcase name="a region crossing the antimeridian still correctly includes a point just past 180 degrees" classname="com.zynergylabs.forager.app.domain.OfflineTileMembershipTest" time="0.0"/>
+  <testcase name="membership at a coarser zoom is at least as inclusive as at a finer zoom for the same point" classname="com.zynergylabs.forager.app.domain.OfflineTileMembershipTest" time="0.0"/>
+  <testcase name="a point a fraction of a degree from center, well inside a 10km radius, is within the footprint" classname="com.zynergylabs.forager.app.domain.OfflineTileMembershipTest" time="0.0"/>
+  <testcase name="a region crossing the antimeridian correctly excludes a point on the opposite side of the globe" classname="com.zynergylabs.forager.app.domain.OfflineTileMembershipTest" time="0.0"/>
+  <testcase name="a point just outside one region's footprint is still correctly excluded, not trivially true" classname="com.zynergylabs.forager.app.domain.OfflineTileMembershipTest" time="0.0"/>
+  <testcase name="a point far outside the region is not within its footprint" classname="com.zynergylabs.forager.app.domain.OfflineTileMembershipTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

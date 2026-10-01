@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenWaypointFlowTest" tests="9" skipped="1" failures="0" errors="0" timestamp="2026-10-01T05:19:20.165Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="1.086">
+  <properties/>
+  <testcase name="choosing Drop a waypoint, panning to a location, and confirming a name drops a waypoint at that location" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenWaypointFlowTest" time="0.0">
+    <skipped/>
+  </testcase>
+  <testcase name="a second waypoint defaults its name to Waypoint 2" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenWaypointFlowTest" time="0.212"/>
+  <testcase name="clearing the waypoint name disables confirming" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenWaypointFlowTest" time="0.226"/>
+  <testcase name="with waypointsErrorMessage unset, the list renders and no error text appears" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenWaypointFlowTest" time="0.096"/>
+  <testcase name="the waypoint name field can be edited before confirming, and the edited name is used" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenWaypointFlowTest" time="0.151"/>
+  <testcase name="the drawer's Waypoints section shows a no-waypoints message when empty" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenWaypointFlowTest" time="0.077"/>
+  <testcase name="every Waypoints drawer control is reachable, and a swipe asks for the delete and shows Undo in the screen's snackbar host" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenWaypointFlowTest" time="0.118"/>
+  <testcase name="a set waypointsErrorMessage replaces the list, not just adds to it" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenWaypointFlowTest" time="0.073"/>
+  <testcase name="dismissing the name dialog after choosing Drop a waypoint saves nothing" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenWaypointFlowTest" time="0.131"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

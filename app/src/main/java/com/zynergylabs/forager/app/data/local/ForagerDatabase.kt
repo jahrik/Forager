@@ -119,6 +119,14 @@ import com.zynergylabs.forager.app.BuildConfig
  * [com.zynergylabs.forager.app.domain.model.TrackPoint] for the `null` rule and the reader). Version 15 was
  * checked against every branch on `origin` (none above 14) before being claimed.
  *
+ * [version] 16 adds `shownOnMap` to `cartography_entries` via a real [MIGRATION_15_16] — J8, Journal
+ * entries on the main map (owner: "Yes, keep them"): whether a saved entry's kept records are
+ * highlighted on the Maps tab, stored with the entry because it belongs to one (CLAUDE.md, Room for
+ * data that relates). Every existing entry gets `false`. A rebuild, like 12 to 13 and 14 to 15,
+ * because the legacy fixtures declare [CartographyEntryEntity] directly. Version 16 was checked
+ * against every branch on both remotes (none above 15, no `MIGRATION_15_*`) before being claimed,
+ * and again at the final push.
+ *
  * ## Destructive fallback, debug-only (corrected 2026-08-27, ahead of beta)
  *
  * [create] used to chain `fallbackToDestructiveMigration(true)` unconditionally, "harmless" only
@@ -155,8 +163,9 @@ import com.zynergylabs.forager.app.BuildConfig
         CartographyEntryOfflineRegionRefEntity::class,
         CartographyEntryFindRefEntity::class,
         CartographyEntryPhotoRefEntity::class,
+        CartographyEntryTrackPathEntity::class,
     ],
-    version = 15,
+    version = 17,
     exportSchema = true,
 )
 abstract class ForagerDatabase : RoomDatabase() {
@@ -180,15 +189,12 @@ abstract class ForagerDatabase : RoomDatabase() {
          * release path (`isDebug = false`) against a real missing-migration scenario without needing
          * an actual release build variant, not so a caller has a reason to override it.
          */
-        fun create(context: Context, isDebug: Boolean = BuildConfig.DEBUG): ForagerDatabase {
+        fun create(context: Context, isDebug: Boolean = BuildConfig.DEBUG, name: String = DATABASE_NAME): ForagerDatabase {
             val builder = Room.databaseBuilder(
                 context.applicationContext,
                 ForagerDatabase::class.java,
-                "forager.db",
-            ).addMigrations(
-                MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
-                MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15,
-            )
+                name,
+            ).addMigrations(*ALL_MIGRATIONS)
             // Debug-only — see this class's own doc comment ("Destructive fallback, debug-only") for
             // why release must never wipe a database instead of crashing on a missing migration.
             if (isDebug) {
@@ -196,5 +202,30 @@ abstract class ForagerDatabase : RoomDatabase() {
             }
             return builder.build()
         }
+
+        /**
+         * A database opened over the file at [absolutePath], for **restoring a backup**: the registered
+         * migrations run on that file (a scratch copy, never the live database) and there is **no
+         * destructive fallback in any build**. The debug fallback would answer a missing migration by
+         * silently handing back an empty database, which for a restore is the worst outcome: the user's
+         * backup would be "restored" into nothing. A missing path throws instead.
+         */
+        fun openForRestore(context: Context, absolutePath: String): ForagerDatabase =
+            Room.databaseBuilder(context.applicationContext, ForagerDatabase::class.java, absolutePath)
+                .addMigrations(*ALL_MIGRATIONS)
+                .build()
+
+        /** The file name of the app's database under `databases/` (the backup snapshots exactly this file). */
+        const val DATABASE_NAME = "forager.db"
+
+        /** Every registered migration, in one place so the app's database and a restore's scratch copy cannot drift apart. */
+        private val ALL_MIGRATIONS = arrayOf(
+            MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
+            MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15,
+            MIGRATION_15_16, MIGRATION_16_17,
+        )
+
+        /** The schema version this build writes and can restore up to; the source of truth is the `@Database` annotation's `version`. */
+        const val SCHEMA_VERSION = 17
     }
 }

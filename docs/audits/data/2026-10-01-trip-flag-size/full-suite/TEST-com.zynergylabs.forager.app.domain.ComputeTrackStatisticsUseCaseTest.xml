@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCaseTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:52.549Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.002">
+  <properties/>
+  <testcase name="a much longer staircase keeps its unbanked tail under one threshold, regardless of track length" classname="com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCaseTest" time="0.001"/>
+  <testcase name="elevation gain and loss accumulate only over consecutive pairs that both report altitude" classname="com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCaseTest" time="0.0"/>
+  <testcase name="duration is the span between the first and last point" classname="com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCaseTest" time="0.0"/>
+  <testcase name="an empty track has zero distance and duration, and no elevation data" classname="com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCaseTest" time="0.0"/>
+  <testcase name="distance sums consecutive great-circle legs, not a straight line end to end" classname="com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCaseTest" time="0.0"/>
+  <testcase name="a staircase with known total gain spread across sub-threshold steps is recovered within one threshold's tolerance" classname="com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCaseTest" time="0.001"/>
+  <testcase name="elevation coverage reports the real fraction of points with altitude, not zero and not null" classname="com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCaseTest" time="0.0"/>
+  <testcase name="average speed is null for a zero-duration track" classname="com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCaseTest" time="0.0"/>
+  <testcase name="a stationary track with realistic GPS altitude noise reports approximately zero ascent and descent" classname="com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCaseTest" time="0.0"/>
+  <testcase name="elevation gain and loss are null, not zero, when no point reports an altitude" classname="com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCaseTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

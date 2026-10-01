@@ -8,6 +8,13 @@ package com.zynergylabs.forager.app.ui.availability
 // left behind is reached from here. Seam F (the wide layout) was released by the owner for this
 // split, as recorded in the Understory amendment merged in #130.
 
+import androidx.compose.runtime.key
+import com.zynergylabs.forager.app.ui.log.RecordType
+import com.zynergylabs.forager.app.ui.log.TwoStageSwipeRow
+import com.zynergylabs.forager.app.ui.log.opensRecordDetails
+import com.zynergylabs.forager.app.ui.log.rememberSwipeRevealGroup
+import com.zynergylabs.forager.app.ui.log.swipeRevealTouchWatcher
+import com.zynergylabs.forager.app.ui.log.swipeToDeleteTag
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,7 +27,6 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Directions
 import androidx.compose.material.icons.filled.Map
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -28,14 +34,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import com.zynergylabs.forager.app.domain.MgrsConverter
 import com.zynergylabs.forager.app.domain.model.LatLng
@@ -168,6 +170,13 @@ private fun PlannedTripRow(trip: PlannedTrip, isToday: Boolean, onDelete: () -> 
  * reasoning as [OfflineMapsPanel]'s own outer `Column`. Journal restructure Stage 1 moved this out
  * of the Tools drawer's `SearchControls`, which supplied that scroll, into [com.zynergylabs.forager.app.ui.log.RecordsTab]'s
  * flat `Column(fillMaxSize())`, which does not — this is now `WaypointsSection`'s only caller.
+ *
+ * **Delete is a swipe, with Undo (journal redesign J4).** Each row is a
+ * [TwoStageSwipeRow] since J4b (L6: a short swipe reveals Delete, a full swipe deletes); [onDeleteWaypoint] asks the owning ViewModel for a *pending* delete
+ * (`TrackRecordingViewModel.requestRemoveWaypoint`), which hides the row and shows the Undo snackbar
+ * carrying the reference warning. The confirm dialog Journal Stage 2b added here (its 4b warning)
+ * is gone with the trash icon: the warning moved into the snackbar (owner ruling "In the Undo
+ * snackbar (Recommended)"), and the delete itself waits for the snackbar to end.
  */
 @Composable
 internal fun WaypointsSection(
@@ -175,17 +184,17 @@ internal fun WaypointsSection(
     errorMessage: String?,
     onDeleteWaypoint: (String) -> Unit,
     modifier: Modifier = Modifier,
-    /** How many Cartography entries currently keep a reference to each waypoint (by id) — Journal Stage 2b's 4b deletion warning, shown in the confirm dialog below. */
-    entryReferenceCounts: Map<String, Int> = emptyMap(),
+    /**
+     * Journal redesign J5c: a tap on a closed row opens that waypoint's details sheet, given its id.
+     * A tap on an open row closes it instead ([TwoStageSwipeRow]'s overlay takes that tap). `null`,
+     * the default, leaves the rows without a tap.
+     */
+    onOpenWaypointDetails: ((String) -> Unit)? = null,
 ) {
-    // Journal Stage 2b, 4b: this section had no delete confirmation at all before — every other
-    // per-row delete in this drawer (OfflineRegionsSection, PlannedTripsList) already confirms
-    // first, and a deletion warning needs somewhere to show itself. Same pendingDelete-then-dialog
-    // shape as OfflineRegionsSection.
-    var pendingDeleteWaypoint by remember { mutableStateOf<Waypoint?>(null) }
-
+    // J4b L6: one open row at a time, and a touch elsewhere on the list closes it.
+    val swipeGroup = rememberSwipeRevealGroup()
     Column(
-        modifier = modifier.verticalScroll(rememberScrollState()),
+        modifier = modifier.swipeRevealTouchWatcher(swipeGroup).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         when {
@@ -201,49 +210,43 @@ internal fun WaypointsSection(
             )
 
             else -> waypoints.forEach { waypoint ->
-                WaypointRow(waypoint = waypoint, onDelete = { pendingDeleteWaypoint = waypoint })
+                key(waypoint.id) {
+                    // J4b L6: two-stage swipe. No Edit: nothing in the app edits a waypoint after
+                    // it is dropped (WaypointRepository.save's only caller is CreateWaypointUseCase).
+                    TwoStageSwipeRow(
+                        testTag = swipeToDeleteTag(RecordType.WAYPOINTS, waypoint.id),
+                        rowKey = waypoint.id,
+                        group = swipeGroup,
+                        onDelete = { onDeleteWaypoint(waypoint.id) },
+                        onEdit = null,
+                    ) {
+                        WaypointRow(waypoint = waypoint, onClick = onOpenWaypointDetails?.let { open -> { open(waypoint.id) } })
+                    }
+                }
             }
         }
-    }
-
-    pendingDeleteWaypoint?.let { waypoint ->
-        val referencingEntryCount = entryReferenceCounts[waypoint.id] ?: 0
-        AlertDialog(
-            onDismissRequest = { pendingDeleteWaypoint = null },
-            title = { Text("Delete \"${waypoint.name}\"?") },
-            text = {
-                Text(
-                    // No permanence claim — see OfflineRegionsSection's identical dialog for why.
-                    if (referencingEntryCount > 0) {
-                        "This waypoint appears in $referencingEntryCount ${if (referencingEntryCount == 1) "journal entry" else "journal entries"}."
-                    } else {
-                        "Delete this waypoint?"
-                    },
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onDeleteWaypoint(waypoint.id)
-                        pendingDeleteWaypoint = null
-                    },
-                ) { Text("Delete") }
-            },
-            dismissButton = { TextButton(onClick = { pendingDeleteWaypoint = null }) { Text("Cancel") } },
-        )
     }
 }
 
 /**
  * One saved waypoint: its user-chosen [Waypoint.name] as the primary identifying text, the same
- * MGRS-plus-decimal-degrees coordinate display [PlannedTripRow] uses, a "Directions" action
- * ([launchDirections]) reusing the exact same `geo:` intent machinery, and delete.
+ * MGRS-plus-decimal-degrees coordinate display [PlannedTripRow] uses, and a "Directions" action
+ * ([launchDirections]) reusing the exact same `geo:` intent machinery. No delete control of its
+ * own since journal redesign J4: its callers wrap it in a [TwoStageSwipeRow] (J4b L6).
+ *
+ * [onClick] (journal redesign J5c) is what a tap on the card opens, the waypoint's details sheet, or
+ * `null` for no card tap. The All logbook passes `null` and puts the tap on its badged row instead,
+ * so the type badge takes it too. Directions keeps its own tap either way.
  */
 @Composable
-private fun WaypointRow(waypoint: Waypoint, onDelete: () -> Unit) {
+internal fun WaypointRow(waypoint: Waypoint, onClick: (() -> Unit)? = null) {
     val context = LocalContext.current
     val location = LatLng(waypoint.lat, waypoint.lng)
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clip(CardDefaults.shape).opensRecordDetails(waypoint.name, onClick) else Modifier),
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -259,17 +262,18 @@ private fun WaypointRow(waypoint: Waypoint, onDelete: () -> Unit) {
                     // own use of the same MgrsCoordinate branch for why.
                     is MgrsCoordinate.Unsupported -> Unit
                 }
-                Text(
-                    "${"%.4f".format(waypoint.lat)}, ${"%.4f".format(waypoint.lng)}",
-                    style = MaterialTheme.typography.bodySmall,
-                )
+                Text(decimalDegreesLabel(waypoint.lat, waypoint.lng), style = MaterialTheme.typography.bodySmall)
             }
             IconButton(onClick = { launchDirections(context, waypoint.name, location) }) {
                 Icon(Icons.Filled.Directions, contentDescription = "Directions to ${waypoint.name}")
             }
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Filled.Delete, contentDescription = "Remove waypoint ${waypoint.name}")
-            }
         }
     }
 }
+
+/**
+ * A point in decimal degrees to four places, "45.3260, -122.6340": how [WaypointRow] and the offline
+ * region row print coordinates, and (journal redesign J5c) how the details sheet prints them, so the
+ * sheet shows the coordinates exactly as the row does.
+ */
+internal fun decimalDegreesLabel(lat: Double, lng: Double): String = "${"%.4f".format(lat)}, ${"%.4f".format(lng)}"

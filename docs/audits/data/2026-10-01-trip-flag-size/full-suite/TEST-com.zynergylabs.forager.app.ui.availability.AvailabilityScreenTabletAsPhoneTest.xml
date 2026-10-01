@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenTabletAsPhoneTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:17.421Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="1.079">
+  <properties/>
+  <testcase name="on a portrait tablet a real touch on a bottom nav tab switches the tab" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenTabletAsPhoneTest" time="0.064"/>
+  <testcase name="control - a phone in landscape still shows the rail and the L, so the sample can see them" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenTabletAsPhoneTest" time="0.056"/>
+  <testcase name="a 600 to 839 dp wide window renders the phone tree" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenTabletAsPhoneTest" time="0.048"/>
+  <testcase name="at a landscape tablet a real touch on a rail item switches the tab" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenTabletAsPhoneTest" time="0.112"/>
+  <testcase name="a landscape tablet renders the phone tree with the rail and no bottom nav" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenTabletAsPhoneTest" time="0.088"/>
+  <testcase name="at a landscape tablet long-presses along the rail's inner edge and mid-map reach the map" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenTabletAsPhoneTest" time="0.161"/>
+  <testcase name="a portrait tablet renders the phone tree" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenTabletAsPhoneTest" time="0.078"/>
+  <testcase name="at a landscape tablet at ROTATION_270 the L's top is never above the search bar's bottom" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenTabletAsPhoneTest" time="0.149"/>
+  <testcase name="at a landscape tablet the L is drawn" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenTabletAsPhoneTest" time="0.158"/>
+  <testcase name="at a landscape tablet at ROTATION_90 the L's top is never above the search bar's bottom" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenTabletAsPhoneTest" time="0.159"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

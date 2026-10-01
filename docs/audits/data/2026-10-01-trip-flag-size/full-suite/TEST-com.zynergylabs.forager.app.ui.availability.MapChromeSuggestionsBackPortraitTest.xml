@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.MapChromeSuggestionsBackPortraitTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:17.144Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.269">
+  <properties/>
+  <testcase name="with no suggestions open Back is not taken by them" classname="com.zynergylabs.forager.app.ui.availability.MapChromeSuggestionsBackPortraitTest" time="0.091"/>
+  <testcase name="Back closes the species suggestions typed on the Maps tab, and only them" classname="com.zynergylabs.forager.app.ui.availability.MapChromeSuggestionsBackPortraitTest" time="0.177"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

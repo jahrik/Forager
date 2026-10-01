@@ -142,7 +142,7 @@ class LogEntryDetailScreenTest {
     /**
      * Workstream G2: [LogPhotoThumbnail] now delegates to the shared [DecodedPhoto] rather than
      * its own hand-rolled decode — this proves the converted call site still renders a photo
-     * (rather than asserting anything G2-specific, which [DecodedPhotoTest]/[PhotoGalleryScreenTest]
+     * (rather than asserting anything G2-specific, which [DecodedPhotoTest]/the removed PhotoGalleryScreenTest
      * already own).
      */
     @Test
@@ -260,8 +260,8 @@ class LogEntryDetailScreenTest {
 
     /**
      * Workstream G3: the third Photos-row button, distinct from "Camera" and "Gallery" (the
-     * system picker) and from the bottom nav's own "Album" tab label — see this screen's own
-     * inline comment on the wording check.
+     * system picker) and from the Journal's own "Album" tab (a Cartography sub-tab, not a
+     * bottom-nav label) — see this screen's own inline comment on the wording check.
      */
     @Test
     fun `tapping From Album invokes onPullPhoto`() {

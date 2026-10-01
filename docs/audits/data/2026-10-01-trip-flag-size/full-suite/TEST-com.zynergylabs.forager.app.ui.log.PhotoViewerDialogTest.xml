@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.PhotoViewerDialogTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:49.046Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.677">
+  <properties/>
+  <testcase name="several photos step with the controls and reset zoom on each step" classname="com.zynergylabs.forager.app.ui.log.PhotoViewerDialogTest" time="0.058"/>
+  <testcase name="dragging pans only once zoomed in" classname="com.zynergylabs.forager.app.ui.log.PhotoViewerDialogTest" time="0.076"/>
+  <testcase name="the back key on the dialog window dismisses" classname="com.zynergylabs.forager.app.ui.log.PhotoViewerDialogTest" time="0.089"/>
+  <testcase name="pinching in at fit does not shrink below fit" classname="com.zynergylabs.forager.app.ui.log.PhotoViewerDialogTest" time="0.102"/>
+  <testcase name="a decode failure is said and logged, not shown as a blank or a crash" classname="com.zynergylabs.forager.app.ui.log.PhotoViewerDialogTest" time="0.061"/>
+  <testcase name="the close control dismisses" classname="com.zynergylabs.forager.app.ui.log.PhotoViewerDialogTest" time="0.067"/>
+  <testcase name="a single photo shows no stepping controls" classname="com.zynergylabs.forager.app.ui.log.PhotoViewerDialogTest" time="0.047"/>
+  <testcase name="double-tap toggles between fit and the double-tap zoom" classname="com.zynergylabs.forager.app.ui.log.PhotoViewerDialogTest" time="0.045"/>
+  <testcase name="opens fit to screen, with no pan" classname="com.zynergylabs.forager.app.ui.log.PhotoViewerDialogTest" time="0.037"/>
+  <testcase name="pinching out zooms in" classname="com.zynergylabs.forager.app.ui.log.PhotoViewerDialogTest" time="0.051"/>
+  <testcase name="zoom is capped at the ceiling, however far the fingers spread" classname="com.zynergylabs.forager.app.ui.log.PhotoViewerDialogTest" time="0.041"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[The PNG file(/tmp/robolectric-PhotoViewerDialogTest_a_decode_failure_is_said_and_logged__not_shown_as_a_blank_or_a_crash3152496730277816614/com.zynergylabs.forager.app-dataDir/files/photos/corrupt.png) cannot be decoded. This may be due to an OpenJDK issue with certain PNG files. See https://github.com/robolectric/robolectric/issues/6812 for more details.
+]]></system-err>
+</testsuite>

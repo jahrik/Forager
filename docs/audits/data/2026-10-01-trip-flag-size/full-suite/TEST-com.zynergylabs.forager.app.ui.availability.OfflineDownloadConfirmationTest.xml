@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.OfflineDownloadConfirmationTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:20.750Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.465">
+  <properties/>
+  <testcase name="a name of only spaces counts as no name" classname="com.zynergylabs.forager.app.ui.availability.OfflineDownloadConfirmationTest" time="0.072"/>
+  <testcase name="with no name the body starts at the radius" classname="com.zynergylabs.forager.app.ui.availability.OfflineDownloadConfirmationTest" time="0.049"/>
+  <testcase name="Download starts the existing download once and closes the confirmation" classname="com.zynergylabs.forager.app.ui.availability.OfflineDownloadConfirmationTest" time="0.045"/>
+  <testcase name="the radius follows the units setting" classname="com.zynergylabs.forager.app.ui.availability.OfflineDownloadConfirmationTest" time="0.044"/>
+  <testcase name="Cancel closes the confirmation and downloads nothing" classname="com.zynergylabs.forager.app.ui.availability.OfflineDownloadConfirmationTest" time="0.074"/>
+  <testcase name="the body reads name, radius around the pin and the tile count, with the radius in kilometres" classname="com.zynergylabs.forager.app.ui.availability.OfflineDownloadConfirmationTest" time="0.069"/>
+  <testcase name="tapping Download Maps opens the confirmation and starts nothing" classname="com.zynergylabs.forager.app.ui.availability.OfflineDownloadConfirmationTest" time="0.108"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

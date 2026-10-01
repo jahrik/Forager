@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.data.local.ForagerDatabaseDestructiveFallbackTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:45.495Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.585">
+  <properties/>
+  <testcase name="a version gap with no registered migration throws under the release path" classname="com.zynergylabs.forager.app.data.local.ForagerDatabaseDestructiveFallbackTest" time="0.543"/>
+  <testcase name="the same version gap falls back instead of throwing under the debug path" classname="com.zynergylabs.forager.app.data.local.ForagerDatabaseDestructiveFallbackTest" time="0.04"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

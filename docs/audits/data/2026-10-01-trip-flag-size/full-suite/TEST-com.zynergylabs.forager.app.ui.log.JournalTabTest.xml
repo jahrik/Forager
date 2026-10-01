@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.JournalTabTest" tests="18" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:44.136Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="1.084">
+  <properties/>
+  <testcase name="Change Location on an already-located entry opens the centre-pin picker and updates the entry's location on confirm" classname="com.zynergylabs.forager.app.ui.log.JournalTabTest" time="0.102"/>
+  <testcase name="after a pan, a new device fix moves neither the find picker's pin, nor the map's region, nor what OK saves" classname="com.zynergylabs.forager.app.ui.log.JournalTabTest" time="0.071"/>
+  <testcase name="a pan made before the first device fix is kept when that fix arrives" classname="com.zynergylabs.forager.app.ui.log.JournalTabTest" time="0.043"/>
+  <testcase name="with loadErrorMessage unset, no unavailable text appears" classname="com.zynergylabs.forager.app.ui.log.JournalTabTest" time="0.04"/>
+  <testcase name="starting a brand-new entry from the gallery's plus tile goes straight to the edit form with no location" classname="com.zynergylabs.forager.app.ui.log.JournalTabTest" time="0.041"/>
+  <testcase name="a set loadErrorMessage does not hide entries already showing" classname="com.zynergylabs.forager.app.ui.log.JournalTabTest" time="0.058"/>
+  <testcase name="choosing Edit entry from the report switches to the edit form" classname="com.zynergylabs.forager.app.ui.log.JournalTabTest" time="0.049"/>
+  <testcase name="Add Location on the edit form opens the centre-pin picker and sets the entry's location on confirm" classname="com.zynergylabs.forager.app.ui.log.JournalTabTest" time="0.048"/>
+  <testcase name="before any pan, the first device fix arriving after the find picker opened moves it there" classname="com.zynergylabs.forager.app.ui.log.JournalTabTest" time="0.039"/>
+  <testcase name="a set loadErrorMessage shows the unavailable text when there are no entries to show" classname="com.zynergylabs.forager.app.ui.log.JournalTabTest" time="0.054"/>
+  <testcase name="tapping Save on the edit form commits and returns to the report" classname="com.zynergylabs.forager.app.ui.log.JournalTabTest" time="0.051"/>
+  <testcase name="the map plus icon bar's pending destination lands directly on the edit form with the picked coordinate, not Cartography" classname="com.zynergylabs.forager.app.ui.log.JournalTabTest" time="0.035"/>
+  <testcase name="opening an existing entry from the gallery shows its report, not the edit form" classname="com.zynergylabs.forager.app.ui.log.JournalTabTest" time="0.04"/>
+  <testcase name="tapping Cancel on a brand-new entry's edit form discards it and returns to the gallery" classname="com.zynergylabs.forager.app.ui.log.JournalTabTest" time="0.093"/>
+  <testcase name="with saveErrorMessage unset, no Toast shows" classname="com.zynergylabs.forager.app.ui.log.JournalTabTest" time="0.058"/>
+  <testcase name="From Album on the edit form opens the picker and pulls the selected photo into the entry" classname="com.zynergylabs.forager.app.ui.log.JournalTabTest" time="0.106"/>
+  <testcase name="backing out of the edit form auto-saves and returns to the gallery, not the report" classname="com.zynergylabs.forager.app.ui.log.JournalTabTest" time="0.088"/>
+  <testcase name="a set saveErrorMessage shows a Toast with that text" classname="com.zynergylabs.forager.app.ui.log.JournalTabTest" time="0.064"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -5,11 +5,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.zynergylabs.forager.app.domain.EntryMapFrame
+import com.zynergylabs.forager.app.domain.ForecastCellStore
+import com.zynergylabs.forager.app.domain.JournalEntryHighlights
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
+import com.zynergylabs.forager.app.domain.model.RecordPoint
+import com.zynergylabs.forager.app.domain.model.RecordPolyline
+import com.zynergylabs.forager.app.domain.model.RecordRegion
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.ui.map.layers.ForecastCellsShown
+import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
+import java.time.LocalDate
 
 /**
  * Everything [MapSlot] draws on top of the basemap, bundled into one value rather than one
@@ -135,7 +144,159 @@ data class MapRenderMode(
      * unchanged.
      */
     val bottomInset: Dp = 0.dp,
+    /**
+     * Fires when the user starts moving this map's camera by touch: a pan, pinch, rotate, tilt,
+     * fling or double-tap zoom. Never for a move this app makes itself (a [MapSlot] `region`
+     * change, `focusOverride`, the first activation's ease to zoom 16, live-location tracking,
+     * the orientation reset). Picker-fixes dispatch, F1: [CentrePinLocationPicker]'s rule
+     * "follow until you touch it" needs to tell a user's pan from a programmatic camera move, and
+     * both end in the same [MapSlot] `onCameraIdle`, so the idle event alone cannot carry it.
+     *
+     * [SightingsMap] implements it with MapLibre's `addOnCameraMoveStartedListener`, keeping only
+     * `REASON_API_GESTURE` (1). Checked with `javap -c` on the pinned 13.5.0 `classes.jar`: every
+     * `onCameraMoveStarted(1)` dispatch is in a `MapGestureDetector` gesture listener (tap, move,
+     * scale, rotate, shove, fling), while `Transform`, which carries every API camera move including
+     * the location component's tracking, dispatches `REASON_API_ANIMATION` (3).
+     *
+     * A callback on [MapRenderMode], not an 11th [MapSlot] parameter, for the reason every field
+     * above gives (the Compose compiler crash at 10 declared parameters; [MapSlot] is at 9), and
+     * because a new top-level parameter or a wider `onCameraIdle` type would change every [MapSlot]
+     * implementation, about 40 files, where a defaulted field here changes none. `{}` by default, a
+     * non-capturing lambda, so every existing caller's [MapRenderMode] still compares equal.
+     */
+    val onUserCameraGesture: () -> Unit = {},
+    /**
+     * Every overlay layer's visibility and opacity, and the user's order for the reorderable group:
+     * map layers L0a, A3. [SightingsMap] applies it to the native layers through their `visibility`
+     * and opacity properties without reloading the style (`layerPaintFor` is the pure conversion).
+     * [MapLayersState.DEFAULT] is every layer visible at today's opacities, so every existing caller
+     * draws exactly as before. Nothing sets anything else yet: the Layers sheet and its DataStore
+     * persistence are L0b.
+     *
+     * Here, not an 11th [MapSlot] parameter, for the reason every field above gives (the Compose
+     * compiler crash at 10 declared parameters; [MapSlot] is at 9).
+     */
+    val layers: MapLayersState = MapLayersState.DEFAULT,
+    /**
+     * Fires when a tap's winning feature is on any layer but the sighting dots (map layers L0a, A4),
+     * as one [MapFeatureTap]: the layer's id (`MapLayerIds`), the feature's own id (the record id
+     * for a find, photo, kept track, waypoint, planned trip or offline region; a cell's centre for a
+     * colour field), and where the tap was (M1, F1). A sighting still goes to [MapSlot]'s
+     * `onSightingTap`, exactly as before. Which feature wins is `resolveTap`'s decision: markers,
+     * then lines, then a colour-field cell only under the finger with nothing else near. The search
+     * centre and the recording trail take no taps (M1, owner's ruling 4). It also fires on every
+     * camera idle for [MapOverlayContent.focusedFeature], at that glyph's own position.
+     *
+     * **Since M1, [MapSlot]'s `onTap` no longer fires after this one** (owner's ruling 1, "Bubble
+     * only"): a feature tap opens its bubble and nothing else, as a sighting tap always did, so a
+     * feature tap no longer restores the fullscreen chrome. `{}` by default, a non-capturing lambda,
+     * so every existing caller's [MapRenderMode] still compares equal. Here rather than on [MapSlot]
+     * for the parameter-count reason [layers] gives.
+     */
+    val onFeatureTap: (MapFeatureTap) -> Unit = {},
+    /**
+     * Closes the bubble that is showing, and nothing else: the tap handler calls it when a tap on a stack opens a fan (dispatch 2026-09-28-387, Part A). Not [MapSlot]'s `onTap`,
+     * which also restores the fullscreen chrome. `{}` by default, a non-capturing lambda, so every existing caller's [MapRenderMode] still compares equal.
+     */
+    val onCloseBubble: () -> Unit = {},
+    /**
+     * Where this map's colour fields read their cells (map layers L0b, B5), or `null` for a map that
+     * draws none: the Cartography entry map and the centre-pin pickers pass none (planner's ruling on
+     * Q5: colour fields on the Maps tab only). Here rather than on [MapSlot] for the parameter-count
+     * reason [layers] gives.
+     */
+    val forecast: MapForecastFeed? = null,
+    /**
+     * A one-shot camera frame (the entry map's opening frame, owner, 2026-09-28), or `null` for none.
+     * [SightingsMap] applies a request once per [MapCameraRequest.id], after which the user's pan and
+     * zoom stand: the same request arriving again on a later recomposition (returning from a find
+     * overlay or a bubble target) does not move the camera. Here rather than on [MapSlot] for the
+     * parameter-count reason [layers] gives.
+     */
+    val cameraRequest: MapCameraRequest? = null,
+    /**
+     * Where this map keeps the camera the user left, across the map leaving and re-entering
+     * composition (Part 1 layout fixes, item 4, planner message `2026-09-28-98`), or `null` for a map
+     * that keeps none. See [MapCameraMemory]. Here rather than on [MapSlot] for the parameter-count
+     * reason [layers] gives.
+     */
+    val cameraMemory: MapCameraMemory? = null,
+    /**
+     * How far MapLibre's attribution button ("i") keeps from the map's end edge (Part 1 layout fixes,
+     * item 5), beside [bottomInset] for the bottom. Zero for every caller but the compact Maps tab in a
+     * short landscape window, whose overlaid rail sits on that edge at one rotation.
+     */
+    val attributionEndInset: Dp = 0.dp,
+    /**
+     * How far MapLibre's attribution button ("i") keeps from the map's bottom edge, when that differs from
+     * [bottomInset], which the app's own always-visible caption follows. `null` (the default, every caller
+     * but the compact Maps tab) means the button follows [bottomInset], as it always has. Part 2 follow-ups
+     * F1 item 2 (Part 2 item 37): in portrait fullscreen [bottomInset] is 0 (the caption goes to the true
+     * edge, the owner's ruling recorded in `AvailabilityCompactScaffold`), which put the "i" under the
+     * system navigation band, where real taps opened nothing.
+     */
+    val attributionBottomInset: Dp? = null,
+    /**
+     * The landscape L's measured bounds, in this map's own pixels, for MapLibre's attribution button ("i") to
+     * keep clear of (dispatch 2026-09-29-57, amendment -262, item 1): [SightingsMap] moves the button's end
+     * margin inboard of it when the two would intersect (`attributionEndInsetClearOf`). `null` for every caller
+     * but the compact Maps tab in a short landscape window, which is where the L is.
+     */
+    val attributionKeepClear: androidx.compose.ui.geometry.Rect? = null,
+    /**
+     * Where a fan's member keys are written while it is open, and where the fan to reopen after Back from a
+     * find opened on the map is waiting (dispatch 2026-09-29-57, item 8). `null` for every caller but the compact
+     * Maps tab. Here rather than on [MapSlot] for the parameter-count reason [layers] gives.
+     */
+    val returnMemory: MapReturnMemory? = null,
+    /**
+     * `false` while something sits over this map that owns Back, so an open fan's Back handler is not composed
+     * and that thing's is the one asked (dispatch 2026-09-28-293: the Tools drawer). Default `true`: the pickers
+     * and any caller with nothing over the map. Here rather than on [MapSlot] for the parameter-count reason
+     * [layers] gives.
+     */
+    val backEnabled: Boolean = true,
 )
+
+/**
+ * A camera frame to apply once: [id] names the request, so a map that has applied it does not
+ * apply it again, and [frame] is where the camera goes.
+ */
+data class MapCameraRequest(val id: String, val frame: EntryMapFrame)
+
+/**
+ * What a map needs to draw its colour fields from stored cells (map layers L0b, B5): the store, the
+ * week to ask it for, which colour-field layers the store has data for (by layer id, with each one's
+ * group), and a callback with the dates of the cells now drawn, which the host's legend shows.
+ *
+ * [SightingsMap] asks [store] for the blocks touching the visible area whenever the camera goes idle,
+ * the same path a downloaded store will use, and again after every style load.
+ */
+data class MapForecastFeed(
+    val store: ForecastCellStore,
+    val week: LocalDate,
+    val groupsByLayer: Map<String, String>,
+    val onCellsShown: (Map<String, ForecastCellsShown>) -> Unit = {},
+)
+
+/**
+ * One feature tap, as [MapRenderMode.onFeatureTap] reports it (M1, F1 accepted by the planner): the
+ * layer and the feature's own id, as before, plus where the tap was, so a bubble can be anchored on
+ * it and a colour field's cell looked up by block. [screenPoint] is in the map slot's own
+ * coordinates, as `onSightingTap`'s is; [bearingDeg] is the camera's bearing; [at] is the tapped
+ * map position. For a point feature re-anchored at a camera idle ([MapOverlayContent.focusedFeature]),
+ * [screenPoint] and [at] are the glyph's own.
+ */
+data class MapFeatureTap(
+    val layerId: String,
+    val featureId: String,
+    val screenPoint: Offset,
+    val bearingDeg: Float,
+    val at: LatLng,
+)
+
+/** A point feature a caller is showing a bubble for, by layer and feature id (M1, F2): see [MapOverlayContent.focusedFeature]. */
+data class FocusedMapFeature(val layerId: String, val featureId: String)
 
 data class MapOverlayContent(
     val sightings: List<Sighting> = emptyList(),
@@ -187,7 +348,17 @@ data class MapOverlayContent(
      */
     val focusedObservationId: Long? = null,
     /**
-     * Journal Stage 2d: a Cartography entry's kept tracks, one inner list per track, each oldest
+     * M1 (F2): the point feature, if any, the caller is showing a bubble for, generalising
+     * [focusedObservationId] to finds, photos, waypoints and planned trips. On every camera idle the
+     * map re-projects that glyph's own position and reports it through [MapRenderMode.onFeatureTap],
+     * so the bubble stays on its glyph across a pan, zoom or rotate. `null` once the caller has
+     * dismissed the bubble, for the reason [focusedObservationId] gives: a dismissal must not be
+     * undone by the next idle. Lines, regions and cells are never focused here; their bubbles keep
+     * the tap point (planner's M1 ruling).
+     */
+    val focusedFeature: FocusedMapFeature? = null,
+    /**
+     * Journal Stage 2d: a Cartography entry's kept tracks, one [RecordPolyline] per track, each oldest
      * point first — a genuine `MultiLineString`, not [breadcrumbPoints] concatenated. A single
      * `List<LatLng>` (what [breadcrumbPoints] already is) can only ever draw as one connected
      * `LineString` (see [breadcrumbFeatureCollection]); two kept tracks drawn that way would show a
@@ -198,8 +369,11 @@ data class MapOverlayContent(
      * absent from this list by the time it reaches here — see [com.zynergylabs.forager.app.domain.GetCartographyEntryMapDataUseCase]'s
      * own doc comment for where that resolution happens; this composable never knows a track was
      * ever kept, only what actually resolved.
+     *
+     * Each item carries its record's id beside its geometry since map layers L0a ([RecordPoint],
+     * [RecordPolyline], [RecordRegion]), written into its map feature so a tap can name the record.
      */
-    val keptTrackPolylines: List<List<LatLng>> = emptyList(),
+    val keptTrackPolylines: List<RecordPolyline> = emptyList(),
     /**
      * Journal Stage 2d: a Cartography entry's kept finds with a resolved coordinate — drawn as
      * discrete markers, each a [SymbolLayer][org.maplibre.android.style.layers.SymbolLayer] like the
@@ -207,8 +381,11 @@ data class MapOverlayContent(
      * waypoint's pin in the offline region's colour (`MarkerGlyphs.kt`). A find with no coordinate (the ordinary case — see
      * [com.zynergylabs.forager.app.domain.model.MushroomLogEntry.foundAt]'s own doc comment) is simply absent
      * from this list, never a placeholder point.
+     *
+     * Each item carries its record's id beside its geometry since map layers L0a ([RecordPoint],
+     * [RecordPolyline], [RecordRegion]), written into its map feature so a tap can name the record.
      */
-    val findMarkers: List<LatLng> = emptyList(),
+    val findMarkers: List<RecordPoint> = emptyList(),
     /**
      * Journal Stage 2d: a Cartography entry's kept photos with a resolved coordinate (both
      * [com.zynergylabs.forager.app.domain.model.LogPhoto.latitude]/`.longitude` non-null, and the gallery row
@@ -217,16 +394,28 @@ data class MapOverlayContent(
      * coordinate. Also a discrete [SymbolLayer][org.maplibre.android.style.layers.SymbolLayer] marker: since
      * colour build C2 a rounded square with a camera, in its own colour, no longer the planned trip's
      * diamond.
+     *
+     * Each item carries its record's id beside its geometry since map layers L0a ([RecordPoint],
+     * [RecordPolyline], [RecordRegion]), written into its map feature so a tap can name the record.
      */
-    val photoMarkers: List<LatLng> = emptyList(),
+    val photoMarkers: List<RecordPoint> = emptyList(),
     /**
      * Journal Stage 2d: a Cartography entry's kept offline regions, drawn as a translucent coverage
      * circle each — their snapshot already carries lat/lng/radius (see [Region]'s own shape), so
      * unlike tracks/finds/photos this needs no live fetch to resolve at all. Whether this is more
      * useful than cluttered is an open visual question the dispatch that added this explicitly left
      * to be reported on after building it, not decided in advance.
+     *
+     * Each item carries its record's id beside its geometry since map layers L0a ([RecordPoint],
+     * [RecordPolyline], [RecordRegion]), written into its map feature so a tap can name the record.
      */
-    val offlineRegionCircles: List<Region> = emptyList(),
+    val offlineRegionCircles: List<RecordRegion> = emptyList(),
+    /**
+     * J8: the records kept by the entries shown on the map, highlighted in place by the five
+     * journal-entry halo layers under their own records (`GetJournalEntryHighlightsUseCase`, live
+     * geometry only). Only the Maps tab sets it; every other map draws no highlight.
+     */
+    val journalHighlights: JournalEntryHighlights = JournalEntryHighlights.NONE,
 )
 
 /**
@@ -337,6 +526,7 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
         resumeTrackingRequestId = content.resumeTrackingRequestId,
         resetOrientationRequestId = content.resetOrientationRequestId,
         focusedObservationId = content.focusedObservationId,
+        focusedFeature = content.focusedFeature,
         trackLiveLocation = renderMode.trackLiveLocation,
         showSearchCentre = renderMode.showSearchCentre,
         useOfflineTiles = renderMode.useOfflineTiles,
@@ -345,6 +535,19 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
         photoMarkers = content.photoMarkers,
         offlineRegionCircles = content.offlineRegionCircles,
         bottomInset = renderMode.bottomInset,
+        onUserCameraGesture = renderMode.onUserCameraGesture,
+        layersState = renderMode.layers,
+        onFeatureTap = renderMode.onFeatureTap,
+        onCloseBubble = renderMode.onCloseBubble,
+        forecast = renderMode.forecast,
+        cameraRequest = renderMode.cameraRequest,
+        journalHighlights = content.journalHighlights,
+        cameraMemory = renderMode.cameraMemory,
+        attributionEndInset = renderMode.attributionEndInset,
+        attributionBottomInset = renderMode.attributionBottomInset,
+        attributionKeepClear = renderMode.attributionKeepClear,
+        returnMemory = renderMode.returnMemory,
+        backEnabled = renderMode.backEnabled,
         modifier = modifier,
     )
 }

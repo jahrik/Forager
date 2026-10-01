@@ -22,7 +22,12 @@ import com.zynergylabs.forager.app.domain.LocationProvider
 import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.LocationTracker
 import com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository
+import com.zynergylabs.forager.app.domain.AbsentForecastCellStore
+import com.zynergylabs.forager.app.domain.ForecastCellStore
+import com.zynergylabs.forager.app.domain.MapLayerPreferences
+import com.zynergylabs.forager.app.domain.MapLayerPreferencesRepository
 import com.zynergylabs.forager.app.domain.MapPreferencesRepository
+import com.zynergylabs.forager.app.domain.MapRecords
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
 import com.zynergylabs.forager.app.domain.PredictAvailabilityUseCase
 import com.zynergylabs.forager.app.domain.SavePlannedTripUseCase
@@ -37,7 +42,20 @@ import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.TaxonFilter
 import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
+import com.zynergylabs.forager.app.domain.OfflineRegionSummary
+import com.zynergylabs.forager.app.domain.PendingDeleteSlot
+import com.zynergylabs.forager.app.ui.log.PendingDeleteCommitScope
+import com.zynergylabs.forager.app.domain.ForecastAvailability
+import com.zynergylabs.forager.app.domain.MapRecordKind
+import com.zynergylabs.forager.app.domain.isoWeekStart
+import com.zynergylabs.forager.app.ui.map.layers.ColourFieldMove
+import com.zynergylabs.forager.app.ui.map.layers.LayerState
+import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
+import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
+import com.zynergylabs.forager.app.ui.map.layers.moveColourField
+import com.zynergylabs.forager.app.ui.map.layers.restoreMapLayersState
 import java.time.LocalDate
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -96,6 +114,19 @@ class AvailabilityViewModel(
     /** Settings' "Lock camera to portrait" — the same borrowed-capability shape as the pair above, defaulted off, the repository's own default. */
     private val getLockCameraToPortrait: suspend () -> Result<Boolean> = { Result.success(false) },
     private val setLockCameraToPortrait: suspend (Boolean) -> Result<Unit> = { Result.success(Unit) },
+    /**
+     * Where an offline-region delete still pending when this ViewModel is cleared is committed
+     * (journal redesign J4): `viewModelScope` is cancelled by then. See [PendingDeleteCommitScope].
+     */
+    private val pendingDeleteCommitScope: CoroutineScope = PendingDeleteCommitScope,
+    /** Map layers L0b, B2: every saved record the Maps tab draws. Defaulted like the borrowed capabilities above. */
+    private val getMapRecords: suspend () -> MapRecords = { MapRecords.NONE },
+    /** Map layers L0b, B3: where the Layers sheet's choices persist. */
+    private val mapLayerPreferencesRepository: MapLayerPreferencesRepository = NoStoredMapLayerPreferences,
+    /** Map layers L0b, B5: which forecast groups have cells to draw. */
+    private val forecastCellStore: ForecastCellStore = AbsentForecastCellStore,
+    /** Today, for the forecast's ISO week. */
+    private val today: () -> LocalDate = { LocalDate.now() },
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AvailabilityUiState())
@@ -114,6 +145,9 @@ class AvailabilityViewModel(
      * from "collected once, completed, nothing listening any more", which is the first-launch bug.
      */
     private var liveFixJob: Job? = null
+
+    /** The one offline region whose delete is pending (journal redesign J4) — see [requestDeleteOfflineRegion]. */
+    private val offlineRegionDeletes = PendingDeleteSlot<Long, OfflineRegionSummary> { it.id }
 
     /**
      * Whether the hosting Activity is between `ON_START` and `ON_STOP`. Gates every start of
@@ -138,6 +172,7 @@ class AvailabilityViewModel(
         loadLockCameraToPortrait()
         loadMapFullscreenPreference()
         loadThemeModePreference()
+        loadMapLayerPreferences()
         // The compass strip's live coordinates are NOT started here any more. Construction-time
         // collection ran on viewModelScope, which cancels at onCleared() -- Activity destruction,
         // not stop -- so the OS listener stayed registered while the app was backgrounded and
@@ -434,6 +469,144 @@ class AvailabilityViewModel(
     }
 
     /**
+     * The Maps tab was shown (map layers L0b, B2 and B5): `AvailabilityScreen` calls this every time
+     * the tab comes into view, compact or wide, which is this data's freshness mechanism. It reloads
+     * every saved record the tab draws ([getMapRecords]), so a find saved on the Journal tab is on the
+     * map the next time the map is shown, and asks the forecast store which groups it has data for in
+     * this ISO week. A kind whose read failed is logged here and drawn as absent; the other kinds still
+     * draw (CLAUDE.md, Errors).
+     */
+    fun onMapShown() {
+        viewModelScope.launch { loadMapRecords() }
+        viewModelScope.launch {
+            val week = isoWeekStart(today())
+            val groups = when (val availability = forecastCellStore.availability(week)) {
+                ForecastAvailability.NoForecastData -> emptySet()
+                is ForecastAvailability.Groups -> availability.groups
+            }
+            _uiState.update { it.copy(forecastWeek = week, forecastGroups = groups) }
+        }
+    }
+
+    /**
+     * A find's delete has finished (dispatch 2026-09-28-291): the map no longer holds it. The records are a
+     * snapshot taken when the tab was shown, and while the delete was pending the screen hid the find with a
+     * filter; once the delete commits that filter stops, so the snapshot itself must lose the find or it is
+     * drawn, and collected by a fan, again. Removed from the snapshot rather than re-read: the database row
+     * is already gone, so there is nothing to wait for and no read that could still see it.
+     */
+    fun onFindDeleted(id: String) {
+        _uiState.update { state ->
+            state.copy(mapRecords = state.mapRecords.copy(findMarkers = state.mapRecords.findMarkers.filterNot { it.recordId == id }))
+        }
+    }
+
+    /**
+     * An album photo's delete has finished (dispatch 2026-09-28-297): [onFindDeleted]'s reasoning, for the
+     * photo markers. Removed from the snapshot, not re-read, for the same reason.
+     */
+    fun onPhotoDeleted(id: String) {
+        _uiState.update { state ->
+            state.copy(mapRecords = state.mapRecords.copy(photoMarkers = state.mapRecords.photoMarkers.filterNot { it.recordId == id }))
+        }
+    }
+
+    /**
+     * An offline region's delete has finished (dispatch 2026-09-28-297): [onFindDeleted]'s reasoning, for the
+     * region circles. A record's id here is the region's id as a string, as [GetMapRecordsUseCase] makes it.
+     * Called from [commitOfflineRegionDelete]'s own success path, so no wiring through `MainActivity` is needed.
+     */
+    private fun dropOfflineRegionFromMapRecords(id: Long) {
+        _uiState.update { state ->
+            state.copy(
+                mapRecords = state.mapRecords.copy(
+                    offlineRegionCircles = state.mapRecords.offlineRegionCircles.filterNot { it.recordId == id.toString() },
+                ),
+            )
+        }
+    }
+
+    /** The Maps tab's saved records, read now; the read [onMapShown] does and [reloadAfterRestore] repeats. */
+    private suspend fun loadMapRecords() {
+        val records = getMapRecords()
+        records.failures.forEach { failure ->
+            errorLog.w(TAG, "Couldn't load ${mapRecordKindLabel(failure.kind)} for the map.", failure.error)
+        }
+        _uiState.update { it.copy(mapRecords = records) }
+    }
+
+    /**
+     * The Layers sheet switched [layerId] (map layers L0b, B1 and B3): shown at once, then stored. A
+     * failed write is logged; the choice still holds for this session.
+     */
+    fun onMapLayerVisibilityChanged(layerId: String, visible: Boolean) {
+        _uiState.update { state ->
+            state.copy(mapLayers = state.mapLayers.withLayer(layerId) { it.copy(visible = visible) })
+        }
+        storeLayerChoice { mapLayerPreferencesRepository.setLayerVisible(layerId, visible) }
+    }
+
+    /**
+     * The Layers sheet's opacity slider moved for [layerId]: the L0a multiplier, 0 to 1. A value
+     * outside that range is refused and logged, never clamped (CLAUDE.md, Errors; `LayerState`'s own
+     * rule), and nothing is stored.
+     */
+    fun onMapLayerOpacityChanged(layerId: String, opacity: Float) {
+        if (!(opacity in 0f..1f)) {
+            errorLog.w(
+                TAG,
+                "Refused a map layer opacity of $opacity for $layerId: outside 0 to 1.",
+                IllegalArgumentException("opacity $opacity"),
+            )
+            return
+        }
+        _uiState.update { state ->
+            state.copy(mapLayers = state.mapLayers.withLayer(layerId) { it.copy(opacity = opacity) })
+        }
+        storeLayerChoice { mapLayerPreferencesRepository.setLayerOpacity(layerId, opacity) }
+    }
+
+    /**
+     * The Layers sheet moved a colour field one place ("Move up", "Move down", or a step of its drag
+     * handle). The whole colour-field order is stored, bottom to top. A move past either end changes
+     * nothing and stores nothing. The map draws the new order at its next style load (terminal
+     * `2026-09-27-72`, Deviations 4).
+     */
+    fun onColourFieldMoved(layerId: String, move: ColourFieldMove) {
+        val before = _uiState.value.mapLayers
+        val after = moveColourField(before, MAP_LAYER_REGISTRY, layerId, move)
+        if (after == before) return
+        _uiState.update { it.copy(mapLayers = after) }
+        storeLayerChoice { mapLayerPreferencesRepository.setLayerOrder(after.reorderableOrder) }
+    }
+
+    private fun storeLayerChoice(write: suspend () -> Result<Unit>) {
+        viewModelScope.launch {
+            write().onFailure { error -> errorLog.w(TAG, "Couldn't store a map layer choice.", error) }
+        }
+    }
+
+    /**
+     * The stored layer choices, at start (map layers L0b, B3). Every stored choice the registry does
+     * not allow is refused, logged one by one, and left at its default (`restoreMapLayersState`); a
+     * failed read is logged and leaves every layer at its default ("On by default").
+     */
+    private fun loadMapLayerPreferences() {
+        viewModelScope.launch {
+            mapLayerPreferencesRepository.getMapLayerPreferences().fold(
+                onSuccess = { stored ->
+                    val restored = restoreMapLayersState(stored, MAP_LAYER_REGISTRY)
+                    restored.rejected.forEach { line ->
+                        errorLog.w(TAG, "Refused a stored map layer choice: $line", IllegalStateException(line))
+                    }
+                    _uiState.update { it.copy(mapLayers = restored.state) }
+                },
+                onFailure = { error -> errorLog.w(TAG, "Couldn't read the map layer choices.", error) },
+            )
+        }
+    }
+
+    /**
      * Called when the map tab becomes visible. Sightings are fetched lazily, only for the
      * region+month+filter actually being viewed, rather than on every list search, since a
      * map view the user never opens shouldn't cost an extra API call.
@@ -675,8 +848,8 @@ class AvailabilityViewModel(
         refresh(region, summary.month, summary.filter)
     }
 
-    private fun loadPlannedTrips() {
-        viewModelScope.launch {
+    private fun loadPlannedTrips(): Job {
+        return viewModelScope.launch {
             getPlannedTrips().fold(
                 onSuccess = { trips -> _uiState.update { it.copy(plannedTrips = trips, plannedTripsErrorMessage = null) } },
                 onFailure = { error ->
@@ -753,15 +926,73 @@ class AvailabilityViewModel(
      * 2. Re-reads [OfflineMapRepository.listRegions] rather than trusting whatever
      *    [loadOfflineRegions] loaded once at ViewModel construction. Hardware testing found the
      *    list could come up empty right after a cold start with many regions already on disk
-     *    (survived the restart), consistent with `OfflineManager`'s native store still finishing
-     *    its own initialization at construction time. Re-reading on open is good practice
-     *    regardless: this screen should show current state whenever it's opened.
+     *    (survived the restart). The cause, from the device logs, was not the native store still
+     *    starting: the start-up read threw `MapLibreConfigurationException` because MapLibre was
+     *    not yet initialised (fixed by initialising it in `ForagerApplication.onCreate`, dispatch
+     *    2026-09-28-106). Re-reading on open is good practice regardless: this screen should show
+     *    current state whenever it's opened.
      *
      * Both calls are safe unconditionally: [LocationProvider.getCurrentLocation] only checks
      * whether permission is already granted, never triggering the OS permission dialog itself, and
      * a `listRegions` re-read has no side effect beyond what [loadOfflineRegions] already does on
      * every call.
      */
+    /**
+     * "Download again" on a region restored from a backup (owner, "1 B"). It downloads from the row's stored centre and
+     * radius through the same [OfflineMapRepository.download] a new download uses, held to the same tile budget. The
+     * download makes a new MapLibre region with a new id, so on success the restored row is replaced by it and every
+     * reference to the old id follows ([OfflineMapRepository.replaceRegion]). A failure leaves the row as it was.
+     * The picker's fields are not touched: this is not the picker's download.
+     */
+    fun onDownloadAgain(id: Long) {
+        val row = _uiState.value.offlineRegions.firstOrNull { it.id == id && !it.isDownloaded } ?: return
+        val estimatedTiles = estimateServedOfflineTileCount(row.region)
+        val remainingBudget = OfflineMapRepository.TILE_COUNT_LIMIT - _uiState.value.offlineRegions.sumOf { it.tileCount }
+        if (estimatedTiles > remainingBudget) {
+            _uiState.update {
+                it.copy(
+                    offlineDownloadStatus = OfflineMapStatus.Failed(
+                        "This region needs about $estimatedTiles tiles, but only $remainingBudget remain in your " +
+                            "${OfflineMapRepository.TILE_COUNT_LIMIT}-tile budget. Delete a region or pick a smaller radius.",
+                    ),
+                )
+            }
+            return
+        }
+        _uiState.update { it.copy(offlineDownloadStatus = OfflineMapStatus.Downloading(downloaded = 0, total = 0)) }
+        viewModelScope.launch {
+            offlineMapRepository.download(row.name, row.region) { downloaded, total ->
+                _uiState.update { it.copy(offlineDownloadStatus = OfflineMapStatus.Downloading(downloaded, total)) }
+            }.fold(
+                onSuccess = { downloadedRegion ->
+                    offlineMapRepository.replaceRegion(row.id, downloadedRegion.id).onFailure { error ->
+                        errorLog.w(TAG, "Downloaded ${row.name} again, but couldn't move region ${row.id}'s references to ${downloadedRegion.id}.", error)
+                    }
+                    _uiState.update { it.copy(offlineDownloadStatus = OfflineMapStatus.Succeeded) }
+                    loadOfflineRegions()
+                },
+                onFailure = { error ->
+                    errorLog.w(TAG, "Couldn't download offline maps again.", error)
+                    _uiState.update { it.copy(offlineDownloadStatus = OfflineMapStatus.Failed("Couldn't download offline maps.")) }
+                },
+            )
+        }
+    }
+
+    /**
+     * Reads everything this ViewModel holds from the database again, after a restore, and returns when it is done:
+     * the planned trips ([loadPlannedTrips]), the offline regions with their reference counts ([loadOfflineRegions]),
+     * and the Maps tab's records ([loadMapRecords]). The journal highlights are derived from those, the entries and the
+     * waypoints, in the screen, so they follow. `loadRecentSearches` is not reloaded: the search cache is not restored.
+     */
+    suspend fun reloadAfterRestore() {
+        // A restore can bring a deleted record back: what was committed to deletion is forgotten first.
+        _uiState.update { it.copy(committedOfflineRegionDeleteIds = emptySet()) }
+        loadPlannedTrips().join()
+        loadOfflineRegions().join()
+        loadMapRecords()
+    }
+
     fun onOfflineMapsOpened() {
         viewModelScope.launch {
             val result = locationProvider.getCurrentLocation()
@@ -786,10 +1017,16 @@ class AvailabilityViewModel(
      * failure gets. The prior list is kept on a failed refresh rather than cleared, so a transient
      * read error doesn't make regions that are still on disk disappear.
      */
-    private fun loadOfflineRegions() {
-        viewModelScope.launch {
+    private fun loadOfflineRegions(): Job {
+        return viewModelScope.launch {
             offlineMapRepository.listRegions().fold(
-                onSuccess = { regions ->
+                onSuccess = { downloaded ->
+                    // Regions restored from a backup with no tiles here are listed after the downloaded ones (owner, "1 B").
+                    val restored = offlineMapRepository.listNotDownloadedRegions().getOrElse { error ->
+                        errorLog.w(TAG, "Couldn't read restored offline regions.", error)
+                        emptyList()
+                    }
+                    val regions = downloaded + restored
                     _uiState.update { it.copy(offlineRegions = regions, offlineRegionsErrorMessage = null) }
                     // One query per region — see TrackRecordingViewModel.loadWaypoints' identical
                     // choice for why this scale doesn't need a batched read.
@@ -1137,6 +1374,109 @@ class AvailabilityViewModel(
      * — deletion isn't a download, and the region simply staying in the list on failure already
      * shows the delete didn't take effect, the same signal a stale list already carries.
      */
+    /**
+     * A swipe on an offline region's Records row (journal redesign J4): the region becomes pending —
+     * hidden from [AvailabilityUiState.visibleOfflineRegions] at once, its tiles still on disk — and
+     * the Undo snackbar shows. The real delete ([OfflineMapRepository.deleteRegion], MapLibre's tile
+     * delete and then the row, unchanged) runs from [commitDeleteOfflineRegion] when the snackbar
+     * ends without Undo, from here when a second region is swiped while this one is pending (the
+     * first is committed then), or from [onCleared]. That deferral is the only thing that makes Undo
+     * possible for a region at all: deleted tiles can only come back by a re-download, under a new
+     * MapLibre id (J0 B1).
+     *
+     * A region still downloading is never a row here: [OfflineMapRepository.listRegions] only lists
+     * complete regions (it deletes incomplete ones), and [AvailabilityUiState.offlineRegions] is only
+     * ever that list, so there is no downloading region to swipe.
+     *
+     * Reference count: the loaded one, a missing entry counting as zero as
+     * [AvailabilityUiState.offlineRegionEntryReferenceCounts] documents. An id not in the list is
+     * logged and pends nothing.
+     */
+    fun requestDeleteOfflineRegion(id: Long) {
+        val state = _uiState.value
+        val region = state.offlineRegions.firstOrNull { it.id == id }
+        if (region == null) {
+            errorLog.w(TAG, "A delete was asked for offline region $id, which is not loaded; nothing pended.", IllegalStateException("no region $id"))
+            return
+        }
+        val displaced = offlineRegionDeletes.pend(region, state.offlineRegionEntryReferenceCounts[id] ?: 0)
+        _uiState.update {
+            it.copy(
+                pendingOfflineRegionDelete = offlineRegionDeletes.pending,
+                // The displaced region leaves its Undo window in this same update: it is never in neither.
+                committedOfflineRegionDeleteIds = if (displaced == null) it.committedOfflineRegionDeleteIds else it.committedOfflineRegionDeleteIds + displaced.id,
+            )
+        }
+        displaced?.let(::commitOfflineRegionDelete)
+    }
+
+    /** The snackbar's Undo: the pending region shows again. No tile was deleted, so nothing is restored. */
+    fun undoDeleteOfflineRegion(id: Long) {
+        if (offlineRegionDeletes.undo(id) == null) {
+            errorLog.w(TAG, "Undo for offline region $id came after its delete was committed; nothing to undo.", IllegalStateException("region $id not pending"))
+        }
+        _uiState.update { it.copy(pendingOfflineRegionDelete = offlineRegionDeletes.pending) }
+    }
+
+    /** The snackbar ended without Undo (timed out, or a newer snackbar replaced it): the pending region's tile and row delete runs, once. */
+    fun commitDeleteOfflineRegion(id: Long) {
+        val region = offlineRegionDeletes.commit(id)
+        // Marked committed (commitOfflineRegionDelete's first update) before the pending marker is cleared, so the
+        // Maps tab never sees a moment in which the region is neither (dispatch 2026-09-28-312, item 9).
+        region?.let(::commitOfflineRegionDelete)
+        _uiState.update { it.copy(pendingOfflineRegionDelete = offlineRegionDeletes.pending) }
+    }
+
+    /**
+     * The real delete of a region whose pending time is over. It leaves [AvailabilityUiState.offlineRegions]
+     * at once, so it does not flash back between the snackbar closing and MapLibre finishing; a failed
+     * delete puts it back where it was and reports the failure the way [onDeleteOfflineRegion] does.
+     */
+    private fun commitOfflineRegionDelete(region: OfflineRegionSummary) {
+        val index = _uiState.value.offlineRegions.indexOfFirst { it.id == region.id }
+        _uiState.update { state ->
+            state.copy(
+                offlineRegions = state.offlineRegions.filterNot { it.id == region.id },
+                committedOfflineRegionDeleteIds = state.committedOfflineRegionDeleteIds + region.id,
+            )
+        }
+        viewModelScope.launch {
+            offlineMapRepository.deleteRegion(region.id).fold(
+                onSuccess = {
+                    dropOfflineRegionFromMapRecords(region.id)
+                    loadOfflineRegions()
+                },
+                onFailure = { error ->
+                    errorLog.w(TAG, "Couldn't delete that region.", error)
+                    _uiState.update { state ->
+                        val restored = if (state.offlineRegions.any { it.id == region.id }) {
+                            state.offlineRegions
+                        } else {
+                            state.offlineRegions.toMutableList().apply { add(index.coerceIn(0, size), region) }
+                        }
+                        state.copy(
+                            offlineRegions = restored,
+                            committedOfflineRegionDeleteIds = state.committedOfflineRegionDeleteIds - region.id,
+                            offlineRegionsErrorMessage = "Couldn't delete that region.",
+                        )
+                    }
+                },
+            )
+        }
+    }
+
+    override fun onCleared() {
+        // Journal redesign J4: a region still pending is committed here, since no snackbar is left
+        // to end. viewModelScope is already cancelled, so the delete runs on pendingDeleteCommitScope.
+        offlineRegionDeletes.takeAny()?.let { region ->
+            pendingDeleteCommitScope.launch {
+                offlineMapRepository.deleteRegion(region.id).onFailure { error ->
+                    errorLog.w(TAG, "Couldn't delete offline region ${region.id} pending when the screen closed; its tiles are still on disk.", error)
+                }
+            }
+        }
+    }
+
     fun onDeleteOfflineRegion(id: Long) {
         viewModelScope.launch {
             offlineMapRepository.deleteRegion(id).fold(
@@ -1155,4 +1495,31 @@ class AvailabilityViewModel(
         const val SEARCH_DEBOUNCE_MS = 300L
         const val TAG = "AvailabilityViewModel"
     }
+}
+
+/** [MapLayersState] with [layerId]'s state changed by [change]. */
+private fun MapLayersState.withLayer(layerId: String, change: (LayerState) -> LayerState): MapLayersState =
+    copy(layers = layers + (layerId to change(stateOf(layerId))))
+
+/** How a failed kind reads in the log line: "Couldn't load tracks for the map." */
+private fun mapRecordKindLabel(kind: MapRecordKind): String = when (kind) {
+    MapRecordKind.FINDS -> "finds"
+    MapRecordKind.PHOTOS -> "photos"
+    MapRecordKind.TRACKS -> "tracks"
+    MapRecordKind.OFFLINE_REGIONS -> "offline regions"
+}
+
+/**
+ * The default [MapLayerPreferencesRepository] for the suites that construct this ViewModel and never
+ * touch the Layers sheet, the same shape as this class's other defaulted capabilities: nothing stored,
+ * every write accepted. `MainActivity` passes the real `map_preferences` store.
+ */
+private object NoStoredMapLayerPreferences : MapLayerPreferencesRepository {
+    override suspend fun getMapLayerPreferences(): Result<MapLayerPreferences> = Result.success(MapLayerPreferences.NONE)
+
+    override suspend fun setLayerVisible(layerId: String, visible: Boolean): Result<Unit> = Result.success(Unit)
+
+    override suspend fun setLayerOpacity(layerId: String, opacity: Float): Result<Unit> = Result.success(Unit)
+
+    override suspend fun setLayerOrder(layerIds: List<String>): Result<Unit> = Result.success(Unit)
 }

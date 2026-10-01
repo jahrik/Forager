@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.data.repository.DataStoreUnitSystemPreferenceRepositoryTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:49.009Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.154">
+  <properties/>
+  <testcase name="a saved system round-trips exactly" classname="com.zynergylabs.forager.app.data.repository.DataStoreUnitSystemPreferenceRepositoryTest" time="0.026"/>
+  <testcase name="once a system has been saved, the legacy key no longer has a say" classname="com.zynergylabs.forager.app.data.repository.DataStoreUnitSystemPreferenceRepositoryTest" time="0.027"/>
+  <testcase name="a legacy miles choice is carried forward as imperial, by migration and not by default" classname="com.zynergylabs.forager.app.data.repository.DataStoreUnitSystemPreferenceRepositoryTest" time="0.024"/>
+  <testcase name="a legacy kilometres choice is carried forward as metric" classname="com.zynergylabs.forager.app.data.repository.DataStoreUnitSystemPreferenceRepositoryTest" time="0.024"/>
+  <testcase name="saving a second system replaces the first" classname="com.zynergylabs.forager.app.data.repository.DataStoreUnitSystemPreferenceRepositoryTest" time="0.025"/>
+  <testcase name="nothing picked yet defaults to imperial" classname="com.zynergylabs.forager.app.data.repository.DataStoreUnitSystemPreferenceRepositoryTest" time="0.026"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

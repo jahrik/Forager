@@ -1,6 +1,8 @@
 package com.zynergylabs.forager.app.ui.track
 
 import com.zynergylabs.forager.app.domain.PathHome
+import com.zynergylabs.forager.app.domain.PendingDelete
+import com.zynergylabs.forager.app.domain.withoutPending
 import com.zynergylabs.forager.app.domain.model.ReturnToStartInfo
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.SundownCountdown
@@ -112,8 +114,29 @@ data class TrackRecordingUiState(
      * for why a blank is the specific failure worth designing against here.
      */
     val sundownCountdown: SundownCountdown = SundownCountdown.NoPositionYet,
+    /**
+     * The waypoint whose delete was asked for (a swipe on its Records row, journal redesign J4) and
+     * has not run yet: the Undo snackbar is still up. See [TrackRecordingViewModel.requestRemoveWaypoint].
+     */
+    val pendingWaypointDelete: PendingDelete<Waypoint>? = null,
+    /** The track whose delete was asked for (swipe or the details' Delete) and has not run yet: the Undo snackbar is still up. Part 2 follow-ups F1 item 5. */
+    val pendingTrackDelete: PendingDelete<Track>? = null,
+    /** How many journal entries keep each track (loaded with [tracks]); a track missing here has no count and the snackbar says nothing about entries. */
+    val trackEntryReferenceCounts: Map<String, Int> = emptyMap(),
+    /** Set when a committed track delete failed (the track is back in [tracks]); cleared by the next successful load. */
+    val tracksErrorMessage: String? = null,
 ) {
     val isRecording: Boolean get() = activeTrack != null
+
+    /**
+     * [waypoints] without [pendingWaypointDelete]: what every screen shows (J4, "a pending record is
+     * hidden from every Journal list, count and the All logbook at once"). `MainActivity` passes this,
+     * not [waypoints], to the screen, so the map hides a pending waypoint too until Undo brings it back.
+     */
+    val visibleWaypoints: List<Waypoint> get() = waypoints.withoutPending(pendingWaypointDelete) { it.id }
+
+    /** [tracks] without [pendingTrackDelete]: what every screen shows (a pending record is hidden at once, as a pending waypoint is). */
+    val visibleTracks: List<Track> get() = tracks.withoutPending(pendingTrackDelete) { it.id }
 }
 
 /** A one-shot message for the map's Snackbar host, keyed by [id] so an identical [message] re-shows — see [TrackRecordingUiState.tripStartWarning] and [TrackRecordingUiState.networkFixesNotice]. */

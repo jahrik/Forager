@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.LandscapeOfflinePickerTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:47.989Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.974">
+  <properties/>
+  <testcase name="L1 at ROTATION_270 OK, Cancel and Download are shown and take real touches across their bounds without scrolling" classname="com.zynergylabs.forager.app.ui.availability.LandscapeOfflinePickerTest" time="0.182"/>
+  <testcase name="L1 portrait keeps the stacked picker, the map 4 by 3 across the width and OK below it" classname="com.zynergylabs.forager.app.ui.availability.LandscapeOfflinePickerTest" time="0.059"/>
+  <testcase name="L1 at ROTATION_90 the map is full height on the punch-hole side and the controls by the rail" classname="com.zynergylabs.forager.app.ui.availability.LandscapeOfflinePickerTest" time="0.067"/>
+  <testcase name="L1 a drag on the map pans it and reaches no control" classname="com.zynergylabs.forager.app.ui.availability.LandscapeOfflinePickerTest" time="0.071"/>
+  <testcase name="L1 at ROTATION_270 the slider is reached by scrolling the controls side and takes real touches" classname="com.zynergylabs.forager.app.ui.availability.LandscapeOfflinePickerTest" time="0.144"/>
+  <testcase name="L1 at ROTATION_270 the map is full height on the punch-hole side and the controls by the rail" classname="com.zynergylabs.forager.app.ui.availability.LandscapeOfflinePickerTest" time="0.139"/>
+  <testcase name="L1 at ROTATION_90 OK, Cancel and Download are shown and take real touches across their bounds without scrolling" classname="com.zynergylabs.forager.app.ui.availability.LandscapeOfflinePickerTest" time="0.215"/>
+  <testcase name="L1 at ROTATION_90 the slider is reached by scrolling the controls side and takes real touches" classname="com.zynergylabs.forager.app.ui.availability.LandscapeOfflinePickerTest" time="0.093"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.EntriesAlbumModelTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:32.209Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.001">
+  <properties/>
+  <testcase name="a photo falls on its device-local day, not its UTC day" classname="com.zynergylabs.forager.app.ui.log.EntriesAlbumModelTest" time="0.001"/>
+  <testcase name="days come newest first, photos keep input order within a day, and unknown dates come last" classname="com.zynergylabs.forager.app.ui.log.EntriesAlbumModelTest" time="0.0"/>
+  <testcase name="no photos means no days, and no unknown group when every date is known" classname="com.zynergylabs.forager.app.ui.log.EntriesAlbumModelTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

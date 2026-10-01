@@ -86,7 +86,7 @@ val MIGRATION_3_4: Migration = object : Migration(3, 4) {
 
 /**
  * Adds `tracks`, `track_points`, and `waypoints` on top of version 4's tables — Phase 1a of the
- * Forager Navigator plan (`docs/plans/forager-navigator-plan.md`). A real, hand-written migration,
+ * Forager Navigator plan (`docs/navigation/forager-navigator-plan.md`). A real, hand-written migration,
  * not `fallbackToDestructiveMigration()`: recorded tracks and dropped waypoints are irreplaceable
  * field data in exactly the way mushroom-log entries are — see [ForagerDatabase]'s doc comment and
  * [MIGRATION_3_4]'s for the precedent this follows.
@@ -930,5 +930,75 @@ val MIGRATION_14_15: Migration = object : Migration(14, 15) {
         db.execSQL("DROP TABLE `track_points`")
         db.execSQL("ALTER TABLE `track_points_new` RENAME TO `track_points`")
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_track_points_trackId` ON `track_points` (`trackId`)")
+    }
+}
+
+/**
+ * Adds `shownOnMap` to `cartography_entries` — J8, Journal entries on the main map (owner: "Yes, keep
+ * them", stored with the entry). Every existing row gets `0`: nothing was shown on the map before
+ * this version, so "not shown" is the honest value, and it is written explicitly rather than left to
+ * a column default, as [MIGRATION_8_9] writes `isDraft`.
+ *
+ * A full rebuild rather than `ALTER TABLE ... ADD COLUMN`, for the reason [MIGRATION_12_13] records:
+ * [CartographyEntryEntity] is declared directly by the `LegacyForagerDatabaseV12` to `V15` fixtures, so
+ * their generated tables already carry the column and an `ADD COLUMN` would fail against them; the
+ * explicit source column list below never names it, so a leaked one is ignored. The four ref tables
+ * hold `entryId` as a plain column with no constraint on this table, so rebuilding it underneath them
+ * needs no cascade handling, and both indexes are recreated because `DROP TABLE` takes them with it.
+ * Verified by `SchemaMigrationTest` (15 to 16 against `16.json`, and the chain from 4),
+ * `CartographyEntryShownOnMapMigrationTest` from a real version-15 file, and every existing migration
+ * test with this appended to its chain.
+ */
+val MIGRATION_15_16: Migration = object : Migration(15, 16) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE `cartography_entries_new` (
+            `id` TEXT NOT NULL,
+            `date` TEXT NOT NULL,
+            `text` TEXT NOT NULL,
+            `tags` TEXT NOT NULL,
+            `isDraft` INTEGER NOT NULL,
+            `updatedAtEpochMillis` INTEGER NOT NULL,
+            `shownOnMap` INTEGER NOT NULL,
+            PRIMARY KEY(`id`))
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            INSERT INTO `cartography_entries_new` (`id`, `date`, `text`, `tags`, `isDraft`, `updatedAtEpochMillis`, `shownOnMap`)
+            SELECT `id`, `date`, `text`, `tags`, `isDraft`, `updatedAtEpochMillis`, 0 FROM `cartography_entries`
+            """.trimIndent(),
+        )
+        db.execSQL("DROP TABLE `cartography_entries`")
+        db.execSQL("ALTER TABLE `cartography_entries_new` RENAME TO `cartography_entries`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_cartography_entries_date` ON `cartography_entries` (`date`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_cartography_entries_isDraft` ON `cartography_entries` (`isDraft`)")
+    }
+}
+
+/**
+ * Adds `cartography_entry_track_paths` — F3, a kept track keeps its path (dispatch 2026-09-28-195; owner,
+ * 2026-09-29: "Option B" and "All recommended"). A new table, not a column on the ref table: a column would need
+ * a rebuild of `cartography_entry_track_refs` (the V12-V15 fixtures declare that entity directly, see
+ * [MIGRATION_12_13]), and would be loaded for every entry and rewritten on every draft save.
+ *
+ * Created empty and **not backfilled**: the table is written when a track is deleted, and no track has ever been
+ * deletable, so no entry has a path that needs saving. The SQL is `17.json`'s `createSql` and index, as Room
+ * exported them; [SchemaMigrationTest] validates the result against that file. Nothing else is touched, so no
+ * existing row is read or rewritten.
+ */
+val MIGRATION_16_17: Migration = object : Migration(16, 17) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `cartography_entry_track_paths` (
+            `entryId` TEXT NOT NULL,
+            `trackId` TEXT NOT NULL,
+            `path` BLOB NOT NULL,
+            PRIMARY KEY(`entryId`, `trackId`))
+            """.trimIndent(),
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_cartography_entry_track_paths_trackId` ON `cartography_entry_track_paths` (`trackId`)")
     }
 }

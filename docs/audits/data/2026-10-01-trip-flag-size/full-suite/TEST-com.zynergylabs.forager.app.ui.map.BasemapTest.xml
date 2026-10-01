@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.BasemapTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:06.944Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.003">
+  <properties/>
+  <testcase name="every basemap has the label description and attribution the selector renders" classname="com.zynergylabs.forager.app.ui.map.BasemapTest" time="0.001"/>
+  <testcase name="a limited-coverage basemap carries a note and a worldwide one does not" classname="com.zynergylabs.forager.app.ui.map.BasemapTest" time="0.0"/>
+  <testcase name="every US-only basemap is a USGS one and every USGS basemap is US-only" classname="com.zynergylabs.forager.app.ui.map.BasemapTest" time="0.001"/>
+  <testcase name="every basemap can reach the tightest zoom the map opens at" classname="com.zynergylabs.forager.app.ui.map.BasemapTest" time="0.0"/>
+  <testcase name="the default basemap is OpenTopoMap, derived from MapMode's default" classname="com.zynergylabs.forager.app.ui.map.BasemapTest" time="0.001"/>
+  <testcase name="at least one basemap works outside the United States" classname="com.zynergylabs.forager.app.ui.map.BasemapTest" time="0.0"/>
+  <testcase name="basemap labels are distinct" classname="com.zynergylabs.forager.app.ui.map.BasemapTest" time="0.0"/>
+  <testcase name="the OpenStreetMap standard basemap is still offered and unrestricted" classname="com.zynergylabs.forager.app.ui.map.BasemapTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapLayersSheetTest" tests="14" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:09.391Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="1.618">
+  <properties/>
+  <testcase name="a tap on the chip shows the legend with each ramp's 0 and 100 percent, the dates, no forecast here and the reference class, and a second tap hides it" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapLayersSheetTest" time="0.116"/>
+  <testcase name="with the cluster dragged to the bottom on the right it stops above the chip, rises when the legend expands and returns when it collapses" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapLayersSheetTest" time="0.119"/>
+  <testcase name="touches on the map all around the legend chip reach the map" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapLayersSheetTest" time="0.076"/>
+  <testcase name="with the release build's store the sheet lists no colour field, no legend shows, and no credit is added" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapLayersSheetTest" time="0.116"/>
+  <testcase name="with no colour field visible there is no legend chip, and switching one on in the sheet shows it" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapLayersSheetTest" time="0.142"/>
+  <testcase name="with forecast data the colour fields are listed top first with an opacity slider and a reorder handle, and Move up reorders them" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapLayersSheetTest" time="0.135"/>
+  <testcase name="while a colour field is visible the legend chip shows at the bottom right above the nav, collapsed to 2 layers" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapLayersSheetTest" time="0.122"/>
+  <testcase name="choosing a map type in the sheet applies it and the sheet stays open" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapLayersSheetTest" time="0.162"/>
+  <testcase name="a touch on the opacity slider sets that layer's opacity, and its value reads as a percent" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapLayersSheetTest" time="0.12"/>
+  <testcase name="dragging a colour field's handle down one row moves it one place down" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapLayersSheetTest" time="0.106"/>
+  <testcase name="once the sheet is closed, touches where it was and around the Layers row reach the map" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapLayersSheetTest" time="0.081"/>
+  <testcase name="a real touch on the Layers row opens the Layers sheet, with Map type and the Maps tab's eight overlays" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapLayersSheetTest" time="0.107"/>
+  <testcase name="expanded, the legend is capped in height and a real swipe on it scrolls the reference class into view" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapLayersSheetTest" time="0.079"/>
+  <testcase name="switching Finds off in the sheet hides finds in the state the map is handed, and stores the choice" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapLayersSheetTest" time="0.133"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

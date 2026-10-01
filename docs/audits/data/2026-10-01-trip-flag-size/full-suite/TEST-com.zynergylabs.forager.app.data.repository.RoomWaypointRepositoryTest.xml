@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.data.repository.RoomWaypointRepositoryTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:51.968Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.205">
+  <properties/>
+  <testcase name="an origin waypoint's designation persists and survives renaming it" classname="com.zynergylabs.forager.app.data.repository.RoomWaypointRepositoryTest" time="0.03"/>
+  <testcase name="saving a waypoint with the same id replaces it rather than duplicating it" classname="com.zynergylabs.forager.app.data.repository.RoomWaypointRepositoryTest" time="0.034"/>
+  <testcase name="waypoints dropped while a track recorded come back for that track, oldest first, and no others" classname="com.zynergylabs.forager.app.data.repository.RoomWaypointRepositoryTest" time="0.03"/>
+  <testcase name="a saved waypoint comes back with every field intact" classname="com.zynergylabs.forager.app.data.repository.RoomWaypointRepositoryTest" time="0.028"/>
+  <testcase name="deleting a waypoint removes it, and a delete of a missing id is not a failure" classname="com.zynergylabs.forager.app.data.repository.RoomWaypointRepositoryTest" time="0.041"/>
+  <testcase name="detaching from a track nulls the link on its waypoints only and keeps every row" classname="com.zynergylabs.forager.app.data.repository.RoomWaypointRepositoryTest" time="0.04"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

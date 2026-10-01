@@ -3,6 +3,9 @@ package com.zynergylabs.forager.app.domain
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.LatLng
+import com.zynergylabs.forager.app.domain.model.RecordPoint
+import com.zynergylabs.forager.app.domain.model.RecordPolyline
+import com.zynergylabs.forager.app.domain.model.RecordRegion
 import com.zynergylabs.forager.app.domain.model.Region
 
 /**
@@ -15,7 +18,9 @@ import com.zynergylabs.forager.app.domain.model.Region
  * Per kept-reference type — see the Stage 2d dispatch's own table for why these differ:
  * - **Waypoints** / **offline regions**: already carry lat/lng (and, for a region, radius) in their
  *   own snapshot, no fetch needed — mapped directly.
- * - **Tracks**: [TrackRepository.getById] per kept [com.zynergylabs.forager.app.domain.model.TrackDecision.trackId].
+ * - **Tracks**: [TrackRepository.getById] per kept [com.zynergylabs.forager.app.domain.model.TrackDecision.trackId];
+ *   when that track is gone, the path saved for this entry when it was deleted ([KeptTrackPathRepository], F3:
+ *   "a kept track keeps its path"). The live track wins whenever it exists, so an edit to a track still shows.
  * - **Finds**: [MushroomLogRepository.getForDay] per distinct kept
  *   [com.zynergylabs.forager.app.domain.model.FindDecision.foundOn] (there is no `getById`), then filtered by
  *   id — one call per distinct day among the kept finds, not one per find.
@@ -24,7 +29,8 @@ import com.zynergylabs.forager.app.domain.model.Region
  *   fetch of any kind for this one, unlike the other three.
  *
  * **A dangling or unresolvable reference contributes nothing, never a failure** — a kept track
- * deleted from Records ([TrackRepository.getById] returning `null`), a kept find likewise gone, or
+ * deleted from Records ([TrackRepository.getById] returning `null`) that has no saved path either (F3 saves one on
+ * delete, so this is now a track that was never deleted through the app), a kept find likewise gone, or
  * a photo with a null coordinate (the ordinary case — see [com.zynergylabs.forager.app.domain.model.LogPhoto]'s
  * own doc comment) or a missing gallery row, all fall out of their respective `mapNotNull` silently.
  * This deliberately does **not** short-circuit the whole result on one repository failure the way
@@ -52,14 +58,31 @@ import com.zynergylabs.forager.app.domain.model.Region
  * `kept` filter this method applies, which is a bug waiting to happen the first time it is
  * forgotten. Withheld items must be unreachable by construction, not by convention: anything that
  * draws an entry on a map takes a [CartographyEntryMapData], and only this method builds one.
+ *
+ * **Every drawn item keeps its record's id** (map layers L0a, owner's ruling 2 on
+ * `prompts/preserved/2026-09-27-30.md`): each one is a [RecordPoint], [RecordPolyline] or
+ * [RecordRegion] carrying the kept decision's own id, so a tap on the map can name the record.
+ * Before L0a these ids were in hand here and dropped when mapping to [LatLng] and [Region].
  */
 class GetCartographyEntryMapDataUseCase(
     private val trackRepository: TrackRepository,
     private val mushroomLogRepository: MushroomLogRepository,
+    private val keptTrackPaths: KeptTrackPathRepository,
 ) {
     suspend operator fun invoke(entry: CartographyEntry, galleryPhotos: List<GalleryPhoto>): CartographyEntryMapData {
-        val trackPolylines = entry.trackDecisions.filter { it.kept }.mapNotNull { decision ->
-            trackRepository.getById(decision.trackId).getOrNull()?.points?.takeIf { it.isNotEmpty() }?.map { LatLng(it.lat, it.lng) }
+        // The live track, else the path saved when it was deleted (F3). Read at most once per entry, and only
+        // when some kept decision's track is gone: an entry whose tracks all exist never touches the table.
+        var savedPaths: Map<String, List<LatLng>>? = null
+        val trackPolylines = mutableListOf<RecordPolyline>()
+        for (decision in entry.trackDecisions.filter { it.kept }) {
+            val live = trackRepository.getById(decision.trackId).getOrNull()
+            val path = if (live != null) {
+                live.points.map { LatLng(it.lat, it.lng) }
+            } else {
+                val saved = savedPaths ?: keptTrackPaths.getForEntry(entry.id).getOrNull().orEmpty().also { savedPaths = it }
+                saved[decision.trackId].orEmpty()
+            }
+            if (path.isNotEmpty()) trackPolylines += RecordPolyline(decision.trackId, path)
         }
 
         val keptFinds = entry.findDecisions.filter { it.kept }
@@ -70,21 +93,21 @@ class GetCartographyEntryMapDataUseCase(
             findsByDayKey[decision.foundOn.toString()]
                 ?.firstOrNull { it.id == decision.findId }
                 ?.foundAt
-                ?.let { LatLng(it.lat, it.lng) }
+                ?.let { RecordPoint(decision.findId, LatLng(it.lat, it.lng)) }
         }
 
-        val waypointMarkers = entry.waypointDecisions.filter { it.kept }.map { LatLng(it.lat, it.lng) }
+        val waypointMarkers = entry.waypointDecisions.filter { it.kept }.map { RecordPoint(it.waypointId, LatLng(it.lat, it.lng)) }
 
         val photosById = galleryPhotos.associateBy { it.photo.id }
         val photoMarkers = entry.photos.mapNotNull { attachment ->
             val photo = photosById[attachment.photoId]?.photo ?: return@mapNotNull null
             val lat = photo.latitude ?: return@mapNotNull null
             val lng = photo.longitude ?: return@mapNotNull null
-            LatLng(lat, lng)
+            RecordPoint(attachment.photoId, LatLng(lat, lng))
         }
 
         val offlineRegionCircles = entry.offlineRegionDecisions.filter { it.kept }.map {
-            Region(lat = it.lat, lng = it.lng, radiusKm = it.radiusKm)
+            RecordRegion(it.offlineRegionId.toString(), Region(lat = it.lat, lng = it.lng, radiusKm = it.radiusKm))
         }
 
         return CartographyEntryMapData(
@@ -103,11 +126,11 @@ class GetCartographyEntryMapDataUseCase(
  * only way an entry's geometry reaches a map.
  */
 data class CartographyEntryMapData(
-    val trackPolylines: List<List<LatLng>>,
-    val findMarkers: List<LatLng>,
-    val waypointMarkers: List<LatLng>,
-    val photoMarkers: List<LatLng>,
-    val offlineRegionCircles: List<Region>,
+    val trackPolylines: List<RecordPolyline>,
+    val findMarkers: List<RecordPoint>,
+    val waypointMarkers: List<RecordPoint>,
+    val photoMarkers: List<RecordPoint>,
+    val offlineRegionCircles: List<RecordRegion>,
 ) {
     /**
      * Every point that is actually *drawn as a datum of the day* — track points, finds, waypoints,
@@ -118,7 +141,7 @@ data class CartographyEntryMapData(
      * outer lists, so a polyline with nothing in it counts for nothing.
      */
     val drawablePoints: List<LatLng>
-        get() = trackPolylines.flatten() + findMarkers + waypointMarkers + photoMarkers
+        get() = trackPolylines.flatMap { it.points } + (findMarkers + waypointMarkers + photoMarkers).map { it.at }
 
     /**
      * `true` when nothing here resolved to a single drawable point — a real, reachable state (an
@@ -142,5 +165,5 @@ data class CartographyEntryMapData(
      * explicitly deferred to the owner's own judgement after seeing it.
      */
     val allPoints: List<LatLng>
-        get() = drawablePoints + offlineRegionCircles.map { LatLng(it.lat, it.lng) }
+        get() = drawablePoints + offlineRegionCircles.map { LatLng(it.region.lat, it.region.lng) }
 }

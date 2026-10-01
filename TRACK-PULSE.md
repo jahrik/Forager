@@ -10,7 +10,7 @@ Read-only pulse on the track subsystem, ahead of the Oregon Mycological
 Society field test. Every number and code path below was re-derived from
 the tree on branch `claude/new-session-vue2za` (HEAD `af7490e`), not taken
 from any design doc — per the pulse's own standing rule, several project
-docs describe superseded code. `docs/plans/forager-navigator-plan.md` does
+docs describe superseded code. `docs/navigation/forager-navigator-plan.md` does
 not state concrete sampling numbers, so there was nothing there to
 contradict; the numbers below exist only in the enum they're defined in.
 

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLayoutAtLargeFontScaleTest" tests="22" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:18:50.186Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="2.289">
+  <properties/>
+  <testcase name="the conditions card is absent when the state carries no conditions" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLayoutAtLargeFontScaleTest" time="0.081"/>
+  <testcase name="in portrait fullscreen the attribution button clears the navigation bar inset" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLayoutAtLargeFontScaleTest" time="0.137"/>
+  <testcase name="the drawer's Use current location button calls onUseCurrentLocation" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLayoutAtLargeFontScaleTest" time="0.102"/>
+  <testcase name="fullscreen does not change the map's own measured height" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLayoutAtLargeFontScaleTest" time="0.099"/>
+  <testcase name="a planned trip dated today is shown with a Today label in the Trip Planner section" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLayoutAtLargeFontScaleTest" time="0.101"/>
+  <testcase name="the search bar's tap opens the manual coordinates, and Search this location shows without scrolling" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLayoutAtLargeFontScaleTest" time="0.151"/>
+  <testcase name="the species search bar is reachable inside the search dropdown" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLayoutAtLargeFontScaleTest" time="0.161"/>
+  <testcase name="the drawer's Trip Planner section shows a no-search message before any region is chosen" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLayoutAtLargeFontScaleTest" time="0.079"/>
+  <testcase name="the drawer's Trip Planner section shows the trip windows card once a region is searched" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLayoutAtLargeFontScaleTest" time="0.093"/>
+  <testcase name="entering and leaving navigation does not change the map's own measured height, in or out of fullscreen" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLayoutAtLargeFontScaleTest" time="0.117"/>
+  <testcase name="the drawer close button closes the drawer" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLayoutAtLargeFontScaleTest" time="0.082"/>
+  <testcase name="the Settings entry is reachable inside the Tools drawer" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLayoutAtLargeFontScaleTest" time="0.135"/>
+  <testcase name="the conditions card reads rainfall in inches under the imperial setting" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLayoutAtLargeFontScaleTest" time="0.072"/>
+  <testcase name="the caption keeps the true bottom edge in fullscreen while the button clears the bar" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLayoutAtLargeFontScaleTest" time="0.11"/>
+  <testcase name="the conditions card is displayed on the seasonal tab when conditions are present" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLayoutAtLargeFontScaleTest" time="0.073"/>
+  <testcase name="out of fullscreen the attribution button follows the navigation bar's measured height, as the caption does" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLayoutAtLargeFontScaleTest" time="0.135"/>
+  <testcase name="search radius, month, and the location row are reachable after the bar's tap beside the expanded Advanced search, not duplicated in it" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLayoutAtLargeFontScaleTest" time="0.17"/>
+  <testcase name="with no navigation bar inset the button in fullscreen sits at the true edge" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLayoutAtLargeFontScaleTest" time="0.109"/>
+  <testcase name="every Trip Planner drawer control is reachable" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLayoutAtLargeFontScaleTest" time="0.089"/>
+  <testcase name="the map slot gets a substantial share of the screen" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLayoutAtLargeFontScaleTest" time="0.061"/>
+  <testcase name="the map slot starts at the top of the screen, not squeezed below the search bar" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLayoutAtLargeFontScaleTest" time="0.063"/>
+  <testcase name="bottomInset is positive and identical whether or not the map is fullscreen" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLayoutAtLargeFontScaleTest" time="0.064"/>
+  <system-out><![CDATA[MEASURED heightBefore=640.0.dp heightAfter=640.0.dp
+MEASURED heightClosed=640.0.dp heightOpen=640.0.dp
+MEASURED heightFullscreen=640.0.dp heightLeft=640.0.dp
+MEASURED map=640.0.dp root=640.0.dp share=1.0
+MEASURED mapTop=0.0.dp rootTop=0.0.dp topStripBottom=77.0.dp
+MEASURED bottomInset before fullscreen=80.0.dp
+MEASURED bottomInset after fullscreen=80.0.dp
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

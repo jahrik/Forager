@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" tests="43" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:24.299Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.019">
+  <properties/>
+  <testcase name="Replace and Merge each restore the chosen file in their mode and say Restore complete" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.005"/>
+  <testcase name="with no recording a restore may start" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.0"/>
+  <testcase name="Cancel writes nothing, deletes nothing, and returns to the Backup section" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.0"/>
+  <testcase name="a write that fails after the file exists deletes that file and asks, with the owner's words" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.001"/>
+  <testcase name="a delete that fails is logged at warn and the person is told nothing extra" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.001"/>
+  <testcase name="a failed restore shows no loading page and reloads nothing" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.0"/>
+  <testcase name="having been asked in an earlier session, turning scheduled backups on asks for nothing" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.002"/>
+  <testcase name="a recording that starts while the prompt is up still blocks Replace and Merge, and restores nothing" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.0"/>
+  <testcase name="a restore cannot be started while a track is recording, and nothing is touched" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.0"/>
+  <testcase name="a new empty file is not asked about" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.001"/>
+  <testcase name="with a folder chosen the automatic backup turns on, is saved, and is scheduled at its frequency" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.0"/>
+  <testcase name="the automatic backup is off by default, with no folder, and the messages are the approved words" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.0"/>
+  <testcase name="once Replace is confirmed, a Try again after unreadable photos does not ask again" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.001"/>
+  <testcase name="Replace writes the backup into the file" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.0"/>
+  <testcase name="a scheduled-backup notice that could not be a notification is offered once at launch, and forgotten after" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.001"/>
+  <testcase name="a size the provider does not give is asked about, the safe way round, and the reason is logged" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.0"/>
+  <testcase name="Try again with the photos still unreadable asks again" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.0"/>
+  <testcase name="after a restore the page is Loading while the screens reload, then Done" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.002"/>
+  <testcase name="Cancel saves nothing and deletes the file this run created, and only that file" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.0"/>
+  <testcase name="Try again after a failed write asks the screen to open the Save picker again" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.0"/>
+  <testcase name="Done is not offered before the reload has finished" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.0"/>
+  <testcase name="changing how often re-schedules an enabled backup, and turning it off cancels the schedule" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.001"/>
+  <testcase name="choosing a file to restore asks first and restores nothing until Replace or Merge is chosen" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.0"/>
+  <testcase name="a chosen restore file that cannot be read is a failed restore before any prompt result" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.0"/>
+  <testcase name="with no notice waiting nothing is offered" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.0"/>
+  <testcase name="a saved schedule is read back when the screen starts" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.0"/>
+  <testcase name="turning it on with no folder does not use up the one ask" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.0"/>
+  <testcase name="tapping Done asks the screen for the Maps tab at once, and the page leaves after its animation" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.001"/>
+  <testcase name="one photo left out is worded in the singular, verb and all" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.0"/>
+  <testcase name="a file that already has contents is asked about first, and nothing is opened or written" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.0"/>
+  <testcase name="a restore that fails says Couldn't restore that backup and logs why" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.0"/>
+  <testcase name="turning the automatic backup on with no folder leaves it off and says so" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.0"/>
+  <testcase name="turning scheduled backups on for the first time asks for the notification permission, and off and on again does not" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.001"/>
+  <testcase name="Try again reads the photos again, and saves the backup if they can be read now" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.0"/>
+  <testcase name="a file that cannot be opened is a failed backup, not a crash and not a success" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.0"/>
+  <testcase name="Continue without files saves the backup without them and says how many were left out" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.001"/>
+  <testcase name="unreadable photos pause the backup before anything is written, and the prompt says how many" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.0"/>
+  <testcase name="one unreadable photo is worded in the singular" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.0"/>
+  <testcase name="Back up now writes the backup to the chosen file and says Backup saved" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.0"/>
+  <testcase name="Cancel closes the prompt and restores nothing" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.001"/>
+  <testcase name="an unreadable saved schedule is logged, and the section starts from the off default rather than guessing" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.0"/>
+  <testcase name="a backup that fails after its file exists removes the file and asks, rather than saying Couldn't save" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.0"/>
+  <testcase name="Cancel after a failed write closes the prompt and does not ask for a file" classname="com.zynergylabs.forager.app.ui.backup.BackupViewModelTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

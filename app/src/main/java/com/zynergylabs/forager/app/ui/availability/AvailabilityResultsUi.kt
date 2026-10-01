@@ -12,9 +12,9 @@ package com.zynergylabs.forager.app.ui.availability
 // only by its tags (SEASONAL_CONTENT_TAG, "species-row") and AvailabilityPureFunctions.kt's use
 // of TRIP_WINDOW_DATE_FORMAT resolves unchanged. Pure move: no signature, name or body changed.
 // Three composables went private -> internal because their callers stay in AvailabilityScreen.kt
-// (ListTab, called by the compact scaffold and CombinedResultsPane; SeasonalTab, two scaffold
+// (ListTab, called by the compact scaffold; SeasonalTab, two scaffold
 // call sites; TripWindowsCard, called by TripPlannerSection). No symbol left behind is reached
-// from here. CombinedResultsPane stays deliberately: it composes MapTab, which is seam F, held.
+// from here.
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
@@ -236,8 +236,7 @@ private fun ResultsSection(
  */
 @Composable
 internal fun SeasonalTab(uiState: AvailabilityUiState, modifier: Modifier = Modifier) {
-    // Unlike List/Map, Seasonal isn't paired into CombinedResultsPane (see AvailabilityScreen's
-    // doc comment on why), so at medium+ width it's the one tab content still stretching to the
+    // At medium+ width (a phone in landscape, a tablet) this tab content would otherwise stretch to the
     // window's full remaining width — a rule-of-thumb paragraph at 900+dp is well past M3's
     // ~40-60-character comfortable reading width. Centering the column and capping it at
     // READABLE_CONTENT_MAX_WIDTH is that constraint; COMPACT keeps fillMaxWidth exactly as
@@ -299,8 +298,11 @@ internal fun SeasonalTab(uiState: AvailabilityUiState, modifier: Modifier = Modi
     }
 }
 
-/** Same readable-width reasoning as [SeasonalTab]; see [CombinedResultsPane] for the drawer/pane analogs. */
-private val READABLE_CONTENT_MAX_WIDTH = 640.dp
+/**
+ * Same readable-width reasoning as [SeasonalTab].
+ * `internal` since landscape B3 (R9): the compact scaffold caps every tab beside the landscape rail with it.
+ */
+internal val READABLE_CONTENT_MAX_WIDTH = 640.dp
 
 /** Lets [AvailabilityScreenAdaptiveLayoutTest] measure the readable-width column directly. */
 const val SEASONAL_CONTENT_TAG = "seasonal-content"

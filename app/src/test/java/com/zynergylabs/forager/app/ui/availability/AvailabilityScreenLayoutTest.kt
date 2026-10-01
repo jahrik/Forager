@@ -10,7 +10,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -200,7 +200,7 @@ private val TRIP_WINDOW_REPORT_NO_WINDOWS = TripWindowReport(
 
 abstract class AvailabilityScreenLayoutTest {
 
-    private val composeRule = createComposeRule()
+    private val composeRule = createAndroidComposeRule<androidx.activity.ComponentActivity>()
 
     /**
      * Declares the Compose test host activity on Robolectric's package manager before
@@ -497,6 +497,73 @@ abstract class AvailabilityScreenLayoutTest {
     }
 
     /**
+     * Part 2 follow-ups F1 item 2 (Part 2 item 37): the attribution "i" sat inside the system navigation band
+     * in portrait fullscreen, where two real taps opened nothing. The caption keeps the true edge in
+     * fullscreen (owner's ruling, see `AvailabilityCompactScaffold`); the "i" clears the navigation bar.
+     * Robolectric reports zero insets, so these tests put a real navigation-bar inset on the window
+     * ([withNavigationBarInset]) and read what the map is handed. What MapLibre then draws, and the real
+     * band, are device-only.
+     */
+    @Test
+    fun `in portrait fullscreen the attribution button clears the navigation bar inset`() {
+        setScreen(SEARCHED_STATE)
+        val navBarPx = withNavigationBarInset(96)
+        composeRule.onNodeWithContentDescription("Fullscreen").performClick()
+        composeRule.waitForIdle()
+
+        val expectedDp = with(androidx.compose.ui.unit.Density(composeRule.activity.resources.displayMetrics.density)) { navBarPx.toDp() }
+        val actual = capturedRenderMode?.attributionBottomInset
+        assertEquals("the map is handed the button's own bottom inset, the navigation bar's", expectedDp.value, actual?.value ?: -1f, 0.5f)
+    }
+
+    @Test
+    fun `the caption keeps the true bottom edge in fullscreen while the button clears the bar`() {
+        setScreen(SEARCHED_STATE)
+        withNavigationBarInset(96)
+        composeRule.onNodeWithContentDescription("Fullscreen").performClick()
+        composeRule.waitForIdle()
+
+        assertEquals("the caption's inset is unchanged: the true edge", 0f, capturedRenderMode?.bottomInset?.value ?: -1f, 0.01f)
+    }
+
+    @Test
+    fun `out of fullscreen the attribution button follows the navigation bar's measured height, as the caption does`() {
+        setScreen(SEARCHED_STATE)
+        withNavigationBarInset(96)
+        composeRule.waitForIdle()
+
+        val mode = capturedRenderMode
+        assertEquals("the button's inset is the caption's outside fullscreen", (mode?.bottomInset?.value ?: -1f), (mode?.attributionBottomInset ?: mode?.bottomInset)?.value ?: -2f, 0.01f)
+        assertTrue("and it is positive: the nav overlays the map", (mode?.bottomInset ?: 0.dp) > 0.dp)
+    }
+
+    @Test
+    fun `with no navigation bar inset the button in fullscreen sits at the true edge`() {
+        setScreen(SEARCHED_STATE)
+        composeRule.onNodeWithContentDescription("Fullscreen").performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(0f, capturedRenderMode?.attributionBottomInset?.value ?: 0f, 0.01f)
+    }
+
+    /**
+     * Puts a bottom navigation-bar inset of [px] on the window, as the platform delivers one, and returns it.
+     * Compose reads system-bar insets through the window-insets dispatch, which Robolectric never fires with a
+     * bar in it; dispatching one here is the only way a test sees a non-zero value.
+     */
+    private fun withNavigationBarInset(px: Int): Int {
+        composeRule.runOnUiThread {
+            val insets = androidx.core.view.WindowInsetsCompat.Builder()
+                .setInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars(), androidx.core.graphics.Insets.of(0, 0, 0, px))
+                .setInsetsIgnoringVisibility(androidx.core.view.WindowInsetsCompat.Type.navigationBars(), androidx.core.graphics.Insets.of(0, 0, 0, px))
+                .build()
+            androidx.core.view.ViewCompat.dispatchApplyWindowInsets(composeRule.activity.window.decorView, insets)
+        }
+        composeRule.waitForIdle()
+        return px
+    }
+
+    /**
      * **Test 4 — the Conditions card is actually on screen.**
      *
      * The card shipped and was measured to zero height for two builds: it existed, it was in the
@@ -629,42 +696,26 @@ abstract class AvailabilityScreenLayoutTest {
     }
 
     /**
-     * **Test 5 — "Enter coordinates manually" is the one control still actually gated behind
-     * Advanced search.**
+     * **Test 5 — the manual coordinates are open on the search bar's tap** (owner, 2026-09-28,
+     * continuation 2026-09-28-40: "Also open manual coordinates", reversing the earlier rule that
+     * "Enter coordinates manually" was the one control still gated behind Advanced search).
      *
-     * Map/navigation redesign dispatch C, item 1 moved this content out of the drawer entirely,
-     * into [SearchDropdown]'s own "Advanced search" section. Dispatch D then promoted radius and
-     * month out to this surface's own top level; the map/navigation search-UI redo dispatch promoted
-     * "Set on map" and "Use current location" out too, into their own top-level Location row —
-     * leaving manual coordinates (lat/lng fields + "Search this location") as the only thing left
-     * actually nested inside Advanced search. `performScrollTo()` before each assertion, same as
-     * the drawer sheet this replaces: fully expanding Advanced search genuinely doesn't fit
-     * `w360dp-h640dp-xhdpi`'s own [SearchDropdown] share of the screen (measured — the earlier
-     * "no scroll modifier" version of this dropdown went from failing on "Search this location" to
-     * failing on "Month" the moment [SearchDropdown]'s `Column` gained a `verticalScroll`, proving
-     * the content really does extend past the fold rather than being genuinely absent), so
-     * [SearchDropdown] carries the same `weight(1f)`-bounded scroll [SearchControls] does — see that
-     * composable's own doc comment for why this is safe over the map despite Understory rule 2.
-     *
-     * `performScrollTo()` before the *tap on* "Enter coordinates manually" too, not just before
-     * the assertion below — confirmed only at 2x font scale (`AvailabilityScreenLayoutAtLarge
-     * FontScaleTest`): a semantic [performClick] normally reaches its node regardless of scroll
-     * position, but that header's own [CollapsibleSection] never toggled to expanded there without
-     * scrolling to it first (its own leading icon stayed "Expand", not "Collapse" — confirmed via a
-     * semantics-tree dump, not assumed), the promoted content above it having pushed it far enough
-     * down the scrolled column to expose the gap.
+     * The bar's tap opens [SearchDropdown] with "Advanced search" and "Enter coordinates manually"
+     * both expanded, and where the fields do not fit, scrolls the dropdown once so they show
+     * (continuation 2026-09-28-41, "Expand and auto-scroll"). So "Search this location" is asserted
+     * displayed with no header tapped and no `performScrollTo()` in the test, on every
+     * configuration this class runs under, the 2x font scale included.
      */
     @Test
-    fun `Search this location is reachable inside Advanced search`() {
+    fun `the search bar's tap opens the manual coordinates, and Search this location shows without scrolling`() {
         setScreen(SEARCHED_STATE)
 
         openSearchDropdown()
-        composeRule.onNodeWithText("Advanced search").performClick()
-        composeRule.waitForIdle()
-        composeRule.onNodeWithText("Enter coordinates manually").performScrollTo().performClick()
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithText("Search this location").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Collapse Advanced search").assertExists()
+        composeRule.onNodeWithContentDescription("Collapse Enter coordinates manually").assertExists()
+        composeRule.onNodeWithText("Search this location").assertIsDisplayed()
     }
 
     /**
@@ -672,12 +723,13 @@ abstract class AvailabilityScreenLayoutTest {
      * ("Set on map"/"Use current location") all now live at [SearchDropdown]'s own top level.
      * Unlike manual coordinates (the test above), these must be reachable *without* expanding
      * "Advanced search" at all, which is the whole point of promoting them; asserting them in the
-     * same test as the still-nested "Search this location" (which does expand that section)
-     * wouldn't actually prove that. "Set on map"/"Use current location" are asserted absent from
-     * a *second* expand of Advanced search too — moved, not duplicated.
+     * same test as the still-nested "Search this location" wouldn't actually prove that.
+     * "Set on map"/"Use current location" are asserted once each with Advanced search expanded —
+     * moved, not duplicated. Since continuation 2026-09-28-40 the bar's tap opens Advanced search
+     * already expanded, so the count is taken without tapping its header (a tap would collapse it).
      */
     @Test
-    fun `search radius, month, and the location row are reachable without expanding advanced search`() {
+    fun `search radius, month, and the location row are reachable after the bar's tap beside the expanded Advanced search, not duplicated in it`() {
         setScreen(SEARCHED_STATE)
 
         openSearchDropdown()
@@ -693,10 +745,9 @@ abstract class AvailabilityScreenLayoutTest {
         ).forEach { label ->
             composeRule.onNodeWithText(label).performScrollTo().assertIsDisplayed()
         }
-        composeRule.onNodeWithText("Advanced search").assertIsDisplayed()
+        composeRule.onNodeWithText("Advanced search").performScrollTo().assertIsDisplayed()
 
-        composeRule.onNodeWithText("Advanced search").performClick()
-        composeRule.waitForIdle()
+        composeRule.onNodeWithContentDescription("Collapse Advanced search").assertExists()
         composeRule.onAllNodesWithText("Set on map").assertCountEquals(1)
         composeRule.onAllNodesWithText("Use current location").assertCountEquals(1)
     }
@@ -816,7 +867,9 @@ abstract class AvailabilityScreenLayoutTest {
         setScreen(SEARCHED_STATE, onUseCurrentLocation = { callCount++ })
 
         openSearchDropdown()
-        composeRule.onNodeWithText("Use current location").performClick()
+        // Continuation 2026-09-28-42: where the manual coordinates do not fit (2x font), the bar's
+        // tap scrolls the dropdown to them, so scroll back up to the button first, as a user would.
+        composeRule.onNodeWithText("Use current location").performScrollTo().performClick()
 
         assertTrue("onUseCurrentLocation should have been called exactly once", callCount == 1)
     }

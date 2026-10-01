@@ -16,7 +16,7 @@ This spec governs **how the app tells the user something didn't work**. It does 
 
 It does not touch, and must not be read as touching:
 
-- Identification, confidence scoring, or edibility — excluded everywhere in this repo (`MushroomLogEntry.kt`, `docs/plans/forager-navigator-plan.md` §7, `docs/motion-spec.md` §6b). No message defined here says anything about a specimen.
+- Identification, confidence scoring, or edibility — excluded everywhere in this repo (`MushroomLogEntry.kt`, `docs/navigation/forager-navigator-plan.md` §7, `docs/motion-spec.md` §6b). No message defined here says anything about a specimen.
 - The permission-request flow — upfront vs. in-context is an open owner decision with its own dispatch. This spec covers what the user is *told* when a permission is absent, not *when* the app asks.
 - Map waypoint interaction — tapping a waypoint marker currently does nothing. That is a missing feature with its own scope, not an error-presentation problem.
 

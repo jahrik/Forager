@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.layers.MapLayerStateTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:13.041Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.002">
+  <properties/>
+  <testcase name="a hidden layer's visible flag is false, the journal halo drawn with it hides too, and no other layer changes" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerStateTest" time="0.0"/>
+  <testcase name="the default state draws every layer visible at exactly today's opacities" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerStateTest" time="0.001"/>
+  <testcase name="the offline outline follows the offline fill" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerStateTest" time="0.0"/>
+  <testcase name="an opacity setting of zero draws the layer fully transparent but still visible" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerStateTest" time="0.0"/>
+  <testcase name="the real registry adds no credit while no colour field has data" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerStateTest" time="0.0"/>
+  <testcase name="an opacity outside 0 to 1 is refused, not clamped" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerStateTest" time="0.0"/>
+  <testcase name="each visible layer's credit, in draw order, once, and none for a hidden layer" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerStateTest" time="0.0"/>
+  <testcase name="an opacity setting scales each of the layer's opacities, the sighting fill and its ring both" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerStateTest" time="0.001"/>
+  <testcase name="a casing follows its own track, and its own entry in the state is not read" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerStateTest" time="0.0"/>
+  <testcase name="a state entry for a layer the registry does not have changes nothing" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerStateTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

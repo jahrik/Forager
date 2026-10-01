@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.GetJournalEntryHighlightsUseCaseTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:53.535Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.003">
+  <properties/>
+  <testcase name="a kept record deleted or not drawn today is dropped, and withheld decisions are never highlighted" classname="com.zynergylabs.forager.app.domain.GetJournalEntryHighlightsUseCaseTest" time="0.002"/>
+  <testcase name="several shown entries highlight together, and a record kept by two names both, in the Journal's order" classname="com.zynergylabs.forager.app.domain.GetJournalEntryHighlightsUseCaseTest" time="0.001"/>
+  <testcase name="an entry's photos are its attached photos, not the photos of the finds it keeps" classname="com.zynergylabs.forager.app.domain.GetJournalEntryHighlightsUseCaseTest" time="0.0"/>
+  <testcase name="drafts are never highlighted, even with shownOnMap set, and hidden saved entries are not either" classname="com.zynergylabs.forager.app.domain.GetJournalEntryHighlightsUseCaseTest" time="0.0"/>
+  <testcase name="a shown saved entry highlights its kept records with the live geometry the map draws, never its snapshots" classname="com.zynergylabs.forager.app.domain.GetJournalEntryHighlightsUseCaseTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

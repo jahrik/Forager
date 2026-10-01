@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.LocationIndicatorMotionTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:08.821Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.001">
+  <properties/>
+  <testcase name="multiplier scales MotionTokens' duration against MapLibre's fixed base" classname="com.zynergylabs.forager.app.ui.map.LocationIndicatorMotionTest" time="0.0"/>
+  <testcase name="multiplier is positive and reasonably close to MapLibre's own default of 1_0" classname="com.zynergylabs.forager.app.ui.map.LocationIndicatorMotionTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

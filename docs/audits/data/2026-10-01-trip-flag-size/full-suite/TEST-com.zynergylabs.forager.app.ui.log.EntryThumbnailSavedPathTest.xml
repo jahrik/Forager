@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.EntryThumbnailSavedPathTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:32.211Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.002">
+  <properties/>
+  <testcase name="a kept track that is loaded draws live, and its saved path is ignored" classname="com.zynergylabs.forager.app.ui.log.EntryThumbnailSavedPathTest" time="0.001"/>
+  <testcase name="a withheld track's saved path is not drawn" classname="com.zynergylabs.forager.app.ui.log.EntryThumbnailSavedPathTest" time="0.0"/>
+  <testcase name="a kept track that is gone and has no saved path is left out, and the rest still draw" classname="com.zynergylabs.forager.app.ui.log.EntryThumbnailSavedPathTest" time="0.0"/>
+  <testcase name="an entry needs a saved path only when a kept track is missing from the loaded tracks" classname="com.zynergylabs.forager.app.ui.log.EntryThumbnailSavedPathTest" time="0.0"/>
+  <testcase name="a kept track that is gone draws its saved path as a track with its id, in decision order among live ones" classname="com.zynergylabs.forager.app.ui.log.EntryThumbnailSavedPathTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.MapChromeRecordsShortLandscapeTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:16.804Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.335">
+  <properties/>
+  <testcase name="a track's details sheet from the Tracks sub-tab stays solid" classname="com.zynergylabs.forager.app.ui.availability.MapChromeRecordsShortLandscapeTest" time="0.083"/>
+  <testcase name="an offline region's details sheet from All stays solid" classname="com.zynergylabs.forager.app.ui.availability.MapChromeRecordsShortLandscapeTest" time="0.09"/>
+  <testcase name="a waypoint's details sheet from the Waypoints sub-tab stays solid" classname="com.zynergylabs.forager.app.ui.availability.MapChromeRecordsShortLandscapeTest" time="0.08"/>
+  <testcase name="an offline region's details sheet from the Offline maps sub-tab is at the map chrome's alpha only where the picker map is beside it" classname="com.zynergylabs.forager.app.ui.availability.MapChromeRecordsShortLandscapeTest" time="0.08"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

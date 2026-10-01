@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.LiveFixGateTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:53.631Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.0">
+  <properties/>
+  <testcase name="the ceiling is the gate's own constant, 50 m, and a caller may narrow it" classname="com.zynergylabs.forager.app.domain.LiveFixGateTest" time="0.0"/>
+  <testcase name="no reported accuracy passes - not reported is not bad" classname="com.zynergylabs.forager.app.domain.LiveFixGateTest" time="0.0"/>
+  <testcase name="at or under 50 m passes, over 50 m is rejected" classname="com.zynergylabs.forager.app.domain.LiveFixGateTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

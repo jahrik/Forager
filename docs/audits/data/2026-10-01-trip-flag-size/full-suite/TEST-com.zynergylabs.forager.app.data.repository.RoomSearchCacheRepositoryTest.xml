@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.data.repository.RoomSearchCacheRepositoryTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:50.887Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.487">
+  <properties/>
+  <testcase name="reading a cached search does not change the fetch time it reports" classname="com.zynergylabs.forager.app.data.repository.RoomSearchCacheRepositoryTest" time="0.037"/>
+  <testcase name="getRecent on an empty cache is an empty list, not a failure" classname="com.zynergylabs.forager.app.data.repository.RoomSearchCacheRepositoryTest" time="0.029"/>
+  <testcase name="a search differing in region, month or filter is a miss, not a near match" classname="com.zynergylabs.forager.app.data.repository.RoomSearchCacheRepositoryTest" time="0.029"/>
+  <testcase name="getRecent reorders when a cached search is read" classname="com.zynergylabs.forager.app.data.repository.RoomSearchCacheRepositoryTest" time="0.027"/>
+  <testcase name="a saved forecast comes back with its entries, filter and fetch time intact" classname="com.zynergylabs.forager.app.data.repository.RoomSearchCacheRepositoryTest" time="0.028"/>
+  <testcase name="re-saving the same search replaces its row rather than adding a second" classname="com.zynergylabs.forager.app.data.repository.RoomSearchCacheRepositoryTest" time="0.027"/>
+  <testcase name="an unreadable cached row degrades to a miss instead of throwing" classname="com.zynergylabs.forager.app.data.repository.RoomSearchCacheRepositoryTest" time="0.028"/>
+  <testcase name="reading a cached search moves it out of the eviction firing line" classname="com.zynergylabs.forager.app.data.repository.RoomSearchCacheRepositoryTest" time="0.035"/>
+  <testcase name="a row with no filter discriminant degrades to no recent searches instead of throwing" classname="com.zynergylabs.forager.app.data.repository.RoomSearchCacheRepositoryTest" time="0.034"/>
+  <testcase name="an iconic-category search round-trips with its excluded taxon" classname="com.zynergylabs.forager.app.data.repository.RoomSearchCacheRepositoryTest" time="0.059"/>
+  <testcase name="the sixth distinct search evicts the least recently used one" classname="com.zynergylabs.forager.app.data.repository.RoomSearchCacheRepositoryTest" time="0.055"/>
+  <testcase name="a specific-taxon search round-trips as a specific-taxon filter" classname="com.zynergylabs.forager.app.data.repository.RoomSearchCacheRepositoryTest" time="0.04"/>
+  <testcase name="getRecent lists searches most recently used first, with their region, month and filter" classname="com.zynergylabs.forager.app.data.repository.RoomSearchCacheRepositoryTest" time="0.056"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

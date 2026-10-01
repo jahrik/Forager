@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.photo.CameraCaptureFilesTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:56.816Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.095">
+  <properties/>
+  <testcase name="sweepOrphans deletes files older than the process and keeps this process's own" classname="com.zynergylabs.forager.app.photo.CameraCaptureFilesTest" time="0.023"/>
+  <testcase name="sweepOrphans on an empty directory deletes nothing and reports zero" classname="com.zynergylabs.forager.app.photo.CameraCaptureFilesTest" time="0.024"/>
+  <testcase name="a file inside the guard window is kept even though it predates the process start" classname="com.zynergylabs.forager.app.photo.CameraCaptureFilesTest" time="0.024"/>
+  <testcase name="newCapture issues a content URI under captures and creates the directory but not the file" classname="com.zynergylabs.forager.app.photo.CameraCaptureFilesTest" time="0.023"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,7 +1,13 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasContentDescription
+import com.zynergylabs.forager.app.ui.log.RecordType
+import com.zynergylabs.forager.app.ui.log.swipeToDeleteTag
 import android.app.Application
 import android.content.ComponentName
 import android.content.Intent
@@ -24,6 +30,8 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -131,10 +139,10 @@ class AvailabilityScreenSettingsPanelTest {
         }
     }
 
-    private fun setScreen(tracks: List<Track> = emptyList()) {
+    private fun setScreen(tracks: List<Track> = emptyList(), uiState: AvailabilityUiState = SEARCHED_STATE) {
         composeRule.setContent {
             AvailabilityScreen(
-                uiState = SEARCHED_STATE,
+                uiState = uiState,
                 onUseCurrentLocation = {},
                 onManualLatChanged = {},
                 onManualLngChanged = {},
@@ -243,14 +251,17 @@ class AvailabilityScreenSettingsPanelTest {
         composeRule.onNodeWithText("Records").performClick()
     }
 
+    // Journal redesign J1 (S3): the Offline maps and Tracks filter chips replaced the "Offline Maps"
+    // and "Recorded Tracks" sub-tabs; Records opens on All. Offline maps is the last chip and can sit
+    // past a phone's edge in the scrolling row, so it is scrolled into view first.
     private fun openOfflineMapsSubTab() {
         openRecordsTab()
-        composeRule.onNodeWithText("Offline Maps").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.OFFLINE_MAPS)).performScrollTo().performClick()
     }
 
     private fun openRecordedTracksSubTab() {
         openRecordsTab()
-        composeRule.onNodeWithText("Recorded Tracks").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.RECORDED_TRACKS)).performScrollTo().performClick()
     }
 
     @Test
@@ -359,7 +370,7 @@ class AvailabilityScreenSettingsPanelTest {
         assertEquals(AppThemeMode.LIGHT, capturedThemeMode)
     }
 
-    private val mapModeContentDescription = "Map mode: Topographical. Choose Street, Topographical, or Satellite. Night mode off."
+    private val mapModeContentDescription = "Layers: Topographical map. Choose the map type and overlays."
 
     /**
      * Was "...renders over the map's own top-right corner", asserting `iconBounds.top` strictly
@@ -409,7 +420,7 @@ class AvailabilityScreenSettingsPanelTest {
     }
 
     @Test
-    fun `tapping the quick-fire icon opens the map mode picker, and a chip there changes the basemap`() {
+    fun `tapping the quick-fire icon opens the Layers sheet, and a chip there changes the basemap while the sheet stays open`() {
         setScreen()
         assertEquals(Basemap.OPEN_TOPO_MAP, capturedBasemap)
 
@@ -418,13 +429,10 @@ class AvailabilityScreenSettingsPanelTest {
         composeRule.waitForIdle()
 
         assertEquals(Basemap.OSM_STANDARD, capturedBasemap)
-        // The picker dismisses itself on selection, so a second chip isn't on screen until the icon
-        // (now reflecting Street) is tapped again.
-        composeRule.onAllNodesWithText("Satellite").assertCountEquals(0)
-
-        composeRule.onNodeWithContentDescription(
-            "Map mode: Street. Choose Street, Topographical, or Satellite. Night mode off.",
-        ).performClick()
+        // Map layers L0b (owner's ruling on Q3, "Stays open"): the sheet stays open on a map-type
+        // tap, so the other chips are still on screen. Before L0b the picker closed itself here and
+        // this asserted Satellite's count was 0.
+        composeRule.onAllNodesWithText("Satellite").assertCountEquals(1)
         composeRule.onNodeWithText("Satellite").assertIsDisplayed().performClick()
         composeRule.waitForIdle()
 
@@ -437,7 +445,8 @@ class AvailabilityScreenSettingsPanelTest {
         setScreen()
         openRecordsTab()
 
-        composeRule.onNodeWithText("Offline Maps").assertIsDisplayed()
+        // J1 S3: an "Offline maps" filter chip now, scrolled into view in the chip row.
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.OFFLINE_MAPS)).performScrollTo().assertIsDisplayed().assert(hasText("Offline maps"))
     }
 
     /**
@@ -450,7 +459,8 @@ class AvailabilityScreenSettingsPanelTest {
         setScreen()
         openRecordsTab()
 
-        composeRule.onNodeWithText("Recorded Tracks").assertIsDisplayed()
+        // J1 S3: a "Tracks" filter chip now.
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.RECORDED_TRACKS)).performScrollTo().assertIsDisplayed().assert(hasText("Tracks"))
     }
 
     @Test
@@ -602,30 +612,58 @@ class AvailabilityScreenSettingsPanelTest {
         setScreen()
         openRecordsTab()
 
-        // Waypoints is Records' default sub-tab.
+        // J1 S3: Records opens on All now; the Waypoints chip shows Waypoints' content.
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.WAYPOINTS)).performScrollTo().performClick()
         composeRule.onNodeWithText("No waypoints dropped yet. Tap the add button on the map to drop one.")
             .assertIsDisplayed()
 
-        composeRule.onNodeWithText("Offline Maps").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.OFFLINE_MAPS)).performScrollTo().performClick()
         composeRule.onNodeWithTag(OFFLINE_PICKER_MAP_TAG).assertIsDisplayed()
         composeRule.onAllNodesWithText("No waypoints dropped yet. Tap the add button on the map to drop one.")
             .assertCountEquals(0)
 
-        composeRule.onNodeWithText("Recorded Tracks").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.RECORDED_TRACKS)).performScrollTo().performClick()
         composeRule.onNodeWithText("No recorded tracks yet.").assertIsDisplayed()
         composeRule.onAllNodesWithTag(OFFLINE_PICKER_MAP_TAG).assertCountEquals(0)
     }
 
+    // Journal redesign J4b L5: this test used to end with `onAllNodesWithText("Delete")
+    // .assertCountEquals(0)` on an empty region list, guarding "no standalone Delete button". J4
+    // removed every "Delete" text from the app, so that line passed whatever it checked, and with
+    // no region there was no row for a delete control to be on anyway. The empty-list half stays
+    // here; what the line was guarding moved to the next test, which has a row to look at.
     @Test
-    fun `Download Maps is disabled with no region picked, and no regions or delete buttons show with nothing downloaded`() {
+    fun `Download Maps is disabled with no region picked, and no regions show with nothing downloaded`() {
         setScreen()
         openOfflineMapsSubTab()
 
         composeRule.onNodeWithText("Download Maps").performScrollTo().assertIsDisplayed().assertIsNotEnabled()
-        // Delete is per-region now (OfflineRegionRow), not a standalone always-present button — with
-        // nothing downloaded there is no row to show one on.
         composeRule.onNodeWithText("No regions downloaded yet.").performScrollTo().assertIsDisplayed()
-        composeRule.onAllNodesWithText("Delete").assertCountEquals(0)
+    }
+
+    /**
+     * J4b L5: what the old "no delete buttons" line was guarding, asserted where it can fail. A
+     * downloaded region's row, at rest, carries **no** delete control of its own (no "Delete" text,
+     * no clickable node described as a delete), and **does** carry J4's swipe (its tag) and the
+     * "Delete" accessibility action that stands in for the button (J4 D3). The row's name showing is
+     * the positive control: the row is really there to be looked at.
+     */
+    @Test
+    fun `a downloaded region's row has no Delete control at rest, and carries the swipe and its Delete action`() {
+        setScreen(uiState = SEARCHED_STATE.copy(offlineRegions = listOf(L5_REGION)))
+        openOfflineMapsSubTab()
+
+        composeRule.onNodeWithText(L5_REGION.name).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag(swipeToDeleteTag(RecordType.OFFLINE_MAPS, L5_REGION.id.toString()))
+            .assertExists()
+            .assert(
+                SemanticsMatcher("has a custom accessibility action labelled Delete") { node ->
+                    node.config.getOrNull(SemanticsActions.CustomActions).orEmpty().any { it.label == "Delete" }
+                },
+            )
+        composeRule.onAllNodesWithText("Delete", ignoreCase = true).assertCountEquals(0)
+        composeRule.onAllNodes(hasContentDescription("Delete", substring = true, ignoreCase = true) and hasClickAction())
+            .assertCountEquals(0)
     }
 
     @Test
@@ -658,7 +696,7 @@ class AvailabilityScreenSettingsPanelTest {
 
     /**
      * The offline-readiness text a downloaded region shows — the z0-14 local-archive vs. z15
-     * live-fetched-at-download-time distinction `docs/plans/forager-navigator-plan.md`'s Phase 1c
+     * live-fetched-at-download-time distinction `docs/navigation/forager-navigator-plan.md`'s Phase 1c
      * item asks this submenu to surface, per the project owner's own call to extend this existing
      * panel rather than build a separate live-position readiness check (deferred).
      *
@@ -864,4 +902,16 @@ private fun sighting(index: Int) = Sighting(
 private val SEARCHED_STATE = AvailabilityUiState(
     region = REGION,
     sightings = List(4) { sighting(it) },
+)
+
+/** J4b L5's one downloaded region. */
+private val L5_REGION = OfflineRegionSummary(
+    id = 5L,
+    name = "Molalla Ridge",
+    region = Region(lat = 45.1, lng = -122.5, radiusKm = 5),
+    minZoom = OfflineMapRepository.MIN_ZOOM,
+    maxZoom = OfflineMapRepository.MAX_ZOOM,
+    tileCount = 1200,
+    sizeBytes = 5_000_000L,
+    createdAtEpochMillis = 0L,
 )

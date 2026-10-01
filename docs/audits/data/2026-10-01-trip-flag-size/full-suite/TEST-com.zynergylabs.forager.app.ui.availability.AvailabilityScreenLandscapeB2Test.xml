@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB2Test" tests="26" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:18:45.763Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="3.031">
+  <properties/>
+  <testcase name="S1 at ROTATION_270 the punch-hole-side controls are on punchHoleEdgeFor's edge" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB2Test" time="0.067"/>
+  <testcase name="S5 in landscape the strip's heading, elevation and coordinate text use tabular figures" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB2Test" time="0.083"/>
+  <testcase name="S6 turning from ROTATION_90 to ROTATION_270 keeps the cluster on the same device edge, the punch-hole edge" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB2Test" time="0.119"/>
+  <testcase name="S4 at ROTATION_270 the navigation HUD is in the top corner on the rail side, at most 360dp wide" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB2Test" time="0.071"/>
+  <testcase name="S7 entering fullscreen at ROTATION_90 slides the rail toward the port edge, and the map's size never changes" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB2Test" time="0.165"/>
+  <testcase name="S10 at ROTATION_90 while navigating, the HUD and the rest leave the central third clear" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB2Test" time="0.099"/>
+  <testcase name="S7 entering fullscreen at ROTATION_270 slides the rail toward the port edge, left" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB2Test" time="0.149"/>
+  <testcase name="S8 at ROTATION_90 long-presses beside the search bar, along its height, reach the map" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB2Test" time="0.118"/>
+  <testcase name="S10 at ROTATION_270 while navigating, the HUD and the rest leave the central third clear" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB2Test" time="0.071"/>
+  <testcase name="S2 at ROTATION_270 the search bar sits at the top on the punch-hole side, right, capped short of the centre line" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB2Test" time="0.124"/>
+  <testcase name="S2 at ROTATION_90 the open dropdown takes the bar's width and side, and its scrim leaves the rail clear" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB2Test" time="0.202"/>
+  <testcase name="S6 at ROTATION_90 the cluster defaults to the punch-hole side, left" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB2Test" time="0.103"/>
+  <testcase name="S3 at ROTATION_90 the filter chip sits directly under the search bar, at its end away from the cluster, within its width" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB2Test" time="0.138"/>
+  <testcase name="S4 at ROTATION_90 the navigation HUD is in the top corner on the rail side, at most 360dp wide" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB2Test" time="0.09"/>
+  <testcase name="S4 at ROTATION_270 the compass strip is content-width in the top corner on the rail side, not below the search bar" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB2Test" time="0.065"/>
+  <testcase name="S7 leaving fullscreen at ROTATION_90 slides the rail back in from the port edge" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB2Test" time="0.192"/>
+  <testcase name="S10 at ROTATION_270 no persistent chrome intersects the window's central third" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB2Test" time="0.09"/>
+  <testcase name="S4 at ROTATION_90 the compass strip is content-width in the top corner on the rail side, not below the search bar" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB2Test" time="0.073"/>
+  <testcase name="S8 at ROTATION_90 long-presses beside the cluster, along its inner edge, reach the map" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB2Test" time="0.092"/>
+  <testcase name="S2 at ROTATION_270 the open dropdown takes the bar's width and side, and its scrim leaves the rail clear" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB2Test" time="0.093"/>
+  <testcase name="S6 at ROTATION_270 the cluster defaults to the punch-hole side, right" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB2Test" time="0.057"/>
+  <testcase name="S6 a cluster dragged to the port side stays on the port edge across a turn from ROTATION_90 to ROTATION_270" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB2Test" time="0.144"/>
+  <testcase name="S10 at ROTATION_90 no persistent chrome intersects the window's central third" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB2Test" time="0.129"/>
+  <testcase name="S2 at ROTATION_90 the search bar sits at the top on the punch-hole side, left, capped short of the centre line" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB2Test" time="0.097"/>
+  <testcase name="S1 at ROTATION_90 the punch-hole-side controls are on punchHoleEdgeFor's edge" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB2Test" time="0.074"/>
+  <testcase name="S10 at ROTATION_90 with the filter chip showing, the central third stays clear" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenLandscapeB2Test" time="0.319"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
