@@ -8,6 +8,8 @@ import com.zynergylabs.forager.app.domain.AlertKind
 import com.zynergylabs.forager.app.domain.ComputeReturnToStartUseCase
 import com.zynergylabs.forager.app.domain.CreateWaypointUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
+import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
+import com.zynergylabs.forager.app.domain.InMemoryKeptTrackPaths
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
 import com.zynergylabs.forager.app.domain.DetectOffTrackUseCase
 import com.zynergylabs.forager.app.domain.GetTracksUseCase
@@ -25,6 +27,11 @@ import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
 import com.zynergylabs.forager.app.domain.model.WaypointDesignation
 import java.time.ZoneOffset
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -118,6 +125,8 @@ class TrackRecordingViewModelTest {
         locationTracker: LocationTracker = NoOpLocationTracker(),
         offTrackAlertClock: CurrentTimeProvider = fixedTime,
         alertAudibility: AlertAudibility = FakeAlertAudibility(AUDIBLE),
+        getWaypointReferenceCount: suspend (String) -> Int = { 0 },
+        pendingDeleteCommitScope: CoroutineScope? = null,
     ) = TrackRecordingViewModel(
         trackRepository = trackRepository,
         startTrack = StartTrackUseCase(trackRepository, currentTime = fixedTime, idGenerator = { "track-1" }),
@@ -126,6 +135,7 @@ class TrackRecordingViewModelTest {
         // waypoint per recording, and a fixed id would make the second silently replace the first.
         createWaypoint = CreateWaypointUseCase(waypointRepository, currentTime = fixedTime, idGenerator = { "waypoint-${++waypointIds}" }),
         deleteWaypoint = DeleteWaypointUseCase(waypointRepository),
+        deleteTrack = DeleteTrackUseCase(trackRepository, waypointRepository, InMemoryKeptTrackPaths()),
         computeReturnToStart = ComputeReturnToStartUseCase(),
         detectOffTrack = DetectOffTrackUseCase(),
         locationTracker = locationTracker,
@@ -133,7 +143,9 @@ class TrackRecordingViewModelTest {
         alertDelivery = alertDelivery,
         alertAudibility = alertAudibility,
         currentTime = offTrackAlertClock,
+        getWaypointReferenceCount = getWaypointReferenceCount,
         zone = ZoneOffset.UTC,
+        pendingDeleteCommitScope = pendingDeleteCommitScope ?: com.zynergylabs.forager.app.ui.log.PendingDeleteCommitScope,
     ).also(createdViewModels::add)
 
     @Test
@@ -377,7 +389,7 @@ class TrackRecordingViewModelTest {
      * These two tests are the coarse regression guard for the return-to-vehicle control while
      * `AvailabilityScreenMapIconStackTest`'s own three Compose-semantics-layer tests for the same
      * control sit `@Ignore`d (see that file's own `retryClick` comment and
-     * `docs/audits/2026-08-30-return-to-vehicle-semantics-click-noop.md`). They were not added for
+     * `docs/navigation/2026-08-30-return-to-vehicle-semantics-click-noop.md`). They were not added for
      * this — both already existed and already covered the precondition
      * (`startReturn is a no-op with nothing recording`, i.e. gating equivalent to the UI's
      * `enabled = isRecording`) and the toggle-back path
@@ -620,6 +632,19 @@ class TrackRecordingViewModelTest {
     }
 
     @Test
+    fun `the loaders return a Job, and once joined show waypoints and tracks written behind the screen's back`() = runRecordingTest {
+        val waypointRepository = FakeWaypointRepository()
+        val vm = viewModel(waypointRepository = waypointRepository)
+        advanceUntilIdle()
+        waypointRepository.save(Waypoint(id = "restored-w", lat = 45.0, lng = -122.0, altitude = null, name = "Restored oak", note = "", createdAtEpochMillis = 1_000L))
+
+        vm.loadWaypoints().join()
+        vm.loadTracks().join()
+
+        assertEquals(listOf("restored-w"), vm.uiState.value.waypoints.map { it.id })
+    }
+
+    @Test
     fun `waypoints load on init and adding one refreshes the list`() = runRecordingTest {
         val waypointRepository = FakeWaypointRepository()
         val vm = viewModel(waypointRepository = waypointRepository)
@@ -647,6 +672,100 @@ class TrackRecordingViewModelTest {
         advanceUntilIdle()
 
         assertTrue(vm.uiState.value.waypoints.isEmpty())
+    }
+
+    // ---- Journal redesign J4, D1: a swiped waypoint is pending, not deleted, until its snackbar ends --
+
+    private fun pendingDeleteWaypoints() = FakeWaypointRepository().apply {
+        seed(Waypoint(id = "wp-creek", lat = 45.0, lng = -122.0, altitude = null, name = "Creek pin", note = "", createdAtEpochMillis = 2_000L))
+        seed(Waypoint(id = "wp-oak", lat = 45.1, lng = -122.1, altitude = null, name = "Big oak", note = "", createdAtEpochMillis = 1_000L))
+    }
+
+    @Test
+    fun `a requested waypoint delete is pending, hidden from visibleWaypoints, and deletes nothing`() = runRecordingTest {
+        val repository = pendingDeleteWaypoints()
+        val vm = viewModel(waypointRepository = repository, getWaypointReferenceCount = { id -> if (id == "wp-creek") 2 else 0 })
+        advanceUntilIdle()
+
+        vm.requestRemoveWaypoint("wp-creek")
+        advanceUntilIdle()
+
+        val pending = requireNotNull(vm.uiState.value.pendingWaypointDelete)
+        assertEquals("wp-creek", pending.item.id)
+        assertEquals(2, pending.entryReferenceCount)
+        assertEquals(listOf("wp-oak"), vm.uiState.value.visibleWaypoints.map { it.id })
+        assertEquals(emptyList<String>(), repository.deletedIds)
+    }
+
+    @Test
+    fun `undo of a pending waypoint delete shows it again and deletes nothing`() = runRecordingTest {
+        val repository = pendingDeleteWaypoints()
+        val vm = viewModel(waypointRepository = repository)
+        advanceUntilIdle()
+        vm.requestRemoveWaypoint("wp-creek")
+        advanceUntilIdle()
+        assertEquals("positive control: pending before the undo", listOf("wp-oak"), vm.uiState.value.visibleWaypoints.map { it.id })
+
+        vm.undoRemoveWaypoint("wp-creek")
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.pendingWaypointDelete)
+        assertEquals(setOf("wp-creek", "wp-oak"), vm.uiState.value.visibleWaypoints.map { it.id }.toSet())
+        assertEquals(emptyList<String>(), repository.deletedIds)
+    }
+
+    @Test
+    fun `committing a pending waypoint delete (the snackbar timing out) deletes exactly that waypoint once`() = runRecordingTest {
+        val repository = pendingDeleteWaypoints()
+        val vm = viewModel(waypointRepository = repository)
+        advanceUntilIdle()
+        vm.requestRemoveWaypoint("wp-creek")
+        advanceUntilIdle()
+
+        vm.commitRemoveWaypoint("wp-creek")
+        advanceUntilIdle()
+        vm.commitRemoveWaypoint("wp-creek")
+        advanceUntilIdle()
+
+        assertEquals(listOf("wp-creek"), repository.deletedIds)
+        assertNull(vm.uiState.value.pendingWaypointDelete)
+        assertEquals(listOf("wp-oak"), vm.uiState.value.visibleWaypoints.map { it.id })
+    }
+
+    @Test
+    fun `a second waypoint delete commits the first when it replaces it`() = runRecordingTest {
+        val repository = pendingDeleteWaypoints()
+        val vm = viewModel(waypointRepository = repository)
+        advanceUntilIdle()
+        vm.requestRemoveWaypoint("wp-creek")
+        advanceUntilIdle()
+
+        vm.requestRemoveWaypoint("wp-oak")
+        advanceUntilIdle()
+
+        assertEquals(listOf("wp-creek"), repository.deletedIds)
+        assertEquals("wp-oak", vm.uiState.value.pendingWaypointDelete?.item?.id)
+        assertEquals(emptyList<String>(), vm.uiState.value.visibleWaypoints.map { it.id })
+    }
+
+    @Test
+    fun `a waypoint delete still pending when the ViewModel is cleared is committed`() = runRecordingTest {
+        val repository = pendingDeleteWaypoints()
+        val testScope: CoroutineScope = this
+        val store = ViewModelStore()
+        val vm = ViewModelProvider(
+            store,
+            viewModelFactory { initializer { viewModel(waypointRepository = repository, pendingDeleteCommitScope = testScope) } },
+        )[TrackRecordingViewModel::class.java]
+        advanceUntilIdle()
+        vm.requestRemoveWaypoint("wp-creek")
+        advanceUntilIdle()
+        assertEquals(emptyList<String>(), repository.deletedIds)
+
+        store.clear()
+        advanceUntilIdle()
+
+        assertEquals(listOf("wp-creek"), repository.deletedIds)
     }
 
     // ---- Navigation HUD stage one: the auto-created origin and end waypoints -------------------
@@ -952,6 +1071,14 @@ private class FailingTrackRepository : TrackRepository {
 private class FakeWaypointRepository : com.zynergylabs.forager.app.domain.WaypointRepository {
     private val waypoints = mutableMapOf<String, Waypoint>()
 
+    /** Every id [delete] was called with, in order (journal redesign J4: the delete calls a pending delete defers). */
+    val deletedIds = mutableListOf<String>()
+
+    /** Puts a waypoint in place without going through [save], so a test's setup is not a write under test. */
+    fun seed(waypoint: Waypoint) {
+        waypoints[waypoint.id] = waypoint
+    }
+
     override suspend fun getAll(): Result<List<Waypoint>> = Result.success(waypoints.values.toList())
     override suspend fun getForDay(dayStartInclusiveEpochMillis: Long, dayEndExclusiveEpochMillis: Long): Result<List<Waypoint>> =
         Result.success(
@@ -971,6 +1098,7 @@ private class FakeWaypointRepository : com.zynergylabs.forager.app.domain.Waypoi
         return Result.success(Unit)
     }
     override suspend fun delete(id: String): Result<Unit> {
+        deletedIds += id
         waypoints.remove(id)
         return Result.success(Unit)
     }

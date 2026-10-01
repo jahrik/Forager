@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.LogEntryDetailScreenTest" tests="16" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:45.339Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.848">
+  <properties/>
+  <testcase name="the touched thumbnail is the photo the viewer opens on" classname="com.zynergylabs.forager.app.ui.log.LogEntryDetailScreenTest" time="0.066"/>
+  <testcase name="the location button reads Add Location when the entry has none set" classname="com.zynergylabs.forager.app.ui.log.LogEntryDetailScreenTest" time="0.032"/>
+  <testcase name="tapping the location button invokes onAddLocation" classname="com.zynergylabs.forager.app.ui.log.LogEntryDetailScreenTest" time="0.034"/>
+  <testcase name="tapping From Album invokes onPullPhoto" classname="com.zynergylabs.forager.app.ui.log.LogEntryDetailScreenTest" time="0.034"/>
+  <testcase name="a single photo renders centered horizontally" classname="com.zynergylabs.forager.app.ui.log.LogEntryDetailScreenTest" time="0.05"/>
+  <testcase name="an entry with a photo still renders it" classname="com.zynergylabs.forager.app.ui.log.LogEntryDetailScreenTest" time="0.032"/>
+  <testcase name="an entry with no location shows the no-location text instead of coordinates" classname="com.zynergylabs.forager.app.ui.log.LogEntryDetailScreenTest" time="0.032"/>
+  <testcase name="the edit form has no characteristic sections and keeps Notes" classname="com.zynergylabs.forager.app.ui.log.LogEntryDetailScreenTest" time="0.034"/>
+  <testcase name="tapping Cancel invokes onCancel" classname="com.zynergylabs.forager.app.ui.log.LogEntryDetailScreenTest" time="0.037"/>
+  <testcase name="a touch anywhere on the thumbnail outside the remove control opens the viewer" classname="com.zynergylabs.forager.app.ui.log.LogEntryDetailScreenTest" time="0.193"/>
+  <testcase name="an entry with a location shows its coordinates" classname="com.zynergylabs.forager.app.ui.log.LogEntryDetailScreenTest" time="0.103"/>
+  <testcase name="a touch on the remove control removes, and does not open the viewer" classname="com.zynergylabs.forager.app.ui.log.LogEntryDetailScreenTest" time="0.043"/>
+  <testcase name="two photos render left-to-right as a centered group" classname="com.zynergylabs.forager.app.ui.log.LogEntryDetailScreenTest" time="0.043"/>
+  <testcase name="four photos render left-to-right as a centered group" classname="com.zynergylabs.forager.app.ui.log.LogEntryDetailScreenTest" time="0.04"/>
+  <testcase name="tapping Save invokes onSave" classname="com.zynergylabs.forager.app.ui.log.LogEntryDetailScreenTest" time="0.029"/>
+  <testcase name="the location button reads Change Location once the entry has one set" classname="com.zynergylabs.forager.app.ui.log.LogEntryDetailScreenTest" time="0.042"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

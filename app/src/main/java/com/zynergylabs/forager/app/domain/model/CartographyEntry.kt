@@ -71,7 +71,27 @@ data class CartographyEntry(
      * action with no opposite ("withhold") to record. Attached or not attached is the whole state.
      */
     val photos: List<PhotoAttachment> = emptyList(),
+    /**
+     * Whether this entry's kept records are highlighted on the Maps tab (J8, owner: "Yes, keep them",
+     * stored in Room with the entry). Only a saved entry is ever highlighted (owner: "Saved entries
+     * only"), so on a draft this is carried but read by nothing. `false` by default and for every
+     * entry that existed before `MIGRATION_15_16`. Written only by
+     * [com.zynergylabs.forager.app.domain.CartographyEntryRepository.setShownOnMap], never as a side
+     * effect of editing the entry; read by [com.zynergylabs.forager.app.domain.GetJournalEntryHighlightsUseCase].
+     */
+    val shownOnMap: Boolean = false,
 ) {
+    /**
+     * Whether this entry keeps at least one record the Maps tab could highlight for it: a kept track,
+     * find, waypoint or offline-region decision, or an attached photo — the definition
+     * [com.zynergylabs.forager.app.domain.GetJournalEntryHighlightsUseCase] uses for "what an entry keeps".
+     * Whether that record is drawn today (a photo with no location, a record since deleted) is that use
+     * case's live read and is not asked here. The report menu offers "Show on map" only when this is true.
+     */
+    val keepsHighlightableRecord: Boolean
+        get() = trackDecisions.any { it.kept } || findDecisions.any { it.kept } ||
+            waypointDecisions.any { it.kept } || offlineRegionDecisions.any { it.kept } || photos.isNotEmpty()
+
     companion object {
         /** A freshly-started, undecided entry for [date] — every decision list empty, [isDraft] always `true`. Mirrors [MushroomLogEntry.draft]'s own shape: persisted immediately by its use case, not held only in memory. */
         fun draft(id: String, date: LocalDate, updatedAtEpochMillis: Long): CartographyEntry = CartographyEntry(

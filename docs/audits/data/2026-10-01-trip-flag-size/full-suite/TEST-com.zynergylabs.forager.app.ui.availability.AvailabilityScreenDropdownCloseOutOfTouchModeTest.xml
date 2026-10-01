@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenDropdownCloseOutOfTouchModeTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:18:29.299Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.447">
+  <properties/>
+  <testcase name="out of touch mode on the Journal tab, Back closes the dropdown and it is still closed after the screen settles" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenDropdownCloseOutOfTouchModeTest" time="0.172"/>
+  <testcase name="out of touch mode, Back closes the dropdown and it is still closed after the screen settles" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenDropdownCloseOutOfTouchModeTest" time="0.152"/>
+  <testcase name="out of touch mode, closing the Tools drawer with Back does not open the dropdown" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenDropdownCloseOutOfTouchModeTest" time="0.12"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

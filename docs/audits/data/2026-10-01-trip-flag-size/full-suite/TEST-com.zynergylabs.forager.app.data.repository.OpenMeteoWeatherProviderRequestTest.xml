@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.data.repository.OpenMeteoWeatherProviderRequestTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:49.832Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.015">
+  <properties/>
+  <testcase name="the request asks for the observed history and the forecast horizon" classname="com.zynergylabs.forager.app.data.repository.OpenMeteoWeatherProviderRequestTest" time="0.005"/>
+  <testcase name="the conditions summary path fails the same way rather than reporting numbers" classname="com.zynergylabs.forager.app.data.repository.OpenMeteoWeatherProviderRequestTest" time="0.001"/>
+  <testcase name="the conditions summary counts only the observed days of the same response" classname="com.zynergylabs.forager.app.data.repository.OpenMeteoWeatherProviderRequestTest" time="0.002"/>
+  <testcase name="the same instant resolves to different reference days at different longitudes" classname="com.zynergylabs.forager.app.data.repository.OpenMeteoWeatherProviderRequestTest" time="0.002"/>
+  <testcase name="a response with no timezone offset fails explicitly instead of using the device's day" classname="com.zynergylabs.forager.app.data.repository.OpenMeteoWeatherProviderRequestTest" time="0.001"/>
+  <testcase name="the request asks for precipitation, evapotranspiration and both soil band families" classname="com.zynergylabs.forager.app.data.repository.OpenMeteoWeatherProviderRequestTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

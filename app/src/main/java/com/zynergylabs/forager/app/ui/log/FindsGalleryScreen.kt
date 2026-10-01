@@ -33,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
@@ -51,13 +52,12 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
  * same split [CartographyScreen] already uses), never a different arrangement.
  *
  * **No Album tab here** — Stage 2b follow-up dispatch, point 3. The former `LogGalleryScreen`
- * embedded [PhotoGalleryScreen] as a third tab (Log/Drafts/Album); that was a second, independent
+ * embedded the standalone Photo Gallery screen (removed in J6) as a third tab (Log/Drafts/Album); that was a second, independent
  * path to the same [com.zynergylabs.forager.app.domain.model.GalleryPhoto] data [CartographyScreen]'s own Album
  * submenu already shows, flagged as deliberate-but-unwanted duplication in the original Stage 2b
  * dispatch's closing disclosure. [CartographyScreen]'s Album is now the sole path from both window
- * classes' Records/Finds side; the drawer-hosted `DrawerPanel.PhotoGallery` destination
- * ([AvailabilityScreen]'s own, medium/expanded-only) is untouched — that duplication predates Stage
- * 2b and is out of this dispatch's scope. [LogEntryListScreen] never embedded an Album tab to begin
+ * classes' Records/Finds side; the drawer-hosted `DrawerPanel.PhotoGallery` destination this note once
+ * left untouched has since been removed (J6, the owner's ruling 2, 2026-09-28). [LogEntryListScreen] never embedded an Album tab to begin
  * with, so nothing is newly unreachable for the expanded window either.
  */
 @Composable
@@ -84,6 +84,14 @@ internal fun FindsGalleryScreen(
     onAddEntry: (() -> Unit)? = null,
     /** Grid column count — 2 for compact, more for expanded/tablet; see this composable's own doc comment. */
     columns: Int = 2,
+    /**
+     * J4b L1 (owner ruling "Lists swipe, grids long-press (Recommended)"): when set, a long-press on a
+     * tile opens a menu whose Delete calls this with the find's id (a *pending* delete with Undo).
+     * `null` (the default; `LogPanel` passes none) leaves the tiles tap-only.
+     */
+    onDeleteEntry: ((String) -> Unit)? = null,
+    /** J4b L1: the menu's Edit, opening the find in its edit form. Only read when [onDeleteEntry] is set. */
+    onEditEntry: ((String) -> Unit)? = null,
 ) {
     var selectedTab by remember { mutableStateOf(FindsGalleryTab.LOG) }
 
@@ -125,9 +133,13 @@ internal fun FindsGalleryScreen(
             // "add an entry."
             if (selectedTab == FindsGalleryTab.LOG && onAddEntry != null) item { AddEntryTile(onClick = onAddEntry) }
             if (selectedTab == FindsGalleryTab.DRAFTS) {
-                items(visibleEntries, key = { it.id }) { entry -> FindTile(entry = entry, onClick = { onOpenDraftEntry(entry.id) }, isDraft = true) }
+                items(visibleEntries, key = { it.id }) { entry ->
+                    FindTileWithOptions(entry = entry, onClick = { onOpenDraftEntry(entry.id) }, isDraft = true, onEdit = onEditEntry, onDelete = onDeleteEntry)
+                }
             } else {
-                items(visibleEntries, key = { it.id }) { entry -> FindTile(entry = entry, onClick = { onOpenEntry(entry.id) }) }
+                items(visibleEntries, key = { it.id }) { entry ->
+                    FindTileWithOptions(entry = entry, onClick = { onOpenEntry(entry.id) }, onEdit = onEditEntry, onDelete = onDeleteEntry)
+                }
             }
         }
     }
@@ -172,7 +184,7 @@ private fun AddEntryTile(onClick: () -> Unit, modifier: Modifier = Modifier) {
  * (the former "Incomplete" badge was removed on 2026-09-13 — see the comment at that spot).
  */
 @Composable
-private fun FindTile(entry: MushroomLogEntry, onClick: () -> Unit, modifier: Modifier = Modifier, isDraft: Boolean = false) {
+internal fun FindTile(entry: MushroomLogEntry, onClick: () -> Unit, modifier: Modifier = Modifier, isDraft: Boolean = false) {
     Card(
         onClick = onClick,
         modifier = modifier
@@ -180,6 +192,56 @@ private fun FindTile(entry: MushroomLogEntry, onClick: () -> Unit, modifier: Mod
             .aspectRatio(GALLERY_TILE_ASPECT_RATIO),
         shape = RoundedCornerShape(Spacing.sm),
     ) {
+        FindTileBody(entry = entry, isDraft = isDraft)
+    }
+}
+
+/**
+ * [FindTile] with a long-press menu (J4b L1): the same tile, whose card takes the tap and the
+ * long-press on one node ([tileClickable]), inside a [LongPressOptionsBox] offering Edit and Delete.
+ * With no [onDelete] it is [FindTile] exactly, so a caller that gives no delete (`LogPanel`) is
+ * unchanged. The long-click reads "Options for Find on <date>", the tile's own text.
+ */
+@Composable
+internal fun FindTileWithOptions(
+    entry: MushroomLogEntry,
+    onClick: () -> Unit,
+    onEdit: ((String) -> Unit)?,
+    onDelete: ((String) -> Unit)?,
+    modifier: Modifier = Modifier,
+    isDraft: Boolean = false,
+) {
+    if (onDelete == null) {
+        FindTile(entry = entry, onClick = onClick, modifier = modifier, isDraft = isDraft)
+        return
+    }
+    LongPressOptionsBox(
+        longClickLabel = "Options for ${findTileLabel(entry)}",
+        onEdit = onEdit?.let { edit -> { edit(entry.id) } },
+        onDelete = { onDelete(entry.id) },
+        modifier = modifier,
+    ) { options ->
+        val shape = RoundedCornerShape(Spacing.sm)
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(GALLERY_TILE_ASPECT_RATIO)
+                .clip(shape)
+                .tileClickable(onClick = onClick, options = options),
+            shape = shape,
+        ) {
+            FindTileBody(entry = entry, isDraft = isDraft)
+        }
+    }
+}
+
+/** A find tile's caption, "Find on <date>". */
+private fun findTileLabel(entry: MushroomLogEntry): String = "Find on ${entry.foundOn}"
+
+/** What a find tile draws inside its card: the cover photo or placeholder, then the caption. */
+@Composable
+private fun FindTileBody(entry: MushroomLogEntry, isDraft: Boolean) {
+    run {
         Column(modifier = Modifier.fillMaxSize()) {
             // weight(1f), not aspectRatio(1f): a fixed square ate a disproportionate share of the
             // card's own fixed-aspect-ratio height, squeezing the caption below it -- on a draft
@@ -210,7 +272,7 @@ private fun FindTile(entry: MushroomLogEntry, onClick: () -> Unit, modifier: Mod
             }
             Column(modifier = Modifier.padding(Spacing.sm)) {
                 Text(
-                    "Find on ${entry.foundOn}",
+                    findTileLabel(entry),
                     style = MaterialTheme.typography.labelLarge,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

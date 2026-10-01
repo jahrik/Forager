@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.model.ThreeStateModelTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:55.889Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.003">
+  <properties/>
+  <testcase name="Pores, Teeth, and SmoothOrWrinkled carry no fields — there is nowhere to put a gill attachment" classname="com.zynergylabs.forager.app.domain.model.ThreeStateModelTest" time="0.001"/>
+  <testcase name="Observed has exactly two states, and they are never equal to each other" classname="com.zynergylabs.forager.app.domain.model.ThreeStateModelTest" time="0.0"/>
+  <testcase name="StipeDetails Present carries exactly position, interior, and base" classname="com.zynergylabs.forager.app.domain.model.ThreeStateModelTest" time="0.001"/>
+  <testcase name="a freshly-started log entry has every section unrecorded, not defaulted to a value" classname="com.zynergylabs.forager.app.domain.model.ThreeStateModelTest" time="0.0"/>
+  <testcase name="Feature has exactly three states, pairwise distinct" classname="com.zynergylabs.forager.app.domain.model.ThreeStateModelTest" time="0.0"/>
+  <testcase name="StipeDetails Absent carries no fields — an absent stipe has no interior or base to record" classname="com.zynergylabs.forager.app.domain.model.ThreeStateModelTest" time="0.001"/>
+  <testcase name="Gills carries exactly attachment, spacing, and edge — the only place those fields exist" classname="com.zynergylabs.forager.app.domain.model.ThreeStateModelTest" time="0.0"/>
+  <testcase name="an entry recorded as Pores cannot be asked for a gill attachment" classname="com.zynergylabs.forager.app.domain.model.ThreeStateModelTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

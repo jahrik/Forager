@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.track.TrackRecordingSundownTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:13.790Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.02">
+  <properties/>
+  <testcase name="the stored margin reaches the countdown, not the default" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingSundownTest" time="0.011"/>
+  <testcase name="before any fix the countdown is no-position, not a zeroed time" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingSundownTest" time="0.002"/>
+  <testcase name="once a fix lands the countdown reports sunset and the turnaround before it" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingSundownTest" time="0.003"/>
+  <testcase name="the age of the fix is carried into the state the screen reads" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingSundownTest" time="0.004"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.OfflineMapsPanelPickerTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:21.228Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.246">
+  <properties/>
+  <testcase name="after a pan, the radius slider keeps the panned centre for the pin, the map and OK" classname="com.zynergylabs.forager.app.ui.availability.OfflineMapsPanelPickerTest" time="0.094"/>
+  <testcase name="before any pan, a late device centre moves the picker there" classname="com.zynergylabs.forager.app.ui.availability.OfflineMapsPanelPickerTest" time="0.059"/>
+  <testcase name="before any pan, the radius slider keeps today's centre" classname="com.zynergylabs.forager.app.ui.availability.OfflineMapsPanelPickerTest" time="0.05"/>
+  <testcase name="after a pan, a late device centre moves neither the pin, nor the map's region, nor what OK reports" classname="com.zynergylabs.forager.app.ui.availability.OfflineMapsPanelPickerTest" time="0.04"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

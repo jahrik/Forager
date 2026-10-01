@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.model.RegionTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:55.887Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.0">
+  <properties/>
+  <testcase name="leaves an in-range radius unchanged" classname="com.zynergylabs.forager.app.domain.model.RegionTest" time="0.0"/>
+  <testcase name="clamps radius above the maximum down to 50km" classname="com.zynergylabs.forager.app.domain.model.RegionTest" time="0.0"/>
+  <testcase name="clamps radius below the minimum up to 1km" classname="com.zynergylabs.forager.app.domain.model.RegionTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

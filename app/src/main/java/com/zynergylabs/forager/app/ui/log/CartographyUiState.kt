@@ -1,6 +1,8 @@
 package com.zynergylabs.forager.app.ui.log
 
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
+import com.zynergylabs.forager.app.domain.PendingDelete
+import com.zynergylabs.forager.app.domain.withoutPending
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.DerivedTrip
 
@@ -35,6 +37,14 @@ data class CartographyUiState(
     val candidatesErrorMessage: String? = null,
     val saveErrorMessage: String? = null,
     /**
+     * J8: a failed write of an entry's `shownOnMap` (the report menu's Show or Hide on map, the chip
+     * list's Hide and Hide all), exactly [SHOWN_ON_MAP_FAILED_MESSAGE] (continuation `2026-09-28-65`).
+     * Its own field, not [saveErrorMessage], so that failure's text and the save failures' own texts
+     * never share one slot. `AvailabilityScreen` shows it as a Toast on every tab, since the chip is on
+     * the Maps tab, and clears it through `CartographyViewModel.onShownOnMapErrorDismissed`.
+     */
+    val shownOnMapErrorMessage: String? = null,
+    /**
      * A dirty flag, not a diff against a snapshot (device-check patch, Item 1): any mutation of a
      * **committed** [editingEntry] sets it, [CartographyViewModel.onSaveEntry] clears it. Only
      * meaningful while [editingEntry] is committed — a draft autosaves on every keystroke, unchanged
@@ -43,4 +53,27 @@ data class CartographyUiState(
      * machinery than the honesty gains for a flag whose only job is "does leaving need to ask."
      */
     val hasUnsavedChanges: Boolean = false,
-)
+    /**
+     * The entry whose delete was asked for from its card (journal redesign J4b L2) and has not run
+     * yet: the Undo snackbar is still up. Entries have no reference count of their own (nothing
+     * references a Cartography entry), so [PendingDelete.entryReferenceCount] is always `null`. See
+     * [CartographyViewModel.requestDeleteEntry].
+     */
+    val pendingDelete: PendingDelete<CartographyEntry>? = null,
+) {
+    /**
+     * This state with [pendingDelete] left out of [entries] and [draftEntries]: what the Entries
+     * timeline, the drafts banner's count and the drafts list are given, so a pending entry is gone
+     * from all of them at once and comes back on Undo (J4's rule, applied to entries by J4b).
+     */
+    fun hidingPendingDelete(): CartographyUiState {
+        if (pendingDelete == null) return this
+        return copy(
+            entries = entries.withoutPending(pendingDelete) { it.id },
+            draftEntries = draftEntries.withoutPending(pendingDelete) { it.id },
+        )
+    }
+}
+
+/** The owner's text for a failed Show or Hide on map (continuation `2026-09-28-65`, verbatim). */
+const val SHOWN_ON_MAP_FAILED_MESSAGE = "Changes not applied. Try again."

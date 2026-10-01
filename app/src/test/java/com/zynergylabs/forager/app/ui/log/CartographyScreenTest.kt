@@ -11,6 +11,8 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
@@ -183,7 +185,7 @@ class CartographyScreenTest {
     fun `tapping a committed entry in the Entries tab opens the view screen, not the editor`() {
         setScreen(CartographyUiState(entries = listOf(committedEntry)))
 
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(entryMatcher(committedEntry)).performClick()
 
         // The view screen: an overflow menu exists, but none of the editor's editable fields do.
         composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
@@ -191,11 +193,12 @@ class CartographyScreenTest {
     }
 
     @Test
-    fun `tapping a draft in the Drafts tab opens the editor directly, never the view`() {
+    fun `opening a draft from the Drafts banner opens the editor directly, never the view`() {
         setScreen(CartographyUiState(draftEntries = listOf(draftEntry)))
 
-        composeRule.onNodeWithText("Drafts (1)").performClick()
-        composeRule.onNodeWithText("2026-08-02").performClick()
+        // J2 T2: the Drafts banner replaced the "Drafts (1)" sub-tab; with one draft its Continue
+        // opens that draft directly.
+        composeRule.onNodeWithTag(DRAFTS_CONTINUE_TAG).performClick()
 
         composeRule.onNodeWithText("Your own account (optional)").assertIsDisplayed()
     }
@@ -204,7 +207,7 @@ class CartographyScreenTest {
     fun `edit entry in the view screen's overflow menu switches to the editor`() {
         setScreen(CartographyUiState(entries = listOf(committedEntry)))
 
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(entryMatcher(committedEntry)).performClick()
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
 
@@ -215,7 +218,7 @@ class CartographyScreenTest {
     fun `starting a brand-new entry from the Entries tab opens the editor directly, never the view`() {
         setScreen(CartographyUiState())
 
-        composeRule.onNodeWithContentDescription("New Cartography entry").performClick()
+        composeRule.onNodeWithTag(ENTRIES_FAB_TAG).performClick() // J2 T4: the New entry floating button, was the "+" tile
 
         composeRule.onNodeWithText("Your own account (optional)").assertIsDisplayed()
     }
@@ -225,17 +228,17 @@ class CartographyScreenTest {
     fun `backing out of the view screen returns to the entries list`() {
         setScreen(CartographyUiState(entries = listOf(committedEntry)))
 
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(entryMatcher(committedEntry)).performClick()
         composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
 
-        composeRule.onNodeWithText("Entries").assertIsDisplayed()
-        composeRule.onNodeWithText("2026-08-01").assertIsDisplayed()
+        composeRule.onNodeWithTag(ENTRIES_HOME_TAG).assertIsDisplayed() // J2 T3: Entries' top level, was the "Entries" sub-tab
+        composeRule.onNode(entryMatcher(committedEntry)).assertIsDisplayed()
     }
 
     // --- Device-check patch, Item 1: Save/Discard/Cancel for a committed entry ---------------------
 
     private fun openCommittedEntryEditor() {
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(entryMatcher(committedEntry)).performClick()
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
     }
@@ -267,8 +270,8 @@ class CartographyScreenTest {
 
         // No leave-prompt was needed to get here, and the edit landed in the Entries list.
         composeRule.onNodeWithText("Save your changes?").assertDoesNotExist()
-        composeRule.onNodeWithText("Entries").assertIsDisplayed()
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNodeWithTag(ENTRIES_HOME_TAG).assertIsDisplayed() // J2 T3: Entries' top level, was the "Entries" sub-tab
+        composeRule.onNode(entryMatcher(committedEntry)).performClick()
         composeRule.onNodeWithText("Chanterelles under the big fir.").assertIsDisplayed()
     }
 
@@ -319,7 +322,7 @@ class CartographyScreenTest {
         composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
         composeRule.onNodeWithTag(LEAVE_PROMPT_DISCARD_TEST_TAG).performClick()
 
-        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+        composeRule.onNodeWithTag(ENTRIES_HOME_TAG).assertIsDisplayed() // J2 T3: Entries' top level, was the "Entries" sub-tab
     }
 
     @Test
@@ -331,27 +334,27 @@ class CartographyScreenTest {
         composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
         composeRule.onNodeWithTag(LEAVE_PROMPT_SAVE_TEST_TAG).performClick()
 
-        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+        composeRule.onNodeWithTag(ENTRIES_HOME_TAG).assertIsDisplayed() // J2 T3: Entries' top level, was the "Entries" sub-tab
     }
 
     /** Drafts still autosave silently and back still never prompts — unchanged, deliberately, from before this dispatch. */
     @Test
     fun `backing out of a draft with text typed still does not prompt`() {
         setScreen(CartographyUiState())
-        composeRule.onNodeWithContentDescription("New Cartography entry").performClick()
+        composeRule.onNodeWithTag(ENTRIES_FAB_TAG).performClick() // J2 T4: the New entry floating button, was the "+" tile
 
         composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Draft text.")
         composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
 
         composeRule.onNodeWithText("Save your changes?").assertDoesNotExist()
-        composeRule.onNodeWithText("Drafts (1)").assertIsDisplayed()
+        composeRule.onNodeWithText("✎ 1 unfinished entry").assertIsDisplayed() // J2 T2: the banner, was the "Drafts (1)" sub-tab
     }
 
     /**
      * Entry-photo-acquisition dispatch, Item 2: Cartography's own acquire-and-attach path,
      * reachable for the first time. Only button *presence* is asserted — tapping either one
      * launches a real system Activity ([rememberPhotoAcquisitionLaunchers]) Robolectric cannot
-     * meaningfully drive, the same established limit [PhotoGalleryScreenTest]/[LogEntryDetailScreenTest]
+     * meaningfully drive, the same established limit the removed PhotoGalleryScreenTest and [LogEntryDetailScreenTest]
      * already document for the identical buttons elsewhere. What happens after a tap (persist, then
      * attach via [onAcquirePhotoForEntry]) is proven separately: the persist half by
      * `MushroomLogViewModelTest`'s own "onAddGalleryPhoto invokes onPersisted..." test, the attach
@@ -362,7 +365,7 @@ class CartographyScreenTest {
     @Test
     fun `Camera and Import buttons are on the add-photo picker, reached from inside the editor`() {
         setScreen(CartographyUiState(entries = listOf(committedEntry)))
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(entryMatcher(committedEntry)).performClick()
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
 
@@ -373,3 +376,10 @@ class CartographyScreenTest {
         composeRule.onNodeWithText("Gallery").assertDoesNotExist()
     }
 }
+
+/**
+ * An entry's card or collapsed row (journal redesign J3, C1): the ISO date these tests used to find a
+ * card by is no longer on it, so they find it by the card's own tag, whichever of the two shapes it has.
+ */
+private fun entryMatcher(entry: CartographyEntry): SemanticsMatcher =
+    hasTestTag("entry-card-${entry.id}") or hasTestTag("entry-row-${entry.id}")

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.InAppCameraDialogLandscapeTest" tests="15" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:32.684Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.781">
+  <properties/>
+  <testcase name="setting on, through the gate, nothing turns for any sensor reading, before or after the window flips" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogLandscapeTest" time="0.088"/>
+  <testcase name="while the window does not turn, a device turn moves neither the shutter nor the strip" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogLandscapeTest" time="0.055"/>
+  <testcase name="setting off, through the gate, the count still turns when the sensor does" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogLandscapeTest" time="0.067"/>
+  <testcase name="setting off in a landscape window, the count turns in place when the device does, as in portrait" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogLandscapeTest" time="0.048"/>
+  <testcase name="at ROTATION_90 all four chips sit inside the strip, Flash, Timer, Grid, Location, none overlapping" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogLandscapeTest" time="0.038"/>
+  <testcase name="wiring only, setting on, the portrait arrangement is used and a control turns for whatever value the dialog is handed" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogLandscapeTest" time="0.053"/>
+  <testcase name="the flash chip turns in place when the device does" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogLandscapeTest" time="0.045"/>
+  <testcase name="at ROTATION_90 the port edge is the screen's right, so the shutter is there with the count inboard" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogLandscapeTest" time="0.035"/>
+  <testcase name="at ROTATION_90 the strip is flush with the left edge, the punch-hole side, full height" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogLandscapeTest" time="0.032"/>
+  <testcase name="at ROTATION_270 the strip is flush with the right edge, the punch-hole side, full height" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogLandscapeTest" time="0.055"/>
+  <testcase name="turning the controls leaves the shutter exactly where it was" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogLandscapeTest" time="0.042"/>
+  <testcase name="at ROTATION_270 all four chips sit inside the strip, Flash, Timer, Grid, Location, none overlapping" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogLandscapeTest" time="0.033"/>
+  <testcase name="the arrangement follows when the window turns underneath the dialog, the shutter moving to the new window's port edge" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogLandscapeTest" time="0.056"/>
+  <testcase name="at ROTATION_270 the port edge is the screen's left, so the shutter is there with the count inboard" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogLandscapeTest" time="0.081"/>
+  <testcase name="the window really is landscape here, before anything else is claimed about it" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogLandscapeTest" time="0.049"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

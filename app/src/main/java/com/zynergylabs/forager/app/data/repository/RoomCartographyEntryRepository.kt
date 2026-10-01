@@ -65,6 +65,10 @@ class RoomCartographyEntryRepository(
         dao.countEntriesReferencingPhoto(photoId)
     }
 
+    override suspend fun setShownOnMap(id: String, shown: Boolean): Result<Unit> = runCatchingCancellable {
+        if (dao.setShownOnMap(id, shown) == 0) throw NoSuchElementException("No Cartography entry '$id' to show or hide on the map.")
+    }
+
     private suspend fun CartographyEntryEntity.toDomain(): CartographyEntry = CartographyEntry(
         id = id,
         date = LocalDate.parse(date),
@@ -77,6 +81,7 @@ class RoomCartographyEntryRepository(
         waypointDecisions = dao.getWaypointRefs(id).map { it.toDomain() },
         offlineRegionDecisions = dao.getOfflineRegionRefs(id).map { it.toDomain() },
         photos = dao.getPhotoRefs(id).map { it.toDomain() },
+        shownOnMap = shownOnMap,
     )
 }
 
@@ -87,6 +92,7 @@ private fun CartographyEntry.toEntity(): CartographyEntryEntity = CartographyEnt
     tags = tags.joinToString(TAG_DELIMITER),
     isDraft = isDraft,
     updatedAtEpochMillis = updatedAtEpochMillis,
+    shownOnMap = shownOnMap,
 )
 
 private fun TrackDecision.toEntity(entryId: String) = CartographyEntryTrackRefEntity(

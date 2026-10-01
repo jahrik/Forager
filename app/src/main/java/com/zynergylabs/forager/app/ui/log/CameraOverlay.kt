@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * The one definition of how anything drawn over the viewfinder is styled. Owner's rule,
+ * The one definition of how anything drawn over the viewfinder is styled. The owner,
  * 2026-09-18:
  *
  * > Every overlay element gets a black outline. The outline provides legibility. Fill colour

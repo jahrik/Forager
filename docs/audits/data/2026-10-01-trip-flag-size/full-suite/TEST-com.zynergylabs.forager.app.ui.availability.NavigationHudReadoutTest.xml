@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.NavigationHudReadoutTest" tests="22" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:20.742Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.006">
+  <properties/>
+  <testcase name="just inside the threshold the needle is absent and Approaching shows - just outside, the needle is present and it does not" classname="com.zynergylabs.forager.app.ui.availability.NavigationHudReadoutTest" time="0.003"/>
+  <testcase name="path home fills the status line's empty state as one number in the display unit" classname="com.zynergylabs.forager.app.ui.availability.NavigationHudReadoutTest" time="0.0"/>
+  <testcase name="facing north-east with the target due north - turn 315, distance 0 point 7 miles, nothing else to say" classname="com.zynergylabs.forager.app.ui.availability.NavigationHudReadoutTest" time="0.0"/>
+  <testcase name="unreliable compass with no fix - the no-fix message still carries the status line" classname="com.zynergylabs.forager.app.ui.availability.NavigationHudReadoutTest" time="0.001"/>
+  <testcase name="precedence - lost fix with unreliable compass reads as lost" classname="com.zynergylabs.forager.app.ui.availability.NavigationHudReadoutTest" time="0.0"/>
+  <testcase name="a target due west of a user facing north-east is a 225 degree turn" classname="com.zynergylabs.forager.app.ui.availability.NavigationHudReadoutTest" time="0.0"/>
+  <testcase name="unreliable compass - the label says so, both arrows withheld, target text empty, distance untouched" classname="com.zynergylabs.forager.app.ui.availability.NavigationHudReadoutTest" time="0.0"/>
+  <testcase name="a fix 45 seconds old is stale - distance kept but de-emphasised, age shown" classname="com.zynergylabs.forager.app.ui.availability.NavigationHudReadoutTest" time="0.0"/>
+  <testcase name="a fix 6 minutes old is lost - distance and needle withheld, only the age remains" classname="com.zynergylabs.forager.app.ui.availability.NavigationHudReadoutTest" time="0.0"/>
+  <testcase name="fix age reads seconds under a minute and whole minutes from a minute on" classname="com.zynergylabs.forager.app.ui.availability.NavigationHudReadoutTest" time="0.001"/>
+  <testcase name="no sensor - heading says so, target shows neither needle nor bearing text" classname="com.zynergylabs.forager.app.ui.availability.NavigationHudReadoutTest" time="0.0"/>
+  <testcase name="approaching inside twice the reported accuracy - never arrived, and the needle is not drawn" classname="com.zynergylabs.forager.app.ui.availability.NavigationHudReadoutTest" time="0.0"/>
+  <testcase name="kilometres when that is the display unit" classname="com.zynergylabs.forager.app.ui.availability.NavigationHudReadoutTest" time="0.0"/>
+  <testcase name="no reported accuracy - no basis for approaching, so the needle stays drawn even close in" classname="com.zynergylabs.forager.app.ui.availability.NavigationHudReadoutTest" time="0.0"/>
+  <testcase name="with a fix the second row carries the elevation and MGRS, decimal degrees on request" classname="com.zynergylabs.forager.app.ui.availability.NavigationHudReadoutTest" time="0.0"/>
+  <testcase name="no origin waypoint - said plainly, nothing substituted" classname="com.zynergylabs.forager.app.ui.availability.NavigationHudReadoutTest" time="0.0"/>
+  <testcase name="no fix yet for the compass - a dash, not a message of its own" classname="com.zynergylabs.forager.app.ui.availability.NavigationHudReadoutTest" time="0.001"/>
+  <testcase name="no sensor and approaching - the absolute bearing text is withheld too" classname="com.zynergylabs.forager.app.ui.availability.NavigationHudReadoutTest" time="0.0"/>
+  <testcase name="stale and approaching - both facts on the status line, needle withheld" classname="com.zynergylabs.forager.app.ui.availability.NavigationHudReadoutTest" time="0.0"/>
+  <testcase name="no fix at all - one message on the status line, no elevation or coordinates row" classname="com.zynergylabs.forager.app.ui.availability.NavigationHudReadoutTest" time="0.0"/>
+  <testcase name="precedence - unreliable compass while approaching withholds the needle and keeps Approaching" classname="com.zynergylabs.forager.app.ui.availability.NavigationHudReadoutTest" time="0.0"/>
+  <testcase name="path home yields to approaching, to a stale fix and to a lost fix" classname="com.zynergylabs.forager.app.ui.availability.NavigationHudReadoutTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

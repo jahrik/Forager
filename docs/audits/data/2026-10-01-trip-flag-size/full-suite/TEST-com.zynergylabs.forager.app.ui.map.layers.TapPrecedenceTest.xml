@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.layers.TapPrecedenceTest" tests="20" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:13.045Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.004">
+  <properties/>
+  <testcase name="a line in the box beats the cell under the finger" classname="com.zynergylabs.forager.app.ui.map.layers.TapPrecedenceTest" time="0.001"/>
+  <testcase name="hits only on untappable or unknown layers win nothing, and no hits win nothing" classname="com.zynergylabs.forager.app.ui.map.layers.TapPrecedenceTest" time="0.0"/>
+  <testcase name="a marker in the box beats the cell under the finger" classname="com.zynergylabs.forager.app.ui.map.layers.TapPrecedenceTest" time="0.0"/>
+  <testcase name="a colour field wins only when no marker or line is hit" classname="com.zynergylabs.forager.app.ui.map.layers.TapPrecedenceTest" time="0.001"/>
+  <testcase name="a sighting tap names its observation, and nothing tapped is a plain tap" classname="com.zynergylabs.forager.app.ui.map.layers.TapPrecedenceTest" time="0.0"/>
+  <testcase name="within the markers the layer drawn on top wins" classname="com.zynergylabs.forager.app.ui.map.layers.TapPrecedenceTest" time="0.0"/>
+  <testcase name="a cell under the finger with nothing else near wins" classname="com.zynergylabs.forager.app.ui.map.layers.TapPrecedenceTest" time="0.0"/>
+  <testcase name="a marker wins over a line whichever order the hits arrive in" classname="com.zynergylabs.forager.app.ui.map.layers.TapPrecedenceTest" time="0.0"/>
+  <testcase name="within the lines the layer drawn on top wins" classname="com.zynergylabs.forager.app.ui.map.layers.TapPrecedenceTest" time="0.0"/>
+  <testcase name="within one layer the first hit the query returned wins" classname="com.zynergylabs.forager.app.ui.map.layers.TapPrecedenceTest" time="0.0"/>
+  <testcase name="a feature with no id is reported as unidentified" classname="com.zynergylabs.forager.app.ui.map.layers.TapPrecedenceTest" time="0.0"/>
+  <testcase name="at the edge of a cell area a cell only in the box never wins" classname="com.zynergylabs.forager.app.ui.map.layers.TapPrecedenceTest" time="0.001"/>
+  <testcase name="nothing under the point or in the box wins nothing" classname="com.zynergylabs.forager.app.ui.map.layers.TapPrecedenceTest" time="0.0"/>
+  <testcase name="what lies under the point decides, and the box is not queried" classname="com.zynergylabs.forager.app.ui.map.layers.TapPrecedenceTest" time="0.0"/>
+  <testcase name="the tap box is 48dp square, the minimum touch target" classname="com.zynergylabs.forager.app.ui.map.layers.TapPrecedenceTest" time="0.0"/>
+  <testcase name="a feature tap is a feature tap and nothing else" classname="com.zynergylabs.forager.app.ui.map.layers.TapPrecedenceTest" time="0.001"/>
+  <testcase name="a marker under the finger still wins without the box being queried, with a cell under it too" classname="com.zynergylabs.forager.app.ui.map.layers.TapPrecedenceTest" time="0.0"/>
+  <testcase name="with nothing tappable under the point the box decides" classname="com.zynergylabs.forager.app.ui.map.layers.TapPrecedenceTest" time="0.0"/>
+  <testcase name="every record marker, line and colour field is queried, never a casing, the offline fill, the search centre or the recording trail" classname="com.zynergylabs.forager.app.ui.map.layers.TapPrecedenceTest" time="0.0"/>
+  <testcase name="the offline outline is a line - it loses to a marker and wins over nothing tappable" classname="com.zynergylabs.forager.app.ui.map.layers.TapPrecedenceTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

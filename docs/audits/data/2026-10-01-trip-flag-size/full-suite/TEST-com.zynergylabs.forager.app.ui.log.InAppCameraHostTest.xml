@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.InAppCameraHostTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:34.643Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.207">
+  <properties/>
+  <testcase name="no target composes no dialog" classname="com.zynergylabs.forager.app.ui.log.InAppCameraHostTest" time="0.046"/>
+  <testcase name="a photo for a Cartography entry goes to that callback and nowhere else" classname="com.zynergylabs.forager.app.ui.log.InAppCameraHostTest" time="0.035"/>
+  <testcase name="a photo for a find goes to the find's callback and nowhere else" classname="com.zynergylabs.forager.app.ui.log.InAppCameraHostTest" time="0.034"/>
+  <testcase name="Back asks the holder to close, and the host itself owns no open state" classname="com.zynergylabs.forager.app.ui.log.InAppCameraHostTest" time="0.053"/>
+  <testcase name="a photo for the Album goes to the Album's callback and nowhere else" classname="com.zynergylabs.forager.app.ui.log.InAppCameraHostTest" time="0.038"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

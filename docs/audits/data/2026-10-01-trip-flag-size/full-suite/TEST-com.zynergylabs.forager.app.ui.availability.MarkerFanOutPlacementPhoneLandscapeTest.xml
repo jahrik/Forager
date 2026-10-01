@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.MarkerFanOutPlacementPhoneLandscapeTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:18.433Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.896">
+  <properties/>
+  <testcase name="a stack tapped just under the compass strip, with no chip row, fans clear of the strip" classname="com.zynergylabs.forager.app.ui.availability.MarkerFanOutPlacementPhoneLandscapeTest" time="0.192"/>
+  <testcase name="a stack tapped beside the icon cluster fans clear of it" classname="com.zynergylabs.forager.app.ui.availability.MarkerFanOutPlacementPhoneLandscapeTest" time="0.176"/>
+  <testcase name="a stack tapped beside the Journal chip fans clear of it" classname="com.zynergylabs.forager.app.ui.availability.MarkerFanOutPlacementPhoneLandscapeTest" time="0.159"/>
+  <testcase name="a stack tapped near the left and right edges fans on screen and clear of every control" classname="com.zynergylabs.forager.app.ui.availability.MarkerFanOutPlacementPhoneLandscapeTest" time="0.21"/>
+  <testcase name="a stack tapped beside the legend fans clear of it" classname="com.zynergylabs.forager.app.ui.availability.MarkerFanOutPlacementPhoneLandscapeTest" time="0.155"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

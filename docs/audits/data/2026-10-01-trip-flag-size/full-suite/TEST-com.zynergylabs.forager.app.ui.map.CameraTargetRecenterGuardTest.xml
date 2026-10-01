@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.CameraTargetRecenterGuardTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:06.948Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.003">
+  <properties/>
+  <testcase name="moves the camera when the region actually changed" classname="com.zynergylabs.forager.app.ui.map.CameraTargetRecenterGuardTest" time="0.003"/>
+  <testcase name="moves the camera on first load, when nothing has been applied yet" classname="com.zynergylabs.forager.app.ui.map.CameraTargetRecenterGuardTest" time="0.0"/>
+  <testcase name="never moves the camera while GPS tracking owns it, even for a target that would otherwise qualify" classname="com.zynergylabs.forager.app.ui.map.CameraTargetRecenterGuardTest" time="0.0"/>
+  <testcase name="moves the camera when only focusOverride changed, region held constant" classname="com.zynergylabs.forager.app.ui.map.CameraTargetRecenterGuardTest" time="0.0"/>
+  <testcase name="does not move the camera again for the same target, the basemap-switch bug" classname="com.zynergylabs.forager.app.ui.map.CameraTargetRecenterGuardTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

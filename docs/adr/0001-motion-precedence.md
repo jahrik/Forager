@@ -74,7 +74,7 @@ repository, not because it was infeasible to build:
   from the project owner: the type never identifies the mushroom, and no
   field is or feeds a species suggestion, candidate list, "likely," or
   confidence score.
-- `docs/plans/forager-navigator-plan.md` §7 lists "AI identification or
+- `docs/navigation/forager-navigator-plan.md` §7 lists "AI identification or
   edibility advice" under "Deferred indefinitely."
 
 Building a confidence/harm resolver — even as inert, unwired scaffolding

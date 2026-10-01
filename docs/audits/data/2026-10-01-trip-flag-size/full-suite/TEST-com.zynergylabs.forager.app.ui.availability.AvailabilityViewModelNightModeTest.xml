@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelNightModeTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:21.594Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.006">
+  <properties/>
+  <testcase name="a failed read still opens the gate, with night off, and is logged" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelNightModeTest" time="0.003"/>
+  <testcase name="the gate is closed until the preference read completes, then opens with the stored value" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelNightModeTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

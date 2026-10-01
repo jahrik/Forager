@@ -9,7 +9,7 @@ import kotlin.math.floor
 /**
  * ε — how close two points of one track must be for the track to be joined to itself there.
  * Path-home join dispatch (2026-09-08), under the owner's ruling of 2026-09-07
- * (`docs/audits/2026-09-07-ruling-path-home-self-intersection.md`).
+ * (`docs/navigation/2026-09-07-ruling-path-home-self-intersection.md`).
  *
  * **The ruling's condition, which is part of the ruling and not commentary on it:** ε is
  * acceptable only while the gap it bridges is within GPS error of the walked path anyway — i.e.
@@ -34,7 +34,7 @@ const val SELF_JOIN_EPSILON_METERS = 10.0
 
 /**
  * The shortest way home along a track joined to itself — the track-network candidate the owner
- * ruled inside the retrace ruling. The track is a graph: every consecutive pair of stored points
+ * decided inside the retrace ruling. The track is a graph: every consecutive pair of stored points
  * is an edge, and additionally any two points within [epsilonMeters] of each other are an edge
  * (a *join*). The result is the shortest route through that graph from the most recent point to
  * the first, in metres.

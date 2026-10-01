@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenShortLandscapeTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:16.495Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.918">
+  <properties/>
+  <testcase name="at ROTATION_90 the Map tab's rail overlays the map on the right, the port edge, and the map is full-bleed" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenShortLandscapeTest" time="0.072"/>
+  <testcase name="at ROTATION_90 no control on the map sits under the rail" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenShortLandscapeTest" time="0.058"/>
+  <testcase name="a long-press on the translucent rail's own area selects the rail item, not the map" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenShortLandscapeTest" time="0.061"/>
+  <testcase name="in fullscreen the rail is absent and a long-press at the map's port-side edge reaches the map" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenShortLandscapeTest" time="0.122"/>
+  <testcase name="at ROTATION_90 long-presses beside the rail, along its inner edge, reach the map" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenShortLandscapeTest" time="0.122"/>
+  <testcase name="the map's measured bounds are identical with the rail shown and hidden" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenShortLandscapeTest" time="0.134"/>
+  <testcase name="a short landscape window gets the compact tree, not the permanent drawer" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenShortLandscapeTest" time="0.076"/>
+  <testcase name="at ROTATION_270 long-presses beside the rail, along its inner edge, reach the map" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenShortLandscapeTest" time="0.082"/>
+  <testcase name="on another tab the rail is opaque beside the content, and a real touch on a rail item switches the tab" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenShortLandscapeTest" time="0.064"/>
+  <testcase name="at ROTATION_270 the Map tab's rail overlays the map on the left, the port edge, and the map is full-bleed" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenShortLandscapeTest" time="0.053"/>
+  <testcase name="at ROTATION_270 no control on the map sits under the rail" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenShortLandscapeTest" time="0.072"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenMapTest" tests="16" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:27.451Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.665">
+  <properties/>
+  <testcase name="a photo with no coordinate contributes no photo marker, silently" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenMapTest" time="0.045"/>
+  <testcase name="the offline-map toggle is absent when no covering region is available" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenMapTest" time="0.105"/>
+  <testcase name="the entry map's waypoints and other kept items reach the map with their own record ids" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenMapTest" time="0.048"/>
+  <testcase name="the offline-map toggle appears, with the exact reported copy, once a covering region resolves" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenMapTest" time="0.059"/>
+  <testcase name="the offline-map toggle is absent while getCoveringOfflineRegion is still resolving" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenMapTest" time="0.032"/>
+  <testcase name="an unresolved (deleted) track reaches the map as simply absent, never an error" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenMapTest" time="0.032"/>
+  <testcase name="offline regions reach the map's overlay content when something else resolved alongside them" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenMapTest" time="0.032"/>
+  <testcase name="the entry map asks to open framed on its kept track and find, never its kept region" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenMapTest" time="0.042"/>
+  <testcase name="while loading (before getMapData resolves) no map section renders yet" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenMapTest" time="0.03"/>
+  <testcase name="an entry map asks for no search-centre marker, since its region is a computed midpoint" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenMapTest" time="0.03"/>
+  <testcase name="the offline coverage check is asked about the day's own points, never a region's own centre" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenMapTest" time="0.03"/>
+  <testcase name="two kept tracks reach the map as two separate polylines, not one joined trail" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenMapTest" time="0.032"/>
+  <testcase name="flipping the offline-map toggle sets MapRenderMode-useOfflineTiles but changes nothing else the map requests" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenMapTest" time="0.053"/>
+  <testcase name="nothing drawable renders no map section, but the entry's own text still renders below" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenMapTest" time="0.029"/>
+  <testcase name="a kept offline region alone renders no map section" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenMapTest" time="0.029"/>
+  <testcase name="the camera region fits every resolved point, not a default location" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenMapTest" time="0.031"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

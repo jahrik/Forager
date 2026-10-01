@@ -8,7 +8,7 @@ package com.zynergylabs.forager.app.domain
  *
  * [CivilTwilight.sunAltitudeDegrees] answers "where is the sun now". A countdown needs the inverse,
  * "when will it be there", and the sundown pre-build report
- * (`docs/audits/2026-09-11-sundown-countdown-prebuild-report.md`) records why that inverse is a
+ * (`docs/navigation/2026-09-11-sundown-countdown-prebuild-report.md`) records why that inverse is a
  * search over the existing function rather than a second algorithm:
  *
  *  - **No new dependency.** The NOAA equations are already here and already tested

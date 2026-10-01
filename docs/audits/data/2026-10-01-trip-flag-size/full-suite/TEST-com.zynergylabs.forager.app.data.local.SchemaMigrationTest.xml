@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.data.local.SchemaMigrationTest" tests="14" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:46.547Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.848">
+  <properties/>
+  <testcase name="9 to 10 - day-scoped indexes are added and rows are untouched" classname="com.zynergylabs.forager.app.data.local.SchemaMigrationTest" time="0.055"/>
+  <testcase name="15 to 16 - the cartography_entries rebuild adds shownOnMap false, every value carried" classname="com.zynergylabs.forager.app.data.local.SchemaMigrationTest" time="0.06"/>
+  <testcase name="8 to 9 - a pre-existing entry is committed, never draft" classname="com.zynergylabs.forager.app.data.local.SchemaMigrationTest" time="0.054"/>
+  <testcase name="4 to 5 - existing rows survive, three track tables appear" classname="com.zynergylabs.forager.app.data.local.SchemaMigrationTest" time="0.043"/>
+  <testcase name="11 to 12 - the photo rebuild adds null latitude and longitude, path carried" classname="com.zynergylabs.forager.app.data.local.SchemaMigrationTest" time="0.06"/>
+  <testcase name="6 to 7 - the entries rebuild carries lat and lng through the NOT NULL drop" classname="com.zynergylabs.forager.app.data.local.SchemaMigrationTest" time="0.05"/>
+  <testcase name="10 to 11 - six cartography tables appear, existing rows survive" classname="com.zynergylabs.forager.app.data.local.SchemaMigrationTest" time="0.056"/>
+  <testcase name="5 to 6 - offlineRegionId is added null, offline_regions appears" classname="com.zynergylabs.forager.app.data.local.SchemaMigrationTest" time="0.043"/>
+  <testcase name="12 to 13 - waypoints and tracks rebuild with null links, values carried" classname="com.zynergylabs.forager.app.data.local.SchemaMigrationTest" time="0.104"/>
+  <testcase name="13 to 14 - the waypoint rebuild adds null designation, trackId carried" classname="com.zynergylabs.forager.app.data.local.SchemaMigrationTest" time="0.071"/>
+  <testcase name="16 to 17 - cartography_entry_track_paths is created empty, keyed by entry and track, and the refs beside it are carried" classname="com.zynergylabs.forager.app.data.local.SchemaMigrationTest" time="0.089"/>
+  <testcase name="7 to 8 - a photo's entryId becomes a log_entry_photos cross-reference" classname="com.zynergylabs.forager.app.data.local.SchemaMigrationTest" time="0.053"/>
+  <testcase name="4 to 17 - the full chain, validated against 17_json, every seeded value survives" classname="com.zynergylabs.forager.app.data.local.SchemaMigrationTest" time="0.056"/>
+  <testcase name="14 to 15 - the track_points rebuild adds null speed columns, fix carried" classname="com.zynergylabs.forager.app.data.local.SchemaMigrationTest" time="0.051"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[System.logW: A resource failed to call SQLiteConnection.close. 
+System.logW: A resource failed to call SQLiteConnectionPool.close. 
+System.logW: A resource failed to call SQLiteConnection.close. 
+System.logW: A resource failed to call SQLiteConnectionPool.close. 
+System.logW: A resource failed to call SQLiteConnection.close. 
+System.logW: A resource failed to call SQLiteConnectionPool.close. 
+System.logW: A resource failed to call SQLiteConnection.close. 
+System.logW: A resource failed to call SQLiteConnectionPool.close. 
+System.logW: A resource failed to call SQLiteConnection.close. 
+System.logW: A resource failed to call SQLiteConnectionPool.close. 
+System.logW: A resource failed to call close. 
+]]></system-err>
+</testsuite>

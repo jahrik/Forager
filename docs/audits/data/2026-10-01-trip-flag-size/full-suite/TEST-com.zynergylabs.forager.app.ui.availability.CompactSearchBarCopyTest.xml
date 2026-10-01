@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.CompactSearchBarCopyTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:27.745Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.097">
+  <properties/>
+  <testcase name="before any search the compact search bar reads September, Search a location" classname="com.zynergylabs.forager.app.ui.availability.CompactSearchBarCopyTest" time="0.096"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.TrackThumbnailProjectionTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:06.647Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.002">
+  <properties/>
+  <testcase name="fewer than two points project to nothing" classname="com.zynergylabs.forager.app.ui.log.TrackThumbnailProjectionTest" time="0.001"/>
+  <testcase name="a track with fewer than two points projects to nothing and does not widen the shared box" classname="com.zynergylabs.forager.app.ui.log.TrackThumbnailProjectionTest" time="0.0"/>
+  <testcase name="two points on a diagonal at the equator fill a square box corner to corner, north up" classname="com.zynergylabs.forager.app.ui.log.TrackThumbnailProjectionTest" time="0.0"/>
+  <testcase name="longitude is scaled by the cosine of the middle latitude" classname="com.zynergylabs.forager.app.ui.log.TrackThumbnailProjectionTest" time="0.0"/>
+  <testcase name="a zero-width target box gives finite points on its centre line" classname="com.zynergylabs.forager.app.ui.log.TrackThumbnailProjectionTest" time="0.0"/>
+  <testcase name="a track at one spot repeated sits at the box's centre" classname="com.zynergylabs.forager.app.ui.log.TrackThumbnailProjectionTest" time="0.0"/>
+  <testcase name="one scale for both axes keeps a tall track tall, centred across the box" classname="com.zynergylabs.forager.app.ui.log.TrackThumbnailProjectionTest" time="0.001"/>
+  <testcase name="two tracks share one scale and one box, so side by side at the equator they split it" classname="com.zynergylabs.forager.app.ui.log.TrackThumbnailProjectionTest" time="0.0"/>
+  <testcase name="one track through the several-track projection is exactly its own projection" classname="com.zynergylabs.forager.app.ui.log.TrackThumbnailProjectionTest" time="0.0"/>
+  <testcase name="the inset keeps every point that far in from the edges" classname="com.zynergylabs.forager.app.ui.log.TrackThumbnailProjectionTest" time="0.0"/>
+  <testcase name="a track with a zero-width bounding box sits on the box's vertical centre line" classname="com.zynergylabs.forager.app.ui.log.TrackThumbnailProjectionTest" time="0.0"/>
+  <testcase name="a track is projected in order, every point" classname="com.zynergylabs.forager.app.ui.log.TrackThumbnailProjectionTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

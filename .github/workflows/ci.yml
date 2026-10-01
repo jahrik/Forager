@@ -232,7 +232,7 @@ jobs:
           # three have. One entry (GenerateFungiIndexDbAsset.generate, at the end) is a different
           # kind of thing entirely -- not a bug under investigation, see its own comment below.
           #
-          # See docs/audits/2026-08-30-return-to-vehicle-semantics-click-noop.md -- closing that
+          # See docs/navigation/2026-08-30-return-to-vehicle-semantics-click-noop.md -- closing that
           # investigation includes removing its three entries entirely, not just shrinking them.
           SKIPPED_TESTS_ALLOWLIST = {
               (
@@ -253,7 +253,7 @@ jobs:
               # them. (Thirteen until the navigation-chrome dispatch: "a real touch beside the
               # distance arm still reaches the map" was removed together with DistanceArm itself,
               # the composable it covered -- owner-authorised, one entry, recorded in
-              # docs/audits/2026-09-06-navigation-chrome-prebuild-report.md. Not a silenced test:
+              # docs/navigation/2026-09-06-navigation-chrome-prebuild-report.md. Not a silenced test:
               # there is no arm left for it to touch beside.)
               (
                   "com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest",

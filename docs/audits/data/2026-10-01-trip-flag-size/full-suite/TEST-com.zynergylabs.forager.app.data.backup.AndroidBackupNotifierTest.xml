@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.data.backup.AndroidBackupNotifierTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:33.810Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.567">
+  <properties/>
+  <testcase name="with notifications switched off for the app nothing is posted and it says so" classname="com.zynergylabs.forager.app.data.backup.AndroidBackupNotifierTest" time="0.051"/>
+  <testcase name="tapping either notification opens the app at the Backup section" classname="com.zynergylabs.forager.app.data.backup.AndroidBackupNotifierTest" time="0.073"/>
+  <testcase name="the saved-with-skipped-photos notification has the approved words, 1 photo in the singular, and no action" classname="com.zynergylabs.forager.app.data.backup.AndroidBackupNotifierTest" time="0.043"/>
+  <testcase name="the channel is named exactly Backups" classname="com.zynergylabs.forager.app.data.backup.AndroidBackupNotifierTest" time="0.057"/>
+  <testcase name="without the notification permission nothing is posted and it says so" classname="com.zynergylabs.forager.app.data.backup.AndroidBackupNotifierTest" time="0.033"/>
+  <testcase name="the retry receiver runs one backup, by enqueueing one one-time job" classname="com.zynergylabs.forager.app.data.backup.AndroidBackupNotifierTest" time="0.185"/>
+  <testcase name="Try again is a broadcast to the retry receiver" classname="com.zynergylabs.forager.app.data.backup.AndroidBackupNotifierTest" time="0.037"/>
+  <testcase name="an intent without the extra does not ask for the Backup section" classname="com.zynergylabs.forager.app.data.backup.AndroidBackupNotifierTest" time="0.044"/>
+  <testcase name="the did-not-finish notification has the approved words and one action, Try again" classname="com.zynergylabs.forager.app.data.backup.AndroidBackupNotifierTest" time="0.038"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

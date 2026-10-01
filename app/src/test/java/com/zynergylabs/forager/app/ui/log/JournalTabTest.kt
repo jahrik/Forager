@@ -18,6 +18,9 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipe
+import androidx.compose.ui.geometry.Offset
 import androidx.test.core.app.ApplicationProvider
 import org.robolectric.shadows.ShadowToast
 import com.zynergylabs.forager.app.domain.CartographyEntryMapData
@@ -26,6 +29,8 @@ import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.ui.map.Basemap
 import com.zynergylabs.forager.app.ui.map.MapSlot
+import com.zynergylabs.forager.app.ui.map.PAN_RECORDING_MAP_TAG
+import com.zynergylabs.forager.app.ui.map.PanRecordingMapSlot
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -77,7 +82,18 @@ class JournalTabTest {
 
     private var startedEntryAt: LatLng? = null
 
-    private fun setScreen(initial: MushroomLogUiState, pendingDestination: PendingJournalDestination? = null) {
+    /**
+     * The device's live fix as `AvailabilityCompactScaffold` hands it to [JournalTab]
+     * (`uiState.liveFix`), held in state so a test can deliver a new fix while the picker is open —
+     * picker-fixes dispatch, F1. `null` for every test that doesn't set it, as before.
+     */
+    private val deviceLocation = mutableStateOf<LatLng?>(null)
+
+    private fun setScreen(
+        initial: MushroomLogUiState,
+        pendingDestination: PendingJournalDestination? = null,
+        mapSlot: MapSlot = StubPickerMapSlot,
+    ) {
         composeRule.setContent {
             var uiState by remember { mutableStateOf(initial) }
             var pending by remember { mutableStateOf(pendingDestination) }
@@ -86,8 +102,9 @@ class JournalTabTest {
                 onOpenCameraForLogEntry = {},
                 onOpenCameraForAlbum = {},
                 onOpenCameraForCartographyEntry = {},
-                mapSlot = StubPickerMapSlot,
+                mapSlot = mapSlot,
                 pickerRegion = Region(lat = 45.326, lng = -122.634, radiusKm = 15),
+                deviceLocation = deviceLocation.value,
                 basemap = Basemap.DEFAULT,
                 onOpenEntry = { id -> uiState = uiState.copy(editingEntry = uiState.entries.first { it.id == id }) },
                 onCloseEntry = { uiState = uiState.copy(editingEntry = null) },
@@ -206,7 +223,8 @@ class JournalTabTest {
         // own, with no manual tap standing in for what a real one-shot request already did.
         if (pendingDestination == null) {
             composeRule.onNodeWithText("Records").performClick()
-            composeRule.onNodeWithText("Logged Finds").performClick()
+            // J1 S3: the Finds filter chip replaced the "Logged Finds" sub-tab.
+            composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.FINDS)).performClick()
         }
     }
 
@@ -317,6 +335,107 @@ class JournalTabTest {
     }
 
     /**
+     * Moved here from `LogPanelTest`, deleted with the wide tree's `LogPanel` (dispatch 2026-09-28-245): "Change
+     * Location" on an entry that already has a location opens the centre-pin picker and updates the location on
+     * confirm. The phone's `JournalTab` renders the same [LogEntryDetailScreen], and none of this file's other
+     * tests opened the picker from an already-located entry.
+     */
+    @Test
+    fun `Change Location on an already-located entry opens the centre-pin picker and updates the entry's location on confirm`() {
+        setScreen(MushroomLogUiState(entries = listOf(existingEntry)))
+        composeRule.onNodeWithText("Find on ${existingEntry.foundOn}").performClick()
+        composeRule.onNodeWithContentDescription("Entry options").performClick()
+        composeRule.onNodeWithText("Edit entry").performClick()
+
+        composeRule.onNodeWithText("Change Location").performClick()
+        composeRule.onNodeWithTag("picker-map").assertIsDisplayed()
+
+        composeRule.onNodeWithText("Simulate pan to test location").performClick()
+        composeRule.onNodeWithText("OK").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Found at 45.5000, -122.5000").assertExists()
+    }
+
+    /**
+     * Picker-fixes dispatch, F1, the owner's report: "when choosing a location to save to the find
+     * log" the picker snapped back to the device after every pan. A live fix arrives about once a
+     * second, each a new picker region (`findLocationPickerRegion`), and before this fix each one
+     * reset the pin and re-centred the map. The owner's words, "Follow until you touch it": after
+     * the first pan, a new fix moves neither the pin, nor what OK saves, nor the region the map is
+     * handed. The pan is a real drag on [PanRecordingMapSlot]; the new fix goes through
+     * [JournalTab]'s own `deviceLocation` parameter, as the scaffold passes `liveFix`.
+     */
+    @Test
+    fun `after a pan, a new device fix moves neither the find picker's pin, nor the map's region, nor what OK saves`() {
+        val map = PanRecordingMapSlot(panTo = PANNED_LOCATION)
+        deviceLocation.value = FIRST_FIX
+        setScreen(MushroomLogUiState(), mapSlot = map.slot)
+        composeRule.onNodeWithContentDescription("New log entry").performClick()
+        composeRule.onNodeWithText("Add Location").performClick()
+        composeRule.onNodeWithText(pinText(FIRST_FIX)).assertExists()
+
+        composeRule.onNodeWithTag(PAN_RECORDING_MAP_TAG).performTouchInput { swipe(center, center - Offset(120f, 60f), 300) }
+        composeRule.onNodeWithText(pinText(PANNED_LOCATION)).assertExists()
+        val regionsAtPan = map.regions.toList()
+
+        composeRule.runOnIdle { deviceLocation.value = SECOND_FIX }
+        composeRule.waitForIdle()
+
+        // The snap-back itself, named: the pin showing the new fix.
+        composeRule.onNodeWithText(pinText(SECOND_FIX)).assertDoesNotExist()
+        composeRule.onNodeWithText(pinText(PANNED_LOCATION)).assertExists()
+        assertEquals("no new region may reach the map after the pan", regionsAtPan, map.regions.toList())
+        composeRule.onNodeWithText("OK").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText(foundAtText(PANNED_LOCATION)).assertExists()
+    }
+
+    /**
+     * F1's other half: until the first pan the picker follows the device, so a picker opened before
+     * any fix (on the search region) moves to the first fix when it arrives, pin and map both. This
+     * is today's behaviour kept, not a change; it guards against a fix that freezes the picker from
+     * the start.
+     */
+    @Test
+    fun `before any pan, the first device fix arriving after the find picker opened moves it there`() {
+        val map = PanRecordingMapSlot(panTo = PANNED_LOCATION)
+        setScreen(MushroomLogUiState(), mapSlot = map.slot)
+        composeRule.onNodeWithContentDescription("New log entry").performClick()
+        composeRule.onNodeWithText("Add Location").performClick()
+        composeRule.onNodeWithText("Pin at: 45.3260, -122.6340").assertExists()
+
+        composeRule.runOnIdle { deviceLocation.value = FIRST_FIX }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText(pinText(FIRST_FIX)).assertExists()
+        assertEquals(Region(FIRST_FIX.lat, FIRST_FIX.lng, FIND_PICKER_DEVICE_RADIUS_KM), map.regions.last())
+    }
+
+    /**
+     * F1 where the picker opened before any fix and the user panned before one arrived: the first
+     * fix changes the picker region's centre and its radius at once (the search region's 15 km to
+     * the device's 1 km). Neither may reach the map or the pin: the user has touched it.
+     */
+    @Test
+    fun `a pan made before the first device fix is kept when that fix arrives`() {
+        val map = PanRecordingMapSlot(panTo = PANNED_LOCATION)
+        setScreen(MushroomLogUiState(), mapSlot = map.slot)
+        composeRule.onNodeWithContentDescription("New log entry").performClick()
+        composeRule.onNodeWithText("Add Location").performClick()
+        composeRule.onNodeWithTag(PAN_RECORDING_MAP_TAG).performTouchInput { swipe(center, center - Offset(120f, 60f), 300) }
+        composeRule.onNodeWithText(pinText(PANNED_LOCATION)).assertExists()
+        val regionsAtPan = map.regions.toList()
+
+        composeRule.runOnIdle { deviceLocation.value = FIRST_FIX }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText(pinText(FIRST_FIX)).assertDoesNotExist()
+        composeRule.onNodeWithText(pinText(PANNED_LOCATION)).assertExists()
+        assertEquals("no new region may reach the map after the pan", regionsAtPan, map.regions.toList())
+    }
+
+    /**
      * Stage 2d's routing fix: the map "+" icon bar's "Log a find" flow used to switch only
      * `AvailabilityScreen`'s own outer tab, leaving this tab's own [selectedTopTab] (defaults to
      * Cartography) untouched — landing on Cartography instead of the find form a device report
@@ -334,11 +453,12 @@ class JournalTabTest {
             pendingDestination = PendingJournalDestination.EDIT_NEW_FIND,
         )
 
-        // The edit form itself, with the picked coordinate — not Cartography's own Entries/Drafts/
-        // Album tabs (which would show "Entries"/"Drafts"/"Album" tab text instead).
+        // The edit form itself, with the picked coordinate — not Entries' own top level. (J2 T1:
+        // "Entries" also labels the Entries | Records switch now, which is always on screen, so the
+        // absence check is on Entries' own top-level tag rather than that text.)
         composeRule.onNodeWithText("Photos").assertIsDisplayed()
         composeRule.onNodeWithText("Found at 45.5000, -122.5000").assertIsDisplayed()
-        composeRule.onNodeWithText("Entries").assertDoesNotExist()
+        composeRule.onNodeWithTag(ENTRIES_HOME_TAG).assertDoesNotExist()
     }
 
     /**
@@ -372,6 +492,17 @@ class JournalTabTest {
 
         // Back on the edit form (not stuck in the picker), now showing the pulled-in photo.
         composeRule.onNodeWithText("From Album").assertIsDisplayed()
+        // Dispatch 2026-09-28-317: the edit form's own DecodedPhoto is newly composed, and its decode
+        // runs on Dispatchers.IO off the test clock. The wait above covered only the picker's decode,
+        // so this node was read unwaited (docs/audits/2026-09-30-ci-flake-diagnosis.md section 8:
+        // CI's "'Log photo' ... is not displayed!", with 0 such nodes at that moment). The assertion
+        // below is unchanged; it now runs once the pulled-in photo has decoded.
+        composeRule.waitUntil(
+            conditionDescription = "the edit form's pulled-in photo ('Log photo') to finish decoding",
+            timeoutMillis = 5_000,
+        ) {
+            composeRule.onAllNodesWithContentDescription("Log photo").fetchSemanticsNodes().isNotEmpty()
+        }
         composeRule.onNodeWithContentDescription("Log photo").assertIsDisplayed()
     }
 
@@ -431,6 +562,16 @@ class JournalTabTest {
 }
 
 private val PICKED_LOCATION = LatLng(45.5, -122.5)
+
+// Picker-fixes dispatch, F1: two device fixes and the point a pan settles on, far enough apart
+// that each prints differently at four decimals.
+private val FIRST_FIX = LatLng(45.6, -122.7)
+private val SECOND_FIX = LatLng(45.61, -122.71)
+private val PANNED_LOCATION = LatLng(45.7, -122.9)
+
+private fun pinText(at: LatLng) = "Pin at: ${"%.4f".format(at.lat)}, ${"%.4f".format(at.lng)}"
+
+private fun foundAtText(at: LatLng) = "Found at ${"%.4f".format(at.lat)}, ${"%.4f".format(at.lng)}"
 
 private val EMPTY_CARTOGRAPHY_MAP_DATA = CartographyEntryMapData(
     trackPolylines = emptyList(),

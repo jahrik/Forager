@@ -1,5 +1,9 @@
 package com.zynergylabs.forager.app.ui.log
 
+import com.zynergylabs.forager.app.ui.map.MAP_LAYERS_SHEET_TAG
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.click
+import com.zynergylabs.forager.app.domain.model.RecordPoint
 import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
@@ -77,7 +81,7 @@ class CartographyEntryReportScreenFullscreenTest {
     private val mapDataWithWaypoint = CartographyEntryMapData(
         trackPolylines = emptyList(),
         findMarkers = emptyList(),
-        waypointMarkers = listOf(LatLng(45.5, -122.5)),
+        waypointMarkers = listOf(RecordPoint("w1", LatLng(45.5, -122.5))),
         photoMarkers = emptyList(),
         offlineRegionCircles = emptyList(),
     )
@@ -151,32 +155,22 @@ class CartographyEntryReportScreenFullscreenTest {
         composeRule.onNodeWithContentDescription("Exit fullscreen").assertDoesNotExist()
     }
 
-    // fullscreen-fixes dispatch, Item 2 — the entry map's own MapModePicker call previously used
-    // MapIconBar's TopEnd default anchor/offset (meant for the medium/expanded lone-circle case),
-    // so the picker opened beside the fullscreen row at the very top instead of the layers row that
-    // actually opened it. Verified by measured bounds, not just that the picker shows: a wrong
-    // anchor that still renders on screen would pass an assertIsDisplayed()-only check.
+    // Map layers L0b (planner's ruling on F3): this used to check that the entry map's basemap
+    // popover opened anchored to the layers row rather than the fullscreen row (fullscreen-fixes
+    // dispatch, Item 2). The popover is gone; the layers row now opens the Layers sheet, a modal
+    // bottom sheet with no anchor. What is checked instead, with a real touch, is that this row
+    // opens it, with its map types.
     @Test
-    fun `the mode picker opens anchored to the layers row, not the fullscreen row`() {
+    fun `a real touch on the layers row opens the Layers sheet with its map types`() {
         setScreen()
         enterFullscreen()
-        val layersRowBounds = composeRule
-            .onNode(hasContentDescription("Map mode: Topographical. Choose Street, Topographical, or Satellite. Night mode off."))
-            .getUnclippedBoundsInRoot()
-        val fullscreenRowBounds = composeRule.onNodeWithContentDescription("Exit fullscreen").getUnclippedBoundsInRoot()
 
-        composeRule.onNode(hasContentDescription("Map mode: Topographical. Choose Street, Topographical, or Satellite. Night mode off."))
-            .performClick()
+        composeRule.onNode(hasContentDescription("Layers: Topographical map. Choose the map type and overlays."))
+            .performTouchInput { click() }
         composeRule.waitForIdle()
 
-        val pickerBounds = composeRule.onNodeWithText("Topographical").getUnclippedBoundsInRoot()
-        val distanceToLayersRow = kotlin.math.abs(pickerBounds.top.value - layersRowBounds.top.value)
-        val distanceToFullscreenRow = kotlin.math.abs(pickerBounds.top.value - fullscreenRowBounds.top.value)
-        assertTrue(
-            "The picker should open near the layers row (top=${layersRowBounds.top}), not the " +
-                "fullscreen row (top=${fullscreenRowBounds.top}) — it opened at top=${pickerBounds.top}.",
-            distanceToLayersRow < distanceToFullscreenRow,
-        )
+        composeRule.onNodeWithTag(MAP_LAYERS_SHEET_TAG).assertIsDisplayed()
+        listOf("Street", "Topographical", "Satellite").forEach { composeRule.onNodeWithText(it).assertIsDisplayed() }
     }
 
     @Test
@@ -204,12 +198,12 @@ class CartographyEntryReportScreenFullscreenTest {
         setScreen()
         enterFullscreen()
         composeRule.onNodeWithContentDescription("Offline maps off").assertIsDisplayed()
-        composeRule.onNode(hasContentDescription("Map mode: Topographical. Choose Street, Topographical, or Satellite. Night mode off."))
+        composeRule.onNode(hasContentDescription("Layers: Topographical map. Choose the map type and overlays."))
             .assertIsDisplayed()
 
         composeRule.onNodeWithContentDescription("Offline maps off").performClick()
 
-        composeRule.onNode(hasContentDescription("Map mode: Topographical. Choose Street, Topographical, or Satellite. Night mode off."))
+        composeRule.onNode(hasContentDescription("Layers: Topographical map. Choose the map type and overlays."))
             .assertDoesNotExist()
         composeRule.onNodeWithContentDescription("Offline maps use one fixed style.").assertDoesNotExist()
     }

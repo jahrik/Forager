@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.DrawerBackOverJournalTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:29.707Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.893">
+  <properties/>
+  <testcase name="portrait, Back with the drawer open over a day entry's editor closes the drawer and keeps the editor" classname="com.zynergylabs.forager.app.ui.availability.DrawerBackOverJournalTest" time="0.175"/>
+  <testcase name="short landscape, Back with the drawer open from the rail over a day entry's report view closes the drawer and keeps the report" classname="com.zynergylabs.forager.app.ui.availability.DrawerBackOverJournalTest" time="0.149"/>
+  <testcase name="portrait, Back with the drawer open over a day entry's report view closes the drawer and keeps the report" classname="com.zynergylabs.forager.app.ui.availability.DrawerBackOverJournalTest" time="0.111"/>
+  <testcase name="short landscape, Back with the drawer open from the rail over a day entry's editor closes the drawer and keeps the editor" classname="com.zynergylabs.forager.app.ui.availability.DrawerBackOverJournalTest" time="0.128"/>
+  <testcase name="portrait, Back with the drawer open over the Finds chip on Records closes the drawer and keeps the Finds chip" classname="com.zynergylabs.forager.app.ui.availability.DrawerBackOverJournalTest" time="0.147"/>
+  <testcase name="portrait, Back with the drawer open over the Entries album view closes the drawer and keeps the album" classname="com.zynergylabs.forager.app.ui.availability.DrawerBackOverJournalTest" time="0.179"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

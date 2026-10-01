@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.DecideSundownAlertUseCaseTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:52.565Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.002">
+  <properties/>
+  <testcase name="a zero margin still fires only one alert" classname="com.zynergylabs.forager.app.domain.DecideSundownAlertUseCaseTest" time="0.001"/>
+  <testcase name="both already past fires only sunset, and burns the turnaround undelivered" classname="com.zynergylabs.forager.app.domain.DecideSundownAlertUseCaseTest" time="0.0"/>
+  <testcase name="the turnaround fires once and then stays quiet" classname="com.zynergylabs.forager.app.domain.DecideSundownAlertUseCaseTest" time="0.0"/>
+  <testcase name="the states with nothing to say do not alert" classname="com.zynergylabs.forager.app.domain.DecideSundownAlertUseCaseTest" time="0.001"/>
+  <testcase name="nothing fires before the turnaround" classname="com.zynergylabs.forager.app.domain.DecideSundownAlertUseCaseTest" time="0.0"/>
+  <testcase name="sunset fires after the turnaround has already gone" classname="com.zynergylabs.forager.app.domain.DecideSundownAlertUseCaseTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

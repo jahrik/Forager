@@ -21,6 +21,7 @@ import com.zynergylabs.forager.app.domain.GetTripReportOfflineRegionsUseCase
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.SaveCartographyEntryUseCase
+import com.zynergylabs.forager.app.domain.SetCartographyEntryShownOnMapUseCase
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 import com.zynergylabs.forager.app.domain.model.Region
@@ -37,6 +38,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -120,6 +122,7 @@ class CartographyViewModelTest {
             ),
             getTripReportOfflineRegions = GetTripReportOfflineRegionsUseCase(StubOfflineMapRepository),
             computeTrackStatistics = ComputeTrackStatisticsUseCase(),
+            setShownOnMap = SetCartographyEntryShownOnMapUseCase(cartographyEntryRepository),
             now = { FIXED_NOW },
         )
     }
@@ -128,6 +131,24 @@ class CartographyViewModelTest {
     fun tearDown() {
         Dispatchers.resetMain()
         database.close()
+    }
+
+    /** Dispatch 2026-09-28-182, item 5: an open entry a Replace deleted is closed, with the candidates and the unsaved flag that went with it. */
+    @Test
+    fun `after a restore, an open entry whose record is gone is closed with its candidates, and one still there stays open`() = runTest(dispatcher) {
+        viewModel.onStartEntry(DAY)
+        advanceUntilIdle()
+        val id = viewModel.uiState.value.editingEntry!!.id
+        viewModel.reloadAfterRestore().join()
+        assertEquals("still there, so still open", id, viewModel.uiState.value.editingEntry?.id)
+
+        RoomCartographyEntryRepository(database.cartographyEntryDao()).delete(id).getOrThrow()
+        viewModel.reloadAfterRestore().join()
+
+        assertNull("the deleted entry is closed", viewModel.uiState.value.editingEntry)
+        assertNull(viewModel.uiState.value.candidatesForEditingEntry)
+        assertEquals(false, viewModel.uiState.value.hasUnsavedChanges)
+        assertEquals("and the lists no longer hold it", emptyList<String>(), (viewModel.uiState.value.entries + viewModel.uiState.value.draftEntries).map { it.id })
     }
 
     @Test
@@ -597,6 +618,186 @@ class CartographyViewModelTest {
         advanceUntilIdle()
 
         assertEquals("a draft has nothing to demote — the editor must stay open", draftId, viewModel.uiState.value.editingEntry?.id)
+    }
+
+    // ── Restore (dispatch 2026-09-28-137, item 6): a reload the caller can wait for ──
+
+    @Test
+    fun `loadEntries returns a Job, and once it is joined the entries written behind the screen's back are listed`() = runTest(dispatcher) {
+        advanceUntilIdle()
+        shownEntryRepository.save(savedEntry("restored-entry")).getOrThrow() // a restore writes the store, not this ViewModel
+
+        viewModel.loadEntries().join()
+
+        assertEquals(listOf("restored-entry"), viewModel.uiState.value.entries.map { it.id })
+        assertEquals(false, viewModel.uiState.value.isLoadingEntries)
+    }
+
+    // ── J8: onSetShownOnMap, the one handler that writes shownOnMap ──
+
+    private val shownEntryRepository get() = RoomCartographyEntryRepository(database.cartographyEntryDao())
+
+    private fun savedEntry(id: String, text: String = "A good day.") =
+        com.zynergylabs.forager.app.domain.model.CartographyEntry.draft(id = id, date = DAY, updatedAtEpochMillis = 3_000L).copy(isDraft = false, text = text)
+
+    @Test
+    fun `showing and hiding a saved entry writes shownOnMap alone and updates the listed entry at once`() = runTest(dispatcher) {
+        shownEntryRepository.save(savedEntry("entry-s")).getOrThrow()
+        viewModel.loadEntries()
+        advanceUntilIdle()
+
+        viewModel.onSetShownOnMap("entry-s", true)
+        advanceUntilIdle()
+        assertEquals(savedEntry("entry-s").copy(shownOnMap = true), shownEntryRepository.getById("entry-s").getOrThrow())
+        assertEquals(true, viewModel.uiState.value.entries.single { it.id == "entry-s" }.shownOnMap)
+        assertEquals("not an edit: the stamp is the stored one", 3_000L, viewModel.uiState.value.entries.single().updatedAtEpochMillis)
+
+        viewModel.onSetShownOnMap("entry-s", false)
+        advanceUntilIdle()
+        assertEquals(false, shownEntryRepository.getById("entry-s").getOrThrow()!!.shownOnMap)
+        assertEquals(false, viewModel.uiState.value.entries.single { it.id == "entry-s" }.shownOnMap)
+    }
+
+    @Test
+    fun `the toggle on the open entry updates it in place, keeps its unsaved edit unsaved, and a later save keeps the toggle`() = runTest(dispatcher) {
+        shownEntryRepository.save(savedEntry("entry-o", text = "Stored")).getOrThrow()
+        viewModel.loadEntries()
+        advanceUntilIdle()
+        viewModel.onOpenEntry("entry-o")
+        advanceUntilIdle()
+        viewModel.onTextChanged("Edited, not saved")
+        assertTrue(viewModel.uiState.value.hasUnsavedChanges)
+
+        viewModel.onSetShownOnMap("entry-o", true)
+        advanceUntilIdle()
+        val open = viewModel.uiState.value.editingEntry!!
+        assertEquals(true, open.shownOnMap)
+        assertEquals("the edit is still in the open entry", "Edited, not saved", open.text)
+        assertTrue("and still unsaved", viewModel.uiState.value.hasUnsavedChanges)
+        val stored = shownEntryRepository.getById("entry-o").getOrThrow()!!
+        assertEquals("the store has the toggle", true, stored.shownOnMap)
+        assertEquals("and not the unsaved edit", "Stored", stored.text)
+
+        viewModel.onSaveEntry()
+        advanceUntilIdle()
+        val saved = shownEntryRepository.getById("entry-o").getOrThrow()!!
+        assertEquals("Edited, not saved", saved.text)
+        assertEquals("saving the edit did not undo the toggle", true, saved.shownOnMap)
+    }
+
+    @Test
+    fun `a draft is never shown on the map`() = runTest(dispatcher) {
+        val draft = com.zynergylabs.forager.app.domain.model.CartographyEntry.draft(id = "entry-d", date = DAY, updatedAtEpochMillis = 3_000L)
+        shownEntryRepository.save(draft).getOrThrow()
+        shownEntryRepository.save(savedEntry("entry-s")).getOrThrow()
+        viewModel.loadEntries()
+        advanceUntilIdle()
+
+        viewModel.onSetShownOnMap("entry-d", true)
+        viewModel.onSetShownOnMap("entry-s", true)
+        advanceUntilIdle()
+        assertEquals(false, shownEntryRepository.getById("entry-d").getOrThrow()!!.shownOnMap)
+        assertEquals(false, viewModel.uiState.value.draftEntries.single().shownOnMap)
+        // The saved one beside it was shown, so the draft's refusal is the rule, not a handler that does nothing.
+        assertEquals(true, shownEntryRepository.getById("entry-s").getOrThrow()!!.shownOnMap)
+    }
+
+    // ── J8, continuation 2026-09-28-65 (the owner: "Set it to "Changes not applied. Try again.""): a
+    // failed shownOnMap write has its own message, and the existing save failure keeps its own. ──
+
+    /** A ViewModel like [viewModel]'s, over [repository] instead of the Room one. */
+    private fun viewModelOver(repository: com.zynergylabs.forager.app.domain.CartographyEntryRepository): CartographyViewModel {
+        val mushroomLogRepository = RoomMushroomLogRepository(database.mushroomLogDao())
+        return CartographyViewModel(
+            getEntries = GetCartographyEntriesUseCase(repository),
+            getDraftEntries = GetCartographyDraftEntriesUseCase(repository),
+            createEntry = CreateCartographyEntryUseCase(repository, now = { FIXED_NOW }, idGenerator = { "entry-${nextEntryId++}" }),
+            saveEntry = SaveCartographyEntryUseCase(repository, now = { saveNow }),
+            getEntry = GetCartographyEntryUseCase(repository),
+            commitEntry = CommitCartographyEntryUseCase(repository, now = { FIXED_NOW }),
+            deleteEntry = DeleteCartographyEntryUseCase(repository),
+            getDerivedTrip = GetDerivedTripUseCase(
+                mushroomLogRepository = mushroomLogRepository,
+                trackRepository = RoomTrackRepository(database.trackDao()),
+                waypointRepository = RoomWaypointRepository(database.waypointDao()),
+                offlineRegionDayIndex = RoomOfflineRegionDayIndex(database.offlineRegionDao()),
+            ),
+            getTripReportOfflineRegions = GetTripReportOfflineRegionsUseCase(StubOfflineMapRepository),
+            computeTrackStatistics = ComputeTrackStatisticsUseCase(),
+            setShownOnMap = SetCartographyEntryShownOnMapUseCase(repository),
+            now = { FIXED_NOW },
+        )
+    }
+
+    @Test
+    fun `a failed Show or Hide on map surfaces exactly Changes not applied, Try again, in its own message, not the save one`() = runTest(dispatcher) {
+        shownEntryRepository.save(savedEntry("entry-s")).getOrThrow()
+        val failingWrite = object : com.zynergylabs.forager.app.domain.CartographyEntryRepository by shownEntryRepository {
+            override suspend fun setShownOnMap(id: String, shown: Boolean): Result<Unit> = Result.failure(IllegalStateException("write refused"))
+        }
+        val failing = viewModelOver(failingWrite)
+        failing.loadEntries()
+        advanceUntilIdle()
+
+        failing.onSetShownOnMap("entry-s", true)
+        advanceUntilIdle()
+        assertEquals("Changes not applied. Try again.", failing.uiState.value.shownOnMapErrorMessage)
+        assertEquals("the save message is not used for it", null, failing.uiState.value.saveErrorMessage)
+        assertEquals("nothing changed on screen", false, failing.uiState.value.entries.single().shownOnMap)
+
+        failing.onShownOnMapErrorDismissed()
+        assertEquals(null, failing.uiState.value.shownOnMapErrorMessage)
+    }
+
+    @Test
+    fun `a failed save still surfaces Couldn't save your changes in the save message, and never the map message`() = runTest(dispatcher) {
+        shownEntryRepository.save(savedEntry("entry-o", text = "Stored")).getOrThrow()
+        val failingSave = object : com.zynergylabs.forager.app.domain.CartographyEntryRepository by shownEntryRepository {
+            override suspend fun save(entry: com.zynergylabs.forager.app.domain.model.CartographyEntry): Result<Unit> = Result.failure(IllegalStateException("write refused"))
+        }
+        val failing = viewModelOver(failingSave)
+        failing.loadEntries()
+        advanceUntilIdle()
+        failing.onOpenEntry("entry-o")
+        advanceUntilIdle()
+        failing.onTextChanged("Edited")
+
+        failing.onSaveEntry()
+        advanceUntilIdle()
+        assertEquals("Couldn't save your changes.", failing.uiState.value.saveErrorMessage)
+        assertEquals(null, failing.uiState.value.shownOnMapErrorMessage)
+    }
+
+    /**
+     * Intent 2026-09-28-68, continuation 2026-09-28-76 (the planner's ruling): a successful Discard
+     * clears a save failure's message, as every other success path does, so a stale message cannot
+     * outlive it. Observable only here: the Journal's Toast clears the message the moment it shows,
+     * and the leave prompt that offers Discard is only on screen while the Journal is, so on screen
+     * the message is always gone before Discard can be touched. Through the ViewModel's own entry
+     * points, with a store that refuses the save and then reads the entry back.
+     */
+    @Test
+    fun `a successful Discard clears a save failure's message still pending`() = runTest(dispatcher) {
+        shownEntryRepository.save(savedEntry("entry-dc", text = "Stored")).getOrThrow()
+        val refusingSaves = object : com.zynergylabs.forager.app.domain.CartographyEntryRepository by shownEntryRepository {
+            override suspend fun save(entry: com.zynergylabs.forager.app.domain.model.CartographyEntry): Result<Unit> = Result.failure(IllegalStateException("write refused"))
+        }
+        val vm = viewModelOver(refusingSaves)
+        vm.loadEntries()
+        advanceUntilIdle()
+        vm.onOpenEntry("entry-dc")
+        advanceUntilIdle()
+        vm.onTextChanged("Edited")
+        vm.onSaveEntry()
+        advanceUntilIdle()
+        assertEquals("the refused save left its message", "Couldn't save your changes.", vm.uiState.value.saveErrorMessage)
+
+        vm.onDiscardEntryChanges()
+        advanceUntilIdle()
+
+        assertEquals("the Discard succeeded: the entry closed", null, vm.uiState.value.editingEntry)
+        assertEquals("the Entries list keeps the stored text", "Stored", vm.uiState.value.entries.single { it.id == "entry-dc" }.text)
+        assertEquals("and the message is cleared", null, vm.uiState.value.saveErrorMessage)
     }
 
     private fun dayStartMillis(): Long = DAY.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()

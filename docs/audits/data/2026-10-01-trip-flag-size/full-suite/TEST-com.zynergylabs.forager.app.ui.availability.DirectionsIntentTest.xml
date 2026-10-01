@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.DirectionsIntentTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:29.547Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.151">
+  <properties/>
+  <testcase name="when no maps app is registered, launchDirections shows a message instead of starting anything" classname="com.zynergylabs.forager.app.ui.availability.DirectionsIntentTest" time="0.034"/>
+  <testcase name="a negative latitude and longitude are carried through unencoded (no plus-sign mangling)" classname="com.zynergylabs.forager.app.ui.availability.DirectionsIntentTest" time="0.035"/>
+  <testcase name="when a maps app is registered, launchDirections starts it with the built intent" classname="com.zynergylabs.forager.app.ui.availability.DirectionsIntentTest" time="0.03"/>
+  <testcase name="builds an ACTION_VIEW geo intent carrying the trip's coordinates and name" classname="com.zynergylabs.forager.app.ui.availability.DirectionsIntentTest" time="0.026"/>
+  <testcase name="a trip name with space and ampersand is percent-encoded correctly" classname="com.zynergylabs.forager.app.ui.availability.DirectionsIntentTest" time="0.025"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

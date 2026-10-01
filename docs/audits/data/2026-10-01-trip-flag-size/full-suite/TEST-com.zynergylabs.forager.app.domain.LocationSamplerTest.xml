@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.LocationSamplerTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:53.638Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.0">
+  <properties/>
+  <testcase name="a point after the interval but too close is rejected" classname="com.zynergylabs.forager.app.domain.LocationSamplerTest" time="0.0"/>
+  <testcase name="a point satisfying both interval and distance is accepted" classname="com.zynergylabs.forager.app.domain.LocationSamplerTest" time="0.0"/>
+  <testcase name="a point with no reported accuracy is never rejected on accuracy grounds" classname="com.zynergylabs.forager.app.domain.LocationSamplerTest" time="0.0"/>
+  <testcase name="a point worse than the mode's accuracy threshold is rejected even as the first point" classname="com.zynergylabs.forager.app.domain.LocationSamplerTest" time="0.0"/>
+  <testcase name="the first point is always accepted once it clears the accuracy check" classname="com.zynergylabs.forager.app.domain.LocationSamplerTest" time="0.0"/>
+  <testcase name="a point before the minimum interval has elapsed is rejected even if far enough away" classname="com.zynergylabs.forager.app.domain.LocationSamplerTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.LayoutFixesChipRowLandscapeTest" tests="28" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:49.376Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="5.309">
+  <properties/>
+  <testcase name="T7 at ROTATION_90 both chips do not fit beside the cluster, so they wrap onto two lines" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesChipRowLandscapeTest" time="0.282"/>
+  <testcase name="T7 with the cluster on the far side the two chips have room and stay on one line" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesChipRowLandscapeTest" time="0.23"/>
+  <testcase name="T7 at ROTATION_270 with the cluster snapped left a long label follows it to the bar's right end" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesChipRowLandscapeTest" time="0.205"/>
+  <testcase name="S10 at ROTATION_270 with a long label the chip row stays out of the central third" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesChipRowLandscapeTest" time="0.176"/>
+  <testcase name="T7 at ROTATION_90 a long label is one ellipsized line" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesChipRowLandscapeTest" time="0.181"/>
+  <testcase name="T7 at ROTATION_270 a real touch on the taxon chip's clear button reaches it" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesChipRowLandscapeTest" time="0.154"/>
+  <testcase name="T7 at ROTATION_270 J8's chip alone clears the cluster and the reset button takes touches" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesChipRowLandscapeTest" time="0.124"/>
+  <testcase name="T7 at ROTATION_90 J8's chip keeps taking touches over its pill under the tightened spacing" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesChipRowLandscapeTest" time="0.259"/>
+  <testcase name="T7 at ROTATION_270 with the cluster snapped to the left the chip row follows to the bar's right end" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesChipRowLandscapeTest" time="0.186"/>
+  <testcase name="T7 at ROTATION_90 the taxon chip alone with a long label is one ellipsized line, clear of the central third" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesChipRowLandscapeTest" time="0.171"/>
+  <testcase name="T7 at ROTATION_90 dragging the cluster from left to right moves the chip row from the bar's right end to its left" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesChipRowLandscapeTest" time="0.295"/>
+  <testcase name="T7 at ROTATION_90 J8's chip alone clears the cluster and the reset button takes touches" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesChipRowLandscapeTest" time="0.223"/>
+  <testcase name="T7 at ROTATION_90 a real touch on the taxon chip's clear button reaches it" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesChipRowLandscapeTest" time="0.163"/>
+  <testcase name="T7 at ROTATION_270 J8's chip keeps taking touches over its pill under the tightened spacing" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesChipRowLandscapeTest" time="0.202"/>
+  <testcase name="T7 at ROTATION_270 the taxon chip alone with a long label is one ellipsized line, clear of the central third" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesChipRowLandscapeTest" time="0.151"/>
+  <testcase name="T7 at ROTATION_90 with the cluster snapped to the right the chip row is at the bar's left end" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesChipRowLandscapeTest" time="0.199"/>
+  <testcase name="S10 at ROTATION_90 with the standard label the wrapped two-chip row's drawn chips stay out of the central third" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesChipRowLandscapeTest" time="0.184"/>
+  <testcase name="T7 at ROTATION_90 a long label leaves the row clear of the cluster" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesChipRowLandscapeTest" time="0.188"/>
+  <testcase name="T7 at ROTATION_270 the taxon chip alone clears the cluster and the reset button takes touches" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesChipRowLandscapeTest" time="0.152"/>
+  <testcase name="S10 at ROTATION_90 with a long label the chip row stays out of the central third" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesChipRowLandscapeTest" time="0.167"/>
+  <testcase name="T7 at ROTATION_90 with the cluster on its default left side the chip row is at the bar's right end, clear of it" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesChipRowLandscapeTest" time="0.231"/>
+  <testcase name="T7 at ROTATION_270 a real touch on J8's chip reaches it" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesChipRowLandscapeTest" time="0.251"/>
+  <testcase name="T7 at ROTATION_90 a real touch on J8's chip reaches it" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesChipRowLandscapeTest" time="0.209"/>
+  <testcase name="T7 at ROTATION_270 a long label leaves the row clear of the cluster" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesChipRowLandscapeTest" time="0.141"/>
+  <testcase name="T7 at ROTATION_270 a long label is one ellipsized line" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesChipRowLandscapeTest" time="0.142"/>
+  <testcase name="T7 at ROTATION_90 the taxon chip alone clears the cluster and the reset button takes touches" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesChipRowLandscapeTest" time="0.15"/>
+  <testcase name="T7 at ROTATION_270 with the cluster on its default right side the chip row is at the bar's left end, clear of it" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesChipRowLandscapeTest" time="0.138"/>
+  <testcase name="S10 at ROTATION_270 with the standard label the wrapped two-chip row's drawn chips stay out of the central third" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesChipRowLandscapeTest" time="0.144"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

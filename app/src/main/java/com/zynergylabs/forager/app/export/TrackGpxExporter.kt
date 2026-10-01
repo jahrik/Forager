@@ -1,6 +1,8 @@
 package com.zynergylabs.forager.app.export
 
 import android.content.Context
+import android.util.Log
+import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.GpxCodec
 import com.zynergylabs.forager.app.domain.NETWORK_FIX_EXCLUSION_RULES
 import com.zynergylabs.forager.app.domain.model.GpxDocument
@@ -8,6 +10,8 @@ import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.TrackPointRecord
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import java.io.File
+import java.io.IOException
+import java.nio.file.Files
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -22,8 +26,15 @@ import java.time.format.DateTimeFormatter
  * from the same trip get two distinct, stable names regardless of when either is shared (field-test
  * dispatch's own requirement — "so multiple tracks from one trip don't collide"), and exporting the
  * same track twice overwrites the same file rather than accumulating duplicates.
+ *
+ * Exports more than an hour old are deleted before each export and at app start ([deleteStaleExports]).
+ * [errorLog] is where a failed delete is reported; its default is `android.util.Log`, and a test that
+ * never fails a delete never reaches it.
  */
-class TrackGpxExporter(private val exportDir: File) {
+class TrackGpxExporter(
+    private val exportDir: File,
+    private val errorLog: ErrorLog = ErrorLog { tag, message, error -> Log.w(tag, message, error) },
+) {
 
     /**
      * [fullRecord] and [waypoints] are required, not defaulted — GPX full-record export dispatch.
@@ -44,6 +55,7 @@ class TrackGpxExporter(private val exportDir: File) {
      * own points do not name.
      */
     fun write(track: Track, fullRecord: List<TrackPointRecord>, waypoints: List<Waypoint>): File {
+        deleteStaleExports()
         exportDir.mkdirs()
         val file = File(exportDir, fileNameFor(track))
         file.writeText(
@@ -59,6 +71,28 @@ class TrackGpxExporter(private val exportDir: File) {
         return file
     }
 
+    /**
+     * Deletes every `.gpx` file in this folder last modified more than an hour ago, and returns how many went
+     * (F5, dispatch 2026-09-28-216; owner, "3 A"). An export only has to live until the app it was shared to
+     * has read it, and the share is a chooser that reports nothing back (`TrackExportPanel`'s
+     * `startActivity(Intent.createChooser(…))`), so there is no moment at which that app is known to be done.
+     * An hour is the planner's reading, told to the owner. Runs before each export ([write]) and at app start
+     * (`ForagerApplication`). A file that cannot be deleted is logged and left for the next pass.
+     */
+    fun deleteStaleExports(): Int {
+        val cutoff = System.currentTimeMillis() - STALE_EXPORT_AGE_MILLIS
+        var deleted = 0
+        for (file in exportDir.listFiles().orEmpty()) {
+            if (!file.isFile || file.extension != "gpx" || file.lastModified() >= cutoff) continue
+            try {
+                if (Files.deleteIfExists(file.toPath())) deleted++
+            } catch (e: IOException) {
+                errorLog.w(TAG, "Couldn't delete the GPX export '${file.name}' from the cache; leaving it for the next pass.", e)
+            }
+        }
+        return deleted
+    }
+
     private fun fileNameFor(track: Track): String {
         val timestamp = FILE_NAME_FORMAT.format(
             Instant.ofEpochMilli(track.startedAtEpochMillis).atZone(ZoneId.systemDefault()),
@@ -67,7 +101,11 @@ class TrackGpxExporter(private val exportDir: File) {
     }
 
     companion object {
+        private const val TAG = "TrackGpxExporter"
         private val FILE_NAME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmss")
+
+        /** An export older than this is deleted: one hour (F5; the planner's reading, told to the owner). */
+        private const val STALE_EXPORT_AGE_MILLIS = 60 * 60 * 1000L
 
         /**
          * Cache storage, not external-files: unlike [com.zynergylabs.forager.app.crash.CrashFileStore.forContext]'s

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.JournalShortWindowCardsTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:43.411Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.711">
+  <properties/>
+  <testcase name="ruling 2 the menu's Edit opens that entry in the editor" classname="com.zynergylabs.forager.app.ui.log.JournalShortWindowCardsTest" time="0.082"/>
+  <testcase name="in a short window, the L1 switch leaving Records mid-find-edit is an incidental exit" classname="com.zynergylabs.forager.app.ui.log.JournalShortWindowCardsTest" time="0.048"/>
+  <testcase name="L6 portrait keeps the album at 3 columns" classname="com.zynergylabs.forager.app.ui.log.JournalShortWindowCardsTest" time="0.034"/>
+  <testcase name="ruling 2 a collapsed entry's row takes the long-press menu too" classname="com.zynergylabs.forager.app.ui.log.JournalShortWindowCardsTest" time="0.042"/>
+  <testcase name="ruling 2 the menu's Delete asks for the pending delete of that entry" classname="com.zynergylabs.forager.app.ui.log.JournalShortWindowCardsTest" time="0.045"/>
+  <testcase name="L4 entry cards sit in two columns, each with a 72 dp slot on the left and the text on the right" classname="com.zynergylabs.forager.app.ui.log.JournalShortWindowCardsTest" time="0.055"/>
+  <testcase name="ruling 3 with no photo, the track thumbnail (every kept track) fills the slot" classname="com.zynergylabs.forager.app.ui.log.JournalShortWindowCardsTest" time="0.035"/>
+  <testcase name="ruling 3 with neither, the tinted type-icon panel fills the slot, and the card keeps J3's content" classname="com.zynergylabs.forager.app.ui.log.JournalShortWindowCardsTest" time="0.036"/>
+  <testcase name="L6 the album grid is 5 columns in a short window" classname="com.zynergylabs.forager.app.ui.log.JournalShortWindowCardsTest" time="0.037"/>
+  <testcase name="portrait is unchanged - one column, the hero on top, the swipe row, no slot" classname="com.zynergylabs.forager.app.ui.log.JournalShortWindowCardsTest" time="0.036"/>
+  <testcase name="ruling 2 a plain tap at several points still opens the entry's report" classname="com.zynergylabs.forager.app.ui.log.JournalShortWindowCardsTest" time="0.096"/>
+  <testcase name="ruling 2 a long-press at several points on a two-column card opens Edit and Delete, and there is no swipe" classname="com.zynergylabs.forager.app.ui.log.JournalShortWindowCardsTest" time="0.083"/>
+  <testcase name="ruling 3 an entry with a hero photo shows that photo in the slot" classname="com.zynergylabs.forager.app.ui.log.JournalShortWindowCardsTest" time="0.077"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

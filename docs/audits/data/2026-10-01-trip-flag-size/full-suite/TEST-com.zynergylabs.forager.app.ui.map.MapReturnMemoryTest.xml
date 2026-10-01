@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.MapReturnMemoryTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:09.023Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.001">
+  <properties/>
+  <testcase name="a find that is no longer drawn has no bubble" classname="com.zynergylabs.forager.app.ui.map.MapReturnMemoryTest" time="0.0"/>
+  <testcase name="the request is taken when Open in Journal was tapped, not when Back is" classname="com.zynergylabs.forager.app.ui.map.MapReturnMemoryTest" time="0.0"/>
+  <testcase name="a deleted find returns to the map with no bubble and a fan without it" classname="com.zynergylabs.forager.app.ui.map.MapReturnMemoryTest" time="0.0"/>
+  <testcase name="a forgotten request returns nothing" classname="com.zynergylabs.forager.app.ui.map.MapReturnMemoryTest" time="0.0"/>
+  <testcase name="leaving the Maps tab without using the restore drops it" classname="com.zynergylabs.forager.app.ui.map.MapReturnMemoryTest" time="0.0"/>
+  <testcase name="closing the remembered find hands the bubble and the fan keys to the next Maps tab, once" classname="com.zynergylabs.forager.app.ui.map.MapReturnMemoryTest" time="0.0"/>
+  <testcase name="with no fan open only the bubble comes back" classname="com.zynergylabs.forager.app.ui.map.MapReturnMemoryTest" time="0.001"/>
+  <testcase name="closing a different find returns nothing and forgets the request" classname="com.zynergylabs.forager.app.ui.map.MapReturnMemoryTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

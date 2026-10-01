@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.MapBubblesTest" tests="23" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:08.824Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.01">
+  <properties/>
+  <testcase name="the tapped cell is re-read from the store by its group, week and block" classname="com.zynergylabs.forager.app.ui.map.MapBubblesTest" time="0.002"/>
+  <testcase name="only a point feature is focused for re-anchoring, and only a sighting sets the focused observation" classname="com.zynergylabs.forager.app.ui.map.MapBubblesTest" time="0.001"/>
+  <testcase name="an entry map's kept track gone from Records is named from the entry's snapshot, with no date and no details" classname="com.zynergylabs.forager.app.ui.map.MapBubblesTest" time="0.0"/>
+  <testcase name="a planned trip shows what its Trip Planner row shows" classname="com.zynergylabs.forager.app.ui.map.MapBubblesTest" time="0.003"/>
+  <testcase name="a feature tap becomes the tapped thing, anchored where it was tapped" classname="com.zynergylabs.forager.app.ui.map.MapBubblesTest" time="0.0"/>
+  <testcase name="an offline region shows its name, radius and size, and says Stale only when stale" classname="com.zynergylabs.forager.app.ui.map.MapBubblesTest" time="0.0"/>
+  <testcase name="a track that is in neither Records nor the snapshots has no bubble" classname="com.zynergylabs.forager.app.ui.map.MapBubblesTest" time="0.0"/>
+  <testcase name="a track shows its title, date, distance and duration" classname="com.zynergylabs.forager.app.ui.map.MapBubblesTest" time="0.0"/>
+  <testcase name="the cell bubble's numbers are the stored cell's, beside its layer name, dates and the reference class" classname="com.zynergylabs.forager.app.ui.map.MapBubblesTest" time="0.001"/>
+  <testcase name="a tap near a block edge finds a cell centred in the next block" classname="com.zynergylabs.forager.app.ui.map.MapBubblesTest" time="0.001"/>
+  <testcase name="an entry map's kept waypoint gone from Records is named from the entry's snapshot, with no details" classname="com.zynergylabs.forager.app.ui.map.MapBubblesTest" time="0.0"/>
+  <testcase name="a waypoint shows its name and MGRS" classname="com.zynergylabs.forager.app.ui.map.MapBubblesTest" time="0.0"/>
+  <testcase name="clamped at the left, top and right edges the card moves and the tip stays on the anchor" classname="com.zynergylabs.forager.app.ui.map.MapBubblesTest" time="0.0"/>
+  <testcase name="a glyph 175 px below the top with a 250 px card gets the card below it, the tail pointing up to the glyph" classname="com.zynergylabs.forager.app.ui.map.MapBubblesTest" time="0.0"/>
+  <testcase name="unclamped, the bubble sits above and to the left of the anchor with the tip on it" classname="com.zynergylabs.forager.app.ui.map.MapBubblesTest" time="0.001"/>
+  <testcase name="a glyph with room above keeps the card above it, unchanged" classname="com.zynergylabs.forager.app.ui.map.MapBubblesTest" time="0.0"/>
+  <testcase name="a track still in Records is the record, with details, even when a snapshot exists too" classname="com.zynergylabs.forager.app.ui.map.MapBubblesTest" time="0.0"/>
+  <testcase name="a find shows its identification, its date and its cover photo, an unnamed one its date as the title, and a record gone from its list nothing" classname="com.zynergylabs.forager.app.ui.map.MapBubblesTest" time="0.0"/>
+  <testcase name="every record layer and both colour fields name a bubble kind, and nothing else does" classname="com.zynergylabs.forager.app.ui.map.MapBubblesTest" time="0.0"/>
+  <testcase name="a focused point is re-found in the lists the map draws, and a record no longer drawn is not" classname="com.zynergylabs.forager.app.ui.map.MapBubblesTest" time="0.0"/>
+  <testcase name="where the card fits neither above nor below the glyph M1's clamp stands, and the tip stays on the anchor" classname="com.zynergylabs.forager.app.ui.map.MapBubblesTest" time="0.0"/>
+  <testcase name="a snapshot track with no name is titled as the entry report titles it" classname="com.zynergylabs.forager.app.ui.map.MapBubblesTest" time="0.0"/>
+  <testcase name="a photo shows itself, its date and what it is attached to" classname="com.zynergylabs.forager.app.ui.map.MapBubblesTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

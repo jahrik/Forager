@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.data.repository.OpenMeteoWeatherSeriesTest" tests="14" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:49.849Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.024">
+  <properties/>
+  <testcase name="days before the reference day are observed and the rest are forecast" classname="com.zynergylabs.forager.app.data.repository.OpenMeteoWeatherSeriesTest" time="0.0"/>
+  <testcase name="soil temperature keeps the day's mean, min and max" classname="com.zynergylabs.forager.app.data.repository.OpenMeteoWeatherSeriesTest" time="0.003"/>
+  <testcase name="no served band reports an explicit unavailability instead of a substitute" classname="com.zynergylabs.forager.app.data.repository.OpenMeteoWeatherSeriesTest" time="0.0"/>
+  <testcase name="hourly readings are grouped by their own local date, not by position" classname="com.zynergylabs.forager.app.data.repository.OpenMeteoWeatherSeriesTest" time="0.004"/>
+  <testcase name="the 0 to 7cm band is used when the location's model serves it" classname="com.zynergylabs.forager.app.data.repository.OpenMeteoWeatherSeriesTest" time="0.005"/>
+  <testcase name="precipitation and evapotranspiration are carried through per day" classname="com.zynergylabs.forager.app.data.repository.OpenMeteoWeatherSeriesTest" time="0.0"/>
+  <testcase name="soil moisture is reduced to the day's mean" classname="com.zynergylabs.forager.app.data.repository.OpenMeteoWeatherSeriesTest" time="0.0"/>
+  <testcase name="a band whose units say undefined is not used even if a stray value appears" classname="com.zynergylabs.forager.app.data.repository.OpenMeteoWeatherSeriesTest" time="0.002"/>
+  <testcase name="scattered null hours inside a day are dropped, not treated as zero" classname="com.zynergylabs.forager.app.data.repository.OpenMeteoWeatherSeriesTest" time="0.001"/>
+  <testcase name="the 0 to 10cm band is used when 0 to 7cm is served as nulls" classname="com.zynergylabs.forager.app.data.repository.OpenMeteoWeatherSeriesTest" time="0.005"/>
+  <testcase name="one unavailable variable does not suppress the ones that are served" classname="com.zynergylabs.forager.app.data.repository.OpenMeteoWeatherSeriesTest" time="0.001"/>
+  <testcase name="a 23-hour daylight-saving day still reports a soil value" classname="com.zynergylabs.forager.app.data.repository.OpenMeteoWeatherSeriesTest" time="0.0"/>
+  <testcase name="the reference day itself is forecast, not observed" classname="com.zynergylabs.forager.app.data.repository.OpenMeteoWeatherSeriesTest" time="0.001"/>
+  <testcase name="a day with too few readings reports no soil value rather than a partial mean" classname="com.zynergylabs.forager.app.data.repository.OpenMeteoWeatherSeriesTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

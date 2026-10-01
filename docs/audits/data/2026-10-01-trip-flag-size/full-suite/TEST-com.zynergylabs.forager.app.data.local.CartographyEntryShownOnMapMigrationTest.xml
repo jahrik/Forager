@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.data.local.CartographyEntryShownOnMapMigrationTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:45.256Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.155">
+  <properties/>
+  <testcase name="after 15 to 16, setShownOnMap sets that column alone, and a save carries it" classname="com.zynergylabs.forager.app.data.local.CartographyEntryShownOnMapMigrationTest" time="0.078"/>
+  <testcase name="every entry survives 15 to 16 with every field and decision, and reads shownOnMap false" classname="com.zynergylabs.forager.app.data.local.CartographyEntryShownOnMapMigrationTest" time="0.075"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

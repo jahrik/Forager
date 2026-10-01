@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.CameraGridOverlayTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:26.147Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.113">
+  <properties/>
+  <testcase name="at Grid and Level the same grid is drawn" classname="com.zynergylabs.forager.app.ui.log.CameraGridOverlayTest" time="0.056"/>
+  <testcase name="at Off nothing is drawn" classname="com.zynergylabs.forager.app.ui.log.CameraGridOverlayTest" time="0.028"/>
+  <testcase name="at Grid four lines divide the preview into thirds, each spanning it" classname="com.zynergylabs.forager.app.ui.log.CameraGridOverlayTest" time="0.028"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

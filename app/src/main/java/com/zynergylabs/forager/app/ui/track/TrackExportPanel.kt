@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -18,6 +19,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,6 +32,13 @@ import com.zynergylabs.forager.app.domain.model.TrackPointRecord
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.networkFixExclusionNote
 import com.zynergylabs.forager.app.export.TrackGpxExporter
+import com.zynergylabs.forager.app.ui.log.RecordType
+import com.zynergylabs.forager.app.ui.log.TrackThumbnail
+import com.zynergylabs.forager.app.ui.log.TwoStageSwipeRow
+import com.zynergylabs.forager.app.ui.log.rememberSwipeRevealGroup
+import com.zynergylabs.forager.app.ui.log.swipeRevealTouchWatcher
+import com.zynergylabs.forager.app.ui.log.swipeToDeleteTag
+import com.zynergylabs.forager.app.ui.log.opensRecordDetails
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.io.File
 import java.time.Instant
@@ -66,7 +75,23 @@ internal fun TrackExportList(
      */
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>> = { Result.success(emptyList()) },
     modifier: Modifier = Modifier,
+    /**
+     * Journal redesign J5c: a tap on a row opens that track's details sheet (`RecordDetailsSheet`),
+     * given the track's id. `null`, the default, leaves the rows without a tap, as before.
+     */
+    onOpenTrackDetails: ((String) -> Unit)? = null,
+    /**
+     * Part 2 follow-ups F1 item 5 (owner "Option A"): a swipe on a **finished** track's row (a short swipe
+     * reveals Delete, a full swipe deletes, or the row's "Delete" accessibility action) asks for a pending
+     * delete with Undo, as a waypoint's row does. A track that is still recording has no swipe, and no Delete
+     * anywhere. `null`, the default, leaves every row as it was.
+     */
+    onDeleteTrack: ((String) -> Unit)? = null,
+    /** Set when a committed delete failed and the track is back: shown above the list, as the waypoints list shows its own. */
+    errorMessage: String? = null,
 ) {
+    // One open row at a time, and a touch elsewhere on the list closes it (J4b L6).
+    val swipeGroup = rememberSwipeRevealGroup()
     if (tracks.isEmpty()) {
         Text(
             "No recorded tracks yet.",
@@ -78,43 +103,88 @@ internal fun TrackExportList(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .swipeRevealTouchWatcher(swipeGroup)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
-        tracks.forEach { track -> TrackExportRow(track = track, waypoints = waypoints, getFullRecord = getFullRecord) }
+        if (errorMessage != null) {
+            Text(errorMessage, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+        }
+        tracks.forEach { track ->
+            key(track.id) {
+                val row: @Composable () -> Unit = {
+                    TrackExportRow(
+                        track = track,
+                        waypoints = waypoints,
+                        getFullRecord = getFullRecord,
+                        onClick = onOpenTrackDetails?.let { open -> { open(track.id) } },
+                    )
+                }
+                if (onDeleteTrack != null && track.canBeDeleted) {
+                    TwoStageSwipeRow(
+                        testTag = swipeToDeleteTag(RecordType.TRACKS, track.id),
+                        rowKey = track.id,
+                        group = swipeGroup,
+                        onDelete = { onDeleteTrack(track.id) },
+                        onEdit = null,
+                    ) { row() }
+                } else {
+                    row()
+                }
+            }
+        }
     }
 }
 
 @Composable
-private fun TrackExportRow(
+internal fun TrackExportRow(
     track: Track,
     waypoints: List<Waypoint>,
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
+    /**
+     * Journal redesign J5c: what a tap on the row opens (the track's details sheet), or `null` for no
+     * row tap. The All logbook passes `null` and puts the tap on its badged row instead, so the badge
+     * takes it too. The Share button keeps its own tap either way.
+     */
+    onClick: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .testTag(trackExportRowTag(track.id))
+            .then(if (onClick != null) Modifier.opensRecordDetails(trackTitle(track), onClick) else Modifier)
             .heightIn(min = 48.dp)
             .padding(vertical = Spacing.xs),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column {
-            Text(formatTrackTimestamp(track), style = MaterialTheme.typography.bodyLarge)
-            Text(trackSubtitle(track), style = MaterialTheme.typography.bodySmall)
+        // Journal redesign J3, C3 (owner ruling "Rows and Entries cards"): the track's own points,
+        // already in memory on every row, drawn as a small thumbnail in front of its text. Fewer than
+        // two points draws nothing (TrackThumbnail's rule).
+        Row(
+            modifier = Modifier.weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TrackThumbnail(
+                trackId = track.id,
+                points = track.points,
+                modifier = Modifier.size(TRACK_ROW_THUMBNAIL_SIZE).testTag("track-thumbnail-${track.id}"),
+            )
+            Column {
+                Text(formatTrackTimestamp(track), style = MaterialTheme.typography.bodyLarge)
+                Text(trackSubtitle(track), style = MaterialTheme.typography.bodySmall)
+            }
         }
         // testTag, not contentDescription alone, is what a test (and this dispatch's own testing
         // note) needs to find this by: a contentDescription proves TalkBack can reach it, not that
         // a sighted tester can find it visually — see this dispatch's item 2 for the bug that shape
         // of assertion hid for an entire release.
         IconButton(
-            onClick = {
-                val trackWaypoints = waypoints.filter { it.trackId == track.id }
-                scope.launch { exportAndShareTrack(context, track, trackWaypoints, getFullRecord) }
-            },
+            onClick = { scope.launch { shareTrackGpx(context, track, waypoints, getFullRecord) } },
             modifier = Modifier.testTag("share-track-${track.id}"),
         ) {
             Icon(Icons.Filled.Share, contentDescription = "Share track recorded ${formatTrackTimestamp(track)}")
@@ -139,8 +209,27 @@ internal fun trackSubtitle(track: Track): String {
     return if (track.endedAtEpochMillis == null) "$body · recording" else body
 }
 
-private fun formatTrackTimestamp(track: Track): String =
-    DISPLAY_FORMAT.format(Instant.ofEpochMilli(track.startedAtEpochMillis).atZone(ZoneId.systemDefault()))
+private fun formatTrackTimestamp(track: Track): String = formatRecordTimestamp(track.startedAtEpochMillis)
+
+/**
+ * A record's moment in this list's own format, "Sep 20, 2026, 6:42 PM" ([DISPLAY_FORMAT], the same
+ * pattern `CrashLogPanel` uses), in the device's zone. Widened for journal redesign J5c, whose
+ * details sheet prints a waypoint's creation time, a track's start and end and a region's download
+ * time with it: the one existing date-and-time formatter in the Records rows.
+ */
+internal fun formatRecordTimestamp(epochMillis: Long): String =
+    DISPLAY_FORMAT.format(Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()))
+
+/** Whether Delete may be offered for this track: never while it is still recording (its end time is null). Part 2 follow-ups F1 item 5. */
+internal val Track.canBeDeleted: Boolean get() = endedAtEpochMillis != null
+
+/** A track's name, or its start time when it has none: what the row shows as its title (J5c's sheet title too). */
+internal fun trackTitle(track: Track): String = track.name ?: formatTrackTimestamp(track)
+
+/** The Tracks chip's row for [trackId] (J5c: the details tap is tested at several points across it). */
+internal fun trackExportRowTag(trackId: String): String = "track-row-$trackId"
+
+private val TRACK_ROW_THUMBNAIL_SIZE = 40.dp
 
 private val DISPLAY_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy, h:mm a")
 
@@ -151,6 +240,17 @@ private val DISPLAY_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM
  * itself: the filtered `<trkseg>` the app already displayed is still worth getting out, even
  * without the raw `<extensions>` record this dispatch adds.
  */
+/**
+ * The row's Share action, also the J5c details sheet's: [allWaypoints] filtered to [track] (by
+ * [Waypoint.trackId]), then [exportAndShareTrack]. One function so the two buttons cannot drift.
+ */
+internal suspend fun shareTrackGpx(
+    context: Context,
+    track: Track,
+    allWaypoints: List<Waypoint>,
+    getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
+) = exportAndShareTrack(context, track, allWaypoints.filter { it.trackId == track.id }, getFullRecord)
+
 private suspend fun exportAndShareTrack(
     context: Context,
     track: Track,
