@@ -873,7 +873,7 @@ fun SightingsMap(
     // recolours them on the loaded style (the layer was built with the colour current at style load).
     LaunchedEffect(loadedStyle, chromeColour) {
         val style = loadedStyle ?: return@LaunchedEffect
-        applyFanCircleStyle(style, chromeColour)
+        applyFanCircleStyle(style, chromeColour, context.resources.displayMetrics.density)
     }
 
     // Colour-field cells (map layers L0b, B5): each time the camera goes idle, and after every style
@@ -1130,7 +1130,7 @@ private fun initializeOverlayLayers(
         style.addLayer(layer)
     }
     // The marker fan-out's own layers, above every registry layer (FanOutLayers.kt).
-    addFanOutLayers(style, palette, chromeColour)
+    addFanOutLayers(style, palette, chromeColour, density)
 }
 
 /**
