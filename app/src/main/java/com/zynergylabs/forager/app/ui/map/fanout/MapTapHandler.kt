@@ -39,6 +39,9 @@ interface MapTapSinks {
     fun onSightingTap(observationId: Long?, xPx: Float, yPx: Float)
     fun onFeatureTap(layerId: String, featureId: String, xPx: Float, yPx: Float, at: LatLng)
     fun onUnidentifiedFeature(layerId: String)
+
+    /** A tap on a stack closes the bubble that is showing (dispatch 2026-09-28-387, Part A). Not the plain tap: that one also leaves fullscreen. */
+    fun onCloseBubble()
 }
 
 /**
