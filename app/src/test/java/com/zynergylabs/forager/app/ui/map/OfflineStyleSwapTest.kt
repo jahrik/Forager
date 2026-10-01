@@ -124,7 +124,7 @@ class OfflineStyleSwapTest {
     /**
      * Changed on purpose in colour build C2. Before C2 this asserted that a toggle over Satellite was
      * *not* a reload, since Satellite's style does not change at night and the markers were day-only.
-     * The owner ruled that on Satellite only the markers switch, so the palette now changes with the
+     * The owner decided that on Satellite only the markers switch, so the palette now changes with the
      * toggle and the overlay layers, which bake their colours in, have to be rebuilt: a reload. The
      * basemap itself still stays day: effective night is false both ways.
      */

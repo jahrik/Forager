@@ -480,7 +480,7 @@ class AvailabilityScreenMapBubblesTest {
 
     @Test
     // Re-based 2026-09-30 (dispatch 2026-09-29-57, item 8, the owner's amendment -256): this test asserted that Back from a find
-    // opened with "Open in Journal" lands on the Journal, which the owner has ruled is wrong ("it should return you to the
+    // opened with "Open in Journal" lands on the Journal, which the owner has said is wrong ("it should return you to the
     // map"). Back now arrives on the Maps tab; the claim about the Journal, that it keeps its saved chip, is now checked when the
     // user next goes there. The new behaviour's own tests are AvailabilityScreenReturnToMapTest.
     fun `Open in Journal opens the find in its report over the Journal, Back returns to the Maps tab, and the Journal keeps its saved chip`() {

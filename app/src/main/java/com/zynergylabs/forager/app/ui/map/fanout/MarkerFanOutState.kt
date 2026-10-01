@@ -67,7 +67,7 @@ class MarkerFanOutState {
  * The clock for [state]: moves its progress to 1 when it opens and back to 0 when it folds, each over
  * [FAN_DURATION_MS], then releases it. With the system's animations off ([isReduceMotionEnabled], the
  * owner's "spread out at once") the progress jumps to its end. The easing is the standard
- * fast-out-slow-in: the owner ruled the duration and not the curve.
+ * fast-out-slow-in: the owner chose the duration and not the curve.
  */
 @Composable
 fun MarkerFanOutHost(state: MarkerFanOutState) {

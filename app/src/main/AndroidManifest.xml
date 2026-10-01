@@ -119,7 +119,7 @@
            restore-corruption argument above, which is about the database and the photos, not the
            crash logs.
         2. "Keep the rules file, add the database and the photo directory to the exclusions."
-           Withdrawn before the owner ruled: excluding the database and the photo directory
+           Withdrawn before the owner decided: excluding the database and the photo directory
            excludes essentially all user data, so it reaches the same end state as
            allowBackup="false" while adding two config files, two domains each, and several ways
            for a rule to be silently inert.

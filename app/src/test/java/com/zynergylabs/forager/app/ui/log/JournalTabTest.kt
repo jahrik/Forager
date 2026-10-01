@@ -361,7 +361,7 @@ class JournalTabTest {
      * Picker-fixes dispatch, F1, the owner's report: "when choosing a location to save to the find
      * log" the picker snapped back to the device after every pan. A live fix arrives about once a
      * second, each a new picker region (`findLocationPickerRegion`), and before this fix each one
-     * reset the pin and re-centred the map. The owner's rule, "Follow until you touch it": after
+     * reset the pin and re-centred the map. The owner's words, "Follow until you touch it": after
      * the first pan, a new fix moves neither the pin, nor what OK saves, nor the region the map is
      * handed. The pan is a real drag on [PanRecordingMapSlot]; the new fix goes through
      * [JournalTab]'s own `deviceLocation` parameter, as the scaffold passes `liveFix`.
