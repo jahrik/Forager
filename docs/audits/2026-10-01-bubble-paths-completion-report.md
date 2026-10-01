@@ -81,7 +81,7 @@ report's map it ENTERS fullscreen when no bubble is up. So the bubble is closed 
 - The find's return rebuilds the bubble with the anchor saved at "Open in Journal" (`MapReturnMemory.takeBubble`); the entry's does the same with the anchor saved at the line's tap.
 - At every camera idle `reanchorFocusedBubble` (`SightingsMap.kt:454`, called at `:621`) moves a **point** bubble to its record's own place (`focusedFeaturePosition`, `MapBubbles.kt:119`), which is the marker in its stack, not the fanned copy displaced from it. So after the first idle a point bubble over an open fan points at the hub, not at its fanned icon. That is true of the find's return today and of this one. **Reported as a finding; neither fixed nor copied silently.**
 - (b), a fan open with a bubble over it and following on: from the code, the idle after each follower move re-anchors the same way. The camera idled after every follower move in the -380 watch (`2026-10-01-fan-holds/hole/probe-watchB-window.txt`, 7288 moves in two minutes). So the bubble would sit at the hub, not at its icon. **Not run**, and not fixable here; for the owner.
-- (a), on the phone, the return from a find's page with the fan: **not run.** It needs "Open in Journal", which this dispatch's phone list does not name.
+- (a), on the phone, the return from a find's page with the fan: **not run.** It needs "Open in Journal", which this dispatch's phone list does not name. **Superseded by the addendum at the end of this report:** the planner authorised it afterwards and it was run.
 
 ## Tests changed (before and after)
 
@@ -118,3 +118,29 @@ S22 `R5CT321008R`, installed `1.0.2401+g64be86f8` over `1.0.2385+gc170cf54` (for
 **Premises that were wrong.** (1) Part A first closed the bubble with the plain tap; it also leaves fullscreen (and on the entry map enters it), which the planner asked me to check. (2) My first memory test said a different entry closing forgets the request, as a find does; the Journal's swap of the open entry made that wrong, caught before it was pushed. (3) The dispatch listed three `MapRenderMode` builders; the entry report's was not wired by Part A.
 
 **Decided beyond scope.** The entry's request is kept in its own field rather than threaded through the find's, and `CartographyScreen` reports an entry gone by any route (an effect) as well as by Back (synchronously), so a request cannot go stale after a Save at the leave prompt; the dispatch named the files but not that shape.
+
+---
+
+# Addendum, written after the report: phone case (a), run on `1.0.2401+g64be86f8`
+
+This supersedes the report's line "(a), on the phone ... **not run**". The planner authorised the run after the hand-back ("open the stack, tap a fanned find, and in its bubble tap 'Open in Journal' ... on the
+find's page, Back and nothing else ... fix nothing"). Evidence: `~/Zynergy/device-evidence/2026-10-01-bubble-paths/runs/bpA_result.md` (with `bpA.mp4`, `bpA_times.txt`, `bpA_a*.png`, `bpA_dump_*.xml`).
+
+**What was done (12:28 to 12:31).** Reads before every tap: ROTATION_0, Forager in focus, version, `ceDataInode` 2259049, `forager.db` sha256 `6357bd01…`, animator 1.0. Tapped the stack, tapped a fanned find
+(bubble: "1 more", "Find on 2026-10-01", "Open in Journal"), tapped "Open in Journal" at the centre of the bounds a `uiautomator dump` gave (`[120,1082][483,1143]`), pressed Back once on the find's page. The map came back with
+the fan and the bubble. Then Back: the bubble closed and the fan stayed (glyph pixels 131,868). Then Back: the fan folded (6,592). No Back reached the exit prompt.
+
+**What was measured** (device pixels, 3.75 px per dp; screenshots `bpA_a2.png`, `bpA_a4_early.png`, `bpA_a4_late.png`). The "1 more" text row of the bubble, as a stand-in for the card's place: 908 before leaving
+(the bubble anchored at the finger, on the fanned icon); 815 in the first frame after Back (about 0.15 s, the map still blank); 1239 settled (about 3 s after Back). Settled against before leaving: 331 px, 88 dp lower.
+
+**The inference and its limit.** The bubble's tail is not drawn in any frame, so the pointer was **not read**; it is inferred from the card's position. If the card is unclamped in y, the settled pointer is at
+y = 1264 + 331 = 1595 px, and the fan's legs converge (the hub) at about y 1592 px in the settled frame: under 1 dp apart. The fanned icon is about 92 dp above that. The pointer's x cannot be recovered (the card is
+clamped at the left edge). So, settled, the bubble points at the middle of the fan and not at the icon it was opened from, which is what `reanchorFocusedBubble` does at each camera idle
+(`SightingsMap.kt:454`, called at `:621`, position from `focusedFeaturePosition`, `MapBubbles.kt:119`).
+
+**Not explained.** In the first frame after Back the card was 93 px (25 dp) *above* where it stood before leaving the map. A transient layout before the map has its size, or a saved anchor that differs from the one at the
+tap, would each do it; I did not determine which.
+
+**Not run, still.** The same with the map following the location (the dispatch does not allow the locate button); from the code the idle after each follower move re-anchors the bubble the same way. The owner's decision on
+this finding: "Ship with known issue and next release will carry the fix to live."
+

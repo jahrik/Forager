@@ -141,6 +141,11 @@ Work here is dispatched and recorded, so much of what is known about the app is 
 - That a fan stays open while the map follows a moving location is covered by unit tests and by device runs
   and the owner's own walk, recorded in `docs/audits/2026-10-01-fan-holds-completion-report.md`.
 - There is no real forecast data source (above). The species ranking is history only.
+- A known issue, not fixed in this release: a bubble over an open fan is placed again for its record's own position
+  when the map settles, which for a fanned record is the middle of the stack, so it can sit there and not beside its
+  icon. Seen on the S22 on the return from a find's page; expected, not observed, while the map follows the location.
+- Not run on a phone: tapping another stack with a bubble showing, and Back from a journal entry opened from a
+  "kept in" line. Both are held by unit and screen tests.
 - A photo taken with the camera has its metadata stripped except its orientation (`photo/FilePhotoStore.kt`);
   a photo imported from the gallery is stored as it came.
 - Offline maps come from the project's own tile worker; its status is in `server/pmtiles-worker/README.md`.
