@@ -10058,3 +10058,36 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **For the owner's triage after the release, added to -390's list:** the README checked against the code, statement by statement, by where a user reaches each thing; the codebase overhaul and the removal of dead code; a bug list.
 **Next:** CI on this head; then PR #140 into pre-main, the backup already written; then pre-main into main.
 **Notes:** Written by the planner session that wrote -370 to -393.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-395
+**Timestamp:** 2026-10-01T20:12:39Z
+**PR:** 140
+**Head:** journal-redesign
+**Base:** pre-main
+**Merge-commit:** 9a65056f1109db60d418f235c4b32edb6a60993d
+**Pre-merge:** 352b70842fb014ec5d30aa5bc483c29c25144cf2
+**Backup:** 2026-10-01-01
+**Merged-by:** planner, on the owner's instruction
+**Carries:** every entry from 2026-09-27-48 to 2026-09-28-394, 409 entries
+**Notes:** The owner, verbatim: "Do the readme and then begin work on merging PR 140 to pre main and then to main. You have my auth for that full stack"; "Mister Scotty, run the final stack. You have ny authorization."; "Your finish line is merging this to main." Merged with a merge commit through the GitHub CLI by the planner session that wrote -370 to -394, from head fe52f708fa4c5f90e8cb8e9a765a9df2c9340189, on which CI had passed (run 36918500548); the pull request was taken out of draft just before. main had first been merged into journal-redesign (c73bd68f) so both merges were clean. pre-main's tree after the merge is identical to that head. The backup is a bundle of origin/pre-main at the pre-merge commit, with merge.json and a manifest, in forager-repo-backups outside the repository. The branch journal-redesign was not deleted. Written by hand; the kit's sweep no longer exists (docs/audits/2026-09-27-kit-hooks-disabled.md).
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-396
+**Timestamp:** 2026-10-01T20:37:10Z
+**PR:** 142
+**Head:** pre-main
+**Base:** main
+**Merge-commit:** 32c464075a6a300023270f59f61992cc96efc67a
+**Pre-merge:** faf2f88fcc56a96fcdd1f6379019f08cd792a8c6
+**Backup:** 2026-10-01-02
+**Merged-by:** planner, on the owner's instruction
+**Carries:** merge 2026-09-27-47 (PR #139) and everything 2026-09-28-395 carries
+**Notes:** The owner's instructions as in -395, and, on the one red run below: "Rerun it" and "Merge if it passes". Pull request #142 was opened by the planner for this merge, from the repository's template. main's tree after the merge is identical to pre-main's and to journal-redesign's head. The backup is a bundle of origin/main at the pre-merge commit. No branch was deleted. Pull requests #101, #104 and #109 were left open; the owner: "I'll sort the old PRs out later."
+**CI on 9a65056f before this merge:** the pull_request run passed (36920082298). The push run on pre-main (36919950945) failed on its first attempt with 1 of 3,386 tests: MushroomLogViewModelWiringTest, "an album photo deleted through the Journal's ViewModel leaves the Maps tab's records", an AssertionError at MushroomLogViewModelWiringTest.kt:92, the map's snapshot still holding the photo after the delete. The planner stopped and told the owner; the same job re-run on the same commit passed. So on one tree: three passes (fe52f708's run, the pull_request run, the re-run) and one failure. The test came with dispatch 2026-09-28-312 two days earlier; nothing merged on 2026-10-01 touches what it exercises. It was not silenced, skipped or edited. Whether the fault is the test's timing or the app being late to update the map after a photo is deleted is not determined; it goes to the owner's flake hunt and bug list as an intermittent failure now observed once.
+**Shipped as it stands, by the owner's words:** "Ship with known issue and next release will carry the fix to live" (the bubble's place over an open fan, -390); "I'll triage after the release"; "Yep. Post release triage material" (the README checked against the code, the codebase overhaul and dead code, a bug list: -394). The lists are in terminals -390 and -394 and in docs/audits/2026-10-01-readme-deferred-section.md.
+**Where this entry lives:** on branch records-after-142, cut from main at the merge commit, pushed and not merged; a merge's record cannot be in the commit it describes.
