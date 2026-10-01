@@ -9955,3 +9955,26 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Not run on the phone yet.** No unit test reaches the real map's tap path or fullscreen staying on.
 **A gap the planner found reading the merge, sent back:** the journal entry report's own map also shows bubbles (CartographyEntryReportScreen.kt:495 sets onFeatureTap) and does not set onCloseBubble, so on that map a stack tap leaves the bubble as before. Not a regression; the coder is to say whether that map fans stacks and, if it does, wire and test it as its own commit.
 **Notes:** Written by the planner session that wrote -370 to -387.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-389
+**Timestamp:** 2026-10-01T19:27:41Z
+**Closes:** 2026-09-28-387 (preserved 2026-10-01-11), with continuation -388
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as b79e2ae0, no-ff, from bubble-paths at 08670159 (the code is 64be86f8), under the owner's "1 yes, 2 yes, build it now" (-387) and "Merge when ready" (-372): Part B, and the entry map's part of Part A (07656693). Part A itself merged as 303226ef (-388). The coder ran on Sonnet 5.5.
+- **Part B, the path the owner confirmed:** "Fan open, X's bubble over it > tap "kept in <entry>" > journal entry opens > Back > map, with the fan and X's bubble as they were". Before, that Back landed on the Journal's Entries list and a second went to the map with nothing open. Now the bubble's "kept in" line remembers the bubble it was tapped in and the fan open then; the Journal tells the screen when that entry's report is left; the Maps tab comes back with both. An entry opened from the Journal's own list still goes back to the list.
+- **The entry map:** the journal entry report's own map fans stacks and shows bubbles (the coder's answer to the gap in -388), and now closes a showing bubble on a stack tap by its own hook; the plain tap there enters fullscreen.
+- **The planner's checks:** app/ in the merged head identical to 64be86f8 and the tree to 08670159; no @Ignore, no README row removed; the saved XML on 64be86f8 tallies to 413 suites, 3386 tests, 0 failures, 0 errors, 24 skipped, one suite covering Part A, the entry map and Part B; 0 e: lines in the suite's log and in all six revert runs' logs. The planner read the return memory, the screen's wiring, the bubble's wrapper and the Journal's callback.
+- **From the coder's report, not re-run:** 16 tests failed on the stub (7 on the memory, 9 on real screens); six revert checks, failing 9, 9, 3, 1, 1 and 9 tests; one revert run was void, its mutation not compiling (a dropped null check breaking a smart cast), seen in its log and redone before anything was cited.
+**Cases, as the coder states them:** every kind of bubble that carries the line is held at the memory's level (find, photo, waypoint, track, region); track and region are not driven on a screen. Another tab forgets the return. Leaving from the entry's editor forgets it and lands on the Entries list, as editing a find does. A different entry closing leaves the request alone, unlike the find's side, because the Journal swaps the open entry when a "kept in" line is tapped over another. X gone: no bubble, one line logged.
+**Not exercised, flagged by the coder:** an entry deleted from its report (by the code it returns to the map with the bubble); the detour from the entry to a find and back, on a screen. The owner's whole path as one test is not possible; the report maps each step to the test that holds it.
+**Not run on the phone:** Part A (one stack in view) and Part B (no bubble on the stack in view carries a "kept in" line; the coder read each bubble from a dump and arranged nothing). Both are the owner's. Seen on the phone as at the base: a bubble over the open fan; the first Back closes the bubble and the fan stays; the second folds it.
+**A finding, confirmed from the code and not fixed:** a point bubble is moved to its record's own place at every camera idle (reanchorFocusedBubble, SightingsMap.kt:454, called at :621), which for a fanned record is the stack's hub and not its fanned icon. So a bubble over an open fan points at the hub after the first idle: on the return from a find's page, on the new return from an entry, and, since -380 keeps a fan open while the map follows the location, after every re-centre. Not yet observed on the phone; the planner has asked the coder to record the first case and the owner to look at the last.
+**A small thing the planner read and has asked to be corrected with the next change:** MapReturnMemory.takeEntryBubble returns nothing, without a log line, for a bubble whose target is not a record's; nothing reaches that today.
+**The phone:** 1.0.2401+g64be86f8, the final build of this dispatch; forager.db sha256 6357bd01…; portrait; read by the planner.
+**Still with the owner, device-only:** the three lines under "For the owner afterwards" in the dispatch; an entry deleted after being opened from a bubble; Back from the entry's editor.
+**Next:** the README (-379), then PR #140 into pre-main and pre-main into main.
+**Notes:** Written by the planner session that wrote -370 to -388.
