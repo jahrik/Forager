@@ -155,7 +155,32 @@ Two things these do not show:
 
 ## Suite counts (from the JUnit XML)
 
-SUITE_COUNTS_PLACEHOLDER
+**Final run**, `./gradlew :app:testDebugUnitTest :app:assembleDebug --continue`, started 2026-10-01T02:48:48Z on `fac49576`. `app/` is identical at `HEAD` (`git diff fac49576 HEAD -- app` is empty; only documents were committed after). The results folder was deleted before the run, and all 405 XML files are stamped 02:53:12Z.
+
+- **3269 tests, 0 failures, 0 errors, 24 skipped**, in 405 classes.
+- `BUILD SUCCESSFUL in 4m 24s`, **0 `e:` lines**. `assembleDebug` ran (`compileDebugKotlin`, `packageDebug` and `assembleDebug` all executed), and `app-debug.apk` is stamped 02:49:09Z.
+- **The 24 skipped are none of this dispatch's:** `AvailabilityScreenMapIconStackTest` 19, `AvailabilityScreenTripPlanningFlowTest` 2, `AvailabilityScreenWaypointFlowTest` 1, `AvailabilityScreenOfflineCacheTest` 1, `GenerateFungiIndexDbAsset` 1. The first four classes have the same `@Ignore` count at base `f8f3b9f5` and at `HEAD`; the fifth was not compared.
+- **No owner-held flake fired in this run:** `JournalPendingDeleteTest` 52 of 52 and `DiagnosticsPanelTest` 8 of 8 passed. One run says nothing about their rate.
+- No stall, so no thread dump.
+
+| Class | Tests | Failures |
+| --- | --- | --- |
+| `MapRecordsDeletedNotDrawnTest` | 13 | 0 |
+| `MushroomLogViewModelWiringTest` | 2 | 0 |
+| `AvailabilityScreenBubbleAndDropdownBackTest` | 5 | 0 |
+| `AvailabilityScreenDropdownCloseOutOfTouchModeTest` | 3 | 0 |
+| `AvailabilityScreenFanBackDrawerTest` (-293, unchanged) | 4 | 0 |
+| `AvailabilityScreenFanBackOthersTest` (-298, unchanged) | 5 | 0 |
+| `AvailabilityScreenFanBubbleDismissalTest` (unchanged) | 10 | 0 |
+| `MarkerFanOutHostTest` (unchanged) | 10 | 0 |
+| `LeavingTheJournalFixesTest` (unchanged) | 31 | 0 |
+| `FindDeleteReappearsOnMapTest` (unchanged) | 5 | 0 |
+| `SiblingDeletesReappearOnMapTest` (unchanged) | 9 | 0 |
+| `JournalPendingDeleteTest` (unchanged) | 52 | 0 |
+
+**The earlier session's run**, on `520dd863` before any of the resumed session's changes: 3262 tests, 0 failures, 0 errors, 27 skipped (three were its own `@Ignore`d tests), in 404 classes, `BUILD SUCCESSFUL in 5m 16s`, 0 `e:` lines. It finished after that session had died; the counts are from its saved XML. The difference adds up: 4 tests in its Part B class became 5, plus 3 in the new class, plus 3 in `MapRecordsDeletedNotDrawnTest`.
+
+Logs and XML: `final-full-suite-and-assemble.log`, `final-full-suite-xml.tgz`, and for the earlier run `full-suite-and-assemble.log`, `full-suite-xml.tgz`.
 
 ## The four disclosures
 
