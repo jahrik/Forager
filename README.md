@@ -23,10 +23,9 @@ The same layout is used at every window size, phone or tablet, portrait or lands
 Source paths named below that do not start with a top-level folder are under
 `app/src/main/java/com/zynergylabs/forager/app/`.
 
-- **Search** floats over the top of the screen, not on a tab. You pick a species or a broad category
-  (Fungi, Plants, or an approximate Lichens), a place, a radius and a month. Species names are looked up in
-  a list bundled inside the app, so naming a species works with no connection. The ranking itself needs the
-  network: it asks iNaturalist for species counts and observations.
+- **Search** floats over the top of the screen, not on a tab. It searches fungi only: you name a species (the
+  suggestions come from a list bundled inside the app, so naming one works with no connection) and pick a place, a
+  radius and a month. The ranking itself needs the network: it asks iNaturalist for species counts and observations.
 - **List** shows the ranking for that search, with a way to see a species on the map.
 - **Seasonal** shows the weather for the searched region and a test of the rule of thumb that fruiting
   follows rain by one to three weeks. That test does not change the ranking.
