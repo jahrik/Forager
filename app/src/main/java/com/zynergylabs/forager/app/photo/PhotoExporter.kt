@@ -25,7 +25,7 @@ data class ExportFile(val displayName: String, val mimeType: String)
  * the Storage Access Framework, so the viewer depends on it and not on either (CLAUDE.md, Architecture).
  *
  * **What is written is the stored file's bytes, unchanged, for every photo.** A capture is already scrubbed of metadata when it is
- * stored ([scrubPhotoMetadata]). An import is deliberately unscrubbed (`FilePhotoStore`), and the owner ruled on 2026-09-29 that
+ * stored ([scrubPhotoMetadata]). An import is deliberately unscrubbed (`FilePhotoStore`), and the owner decided on 2026-09-29 that
  * imports are outside this feature's scope ("They can use a scrubbing app to remove it if they want it removed"), so an import's
  * exported copy is a byte copy and can carry whatever location or other metadata the file carries. Nothing here reads or writes
  * EXIF, and nothing here changes the stored file.
