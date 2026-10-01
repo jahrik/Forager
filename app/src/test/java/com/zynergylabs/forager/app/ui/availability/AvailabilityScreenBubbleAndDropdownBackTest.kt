@@ -214,6 +214,23 @@ class AvailabilityScreenBubbleAndDropdownBackTest {
         assertFalse("the dropdown stayed closed", shown(SEARCH_DROPDOWN_TAG))
     }
 
+    /**
+     * The other side of the owner's option (b): the scaffold ignores the field's focus gain only while its own
+     * close is clearing focus. If that were ever left on, the field would stop opening the dropdown at all.
+     */
+    @Test
+    fun `in touch mode, after Back closed the dropdown a touch on the field opens it again`() {
+        composeFan()
+        openDropdown()
+        back()
+        assertFalse("positive control: Back closed the dropdown", shown(SEARCH_DROPDOWN_TAG))
+
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performTouchInput { click() }
+        settle()
+
+        assertTrue("a touch on the field after a Back close opened the dropdown again", shown(SEARCH_DROPDOWN_TAG))
+    }
+
     private companion object {
         const val MAP_TAG = "bubble-dropdown-back-map"
         const val SPOT_X = 150f
