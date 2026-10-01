@@ -23,9 +23,12 @@ import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.OfflineRegionDecision
 import com.zynergylabs.forager.app.domain.model.PhotoAttachment
 import com.zynergylabs.forager.app.domain.model.WaypointDecision
+import com.zynergylabs.forager.app.ui.map.MapFeatureTap
 import com.zynergylabs.forager.app.ui.map.MapOverlayContent
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.map.MapSlot
+import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
+import androidx.compose.ui.geometry.Offset
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -469,5 +472,32 @@ class CartographyEntryReportScreenMapTest {
             ),
             request?.frame,
         )
+    }
+
+    /**
+     * Dispatch 2026-09-28-387, Part A, on this screen's own map: a tap on a stack closes the bubble that is showing. The map's tap handler asks for that through
+     * [MapRenderMode.onCloseBubble]; this map has its own bubble, so it has to answer.
+     */
+    @Test
+    fun `the entry map's close-bubble hook closes the bubble a feature tap opened`() {
+        setScreen(
+            baseEntry,
+            CartographyEntryMapData(
+                trackPolylines = emptyList(),
+                findMarkers = emptyList(),
+                waypointMarkers = listOf(RecordPoint("w-1", LatLng(45.3, -122.3))),
+                photoMarkers = emptyList(),
+                offlineRegionCircles = emptyList(),
+            ),
+        )
+        val mode = checkNotNull(capturedRenderMode)
+        composeRule.runOnUiThread { mode.onFeatureTap(MapFeatureTap(MapLayerIds.WAYPOINTS, "w-1", Offset(100f, 100f), 0f, LatLng(45.3, -122.3))) }
+        composeRule.waitForIdle()
+        assertTrue("a bubble is showing for the tapped waypoint", capturedContent?.focusedFeature != null)
+
+        composeRule.runOnUiThread { checkNotNull(capturedRenderMode).onCloseBubble() }
+        composeRule.waitForIdle()
+
+        assertEquals("the bubble is gone", null, capturedContent?.focusedFeature)
     }
 }
