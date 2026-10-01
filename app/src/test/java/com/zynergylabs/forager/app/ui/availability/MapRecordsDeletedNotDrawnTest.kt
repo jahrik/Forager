@@ -247,6 +247,19 @@ class MapRecordsDeletedNotDrawnTest {
         assertEquals(listOf("photo-a", "photo-b"), photos())
     }
 
+    @Test
+    fun `Undo draws a photo again`() {
+        show()
+        log.requestDeleteGalleryPhoto("photo-a")
+        settle()
+        assertEquals("positive control: hidden while pending", listOf("photo-b"), photos())
+
+        log.undoDeleteGalleryPhoto("photo-a")
+        settle()
+
+        assertEquals("Undo drew the photo again", listOf("photo-a", "photo-b"), photos())
+    }
+
     // ---- regions ----
 
     @Test
@@ -300,6 +313,19 @@ class MapRecordsDeletedNotDrawnTest {
         assertEquals("positive control: the delete was tried", listOf(1L), regions.deleteStarted)
         assertTrue("an error was reported", availability.uiState.value.offlineRegionsErrorMessage != null)
         assertEquals(listOf("1", "2"), circles())
+    }
+
+    @Test
+    fun `Undo draws a region again`() {
+        show()
+        availability.requestDeleteOfflineRegion(1L)
+        settle()
+        assertEquals("positive control: hidden while pending", listOf("2"), circles())
+
+        availability.undoDeleteOfflineRegion(1L)
+        settle()
+
+        assertEquals("Undo drew the region again", listOf("1", "2"), circles())
     }
 }
 
