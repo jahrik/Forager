@@ -9577,3 +9577,26 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 - Not to be changed: the 250 ms duration, -299's fold behaviour, -318's stacking, the Back gates, the look at rest.
 - The phone: map taps and Back only, no swipes, the coder's own debug builds installed over the app, the database hash equal at the end, the phone left on the base build.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-370
+**Timestamp:** 2026-10-01T09:02:02Z
+**Continues:** 2026-09-28-369 (preserved 2026-10-01-07, where the amendment is appended); Part 1 reported on fan-flicker at 3f59eacb, Part 2 not yet built
+**The owner, verbatim:** "1", in reply to the planner's four decisions, the first of which was "Which fix", with "Fade off for the whole map" listed first and recommended. The planner reads it as choosing that fix. The other three questions (see the fade-off build on the S22 first; delete build files to get above the disk floor; a 4 dp floor on the pass check) were not answered by it.
+**Part 1, from the coder's report** (docs/audits/2026-10-01-fan-flicker-part-1-report.md on fan-flicker; evidence ~/Zynergy/device-evidence/2026-10-01-fan-flicker/):
+- The fault reproduces on the S22 on the base (1.0.2329+gb6617c5c) at animator 1 and 5, open and fold; one recording per condition.
+- Test A, placement transitions off for the style (TransitionOptions(300, 0, false), a throwaway build): at animator 1, open, circle-without-icon frames 8 to 0, reversals 7 to 0, icons at final brightness from 259 ms after rest to 84 ms before it. The planner read these in the saved summary files; it did not watch the recordings.
+- The mechanism inside the library is inferred. Which glyph stays solid, and why, is not determined.
+**What the planner checked itself:** app/src/main has one setStyle call (SightingsMap.kt:691) and two symbol-layer constructions (FanOutLayers.kt:99, SightingsMap.kt:1177); the online basemap styles are raster (BasemapStyles.kt:179-214); the offline style served at OFFLINE_STYLE_URL had 57 layers and no symbol layer when fetched at about 07:00Z. So the setting reaches the app's own marker icons and the fan, and no map label. Not checked: the location dot's layers, which the library creates.
+**Change:**
+- Part 2 builds option 1: placement transitions off where the style loads, the duration and delay left as the style has them.
+- The pass criterion "no icon without its circle" is corrected by the planner: a circle under 4 dp drawn radius does not count as missing (-299 grows each circle from nothing, so the uncorrected criterion fails on any build). Put to the owner, not yet answered; both counts are reported.
+- New evidence asked for, outside the fan: a cold-start recording on the base and on the fix, and the location dot on each.
+- The phone's end state stays the base build; the fix apk is kept for the owner to look at before a merge.
+**Deviations so far:**
+- Test B (the four sources merged into one) was not run, on this planner's call: test A's build kept the four sources and showed no frame missing its icons or circles on the S22. The coder agrees for the S22 and notes it does not reach the S26 at 120 Hz. The owner was told and has not overturned it.
+- The second fan-flicker coder window was given a "go" by an earlier stand-in planner session and was interrupted by the owner before any build or phone read; the first ended on an API error. Neither built or installed. The third window, on Sonnet 5.5, did Part 1.
+**Blocked on:** free disk, 2008 MB against the 2048 MB floor. The planner proposed deleting ~/Zynergy/Forager/app/build/intermediates (707 MB); the owner has not answered, and nothing has been deleted.
+**Notes:** Written by a planner session that did not write the dispatch: the original planner session went offline at 06:09Z and its conversation was read from its transcript.
