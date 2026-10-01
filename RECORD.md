@@ -9942,3 +9942,16 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Practice applied:** both changes were confirmed by the owner as step paths before this was written (-385).
 **Order now:** this, then the README (-379, parked again), then PR #140 into pre-main and pre-main into main.
 **Notes:** Written by the planner session that wrote -370 to -386.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-388
+**Timestamp:** 2026-10-01T19:00:22Z
+**Continues:** 2026-09-28-387 (preserved 2026-10-01-11); Part A merged, Part B in progress
+**What merged** into journal-redesign as 303226ef, no-ff, from bubble-paths at 3f33903d, under the owner's "Merge when ready" (-372) and "1 yes, 2 yes, build it now" (-387): Part A. With a bubble showing, a tap on a stack closes the bubble as the fan opens; with fan A open, fan A folds and fan B opens on the same tap.
+**How:** MapTapHandler notes whether a bubble is showing at the top of the tap and, when the tap opens a fan, calls a new sink, onCloseBubble, which the compact Maps tab sets to clear its bubble. **Not the plain tap,** which the coder found also leaves fullscreen (AvailabilityCompactMapUi.kt:599-602); a stack tap with a bubble up would otherwise have left fullscreen, which nobody asked for. The planner had asked it to check exactly that before using the plain tap.
+**Evidence, from the coder, with the planner's own checks:** tests first at 6a2e9bda (today pinned at the base, 2 of 6 failing with the bubble left open) and 47fea3ec; two real-touch screen tests added; the planner tallied the saved suite XML on 3f33903d at 413 suites, 3359 tests, 0 failures, 0 errors, 24 skipped, read the main-code diff (four files, 28 lines), and confirmed 0 e: lines in the suite's and both revert runs' logs. Two revert checks: the handler's call removed fails 4 tests; the tab's wiring emptied fails the 2 real-touch tests and none of the handler's, so each is held by different tests. No existing assertion changed; four screen tests' stub sinks gained the new method.
+**Not run on the phone yet.** No unit test reaches the real map's tap path or fullscreen staying on.
+**A gap the planner found reading the merge, sent back:** the journal entry report's own map also shows bubbles (CartographyEntryReportScreen.kt:495 sets onFeatureTap) and does not set onCloseBubble, so on that map a stack tap leaves the bubble as before. Not a regression; the coder is to say whether that map fans stacks and, if it does, wire and test it as its own commit.
+**Notes:** Written by the planner session that wrote -370 to -387.
