@@ -110,6 +110,11 @@ internal fun fanIconLayerProperties(): Array<PropertyValue<*>> = arrayOf(
     // Each copy's own offset: the glyph's centring offset times the fold's progress, so a copy's body is on its circle's
     // centre when spread and its anchor is on the coordinate, exactly where its original draws, when folded.
     PropertyFactory.iconOffset(Expression.get(FanOutIds.ICON_OFFSET_PROPERTY)),
+    // Which copy is on top where they overlap: the place of its original's layer in the draw order, so the copies stack as
+    // the originals do (dispatch 2026-09-28-318, fail 5). Without a sort key, `icon-allow-overlap` makes this layer order its
+    // copies by viewport y, which says nothing about the registry, and the front glyph changed when the copies gave way to
+    // the originals. Rejected: ordering the features alone, which the y-ordering overrides.
+    PropertyFactory.symbolSortKey(Expression.get(FanOutIds.SORT_KEY_PROPERTY)),
 )
 
 /**
@@ -208,6 +213,9 @@ internal fun fanFrameCollections(
                     val offset = markerIconForLayer(layerId)!!.glyph.fanCentringOffsetDp()
                     addProperty(FanOutIds.ICON_OFFSET_PROPERTY, JsonArray().apply { add(offset.xDp * progress); add(offset.yDp * progress) })
                     addStringProperty(FEATURE_ID_PROPERTY, member.key.featureId)
+                    val place = drawOrder.indexOfFirst { it.id == layerId }
+                    if (place < 0) Log.w(FAN_OUT_TAG, "$layerId is not in the draw order; its copy sorts below every other.")
+                    addNumberProperty(FanOutIds.SORT_KEY_PROPERTY, place)
                 }
             }
             else -> {
