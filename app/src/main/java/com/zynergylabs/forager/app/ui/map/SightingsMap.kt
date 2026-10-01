@@ -5,6 +5,8 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.RectF
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.MotionEvent
 import android.view.Gravity
@@ -56,6 +58,8 @@ import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.map.initializeMapLibre
+import com.zynergylabs.forager.app.ui.map.fanout.CameraMoveCause
+import com.zynergylabs.forager.app.ui.map.fanout.CameraMoveClassifier
 import com.zynergylabs.forager.app.ui.map.fanout.FanMember
 import com.zynergylabs.forager.app.ui.map.fanout.FanOutHideGate
 import com.zynergylabs.forager.app.ui.map.fanout.FanReopenCoordinator
@@ -328,6 +332,9 @@ fun SightingsMap(
     // The chrome colour the fan's circle image holds in the loaded style: set when the style loads (addFanOutLayers registers it), so the colour effect
     // below registers it again only for a real change of colour.
     val fanCircleColour = remember { arrayOfNulls<Int>(1) }
+    // Which camera moves are the location follower's and which are the user's or the app's own (dispatch 2026-09-28-380): MapLibre reports every
+    // programmatic move with one reason, so each camera move this file makes marks itself here first, and the camera-idle listener clears the mark.
+    val cameraMoveClassifier = remember { CameraMoveClassifier { task -> Handler(Looper.getMainLooper()).post(task) } }
     val currentForecast by rememberUpdatedState(forecast)
     // Counts camera idles (map layers L0b, B5): the colour fields' cell feed below is keyed on it, so
     // the store is asked for the blocks in view each time the camera goes idle.
@@ -507,6 +514,7 @@ fun SightingsMap(
                 bubbleOpen = { currentFocusedObservationId != null || currentFocusedFeature != null },
                 drawOrder = { orderedLayers(MAP_LAYER_REGISTRY, currentLayersState) },
                 // A record on a layer switched off is not drawn, so it is not a fan member.
+                warn = { message -> Log.w(SIGHTINGS_MAP_TAG, message) },
                 layerDrawn = { id -> MAP_LAYER_REGISTRY.firstOrNull { it.id == id }?.let { layerPaintFor(it, currentLayersState).visible } ?: false },
                 sinks = object : MapTapSinks {
                     override fun onPlainTap() = currentOnTap()
@@ -554,9 +562,14 @@ fun SightingsMap(
             // listeners alone, every programmatic move from Transform as REASON_API_ANIMATION —
             // see MapRenderMode.onUserCameraGesture's doc comment for the javap check.
             map.addOnCameraMoveStartedListener { reason ->
-                // A fanned stack folds on any camera move, a gesture or the app's own: its copies are placed
-                // in screen space (fanMemberLatLng), and a camera that moves under them would strand them.
-                tapHandlerRef.handler?.onCameraMoveStarted()
+                // A fanned stack folds on a camera move the user made or asked for, a gesture or the app's own; it stays open when the map re-centres
+                // itself while it follows the location (dispatch 2026-09-28-380: the user did not mean that move, and the fan travels with the map).
+                val following = map.locationComponent.isLocationComponentActivated && map.locationComponent.cameraMode != CameraMode.NONE
+                val cause = cameraMoveClassifier.classify(isUserCameraGesture(reason), following)
+                if (cause == CameraMoveCause.UNKNOWN) {
+                    Log.w(SIGHTINGS_MAP_TAG, "A camera move (reason $reason) is not a touch, not marked as the app's and not the location follower's; the open fan is folded as it always was.")
+                }
+                tapHandlerRef.handler?.onCameraMoveStarted(cause)
                 if (isUserCameraGesture(reason)) currentOnUserCameraGesture()
             }
             // OnCameraIdleListener.onCameraIdle() takes no argument (verified via javap against
@@ -565,6 +578,7 @@ fun SightingsMap(
             // via getCameraPosition() inside the callback, not received as a parameter the way
             // addOnMapLongClickListener's latLng is.
             map.addOnCameraIdleListener {
+                cameraMoveClassifier.onCameraIdle()
                 cameraIdleCount++
                 // CameraPosition.target is declared `LatLng?` in the pinned SDK itself (verified via
                 // javap: the vendor's own constructor carries an org.jetbrains.annotations.Nullable
@@ -688,7 +702,7 @@ fun SightingsMap(
         // does), and the tracking mode (so the zoom-in does not run). Only on this MapView's first
         // style; a later style swap keeps its own camera, as before.
         val cameraRestore = cameraRestoreFor(if (appliedStyle == null) currentCameraMemory?.saved else null, previousCameraMode)
-        cameraRestore?.let { applyCameraRestore(map, it) }
+        cameraRestore?.let { cameraMoveClassifier.markAppMove(); applyCameraRestore(map, it) }
         map.setMaxZoomPreference(basemap.maxZoom.toDouble())
         val builder = when (val source = mapStyleSourceFor(basemap, night = requested.night, useOfflineTiles = useOfflineTiles)) {
             is MapStyleSource.Json -> Style.Builder().fromJson(source.json)
@@ -719,6 +733,7 @@ fun SightingsMap(
             // Item 4: again once the style has loaded, in case a style's own default camera replaced it,
             // and the region target recorded before loadedStyle wakes the data+camera effect below.
             cameraRestore?.let {
+                cameraMoveClassifier.markAppMove()
                 applyCameraRestore(map, it)
                 lastAppliedCameraTarget = it.appliedTarget
             }
@@ -730,7 +745,10 @@ fun SightingsMap(
             // re-activate-on-every-new-style treatment. Guarded by trackLiveLocation — see that
             // parameter's own doc comment for why a historical-place map instance must never seize
             // the camera for the device's current location at all.
-            if (trackLiveLocation) activateLiveLocationIfPermitted(map, style, context, restoreCameraMode = cameraRestore?.cameraMode ?: previousCameraMode)
+            if (trackLiveLocation) {
+                cameraMoveClassifier.markAppMove() // activating (or re-activating, after a style swap) sets the camera mode and may ease the zoom
+                activateLiveLocationIfPermitted(map, style, context, restoreCameraMode = cameraRestore?.cameraMode ?: previousCameraMode)
+            }
         }
     }
 
@@ -764,9 +782,9 @@ fun SightingsMap(
         // A one-shot frame (the entry map's opening frame) stands in for this target's move: the
         // target is recorded as applied too, so the region move below does not follow it and undo it.
         // A later target change (a locate-me pan) still moves the camera, as before.
-        val frameApplied = cameraRequest != null &&
-            shouldApplyCameraRequest(isGpsTracking, cameraRequest, lastAppliedCameraRequestId) &&
-            applyCameraFrame(map, cameraRequest.frame, context.resources.displayMetrics.density)
+        val frameWanted = cameraRequest != null && shouldApplyCameraRequest(isGpsTracking, cameraRequest, lastAppliedCameraRequestId)
+        if (frameWanted) cameraMoveClassifier.markAppMove()
+        val frameApplied = frameWanted && applyCameraFrame(map, cameraRequest!!.frame, context.resources.displayMetrics.density)
         if (frameApplied) {
             lastAppliedCameraRequestId = cameraRequest?.id
             lastAppliedCameraTarget = target
@@ -776,6 +794,7 @@ fun SightingsMap(
             // zoom-from-radius heuristic below, both of which stay anchored to region — see
             // MapSlot's doc comment on this parameter for why the two are kept independent.
             val cameraTarget = focusOverride?.let { MapLibreLatLng(it.lat, it.lng) } ?: center
+            cameraMoveClassifier.markAppMove()
             map.cameraPosition = CameraPosition.Builder()
                 .target(cameraTarget)
                 .zoom(zoomForRadiusKm(region.radiusKm))
@@ -943,6 +962,8 @@ fun SightingsMap(
         if (!trackLiveLocation) return@LaunchedEffect
         val map = mapLibreMap ?: return@LaunchedEffect
         val style = loadedStyle ?: return@LaunchedEffect
+        // The user pressed locate: the move that follows is theirs, so it is marked before the mode changes and closes an open fan as before.
+        cameraMoveClassifier.markAppMove()
         if (map.locationComponent.isLocationComponentActivated) {
             map.locationComponent.cameraMode = CameraMode.TRACKING
         } else {
@@ -995,6 +1016,7 @@ fun SightingsMap(
     // an instant jump, matching this map's other camera moves; bearing only, not target or zoom.
     LaunchedEffect(resetOrientationRequestId) {
         val map = mapLibreMap ?: return@LaunchedEffect
+        cameraMoveClassifier.markAppMove()
         map.easeCamera(CameraUpdateFactory.bearingTo(0.0))
     }
 
