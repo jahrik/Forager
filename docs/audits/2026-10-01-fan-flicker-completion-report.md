@@ -334,3 +334,65 @@ Installs, all forward or sideways, never down, no `-d` (the three values read ba
 - **Could not determine:** the zoom level; the legs' lead as a number; the progress range below about 0.5 to 0.7; the S26.
 - **Premises that were wrong:** the planner's tracking inference (above); the earlier reliance on the renderer's query as ground truth; my first disc mask; my prediction of the rest difference's size.
 - **Decided beyond scope:** the thresholds in `discs_early.py` and its hub exclusion; the choice of the four-source layout for the test; installing the Amendment-2-only build sideways as the end state.
+
+---
+
+# Amendment 3, the fix (continuation -377): option A, the circle drawn as a symbol
+
+**Status: built, tested, measured on the S22. Commit to merge: `693ece8a` (the app code; later commits are this report and merges of `journal-redesign`).** Not merged.
+
+## The owner's words, as theirs
+"Option A is acceptable. The lag is uniform in animation and doesn't jump, so it looks deliberate rather than glitchy" (about the legs leading the icons). Earlier, to me directly: "Use the fade option as a fallback if Option A doesn't work." Option A is accepted, so the fade is not built and is not analysed here.
+
+## What landed
+- `87bfde05` tests first, 9 of 12 failing on the stubs; `3ff20605` the fix; `d2e8395a` tests first for the recolour decision (1 of 3 failing on an always-yes stub); `693ece8a` the recolour fix. App files changed: `FanOutLayers.kt`, `SightingsMap.kt` (4 lines), `FanOutRenderSignal.kt` (the id extraction pulled out as `renderedCopyIds`, no behaviour change); tests: new `FanCircleSymbolTest`.
+- **The change:** each copy gets a circle feature (`FanOutLayers.kt:257`: the circle image, offset 0,0, the progress as its scale, sort key `FAN_CIRCLE_SORT_KEY = -1000`, `:103`), pushed with the glyph copies into the icons source (`fanPushPlan`, `:126`: three sources, not four) and drawn by the same symbol layer; `icon-size` (`:142`) is the circle's scale and 1 for a glyph. The circle is a bitmap at its rest size (`fanCircleBitmap`, `:109`: 36 dp, the chrome colour at 80%).
+- **Variant 1's shape kept:** four-source layout reduced to three, no single source, no variant 2, no fade. Legs untouched.
+
+## Each item the section asked to be confirmed, from the code
+- **The circle's colour follows the chrome colour, from the same places the native circle's did.** Before: the colour was set at style load, `initializeOverlayLayers` to `addFanOutLayers(style, palette, chromeColour)` (`SightingsMap.kt:1140`, called from the `setStyle` callback with `currentChromeColour`, `:709`), and again by the effect keyed on `chromeColour` (`:878-883`, which called `applyFanCircleStyle`). `chromeColour` is `navigationBarContainerColor()` (`:326`), which follows the theme, so a night switch or palette change recolours. Now: `addFanOutLayers` (`FanOutLayers.kt:82`) registers the image in that colour at style load; the same effect calls `applyFanCircleStyle` (`:169`, remove the image, add it in the new colour) **only when the colour changed** (`fanCircleNeedsRecolour`, `:162`, with the style-load colour remembered in `fanCircleColour`, `SightingsMap.kt:330`, `:714`). Opacity (`FAN_CIRCLE_OPACITY`, 80%) and radius (`FAN_CIRCLE_DIAMETER_DP` 36) are the same constants, now baked into the bitmap; `FanClarityTest` still pins them.
+- **Why not re-register at every style load (found by measurement, not by reading):** my first version did, as the native circle's effect did. Its open fan at rest differed from the current build in about 9,500 pixels at 24 levels or more, against 4,600 for the accepted test, so I took it to be worse, which the section makes a stop. A throwaway with the re-registration disabled brought it back to 4,662 (`h1-no-reregister.apk`, `h1.patch`), so a second `addImage` of the same id disturbs how the glyphs are sampled. I did not find out why inside MapLibre; that is inferred from the one comparison. The decision function was written test first and the fix is `693ece8a`.
+- **The native circle layer and source are removed** (nothing draws from them: `CIRCLES_LAYER`, `CIRCLES_SOURCE` and `fanCircleProperties` are gone, `grep` finds none). `layerBelow(FanOutIds.LEGS_CASING_LAYER)` (`SightingsMap.kt:1494`) names the legs' casing layer, which is untouched, so the location dot's place (-290) is unchanged; the dot sat below the fan's lowest layer and still does.
+- **Amendment 2's signal:** `expectedCopies` / `copiesDrawn` look for `image:featureId`; a circle feature has an image but no feature id, so `renderedCopyIds` (`FanOutRenderSignal.kt:46`) never returns it, and a circle alone does not satisfy the signal. Pinned by two tests (`the signal's expectation ignores circle features...`, `a rendered circle alone does not satisfy the signal`). **These two pass before and after the fix** (the circle already had no id), so they guard and do not bite; the revert check below does not break them either. On the phone the signal fired as before: no `MarkerFanOut` warning in any run.
+- **Sightings:** a fan cannot hold one. `fanOutLayerIds` (`fanout/FanPlacement.kt:59`) excludes the sighting dot, "pinned by a test", and `openFanFor` filters through it. So the dots source and layer (`FanOutLayers.kt:98`, and the `SIGHTINGS` branch of `fanFrameCollections`) serve a case that cannot occur today. I left them: removing them is not asked for, and the existing tests exercise the branch. In that unreachable case a member would get a circle symbol (one per copy, as the old tests expect) drawn in the icons layer above its dot, which would be wrong; **not handled, flagged**.
+- **-318's stacking** among the glyphs is unchanged (their sort keys are untouched, the circles are all below). **-299:** no jump at the open's first frame or the fold's last, for the circle or the glyph: the circle's scale is the progress, so at progress 0 it is size 0. Viewed at animator 1 and 5 (full-resolution crops, `fix_ends_sheet`, `fix_a5_ends`): the camera tile is the front glyph, in the same place, before the open, during the fan and after the fold; the dot is covered during the fan and returns at the end.
+- **The touch areas do not depend on the circle layer:** `fanMemberAt` (`fanout/MarkerFanOut.kt:151`) works from the members' positions and the fold progress only.
+
+## Tests and the revert check
+- `FanCircleSymbolTest`, 15 cases (the class needs `@GraphicsMode(NATIVE)` to read the bitmap back). **Correction to the tests-first record:** its first failing run showed the two bitmap tests failing with the centre pixel at 0, which they would have done on the fix too (no native graphics). That run was therefore not evidence for those two; I added the annotation and they now fail for the right reason in the revert check (the centre colour is wrong). 9 of 12 failed on the stubs; 3 pass on both (glyph copies unchanged and the two signal cases).
+- **Revert check, from a saved copy** (`FanOutLayers.kt` sha256 `498d4449…`; the circle sorted above the glyphs, the circles dropped from the icons push, the recolour decision always yes, the bitmap's colour ignored, the circle's icon-size removed): the compile tasks ran, **0 `e:` lines, read before the XML**; 8 of 15 failed: every circle in the push, the sort key, the scale and offset, the same-place test, the icon-size, both bitmap tests, and the recolour decision. Restored from the saved copy (sha256 equal, forward change present, `git status` empty). Evidence `amend3/fix/revert-run.xml`.
+- **What no unit test reaches:** that the symbol layer draws the circle below the glyphs, the colour on a night switch (the image removed and added again on a change), the style reload, and the S26. The recordings are the evidence for the first; **the owner's check is the evidence for the colour on night and after a basemap switch**, since I may not change the style.
+- **Full suite, `693ece8a`:** BUILD SUCCESSFUL in 4m 17s, 0 `e:` lines; 410 suites, 3325 tests, 24 skipped, **0 failures, 0 errors** (XML in `amend3/fix/full-suite-xml/`, saved before the revert run). `assembleDebug` 0 `e:` lines.
+
+## The measurements (S22, day style, 28 members, the view as left; same calibrated measure as the baseline, threshold 60, hub excluded; `amend3/fix/early_*.txt`)
+| | most members with a displaced disc, progress at least 0.73 | flagged at rest |
+|---|---|---|
+| before (A2 build) r1 to r5 | 5, 6, 8, 10, 1 of 28 | 0 |
+| **fix** r1 to r5 | **0, 0, 0, 0, 0 of 28** | 0 of about 102 each |
+| before / **fix**, animator 5 | 0 / **0** (first measurable 0.44 / 0.46) | 0 |
+Pass met (0 or 1 of 28 in every run, 0 at rest). The first measurable progress was 0.68 to 0.78 in the animator-1 runs; **below that, about 0.5 to 0.7 for this stack, the measure sees nothing** (the 28 glyphs overlap), so the very first part of the open is not covered by it. The fix is the same 0 of 28 as the accepted test (1, 0, 0, 0, 0).
+- **Amendment 2's gap, whole-fan region:** 0 empty frames in 6 of 6, at the open's start and the fold's end. No `MarkerFanOut` warning.
+- **The first amendment's measures (`measure.py`) were not retaken:** the script was written for the seven-member stack and I did not adapt it. The build cannot have changed what they measure: the placement-transition setting and the fan's timing are untouched, and the only visual change is the circle, which the pixel measure covers. That is an inference, not a check.
+- **The legs** were not measured or touched, as decided.
+
+## The rest frame (open fan at rest, frame 420 of each run, the location dot's neighbourhood excluded)
+The dot's heading wedge differs between any two recordings (it turns with the phone), so a 45 px disc around the hub is excluded for both columns; without the exclusion the fix showed 689 pixels at 64 or more and a maximum of 140, all at that wedge (`hotspot.png`).
+| comparison | pixels differing by 8 or more | 24 or more | 64 or more | max |
+|---|---|---|---|---|
+| noise, same build, different runs (A2, fix, test) | 2,500 to 4,000 | **0** | **0** | 13 to 14 |
+| **A2 build against the accepted test** (3 pairs) | about 19,800 to 21,500 | 4,407 to 4,522 | 37 to 41 | 84 |
+| **A2 build against the fix** (3 pairs) | about 19,200 to 20,300 | **4,407 to 4,478** | **30 to 37** | **73 to 77** |
+| test against fix | 6,494 | 100 | 0 | 31 |
+No worse than the test's figures on any column, and the same to the eye (`rest_pair_crop_A2_left_fix_right.png`, `rest_edge_zoom_...png`). The differences are thin outlines at glyph edges, the disc's rim and the legs, not the disc's fill (mean fill colour within 0.5 levels of the A2 build); against 593,651 pixels that is about 0.75% at 24 levels or more. Removing the measured camera shift (0.07 px) between installs changed the counts by about 5%.
+
+## The phone
+Re-read before the first tap: pid, versionName, inode 2259049, `forager.db` `6357bd01…` (the owner-confirmed baseline, unchanged at every read), animator 1.0, Forager focused; three plain opens held 2.9 s (map not following). Installs, forward or sideways, never down, no `-d`: the fix, then the no-re-registration throwaway, then the fix again (the final build). The locate tap was not repeated. **End state: the fix `1.0.2371+g693ece8a`, clean tree (apk `42c60ca7f46b7743…`, installed 08:57:45), `forager.db` `6357bd01…`, inode 2259049, animator 1.0, no recordings of mine on the phone.** Commits after `693ece8a` change only this report, the README and merges, so the installed app is the app being merged. A file `c5-fold.mp4` that is not mine is on the phone's storage and was left.
+
+## The four disclosures
+- **Confirmed vs inferred:** confirmed: 0 of 28 in every run, 0 at rest, the gap, the rest figures, the test results. Inferred: that a second `addImage` is what disturbed the glyphs (one A/B comparison), and that the first amendment's measures cannot have changed.
+- **Could not determine:** the colour on night and after a basemap switch (not mine to change); the first part of the open (progress below about 0.5 to 0.7); the S26.
+- **Premises that were wrong:** that re-registering the image was harmless; that the first bitmap test run was evidence (it was not); my prediction, in the test, of the rest difference's size.
+- **Decided beyond scope:** the 45 px hub exclusion for the rest comparison; the throwaway H1 build; the `renderedCopyIds` extraction; leaving the dots source and layer; registering the circle for every copy including the unreachable sighting case.
+
+## For the owner afterwards (device-only), as the section listed
+On the S26, a stack of ten or more, day style: the circles stay with their icons. By night and after switching basemap: the circles are the right colour and look as they did (the one place the image is removed and added again). The fan at rest against before: the circle's edge, by eye.
