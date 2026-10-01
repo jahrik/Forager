@@ -234,6 +234,29 @@ class MapRecordsDeletedNotDrawnTest {
         assertEquals("photo-a came back when the late load finished", listOf("photo-b"), photos())
     }
 
+    /**
+     * The album's other delete, at once after its dialog with no Undo window (`onDeleteGalleryPhoto`): the same late
+     * load. There is no pending marker on this path, so only the committed id keeps the stale snapshot off the map.
+     */
+    @Test
+    fun `a photo deleted at once is not drawn when a load that read it before the delete finishes after the delete`() {
+        show()
+        val photo = log.uiState.value.galleryPhotos.single { it.photo.id == "photo-a" }
+        val load = CompletableDeferred<Unit>().also { heldLoad = it }
+        availability.onMapShown()
+        settle()
+        heldLoad = null
+        log.onDeleteGalleryPhoto(photo)
+        settle()
+        assertEquals("positive control: the delete finished while the load was held", listOf("photo-b"), store.photoMarkers().map { it.recordId })
+
+        load.complete(Unit)
+        settle()
+
+        assertEquals("positive control: the late load put its snapshot in", listOf("photo-a", "photo-b"), availability.uiState.value.mapRecords.photoMarkers.map { it.recordId })
+        assertEquals("photo-a, deleted at once, came back when the late load finished", listOf("photo-b"), photos())
+    }
+
     @Test
     fun `a photo whose delete fails is drawn again`() {
         show()
