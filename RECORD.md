@@ -9067,3 +9067,183 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 - -342's option A is now the owner's decision, replacing the planner's own ruling. The owner had said "Yeah let me know instead": stop-and-ask triggers go to the owner even when no screen is affected.
 - The three conditions of -342 stand.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-344
+**Timestamp:** 2026-10-01T00:15:59Z
+**Continues:** 2026-09-28-336 (preserved -26)
+**Why:** gap 1 cannot be tested without changing production code.
+- SightingsMap.kt:293-297 builds MapView unconditionally, which throws UnsatisfiedLinkError under Robolectric (SightingsMapOverlayDataTest.kt:37, BasemapStyleTest.kt:29, MapLibreInitializerTest.kt:17).
+- No test composes the real SightingsMap. That is read from source and not run.
+**The owner's ruling, verbatim:** "C".
+- Gap 1 stays device-only: known untested wiring, with no code change.
+- The device evidence so far is the owner's S22 sighting of both credits at topo night (-332). -319 checks it again.
+**Rejected:**
+- (A), extracting the caption: it moves the untested call up one level and does not close it;
+- (B), a MapView factory seam: thought infeasible, since MapView needs the native library. Unverified.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-345
+**Timestamp:** 2026-10-01T00:26:06Z
+**Continues:** 2026-09-28-317, after -343
+**Why:** the coder's results at ac815871:
+- the full suite, 3238/0/0/24, and assembleDebug clean;
+- 12 pinned runs of 87 tests: 11 clean, with JournalPendingDeleteTest 12/12 and JournalTabTest 12/12;
+- **run 3 had one failure:** DecodedPhotoTest "contentDescription is passed through", a CalledFromWrongThreadException. Recomposition was applied on DefaultDispatcher-worker-2, inside PainterElement.update, then requestLayout: the in-place painter update that option (c) introduces. It was 0/12 in DecodedPhotoTest-alone pinned runs. The cause is not established.
+- The planner read DecodedPhoto.kt:64-66: the bitmap state is assigned after withContext(Dispatchers.IO) returns, in a LaunchedEffect, so in production it is assigned on the composition's effect context (main). That is inferred: the run-3 failure is most likely a harness effect, not proven.
+**The owner's ruling, verbatim:** "Option 1". Diagnose before any merge:
+- read the test and the trace for the thread that drives recomposition, with at most two hypotheses, then instrumentation;
+- compare base and fix under the same pinned condition, sized per CLAUDE.md;
+- fix where the cause is. A harness cause is fixed in the test, with the assertion kept. A (c) cause is fixed in DecodedPhoto, with a stop-and-ask on any change to semantics, size or behaviour.
+**Rejected:** merging now and tracking it on CI. A new 1-in-12 failure would undermine the post-merge green-run count.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-346
+**Timestamp:** 2026-10-01T00:35:06Z
+**Closes:** 2026-09-28-336 (preserved -26), with continuation -344
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as de1e1933, no-ff, from topo-night-tests 451bdeb2. The owner said "Yes". It is docs only: the report, a README row and two XML archives. No app or test source changed.
+- **Gap 1, the caption's night wiring:** device-only, at the owner's "C" (-344).
+- **Gap 2, the crossfade:** nothing uncovered. With b1fc980d's hard-switch style swapped in, 2 of TopoNightStreetSwitchTest's 13 fail with messages specific to that edit ("street layer maxzoom … expected:<9.7> but was:<9.5>"; "at 9.5 both, Street under …"). There were 0 `e:` lines, and the forward file was restored (sha256 b8321b06).
+- **The coder's suite:** 396 files, 3225/0/0/24.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-347
+**Timestamp:** 2026-10-01T00:51:30Z
+**Closes:** 2026-09-28-317 (preserved -21), with continuations -341, -342, -343 and -345
+**Outcome:** completed, with one open item carried to a follow-up
+**Observed:**
+- **What merged** into journal-redesign as 851e28fd, no-ff, from album-gesture 90e272c4. docs/audits/README.md conflicted with -336's row; both were kept, and the rows went from 221 and 221 to 222.
+- **The owner, verbatim:** "Option 1 with 3 as a followup". That is: merge now and watch CI, and capture the failing thread afterwards.
+- **The fix, option (c):** DecodedPhoto composes one Image in both states, and only the painter changes (a ColorPainter placeholder, then a BitmapPainter). The contentDescription is null until loaded. The owner confirmed option A for the unsized-placeholder size (-343). The JournalTabTest From Album test waits for its decode with waitUntil, and its assertion is unchanged.
+- **The coder's evidence:**
+  - 5 gesture tests fail at base with CI's lost-gesture messages and pass with the fix. The revert check fails the same 5;
+  - the merged and unmerged semantics equal the base goldens at 4 sites, loaded and not;
+  - 11 call sites are listed, and all are sized.
+- **The planner's checks:**
+  - the saved full-suite XML (album-gesture-evidence/full1) gives 399 files and 3238/0/0/24;
+  - the branch's app tree at 90e272c4 is identical to the tested ac815871, with the scratch probe reverted;
+  - the merged head's app tree is identical to the branch's.
+- **The pinned condition:** 11 of 12 clean; JournalPendingDeleteTest 12/12 and JournalTabTest 12/12.
+**Open, carried to a follow-up dispatch:**
+- **Pinned run 3 had one DecodedPhotoTest failure:** a CalledFromWrongThreadException. The harness resumed the effect inline on the IO worker, and the recompose-and-apply ran there too, into PainterElement.update, then requestLayout.
+- It was not reproduced in 46 other runs. Two hypotheses were tried, and neither was decided.
+- Production is inferred safe: AndroidUiDispatcher posts back to the UI thread. That is not observed on a device.
+- It is unknown whether the unfixed build can fail the same way.
+**Next:** the planner tracks CI for about 6 consecutive green runs (-296 §7).
+**Device items open:** tap and long-press album photos straight after opening, on a cold start, in portrait and landscape and on the tablet tree. These are in -319 through -340.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-348
+**Timestamp:** 2026-10-01T00:52:08Z
+**Title:** Capture the wrong-thread DecodedPhotoTest failure seen once in -317's pinned runs
+**Dispatch-file:** preserved/2026-09-30-27.md
+**The owner, verbatim:** "Option 1 with 3 as a followup".
+**The planner's reading:** see terminal -347's open item.
+**Change:**
+- Diagnosis only, on scratch branch decoded-photo-thread, never merged.
+- Establish what makes the harness run the apply inline on the resuming thread.
+- Instrument scratch copies, and repeat the pinned set to a sized budget.
+- If it recurs, compare against the pre-(-317) build.
+- Watch CI since 851e28fd.
+- A fix is proposed, not applied.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-349
+**Timestamp:** 2026-10-01T01:07:14Z
+**Title:** Diagnose the intermittent LeavingTheJournalFixesTest failure on CI
+**Dispatch-file:** preserved/2026-10-01-01.md
+**The owner, verbatim:** "Make that 2 I did open it already". Option 2 was a separate diagnosis dispatch, not a fold into -348.
+**The planner's reading,** from CI:
+- Run 36798317295, on 60d626b9, was the first with -317 to complete. Its album tests all passed.
+- It had one failure: LeavingTheJournalFixesTest "F3 Log a find on Maps over a changed kept find…", an IllegalArgumentException at :497 (typeFindIdentification's performScrollTo().performTextReplacement).
+- -296's data has the same class failing 3 times in 119 runs.
+- The cause is not known.
+**Change:**
+- Diagnosis only, on scratch branch leaving-journal-flake, never merged.
+- Collect the full messages, read the path, check for a shared cause with -296/-317, -348 and -297's stall, reproduce pinned, and propose a fix.
+**Notes:** Written by the planner by hand. This push also starts a CI run. The planner batches record-only pushes from here on, so that runs can complete.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-350
+**Timestamp:** 2026-10-01T01:21:46Z
+**Closes:** 2026-09-28-318 (preserved -22)
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as 2c2971f9, no-ff, from s22-fails 88da433a. The owner said "1 and 2 : go ahead".
+- **Fail 3,** the puck under the markers after a basemap swap:
+  - by javap on 13.5.0, MapLibreMap.notifyStyleLoaded calls LocationComponent.onFinishLoadingStyle before the app's layers exist, so the SDK re-places the puck with no layerBelow target;
+  - the fix: puckReplacementOptions re-applies the position just before activation, when the component is already initialised;
+  - it is reproduced headless at the SDK's own decision, **not** on a real map.
+- **Fail 5,** the z-order pop:
+  - the planner's "feature order" reading was partly wrong. Overlapping allow-overlap icons are y-ordered (inferred from the spec);
+  - the fix: each icon copy carries a sortKey, its layer's index in the registry draw order.
+- **The coder's checks:**
+  - the failing-first run: 27 tests, 6 failed (4 stacking, 2 swap);
+  - a revert check per fix, each failing only its own tests.
+- **The planner's check:** the worktree's XML gives 401 files and 3246/0/0/24, written at 18:00.
+- **Disclosed by the coder:** one build began at 1966 MB free, under the floor.
+**Device items open:** in -319 (-340): the puck above the markers and below an open fan after swapping to each basemap; fold and open a mixed fan with no z-order pop.
+**CI, with -317:** run 36798317295 (60d626b9) failed on LeavingTheJournalFixesTest alone, which -349 is diagnosing. Run 36799559211 (d94d4ca1) was green: 1 green of the roughly 6 needed.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-352
+**Timestamp:** 2026-10-01T01:33:54Z
+**Closes:** 2026-09-28-348 (preserved 2026-09-30-27) and 2026-09-28-349 (preserved 2026-10-01-01)
+**Outcome:** parked by the owner, with findings and no reproduction
+**The owner, verbatim:** "I'll be conducting a flake hunt once dev cools down a bit, this can wait until then."
+**Observed:**
+- **-349** (leaving-journal-flake c3c76d54, never merged):
+  - 6 LeavingTheJournalFixesTest F3 failures in 99 test-reaching CI runs (Wilson 2.8% to 12.6%), which corrects the planner's "3 in 119";
+  - one message family: "performMeasureAndLayout called during measure layout", and once multithreaded access to SnapshotStateObserver;
+  - the same message appears in WideJournalTest, JournalEntriesOnMapFollowUpsTest and DiagnosticsSyntheticForecastSwitchTest;
+  - 3 of the 6 predate -317.
+- **-348** (decoded-photo-thread e6c37010, never merged): by javap, the Compose test harness has one instance-wide isDeferringContinuations flag, set only in performFrame, and no thread check in FrameDeferredContinuation.resumeWith.
+- **The shared mechanism, inferred from stacks and never reproduced:** DecodedPhoto's LaunchedEffect resumes inline on the IO worker after withContext(Dispatchers.IO), and that worker recomposes and applies while the main thread lays out.
+- **Never run:** -349's pilot, deterministic attempts and budget of about 125 runs; -348's 35 pinned runs. The plans are in the interim reports, ready to start.
+- **-297's DrawerBackOverJournalTest stall:** cause not established.
+**Next:** the owner's flake hunt. A direct fix for the mechanism is dispatched as -351.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-351
+**Timestamp:** 2026-10-01T01:33:54Z
+**Title:** Tests control the thread DecodedPhoto decodes on
+**Dispatch-file:** preserved/2026-10-01-02.md
+**The owner, verbatim:** "Go with option C from your fix question", then "Fix 1".
+- **C:** skip reproducing the failure, fix directly, and judge by CI.
+- **Fix 1:** tests control the photo-loading thread; production is unchanged.
+**Change:**
+- One provider for DecodedPhoto's decode dispatcher, defaulting to Dispatchers.IO.
+- A test-wide default that keeps the effect's resumption on the main test thread, without editing each test class.
+- An opt-in for tests that need a real background decode (-317's gated tests).
+- The other composable IO hops are reported, not changed.
+- The fix is not proven against the CI failure itself. CI judges it.
+**Rejected:** Fix 2, a per-class test harness setting: it does not cover new tests.
+**CI so far, with -317:** 60d626b9 red (this family, not the album tests); d94d4ca1 green; 9c9d92cd green.
+**Notes:** Written by the planner by hand.
