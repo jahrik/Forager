@@ -25,7 +25,10 @@ enum class CameraMoveCause {
  * idle; until then a follower's move is taken for the app's and closes the fan, which is what it did before this class existed, so the failure is the
  * old behaviour and not a fan that stays open wrongly.
  */
-class CameraMoveClassifier {
+class CameraMoveClassifier(
+    /** Runs a task on the main looper after the messages already queued (a `Handler.post`). The hole-closing step uses it; see [markAppMove]. */
+    private val afterQueuedMessages: (() -> Unit) -> Unit,
+) {
     private var appMoveMarked = false
 
     /** The app is about to move the camera itself (a control the user pressed, a search result, a style change). Call before the move. */

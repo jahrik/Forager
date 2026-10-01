@@ -156,4 +156,50 @@ class MapTapHandlerFanHoldsTest {
         assertEquals(listOf("feature:${lost.key.layerId}:${lost.key.featureId}"), sinks.events)
         assertTrue("the fallback is reported: $warnings", warnings.any { it.contains(lost.key.featureId) })
     }
+
+    // A mark that outlives a move that never happened (planner review of dispatch -380): the real classifier, on a looper that runs in order.
+
+    private val looper = FakeLooper()
+    private val classifier = CameraMoveClassifier(looper::post)
+
+    /** What the map's camera-move listener does with a move the SDK has just started, and the fan's reaction. */
+    private fun followerMoves() {
+        looper.post { handler.onCameraMoveStarted(classifier.classify(isGesture = false, followingLocation = true)) }
+        looper.runAll()
+    }
+
+    @Test
+    fun `a mark with no move, then a fan opened, then a follower's move - the fan holds`() {
+        classifier.markAppMove() // a camera frame the app could not apply: marked, nothing moved
+        looper.runAll()
+        openAFan()
+
+        followerMoves()
+
+        assertTrue("the follower's re-centre does not close it", fan.isOpen)
+        assertEquals(1f, fan.progress, 0f)
+    }
+
+    @Test
+    fun `the locate tap with nothing to move, then a fan opened, then a follower's move - the fan holds`() {
+        classifier.markAppMove() // the locate effect marks before it sets the camera mode; no fix yet, or already centred
+        looper.runAll()
+        openAFan()
+
+        followerMoves()
+        followerMoves()
+
+        assertTrue(fan.isOpen)
+        assertEquals(1f, fan.progress, 0f)
+    }
+
+    @Test
+    fun `a marked move that does start still closes the fan`() {
+        openAFan()
+        classifier.markAppMove() // the user pressed a control that moves the map
+        looper.post { handler.onCameraMoveStarted(classifier.classify(isGesture = false, followingLocation = true)) }
+        looper.runAll()
+
+        assertFalse("a move the user asked for closes it, as before", fan.isOpen)
+    }
 }
