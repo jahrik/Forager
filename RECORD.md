@@ -9328,3 +9328,14 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 - **A key event is a gesture** under -319's data rules: a dump first whenever a list, a record or an Undo snackbar is on screen.
 - The data rules of -319, -335 and -340 hold unchanged, and so does every other item they list.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** device-note
+**ID:** 2026-09-28-356
+**Timestamp:** 2026-10-01T03:47:30Z
+**Covers:** the build -319 runs on (-355), replacing -337's
+**The build:** 1.0.2290+g6e503d02, versionCode 2290, built by the planner with `--offline :app:assembleDebug` in the journal-redesign worktree at 6e503d02. It carries -317, -318, -312 and -351. BUILD SUCCESSFUL in 35s, 0 `e:` lines. APK sha256 e953a4216814263b…. CI was green on 3b9e0e13 (run 36811112584), whose app tree is the same; 6e503d02 adds only RECORD.md.
+**The install:** `adb install -r --user 0` on the S22 (SM-S908U, R5CT321008R) at 2026-10-01T03:46:07Z, on the owner's "Go ahead". Read before and after: versionName 1.0.2220+g46b28a74 before, 1.0.2290+g6e503d02 after; user 0's ceDataInode stayed 2259049; databases/forager.db's sha256 is e1188b00f0da4b71…, unchanged.
+**Not done:** no launch, input or screenshot by the planner.
+**Notes:** Written by the planner by hand.
