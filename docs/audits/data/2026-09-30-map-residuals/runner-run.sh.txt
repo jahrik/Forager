@@ -1,0 +1,33 @@
+#!/bin/bash
+# usage: run.sh <label> <gradle test filters...>   (dispatch -312 resumed session; not committed)
+W=/home/zynergy-labs/Zynergy/forager-wt/map-residuals
+L=$1; shift
+cd $W || exit 9
+FREE=$(df -m / | tail -1 | awk '{print $4}')
+if [ "$FREE" -lt 2048 ]; then echo "REFUSED: only ${FREE} MB free"; exit 8; fi
+if pgrep -af 'GradleWrapperMain|Gradle Test Executor' | grep -v pgrep >/dev/null; then echo "REFUSED: a Gradle wrapper or worker is alive"; pgrep -af 'GradleWrapperMain|Gradle Test Executor' | cut -c1-100; exit 7; fi
+rm -rf app/build/test-results/testDebugUnitTest /tmp/mr312/$L-xml
+ARGS=(); for t in "$@"; do ARGS+=(--tests "$t"); done
+echo "start $(date -u +%H:%M:%SZ) free=${FREE}MB label=$L"
+./gradlew :app:testDebugUnitTest "${ARGS[@]}" > /tmp/mr312/$L.log 2>&1; RC=$?
+echo "exit=$RC end $(date -u +%H:%M:%SZ) $(grep -E '^BUILD' /tmp/mr312/$L.log)"
+EC=$(grep -c '^e: ' /tmp/mr312/$L.log)
+echo "compile-error lines (e:): $EC"
+if [ "$EC" -ne 0 ]; then echo "COMPILE ERRORS: results below are NOT to be cited"; grep '^e: ' /tmp/mr312/$L.log | cut -c1-300; fi
+if ! ls app/build/test-results/testDebugUnitTest/*.xml >/dev/null 2>&1; then echo "NO XML produced by this run"; exit $RC; fi
+mkdir -p /tmp/mr312/$L-xml && cp app/build/test-results/testDebugUnitTest/*.xml /tmp/mr312/$L-xml/
+python3 - /tmp/mr312/$L-xml <<'PY'
+import glob,re,sys,html
+T=S=F=E=0
+for f in sorted(glob.glob(sys.argv[1]+'/*.xml')):
+    s=open(f,errors='replace').read()
+    m=re.search(r'<testsuite name="([^"]+)" tests="(\d+)" skipped="(\d+)" failures="(\d+)" errors="(\d+)"',s)
+    n=m.group(1).split('.')[-1]; t,sk,fa,er=map(int,m.groups()[1:]); T+=t;S+=sk;F+=fa;E+=er
+    print(f'{n}: tests={t} skipped={sk} failures={fa} errors={er}')
+    for c in re.finditer(r'<testcase name="([^"]+)"[^>]*?(/>|>\s*<(failure|error|skipped)(?: message="([^"]*)")?)',s):
+        k=c.group(3)
+        if k in('failure','error'): print('   FAIL |',html.unescape(c.group(1))[:120],'\n        |',html.unescape(c.group(4) or '')[:330])
+        elif k=='skipped': print('   SKIP |',html.unescape(c.group(1))[:120])
+print(f'TOTAL tests={T} skipped={S} failures={F} errors={E}')
+PY
+exit $RC
