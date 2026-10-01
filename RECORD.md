@@ -9557,3 +9557,23 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **This ends the wording work that began with -361:** -361, -364 with -365, and -367. The noun "ruling" is left by the owner's acceptance of the planner's proposal.
 **CI:** the last completed run is green on 18c7f301 (36819607632). Every run since was cancelled by the next push; all changes since are comments, records and this one test name.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-369
+**Timestamp:** 2026-10-01T06:08:56Z
+**Title:** The fan's icons and circles flicker as it opens: diagnose on the S22, then fix inside the fan's own layers
+**Dispatch-file:** preserved/2026-10-01-07.md; launch ~/Zynergy/launch-prompts/35-fan-flicker.md
+**The owner, verbatim:** "The icons and circles are flickering when fanning out.", with a screen recording from their S26; then "Go ahead" to the planner's proposal of a diagnose-then-fix dispatch on the S22.
+**What the planner measured,** in ~/Zynergy/device-evidence/planner-fan-flicker-2026-10-01/:
+- in the owner's recording (about 8 ms a frame, the 250 ms fan), the photo icons and the circles alternate while the fan spreads: three or four frames of icons with no circles, then one frame of circles with no photo icons, three times; the photo icons are then absent from about 135 ms and fade back in by about 400 ms; the mushrooms stay solid;
+- in -319's fold-night.mp4 on the S22 (build 1.0.2290, the fan at 400 ms, animator 5), the mushrooms and the pin dim and return during the open. So it predates -359.
+**What the planner read:** every animation frame pushes four GeoJSON sources with setGeoJson (SightingsMap.kt:798-809, FanOutLayers.kt:294); the icon layer sets no fade or transition (FanOutLayers.kt:105-118); nothing sets TransitionOptions.
+**The planner's diagnosis, inferred and not observed:** MapLibre's symbol fade restarting on each push, and the four sources updating out of step. The dispatch asks for both to be confirmed or disproved.
+**Change:**
+- Part 1: reproduce on the S22, measure per frame, test the two readings one at a time, and report.
+- Part 2: a fix built without asking only if it is confined to the fan's own layers, sources and push, changes no other layer and adds no map-wide setting; otherwise a stop with options.
+- Not to be changed: the 250 ms duration, -299's fold behaviour, -318's stacking, the Back gates, the look at rest.
+- The phone: map taps and Back only, no swipes, the coder's own debug builds installed over the app, the database hash equal at the end, the phone left on the base build.
+**Notes:** Written by the planner by hand.
