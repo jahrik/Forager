@@ -35,7 +35,7 @@ import org.maplibre.android.geometry.LatLng as MapLibreLatLng
 /*
  * The map-side half of the marker fan-out (dispatch 2026-09-28-197). The fanned markers are copies:
  * the originals of a fanned stack are filtered out of their own layers while the fan is up, and the
- * copies are drawn from four sources of this file's own, above every registry layer, moving from
+ * copies are drawn from one source of this file's own (one layer per kind), above every registry layer, moving from
  * their true spot to their ring place as the fan's progress goes 0 to 1. The arithmetic is in
  * `fanout/MarkerFanOut.kt`; the SDK-facing calls are here, and are device-only: a `MapView` cannot be
  * built under Robolectric, so what the tests reach is [fanFrameCollections] (the features pushed) and
@@ -43,15 +43,11 @@ import org.maplibre.android.geometry.LatLng as MapLibreLatLng
  */
 
 internal object FanOutIds {
-    const val LEGS_SOURCE = "fan-out-legs-source"
     const val LEGS_CASING_LAYER = "fan-out-legs-casing-layer"
     const val LEGS_LAYER = "fan-out-legs-layer"
     /** The background circle under each copy (dispatch 2026-09-28-265); it replaced the white halo. */
-    const val CIRCLES_SOURCE = "fan-out-circles-source"
     const val CIRCLES_LAYER = "fan-out-circles-layer"
-    const val DOTS_SOURCE = "fan-out-dots-source"
     const val DOTS_LAYER = "fan-out-dots-layer"
-    const val ICONS_SOURCE = "fan-out-icons-source"
     const val ICONS_LAYER = "fan-out-icons-layer"
 
     /** The one source every fan feature goes into, so one push is one `setGeoJson` (dispatch 2026-09-28-369, amendment -373). */
@@ -90,23 +86,34 @@ internal const val FAN_LEG_WIDTH_DP = 1.5f
  * circles' colour to begin with; it is set again when the app's theme changes ([applyFanCircleStyle]).
  */
 internal fun addFanOutLayers(style: Style, palette: MapPalette, chromeColour: Int) {
-    val empty = FeatureCollection.fromFeatures(emptyList())
-    listOf(FanOutIds.LEGS_SOURCE, FanOutIds.CIRCLES_SOURCE, FanOutIds.DOTS_SOURCE, FanOutIds.ICONS_SOURCE)
-        .forEach { style.addSource(GeoJsonSource(it, empty)) }
+    // One source for the whole fan, each layer picking its own kind out of it (dispatch 2026-09-28-369, amendment -373): the
+    // legs, circles, dots and icons of a push then reach the renderer as one tile update, so a drawn frame cannot hold the
+    // circles of one push beside the icons of an older one, which four sources (four separate re-tilings) did on every
+    // animated frame: the icons trailed the circles by one to three pushes, up to 36 dp apart (the S22's per-frame log).
+    style.addSource(GeoJsonSource(FanOutIds.FAN_SOURCE, FeatureCollection.fromFeatures(emptyList())))
 
-    fun leg(id: String, colour: Int, widthDp: Float) = LineLayer(id, FanOutIds.LEGS_SOURCE).withProperties(
+    fun leg(id: String, colour: Int, widthDp: Float) = LineLayer(id, FanOutIds.FAN_SOURCE).withProperties(
         PropertyFactory.lineColor(colour),
         PropertyFactory.lineWidth(widthDp),
         PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
-    )
+    ).also { it.setFilter(fanKindFilter(FanOutIds.KIND_LEG)) }
     style.addLayer(leg(FanOutIds.LEGS_CASING_LAYER, palette.casing, FAN_LEG_WIDTH_DP + 2 * CASING_WIDTH_DP))
     style.addLayer(leg(FanOutIds.LEGS_LAYER, palette.searchCentre, FAN_LEG_WIDTH_DP))
 
     // Below the dots and the icons, above the legs: the circle is the copy's background.
-    style.addLayer(CircleLayer(FanOutIds.CIRCLES_LAYER, FanOutIds.CIRCLES_SOURCE).withProperties(*fanCircleProperties(fanCircleStyle(chromeColour))))
+    style.addLayer(
+        CircleLayer(FanOutIds.CIRCLES_LAYER, FanOutIds.FAN_SOURCE).withProperties(*fanCircleProperties(fanCircleStyle(chromeColour)))
+            .also { it.setFilter(fanKindFilter(FanOutIds.KIND_CIRCLE)) },
+    )
     // The dot: the sighting layer's own paint, so a fanned dot is the dot it was, ring and all.
-    style.addLayer(CircleLayer(FanOutIds.DOTS_LAYER, FanOutIds.DOTS_SOURCE).withProperties(*sightingCircleProperties(palette)))
-    style.addLayer(SymbolLayer(FanOutIds.ICONS_LAYER, FanOutIds.ICONS_SOURCE).withProperties(*fanIconLayerProperties()))
+    style.addLayer(
+        CircleLayer(FanOutIds.DOTS_LAYER, FanOutIds.FAN_SOURCE).withProperties(*sightingCircleProperties(palette))
+            .also { it.setFilter(fanKindFilter(FanOutIds.KIND_DOT)) },
+    )
+    style.addLayer(
+        SymbolLayer(FanOutIds.ICONS_LAYER, FanOutIds.FAN_SOURCE).withProperties(*fanIconLayerProperties())
+            .also { it.setFilter(fanKindFilter(FanOutIds.KIND_ICON)) },
+    )
 }
 
 /**
@@ -153,7 +160,7 @@ internal fun applyFanCircleStyle(style: Style, chromeColour: Int) {
     layer.setProperties(*fanCircleProperties(fanCircleStyle(chromeColour)))
 }
 
-/** The four sources' contents at one moment of the fan. */
+/** The contents of the fan's source at one moment, by kind (they are pushed as one: [fanPushPlan]). */
 internal data class FanFrame(
     val legs: FeatureCollection,
     val circles: FeatureCollection,
@@ -169,7 +176,7 @@ private val EMPTY_FRAME = FanFrame(
 )
 
 /**
- * What the four sources hold for [members], each at the place [at] gives (their moving position).
+ * What the fan's source holds for [members], by kind, each at the place [at] gives (their moving position).
  *
  *  - **legs:** a line from each member's true position to where it is now, so the line back to the
  *    true spot is there at every frame, including the first;
@@ -290,30 +297,35 @@ internal fun applyFanOutHiding(style: Style, members: List<FanMember>) {
 }
 
 /**
- * STUB, written before the fix so its tests can be seen to fail: the four pushes the map made before amendment -373, one
- * source each and no [FanOutIds.KIND_PROPERTY].
+ * What one push of [frame] sends where: a single entry, every feature of the frame in [FanOutIds.FAN_SOURCE], each marked with its
+ * [FanOutIds.KIND_PROPERTY] so its own layer can pick it out ([fanKindFilter]). One entry is one `setGeoJson`, so the frame's legs,
+ * circles, dots and icons are re-tiled together. An empty frame is still one push (an empty collection), which is how releasing a fan
+ * clears every layer at once.
  */
-internal fun fanPushPlan(frame: FanFrame): List<Pair<String, FeatureCollection>> = listOf(
-    FanOutIds.LEGS_SOURCE to frame.legs,
-    FanOutIds.CIRCLES_SOURCE to frame.circles,
-    FanOutIds.DOTS_SOURCE to frame.dots,
-    FanOutIds.ICONS_SOURCE to frame.icons,
-)
+internal fun fanPushPlan(frame: FanFrame): List<Pair<String, FeatureCollection>> {
+    val features = mutableListOf<Feature>()
+    fun add(collection: FeatureCollection, kind: String) {
+        for (feature in collection.features().orEmpty()) {
+            feature.addStringProperty(FanOutIds.KIND_PROPERTY, kind)
+            features += feature
+        }
+    }
+    add(frame.legs, FanOutIds.KIND_LEG)
+    add(frame.circles, FanOutIds.KIND_CIRCLE)
+    add(frame.dots, FanOutIds.KIND_DOT)
+    add(frame.icons, FanOutIds.KIND_ICON)
+    return listOf(FanOutIds.FAN_SOURCE to FeatureCollection.fromFeatures(features))
+}
 
-/** STUB: matches everything, as the layers did before they shared a source. */
-internal fun fanKindFilter(kind: String): Expression = Expression.all()
+/** The filter that keeps one [kind] of the fan's features: a layer's own out of the shared source. */
+internal fun fanKindFilter(kind: String): Expression = Expression.eq(Expression.get(FanOutIds.KIND_PROPERTY), Expression.literal(kind))
 
 /**
- * Pushes [frame] into the four sources. A source missing from the style is logged, not skipped
- * silently: every style load adds all four ([addFanOutLayers]).
+ * Pushes [frame] into the fan's source, in one `setGeoJson` ([fanPushPlan]). A source missing from the style is logged, not skipped
+ * silently: every style load adds it ([addFanOutLayers]).
  */
 internal fun pushFanFrame(style: Style, frame: FanFrame) {
-    listOf(
-        FanOutIds.LEGS_SOURCE to frame.legs,
-        FanOutIds.CIRCLES_SOURCE to frame.circles,
-        FanOutIds.DOTS_SOURCE to frame.dots,
-        FanOutIds.ICONS_SOURCE to frame.icons,
-    ).forEach { (sourceId, collection) ->
+    fanPushPlan(frame).forEach { (sourceId, collection) ->
         val source = style.getSourceAs<GeoJsonSource>(sourceId)
         if (source == null) Log.w(FAN_OUT_TAG, "The $sourceId source is not in the loaded style; the fan was not drawn.") else source.setGeoJson(collection)
     }
