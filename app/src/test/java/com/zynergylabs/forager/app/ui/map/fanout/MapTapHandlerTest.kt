@@ -12,7 +12,7 @@ import org.junit.Test
 
 /**
  * The map's tap, as `SightingsMap`'s click listener now hands it over (dispatch 2026-09-28-197; the
- * owner's rules 1 to 5): a stack fans out, a fanned marker opens its bubble, and every fold-back
+ * owner's choices): a stack fans out, a fanned marker opens its bubble, and every fold-back
  * trigger folds. The handler is the real class the listener delegates to; only the SDK behind
  * [MapProbe] is the test's own ([FanOutTestScene], a real Web-Mercator projection). A fully open
  * fan is `progress = 1`, which `MarkerFanOutHostTest` shows the host reaching in 250 ms.
@@ -43,7 +43,7 @@ class MapTapHandlerTest {
         return at.xDp * scene.density to at.yDp * scene.density
     }
 
-    // Rules 1 and 2: a stack fans out.
+    // A stack fans out.
 
     @Test
     fun `a tap on two photos at one spot fans them out and opens no bubble`() {
@@ -103,7 +103,7 @@ class MapTapHandlerTest {
 
     // A sighting no longer joins a fan (the owner's "1 A", continuation -208): MapTapHandlerRecordsOnlyTest holds that.
 
-    // Rule 4: a tap on a fanned marker opens its bubble.
+    // A tap on a fanned marker opens its bubble.
 
     @Test
     fun `a tap on each fanned marker opens that marker's bubble, from the centre and from every corner of its own square`() {
@@ -140,7 +140,7 @@ class MapTapHandlerTest {
         assertEquals(ids.map { "feature:${MapLayerIds.PHOTOS}:$it" }.toSet(), opened.toSet())
     }
 
-    // Rule 5: the folds.
+    // The folds.
 
     @Test
     fun `a tap on the empty map folds the fan and is also the plain tap it would have been`() {
@@ -180,7 +180,7 @@ class MapTapHandlerTest {
         assertEquals(emptyList<String>(), sinks.events)
     }
 
-    // Superseded by the owner's rule, intent 2026-09-28-274: "Fold only if members change". This test used to be
+    // Superseded by the owner's choice, intent 2026-09-28-274: "Fold only if members change". This test used to be
     // `a change to what the map draws folds the fan`, with a change that touched no member. It now takes a change
     // that removes members: both markers go, fewer than two are left, and the fan folds.
     @Test
