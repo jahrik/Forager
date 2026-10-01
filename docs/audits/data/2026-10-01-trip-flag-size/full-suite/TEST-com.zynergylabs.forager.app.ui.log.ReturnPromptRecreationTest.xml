@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.ReturnPromptRecreationTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:59.171Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="6.308">
+  <properties/>
+  <testcase name="backgrounding with no pending edit and returning shows no prompt" classname="com.zynergylabs.forager.app.ui.log.ReturnPromptRecreationTest" time="2.092"/>
+  <testcase name="a pending edit that was backgrounded still asks after a rebuild on return" classname="com.zynergylabs.forager.app.ui.log.ReturnPromptRecreationTest" time="2.084"/>
+  <testcase name="an activity recreation with a pending edit shows no prompt" classname="com.zynergylabs.forager.app.ui.log.ReturnPromptRecreationTest" time="0.043"/>
+  <testcase name="backgrounding with a pending edit and returning shows the prompt" classname="com.zynergylabs.forager.app.ui.log.ReturnPromptRecreationTest" time="2.028"/>
+  <testcase name="two recreations in a row still show no prompt" classname="com.zynergylabs.forager.app.ui.log.ReturnPromptRecreationTest" time="0.059"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

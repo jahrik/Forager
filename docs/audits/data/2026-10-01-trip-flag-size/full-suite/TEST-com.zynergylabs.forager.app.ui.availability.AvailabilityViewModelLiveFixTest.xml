@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelLiveFixTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:21.478Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.073">
+  <properties/>
+  <testcase name="a grant reported while fixes are already flowing does not start a second collection" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelLiveFixTest" time="0.042"/>
+  <testcase name="a fix worse than 50 m is dropped, the previous fix is held, and the held fix ages" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelLiveFixTest" time="0.004"/>
+  <testcase name="denial is unchanged - no live fix, the locate-me status reports it, and nothing crashes" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelLiveFixTest" time="0.003"/>
+  <testcase name="a permission grant while backgrounded does not re-acquire the subscription" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelLiveFixTest" time="0.004"/>
+  <testcase name="an unreported accuracy stays null, distinct from a reported zero" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelLiveFixTest" time="0.003"/>
+  <testcase name="first launch - permission granted after construction - fixes reach the strip without a restart" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelLiveFixTest" time="0.004"/>
+  <testcase name="when fixes stop the held fix's age keeps increasing" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelLiveFixTest" time="0.003"/>
+  <testcase name="accuracy and timestamp reach the UI state, and the existing readers see the same lat lng altitude" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelLiveFixTest" time="0.003"/>
+  <testcase name="before any fix arrives there is no live fix and the derived readers are null" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelLiveFixTest" time="0.002"/>
+  <testcase name="a fix at exactly 50 m passes the gate, and a null accuracy passes it too" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelLiveFixTest" time="0.003"/>
+  <testcase name="leaving the foreground releases the fix subscription, and returning re-acquires it" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelLiveFixTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

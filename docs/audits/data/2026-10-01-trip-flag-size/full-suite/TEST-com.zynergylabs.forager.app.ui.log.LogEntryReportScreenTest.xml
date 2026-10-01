@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.LogEntryReportScreenTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:46.189Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.593">
+  <properties/>
+  <testcase name="an entry with a photo still renders it" classname="com.zynergylabs.forager.app.ui.log.LogEntryReportScreenTest" time="0.031"/>
+  <testcase name="touching a report thumbnail opens the full-screen viewer, and its close control dismisses it" classname="com.zynergylabs.forager.app.ui.log.LogEntryReportScreenTest" time="0.045"/>
+  <testcase name="the overflow menu's Edit entry option calls onEdit" classname="com.zynergylabs.forager.app.ui.log.LogEntryReportScreenTest" time="0.069"/>
+  <testcase name="an entry with no location shows the no-location text instead of coordinates" classname="com.zynergylabs.forager.app.ui.log.LogEntryReportScreenTest" time="0.033"/>
+  <testcase name="the back arrow calls onBack" classname="com.zynergylabs.forager.app.ui.log.LogEntryReportScreenTest" time="0.032"/>
+  <testcase name="the empty-find message's own overflow menu route to Edit actually works" classname="com.zynergylabs.forager.app.ui.log.LogEntryReportScreenTest" time="0.039"/>
+  <testcase name="recorded fields compile into readable lines, grouped under their section" classname="com.zynergylabs.forager.app.ui.log.LogEntryReportScreenTest" time="0.028"/>
+  <testcase name="a find with nothing recorded at all shows the empty-find message, exactly as worded" classname="com.zynergylabs.forager.app.ui.log.LogEntryReportScreenTest" time="0.062"/>
+  <testcase name="a section with nothing recorded is omitted, not shown with a placeholder" classname="com.zynergylabs.forager.app.ui.log.LogEntryReportScreenTest" time="0.045"/>
+  <testcase name="the overflow menu's Delete entry option calls onDeleteEntry" classname="com.zynergylabs.forager.app.ui.log.LogEntryReportScreenTest" time="0.056"/>
+  <testcase name="an unrecorded field is left out of its section, not printed as a Not-recorded line" classname="com.zynergylabs.forager.app.ui.log.LogEntryReportScreenTest" time="0.088"/>
+  <testcase name="a find with only a photo shows no empty-find message" classname="com.zynergylabs.forager.app.ui.log.LogEntryReportScreenTest" time="0.063"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

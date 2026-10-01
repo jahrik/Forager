@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" tests="104" skipped="19" failures="0" errors="0" timestamp="2026-10-01T05:18:58.967Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="10.41">
+  <properties/>
+  <testcase name="the add button opens the same plan-or-log chooser the long-press gesture used to, then the centre-pin picker, seeded at the region center" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.0">
+    <skipped/>
+  </testcase>
+  <testcase name="tapping an observation dot shows its species name and observed date" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.0">
+    <skipped/>
+  </testcase>
+  <testcase name="a real touch on the advanced search dropdown's Set on map button reaches it and opens the centre-pin picker over the real map" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.0">
+    <skipped/>
+  </testcase>
+  <testcase name="tapping outside the search dropdown closes it" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.0">
+    <skipped/>
+  </testcase>
+  <testcase name="tapping the bubble's close icon dismisses it without navigating anywhere" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.0">
+    <skipped/>
+  </testcase>
+  <testcase name="dismissing the bubble via its close icon does not let a later pan bring it back" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.0">
+    <skipped/>
+  </testcase>
+  <testcase name="the locate-me icon calls onLocateMe, not onUseCurrentLocation" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.0">
+    <skipped/>
+  </testcase>
+  <testcase name="after a 90 degree map rotation the observation bubble sits below the tapped dot" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.0">
+    <skipped/>
+  </testcase>
+  <testcase name="tapping elsewhere on the map dismisses the observation bubble" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.0">
+    <skipped/>
+  </testcase>
+  <testcase name="fullscreen hides the top strip and bottom nav but keeps the map mounted" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.0">
+    <skipped/>
+  </testcase>
+  <testcase name="View on iNaturalist launches the observation's web page and dismisses the bubble" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.0">
+    <skipped/>
+  </testcase>
+  <testcase name="a real touch at each trailhead control's own screen coordinates reaches that control while not returning" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.0">
+    <skipped/>
+  </testcase>
+  <testcase name="a real touch at each trailhead control's own screen coordinates reaches that control" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.0">
+    <skipped/>
+  </testcase>
+  <testcase name="tapping the coordinates segment reveals labeled decimal degrees, and tapping again returns to MGRS" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.0">
+    <skipped/>
+  </testcase>
+  <testcase name="a pan while the bubble is still showing keeps it glued to its marker" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.0">
+    <skipped/>
+  </testcase>
+  <testcase name="at bearing zero the observation bubble sits above the tapped dot" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.0">
+    <skipped/>
+  </testcase>
+  <testcase name="a real touch in the gap above the control pill still reaches the map" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.0">
+    <skipped/>
+  </testcase>
+  <testcase name="tapping the map while fullscreen restores chrome" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.0">
+    <skipped/>
+  </testcase>
+  <testcase name="tapping the control pill's return-to-vehicle button calls onToggleReturning" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.0">
+    <skipped/>
+  </testcase>
+  <testcase name="back while the exit prompt is open dismisses it and leaves navigation running" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.118"/>
+  <testcase name="after navigation ends back reaches the exit warning again, unchanged" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.105"/>
+  <testcase name="the centre-pin picker's confirm row sits above the bottom nav outside fullscreen, and OK is tappable there" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.105"/>
+  <testcase name="exiting fullscreen from the bottom of the range moves the whole cluster above the nav, bar and pill together" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.191"/>
+  <testcase name="a coordinate format chosen in the HUD is the format the strip shows after leaving navigation" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.148"/>
+  <testcase name="with no fix the compass strip shows one message, not three fragments - even with no sensor" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.164"/>
+  <testcase name="dragged to the bottom of its range outside fullscreen, the control pill's bottom edge stays above the bottom nav" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.061"/>
+  <testcase name="a fix older than five minutes withholds the distance and says how old it is" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.081"/>
+  <testcase name="dragged to the bottom of its range in fullscreen, the control pill's bottom edge stays on screen" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.081"/>
+  <testcase name="after a first drag in fullscreen, a drag outside fullscreen still stops the cluster at the bottom nav" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.115"/>
+  <testcase name="restoring the bar after dragging its restore handle to the bottom keeps the add row above the bottom nav" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.092"/>
+  <testcase name="the control pill's return-to-vehicle button is disabled while not recording, and the record toggle still shows" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.151"/>
+  <testcase name="with no fix the HUD shows one message, a dash for the heading, and no elevation or coordinates row" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.062"/>
+  <testcase name="tapping the search field opens the search dropdown" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.086"/>
+  <testcase name="the bottom nav's three destinations select the same ResultsTab the old tab row did" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.326"/>
+  <testcase name="a persisted fullscreen preference starts the Map tab in fullscreen" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.084"/>
+  <testcase name="the HUD shows the straight-line distance to the origin in the display unit and the turn to it" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.061"/>
+  <testcase name="a real touch on the minimize handle hides MapIconBar and TrailheadControls together, and the restore handle brings both back" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.085"/>
+  <testcase name="after a first drag outside fullscreen, a drag in fullscreen still reaches below the nav's former top" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.089"/>
+  <testcase name="a real touch 12dp toward the map from the locate row's centre reaches locate" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.059"/>
+  <testcase name="leaving the Map tab and returning keeps the cluster's position and its fullscreen memory" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.187"/>
+  <testcase name="all five bottom nav destinations are present, and Tools opens the drawer as an overlay over List rather than switching tabs" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.161"/>
+  <testcase name="an untrusted heading reads Compass unreliable on the strip, and a recovered one snaps back to the new reading" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.141"/>
+  <testcase name="an off-track fix tints the return-to-vehicle button with the error color's contentDescription state" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.207"/>
+  <testcase name="a real touch 11dp toward the screen edge from the locate row's centre reaches locate" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.133"/>
+  <testcase name="a real touch on the record button reaches it while the bar is on its default right edge" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.076"/>
+  <testcase name="recording with no fix yet shows a waiting message via contentDescription" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.14"/>
+  <testcase name="after dragging the icon bar to the left edge, a real touch on the record button still reaches it there" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.081"/>
+  <testcase name="the restore handle meets the 48dp touch-target floor" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.06"/>
+  <testcase name="re-entering fullscreen returns the bar to where the user left it" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.131"/>
+  <testcase name="Exit on the prompt exits navigation once - Keep navigating does not" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.118"/>
+  <testcase name="entering and leaving fullscreen writes the preference through, and launch never writes it" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.16"/>
+  <testcase name="dragging the icon bar to the bottom of its range keeps its add row above the bottom nav" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.059"/>
+  <testcase name="while navigating the HUD's second row shows the elevation and the MGRS grid reference" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.104"/>
+  <testcase name="the HUD's close button exits directly without the prompt" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.101"/>
+  <testcase name="a drag outside fullscreen replaces the remembered fullscreen position" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.217"/>
+  <testcase name="a heading with no fix reads the one no-fix message, never the magnetic value" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.151"/>
+  <testcase name="all five icon stack buttons are present" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.136"/>
+  <testcase name="the compass elevation strip reflects a fake heading without any real sensor" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.134"/>
+  <testcase name="the Tools tab opens the drawer" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.154"/>
+  <testcase name="the minimize handle is exactly its recorded tap width, at least 48dp tall, with the mark inside it" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.062"/>
+  <testcase name="a real touch just outside the minimize handle reaches MapIconBar's own fullscreen row, not the handle" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.078"/>
+  <testcase name="a real touch 12dp below the locate row's centre reaches locate" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.057"/>
+  <testcase name="the coordinates toggle is reachable by real touches across its bounds while navigating, in fullscreen with the cluster minimised" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.177"/>
+  <testcase name="the icon bar cannot be dragged above where the search dropdown would start" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.126"/>
+  <testcase name="the control pill's return-to-vehicle button has a full 48dp touch target" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.15"/>
+  <testcase name="a fix worse than 50 m does not reach the HUD - the held fix's distance stays" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.077"/>
+  <testcase name="the network-fixes notice shows once as a Snackbar over the map" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.082"/>
+  <testcase name="the advanced search dropdown does not open the full Tools drawer" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.095"/>
+  <testcase name="a persisted fullscreen preference is applied without being written back" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.069"/>
+  <testcase name="with the bar dragged to the bottom on the left, a real touch on the layers row opens the Layers sheet and its map types work" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.132"/>
+  <testcase name="fullscreen removes the search bar and the compass strip moves flush to the top edge, both restored on exit" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.136"/>
+  <testcase name="the exit is reachable by real touches across its bounds, in fullscreen with the cluster minimised" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.099"/>
+  <testcase name="a return distance under a kilometer is shown in meters in the return row's sentence" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.268"/>
+  <testcase name="back while navigating in fullscreen exits fullscreen first and only the next press asks about navigation" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.172"/>
+  <testcase name="while navigating the compass strip is absent and the true heading appears exactly once" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.062"/>
+  <testcase name="repeated back presses while navigating never exit navigation and never close the app" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.139"/>
+  <testcase name="with the bar dragged to the bottom on the right, the add tile opens beside the add row and its chips are tappable" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.087"/>
+  <testcase name="no trip-start warning means no Snackbar" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.058"/>
+  <testcase name="the compass strip shows a real MGRS grid reference by default once a live fix arrives, not the combined line" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.128"/>
+  <testcase name="the icon bar stays minimised after leaving and returning to the Map tab" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.074"/>
+  <testcase name="with no compass sensor the HUD shows the distance and no bearing text" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.122"/>
+  <testcase name="the handle marks straddle the bar's own outer edge, on the right by default" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.118"/>
+  <testcase name="leaving fullscreen with the bar dragged low pushes it back up above the bottom nav" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.155"/>
+  <testcase name="a real touch on the minimize handle's own mark still minimises the cluster" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.053"/>
+  <testcase name="recording with a real fix and return-to-vehicle active shows the full sentence via contentDescription" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.157"/>
+  <testcase name="the compass strip container wraps its text content, not a fixed touch-target height or the whole map's height" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.126"/>
+  <testcase name="while the icon bar is being dragged sideways, the control pill moves with it rather than waiting for the side to flip" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.06"/>
+  <testcase name="after dragging the icon bar to the left edge, the minimize handle's mark straddles the bar's left edge" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.075"/>
+  <testcase name="with the bar dragged to the bottom on the left, the add tile opens beside the add row and its chips are tappable" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.068"/>
+  <testcase name="the HUD is not composed while not returning, and the strip is" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.05"/>
+  <testcase name="the search dropdown starts below the compass strip, not over it" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.075"/>
+  <testcase name="the search dropdown starts flush at the top on the List tab, where there is no compass strip to avoid" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.134"/>
+  <testcase name="leaving navigation brings the compass strip back with the heading, still exactly once" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.108"/>
+  <testcase name="a trip-start warning shows once as a Snackbar over the map and a null warning shows nothing" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.083"/>
+  <testcase name="inside the approach threshold the distance appears exactly once and the target column is empty" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.063"/>
+  <testcase name="a real touch 12dp above the locate row's centre reaches locate" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.068"/>
+  <testcase name="with a fix but no sensor the compass strip says the compass is unavailable and still shows elevation and coordinates" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.122"/>
+  <testcase name="with the bar dragged to the bottom on the right, a real touch on the layers row opens the Layers sheet and its map types work" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.081"/>
+  <testcase name="system back while navigating raises the exit prompt and does not exit" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.095"/>
+  <testcase name="an untrusted heading on the HUD withholds the needle and its text and reads Compass unreliable once" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.06"/>
+  <testcase name="leaving the Map tab and returning keeps the cluster on the left edge" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.071"/>
+  <testcase name="a real touch at the locate row's centre reaches locate, not the minimize handle" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.097"/>
+  <testcase name="the strip's no-fix message is not a coordinates toggle - tapping it reveals nothing" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.236"/>
+  <testcase name="the main map's centre pin follows Night Maps in the palette's centre-pin colour" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapIconStackTest" time="0.869"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

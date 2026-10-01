@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.RecordDetailsSheetTest" tests="21" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:53.890Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="3.445">
+  <properties/>
+  <testcase name="a named recording track's sheet takes its name as the title and says it is still recording" classname="com.zynergylabs.forager.app.ui.log.RecordDetailsSheetTest" time="0.111"/>
+  <testcase name="a tap on a waypoint row whose swipe is open closes the row and does not open the sheet" classname="com.zynergylabs.forager.app.ui.log.RecordDetailsSheetTest" time="0.124"/>
+  <testcase name="a waypoint row in the Waypoints chip opens its details sheet from a tap anywhere on it" classname="com.zynergylabs.forager.app.ui.log.RecordDetailsSheetTest" time="0.143"/>
+  <testcase name="the track sheet's Share starts the same GPX share the row's button does" classname="com.zynergylabs.forager.app.ui.log.RecordDetailsSheetTest" time="0.152"/>
+  <testcase name="the waypoint sheet's Directions starts directions to that waypoint, and there is no Navigate" classname="com.zynergylabs.forager.app.ui.log.RecordDetailsSheetTest" time="0.18"/>
+  <testcase name="short window - each row type in All opens its details sheet from taps across it" classname="com.zynergylabs.forager.app.ui.log.RecordDetailsSheetTest" time="0.319"/>
+  <testcase name="short window - each row type in its own chip opens its details sheet" classname="com.zynergylabs.forager.app.ui.log.RecordDetailsSheetTest" time="0.284"/>
+  <testcase name="an offline region row in the Offline maps chip opens its details sheet from a tap anywhere on it" classname="com.zynergylabs.forager.app.ui.log.RecordDetailsSheetTest" time="0.265"/>
+  <testcase name="a recorded track row in All opens its details sheet with its start, end, distance, duration, points and note" classname="com.zynergylabs.forager.app.ui.log.RecordDetailsSheetTest" time="0.179"/>
+  <testcase name="each row type carries a Details for click label, in All and in its own chip" classname="com.zynergylabs.forager.app.ui.log.RecordDetailsSheetTest" time="0.087"/>
+  <testcase name="a Share first deletes GPX exports more than an hour old from the cache and keeps one within the hour" classname="com.zynergylabs.forager.app.ui.log.RecordDetailsSheetTest" time="0.085"/>
+  <testcase name="Back closes the sheet and nothing else, so the Waypoints chip stays selected" classname="com.zynergylabs.forager.app.ui.log.RecordDetailsSheetTest" time="0.143"/>
+  <testcase name="a waypoint row in All opens its details sheet from a tap anywhere on it, badge included" classname="com.zynergylabs.forager.app.ui.log.RecordDetailsSheetTest" time="0.22"/>
+  <testcase name="the track row's own Share button starts the GPX share and does not open the sheet" classname="com.zynergylabs.forager.app.ui.log.RecordDetailsSheetTest" time="0.124"/>
+  <testcase name="short window - an open swipe row takes the tap, and the scrim closes the sheet" classname="com.zynergylabs.forager.app.ui.log.RecordDetailsSheetTest" time="0.123"/>
+  <testcase name="a waypoint with no track and no count shows neither line, one with a missing track says Not loaded" classname="com.zynergylabs.forager.app.ui.log.RecordDetailsSheetTest" time="0.116"/>
+  <testcase name="a tap on a region row whose swipe is open in All closes the row and does not open the sheet" classname="com.zynergylabs.forager.app.ui.log.RecordDetailsSheetTest" time="0.137"/>
+  <testcase name="an offline region row in All opens its details sheet with radius, centre, tiles, size, date and zoom" classname="com.zynergylabs.forager.app.ui.log.RecordDetailsSheetTest" time="0.249"/>
+  <testcase name="a touch on the scrim closes the sheet" classname="com.zynergylabs.forager.app.ui.log.RecordDetailsSheetTest" time="0.128"/>
+  <testcase name="the waypoint row's own Directions button starts directions and does not open the sheet" classname="com.zynergylabs.forager.app.ui.log.RecordDetailsSheetTest" time="0.101"/>
+  <testcase name="a recorded track row in the Tracks chip opens its details sheet from a tap anywhere on it" classname="com.zynergylabs.forager.app.ui.log.RecordDetailsSheetTest" time="0.17"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

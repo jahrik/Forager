@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.TrackPathCodecTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:54.180Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.001">
+  <properties/>
+  <testcase name="sixteen bytes a point, so the size is the point count times sixteen" classname="com.zynergylabs.forager.app.domain.TrackPathCodecTest" time="0.0"/>
+  <testcase name="one point round-trips and takes sixteen bytes, two doubles" classname="com.zynergylabs.forager.app.domain.TrackPathCodecTest" time="0.001"/>
+  <testcase name="bytes that are not a whole number of points are refused, never read as a shorter path" classname="com.zynergylabs.forager.app.domain.TrackPathCodecTest" time="0.0"/>
+  <testcase name="a path round-trips exactly, in order, every coordinate identical" classname="com.zynergylabs.forager.app.domain.TrackPathCodecTest" time="0.0"/>
+  <testcase name="an empty path round-trips as an empty path and encodes to no bytes" classname="com.zynergylabs.forager.app.domain.TrackPathCodecTest" time="0.0"/>
+  <testcase name="negative zero survives, so the round trip is bit for bit and not merely numerically equal" classname="com.zynergylabs.forager.app.domain.TrackPathCodecTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

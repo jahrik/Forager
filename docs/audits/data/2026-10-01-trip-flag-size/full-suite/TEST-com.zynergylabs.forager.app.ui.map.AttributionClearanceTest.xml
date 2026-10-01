@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.AttributionClearanceTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:06.925Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.003">
+  <properties/>
+  <testcase name="the inset that comes back puts the button clear of the L, a gap inboard of its inner edge" classname="com.zynergylabs.forager.app.ui.map.AttributionClearanceTest" time="0.002"/>
+  <testcase name="a button already inboard of the L keeps a larger inset it was handed" classname="com.zynergylabs.forager.app.ui.map.AttributionClearanceTest" time="0.0"/>
+  <testcase name="an L above the button leaves the inset as it was" classname="com.zynergylabs.forager.app.ui.map.AttributionClearanceTest" time="0.0"/>
+  <testcase name="no L, or a map with no size yet, leaves the inset as it was" classname="com.zynergylabs.forager.app.ui.map.AttributionClearanceTest" time="0.0"/>
+  <testcase name="at 90 with the L on the right at its lower limit the button, as the app leaves it, sits under the L's record button" classname="com.zynergylabs.forager.app.ui.map.AttributionClearanceTest" time="0.001"/>
+  <testcase name="in a right-to-left layout the end edge is the left and the button clears an L snapped there" classname="com.zynergylabs.forager.app.ui.map.AttributionClearanceTest" time="0.0"/>
+  <testcase name="an L on the far side leaves the inset as it was" classname="com.zynergylabs.forager.app.ui.map.AttributionClearanceTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

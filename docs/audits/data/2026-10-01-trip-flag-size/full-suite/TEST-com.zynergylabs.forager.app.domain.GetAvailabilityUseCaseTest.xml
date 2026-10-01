@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.GetAvailabilityUseCaseTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:52.629Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.011">
+  <properties/>
+  <testcase name="an empty ranking is cached and replayed as an empty Cached result" classname="com.zynergylabs.forager.app.domain.GetAvailabilityUseCaseTest" time="0.003"/>
+  <testcase name="a failed live search with a cached result returns Cached with the time it was cached" classname="com.zynergylabs.forager.app.domain.GetAvailabilityUseCaseTest" time="0.002"/>
+  <testcase name="a live search returns Live and writes the forecast through to the cache" classname="com.zynergylabs.forager.app.domain.GetAvailabilityUseCaseTest" time="0.002"/>
+  <testcase name="a failed live search writes nothing to the cache" classname="com.zynergylabs.forager.app.domain.GetAvailabilityUseCaseTest" time="0.001"/>
+  <testcase name="a failed live search with nothing cached returns the original failure unchanged" classname="com.zynergylabs.forager.app.domain.GetAvailabilityUseCaseTest" time="0.001"/>
+  <testcase name="a cached result does not stop the next search asking the network" classname="com.zynergylabs.forager.app.domain.GetAvailabilityUseCaseTest" time="0.001"/>
+  <testcase name="a cached result for another month does not answer this month's failed search" classname="com.zynergylabs.forager.app.domain.GetAvailabilityUseCaseTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

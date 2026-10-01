@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.CartographyViewModelTest" tests="25" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:29.720Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.865">
+  <properties/>
+  <testcase name="toggling an already-kept photo id a second time detaches it" classname="com.zynergylabs.forager.app.ui.log.CartographyViewModelTest" time="0.028"/>
+  <testcase name="finishing a wordless entry with kept items succeeds and commits it" classname="com.zynergylabs.forager.app.ui.log.CartographyViewModelTest" time="0.029"/>
+  <testcase name="a successful Discard clears a save failure's message still pending" classname="com.zynergylabs.forager.app.ui.log.CartographyViewModelTest" time="0.048"/>
+  <testcase name="starting a second entry for the same date is allowed and produces two independent visible drafts" classname="com.zynergylabs.forager.app.ui.log.CartographyViewModelTest" time="0.027"/>
+  <testcase name="starting a new entry after commit begins empty, not carrying over the committed entry's text or tags" classname="com.zynergylabs.forager.app.ui.log.CartographyViewModelTest" time="0.029"/>
+  <testcase name="loadEntries returns a Job, and once it is joined the entries written behind the screen's back are listed" classname="com.zynergylabs.forager.app.ui.log.CartographyViewModelTest" time="0.027"/>
+  <testcase name="committing a draft flips the same row with no orphan left behind" classname="com.zynergylabs.forager.app.ui.log.CartographyViewModelTest" time="0.027"/>
+  <testcase name="a failed save still surfaces Couldn't save your changes in the save message, and never the map message" classname="com.zynergylabs.forager.app.ui.log.CartographyViewModelTest" time="0.027"/>
+  <testcase name="the toggle on the open entry updates it in place, keeps its unsaved edit unsaved, and a later save keeps the toggle" classname="com.zynergylabs.forager.app.ui.log.CartographyViewModelTest" time="0.028"/>
+  <testcase name="onSaveEntryAsDraft demotes a committed entry's pending edit onto the same row, moves it to Drafts, and closes the editor" classname="com.zynergylabs.forager.app.ui.log.CartographyViewModelTest" time="0.029"/>
+  <testcase name="opening an entry recomputes a kept track's snapshot from the filtered track and writes it back" classname="com.zynergylabs.forager.app.ui.log.CartographyViewModelTest" time="0.03"/>
+  <testcase name="a draft is never shown on the map" classname="com.zynergylabs.forager.app.ui.log.CartographyViewModelTest" time="0.029"/>
+  <testcase name="showing and hiding a saved entry writes shownOnMap alone and updates the listed entry at once" classname="com.zynergylabs.forager.app.ui.log.CartographyViewModelTest" time="0.052"/>
+  <testcase name="after a restore, an open entry whose record is gone is closed with its candidates, and one still there stays open" classname="com.zynergylabs.forager.app.ui.log.CartographyViewModelTest" time="0.044"/>
+  <testcase name="closing an unfinished entry surfaces it as a resumable draft, and reopening then closing again does not duplicate it" classname="com.zynergylabs.forager.app.ui.log.CartographyViewModelTest" time="0.036"/>
+  <testcase name="editing a committed entry does not autosave, only onSaveEntry persists it and immediately refreshes the Entries list" classname="com.zynergylabs.forager.app.ui.log.CartographyViewModelTest" time="0.038"/>
+  <testcase name="reopening an entry preserves its decisions and offers a newly-appeared candidate as undecided" classname="com.zynergylabs.forager.app.ui.log.CartographyViewModelTest" time="0.07"/>
+  <testcase name="editing a draft still autosaves immediately and never sets hasUnsavedChanges" classname="com.zynergylabs.forager.app.ui.log.CartographyViewModelTest" time="0.036"/>
+  <testcase name="a standalone photo with no owning find can be pulled into a Cartography entry" classname="com.zynergylabs.forager.app.ui.log.CartographyViewModelTest" time="0.033"/>
+  <testcase name="deleting an entry removes it from both entries and drafts" classname="com.zynergylabs.forager.app.ui.log.CartographyViewModelTest" time="0.034"/>
+  <testcase name="a failed Show or Hide on map surfaces exactly Changes not applied, Try again, in its own message, not the save one" classname="com.zynergylabs.forager.app.ui.log.CartographyViewModelTest" time="0.033"/>
+  <testcase name="onSaveEntryAsDraft is a no-op for a draft" classname="com.zynergylabs.forager.app.ui.log.CartographyViewModelTest" time="0.031"/>
+  <testcase name="discarding a committed entry's changes reloads it from the database, not an in-memory revert" classname="com.zynergylabs.forager.app.ui.log.CartographyViewModelTest" time="0.04"/>
+  <testcase name="withholding a kept track keeps its decision row but flips it, and deciding again restores it" classname="com.zynergylabs.forager.app.ui.log.CartographyViewModelTest" time="0.028"/>
+  <testcase name="starting a new entry keeps every one of that day's candidates by default" classname="com.zynergylabs.forager.app.ui.log.CartographyViewModelTest" time="0.029"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

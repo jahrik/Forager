@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.layers.MapLayerRegistryTest" tests="26" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:13.034Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.006">
+  <properties/>
+  <testcase name="every marker ring draws below every line, still below its own marker, and takes no taps" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerRegistryTest" time="0.004"/>
+  <testcase name="each journal halo sits below what it decorates, a line's directly below its casing and a marker's ring below every line, in the JOURNAL_ENTRY role, and is drawn only with that record" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerRegistryTest" time="0.0"/>
+  <testcase name="orderedLayers puts the groups in order even when the registry does not" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerRegistryTest" time="0.0"/>
+  <testcase name="the two line halos stay in the lines band, directly beneath their casings, and no marker ring is in it" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerRegistryTest" time="0.0"/>
+  <testcase name="with the default state the draw order is the registry's" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerRegistryTest" time="0.0"/>
+  <testcase name="the only change from the order before L0a is the search centre and the sightings moving above every line" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerRegistryTest" time="0.0"/>
+  <testcase name="the decorations band holds the three marker rings and nothing else" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerRegistryTest" time="0.001"/>
+  <testcase name="base opacities are today's values - the sighting fill 0_7 and ring 0_85, the offline fill 0_2, the night border 0_85, everything else 1" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerRegistryTest" time="0.0"/>
+  <testcase name="only the colour fields are reorderable, offer an opacity slider and carry a credit, and no other layer's flags changed" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerRegistryTest" time="0.0"/>
+  <testcase name="registryProblems names a decoration of a missing layer, one above what it decorates, and one that takes taps" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerRegistryTest" time="0.0"/>
+  <testcase name="a stored order cannot move a layer that is not reorderable" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerRegistryTest" time="0.0"/>
+  <testcase name="each layer's kind, renderer and source are the ones the map builds it with" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerRegistryTest" time="0.0"/>
+  <testcase name="every current layer is in the registry exactly once, and nothing else is" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerRegistryTest" time="0.0"/>
+  <testcase name="a casing follows its own track's state, the offline outline and its border follow the fill, and the halos follow the Journal entries switch" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerRegistryTest" time="0.0"/>
+  <testcase name="registryProblems names an owner that is missing, and an owner that itself follows another" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerRegistryTest" time="0.0"/>
+  <testcase name="registryProblems names a group that steps down" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerRegistryTest" time="0.0"/>
+  <testcase name="registryProblems names a repeated id" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerRegistryTest" time="0.001"/>
+  <testcase name="the groups run colour fields, areas, decorations, lines, markers, bottom to top, and the colour-field group holds the two synthetic layers" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerRegistryTest" time="0.0"/>
+  <testcase name="record markers, lines and colour fields are tappable, casings, the offline fill, the search centre, the recording trail and the journal halos are not" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerRegistryTest" time="0.0"/>
+  <testcase name="the registry lists today's layers bottom to top, with the search centre and sightings among the markers" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerRegistryTest" time="0.0"/>
+  <testcase name="registryProblems names an opacity property of another renderer" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerRegistryTest" time="0.0"/>
+  <testcase name="guard - the full draw order is the base's, layer for layer" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerRegistryTest" time="0.0"/>
+  <testcase name="registryProblems names a reorderable layer outside the colour fields" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerRegistryTest" time="0.0"/>
+  <testcase name="the real registry has no problems" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerRegistryTest" time="0.0"/>
+  <testcase name="colour fields draw in the user's order, bottom to top, unnamed ones after in registry order" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerRegistryTest" time="0.0"/>
+  <testcase name="the offline outline's night border sits directly below the outline and above the region's halo, takes no taps and follows the fill" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerRegistryTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

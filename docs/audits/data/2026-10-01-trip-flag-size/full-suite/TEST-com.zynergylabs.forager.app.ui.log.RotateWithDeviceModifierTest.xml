@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.RotateWithDeviceModifierTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:05.481Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.131">
+  <properties/>
+  <testcase name="a control that starts turned is placed turned, with no animation from upright" classname="com.zynergylabs.forager.app.ui.log.RotateWithDeviceModifierTest" time="0.034"/>
+  <testcase name="turning to 90 degrees keeps the centre and turns the bounds with the pixels" classname="com.zynergylabs.forager.app.ui.log.RotateWithDeviceModifierTest" time="0.029"/>
+  <testcase name="the footprint is a square of the larger side, with the content centred in it" classname="com.zynergylabs.forager.app.ui.log.RotateWithDeviceModifierTest" time="0.067"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

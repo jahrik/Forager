@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.map.MapUserAgentTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:56.646Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.154">
+  <properties/>
+  <testcase name="the client replaces the library's own User-Agent rather than adding a second" classname="com.zynergylabs.forager.app.map.MapUserAgentTest" time="0.03"/>
+  <testcase name="starting the application installs the client MapLibre will use, carrying the app's User-Agent" classname="com.zynergylabs.forager.app.map.MapUserAgentTest" time="0.026"/>
+  <testcase name="the client keeps MapLibre's own request limit per host" classname="com.zynergylabs.forager.app.map.MapUserAgentTest" time="0.03"/>
+  <testcase name="the contact is the owner's, not the placeholder" classname="com.zynergylabs.forager.app.map.MapUserAgentTest" time="0.023"/>
+  <testcase name="the string is exactly the agreed shape, built from the given parts" classname="com.zynergylabs.forager.app.map.MapUserAgentTest" time="0.021"/>
+  <testcase name="the app's own string takes its version and id from BuildConfig and its release from the device" classname="com.zynergylabs.forager.app.map.MapUserAgentTest" time="0.022"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

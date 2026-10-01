@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.GetCartographyEntryMapDataUseCaseTest" tests="19" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:52.655Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.648">
+  <properties/>
+  <testcase name="waypoints and offline regions resolve directly from the entry's own snapshot, no repository involved" classname="com.zynergylabs.forager.app.domain.GetCartographyEntryMapDataUseCaseTest" time="0.028"/>
+  <testcase name="a withheld (not kept) track is never resolved, even if it still exists" classname="com.zynergylabs.forager.app.domain.GetCartographyEntryMapDataUseCaseTest" time="0.029"/>
+  <testcase name="a photo whose gallery row is missing entirely is skipped silently" classname="com.zynergylabs.forager.app.domain.GetCartographyEntryMapDataUseCaseTest" time="0.024"/>
+  <testcase name="a kept track deleted from Records with no saved path draws nothing and does not error" classname="com.zynergylabs.forager.app.domain.GetCartographyEntryMapDataUseCaseTest" time="0.03"/>
+  <testcase name="a withheld track's saved path is not drawn" classname="com.zynergylabs.forager.app.domain.GetCartographyEntryMapDataUseCaseTest" time="0.024"/>
+  <testcase name="a kept track deleted from Records draws its saved line and does not error" classname="com.zynergylabs.forager.app.domain.GetCartographyEntryMapDataUseCaseTest" time="0.057"/>
+  <testcase name="nothing kept resolves to an entirely empty result" classname="com.zynergylabs.forager.app.domain.GetCartographyEntryMapDataUseCaseTest" time="0.047"/>
+  <testcase name="a saved path that cannot be read draws nothing for that track, the other tracks still draw, and nothing throws" classname="com.zynergylabs.forager.app.domain.GetCartographyEntryMapDataUseCaseTest" time="0.039"/>
+  <testcase name="a kept find deleted from Records draws nothing and does not error" classname="com.zynergylabs.forager.app.domain.GetCartographyEntryMapDataUseCaseTest" time="0.059"/>
+  <testcase name="a photo with no coordinate is skipped silently, not an error" classname="com.zynergylabs.forager.app.domain.GetCartographyEntryMapDataUseCaseTest" time="0.028"/>
+  <testcase name="a kept find with a resolved coordinate becomes a find marker" classname="com.zynergylabs.forager.app.domain.GetCartographyEntryMapDataUseCaseTest" time="0.034"/>
+  <testcase name="a kept find with no location produces no find marker, not an error" classname="com.zynergylabs.forager.app.domain.GetCartographyEntryMapDataUseCaseTest" time="0.029"/>
+  <testcase name="an empty saved path contributes no polyline, as an empty live track does not" classname="com.zynergylabs.forager.app.domain.GetCartographyEntryMapDataUseCaseTest" time="0.027"/>
+  <testcase name="allPoints flattens every resolved category together" classname="com.zynergylabs.forager.app.domain.GetCartographyEntryMapDataUseCaseTest" time="0.026"/>
+  <testcase name="a photo with a resolved coordinate becomes a photo marker" classname="com.zynergylabs.forager.app.domain.GetCartographyEntryMapDataUseCaseTest" time="0.025"/>
+  <testcase name="two kept tracks resolve to two separate polylines, each with its own points" classname="com.zynergylabs.forager.app.domain.GetCartographyEntryMapDataUseCaseTest" time="0.032"/>
+  <testcase name="a kept track whose every stored point is excluded at the read seam contributes no polyline at all" classname="com.zynergylabs.forager.app.domain.GetCartographyEntryMapDataUseCaseTest" time="0.031"/>
+  <testcase name="the live track is drawn, not the saved path, while the track exists" classname="com.zynergylabs.forager.app.domain.GetCartographyEntryMapDataUseCaseTest" time="0.031"/>
+  <testcase name="another entry's saved path for the same track is not drawn" classname="com.zynergylabs.forager.app.domain.GetCartographyEntryMapDataUseCaseTest" time="0.045"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

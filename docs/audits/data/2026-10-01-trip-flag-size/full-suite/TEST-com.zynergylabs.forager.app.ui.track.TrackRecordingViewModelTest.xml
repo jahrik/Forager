@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" tests="39" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:13.812Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.085">
+  <properties/>
+  <testcase name="breadcrumb points refresh on each poll while recording" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.004"/>
+  <testcase name="return to start uses the earliest breadcrumb point as the start" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.002"/>
+  <testcase name="moving away from the start does not set off-track unless actively returning" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.002"/>
+  <testcase name="return to start points at the origin waypoint once it exists, not the first breadcrumb" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.003"/>
+  <testcase name="an ordinary exclusion raises no network-fixes notice" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.003"/>
+  <testcase name="the loaders return a Job, and once joined show waypoints and tracks written behind the screen's back" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.002"/>
+  <testcase name="starting a recording creates a track and sets active state" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.002"/>
+  <testcase name="a permission-denied start is reported without ever setting an active track" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.001"/>
+  <testcase name="the origin is created from the first fix that passes the mode's accuracy gate, linked to the track and pointed at by it" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.003"/>
+  <testcase name="undo of a pending waypoint delete shows it again and deletes nothing" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.002"/>
+  <testcase name="return to start is null with no active recording" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.001"/>
+  <testcase name="a failed start surfaces an error and leaves no active track, without the exception's own message" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.002"/>
+  <testcase name="stopping the recording clears returning and off-track state" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.002"/>
+  <testcase name="a normal or vibrate-mode phone at record start sets no trip-start warning" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.003"/>
+  <testcase name="a requested waypoint delete is pending, hidden from visibleWaypoints, and deletes nothing" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.001"/>
+  <testcase name="committing a pending waypoint delete (the snackbar timing out) deletes exactly that waypoint once" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.003"/>
+  <testcase name="the breadcrumb poll raises the network-fixes notice once per recording when most of the track is excluded" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.003"/>
+  <testcase name="a second waypoint delete commits the first when it replaces it" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.001"/>
+  <testcase name="staying on track never delivers an alert" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.003"/>
+  <testcase name="a recording whose fixes never pass the gate has neither an origin nor an end - a valid state" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.003"/>
+  <testcase name="a permission-denied report after an active recording rolls it back, matching stopRecording" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.001"/>
+  <testcase name="removing a waypoint refreshes the list" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.002"/>
+  <testcase name="stopping creates the end waypoint from the last gated fix, not from a later rejected one" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.003"/>
+  <testcase name="a sustained drift alerts again once the cooldown elapses" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.002"/>
+  <testcase name="waypoints load on init and adding one refreshes the list" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.002"/>
+  <testcase name="a waypoint delete still pending when the ViewModel is cleared is committed" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.001"/>
+  <testcase name="stopping the recording stops collecting fixes and clears returnToStart" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.003"/>
+  <testcase name="startReturn marks returning while actively recording, stopReturn clears it without stopping the recording" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.002"/>
+  <testcase name="starting a recording does not mark the walker as returning" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.001"/>
+  <testcase name="moving steadily toward the start while returning stays on track" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.003"/>
+  <testcase name="stopping clears active state and the poll loop stops scheduling further work" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.001"/>
+  <testcase name="going off-track delivers exactly one alert, not one per fix" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.003"/>
+  <testcase name="the trip-start warning gets a new id on each recording so an identical message re-shows" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.002"/>
+  <testcase name="starting a recording collects live fixes and updates returnToStart reactively, without a direct call" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.002"/>
+  <testcase name="startReturn is a no-op with nothing recording" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.001"/>
+  <testcase name="path home is computed by the poll while returning, over the joined track, and cleared when the return stops" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.003"/>
+  <testcase name="a silenced phone at record start sets the trip-start warning" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.001"/>
+  <testcase name="moving steadily away from the start while returning sets off-track" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.001"/>
+  <testcase name="stopReturn resets the cooldown so a later return attempt can alert immediately" classname="com.zynergylabs.forager.app.ui.track.TrackRecordingViewModelTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

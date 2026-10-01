@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.sensor.AndroidCompassProviderTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:59.378Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.233">
+  <properties/>
+  <testcase name="no sensor at all - one null, then the flow completes" classname="com.zynergylabs.forager.app.sensor.AndroidCompassProviderTest" time="0.032"/>
+  <testcase name="values4 absent, minus one, NaN or past pi - the status decides" classname="com.zynergylabs.forager.app.sensor.AndroidCompassProviderTest" time="0.033"/>
+  <testcase name="the accuracy callback alone re-emits a status-based reading - and only records when the last reading carried an estimate" classname="com.zynergylabs.forager.app.sensor.AndroidCompassProviderTest" time="0.041"/>
+  <testcase name="values4 exactly zero - the status decides, and the reading says so" classname="com.zynergylabs.forager.app.sensor.AndroidCompassProviderTest" time="0.027"/>
+  <testcase name="estimatedHeadingUncertainty - the four not-supplied cases and the 15 degree literal" classname="com.zynergylabs.forager.app.sensor.AndroidCompassProviderTest" time="0.022"/>
+  <testcase name="fallback path - the magnetometer's status gates, the accelerometer's is ignored" classname="com.zynergylabs.forager.app.sensor.AndroidCompassProviderTest" time="0.026"/>
+  <testcase name="platform status maps to the owned enum, and anything unrecognised reads as UNRELIABLE" classname="com.zynergylabs.forager.app.sensor.AndroidCompassProviderTest" time="0.024"/>
+  <testcase name="values4 present - the estimate in degrees, on the reading, with the heading the framework computed" classname="com.zynergylabs.forager.app.sensor.AndroidCompassProviderTest" time="0.025"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

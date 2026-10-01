@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.LayoutFixesLegendPortraitTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:55.601Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.181">
+  <properties/>
+  <testcase name="T2 with the legend expanded the centred cluster rises clear of it, and collapsed it returns" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesLegendPortraitTest" time="0.104"/>
+  <testcase name="Q4 in portrait the legend still stops the cluster from being dragged down over it" classname="com.zynergylabs.forager.app.ui.availability.LayoutFixesLegendPortraitTest" time="0.075"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

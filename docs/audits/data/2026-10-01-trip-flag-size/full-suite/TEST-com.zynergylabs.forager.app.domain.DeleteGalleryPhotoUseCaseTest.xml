@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.DeleteGalleryPhotoUseCaseTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:52.567Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.006">
+  <properties/>
+  <testcase name="a failed row deletion fails the whole operation and never attempts the file delete" classname="com.zynergylabs.forager.app.domain.DeleteGalleryPhotoUseCaseTest" time="0.003"/>
+  <testcase name="a failed file deletion still reports overall success, and reports the failure via the callback" classname="com.zynergylabs.forager.app.domain.DeleteGalleryPhotoUseCaseTest" time="0.001"/>
+  <testcase name="deletes the row before the file, and reports success" classname="com.zynergylabs.forager.app.domain.DeleteGalleryPhotoUseCaseTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

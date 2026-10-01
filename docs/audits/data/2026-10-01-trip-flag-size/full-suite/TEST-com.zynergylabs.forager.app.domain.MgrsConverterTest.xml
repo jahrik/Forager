@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.MgrsConverterTest" tests="14" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:53.639Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.018">
+  <properties/>
+  <testcase name="the southern coverage boundary, exactly 80 degrees south, is still supported" classname="com.zynergylabs.forager.app.domain.MgrsConverterTest" time="0.016"/>
+  <testcase name="Aachen Cathedral, near a UTM zone boundary, converts correctly" classname="com.zynergylabs.forager.app.domain.MgrsConverterTest" time="0.0"/>
+  <testcase name="just south of the coverage boundary is explicitly unsupported, not silently clamped" classname="com.zynergylabs.forager.app.domain.MgrsConverterTest" time="0.0"/>
+  <testcase name="Ushuaia, a southern-hemisphere and western-longitude point, converts correctly" classname="com.zynergylabs.forager.app.domain.MgrsConverterTest" time="0.0"/>
+  <testcase name="the north pole is unsupported" classname="com.zynergylabs.forager.app.domain.MgrsConverterTest" time="0.0"/>
+  <testcase name="Sydney, a southern-hemisphere point, converts correctly" classname="com.zynergylabs.forager.app.domain.MgrsConverterTest" time="0.001"/>
+  <testcase name="a point in this app's own Portland OR region converts correctly" classname="com.zynergylabs.forager.app.domain.MgrsConverterTest" time="0.0"/>
+  <testcase name="McMurdo Station, a high-southern-latitude point still inside MGRS coverage, converts correctly" classname="com.zynergylabs.forager.app.domain.MgrsConverterTest" time="0.0"/>
+  <testcase name="New York, a mid-northern-latitude point, matches a published worked example" classname="com.zynergylabs.forager.app.domain.MgrsConverterTest" time="0.0"/>
+  <testcase name="the south pole is unsupported" classname="com.zynergylabs.forager.app.domain.MgrsConverterTest" time="0.0"/>
+  <testcase name="just north of the coverage boundary is explicitly unsupported, not silently clamped" classname="com.zynergylabs.forager.app.domain.MgrsConverterTest" time="0.0"/>
+  <testcase name="the equator and prime meridian intersection converts correctly" classname="com.zynergylabs.forager.app.domain.MgrsConverterTest" time="0.0"/>
+  <testcase name="the northern coverage boundary, exactly 84 degrees north, is still supported" classname="com.zynergylabs.forager.app.domain.MgrsConverterTest" time="0.001"/>
+  <testcase name="Tokyo converts correctly" classname="com.zynergylabs.forager.app.domain.MgrsConverterTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

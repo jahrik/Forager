@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenReturnToMapTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:12.294Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.753">
+  <properties/>
+  <testcase name="the find page's own back arrow arrives on the Maps tab with the bubble too" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenReturnToMapTest" time="0.097"/>
+  <testcase name="Back after switching to another tab does not return to the map" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenReturnToMapTest" time="0.076"/>
+  <testcase name="the Journal tab is left showing what it showed before the find opened over it" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenReturnToMapTest" time="0.124"/>
+  <testcase name="Open in Journal then the real Back arrives on the Maps tab with that find's bubble open" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenReturnToMapTest" time="0.071"/>
+  <testcase name="a find deleted from its page returns to the map without its bubble" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenReturnToMapTest" time="0.089"/>
+  <testcase name="from a fan member the keys of the open fan reach the new map and the bubble is open" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenReturnToMapTest" time="0.105"/>
+  <testcase name="editing the find and saving it forgets the origin, so Back stays on the Journal" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenReturnToMapTest" time="0.188"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

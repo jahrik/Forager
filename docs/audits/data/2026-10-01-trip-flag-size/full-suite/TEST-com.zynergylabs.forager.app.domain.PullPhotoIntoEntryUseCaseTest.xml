@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.PullPhotoIntoEntryUseCaseTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:53.702Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.004">
+  <properties/>
+  <testcase name="pulling the same photo twice into the same entry does not duplicate it in the returned entry" classname="com.zynergylabs.forager.app.domain.PullPhotoIntoEntryUseCaseTest" time="0.002"/>
+  <testcase name="reports failure when attaching fails" classname="com.zynergylabs.forager.app.domain.PullPhotoIntoEntryUseCaseTest" time="0.001"/>
+  <testcase name="pulling a gallery photo into an entry attaches a reference only, and returns the entry with it added" classname="com.zynergylabs.forager.app.domain.PullPhotoIntoEntryUseCaseTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

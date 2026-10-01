@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.photo.CameraXCaptureSessionFlashTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:57.318Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.387">
+  <properties/>
+  <testcase name="each mode sets the torch and the ImageCapture's flash mode as the table says" classname="com.zynergylabs.forager.app.photo.CameraXCaptureSessionFlashTest" time="0.05"/>
+  <testcase name="a camera with no flash unit is never asked, and the mode stays Off" classname="com.zynergylabs.forager.app.photo.CameraXCaptureSessionFlashTest" time="0.024"/>
+  <testcase name="closing with the torch on turns it off and leaves flashMode at Off" classname="com.zynergylabs.forager.app.photo.CameraXCaptureSessionFlashTest" time="0.022"/>
+  <testcase name="after the bind, the session is Off and the ImageCapture's flash mode is OFF" classname="com.zynergylabs.forager.app.photo.CameraXCaptureSessionFlashTest" time="0.023"/>
+  <testcase name="a tap cycles Off, Auto, On, Torch and back to Off" classname="com.zynergylabs.forager.app.photo.CameraXCaptureSessionFlashTest" time="0.025"/>
+  <testcase name="before a camera is bound there is no unit, and a request changes nothing" classname="com.zynergylabs.forager.app.photo.CameraXCaptureSessionFlashTest" time="0.04"/>
+  <testcase name="with no flash unit, Auto and On are refused like Torch, and nothing reaches the ImageCapture or the torch" classname="com.zynergylabs.forager.app.photo.CameraXCaptureSessionFlashTest" time="0.053"/>
+  <testcase name="a failed torch request reports what the torch actually is" classname="com.zynergylabs.forager.app.photo.CameraXCaptureSessionFlashTest" time="0.034"/>
+  <testcase name="a failed torch request with the torch unlit leaves Auto and On standing" classname="com.zynergylabs.forager.app.photo.CameraXCaptureSessionFlashTest" time="0.051"/>
+  <testcase name="setting Off turns the torch off" classname="com.zynergylabs.forager.app.photo.CameraXCaptureSessionFlashTest" time="0.033"/>
+  <testcase name="On, then close, then a new bind - the session reports Off and the new ImageCapture is OFF" classname="com.zynergylabs.forager.app.photo.CameraXCaptureSessionFlashTest" time="0.029"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

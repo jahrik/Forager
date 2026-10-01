@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.photo.PhotoMetadataScrubTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:58.760Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.39">
+  <properties/>
+  <testcase name="GPS is gone, orientation survives, and the image itself is untouched" classname="com.zynergylabs.forager.app.photo.PhotoMetadataScrubTest" time="0.035"/>
+  <testcase name="the JFIF header stays but a JFXX thumbnail extension is dropped" classname="com.zynergylabs.forager.app.photo.PhotoMetadataScrubTest" time="0.061"/>
+  <testcase name="bytes after EOI are dropped, and the image up to EOI is untouched" classname="com.zynergylabs.forager.app.photo.PhotoMetadataScrubTest" time="0.033"/>
+  <testcase name="a non-JPEG is reported as such and left byte for byte alone" classname="com.zynergylabs.forager.app.photo.PhotoMetadataScrubTest" time="0.031"/>
+  <testcase name="a progressive JPEG keeps every scan and table between its first SOS and EOI" classname="com.zynergylabs.forager.app.photo.PhotoMetadataScrubTest" time="0.021"/>
+  <testcase name="no APP1 is left behind when there was no orientation to put back" classname="com.zynergylabs.forager.app.photo.PhotoMetadataScrubTest" time="0.023"/>
+  <testcase name="an ICC colour profile survives both the strip and the orientation reapply" classname="com.zynergylabs.forager.app.photo.PhotoMetadataScrubTest" time="0.024"/>
+  <testcase name="a photo with no orientation tag is still scrubbed, and none is invented" classname="com.zynergylabs.forager.app.photo.PhotoMetadataScrubTest" time="0.025"/>
+  <testcase name="no temp file is left beside a scrubbed photo" classname="com.zynergylabs.forager.app.photo.PhotoMetadataScrubTest" time="0.024"/>
+  <testcase name="a truncated JPEG is refused rather than rewritten into something shorter" classname="com.zynergylabs.forager.app.photo.PhotoMetadataScrubTest" time="0.025"/>
+  <testcase name="the orientation reapply does not bring a dropped trailer back" classname="com.zynergylabs.forager.app.photo.PhotoMetadataScrubTest" time="0.04"/>
+  <testcase name="every other EXIF tag goes too, not only the ones a denylist would have named" classname="com.zynergylabs.forager.app.photo.PhotoMetadataScrubTest" time="0.021"/>
+  <testcase name="a COM comment is dropped" classname="com.zynergylabs.forager.app.photo.PhotoMetadataScrubTest" time="0.023"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

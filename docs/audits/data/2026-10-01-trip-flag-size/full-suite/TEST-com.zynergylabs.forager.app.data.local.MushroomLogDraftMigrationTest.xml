@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.data.local.MushroomLogDraftMigrationTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:46.152Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.061">
+  <properties/>
+  <testcase name="a pre-existing entry survives the 8 to 9 migration intact and is marked committed, never draft" classname="com.zynergylabs.forager.app.data.local.MushroomLogDraftMigrationTest" time="0.06"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

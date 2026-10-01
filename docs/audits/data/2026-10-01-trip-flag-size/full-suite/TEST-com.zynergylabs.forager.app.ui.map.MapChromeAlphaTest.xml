@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.MapChromeAlphaTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:08.835Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.002">
+  <properties/>
+  <testcase name="srcOverAlpha composites rather than adds" classname="com.zynergylabs.forager.app.ui.map.MapChromeAlphaTest" time="0.002"/>
+  <testcase name="a child fill over the container fill composites to the standing over-map alpha" classname="com.zynergylabs.forager.app.ui.map.MapChromeAlphaTest" time="0.0"/>
+  <testcase name="the declared fills carry exactly the declared alphas, and the standing chrome fills the standing alpha" classname="com.zynergylabs.forager.app.ui.map.MapChromeAlphaTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.data.repository.DataStoreMapPreferencesRepositoryTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:48.400Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.181">
+  <properties/>
+  <testcase name="a saved stale threshold round-trips exactly" classname="com.zynergylabs.forager.app.data.repository.DataStoreMapPreferencesRepositoryTest" time="0.03"/>
+  <testcase name="saving a second region replaces the first" classname="com.zynergylabs.forager.app.data.repository.DataStoreMapPreferencesRepositoryTest" time="0.029"/>
+  <testcase name="the stale threshold defaults until explicitly set" classname="com.zynergylabs.forager.app.data.repository.DataStoreMapPreferencesRepositoryTest" time="0.024"/>
+  <testcase name="nothing picked yet reads back null, not a fabricated region" classname="com.zynergylabs.forager.app.data.repository.DataStoreMapPreferencesRepositoryTest" time="0.052"/>
+  <testcase name="a saved region round-trips exactly" classname="com.zynergylabs.forager.app.data.repository.DataStoreMapPreferencesRepositoryTest" time="0.043"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.EstimateOfflineTileCountTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:52.589Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.001">
+  <properties/>
+  <testcase name="roughly matches the design doc's own observed count for a 5km region at 45N" classname="com.zynergylabs.forager.app.domain.EstimateOfflineTileCountTest" time="0.0"/>
+  <testcase name="the served-ceiling estimate matches the download's own enumeration at three radii spanning the slider" classname="com.zynergylabs.forager.app.domain.EstimateOfflineTileCountTest" time="0.0"/>
+  <testcase name="a single zoom level covering the whole world is exactly one tile" classname="com.zynergylabs.forager.app.domain.EstimateOfflineTileCountTest" time="0.0"/>
+  <testcase name="a wider zoom range never estimates fewer tiles" classname="com.zynergylabs.forager.app.domain.EstimateOfflineTileCountTest" time="0.0"/>
+  <testcase name="a region near the pole does not crash or produce a nonsensical count" classname="com.zynergylabs.forager.app.domain.EstimateOfflineTileCountTest" time="0.0"/>
+  <testcase name="a larger radius never estimates fewer tiles" classname="com.zynergylabs.forager.app.domain.EstimateOfflineTileCountTest" time="0.0"/>
+  <testcase name="a region crossing the antimeridian still produces a positive, finite estimate" classname="com.zynergylabs.forager.app.domain.EstimateOfflineTileCountTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

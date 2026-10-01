@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsSyntheticForecastSwitchTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:25.220Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.178">
+  <properties/>
+  <testcase name="the first toggle is Synthetic forecast layers, above the log row, showing the stored state" classname="com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsSyntheticForecastSwitchTest" time="0.036"/>
+  <testcase name="the panel's entry point shows the app's own store, and turning it on gives the store data" classname="com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsSyntheticForecastSwitchTest" time="0.053"/>
+  <testcase name="a write that fails leaves the toggle showing what is stored" classname="com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsSyntheticForecastSwitchTest" time="0.051"/>
+  <testcase name="a real touch on the toggle turns the switch on and stores it, and a second turns it off" classname="com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsSyntheticForecastSwitchTest" time="0.036"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

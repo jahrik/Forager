@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.data.backup.ScheduledBackupTest" tests="30" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:38.795Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="6.327">
+  <properties/>
+  <testcase name="the job keeps the newest 5 of its own backups, deleting the oldest beyond that, oldest first" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupTest" time="0.033"/>
+  <testcase name="a retry writes a backup with the setting off, and still refuses with no folder" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupTest" time="0.05"/>
+  <testcase name="changing how often, and turning it off and on again, run nothing at once either" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupTest" time="3.082"/>
+  <testcase name="the recorded list is stored and read back exactly, in order, and the permission flag starts unset" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupTest" time="0.088"/>
+  <testcase name="a delete that fails is logged at warn, the backup is still a success, and the file is not kept to fail again" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupTest" time="0.033"/>
+  <testcase name="a notice waiting to be shown at launch is stored and read back exactly, and clears" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupTest" time="0.035"/>
+  <testcase name="the worker reports a failed run, so a notification or an in-app notice follows" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupTest" time="0.033"/>
+  <testcase name="five backups delete nothing" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupTest" time="0.035"/>
+  <testcase name="a failed run records nothing and prunes nothing" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupTest" time="0.035"/>
+  <testcase name="the saved schedule is off, weekly and without a folder until the user sets it" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupTest" time="0.03"/>
+  <testcase name="a run with the setting off, or with no folder, writes nothing and reports a failure" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupTest" time="0.031"/>
+  <testcase name="a scheduled run writes one new file to the chosen folder, named by the date" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupTest" time="0.031"/>
+  <testcase name="the worker reports a failed run as a failure and logs why" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupTest" time="0.028"/>
+  <testcase name="the default file name is forager-backup, the date, dot zip" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupTest" time="0.03"/>
+  <testcase name="a record that cannot be read prunes nothing, is logged, and does not overwrite the record" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupTest" time="0.033"/>
+  <testcase name="the notification's Try again runs one backup to the saved folder although the schedule has been turned off" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupTest" time="0.414"/>
+  <testcase name="a folder that cannot be written is a failure the caller can see, not a success" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupTest" time="0.032"/>
+  <testcase name="enabling schedules one periodic job at the chosen frequency, and nothing is scheduled while it is off" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupTest" time="0.056"/>
+  <testcase name="an enabled setting with no folder is never scheduled" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupTest" time="0.035"/>
+  <testcase name="two runs make two files and nothing is removed" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupTest" time="0.028"/>
+  <testcase name="a scheduled run whose write fails deletes the file it created, and only that file" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupTest" time="0.028"/>
+  <testcase name="a scheduled run that meets unreadable photos skips them and saves the backup, reporting how many" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupTest" time="0.027"/>
+  <testcase name="the worker reports nothing for a clean run, and the skipped count for a run that left photos out" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupTest" time="0.027"/>
+  <testcase name="a saved schedule reads back exactly, for every frequency" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupTest" time="0.03"/>
+  <testcase name="a manual backup and any other file in the folder are never deleted, however old" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupTest" time="0.029"/>
+  <testcase name="Try again with the folder's permission gone tries the folder and posts the existing failure" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupTest" time="0.044"/>
+  <testcase name="turning the schedule on runs nothing at once, and one backup once the interval has passed" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupTest" time="1.86"/>
+  <testcase name="the worker runs the backup and reports success" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupTest" time="0.024"/>
+  <testcase name="a delete that fails is logged at warn and the run is still reported as a failure" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupTest" time="0.05"/>
+  <testcase name="a record that cannot be written deletes nothing, and is logged" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupTest" time="0.029"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[System.logW: A resource failed to call close. 
+System.logW: A resource failed to call close. 
+System.logW: A resource failed to call close. 
+System.logW: A resource failed to call close. 
+System.logW: A resource failed to call close. 
+]]></system-err>
+</testsuite>

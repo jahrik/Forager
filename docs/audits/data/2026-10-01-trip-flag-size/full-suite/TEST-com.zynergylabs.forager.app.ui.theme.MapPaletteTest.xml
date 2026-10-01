@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.theme.MapPaletteTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:13.738Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.004">
+  <properties/>
+  <testcase name="night offline region as drawn matches its recorded figures over every night ground cluster" classname="com.zynergylabs.forager.app.ui.theme.MapPaletteTest" time="0.001"/>
+  <testcase name="every role holds the owner's colour, day and night" classname="com.zynergylabs.forager.app.ui.theme.MapPaletteTest" time="0.0"/>
+  <testcase name="(e) each role's night fill stays in its day fill's hue family" classname="com.zynergylabs.forager.app.ui.theme.MapPaletteTest" time="0.001"/>
+  <testcase name="(a) day fills keep their measured distance from the day ground" classname="com.zynergylabs.forager.app.ui.theme.MapPaletteTest" time="0.0"/>
+  <testcase name="(d) night roles keep their measured separation from each other" classname="com.zynergylabs.forager.app.ui.theme.MapPaletteTest" time="0.001"/>
+  <testcase name="(d) day roles keep their measured separation from each other" classname="com.zynergylabs.forager.app.ui.theme.MapPaletteTest" time="0.0"/>
+  <testcase name="(a) night fills keep their measured distance from the V1 night ground" classname="com.zynergylabs.forager.app.ui.theme.MapPaletteTest" time="0.0"/>
+  <testcase name="the night outline border holds 3 to 1 over Part 1's darkest night ground, and its figures over every night ground cluster" classname="com.zynergylabs.forager.app.ui.theme.MapPaletteTest" time="0.001"/>
+  <testcase name="(c) day fills keep their measured contrast with their casing" classname="com.zynergylabs.forager.app.ui.theme.MapPaletteTest" time="0.0"/>
+  <testcase name="the contrast, distance and hue calculations reproduce the swatch board's figures" classname="com.zynergylabs.forager.app.ui.theme.MapPaletteTest" time="0.0"/>
+  <testcase name="(c) night fills keep their measured contrast with their casing" classname="com.zynergylabs.forager.app.ui.theme.MapPaletteTest" time="0.0"/>
+  <testcase name="forMode selects the palettes, and the two are not the same object" classname="com.zynergylabs.forager.app.ui.theme.MapPaletteTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
