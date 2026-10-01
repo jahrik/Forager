@@ -10,8 +10,8 @@ Base: `origin/journal-redesign` at `9a854d48`, read from the remote at start; `g
 | `a78b13ff` | Flag drawn 23 dp tall; doc comments updated |
 | `4511c95e` | Fan-duration tests first (`MarkerFanOutHostTest` re-based 400 -> 250; fold-back part-way test added; `MapTapHandlerTest` comment) |
 | `40b441cc` | `FAN_DURATION_MS` 400 -> 250, comment quotes the owner and says it replaces rule 6 |
-| (next) | `FanOutLayersTest.kt:79` re-based (see wrong premise below) |
-| (later) | Saved XML/logs under `docs/audits/data/2026-10-01-trip-flag-size/`; this report and the README row |
+| `c6a2d2b2` | `FanOutLayersTest.kt:79` re-based (see wrong premise below) |
+| `9190d13a`, `89cbfe43`, `0bcca100` | Affected-class XML, revert XML and logs, full-suite XML under `docs/audits/data/2026-10-01-trip-flag-size/` (the affected-tip XML is in `9190d13a`'s parent); this report and the README row |
 
 **Important:** nothing was built or run at the two tests-first commits, so they were never seen failing as pushed. The revert checks below are the evidence that the tests can fail.
 
