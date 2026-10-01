@@ -7,7 +7,7 @@ import kotlin.math.hypot
 import kotlin.math.sin
 
 /*
- * Stacked map markers fan out on tap (dispatch 2026-09-28-197; the owner's rules in
+ * Stacked map markers fan out on tap (dispatch 2026-09-28-197; the owner's choices in
  * docs/plans/journal-redesign.md, "Fan-out: the behaviour"). This file is the arithmetic and nothing
  * else: no map SDK, no Compose, so it is unit-testable headless. Every distance below comes from
  * one number, the touch size, so nothing here is a taste constant.
@@ -29,13 +29,12 @@ const val FAN_TOUCH_DP = 48f
  */
 const val FAN_STACK_DP = 26f
 
-/** Up to this many markers fan out in a ring; more go in a spiral (the owner's rule 3). */
+/** Up to this many markers fan out in a ring; more go in a spiral (the owner's choice, dispatch 2026-09-28-197). */
 const val FAN_RING_MAX = 8
 
 /**
  * The fan-out, and the fold-back, take this long. The owner, dispatch 2026-09-28-358 amendment -359: "And increase the
- * animation speed to 250ms". It replaces his earlier rule 6, "Give it a .4s animation speed" (400). Only the duration
- * changed: the easing, what the progress drives and the reduce-motion behaviour are as they were.
+ * animation speed to 250ms".
  */
 const val FAN_DURATION_MS = 250
 
