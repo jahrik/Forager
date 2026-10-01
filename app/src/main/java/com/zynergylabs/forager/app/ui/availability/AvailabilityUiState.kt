@@ -174,6 +174,13 @@ data class AvailabilityUiState(
      */
     val pendingOfflineRegionDelete: PendingDelete<OfflineRegionSummary>? = null,
     /**
+     * The ids of offline regions whose delete has left its Undo window and was started (or has finished):
+     * [MushroomLogUiState.committedFindDeleteIds]'s rule, for the region circles (dispatch 2026-09-28-312,
+     * item 9). In the same state update that clears [pendingOfflineRegionDelete]; kept after the delete
+     * succeeds; removed only when it fails; cleared by a restore.
+     */
+    val committedOfflineRegionDeleteIds: Set<Long> = emptySet(),
+    /**
      * A region-*list-load* failure, not a download failure — see
      * [AvailabilityViewModel.loadOfflineRegions][com.zynergylabs.forager.app.ui.availability.AvailabilityViewModel]'s
      * doc comment for the belief-changing distinction from [offlineDownloadStatus]. Also carries a

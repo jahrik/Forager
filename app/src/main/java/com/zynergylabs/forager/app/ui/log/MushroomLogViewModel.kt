@@ -313,6 +313,8 @@ class MushroomLogViewModel(
      */
     fun reloadAfterRestore(): Job {
         return viewModelScope.launch {
+            // A restore can bring a deleted record back: what was committed to deletion is forgotten first.
+            _uiState.update { it.copy(committedFindDeleteIds = emptySet(), committedPhotoDeleteIds = emptySet()) }
             loadEntries().join()
             editingEntryMutex.withLock {
                 _uiState.update { state ->
@@ -698,7 +700,12 @@ class MushroomLogViewModel(
                 }
                 val displaced = findDeletes.pend(entry, entryReferenceCount = null)
                 _uiState.update {
-                    it.copy(pendingDelete = findDeletes.pending, editingEntry = it.editingEntry?.takeUnless { open -> open.id == id })
+                    it.copy(
+                        pendingDelete = findDeletes.pending,
+                        editingEntry = it.editingEntry?.takeUnless { open -> open.id == id },
+                        // The displaced find leaves its Undo window in this same update: it is never in neither.
+                        committedFindDeleteIds = if (displaced == null) it.committedFindDeleteIds else it.committedFindDeleteIds + displaced.id,
+                    )
                 }
                 displaced
             }
@@ -729,8 +736,10 @@ class MushroomLogViewModel(
     /** The snackbar ended without Undo (timed out, or a newer snackbar replaced it): the pending find's delete runs, once. */
     fun commitDeleteEntry(id: String) {
         val entry = findDeletes.commit(id)
-        _uiState.update { it.copy(pendingDelete = findDeletes.pending) }
+        // The find is marked committed (commitFindDelete's first update) before the pending marker is cleared,
+        // so the Maps tab never sees a moment in which it is neither (dispatch 2026-09-28-312, item 9).
         entry?.let(::commitFindDelete)
+        _uiState.update { it.copy(pendingDelete = findDeletes.pending) }
     }
 
     /**
@@ -748,6 +757,7 @@ class MushroomLogViewModel(
             state.copy(
                 entries = state.entries.filterNot { it.id == entry.id },
                 draftEntries = state.draftEntries.filterNot { it.id == entry.id },
+                committedFindDeleteIds = state.committedFindDeleteIds + entry.id,
             )
         }
         viewModelScope.launch {
@@ -763,6 +773,7 @@ class MushroomLogViewModel(
                             state.copy(
                                 entries = state.entries.reinsert(entry, entriesIndex),
                                 draftEntries = state.draftEntries.reinsert(entry, draftsIndex),
+                                committedFindDeleteIds = state.committedFindDeleteIds - entry.id,
                                 saveErrorMessage = "Couldn't delete that entry.",
                             )
                         }
@@ -1105,7 +1116,8 @@ class MushroomLogViewModel(
                 Log.w(TAG, "Couldn't delete the file for photo '${photo.photo.id}'.", error)
             }.fold(
                 onSuccess = {
-                    _uiState.update { it.copy(saveErrorMessage = null) }
+                    // Committed from the moment the row is gone, so a map-records load that read it before cannot draw it.
+                    _uiState.update { it.copy(saveErrorMessage = null, committedPhotoDeleteIds = it.committedPhotoDeleteIds + photo.photo.id) }
                     onPhotoDeleted(photo.photo.id)
                     loadGalleryPhotos()
                     // Deliberately not acquiring editingEntryMutex here first — loadEntries()
@@ -1145,7 +1157,12 @@ class MushroomLogViewModel(
             return
         }
         val displaced = photoDeletes.pend(photo, entryReferenceCount = state.cartographyEntryPhotoReferenceCounts[photoId] ?: 0)
-        _uiState.update { it.copy(pendingPhotoDelete = photoDeletes.pending) }
+        _uiState.update {
+            it.copy(
+                pendingPhotoDelete = photoDeletes.pending,
+                committedPhotoDeleteIds = if (displaced == null) it.committedPhotoDeleteIds else it.committedPhotoDeleteIds + displaced.photo.id,
+            )
+        }
         displaced?.let(::commitGalleryPhotoDelete)
     }
 
@@ -1160,8 +1177,9 @@ class MushroomLogViewModel(
     /** The snackbar ended without Undo: the pending photo's delete runs, once — its rows, then its file. */
     fun commitDeleteGalleryPhoto(photoId: String) {
         val photo = photoDeletes.commit(photoId)
-        _uiState.update { it.copy(pendingPhotoDelete = photoDeletes.pending) }
+        // Marked committed before the pending marker is cleared: see commitDeleteEntry.
         photo?.let(::commitGalleryPhotoDelete)
+        _uiState.update { it.copy(pendingPhotoDelete = photoDeletes.pending) }
     }
 
     /**
@@ -1172,7 +1190,12 @@ class MushroomLogViewModel(
      */
     private fun commitGalleryPhotoDelete(photo: GalleryPhoto) {
         val index = _uiState.value.galleryPhotos.indexOfFirst { it.photo.id == photo.photo.id }
-        _uiState.update { state -> state.copy(galleryPhotos = state.galleryPhotos.filterNot { it.photo.id == photo.photo.id }) }
+        _uiState.update { state ->
+            state.copy(
+                galleryPhotos = state.galleryPhotos.filterNot { it.photo.id == photo.photo.id },
+                committedPhotoDeleteIds = state.committedPhotoDeleteIds + photo.photo.id,
+            )
+        }
         viewModelScope.launch {
             deleteGalleryPhoto(photo.photo) { error ->
                 Log.w(TAG, "Couldn't delete the file for photo '${photo.photo.id}'.", error)
@@ -1192,7 +1215,11 @@ class MushroomLogViewModel(
                         } else {
                             state.galleryPhotos.toMutableList().apply { add(index.coerceAtMost(size), photo) }
                         }
-                        state.copy(galleryPhotos = restored, saveErrorMessage = "Couldn't delete that photo.")
+                        state.copy(
+                            galleryPhotos = restored,
+                            committedPhotoDeleteIds = state.committedPhotoDeleteIds - photo.photo.id,
+                            saveErrorMessage = "Couldn't delete that photo.",
+                        )
                     }
                 },
             )

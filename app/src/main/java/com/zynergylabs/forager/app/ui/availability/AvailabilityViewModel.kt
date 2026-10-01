@@ -986,6 +986,8 @@ class AvailabilityViewModel(
      * waypoints, in the screen, so they follow. `loadRecentSearches` is not reloaded: the search cache is not restored.
      */
     suspend fun reloadAfterRestore() {
+        // A restore can bring a deleted record back: what was committed to deletion is forgotten first.
+        _uiState.update { it.copy(committedOfflineRegionDeleteIds = emptySet()) }
         loadPlannedTrips().join()
         loadOfflineRegions().join()
         loadMapRecords()
@@ -1398,7 +1400,13 @@ class AvailabilityViewModel(
             return
         }
         val displaced = offlineRegionDeletes.pend(region, state.offlineRegionEntryReferenceCounts[id] ?: 0)
-        _uiState.update { it.copy(pendingOfflineRegionDelete = offlineRegionDeletes.pending) }
+        _uiState.update {
+            it.copy(
+                pendingOfflineRegionDelete = offlineRegionDeletes.pending,
+                // The displaced region leaves its Undo window in this same update: it is never in neither.
+                committedOfflineRegionDeleteIds = if (displaced == null) it.committedOfflineRegionDeleteIds else it.committedOfflineRegionDeleteIds + displaced.id,
+            )
+        }
         displaced?.let(::commitOfflineRegionDelete)
     }
 
@@ -1413,8 +1421,10 @@ class AvailabilityViewModel(
     /** The snackbar ended without Undo (timed out, or a newer snackbar replaced it): the pending region's tile and row delete runs, once. */
     fun commitDeleteOfflineRegion(id: Long) {
         val region = offlineRegionDeletes.commit(id)
-        _uiState.update { it.copy(pendingOfflineRegionDelete = offlineRegionDeletes.pending) }
+        // Marked committed (commitOfflineRegionDelete's first update) before the pending marker is cleared, so the
+        // Maps tab never sees a moment in which the region is neither (dispatch 2026-09-28-312, item 9).
         region?.let(::commitOfflineRegionDelete)
+        _uiState.update { it.copy(pendingOfflineRegionDelete = offlineRegionDeletes.pending) }
     }
 
     /**
@@ -1424,7 +1434,12 @@ class AvailabilityViewModel(
      */
     private fun commitOfflineRegionDelete(region: OfflineRegionSummary) {
         val index = _uiState.value.offlineRegions.indexOfFirst { it.id == region.id }
-        _uiState.update { state -> state.copy(offlineRegions = state.offlineRegions.filterNot { it.id == region.id }) }
+        _uiState.update { state ->
+            state.copy(
+                offlineRegions = state.offlineRegions.filterNot { it.id == region.id },
+                committedOfflineRegionDeleteIds = state.committedOfflineRegionDeleteIds + region.id,
+            )
+        }
         viewModelScope.launch {
             offlineMapRepository.deleteRegion(region.id).fold(
                 onSuccess = {
@@ -1439,7 +1454,11 @@ class AvailabilityViewModel(
                         } else {
                             state.offlineRegions.toMutableList().apply { add(index.coerceIn(0, size), region) }
                         }
-                        state.copy(offlineRegions = restored, offlineRegionsErrorMessage = "Couldn't delete that region.")
+                        state.copy(
+                            offlineRegions = restored,
+                            committedOfflineRegionDeleteIds = state.committedOfflineRegionDeleteIds - region.id,
+                            offlineRegionsErrorMessage = "Couldn't delete that region.",
+                        )
                     }
                 },
             )

@@ -67,6 +67,18 @@ data class MushroomLogUiState(
      * [MushroomLogViewModel.requestDeleteGalleryPhoto].
      */
     val pendingPhotoDelete: PendingDelete<GalleryPhoto>? = null,
+    /**
+     * The ids of finds whose delete has left its Undo window and was started (or has finished): the Maps
+     * tab never draws them again (dispatch 2026-09-28-312, item 9). [pendingDelete] covers the Undo window
+     * and nothing after it; this covers the rest. An id goes in **in the same state update** that clears
+     * [pendingDelete] (there is no moment the find is in neither), stays after the delete succeeds so a
+     * map-records load that read the row before the delete and lands after it cannot draw it again, and
+     * comes out only when the delete fails (the find is still saved). Cleared by a restore, which can bring
+     * a deleted record back. Not read by any Journal list: J4's pending-delete behaviour is [pendingDelete]'s.
+     */
+    val committedFindDeleteIds: Set<String> = emptySet(),
+    /** [committedFindDeleteIds], for album photos: [pendingPhotoDelete] covers the Undo window, this the rest. */
+    val committedPhotoDeleteIds: Set<String> = emptySet(),
 ) {
     /**
      * This state with [pendingDelete] left out of [entries] and [draftEntries]: what `MainActivity`

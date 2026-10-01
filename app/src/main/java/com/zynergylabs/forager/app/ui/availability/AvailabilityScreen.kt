@@ -884,11 +884,7 @@ fun AvailabilityScreen(
             )
         }
     }
-    val mapRecordsDrawn = uiState.mapRecords.withoutPending(
-        findId = logUiState.pendingDelete?.item?.id,
-        photoId = logUiState.pendingPhotoDelete?.item?.photo?.id,
-        offlineRegionId = uiState.pendingOfflineRegionDelete?.item?.id?.toString(),
-    )
+    val mapRecordsDrawn = uiState.drawnMapRecords(logUiState)
     // J8-2 (owner: "Highlight in place", "Live records", "Saved entries only"): the saved entries shown
     // on the map and the records they keep, among the records the Maps tab draws. cartographyUiState is
     // what MainActivity passes, with a pending entry delete already left out (hidingPendingDelete), and
