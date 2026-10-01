@@ -129,4 +129,24 @@ class CameraMoveClassifierTest {
 
         assertEquals(CameraMoveCause.LOCATION_FOLLOW, classifier.classify(isGesture = false, followingLocation = true))
     }
+
+    @Test
+    fun `an earlier mark's settle step, running late, does not drop a newer mark whose move is still queued`() {
+        // Seen on the S22 at launch, when the main thread was busy: mark 1's second hop ran after mark 1's move had gone idle and mark 2 had been set,
+        // dropped mark 2, and mark 2's own move then started unmarked.
+        val first = mutableListOf<CameraMoveCause>()
+        classifier.markAppMove() // queue: settle 1a
+        sdkStartsAMove(first) // queue: settle 1a, move 1
+        looper.runNext() // settle 1a runs and queues settle 1b: move 1, settle 1b
+        looper.runNext() // move 1 starts
+        classifier.onCameraIdle() // move 1 is over
+
+        val second = mutableListOf<CameraMoveCause>()
+        classifier.markAppMove() // queue: settle 1b, settle 2a
+        sdkStartsAMove(second) // queue: settle 1b, settle 2a, move 2
+        looper.runAll() // settle 1b is mark 1's; it must not touch mark 2
+
+        assertEquals(listOf(CameraMoveCause.APP_REQUESTED), first)
+        assertEquals("mark 2's move is the app's whichever settle step runs first", listOf(CameraMoveCause.APP_REQUESTED), second)
+    }
 }
