@@ -45,9 +45,13 @@ internal class FanOutTestScene(override val density: Float = 2f) : MapProbe {
         markers += Placed(layerId, featureId, centre.lat, centre.lng, xPx, yPx)
     }
 
-    private fun px(p: Placed) = (p.screenXPx ?: xPx(p.lng))
+    /** The map panned under the markers: every marker's screen position moves by this, px (dispatch 2026-09-28-380). */
+    var panXPx = 0f
+    var panYPx = 0f
 
-    private fun py(p: Placed) = (p.screenYPx ?: yPx(p.lat))
+    private fun px(p: Placed) = (p.screenXPx ?: xPx(p.lng)) + panXPx
+
+    private fun py(p: Placed) = (p.screenYPx ?: yPx(p.lat)) + panYPx
 
     private fun visible(layerIds: List<String>) =
         markers.filter { it.layerId in layerIds && FanKey(it.layerId, it.featureId) !in hidden() }

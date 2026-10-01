@@ -66,6 +66,8 @@ class MapTapHandler(
     private val bubbleOpen: () -> Boolean = { false },
     /** Whether a layer's switch is on. A record on a layer switched off is not drawn, so it is not a fan member. */
     private val layerDrawn: (String) -> Boolean = { true },
+    /** Where a fallback is reported, never silent: the host passes `Log.w`; a test passes its own. */
+    private val warn: (String) -> Unit = {},
 ) {
     fun onMapTap(at: LatLng, xPx: Float, yPx: Float) {
         val density = probe.density
@@ -116,7 +118,7 @@ class MapTapHandler(
     }
 
     /** The camera started to move, by a gesture or by the app: the copies are placed in screen space, so the fan folds. */
-    fun onCameraMoveStarted() = fan.fold()
+    fun onCameraMoveStarted(cause: CameraMoveCause = CameraMoveCause.UNKNOWN) = fan.fold() // STUB: folds for every cause, as before the fix
 
     /**
      * What the map draws changed (its records, its layer switches): the fan folds only if its members changed (intent
