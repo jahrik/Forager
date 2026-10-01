@@ -802,7 +802,10 @@ fun SightingsMap(
             }
             pushFanFrame(
                 style,
-                fanFrameCollections(members, { fanMemberLatLng(map, it, progress, density) }, focusedObservationId, progress),
+                fanFrameCollections(
+                    members, { fanMemberLatLng(map, it, progress, density) }, focusedObservationId, progress,
+                    drawOrder = orderedLayers(MAP_LAYER_REGISTRY, currentLayersState),
+                ),
             )
         }
     }
@@ -1444,6 +1447,22 @@ internal fun liveLocationComponentOptions(context: Context): LocationComponentOp
         .build()
 
 /**
+ * The options to apply to an already-initialised LocationComponent just before [liveLocationComponentOptions],
+ * or `null` when nothing is needed first (dispatch 2026-09-28-318, fail 3).
+ *
+ * After a basemap swap the SDK has already put the puck's layers back, before this app's layers exist (see
+ * `LiveLocationPuckSwapTest` for the chain, read from 13.5.0 with javap), so the puck sits under the markers and the fan.
+ * Re-activating hands the SDK the options it already holds, and it moves nothing for those. Applying the same options with
+ * no position first makes the next application a change, so the SDK takes the puck's layers out and adds them again
+ * below [FanOutIds.LEGS_CASING_LAYER], which exists by then. Both happen in one call on the main thread, so no frame is
+ * drawn between them. Rejected: moving the puck's layers by their own ids (those names are the SDK's, not public API),
+ * and adding this app's layers through `Style.Builder` so they exist before the SDK re-places the puck (it restructures
+ * working code). A component not yet initialised builds its layers where [options] say, so it needs nothing first.
+ */
+internal fun puckReplacementOptions(alreadyInitialised: Boolean, options: LocationComponentOptions): LocationComponentOptions? =
+    if (alreadyInitialised) options.toBuilder().layerAbove(null).layerBelow(null).build() else null
+
+/**
  * Turns on MapLibre's own "blue dot" location puck and has the camera follow it — "like regular
  * GPS," the project owner's own framing, rather than the compass strip's pre-existing one-shot
  * locate-me fetch (which still exists unchanged, feeding that strip's own text readout, not the
@@ -1489,9 +1508,11 @@ private fun activateLiveLocationIfPermitted(
 ) {
     if (!hasLocationPermission(context)) return
     val locationComponent = map.locationComponent
+    val options = liveLocationComponentOptions(context)
+    puckReplacementOptions(locationComponent.isLocationComponentActivated, options)?.let { locationComponent.applyStyle(it) }
     locationComponent.activateLocationComponent(
         LocationComponentActivationOptions.builder(context, style)
-            .locationComponentOptions(liveLocationComponentOptions(context))
+            .locationComponentOptions(options)
             .useDefaultLocationEngine(true)
             .build(),
     )
