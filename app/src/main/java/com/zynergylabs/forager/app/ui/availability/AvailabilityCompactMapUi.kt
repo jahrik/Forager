@@ -378,10 +378,14 @@ internal fun CompactMapTab(
     var pendingWaypointLocation by remember { mutableStateOf<LatLng?>(null) }
     // M1 (planner's ruling: one bubble at a time): the one tapped thing, a sighting or any glyph.
     // Item 8: a bubble waiting from "Open in Journal" comes back open, once, when this tab is created again by Back from that find.
-    var tapped by remember { mutableStateOf<TappedMapThing?>(returnMemory.takeBubble(mapLayers.records.findMarkers)) }
+    var tapped by remember {
+        mutableStateOf<TappedMapThing?>(returnMemory.takeBubble(mapLayers.records.findMarkers) ?: returnMemory.takeEntryBubble(bubbleSources))
+    }
     // A fan the map did not use before this tab left composition is not kept for a later map.
     DisposableEffect(returnMemory) { onDispose { returnMemory.clearRestore() } }
     val onFeatureTap: (MapFeatureTap) -> Unit = remember { { tap -> tappedThingOf(tap)?.let { tapped = it } } }
+    // Part A of dispatch 2026-09-28-387: a tap on a stack closes the bubble that is showing. Remembered, like onFeatureTap, so renderMode compares equal across recompositions.
+    val onCloseBubble: () -> Unit = remember { { tapped = null } }
     // See MapOverlayContent.resumeTrackingRequestId's own doc comment — incremented alongside the
     // existing onLocateMe() call below, not instead of it: that call still drives the compass
     // strip's own one-shot position/elevation text, this drives the map's live GPS camera puck.
@@ -576,6 +580,7 @@ internal fun CompactMapTab(
                         // below, which is the bubble's own.
                         backEnabled = renderMode.backEnabled && pendingAction == null && !pickingSearchLocation && !showActionMenu,
                         onFeatureTap = onFeatureTap,
+                        onCloseBubble = onCloseBubble,
                         cameraMemory = cameraMemory,
                         returnMemory = returnMemory,
                         // Item 1 (dispatch 2026-09-29-57, amendment -262, "Move the 'i'"): the landscape L's measured bounds, in the map's own
@@ -649,6 +654,15 @@ internal fun CompactMapTab(
                             val remembering: (String) -> Unit = { id ->
                                 returnMemory.remember(id, shown?.anchorPx ?: Offset.Zero, shown?.bearingDeg ?: 0f)
                                 open(id)
+                            }
+                            remembering
+                        },
+                        // Part B of dispatch 2026-09-28-387: a bubble's "kept in" line remembers the bubble it was tapped in, and the fan open then, before it opens the entry.
+                        onOpenEntry = bubbleSources.onOpenEntry?.let { open ->
+                            val shown = tapped
+                            val remembering: (String) -> Unit = { entryId ->
+                                if (shown != null) returnMemory.rememberEntryOpen(entryId, shown)
+                                open(entryId)
                             }
                             remembering
                         },

@@ -1222,6 +1222,14 @@ fun AvailabilityScreen(
             selectedTab = ResultsTab.MAP
         }
     }
+    // Dispatch 2026-09-28-387, Part B: an entry opened from a bubble's "kept in" line returns to the Maps tab, with that bubble and the fan, when it is left from its
+    // report; the Maps tab it comes back to is built with them (MapReturnMemory.takeEntryBubble, takeFanKeys).
+    val onEntryClosed: (String, Boolean) -> Unit = { entryId, fromReport ->
+        if (mapReturnMemory.onEntryClosed(entryId, fromReport)) {
+            compactTab = CompactTab.MAP
+            selectedTab = ResultsTab.MAP
+        }
+    }
     val onFindDeleted: (String) -> Unit = { deleted ->
         if (mapReturnMemory.onFindDeleted(deleted)) {
             compactTab = CompactTab.MAP
@@ -1274,7 +1282,7 @@ fun AvailabilityScreen(
         // wrapper, as M1's find route does (F3), since it would otherwise show over the entry.
         onOpenEntry = { entryId ->
             if (logUiState.editingEntry != null) leaveLogEntryEditingOfferingDiscard()
-            mapReturnMemory.forget()
+            // Not forgotten any more (dispatch 2026-09-28-387, Part B): the bubble the line was tapped in has just remembered the way back.
             pendingJournalEntryId = entryId
             pendingJournalDestination = PendingJournalDestination.VIEW_ENTRY
             compactTab = CompactTab.JOURNAL
@@ -1329,6 +1337,7 @@ fun AvailabilityScreen(
             mapCameraMemory = mapCameraMemory,
             mapReturnMemory = mapReturnMemory,
             onFindReportClosed = onFindReportClosed,
+            onEntryClosed = onEntryClosed,
             onFindDeleted = onFindDeleted,
             onFindEditStarted = mapReturnMemory::forget,
             mapRenderMode = mapRenderMode,

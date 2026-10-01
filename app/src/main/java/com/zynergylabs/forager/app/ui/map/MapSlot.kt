@@ -195,6 +195,11 @@ data class MapRenderMode(
      */
     val onFeatureTap: (MapFeatureTap) -> Unit = {},
     /**
+     * Closes the bubble that is showing, and nothing else: the tap handler calls it when a tap on a stack opens a fan (dispatch 2026-09-28-387, Part A). Not [MapSlot]'s `onTap`,
+     * which also restores the fullscreen chrome. `{}` by default, a non-capturing lambda, so every existing caller's [MapRenderMode] still compares equal.
+     */
+    val onCloseBubble: () -> Unit = {},
+    /**
      * Where this map's colour fields read their cells (map layers L0b, B5), or `null` for a map that
      * draws none: the Cartography entry map and the centre-pin pickers pass none (planner's ruling on
      * Q5: colour fields on the Maps tab only). Here rather than on [MapSlot] for the parameter-count
@@ -533,6 +538,7 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
         onUserCameraGesture = renderMode.onUserCameraGesture,
         layersState = renderMode.layers,
         onFeatureTap = renderMode.onFeatureTap,
+        onCloseBubble = renderMode.onCloseBubble,
         forecast = renderMode.forecast,
         cameraRequest = renderMode.cameraRequest,
         journalHighlights = content.journalHighlights,
