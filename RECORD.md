@@ -9055,3 +9055,15 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 - (B), preserving 0×0 through a zero-intrinsic-size painter: untested, with a divide-by-zero risk under ContentScale.Crop;
 - (C), the wrapper: it loses Role.Image on the merged tile.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-343
+**Timestamp:** 2026-10-01T00:03:15Z
+**Continues:** 2026-09-28-317, after -342
+**The owner's ruling, verbatim:** "I'll go with A".
+**Change:**
+- -342's option A is now the owner's decision, replacing the planner's own ruling. The owner had said "Yeah let me know instead": stop-and-ask triggers go to the owner even when no screen is affected.
+- The three conditions of -342 stand.
+**Notes:** Written by the planner by hand.
