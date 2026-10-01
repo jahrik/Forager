@@ -3,10 +3,12 @@ package com.zynergylabs.forager.app.ui.availability
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTouchInput
 import com.zynergylabs.forager.app.ui.log.MushroomLogUiState
 import com.zynergylabs.forager.app.ui.map.MapSlot
@@ -89,6 +91,28 @@ class AvailabilityScreenDropdownCloseOutOfTouchModeTest {
         composeRule.mainClock.advanceTimeBy(2_000)
         composeRule.waitForIdle()
         assertFalse("the dropdown stayed closed", dropdownShown())
+    }
+
+    /**
+     * The same on a tab with no map, where the bar is composed by the scaffold's other `SearchEntryBar` call and has
+     * its own `onFieldFocused`. Back must go to the dropdown and leave the tab alone.
+     */
+    @Test
+    fun `out of touch mode on the Journal tab, Back closes the dropdown and it is still closed after the screen settles`() {
+        showMapsTab()
+        composeRule.onNodeWithText("Journal").performTouchInput { click() }
+        settle()
+        composeRule.onNodeWithText("Journal").assertIsSelected()
+        openDropdownByTouch()
+
+        back()
+        assertFalse("Back closed the dropdown on the Journal tab, and the focus handed back to the field did not reopen it", dropdownShown())
+        composeRule.onNodeWithText("Journal").assertIsSelected()
+
+        composeRule.waitForIdle()
+        composeRule.mainClock.advanceTimeBy(2_000)
+        composeRule.waitForIdle()
+        assertFalse("the dropdown stayed closed on the Journal tab", dropdownShown())
     }
 
     private companion object {
