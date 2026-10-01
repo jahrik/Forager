@@ -9247,3 +9247,30 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Rejected:** Fix 2, a per-class test harness setting: it does not cover new tests.
 **CI so far, with -317:** 60d626b9 red (this family, not the album tests); d94d4ca1 green; 9c9d92cd green.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-353
+**Timestamp:** 2026-10-01T03:06:40Z
+**Closes:** 2026-09-28-312 (preserved 2026-09-30-20)
+**Outcome:** completed, with device items carried to -319 and four items open
+**Observed:**
+- **What merged** into journal-redesign as a973ab62, no-ff, from map-residuals 542d525b. The owner said "Yes go ahead".
+- **Two coder sessions.** The first, on Sonnet 5.5, lost its connection at about 01:41Z with Part A and item 11's fullscreen fix pushed (436efabd) and its full suite still running. The second finished the dispatch on Opus 5.5, by the owner's ruling: "It'll stay on Opus for now. Go".
+- **Part A:** a deleted find, photo or region is not drawn between the delete and Undo, in the commit window or after a late load. A test fails when either delete hook in MainActivity is removed. The owner said "build them" for the photo and region Undo tests.
+- **Part B, the focus cause:** an app-made clearFocus(force = true) hands focus back to the search field when the window is out of touch mode and nothing else on screen takes focus, and the field's focus gain opens the dropdown. Read by the coder from the bytecode the tests run on. Where the focus lands on a device is not known: the real MapView is focusable, the harness stubs are not.
+- **The owner's rulings on it, in order:** "Option B then" (the field ignores a focus gain during the app's own clearFocus, no timer); "Option B" again, with the stub finding and the test-only alternative put to them; "Option A" (the same flag around the Tools drawer's clearFocus at AvailabilityScreen.kt, after two of -293's unchanged tests went red with the gates in).
+- **The gates:** the search dropdown is in the fan's and the bubble's Back gates. The owner: "Yes dropdown should go away first when hitting back. It does not undo my Option A, it fulfills it. I never said to have the fan close before what's drawn on top". The planner had described this to the owner and the coder as reversing Option A, from the code comment and not from -303. That was wrong: -303 dropped the term while the harness reopened the dropdown and left the device question open.
+- **The planner's checks:**
+  - the saved final XML (docs/audits/data/2026-09-30-map-residuals/final-full-suite-xml.tgz) gives 405 files and 3269/0/0/24, and the saved log has 0 "e:" lines and a successful assembleDebug;
+  - the branch's app tree at 542d525b is identical to the tested fac49576, and the merged head's whole tree is identical to the branch's;
+  - against f8f3b9f5, the files of -293's, -298's, FanBubbleDismissal, MarkerFanOutHost, LeavingTheJournalFixes and the three delete test classes are unchanged, and no @Ignore is added.
+- **Not checked by the planner:** the coder's nineteen revert checks. Their logs are saved in the same data folder.
+**Device items open,** in -319: no flash when Undo ends for a find, a photo and a region; a bubble with fullscreen and with the dropdown; fan plus dropdown with the keyboard up and down; with a keyboard or D-pad, on the Maps and Journal tabs, whether the dropdown reopens after Back and whether closing the Tools drawer opens it; the taxon suggestions list with a fan open.
+**Open:**
+- the album's delete-at-once path draws the photo until its delete finishes, short of the dispatch's rule;
+- the taxon suggestions list is outside the Back gates;
+- a comment in LeavingTheJournalFixesTest (F4's Journal test) is out of date, and the file was not edited;
+- the wiring test polls the real database with Thread.sleep for up to 10 seconds, for the owner's flake hunt.
+**Notes:** Written by the planner by hand.
