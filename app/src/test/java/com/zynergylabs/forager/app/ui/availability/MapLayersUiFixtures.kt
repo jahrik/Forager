@@ -147,6 +147,8 @@ internal fun mapLayersViewModel(
     // M1: records the ViewModel loads at start, for the bubbles' lookups.
     plannedTrips: List<PlannedTrip> = emptyList(),
     offlineRegions: List<OfflineRegionSummary> = emptyList(),
+    // Dispatch 2026-09-28-312: a store whose delete a test can hold; by default the fixed list, whose delete fails.
+    offlineMapRepository: OfflineMapRepository = MapLayersUiOfflineMapRepository(offlineRegions),
 ): AvailabilityViewModel {
     val searchCache = InMemorySearchCacheRepository()
     val plannedTripRepository = MapLayersUiPlannedTripRepository(plannedTrips)
@@ -167,7 +169,7 @@ internal fun mapLayersViewModel(
             MapLayersUiHistoricalWeatherProvider,
             ComputeFruitingLagDistributionUseCase(),
         ),
-        offlineMapRepository = MapLayersUiOfflineMapRepository(offlineRegions),
+        offlineMapRepository = offlineMapRepository,
         errorLog = errorLog,
         mapPreferencesRepository = MapLayersUiMapPreferencesRepository,
         unitSystemPreferenceRepository = MapLayersUiUnitSystemPreferenceRepository,

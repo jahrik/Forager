@@ -659,7 +659,12 @@ internal fun CompactMapTab(
                         tapped = null
                     },
                     minY = topInset + compassStripClearance,
-                    backEnabled = !isDrawerOpen && pendingAction == null && !pickingSearchLocation && !showActionMenu,
+                    // Fullscreen and the search dropdown are left out as the drawer and the menu states are (dispatch 2026-09-28-312,
+                    // item 11): a bubble closes after anything opened after it, and their Back handlers were registered before the
+                    // bubble layer's, so without these terms a bubble took the first Back and they the second. The dropdown's state
+                    // lives in the scaffold and arrives in renderMode.backEnabled (off while the drawer, fullscreen or the dropdown
+                    // is up), the same value the fan's handler is gated on above.
+                    backEnabled = !isDrawerOpen && !isFullscreen && renderMode.backEnabled && pendingAction == null && !pickingSearchLocation && !showActionMenu,
                     insetLeft = bubbleInsetLeft,
                     insetRight = bubbleInsetRight,
                 )
