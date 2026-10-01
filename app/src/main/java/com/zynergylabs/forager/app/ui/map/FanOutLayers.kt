@@ -155,10 +155,11 @@ internal fun fanIconLayerProperties(): Array<PropertyValue<*>> = arrayOf(
 )
 
 /**
- * Whether the circle image must be registered again: when the colour the style holds is not the one wanted. STUB, written before the fix so its tests can
- * be seen to fail: always yes, as the map did when it re-registered the image at every style load.
+ * Whether the circle image must be registered again: when the colour the style holds is not the one wanted. A second registration of the same image at every
+ * style load moved how the glyphs were sampled (the open fan's rest frame differed from the current build's in twice as many pixels, measured on the S22), so
+ * the image is registered again only for a real change of colour: a night switch or a palette change.
  */
-internal fun fanCircleNeedsRecolour(registered: Int?, wanted: Int): Boolean = true
+internal fun fanCircleNeedsRecolour(registered: Int?, wanted: Int): Boolean = registered != wanted
 
 /**
  * Re-registers the circle image in [chromeColour] on a style already loaded, so a change of the app's theme recolours the circles without reloading the
