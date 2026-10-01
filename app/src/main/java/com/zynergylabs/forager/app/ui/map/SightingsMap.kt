@@ -269,6 +269,8 @@ fun SightingsMap(
     layersState: MapLayersState = MapLayersState.DEFAULT,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.onFeatureTap]'s own doc comment. */
     onFeatureTap: (MapFeatureTap) -> Unit = {},
+    /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.onCloseBubble]'s own doc comment. */
+    onCloseBubble: () -> Unit = {},
     /** See [com.zynergylabs.forager.app.ui.map.MapOverlayContent.focusedFeature]'s own doc comment. */
     focusedFeature: FocusedMapFeature? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.forecast]'s own doc comment. */
@@ -313,6 +315,7 @@ fun SightingsMap(
     val currentOnCameraIdle by rememberUpdatedState(onCameraIdle)
     val currentOnUserCameraGesture by rememberUpdatedState(onUserCameraGesture)
     val currentOnFeatureTap by rememberUpdatedState(onFeatureTap)
+    val currentOnCloseBubble by rememberUpdatedState(onCloseBubble)
     // Read by the click listener (the draw order the tap precedence ranks against) and by each
     // style load (the order the layers are added in): both were registered or launched before a
     // later state change could otherwise reach them.
@@ -536,6 +539,8 @@ fun SightingsMap(
                         // else, as a sighting tap already did.
                         currentOnFeatureTap(MapFeatureTap(layerId, featureId, Offset(xPx, yPx), map.cameraPosition.bearing.toFloat(), at))
                     }
+
+                    override fun onCloseBubble() = currentOnCloseBubble()
 
                     override fun onUnidentifiedFeature(layerId: String) {
                         // Logged, never silent: a feature with no id cannot name its record, so no

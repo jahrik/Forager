@@ -74,6 +74,7 @@ import com.zynergylabs.forager.app.ui.map.JOURNAL_ENTRIES_HIDE_ALL_TAG
 import com.zynergylabs.forager.app.ui.map.MAP_BUBBLE_ENTRY_COUNT_TAG
 import com.zynergylabs.forager.app.ui.map.MAP_BUBBLE_TAG
 import com.zynergylabs.forager.app.ui.map.journalEntriesListRowTag
+import com.zynergylabs.forager.app.ui.map.fanout.FanKey
 import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import com.zynergylabs.forager.app.ui.map.layers.layerPaintFor
@@ -96,6 +97,7 @@ import java.time.LocalDate
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -384,6 +386,22 @@ internal abstract class JournalEntriesOnMapHarness {
         touchCentreOf(mapBubbleEntryLineTag(id))
     }
 
+    /** The real system Back, through the activity's dispatcher, as the user presses it. */
+    protected fun back() {
+        composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
+        composeRule.waitForIdle()
+    }
+
+    protected fun bubbleCount(): Int = composeRule.onAllNodesWithTag(MAP_BUBBLE_TAG).fetchSemanticsNodes().size
+
+    /** On the Maps tab, a real touch on the waypoint's glyph, then on entry [id]'s date line in its bubble. */
+    protected fun openEntryFromWaypointBubble(id: String) {
+        touchNavItem("Maps")
+        touchCentreOf(glyphTag(WAYPOINT.id))
+        composeRule.onNodeWithTag(MAP_BUBBLE_TAG).assertIsDisplayed()
+        touchCentreOf(mapBubbleEntryLineTag(id))
+    }
+
     protected fun haloVisible(layerId: String): Boolean =
         layerPaintFor(MAP_LAYER_REGISTRY.single { it.id == layerId }, map.renderMode!!.layers).visible
 
@@ -650,6 +668,115 @@ internal abstract class JournalEntriesOnMapCompactTests : JournalEntriesOnMapHar
         assertEquals("no prompt", 0, composeRule.onAllNodesWithTag(LEAVE_PROMPT_SAVE_TEST_TAG).fetchSemanticsNodes().size)
         assertReportShowing(ENTRY_A_TEXT)
     }
+
+    // ── Dispatch 2026-09-28-387, Part B: Back from an entry opened from a bubble's "kept in" line ──
+    // The owner's path: `Fan open, X's bubble over it > tap "kept in <entry>" > journal entry opens > Back > map, with the fan and X's bubble as they were`,
+    // and on from there `> Back > bubble closes`. The stub map has no fan of its own; the fan's keys are published to the return memory as SightingsMap does.
+
+    @Test
+    fun `Back from the entry opened from a find's bubble returns to the Maps tab with that bubble showing`() {
+        setScreen(entryA(shown = true), entryB(shown = false))
+        openEntryFromFindBubble("entry-a")
+        assertReportShowing(ENTRY_A_TEXT)
+
+        back()
+
+        composeRule.onNodeWithText("Maps").assertIsSelected()
+        composeRule.onNodeWithTag(MAP_BUBBLE_TAG).assertIsDisplayed()
+        composeRule.onNodeWithText("Golden chanterelle", useUnmergedTree = true).assertIsDisplayed()
+        assertNull("the entry is closed", cartographyViewModel.uiState.value.editingEntry)
+    }
+
+    @Test
+    fun `and the next Back closes that bubble, on the Maps tab`() {
+        setScreen(entryA(shown = true), entryB(shown = false))
+        openEntryFromFindBubble("entry-a")
+        back()
+        composeRule.onNodeWithTag(MAP_BUBBLE_TAG).assertIsDisplayed()
+
+        back()
+
+        composeRule.onNodeWithText("Maps").assertIsSelected()
+        assertEquals("the bubble is closed", 0, bubbleCount())
+    }
+
+    @Test
+    fun `with a fan open under the bubble, the same Back brings the fan's members back with it`() {
+        setScreen(entryA(shown = true), entryB(shown = false))
+        touchNavItem("Maps")
+        touchCentreOf(glyphTag(FIND.id))
+        composeRule.onNodeWithTag(MAP_BUBBLE_TAG).assertIsDisplayed()
+        val fanKeys = listOf(FanKey(MapLayerIds.FINDS, FIND.id), FanKey(MapLayerIds.WAYPOINTS, WAYPOINT.id))
+        map.renderMode!!.returnMemory!!.openFanKeys = fanKeys // what SightingsMap writes while a fan is up
+        touchCentreOf(mapBubbleEntryLineTag("entry-a"))
+        assertReportShowing(ENTRY_A_TEXT)
+
+        back()
+
+        composeRule.onNodeWithTag(MAP_BUBBLE_TAG).assertIsDisplayed()
+        assertEquals("the new map is told to fan the same members", fanKeys, map.renderMode!!.returnMemory!!.pendingFanKeys)
+    }
+
+    @Test
+    fun `with no fan open, no fan comes back`() {
+        setScreen(entryA(shown = true), entryB(shown = false))
+        openEntryFromFindBubble("entry-a")
+
+        back()
+
+        assertNull(map.renderMode!!.returnMemory!!.pendingFanKeys)
+    }
+
+    @Test
+    fun `Back from the entry opened from a waypoint's bubble returns to the Maps tab with that bubble showing`() {
+        setScreen(entryA(shown = true), entryB(shown = false))
+        openEntryFromWaypointBubble("entry-a")
+        assertReportShowing(ENTRY_A_TEXT)
+
+        back()
+
+        composeRule.onNodeWithText("Maps").assertIsSelected()
+        composeRule.onNodeWithTag(MAP_BUBBLE_TAG).assertIsDisplayed()
+        composeRule.onNodeWithText("Creek pin", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun `an entry opened from the Journal's own list still goes back to the Entries list`() {
+        setScreen(entryA(shown = true), entryB(shown = false))
+        openEntryReport("entry-a", ENTRY_A_TEXT)
+
+        back()
+
+        composeRule.onNodeWithText("Journal").assertIsSelected()
+        entryCard("entry-a").assertIsDisplayed()
+        assertNull(cartographyViewModel.uiState.value.editingEntry)
+    }
+
+    @Test
+    fun `leaving the entry for another tab forgets the way back to the map`() {
+        setScreen(entryA(shown = true), entryB(shown = false))
+        openEntryFromFindBubble("entry-a")
+
+        touchNavItem("List")
+        touchNavItem("Maps")
+
+        assertEquals("no bubble comes back", 0, bubbleCount())
+    }
+
+    @Test
+    fun `an entry opened for editing is left to the Entries list, not the map, as a find edited from the map is`() {
+        setScreen(entryA(shown = true), entryB(shown = false))
+        openEntryFromFindBubble("entry-a")
+        openEntryMenu()
+        composeRule.onNodeWithText("Edit entry").performClick()
+        composeRule.waitForIdle()
+
+        back()
+
+        composeRule.onNodeWithText("Journal").assertIsSelected()
+        assertNull(cartographyViewModel.uiState.value.editingEntry)
+        assertEquals("no bubble", 0, bubbleCount())
+    }
 }
 
 /** Portrait, at the S22 Ultra's size; the glyphs on the left half of the map, below the chip. */
@@ -754,6 +881,23 @@ internal class JournalEntriesOnMapFollowUpsTest : JournalEntriesOnMapHarness() {
         composeRule.onAllNodes(hasAnyAncestor(hasTestTag(MAP_BUBBLE_TAG)) and SemanticsMatcher.keyIsDefined(SemanticsProperties.Text), useUnmergedTree = true)
             .fetchSemanticsNodes()
             .flatMap { node -> node.config[SemanticsProperties.Text].map { it.text } }
+
+    // ── Dispatch 2026-09-28-387, Part B, for a photo's bubble ──
+
+    @Test
+    fun `Back from the entry opened from a photo's bubble returns to the Maps tab with that bubble showing`() {
+        drawThePhoto(findIds = listOf(FIND.id), entryCount = 1)
+        setScreen(entryKeepingPhoto("entry-a", day, "Shown on the map.", shown = true))
+        openPhotoBubble()
+        touchCentreOf(mapBubbleEntryLineTag("entry-a"))
+        composeRule.onNodeWithText("Journal").assertIsSelected()
+
+        back()
+
+        composeRule.onNodeWithText("Maps").assertIsSelected()
+        composeRule.onNodeWithTag(MAP_BUBBLE_TAG).assertIsDisplayed()
+        composeRule.onNodeWithText("View photo", useUnmergedTree = true).assertIsDisplayed()
+    }
 
     // ── Item 1: one "Kept in" ──
 

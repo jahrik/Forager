@@ -89,6 +89,7 @@ class AvailabilityScreenBubbleAndDropdownBackTest {
         val density = LocalDensity.current.density
         val currentOnTap by rememberUpdatedState(onTap)
         val currentOnFeatureTap by rememberUpdatedState(renderMode.onFeatureTap)
+        val currentOnCloseBubble by rememberUpdatedState(renderMode.onCloseBubble)
         val bubbleShown = content.focusedFeature != null || content.focusedObservationId != null
         val currentBubbleShown by rememberUpdatedState(bubbleShown)
         val probe = remember { FanOutTestScene(density).also { scene = it; it.hidden = { fan.members.map { m -> m.key }.toSet() } } }
@@ -103,6 +104,7 @@ class AvailabilityScreenBubbleAndDropdownBackTest {
                     override fun onFeatureTap(layerId: String, featureId: String, xPx: Float, yPx: Float, at: LatLng) =
                         currentOnFeatureTap(MapFeatureTap(layerId, featureId, Offset(xPx, yPx), 0f, at))
                     override fun onUnidentifiedFeature(layerId: String) = currentOnTap()
+                    override fun onCloseBubble() = currentOnCloseBubble()
                 },
                 bubbleOpen = { currentBubbleShown },
             )
