@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.OpenBackupSectionPortraitTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:21.962Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.298">
+  <properties/>
+  <testcase name="the request opens it from another tab too" classname="com.zynergylabs.forager.app.ui.availability.OpenBackupSectionPortraitTest" time="0.06"/>
+  <testcase name="the request opens Settings at the Backup section from the Maps tab" classname="com.zynergylabs.forager.app.ui.availability.OpenBackupSectionPortraitTest" time="0.099"/>
+  <testcase name="a second tap on a notification opens it again" classname="com.zynergylabs.forager.app.ui.availability.OpenBackupSectionPortraitTest" time="0.138"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

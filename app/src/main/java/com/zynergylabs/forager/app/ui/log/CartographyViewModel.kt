@@ -14,6 +14,7 @@ import com.zynergylabs.forager.app.domain.GetDerivedTripUseCase
 import com.zynergylabs.forager.app.domain.GetTripReportOfflineRegionsUseCase
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.SaveCartographyEntryUseCase
+import com.zynergylabs.forager.app.domain.SetCartographyEntryShownOnMapUseCase
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.DerivedTrip
 import com.zynergylabs.forager.app.domain.model.FindDecision
@@ -25,6 +26,9 @@ import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.WaypointDecision
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import java.time.LocalDate
+import com.zynergylabs.forager.app.domain.PendingDeleteSlot
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -67,19 +71,29 @@ class CartographyViewModel(
     private val getDerivedTrip: GetDerivedTripUseCase,
     private val getTripReportOfflineRegions: GetTripReportOfflineRegionsUseCase,
     private val computeTrackStatistics: ComputeTrackStatisticsUseCase,
+    /** J8: writes an entry's [CartographyEntry.shownOnMap] — see [onSetShownOnMap]. */
+    private val setShownOnMap: SetCartographyEntryShownOnMapUseCase,
     /** Injected so a test can fix when a photo attachment is stamped — same reasoning as every other `now`/`currentTime` provider in this codebase. */
     private val now: () -> Long = System::currentTimeMillis,
+    /**
+     * Where an entry delete still pending when this ViewModel is cleared is committed (journal
+     * redesign J4b L2): `viewModelScope` is cancelled by then. See [PendingDeleteCommitScope].
+     */
+    private val pendingDeleteCommitScope: CoroutineScope = PendingDeleteCommitScope,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CartographyUiState())
     val uiState: StateFlow<CartographyUiState> = _uiState.asStateFlow()
 
+    /** The one entry whose delete is pending (journal redesign J4b L2) — see [requestDeleteEntry]. */
+    private val entryDeletes = PendingDeleteSlot<String, CartographyEntry> { it.id }
+
     init {
         loadEntries()
     }
 
-    fun loadEntries() {
-        viewModelScope.launch {
+    fun loadEntries(): Job {
+        return viewModelScope.launch {
             _uiState.update { it.copy(isLoadingEntries = true, loadErrorMessage = null) }
             getEntries().fold(
                 onSuccess = { entries ->
@@ -94,6 +108,33 @@ class CartographyViewModel(
                     _uiState.update { it.copy(isLoadingEntries = false, loadErrorMessage = "Entries unavailable.") }
                 },
             )
+        }
+    }
+
+    /**
+     * After a restore (dispatch 2026-09-28-182, item 5): reads the entries and drafts again, then closes the open entry, with
+     * the candidates and the unsaved flag that belong to it, if its record is in neither list now. [loadEntries] never touches
+     * the open entry, so a Replace that deleted it would leave it on screen. A read that failed closes nothing.
+     */
+    fun reloadAfterRestore(): Job {
+        return viewModelScope.launch {
+            loadEntries().join()
+            _uiState.update { state ->
+                val open = state.editingEntry
+                when {
+                    open == null || state.loadErrorMessage != null -> state
+                    (state.entries + state.draftEntries).any { it.id == open.id } -> state
+                    else -> {
+                        Log.i(TAG, "A restore removed the open entry '${open.id}'; it is closed.")
+                        state.copy(
+                            editingEntry = null,
+                            candidatesForEditingEntry = null,
+                            candidateOfflineRegionsForEditingEntry = emptyList(),
+                            hasUnsavedChanges = false,
+                        )
+                    }
+                }
+            }
         }
     }
 
@@ -116,8 +157,12 @@ class CartographyViewModel(
                     )
                     // The stamped copy is the one to keep -- see SaveCartographyEntryUseCase's own
                     // doc comment. A failed save still opens the entry as decided: the next
-                    // persist retries, and the user must not lose the day's candidates.
-                    val saved = saveEntry(decided).getOrElse { decided }
+                    // persist retries, and the user must not lose the day's candidates. Logged
+                    // and not shown (intent 2026-09-28-68, the planner's ruling in -76).
+                    val saved = saveEntry(decided).getOrElse { error ->
+                        Log.w(TAG, "Couldn't save new entry '${draft.id}' with its day's candidates kept; it opens with them kept, unsaved.", error)
+                        decided
+                    }
                     _uiState.update {
                         it.copy(
                             editingEntry = saved,
@@ -220,13 +265,26 @@ class CartographyViewModel(
      * Save/Discard path, so this branch only ever re-merges already-clean data there; it's the
      * ordinary "closed without any unsaved change" path (nothing to prompt about) that actually needs
      * it.
+     *
+     * **Enforced, not assumed (intent 2026-09-28-44, F2).** The guarantee above was true only of the
+     * paths it names: a committed entry that came back from a tab change in its report view reached
+     * this dirty from the report's back arrow, and its unsaved edit was merged into [entries], so
+     * the Entries card showed text the store never received, with nothing marked unsaved
+     * (`docs/audits/2026-09-28-leaving-the-journal-investigation.md`, Behaviour 2). A dirty committed
+     * entry is now never merged: the list keeps the stored row. On the leave prompt's Save the list
+     * is then settled by [onSaveEntry]'s own upsert when the write lands, which is what it already
+     * did when this ran first.
      */
     fun onCloseEntry() {
         val current = _uiState.value.editingEntry
+        val closingUnsavedEdit = current != null && !current.isDraft && _uiState.value.hasUnsavedChanges
+        if (closingUnsavedEdit) {
+            Log.i(TAG, "Closing entry '${current?.id}' with unsaved changes: the Entries list keeps the stored row.")
+        }
         _uiState.update { state ->
             state.copy(
                 entries = when {
-                    current == null || current.isDraft -> state.entries
+                    current == null || current.isDraft || closingUnsavedEdit -> state.entries
                     state.entries.any { it.id == current.id } -> state.entries.map { if (it.id == current.id) current else it }
                     else -> state.entries + current
                 },
@@ -433,6 +491,8 @@ class CartographyViewModel(
                             candidatesForEditingEntry = null,
                             candidateOfflineRegionsForEditingEntry = emptyList(),
                             hasUnsavedChanges = false,
+                            // As every other success path does (the planner's ruling in -76).
+                            saveErrorMessage = null,
                         )
                     }
                 },
@@ -465,6 +525,168 @@ class CartographyViewModel(
         }
     }
 
+    /**
+     * An entry card's Delete (journal redesign J4b L2, the owner's "Lists swipe": a full swipe, the
+     * revealed Delete button, or the card's "Delete" accessibility action): the entry becomes pending
+     * instead of being deleted, held in J4's [PendingDeleteSlot] exactly as J4's three owners hold
+     * theirs. It is left out of [CartographyUiState.hidingPendingDelete]'s lists while the Undo
+     * snackbar shows; the real delete ([deleteEntry], unchanged) runs from [commitDeleteEntry] when
+     * the snackbar ends without Undo, from here when a second entry is deleted while this one is
+     * pending (the first is committed then), or from [onCleared].
+     *
+     * The report's and edit screen's own Delete, with their confirm dialogs, still call
+     * [onDeleteEntry] at once (the J4b dispatch: they "stay as they are"). If the entry being pended is
+     * the open one, it is closed, as [onDeleteEntry] closes it. An id found in neither list nor open
+     * is logged and pends nothing.
+     */
+    fun requestDeleteEntry(id: String) {
+        val state = _uiState.value
+        val entry = state.entries.firstOrNull { it.id == id }
+            ?: state.draftEntries.firstOrNull { it.id == id }
+            ?: state.editingEntry?.takeIf { it.id == id }
+        if (entry == null) {
+            Log.w(TAG, "A delete was asked for entry '$id', which is not loaded; nothing pended.")
+            return
+        }
+        val displaced = entryDeletes.pend(entry, entryReferenceCount = null)
+        _uiState.update { current ->
+            if (current.editingEntry?.id == id) {
+                current.copy(
+                    pendingDelete = entryDeletes.pending,
+                    editingEntry = null,
+                    candidatesForEditingEntry = null,
+                    candidateOfflineRegionsForEditingEntry = emptyList(),
+                    hasUnsavedChanges = false,
+                )
+            } else {
+                current.copy(pendingDelete = entryDeletes.pending)
+            }
+        }
+        displaced?.let(::commitEntryDelete)
+    }
+
+    /** The snackbar's Undo: the pending entry shows again, in the list it was in. Nothing was deleted, so nothing is restored. */
+    fun undoDeleteEntry(id: String) {
+        if (entryDeletes.undo(id) == null) {
+            Log.w(TAG, "Undo for entry '$id' came after its delete was committed; nothing to undo.")
+        }
+        _uiState.update { it.copy(pendingDelete = entryDeletes.pending) }
+    }
+
+    /** The snackbar ended without Undo (timed out, or a newer snackbar replaced it): the pending entry's delete runs, once. */
+    fun commitDeleteEntry(id: String) {
+        val entry = entryDeletes.commit(id)
+        _uiState.update { it.copy(pendingDelete = entryDeletes.pending) }
+        entry?.let(::commitEntryDelete)
+    }
+
+    /**
+     * The real delete of an entry whose pending time is over. It leaves the lists at once, so it does
+     * not flash back between the snackbar closing and the delete finishing. A failed delete puts it
+     * back where it was and reports the failure the way [onDeleteEntry] does.
+     */
+    private fun commitEntryDelete(entry: CartographyEntry) {
+        val before = _uiState.value
+        val entriesIndex = before.entries.indexOfFirst { it.id == entry.id }
+        val draftsIndex = before.draftEntries.indexOfFirst { it.id == entry.id }
+        _uiState.update { state ->
+            state.copy(
+                entries = state.entries.filterNot { it.id == entry.id },
+                draftEntries = state.draftEntries.filterNot { it.id == entry.id },
+            )
+        }
+        viewModelScope.launch {
+            deleteEntry(entry.id).fold(
+                onSuccess = { _uiState.update { it.copy(saveErrorMessage = null) } },
+                onFailure = { error ->
+                    Log.w(TAG, "Couldn't delete entry '${entry.id}'.", error)
+                    _uiState.update { state ->
+                        state.copy(
+                            entries = state.entries.reinsert(entry, entriesIndex),
+                            draftEntries = state.draftEntries.reinsert(entry, draftsIndex),
+                            saveErrorMessage = "Couldn't delete that entry.",
+                        )
+                    }
+                },
+            )
+        }
+    }
+
+    /** [entry] back at [index] when it was in this list ([index] >= 0) and is not there now. */
+    private fun List<CartographyEntry>.reinsert(entry: CartographyEntry, index: Int): List<CartographyEntry> =
+        if (index < 0 || any { it.id == entry.id }) this else toMutableList().apply { add(index.coerceAtMost(size), entry) }
+
+    override fun onCleared() {
+        // J4b L2: an entry still pending is committed here, since no snackbar is left to end.
+        // viewModelScope is already cancelled, so the delete runs on pendingDeleteCommitScope.
+        entryDeletes.takeAny()?.let { entry ->
+            pendingDeleteCommitScope.launch {
+                deleteEntry(entry.id).onFailure { error ->
+                    Log.w(TAG, "Couldn't delete entry '${entry.id}' pending when the screen closed; it is still saved.", error)
+                }
+            }
+        }
+    }
+
+    /**
+     * J8: shows or hides a **saved** entry on the Maps tab — the report menu's "Show on map" and "Hide
+     * from map", the chip's "Hide" and "Hide all". Writes [CartographyEntry.shownOnMap] alone
+     * ([SetCartographyEntryShownOnMapUseCase]) and, once the write has landed, sets that one field on
+     * the listed entry and on the open entry, so the chip, the highlight and the report's menu change at
+     * once. Nothing else about the open entry changes: an unsaved edit stays in it, still unsaved, and
+     * its later save carries the new value, since it is the open entry's own.
+     *
+     * A draft is never shown on the map (owner: "Saved entries only"): a call for one is refused and
+     * logged. So is an id this ViewModel has not loaded. A failed write changes nothing on screen and is
+     * logged, and sets its own [CartographyUiState.shownOnMapErrorMessage], exactly
+     * [SHOWN_ON_MAP_FAILED_MESSAGE] (the owner, continuation `2026-09-28-65`: "Set it to "Changes not
+     * applied. Try again.""), never [CartographyUiState.saveErrorMessage], which keeps its own text for
+     * the failures that set it.
+     */
+    fun onSetShownOnMap(id: String, shown: Boolean) {
+        val state = _uiState.value
+        val entry = state.entries.firstOrNull { it.id == id }
+            ?: state.draftEntries.firstOrNull { it.id == id }
+            ?: state.editingEntry?.takeIf { it.id == id }
+        when {
+            entry == null -> {
+                Log.w(TAG, "Show on map was asked for entry '$id', which is not loaded; nothing written.")
+                return
+            }
+            entry.isDraft -> {
+                Log.w(TAG, "Show on map was asked for draft '$id'; only a saved entry is shown on the map, so nothing was written.")
+                return
+            }
+        }
+        viewModelScope.launch {
+            setShownOnMap(id, shown).fold(
+                onSuccess = {
+                    _uiState.update { current ->
+                        current.copy(
+                            entries = current.entries.map { if (it.id == id) it.copy(shownOnMap = shown) else it },
+                            editingEntry = current.editingEntry?.let { if (it.id == id) it.copy(shownOnMap = shown) else it },
+                        )
+                    }
+                },
+                onFailure = { error ->
+                    Log.w(TAG, "Couldn't ${if (shown) "show" else "hide"} entry '$id' on the map.", error)
+                    _uiState.update { it.copy(shownOnMapErrorMessage = SHOWN_ON_MAP_FAILED_MESSAGE) }
+                },
+            )
+        }
+    }
+
+    /** Clears [CartographyUiState.shownOnMapErrorMessage] once its Toast has shown (`AvailabilityScreen`). */
+    fun onShownOnMapErrorDismissed() {
+        _uiState.update { it.copy(shownOnMapErrorMessage = null) }
+    }
+
+    /**
+     * Clears [CartographyUiState.saveErrorMessage] once its Toast has shown. The Toast is hosted by the
+     * Journal, `JournalTab` and `LogPanel`, as the find editor's is (intent 2026-09-28-68, the owner's
+     * "Option B" in continuation -76), so a message set while the Journal is not on screen waits here
+     * until it next opens. Every success path also clears it.
+     */
     fun onSaveErrorDismissed() {
         _uiState.update { it.copy(saveErrorMessage = null) }
     }

@@ -32,6 +32,11 @@ import com.zynergylabs.forager.app.photo.GalleryImportPhotoSource
 import java.time.LocalDate
 import java.io.File
 import kotlinx.coroutines.CompletableDeferred
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -81,6 +86,8 @@ class MushroomLogViewModelTest {
         currentFix: () -> LocationFix.Update? = { null },
         autoSaveLocationToPhotos: suspend () -> Boolean = { true },
         recordCaptureWithoutEditingEntry: (String?, Throwable?) -> Unit = { _, _ -> },
+        pendingDeleteCommitScope: CoroutineScope? = null,
+        getPhotoEntryReferenceCount: suspend (String) -> Int = { 0 },
     ) = MushroomLogViewModel(
         getEntries = GetMushroomLogEntriesUseCase(repository),
         getDraftEntries = GetDraftEntriesUseCase(repository),
@@ -101,6 +108,8 @@ class MushroomLogViewModelTest {
         now = { NOW },
         autoSaveLocationToPhotos = autoSaveLocationToPhotos,
         recordCaptureWithoutEditingEntry = recordCaptureWithoutEditingEntry,
+        pendingDeleteCommitScope = pendingDeleteCommitScope ?: PendingDeleteCommitScope,
+        getPhotoEntryReferenceCount = getPhotoEntryReferenceCount,
     )
 
     // isDraft = false: every test below seeds this as an already-committed, pre-existing entry
@@ -232,6 +241,63 @@ class MushroomLogViewModelTest {
     // never calls PhotoStore at all any more (see its own doc comment on why), so there is no
     // photo-file-deletion step left for this test to prove resilience against.
 
+    /** Restore (dispatch 2026-09-28-137, item 6): each loader returns a Job the caller can wait on, and reads the store again. */
+    @Test
+    fun `the loaders return a Job, and once joined show what was written behind the screen's back`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository()
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        assertEquals(emptyList<String>(), (vm.uiState.value.entries + vm.uiState.value.draftEntries).map { it.id })
+        repository.save(entry)
+
+        vm.loadEntries().join()
+        vm.loadGalleryPhotos().join()
+
+        assertEquals(listOf(entry.id), (vm.uiState.value.entries + vm.uiState.value.draftEntries).map { it.id })
+        assertEquals(false, vm.uiState.value.isLoadingGalleryPhotos)
+    }
+
+    /** Dispatch 2026-09-28-182, item 5: a Replace deletes rows behind the screen's back; the open find must not stay on screen. */
+    @Test
+    fun `after a restore, an open find whose record is gone is closed, and one that is still there stays open`() = runTest(dispatcher) {
+        val other = entry.copy(id = "entry-2")
+        val repository = FakeMushroomLogRepository(listOf(entry, other))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onOpenEntry(entry.id)
+        advanceUntilIdle()
+        assertEquals(entry.id, vm.uiState.value.editingEntry?.id)
+
+        repository.delete(entry.id).getOrThrow()
+        vm.reloadAfterRestore().join()
+
+        assertNull("the deleted find's report is closed", vm.uiState.value.editingEntry)
+        assertEquals("and the list no longer holds it", listOf(other.id), (vm.uiState.value.entries + vm.uiState.value.draftEntries).map { it.id })
+
+        vm.onOpenEntry(other.id)
+        advanceUntilIdle()
+        vm.reloadAfterRestore().join()
+        assertEquals("a find that is still there stays open", other.id, vm.uiState.value.editingEntry?.id)
+    }
+
+    @Test
+    fun `after a restore, an open draft whose record is gone is closed too`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository(listOf(entry))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onOpenEntry(entry.id)
+        advanceUntilIdle()
+        vm.onStartEditingEntry()
+        advanceUntilIdle()
+        val draftId = vm.uiState.value.editingEntry!!.id
+        assertTrue("an edit session on a draft of the entry", vm.uiState.value.editingEntry!!.isDraft)
+
+        repository.delete(draftId).getOrThrow()
+        vm.reloadAfterRestore().join()
+
+        assertNull(vm.uiState.value.editingEntry)
+    }
+
     /** Workstream G2: [MushroomLogViewModel.loadGalleryPhotos] runs alongside [MushroomLogViewModel.loadEntries] on init, independently populating [MushroomLogUiState.galleryPhotos]. */
     @Test
     fun `the gallery photos load on init, independent of the entry list`() = runTest(dispatcher) {
@@ -247,7 +313,7 @@ class MushroomLogViewModelTest {
     }
 
     /**
-     * Without this, a freshly added photo would only show up in [PhotoGalleryScreen] after the
+     * Without this, a freshly added photo would only show up in the removed Photo Gallery screen after the
      * ViewModel is recreated — see [MushroomLogViewModel.onAddPhoto]'s own inline comment on why
      * this refresh exists. Reworked to open a real draft session first (Workstream L4b-R): photo
      * actions, like field edits, only make sense against a draft row, never a merely-viewed
@@ -272,7 +338,7 @@ class MushroomLogViewModelTest {
     }
 
     /**
-     * Standalone-photos dispatch: [MushroomLogViewModel.onAddGalleryPhoto] is [PhotoGalleryScreen]'s
+     * Standalone-photos dispatch: [MushroomLogViewModel.onAddGalleryPhoto] is the removed Photo Gallery screen's
      * own Camera/Gallery entry point — no open entry needed at all (unlike [onAddPhoto] above, which
      * requires a draft session), and the resulting photo has no owning find.
      */
@@ -321,7 +387,7 @@ class MushroomLogViewModelTest {
         assertEquals(newPhoto.id, persistedId)
     }
 
-    /** The default's whole point (entry-photo-acquisition dispatch, Item 2): every call site before this dispatch — [PhotoGalleryScreen]'s own Camera/Import buttons among them — omits [onAddGalleryPhoto]'s new [onPersisted] parameter entirely, so this proves that path still succeeds unchanged rather than merely compiling. */
+    /** The default's whole point (entry-photo-acquisition dispatch, Item 2): every call site before this dispatch — the removed Photo Gallery screen's own Camera/Import buttons among them — omits [onAddGalleryPhoto]'s new [onPersisted] parameter entirely, so this proves that path still succeeds unchanged rather than merely compiling. */
     @Test
     fun `onAddGalleryPhoto with no onPersisted argument still persists and refreshes the gallery`() = runTest(dispatcher) {
         val repository = FakeMushroomLogRepository()
@@ -1518,6 +1584,275 @@ class MushroomLogViewModelTest {
         assertNull("and no rescue message", vm.uiState.value.saveErrorMessage)
     }
 
+
+    // ---- Journal redesign J4, D1/D4: a find deleted from its report is pending until its snackbar ends ----
+
+    private val secondFind = MushroomLogEntry.draft(id = "entry-2", location = LatLng(45.4, -122.7), date = LocalDate.of(2026, 8, 2)).copy(isDraft = false)
+
+    @Test
+    fun `a requested find delete closes its report, hides it from the visible state, and deletes nothing`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository(initial = listOf(entry, secondFind))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onOpenEntry(entry.id)
+        advanceUntilIdle()
+        assertEquals(entry.id, vm.uiState.value.editingEntry?.id)
+
+        vm.requestDeleteEntry(entry.id)
+        advanceUntilIdle()
+
+        assertNull("the report closes, as it did when the delete ran at once", vm.uiState.value.editingEntry)
+        assertEquals(entry.id, vm.uiState.value.pendingDelete?.item?.id)
+        assertNull("finds have no reference count", vm.uiState.value.pendingDelete?.entryReferenceCount)
+        assertEquals(listOf(secondFind.id), vm.uiState.value.hidingPendingDelete().entries.map { it.id })
+        assertEquals(emptyList<String>(), repository.deletedIds)
+    }
+
+    @Test
+    fun `a requested delete of an open draft hides it from the visible drafts and leaves its committed parent`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository(initial = listOf(entry))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.onOpenEntry(entry.id)
+        vm.onStartEditingEntry()
+        advanceUntilIdle()
+        // Edited, so leaving keeps it: an unchanged re-edit's draft is discarded on the way out.
+        vm.onEntryEdited(vm.uiState.value.editingEntry!!.copy(notes = "changed"))
+        advanceUntilIdle()
+        vm.onLeaveEditingIncidentally()
+        advanceUntilIdle()
+        val draftId = vm.uiState.value.draftEntries.single().id
+        vm.onOpenEntry(draftId)
+        advanceUntilIdle()
+
+        vm.requestDeleteEntry(draftId)
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.editingEntry)
+        val visible = vm.uiState.value.hidingPendingDelete()
+        assertEquals(emptyList<String>(), visible.draftEntries.map { it.id })
+        assertEquals(listOf(entry.id), visible.entries.map { it.id })
+        assertEquals(emptyList<String>(), repository.deletedIds)
+    }
+
+    @Test
+    fun `undo of a pending find delete shows it again and deletes nothing`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository(initial = listOf(entry, secondFind))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.requestDeleteEntry(entry.id)
+        advanceUntilIdle()
+        assertEquals("positive control: pending before the undo", listOf(secondFind.id), vm.uiState.value.hidingPendingDelete().entries.map { it.id })
+
+        vm.undoDeleteEntry(entry.id)
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.pendingDelete)
+        assertEquals(setOf(entry.id, secondFind.id), vm.uiState.value.hidingPendingDelete().entries.map { it.id }.toSet())
+        assertEquals(emptyList<String>(), repository.deletedIds)
+    }
+
+    @Test
+    fun `committing a pending find delete (the snackbar timing out) deletes exactly that find once`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository(initial = listOf(entry, secondFind))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.requestDeleteEntry(entry.id)
+        advanceUntilIdle()
+
+        vm.commitDeleteEntry(entry.id)
+        advanceUntilIdle()
+        vm.commitDeleteEntry(entry.id)
+        advanceUntilIdle()
+
+        assertEquals(listOf(entry.id), repository.deletedIds)
+        assertNull(vm.uiState.value.pendingDelete)
+        assertEquals(listOf(secondFind.id), vm.uiState.value.hidingPendingDelete().entries.map { it.id })
+    }
+
+    @Test
+    fun `a second find delete commits the first when it replaces it`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository(initial = listOf(entry, secondFind))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.requestDeleteEntry(entry.id)
+        advanceUntilIdle()
+
+        vm.requestDeleteEntry(secondFind.id)
+        advanceUntilIdle()
+
+        assertEquals(listOf(entry.id), repository.deletedIds)
+        assertEquals(secondFind.id, vm.uiState.value.pendingDelete?.item?.id)
+        assertEquals(emptyList<String>(), vm.uiState.value.hidingPendingDelete().entries.map { it.id })
+    }
+
+    @Test
+    fun `a find delete still pending when the ViewModel is cleared is committed`() = runTest(dispatcher) {
+        val repository = FakeMushroomLogRepository(initial = listOf(entry, secondFind))
+        val testScope: CoroutineScope = this
+        val store = ViewModelStore()
+        val vm = ViewModelProvider(
+            store,
+            viewModelFactory { initializer { viewModel(repository, pendingDeleteCommitScope = testScope) } },
+        )[MushroomLogViewModel::class.java]
+        advanceUntilIdle()
+        vm.requestDeleteEntry(entry.id)
+        advanceUntilIdle()
+        assertEquals(emptyList<String>(), repository.deletedIds)
+
+        store.clear()
+        advanceUntilIdle()
+
+        assertEquals(listOf(entry.id), repository.deletedIds)
+    }
+
+    // ---- Journal redesign J4b L3: an album photo's delete is pending until its snackbar ends ----
+    // The whole DeleteGalleryPhotoUseCase call (row, then file) is what is deferred, so the file
+    // delete waits for the snackbar too. Every assertion reads the fakes' own call lists.
+
+    private val photoA = LogPhoto(id = "photo-a", relativePath = "photos/a.jpg", createdAtEpochMillis = 1L)
+    private val photoB = LogPhoto(id = "photo-b", relativePath = "photos/b.jpg", createdAtEpochMillis = 2L)
+
+    private fun photoRepository(): FakeMushroomLogRepository {
+        val findWithPhoto = entry.copy(photos = listOf(photoA))
+        return FakeMushroomLogRepository(initial = listOf(findWithPhoto)).also { repo ->
+            kotlinx.coroutines.runBlocking { repo.addPhotoToGallery(photoB) }
+        }
+    }
+
+    @Test
+    fun `a requested photo delete hides it from the gallery and from its find, carries its journal count, and deletes nothing`() = runTest(dispatcher) {
+        val repository = photoRepository()
+        val photoStore = FakePhotoStore()
+        val vm = viewModel(repository, photoStore, getPhotoEntryReferenceCount = { id -> if (id == photoA.id) 2 else 0 })
+        advanceUntilIdle()
+        assertEquals("positive control: both photos loaded", setOf(photoA.id, photoB.id), vm.uiState.value.galleryPhotos.map { it.photo.id }.toSet())
+
+        vm.requestDeleteGalleryPhoto(photoA.id)
+        advanceUntilIdle()
+
+        val pending = vm.uiState.value.pendingPhotoDelete
+        assertEquals(photoA.id, pending?.item?.photo?.id)
+        assertEquals(2, pending?.entryReferenceCount)
+        assertEquals(listOf(entry.id), pending?.item?.referencingEntryIds)
+        val visible = vm.uiState.value.hidingPendingDelete()
+        assertEquals(listOf(photoB.id), visible.galleryPhotos.map { it.photo.id })
+        assertEquals(emptyList<String>(), visible.entries.single { it.id == entry.id }.photos.map { it.id })
+        assertEquals(emptyList<String>(), repository.deletedPhotoIds)
+        assertEquals(emptyList<LogPhoto>(), photoStore.deletedPhotos)
+    }
+
+    @Test
+    fun `undo of a pending photo delete shows it again and deletes neither row nor file`() = runTest(dispatcher) {
+        val repository = photoRepository()
+        val photoStore = FakePhotoStore()
+        val vm = viewModel(repository, photoStore)
+        advanceUntilIdle()
+        vm.requestDeleteGalleryPhoto(photoA.id)
+        advanceUntilIdle()
+        assertEquals("positive control: hidden before the undo", listOf(photoB.id), vm.uiState.value.hidingPendingDelete().galleryPhotos.map { it.photo.id })
+
+        vm.undoDeleteGalleryPhoto(photoA.id)
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.pendingPhotoDelete)
+        assertEquals(setOf(photoA.id, photoB.id), vm.uiState.value.hidingPendingDelete().galleryPhotos.map { it.photo.id }.toSet())
+        assertEquals(emptyList<String>(), repository.deletedPhotoIds)
+        assertEquals(emptyList<LogPhoto>(), photoStore.deletedPhotos)
+    }
+
+    @Test
+    fun `committing a pending photo delete deletes its row and then its file, exactly once each`() = runTest(dispatcher) {
+        val repository = photoRepository()
+        val photoStore = FakePhotoStore()
+        val vm = viewModel(repository, photoStore)
+        advanceUntilIdle()
+        vm.requestDeleteGalleryPhoto(photoA.id)
+        advanceUntilIdle()
+        assertEquals("not before the snackbar ends", emptyList<LogPhoto>(), photoStore.deletedPhotos)
+
+        vm.commitDeleteGalleryPhoto(photoA.id)
+        advanceUntilIdle()
+        vm.commitDeleteGalleryPhoto(photoA.id)
+        advanceUntilIdle()
+
+        assertEquals(listOf(photoA.id), repository.deletedPhotoIds)
+        assertEquals(listOf(photoA), photoStore.deletedPhotos)
+        assertNull(vm.uiState.value.pendingPhotoDelete)
+        assertEquals(listOf(photoB.id), vm.uiState.value.galleryPhotos.map { it.photo.id })
+    }
+
+    @Test
+    fun `a second photo delete commits the first when it replaces it`() = runTest(dispatcher) {
+        val repository = photoRepository()
+        val photoStore = FakePhotoStore()
+        val vm = viewModel(repository, photoStore)
+        advanceUntilIdle()
+        vm.requestDeleteGalleryPhoto(photoA.id)
+        advanceUntilIdle()
+
+        vm.requestDeleteGalleryPhoto(photoB.id)
+        advanceUntilIdle()
+
+        assertEquals(listOf(photoA.id), repository.deletedPhotoIds)
+        assertEquals(listOf(photoA), photoStore.deletedPhotos)
+        assertEquals(photoB.id, vm.uiState.value.pendingPhotoDelete?.item?.photo?.id)
+        assertEquals(emptyList<String>(), vm.uiState.value.hidingPendingDelete().galleryPhotos.map { it.photo.id })
+    }
+
+    @Test
+    fun `a photo delete still pending when the ViewModel is cleared is committed, row and file`() = runTest(dispatcher) {
+        val repository = photoRepository()
+        val photoStore = FakePhotoStore()
+        val testScope: CoroutineScope = this
+        val store = ViewModelStore()
+        val vm = ViewModelProvider(
+            store,
+            viewModelFactory { initializer { viewModel(repository, photoStore, pendingDeleteCommitScope = testScope) } },
+        )[MushroomLogViewModel::class.java]
+        advanceUntilIdle()
+        vm.requestDeleteGalleryPhoto(photoA.id)
+        advanceUntilIdle()
+        assertEquals(emptyList<String>(), repository.deletedPhotoIds)
+
+        store.clear()
+        advanceUntilIdle()
+
+        assertEquals(listOf(photoA.id), repository.deletedPhotoIds)
+        assertEquals(listOf(photoA), photoStore.deletedPhotos)
+    }
+
+    @Test
+    fun `a failed photo delete puts the photo back and says so, and deletes no file`() = runTest(dispatcher) {
+        val repository = photoRepository()
+        val photoStore = FakePhotoStore()
+        val vm = viewModel(repository, photoStore)
+        advanceUntilIdle()
+        vm.requestDeleteGalleryPhoto(photoA.id)
+        advanceUntilIdle()
+        repository.deletePhotoShouldFail = true
+
+        vm.commitDeleteGalleryPhoto(photoA.id)
+        advanceUntilIdle()
+
+        assertEquals(listOf(photoA.id), repository.deletedPhotoIds)
+        assertEquals(emptyList<LogPhoto>(), photoStore.deletedPhotos)
+        assertEquals(setOf(photoA.id, photoB.id), vm.uiState.value.hidingPendingDelete().galleryPhotos.map { it.photo.id }.toSet())
+        assertEquals("Couldn't delete that photo.", vm.uiState.value.saveErrorMessage)
+    }
+
+    @Test
+    fun `a delete asked for a photo that is not loaded pends nothing`() = runTest(dispatcher) {
+        val repository = photoRepository()
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+
+        vm.requestDeleteGalleryPhoto("photo-missing")
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.pendingPhotoDelete)
+        assertEquals(2, vm.uiState.value.hidingPendingDelete().galleryPhotos.size)
+    }
 }
 
 private class FakeMushroomLogRepository(
@@ -1538,6 +1873,9 @@ private class FakeMushroomLogRepository(
     private val crossRefs = mutableSetOf<Pair<String, String>>()
 
     val galleryPhotoIds: Set<String> get() = galleryPhotos.keys
+
+    /** Every id [delete] was called with, in order (journal redesign J4: the delete calls a pending delete defers). */
+    val deletedIds = mutableListOf<String>()
 
     /** Every distinct entry id currently holding at least one cross-reference row — used to assert no orphaned reference survives a draft's removal. */
     fun crossRefEntryIds(): Set<String> = crossRefs.map { it.first }.toSet()
@@ -1595,6 +1933,7 @@ private class FakeMushroomLogRepository(
     }
 
     override suspend fun delete(id: String): Result<Unit> {
+        deletedIds += id
         entries.remove(id)
         crossRefs.removeAll { it.first == id }
         return Result.success(Unit)
@@ -1619,7 +1958,15 @@ private class FakeMushroomLogRepository(
         return Result.success(Unit)
     }
 
+    /** Every id [deletePhotoFromGallery] was called with, in order (journal redesign J4b: the row delete a pending photo delete defers). */
+    val deletedPhotoIds = mutableListOf<String>()
+
+    /** Set by a test to make the gallery row delete fail. */
+    var deletePhotoShouldFail: Boolean = false
+
     override suspend fun deletePhotoFromGallery(photoId: String): Result<Unit> {
+        deletedPhotoIds += photoId
+        if (deletePhotoShouldFail) return Result.failure(RuntimeException("photo delete failed"))
         galleryPhotos.remove(photoId)
         crossRefs.removeAll { it.second == photoId }
         return Result.success(Unit)

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBubbleAndDropdownBackTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:18:25.643Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="1.173">
+  <properties/>
+  <testcase name="in touch mode with no fan, Back closes the dropdown and it is still closed after the screen settles" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBubbleAndDropdownBackTest" time="0.33"/>
+  <testcase name="in touch mode, after Back closed the dropdown a touch on the field opens it again" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBubbleAndDropdownBackTest" time="0.234"/>
+  <testcase name="a bubble over a fan, then the dropdown open, Back closes the dropdown, then the bubble, then folds the fan" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBubbleAndDropdownBackTest" time="0.192"/>
+  <testcase name="a bubble over a fan, then fullscreen on, Back leaves fullscreen, then closes the bubble, then folds the fan" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBubbleAndDropdownBackTest" time="0.233"/>
+  <testcase name="with a fan open and the dropdown open, Back closes the dropdown and the fan stays, then the next Back folds the fan" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBubbleAndDropdownBackTest" time="0.18"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

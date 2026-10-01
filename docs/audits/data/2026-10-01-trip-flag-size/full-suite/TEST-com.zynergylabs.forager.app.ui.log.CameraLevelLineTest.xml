@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.CameraLevelLineTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:26.261Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.218">
+  <properties/>
+  <testcase name="the line's angle follows the fake's roll, opposite to the phone" classname="com.zynergylabs.forager.app.ui.log.CameraLevelLineTest" time="0.03"/>
+  <testcase name="snapped within a degree of level, not beyond it, in any of the four holds" classname="com.zynergylabs.forager.app.ui.log.CameraLevelLineTest" time="0.032"/>
+  <testcase name="only at Grid and Level, and the sensor is listened to only while the line is shown" classname="com.zynergylabs.forager.app.ui.log.CameraLevelLineTest" time="0.031"/>
+  <testcase name="no sensor, no line" classname="com.zynergylabs.forager.app.ui.log.CameraLevelLineTest" time="0.076"/>
+  <testcase name="with the window turned the same quarter as the phone, the line is flat" classname="com.zynergylabs.forager.app.ui.log.CameraLevelLineTest" time="0.047"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

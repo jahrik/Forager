@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.data.repository.DataStoreMapLayerPreferencesTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:48.269Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.124">
+  <properties/>
+  <testcase name="the choices are written to map_preferences under the map-layer keys, beside the existing map settings" classname="com.zynergylabs.forager.app.data.repository.DataStoreMapLayerPreferencesTest" time="0.033"/>
+  <testcase name="visibility, opacity and order written by one instance are read back by a recreated one" classname="com.zynergylabs.forager.app.data.repository.DataStoreMapLayerPreferencesTest" time="0.03"/>
+  <testcase name="nothing stored reads back as no stored choices" classname="com.zynergylabs.forager.app.data.repository.DataStoreMapLayerPreferencesTest" time="0.027"/>
+  <testcase name="a second write to one layer replaces the first, and the other map settings still read back" classname="com.zynergylabs.forager.app.data.repository.DataStoreMapLayerPreferencesTest" time="0.032"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.LandscapeLClusterTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:42.614Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="1.242">
+  <properties/>
+  <testcase name="L2 at ROTATION_90 five real touches across the top row of the bar all reach it" classname="com.zynergylabs.forager.app.ui.availability.LandscapeLClusterTest" time="0.192"/>
+  <testcase name="L2 at ROTATION_270 five real touches across the top row of the bar all reach it" classname="com.zynergylabs.forager.app.ui.availability.LandscapeLClusterTest" time="0.162"/>
+  <testcase name="L2 at ROTATION_90 five real touches across the bottom row of the bar all reach it" classname="com.zynergylabs.forager.app.ui.availability.LandscapeLClusterTest" time="0.094"/>
+  <testcase name="L2 at ROTATION_90 real touches on the compass and locate rows do not fall through to the map" classname="com.zynergylabs.forager.app.ui.availability.LandscapeLClusterTest" time="0.059"/>
+  <testcase name="L3 at ROTATION_90 a real long-press in the empty corner and in the gap reaches the map" classname="com.zynergylabs.forager.app.ui.availability.LandscapeLClusterTest" time="0.053"/>
+  <testcase name="L2 at ROTATION_270 five real touches across the bottom row of the bar all reach it" classname="com.zynergylabs.forager.app.ui.availability.LandscapeLClusterTest" time="0.162"/>
+  <testcase name="L3 at ROTATION_270 a real long-press in the empty corner and in the gap reaches the map" classname="com.zynergylabs.forager.app.ui.availability.LandscapeLClusterTest" time="0.119"/>
+  <testcase name="L1 at ROTATION_90 the cluster is an L, bar 240, gap 8, pill 48 thick, 296 in all" classname="com.zynergylabs.forager.app.ui.availability.LandscapeLClusterTest" time="0.082"/>
+  <testcase name="L6 at ROTATION_90 the add menu's panel is placed against the L's add row" classname="com.zynergylabs.forager.app.ui.availability.LandscapeLClusterTest" time="0.054"/>
+  <testcase name="L4 at ROTATION_270 the bottom clamp uses the L's 296 tall box, with the nav and in fullscreen" classname="com.zynergylabs.forager.app.ui.availability.LandscapeLClusterTest" time="0.08"/>
+  <testcase name="L2 at ROTATION_270 real touches on the compass and locate rows do not fall through to the map" classname="com.zynergylabs.forager.app.ui.availability.LandscapeLClusterTest" time="0.049"/>
+  <testcase name="L4 at ROTATION_90 the bottom clamp uses the L's 296 tall box, with the nav and in fullscreen" classname="com.zynergylabs.forager.app.ui.availability.LandscapeLClusterTest" time="0.075"/>
+  <testcase name="L1 at ROTATION_270 the cluster is an inverse L, bar 240, gap 8, pill 48 thick, 296 in all" classname="com.zynergylabs.forager.app.ui.availability.LandscapeLClusterTest" time="0.056"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

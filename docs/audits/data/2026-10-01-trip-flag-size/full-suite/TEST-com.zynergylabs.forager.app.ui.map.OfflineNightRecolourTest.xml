@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.OfflineNightRecolourTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:09.846Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.019">
+  <properties/>
+  <testcase name="only background, fill and line colour properties are walked" classname="com.zynergylabs.forager.app.ui.map.OfflineNightRecolourTest" time="0.002"/>
+  <testcase name="interpolate and step recolour their stops and leave the zoom levels" classname="com.zynergylabs.forager.app.ui.map.OfflineNightRecolourTest" time="0.007"/>
+  <testcase name="an expression that is not JSON is left, with a reason" classname="com.zynergylabs.forager.app.ui.map.OfflineNightRecolourTest" time="0.0"/>
+  <testcase name="match recolours its outputs and leaves its labels" classname="com.zynergylabs.forager.app.ui.map.OfflineNightRecolourTest" time="0.001"/>
+  <testcase name="every colour property in the repository's offline style is recoloured" classname="com.zynergylabs.forager.app.ui.map.OfflineNightRecolourTest" time="0.004"/>
+  <testcase name="case recolours its outputs and leaves its condition" classname="com.zynergylabs.forager.app.ui.map.OfflineNightRecolourTest" time="0.001"/>
+  <testcase name="literal colours are recoloured, hex and rgba alike" classname="com.zynergylabs.forager.app.ui.map.OfflineNightRecolourTest" time="0.003"/>
+  <testcase name="a property with no colour it can read is left, with a reason" classname="com.zynergylabs.forager.app.ui.map.OfflineNightRecolourTest" time="0.001"/>
+  <testcase name="rgba arrays inside an expression are recoloured, alpha kept" classname="com.zynergylabs.forager.app.ui.map.OfflineNightRecolourTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

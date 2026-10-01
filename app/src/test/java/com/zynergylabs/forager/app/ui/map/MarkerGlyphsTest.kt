@@ -40,25 +40,92 @@ class MarkerGlyphsTest {
     /** The glyph board §1 fill extents and anchors, and the reticle's own dimensions (C2), in dp. */
     private val expected = mapOf(
         MarkerGlyph.WAYPOINT to floatArrayOf(22f, 28f, 11f, 28f),
-        MarkerGlyph.FIND to floatArrayOf(24f, 26f, 12f, 26f),
-        MarkerGlyph.PLANNED_TRIP to floatArrayOf(20f, 28f, 1.5f, 28f),
+        // Dispatch 2026-09-28-286: the find is scaled evenly to 25 dp tall (25/26), anchor included.
+        MarkerGlyph.FIND to floatArrayOf(23.0769f, 25f, 11.5385f, 25f),
+        // Dispatch 2026-09-28-358: the flag is scaled evenly to 23 dp tall (23/28), anchor included: 20 x 28 becomes 16.4286 x 23,
+        // its anchor (1.5, 28) becomes (1.2321, 23).
+        MarkerGlyph.PLANNED_TRIP to floatArrayOf(16.4286f, 23f, 1.2321f, 23f),
         MarkerGlyph.PHOTO to floatArrayOf(22f, 22f, 11f, 11f),
         MarkerGlyph.SEARCH_CENTRE to floatArrayOf(26f, 26f, 13f, 13f),
     )
 
+    /**
+     * Dispatch 2026-09-28-275. `icon-offset` moves the image from its anchor, positive right and down. The
+     * image is anchored (`icon-anchor: center`) at the glyph's anchor, so to put the fill extent's centre
+     * on the point the image moves by anchor minus half-extent: a pin whose body centre is 14dp above its
+     * tip moves 14dp down.
+     */
+    @Test
+    fun `the fan centring offset moves each glyph's fill-extent centre onto the point`() {
+        val expected = mapOf(
+            MarkerGlyph.PHOTO to (0f to 0f),
+            MarkerGlyph.WAYPOINT to (0f to 14f),
+            MarkerGlyph.FIND to (0f to 12.5f),
+            MarkerGlyph.PLANNED_TRIP to (-6.9821f to 11.5f),
+            MarkerGlyph.SEARCH_CENTRE to (0f to 0f),
+        )
+        for ((glyph, xy) in expected) {
+            val offset = glyph.fanCentringOffsetDp()
+            assertEquals("$glyph fan centring offset x", xy.first, offset.xDp, 1e-4f)
+            assertEquals("$glyph fan centring offset y", xy.second, offset.yDp, 1e-4f)
+        }
+    }
+
     @Test
     fun `each glyph's fill extent and anchor are the glyph board's`() {
         for ((glyph, dims) in expected) {
-            assertEquals("$glyph width", dims[0], glyph.widthDp)
-            assertEquals("$glyph height", dims[1], glyph.heightDp)
-            assertEquals("$glyph anchor x", dims[2], glyph.anchorXDp)
-            assertEquals("$glyph anchor y", dims[3], glyph.anchorYDp)
+            assertEquals("$glyph width", dims[0], glyph.widthDp, 1e-3f)
+            assertEquals("$glyph height", dims[1], glyph.heightDp, 1e-3f)
+            assertEquals("$glyph anchor x", dims[2], glyph.anchorXDp, 1e-3f)
+            assertEquals("$glyph anchor y", dims[3], glyph.anchorYDp, 1e-3f)
             val bounds = fillBounds(glyph)
             assertEquals("$glyph path left", 0f, bounds.left, 0.01f)
             assertEquals("$glyph path top", 0f, bounds.top, 0.01f)
             assertEquals("$glyph path right", dims[0], bounds.right, 0.01f)
             assertEquals("$glyph path bottom", dims[1], bounds.bottom, 0.01f)
         }
+    }
+
+    // Dispatch 2026-09-28-286. The owner: "I noticed the flag for the planned trip is a bit large compared to the other
+    // icons... The finds icon is a bit large also, but not by much. Location pin icon is acceptable. Somewhere between the
+    // photo icon and location pin size would be preferable"; scope "Everywhere". Both were 25 dp tall, between the photo's
+    // 22 and the pin's 28, with their proportions kept. Dispatch 2026-09-28-358 then shrank the flag alone, to 23 dp.
+    @Test
+    fun `the find is 25 dp tall with its proportions kept, between the photo and the pin`() {
+        assertEquals("the find's height", 25f, MarkerGlyph.FIND.heightDp, 1e-3f)
+        assertEquals("the find keeps its 24:26 proportions", 24f / 26f, MarkerGlyph.FIND.widthDp / MarkerGlyph.FIND.heightDp, 1e-4f)
+        assertTrue("between the photo's height and the pin's", MarkerGlyph.PHOTO.heightDp < 25f && 25f < MarkerGlyph.WAYPOINT.heightDp)
+    }
+
+    // Dispatch 2026-09-28-358. The owner, of the 36 dp circles: "The circle size was perfect at 36dp since the trip icon fit
+    // neatly in it"; then "the trip icon is a bit large still. Scale it down very slightly so that it fits more comfortably
+    // inside the circle." The 23 dp is the planner's number, not the owner's.
+    @Test
+    fun `the flag is 23 dp tall with its 20 by 28 proportions kept, and its anchor on the pole foot`() {
+        val flag = MarkerGlyph.PLANNED_TRIP
+        assertEquals("the flag's height, was 25", 23f, flag.heightDp, 1e-3f)
+        assertEquals("the flag keeps its 20:28 proportions", 20f / 28f, flag.widthDp / flag.heightDp, 1e-4f)
+        assertEquals("the flag's anchor scales with it: the pole foot (1.5, 28) becomes (1.2321, 23)", 1.5f * 23f / 28f, flag.anchorXDp, 1e-3f)
+        assertEquals("the flag's anchor is still on the foot of the pole, its bottom edge", flag.heightDp, flag.anchorYDp, 1e-3f)
+        assertTrue("the flag is shorter than the find", flag.heightDp < MarkerGlyph.FIND.heightDp)
+    }
+
+    // Dispatch 2026-09-28-358: the flag alone changed. The find, the pin and the photo are exactly what they were.
+    @Test
+    fun `the flag's resize left the find, the waypoint and the photo exactly as they were`() {
+        assertEquals("find", listOf(23.0769f, 25f, 11.5385f, 25f), MarkerGlyph.FIND.let { listOf(it.widthDp, it.heightDp, it.anchorXDp, it.anchorYDp).map { v -> Math.round(v * 10000f) / 10000f } })
+        assertEquals("waypoint", listOf(22f, 28f, 11f, 28f), MarkerGlyph.WAYPOINT.let { listOf(it.widthDp, it.heightDp, it.anchorXDp, it.anchorYDp) })
+        assertEquals("photo", listOf(22f, 22f, 11f, 11f), MarkerGlyph.PHOTO.let { listOf(it.widthDp, it.heightDp, it.anchorXDp, it.anchorYDp) })
+        assertEquals("find fan offset", 12.5f, MarkerGlyph.FIND.fanCentringOffsetDp().yDp, 1e-4f)
+        assertEquals("waypoint fan offset", 14f, MarkerGlyph.WAYPOINT.fanCentringOffsetDp().yDp, 1e-4f)
+        assertEquals("photo fan offset", 0f, MarkerGlyph.PHOTO.fanCentringOffsetDp().yDp, 1e-4f)
+    }
+
+    @Test
+    fun `the waypoint, the photo and the search centre are not resized`() {
+        assertEquals("waypoint", listOf(22f, 28f, 11f, 28f), MarkerGlyph.WAYPOINT.let { listOf(it.widthDp, it.heightDp, it.anchorXDp, it.anchorYDp) })
+        assertEquals("photo", listOf(22f, 22f, 11f, 11f), MarkerGlyph.PHOTO.let { listOf(it.widthDp, it.heightDp, it.anchorXDp, it.anchorYDp) })
+        assertEquals("search centre", listOf(26f, 26f, 13f, 13f), MarkerGlyph.SEARCH_CENTRE.let { listOf(it.widthDp, it.heightDp, it.anchorXDp, it.anchorYDp) })
     }
 
     @Test
@@ -159,13 +226,16 @@ class MarkerGlyphsTest {
         val image = markerIconImage(MarkerIcon.FIND, MapPalette.DAY, density)
         val find = MapPalette.DAY.find
         assertEquals("find icon size", drawGlyph(MarkerGlyph.FIND, density, find, MapPalette.DAY.casing).bitmap.width, image.bitmap.width)
-        // Relative to the stem foot (12, 26): the dome's left rim just above its underside (0.5, 13.5)...
-        assertColour("the dome's rim at its widest", find, image, -11.5f, -12.5f)
-        // ...the stem's foot corners (8.5, 25.5) and (15.5, 25.5)...
-        assertColour("the stem foot, left", find, image, -3.5f, -0.5f)
-        assertColour("the stem foot, right", find, image, 3.5f, -0.5f)
-        // ...and nothing beside the stem, under the dome (4, 22).
-        assertTransparent("beside the stem, under the dome", image, -8f, -4f)
+        // Relative to the stem foot. The design's (12, 26) is scaled to 25 dp tall (dispatch 2026-09-28-286), so each probe
+        // is the design's offset times that scale: the dome's left rim just above its underside (0.5, 13.5) is
+        // (-11.5, -12.5) from the foot...
+        val s = 25f / 26f
+        assertColour("the dome's rim at its widest", find, image, -11.5f * s, -12.5f * s)
+        // ...the stem's foot corners (8.5, 25.5) and (15.5, 25.5), (+-3.5, -0.5) from it...
+        assertColour("the stem foot, left", find, image, -3.5f * s, -0.5f * s)
+        assertColour("the stem foot, right", find, image, 3.5f * s, -0.5f * s)
+        // ...and nothing beside the stem, under the dome (4, 22), (-8, -4) from it.
+        assertTransparent("beside the stem, under the dome", image, -8f * s, -4f * s)
     }
 
     @Test
@@ -177,7 +247,8 @@ class MarkerGlyphsTest {
             MarkerIcon.PHOTO to MarkerGlyph.PHOTO,
             MarkerIcon.SEARCH_CENTRE to MarkerGlyph.SEARCH_CENTRE,
         )
-        assertEquals(MarkerIcon.entries.toSet(), glyphs.keys)
+        // J8's three halo icons have their own test (JournalHaloGlyphTest); every marker icon is here.
+        assertEquals(MarkerIcon.entries.filterNot { it.halo }.toSet(), glyphs.keys)
         assertEquals("every image id is distinct", MarkerIcon.entries.size, MarkerIcon.entries.map { it.imageId }.toSet().size)
         for (palette in listOf(MapPalette.DAY, MapPalette.NIGHT)) {
             val roles = mapOf(

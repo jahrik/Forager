@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.GeoDistanceTest" tests="27" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:52.624Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.003">
+  <properties/>
+  <testcase name="a negative radius is rejected rather than producing an inverted box" classname="com.zynergylabs.forager.app.domain.GeoDistanceTest" time="0.0"/>
+  <testcase name="points either side of the antimeridian are close, not half a world apart" classname="com.zynergylabs.forager.app.domain.GeoDistanceTest" time="0.0"/>
+  <testcase name="identical points are zero metres apart" classname="com.zynergylabs.forager.app.domain.GeoDistanceTest" time="0.0"/>
+  <testcase name="one degree of latitude is about 111 kilometres regardless of longitude" classname="com.zynergylabs.forager.app.domain.GeoDistanceTest" time="0.0"/>
+  <testcase name="boundingRegion radius reaches the farthest point and is clamped into Region's own range" classname="com.zynergylabs.forager.app.domain.GeoDistanceTest" time="0.0"/>
+  <testcase name="boundingRegion of a single point centres on it with the minimum radius" classname="com.zynergylabs.forager.app.domain.GeoDistanceTest" time="0.0"/>
+  <testcase name="zero radius collapses the box onto the centre point" classname="com.zynergylabs.forager.app.domain.GeoDistanceTest" time="0.0"/>
+  <testcase name="bearing due north is zero" classname="com.zynergylabs.forager.app.domain.GeoDistanceTest" time="0.0"/>
+  <testcase name="every circlePolygonPoints ring point sits the requested radius from the centre" classname="com.zynergylabs.forager.app.domain.GeoDistanceTest" time="0.0"/>
+  <testcase name="circlePolygonPoints returns pointCount plus one points, plus the closing point" classname="com.zynergylabs.forager.app.domain.GeoDistanceTest" time="0.0"/>
+  <testcase name="a zero radius collapses circlePolygonPoints onto the centre" classname="com.zynergylabs.forager.app.domain.GeoDistanceTest" time="0.001"/>
+  <testcase name="bounding box east-west edges wrap across the antimeridian" classname="com.zynergylabs.forager.app.domain.GeoDistanceTest" time="0.0"/>
+  <testcase name="bearing due south is 180 degrees" classname="com.zynergylabs.forager.app.domain.GeoDistanceTest" time="0.0"/>
+  <testcase name="distance is symmetric" classname="com.zynergylabs.forager.app.domain.GeoDistanceTest" time="0.0"/>
+  <testcase name="circlePolygonPoints closes its own ring, first and last point identical" classname="com.zynergylabs.forager.app.domain.GeoDistanceTest" time="0.0"/>
+  <testcase name="bounding box east-west degree span widens toward the poles for the same radius" classname="com.zynergylabs.forager.app.domain.GeoDistanceTest" time="0.0"/>
+  <testcase name="bounding box north-south span matches the requested radius in real metres" classname="com.zynergylabs.forager.app.domain.GeoDistanceTest" time="0.0"/>
+  <testcase name="bearing due east is ninety degrees" classname="com.zynergylabs.forager.app.domain.GeoDistanceTest" time="0.0"/>
+  <testcase name="a negative radius is rejected in circlePolygonPoints" classname="com.zynergylabs.forager.app.domain.GeoDistanceTest" time="0.001"/>
+  <testcase name="bearing due west is 270 degrees, never negative" classname="com.zynergylabs.forager.app.domain.GeoDistanceTest" time="0.0"/>
+  <testcase name="one degree of longitude shrinks with latitude" classname="com.zynergylabs.forager.app.domain.GeoDistanceTest" time="0.0"/>
+  <testcase name="matches a known great-circle distance between two cities" classname="com.zynergylabs.forager.app.domain.GeoDistanceTest" time="0.0"/>
+  <testcase name="boundingRegion centres on the bounding box midpoint, not the average of every point" classname="com.zynergylabs.forager.app.domain.GeoDistanceTest" time="0.0"/>
+  <testcase name="fewer than three points is rejected in circlePolygonPoints" classname="com.zynergylabs.forager.app.domain.GeoDistanceTest" time="0.0"/>
+  <testcase name="boundingRegion of no points is null, not a fabricated default location" classname="com.zynergylabs.forager.app.domain.GeoDistanceTest" time="0.0"/>
+  <testcase name="a search near the pole produces a finite, clamped box instead of blowing up" classname="com.zynergylabs.forager.app.domain.GeoDistanceTest" time="0.0"/>
+  <testcase name="bounding box is centred on the search point" classname="com.zynergylabs.forager.app.domain.GeoDistanceTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.data.repository.DataStorePhotoLocationPreferenceRepositoryTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:48.584Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.204">
+  <properties/>
+  <testcase name="isolation between tests" classname="com.zynergylabs.forager.app.data.repository.DataStorePhotoLocationPreferenceRepositoryTest" time="0.035"/>
+  <testcase name="a second live instance on the same file is rejected by DataStore" classname="com.zynergylabs.forager.app.data.repository.DataStorePhotoLocationPreferenceRepositoryTest" time="0.059"/>
+  <testcase name="an off value is not confused with never having been set" classname="com.zynergylabs.forager.app.data.repository.DataStorePhotoLocationPreferenceRepositoryTest" time="0.042"/>
+  <testcase name="an untouched install has the setting on" classname="com.zynergylabs.forager.app.data.repository.DataStorePhotoLocationPreferenceRepositoryTest" time="0.035"/>
+  <testcase name="the setting round-trips both ways" classname="com.zynergylabs.forager.app.data.repository.DataStorePhotoLocationPreferenceRepositoryTest" time="0.029"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[System.logW: A resource failed to call SQLiteConnection.close. 
+System.logW: A resource failed to call SQLiteConnectionPool.close. 
+]]></system-err>
+</testsuite>

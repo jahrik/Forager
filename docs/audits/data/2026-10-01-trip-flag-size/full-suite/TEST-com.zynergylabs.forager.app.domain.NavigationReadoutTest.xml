@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.NavigationReadoutTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:53.661Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.001">
+  <properties/>
+  <testcase name="a target north-east of a user facing north-west is 90 degrees relative, a right turn" classname="com.zynergylabs.forager.app.domain.NavigationReadoutTest" time="0.001"/>
+  <testcase name="freshness thresholds are 30 seconds and 5 minutes, inclusive at the boundary" classname="com.zynergylabs.forager.app.domain.NavigationReadoutTest" time="0.0"/>
+  <testcase name="relative bearing wraps across north in both directions" classname="com.zynergylabs.forager.app.domain.NavigationReadoutTest" time="0.0"/>
+  <testcase name="a target north-west of a user facing north-east is 270 degrees relative, a left turn" classname="com.zynergylabs.forager.app.domain.NavigationReadoutTest" time="0.0"/>
+  <testcase name="approaching is inside twice the reported accuracy, inclusive, and never without an accuracy" classname="com.zynergylabs.forager.app.domain.NavigationReadoutTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

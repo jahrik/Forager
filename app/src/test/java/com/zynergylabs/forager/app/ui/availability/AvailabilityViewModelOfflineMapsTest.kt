@@ -46,6 +46,11 @@ import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
 import com.zynergylabs.forager.app.domain.model.WeatherSeries
 import java.io.IOException
 import java.time.LocalDate
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
@@ -167,11 +172,16 @@ private class RecordingOfflineMapRepository(
     var downloadResult: Result<OfflineRegionSummary> = Result.failure(IllegalStateException("downloadResult not configured"))
     var progressSteps: List<Pair<Int, Int>> = emptyList()
     var deleteRegionResult: Result<Unit> = Result.success(Unit)
+    var notDownloaded: List<OfflineRegionSummary> = emptyList()
+    val replaced = mutableListOf<Pair<Long, Long>>()
 
     var downloadCalled = false
     var lastName: String? = null
     var lastRegion: Region? = null
     var lastDeletedId: Long? = null
+
+    /** Every id [deleteRegion] was called with, in order — the MapLibre tile delete plus row delete the real one runs (journal redesign J4). */
+    val deletedIds = mutableListOf<Long>()
 
     override suspend fun download(
         name: String,
@@ -188,6 +198,7 @@ private class RecordingOfflineMapRepository(
 
     override suspend fun deleteRegion(id: Long): Result<Unit> {
         lastDeletedId = id
+        deletedIds += id
         deleteRegionResult.onSuccess {
             listRegionsResult = Result.success(listRegionsResult.getOrNull().orEmpty().filterNot { it.id == id })
         }
@@ -195,6 +206,14 @@ private class RecordingOfflineMapRepository(
     }
 
     override suspend fun listRegions(): Result<List<OfflineRegionSummary>> = listRegionsResult
+
+    override suspend fun listNotDownloadedRegions(): Result<List<OfflineRegionSummary>> = Result.success(notDownloaded)
+
+    override suspend fun replaceRegion(oldId: Long, newId: Long): Result<Unit> {
+        replaced += oldId to newId
+        notDownloaded = notDownloaded.filterNot { it.id == oldId }
+        return Result.success(Unit)
+    }
 }
 
 class AvailabilityViewModelOfflineMapsTest {
@@ -212,6 +231,8 @@ class AvailabilityViewModelOfflineMapsTest {
     private fun viewModel(
         offlineMapRepository: OfflineMapRepository,
         mapPreferencesRepository: MapPreferencesRepository = OfflineMapsStubMapPreferencesRepository,
+        getOfflineRegionReferenceCount: suspend (Long) -> Int = { 0 },
+        pendingDeleteCommitScope: CoroutineScope? = null,
     ): AvailabilityViewModel = AvailabilityViewModel(
         locationProvider = OfflineMapsUnusedLocationProvider,
         locationTracker = OfflineMapsNoOpLocationTracker,
@@ -234,6 +255,8 @@ class AvailabilityViewModelOfflineMapsTest {
         unitSystemPreferenceRepository = OfflineMapsStubUnitSystemPreferenceRepository,
         appThemePreferenceRepository = OfflineMapsStubAppThemePreferenceRepository,
         getTodaysForecast = GetTodaysForecastUseCase(OfflineMapsStubTripPlanningWeatherProvider),
+        getOfflineRegionReferenceCount = getOfflineRegionReferenceCount,
+        pendingDeleteCommitScope = pendingDeleteCommitScope ?: com.zynergylabs.forager.app.ui.log.PendingDeleteCommitScope,
     )
 
     /** Mirrors how [AvailabilityScreen]'s picker map now sets these — panning and confirming with OK, not typing. */
@@ -512,5 +535,182 @@ class AvailabilityViewModelOfflineMapsTest {
 
         assertNull(vm.uiState.value.region)
         assertEquals(REFERENCE_REGION, repository.lastRegion)
+    }
+    // ---- Journal redesign J4, D1/D3: a swiped region is pending, and its tiles stay, until its snackbar ends ----
+
+    private val secondRegion = REFERENCE_REGION_SUMMARY.copy(id = 2L, name = "Molalla", tileCount = 120, createdAtEpochMillis = 1_755_100_000_000L)
+
+    private fun twoRegions() = RecordingOfflineMapRepository(listRegionsResult = Result.success(listOf(REFERENCE_REGION_SUMMARY, secondRegion)))
+
+    @Test
+    fun `a requested region delete is pending, hidden from visibleOfflineRegions, and the tile delete is not called`() = runTest(dispatcher) {
+        val repository = twoRegions()
+        val vm = viewModel(repository, getOfflineRegionReferenceCount = { id -> if (id == 1L) 3 else 0 })
+        advanceUntilIdle()
+
+        vm.requestDeleteOfflineRegion(1L)
+        advanceUntilIdle()
+
+        val pending = requireNotNull(vm.uiState.value.pendingOfflineRegionDelete)
+        assertEquals(1L, pending.item.id)
+        assertEquals(3, pending.entryReferenceCount)
+        assertEquals(listOf(2L), vm.uiState.value.visibleOfflineRegions.map { it.id })
+        assertEquals("the tile budget still counts the pending region's tiles", listOf(1L, 2L), vm.uiState.value.offlineRegions.map { it.id })
+        assertEquals(emptyList<Long>(), repository.deletedIds)
+    }
+
+    @Test
+    fun `undo of a pending region delete shows it again and deletes no tiles`() = runTest(dispatcher) {
+        val repository = twoRegions()
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.requestDeleteOfflineRegion(1L)
+        advanceUntilIdle()
+        assertEquals("positive control: pending before the undo", listOf(2L), vm.uiState.value.visibleOfflineRegions.map { it.id })
+
+        vm.undoDeleteOfflineRegion(1L)
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.pendingOfflineRegionDelete)
+        assertEquals(listOf(1L, 2L), vm.uiState.value.visibleOfflineRegions.map { it.id })
+        assertEquals(emptyList<Long>(), repository.deletedIds)
+    }
+
+    @Test
+    fun `committing a pending region delete runs the tile delete once, for that region`() = runTest(dispatcher) {
+        val repository = twoRegions()
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.requestDeleteOfflineRegion(1L)
+        advanceUntilIdle()
+
+        vm.commitDeleteOfflineRegion(1L)
+        advanceUntilIdle()
+        vm.commitDeleteOfflineRegion(1L)
+        advanceUntilIdle()
+
+        assertEquals(listOf(1L), repository.deletedIds)
+        assertNull(vm.uiState.value.pendingOfflineRegionDelete)
+        assertEquals(listOf(2L), vm.uiState.value.visibleOfflineRegions.map { it.id })
+        assertEquals(listOf(2L), vm.uiState.value.offlineRegions.map { it.id })
+    }
+
+    @Test
+    fun `a second region delete commits the first when it replaces it`() = runTest(dispatcher) {
+        val repository = twoRegions()
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        vm.requestDeleteOfflineRegion(1L)
+        advanceUntilIdle()
+
+        vm.requestDeleteOfflineRegion(2L)
+        advanceUntilIdle()
+
+        assertEquals(listOf(1L), repository.deletedIds)
+        assertEquals(2L, vm.uiState.value.pendingOfflineRegionDelete?.item?.id)
+        assertEquals(emptyList<Long>(), vm.uiState.value.visibleOfflineRegions.map { it.id })
+    }
+
+    @Test
+    fun `a region delete still pending when the ViewModel is cleared is committed`() = runTest(dispatcher) {
+        val repository = twoRegions()
+        val testScope: CoroutineScope = this
+        val store = ViewModelStore()
+        val vm = ViewModelProvider(
+            store,
+            viewModelFactory { initializer { viewModel(repository, pendingDeleteCommitScope = testScope) } },
+        )[AvailabilityViewModel::class.java]
+        advanceUntilIdle()
+        vm.requestDeleteOfflineRegion(1L)
+        advanceUntilIdle()
+        assertEquals(emptyList<Long>(), repository.deletedIds)
+
+        store.clear()
+        advanceUntilIdle()
+
+        assertEquals(listOf(1L), repository.deletedIds)
+    }
+
+    // ---- restored regions (dispatch 2026-09-28-137, item 1, owner "1 B") ---------------------------------
+
+    private val restoredRegion = REFERENCE_REGION_SUMMARY.copy(
+        id = 5L, name = "Cedar Creek", region = Region(lat = 45.5, lng = -122.6, radiusKm = 8),
+        tileCount = 0, sizeBytes = 0L, isDownloaded = false,
+    )
+
+    @Test
+    fun `a restored region with no tiles is listed beside the downloaded ones, marked as not downloaded`() = runTest(dispatcher) {
+        val repository = RecordingOfflineMapRepository(listRegionsResult = Result.success(listOf(REFERENCE_REGION_SUMMARY)))
+        repository.notDownloaded = listOf(restoredRegion)
+
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+
+        val regions = vm.uiState.value.offlineRegions
+        assertEquals(listOf(1L, 5L), regions.map { it.id })
+        assertEquals(listOf(true, false), regions.map { it.isDownloaded })
+    }
+
+    @Test
+    fun `Download again downloads from the row's stored centre and radius through the existing download, then replaces the old row`() = runTest(dispatcher) {
+        val repository = RecordingOfflineMapRepository()
+        repository.notDownloaded = listOf(restoredRegion)
+        repository.downloadResult = Result.success(REFERENCE_REGION_SUMMARY.copy(id = 42L, name = "Cedar Creek", region = restoredRegion.region))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+
+        vm.onDownloadAgain(5L)
+        advanceUntilIdle()
+
+        assertEquals("the stored centre and radius", Region(lat = 45.5, lng = -122.6, radiusKm = 8), repository.lastRegion)
+        assertEquals("the stored name", "Cedar Creek", repository.lastName)
+        assertEquals("the old row now stands for the new region, and its references follow", listOf(5L to 42L), repository.replaced)
+        assertEquals(listOf(42L), vm.uiState.value.offlineRegions.map { it.id })
+        assertEquals(OfflineMapStatus.Succeeded, vm.uiState.value.offlineDownloadStatus)
+    }
+
+    @Test
+    fun `Download again is held to the same tile budget as any download`() = runTest(dispatcher) {
+        val repository = RecordingOfflineMapRepository()
+        repository.notDownloaded = listOf(restoredRegion.copy(region = Region(lat = 45.5, lng = -122.6, radiusKm = 400)))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+
+        vm.onDownloadAgain(5L)
+        advanceUntilIdle()
+
+        assertTrue("the download was never attempted", !repository.downloadCalled)
+        assertTrue(vm.uiState.value.offlineDownloadStatus is OfflineMapStatus.Failed)
+        assertEquals("and the row stays", listOf(5L), vm.uiState.value.offlineRegions.map { it.id })
+    }
+
+    @Test
+    fun `a failed Download again keeps the row and reports the failure as a download failure`() = runTest(dispatcher) {
+        val repository = RecordingOfflineMapRepository()
+        repository.notDownloaded = listOf(restoredRegion)
+        repository.downloadResult = Result.failure(java.io.IOException("offline"))
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+
+        vm.onDownloadAgain(5L)
+        advanceUntilIdle()
+
+        assertEquals(OfflineMapStatus.Failed("Couldn't download offline maps."), vm.uiState.value.offlineDownloadStatus)
+        assertEquals(listOf(5L), vm.uiState.value.offlineRegions.map { it.id })
+        assertTrue("nothing was replaced", repository.replaced.isEmpty())
+    }
+
+    @Test
+    fun `reloading after a restore reads the region lists again`() = runTest(dispatcher) {
+        val repository = RecordingOfflineMapRepository()
+        val vm = viewModel(repository)
+        advanceUntilIdle()
+        assertEquals(emptyList<Long>(), vm.uiState.value.offlineRegions.map { it.id })
+        repository.listRegionsResult = Result.success(listOf(REFERENCE_REGION_SUMMARY))
+        repository.notDownloaded = listOf(restoredRegion)
+
+        vm.reloadAfterRestore()
+
+        assertEquals(listOf(1L, 5L), vm.uiState.value.offlineRegions.map { it.id })
     }
 }

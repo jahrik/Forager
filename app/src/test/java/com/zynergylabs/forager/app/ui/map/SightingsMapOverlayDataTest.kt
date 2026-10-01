@@ -3,12 +3,19 @@ package com.zynergylabs.forager.app.ui.map
 import com.zynergylabs.forager.app.domain.GeoDistance
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
+import com.zynergylabs.forager.app.domain.model.RecordPoint
+import com.zynergylabs.forager.app.domain.model.RecordPolyline
+import com.zynergylabs.forager.app.domain.model.RecordRegion
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
+import com.zynergylabs.forager.app.ui.map.layers.TRACK_WIDTH_ZOOM_STOPS
 import com.zynergylabs.forager.app.ui.theme.MapPalette
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.maplibre.android.style.expressions.Expression
@@ -226,10 +233,13 @@ class SightingsMapOverlayDataTest {
     /**
      * Colour build C2 (c): each track has a casing line directly below it (added immediately before it,
      * so drawn immediately under it) on the same source, in the casing colour, 1.5dp wider on each
-     * side, solid even under the dashed breadcrumb, with the track's own round caps and joins.
+     * side at full width, solid even under the dashed breadcrumb, with the track's own round caps and
+     * joins. Since track widths by zoom (owner, 2026-09-28) those are the widths at zoom 15 and above:
+     * the track and its casing share the same zoom stops, so both thin out together
+     * (`TrackWidthByZoomTest` holds the widths at every zoom).
      */
     @Test
-    fun `each track has a solid casing line directly below it, wider by the casing on each side, in the casing colour`() {
+    fun `each track has a solid casing line directly below it, wider by the casing on each side at full width, thinning with it, in the casing colour`() {
         val specs = trackLayerSpecs()
         val tracks = listOf(
             Triple("breadcrumb", BREADCRUMB_DASH_PATTERN.toList(), MapPalette::breadcrumb),
@@ -242,13 +252,15 @@ class SightingsMapOverlayDataTest {
             val track = specs[index]
             assertEquals("$name night colour", role(MapPalette.NIGHT), track.colour(MapPalette.NIGHT))
             assertEquals("$name dash", dash, track.dashPattern)
-            assertEquals("$name width", 6f, track.widthDp)
+            assertEquals("$name width at full width", 6f, track.widthDp)
             assertTrue("$name has a layer directly below it", index >= 1)
             val casing = specs[index - 1]
             assertEquals("$name casing is on the track's own source", track.sourceId, casing.sourceId)
             assertEquals("$name casing, day", MapPalette.DAY.casing, casing.colour(MapPalette.DAY))
             assertEquals("$name casing, night", MapPalette.NIGHT.casing, casing.colour(MapPalette.NIGHT))
-            assertEquals("$name casing width: 1.5dp each side", 9f, casing.widthDp)
+            assertEquals("$name casing width at full width: 1.5dp each side", 9f, casing.widthDp)
+            assertEquals("$name thins out by the track stops", TRACK_WIDTH_ZOOM_STOPS, track.widthByZoom)
+            assertEquals("$name casing thins out with its track", track.widthByZoom, casing.widthByZoom)
             assertEquals("$name casing is solid", null, casing.dashPattern)
             assertTrue("$name casing has round caps", casing.roundCaps)
             assertTrue("$name has round caps", track.roundCaps)
@@ -272,6 +284,49 @@ class SightingsMapOverlayDataTest {
         assertEquals(6f, dashDp[0], 1e-4f)
         assertEquals(4f, dashDp[1], 1e-4f)
         assertTrue("butt ends, not round", !spec.roundCaps)
+    }
+
+    /**
+     * Dispatch `2026-09-28-79` (owner: "The outline should have a white border"; "Yes the night outline
+     * only"): at night the offline region's dashed outline has a border line beneath it, in the track
+     * casing's pattern: the outline's own line, [CASING_WIDTH_DP] wider on each side, solid, on the same
+     * source, with the outline's caps and its constant width, in opaque white. Its opacity is the
+     * registry's (`MapLayerRegistryTest`), and its figures against the night ground are in
+     * `MapPaletteTest`.
+     */
+    @Test
+    fun `at night the offline outline has a solid white border beneath it, the casing width wider on each side`() {
+        val border = lineSpecForLayer(MapLayerIds.OFFLINE_REGION_BORDER)
+        assertNotNull("no border line is built under the offline outline", border)
+        val outline = offlineRegionOutlineSpec()
+        assertEquals("on the outline's own source", outline.sourceId, border!!.sourceId)
+        assertEquals("opaque white at night", "#FFFFFFFF", "#%08X".format(border.colour(MapPalette.NIGHT)))
+        assertEquals("the casing width wider on each side", outline.widthDp + 2 * CASING_WIDTH_DP, border.widthDp, 0f)
+        assertEquals("4.5 dp in all", 4.5f, border.widthDp, 0f)
+        assertNull("solid, so the edge carries through the dashes' gaps", border.dashPattern)
+        assertNull("a constant width, like the outline", border.widthByZoom)
+        assertEquals("the outline's caps", outline.roundCaps, border.roundCaps)
+    }
+
+    /**
+     * Dispatch `2026-09-28-79`: the border is night only, and the day outline does not change. By day
+     * the border's colour is fully transparent, so it draws nothing, and the outline is still the white
+     * dashed casing line, 1.5 dp, dash 6 dp and gap 4 dp, with butt ends.
+     */
+    @Test
+    fun `by day the offline outline is unchanged and its border draws nothing`() {
+        val border = lineSpecForLayer(MapLayerIds.OFFLINE_REGION_BORDER)
+        assertNotNull("no border line is built under the offline outline", border)
+        assertEquals("fully transparent by day", 0, border!!.colour(MapPalette.DAY) ushr 24)
+        val outline = offlineRegionOutlineSpec()
+        assertEquals("the day outline is white", "#FFFFFFFF", "#%08X".format(outline.colour(MapPalette.DAY)))
+        assertEquals(1.5f, outline.widthDp, 0f)
+        val dashDp = outline.dashPattern!!.map { it * outline.widthDp }
+        assertEquals(2, dashDp.size)
+        assertEquals(6f, dashDp[0], 1e-4f)
+        assertEquals(4f, dashDp[1], 1e-4f)
+        assertTrue("butt ends, not round", !outline.roundCaps)
+        assertNull("a constant width", outline.widthByZoom)
     }
 
     @Test
@@ -391,8 +446,8 @@ class SightingsMapOverlayDataTest {
     // Journal Stage 2d: the Cartography entry map's own feature builders — pure GeoJSON, same
     // reasoning as the rest of this file for why these are testable off a device at all.
 
-    private val trackOne = listOf(LatLng(45.20, -122.50), LatLng(45.21, -122.51), LatLng(45.22, -122.52))
-    private val trackTwo = listOf(LatLng(46.00, -123.00), LatLng(46.01, -123.01))
+    private val trackOne = RecordPolyline("track-1", listOf(LatLng(45.20, -122.50), LatLng(45.21, -122.51), LatLng(45.22, -122.52)))
+    private val trackTwo = RecordPolyline("track-2", listOf(LatLng(46.00, -123.00), LatLng(46.01, -123.01)))
 
     @Test
     fun `two kept tracks become two separate LineStrings, not one joined trail`() {
@@ -400,15 +455,15 @@ class SightingsMapOverlayDataTest {
         assertEquals(2, features.size)
 
         val firstLine = features[0].geometry() as LineString
-        assertEquals(trackOne.map { Point.fromLngLat(it.lng, it.lat) }, firstLine.coordinates())
+        assertEquals(trackOne.points.map { Point.fromLngLat(it.lng, it.lat) }, firstLine.coordinates())
 
         val secondLine = features[1].geometry() as LineString
-        assertEquals(trackTwo.map { Point.fromLngLat(it.lng, it.lat) }, secondLine.coordinates())
+        assertEquals(trackTwo.points.map { Point.fromLngLat(it.lng, it.lat) }, secondLine.coordinates())
     }
 
     @Test
     fun `a track with fewer than two points produces no LineString`() {
-        val features = keptTracksFeatureCollection(listOf(trackOne, listOf(LatLng(45.0, -122.0)), emptyList())).features()!!
+        val features = keptTracksFeatureCollection(listOf(trackOne, RecordPolyline("one-point", listOf(LatLng(45.0, -122.0))), RecordPolyline("empty", emptyList()))).features()!!
         assertEquals(
             "Only trackOne has two or more points -- the single-point and empty tracks must be silently dropped, not error.",
             1,
@@ -424,7 +479,7 @@ class SightingsMapOverlayDataTest {
     @Test
     fun `pointsFeatureCollection places one point feature per marker at its own coordinates`() {
         val markers = listOf(LatLng(45.5, -122.5), LatLng(45.6, -122.6))
-        val features = pointsFeatureCollection(markers).features()!!
+        val features = pointsFeatureCollection(markers.mapIndexed { i, at -> RecordPoint("find-$i", at) }).features()!!
         assertEquals(2, features.size)
 
         val points = features.map { it.geometry() as Point }
@@ -442,7 +497,7 @@ class SightingsMapOverlayDataTest {
     @Test
     fun `each offline region becomes a closed polygon ring centred on its own coordinates`() {
         val region = Region(lat = 45.5, lng = -122.5, radiusKm = 5)
-        val feature = offlineRegionCirclesFeatureCollection(listOf(region)).features()!!.single()
+        val feature = offlineRegionCirclesFeatureCollection(listOf(RecordRegion("1", region))).features()!!.single()
         val polygon = feature.geometry() as org.maplibre.geojson.Polygon
         val ring = polygon.coordinates().single()
 

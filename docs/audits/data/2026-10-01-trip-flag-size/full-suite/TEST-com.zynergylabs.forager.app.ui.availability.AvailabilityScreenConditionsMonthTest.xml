@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenConditionsMonthTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:18:27.321Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="1.971">
+  <properties/>
+  <testcase name="a failed rainfall fetch shows the neutral unavailable text, not the exception's own message" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenConditionsMonthTest" time="0.312"/>
+  <testcase name="the conditions card is gone once a month other than this one is selected" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenConditionsMonthTest" time="0.386"/>
+  <testcase name="the conditions card is on screen for the current month" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenConditionsMonthTest" time="0.358"/>
+  <testcase name="today's forecast shows the reference day's own forecast rainfall" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenConditionsMonthTest" time="0.389"/>
+  <testcase name="with a successful rainfall fetch, no unavailable text appears" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenConditionsMonthTest" time="0.26"/>
+  <testcase name="a failed forecast fetch shows the neutral unavailable text" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenConditionsMonthTest" time="0.263"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

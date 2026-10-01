@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.crash.CrashFileStoreTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:33.773Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.012">
+  <properties/>
+  <testcase name="write creates the crash directory if it does not exist yet" classname="com.zynergylabs.forager.app.crash.CrashFileStoreTest" time="0.006"/>
+  <testcase name="write creates a file containing the timestamp, thread name, API level, and the full Caused by chain" classname="com.zynergylabs.forager.app.crash.CrashFileStoreTest" time="0.002"/>
+  <testcase name="list returns every written file, newest first" classname="com.zynergylabs.forager.app.crash.CrashFileStoreTest" time="0.001"/>
+  <testcase name="epochMillisOf parses this store's own filenames and rejects anything else" classname="com.zynergylabs.forager.app.crash.CrashFileStoreTest" time="0.001"/>
+  <testcase name="writing past the cap keeps only the newest maxFiles crash files, deleting the oldest" classname="com.zynergylabs.forager.app.crash.CrashFileStoreTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

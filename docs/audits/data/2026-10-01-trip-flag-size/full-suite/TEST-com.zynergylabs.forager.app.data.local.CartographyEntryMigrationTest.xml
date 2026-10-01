@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.data.local.CartographyEntryMigrationTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:45.129Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.124">
+  <properties/>
+  <testcase name="a pre-existing mushroom log entry survives the 10 to 11 migration intact, and every new cartography_entry table round-trips through the real repository" classname="com.zynergylabs.forager.app.data.local.CartographyEntryMigrationTest" time="0.084"/>
+  <testcase name="a draft's kept decisions and attached photos do not count toward the 4b deletion warning, only a committed entry's do" classname="com.zynergylabs.forager.app.data.local.CartographyEntryMigrationTest" time="0.038"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

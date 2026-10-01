@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBubbleClearanceTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:18:26.824Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.303">
+  <properties/>
+  <testcase name="at ROTATION_270 a bubble for a glyph 30 dp from the rail's inner edge opens clear of the rail and the L" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBubbleClearanceTest" time="0.099"/>
+  <testcase name="at ROTATION_90 a bubble for a glyph 30 dp from the L on its inboard side opens clear of the L and the rail" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBubbleClearanceTest" time="0.099"/>
+  <testcase name="at ROTATION_90 with the L on the right a bubble for a glyph 30 dp inboard of it stays clear of the L and the rail" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBubbleClearanceTest" time="0.103"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

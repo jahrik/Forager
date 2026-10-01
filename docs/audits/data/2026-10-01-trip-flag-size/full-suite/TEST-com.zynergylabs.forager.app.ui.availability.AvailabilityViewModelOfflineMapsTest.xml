@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelOfflineMapsTest" tests="24" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:21.627Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.059">
+  <properties/>
+  <testcase name="a requested region delete is pending, hidden from visibleOfflineRegions, and the tile delete is not called" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelOfflineMapsTest" time="0.004"/>
+  <testcase name="a failed download is reported as Failed, not silently as success, without the repository's raw message" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelOfflineMapsTest" time="0.004"/>
+  <testcase name="deleting a region removes it from offlineRegions" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelOfflineMapsTest" time="0.002"/>
+  <testcase name="a successful download ends Succeeded, targeting the picked region under a default name" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelOfflineMapsTest" time="0.002"/>
+  <testcase name="an out-of-range latitude is rejected the same way" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelOfflineMapsTest" time="0.001"/>
+  <testcase name="an in-flight download reports Downloading with the latest progress reported so far" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelOfflineMapsTest" time="0.003"/>
+  <testcase name="Download again downloads from the row's stored centre and radius through the existing download, then replaces the old row" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelOfflineMapsTest" time="0.002"/>
+  <testcase name="a listRegions read failure is reported via offlineRegionsErrorMessage, not silently as an empty list" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelOfflineMapsTest" time="0.002"/>
+  <testcase name="committing a pending region delete runs the tile delete once, for that region" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelOfflineMapsTest" time="0.002"/>
+  <testcase name="a failed Download again keeps the row and reports the failure as a download failure" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelOfflineMapsTest" time="0.001"/>
+  <testcase name="reflects what listRegions reports as already downloaded, on startup" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelOfflineMapsTest" time="0.002"/>
+  <testcase name="the slider's maximum radius fits the budget at the archive's northern edge and reaches the repository" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelOfflineMapsTest" time="0.002"/>
+  <testcase name="a last-picked radius from before the ceiling shrank is restored at the ceiling" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelOfflineMapsTest" time="0.001"/>
+  <testcase name="undo of a pending region delete shows it again and deletes no tiles" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelOfflineMapsTest" time="0.002"/>
+  <testcase name="the offline map region is independent of the main search region" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelOfflineMapsTest" time="0.001"/>
+  <testcase name="a region delete still pending when the ViewModel is cleared is committed" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelOfflineMapsTest" time="0.006"/>
+  <testcase name="invalid coordinates are rejected without ever calling the repository" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelOfflineMapsTest" time="0.002"/>
+  <testcase name="reloading after a restore reads the region lists again" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelOfflineMapsTest" time="0.002"/>
+  <testcase name="Download again is held to the same tile budget as any download" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelOfflineMapsTest" time="0.004"/>
+  <testcase name="a restored region with no tiles is listed beside the downloaded ones, marked as not downloaded" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelOfflineMapsTest" time="0.002"/>
+  <testcase name="starts Idle with no regions when nothing is on disk" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelOfflineMapsTest" time="0.003"/>
+  <testcase name="a second region delete commits the first when it replaces it" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelOfflineMapsTest" time="0.003"/>
+  <testcase name="the offline map radius is clamped to the offline ceiling, not the search radius's" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelOfflineMapsTest" time="0.002"/>
+  <testcase name="a delete failure is reported via offlineRegionsErrorMessage rather than silently leaving the region" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelOfflineMapsTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

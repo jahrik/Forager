@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.CameraAbsenceTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:25.398Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.002">
+  <properties/>
+  <testcase name="returning without having left changes nothing" classname="com.zynergylabs.forager.app.ui.log.CameraAbsenceTest" time="0.001"/>
+  <testcase name="a negative interval is no absence rather than an enormous one" classname="com.zynergylabs.forager.app.ui.log.CameraAbsenceTest" time="0.0"/>
+  <testcase name="no recorded departure never closes anything" classname="com.zynergylabs.forager.app.ui.log.CameraAbsenceTest" time="0.0"/>
+  <testcase name="opening again after a long absence clears the departure" classname="com.zynergylabs.forager.app.ui.log.CameraAbsenceTest" time="0.0"/>
+  <testcase name="a long absence closes the camera" classname="com.zynergylabs.forager.app.ui.log.CameraAbsenceTest" time="0.0"/>
+  <testcase name="a departure is consumed by its own return, so a later return cannot re-trigger it" classname="com.zynergylabs.forager.app.ui.log.CameraAbsenceTest" time="0.0"/>
+  <testcase name="the threshold is the owner's four minutes" classname="com.zynergylabs.forager.app.ui.log.CameraAbsenceTest" time="0.001"/>
+  <testcase name="a short absence leaves the session exactly as it was" classname="com.zynergylabs.forager.app.ui.log.CameraAbsenceTest" time="0.0"/>
+  <testcase name="an absence recorded with the camera closed is not inherited by the next session" classname="com.zynergylabs.forager.app.ui.log.CameraAbsenceTest" time="0.0"/>
+  <testcase name="at and over the threshold the camera closes" classname="com.zynergylabs.forager.app.ui.log.CameraAbsenceTest" time="0.0"/>
+  <testcase name="under the threshold the camera stays open" classname="com.zynergylabs.forager.app.ui.log.CameraAbsenceTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

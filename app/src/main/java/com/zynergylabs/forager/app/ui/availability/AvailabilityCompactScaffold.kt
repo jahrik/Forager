@@ -23,7 +23,7 @@ package com.zynergylabs.forager.app.ui.availability
 // onPendingJournalDestinationChange, logPhotoAcquisitionInFlight and
 // onLogPhotoAcquisitionInFlightChange. Getter only (1): mapTaxonFilter. Setter only (1):
 // onSelectedTabChange. Values (95): focusManager, keyboardController, logUiState,
-// cartographyUiState, isShortLandscapeWindow, portEdge, logDraftSnackbarHostState, uiState,
+// cartographyUiState, isLandscapeWindow, portEdge, logDraftSnackbarHostState, uiState,
 // distanceUnit, currentTime, mapSlot, mapIconClusterPosition, mapRenderMode, isNightMode,
 // isRecording, startRecordingErrorMessage, breadcrumbPoints, mapWaypoints, returnToStart,
 // isReturning, isNavigating, isOffTrack, compassProvider, computeTrueHeading, navigationTarget,
@@ -53,6 +53,10 @@ package com.zynergylabs.forager.app.ui.availability
 // behaviour change." The getter pattern and the ResultsTab widening are the planner's rulings on
 // this build's two stops, quoted in RECORD.md intent 2026-09-27-21.
 
+import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
+import com.zynergylabs.forager.app.ui.map.MapKeepOutIds
+import com.zynergylabs.forager.app.ui.map.mapKeepOut
+import com.zynergylabs.forager.app.ui.map.MapLayersControls
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
@@ -68,9 +72,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -81,6 +90,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
@@ -92,19 +102,18 @@ import androidx.compose.material.icons.filled.Map
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -136,13 +145,23 @@ import com.zynergylabs.forager.app.ui.log.ScreenEdge
 import com.zynergylabs.forager.app.ui.log.CartographyUiState
 import com.zynergylabs.forager.app.ui.log.InAppCameraTarget
 import com.zynergylabs.forager.app.ui.log.JournalTab
+import com.zynergylabs.forager.app.ui.log.CartographyEntryMode
+import com.zynergylabs.forager.app.ui.log.FindOverView
+import com.zynergylabs.forager.app.ui.log.JournalEntryMode
+import com.zynergylabs.forager.app.ui.log.JournalScreenState
 import com.zynergylabs.forager.app.ui.log.MushroomLogUiState
 import com.zynergylabs.forager.app.ui.log.PendingJournalDestination
+import com.zynergylabs.forager.app.ui.map.MapRecordSources
 import com.zynergylabs.forager.app.ui.map.Basemap
 import com.zynergylabs.forager.app.ui.map.MapMode
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
+import com.zynergylabs.forager.app.ui.map.MapCameraMemory
+import com.zynergylabs.forager.app.ui.map.MapReturnMemory
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
+import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
+import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
+import com.zynergylabs.forager.app.ui.map.mapChromeFill
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.LocalDate
 import androidx.compose.ui.focus.FocusManager
@@ -152,13 +171,15 @@ import androidx.compose.ui.platform.SoftwareKeyboardController
 internal fun CompactMainScaffold(
     isMapFullscreen: () -> Boolean,
     focusManager: FocusManager,
+    /** Up while the app's own clearFocus is running: see its declaration in [AvailabilityScreen] (dispatch 2026-09-28-312). */
+    appClearFocusInProgress: BooleanArray,
     keyboardController: SoftwareKeyboardController?,
     compactTab: () -> CompactTab,
     logUiState: MushroomLogUiState,
     logPhotoAcquisitionInFlight: () -> Boolean,
     cartographyUiState: CartographyUiState,
     isDrawerOpen: () -> Boolean,
-    isShortLandscapeWindow: Boolean,
+    isLandscapeWindow: Boolean,
     portEdge: ScreenEdge,
     /** Landscape B2 (S1): the punch-hole edge from `punchHoleEdgeFor`; read only while the rail shows. */
     punchHoleEdge: ScreenEdge,
@@ -166,10 +187,36 @@ internal fun CompactMainScaffold(
     uiState: AvailabilityUiState,
     distanceUnit: DistanceUnit,
     pendingJournalDestination: () -> PendingJournalDestination?,
+    /** M1: the find a [PendingJournalDestination.VIEW_FIND] request opens; threaded to [JournalTab]. */
+    pendingJournalFindId: () -> String? = { null },
+    /** J8-4: the day entry a [PendingJournalDestination.VIEW_ENTRY] request opens; threaded to [JournalTab]. */
+    pendingJournalEntryId: () -> String? = { null },
+    /** J8-3: the entry report's "Show on map" and "Hide from map"; threaded to [JournalTab]. */
+    onSetCartographyEntryShownOnMap: (entryId: String, shown: Boolean) -> Unit = { _, _ -> },
+    /** M1: what the Maps tab's glyph bubbles look records up in; threaded to [CompactMapTab]. */
+    mapBubbleSources: MapRecordSources = MapRecordSources(),
     currentTime: CurrentTimeProvider,
     mapSlot: MapSlot,
     mapIconClusterPosition: MapIconClusterPositionState,
+    /** Part 1 layout fixes, item 4: the Maps tab's camera, kept above the tab switch; threaded to [CompactMapTab]. */
+    mapCameraMemory: MapCameraMemory,
+    /** Item 8 (dispatch 2026-09-29-57): what "Open in Journal" leaves for the Maps tab that Back returns to; see [MapReturnMemory]. */
+    mapReturnMemory: MapReturnMemory,
+    /** Item 8: a find's report was closed (Back or its arrow); the id is the find that was open. The screen decides whether that is a return to the map. */
+    onFindReportClosed: (String?) -> Unit,
+    /** Item 8: a find was deleted from its page or its tile. */
+    onFindDeleted: (String) -> Unit,
+    /** Item 8: the user began editing a find (from its report or a tile), which ends "return to the map" for it. */
+    onFindEditStarted: () -> Unit,
+    /** Dispatch 2026-09-28-387, Part B: a journal entry's report or editor was left. The screen decides whether that is a return to the map. */
+    onEntryClosed: (entryId: String, fromReport: Boolean) -> Unit = { _, _ -> },
     mapRenderMode: MapRenderMode,
+    /**
+     * Map layers L0b: the Maps tab's Layers sheet, legend and saved records ([MapLayersControls]),
+     * threaded to [CompactMapTab], and the shared layer choices threaded to the Journal's entry map.
+     * Nothing here reads it.
+     */
+    mapLayers: MapLayersControls,
     mapMode: () -> MapMode,
     isNightMode: Boolean,
     isRecording: Boolean,
@@ -244,8 +291,18 @@ internal fun CompactMainScaffold(
     onSaveCartographyEntry: () -> Unit,
     onDiscardCartographyEntryChanges: () -> Unit,
     onSaveCartographyEntryAsDraft: () -> Unit,
+    /** Clears `CartographyUiState.saveErrorMessage` once [JournalTab]'s Toast of it has shown (intent `2026-09-28-68`). */
+    onCartographySaveErrorDismissed: () -> Unit,
     onDeleteCartographyEntry: (String) -> Unit,
+    /** J4b L2: an Entries card's swipe Delete (pending, with Undo); see [JournalTab]. */
+    onRequestDeleteCartographyEntry: ((String) -> Unit)? = null,
+    /** J4b L3: an album photo's long-press Delete (pending, with Undo); see [JournalTab]. */
+    onRequestDeleteGalleryPhoto: ((String) -> Unit)? = null,
+    /** J4b L1: a find tile's long-press Edit (`MushroomLogViewModel.onOpenEntryForEditing`); see [JournalTab]. */
+    onOpenLogEntryForEditing: ((String) -> Unit)? = null,
     getCartographyEntryMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData,
+    /** F3 (owner, "C: list screen loads lazily"): one entry's saved track paths, by track id, for the Journal cards' thumbnails. */
+    getSavedTrackPaths: suspend (String) -> Map<String, List<LatLng>> = { emptyMap() },
     getCartographyEntryOfflineRegion: suspend (CartographyEntry, List<LatLng>) -> OfflineRegionSummary?,
     getCartographyEntryCurrentLocation: suspend () -> LocationResult,
     onOfflineMapLatChanged: (String) -> Unit,
@@ -255,22 +312,51 @@ internal fun CompactMainScaffold(
     onOfflineMapsOpened: () -> Unit,
     onDownloadOfflineMaps: () -> Unit,
     onDeleteOfflineRegion: (Long) -> Unit,
+    onDownloadAgain: (Long) -> Unit = {},
     onTracksOpened: () -> Unit,
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
     onDeleteWaypoint: (String) -> Unit,
+    /** Part 2 follow-ups F1 item 5 (owner "Option A"): a finished track's swipe or details Delete asks for a pending delete with Undo; `null` (the default) leaves tracks without a delete. */
+    onDeleteTrack: ((String) -> Unit)? = null,
+    /** Set when a committed track delete failed and the track is back; shown above the Tracks list. */
+    tracksErrorMessage: String? = null,
     onRecentSearchSelected: (CachedSearchSummary) -> Unit,
     onRadiusChanged: (Int) -> Unit,
     onMonthSelected: (Int) -> Unit,
+    /**
+     * Journal redesign J1, S1: the Journal's hoisted, saveable UI state, created in
+     * `AvailabilityScreen` beside `compactTab` and handed to [JournalTab] below. Added after the
+     * extraction this file's header describes, so it is not among the 109 parameters counted there.
+     */
+    journalScreenState: JournalScreenState,
+    /**
+     * Intent 2026-09-28-44, F2: whether an open day entry shows its report or its editor, created in
+     * `AvailabilityScreen` beside [journalScreenState] and handed to [JournalTab]'s
+     * `CartographyScreen`, so it outlives the Journal branch. Not among the 109 either.
+     */
+    cartographyEntryModeState: MutableState<CartographyEntryMode>,
+    /** Intent 2026-09-28-44, F3: an open find's mode and M1's find over the view, handed to [JournalTab]; see its parameters. Not among the 109. */
+    findEntryModeState: MutableState<JournalEntryMode>,
+    findOverViewState: MutableState<FindOverView?>,
 ) {
         // SearchDropdown, under ActiveSearchSummary — see that composable's own onToggleSearch doc
         // comment. Local to this scaffold, not AvailabilityUiState: which panel is showing is a
         // display decision the ViewModel has no part in, same reasoning as mapMode/drawerPanel above.
         var showSearchDropdown by remember { mutableStateOf(false) }
+        // The search bar's one-shot "open the manual coordinates" (continuation 2026-09-28-40); see
+        // SearchDropdown's expandManualCoordinatesRequested. Armed once per opening of the dropdown,
+        // when showSearchDropdown goes from false to true, never on a focus gain (continuation
+        // 2026-09-28-42, "once, on the tap"): the dropdown's scroll clears the field's focus, and
+        // re-arming on the focus coming back looped under Robolectric (547 s, OutOfMemoryError).
+        var expandManualCoordinatesRequested by remember { mutableStateOf(false) }
+        LaunchedEffect(showSearchDropdown) {
+            if (showSearchDropdown) expandManualCoordinatesRequested = true
+        }
         // Same measured clearance [CompactMapTab] already computes for its own compass strip (see
         // that composable's own compassStripClearance doc comment) — recomputed here rather than
         // threaded through as a parameter, since it depends only on MaterialTheme.typography and
         // this scaffold's own LocalDensity, not on anything CompactMapTab measures live. Used below
-        // to keep SearchDropdown's own opaque panel starting below the strip rather than painting
+        // to keep SearchDropdown's own panel (filled at the map chrome's alpha) starting below the strip rather than painting
         // over it, on the Map tab specifically — the project owner's own direct ask: "have the
         // search window extend just below the compass strip to avoid overlaying it so people can
         // still track it if needed."
@@ -317,6 +403,9 @@ internal fun CompactMainScaffold(
             label = "mapTopInset",
         )
         val safeAnimatedTopInset = animatedTopInset.coerceAtLeast(0.dp)
+        // Dispatch 2026-09-28-104, item 2: the search column's measured height (the bar, and the notice below the compass strip when
+        // one shows). The Maps tab keeps the icon cluster below its bottom while a notice shows; nothing else reads it.
+        var searchChromeHeightPx by remember { mutableStateOf(0) }
         // "Set on map" (SearchDropdown's own Advanced Search section, dispatch C item 2) hands off to the exact same
         // pan-to-centre-pin-plus-confirm flow every other pin placement in this app uses
         // (CentrePinLocationPickerOverlay) rather than a second picker — see CompactMapTab's own
@@ -330,15 +419,31 @@ internal fun CompactMainScaffold(
         // JournalTab/CompactSettingsTab/CompactMapTab. Genuinely missing before this fix: back
         // pressed while this panel was open (species field focused, keyboard up) fell straight
         // through to whichever of those four was enabled instead of just closing this panel first.
-        BackHandler(enabled = showSearchDropdown) {
+        // Intent 2026-09-28-44, F4: off while the Tools drawer is open, the drawer fix's pattern
+        // (JournalTab's backEnabled). This handler is registered after AvailabilityScreen's
+        // BackHandler(enabled = isDrawerOpen), and Tools does not close the dropdown, so with the
+        // dropdown open under the drawer this took Back and the drawer stayed open. The dropdown
+        // stays open under the drawer; the next Back, with the drawer closed, closes it.
+        BackHandler(enabled = showSearchDropdown && !isDrawerOpen()) {
             showSearchDropdown = false
         }
         // Same "actually hide the IME" fix as isDrawerOpen's own LaunchedEffect above — this panel
         // holds the manual-coordinate TextFields, so it's exactly as prone to a stuck keyboard on
         // close (the BackHandler above, or collapsing the bar again) as the drawer's own fields are.
+        // Dispatch 2026-09-28-312, item 12: appClearFocusInProgress is up while the clearFocus below runs, so the focus
+        // the framework hands back to the search field, out of touch mode, does not reopen the dropdown this effect
+        // has just seen close (the holder's own comment in AvailabilityScreen has the rule and the trace). The field's
+        // two onFieldFocused below read it. Rejected: not clearing focus on close at all. The field would stay
+        // focused, a second tap on it would gain no focus, and the dropdown would not open again; the keyboard would
+        // need another way to be hidden.
         LaunchedEffect(showSearchDropdown) {
             if (!showSearchDropdown) {
-                focusManager.clearFocus(force = true)
+                appClearFocusInProgress[0] = true
+                try {
+                    focusManager.clearFocus(force = true)
+                } finally {
+                    appClearFocusInProgress[0] = false
+                }
                 keyboardController?.hide()
             }
         }
@@ -351,27 +456,14 @@ internal fun CompactMainScaffold(
         // CompactMapTab itself, which enters and leaves composition on every bottom-nav switch.
         LaunchedEffect(Unit) { onLocateMe() }
 
-        // Workstream L4b-R: backgrounding the app while a log entry is open is "leaving without
-        // answering" — persists the draft, never commits (see MushroomLogViewModel's own doc
-        // comment on the three exits). Deliberately calls the *raw* callback, never the
-        // Snackbar-offering wrapper below: the home button (or any other way of backgrounding)
-        // blows straight through any in-app prompt with no window to show one at all, so this
-        // defaults straight to "saved to Drafts," silently, with no discard offer attempted.
-        // Mirrors SightingsMap's own DisposableEffect(lifecycleOwner)/LifecycleEventObserver
-        // pattern — the one existing precedent in this codebase for hooking ON_STOP/ON_PAUSE, since
-        // neither MainActivity nor this composable had any lifecycle observer before this.
-        // rememberUpdatedState keeps the observer (registered once per lifecycleOwner) reading the
-        // *current* tab/entry state and callback rather than whatever was current the moment it was
-        // registered.
-        val lifecycleOwner = LocalLifecycleOwner.current
-        val latestOnLeaveEditingIncidentally by rememberUpdatedState(onLeaveLogEntryEditingIncidentally)
-        val latestIsJournalEditing by rememberUpdatedState(compactTab() == CompactTab.JOURNAL && logUiState.editingEntry != null)
-        // Device-check patch, Items 2/3: suppresses this same incidental-exit call while the open
-        // find's own camera/gallery round-trip is this app's own doing, not the user backgrounding
-        // it — see PhotoAcquisitionLaunchers.isAcquisitionInFlight's own doc comment for the full
-        // trace of why conflating the two was silently closing the find (and losing the photo with
-        // it) on every camera capture.
-        val latestPhotoAcquisitionInFlight by rememberUpdatedState(logPhotoAcquisitionInFlight())
+        // Intent 2026-09-28-44, F3 (the owner: "Keep finds open too (Recommended)"): backgrounding no
+        // longer closes an open find. This was an ON_STOP observer here (Workstream L4b-R) calling the
+        // raw onLeaveLogEntryEditingIncidentally whenever a find was open on the Journal, in its report
+        // or its editor, with the camera round trip excepted (logPhotoAcquisitionInFlight). A find open
+        // in view or edit is now still open when the user returns, as a day entry already was. Nothing
+        // is lost by not closing: a find's draft is written on every keystroke (onEntryEdited), and a
+        // process death reloads it into Drafts. The observer is removed rather than gated, so the
+        // camera exception it needed has no reader here any more (reported).
 
         // Search-focus-and-hide dispatch, Item 2's own hide condition (SearchEntryBar call sites
         // below) — "any entry open" (view or edit), not "specifically editing": from here,
@@ -397,46 +489,24 @@ internal fun CompactMainScaffold(
         // "entering a fresh edit" direction of Item 1 (as opposed to "returned to") was never
         // exercised by any test either way and is not built — see this dispatch's own report for the
         // reasoning on leaving it out rather than guessing at a shape that avoids the same race.
-        // Pending-edit-and-fixes dispatch, Item 1: this observer no longer touches Cartography at
-        // all — it used to call onSaveCartographyEntry here on a dirty committed entry, silently
-        // committing an edit the user never approved just because the app backgrounded. Backgrounding
-        // is not consent to save (owner decision): CartographyScreen now owns its own lifecycle
-        // observer for exactly this, holding the pending edit in ViewModel memory on ON_STOP (no
-        // call at all) and prompting Continue editing/Commit/Save as draft on ON_RESUME instead — see
-        // that composable's own doc comment for the full reasoning, including why it's self-contained
-        // there rather than threaded through here.
-        DisposableEffect(lifecycleOwner) {
-            val observer = LifecycleEventObserver { _, event ->
-                if (event == Lifecycle.Event.ON_STOP) {
-                    if (latestIsJournalEditing && !latestPhotoAcquisitionInFlight) latestOnLeaveEditingIncidentally()
-                }
-            }
-            lifecycleOwner.lifecycle.addObserver(observer)
-            onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-        }
 
         // Workstream L4b-R2: every *in-app* incidental exit (back arrow inside the edit form, the
         // journal tab's own BackHandler, switching to another bottom-nav tab, and — via the shared
         // leaveLogEntryEditingOfferingDiscard/logDraftSnackbarHostState this function hoisted to its
-        // own top level — DrawerPanel.Log's LogPanel too) shares this one wrapped callback, so the
-        // same Snackbar covers every one of them from a single place rather than a
-        // window-class-specific copy per host. Backgrounding above is the deliberate exception (see
+        // own top level) shares this one wrapped callback, so the
+        // same Snackbar covers every one of them from a single place. Backgrounding above is the deliberate exception (see
         // that effect's own comment on why). The exit itself is never blocked on this:
         // onLeaveLogEntryEditingIncidentally() already ran, and the Snackbar only offers an undo: a
         // dismissed or ignored one leaves the draft exactly where that call already put it (owner
         // decision, 2026-08-25: Gmail-drafts-style).
         val onBottomNavTabSelected: (CompactTab) -> Unit = { tab ->
-            // Workstream L4b: switching away from Journal while an entry is open is
-            // "leaving without answering" — the same incidental-exit auto-save as
-            // the edit form's own back arrow or the app backgrounding (see
-            // MushroomLogViewModel's own doc comment on the three exits). Checked
-            // before compactTab actually changes, so this only fires on a genuine
-            // tab switch, never on tapping the already-selected Journal tab again.
-            // Also correct for Tools, below, since that never sets compactTab at
-            // all — tab != CompactTab.JOURNAL is still true when tab is TOOLS.
-            if (compactTab() == CompactTab.JOURNAL && tab != CompactTab.JOURNAL && logUiState.editingEntry != null) {
-                leaveLogEntryEditingOfferingDiscard()
-            }
+            // Intent 2026-09-28-44, F3 (the owner: "Keep finds open too (Recommended)"): switching
+            // away from the Journal, or opening Tools over it, no longer leaves an open find. It
+            // called leaveLogEntryEditingOfferingDiscard here (Workstream L4b), so a find open in
+            // view or edit was closed, where a day entry stayed open. The find is now still open on
+            // return, in the mode it was in (JournalTab's findEntryModeState). A route that opens
+            // another find over it leaves it first (onLogFindHere below; AvailabilityScreen's
+            // onOpenFind and its wide onLogFindHere).
             if (tab == CompactTab.TOOLS) {
                 // CompactTab.TOOLS's own doc comment: opens the drawer as an
                 // overlay over whatever tab is already showing, rather than
@@ -499,8 +569,9 @@ internal fun CompactMainScaffold(
         //    In fullscreen the rail is absent, with no animation (R13 revised, interim until B2).
         //  - Every other tab: an opaque rail beside the content (railBeside), since there is no
         //    map to keep the size of and text under a translucent rail would hurt reading.
-        // Portrait, and every window that is not short, is exactly as before.
-        val showRail = isShortLandscapeWindow
+        // Portrait windows, short or not, are exactly as before. Since dispatch 2026-09-28-246 the rail is the
+        // landscape layout of any window, tall or short, so a landscape tablet has it too.
+        val showRail = isLandscapeWindow
         val railBeside = showRail && compactTab() != CompactTab.MAP
         // R18: no bottom band for a bar that is not there. The measured height is the portrait
         // bar's while turning into landscape (onGloballyPositioned stops firing once the bar
@@ -563,8 +634,84 @@ internal fun CompactMainScaffold(
             label = "attributionBottomInset",
         )
         val safeAttributionBottomInset = animatedAttributionBottomInset.coerceAtLeast(0.dp)
+        // Part 2 follow-ups F1 item 2 (Part 2 item 37): in portrait fullscreen the inset above is 0 (the caption
+        // goes to the true edge, the owner's ruling), which left MapLibre's own "i" inside the system navigation
+        // band, where two real taps opened nothing. The button clears the navigation bar there instead: the real
+        // inset, queried from the window, never a constant (Robolectric reports zero for it, so what MapLibre then
+        // draws and whether a finger reaches the button is device-only). Out of fullscreen it is the nav's
+        // measured height, the caption's own value, which already includes the bar. Not set (null) in the short
+        // landscape window, where the rail and the end-edge inset above already govern the button, unchanged.
+        val navigationBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+        val animatedAttributionButtonBottomInset by animateDpAsState(
+            targetValue = if (isMapFullscreen()) navigationBarBottom else bottomNavHeight,
+            animationSpec = MotionTokens.navigationMotionSpec(),
+            label = "attributionButtonBottomInset",
+        )
+        val attributionButtonBottomInset: Dp? = if (showRail) null else animatedAttributionButtonBottomInset.coerceAtLeast(0.dp)
+        // Part 1 layout fixes, item 5 (planner message 2026-09-28-98): MapLibre's "i" sits at the map's
+        // bottom end, so beside the bottom inset above it keeps clear of whatever is on that end edge:
+        // the overlaid rail, in a short landscape window at the rotation that puts the port there (90 in
+        // a left-to-right layout). At the other rotation that edge is the punch-hole side, and the "i"
+        // stays where it was, in the cut-out band: padding it inboard of the cut-out would put it under
+        // the cluster's column. In fullscreen it goes to the edge, the caption's own treatment (the
+        // planner's ruling: "It belongs with the caption"). Animated on the rail's own spec, as the
+        // bottom inset is on the nav's. The rail's measured width includes the system bar it takes, which
+        // Robolectric reports as zero: what the "i" clears on the phone is a device item.
+        val attributionEndEdge = if (LocalLayoutDirection.current == LayoutDirection.Ltr) ScreenEdge.Right else ScreenEdge.Left
+        val animatedAttributionEndInset by animateDpAsState(
+            targetValue = if (showRail && !isMapFullscreen() && portEdge == attributionEndEdge) mapRailWidth else 0.dp,
+            animationSpec = MotionTokens.navigationMotionSpec(),
+            label = "attributionEndInset",
+        )
+        val safeAttributionEndInset = animatedAttributionEndInset.coerceAtLeast(0.dp)
         Scaffold(
-            snackbarHost = { SnackbarHost(logDraftSnackbarHostState) },
+            snackbarHost = {
+                // Material3's own snackbar, with its default colours passed explicitly. Its content
+                // colour is its own role (`SnackbarDefaults.contentColor`), not derived from the fill.
+                SnackbarHost(logDraftSnackbarHostState) { data ->
+                    // Map chrome at 80% over the Maps tab, following the tab (planner message -77, Q4).
+                    // C1: the navigation bar's colour (was inverseSurface). Its default content colour, inverseOnSurface, and its
+                    // action, inversePrimary, fail WCAG AA on that colour (ChromeContrastTest), so the text takes the navigation
+                    // bar's own content colour, onSurfaceVariant, and the action `primary`.
+                    val snackbarColor = mapChromeFill(navigationBarContainerColor(), compactTab() == CompactTab.MAP)
+                    val snackbarContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    Snackbar(
+                        snackbarData = data,
+                        modifier = Modifier
+                            // Dispatch 2026-09-28-104, item 6: on the Maps tab the Scaffold has no bottom
+                            // bar to sit above and its contentWindowInsets drop the bottom side (below), so
+                            // the host lay under the system navigation buttons. Off the Maps tab the
+                            // bottomBar is real and Scaffold already places the host above it, so nothing is
+                            // added there. Device-only: Robolectric reports the system inset as zero.
+                            // Continuation -12 (planner's ruling): on the Maps tab the snackbar sits above the
+                            // floating bottom navigation, not only above the system bar. In portrait, outside
+                            // fullscreen, that is the nav's own measured height (which already includes the
+                            // system-bar inset it takes, so nothing is added twice). In fullscreen the nav is
+                            // off screen and the snackbar keeps the system-bar inset alone. In a short
+                            // landscape window the rail runs the whole height of the port edge, so the
+                            // snackbar keeps the system-bar inset at the bottom and takes the map controls'
+                            // own side padding (the cut-out and the rail's measured width), so the centred
+                            // snackbar clears the rail.
+                            .then(
+                                when {
+                                    compactTab() != CompactTab.MAP -> Modifier
+                                    showRail -> Modifier
+                                        .padding(mapControlsPadding)
+                                        .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
+                                    isMapFullscreen() -> Modifier.windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
+                                    else -> Modifier.padding(bottom = bottomNavHeight)
+                                },
+                            )
+                            .testTag(COMPACT_SNACKBAR_TAG)
+                            .mapChromeContainerColor(snackbarColor)
+                            .mapChromeContentColor(snackbarContentColor),
+                        containerColor = snackbarColor,
+                        contentColor = snackbarContentColor,
+                        actionContentColor = MaterialTheme.colorScheme.primary,
+                        dismissActionContentColor = snackbarContentColor,
+                    )
+                }
+            },
             // Fullscreen-fixes dispatch ("still shifting"): Material3's own Scaffold falls back to
             // this value's own bottom inset for its reported content padding whenever bottomBar
             // composes no content (`bottomBarHeight?.toDp() ?: insets.calculateBottomPadding()`,
@@ -675,7 +822,20 @@ internal fun CompactMainScaffold(
                     // closes, was flagged as an unexercised race before this was built — now exercised and
                     // ruled out by `AvailabilityScreenBackNavigationTest`'s own "backgrounding and
                     // resuming mid-edit, then closing normally..." test.
-                    if (!isMapFullscreen() && compactTab() != CompactTab.MAP && !isEditingJournalEntry) {
+                    // Journal redesign J5 (owner's ruling 1, "Hide header; icon reveals it
+                    // (Recommended)"): on the Journal tab of a short landscape window the header is
+                    // hidden, since height is the scarce axis there, until the Journal's own
+                    // short-window header row brings it up (JournalScreenState.searchHeaderRevealed;
+                    // its search icon and Back clear it again). Portrait, every other tab and
+                    // portrait windows are unchanged. The rail shows exactly in a landscape
+                    // window (showRail), since -246 whatever its height.
+                    val journalHidesSearchHeader = showRail && compactTab() == CompactTab.JOURNAL && !journalScreenState.searchHeaderRevealed
+                    // Hiding the header closes its dropdown too, so the dropdown's dismiss scrim
+                    // (below) is never left over content with no bar above it.
+                    LaunchedEffect(journalHidesSearchHeader) {
+                        if (journalHidesSearchHeader) showSearchDropdown = false
+                    }
+                    if (!isMapFullscreen() && compactTab() != CompactTab.MAP && !isEditingJournalEntry && !journalHidesSearchHeader) {
                         SearchEntryBar(
                             uiState = uiState,
                             distanceUnit = distanceUnit,
@@ -689,7 +849,7 @@ internal fun CompactMainScaffold(
                                 showSearchDropdown = false
                             },
                             onDismissTaxonSuggestions = onDismissTaxonSuggestions,
-                            onFieldFocused = { showSearchDropdown = true },
+                            onFieldFocused = { if (!appClearFocusInProgress[0]) showSearchDropdown = true },
                         )
                         SearchNotice(uiState)
                     }
@@ -699,6 +859,10 @@ internal fun CompactMainScaffold(
                     // "just-created entry opens for editing" behavior the drawer used to give this
                     // exact call. No drawer to open any more; Journal is a bottom-nav destination now.
                     val onLogFindHere: (LatLng) -> Unit = { location ->
+                        // Intent 2026-09-28-44, F3 (continuation 2026-09-28-45, the owner: "Leave the
+                        // kept one first (Recommended)"): a find kept open on the Journal is left
+                        // before the new one opens over it, through the one wrapper.
+                        if (logUiState.editingEntry != null) leaveLogEntryEditingOfferingDiscard()
                         onCompactTabChange(CompactTab.JOURNAL)
                         // Stage 2d: lands JournalTab on Records -> Finds, editing, for the entry
                         // onStartLogEntry is about to create — see JournalTab's own doc comment, "The
@@ -714,7 +878,7 @@ internal fun CompactMainScaffold(
                     // alone (AdvancedSearchDropdown's own doc comment). weight(1f) here (unchanged from
                     // before this dispatch) states the intent: this gets whatever is left after the
                     // wrap-content siblings above (empty in fullscreen, so the map then gets the entire
-                    // padded area) — see mainScaffold's own doc comment on this same pattern. Each branch
+                    // padded area) (the same pattern the removed tablet Scaffold used). Each branch
                     // below now fills this Box (fillMaxSize()) rather than carrying its own weight(1f),
                     // since a Box — unlike the Column this used to be a direct child of — doesn't
                     // distribute weight among its children.
@@ -750,6 +914,8 @@ internal fun CompactMainScaffold(
                                 uiState = uiState,
                                 mapSlot = mapSlot,
                                 clusterPosition = mapIconClusterPosition,
+                                cameraMemory = mapCameraMemory,
+                                returnMemory = mapReturnMemory,
                                 // Landscape B2: the punch-hole side, and the search bar's capped
                                 // width there (the chip sits under it, within it).
                                 punchHoleEdge = if (showRail) punchHoleEdge else null,
@@ -765,10 +931,20 @@ internal fun CompactMainScaffold(
                                 // Text's own padding — no map effect keys on it or on renderMode as a
                                 // whole (SightingsMap's own LaunchedEffects, checked), so nothing here
                                 // re-measures or re-fits the map.
-                                renderMode = mapRenderMode.copy(bottomInset = safeAttributionBottomInset),
+                                // backEnabled: while the Tools drawer, fullscreen or the search dropdown is open, its Back goes
+                                // first, so the fan's handler is not composed (dispatches 2026-09-28-293, -298 and -312;
+                                // MarkerFanOutBackHandler's doc comment). The add-action menu and the pin pickers are state of
+                                // CompactMapTab, which narrows this further at its own mapSlot call, and gates the bubble on the
+                                // same value. The dropdown is here as of -312: what is drawn on top closes first (the owner:
+                                // "Yes dropdown should go away first when hitting back ... I never said to have the fan close
+                                // before what's drawn on top"). Its term was held out under continuation -303 only while the
+                                // Robolectric harness reopened the dropdown after it closed, which the focus fix
+                                // (appClearFocusInProgress) ended. The taxon suggestions list is still not here.
+                                renderMode = mapRenderMode.copy(bottomInset = safeAttributionBottomInset, attributionEndInset = safeAttributionEndInset, attributionBottomInset = attributionButtonBottomInset, backEnabled = !isDrawerOpen() && !isMapFullscreen() && !showSearchDropdown),
                                 mapMode = mapMode(),
                                 onMapModeSelected = { onMapModeChange(it) },
-                                isNightMode = isNightMode,
+                                mapLayers = mapLayers,
+                                bubbleSources = mapBubbleSources,
                                 onPlaceTripPin = onPlaceTripPin,
                                 // Opens straight to the log's edit form for the new entry, bypassing
                                 // Search — see DrawerPanel's own doc comment on why Log is reachable
@@ -830,10 +1006,19 @@ internal fun CompactMainScaffold(
                                 // slide into the space it vacates in the same motion, not jump ahead of
                                 // it.
                                 topInset = safeAnimatedTopInset,
+                                // The L's top limit: the bar's bottom whether or not fullscreen is hiding it (Part B, A1 item 1).
+                                searchBarBottom = searchBarHeight,
+                                // Item 2: only while a notice shows, and not in fullscreen, where the whole search column slides away.
+                                searchNoticeBottom = if (searchNoticeMessage(uiState) != null && !isMapFullscreen()) {
+                                    with(LocalDensity.current) { searchChromeHeightPx.toDp() }
+                                } else {
+                                    0.dp
+                                },
                                 // Passed as a slot, not composed at this call site directly, so it
                                 // renders inside CompactMapTab's own Box — see that parameter's own
                                 // doc comment for why this specific nesting is load-bearing, not
-                                // cosmetic. Empty while isEditingJournalEntry, unconditionally —
+                                // cosmetic. Empty while isEditingJournalEntry on the Journal tab (the gate's
+                                // own comment below, intent 2026-09-28-17; until then unconditionally) —
                                 // matches the bar's own old `!isEditingJournalEntry` gate from when it
                                 // lived in this scaffold's outer Column, now reproduced here since the
                                 // slot is CompactMapTab's to show or not. This is a real, device-
@@ -852,10 +1037,19 @@ internal fun CompactMainScaffold(
                                 // not assumed — so sliding it is a pure translation with zero effect on
                                 // the map's own measurement, the same as the already-passing "fullscreen
                                 // does not change the map's own measured height" test already covers.
-                                searchBarSlot = if (isEditingJournalEntry) {
-                                    {}
+                                // Intent 2026-09-28-17 (owner, "Keep entry, fix the bar (Recommended)"):
+                                // an open entry stays open across a tab change, since nothing on the
+                                // bottom nav or rail closes a Cartography entry, so "an entry is open"
+                                // alone left the Maps tab with no search bar after the user tapped Maps
+                                // from an open day entry. The gate is now "an entry is open and the
+                                // Journal tab is the one showing"; on Maps the bar shows normally. This
+                                // slot composes only in this MAP branch, where the second half is false,
+                                // so here the conjunction always resolves to the bar; it is written out
+                                // so that the rule reads as the owner decided it, not as its consequence.
+                                searchBarSlot = if (isEditingJournalEntry && compactTab() == CompactTab.JOURNAL) {
+                                    { _ -> }
                                 } else {
-                                    {
+                                    { compassStripHeight ->
                                         // Fullscreen-slide-out-fixes dispatch, Item 1: the slide distance
                                         // is the bar's own height PLUS the real status-bar inset, not
                                         // fullHeight alone. This bar's top edge is the content area's
@@ -886,7 +1080,7 @@ internal fun CompactMainScaffold(
                                                 Modifier.padding(mapControlsPadding)
                                             },
                                         ) {
-                                        Column {
+                                        Column(modifier = Modifier.mapKeepOut(MapKeepOutIds.SEARCH_BAR).onSizeChanged { searchChromeHeightPx = it.height }) {
                                             SearchEntryBar(
                                                 uiState = uiState,
                                                 distanceUnit = distanceUnit,
@@ -900,9 +1094,18 @@ internal fun CompactMainScaffold(
                                                     showSearchDropdown = false
                                                 },
                                                 onDismissTaxonSuggestions = onDismissTaxonSuggestions,
-                                                onFieldFocused = { showSearchDropdown = true },
+                                                onFieldFocused = { if (!appClearFocusInProgress[0]) showSearchDropdown = true },
+                                                // The Maps tab's own bar, over its map (map chrome at 80%;
+                                                // owner, "1 A": its suggestions stack over the 0.8 panel).
+                                                overMap = true,
                                             )
-                                            SearchNotice(uiState)
+                                            // Item 2 (owner, "Option A"): the notice sits just below the compass strip, which is drawn at the
+                                            // bar's bottom over this column, so the notice starts where the strip's own measured height ends.
+                                            // In a short landscape window the strip is in the other corner and the notice stays under the bar.
+                                            if (searchNoticeMessage(uiState) != null && !showRail) {
+                                                Spacer(Modifier.height(compassStripHeight))
+                                            }
+                                            SearchNotice(uiState, overMap = true)
                                         }
                                         }
                                     }
@@ -920,11 +1123,22 @@ internal fun CompactMainScaffold(
                                 deviceLocation = uiState.liveFix?.let { LatLng(it.lat, it.lng) },
                                 basemap = basemap,
                                 night = isNightMode,
+                                mapLayers = mapLayers.stored,
+                                onMapLayerVisibilityChanged = mapLayers.onVisibilityChanged,
                                 onOpenEntry = onOpenLogEntry,
-                                onCloseEntry = onCloseLogEntry,
+                                // Item 8: the find open when the report closes, read before the close lands; Back and the report's own arrow
+                                // both come through here, and the screen says whether the find came from the map.
+                                onCloseEntry = {
+                                    val closing = logUiState.editingEntry?.id
+                                    onCloseLogEntry()
+                                    onFindReportClosed(closing)
+                                },
                                 onStartEntry = onStartLogEntry,
                                 onEntryChanged = onLogEntryChanged,
-                                onStartEditingEntry = onStartEditingLogEntry,
+                                onStartEditingEntry = {
+                                    onFindEditStarted()
+                                    onStartEditingLogEntry()
+                                },
                                 onSaveEntry = onSaveLogEntry,
                                 onCancelEditing = onCancelLogEntryEditing,
                                 onLeaveEditingIncidentally = leaveLogEntryEditingOfferingDiscard,
@@ -932,7 +1146,10 @@ internal fun CompactMainScaffold(
                                 onAddPhoto = onAddLogPhoto,
                                 onRemovePhoto = onRemoveLogPhoto,
                                 onPullPhoto = onPullLogPhoto,
-                                onDeleteEntry = onDeleteLogEntry,
+                                onDeleteEntry = { id ->
+                                    onDeleteLogEntry(id)
+                                    onFindDeleted(id)
+                                },
                                 onSaveErrorDismissed = onSaveLogErrorDismissed,
                                 // Album folded into this tab as a third top tab (Log/Drafts/Album) — see
                                 // LogGalleryScreen's own doc comment. Threaded through unchanged from
@@ -961,8 +1178,20 @@ internal fun CompactMainScaffold(
                                 onSaveCartographyEntry = onSaveCartographyEntry,
                                 onDiscardCartographyEntryChanges = onDiscardCartographyEntryChanges,
                                 onSaveCartographyEntryAsDraft = onSaveCartographyEntryAsDraft,
+                                onCartographySaveErrorDismissed = onCartographySaveErrorDismissed,
                                 onDeleteCartographyEntry = onDeleteCartographyEntry,
+                                onRequestDeleteCartographyEntry = onRequestDeleteCartographyEntry,
+                                onRequestDeleteGalleryPhoto = onRequestDeleteGalleryPhoto,
+                                // Null stays null (the tiles then offer Delete only); when set, starting an edit forgets the map origin (item 8).
+                                onOpenEntryForEditing = onOpenLogEntryForEditing?.let { open ->
+                                    val editing: (String) -> Unit = { id ->
+                                        onFindEditStarted()
+                                        open(id)
+                                    }
+                                    editing
+                                },
                                 getCartographyEntryMapData = getCartographyEntryMapData,
+                                getSavedTrackPaths = getSavedTrackPaths,
                                 getCartographyEntryOfflineRegion = getCartographyEntryOfflineRegion,
                                 getCartographyEntryCurrentLocation = getCartographyEntryCurrentLocation,
                                 // Journal restructure Stage 1: the Records tab's three submenus — see
@@ -977,15 +1206,30 @@ internal fun CompactMainScaffold(
                                 onOfflineMapsOpened = onOfflineMapsOpened,
                                 onDownloadOfflineMaps = onDownloadOfflineMaps,
                                 onDeleteOfflineRegion = onDeleteOfflineRegion,
+                                onDownloadAgain = onDownloadAgain,
                                 tracks = tracks,
                                 onTracksOpened = onTracksOpened,
                                 getFullRecord = getFullRecord,
                                 waypoints = waypoints,
                                 waypointsErrorMessage = waypointsErrorMessage,
                                 onDeleteWaypoint = onDeleteWaypoint,
+                                onDeleteTrack = onDeleteTrack,
+                                tracksErrorMessage = tracksErrorMessage,
                                 waypointEntryReferenceCounts = waypointEntryReferenceCounts,
                                 pendingDestination = pendingJournalDestination(),
+                                pendingFindId = pendingJournalFindId(),
+                                pendingEntryId = pendingJournalEntryId(),
+                                onEntryClosed = onEntryClosed,
                                 onPendingDestinationConsumed = { onPendingJournalDestinationChange(null) },
+                                onSetCartographyEntryShownOnMap = onSetCartographyEntryShownOnMap,
+                                journalState = journalScreenState,
+                                // Intent 2026-09-28-28: while the Tools drawer is open over the
+                                // Journal, Back closes the drawer, so the Journal's own handlers are
+                                // off. See JournalTab's backEnabled for why off rather than outranked.
+                                backEnabled = !isDrawerOpen(),
+                                cartographyEntryModeState = cartographyEntryModeState,
+                                findEntryModeState = findEntryModeState,
+                                findOverViewState = findOverViewState,
                                 modifier = Modifier.fillMaxSize(),
                             )
                             // Never actually reached — CompactTab.TOOLS never becomes compactTab itself,
@@ -1069,6 +1313,14 @@ internal fun CompactMainScaffold(
                             // receiver") since a BoxScope, not a ColumnScope, is this call's real one.
                             // fullscreen-fixes dispatch, Item 1 (third design): fed into heightIn below.
                             val searchDropdownTopOffset = if (compactTab() == CompactTab.MAP) searchBarHeight + compassStripClearance else 0.dp
+                            // Part 1 layout fixes, item 3 (Part 1's device check, check 8): on the Maps tab
+                            // this Box runs to the window's bottom, since the tab's contentWindowInsets
+                            // reserve only the top and sides, so the keyboard does not shrink it. The panel's
+                            // cap therefore keeps it above the keyboard's own inset, or above the nav band,
+                            // whichever reaches higher. The other tabs' Scaffold padding (safeDrawing, which
+                            // includes the keyboard) shrinks this Box already. Robolectric reports no
+                            // keyboard, so this is device-only by construction.
+                            val searchDropdownImeBottom = with(LocalDensity.current) { WindowInsets.ime.getBottom(this).toDp() }
                             androidx.compose.animation.AnimatedVisibility(
                                 visible = showSearchDropdown,
                                 enter = expandVertically(animationSpec = MotionTokens.panelMotionSpec()) + fadeIn(animationSpec = MotionTokens.panelMotionSpec()),
@@ -1114,7 +1366,7 @@ internal fun CompactMainScaffold(
                                         .padding(top = searchDropdownTopOffset)
                                         .heightIn(
                                             max = maxHeight - searchDropdownTopOffset -
-                                                (if (compactTab() == CompactTab.MAP) bottomNavHeight else 0.dp),
+                                                (if (compactTab() == CompactTab.MAP) maxOf(bottomNavHeight, searchDropdownImeBottom) else 0.dp),
                                         )
                                 },
                             ) {
@@ -1144,6 +1396,10 @@ internal fun CompactMainScaffold(
                                         onSelectedTabChange(ResultsTab.MAP)
                                         pickingSearchLocationOnMap = true
                                     },
+                                    expandManualCoordinatesRequested = expandManualCoordinatesRequested,
+                                    onManualCoordinatesExpandConsumed = { expandManualCoordinatesRequested = false },
+                                    // Over the Maps tab's map only; on the other tabs its Month menu stays solid.
+                                    overMap = compactTab() == CompactTab.MAP,
                                 )
                             }
                         }
@@ -1166,3 +1422,6 @@ internal val LANDSCAPE_SEARCH_MAX_WIDTH = 384.dp
 
 /** Landscape B2 (S2): how far short of the map's centre line the capped search bar ends. */
 internal val LANDSCAPE_SEARCH_CENTRE_GAP = 8.dp
+
+/** The compact scaffold's snackbar, for tests (map chrome at 80%, dispatch 2026-09-28-56 as amended by -58). */
+internal const val COMPACT_SNACKBAR_TAG = "compact-snackbar"

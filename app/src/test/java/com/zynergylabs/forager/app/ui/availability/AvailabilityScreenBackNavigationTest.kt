@@ -18,9 +18,15 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.core.app.ApplicationProvider
@@ -338,9 +344,9 @@ class AvailabilityScreenBackNavigationTest {
      * one call reach the real, live button again.
      */
     private fun searchAReferenceRegion() {
+        // The bar's tap opens "Advanced search" and "Enter coordinates manually" expanded (owner,
+        // continuation 2026-09-28-40, "Also open manual coordinates"), so no header is tapped here.
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
-        composeRule.onNodeWithText("Advanced search").performClick()
-        composeRule.onNodeWithText("Enter coordinates manually").performClick()
         composeRule.onNodeWithText("Latitude").performTextReplacement("45.326")
         composeRule.onNodeWithText("Longitude").performTextReplacement("-122.634")
         composeRule.onNodeWithText("Search this location").performScrollTo().performClick()
@@ -514,7 +520,8 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.onNodeWithText("Journal").performClick()
         // Journal Stage 2b: finds relocated from Cartography into Records' fourth Finds submenu.
         composeRule.onNodeWithText("Records").performClick()
-        composeRule.onNodeWithText("Logged Finds").performClick()
+        // J1 S3: the Finds filter chip replaced the "Logged Finds" sub-tab.
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.FINDS)).performClick()
         composeRule.onNodeWithContentDescription("New log entry").performClick()
         composeRule.onNodeWithText("Photos").assertIsDisplayed()
 
@@ -537,12 +544,12 @@ class AvailabilityScreenBackNavigationTest {
     private val committedCartographyEntry = CartographyEntry.draft(id = "committed-1", date = LocalDate.of(2026, 8, 1), updatedAtEpochMillis = 1_000L)
         .copy(isDraft = false)
 
-    /** The entry-level layer: a draft opens straight into the editor, and back on it must step back to the Drafts list — never exit the Journal, and never prompt (drafts autosave silently, unchanged by this dispatch). */
+    /** The entry-level layer: a draft opens straight into the editor, and back on it must step back to Entries, where the Drafts banner (J2 T2, which replaced the Drafts list sub-tab) counts it — never exit the Journal, and never prompt (drafts autosave silently, unchanged by this dispatch). */
     @Test
-    fun `back on an open Cartography draft steps back to the drafts list, not out of the Journal, and the draft persists`() {
+    fun `back on an open Cartography draft steps back to Entries with the drafts banner, not out of the Journal, and the draft persists`() {
         setScreen()
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithContentDescription("New Cartography entry").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_FAB_TAG).performClick() // J2 T4: the New entry floating button, was the "+" tile
         composeRule.onNodeWithText("Your own account (optional)").assertIsDisplayed()
 
         pressBack()
@@ -550,8 +557,9 @@ class AvailabilityScreenBackNavigationTest {
         // Still inside the Journal (not bounced to Maps), and the draft is visible, not lost.
         composeRule.onNodeWithText("Your own account (optional)").assertDoesNotExist()
         composeRule.onNodeWithText("Save your changes?").assertDoesNotExist()
-        composeRule.onNodeWithText("Cartography").assertIsDisplayed()
-        composeRule.onNodeWithText("Drafts (1)").assertIsDisplayed()
+        // J2 T1: the top tab is the Entries | Records switch now ("Cartography" reads "Entries").
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.journalSwitchTestTag(com.zynergylabs.forager.app.ui.log.JournalTopTab.CARTOGRAPHY)).assertIsSelected()
+        composeRule.onNodeWithText("✎ 1 unfinished entry").assertIsDisplayed() // J2 T2: the banner, was the "Drafts (1)" sub-tab
     }
 
     /**
@@ -565,10 +573,10 @@ class AvailabilityScreenBackNavigationTest {
      * case in this file already exercises.
      */
     @Test
-    fun `back from the add-photo picker returns to the editor, and back again reaches the drafts list`() {
+    fun `back from the add-photo picker returns to the editor, and back again reaches Entries with the drafts banner`() {
         setScreen()
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithContentDescription("New Cartography entry").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_FAB_TAG).performClick() // J2 T4: the New entry floating button, was the "+" tile
         composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Draft with a photo picker open.")
         composeRule.onNodeWithContentDescription("Add a photo from the Album").performClick()
         composeRule.onNodeWithText("Camera").assertIsDisplayed()
@@ -583,44 +591,47 @@ class AvailabilityScreenBackNavigationTest {
         pressBack()
 
         composeRule.onNodeWithText("Draft with a photo picker open.").assertDoesNotExist()
-        composeRule.onNodeWithText("Cartography").assertIsDisplayed()
-        composeRule.onNodeWithText("Drafts (1)").assertIsDisplayed()
+        // J2 T1: the top tab is the Entries | Records switch now ("Cartography" reads "Entries").
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.journalSwitchTestTag(com.zynergylabs.forager.app.ui.log.JournalTopTab.CARTOGRAPHY)).assertIsSelected()
+        composeRule.onNodeWithText("✎ 1 unfinished entry").assertIsDisplayed() // J2 T2: the banner, was the "Drafts (1)" sub-tab
     }
 
     /**
-     * The Records sub-tab layer: back from a non-default sub-tab steps to Waypoints, the fixed
-     * default — not out to Cartography in the same press. Recorded Tracks, not Offline Maps: that
-     * sub-tab's own `onOfflineMapsOpened` calls the real `AvailabilityViewModel`, which reaches a
-     * real `LocationProvider` this fixture deliberately stubs to error (see
-     * [BackNavUnusedLocationProvider]) — unrelated to what this test is proving, so it picks the
-     * sub-tab that doesn't touch it.
+     * The Records filter layer: back from a single-type chip steps to All, the fixed default — not
+     * out to Cartography in the same press. (Journal redesign J1, S3: this stepped to Waypoints, the
+     * old default sub-tab, before the chips replaced the sub-tabs; the planner's call moved the
+     * target to All.) Tracks, not Offline maps: that chip's own `onOfflineMapsOpened` calls the real
+     * `AvailabilityViewModel`, which reaches a real `LocationProvider` this fixture deliberately
+     * stubs to error (see [BackNavUnusedLocationProvider]) — unrelated to what this test is proving,
+     * so it picks the chip that doesn't touch it.
      */
     @Test
-    fun `back on a non-default Records sub-tab steps to Waypoints before leaving Records`() {
+    fun `back on a single-type Records chip steps to All before leaving Records`() {
         setScreen()
         composeRule.onNodeWithText("Journal").performClick()
         composeRule.onNodeWithText("Records").performClick()
-        composeRule.onNodeWithText("Recorded Tracks").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.RECORDED_TRACKS)).performClick()
         composeRule.onNodeWithText("No recorded tracks yet.").assertIsDisplayed()
 
         pressBack()
 
-        // Still on Records, now showing Waypoints' own content — not bounced out to Cartography or Maps.
+        // Still on Records, now on All — not bounced out to Cartography or Maps.
         composeRule.onNodeWithText("No recorded tracks yet.").assertDoesNotExist()
-        composeRule.onNodeWithText("No waypoints dropped yet. Tap the add button on the map to drop one.").assertIsDisplayed()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.ALL)).assertIsSelected()
+        composeRule.onNodeWithText("Records").assertIsSelected()
     }
 
-    /** The top-tab layer: back from Records' own default sub-tab (nothing left within Records to unwind) steps to Cartography — still inside the Journal, not out to Maps. */
+    /** The top-tab layer: back from Records' own default chip, All (nothing left within Records to unwind), steps to Cartography — still inside the Journal, not out to Maps. */
     @Test
-    fun `back on Records' default sub-tab steps to Cartography before leaving the Journal`() {
+    fun `back on Records' default chip steps to Cartography before leaving the Journal`() {
         setScreen()
         composeRule.onNodeWithText("Journal").performClick()
         composeRule.onNodeWithText("Records").performClick()
-        composeRule.onNodeWithText("Waypoint Markers").assertIsDisplayed()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.ALL)).assertIsSelected()
 
         pressBack()
 
-        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_HOME_TAG).assertIsDisplayed()
         composeRule.onNodeWithTag("map-slot").assertDoesNotExist()
     }
 
@@ -633,7 +644,7 @@ class AvailabilityScreenBackNavigationTest {
     fun `back on Cartography's own top level still falls through to the go-home handler`() {
         setScreen()
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_HOME_TAG).assertIsDisplayed()
 
         pressBack()
 
@@ -646,7 +657,7 @@ class AvailabilityScreenBackNavigationTest {
     fun `back on a clean committed Cartography entry closes without any prompt`() {
         setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(committedCartographyCard()).performClick()
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
         composeRule.onNodeWithText("Your own account (optional)").assertIsDisplayed()
@@ -654,7 +665,7 @@ class AvailabilityScreenBackNavigationTest {
         pressBack()
 
         composeRule.onNodeWithText("Save your changes?").assertDoesNotExist()
-        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_HOME_TAG).assertIsDisplayed()
     }
 
     /** Item 2: a dirty committed entry's system back shows Save/Discard/Cancel — the exact prompt the on-screen arrow already showed, now reachable by the nav-bar button too. Cancel keeps editing with the change intact. */
@@ -662,7 +673,7 @@ class AvailabilityScreenBackNavigationTest {
     fun `back on a dirty committed Cartography entry shows the leave prompt, and Cancel keeps editing`() {
         setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(committedCartographyCard()).performClick()
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
         composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Unsaved via system back.")
@@ -683,7 +694,7 @@ class AvailabilityScreenBackNavigationTest {
     fun `Discard from the system-back leave prompt discards the edit and leaves`() {
         setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(committedCartographyCard()).performClick()
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
         composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Should not be saved.")
@@ -694,7 +705,7 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.LEAVE_PROMPT_DISCARD_TEST_TAG).performClick()
 
         composeRule.onNodeWithText("Save your changes?").assertDoesNotExist()
-        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_HOME_TAG).assertIsDisplayed()
     }
 
     /** Item 2/3: Save via system back's own prompt saves and leaves in one step — no second dialog. */
@@ -702,7 +713,7 @@ class AvailabilityScreenBackNavigationTest {
     fun `Save from the system-back leave prompt saves the edit and leaves, with no second dialog`() {
         setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(committedCartographyCard()).performClick()
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
         composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Saved via system back.")
@@ -713,8 +724,8 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.LEAVE_PROMPT_SAVE_TEST_TAG).performClick()
 
         composeRule.onNodeWithText("Save your changes?").assertDoesNotExist()
-        composeRule.onNodeWithText("Entries").assertIsDisplayed()
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_HOME_TAG).assertIsDisplayed()
+        composeRule.onNode(committedCartographyCard()).performClick()
         composeRule.onNodeWithText("Saved via system back.").assertIsDisplayed()
     }
 
@@ -728,7 +739,7 @@ class AvailabilityScreenBackNavigationTest {
     fun `backgrounding a dirty committed entry commits nothing, and resuming shows the return prompt`() {
         setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(committedCartographyCard()).performClick()
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
         composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Pending, not yet approved.")
@@ -745,7 +756,7 @@ class AvailabilityScreenBackNavigationTest {
     fun `backgrounding a clean committed entry shows no return prompt on resume`() {
         setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(committedCartographyCard()).performClick()
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
 
@@ -758,7 +769,7 @@ class AvailabilityScreenBackNavigationTest {
     fun `backgrounding an open draft shows no return prompt on resume — drafts autosave, unchanged`() {
         setScreen()
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithContentDescription("New Cartography entry").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_FAB_TAG).performClick() // J2 T4: the New entry floating button, was the "+" tile
         composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Draft text.")
         composeRule.waitForIdle()
 
@@ -772,7 +783,7 @@ class AvailabilityScreenBackNavigationTest {
     fun `Continue editing on the return prompt dismisses it and leaves the pending edit exactly in place`() {
         setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(committedCartographyCard()).performClick()
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
         composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Pending, not yet approved.")
@@ -807,7 +818,7 @@ class AvailabilityScreenBackNavigationTest {
     fun `Commit on the return prompt persists the pending edit and stays on the entry`() {
         setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(committedCartographyCard()).performClick()
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
         composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Committed on return.")
@@ -823,8 +834,8 @@ class AvailabilityScreenBackNavigationTest {
         // Still on the entry (Commit doesn't leave), and it landed in Entries.
         composeRule.onNodeWithText("Committed on return.").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
-        composeRule.onNodeWithText("Entries").assertIsDisplayed()
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_HOME_TAG).assertIsDisplayed()
+        composeRule.onNode(committedCartographyCard()).performClick()
         // Proves the tap actually opened the entry — see this test's own doc comment.
         composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
         composeRule.onNodeWithText("Committed on return.").assertIsDisplayed()
@@ -857,7 +868,7 @@ class AvailabilityScreenBackNavigationTest {
     fun `Save as draft on the return prompt closes the screen and moves the entry to Drafts with the edit in place`() {
         setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(committedCartographyCard()).performClick()
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
         composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Saved as draft on return.")
@@ -869,15 +880,18 @@ class AvailabilityScreenBackNavigationTest {
 
         composeRule.onNodeWithText("Welcome back").assertDoesNotExist()
         // Closed — visible under Drafts now, not left open silently rendering as a draft.
-        composeRule.onNodeWithText("Entries").assertIsDisplayed()
-        composeRule.onNodeWithText("Drafts (1)").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_HOME_TAG).assertIsDisplayed()
+        // J2 T2: the Drafts banner replaced the "Drafts (1)" sub-tab; with one draft its Continue
+        // opens that draft directly, so there is no list card to tap.
+        composeRule.onNodeWithText("✎ 1 unfinished entry").assertIsDisplayed()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.DRAFTS_CONTINUE_TAG).performClick()
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("2026-08-01").performClick()
         composeRule.onNodeWithText("Saved as draft on return.").assertIsDisplayed()
-        // And it's really gone from Entries, not just still showing there too.
+        // And it's really gone from Entries, not just still showing there too. (Back from a draft
+        // lands on Entries itself now, so no sub-tab tap is needed to get there.)
         composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
-        composeRule.onNodeWithText("Entries").performClick()
-        composeRule.onNodeWithText("2026-08-01").assertDoesNotExist()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_HOME_TAG).assertIsDisplayed()
+        composeRule.onNode(committedCartographyCard()).assertDoesNotExist()
     }
 
     // --- Search-focus-and-hide dispatch, Item 2: the top search bar hides for as long as an entry
@@ -895,7 +909,7 @@ class AvailabilityScreenBackNavigationTest {
 
         // Viewing (the report screen) counts as "open," not just editing — see the gate's own doc
         // comment on why this scope was the reachable one, not a lifted VIEW/EDIT distinction.
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(committedCartographyCard()).performClick()
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertDoesNotExist()
 
         composeRule.onNodeWithContentDescription("Entry options").performClick()
@@ -903,9 +917,129 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertDoesNotExist()
 
         composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
-        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_HOME_TAG).assertIsDisplayed()
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertIsDisplayed()
     }
+
+    // --- Maps search bar after an open day entry (intent 2026-09-28-17): an open Cartography entry
+    // stays open across a tab change (owner, "Keep entry, fix the bar (Recommended)"), and the Maps
+    // tab's own search bar (CompactMapTab's searchBarSlot) is hidden for it only while the Journal
+    // tab is the one showing. Before the fix the slot's gate read "an entry is open" alone, so
+    // tapping Maps with a day entry open left Maps with no search bar. The tab is changed by a real
+    // touch at the nav item's own centre, on the bottom nav in portrait and on the rail in a short
+    // landscape window; the claim is about the bar, so one touch routes, and the item is checked
+    // to be the nav's own (in the rail, or with no rail at all) and selected afterwards.
+
+    /** A real touch at the centre of the nav item labelled [label]; asserts it lands on that tab. */
+    private fun touchNavItem(label: String) {
+        val item = composeRule.onNodeWithText(label).getUnclippedBoundsInRoot()
+        val rails = composeRule.onAllNodesWithTag(COMPACT_NAVIGATION_RAIL_TAG).fetchSemanticsNodes()
+        if (rails.isNotEmpty()) {
+            val rail = composeRule.onNodeWithTag(COMPACT_NAVIGATION_RAIL_TAG).getUnclippedBoundsInRoot()
+            assertTrue(
+                "the $label item $item lies in the rail $rail",
+                item.left >= rail.left && item.right <= rail.right && item.top >= rail.top && item.bottom <= rail.bottom,
+            )
+        }
+        val x = (item.left.value + item.right.value) / 2f
+        val y = (item.top.value + item.bottom.value) / 2f
+        composeRule.onRoot().performTouchInput { click(Offset(x * density, y * density)) }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText(label).assertIsSelected()
+    }
+
+    private fun assertRailShown(expected: Boolean) {
+        assertEquals(
+            "the rail is ${if (expected) "" else "not "}the nav in this window",
+            expected,
+            composeRule.onAllNodesWithTag(COMPACT_NAVIGATION_RAIL_TAG).fetchSemanticsNodes().isNotEmpty(),
+        )
+    }
+
+    private fun assertMapsSearchBarShown(context: String) {
+        composeRule.onNodeWithText("Maps").assertIsSelected()
+        assertEquals(
+            "the Maps search bar ($ACTIVE_SEARCH_SUMMARY_TAG) is shown on the Maps tab $context",
+            1,
+            composeRule.onAllNodesWithTag(ACTIVE_SEARCH_SUMMARY_TAG).fetchSemanticsNodes().size,
+        )
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertIsDisplayed()
+    }
+
+    /** Opens the committed day entry from Journal, in its report view or, with [edit], in its editor. */
+    private fun openCommittedDayEntry(edit: Boolean) {
+        touchNavItem("Journal")
+        composeRule.onNode(committedCartographyCard()).performClick()
+        composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
+        if (edit) {
+            composeRule.onNodeWithContentDescription("Entry options").performClick()
+            composeRule.onNodeWithText("Edit entry").performClick()
+            composeRule.onNodeWithText("Your own account (optional)").assertIsDisplayed()
+        }
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertDoesNotExist()
+    }
+
+    private fun checkMapsBarAfterOpenEntry(edit: Boolean, rail: Boolean) {
+        setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
+        assertRailShown(rail)
+        assertMapsSearchBarShown("before any entry is opened")
+        openCommittedDayEntry(edit)
+        touchNavItem("Maps")
+        assertMapsSearchBarShown("with a day entry left open in ${if (edit) "its editor" else "its report view"}")
+    }
+
+    @Test
+    fun `portrait, Maps from an open day entry's report view shows the Maps search bar`() =
+        checkMapsBarAfterOpenEntry(edit = false, rail = false)
+
+    @Test
+    fun `portrait, Maps from an open day entry's editor shows the Maps search bar`() =
+        checkMapsBarAfterOpenEntry(edit = true, rail = false)
+
+    @Test
+    @Config(qualifiers = "w823dp-h384dp-land")
+    fun `short landscape, Maps on the rail from an open day entry's report view shows the Maps search bar`() =
+        checkMapsBarAfterOpenEntry(edit = false, rail = true)
+
+    @Test
+    @Config(qualifiers = "w823dp-h384dp-land")
+    fun `short landscape, Maps on the rail from an open day entry's editor shows the Maps search bar`() =
+        checkMapsBarAfterOpenEntry(edit = true, rail = true)
+
+    /**
+     * The other half of the ruling: the entry is kept, so back on Journal it is still open (the
+     * fixture holds one entry, so "an entry open" is this one), and the Journal's search header is
+     * still hidden for it. Passes before the fix as well as after: nothing in the fix touches the
+     * entry, and this pins that it stays so.
+     */
+    private fun checkEntryKeptOnReturn(edit: Boolean, rail: Boolean) {
+        setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
+        assertRailShown(rail)
+        openCommittedDayEntry(edit)
+        touchNavItem("Maps")
+        touchNavItem("Journal")
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_HOME_TAG).assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun `portrait, a day entry left open in its report view is still open back on Journal`() =
+        checkEntryKeptOnReturn(edit = false, rail = false)
+
+    @Test
+    fun `portrait, a day entry left open in its editor is still open back on Journal`() =
+        checkEntryKeptOnReturn(edit = true, rail = false)
+
+    @Test
+    @Config(qualifiers = "w823dp-h384dp-land")
+    fun `short landscape, a day entry left open in its report view is still open back on Journal`() =
+        checkEntryKeptOnReturn(edit = false, rail = true)
+
+    @Test
+    @Config(qualifiers = "w823dp-h384dp-land")
+    fun `short landscape, a day entry left open in its editor is still open back on Journal`() =
+        checkEntryKeptOnReturn(edit = true, rail = true)
 
     @Test
     fun `the top search bar hides while editing a find, and reappears once it closes`() {
@@ -914,7 +1048,8 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertIsDisplayed()
 
         composeRule.onNodeWithText("Records").performClick()
-        composeRule.onNodeWithText("Logged Finds").performClick()
+        // J1 S3: the Finds filter chip replaced the "Logged Finds" sub-tab.
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.FINDS)).performClick()
         composeRule.onNodeWithContentDescription("New log entry").performClick()
         composeRule.onNodeWithText("Photos").assertIsDisplayed()
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertDoesNotExist()
@@ -937,7 +1072,7 @@ class AvailabilityScreenBackNavigationTest {
     fun `backgrounding and resuming mid-edit, then closing normally, leaves the search bar visible with no dropdown open`() {
         setScreen(cartographyUiState = CartographyUiState(entries = listOf(committedCartographyEntry)))
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithText("2026-08-01").performClick()
+        composeRule.onNode(committedCartographyCard()).performClick()
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
         composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Resumed then closed.")
@@ -950,7 +1085,7 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.onNodeWithContentDescription("Back to Cartography").performClick()
         composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.LEAVE_PROMPT_DISCARD_TEST_TAG).performClick()
 
-        composeRule.onNodeWithText("Entries").assertIsDisplayed()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_HOME_TAG).assertIsDisplayed()
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertIsDisplayed()
         composeRule.onNodeWithText("Set on map").assertDoesNotExist()
     }
@@ -961,12 +1096,14 @@ class AvailabilityScreenBackNavigationTest {
      * [com.zynergylabs.forager.app.ui.log.LogGalleryScreen]'s own third tab (Log/Drafts/Album), reached through
      * Journal rather than standing alone on the bottom nav, to make room for a fifth bottom-nav slot
      * — see that composable's own doc comment. The medium/expanded half (a drawer entry) is
-     * untouched and stays `AvailabilityScreenAdaptiveLayoutTest`'s own equivalent test. Labelled
-     * "Album" rather than "Photos" — see `CompactTab`'s own doc comment for why that exact string
-     * collides with existing on-screen text elsewhere in this same feature.
+     * untouched and stays `AvailabilityScreenAdaptiveLayoutTest`'s own equivalent test. "Album" is
+     * the Cartography sub-tab (`CartographyScreen`'s Entries/Drafts/Album row), reached after the
+     * "Journal" bottom-nav tap; it is not a bottom-nav label (`CompactTab` has none by that name).
+     * Journal redesign J2, T3: that sub-tab is now Entries' album view, chosen with the toolbar's
+     * view toggle.
      */
     @Test
-    fun `the Album tab shows the photo gallery`() {
+    fun `the album view shows the photo gallery`() {
         val photo = com.zynergylabs.forager.app.domain.model.GalleryPhoto(
             photo = com.zynergylabs.forager.app.domain.model.LogPhoto(id = "p1", relativePath = "photos/p1.jpg", createdAtEpochMillis = null),
             referencingEntryIds = emptyList(),
@@ -974,7 +1111,7 @@ class AvailabilityScreenBackNavigationTest {
         setScreen(logUiState = MushroomLogUiState(galleryPhotos = listOf(photo)))
 
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithText("Album").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_VIEW_ALBUM_TAG).performClick() // J2 T3: was the "Album" sub-tab
 
         composeRule.onNodeWithText("Date unknown").assertIsDisplayed()
     }
@@ -1093,3 +1230,10 @@ private object BackNavStubAppThemePreferenceRepository : AppThemePreferenceRepos
     override suspend fun getThemeMode(): Result<AppThemeMode> = Result.success(AppThemeMode.LIGHT)
     override suspend fun setThemeMode(mode: AppThemeMode): Result<Unit> = Result.success(Unit)
 }
+
+/**
+ * The committed entry's card or collapsed row (journal redesign J3, C1): the ISO date these tests
+ * used to find the card by is no longer on it, so they find it by the card's own tag.
+ */
+private fun committedCartographyCard(): androidx.compose.ui.test.SemanticsMatcher =
+    androidx.compose.ui.test.hasTestTag("entry-card-committed-1") or androidx.compose.ui.test.hasTestTag("entry-row-committed-1")

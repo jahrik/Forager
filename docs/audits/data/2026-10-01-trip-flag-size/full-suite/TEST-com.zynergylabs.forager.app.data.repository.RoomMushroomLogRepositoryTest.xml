@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.data.repository.RoomMushroomLogRepositoryTest" tests="19" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:49.883Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.746">
+  <properties/>
+  <testcase name="getAllPhotos on an empty database returns an empty list, not a failure" classname="com.zynergylabs.forager.app.data.repository.RoomMushroomLogRepositoryTest" time="0.057"/>
+  <testcase name="getAllPhotos returns every gallery photo paired with the entries currently referencing it" classname="com.zynergylabs.forager.app.data.repository.RoomMushroomLogRepositoryTest" time="0.042"/>
+  <testcase name="attaching the same photo to the same entry twice does not duplicate the reference" classname="com.zynergylabs.forager.app.data.repository.RoomMushroomLogRepositoryTest" time="0.052"/>
+  <testcase name="a standalone photo appears in the Album, survives a round trip, and can be pulled into a find" classname="com.zynergylabs.forager.app.data.repository.RoomMushroomLogRepositoryTest" time="0.081"/>
+  <testcase name="Uploaded and Failed sync states round-trip exactly, even though Phase 1 never constructs them" classname="com.zynergylabs.forager.app.data.repository.RoomMushroomLogRepositoryTest" time="0.042"/>
+  <testcase name="deletePhotoFromGallery on an unknown photo id is a no-op, not a failure" classname="com.zynergylabs.forager.app.data.repository.RoomMushroomLogRepositoryTest" time="0.032"/>
+  <testcase name="deleting an id that isn't stored is a no-op, not a failure" classname="com.zynergylabs.forager.app.data.repository.RoomMushroomLogRepositoryTest" time="0.034"/>
+  <testcase name="deletePhotoFromGallery removes the photo row and every cross-reference to it" classname="com.zynergylabs.forager.app.data.repository.RoomMushroomLogRepositoryTest" time="0.03"/>
+  <testcase name="getAll on an empty database returns an empty list, not a failure" classname="com.zynergylabs.forager.app.data.repository.RoomMushroomLogRepositoryTest" time="0.028"/>
+  <testcase name="a fully-populated entry round-trips every field exactly, including nested sealed choices and photos" classname="com.zynergylabs.forager.app.data.repository.RoomMushroomLogRepositoryTest" time="0.039"/>
+  <testcase name="updatePhotoLocation on an unknown photo id is a no-op, not a failure" classname="com.zynergylabs.forager.app.data.repository.RoomMushroomLogRepositoryTest" time="0.029"/>
+  <testcase name="a barely-populated entry round-trips exactly, with every unrecorded field surviving as NotObserved" classname="com.zynergylabs.forager.app.data.repository.RoomMushroomLogRepositoryTest" time="0.031"/>
+  <testcase name="save never touches photo references, however stale the entry argument's own photos field is" classname="com.zynergylabs.forager.app.data.repository.RoomMushroomLogRepositoryTest" time="0.049"/>
+  <testcase name="deleting an entry drops only its own photo references, including one shared with another entry" classname="com.zynergylabs.forager.app.data.repository.RoomMushroomLogRepositoryTest" time="0.033"/>
+  <testcase name="an entry recorded with Pores hymenophore carries no gill sub-fields after round-tripping" classname="com.zynergylabs.forager.app.data.repository.RoomMushroomLogRepositoryTest" time="0.036"/>
+  <testcase name="getAllPhotos includes a photo with zero referencing entries" classname="com.zynergylabs.forager.app.data.repository.RoomMushroomLogRepositoryTest" time="0.037"/>
+  <testcase name="updatePhotoLocation patches latitude and longitude onto an already-persisted photo" classname="com.zynergylabs.forager.app.data.repository.RoomMushroomLogRepositoryTest" time="0.032"/>
+  <testcase name="saving a second entry with the same id replaces it rather than duplicating it" classname="com.zynergylabs.forager.app.data.repository.RoomMushroomLogRepositoryTest" time="0.028"/>
+  <testcase name="a photo referenced by two entries, pulled into a third, is referenced by three" classname="com.zynergylabs.forager.app.data.repository.RoomMushroomLogRepositoryTest" time="0.028"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

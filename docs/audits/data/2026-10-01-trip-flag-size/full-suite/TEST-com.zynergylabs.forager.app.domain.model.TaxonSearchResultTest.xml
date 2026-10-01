@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.model.TaxonSearchResultTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:55.888Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.0">
+  <properties/>
+  <testcase name="toFilter prefers the common name as the label when present" classname="com.zynergylabs.forager.app.domain.model.TaxonSearchResultTest" time="0.0"/>
+  <testcase name="toFilter falls back to the scientific name when there is no common name" classname="com.zynergylabs.forager.app.domain.model.TaxonSearchResultTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

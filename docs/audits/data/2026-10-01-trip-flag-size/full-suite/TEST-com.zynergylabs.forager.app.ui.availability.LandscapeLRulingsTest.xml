@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.LandscapeLRulingsTest" tests="18" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:45.331Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="2.653">
+  <properties/>
+  <testcase name="D2 at ROTATION_90 real touches across the bottom row's whole square, corners included, reach its button" classname="com.zynergylabs.forager.app.ui.availability.LandscapeLRulingsTest" time="0.168"/>
+  <testcase name="D1 at ROTATION_270 real touches across the top row's whole square, corners included, reach its button" classname="com.zynergylabs.forager.app.ui.availability.LandscapeLRulingsTest" time="0.325"/>
+  <testcase name="D3 at ROTATION_90 real touches across both pill buttons' whole squares, corners included, reach them" classname="com.zynergylabs.forager.app.ui.availability.LandscapeLRulingsTest" time="0.071"/>
+  <testcase name="D4 at ROTATION_270 a real touch 2 dp outside any button's square reaches the map" classname="com.zynergylabs.forager.app.ui.availability.LandscapeLRulingsTest" time="0.056"/>
+  <testcase name="C1 at ROTATION_90 the handle's box is 20 by 48, centred on the locate row" classname="com.zynergylabs.forager.app.ui.availability.LandscapeLRulingsTest" time="0.065"/>
+  <testcase name="C1 at ROTATION_270 the handle's box is 20 by 48, centred on the locate row" classname="com.zynergylabs.forager.app.ui.availability.LandscapeLRulingsTest" time="0.048"/>
+  <testcase name="D1 at ROTATION_90 real touches across the top row's whole square, corners included, reach its button" classname="com.zynergylabs.forager.app.ui.availability.LandscapeLRulingsTest" time="0.227"/>
+  <testcase name="D3 at ROTATION_270 real touches across both pill buttons' whole squares, corners included, reach them" classname="com.zynergylabs.forager.app.ui.availability.LandscapeLRulingsTest" time="0.078"/>
+  <testcase name="D2 at ROTATION_270 real touches across the bottom row's whole square, corners included, reach its button" classname="com.zynergylabs.forager.app.ui.availability.LandscapeLRulingsTest" time="0.107"/>
+  <testcase name="D4 at ROTATION_90 a real touch 2 dp outside any button's square reaches the map" classname="com.zynergylabs.forager.app.ui.availability.LandscapeLRulingsTest" time="0.056"/>
+  <testcase name="B1 at ROTATION_270 with the L on the right a notice makes room and the L does not move" classname="com.zynergylabs.forager.app.ui.availability.LandscapeLRulingsTest" time="0.191"/>
+  <testcase name="B1 at ROTATION_270 with the L on the left a notice makes room and the L does not move" classname="com.zynergylabs.forager.app.ui.availability.LandscapeLRulingsTest" time="0.172"/>
+  <testcase name="A1 at ROTATION_90 the L's top is never above the search bar's bottom" classname="com.zynergylabs.forager.app.ui.availability.LandscapeLRulingsTest" time="0.221"/>
+  <testcase name="B1 at ROTATION_90 with the L on the right a notice makes room and the L does not move" classname="com.zynergylabs.forager.app.ui.availability.LandscapeLRulingsTest" time="0.251"/>
+  <testcase name="A2 at ROTATION_270 the L at the top of the rail side is clear of the compass strip" classname="com.zynergylabs.forager.app.ui.availability.LandscapeLRulingsTest" time="0.146"/>
+  <testcase name="A1 at ROTATION_270 the L's top is never above the search bar's bottom" classname="com.zynergylabs.forager.app.ui.availability.LandscapeLRulingsTest" time="0.125"/>
+  <testcase name="A2 at ROTATION_90 the L at the top of the rail side is clear of the compass strip" classname="com.zynergylabs.forager.app.ui.availability.LandscapeLRulingsTest" time="0.183"/>
+  <testcase name="B1 at ROTATION_90 with the L on the left a notice makes room and the L does not move" classname="com.zynergylabs.forager.app.ui.availability.LandscapeLRulingsTest" time="0.157"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

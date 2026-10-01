@@ -199,24 +199,20 @@ class AvailabilityScreenConditionsMonthTest {
     }
 
     /**
-     * Opens the dropdown and expands its "Advanced search" section — a follow-up owner call nested
-     * location/radius/month one level deeper here, behind that section, once species search and
-     * Recent Searches joined this same surface at its own top level.
+     * Opens the dropdown, which the bar's tap opens with "Advanced search" already expanded (owner,
+     * continuation 2026-09-28-40, "Also open manual coordinates"), so no header is tapped here.
      */
     private fun openSearchDropdownToAdvancedSearch() {
         openSearchDropdown()
-        composeRule.onNodeWithText("Advanced search").performClick()
     }
 
     /**
-     * Opens the dropdown to Advanced search and expands its "Enter coordinates manually" section,
-     * exactly as a user would tap it. Unlike the old drawer section this replaces, the dropdown is
-     * removed from composition when closed (`AnimatedVisibility` disposes it, not just moves it
-     * off-screen), so every open starts collapsed again — no "already expanded" check needed.
+     * Opens the dropdown to the manual coordinates. The bar's tap expands both "Advanced search" and
+     * "Enter coordinates manually" once (continuation 2026-09-28-40); the dropdown is removed from
+     * composition when closed (`AnimatedVisibility` disposes it), so every open starts that way.
      */
     private fun openSearchDropdownToManualCoordinates() {
         openSearchDropdownToAdvancedSearch()
-        composeRule.onNodeWithText("Enter coordinates manually").performClick()
     }
 
     /** Types coordinates into the dropdown and searches, exactly as a user would. */

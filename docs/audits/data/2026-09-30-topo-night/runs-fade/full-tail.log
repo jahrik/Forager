@@ -1,0 +1,12 @@
+> Task :app:compileDebugUnitTestKotlin
+w: file:///home/zynergy-labs/Zynergy/forager-wt/topo-night/app/src/test/java/com/zynergylabs/forager/app/ui/availability/AvailabilityScreenLayoutTest.kt:203:31 'fun <reified A : ComponentActivity> createAndroidComposeRule(effectContext: CoroutineContext = ...): AndroidComposeTestRule<ActivityScenarioRule<A>, A>' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createAndroidComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+
+> Task :app:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:processDebugUnitTestJavaRes UP-TO-DATE
+> Task :app:testDebugUnitTest
+
+[Incubating] Problems report is available at: file:///home/zynergy-labs/Zynergy/forager-wt/topo-night/build/reports/problems/problems-report.html
+
+BUILD SUCCESSFUL in 4m 14s
+33 actionable tasks: 17 executed, 16 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.7.0/userguide/configuration_cache_enabling.html

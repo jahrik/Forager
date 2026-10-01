@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.backup.RestoreLoadingPageTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:24.321Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.387">
+  <properties/>
+  <testcase name="while loading, the page shows the icon and the loading words, no Done, and the icon pulses" classname="com.zynergylabs.forager.app.ui.backup.RestoreLoadingPageTest" time="0.042"/>
+  <testcase name="when done the icon stops pulsing, the words change, and Done is at its centre" classname="com.zynergylabs.forager.app.ui.backup.RestoreLoadingPageTest" time="0.038"/>
+  <testcase name="a touch on the page outside the icon does nothing and does not reach the screen underneath" classname="com.zynergylabs.forager.app.ui.backup.RestoreLoadingPageTest" time="0.051"/>
+  <testcase name="a touch on the icon while loading does nothing" classname="com.zynergylabs.forager.app.ui.backup.RestoreLoadingPageTest" time="0.033"/>
+  <testcase name="with the system's animations off, the tap leaves at once" classname="com.zynergylabs.forager.app.ui.backup.RestoreLoadingPageTest" time="0.034"/>
+  <testcase name="the icon is the button, with content description Done, a click action, and a touch target of at least 48 dp" classname="com.zynergylabs.forager.app.ui.backup.RestoreLoadingPageTest" time="0.032"/>
+  <testcase name="real touches across the icon's own bounds all press it, not only one at its centre" classname="com.zynergylabs.forager.app.ui.backup.RestoreLoadingPageTest" time="0.087"/>
+  <testcase name="the tap makes the icon grow and fade for about 300 ms, then the page is gone" classname="com.zynergylabs.forager.app.ui.backup.RestoreLoadingPageTest" time="0.068"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

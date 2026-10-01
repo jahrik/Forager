@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenPortraitBottomNavPinTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:12.125Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.095">
+  <properties/>
+  <testcase name="a portrait phone keeps the bottom bar, one row along the bottom" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenPortraitBottomNavPinTest" time="0.092"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

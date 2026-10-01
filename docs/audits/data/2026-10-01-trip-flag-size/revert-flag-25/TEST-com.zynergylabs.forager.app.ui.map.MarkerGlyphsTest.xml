@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest" tests="15" skipped="0" failures="3" errors="0" timestamp="2026-10-01T05:16:21.782Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="3.837">
+  <properties/>
+  <testcase name="the photo marker carries a camera in the casing colour" classname="com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest" time="3.073"/>
+  <testcase name="the find is 25 dp tall with its proportions kept, between the photo and the pin" classname="com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest" time="0.051"/>
+  <testcase name="each marker icon is its own glyph in its own role's colour, day and night" classname="com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest" time="0.055"/>
+  <testcase name="the bottom-anchored glyphs are cased below their anchor" classname="com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest" time="0.047"/>
+  <testcase name="the waypoint, the photo and the search centre are not resized" classname="com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest" time="0.062"/>
+  <testcase name="the fan centring offset moves each glyph's fill-extent centre onto the point" classname="com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest" time="0.071">
+    <failure message="java.lang.AssertionError: PLANNED_TRIP fan centring offset x expected:&lt;-6.9821&gt; but was:&lt;-7.589286&gt;" type="java.lang.AssertionError">java.lang.AssertionError: PLANNED_TRIP fan centring offset x expected:&lt;-6.9821&gt; but was:&lt;-7.589286&gt;
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:577)
+	at com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest.the fan centring offset moves each glyph's fill-extent centre onto the point(MarkerGlyphsTest.kt:69)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate(RobolectricTestRunner.java:524)
+	at org.robolectric.internal.SandboxTestRunner.executeInSandbox(SandboxTestRunner.java:494)
+	at org.robolectric.internal.SandboxTestRunner.access$900(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$7.evaluate(SandboxTestRunner.java:442)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.robolectric.internal.SandboxTestRunner.access$600(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$6.evaluate(SandboxTestRunner.java:333)
+	at org.robolectric.internal.SandboxTestRunner$3.evaluate(SandboxTestRunner.java:233)
+	at org.robolectric.internal.SandboxTestRunner$5.lambda$evaluate$0(SandboxTestRunner.java:317)
+	at org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0(Sandbox.java:101)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</failure>
+  </testcase>
+  <testcase name="the flag is 23 dp tall with its 20 by 28 proportions kept, and its anchor on the pole foot" classname="com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest" time="0.047">
+    <failure message="java.lang.AssertionError: the flag's height, was 25 expected:&lt;23.0&gt; but was:&lt;25.0&gt;" type="java.lang.AssertionError">java.lang.AssertionError: the flag's height, was 25 expected:&lt;23.0&gt; but was:&lt;25.0&gt;
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:577)
+	at com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest.the flag is 23 dp tall with its 20 by 28 proportions kept, and its anchor on the pole foot(MarkerGlyphsTest.kt:106)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate(RobolectricTestRunner.java:524)
+	at org.robolectric.internal.SandboxTestRunner.executeInSandbox(SandboxTestRunner.java:494)
+	at org.robolectric.internal.SandboxTestRunner.access$900(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$7.evaluate(SandboxTestRunner.java:442)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.robolectric.internal.SandboxTestRunner.access$600(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$6.evaluate(SandboxTestRunner.java:333)
+	at org.robolectric.internal.SandboxTestRunner$3.evaluate(SandboxTestRunner.java:233)
+	at org.robolectric.internal.SandboxTestRunner$5.lambda$evaluate$0(SandboxTestRunner.java:317)
+	at org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0(Sandbox.java:101)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</failure>
+  </testcase>
+  <testcase name="the waypoint pin carries a hollow ring on its head" classname="com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest" time="0.041"/>
+  <testcase name="the feature at the anchor is drawn in the fill colour" classname="com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest" time="0.042"/>
+  <testcase name="the anchor is the bitmap's exact centre, so icon-anchor center puts it on the coordinate" classname="com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest" time="0.063"/>
+  <testcase name="the flag's resize left the find, the waypoint and the photo exactly as they were" classname="com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest" time="0.037"/>
+  <testcase name="the find marker is a mushroom anchored at its stem foot" classname="com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest" time="0.037"/>
+  <testcase name="the padding holds the whole casing, so nothing is clipped" classname="com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest" time="0.057"/>
+  <testcase name="the reticle's arms pass the ring's outer edge" classname="com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest" time="0.038"/>
+  <testcase name="each glyph's fill extent and anchor are the glyph board's" classname="com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest" time="0.059">
+    <failure message="java.lang.AssertionError: PLANNED_TRIP width expected:&lt;16.4286&gt; but was:&lt;17.857143&gt;" type="java.lang.AssertionError">java.lang.AssertionError: PLANNED_TRIP width expected:&lt;16.4286&gt; but was:&lt;17.857143&gt;
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:577)
+	at com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest.each glyph's fill extent and anchor are the glyph board's(MarkerGlyphsTest.kt:77)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate(RobolectricTestRunner.java:524)
+	at org.robolectric.internal.SandboxTestRunner.executeInSandbox(SandboxTestRunner.java:494)
+	at org.robolectric.internal.SandboxTestRunner.access$900(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$7.evaluate(SandboxTestRunner.java:442)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.robolectric.internal.SandboxTestRunner.access$600(SandboxTestRunner.java:67)
+	at org.robolectric.internal.SandboxTestRunner$6.evaluate(SandboxTestRunner.java:333)
+	at org.robolectric.internal.SandboxTestRunner$3.evaluate(SandboxTestRunner.java:233)
+	at org.robolectric.internal.SandboxTestRunner$5.lambda$evaluate$0(SandboxTestRunner.java:317)
+	at org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0(Sandbox.java:101)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</failure>
+  </testcase>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenInAppCameraTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:18:32.117Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="2.008">
+  <properties/>
+  <testcase name="the camera survives a width change, and its photo still routes" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenInAppCameraTest" time="0.267"/>
+  <testcase name="a changed photo-location setting shows on the chip at the next open" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenInAppCameraTest" time="0.152"/>
+  <testcase name="changing the width back keeps the camera too" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenInAppCameraTest" time="0.127"/>
+  <testcase name="without the CAMERA permission the tap asks for it and opens nothing" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenInAppCameraTest" time="0.112"/>
+  <testcase name="the Album's Camera button opens the camera for the Album" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenInAppCameraTest" time="0.15"/>
+  <testcase name="the photo-location setting reaches the camera's chip, and a tap reaches the screen's handler" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenInAppCameraTest" time="0.123"/>
+  <testcase name="with the setting off the slot is told off" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenInAppCameraTest" time="0.111"/>
+  <testcase name="the lock-camera setting reaches the camera slot as given" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenInAppCameraTest" time="0.18"/>
+  <testcase name="the dialog follows the holder's target" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenInAppCameraTest" time="0.191"/>
+  <testcase name="the grid mode reaches the camera, and a tap on the grid chip reaches the screen's callback" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenInAppCameraTest" time="0.113"/>
+  <testcase name="with the camera open, a real touch where the Camera button sits is taken by the camera and not by the button behind it" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenInAppCameraTest" time="0.149"/>
+  <testcase name="after a tap on the camera's chip, Settings' checkbox shows the same value" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenInAppCameraTest" time="0.185"/>
+  <testcase name="the editor's Camera button opens one camera, for the Cartography entry" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenInAppCameraTest" time="0.143"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

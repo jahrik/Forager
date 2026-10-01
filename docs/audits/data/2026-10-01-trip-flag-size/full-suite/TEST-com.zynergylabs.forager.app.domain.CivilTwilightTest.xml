@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.CivilTwilightTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:52.526Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.004">
+  <properties/>
+  <testcase name="noon and midnight are on opposite sides of the threshold in London in winter" classname="com.zynergylabs.forager.app.domain.CivilTwilightTest" time="0.0"/>
+  <testcase name="Tromso in polar day is never night, including at local midnight" classname="com.zynergylabs.forager.app.domain.CivilTwilightTest" time="0.001"/>
+  <testcase name="instants before the epoch do not put the sun on the wrong side of the sky" classname="com.zynergylabs.forager.app.domain.CivilTwilightTest" time="0.0"/>
+  <testcase name="the sun is below the horizon at London midnight in midsummer, but not by much" classname="com.zynergylabs.forager.app.domain.CivilTwilightTest" time="0.0"/>
+  <testcase name="the threshold is civil twilight, not sunset" classname="com.zynergylabs.forager.app.domain.CivilTwilightTest" time="0.002"/>
+  <testcase name="London solar noon at the solstices matches 90 minus latitude plus or minus the tilt" classname="com.zynergylabs.forager.app.domain.CivilTwilightTest" time="0.0"/>
+  <testcase name="longitude shifts the daily cycle by four minutes per degree" classname="com.zynergylabs.forager.app.domain.CivilTwilightTest" time="0.0"/>
+  <testcase name="Tromso in polar night is not night mode at midday, though the sun never rises" classname="com.zynergylabs.forager.app.domain.CivilTwilightTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

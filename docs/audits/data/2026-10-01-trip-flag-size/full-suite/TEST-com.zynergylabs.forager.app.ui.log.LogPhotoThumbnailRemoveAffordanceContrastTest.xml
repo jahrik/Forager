@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.LogPhotoThumbnailRemoveAffordanceContrastTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:46.783Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.009">
+  <properties/>
+  <testcase name="the white glyph on the scrim clears non-text contrast over a pale backdrop" classname="com.zynergylabs.forager.app.ui.log.LogPhotoThumbnailRemoveAffordanceContrastTest" time="0.008"/>
+  <testcase name="the white glyph on the scrim clears non-text contrast over a dark backdrop" classname="com.zynergylabs.forager.app.ui.log.LogPhotoThumbnailRemoveAffordanceContrastTest" time="0.0"/>
+  <testcase name="mutation check — a much lower scrim alpha fails against a pale backdrop" classname="com.zynergylabs.forager.app.ui.log.LogPhotoThumbnailRemoveAffordanceContrastTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.fanout.MapTapHandlerStackDistanceTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:13.010Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.002">
+  <properties/>
+  <testcase name="horizontal boundary - exactly 26 dp apart does not fan" classname="com.zynergylabs.forager.app.ui.map.fanout.MapTapHandlerStackDistanceTest" time="0.0"/>
+  <testcase name="the owner's pair, 15 dp apart across and 35 dp down, does not fan and each opens its own bubble" classname="com.zynergylabs.forager.app.ui.map.fanout.MapTapHandlerStackDistanceTest" time="0.001"/>
+  <testcase name="the stacking distance is its own constant and the touch size is unchanged" classname="com.zynergylabs.forager.app.ui.map.fanout.MapTapHandlerStackDistanceTest" time="0.0"/>
+  <testcase name="vertical boundary - exactly 26 dp apart does not fan" classname="com.zynergylabs.forager.app.ui.map.fanout.MapTapHandlerStackDistanceTest" time="0.0"/>
+  <testcase name="vertical boundary - 25 dp apart fans, 26 dp apart does not" classname="com.zynergylabs.forager.app.ui.map.fanout.MapTapHandlerStackDistanceTest" time="0.0"/>
+  <testcase name="horizontal boundary - 25 dp apart fans, 26 dp apart does not" classname="com.zynergylabs.forager.app.ui.map.fanout.MapTapHandlerStackDistanceTest" time="0.0"/>
+  <testcase name="two finds about 30 dp apart, the owner's screenshot pair, no longer fan (30 dp is the planner's estimate, not a measurement)" classname="com.zynergylabs.forager.app.ui.map.fanout.MapTapHandlerStackDistanceTest" time="0.0"/>
+  <testcase name="two finds 20 dp apart are a stack and fan" classname="com.zynergylabs.forager.app.ui.map.fanout.MapTapHandlerStackDistanceTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

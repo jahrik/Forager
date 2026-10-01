@@ -1,8 +1,8 @@
 package com.zynergylabs.forager.app.ui.availability
 
 // Split-AvailabilityScreen Stage C: the search UI, moved verbatim out of AvailabilityScreen.kt —
-// SearchEntryBar, SearchDropdown, SpeciesSearchControls, ActiveSearchSummary, SearchNotice,
-// AvailabilitySearchTopBar, SearchControls, RegionControls, RecentSearchesSection, MonthSelector,
+// SearchEntryBar, SearchDropdown, SpeciesSearchControls, SearchNotice,
+// SearchControls, RecentSearchesSection, MonthSelector,
 // CollapsibleSection, their private helpers (activeSearchSummary, RecentSearchRow,
 // TaxonSuggestionContent) and the four internal test-tag constants. Same package as Stage A, for
 // the same reason: the seven test files that reach the tags and the log package's own
@@ -22,17 +22,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.absolutePadding
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
@@ -45,7 +44,6 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -62,6 +60,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -69,9 +68,15 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldColors
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -94,18 +99,23 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import com.zynergylabs.forager.app.domain.CachedSearchSummary
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.formatDistanceKm
 import com.zynergylabs.forager.app.domain.model.TaxonFilter
 import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
+import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPickerOverlay
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_DARK
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_LIGHT
 import com.zynergylabs.forager.app.ui.map.MapIconBar
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorDark
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorLight
+import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
+import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
+import com.zynergylabs.forager.app.ui.map.mapChromeFill
 import com.zynergylabs.forager.app.ui.theme.Bark
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import com.zynergylabs.forager.app.ui.theme.Spacing
@@ -115,57 +125,12 @@ import java.util.Locale
 
 
 /**
- * What the screen is currently showing, in one line — "Fungi · August · 8 km". Medium/expanded
- * only now: compact replaced this with [SearchEntryBar], a real entry field, rather than a
- * read-only summary that opens a second one — see that composable's own doc comment. This is what
- * remains for the medium/expanded `mainScaffold`'s own results pane, which already shows
- * [SpeciesSearchControls] directly in its app bar and has no second-summary problem to fix.
- *
- * With the controls behind a drawer the user can no longer read their own filter settings off
- * the screen, so this replaces that. It is deliberately outside the drawer and outside the tab
- * content: it has to be true of both tabs and visible at all times.
- *
- * Also a shortcut back into the species search that produced [AvailabilityUiState.taxonFilter]
- * when that came from a picked result: tapping it calls [onReopenTaxonSuggestions], which
- * restores and re-runs [AvailabilityUiState.lastTaxonSearchQuery] rather than making the user
- * retype it to change species. A no-op tap when nothing was ever searched (the callback itself
- * handles that), so this is unconditionally clickable rather than needing its own enabled state.
- */
-@Composable
-internal fun ActiveSearchSummary(
-    uiState: AvailabilityUiState,
-    distanceUnit: DistanceUnit,
-    onReopenTaxonSuggestions: () -> Unit,
-) {
-    Surface(
-        onClick = onReopenTaxonSuggestions,
-        color = MaterialTheme.colorScheme.surfaceVariant,
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-        ) {
-            Text(
-                text = activeSearchSummary(uiState, distanceUnit),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-        }
-    }
-}
-
-/**
- * Compact's own entire top search bar, replacing the old [ActiveSearchSummary]-opens-
- * [SearchDropdown] pair — map/navigation redesign dispatch D, the project owner's own direct call:
+ * The top search bar, replacing the old read-only summary that opened [SearchDropdown] — map/navigation
+ * redesign dispatch D, the project owner's own direct call:
  * "the search bar at the top should be the entry field for searches," with the old read-only
- * summary-that-opens-a-second-text-field removed as the redundant "second search bar" it had
- * become. [SpeciesSearchControls]' own species field is hosted here directly — the same field
+ * summary-that-opens-a-second-text-field removed as the redundant "second search bar"
+ * it had become. (That summary, `ActiveSearchSummary`, survived on the tablet's results pane until the
+ * tablet tree was removed, dispatch 2026-09-28-245.) [SpeciesSearchControls]' own species field is hosted here directly — the same field
  * [SearchDropdown] used to host a second copy of one tap deeper — so typing happens right where the
  * bar already reads as a search field, not behind an extra tap into a nested panel. No chevron: the
  * leading search icon [SpeciesSearchControls] itself doesn't draw, so this bar draws its own, is
@@ -204,6 +169,8 @@ internal fun SearchEntryBar(
     onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
     onDismissTaxonSuggestions: () -> Unit,
     onFieldFocused: () -> Unit,
+    /** Whether this bar is the Maps tab's, over its map: its species suggestions are then at the map chrome's alpha (owner, "1 A"). */
+    overMap: Boolean = false,
 ) {
     val isDarkTheme = LocalForagerDarkTheme.current
     val contentColor = if (isDarkTheme) Color.White else Bark
@@ -258,7 +225,7 @@ internal fun SearchEntryBar(
         tonalElevation = 0.dp,
         shadowElevation = 0.dp,
         shape = RectangleShape,
-        modifier = Modifier.fillMaxWidth().testTag(SEARCH_ENTRY_BAR_TAG),
+        modifier = Modifier.fillMaxWidth().testTag(SEARCH_ENTRY_BAR_TAG).mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight),
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.xs)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -281,6 +248,7 @@ internal fun SearchEntryBar(
                         showLocationTrailingIcon = false,
                         fieldColors = fieldColors,
                         contentPadding = fieldContentPadding,
+                        suggestionsOverMap = overMap,
                     )
                 }
             }
@@ -293,8 +261,7 @@ internal fun SearchEntryBar(
 /**
  * Map/navigation redesign dispatch C: the compact window's entire search surface, floating over
  * whatever tab content is currently showing (usually the map) from where quick species search used
- * to sit — see [ActiveSearchSummary]'s own doc comment on why that quick panel is gone rather than
- * kept alongside this one. Started as just item 1's "advanced search" (location/radius/month); a
+ * to sit — the quick panel is gone rather than kept alongside this one. Started as just item 1's "advanced search" (location/radius/month); a
  * follow-up owner call folded species search and Recent Searches in too, on the same "one place
  * instead of two" reasoning item 1 itself already argued for its own content — those had been
  * living in the Tools drawer, one tap further away and split across two surfaces from location
@@ -321,7 +288,7 @@ internal fun SearchEntryBar(
  *    `horizontalScroll` is exactly the pointer-handler-with-nothing-to-scroll shape that rule bans
  *    for a thin decorative strip, though not a concern for this panel's own remaining content, none
  *    of which scrolls horizontally). This whole panel is a different case regardless: rule 1's
- *    opaque [background] already blocks every touch within its bounds from reaching the map
+ *    [background] (at the map chrome's alpha, so the map shows through it) already blocks every touch within its bounds from reaching the map
  *    underneath, so once opened it behaves like the drawer's own [SearchControls] sheet, not like
  *    the compass strip — and on the smallest
  *    supported phone (`w360dp-h640dp-xhdpi`), fully expanding Advanced search *and* Enter
@@ -370,6 +337,18 @@ internal fun SearchDropdown(
     onMonthSelected: (Int) -> Unit,
     onSetOnMap: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * A one-shot request to open "Advanced search" and its "Enter coordinates manually" expanded, so
+     * Latitude, Longitude and "Search this location" show at once (owner, 2026-09-28, continuation
+     * 2026-09-28-40: "Also open manual coordinates"). `true` after the compact search bar's tap. The
+     * outer section expands without consuming it, since the inner one is composed only once the outer
+     * is open; the inner one expands and calls [onManualCoordinatesExpandConsumed]. Each section's own
+     * expanded state stays its own afterwards, so a collapse the user makes stands.
+     */
+    expandManualCoordinatesRequested: Boolean = false,
+    onManualCoordinatesExpandConsumed: () -> Unit = {},
+    /** Whether this panel opens over the Maps tab's map; its Month menu is then at the map chrome's alpha (owner, "1 A"). */
+    overMap: Boolean = false,
 ) {
     val isDarkTheme = LocalForagerDarkTheme.current
     CompositionLocalProvider(LocalContentColor provides if (isDarkTheme) Color.White else Bark) {
@@ -378,10 +357,11 @@ internal fun SearchDropdown(
                 .fillMaxWidth()
                 // Rule 1 above: Box + background, never Surface, over the map.
                 .background(
-                    color = if (isDarkTheme) CompassStripBackgroundColorDark else CompassStripBackgroundColorLight,
+                    color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
                     shape = RectangleShape,
                 )
-                .testTag(SEARCH_DROPDOWN_TAG),
+                .testTag(SEARCH_DROPDOWN_TAG)
+                .mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight),
         ) {
             val scrollState = rememberScrollState()
             // Map/navigation search-UI redo dispatch: "scrolling the drawer dismisses the
@@ -393,6 +373,37 @@ internal fun SearchDropdown(
             val focusManager = LocalFocusManager.current
             LaunchedEffect(scrollState.isScrollInProgress) {
                 if (scrollState.isScrollInProgress) focusManager.clearFocus()
+            }
+            // Continuation 2026-09-28-41 (owner, short landscape: "Expand and auto-scroll"): once the
+            // bar's tap has opened the manual coordinates, the dropdown scrolls once to its end.
+            // "Search this location" is its last control, so the end is the least scroll that shows
+            // it with Latitude and Longitude just above; where everything fits (portrait) the end is
+            // 0 and nothing moves. Not measured from positions: the dropdown opens with an animation,
+            // and positions read mid-animation were stale (btn 0 px, viewport 150 px, instrumented
+            // run). ScrollState clamps its value as the viewport grows, so the view stays at the end.
+            // Instant, not animated: nothing in this dropdown scrolled programmatically before, so
+            // there was no animation to match. The user can scroll back up. A programmatic scroll
+            // counts as a scroll in progress, so the effect above also lowers the keyboard, which in
+            // a short window is what lets the fields be seen at all.
+            var scrollToCoordinatesPending by remember { mutableStateOf(false) }
+            // Part 1 layout fixes, item 3 (Part 1's device check, check 8; planner message
+            // 2026-09-28-98): in portrait the one scroll above lands while everything still fits, and
+            // the keyboard coming up afterwards shrinks this panel (its cap follows the keyboard, see
+            // compactMainScaffold), which would leave the fields scrolled off the bottom. So after that
+            // scroll the end stays in view each time the viewport's size changes, until the user drags
+            // the panel: their scroll stands from then on. Keyed on the viewport, not the content, so a
+            // section the user opens does not pull the view to the end. The device check found the
+            // programmatic scroll does not lower the keyboard (the comment above says it does); this
+            // keeps the fields in view above it either way.
+            var coordinatesKeptInView by remember { mutableStateOf(false) }
+            if (coordinatesKeptInView) {
+                LaunchedEffect(Unit) {
+                    launch {
+                        scrollState.interactionSource.interactions.first { it is DragInteraction.Start }
+                        coordinatesKeptInView = false
+                    }
+                    snapshotFlow { scrollState.viewportSize }.collect { scrollState.scrollTo(scrollState.maxValue) }
+                }
             }
             Column(
                 modifier = Modifier
@@ -408,8 +419,12 @@ internal fun SearchDropdown(
                 // current location" promoted out of "Advanced search" up to the drawer's own top
                 // level, same reasoning radius/month already got (a control reached for on nearly
                 // every search doesn't belong a tap deeper). Removed from Advanced search entirely,
-                // not duplicated — Advanced search now holds only "Enter coordinates manually", the
-                // one location path most searches don't need to override. These are actions, not
+                // not duplicated — Advanced search now holds only "Enter coordinates manually".
+                // That redo kept the manual coordinates a tap deeper, as "the one location path most
+                // searches don't need to override"; the owner reversed that on 2026-09-28
+                // (continuation 2026-09-28-40): "Also open manual coordinates". The search bar's tap
+                // now opens both sections below once (expandManualCoordinatesRequested), so the
+                // coordinates show at once; the user's own collapse afterwards stands. These are actions, not
                 // selections: OutlinedButton/Button, not FilterChip, so they never read as members
                 // of the category-chip row (now in SearchEntryBar, above this drawer entirely).
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -436,7 +451,7 @@ internal fun SearchDropdown(
                     valueRange = 1f..50f,
                     steps = 48,
                 )
-                MonthSelector(selectedMonth = uiState.selectedMonth, onMonthSelected = onMonthSelected)
+                MonthSelector(selectedMonth = uiState.selectedMonth, onMonthSelected = onMonthSelected, overMap = overMap)
 
                 HorizontalDivider()
                 CollapsibleSection(title = "Recent searches") {
@@ -449,8 +464,24 @@ internal fun SearchDropdown(
                 }
 
                 HorizontalDivider()
-                CollapsibleSection(title = "Advanced search") {
-                    CollapsibleSection(title = "Enter coordinates manually") {
+                CollapsibleSection(title = "Advanced search", expandRequested = expandManualCoordinatesRequested) {
+                    CollapsibleSection(
+                        title = "Enter coordinates manually",
+                        expandRequested = expandManualCoordinatesRequested,
+                        onExpandRequestConsumed = {
+                            onManualCoordinatesExpandConsumed()
+                            scrollToCoordinatesPending = true
+                        },
+                    ) {
+                        if (scrollToCoordinatesPending) {
+                            LaunchedEffect(Unit) {
+                                // One frame, so these fields have been laid out and measured.
+                                withFrameNanos { }
+                                scrollState.scrollTo(scrollState.maxValue)
+                                scrollToCoordinatesPending = false
+                                coordinatesKeptInView = true
+                            }
+                        }
                         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                             OutlinedTextField(
                                 value = uiState.manualLatText,
@@ -467,7 +498,10 @@ internal fun SearchDropdown(
                                 singleLine = true,
                             )
                         }
-                        OutlinedButton(onClick = onSearchManualCoordinates, modifier = Modifier.fillMaxWidth()) {
+                        OutlinedButton(
+                            onClick = onSearchManualCoordinates,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
                             Text("Search this location")
                         }
                     }
@@ -483,7 +517,7 @@ internal const val SEARCH_DROPDOWN_TAG = "search-dropdown"
 /** See [SearchEntryBar]'s own dismiss-elsewhere scrim doc comment, at its call site. */
 internal const val SEARCH_DROPDOWN_SCRIM_TAG = "search-dropdown-scrim"
 
-/** [SearchEntryBar]'s own species query field — a stable trigger regardless of its current text, for tests that don't want to depend on exact query wording. Also the pre-redesign name for [ActiveSearchSummary]'s own clickable row, kept unrenamed so existing tests that open the dropdown through this tag didn't all need retargeting for a purely mechanical rename. */
+/** [SearchEntryBar]'s own species query field — a stable trigger regardless of its current text, for tests that don't want to depend on exact query wording. Also the pre-redesign name for the old `ActiveSearchSummary`'s clickable row, kept unrenamed so existing tests that open the dropdown through this tag didn't all need retargeting for a purely mechanical rename. */
 internal const val ACTIVE_SEARCH_SUMMARY_TAG = "active-search-summary"
 
 /** [SearchEntryBar]'s own outer bounds — the whole bar, chips/field/divider included, for tests that need "where does the top strip end" (e.g. `topStripBottom()`) rather than a click target on the field specifically ([ACTIVE_SEARCH_SUMMARY_TAG]). */
@@ -494,7 +528,11 @@ private fun activeSearchSummary(uiState: AvailabilityUiState, distanceUnit: Dist
     // The radius of the search that actually ran, not the slider's pending value: moving the
     // slider doesn't re-run the search, so reporting it here would describe a search that hasn't
     // happened. Before any search there is no region, and this says so rather than implying one.
-    val where = uiState.region?.let { formatDistanceKm(it.radiusKm, distanceUnit) } ?: "no location set"
+    // Before any search there is no region, and this says so as what the user can do about it
+    // (owner, 2026-09-28: "Change it to 'September · Search a location'", so the line gives "a spark
+    // or motivation to action"). Tapping it focuses
+    // SearchEntryBar's field, which opens SearchDropdown.
+    val where = uiState.region?.let { formatDistanceKm(it.radiusKm, distanceUnit) } ?: "Search a location"
     // Fungi is the only category now (owner decision) — leading with its name on every search
     // would be a label with nothing left to distinguish it from. A specific searched species is
     // still worth naming up front; nothing selected leads with the month instead of a blank
@@ -512,14 +550,62 @@ private fun activeSearchSummary(uiState: AvailabilityUiState, distanceUnit: Dist
  * list, which was the default tab. The Map tab is the default now and the controls that raise
  * these live behind a drawer that closes on search, so without this strip both messages could be
  * raised and never seen (CLAUDE.md: failures are reported, not swallowed). The taxon-search error
- * joined this strip rather than staying inline in [AvailabilitySearchTopBar]: that bar is a fixed
+ * joined this strip rather than staying inline in the old `AvailabilitySearchTopBar`: that bar is a fixed
  * two-row sibling above the weighted tab content (see its own doc comment), so an inline error
  * line there would grow the app bar's height exactly when the map's share of the screen is being
  * protected — this strip already exists and already scrolls with nothing beneath it.
  */
 @Composable
-internal fun SearchNotice(uiState: AvailabilityUiState) {
-    val message = uiState.errorMessage
+internal fun SearchNotice(
+    uiState: AvailabilityUiState,
+    /** Whether a map is drawn beneath the banner: the Maps tab's own, inside its map's Box. Map chrome at 80%. */
+    overMap: Boolean = false,
+) {
+    val message = searchNoticeMessage(uiState) ?: return
+
+    // The fill and its content colour, pinned to the fill's own role (`contentColorFor` matches a
+    // colour-scheme role exactly; see `MapLayersSheet`). The text keeps its own explicit colour.
+    val noticeColor = mapChromeFill(MaterialTheme.colorScheme.errorContainer, overMap)
+    val noticeContentColor = contentColorFor(MaterialTheme.colorScheme.errorContainer)
+    Surface(
+        color = noticeColor,
+        contentColor = noticeContentColor,
+        modifier = Modifier
+            .absolutePadding(left = LocalSearchNoticeInset.current.left, right = LocalSearchNoticeInset.current.right)
+            .testTag(SEARCH_NOTICE_TAG)
+            .mapChromeContainerColor(noticeColor),
+    ) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onErrorContainer,
+            modifier = Modifier
+                .mapChromeContentColor(LocalContentColor.current)
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+        )
+    }
+}
+
+/**
+ * Room [SearchNotice] leaves at its left and right ends. The landscape L's map tab provides the L's side and width here (owner's
+ * ruling (b), continuation 2026-09-28-172): the notice and the L must not overlap, and a composition local reaches the notice inside
+ * the search slot without widening the slot's signature. [None] everywhere else, so every other notice is as it was.
+ */
+internal data class SearchNoticeInset(val left: Dp = 0.dp, val right: Dp = 0.dp) {
+    companion object {
+        val None = SearchNoticeInset()
+    }
+}
+
+internal val LocalSearchNoticeInset = compositionLocalOf { SearchNoticeInset.None }
+
+/**
+ * The text [SearchNotice] shows, or `null` when it shows nothing. One definition for the banner and for the Maps tab's layout, which
+ * places the banner below the compass strip and keeps the icon cluster below it only while it shows (dispatch 2026-09-28-104, item 2).
+ */
+internal fun searchNoticeMessage(uiState: AvailabilityUiState): String? =
+    uiState.errorMessage
         ?: uiState.taxonSearchErrorMessage
         ?: uiState.plannedTripsErrorMessage
         ?: if (uiState.locationPermissionDenied) {
@@ -527,76 +613,30 @@ internal fun SearchNotice(uiState: AvailabilityUiState) {
         } else {
             null
         }
-    if (message == null) return
 
-    Surface(color = MaterialTheme.colorScheme.errorContainer) {
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onErrorContainer,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-        )
-    }
-}
+/** [SearchNotice]'s banner, for tests. */
+internal const val SEARCH_NOTICE_TAG = "search-notice"
 
 
 /**
- * Everything set far less than once per search, as three independently collapsible sections:
- * **Recent searches** (the offline cache's picker), **Advanced search** (location, radius, month)
- * and **Trip Planner** (rain-driven trip windows plus the planned-trips list). Each is a single
- * tappable header row when collapsed and expands on tap — see [CollapsibleSection] — rather than a
- * flat stack, per the user's own framing of this drawer ("single line until you tap it, then it
- * drops down").
+ * The Tools drawer's search section: the Trip Planner (the one thing it still holds).
+ * [CompactToolsDrawerContent] hosts it. Species search and Recent Searches live in [SearchDropdown],
+ * and "Advanced search" (location, radius, month) in [AdvancedSearchDropdown], both over the map, so
+ * none of them is repeated here.
  *
- * Shared by both window classes' drawers, unlike most of this file's compact-vs-medium/expanded
- * split: [AvailabilitySearchTopBar] hosts species/category search above these three sections for
- * medium/expanded, while [CompactToolsDrawerContent] hosts the identical
- * [SpeciesSearchControls] around this same composable for compact — see that
- * composable's own doc comment for why species search moved there instead.
+ * Until dispatch 2026-09-28-245 the tablet's permanent drawer hosted the other two sections here
+ * through [includeAdvancedSearch] and [includeRecentSearches] flags, defaulted on for it; with the
+ * tablet tree removed both flags, and the parameters that only they read, are gone.
  *
- * The scroll modifier on the outer [Column] is not optional. This is the same tall stack of
- * controls that starved the map when it lived in the main column; a drawer sheet is a
- * fixed-height container too, so without it the later controls would simply be unreachable on a
- * short screen or at a large font scale. Collapsing all sections by default shortens that stack
- * further, but doesn't remove the need for scroll — a large font scale with all sections expanded
- * still needs it.
- *
- * [includeAdvancedSearch] defaults `true` — medium/expanded's own call site doesn't pass it, so its
- * drawer is untouched. Compact passes `false`: map/navigation redesign dispatch C, item 1 moved
- * "Advanced search" (location, radius, month) to [AdvancedSearchDropdown], floating over the map
- * from where quick species search used to sit, so keeping a second copy here would put it back to
- * "two places instead of one" — the exact duplication that move exists to remove.
+ * The scroll modifier on the outer [Column] is not optional: a drawer sheet is a fixed-height
+ * container, so without it the section would be unreachable on a short screen or at a large font
+ * scale.
  */
 @Composable
 internal fun SearchControls(
     modifier: Modifier = Modifier,
     uiState: AvailabilityUiState,
-    distanceUnit: DistanceUnit,
-    /**
-     * [onUseCurrentLocation] through [onMonthSelected] are only read inside the
-     * [includeAdvancedSearch]-gated section below (by [RegionControls]/[MonthSelector]) — all
-     * default to a no-op since compact's own call site has nothing left to wire them to once that
-     * section is excluded.
-     */
-    onUseCurrentLocation: () -> Unit = {},
-    onManualLatChanged: (String) -> Unit = {},
-    onManualLngChanged: (String) -> Unit = {},
-    onSearchManualCoordinates: () -> Unit = {},
-    onRadiusChanged: (Int) -> Unit = {},
-    onMonthSelected: (Int) -> Unit = {},
     onDeletePlannedTrip: (String) -> Unit,
-    onRecentSearchSelected: (CachedSearchSummary) -> Unit = {},
-    currentTime: CurrentTimeProvider,
-    includeAdvancedSearch: Boolean = true,
-    /**
-     * Defaults `true` — medium/expanded's own call site doesn't pass it, so its drawer is
-     * untouched. Compact passes `false`: map/navigation redesign dispatch C's own follow-up moved
-     * Recent Searches (and species search alongside it) into [SearchDropdown], the same "one place
-     * instead of two" reasoning [includeAdvancedSearch] already documents for Advanced Search.
-     */
-    includeRecentSearches: Boolean = true,
 ) {
     Column(
         modifier = modifier
@@ -604,41 +644,6 @@ internal fun SearchControls(
             .padding(horizontal = Spacing.lg, vertical = Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        if (includeRecentSearches) {
-            // First in the column, and a section of its own rather than a control inside "Advanced
-            // search". Two reasons, both about what this list is: one tap on an entry here *is* a
-            // whole search, so burying it under a header about the individual pieces of a search
-            // would put the shortest route to results two taps deeper than the long route; and it
-            // is the only control in this drawer that still does something useful with no
-            // connection, which is exactly when nobody wants to go hunting for it. It keeps the
-            // drawer's established one-line-until-tapped behaviour rather than being the one
-            // section that starts expanded.
-            CollapsibleSection(title = "Recent searches") {
-                RecentSearchesSection(
-                    recentSearches = uiState.recentSearches,
-                    currentTime = currentTime,
-                    distanceUnit = distanceUnit,
-                    onRecentSearchSelected = onRecentSearchSelected,
-                )
-            }
-        }
-        if (includeAdvancedSearch) {
-            if (includeRecentSearches) HorizontalDivider()
-            CollapsibleSection(title = "Advanced search") {
-                RegionControls(
-                    uiState = uiState,
-                    distanceUnit = distanceUnit,
-                    onUseCurrentLocation = onUseCurrentLocation,
-                    onManualLatChanged = onManualLatChanged,
-                    onManualLngChanged = onManualLngChanged,
-                    onSearchManualCoordinates = onSearchManualCoordinates,
-                    onRadiusChanged = onRadiusChanged,
-                )
-                HorizontalDivider()
-                MonthSelector(selectedMonth = uiState.selectedMonth, onMonthSelected = onMonthSelected)
-            }
-        }
-        if (includeRecentSearches || includeAdvancedSearch) HorizontalDivider()
         CollapsibleSection(title = "Trip Planner") {
             TripPlannerSection(uiState = uiState, onDeletePlannedTrip = onDeletePlannedTrip)
         }
@@ -660,9 +665,22 @@ internal fun SearchControls(
 // molecule a second time.
 internal fun CollapsibleSection(
     title: String,
+    /**
+     * When `true`, the section expands once and [onExpandRequestConsumed] is called, so the request
+     * is gone before the user can touch the section again; the expanded state itself stays this
+     * section's own, as before. See [AdvancedSearchDropdown]'s `expandManualCoordinatesRequested`.
+     */
+    expandRequested: Boolean = false,
+    onExpandRequestConsumed: () -> Unit = {},
     content: @Composable ColumnScope.() -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    LaunchedEffect(expandRequested) {
+        if (expandRequested) {
+            expanded = true
+            onExpandRequestConsumed()
+        }
+    }
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
@@ -769,137 +787,12 @@ private fun RecentSearchRow(
     }
 }
 
-@Composable
-private fun RegionControls(
-    uiState: AvailabilityUiState,
-    distanceUnit: DistanceUnit,
-    onUseCurrentLocation: () -> Unit,
-    onManualLatChanged: (String) -> Unit,
-    onManualLngChanged: (String) -> Unit,
-    onSearchManualCoordinates: () -> Unit,
-    onRadiusChanged: (Int) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        Button(onClick = onUseCurrentLocation, modifier = Modifier.fillMaxWidth()) {
-            Icon(Icons.Filled.LocationOn, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.size(Spacing.sm))
-            Text("Use current location")
-        }
-
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            OutlinedTextField(
-                value = uiState.manualLatText,
-                onValueChange = onManualLatChanged,
-                label = { Text("Latitude") },
-                modifier = Modifier.weight(1f),
-                singleLine = true,
-            )
-            OutlinedTextField(
-                value = uiState.manualLngText,
-                onValueChange = onManualLngChanged,
-                label = { Text("Longitude") },
-                modifier = Modifier.weight(1f),
-                singleLine = true,
-            )
-        }
-        OutlinedButton(onClick = onSearchManualCoordinates, modifier = Modifier.fillMaxWidth()) {
-            Text("Search this location")
-        }
-
-        Text("Search radius: ${formatDistanceKm(uiState.radiusKm, distanceUnit)}", style = MaterialTheme.typography.bodyMedium)
-        Slider(
-            value = uiState.radiusKm.toFloat(),
-            onValueChange = { onRadiusChanged(it.toInt()) },
-            valueRange = 1f..50f,
-            steps = 48,
-        )
-    }
-}
-
-/**
- * The app bar: species/category search in place of a static "Forager" title, because it's the
- * control used on nearly every search rather than once a session — see [AvailabilityScreen]'s doc
- * comment. This was the most-buried control in the previous layout, at the same depth as location
- * and radius; putting it in the app bar itself is one step further than the prior promotion out
- * of the drawer, per the user's explicit request.
- *
- * **A deliberate two-row bar, not Material3's single-row [androidx.compose.material3.TopAppBar].**
- * That component's title slot is sized for a line of text; fitting category chips *and* a text
- * field into it would either clip one of them or force the chips and the field onto the same row,
- * where neither has enough width to be usable next to a navigation icon. A taller, custom bar is
- * the defensible choice here — flagged rather than picked silently, per CLAUDE.md — and its cost
- * is a fixed, known quantity: two rows have a fixed height regardless of query length or category
- * count, so [AvailabilityScreenLayoutTest]'s `MIN_MAP_SHARE_OF_SCREEN` floor is a one-time,
- * re-measurable cost rather than one that grows with what the user types.
- *
- * The category row scrolls rather than wraps for the same reason it did inside the old
- * [Row]-in-a-drawer version: "Lichens (approx.)" is long enough to threaten clipping in a
- * non-scrolling row on a narrow phone, and scrolling keeps the row's height fixed at one chip
- * tall regardless of device width or category count.
- *
- * The suggestion list is the one part of the old species bar whose height wasn't fixed by its own
- * content — it grew with however many matches the search returned, which is exactly the kind of
- * wrap-content sibling this bar cannot afford to have. [ExposedDropdownMenuBox] (the same
- * mechanism [MonthSelector] already uses) renders it as a popup anchored below the text field
- * instead of a layout child, so a long result list draws over the map rather than pushing this
- * bar — and everything below it — taller.
- *
- * The location icon is the trailing icon of the species text field, at the field's far right —
- * a shortcut to the same "Use current location" action the drawer's [RegionControls] already has
- * ([onUseCurrentLocation] is the identical callback, not a second location-fetch path), placed
- * here because location is, with species/category, the other control reached for on nearly every
- * search. It uses [Icons.Filled.MyLocation] rather than the drawer button's
- * [Icons.Filled.LocationOn] so the two don't read as the same icon in two places. It used to sit
- * at the end of the category-chip row instead, which crowded that row's scrollable chips against
- * a fixed icon at a variable-width boundary; the text field's trailing-icon slot is a stable,
- * purpose-built spot for exactly this kind of field-scoped action.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-internal fun AvailabilitySearchTopBar(
-    uiState: AvailabilityUiState,
-    onOpenDrawer: () -> Unit,
-    onUseCurrentLocation: () -> Unit,
-    onTaxonSearchQueryChanged: (String) -> Unit,
-    onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
-    onDismissTaxonSuggestions: () -> Unit,
-) {
-    Surface(
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 3.dp,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .windowInsetsPadding(WindowInsets.statusBars)
-                .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onOpenDrawer) {
-                    Icon(Icons.Filled.Tune, contentDescription = "Advanced search options")
-                }
-                Box(modifier = Modifier.weight(1f)) {
-                    SpeciesSearchControls(
-                        uiState = uiState,
-                        onUseCurrentLocation = onUseCurrentLocation,
-                        onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
-                        onTaxonSearchResultSelected = onTaxonSearchResultSelected,
-                        onDismissTaxonSuggestions = onDismissTaxonSuggestions,
-                    )
-                }
-            }
-        }
-    }
-}
-
 /**
  * The species search controls themselves — the species text field and its suggestion dropdown —
- * factored out of [AvailabilitySearchTopBar] so [CompactToolsDrawerContent] can host the identical
+ * factored out of the old `AvailabilitySearchTopBar` so [CompactToolsDrawerContent] can host the identical
  * control inside the drawer instead of the app bar (per the project owner's own framing: "the
  * whole side panel is the search feature"), rather than a second copy of the
- * [ExposedDropdownMenuBox] logic. [AvailabilitySearchTopBar]'s own external shape (the Surface,
+ * [ExposedDropdownMenuBox] logic. The old `AvailabilitySearchTopBar`'s own external shape (the Surface,
  * the tune icon, the two-row layout) is unchanged by this extraction — only where the field piece
  * itself is called from moved.
  *
@@ -912,7 +805,7 @@ internal fun AvailabilitySearchTopBar(
  * (map/navigation redesign dispatch D's own "the top bar should be the entry field" call; see that
  * composable's own doc comment), so it needs a stable [testTag] on the real field to tap/focus, and
  * a way to know when that focus changes so it can drive [SearchDropdown]'s own visibility. Neither
- * [AvailabilitySearchTopBar] nor [CompactToolsDrawerContent] pass either — their own species field
+ * the old `AvailabilitySearchTopBar` nor [CompactToolsDrawerContent] pass either — their own species field
  * is not a trigger for anything else, so the defaults leave them unchanged.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -930,7 +823,7 @@ private fun SpeciesSearchControls(
      * redo dispatch, the owner's own direct call: the bar reads as the current filter summary
      * ("August · 9 mi", or a searched species' name ahead of it) always, not a generic hint that
      * blanks out what's currently searched the moment someone taps in to search. The generic hint
-     * this used to swap to on focus (and the two other call sites, [AvailabilitySearchTopBar] and
+     * this used to swap to on focus (and the two other call sites, `AvailabilitySearchTopBar` and
      * [CompactToolsDrawerContent], used to default to outright) is gone from the app entirely, by
      * direct owner instruction — those two call sites now default to a blank placeholder instead
      * of reintroducing it.
@@ -961,6 +854,8 @@ private fun SpeciesSearchControls(
      * existed.
      */
     contentPadding: PaddingValues = OutlinedTextFieldDefaults.contentPadding(),
+    /** Whether the suggestions open over a map drawn on screen; they are then at the map chrome's alpha (owner, "1 A"). */
+    suggestionsOverMap: Boolean = false,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         val suggestionsOpen = uiState.taxonSearchResults.isNotEmpty() || uiState.taxonSearchHasNoResults
@@ -1031,23 +926,52 @@ private fun SpeciesSearchControls(
             // closed anything — the only way to get rid of the list was to pick a result or
             // clear the query back below MIN_QUERY_LENGTH. Wiring the real dismiss action in
             // is the fix, not new behavior invented on top of the component.
-            ExposedDropdownMenu(expanded = suggestionsOpen, onDismissRequest = onDismissTaxonSuggestions) {
-                if (uiState.taxonSearchResults.isEmpty() && uiState.taxonSearchHasNoResults) {
-                    DropdownMenuItem(
-                        text = { Text("No matches for “${uiState.taxonSearchQuery.trim()}”") },
-                        onClick = {},
-                        enabled = false,
-                    )
-                } else {
-                    uiState.taxonSearchResults.forEach { result ->
+            // The menu's default container role, passed explicitly, and its content colour pinned to
+            // the role's own (`contentColorFor` matches a colour-scheme role exactly; see
+            // `MapLayersSheet`), as J8's menus do (`journalMenuContentColor`).
+            // Owner, verbatim "1 A" (planner message 2026-09-28-77, Q3): at the map chrome's alpha on its
+            // own over the Maps tab, stacking over the 0.8 search panel; solid where no map is drawn.
+            val suggestionsColor = mapChromeFill(navigationBarContainerColor(), suggestionsOverMap)
+            val suggestionsContentColor = contentColorFor(navigationBarContainerColor())
+            ExposedDropdownMenu(
+                expanded = suggestionsOpen,
+                onDismissRequest = onDismissTaxonSuggestions,
+                containerColor = suggestionsColor,
+                modifier = Modifier
+                    .testTag(TAXON_SUGGESTIONS_MENU_TAG)
+                    .mapChromeContainerColor(suggestionsColor),
+            ) {
+                CompositionLocalProvider(LocalContentColor provides suggestionsContentColor) {
+                    // The content colour as read inside the menu, on its first row, for tests.
+                    val readInside = Modifier.mapChromeContentColor(LocalContentColor.current)
+                    if (uiState.taxonSearchResults.isEmpty() && uiState.taxonSearchHasNoResults) {
                         DropdownMenuItem(
-                            text = { TaxonSuggestionContent(result) },
-                            onClick = { onTaxonSearchResultSelected(result) },
+                            text = { Text("No matches for “${uiState.taxonSearchQuery.trim()}”") },
+                            onClick = {},
+                            enabled = false,
+                            modifier = readInside,
                         )
+                    } else {
+                        uiState.taxonSearchResults.forEachIndexed { index, result ->
+                            DropdownMenuItem(
+                                text = { TaxonSuggestionContent(result) },
+                                onClick = { onTaxonSearchResultSelected(result) },
+                                modifier = if (index == 0) readInside else Modifier,
+                            )
+                        }
                     }
                 }
             }
         }
+        // Back closes the suggestions first, as it does other popups (dispatch 2026-09-28-104, item 4; the
+        // map-chrome device check saw three Backs change nothing). Diagnosed, not assumed: under Robolectric,
+        // with the list open, Back reached none of this screen's handlers (the home handler, the search
+        // panel's, and a first version of this one all stayed silent), and `ExposedDropdownMenuBox`'s bytecode
+        // (material3 1.5.0-alpha26) calls its own internal `BackHandler` after composing its content. That
+        // handler answers with `onExpandedChange(false)`, which this box leaves a no-op on purpose (a tap on
+        // the field must not toggle the list), so Back was taken and did nothing. Handlers win in
+        // registration order, so this one is composed after the box, not inside it or before it.
+        BackHandler(enabled = suggestionsOpen) { onDismissTaxonSuggestions() }
     }
 }
 
@@ -1063,7 +987,7 @@ private fun TaxonSuggestionContent(result: TaxonSearchResult) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MonthSelector(selectedMonth: Int, onMonthSelected: (Int) -> Unit) {
+private fun MonthSelector(selectedMonth: Int, onMonthSelected: (Int) -> Unit, overMap: Boolean = false) {
     var expanded by remember { mutableStateOf(false) }
     val monthName = Month.of(selectedMonth).getDisplayName(TextStyle.FULL, Locale.getDefault())
 
@@ -1078,17 +1002,39 @@ private fun MonthSelector(selectedMonth: Int, onMonthSelected: (Int) -> Unit) {
                 .fillMaxWidth()
                 .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
         )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            (1..12).forEach { month ->
-                DropdownMenuItem(
-                    text = { Text(Month.of(month).getDisplayName(TextStyle.FULL, Locale.getDefault())) },
-                    onClick = {
-                        onMonthSelected(month)
-                        expanded = false
-                    },
-                )
+        // As the species suggestions above: the default role, passed explicitly, and its content colour.
+        // As the species suggestions (owner, "1 A"): 0.8 on its own over the Maps tab, stacking.
+        val monthMenuColor = mapChromeFill(navigationBarContainerColor(), overMap)
+        val monthMenuContentColor = contentColorFor(navigationBarContainerColor())
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            containerColor = monthMenuColor,
+            modifier = Modifier
+                .testTag(MONTH_MENU_TAG)
+                .mapChromeContainerColor(monthMenuColor),
+        ) {
+            CompositionLocalProvider(LocalContentColor provides monthMenuContentColor) {
+                // The content colour as read inside the menu, on its first row, for tests.
+                val readInside = Modifier.mapChromeContentColor(LocalContentColor.current)
+                (1..12).forEach { month ->
+                    DropdownMenuItem(
+                        text = { Text(Month.of(month).getDisplayName(TextStyle.FULL, Locale.getDefault())) },
+                        onClick = {
+                            onMonthSelected(month)
+                            expanded = false
+                        },
+                        modifier = if (month == 1) readInside else Modifier,
+                    )
+                }
             }
         }
     }
 }
+
+/** The species suggestions' menu ([SpeciesSearchControls]), for tests. */
+internal const val TAXON_SUGGESTIONS_MENU_TAG = "taxon-suggestions-menu"
+
+/** The Month menu ([MonthSelector]), for tests. */
+internal const val MONTH_MENU_TAG = "month-menu"
 

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.NormalizeSearchNameTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:53.664Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.001">
+  <properties/>
+  <testcase name="the stored common name and the motivating typed query normalize identically as a prefix relationship" classname="com.zynergylabs.forager.app.domain.NormalizeSearchNameTest" time="0.001"/>
+  <testcase name="a query that is only punctuation normalizes to empty" classname="com.zynergylabs.forager.app.domain.NormalizeSearchNameTest" time="0.0"/>
+  <testcase name="turns hyphens into spaces" classname="com.zynergylabs.forager.app.domain.NormalizeSearchNameTest" time="0.0"/>
+  <testcase name="lowercases" classname="com.zynergylabs.forager.app.domain.NormalizeSearchNameTest" time="0.0"/>
+  <testcase name="collapses repeated whitespace" classname="com.zynergylabs.forager.app.domain.NormalizeSearchNameTest" time="0.0"/>
+  <testcase name="collapses surrounding and internal punctuation to single spaces" classname="com.zynergylabs.forager.app.domain.NormalizeSearchNameTest" time="0.0"/>
+  <testcase name="strips diacritics" classname="com.zynergylabs.forager.app.domain.NormalizeSearchNameTest" time="0.0"/>
+  <testcase name="strips apostrophes without leaving a gap" classname="com.zynergylabs.forager.app.domain.NormalizeSearchNameTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

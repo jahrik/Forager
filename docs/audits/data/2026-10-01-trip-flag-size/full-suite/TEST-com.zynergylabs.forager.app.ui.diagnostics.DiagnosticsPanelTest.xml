@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsPanelTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:24.721Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.498">
+  <properties/>
+  <testcase name="nothing is started until a share action is tapped" classname="com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsPanelTest" time="0.114"/>
+  <testcase name="sharing a photo starts an ACTION_SEND chooser with a content URI naming that file" classname="com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsPanelTest" time="0.098"/>
+  <testcase name="the log row shows the log's own text, and an empty log says so" classname="com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsPanelTest" time="0.046"/>
+  <testcase name="a photo persisted by FilePhotoStore and a capture issued by CameraCaptureFiles both appear" classname="com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsPanelTest" time="0.047"/>
+  <testcase name="sharing the log starts a text chooser with a content URI for the log file" classname="com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsPanelTest" time="0.046"/>
+  <testcase name="listing, viewing and sharing leave both directories byte for byte as they were" classname="com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsPanelTest" time="0.063"/>
+  <testcase name="lists each directory's files with name, size and modified time, and a count per directory" classname="com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsPanelTest" time="0.045"/>
+  <testcase name="empty directories say so with a zero count, and a missing one lists as empty too" classname="com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsPanelTest" time="0.035"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

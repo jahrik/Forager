@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.JournalEntryCardsTest" tests="30" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:37.845Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="1.394">
+  <properties/>
+  <testcase name="a card shows kept finds' identifications as species chips, each species once, withheld finds left out" classname="com.zynergylabs.forager.app.ui.log.JournalEntryCardsTest" time="0.074"/>
+  <testcase name="the album's find badge marks a photo on a saved find, and not one attached only to a draft find" classname="com.zynergylabs.forager.app.ui.log.JournalEntryCardsTest" time="0.045"/>
+  <testcase name="a card's stats row shows each kept type's figure with its unit, in kilometres" classname="com.zynergylabs.forager.app.ui.log.JournalEntryCardsTest" time="0.036"/>
+  <testcase name="a card whose kept track is not in the loaded list shows no thumbnail, beside one that is" classname="com.zynergylabs.forager.app.ui.log.JournalEntryCardsTest" time="0.038"/>
+  <testcase name="the month header stays pinned at the top while that month's cards scroll under it" classname="com.zynergylabs.forager.app.ui.log.JournalEntryCardsTest" time="0.054"/>
+  <testcase name="a draft card in the drafts list draws the path saved for its kept track that is gone, through the Journal tab" classname="com.zynergylabs.forager.app.ui.log.JournalEntryCardsTest" time="0.039"/>
+  <testcase name="a card whose kept track is in the loaded list with two or more points shows its thumbnail" classname="com.zynergylabs.forager.app.ui.log.JournalEntryCardsTest" time="0.041"/>
+  <testcase name="only a kept track draws, a withheld track in the list gives no thumbnail" classname="com.zynergylabs.forager.app.ui.log.JournalEntryCardsTest" time="0.032"/>
+  <testcase name="a card keeping two tracks shows their total distance and duration labelled with the count" classname="com.zynergylabs.forager.app.ui.log.JournalEntryCardsTest" time="0.046"/>
+  <testcase name="a card whose kept track is gone from the loaded list draws the path saved for it" classname="com.zynergylabs.forager.app.ui.log.JournalEntryCardsTest" time="0.033"/>
+  <testcase name="a card's track stat follows the user's distance unit" classname="com.zynergylabs.forager.app.ui.log.JournalEntryCardsTest" time="0.032"/>
+  <testcase name="a card keeping two tracks, one of them not loaded, still draws the one it has" classname="com.zynergylabs.forager.app.ui.log.JournalEntryCardsTest" time="0.036"/>
+  <testcase name="the hero is the earliest attached photo still in the gallery, skipping an earlier deleted one, on top of the card" classname="com.zynergylabs.forager.app.ui.log.JournalEntryCardsTest" time="0.032"/>
+  <testcase name="entries sit under month headers, newest month first" classname="com.zynergylabs.forager.app.ui.log.JournalEntryCardsTest" time="0.077"/>
+  <testcase name="a saved path of one point gives no thumbnail, as a live track of one point does not" classname="com.zynergylabs.forager.app.ui.log.JournalEntryCardsTest" time="0.064"/>
+  <testcase name="a withheld track's saved path gives no thumbnail and is not asked for" classname="com.zynergylabs.forager.app.ui.log.JournalEntryCardsTest" time="0.044"/>
+  <testcase name="a card keeping two tracks draws them in one thumbnail" classname="com.zynergylabs.forager.app.ui.log.JournalEntryCardsTest" time="0.08"/>
+  <testcase name="singular stats read 1 find, 1 waypoint, 1 offline map, and a type with nothing kept shows no stat" classname="com.zynergylabs.forager.app.ui.log.JournalEntryCardsTest" time="0.059"/>
+  <testcase name="a saved path is asked for only the entries whose kept track is not in the loaded list" classname="com.zynergylabs.forager.app.ui.log.JournalEntryCardsTest" time="0.061"/>
+  <testcase name="an entry with nothing kept and nothing written collapses and says so" classname="com.zynergylabs.forager.app.ui.log.JournalEntryCardsTest" time="0.041"/>
+  <testcase name="touching a collapsed row at several points opens that entry" classname="com.zynergylabs.forager.app.ui.log.JournalEntryCardsTest" time="0.059"/>
+  <testcase name="an entry with no attached photo has no hero, beside one that has" classname="com.zynergylabs.forager.app.ui.log.JournalEntryCardsTest" time="0.038"/>
+  <testcase name="a card keeps its thumbnail when its track is deleted from the loaded list" classname="com.zynergylabs.forager.app.ui.log.JournalEntryCardsTest" time="0.057"/>
+  <testcase name="a card shows the day numeral and weekday, the first line as its title, and no ISO date" classname="com.zynergylabs.forager.app.ui.log.JournalEntryCardsTest" time="0.035"/>
+  <testcase name="touching a card at several points opens that entry" classname="com.zynergylabs.forager.app.ui.log.JournalEntryCardsTest" time="0.054"/>
+  <testcase name="an entry with no photo, no text and no track collapses to one short row with its day and stats" classname="com.zynergylabs.forager.app.ui.log.JournalEntryCardsTest" time="0.031"/>
+  <testcase name="in compact portrait the cards are one full-width column, one card per row" classname="com.zynergylabs.forager.app.ui.log.JournalEntryCardsTest" time="0.049"/>
+  <testcase name="a Recorded Tracks row shows its thumbnail with two or more points and none with fewer" classname="com.zynergylabs.forager.app.ui.log.JournalEntryCardsTest" time="0.042"/>
+  <testcase name="a card whose kept track has fewer than two points shows no thumbnail, beside one that has two" classname="com.zynergylabs.forager.app.ui.log.JournalEntryCardsTest" time="0.03"/>
+  <testcase name="a wordless, trackless entry is a card when its photo exists and collapses when every photo is gone" classname="com.zynergylabs.forager.app.ui.log.JournalEntryCardsTest" time="0.031"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

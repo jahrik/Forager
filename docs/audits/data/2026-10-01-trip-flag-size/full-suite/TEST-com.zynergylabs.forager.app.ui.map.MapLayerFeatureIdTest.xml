@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.MapLayerFeatureIdTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:08.927Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.003">
+  <properties/>
+  <testcase name="the circle and fill layers are the sighting dot and the offline region in their own roles" classname="com.zynergylabs.forager.app.ui.map.MapLayerFeatureIdTest" time="0.0"/>
+  <testcase name="every symbol layer in the registry is a bitmap marker in the role's colour" classname="com.zynergylabs.forager.app.ui.map.MapLayerFeatureIdTest" time="0.002"/>
+  <testcase name="each find and photo marker carries its record id" classname="com.zynergylabs.forager.app.ui.map.MapLayerFeatureIdTest" time="0.0"/>
+  <testcase name="each planned trip's feature carries the trip's own id" classname="com.zynergylabs.forager.app.ui.map.MapLayerFeatureIdTest" time="0.0"/>
+  <testcase name="a tapped waypoint's id is the one its builder wrote" classname="com.zynergylabs.forager.app.ui.map.MapLayerFeatureIdTest" time="0.0"/>
+  <testcase name="every line layer in the registry is a line the map builds, on the same source, in the role's colour" classname="com.zynergylabs.forager.app.ui.map.MapLayerFeatureIdTest" time="0.001"/>
+  <testcase name="a tapped sighting's id is its observationId in decimal" classname="com.zynergylabs.forager.app.ui.map.MapLayerFeatureIdTest" time="0.0"/>
+  <testcase name="the search centre and the breadcrumb carry fixed ids" classname="com.zynergylabs.forager.app.ui.map.MapLayerFeatureIdTest" time="0.0"/>
+  <testcase name="each offline region circle carries its region id" classname="com.zynergylabs.forager.app.ui.map.MapLayerFeatureIdTest" time="0.0"/>
+  <testcase name="a sighting's feature keeps its observationId and gains no second id" classname="com.zynergylabs.forager.app.ui.map.MapLayerFeatureIdTest" time="0.0"/>
+  <testcase name="each waypoint's feature carries the waypoint's own id" classname="com.zynergylabs.forager.app.ui.map.MapLayerFeatureIdTest" time="0.0"/>
+  <testcase name="a tapped feature with no id reads as a hit with no id, not a made-up one" classname="com.zynergylabs.forager.app.ui.map.MapLayerFeatureIdTest" time="0.0"/>
+  <testcase name="each kept track's line carries its track id, and a dropped short track shifts no other id" classname="com.zynergylabs.forager.app.ui.map.MapLayerFeatureIdTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

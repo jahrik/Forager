@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenFullscreenTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:27.036Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.402">
+  <properties/>
+  <testcase name="the recenter button pans the camera once via focusOverride, without enabling tracking" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenFullscreenTest" time="0.041"/>
+  <testcase name="a real touch on the layers row opens the Layers sheet with its map types" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenFullscreenTest" time="0.072"/>
+  <testcase name="entering and exiting fullscreen preserves the map's own region" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenFullscreenTest" time="0.036"/>
+  <testcase name="the entry map's own basemap defaults to Topographical, independent of any injected value" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenFullscreenTest" time="0.033"/>
+  <testcase name="the basemap picker is hidden while the offline toggle is on" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenFullscreenTest" time="0.038"/>
+  <testcase name="tapping the preview enters fullscreen, showing the icon bar" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenFullscreenTest" time="0.041"/>
+  <testcase name="the offline toggle agrees between the inline row and the fullscreen chrome" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenFullscreenTest" time="0.079"/>
+  <testcase name="the Return row exits fullscreen" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenFullscreenTest" time="0.058"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

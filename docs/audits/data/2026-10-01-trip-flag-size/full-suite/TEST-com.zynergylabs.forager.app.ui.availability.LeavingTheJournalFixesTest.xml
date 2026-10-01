@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" tests="31" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:57.062Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="8.178">
+  <properties/>
+  <testcase name="F1 short landscape, viewing a committed find then leaving on the rail shows no Saved to Drafts snackbar and deletes nothing" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.179"/>
+  <testcase name="F2 a new day entry, a draft, left in its editor comes back in its editor" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.135"/>
+  <testcase name="F4 portrait, Back with the drawer open over the Map tab's Log a find picker closes the drawer first" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.1"/>
+  <testcase name="F1 a committed find opened in its editor and left by Back unchanged shows no snackbar, and its unchanged draft copy is gone" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.185"/>
+  <testcase name="F3 a committed find open in its report view is still open in it back on Journal, with no snackbar and nothing deleted" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.214"/>
+  <testcase name="F3 a committed find open in its editor with a change is still in its editor back on Journal, the change held" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.181"/>
+  <testcase name="F4 portrait, Back with the drawer open over the search dropdown on Maps closes the drawer first" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.127"/>
+  <testcase name="F4 portrait, Back with the drawer open over the search dropdown on the Journal closes the drawer first" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.1"/>
+  <testcase name="F3 the Tools drawer opened over an open find leaves it open, and Back closes the drawer first" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.103"/>
+  <testcase name="F2 after that return, Back from the editor asks Save or Discard, and Discard leaves Entries showing the stored text" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.164"/>
+  <testcase name="F1 viewing a committed find then leaving for Maps shows no Saved to Drafts snackbar and deletes nothing" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.1"/>
+  <testcase name="F3 backgrounding with a find open in its report view keeps it open, with no snackbar and nothing deleted" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="2.086"/>
+  <testcase name="F1 viewing a committed find then opening the Tools drawer shows no Saved to Drafts snackbar and deletes nothing" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.152"/>
+  <testcase name="F3 a bubble's Open in Journal over a changed kept find leaves it first, its draft in Drafts at once with Saved to Drafts" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.237"/>
+  <testcase name="F4 portrait, a real touch on Tools with the add-action menu open dismisses the menu and opens no drawer" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.088"/>
+  <testcase name="F3 backgrounding with a find open in its editor with a change keeps the editor, the change held" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="2.148"/>
+  <testcase name="F3 a find opened over Entries from a map bubble is still over Entries back on Journal" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.086"/>
+  <testcase name="F2 closing a day entry with unsaved changes leaves the Entries list and card on the stored text" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.103"/>
+  <testcase name="F3 Log a find on Maps over an unchanged kept re-edit leaves no duplicate draft row" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.139"/>
+  <testcase name="F3 short landscape, a committed find open in its report view is still open after the rail's Maps and Journal" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.091"/>
+  <testcase name="F4 portrait, Back with the drawer open over the search dropdown's Set on map picker closes the drawer first" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.095"/>
+  <testcase name="F1 a new find left by Back offers Discard, and once that find is saved the Discard deletes nothing" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.213"/>
+  <testcase name="F4 short landscape, Back with the drawer open from the rail over the add-action menu closes the drawer first" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.151"/>
+  <testcase name="F4 short landscape, Back with the drawer open from the rail over the search dropdown closes the drawer first" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.111"/>
+  <testcase name="F3 the Maps search bar shows on Maps while a find is kept open on the Journal" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.086"/>
+  <testcase name="F2 after that return, the leave prompt's Save stores the typed text" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.148"/>
+  <testcase name="F1 a committed find changed in its editor then left by Back shows Saved to Drafts, and Discard deletes only the draft row" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.114"/>
+  <testcase name="F2 a committed day entry's editor left with typed text comes back in its editor, the text still unsaved and drawn only there" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.123"/>
+  <testcase name="F3 Log a find on Maps over a changed kept find leaves it first, its draft in Drafts at once with Saved to Drafts" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.135"/>
+  <testcase name="F3 Log a find on Maps over a viewed committed find closes it with no snackbar and nothing deleted" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.109"/>
+  <testcase name="F2 a committed day entry's editor left with a waypoint withheld comes back in its editor with the waypoint still withheld" classname="com.zynergylabs.forager.app.ui.availability.LeavingTheJournalFixesTest" time="0.168"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

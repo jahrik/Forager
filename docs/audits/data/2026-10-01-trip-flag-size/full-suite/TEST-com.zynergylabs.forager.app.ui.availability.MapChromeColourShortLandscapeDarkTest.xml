@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.MapChromeColourShortLandscapeDarkTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:09.453Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.995">
+  <properties/>
+  <testcase name="the restore handle's mark is the token at 0_8" classname="com.zynergylabs.forager.app.ui.availability.MapChromeColourShortLandscapeDarkTest" time="0.065"/>
+  <testcase name="the search panel is the token at 0_8" classname="com.zynergylabs.forager.app.ui.availability.MapChromeColourShortLandscapeDarkTest" time="0.062"/>
+  <testcase name="the navigation HUD is the token at 0_8" classname="com.zynergylabs.forager.app.ui.availability.MapChromeColourShortLandscapeDarkTest" time="0.052"/>
+  <testcase name="the icon cluster's container is the token at 0_6, where there is one" classname="com.zynergylabs.forager.app.ui.availability.MapChromeColourShortLandscapeDarkTest" time="0.075"/>
+  <testcase name="the icon bar is the token, at its own alpha" classname="com.zynergylabs.forager.app.ui.availability.MapChromeColourShortLandscapeDarkTest" time="0.064"/>
+  <testcase name="the add-action tile is the token at 0_8" classname="com.zynergylabs.forager.app.ui.availability.MapChromeColourShortLandscapeDarkTest" time="0.063"/>
+  <testcase name="the search notice keeps its error colour, not the token" classname="com.zynergylabs.forager.app.ui.availability.MapChromeColourShortLandscapeDarkTest" time="0.062"/>
+  <testcase name="the minimise handle's mark is the token at 0_8" classname="com.zynergylabs.forager.app.ui.availability.MapChromeColourShortLandscapeDarkTest" time="0.136"/>
+  <testcase name="the record and return pill is the token, at its own alpha" classname="com.zynergylabs.forager.app.ui.availability.MapChromeColourShortLandscapeDarkTest" time="0.138"/>
+  <testcase name="the compass strip is the token at 0_8" classname="com.zynergylabs.forager.app.ui.availability.MapChromeColourShortLandscapeDarkTest" time="0.079"/>
+  <testcase name="a map bubble is the token at 0_8" classname="com.zynergylabs.forager.app.ui.availability.MapChromeColourShortLandscapeDarkTest" time="0.077"/>
+  <testcase name="the search bar is the token at 0_8" classname="com.zynergylabs.forager.app.ui.availability.MapChromeColourShortLandscapeDarkTest" time="0.059"/>
+  <testcase name="the navigation bar or rail is the token at 0_8 over the Maps tab, and solid on another tab" classname="com.zynergylabs.forager.app.ui.availability.MapChromeColourShortLandscapeDarkTest" time="0.061"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

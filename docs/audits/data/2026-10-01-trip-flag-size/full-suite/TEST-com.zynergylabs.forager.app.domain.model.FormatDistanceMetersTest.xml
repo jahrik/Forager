@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.model.FormatDistanceMetersTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:55.885Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.001">
+  <properties/>
+  <testcase name="inside the error circle - within the accuracy, in the display unit" classname="com.zynergylabs.forager.app.domain.model.FormatDistanceMetersTest" time="0.001"/>
+  <testcase name="outside the circle - rounded to a step no finer than the accuracy, marked approximate" classname="com.zynergylabs.forager.app.domain.model.FormatDistanceMetersTest" time="0.0"/>
+  <testcase name="the within boundary - equal is inside, a hair over is outside and rounded to the accuracy's step" classname="com.zynergylabs.forager.app.domain.model.FormatDistanceMetersTest" time="0.0"/>
+  <testcase name="no accuracy reported - exactly today's formatting, no marker" classname="com.zynergylabs.forager.app.domain.model.FormatDistanceMetersTest" time="0.0"/>
+  <testcase name="a step no coarser than the natural resolution carries no marker" classname="com.zynergylabs.forager.app.domain.model.FormatDistanceMetersTest" time="0.0"/>
+  <testcase name="miles - feet below a quarter mile, one decimal of miles from a quarter mile on" classname="com.zynergylabs.forager.app.domain.model.FormatDistanceMetersTest" time="0.0"/>
+  <testcase name="kilometres - metres below a kilometre, one decimal of kilometres from a kilometre on" classname="com.zynergylabs.forager.app.domain.model.FormatDistanceMetersTest" time="0.0"/>
+  <testcase name="at or above the kilometre and quarter-mile switch the one-decimal formatting is already coarser - unchanged" classname="com.zynergylabs.forager.app.domain.model.FormatDistanceMetersTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

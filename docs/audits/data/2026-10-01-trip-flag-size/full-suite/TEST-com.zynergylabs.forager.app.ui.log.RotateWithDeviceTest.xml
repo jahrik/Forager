@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.RotateWithDeviceTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:05.614Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.002">
+  <properties/>
+  <testcase name="no reading yet means upright, which is where the controls already are" classname="com.zynergylabs.forager.app.ui.log.RotateWithDeviceTest" time="0.001"/>
+  <testcase name="the short way round is a quarter back, never three quarters forward" classname="com.zynergylabs.forager.app.ui.log.RotateWithDeviceTest" time="0.001"/>
+  <testcase name="sensor minus display, a window that turned with the device leaves the controls untouched" classname="com.zynergylabs.forager.app.ui.log.RotateWithDeviceTest" time="0.0"/>
+  <testcase name="a half turn goes clockwise, and the same angle is no turn at all" classname="com.zynergylabs.forager.app.ui.log.RotateWithDeviceTest" time="0.0"/>
+  <testcase name="the result is always within a half turn of where it started" classname="com.zynergylabs.forager.app.ui.log.RotateWithDeviceTest" time="0.0"/>
+  <testcase name="the device turned a quarter counter-clockwise needs the control turned a quarter clockwise, and the reverse" classname="com.zynergylabs.forager.app.ui.log.RotateWithDeviceTest" time="0.0"/>
+  <testcase name="sensor minus display, a window at a quarter turn with the device elsewhere" classname="com.zynergylabs.forager.app.ui.log.RotateWithDeviceTest" time="0.0"/>
+  <testcase name="sensor minus display, a locked portrait window is the ROTATION_0 column, unchanged" classname="com.zynergylabs.forager.app.ui.log.RotateWithDeviceTest" time="0.0"/>
+  <testcase name="an unknown rotation value is treated as upright rather than guessed" classname="com.zynergylabs.forager.app.ui.log.RotateWithDeviceTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

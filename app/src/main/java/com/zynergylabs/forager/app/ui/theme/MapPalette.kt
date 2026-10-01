@@ -10,9 +10,9 @@ package com.zynergylabs.forager.app.ui.theme
  *
  * Each marker kind has its own role, so no two kinds share a colour: [waypoint], [find], [plannedTrip],
  * [photo], [keptTrack], [breadcrumb], the centre-pin picker's [centrePin], [searchCentre],
- * [offlineRegion] and [sightingDot], plus the two rings drawn on the sighting dot
- * ([sightingDotStroke], [sightingDotStrokeSelected]) and the [casing] every other marker is outlined
- * in. Before C2 the find pin shared the offline region's colour and the photo marker the planned
+ * [offlineRegion], [sightingDot] and J8's [journalEntry] halo, plus the two rings drawn on the sighting dot
+ * ([sightingDotStroke], [sightingDotStrokeSelected]), the [casing] every other marker is outlined
+ * in, and the night border under the offline region's dashed outline ([offlineRegionBorder]). Before C2 the find pin shared the offline region's colour and the photo marker the planned
  * trip's; colour told them apart only by shape, and in the find pin's case not even that.
  *
  * ## Hand-authored, not derived
@@ -68,6 +68,22 @@ data class MapPalette(
     val sightingDotStrokeSelected: Int,
     /** The outline every marker other than the sighting dot is drawn in: white by day, black at night. */
     val casing: Int,
+    /**
+     * J8: the halo drawn beneath a record kept by an entry shown on the map (owner: "Highlight in
+     * place"), one colour for every shown entry. Its halo sits against the record's own [casing], so
+     * `MapPaletteTest` holds it to (c) against the casing like the other fills.
+     */
+    val journalEntry: Int,
+    /**
+     * The border under the offline region's dashed outline (dispatch `2026-09-28-79`): a solid line in
+     * the track casing's pattern, so that at night the region's edge carries over the darkest ground,
+     * where the black dashes alone measured 1.08:1 to 1.45:1 on the phone (Part 1, check 5 (b)). The
+     * owner: "The outline should have a white border", and, for night only, "Yes the night outline
+     * only". Its opacity is the registry's (`OFFLINE_REGION_BORDER_OPACITY`), not this colour's alpha,
+     * except by day, when this colour is fully transparent so the layer draws nothing and the day
+     * outline is exactly as it was. `MapPaletteTest` holds its figures against the night ground.
+     */
+    val offlineRegionBorder: Int,
 ) {
     companion object {
 
@@ -87,6 +103,11 @@ data class MapPalette(
             sightingDotStroke = 0xFFFFFFFF.toInt(),
             sightingDotStrokeSelected = 0xFF2196F3.toInt(),
             casing = 0xFFFFFFFF.toInt(),
+            // J8's halo: a deep blue-teal, proposed by the J8 coder and measured in MapPaletteTest
+            // (see that test's class doc); the owner judges it on the phone.
+            journalEntry = 0xFF005577.toInt(),
+            // Night only (owner: "Yes the night outline only"): fully transparent, so it draws nothing.
+            offlineRegionBorder = 0x00FFFFFF,
         )
 
         val NIGHT = MapPalette(
@@ -98,12 +119,27 @@ data class MapPalette(
             breadcrumb = 0xFFB228F8.toInt(),
             centrePin = 0xFFA656A0.toInt(),
             searchCentre = 0xFFDEDEDE.toInt(),
-            offlineRegion = 0xFFFFFFFF.toInt(),
+            // The owner's pick, 2026-09-28, drawn at the fill layer's 0.2 opacity like the day fill. It was
+            // #FFFFFF, which read lighter than the night ground. Asked whether to darken it or lower its
+            // opacity, the owner chose "Darker shade (Recommended)", then qualified it: "Not too dark
+            // since it can make it harder to read. Find a balance." Black was dropped for that reason,
+            // and the owner chose "You pick from phone shots (Recommended)". Three dark greys were built
+            // and shot on the S22 at night, #202020, #404040 and #606060 (capture record
+            // docs/audits/2026-09-28-night-region-candidates-capture-run-record.md). The owner picked
+            // #202020, the darkest, after being told it nearly vanishes over the darkest night ground
+            // (0.001 Oklab ΔE as drawn over #22201C, per MapPaletteTest): "That's my pick." Over that
+            // ground only the dashed casing marks the edge; how well it does is unverified on a screen.
+            offlineRegion = 0xFF202020.toInt(),
             // The owner's "a mute grey color"; the exact grey is the planner's pick.
             sightingDot = 0xFF8C8C8C.toInt(),
             sightingDotStroke = 0xFFFFFFFF.toInt(),
             sightingDotStrokeSelected = 0xFF2196F3.toInt(),
             casing = 0xFF000000.toInt(),
+            // J8's halo at night: a cyan in the day colour's hue family (20.1° apart), measured the same way.
+            journalEntry = 0xFF00DDFF.toInt(),
+            // Owner: "The outline should have a white border". Opaque white here; drawn at the
+            // registry's line opacity, 0.85, the coder's proposal, for the owner to judge on the phone.
+            offlineRegionBorder = 0xFFFFFFFF.toInt(),
         )
 
         fun forMode(night: Boolean): MapPalette = if (night) NIGHT else DAY
