@@ -9274,3 +9274,31 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 - a comment in LeavingTheJournalFixesTest (F4's Journal test) is out of date, and the file was not edited;
 - the wiring test polls the real database with Thread.sleep for up to 10 seconds, for the owner's flake hunt.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-354
+**Timestamp:** 2026-10-01T03:34:06Z
+**Closes:** 2026-09-28-351 (preserved 2026-10-01-02)
+**Outcome:** completed; not proven against the CI failure, which CI judges
+**Observed:**
+- **What merged** into journal-redesign as a9eb8947, no-ff, from photo-decode-dispatcher 36b8f913. The owner said "Go ahead and merge". The coder ran on Sonnet 5.5, read by the planner from the session record.
+- **The seam:** PhotoDecodeDispatcher (main), an internal object whose current is Dispatchers.IO unless overridden. DecodedPhoto.kt changes one line to read it. Nothing in main sets the override.
+- **The test default:** a Robolectric TestEnvironmentLifecyclePlugin in src/test installs a dispatcher that posts the decode to the main looper before every test. No test class is edited.
+- **The opt-in:** GatedDecode.holdDecodes asks for a real background decode, for -317's three gated classes.
+- **The coder's evidence,** read by the planner from the saved XML in docs/audits/data/2026-10-01-photo-decode-dispatcher/:
+  - the thread test at fdf6c0a2, before the default: 1 of 3 failed, "the decode ran on [DefaultDispatcher-worker-3], not the main thread"; green at the tip;
+  - the default removed: the same message; the opt-in made a no-op: "the opt-in decoded on the main thread";
+  - -317's fix reverted: 5 of 5 DecodedPhotoGestureTest tests fail, so the gate still places the swap mid-gesture.
+- **The planner's checks:**
+  - the worktree's full-suite XML gives 406 files and 3272/0/0/24, written at 03:26Z; that XML is not committed;
+  - the branch's app tree at 36b8f913 is identical to the tested ec7c87a0, and the merged head's whole tree is identical to the branch's;
+  - no existing test class is changed and no @Ignore is added.
+- **Not established:** that this removes the CI failures. The mechanism is -349's and -348's inference and was never reproduced, by the owner's "C".
+**Open, with the owner:**
+- three other IO hops inside composables keep their background resume under test and are unchanged: PhotoViewerDialog.kt:328, TrackExportPanel.kt:263, CrashLogPanel.kt:153. The planner's recommendation, not yet ruled on: leave them, and extend the seam to the viewer only if the family persists in tests that open it;
+- PhotoDecodeDispatcher's KDoc says "The owner chose" and then quotes the planner's description of Fix 1. The owner's words were "Go with option C from your fix question", then "Fix 1".
+**Device item open,** in -319: photos still load in the album, the find editor, the report and the viewer, with no visible delay or change.
+**CI before this merge:** e9dfa9db green (run 36808986914), the fourth green run in a row.
+**Notes:** Written by the planner by hand.
