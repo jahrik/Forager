@@ -325,6 +325,9 @@ fun SightingsMap(
     // The map chrome's colour (the navigation bar's), read here because it follows the app's theme.
     val chromeColour = navigationBarContainerColor().toArgb()
     val currentChromeColour by rememberUpdatedState(chromeColour)
+    // The chrome colour the fan's circle image holds in the loaded style: set when the style loads (addFanOutLayers registers it), so the colour effect
+    // below registers it again only for a real change of colour.
+    val fanCircleColour = remember { arrayOfNulls<Int>(1) }
     val currentForecast by rememberUpdatedState(forecast)
     // Counts camera idles (map layers L0b, B5): the colour fields' cell feed below is keyed on it, so
     // the store is asked for the blocks in view each time the camera goes idle.
@@ -708,6 +711,7 @@ fun SightingsMap(
                 layersState = currentLayersState,
                 chromeColour = currentChromeColour,
             )
+            fanCircleColour[0] = currentChromeColour
             // The data+camera refresh effect below re-pushes every source right after this, keyed
             // on loadedStyle among other things — including the sighting source, with "selected"
             // baked in from whatever focusedObservationId is current at that point. Nothing here
@@ -873,7 +877,10 @@ fun SightingsMap(
     // recolours them on the loaded style (the layer was built with the colour current at style load).
     LaunchedEffect(loadedStyle, chromeColour) {
         val style = loadedStyle ?: return@LaunchedEffect
-        applyFanCircleStyle(style, chromeColour, context.resources.displayMetrics.density)
+        if (fanCircleNeedsRecolour(fanCircleColour[0], chromeColour)) {
+            applyFanCircleStyle(style, chromeColour, context.resources.displayMetrics.density)
+            fanCircleColour[0] = chromeColour
+        }
     }
 
     // Colour-field cells (map layers L0b, B5): each time the camera goes idle, and after every style
