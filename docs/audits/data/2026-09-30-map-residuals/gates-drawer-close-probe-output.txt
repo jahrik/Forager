@@ -1,0 +1,4 @@
+PROBE2 start: dropdown=false
+PROBE2 drawer open (Trip Planner nodes=1): dropdown=false
+PROBE2 after Back closed the drawer: dropdown=true
+PROBE2 after a second Back: dropdown=false
