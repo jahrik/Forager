@@ -9448,3 +9448,15 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 - Not in scope: "Understory rule 1/2" and CameraBands.kt's "rule 9", which are not the owner's answers to that list.
 **Checks:** the diff touches comment lines only; a compile of main and unit tests; the three edited test classes. No full suite and no revert check, since nothing executable changes; CI runs the suite on the merge.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** device-note
+**ID:** 2026-09-28-362
+**Timestamp:** 2026-10-01T05:36:00Z
+**Covers:** the build with -358 and -359 on the S22, for the owner's look at the flag and the 250 ms fan
+**The build:** 1.0.2306+g19f159fd, versionCode 2306, built by the planner with `--offline :app:assembleDebug` in the journal-redesign worktree at 19f159fd. BUILD SUCCESSFUL in 21s, 0 `e:` lines. APK sha256 28a34701a38d4dae…. CI was green on 18c7f301 (run 36819607632), whose app tree is the same; 19f159fd adds only records.
+**The install:** `adb install -r --user 0` on the S22 (SM-S908U, R5CT321008R) at 2026-10-01T05:34:59Z. The owner's "Merge" answered the planner's "merge now? … then build and install on the S22 once CI is green, as before". Read before and after: versionName 1.0.2290+g6e503d02 before, 1.0.2306+g19f159fd after; user 0's ceDataInode stayed 2259049; databases/forager.db's sha256 is e1188b00f0da4b71…, unchanged. The app was not running; the launcher was in front.
+**Not done:** no launch, input or screenshot by the planner.
+**For the owner to look at:** the flag in its 36 dp circle, by day and by night; the fan opening and folding in 250 ms; the open's first frames; and item 4 of -319, the puck's heading and movement.
+**Notes:** Written by the planner by hand.
