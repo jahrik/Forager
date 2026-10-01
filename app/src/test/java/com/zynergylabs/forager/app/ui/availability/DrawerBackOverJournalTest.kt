@@ -162,7 +162,7 @@ import org.robolectric.annotation.Config
  *
  * No find is open in any test here: tapping Tools with a find open already closes it
  * (`AvailabilityCompactScaffold`'s tab handler treats Tools as leaving the Journal), which is the
- * Leaving-the-Journal behaviour ruled for after M1 and not this fix. What Back must leave alone on the
+ * Leaving-the-Journal behaviour decided for after M1 and not this fix. What Back must leave alone on the
  * finds side is Records and its Finds chip.
  */
 @RunWith(RobolectricTestRunner::class)

@@ -355,7 +355,7 @@ abstract class BackupSettingsScreenTests {
     }
 
     @Test
-    fun `turning the automatic backup on leaves Weekly selected, the default the owner ruled`() {
+    fun `turning the automatic backup on leaves Weekly selected, the default the owner chose`() {
         answers[ActivityResultContracts.OpenDocumentTree::class.java] = Uri.parse("content://tree/Backups")
         setScreen()
         composeRule.onNodeWithTag(backupFrequencyTag(BackupFrequency.WEEKLY)).performScrollTo().assertIsSelected()
