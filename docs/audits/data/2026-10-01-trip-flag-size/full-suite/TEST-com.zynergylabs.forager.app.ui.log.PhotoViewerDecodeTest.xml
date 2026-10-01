@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.PhotoViewerDecodeTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:48.831Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.208">
+  <properties/>
+  <testcase name="a photo already inside the limit is not sampled" classname="com.zynergylabs.forager.app.ui.log.PhotoViewerDecodeTest" time="0.017"/>
+  <testcase name="a rotate-90 photo decodes untouched with a 90 degree draw rotation, and displays with swapped dimensions" classname="com.zynergylabs.forager.app.ui.log.PhotoViewerDecodeTest" time="0.018"/>
+  <testcase name="the longest edge is what is bounded, whichever axis it is on" classname="com.zynergylabs.forager.app.ui.log.PhotoViewerDecodeTest" time="0.018"/>
+  <testcase name="a rotate-270 photo displays with swapped dimensions too" classname="com.zynergylabs.forager.app.ui.log.PhotoViewerDecodeTest" time="0.019"/>
+  <testcase name="the rotation fit correction is the ratio of the rotated fit to the unrotated fit" classname="com.zynergylabs.forager.app.ui.log.PhotoViewerDecodeTest" time="0.037"/>
+  <testcase name="one pixel over the limit halves" classname="com.zynergylabs.forager.app.ui.log.PhotoViewerDecodeTest" time="0.02"/>
+  <testcase name="sample sizes climb by powers of two until the floored edge fits" classname="com.zynergylabs.forager.app.ui.log.PhotoViewerDecodeTest" time="0.02"/>
+  <testcase name="a mirrored orientation is baked into the bitmap and leaves no draw rotation" classname="com.zynergylabs.forager.app.ui.log.PhotoViewerDecodeTest" time="0.021"/>
+  <testcase name="an untagged photo decodes with no rotation and its own dimensions" classname="com.zynergylabs.forager.app.ui.log.PhotoViewerDecodeTest" time="0.018"/>
+  <testcase name="a non-positive limit is rejected rather than looping" classname="com.zynergylabs.forager.app.ui.log.PhotoViewerDecodeTest" time="0.018"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

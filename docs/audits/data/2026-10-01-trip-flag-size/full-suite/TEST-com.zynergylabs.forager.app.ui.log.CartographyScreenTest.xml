@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.CartographyScreenTest" tests="14" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:28.749Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.963">
+  <properties/>
+  <testcase name="backing out of a draft with text typed still does not prompt" classname="com.zynergylabs.forager.app.ui.log.CartographyScreenTest" time="0.054"/>
+  <testcase name="backing out of the view screen returns to the entries list" classname="com.zynergylabs.forager.app.ui.log.CartographyScreenTest" time="0.057"/>
+  <testcase name="tapping the screen's own Save asks to confirm, then persists a committed entry's edit and exits" classname="com.zynergylabs.forager.app.ui.log.CartographyScreenTest" time="0.074"/>
+  <testcase name="opening a draft from the Drafts banner opens the editor directly, never the view" classname="com.zynergylabs.forager.app.ui.log.CartographyScreenTest" time="0.038"/>
+  <testcase name="edit entry in the view screen's overflow menu switches to the editor" classname="com.zynergylabs.forager.app.ui.log.CartographyScreenTest" time="0.047"/>
+  <testcase name="a committed entry shows its own Save action, not Finish entry" classname="com.zynergylabs.forager.app.ui.log.CartographyScreenTest" time="0.083"/>
+  <testcase name="tapping a committed entry in the Entries tab opens the view screen, not the editor" classname="com.zynergylabs.forager.app.ui.log.CartographyScreenTest" time="0.052"/>
+  <testcase name="Cancel in the leave prompt dismisses it and keeps editing" classname="com.zynergylabs.forager.app.ui.log.CartographyScreenTest" time="0.142"/>
+  <testcase name="leaving a committed entry with unsaved changes asks Save, Discard, or Cancel" classname="com.zynergylabs.forager.app.ui.log.CartographyScreenTest" time="0.11"/>
+  <testcase name="Save in the leave prompt persists the edit and leaves" classname="com.zynergylabs.forager.app.ui.log.CartographyScreenTest" time="0.076"/>
+  <testcase name="Discard in the leave prompt leaves without persisting the edit" classname="com.zynergylabs.forager.app.ui.log.CartographyScreenTest" time="0.069"/>
+  <testcase name="starting a brand-new entry from the Entries tab opens the editor directly, never the view" classname="com.zynergylabs.forager.app.ui.log.CartographyScreenTest" time="0.035"/>
+  <testcase name="Camera and Import buttons are on the add-photo picker, reached from inside the editor" classname="com.zynergylabs.forager.app.ui.log.CartographyScreenTest" time="0.063"/>
+  <testcase name="Cancel in the Save confirmation dismisses it and keeps editing without persisting" classname="com.zynergylabs.forager.app.ui.log.CartographyScreenTest" time="0.06"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

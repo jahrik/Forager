@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.EntryMapFrameTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:52.587Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.001">
+  <properties/>
+  <testcase name="regions plus a find frame the find alone, the region ignored" classname="com.zynergylabs.forager.app.domain.EntryMapFrameTest" time="0.001"/>
+  <testcase name="a single point opens centred on it at zoom 16, and so do several at the same place" classname="com.zynergylabs.forager.app.domain.EntryMapFrameTest" time="0.0"/>
+  <testcase name="tracks only fit the bounds of every track point, at 48 dp and a zoom cap of 17" classname="com.zynergylabs.forager.app.domain.EntryMapFrameTest" time="0.0"/>
+  <testcase name="nothing kept frames nothing, and an empty track adds nothing, while one located photo frames it" classname="com.zynergylabs.forager.app.domain.EntryMapFrameTest" time="0.0"/>
+  <testcase name="mixed kinds fit tracks, finds, waypoints and located photos together" classname="com.zynergylabs.forager.app.domain.EntryMapFrameTest" time="0.0"/>
+  <testcase name="regions only frame nothing, and the same regions with a waypoint frame the waypoint" classname="com.zynergylabs.forager.app.domain.EntryMapFrameTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

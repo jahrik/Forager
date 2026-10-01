@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.data.local.DayScopedIndexMigrationTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:45.412Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.076">
+  <properties/>
+  <testcase name="pre-existing rows in all four indexed tables survive the 9 to 10 migration, and the new day-scoped queries find them" classname="com.zynergylabs.forager.app.data.local.DayScopedIndexMigrationTest" time="0.075"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.GetMapRecordsUseCaseTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:53.540Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.013">
+  <properties/>
+  <testcase name="an album photo with no coordinate gives nothing, one with both draws with its id" classname="com.zynergylabs.forager.app.domain.GetMapRecordsUseCaseTest" time="0.004"/>
+  <testcase name="the track being recorded is left out of Tracks until it has ended" classname="com.zynergylabs.forager.app.domain.GetMapRecordsUseCaseTest" time="0.001"/>
+  <testcase name="a track that resolves to zero points gives no polyline, and every ended track in Records draws with its id" classname="com.zynergylabs.forager.app.domain.GetMapRecordsUseCaseTest" time="0.002"/>
+  <testcase name="every offline region draws as a circle with its id in decimal" classname="com.zynergylabs.forager.app.domain.GetMapRecordsUseCaseTest" time="0.001"/>
+  <testcase name="every saved find with a location is a marker carrying its id, and no draft is" classname="com.zynergylabs.forager.app.domain.GetMapRecordsUseCaseTest" time="0.001"/>
+  <testcase name="a find, photo or offline region with a pending delete is left out, and nothing else is" classname="com.zynergylabs.forager.app.domain.GetMapRecordsUseCaseTest" time="0.002"/>
+  <testcase name="one kind failing is reported and drawn as absent while every other kind still draws" classname="com.zynergylabs.forager.app.domain.GetMapRecordsUseCaseTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

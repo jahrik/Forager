@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.SaveCartographyEntryUseCaseTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:53.715Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.004">
+  <properties/>
+  <testcase name="the entry handed to the repository carries the save time, not the time it came in with" classname="com.zynergylabs.forager.app.domain.SaveCartographyEntryUseCaseTest" time="0.001"/>
+  <testcase name="a draft's autosave is stamped the same way as a committed entry's explicit save" classname="com.zynergylabs.forager.app.domain.SaveCartographyEntryUseCaseTest" time="0.001"/>
+  <testcase name="the returned entry is the stamped copy, so a caller keeping it keeps the right time" classname="com.zynergylabs.forager.app.domain.SaveCartographyEntryUseCaseTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

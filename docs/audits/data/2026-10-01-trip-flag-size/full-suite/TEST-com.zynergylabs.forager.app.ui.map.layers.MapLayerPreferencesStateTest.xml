@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.layers.MapLayerPreferencesStateTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:13.031Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.001">
+  <properties/>
+  <testcase name="a stored order keeps only the colour fields, in the stored order, and the map draws them in it" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerPreferencesStateTest" time="0.0"/>
+  <testcase name="a stored opacity is kept only for a layer with a slider, and a value outside 0 to 1 is refused, never clamped" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerPreferencesStateTest" time="0.001"/>
+  <testcase name="stored visibility applies to the layers the sheet can switch, and a stored choice for any other layer is refused and reported" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerPreferencesStateTest" time="0.0"/>
+  <testcase name="a colour field with no data is hidden in the state the map gets, whatever the stored choice, and nothing else changes" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerPreferencesStateTest" time="0.0"/>
+  <testcase name="the colour fields list top of the draw order first, Move up and Move down step one place, and opacity multiplies through layerPaintFor" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerPreferencesStateTest" time="0.0"/>
+  <testcase name="while a synthetic layer is visible the caption gains the synthetic credit once, and with none visible it does not" classname="com.zynergylabs.forager.app.ui.map.layers.MapLayerPreferencesStateTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

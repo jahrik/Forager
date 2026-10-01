@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest" tests="15" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:16:41.080Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="6.127">
+  <properties/>
+  <testcase name="the photo marker carries a camera in the casing colour" classname="com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest" time="4.844"/>
+  <testcase name="the find is 25 dp tall with its proportions kept, between the photo and the pin" classname="com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest" time="0.086"/>
+  <testcase name="each marker icon is its own glyph in its own role's colour, day and night" classname="com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest" time="0.088"/>
+  <testcase name="the bottom-anchored glyphs are cased below their anchor" classname="com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest" time="0.067"/>
+  <testcase name="the waypoint, the photo and the search centre are not resized" classname="com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest" time="0.086"/>
+  <testcase name="the fan centring offset moves each glyph's fill-extent centre onto the point" classname="com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest" time="0.057"/>
+  <testcase name="the flag is 23 dp tall with its 20 by 28 proportions kept, and its anchor on the pole foot" classname="com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest" time="0.052"/>
+  <testcase name="the waypoint pin carries a hollow ring on its head" classname="com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest" time="0.054"/>
+  <testcase name="the feature at the anchor is drawn in the fill colour" classname="com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest" time="0.119"/>
+  <testcase name="the anchor is the bitmap's exact centre, so icon-anchor center puts it on the coordinate" classname="com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest" time="0.069"/>
+  <testcase name="the flag's resize left the find, the waypoint and the photo exactly as they were" classname="com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest" time="0.05"/>
+  <testcase name="the find marker is a mushroom anchored at its stem foot" classname="com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest" time="0.063"/>
+  <testcase name="the padding holds the whole casing, so nothing is clipped" classname="com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest" time="0.073"/>
+  <testcase name="the reticle's arms pass the ring's outer edge" classname="com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest" time="0.052"/>
+  <testcase name="each glyph's fill extent and anchor are the glyph board's" classname="com.zynergylabs.forager.app.ui.map.MarkerGlyphsTest" time="0.051"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

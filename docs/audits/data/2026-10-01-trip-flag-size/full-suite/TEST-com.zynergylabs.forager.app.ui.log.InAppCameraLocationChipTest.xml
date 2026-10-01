@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.InAppCameraLocationChipTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:34.851Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.393">
+  <properties/>
+  <testcase name="the chip shows the setting, Off" classname="com.zynergylabs.forager.app.ui.log.InAppCameraLocationChipTest" time="0.046"/>
+  <testcase name="the chip shows the setting, On" classname="com.zynergylabs.forager.app.ui.log.InAppCameraLocationChipTest" time="0.075"/>
+  <testcase name="each state has its own glyph and label" classname="com.zynergylabs.forager.app.ui.log.InAppCameraLocationChipTest" time="0.035"/>
+  <testcase name="a real touch anywhere on the location chip reaches it, over the viewfinder" classname="com.zynergylabs.forager.app.ui.log.InAppCameraLocationChipTest" time="0.095"/>
+  <testcase name="the chip shows what is stored, not a copy of its own" classname="com.zynergylabs.forager.app.ui.log.InAppCameraLocationChipTest" time="0.073"/>
+  <testcase name="a tap calls the handler with the toggled value, and the chip shows it once stored" classname="com.zynergylabs.forager.app.ui.log.InAppCameraLocationChipTest" time="0.065"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

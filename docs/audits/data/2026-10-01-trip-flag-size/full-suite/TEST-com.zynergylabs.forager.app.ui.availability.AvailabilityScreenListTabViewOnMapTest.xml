@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenListTabViewOnMapTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:18:56.812Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.159">
+  <properties/>
+  <testcase name="tapping View on Map switches to the Maps tab and limits sightings to that species" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenListTabViewOnMapTest" time="0.076"/>
+  <testcase name="clearing the filter chip shows every sighting again" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenListTabViewOnMapTest" time="0.081"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

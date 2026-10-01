@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.RectEdgeIntersectionTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:22.484Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.001">
+  <properties/>
+  <testcase name="a shallow angle on a wide rectangle exits through a side edge, not the top" classname="com.zynergylabs.forager.app.ui.availability.RectEdgeIntersectionTest" time="0.0"/>
+  <testcase name="a steep angle on a wide rectangle exits through the top edge, not a side" classname="com.zynergylabs.forager.app.ui.availability.RectEdgeIntersectionTest" time="0.001"/>
+  <testcase name="straight left exits through the left edge" classname="com.zynergylabs.forager.app.ui.availability.RectEdgeIntersectionTest" time="0.0"/>
+  <testcase name="straight down exits through the bottom edge" classname="com.zynergylabs.forager.app.ui.availability.RectEdgeIntersectionTest" time="0.0"/>
+  <testcase name="a square rectangle's own corner sits exactly at the halfway angle between two edges" classname="com.zynergylabs.forager.app.ui.availability.RectEdgeIntersectionTest" time="0.0"/>
+  <testcase name="straight up exits through the top edge, at the rectangle's own horizontal center" classname="com.zynergylabs.forager.app.ui.availability.RectEdgeIntersectionTest" time="0.0"/>
+  <testcase name="a 45 degree ray from a wide rectangle's center still respects its own aspect ratio" classname="com.zynergylabs.forager.app.ui.availability.RectEdgeIntersectionTest" time="0.0"/>
+  <testcase name="straight right exits through the right edge, at the rectangle's own vertical center" classname="com.zynergylabs.forager.app.ui.availability.RectEdgeIntersectionTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

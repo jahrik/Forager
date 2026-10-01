@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.data.repository.DataStoreSundownPreferencesRepositoryTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:48.796Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.211">
+  <properties/>
+  <testcase name="isolation between tests" classname="com.zynergylabs.forager.app.data.repository.DataStoreSundownPreferencesRepositoryTest" time="0.03"/>
+  <testcase name="the default margin is one hour, in minutes" classname="com.zynergylabs.forager.app.data.repository.DataStoreSundownPreferencesRepositoryTest" time="0.03"/>
+  <testcase name="the margin round-trips" classname="com.zynergylabs.forager.app.data.repository.DataStoreSundownPreferencesRepositoryTest" time="0.031"/>
+  <testcase name="the alerts flag round-trips both ways" classname="com.zynergylabs.forager.app.data.repository.DataStoreSundownPreferencesRepositoryTest" time="0.029"/>
+  <testcase name="a second live instance against the same file is refused" classname="com.zynergylabs.forager.app.data.repository.DataStoreSundownPreferencesRepositoryTest" time="0.024"/>
+  <testcase name="the two settings do not disturb each other" classname="com.zynergylabs.forager.app.data.repository.DataStoreSundownPreferencesRepositoryTest" time="0.025"/>
+  <testcase name="an untouched install gets the stated defaults" classname="com.zynergylabs.forager.app.data.repository.DataStoreSundownPreferencesRepositoryTest" time="0.04"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

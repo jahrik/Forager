@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.OfflineStyleSwapTest" tests="15" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:09.867Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.003">
+  <properties/>
+  <testcase name="nothing applied yet is a reload, and an identical request is not" classname="com.zynergylabs.forager.app.ui.map.OfflineStyleSwapTest" time="0.001"/>
+  <testcase name="turning Night Maps on or off over Satellite reloads for the markers, and the basemap stays day" classname="com.zynergylabs.forager.app.ui.map.OfflineStyleSwapTest" time="0.0"/>
+  <testcase name="the credit over a basemap is that basemap's own" classname="com.zynergylabs.forager.app.ui.map.OfflineStyleSwapTest" time="0.0"/>
+  <testcase name="turning Night Maps on or off over the offline style is a reload, whatever the basemap" classname="com.zynergylabs.forager.app.ui.map.OfflineStyleSwapTest" time="0.0"/>
+  <testcase name="once loaded, the requested style carries effective night" classname="com.zynergylabs.forager.app.ui.map.OfflineStyleSwapTest" time="0.0"/>
+  <testcase name="a basemap change is still a reload, with the offline flag unchanged" classname="com.zynergylabs.forager.app.ui.map.OfflineStyleSwapTest" time="0.0"/>
+  <testcase name="flipping only the offline flag is a reload -- the gap the old basemap-and-palette guard left open" classname="com.zynergylabs.forager.app.ui.map.OfflineStyleSwapTest" time="0.0"/>
+  <testcase name="offline off loads the basemap's own raster style as JSON, night applied" classname="com.zynergylabs.forager.app.ui.map.OfflineStyleSwapTest" time="0.001"/>
+  <testcase name="the marker palette follows Night Maps on every basemap, Satellite included, online and offline" classname="com.zynergylabs.forager.app.ui.map.OfflineStyleSwapTest" time="0.0"/>
+  <testcase name="effective night is the toggle, except Satellite's own raster style, which stays day" classname="com.zynergylabs.forager.app.ui.map.OfflineStyleSwapTest" time="0.0"/>
+  <testcase name="offline on loads the regions' own style by URI, the exact string the download used" classname="com.zynergylabs.forager.app.ui.map.OfflineStyleSwapTest" time="0.0"/>
+  <testcase name="no style is requested before the Night Maps preference has loaded" classname="com.zynergylabs.forager.app.ui.map.OfflineStyleSwapTest" time="0.001"/>
+  <testcase name="the credit over the offline style is Protomaps and OpenStreetMap, never the basemap's" classname="com.zynergylabs.forager.app.ui.map.OfflineStyleSwapTest" time="0.0"/>
+  <testcase name="offline on ignores the basemap and night mode, since the store holds one style" classname="com.zynergylabs.forager.app.ui.map.OfflineStyleSwapTest" time="0.0"/>
+  <testcase name="turning Night Maps on or off is a reload on Topographical and Street" classname="com.zynergylabs.forager.app.ui.map.OfflineStyleSwapTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

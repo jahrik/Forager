@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.data.local.TrackPointSpeedMigrationTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:47.474Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.057">
+  <properties/>
+  <testcase name="a pre-existing point survives 14 to 15 with no speed, and points with and without speed round-trip" classname="com.zynergylabs.forager.app.data.local.TrackPointSpeedMigrationTest" time="0.055"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

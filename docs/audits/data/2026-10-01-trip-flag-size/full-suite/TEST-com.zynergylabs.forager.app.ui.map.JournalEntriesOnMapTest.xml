@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.JournalEntriesOnMapTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:08.322Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.014">
+  <properties/>
+  <testcase name="an entry is named by the report header's date form" classname="com.zynergylabs.forager.app.ui.map.JournalEntriesOnMapTest" time="0.001"/>
+  <testcase name="the chip counts the shown entries, singular for one" classname="com.zynergylabs.forager.app.ui.map.JournalEntriesOnMapTest" time="0.0"/>
+  <testcase name="each halo source receives the highlighted records of its kind, each feature carrying its record's id" classname="com.zynergylabs.forager.app.ui.map.JournalEntriesOnMapTest" time="0.001"/>
+  <testcase name="up to three keeping entries are each a date line labelled Open entry and the date" classname="com.zynergylabs.forager.app.ui.map.JournalEntriesOnMapTest" time="0.0"/>
+  <testcase name="a highlighted record's bubble carries the entries that keep it, for each of the five kinds, and no other record's does" classname="com.zynergylabs.forager.app.ui.map.JournalEntriesOnMapTest" time="0.006"/>
+  <testcase name="more than three keeping entries are one line, Kept in N journal entries, over a list of their dates" classname="com.zynergylabs.forager.app.ui.map.JournalEntriesOnMapTest" time="0.0"/>
+  <testcase name="the Journal entries switch hides every halo together, and shows them all by default" classname="com.zynergylabs.forager.app.ui.map.JournalEntriesOnMapTest" time="0.001"/>
+  <testcase name="the Maps tab's Layers sheet lists Journal entries last, and the entry map's does not" classname="com.zynergylabs.forager.app.ui.map.JournalEntriesOnMapTest" time="0.002"/>
+  <testcase name="a stored Journal entries off is restored like the other overlay switches" classname="com.zynergylabs.forager.app.ui.map.JournalEntriesOnMapTest" time="0.0"/>
+  <testcase name="each line halo is the halo width wider on each side than what it lies under, and thins with the zoom as the track does" classname="com.zynergylabs.forager.app.ui.map.JournalEntriesOnMapTest" time="0.003"/>
+  <testcase name="a record switched off takes its own halo with it and no other" classname="com.zynergylabs.forager.app.ui.map.JournalEntriesOnMapTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

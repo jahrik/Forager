@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.photo.FilePhotoStoreTest" tests="18" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:57.880Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.541">
+  <properties/>
+  <testcase name="persist rejects a PhotoSource this store doesn't understand" classname="com.zynergylabs.forager.app.photo.FilePhotoStoreTest" time="0.028"/>
+  <testcase name="a gallery import with no EXIF GPS tags stores a null location, not a fabricated one" classname="com.zynergylabs.forager.app.photo.FilePhotoStoreTest" time="0.039"/>
+  <testcase name="a persisted import is left exactly as it was, metadata and all" classname="com.zynergylabs.forager.app.photo.FilePhotoStoreTest" time="0.041"/>
+  <testcase name="an import's source file is never deleted" classname="com.zynergylabs.forager.app.photo.FilePhotoStoreTest" time="0.026"/>
+  <testcase name="a camera capture never reads EXIF location, even when the source file carries one" classname="com.zynergylabs.forager.app.photo.FilePhotoStoreTest" time="0.028"/>
+  <testcase name="delete removes the persisted file" classname="com.zynergylabs.forager.app.photo.FilePhotoStoreTest" time="0.026"/>
+  <testcase name="a persisted capture keeps the orientation the display path reads" classname="com.zynergylabs.forager.app.photo.FilePhotoStoreTest" time="0.027"/>
+  <testcase name="a gallery import with no EXIF capture timestamp falls back to the injected clock" classname="com.zynergylabs.forager.app.photo.FilePhotoStoreTest" time="0.028"/>
+  <testcase name="two persists of different sources produce two distinct files, not a shared one" classname="com.zynergylabs.forager.app.photo.FilePhotoStoreTest" time="0.026"/>
+  <testcase name="a gallery import with EXIF GPS tags reads latitude and longitude" classname="com.zynergylabs.forager.app.photo.FilePhotoStoreTest" time="0.029"/>
+  <testcase name="a persisted capture's scratch file is deleted once its bytes are copied" classname="com.zynergylabs.forager.app.photo.FilePhotoStoreTest" time="0.038"/>
+  <testcase name="persist stamps the injected clock's time, not left null, when no EXIF timestamp is available" classname="com.zynergylabs.forager.app.photo.FilePhotoStoreTest" time="0.026"/>
+  <testcase name="a capture is released even when persist fails after the copy" classname="com.zynergylabs.forager.app.photo.FilePhotoStoreTest" time="0.027"/>
+  <testcase name="a gallery import with an EXIF capture timestamp uses it instead of the injected clock" classname="com.zynergylabs.forager.app.photo.FilePhotoStoreTest" time="0.035"/>
+  <testcase name="a persisted capture carries no GPS EXIF" classname="com.zynergylabs.forager.app.photo.FilePhotoStoreTest" time="0.046"/>
+  <testcase name="deleting a photo whose file is already gone is a no-op, not a failure" classname="com.zynergylabs.forager.app.photo.FilePhotoStoreTest" time="0.022"/>
+  <testcase name="persist from a source that cannot be opened reports failure, not a path to a missing file" classname="com.zynergylabs.forager.app.photo.FilePhotoStoreTest" time="0.024"/>
+  <testcase name="persist copies the source's bytes into app-private storage and returns a relative path" classname="com.zynergylabs.forager.app.photo.FilePhotoStoreTest" time="0.023"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.data.repository.INaturalistMushroomRepositoryParsingTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:49.205Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.001">
+  <properties/>
+  <testcase name="parseLocation trims whitespace around each component" classname="com.zynergylabs.forager.app.data.repository.INaturalistMushroomRepositoryParsingTest" time="0.001"/>
+  <testcase name="parseLocation returns null for missing location" classname="com.zynergylabs.forager.app.data.repository.INaturalistMushroomRepositoryParsingTest" time="0.0"/>
+  <testcase name="parseObservedOn reads a valid ISO date" classname="com.zynergylabs.forager.app.data.repository.INaturalistMushroomRepositoryParsingTest" time="0.0"/>
+  <testcase name="parseLocation reads a valid lat,lng pair" classname="com.zynergylabs.forager.app.data.repository.INaturalistMushroomRepositoryParsingTest" time="0.0"/>
+  <testcase name="parseObservedOn returns null for missing or malformed dates" classname="com.zynergylabs.forager.app.data.repository.INaturalistMushroomRepositoryParsingTest" time="0.0"/>
+  <testcase name="parseLocation returns null for malformed strings" classname="com.zynergylabs.forager.app.data.repository.INaturalistMushroomRepositoryParsingTest" time="0.0"/>
+  <testcase name="parseLocation returns null for out-of-range coordinates" classname="com.zynergylabs.forager.app.data.repository.INaturalistMushroomRepositoryParsingTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

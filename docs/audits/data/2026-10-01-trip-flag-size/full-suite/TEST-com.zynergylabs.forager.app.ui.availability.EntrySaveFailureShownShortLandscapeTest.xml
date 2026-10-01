@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.EntrySaveFailureShownShortLandscapeTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:34.038Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="3.272">
+  <properties/>
+  <testcase name="a card's Delete refused when its Undo snackbar ends shows exactly Couldn't delete that entry" classname="com.zynergylabs.forager.app.ui.availability.EntrySaveFailureShownShortLandscapeTest" time="0.087"/>
+  <testcase name="a card's Delete refused while the Maps tab is up shows when the Journal next opens" classname="com.zynergylabs.forager.app.ui.availability.EntrySaveFailureShownShortLandscapeTest" time="0.117"/>
+  <testcase name="the leave prompt's Discard, with the stored entry unreadable, shows exactly Couldn't discard those changes" classname="com.zynergylabs.forager.app.ui.availability.EntrySaveFailureShownShortLandscapeTest" time="0.107"/>
+  <testcase name="a new entry whose kept candidates cannot be saved is logged and shows nothing" classname="com.zynergylabs.forager.app.ui.availability.EntrySaveFailureShownShortLandscapeTest" time="0.07"/>
+  <testcase name="the same refusal twice shows its message twice" classname="com.zynergylabs.forager.app.ui.availability.EntrySaveFailureShownShortLandscapeTest" time="0.073"/>
+  <testcase name="the editor's Save refused shows exactly Couldn't save your changes" classname="com.zynergylabs.forager.app.ui.availability.EntrySaveFailureShownShortLandscapeTest" time="0.251"/>
+  <testcase name="a Save refused after leaving the Journal shows when the Journal next opens" classname="com.zynergylabs.forager.app.ui.availability.EntrySaveFailureShownShortLandscapeTest" time="0.17"/>
+  <testcase name="the report's Delete refused shows exactly Couldn't delete that entry" classname="com.zynergylabs.forager.app.ui.availability.EntrySaveFailureShownShortLandscapeTest" time="0.107"/>
+  <testcase name="a draft's autosave refused shows exactly Couldn't save your changes" classname="com.zynergylabs.forager.app.ui.availability.EntrySaveFailureShownShortLandscapeTest" time="0.08"/>
+  <testcase name="Finish entry refused shows exactly Couldn't finish that entry" classname="com.zynergylabs.forager.app.ui.availability.EntrySaveFailureShownShortLandscapeTest" time="0.076"/>
+  <testcase name="the return prompt's Save as draft refused shows exactly Couldn't save that as a draft" classname="com.zynergylabs.forager.app.ui.availability.EntrySaveFailureShownShortLandscapeTest" time="2.133"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

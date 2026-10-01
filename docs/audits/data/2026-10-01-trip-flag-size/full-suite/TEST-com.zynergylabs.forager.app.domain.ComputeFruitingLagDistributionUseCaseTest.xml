@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCaseTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:52.535Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.005">
+  <properties/>
+  <testcase name="a lag of 22 days falls one past, into the 22-35 bucket instead" classname="com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCaseTest" time="0.003"/>
+  <testcase name="the no-preceding-event bucket has a null range and is never flagged as the rule" classname="com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCaseTest" time="0.0"/>
+  <testcase name="region, month, filter and the server total pass through unchanged" classname="com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCaseTest" time="0.0"/>
+  <testcase name="a lag of exactly 21 days lands in the fruiting-lag bucket" classname="com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCaseTest" time="0.0"/>
+  <testcase name="exactly one bucket is flagged as the fruiting-lag rule, and it is FRUITING_LAG_DAYS" classname="com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCaseTest" time="0.0"/>
+  <testcase name="a sighting with no observed date is excluded from the sample, not counted as zero-lag" classname="com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCaseTest" time="0.0"/>
+  <testcase name="a sighting before any known event has no preceding event" classname="com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCaseTest" time="0.001"/>
+  <testcase name="a lag of 6 days falls one short, into the 0-6 bucket instead" classname="com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCaseTest" time="0.0"/>
+  <testcase name="a sample of only undated sightings produces an empty histogram, not a crash" classname="com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCaseTest" time="0.0"/>
+  <testcase name="a lag of exactly 7 days lands in the fruiting-lag bucket" classname="com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCaseTest" time="0.0"/>
+  <testcase name="a lag past 35 days lands in the open-ended 36+ bucket" classname="com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCaseTest" time="0.0"/>
+  <testcase name="multiple candidate events pick the nearest one, not the largest or the first" classname="com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCaseTest" time="0.001"/>
+  <testcase name="never matches an event that follows the sighting even when it is the only event" classname="com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCaseTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

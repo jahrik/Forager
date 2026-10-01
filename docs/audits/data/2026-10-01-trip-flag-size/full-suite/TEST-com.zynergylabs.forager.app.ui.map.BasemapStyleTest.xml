@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.BasemapStyleTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:06.939Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.004">
+  <properties/>
+  <testcase name="every basemap's raster layer references its own raster source" classname="com.zynergylabs.forager.app.ui.map.BasemapStyleTest" time="0.001"/>
+  <testcase name="every basemap's style JSON declares a glyphs URL" classname="com.zynergylabs.forager.app.ui.map.BasemapStyleTest" time="0.001"/>
+  <testcase name="every basemap's style JSON carries its full attribution string" classname="com.zynergylabs.forager.app.ui.map.BasemapStyleTest" time="0.0"/>
+  <testcase name="the style's declared maxzoom matches Basemap's own operating limit" classname="com.zynergylabs.forager.app.ui.map.BasemapStyleTest" time="0.001"/>
+  <testcase name="the OSM-derived sources declare x-y order in their tile template" classname="com.zynergylabs.forager.app.ui.map.BasemapStyleTest" time="0.0"/>
+  <testcase name="every basemap produces valid, parseable style JSON" classname="com.zynergylabs.forager.app.ui.map.BasemapStyleTest" time="0.0"/>
+  <testcase name="the USGS source declares ArcGIS row-column order in its tile template" classname="com.zynergylabs.forager.app.ui.map.BasemapStyleTest" time="0.0"/>
+  <testcase name="USGS Imagery's declared maxzoom is lower than the OSM standard map's" classname="com.zynergylabs.forager.app.ui.map.BasemapStyleTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

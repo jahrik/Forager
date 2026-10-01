@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.WindowOrientationTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:06.650Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.274">
+  <properties/>
+  <testcase name="the count keeps its centre when the device turns, and turns its bounds in place" classname="com.zynergylabs.forager.app.ui.log.WindowOrientationTest" time="0.05"/>
+  <testcase name="setting off, the window follows the device but never into reverse portrait, SENSOR, and the previous request is put back after" classname="com.zynergylabs.forager.app.ui.log.WindowOrientationTest" time="0.059"/>
+  <testcase name="with no Activity behind the context nothing is requested and nothing crashes" classname="com.zynergylabs.forager.app.ui.log.WindowOrientationTest" time="0.033"/>
+  <testcase name="setting on, the window is forced portrait while the camera is open and the previous request is put back after" classname="com.zynergylabs.forager.app.ui.log.WindowOrientationTest" time="0.096"/>
+  <testcase name="the requested orientation is a pure function of the setting" classname="com.zynergylabs.forager.app.ui.log.WindowOrientationTest" time="0.035"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

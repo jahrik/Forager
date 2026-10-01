@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.AddPhotoToGalleryUseCaseTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:52.507Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.004">
+  <properties/>
+  <testcase name="does not touch the gallery when persist fails" classname="com.zynergylabs.forager.app.domain.AddPhotoToGalleryUseCaseTest" time="0.002"/>
+  <testcase name="reports failure when adding to the gallery fails" classname="com.zynergylabs.forager.app.domain.AddPhotoToGalleryUseCaseTest" time="0.001"/>
+  <testcase name="persists the photo, adds it to the gallery, and returns it, without attaching to anything" classname="com.zynergylabs.forager.app.domain.AddPhotoToGalleryUseCaseTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

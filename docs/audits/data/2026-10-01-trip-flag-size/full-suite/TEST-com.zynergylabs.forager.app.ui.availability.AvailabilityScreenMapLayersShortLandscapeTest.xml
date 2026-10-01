@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapLayersShortLandscapeTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:11.012Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.287">
+  <properties/>
+  <testcase name="the legend chip sits at the bottom right, clear of the rail and the cluster, and touches around it reach the map" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapLayersShortLandscapeTest" time="0.114"/>
+  <testcase name="a real touch on the Layers row opens the sheet, and its content scrolls to the last overlay" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapLayersShortLandscapeTest" time="0.17"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

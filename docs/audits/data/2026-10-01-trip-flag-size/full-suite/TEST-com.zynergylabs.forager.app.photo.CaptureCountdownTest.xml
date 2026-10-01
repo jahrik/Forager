@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.photo.CaptureCountdownTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:57.860Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.014">
+  <properties/>
+  <testcase name="the timer cycles Off, 3 s, 10 s and back to Off" classname="com.zynergylabs.forager.app.photo.CaptureCountdownTest" time="0.001"/>
+  <testcase name="the remaining whole seconds count down 3, 2, 1 and clear at zero" classname="com.zynergylabs.forager.app.photo.CaptureCountdownTest" time="0.005"/>
+  <testcase name="at 3 s, nothing at 2_9 s and exactly one capture at 3 s" classname="com.zynergylabs.forager.app.photo.CaptureCountdownTest" time="0.001"/>
+  <testcase name="at 10 s, nothing at 9_9 s and exactly one capture at 10 s" classname="com.zynergylabs.forager.app.photo.CaptureCountdownTest" time="0.002"/>
+  <testcase name="cancel stops the countdown with no capture, ever, and clears the display" classname="com.zynergylabs.forager.app.photo.CaptureCountdownTest" time="0.003"/>
+  <testcase name="cancelling the scope it was given stops it with no capture" classname="com.zynergylabs.forager.app.photo.CaptureCountdownTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

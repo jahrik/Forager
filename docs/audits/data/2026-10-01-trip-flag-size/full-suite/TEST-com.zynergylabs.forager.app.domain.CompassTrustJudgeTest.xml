@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.CompassTrustJudgeTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:52.531Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.002">
+  <properties/>
+  <testcase name="reset forgets an unreliable state and its hold" classname="com.zynergylabs.forager.app.domain.CompassTrustJudgeTest" time="0.0"/>
+  <testcase name="a bad reading during the hold restarts it" classname="com.zynergylabs.forager.app.domain.CompassTrustJudgeTest" time="0.0"/>
+  <testcase name="the two paths share one state - a status LOW keeps an estimate-entered state bad, and the hold spans them" classname="com.zynergylabs.forager.app.domain.CompassTrustJudgeTest" time="0.001"/>
+  <testcase name="leaves only below 12 degrees - 12 or 13 stays unreliable however long it holds" classname="com.zynergylabs.forager.app.domain.CompassTrustJudgeTest" time="0.0"/>
+  <testcase name="enters unreliable above 15 degrees, immediately - not at 15 or below" classname="com.zynergylabs.forager.app.domain.CompassTrustJudgeTest" time="0.0"/>
+  <testcase name="status path - UNRELIABLE and LOW enter at once, MEDIUM and HIGH are good, with the same hold" classname="com.zynergylabs.forager.app.domain.CompassTrustJudgeTest" time="0.0"/>
+  <testcase name="clears only after the reading has held good for 2000 ms - 1999 is not enough" classname="com.zynergylabs.forager.app.domain.CompassTrustJudgeTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

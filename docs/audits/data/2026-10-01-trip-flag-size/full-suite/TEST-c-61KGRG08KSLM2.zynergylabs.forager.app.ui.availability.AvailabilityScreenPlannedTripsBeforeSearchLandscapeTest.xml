@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenPlannedTripsBeforeSearchLandscapeTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:11.687Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.13">
+  <properties/>
+  <testcase name="sightings still wait for a search, and are handed over once one has run" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenPlannedTripsBeforeSearchLandscapeTest" time="0.07"/>
+  <testcase name="saved trips reach the map and their glyph is drawn with no search run" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenPlannedTripsBeforeSearchLandscapeTest" time="0.058"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

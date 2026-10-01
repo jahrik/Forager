@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.data.local.LogPhotoMigrationTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:46.082Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.069">
+  <properties/>
+  <testcase name="an existing entry-photo relationship survives as a cross-reference, and a new photo can be shared between two entries" classname="com.zynergylabs.forager.app.data.local.LogPhotoMigrationTest" time="0.068"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

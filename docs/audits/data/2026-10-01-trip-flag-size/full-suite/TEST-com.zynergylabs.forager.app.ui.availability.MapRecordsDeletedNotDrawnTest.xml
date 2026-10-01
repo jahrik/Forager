@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.MapRecordsDeletedNotDrawnTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:17.611Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.813">
+  <properties/>
+  <testcase name="a region is not drawn when a load that read it before the delete finishes after the delete" classname="com.zynergylabs.forager.app.ui.availability.MapRecordsDeletedNotDrawnTest" time="0.061"/>
+  <testcase name="Undo draws a photo again" classname="com.zynergylabs.forager.app.ui.availability.MapRecordsDeletedNotDrawnTest" time="0.046"/>
+  <testcase name="a region whose delete fails is drawn again" classname="com.zynergylabs.forager.app.ui.availability.MapRecordsDeletedNotDrawnTest" time="0.05"/>
+  <testcase name="a photo is not drawn in the window between its Undo ending and its delete finishing" classname="com.zynergylabs.forager.app.ui.availability.MapRecordsDeletedNotDrawnTest" time="0.044"/>
+  <testcase name="a photo whose delete fails is drawn again" classname="com.zynergylabs.forager.app.ui.availability.MapRecordsDeletedNotDrawnTest" time="0.065"/>
+  <testcase name="a find is not drawn when a load that read it before the delete finishes after the delete" classname="com.zynergylabs.forager.app.ui.availability.MapRecordsDeletedNotDrawnTest" time="0.05"/>
+  <testcase name="Undo draws a find again" classname="com.zynergylabs.forager.app.ui.availability.MapRecordsDeletedNotDrawnTest" time="0.042"/>
+  <testcase name="a photo deleted at once is not drawn when a load that read it before the delete finishes after the delete" classname="com.zynergylabs.forager.app.ui.availability.MapRecordsDeletedNotDrawnTest" time="0.044"/>
+  <testcase name="a region is not drawn in the window between its Undo ending and its delete finishing" classname="com.zynergylabs.forager.app.ui.availability.MapRecordsDeletedNotDrawnTest" time="0.05"/>
+  <testcase name="Undo draws a region again" classname="com.zynergylabs.forager.app.ui.availability.MapRecordsDeletedNotDrawnTest" time="0.11"/>
+  <testcase name="a find whose delete fails is drawn again" classname="com.zynergylabs.forager.app.ui.availability.MapRecordsDeletedNotDrawnTest" time="0.068"/>
+  <testcase name="a find is not drawn in the window between its Undo ending and its delete finishing" classname="com.zynergylabs.forager.app.ui.availability.MapRecordsDeletedNotDrawnTest" time="0.117"/>
+  <testcase name="a photo is not drawn when a load that read it before the delete finishes after the delete" classname="com.zynergylabs.forager.app.ui.availability.MapRecordsDeletedNotDrawnTest" time="0.063"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

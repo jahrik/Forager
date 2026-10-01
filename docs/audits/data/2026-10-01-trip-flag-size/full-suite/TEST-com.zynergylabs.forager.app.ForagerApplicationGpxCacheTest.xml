@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ForagerApplicationGpxCacheTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:28.162Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.437">
+  <properties/>
+  <testcase name="app start deletes GPX exports more than an hour old from the cache and keeps one within the hour" classname="com.zynergylabs.forager.app.ForagerApplicationGpxCacheTest" time="0.435"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

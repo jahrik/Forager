@@ -170,7 +170,7 @@ private val EMPTY_FRAME = FanFrame(
  *    moves nothing. The owner, dispatch 2026-09-28-299: "After being fanned out, the icons return to their start
  *    position. But sometimes they don't perfectly align back in their position when the animation finishes,
  *    resulting in the icons snapping into place." The offset was the full centring offset at every progress, so the
- *    pin (14 dp), the find (12.5 dp) and the flag (7.59 dp across, 12.5 down) jumped by that much at the end of a
+ *    pin (14 dp), the find (12.5 dp) and the flag (7.59 dp across, 12.5 down, as it was then; -358 made it 6.98 and 11.5) jumped by that much at the end of a
  *    fold and the start of an open; the photo and search centre, whose anchor is their centre, and the dots, which
  *    have no offset, never did;
  *  - **circles:** one point per copy, where the copy is now: the layer draws the copy's background

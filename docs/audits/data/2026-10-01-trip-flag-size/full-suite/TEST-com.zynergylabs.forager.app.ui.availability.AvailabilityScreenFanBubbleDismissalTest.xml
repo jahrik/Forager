@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenFanBubbleDismissalTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:18:31.079Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="1.018">
+  <properties/>
+  <testcase name="two finds 35 dp apart do not fan, and a real touch on each opens its own bubble" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenFanBubbleDismissalTest" time="0.105"/>
+  <testcase name="two finds 26 dp apart do not fan on a real touch" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenFanBubbleDismissalTest" time="0.095"/>
+  <testcase name="an empty-map tap closes only the bubble and a second one folds the fan" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenFanBubbleDismissalTest" time="0.1"/>
+  <testcase name="a tap on another marker with a fan and a bubble open still folds the fan and opens that marker's bubble" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenFanBubbleDismissalTest" time="0.102"/>
+  <testcase name="with no bubble open Back folds the fan, as it did" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenFanBubbleDismissalTest" time="0.104"/>
+  <testcase name="with no bubble open an empty-map tap folds the fan, as it did" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenFanBubbleDismissalTest" time="0.089"/>
+  <testcase name="two finds 20 dp apart fan on a real touch" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenFanBubbleDismissalTest" time="0.088"/>
+  <testcase name="two finds 25 dp apart fan on a real touch" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenFanBubbleDismissalTest" time="0.09"/>
+  <testcase name="two finds 30 dp apart, the owner's screenshot pair, do not fan on a real touch (30 dp is the planner's estimate)" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenFanBubbleDismissalTest" time="0.094"/>
+  <testcase name="Back closes only the bubble and a second Back folds the fan" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenFanBubbleDismissalTest" time="0.145"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

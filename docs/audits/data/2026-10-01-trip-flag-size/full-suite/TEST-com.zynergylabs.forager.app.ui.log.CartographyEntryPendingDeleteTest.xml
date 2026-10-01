@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.CartographyEntryPendingDeleteTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:26.783Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.245">
+  <properties/>
+  <testcase name="undo of a pending entry delete shows it again and deletes nothing" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryPendingDeleteTest" time="0.033"/>
+  <testcase name="committing a pending entry delete deletes exactly that entry, once" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryPendingDeleteTest" time="0.027"/>
+  <testcase name="a second entry delete commits the first when it replaces it" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryPendingDeleteTest" time="0.023"/>
+  <testcase name="a requested draft delete hides it from the visible drafts and leaves the committed entries" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryPendingDeleteTest" time="0.042"/>
+  <testcase name="a requested entry delete hides it from the visible entries and deletes nothing" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryPendingDeleteTest" time="0.029"/>
+  <testcase name="a failed entry delete puts it back and says so" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryPendingDeleteTest" time="0.028"/>
+  <testcase name="a delete asked for an entry that is not loaded pends nothing" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryPendingDeleteTest" time="0.03"/>
+  <testcase name="an entry delete still pending when the ViewModel is cleared is committed" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryPendingDeleteTest" time="0.032"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

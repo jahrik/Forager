@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelMapLayersTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:21.569Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.024">
+  <properties/>
+  <testcase name="a failed read of the layer choices is logged and leaves every layer at its default" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelMapLayersTest" time="0.005"/>
+  <testcase name="each Layers-sheet change shows at once and is stored, and a failed write is logged" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelMapLayersTest" time="0.005"/>
+  <testcase name="an opacity outside 0 to 1 is refused and logged, not clamped" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelMapLayersTest" time="0.002"/>
+  <testcase name="the records reload every time the Maps tab is shown" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelMapLayersTest" time="0.004"/>
+  <testcase name="showing the Maps tab asks the store which groups have data for this ISO week" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelMapLayersTest" time="0.003"/>
+  <testcase name="showing the Maps tab loads the saved records, and a kind that failed is logged and drawn as absent" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelMapLayersTest" time="0.002"/>
+  <testcase name="the stored layer choices are restored at start, and a refused one is logged" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelMapLayersTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

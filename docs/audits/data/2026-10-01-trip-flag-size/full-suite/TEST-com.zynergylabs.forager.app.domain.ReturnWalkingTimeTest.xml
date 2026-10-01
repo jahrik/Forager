@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.ReturnWalkingTimeTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:53.707Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.007">
+  <properties/>
+  <testcase name="a pace measured for less than fifteen minutes is freshly measured" classname="com.zynergylabs.forager.app.domain.ReturnWalkingTimeTest" time="0.001"/>
+  <testcase name="a settled Doppler pace on a fresh fix at the last point is a plain walking time with no degrade" classname="com.zynergylabs.forager.app.domain.ReturnWalkingTimeTest" time="0.001"/>
+  <testcase name="a walker more than 50 m off the track has the hop added and the estimate degraded" classname="com.zynergylabs.forager.app.domain.ReturnWalkingTimeTest" time="0.0"/>
+  <testcase name="before the data bar the default pace is used and the estimate reads at least" classname="com.zynergylabs.forager.app.domain.ReturnWalkingTimeTest" time="0.0"/>
+  <testcase name="fewer than ten surviving points degrades" classname="com.zynergylabs.forager.app.domain.ReturnWalkingTimeTest" time="0.001"/>
+  <testcase name="a track that is mostly network fixes degrades on that and on being under-measured" classname="com.zynergylabs.forager.app.domain.ReturnWalkingTimeTest" time="0.0"/>
+  <testcase name="the far-from-track degrade holds through the band until the hop drops below 45 m" classname="com.zynergylabs.forager.app.domain.ReturnWalkingTimeTest" time="0.001"/>
+  <testcase name="an origin waypoint adds its leg without degrading, and a track with no origin is not degraded for it" classname="com.zynergylabs.forager.app.domain.ReturnWalkingTimeTest" time="0.0"/>
+  <testcase name="no usable points withholds the estimate rather than measuring a path that is not there" classname="com.zynergylabs.forager.app.domain.ReturnWalkingTimeTest" time="0.0"/>
+  <testcase name="a stale fix degrades, and a lost fix or no fix withholds the estimate" classname="com.zynergylabs.forager.app.domain.ReturnWalkingTimeTest" time="0.001"/>
+  <testcase name="the estimate does not move when a long stop is inserted with the same distance remaining" classname="com.zynergylabs.forager.app.domain.ReturnWalkingTimeTest" time="0.0"/>
+  <testcase name="an excluded tenth of the stored points degrades the path as under-measured, and less does not" classname="com.zynergylabs.forager.app.domain.ReturnWalkingTimeTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

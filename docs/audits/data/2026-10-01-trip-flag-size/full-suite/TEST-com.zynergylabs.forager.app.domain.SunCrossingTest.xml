@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.SunCrossingTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:53.735Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.006">
+  <properties/>
+  <testcase name="civil dusk follows sunset and reuses the night threshold" classname="com.zynergylabs.forager.app.domain.SunCrossingTest" time="0.003"/>
+  <testcase name="sunset matches published times at every latitude checked" classname="com.zynergylabs.forager.app.domain.SunCrossingTest" time="0.001"/>
+  <testcase name="sunset at zero degrees would be measurably earlier, which is why it is not zero" classname="com.zynergylabs.forager.app.domain.SunCrossingTest" time="0.0"/>
+  <testcase name="a crossing in the window's final partial step is still found" classname="com.zynergylabs.forager.app.domain.SunCrossingTest" time="0.0"/>
+  <testcase name="a window that ends before the crossing reports none" classname="com.zynergylabs.forager.app.domain.SunCrossingTest" time="0.0"/>
+  <testcase name="polar day has no sunset and polar night has no crossing" classname="com.zynergylabs.forager.app.domain.SunCrossingTest" time="0.0"/>
+  <testcase name="the returned instant is actually on the threshold" classname="com.zynergylabs.forager.app.domain.SunCrossingTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

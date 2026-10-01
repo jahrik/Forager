@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.photo.PhotoOrientationTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:59.153Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.216">
+  <properties/>
+  <testcase name="a rotate-90 tag reads as a 90 degree clockwise turn" classname="com.zynergylabs.forager.app.photo.PhotoOrientationTest" time="0.024"/>
+  <testcase name="turning a 40x20 bitmap by 90 or 270 swaps its dimensions, by 0 or 180 keeps them" classname="com.zynergylabs.forager.app.photo.PhotoOrientationTest" time="0.1"/>
+  <testcase name="reading the orientation does not modify the file" classname="com.zynergylabs.forager.app.photo.PhotoOrientationTest" time="0.021"/>
+  <testcase name="all eight defined values map, and the mirrored four say so" classname="com.zynergylabs.forager.app.photo.PhotoOrientationTest" time="0.022"/>
+  <testcase name="NORMAL returns the same bitmap and recycles nothing, any other orientation recycles the source" classname="com.zynergylabs.forager.app.photo.PhotoOrientationTest" time="0.025"/>
+  <testcase name="no tag, an undefined tag, an unknown value, and a non-JPEG all display unrotated" classname="com.zynergylabs.forager.app.photo.PhotoOrientationTest" time="0.022"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.sensor.AndroidDeclinationProviderTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:59.613Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.075">
+  <properties/>
+  <testcase name="a null altitude is evaluated at sea level, not rejected" classname="com.zynergylabs.forager.app.sensor.AndroidDeclinationProviderTest" time="0.027"/>
+  <testcase name="Portland Oregon has an east declination of about plus 14 and a half degrees" classname="com.zynergylabs.forager.app.sensor.AndroidDeclinationProviderTest" time="0.023"/>
+  <testcase name="Boston Massachusetts has a west declination of about minus 14 degrees" classname="com.zynergylabs.forager.app.sensor.AndroidDeclinationProviderTest" time="0.024"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

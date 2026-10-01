@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:09.879Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="3.02">
+  <properties/>
+  <testcase name="night topo is the Street layer under the topo layer, overlapping 9_5 to 9_7, V1 on both" classname="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" time="0.05"/>
+  <testcase name="the caption is unchanged everywhere else" classname="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" time="0.029"/>
+  <testcase name="which layers the style draws on each side of the crossfade" classname="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" time="0.031"/>
+  <testcase name="at every sampled map zoom the parsed night-topo style shows one layer, pure V1, and a dark map" classname="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" time="0.754"/>
+  <testcase name="the model's V1 is nightColorOf over every sampled tile colour" classname="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" time="0.636"/>
+  <testcase name="raster tile zoom is one ahead of the map zoom for 256 px tiles and rounds half up" classname="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" time="0.035"/>
+  <testcase name="across the crossfade the blended map stays dark, pixel for pixel" classname="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" time="1.293"/>
+  <testcase name="the fading topo layer is never drawn on tile level 10 or shallower" classname="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" time="0.037"/>
+  <testcase name="Street's night style JSON is byte-identical to before" classname="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" time="0.03"/>
+  <testcase name="Satellite's night style JSON is byte-identical to its day JSON" classname="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" time="0.029"/>
+  <testcase name="raster-opacity evaluates as the style spec defines it, and other expressions are refused" classname="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" time="0.031"/>
+  <testcase name="the caption at topo night credits both sources" classname="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" time="0.03"/>
+  <testcase name="day style JSON is byte-identical to before for every basemap" classname="com.zynergylabs.forager.app.ui.map.TopoNightStreetSwitchTest" time="0.031"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

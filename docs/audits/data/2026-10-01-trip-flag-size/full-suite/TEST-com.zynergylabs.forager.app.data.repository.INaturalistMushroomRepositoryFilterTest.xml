@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.data.repository.INaturalistMushroomRepositoryFilterTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:49.164Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.033">
+  <properties/>
+  <testcase name="Plants exclude nothing on either endpoint" classname="com.zynergylabs.forager.app.data.repository.INaturalistMushroomRepositoryFilterTest" time="0.028"/>
+  <testcase name="Fungi species counts exclude Lecanoromycetes" classname="com.zynergylabs.forager.app.data.repository.INaturalistMushroomRepositoryFilterTest" time="0.001"/>
+  <testcase name="Fungi exclusion and the Lichens chip name the same taxon" classname="com.zynergylabs.forager.app.data.repository.INaturalistMushroomRepositoryFilterTest" time="0.0"/>
+  <testcase name="Lichens select Lecanoromycetes and exclude nothing" classname="com.zynergylabs.forager.app.data.repository.INaturalistMushroomRepositoryFilterTest" time="0.002"/>
+  <testcase name="a searched-for specific taxon excludes nothing" classname="com.zynergylabs.forager.app.data.repository.INaturalistMushroomRepositoryFilterTest" time="0.001"/>
+  <testcase name="Fungi sightings exclude Lecanoromycetes" classname="com.zynergylabs.forager.app.data.repository.INaturalistMushroomRepositoryFilterTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

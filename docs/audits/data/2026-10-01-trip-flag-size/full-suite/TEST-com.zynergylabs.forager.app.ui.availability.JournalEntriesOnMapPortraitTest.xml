@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.JournalEntriesOnMapPortraitTest" tests="14" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:38.222Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="1.693">
+  <properties/>
+  <testcase name="opening an entry while an unchanged entry is open simply opens the new one, with no prompt" classname="com.zynergylabs.forager.app.ui.availability.JournalEntriesOnMapPortraitTest" time="0.092"/>
+  <testcase name="opening an entry while another has unsaved edits, Cancel keeps the edit open and unsaved and opens nothing" classname="com.zynergylabs.forager.app.ui.availability.JournalEntriesOnMapPortraitTest" time="0.131"/>
+  <testcase name="the chip lists the shown entries by date, a row's Hide hides that entry, and Hide all hides the rest" classname="com.zynergylabs.forager.app.ui.availability.JournalEntriesOnMapPortraitTest" time="0.16"/>
+  <testcase name="touches all around the chip reach the map, and a touch on the chip does not" classname="com.zynergylabs.forager.app.ui.availability.JournalEntriesOnMapPortraitTest" time="0.137"/>
+  <testcase name="opening an entry while another has unsaved edits asks first, and Discard keeps the stored text and opens it" classname="com.zynergylabs.forager.app.ui.availability.JournalEntriesOnMapPortraitTest" time="0.17"/>
+  <testcase name="opening an entry while another has unsaved edits asks first, and Save stores the edit and opens it" classname="com.zynergylabs.forager.app.ui.availability.JournalEntriesOnMapPortraitTest" time="0.128"/>
+  <testcase name="the Journal entries switch hides every highlight together while the chip stays" classname="com.zynergylabs.forager.app.ui.availability.JournalEntriesOnMapPortraitTest" time="0.08"/>
+  <testcase name="a failed Show on map shows exactly Changes not applied, Try again, and changes nothing" classname="com.zynergylabs.forager.app.ui.availability.JournalEntriesOnMapPortraitTest" time="0.118"/>
+  <testcase name="the report menu offers Show on map on a saved entry that keeps a record" classname="com.zynergylabs.forager.app.ui.availability.JournalEntriesOnMapPortraitTest" time="0.077"/>
+  <testcase name="more than three keeping entries are one line, and a date in its list opens that entry" classname="com.zynergylabs.forager.app.ui.availability.JournalEntriesOnMapPortraitTest" time="0.087"/>
+  <testcase name="the report menu does not offer Show on map on a saved entry that keeps nothing" classname="com.zynergylabs.forager.app.ui.availability.JournalEntriesOnMapPortraitTest" time="0.133"/>
+  <testcase name="the report menu's Show on map writes the field, the Maps tab's chip then counts the entry, and the menu offers Hide from map" classname="com.zynergylabs.forager.app.ui.availability.JournalEntriesOnMapPortraitTest" time="0.192"/>
+  <testcase name="a highlighted record's bubble names its entry by date, and a touch on the date opens that entry's report on the Journal" classname="com.zynergylabs.forager.app.ui.availability.JournalEntriesOnMapPortraitTest" time="0.091"/>
+  <testcase name="the report menu still offers Hide from map on a shown entry that keeps nothing" classname="com.zynergylabs.forager.app.ui.availability.JournalEntriesOnMapPortraitTest" time="0.094"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

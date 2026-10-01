@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.CameraStripTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:26.490Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.182">
+  <properties/>
+  <testcase name="a strip with no chips composes nothing and reserves no band" classname="com.zynergylabs.forager.app.ui.log.CameraStripTest" time="0.038"/>
+  <testcase name="along a vertical edge the chips are a column, in order, one row wide" classname="com.zynergylabs.forager.app.ui.log.CameraStripTest" time="0.089"/>
+  <testcase name="a strip with a chip is one control row deep along its edge" classname="com.zynergylabs.forager.app.ui.log.CameraStripTest" time="0.052"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

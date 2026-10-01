@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.MapModeTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:09.022Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.0">
+  <properties/>
+  <testcase name="only Satellite is US-only coverage" classname="com.zynergylabs.forager.app.ui.map.MapModeTest" time="0.0"/>
+  <testcase name="each mode resolves to its own fixed basemap" classname="com.zynergylabs.forager.app.ui.map.MapModeTest" time="0.0"/>
+  <testcase name="the default map mode is Topographical" classname="com.zynergylabs.forager.app.ui.map.MapModeTest" time="0.0"/>
+  <testcase name="only Satellite resolves to a USGS basemap" classname="com.zynergylabs.forager.app.ui.map.MapModeTest" time="0.0"/>
+  <testcase name="every basemap in the catalogue belongs to exactly one mode" classname="com.zynergylabs.forager.app.ui.map.MapModeTest" time="0.0"/>
+  <testcase name="modes are labeled distinctly" classname="com.zynergylabs.forager.app.ui.map.MapModeTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.CompactToolsDrawerTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:28.196Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="1.348">
+  <properties/>
+  <testcase name="short landscape at ROTATION_270 - the open sheet is on the left edge, the rail side, reading left to right" classname="com.zynergylabs.forager.app.ui.availability.CompactToolsDrawerTest" time="0.058"/>
+  <testcase name="RTL short landscape at ROTATION_270 - the open sheet is on the left edge, the rail side, reading right to left" classname="com.zynergylabs.forager.app.ui.availability.CompactToolsDrawerTest" time="0.098"/>
+  <testcase name="short landscape at ROTATION_90 - after the drawer closes, the rail is still on the right" classname="com.zynergylabs.forager.app.ui.availability.CompactToolsDrawerTest" time="0.078"/>
+  <testcase name="portrait - a real tap anywhere on the scrim closes the drawer, and it opens again" classname="com.zynergylabs.forager.app.ui.availability.CompactToolsDrawerTest" time="0.218"/>
+  <testcase name="short landscape at ROTATION_90 - the open sheet is on the right edge, the rail side, reading left to right" classname="com.zynergylabs.forager.app.ui.availability.CompactToolsDrawerTest" time="0.067"/>
+  <testcase name="RTL short landscape at ROTATION_90 - the open sheet is on the right edge, the rail side, reading right to left" classname="com.zynergylabs.forager.app.ui.availability.CompactToolsDrawerTest" time="0.06"/>
+  <testcase name="short landscape at ROTATION_90 - with the drawer closed, a drag across the map from either edge does not open it" classname="com.zynergylabs.forager.app.ui.availability.CompactToolsDrawerTest" time="0.078"/>
+  <testcase name="short landscape at ROTATION_90 - a real tap anywhere on the scrim closes the drawer, and it opens again" classname="com.zynergylabs.forager.app.ui.availability.CompactToolsDrawerTest" time="0.173"/>
+  <testcase name="portrait - with the drawer closed, a drag across the map from either edge does not open it" classname="com.zynergylabs.forager.app.ui.availability.CompactToolsDrawerTest" time="0.053"/>
+  <testcase name="short landscape at ROTATION_270 - a real tap anywhere on the scrim closes the drawer, and it opens again" classname="com.zynergylabs.forager.app.ui.availability.CompactToolsDrawerTest" time="0.163"/>
+  <testcase name="portrait - the open sheet is on the left edge, as before B3, reading left to right" classname="com.zynergylabs.forager.app.ui.availability.CompactToolsDrawerTest" time="0.104"/>
+  <testcase name="RTL portrait - the open sheet is on the right edge, the start side, as before B3" classname="com.zynergylabs.forager.app.ui.availability.CompactToolsDrawerTest" time="0.119"/>
+  <testcase name="short landscape at ROTATION_270 - with the drawer closed, a drag across the map from either edge does not open it" classname="com.zynergylabs.forager.app.ui.availability.CompactToolsDrawerTest" time="0.075"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

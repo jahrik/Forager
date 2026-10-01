@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenSeasonalTabTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:13.060Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.624">
+  <properties/>
+  <testcase name="the fruiting-lag bucket is labelled as the rule of thumb being tested" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenSeasonalTabTest" time="0.111"/>
+  <testcase name="the observer-effort caveat is reachable on screen" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenSeasonalTabTest" time="0.067"/>
+  <testcase name="before any search, the Seasonal tab shows a no-search message instead of a chart" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenSeasonalTabTest" time="0.085"/>
+  <testcase name="a fetch failure is shown as an explicit message" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenSeasonalTabTest" time="0.058"/>
+  <testcase name="observations with no preceding rain event are reported, not dropped" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenSeasonalTabTest" time="0.055"/>
+  <testcase name="observations excluded for a missing date are reported, not silently dropped" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenSeasonalTabTest" time="0.071"/>
+  <testcase name="the sample size and its not-a-guarantee framing are on screen" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenSeasonalTabTest" time="0.062"/>
+  <testcase name="the 200-of-total sample-size caveat is on screen" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenSeasonalTabTest" time="0.062"/>
+  <testcase name="a loading state shows a progress indicator rather than stale content" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenSeasonalTabTest" time="0.049"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
