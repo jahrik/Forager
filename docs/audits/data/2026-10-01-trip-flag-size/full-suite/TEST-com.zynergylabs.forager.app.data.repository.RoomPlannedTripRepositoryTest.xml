@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.data.repository.RoomPlannedTripRepositoryTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:50.728Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.152">
+  <properties/>
+  <testcase name="deleting a trip removes it and leaves the others" classname="com.zynergylabs.forager.app.data.repository.RoomPlannedTripRepositoryTest" time="0.029"/>
+  <testcase name="a saved trip is returned by getAll with the same fields" classname="com.zynergylabs.forager.app.data.repository.RoomPlannedTripRepositoryTest" time="0.026"/>
+  <testcase name="saving a trip with an existing id replaces it rather than duplicating it" classname="com.zynergylabs.forager.app.data.repository.RoomPlannedTripRepositoryTest" time="0.042"/>
+  <testcase name="deleting an id that isn't stored is a no-op, not a failure" classname="com.zynergylabs.forager.app.data.repository.RoomPlannedTripRepositoryTest" time="0.027"/>
+  <testcase name="getAll on an empty database returns an empty list, not a failure" classname="com.zynergylabs.forager.app.data.repository.RoomPlannedTripRepositoryTest" time="0.027"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

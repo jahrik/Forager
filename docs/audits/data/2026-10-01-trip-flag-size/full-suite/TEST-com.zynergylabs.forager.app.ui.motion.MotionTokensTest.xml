@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.motion.MotionTokensTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:13.061Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.556">
+  <properties/>
+  <testcase name="marker entrance maps to defaultSpatialSpec" classname="com.zynergylabs.forager.app.ui.motion.MotionTokensTest" time="0.05"/>
+  <testcase name="feedback motion maps to fastSpatialSpec, per ADR-0002's category table" classname="com.zynergylabs.forager.app.ui.motion.MotionTokensTest" time="0.028"/>
+  <testcase name="effects-category specs are critically damped, so interruption can never overshoot" classname="com.zynergylabs.forager.app.ui.motion.MotionTokensTest" time="0.027"/>
+  <testcase name="navigation motion maps to defaultSpatialSpec, split from the panel row" classname="com.zynergylabs.forager.app.ui.motion.MotionTokensTest" time="0.026"/>
+  <testcase name="panel motion maps to slowSpatialSpec, the only category with a real production caller" classname="com.zynergylabs.forager.app.ui.motion.MotionTokensTest" time="0.03"/>
+  <testcase name="selection pulse scale range is low-amplitude" classname="com.zynergylabs.forager.app.ui.motion.MotionTokensTest" time="0.03"/>
+  <testcase name="spatial-category specs are allowed to be underdamped, since ADR-0002 accepts overshoot there" classname="com.zynergylabs.forager.app.ui.motion.MotionTokensTest" time="0.078"/>
+  <testcase name="data layer overlay maps to defaultEffectsSpec" classname="com.zynergylabs.forager.app.ui.motion.MotionTokensTest" time="0.043"/>
+  <testcase name="route recalculation morph maps to slowEffectsSpec" classname="com.zynergylabs.forager.app.ui.motion.MotionTokensTest" time="0.041"/>
+  <testcase name="no exposed category resolves to a TweenSpec" classname="com.zynergylabs.forager.app.ui.motion.MotionTokensTest" time="0.068"/>
+  <testcase name="selection pulse maps to slowSpatialSpec" classname="com.zynergylabs.forager.app.ui.motion.MotionTokensTest" time="0.078"/>
+  <testcase name="narrative reveal maps to slowEffectsSpec" classname="com.zynergylabs.forager.app.ui.motion.MotionTokensTest" time="0.043"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.map.OfflineRegionReconciliationTest" tests="14" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:56.802Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.008">
+  <properties/>
+  <testcase name="a partial read keeps the Room row it lacks and shows only what it has" classname="com.zynergylabs.forager.app.map.OfflineRegionReconciliationTest" time="0.003"/>
+  <testcase name="a download still running in this process is not deleted" classname="com.zynergylabs.forager.app.map.OfflineRegionReconciliationTest" time="0.001"/>
+  <testcase name="a Room row MapLibre does have is not offered as not downloaded" classname="com.zynergylabs.forager.app.map.OfflineRegionReconciliationTest" time="0.0"/>
+  <testcase name="an incomplete region whose metadata records a completion time is not deleted" classname="com.zynergylabs.forager.app.map.OfflineRegionReconciliationTest" time="0.001"/>
+  <testcase name="an incomplete region with unreadable or missing metadata is not deleted" classname="com.zynergylabs.forager.app.map.OfflineRegionReconciliationTest" time="0.0"/>
+  <testcase name="a complete region is never deleted, whatever else the read holds" classname="com.zynergylabs.forager.app.map.OfflineRegionReconciliationTest" time="0.001"/>
+  <testcase name="an incomplete region that has a Room row is not deleted" classname="com.zynergylabs.forager.app.map.OfflineRegionReconciliationTest" time="0.0"/>
+  <testcase name="an empty read offers every row, and listing them deletes nothing" classname="com.zynergylabs.forager.app.map.OfflineRegionReconciliationTest" time="0.001"/>
+  <testcase name="an empty read deletes no Room row" classname="com.zynergylabs.forager.app.map.OfflineRegionReconciliationTest" time="0.0"/>
+  <testcase name="an incomplete region that provably never finished is deleted, tiles and row, and the delete is logged with its id" classname="com.zynergylabs.forager.app.map.OfflineRegionReconciliationTest" time="0.0"/>
+  <testcase name="a Room row with no MapLibre region is offered as not downloaded, with its stored centre, radius and zoom" classname="com.zynergylabs.forager.app.map.OfflineRegionReconciliationTest" time="0.0"/>
+  <testcase name="a null list from MapLibre is a failed read, not an empty one" classname="com.zynergylabs.forager.app.map.OfflineRegionReconciliationTest" time="0.0"/>
+  <testcase name="a complete region with no Room row is rebuilt from its metadata" classname="com.zynergylabs.forager.app.map.OfflineRegionReconciliationTest" time="0.001"/>
+  <testcase name="every Room row missing from the read is logged with its id, each time it is seen" classname="com.zynergylabs.forager.app.map.OfflineRegionReconciliationTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

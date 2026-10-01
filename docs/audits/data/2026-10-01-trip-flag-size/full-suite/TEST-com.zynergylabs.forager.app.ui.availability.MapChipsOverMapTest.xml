@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.MapChipsOverMapTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:05.243Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.145">
+  <properties/>
+  <testcase name="the journal entries chip has no shadow under its 0_8 fill" classname="com.zynergylabs.forager.app.ui.availability.MapChipsOverMapTest" time="0.098"/>
+  <testcase name="the taxon chip has no shadow under its 0_8 fill" classname="com.zynergylabs.forager.app.ui.availability.MapChipsOverMapTest" time="0.044"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

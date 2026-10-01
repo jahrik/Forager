@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.data.repository.OpenMeteoPastFutureSplitTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:49.823Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.005">
+  <properties/>
+  <testcase name="the reference day itself is treated as forecast, not observed" classname="com.zynergylabs.forager.app.data.repository.OpenMeteoPastFutureSplitTest" time="0.003"/>
+  <testcase name="the 14-day total excludes forecast days" classname="com.zynergylabs.forager.app.data.repository.OpenMeteoPastFutureSplitTest" time="0.0"/>
+  <testcase name="days since significant rain ignores rain that has not fallen yet" classname="com.zynergylabs.forager.app.data.repository.OpenMeteoPastFutureSplitTest" time="0.001"/>
+  <testcase name="days since significant rain is counted from the most recent observed day" classname="com.zynergylabs.forager.app.data.repository.OpenMeteoPastFutureSplitTest" time="0.0"/>
+  <testcase name="days since significant rain counts back within the observed window only" classname="com.zynergylabs.forager.app.data.repository.OpenMeteoPastFutureSplitTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.ComputeSundownCountdownUseCaseTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:52.543Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.004">
+  <properties/>
+  <testcase name="past the turnaround the countdown goes negative rather than clamping to zero" classname="com.zynergylabs.forager.app.domain.ComputeSundownCountdownUseCaseTest" time="0.001"/>
+  <testcase name="the fix age is carried, and a missing fix time does not fabricate one" classname="com.zynergylabs.forager.app.domain.ComputeSundownCountdownUseCaseTest" time="0.0"/>
+  <testcase name="zero margin puts the turnaround exactly at sunset" classname="com.zynergylabs.forager.app.domain.ComputeSundownCountdownUseCaseTest" time="0.001"/>
+  <testcase name="civil dusk may be absent without the rest being unavailable" classname="com.zynergylabs.forager.app.domain.ComputeSundownCountdownUseCaseTest" time="0.0"/>
+  <testcase name="a fix timestamped in the future reports zero age rather than a negative one" classname="com.zynergylabs.forager.app.domain.ComputeSundownCountdownUseCaseTest" time="0.0"/>
+  <testcase name="no position yet is its own state, not a zeroed countdown" classname="com.zynergylabs.forager.app.domain.ComputeSundownCountdownUseCaseTest" time="0.001"/>
+  <testcase name="polar day and polar night are told apart, not merged" classname="com.zynergylabs.forager.app.domain.ComputeSundownCountdownUseCaseTest" time="0.001"/>
+  <testcase name="a margin longer than the day leaves the turnaround in the past, honestly" classname="com.zynergylabs.forager.app.domain.ComputeSundownCountdownUseCaseTest" time="0.0"/>
+  <testcase name="after sunset it reports the next one rather than a negative day" classname="com.zynergylabs.forager.app.domain.ComputeSundownCountdownUseCaseTest" time="0.0"/>
+  <testcase name="reports sunset, a turnaround an hour earlier, and a dusk after sunset" classname="com.zynergylabs.forager.app.domain.ComputeSundownCountdownUseCaseTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

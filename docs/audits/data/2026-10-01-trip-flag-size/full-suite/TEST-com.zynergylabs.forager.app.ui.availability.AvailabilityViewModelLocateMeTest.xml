@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelLocateMeTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:21.553Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.015">
+  <properties/>
+  <testcase name="permission denied reports LocateMeStatus PermissionDenied, distinct from the search-region control's flag" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelLocateMeTest" time="0.005"/>
+  <testcase name="location unavailable reports LocateMeStatus Unavailable, not a silent fallback" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelLocateMeTest" time="0.002"/>
+  <testcase name="a fix with no altitude (a network-based fix) reports Located with null altitude, never a guessed value" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelLocateMeTest" time="0.003"/>
+  <testcase name="a fix with altitude reports Located carrying that altitude" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelLocateMeTest" time="0.002"/>
+  <testcase name="locateMe never touches the search region, unlike useCurrentLocation" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelLocateMeTest" time="0.002"/>
+  <testcase name="an OS-level permission denial (before the provider is ever asked) also reports PermissionDenied" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelLocateMeTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

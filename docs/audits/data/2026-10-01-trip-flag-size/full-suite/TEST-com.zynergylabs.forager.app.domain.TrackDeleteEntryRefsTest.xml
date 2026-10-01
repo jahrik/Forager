@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.TrackDeleteEntryRefsTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:53.752Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.427">
+  <properties/>
+  <testcase name="the same holds for a waypoint, which is the rule the track follows" classname="com.zynergylabs.forager.app.domain.TrackDeleteEntryRefsTest" time="0.029"/>
+  <testcase name="a withheld entry has the saved path but does not draw it" classname="com.zynergylabs.forager.app.domain.TrackDeleteEntryRefsTest" time="0.031"/>
+  <testcase name="after the track is deleted the entry still keeps it as its snapshot, and draws its saved line" classname="com.zynergylabs.forager.app.domain.TrackDeleteEntryRefsTest" time="0.035"/>
+  <testcase name="deleting an entry deletes its saved paths and no other entry's" classname="com.zynergylabs.forager.app.domain.TrackDeleteEntryRefsTest" time="0.052"/>
+  <testcase name="the saved path is the read-seam-filtered path in timestamp order, not the stored rows" classname="com.zynergylabs.forager.app.domain.TrackDeleteEntryRefsTest" time="0.034"/>
+  <testcase name="deleting the track again leaves the saved paths as they were" classname="com.zynergylabs.forager.app.domain.TrackDeleteEntryRefsTest" time="0.034"/>
+  <testcase name="saving the entry again after the delete leaves its saved path in place and drawn" classname="com.zynergylabs.forager.app.domain.TrackDeleteEntryRefsTest" time="0.038"/>
+  <testcase name="before the delete the entry has the kept track drawn and both counts at one" classname="com.zynergylabs.forager.app.domain.TrackDeleteEntryRefsTest" time="0.034"/>
+  <testcase name="every entry that has the track gets a saved path, kept or withheld, committed or draft, and an entry with another track gets none" classname="com.zynergylabs.forager.app.domain.TrackDeleteEntryRefsTest" time="0.034"/>
+  <testcase name="deleting the track leaves the entry's waypoint decision alone too" classname="com.zynergylabs.forager.app.domain.TrackDeleteEntryRefsTest" time="0.035"/>
+  <testcase name="before the delete nothing is saved, the path is copied only when the track is deleted" classname="com.zynergylabs.forager.app.domain.TrackDeleteEntryRefsTest" time="0.037"/>
+  <testcase name="the track's own points are still deleted, as the delete-data page says" classname="com.zynergylabs.forager.app.domain.TrackDeleteEntryRefsTest" time="0.032"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

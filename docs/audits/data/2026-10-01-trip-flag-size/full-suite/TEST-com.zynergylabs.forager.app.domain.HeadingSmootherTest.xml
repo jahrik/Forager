@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.HeadingSmootherTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:53.629Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.001">
+  <properties/>
+  <testcase name="seven samples after a 90 degree step reach 84 point 9 degrees, about ninety percent settled" classname="com.zynergylabs.forager.app.domain.HeadingSmootherTest" time="0.001"/>
+  <testcase name="359 then 1 averages across north to 359 point 6, not to 180" classname="com.zynergylabs.forager.app.domain.HeadingSmootherTest" time="0.0"/>
+  <testcase name="reset forgets the running vector so the next sample seeds afresh" classname="com.zynergylabs.forager.app.domain.HeadingSmootherTest" time="0.0"/>
+  <testcase name="the first sample seeds the filter outright, with no lag from zero" classname="com.zynergylabs.forager.app.domain.HeadingSmootherTest" time="0.0"/>
+  <testcase name="one step of 90 degrees moves the reading 23 point 2 degrees at alpha 0 point 3" classname="com.zynergylabs.forager.app.domain.HeadingSmootherTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

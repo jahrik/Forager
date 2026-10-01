@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.LayersChipsPortraitTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:49.187Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.166">
+  <properties/>
+  <testcase name="guard - the map-type chips' top is where it was" classname="com.zynergylabs.forager.app.ui.availability.LayersChipsPortraitTest" time="0.075"/>
+  <testcase name="the map-type chips are centred between the sheet's sides" classname="com.zynergylabs.forager.app.ui.availability.LayersChipsPortraitTest" time="0.09"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.DetectOffTrackUseCaseTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:52.586Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.0">
+  <properties/>
+  <testcase name="a steadily decreasing distance is not off track" classname="com.zynergylabs.forager.app.domain.DetectOffTrackUseCaseTest" time="0.0"/>
+  <testcase name="a flat distance within GPS jitter is not off track" classname="com.zynergylabs.forager.app.domain.DetectOffTrackUseCaseTest" time="0.0"/>
+  <testcase name="only the most recent window matters, so an old downward trend can't mask a fresh upward one" classname="com.zynergylabs.forager.app.domain.DetectOffTrackUseCaseTest" time="0.0"/>
+  <testcase name="a single spike back down clears an otherwise rising window" classname="com.zynergylabs.forager.app.domain.DetectOffTrackUseCaseTest" time="0.0"/>
+  <testcase name="a real net increase across the window is off track" classname="com.zynergylabs.forager.app.domain.DetectOffTrackUseCaseTest" time="0.0"/>
+  <testcase name="fewer than three readings is never enough to call a trend" classname="com.zynergylabs.forager.app.domain.DetectOffTrackUseCaseTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

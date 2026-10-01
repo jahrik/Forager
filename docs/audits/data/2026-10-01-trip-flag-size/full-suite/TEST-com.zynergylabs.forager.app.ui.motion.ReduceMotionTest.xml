@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.motion.ReduceMotionTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:13.623Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.1">
+  <properties/>
+  <testcase name="reduce motion mapping matches the spec table exactly" classname="com.zynergylabs.forager.app.ui.motion.ReduceMotionTest" time="0.024"/>
+  <testcase name="reduce motion is disabled when both scales are at their default" classname="com.zynergylabs.forager.app.ui.motion.ReduceMotionTest" time="0.017"/>
+  <testcase name="reduce motion is enabled when transition animation scale is zero" classname="com.zynergylabs.forager.app.ui.motion.ReduceMotionTest" time="0.018"/>
+  <testcase name="reduce motion mapping never maps a treatment to nothing" classname="com.zynergylabs.forager.app.ui.motion.ReduceMotionTest" time="0.02"/>
+  <testcase name="reduce motion is enabled when animator duration scale is zero" classname="com.zynergylabs.forager.app.ui.motion.ReduceMotionTest" time="0.02"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

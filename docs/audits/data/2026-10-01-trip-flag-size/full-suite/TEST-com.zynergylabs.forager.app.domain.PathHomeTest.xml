@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.PathHomeTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:53.684Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.005">
+  <properties/>
+  <testcase name="a hop hovering around 25 m stays counted once entered, rather than flickering" classname="com.zynergylabs.forager.app.domain.PathHomeTest" time="0.002"/>
+  <testcase name="the estimate decreases at every point of the return leg and is zero at the origin" classname="com.zynergylabs.forager.app.domain.PathHomeTest" time="0.002"/>
+  <testcase name="a counted hop leaves the band only below 20 m, and a far hop only below 45 m" classname="com.zynergylabs.forager.app.domain.PathHomeTest" time="0.0"/>
+  <testcase name="a straight track's path home is the sum of its legs, with no hop from a walker standing on the last point" classname="com.zynergylabs.forager.app.domain.PathHomeTest" time="0.0"/>
+  <testcase name="the origin's last hop is included when the track has an origin waypoint, and is zero when the origin is the first point" classname="com.zynergylabs.forager.app.domain.PathHomeTest" time="0.0"/>
+  <testcase name="a hop under 25 m is measured but omitted from the total" classname="com.zynergylabs.forager.app.domain.PathHomeTest" time="0.0"/>
+  <testcase name="a hop between 25 and 50 m is added as-is and does not degrade" classname="com.zynergylabs.forager.app.domain.PathHomeTest" time="0.0"/>
+  <testcase name="a track with no usable points has no path home, and a single point has a zero-length track with a measured hop" classname="com.zynergylabs.forager.app.domain.PathHomeTest" time="0.001"/>
+  <testcase name="a hop over 50 m is added and marks the estimate degraded" classname="com.zynergylabs.forager.app.domain.PathHomeTest" time="0.0"/>
+  <testcase name="parallel legs 15 m apart are not joined - 8 m apart they are" classname="com.zynergylabs.forager.app.domain.PathHomeTest" time="0.0"/>
+  <testcase name="a doubled-back track is joined at the points the walker re-occupied and reads the ground still ahead" classname="com.zynergylabs.forager.app.domain.PathHomeTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.KeptTrackPathListsTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:45.222Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.109">
+  <properties/>
+  <testcase name="a sideways card's slot is the track thumbnail for a kept track that is gone, drawn from the saved path" classname="com.zynergylabs.forager.app.ui.log.KeptTrackPathListsTest" time="0.035"/>
+  <testcase name="a sideways card with no saved path and no loaded track has the type-icon slot, not the thumbnail" classname="com.zynergylabs.forager.app.ui.log.KeptTrackPathListsTest" time="0.032"/>
+  <testcase name="a draft card draws the path saved for its kept track that is gone" classname="com.zynergylabs.forager.app.ui.log.KeptTrackPathListsTest" time="0.039"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

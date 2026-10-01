@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelPlannedTripsTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:21.688Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.011">
+  <properties/>
+  <testcase name="deleting a planned trip removes it from state" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelPlannedTripsTest" time="0.007"/>
+  <testcase name="a trip placed for today is promoted to the front alongside an earlier future one" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelPlannedTripsTest" time="0.001"/>
+  <testcase name="previously saved trips are loaded into state on creation" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelPlannedTripsTest" time="0.002"/>
+  <testcase name="placing a trip pin saves it and it appears in state" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelPlannedTripsTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

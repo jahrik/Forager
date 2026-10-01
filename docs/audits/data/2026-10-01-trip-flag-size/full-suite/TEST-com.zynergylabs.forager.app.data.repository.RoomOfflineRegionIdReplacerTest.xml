@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.data.repository.RoomOfflineRegionIdReplacerTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:50.630Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.091">
+  <properties/>
+  <testcase name="replacing an id with itself changes nothing and does not delete the row" classname="com.zynergylabs.forager.app.data.repository.RoomOfflineRegionIdReplacerTest" time="0.031"/>
+  <testcase name="references move to the new id, the old row goes, and other regions are untouched" classname="com.zynergylabs.forager.app.data.repository.RoomOfflineRegionIdReplacerTest" time="0.03"/>
+  <testcase name="an entry that already names the new region keeps one reference, not two" classname="com.zynergylabs.forager.app.data.repository.RoomOfflineRegionIdReplacerTest" time="0.029"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

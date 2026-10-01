@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.JournalEntriesTest" tests="25" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:35.945Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="1.871">
+  <properties/>
+  <testcase name="Back from a draft opened out of the drafts list returns to the list, and Back again returns to Entries" classname="com.zynergylabs.forager.app.ui.log.JournalEntriesTest" time="0.085"/>
+  <testcase name="touching the floating button at several points starts a new entry each time, never the card beneath it" classname="com.zynergylabs.forager.app.ui.log.JournalEntriesTest" time="0.067"/>
+  <testcase name="scrolled to the end, the album's last photos sit clear of Add photo and open at a touch at several points" classname="com.zynergylabs.forager.app.ui.log.JournalEntriesTest" time="0.217"/>
+  <testcase name="the view toggle shows timeline and album with timeline on, and the Album sub-tab is gone" classname="com.zynergylabs.forager.app.ui.log.JournalEntriesTest" time="0.05"/>
+  <testcase name="the album badges each photo by what it is attached to - a journal entry, a find, both, or neither" classname="com.zynergylabs.forager.app.ui.log.JournalEntriesTest" time="0.045"/>
+  <testcase name="scrolled to the end, the last cards sit clear of the floating button and take touches at several points" classname="com.zynergylabs.forager.app.ui.log.JournalEntriesTest" time="0.129"/>
+  <testcase name="Back from Records steps to Entries" classname="com.zynergylabs.forager.app.ui.log.JournalEntriesTest" time="0.087"/>
+  <testcase name="Back from the album returns to the timeline" classname="com.zynergylabs.forager.app.ui.log.JournalEntriesTest" time="0.065"/>
+  <testcase name="with one draft, touching Continue at several points opens that draft in the editor" classname="com.zynergylabs.forager.app.ui.log.JournalEntriesTest" time="0.108"/>
+  <testcase name="the switch shows Entries and Records, Entries selected, and no Cartography label" classname="com.zynergylabs.forager.app.ui.log.JournalEntriesTest" time="0.052"/>
+  <testcase name="touching Add photo at several points opens the menu, never the photo beneath it, and Take photo at several points opens the album's camera" classname="com.zynergylabs.forager.app.ui.log.JournalEntriesTest" time="0.119"/>
+  <testcase name="touching album at several points shows the album, and touching timeline brings the entries back" classname="com.zynergylabs.forager.app.ui.log.JournalEntriesTest" time="0.051"/>
+  <testcase name="touching each side of the switch at several points switches between Entries and Records" classname="com.zynergylabs.forager.app.ui.log.JournalEntriesTest" time="0.062"/>
+  <testcase name="the drafts list's back arrow, touched at several points, returns to Entries" classname="com.zynergylabs.forager.app.ui.log.JournalEntriesTest" time="0.062"/>
+  <testcase name="the album has an Add photo floating button, and the album's own Camera and Import row is gone" classname="com.zynergylabs.forager.app.ui.log.JournalEntriesTest" time="0.042"/>
+  <testcase name="with three drafts the banner reads 3 unfinished entries" classname="com.zynergylabs.forager.app.ui.log.JournalEntriesTest" time="0.031"/>
+  <testcase name="with no drafts there is no banner" classname="com.zynergylabs.forager.app.ui.log.JournalEntriesTest" time="0.03"/>
+  <testcase name="finishing a draft opened from the list returns to the list while drafts remain, and to Entries when none do" classname="com.zynergylabs.forager.app.ui.log.JournalEntriesTest" time="0.07"/>
+  <testcase name="a draft picked from the list by a touch at several points opens that draft in the editor" classname="com.zynergylabs.forager.app.ui.log.JournalEntriesTest" time="0.058"/>
+  <testcase name="with several drafts, touching Continue at several points opens the full-screen drafts list, and Back returns to Entries" classname="com.zynergylabs.forager.app.ui.log.JournalEntriesTest" time="0.057"/>
+  <testcase name="Import in the Add photo menu, touched at several points, launches the system photo picker" classname="com.zynergylabs.forager.app.ui.log.JournalEntriesTest" time="0.085"/>
+  <testcase name="the timeline has a New entry floating button in place of the plus tile" classname="com.zynergylabs.forager.app.ui.log.JournalEntriesTest" time="0.1"/>
+  <testcase name="with one draft the banner reads 1 unfinished entry with Continue, and the Drafts sub-tab is gone" classname="com.zynergylabs.forager.app.ui.log.JournalEntriesTest" time="0.043"/>
+  <testcase name="each album badge carries a content description a screen reader reads" classname="com.zynergylabs.forager.app.ui.log.JournalEntriesTest" time="0.088"/>
+  <testcase name="the album groups photos by day, newest day first and unknown dates last, in 3 columns with 3 dp gaps" classname="com.zynergylabs.forager.app.ui.log.JournalEntriesTest" time="0.064"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

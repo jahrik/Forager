@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.UserCameraGestureTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:12.904Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.0">
+  <properties/>
+  <testcase name="an app-made move is not, whether a developer animation or an API move" classname="com.zynergylabs.forager.app.ui.map.UserCameraGestureTest" time="0.0"/>
+  <testcase name="a gesture reason is the user's touch" classname="com.zynergylabs.forager.app.ui.map.UserCameraGestureTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

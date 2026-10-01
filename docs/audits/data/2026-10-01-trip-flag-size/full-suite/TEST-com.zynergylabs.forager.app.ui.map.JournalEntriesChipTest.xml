@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.JournalEntriesChipTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:08.126Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.194">
+  <properties/>
+  <testcase name="the chip's list is the default menu role at the map chrome's opacity, its content that role's own, opaque" classname="com.zynergylabs.forager.app.ui.map.JournalEntriesChipTest" time="0.049"/>
+  <testcase name="at night the chip takes the taxon chip's dark colour, at the map chrome's opacity, with white content" classname="com.zynergylabs.forager.app.ui.map.JournalEntriesChipTest" time="0.034"/>
+  <testcase name="more than three keeping entries are one line, Kept in 4 journal entries, whose list of dates is a menu at the map chrome's opacity" classname="com.zynergylabs.forager.app.ui.map.JournalEntriesChipTest" time="0.054"/>
+  <testcase name="up to three keeping entries are each a date line labelled Open entry and its date, and a touch opens that entry" classname="com.zynergylabs.forager.app.ui.map.JournalEntriesChipTest" time="0.03"/>
+  <testcase name="by day the chip takes the taxon chip's light colour, at the map chrome's opacity, with Bark content" classname="com.zynergylabs.forager.app.ui.map.JournalEntriesChipTest" time="0.026"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

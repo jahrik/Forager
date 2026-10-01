@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.RecordsChipRowScrollTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:57.351Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.756">
+  <properties/>
+  <testcase name="GUARD a row given less than its chips need scrolls" classname="com.zynergylabs.forager.app.ui.log.RecordsChipRowScrollTest" time="0.488"/>
+  <testcase name="GUARD a 700 dp row at the default font scale does not scroll" classname="com.zynergylabs.forager.app.ui.log.RecordsChipRowScrollTest" time="0.141"/>
+  <testcase name="GUARD a row given more than its chips need does not scroll" classname="com.zynergylabs.forager.app.ui.log.RecordsChipRowScrollTest" time="0.123"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

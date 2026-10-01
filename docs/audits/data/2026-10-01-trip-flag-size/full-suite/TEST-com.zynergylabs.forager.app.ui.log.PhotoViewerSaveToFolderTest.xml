@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.PhotoViewerSaveToFolderTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:49.731Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="3.642">
+  <properties/>
+  <testcase name="cancelling the picker shows no message" classname="com.zynergylabs.forager.app.ui.log.PhotoViewerSaveToFolderTest" time="3.073"/>
+  <testcase name="a tap opens the create-document picker with the sniffed type and name, and writes nothing to MediaStore" classname="com.zynergylabs.forager.app.ui.log.PhotoViewerSaveToFolderTest" time="0.192"/>
+  <testcase name="a document that cannot be written shows the failure message and is logged" classname="com.zynergylabs.forager.app.ui.log.PhotoViewerSaveToFolderTest" time="0.113"/>
+  <testcase name="the chosen document receives the stored bytes and Saved shows" classname="com.zynergylabs.forager.app.ui.log.PhotoViewerSaveToFolderTest" time="0.129"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[System.logW: A resource was acquired at attached stack trace but never released. See java.io.Closeable for information on avoiding resource leaks.
+java.lang.Throwable: Explicit termination method 'close' not called
+	at dalvik.system.CloseGuard.$$robo$$dalvik_system_CloseGuard$open(CloseGuard.java:221)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.robolectric.shadows.ShadowCloseGuard$CloseGuardReflector$$Reflector322.open(Unknown Source)
+	at org.robolectric.shadows.ShadowCloseGuard.open(ShadowCloseGuard.java:38)
+	at dalvik.system.CloseGuard.open(CloseGuard.java)
+	at android.os.ParcelFileDescriptor.$$robo$$android_os_ParcelFileDescriptor$__constructor__(ParcelFileDescriptor.java:192)
+	at android.os.ParcelFileDescriptor.<init>(ParcelFileDescriptor.java:185)
+	at android.os.ParcelFileDescriptor.<init>(ParcelFileDescriptor.java:181)
+	at org.robolectric.shadows.ShadowParcelFileDescriptor.newParcelFileDescriptor(ShadowParcelFileDescriptor.java:118)
+	at org.robolectric.shadows.ShadowParcelFileDescriptor.open(ShadowParcelFileDescriptor.java:123)
+	at android.os.ParcelFileDescriptor.open(ParcelFileDescriptor.java)
+	at android.content.ContentResolver.$$robo$$android_content_ContentResolver$openAssetFileDescriptor(ContentResolver.java:1290)
+	at android.content.ContentResolver.openAssetFileDescriptor(ContentResolver.java)
+	at android.content.ContentResolver.$$robo$$android_content_ContentResolver$openOutputStream(ContentResolver.java:1055)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.robolectric.shadows.ShadowContentResolver$ContentResolverReflector$$Reflector353.openOutputStream(Unknown Source)
+	at org.robolectric.shadows.ShadowContentResolver.openOutputStream(ShadowContentResolver.java:239)
+	at android.content.ContentResolver.openOutputStream(ContentResolver.java)
+	at com.zynergylabs.forager.app.photo.FilePhotoExporter$saveToDocument$2.invokeSuspend(PhotoExporter.kt:106)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.internal.LimitedDispatcher$Worker.run(LimitedDispatcher.kt:124)
+	at kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:89)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:586)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:798)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:717)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:704)
+
+]]></system-err>
+</testsuite>

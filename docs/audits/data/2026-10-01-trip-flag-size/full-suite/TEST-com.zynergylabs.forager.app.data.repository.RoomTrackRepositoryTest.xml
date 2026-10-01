@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.data.repository.RoomTrackRepositoryTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:51.385Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.581">
+  <properties/>
+  <testcase name="reads exclude sub-second points, count them, and leave the stored rows untouched" classname="com.zynergylabs.forager.app.data.repository.RoomTrackRepositoryTest" time="0.036"/>
+  <testcase name="batched insert of 1000 points is meaningfully cheaper than the same points one at a time" classname="com.zynergylabs.forager.app.data.repository.RoomTrackRepositoryTest" time="0.214"/>
+  <testcase name="getFullRecord on a track with no stored points, or no such track, is an empty list not a failure" classname="com.zynergylabs.forager.app.data.repository.RoomTrackRepositoryTest" time="0.033"/>
+  <testcase name="a track's origin waypoint pointer round-trips, and a track without one reads back null" classname="com.zynergylabs.forager.app.data.repository.RoomTrackRepositoryTest" time="0.032"/>
+  <testcase name="a point's speed and speed accuracy round-trip, and a point without them reads back null in both" classname="com.zynergylabs.forager.app.data.repository.RoomTrackRepositoryTest" time="0.027"/>
+  <testcase name="a created track starts with no points and no end time" classname="com.zynergylabs.forager.app.data.repository.RoomTrackRepositoryTest" time="0.026"/>
+  <testcase name="a getById miss returns a successful null, not a failure" classname="com.zynergylabs.forager.app.data.repository.RoomTrackRepositoryTest" time="0.025"/>
+  <testcase name="getFullRecord returns every stored point with its verdict, unlike getById's filtered read" classname="com.zynergylabs.forager.app.data.repository.RoomTrackRepositoryTest" time="0.028"/>
+  <testcase name="ending a track sets its end time and leaves everything else untouched" classname="com.zynergylabs.forager.app.data.repository.RoomTrackRepositoryTest" time="0.047"/>
+  <testcase name="setting the origin pointer updates the stored track, and a missing track is not a failure" classname="com.zynergylabs.forager.app.data.repository.RoomTrackRepositoryTest" time="0.039"/>
+  <testcase name="deleting a track removes its points too" classname="com.zynergylabs.forager.app.data.repository.RoomTrackRepositoryTest" time="0.031"/>
+  <testcase name="appended points come back in timestamp order regardless of insertion order" classname="com.zynergylabs.forager.app.data.repository.RoomTrackRepositoryTest" time="0.039"/>
+  <system-out><![CDATA[RoomTrackRepositoryTest: 1000 points batched=7ms, one-at-a-time=171ms
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -35,6 +35,10 @@ import kotlin.math.max
  *    to the other icons. Can its size be reduced a bit to visually align with the other icons? The finds icon is a bit
  *    large also, but not by much. Location pin icon is acceptable. Somewhere between the photo icon and location pin size
  *    would be preferable"; scope, "Everywhere". The coordinates in [parts] below are the design's, times [MarkerGlyph.scale].
+ *    Dispatch 2026-09-28-358 then drew the flag alone at 23 dp tall ([PLANNED_TRIP_HEIGHT_DP]; 16.43 x 23, anchor (1.23, 23)),
+ *    the find staying at 25. The owner, after seeing it in its 36 dp circle: "The circle size was perfect at 36dp since the trip
+ *    icon fit neatly in it", and "the trip icon is a bit large still. Scale it down very slightly so that it fits more
+ *    comfortably inside the circle." The 23 is the planner's number, not the owner's; scope again everywhere, as for -286.
  *  - **Search centre.** The board drew a plus 3dp from the centre, inside the ring. The owner's
  *    tweak puts the arms beyond the ring: see [SEARCH_CENTRE_ARM_DP].
  */
@@ -55,8 +59,12 @@ internal enum class MarkerGlyph(
     /** A mushroom: a half-ellipse dome with a flat underside and a straight stem; anchored at the stem foot. Designed 24 x 26, drawn at 25 dp tall ([GLYPH_TARGET_HEIGHT_DP]). */
     FIND(24f, 26f, 12f, 26f, scale = GLYPH_TARGET_HEIGHT_DP / 26f),
 
-    /** A flag: a pole with a rectangular pennant at its top; anchored at the pole foot. Designed 20 x 28, drawn at 25 dp tall ([GLYPH_TARGET_HEIGHT_DP]). */
-    PLANNED_TRIP(20f, 28f, 1.5f, 28f, scale = GLYPH_TARGET_HEIGHT_DP / 28f),
+    /**
+     * A flag: a pole with a rectangular pennant at its top; anchored at the pole foot. Designed 20 x 28, drawn at 23 dp
+     * tall ([PLANNED_TRIP_HEIGHT_DP]), 16.43 x 23 with its anchor at (1.23, 23). Dispatch 2026-09-28-358, the owner: "the
+     * trip icon is a bit large still. Scale it down very slightly so that it fits more comfortably inside the circle."
+     */
+    PLANNED_TRIP(20f, 28f, 1.5f, 28f, scale = PLANNED_TRIP_HEIGHT_DP / 28f),
 
     /** A 22dp rounded square with a camera in the casing colour; anchored at its centre. */
     PHOTO(22f, 22f, 11f, 11f),
@@ -72,10 +80,19 @@ internal enum class MarkerGlyph(
 }
 
 /**
- * The height the flag and the find are drawn at (dispatch 2026-09-28-286): between the photo's 22 dp and the pin's 28 dp.
- * Each glyph's scale is this over its designed height, so its proportions are kept.
+ * The height the find was drawn at, and the flag too until dispatch 2026-09-28-358 (dispatch 2026-09-28-286): between the
+ * photo's 22 dp and the pin's 28 dp. A glyph's scale is its height over its designed height, so its proportions are kept.
+ * The flag has a height of its own, [PLANNED_TRIP_HEIGHT_DP], so that shrinking it does not shrink the find.
  */
 internal const val GLYPH_TARGET_HEIGHT_DP = 25f
+
+/**
+ * The height the planned-trip flag is drawn at (dispatch 2026-09-28-358). In its 36 dp circle (radius 18 dp, the fan
+ * centring the flag on its fill extent) the flag's farthest corner from the circle's centre is sqrt((10s)^2 + (14s)^2) + 1.5 dp
+ * of casing, s being its scale: 16.86 dp at 25 dp tall, which left 1.14 dp of circle, and 15.63 dp at 23, which leaves 2.37,
+ * close to the pin's 2.5 at its top and tip. The 23 is the planner's number; the owner said "very slightly" and gave none.
+ */
+internal const val PLANNED_TRIP_HEIGHT_DP = 23f
 
 /**
  * The `icon-offset`, in dp, that puts this glyph's fill-extent centre on the point its image is placed
@@ -87,7 +104,7 @@ internal const val GLYPH_TARGET_HEIGHT_DP = 25f
  * (its anchor is on the coordinate), so the copy's is nothing there. The owner: "After being fanned out, the icons return
  * to their start position. But sometimes they don't perfectly align back in their position when the animation finishes,
  * resulting in the icons snapping into place." At the full offset the pin (0, 14), the find (0, 12.5) and the flag
- * (-7.59, 12.5) jumped by that much when the copies were cleared; the photo and the search centre, at (0, 0), did not.
+ * (-7.59, 12.5, as it was then; -358 made it (-6.98, 11.5)) jumped by that much when the copies were cleared; the photo and the search centre, at (0, 0), did not.
  * Everywhere else the anchor is on the coordinate.
  */
 internal fun MarkerGlyph.fanCentringOffsetDp(): FanOffset = FanOffset(anchorXDp - widthDp / 2, anchorYDp - heightDp / 2)

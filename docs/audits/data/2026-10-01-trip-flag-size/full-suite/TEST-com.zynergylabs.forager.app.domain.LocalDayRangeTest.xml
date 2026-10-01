@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.LocalDayRangeTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:53.632Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.003">
+  <properties/>
+  <testcase name="foundOnKey matches MushroomLogEntryEntity's own ISO-8601 yyyy-MM-dd format exactly" classname="com.zynergylabs.forager.app.domain.LocalDayRangeTest" time="0.0"/>
+  <testcase name="a find at 11-59pm local belongs to that evening's day, not the next" classname="com.zynergylabs.forager.app.domain.LocalDayRangeTest" time="0.002"/>
+  <testcase name="the range is exactly half-open, start inclusive and end exclusive" classname="com.zynergylabs.forager.app.domain.LocalDayRangeTest" time="0.0"/>
+  <testcase name="a fall-back DST transition day spans 25 hours, not a naive 24" classname="com.zynergylabs.forager.app.domain.LocalDayRangeTest" time="0.0"/>
+  <testcase name="a spring-forward DST transition day spans 23 hours, not a naive 24" classname="com.zynergylabs.forager.app.domain.LocalDayRangeTest" time="0.0"/>
+  <testcase name="defaults to the system zone when none is passed" classname="com.zynergylabs.forager.app.domain.LocalDayRangeTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

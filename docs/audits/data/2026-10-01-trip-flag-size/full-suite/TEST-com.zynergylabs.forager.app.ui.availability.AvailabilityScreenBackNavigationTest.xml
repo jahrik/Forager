@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" tests="35" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:18:02.182Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="23.456">
+  <properties/>
+  <testcase name="portrait, Maps from an open day entry's report view shows the Maps search bar" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="0.569"/>
+  <testcase name="back on a clean committed Cartography entry closes without any prompt" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="0.427"/>
+  <testcase name="back on Cartography's own top level still falls through to the go-home handler" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="0.225"/>
+  <testcase name="back on a single-type Records chip steps to All before leaving Records" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="0.3"/>
+  <testcase name="portrait, a day entry left open in its editor is still open back on Journal" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="0.492"/>
+  <testcase name="back backs out of a Journal entry before switching away from the Journal tab" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="0.353"/>
+  <testcase name="Discard from the system-back leave prompt discards the edit and leaves" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="0.466"/>
+  <testcase name="back on an open Cartography draft steps back to Entries with the drafts banner, not out of the Journal, and the draft persists" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="0.224"/>
+  <testcase name="backgrounding a dirty committed entry commits nothing, and resuming shows the return prompt" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="2.337"/>
+  <testcase name="back on a dirty committed Cartography entry shows the leave prompt, and Cancel keeps editing" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="0.319"/>
+  <testcase name="back closes the open drawer instead of warning to exit" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="0.17"/>
+  <testcase name="back on Records' default chip steps to Cartography before leaving the Journal" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="0.186"/>
+  <testcase name="backgrounding an open draft shows no return prompt on resume — drafts autosave, unchanged" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="2.222"/>
+  <testcase name="portrait, Maps from an open day entry's editor shows the Maps search bar" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="0.237"/>
+  <testcase name="Commit on the return prompt persists the pending edit and stays on the entry" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="2.472"/>
+  <testcase name="short landscape, Maps on the rail from an open day entry's report view shows the Maps search bar" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="0.205"/>
+  <testcase name="short landscape, a day entry left open in its report view is still open back on Journal" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="0.19"/>
+  <testcase name="Save as draft on the return prompt closes the screen and moves the entry to Drafts with the edit in place" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="2.33"/>
+  <testcase name="back on the home screen warns once, then exits on a second press" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="0.117"/>
+  <testcase name="portrait, a day entry left open in its report view is still open back on Journal" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="0.174"/>
+  <testcase name="back exits fullscreen instead of warning to exit" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="0.482"/>
+  <testcase name="the top search bar hides while viewing or editing a Cartography entry, and reappears once it closes" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="0.199"/>
+  <testcase name="backgrounding a clean committed entry shows no return prompt on resume" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="2.168"/>
+  <testcase name="back returns to the Maps tab from another tab instead of warning to exit" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="0.122"/>
+  <testcase name="short landscape, a day entry left open in its editor is still open back on Journal" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="0.211"/>
+  <testcase name="back from the add-photo picker returns to the editor, and back again reaches Entries with the drafts banner" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="0.313"/>
+  <testcase name="the album view shows the photo gallery" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="0.147"/>
+  <testcase name="back while navigating with the search dropdown open closes the dropdown first, without asking about navigation" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="0.212"/>
+  <testcase name="the top search bar hides while editing a find, and reappears once it closes" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="0.171"/>
+  <testcase name="the bottom nav is not reachable while fullscreen, including Tools" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="0.324"/>
+  <testcase name="short landscape, Maps on the rail from an open day entry's editor shows the Maps search bar" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="0.18"/>
+  <testcase name="backgrounding and resuming mid-edit, then closing normally, leaves the search bar visible with no dropdown open" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="2.265"/>
+  <testcase name="Continue editing on the return prompt dismisses it and leaves the pending edit exactly in place" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="2.247"/>
+  <testcase name="back closes the advanced search dropdown instead of warning to exit" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="0.16"/>
+  <testcase name="Save from the system-back leave prompt saves the edit and leaves, with no second dialog" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackNavigationTest" time="0.235"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

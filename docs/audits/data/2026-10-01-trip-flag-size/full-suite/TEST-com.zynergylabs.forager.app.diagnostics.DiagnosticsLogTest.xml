@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.diagnostics.DiagnosticsLogTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:52.491Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.003">
+  <properties/>
+  <testcase name="the append that finds the file past the cap rotates it to dot-one and starts the fresh file" classname="com.zynergylabs.forager.app.diagnostics.DiagnosticsLogTest" time="0.002"/>
+  <testcase name="a new instance over the same file continues it rather than truncating" classname="com.zynergylabs.forager.app.diagnostics.DiagnosticsLogTest" time="0.0"/>
+  <testcase name="append writes an ISO timestamp, the summary, and each detail line indented beneath it" classname="com.zynergylabs.forager.app.diagnostics.DiagnosticsLogTest" time="0.0"/>
+  <testcase name="a second rotation replaces the previous dot-one rather than failing" classname="com.zynergylabs.forager.app.diagnostics.DiagnosticsLogTest" time="0.001"/>
+  <testcase name="append creates the directory when it does not exist yet" classname="com.zynergylabs.forager.app.diagnostics.DiagnosticsLogTest" time="0.0"/>
+  <testcase name="read on a log nothing has written is empty rather than an error" classname="com.zynergylabs.forager.app.diagnostics.DiagnosticsLogTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

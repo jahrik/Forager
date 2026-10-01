@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalShortWindowTest" tests="26" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:18:35.115Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="10.156">
+  <properties/>
+  <testcase name="ruling 1 on Records the search icon reveals the header too" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalShortWindowTest" time="0.18"/>
+  <testcase name="L3 on Records the filter chip row hides on a real scroll down and returns on a scroll up" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalShortWindowTest" time="0.193"/>
+  <testcase name="L3 the drafts chip sits in the second row with the view toggle, and the banner is gone" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalShortWindowTest" time="0.099"/>
+  <testcase name="L2 at ROTATION_270 no floating button, and real touches on New in the row start an entry" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalShortWindowTest" time="0.091"/>
+  <testcase name="L3 with several drafts, real touches on the chip open the full-screen list" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalShortWindowTest" time="0.157"/>
+  <testcase name="L1 at ROTATION_90 one 48 dp row holds the switch, the search icon and New" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalShortWindowTest" time="0.253"/>
+  <testcase name="L7 an entry open in its editor stays open in its editor across the turn, both ways" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalShortWindowTest" time="0.128"/>
+  <testcase name="ruling 1 at ROTATION_90 real touches on the search icon reveal the header, and the icon or Back hides it" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalShortWindowTest" time="0.162"/>
+  <testcase name="L1 at ROTATION_270 one 48 dp row holds the switch, the search icon and New" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalShortWindowTest" time="0.279"/>
+  <testcase name="L3 the second row hides on a real scroll down and returns on a scroll up" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalShortWindowTest" time="0.303"/>
+  <testcase name="L3 with one draft, a real touch on the chip opens that draft" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalShortWindowTest" time="0.105"/>
+  <testcase name="L7 the Journal's switch, Records chip and Entries view survive turning to short landscape and back" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalShortWindowTest" time="0.233"/>
+  <testcase name="L2 on the album the row's photo button opens Take photo and Import, and there is no floating button" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalShortWindowTest" time="0.173"/>
+  <testcase name="L1 on Records the row holds the switch and the search icon, and no New" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalShortWindowTest" time="0.127"/>
+  <testcase name="ruling 1 at ROTATION_270 the search header is hidden on the Journal tab in a short window" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalShortWindowTest" time="0.117"/>
+  <testcase name="L1 the header row stays pinned while the entries scroll" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalShortWindowTest" time="0.161"/>
+  <testcase name="ruling 1 the search header still shows on List and Seasonal in a short window" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalShortWindowTest" time="0.111"/>
+  <testcase name="L2 at ROTATION_90 no floating button, and real touches on New in the row start an entry" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalShortWindowTest" time="0.091"/>
+  <testcase name="ruling 1 portrait keeps the search header on the Journal tab, and has no L1 row" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalShortWindowTest" time="0.089"/>
+  <testcase name="ruling 1 at ROTATION_90 the search header is hidden on the Journal tab in a short window" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalShortWindowTest" time="0.113"/>
+  <testcase name="ruling 1 at ROTATION_270 real touches on the search icon reveal the header, and the icon or Back hides it" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalShortWindowTest" time="0.24"/>
+  <testcase name="height budget at ROTATION_270 the header hidden leaves two card rows on Entries" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalShortWindowTest" time="4.966"/>
+  <testcase name="L5a record - at font scale 1_15 the chip row's fit is measured and stated" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalShortWindowTest" time="0.514"/>
+  <testcase name="height budget at ROTATION_90 the header hidden leaves two card rows on Entries" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalShortWindowTest" time="0.415"/>
+  <testcase name="L5a portrait chips are unchanged - 16 dp row padding, 8 dp gaps, 24 dp icons" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalShortWindowTest" time="0.428"/>
+  <testcase name="L5a guard - at 640 dp the five Records chips, icons and counts, fit one line without scrolling" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalShortWindowTest" time="0.369"/>
+  <system-out><![CDATA[J5-HEIGHT rotation=3 entries window=384.0.dp l1=48.0.dp (0.0.dp..48.0.dp) l3=40.0.dp (52.0.dp..92.0.dp) content=288.0.dp (96.0.dp..384.0.dp)
+J5-HEIGHT rotation=3 records l1=48.0.dp chips=56.0.dp (48.0.dp..104.0.dp) content=280.0.dp (104.0.dp..384.0.dp)
+J5-L5A fontScale=1.15 OVERFLOWS by 25.0dp; the row scrolls: row 52.0.dp..692.0.dp (640.0.dp), chips 64.0.dp..705.0.dp, padding 12.0.dp, content ends at 717.0.dp
+J5-HEIGHT rotation=1 entries window=384.0.dp l1=48.0.dp (0.0.dp..48.0.dp) l3=40.0.dp (52.0.dp..92.0.dp) content=288.0.dp (96.0.dp..384.0.dp)
+J5-HEIGHT rotation=1 records l1=48.0.dp chips=56.0.dp (48.0.dp..104.0.dp) content=280.0.dp (104.0.dp..384.0.dp)
+J5-L5A fontScale=1.0 overflow=-6.0 row 52.0.dp..692.0.dp (640.0.dp), chips 64.0.dp..674.0.dp, padding 12.0.dp, content ends at 686.0.dp
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

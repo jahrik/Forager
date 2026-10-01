@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.data.local.TrackWaypointMigrationTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:47.540Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.061">
+  <properties/>
+  <testcase name="planned trips and mushroom log entries survive the 4 to 5 migration intact, and the new tables are usable" classname="com.zynergylabs.forager.app.data.local.TrackWaypointMigrationTest" time="0.059"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

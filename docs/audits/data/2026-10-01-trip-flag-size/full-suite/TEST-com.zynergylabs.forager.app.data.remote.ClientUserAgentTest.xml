@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.data.remote.ClientUserAgentTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:47.659Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.204">
+  <properties/>
+  <testcase name="the clients keep their 15 second connect and read timeouts" classname="com.zynergylabs.forager.app.data.remote.ClientUserAgentTest" time="0.049"/>
+  <testcase name="the Open-Meteo archive client sends exactly one User-Agent, the app's" classname="com.zynergylabs.forager.app.data.remote.ClientUserAgentTest" time="0.043"/>
+  <testcase name="the debug clients, which add a logging interceptor, send exactly one User-Agent too" classname="com.zynergylabs.forager.app.data.remote.ClientUserAgentTest" time="0.05"/>
+  <testcase name="the iNaturalist client sends exactly one User-Agent, the app's" classname="com.zynergylabs.forager.app.data.remote.ClientUserAgentTest" time="0.033"/>
+  <testcase name="the Open-Meteo forecast client sends exactly one User-Agent, the app's" classname="com.zynergylabs.forager.app.data.remote.ClientUserAgentTest" time="0.027"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[Sep 30, 2026 10:17:47 PM okhttp3.internal.platform.Platform log
+INFO: --> GET https://api.inaturalist.org/v1/observations
+Sep 30, 2026 10:17:47 PM okhttp3.internal.platform.Platform log
+INFO: <-- 200 OK https://api.inaturalist.org/v1/observations (0ms, 0-byte body)
+Sep 30, 2026 10:17:47 PM okhttp3.internal.platform.Platform log
+INFO: --> GET https://api.open-meteo.com/v1/forecast
+Sep 30, 2026 10:17:47 PM okhttp3.internal.platform.Platform log
+INFO: <-- 200 OK https://api.open-meteo.com/v1/forecast (0ms, 0-byte body)
+Sep 30, 2026 10:17:47 PM okhttp3.internal.platform.Platform log
+INFO: --> GET https://archive-api.open-meteo.com/v1/archive
+Sep 30, 2026 10:17:47 PM okhttp3.internal.platform.Platform log
+INFO: <-- 200 OK https://archive-api.open-meteo.com/v1/archive (0ms, 0-byte body)
+]]></system-err>
+</testsuite>

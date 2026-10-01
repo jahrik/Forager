@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.forecast.SyntheticForecastTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:55.902Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.334">
+  <properties/>
+  <testcase name="the switch is stored as diagnostics-synthetic_forecast in debug_diagnostics_preferences and survives a recreated store" classname="com.zynergylabs.forager.app.forecast.SyntheticForecastTest" time="0.035"/>
+  <testcase name="every block file reads in the real format with nothing rejected, cells on tenths inside the block, every property filled" classname="com.zynergylabs.forager.app.forecast.SyntheticForecastTest" time="0.051"/>
+  <testcase name="turned on, the two colour fields' groups have data for any block, read from the generator's files" classname="com.zynergylabs.forager.app.forecast.SyntheticForecastTest" time="0.071"/>
+  <testcase name="in every block some cells are not applicable and some are left out" classname="com.zynergylabs.forager.app.forecast.SyntheticForecastTest" time="0.098"/>
+  <testcase name="the same group, week and block always give the same file, and the two groups differ" classname="com.zynergylabs.forager.app.forecast.SyntheticForecastTest" time="0.042"/>
+  <testcase name="the switch is off until turned on, and while off the store has no forecast data" classname="com.zynergylabs.forager.app.forecast.SyntheticForecastTest" time="0.032"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

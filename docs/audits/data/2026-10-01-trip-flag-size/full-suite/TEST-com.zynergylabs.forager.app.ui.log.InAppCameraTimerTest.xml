@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.InAppCameraTimerTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:35.253Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.662">
+  <properties/>
+  <testcase name="with the timer off, the shutter captures at once, as before" classname="com.zynergylabs.forager.app.ui.log.InAppCameraTimerTest" time="0.042"/>
+  <testcase name="a real touch anywhere on the timer chip reaches it, over the viewfinder" classname="com.zynergylabs.forager.app.ui.log.InAppCameraTimerTest" time="0.043"/>
+  <testcase name="changing the timer during a countdown keeps the running countdown's length and applies to the next press" classname="com.zynergylabs.forager.app.ui.log.InAppCameraTimerTest" time="0.061"/>
+  <testcase name="pressing the shutter during a countdown cancels it, with no capture, ever" classname="com.zynergylabs.forager.app.ui.log.InAppCameraTimerTest" time="0.048"/>
+  <testcase name="Back during a countdown closes the camera, and nothing is captured after" classname="com.zynergylabs.forager.app.ui.log.InAppCameraTimerTest" time="0.062"/>
+  <testcase name="at 3 s, no capture at 2_9 s and exactly one at 3 s" classname="com.zynergylabs.forager.app.ui.log.InAppCameraTimerTest" time="0.049"/>
+  <testcase name="during a countdown the shutter says Cancel timer, and Take photo again after" classname="com.zynergylabs.forager.app.ui.log.InAppCameraTimerTest" time="0.041"/>
+  <testcase name="each timer setting has its own glyph and label" classname="com.zynergylabs.forager.app.ui.log.InAppCameraTimerTest" time="0.03"/>
+  <testcase name="at 10 s, no capture at 9_9 s and exactly one at 10 s" classname="com.zynergylabs.forager.app.ui.log.InAppCameraTimerTest" time="0.069"/>
+  <testcase name="the countdown shows the remaining whole seconds, centred, and goes at zero" classname="com.zynergylabs.forager.app.ui.log.InAppCameraTimerTest" time="0.072"/>
+  <testcase name="the photo count moves only when the capture happens" classname="com.zynergylabs.forager.app.ui.log.InAppCameraTimerTest" time="0.053"/>
+  <testcase name="the timer starts Off and a tap cycles it Off, 3 s, 10 s, Off" classname="com.zynergylabs.forager.app.ui.log.InAppCameraTimerTest" time="0.088"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

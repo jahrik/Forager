@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.NetworkProviderFixTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:53.663Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.001">
+  <properties/>
+  <testcase name="millis exactly zero is kept - the boundary is the whole rule" classname="com.zynergylabs.forager.app.domain.NetworkProviderFixTest" time="0.0"/>
+  <testcase name="one or no survivors from at least two stored points has no usable points" classname="com.zynergylabs.forager.app.domain.NetworkProviderFixTest" time="0.0"/>
+  <testcase name="an all-sub-second track comes back empty" classname="com.zynergylabs.forager.app.domain.NetworkProviderFixTest" time="0.001"/>
+  <testcase name="the row note names what was left out, and only when the exclusion is large" classname="com.zynergylabs.forager.app.domain.NetworkProviderFixTest" time="0.0"/>
+  <testcase name="more than three quarters of at least ten stored points is a large exclusion" classname="com.zynergylabs.forager.app.domain.NetworkProviderFixTest" time="0.0"/>
+  <testcase name="a mixed track loses exactly its sub-second points, in stored order" classname="com.zynergylabs.forager.app.domain.NetworkProviderFixTest" time="0.0"/>
+  <testcase name="any non-zero millisecond marks a network-provider fix" classname="com.zynergylabs.forager.app.domain.NetworkProviderFixTest" time="0.0"/>
+  <testcase name="the evidence tracks' own proportions do not read as a large exclusion" classname="com.zynergylabs.forager.app.domain.NetworkProviderFixTest" time="0.0"/>
+  <testcase name="an all-whole-second track loses nothing - the honest-track case" classname="com.zynergylabs.forager.app.domain.NetworkProviderFixTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

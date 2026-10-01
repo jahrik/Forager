@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalEntriesStateTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:18:34.128Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.966">
+  <properties/>
+  <testcase name="the List bottom tab survives a saved-instance-state round trip" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalEntriesStateTest" time="0.141"/>
+  <testcase name="restored on Seasonal, a new search reloads the Seasonal pattern and not the map's sightings" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalEntriesStateTest" time="0.105"/>
+  <testcase name="the Journal bottom tab survives a saved-instance-state round trip without being tapped again" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalEntriesStateTest" time="0.116"/>
+  <testcase name="the album view survives leaving the Journal tab and returning" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalEntriesStateTest" time="0.115"/>
+  <testcase name="the album view survives a saved-instance-state round trip" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalEntriesStateTest" time="0.262"/>
+  <testcase name="Back from the album returns to the timeline, and Back again leaves the Journal" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalEntriesStateTest" time="0.123"/>
+  <testcase name="restored on Seasonal, the tab loader asks for the Seasonal pattern and not the map's sightings" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalEntriesStateTest" time="0.101"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

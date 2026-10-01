@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.fanout.FanPlacementTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:12.905Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.072">
+  <properties/>
+  <testcase name="a fan with room needs no shift" classname="com.zynergylabs.forager.app.ui.map.fanout.FanPlacementTest" time="0.002"/>
+  <testcase name="no bounds means no shift for the edges, but controls are still cleared" classname="com.zynergylabs.forager.app.ui.map.fanout.FanPlacementTest" time="0.0"/>
+  <testcase name="when only some controls can be cleared, as many as possible are" classname="com.zynergylabs.forager.app.ui.map.fanout.FanPlacementTest" time="0.002"/>
+  <testcase name="a fan bigger than the window is centred on it and reported as not on screen" classname="com.zynergylabs.forager.app.ui.map.fanout.FanPlacementTest" time="0.003"/>
+  <testcase name="a control that cannot be cleared is left, on screen first" classname="com.zynergylabs.forager.app.ui.map.fanout.FanPlacementTest" time="0.001"/>
+  <testcase name="at every edge and corner the whole fan lands inside the bounds, moved no further than it must" classname="com.zynergylabs.forager.app.ui.map.fanout.FanPlacementTest" time="0.019"/>
+  <testcase name="on a phone in portrait the cluster, the legend and the chip row are all cleared at once" classname="com.zynergylabs.forager.app.ui.map.fanout.FanPlacementTest" time="0.041"/>
+  <testcase name="next to a control, on each of its sides, no touch square lands on it" classname="com.zynergylabs.forager.app.ui.map.fanout.FanPlacementTest" time="0.003"/>
+  <testcase name="the shifted fan keeps its shape - only the centre moves" classname="com.zynergylabs.forager.app.ui.map.fanout.FanPlacementTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
