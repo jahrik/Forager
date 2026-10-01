@@ -11,6 +11,11 @@ data class FanOutHideStep(
     val generation: Int,
     val awaiting: Boolean,
     val viaFallback: Boolean = false,
+    /**
+     * The originals this step shows again because the fan was released, empty otherwise. The copies that stand on them should
+     * stay until the renderer reports these drawn, the mirror of waiting for the copies at the open (STUB: never set yet).
+     */
+    val reveal: List<FanMember> = emptyList(),
 )
 
 /**
