@@ -10026,3 +10026,17 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Lesson, for the planner:** the known-issue line and the two "not run on a phone" lines in that section were added at the planner's request an hour earlier. What is unverified, limited or surprising goes to the owner for review before it is written into a document that presents it as an issue.
 **Next:** CI on this head; then PR #140 into pre-main, the backup already written (forager-repo-backups/2026-10-01-01); then pre-main into main.
 **Notes:** Written by the planner session that wrote -370 to -391.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-393
+**Timestamp:** 2026-10-01T19:56:32Z
+**Title:** readme-reachability: the README's statements of what the app does checked against what its screens reach; the Search bullet corrected
+**Dispatch-file:** preserved/2026-10-01-13.md; sent by message to the coder window that ran -379 and -391
+**The owner, verbatim,** quoting the merged README's Search bullet ("You pick a species or a broad category (Fungi, Plants, or an approximate Lichens)"): "We only do Fungi now. Plants and Lichen were removed".
+**What the planner confirmed from the code at 6aa22d6f:** TaxonFilter.PLANTS and TaxonFilter.LICHENS are still defined (domain/model/TaxonFilter.kt), and nothing else in app/src/main uses either; the only uses of a category are TaxonFilter.FUNGI as the default in ui/availability/AvailabilityUiState.kt:45 and :84. So the owner is right and the README was wrong.
+**Why it got through:** the README's claims table (-390) tied each statement to a file and line where its words appear. It showed the definition exists, not that a screen reaches it. The planner accepted that table and spot-checked values only. CLAUDE.md's "check reachability before measuring behaviour" names this failure; the planner did not ask for it.
+**Change:** the Search bullet corrected from the search UI; every statement of what the app does or offers given a second anchor, the place in production code where a user reaches it, or removed; a list of what is defined but not reachable, for the owner's triage. Docs only.
+**Holds:** PR #140's merge, again. Nothing has been merged into pre-main or main.
+**Notes:** Written by the planner session that wrote -370 to -392.
