@@ -50,6 +50,7 @@ Test A (the Part 1 style-wide line, before the fix was a function) gave the same
 - **-299, no icon jump at the open's first frame or the fold's last:** open: the camera tile is the front glyph in the same place as in the original stack (frames 270 to 272); fold's end: frames 816 to 818 the tile is in front, at 819 the originals return with the puck over the same tile in the same place. No position jump. Viewed at a1 only; a5 only numerically (below).
 - **-318, the front glyph does not change at either end:** the camera tile is in front before the open (frame 250), in the first fan frames, in the last fan frames and after the fold. Unchanged.
 - **A residual, not caused by this fix and not touched by it:** at the open's first frame there is one frame (animator 1, frame 269) or two (animator 5, frames 265 and 266) with no glyph at the stack: the originals are hidden before the copies are drawn, and only the puck shows. The base has it too (frames 265 and 268). It is a position-neutral gap of one or two frames, outside this dispatch's list; it is the "three blank frames at the open's start" that -319 noted, now shorter. The fold's end has no such gap on the fix.
+  > **Correction, Amendment 2 review round (below):** "The fold's end has no such gap on the fix" rested on a few clips and was wrong. A one-frame empty stack at the fold's end also occurs, at a low and varying rate: 1 of 5 runs of the first fix, 2 of 6 of the Amendment 2 build as first handed over. It was fixed in the review round.
 
 ## Outside the fan: the cold start (the owner will judge the choice by this)
 - **Definition (the planner's):** a cold start is the first launch after an install, read by `pidof com.zynergylabs.forager.app` empty immediately before the recording, the same condition for both clips; a first launch after an install may be slower than an ordinary cold start.
@@ -100,6 +101,9 @@ As the amendment lists them, plus: the first frame or two of an open may show an
 
 **Status: done, with one flagged frame and one case not reachable on the phone (both below). Ready to merge; the planner merges.**
 
+> **Superseded by the review round below:** the commit this section named (`a5185a2f`) was not merged. The planner found a case the first wiring broke (a restart of the effect with a fan up), and the fold's end proved to have the mirror gap. The tree to merge is the one named in the review-round section.
+
+
 ## The owner's words, as theirs
 - On the first fix build: "The flickering is better, but now there is a brief moment when the icons blink before fanning out". Then "Go ahead".
 - Later: "It's clean on the spread now", and, of the first fix: "I ran it on super slow motion and I verified no flickering beyond the blink occurs." They did not say which phone or how it was slowed.
@@ -118,6 +122,7 @@ As the amendment lists them, plus: the first frame or two of an open may show an
 | first fix, earlier view (`ff_fix_a1`, `ff_fix_a5`) | 2 of 2 | 33 ms (1 frame); 16 ms (2 frames, animator 5) |
 | old order + probes, the restored view the "after" runs share (`probe_r1..5`, `probe5_r1`; `p2_r1..5`, `p2a5_r1`) | 9 of 12 | 8, 8, 9, 7 ms (probe) and 25, 9, 8, 8, 8 ms (p2); 3 runs none |
 | **Amendment 2, the same view (`a2_r1..5`, a5 `a2a5_r1`)** | **0 of 6** | **none** (the whole clips scanned, so the fold's end too) |
+> *Correction:* "so the fold's end too" is true of what was scanned (the whole clips) but those six runs were a small sample of an intermittent fold-end gap; see the review round.
 The length varies (0 to 2 frames, 7 to 33 ms); the 33 ms was the longest, not the typical. Six runs after the fix is a small sample: if the gap showed in two thirds of runs, 0 of 6 would be about a 1 in 700 chance, but it is still six runs on one stack.
 
 ## The fix
@@ -156,6 +161,7 @@ The length varies (0 to 2 frames, 7 to 33 ms); the 33 ms was the longest, not th
 
 ## -299 and -318, viewed at animator 1 and 5
 Full-resolution crops: `a2_r2` frames 267 to 276 (open start), `a2_r1` frames 626 to 636 (fold end), `a2a5_r1` frames 282 to 296 (open start) and 1092 to 1104 (fold end). The camera tile is the front glyph in the same place before the open, in the copies, in the last fan frames and after the fold; no position jump at either end, at either speed (-299, -318). The location dot is covered by the copies from the first copy frame (-290) and returns about 5 to 6 frames after the copies clear at the fold's end (`a2_r1..3`, measured by blue pixels at the hub); in the first fix's clip it returned 4 frames after. I did not look into that difference.
+> *Correction:* "the dot returns about 5 to 6 frames after the copies clear" was a loose reading (first frame past a fixed offset with enough blue pixels). Measured properly in the review round, the dot returns in the same frame the originals do.
 
 ## Tests
 - **`FanOutHideGateTest` (12):** test first. On the stub (hides at once) 6 of 12 failed, each with a message specific to the order ("no original may be hidden before the signal expected [] but was [FanMember(...)]"; "a1 is in both fans, so its original stays hidden ..."; "the first fan's originals come back as its copies go ..."). The other 6 passed on the stub because it returns nothing from the signal paths: they guard the implementation and do not bite on the stub. Pushed failing (`a96b0686`), then the implementation: 12/12.
@@ -225,3 +231,47 @@ The Part 1 report and the planner both said test B was not needed. It was: probe
 
 ## What exists in the tree and the evidence
 The single-source code and its tests (`FanPushPlanTest`, 7/7 on the implementation, 7/7 failing on the stub) are in the history (`10ccca53`, `9bc4fec7`) and were reverted by two new commits; reverting those reverts re-applies them. The probe code is not in the tree; its copies are in `amend2/saved-copies/`. `legs_vs_icons.py` in the evidence folder is the failed pixel check, kept so that nobody repeats it as written.
+
+---
+
+# Amendment 2, review round: a restart with the fan up, and the fold's end
+
+**Status: done. The planner reviewed `a5185a2f`, found a case I had broken, and the fix turned up the mirror gap at the fold's end; both are fixed on `fan-flicker`. Not yet merged.**
+
+## 1. The planner's case: confirmed, in the code
+The fan-draw effect is `LaunchedEffect(loadedStyle, mapLibreMap, focusedObservationId)` (`SightingsMap.kt:800`); the comment at `:791` says tapping a fanned marker keeps the fan up while a bubble opens, which changes `focusedObservationId`, so the effect restarts with the fan open. In `a5185a2f` the gate (`:806`), `hiddenFor` and `wasOpen` were created inside it, so the restart began with a gate that believed nothing was hidden: its first `onMembers` returned an empty hide list (every original shown) and a wait, and the originals came back for the 1 or 2 frames until the signal. On `journal-redesign` (`:795-804`) the same restart called `applyFanOutHiding(style, members)` at once and the originals never came back. A style reload has the same shape: the new style's layers start unfiltered and the hide waited for a signal while the copies were already spread. So: a marker shown twice, which Amendment 2 rules out. The S22's stack has no sighting (three photos, two finds, a pin, a flag), so my runs could not reach it, and the gate's tests used one gate.
+Not reproduced on the phone: no member of that stack changes the focused observation (it is a sighting's observation id; `sightingsFeatureCollection` is its consumer), so a tap on a fanned find opens a bubble without restarting the effect. I did not tap a fanned member. It stays with the owner (a sighting in a fan, then a tap on it).
+
+## 2. The fix, and what was rejected
+- **Chosen:** (a) the gate is `remember(loadedStyle) { FanOutHideGate() }`, outside the effect (`SightingsMap.kt`), so it outlives a restart and is new only with a new style, whose filters start clear; (b) `onMembers` is idempotent: asked again for the members it is waiting for it returns the same wait (same generation, so the signal for the first ask still counts), and for members it has hidden it changes nothing; (c) `onMembers(members, spread)`: a fan first seen already away from its originals (progress above zero) is hidden at once, as before the amendment, because the wait exists only for the open's first frames, when the copies sit exactly on their originals (-299); (d) `wasOpen` starts true so a restart that finds the fan folding drops a pending wait.
+- **Rejected:** hoisting alone (a style reload would still wait with the copies spread; and the new gate is needed there); the spread rule alone (a restart in the first 45 ms of an open would hide before the copies are drawn).
+- **Tests, first:** five new `FanOutHideGateTest` cases, pushed with 3 failing on the old gate (`48d117db`): "the wait is the same wait expected:<1> but was:<2>" and "copies are away from their originals, so there is nothing to wait for" (this is the new-gate-on-restart case itself). The other two pass on both (they guard the new code). **What no unit test reaches:** that the gate is in fact remembered across the effect's restart (`remember(loadedStyle)` in `SightingsMap.kt`) and that the effect then does not touch the filters: Compose's keying is not exercised headless. The gate's behaviour when asked twice is.
+
+## 3. The fold's end: found by checking my own claim, and fixed
+- **What I found.** The first fix's report, and my earlier hand-back, said the fold's end has no gap. Re-reading `gap.py`'s output in full (for several sets I had printed only its first line), and running more, the tally of runs with a one-frame empty stack, by build (S22, 120 Hz mode, animator 1 and 5):
+
+| build (run set) | runs | open-start gaps | fold-end gaps |
+|---|---|---|---|
+| first fix (`pre*`, five usable runs) | 5 | 5 | 1 |
+| old order + probe, same view (`probe*`, `p2*`) | 12 | 9 | 0 |
+| old order + the single source (`p3*`) | 6 | 6 | 0 |
+| Amendment 2 as first handed over (`a2*`) | 6 | 0 | 0 |
+| Amendment 2 plus the restart fix (`a2b*`) | 6 | 0 | **2** (8 ms each) |
+| **final (`a2c*`)** | **11** | **0** | **0** |
+- **Cause (inferred; the same race as the open, reversed).** At a release the originals' filter is cleared and the copies are cleared in the same pass; un-hiding an original needs its tile laid out again, clearing the copies is a small source, and either can land first. On `a2b_r2` and `a2b_r4` the glyph count goes copies, then 0, then folded (2444, 0, 1834 and 2366, 0, 1832).
+- **The fix.** `FanOutHideStep.reveal` names the originals a release shows again; the effect holds back the clearing push until `awaitOriginalsRendered` reports them (per marker layer, by feature id), then pushes the empty frame. The copies stand exactly on their originals at progress 0, so showing both meanwhile is not seen. Tests first (`reveal` as a stub field: 2 of the 4 new cases failed on it, `3c4871…`-era commit pushed failing), then the implementation; the pure matching has 4 more cases.
+- **Where the signal cannot come:** none of the revealed originals on screen: the copies are cleared at once; the originals not drawn at all (their layer switched off, say): after `REVEAL_FRAMES_BEFORE_GIVING_UP = 6` rendered frames the copies are cleared anyway and a warning says so. Neither fired in the final runs (`MarkerFanOut` log empty). **Not covered:** a fan *replaced* by another (tap on a second stack): its copies go in the same push as the new ones come, so the first fan's markers could blink the same way; this is rare and I did not handle or test it.
+- **Where 3 and 6 come from.** `REST_FRAMES_BEFORE_GIVING_UP = 3` (the open) is my number: the signal arrived at the 3rd or 4th rendered frame in the six probe opens, and 3 rendered frames *at rest* is a safety net well after that in an animated open and about the same time in a reduce-motion open. `REVEAL_FRAMES_BEFORE_GIVING_UP = 6` is twice the open's observed 3 to 4, chosen without a measurement of the release (none was taken). Both are last resorts, logged when reached; neither is a tuned wait. If the map stops rendering before they are reached (the app backgrounded), the listener stays attached but is called on no frames, so it costs nothing, the originals stay as they were, and the wait resumes on the first frame after rendering restarts or ends with its caller's cancellation (a fold, a release, a new style).
+
+## 4. The gap runs again, on the final build (`1.0.2360+g3c82194a`, apk `c73fb616d8bd13d2…`)
+11 runs (ten at animator 1, one at 5), same restored view: **0 open-start gaps, 0 fold-end gaps**, `MarkerFanOut` warnings none. At the fold's end the glyph count now holds the copy level for about 4 frames and drops straight to the folded level (2478 to 1833; no zero, no bump). The first amendment's measures on `a2c_r1..3` and the animator-5 run: 0 circle-without-icon frames, 0 reversals, icons at final brightness 67 to 409 ms before the fan rests (this time the one flagged frame of the earlier build did not recur). -299 and -318 viewed again at animator 1 and 5 (open start and fold end): the camera tile is the front glyph in the same place at both ends and both speeds, no jump. **Dot:** it returns in the same frame the originals do on every build checked (`a2` and `a2c`); the final build's fold-end settles about 4 frames later than `a2`'s, the copies being held for the originals.
+
+## 5. Tests, revert check, suite
+- **`FanOutHideGateTest` 21, `FanOutRenderSignalTest` 11, both passing.**
+- **Revert check, from saved copies** (`FanOutHideGate.kt` sha256 `3c487136…`, `FanOutRenderSignal.kt` `ee1e0b12…`): the reveal removed, the spread rule disabled, the idempotence removed, and `originalsDrawn` changed from all to any. The compile tasks ran, **0 `e:` lines, read before the XML**; 7 of 32 failed, each one a case for a mutated behaviour (the two reveal cases, "already spread", "same wait", "restart during a fold", and the two originals' matching cases). Restored from the saved copies (sha256 equal), forward change confirmed present, `git status` empty.
+- **Full suite, `3c82194a`:** BUILD SUCCESSFUL in 4m 13s, 0 `e:` lines; 409 suites, 3310 tests, 24 skipped, **0 failures, 0 errors**; XML in `amend2/final3/full-suite-xml/`.
+
+## 6. The early Back, and the phone
+- **The Back 80 ms after the tap.** `MarkerFanOutState.kt` is not in this branch's diff, so "the fan's Back handler is composed only while the fan is open" predates Amendment 2. What the early Back did on the phone: nothing visible. The fan then opened normally and stayed open; the focused window, the process and the activity were unchanged (`mCurrentFocus` and `topResumedActivity` still `MainActivity`, same pid), no dialog or navigation appeared. Which handler consumed it I did not determine: several `BackHandler`s exist (the bubble, the search suggestions, the compact map's overlays), and with none enabled the activity would have finished, which it did not.
+- **Installs this round** (forward only; three values read back after each, always inode 2259049 and db `e1188b00…`): the previous build `1.0.2352+gd5d51ba0` was replaced by `1.0.2358+gd970c1bc` (apk `2fd54361106d1d12…`, the restart fix) and then by **`1.0.2360+g3c82194a` (apk `c73fb616d8bd13d2…`, installed 06:42:06), which is on the phone now**, built from a clean tree. Animator set to 5.0 for one run per batch and read back as 1.0. No `logcat -c` this round; a marker line was written before each batch and the log bounded by time.
+- **Disclosures added:** the owner's phone was in use for part of an earlier batch (described above); a Back at 80 ms and the early interruption runs stopped three of my own runs through the pre-tap check; the "dot returns 5 to 6 frames later" and "no fold-end gap" statements are corrected beside where they stood.
