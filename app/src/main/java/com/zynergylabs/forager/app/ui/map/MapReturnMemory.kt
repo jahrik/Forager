@@ -72,6 +72,23 @@ class MapReturnMemory(
         return true
     }
 
+    // The way back from a journal entry opened from a bubble's "kept in" line (dispatch 2026-09-28-387, Part B). A path of its own beside the find's, so a find
+    // closing can never clear it and the find's flow is untouched.
+
+    /** Remembers that [entryId] was opened from [bubble], with the fan that was open then. */
+    fun rememberEntryOpen(entryId: String, bubble: TappedMapThing) {
+        // stub: nothing remembered yet
+    }
+
+    /**
+     * The entry [entryId]'s report was left. `true` when it is the remembered entry and it was left from its report ([fromReport]): the bubble and the fan are then
+     * handed to the Maps tab that is about to be created. Any other way (another entry, the editor) forgets the request.
+     */
+    fun onEntryClosed(entryId: String, fromReport: Boolean): Boolean = false
+
+    /** The entry's bubble to reopen, once, if its record is still there ([sources] is what the bubble is read from); `null` and logged when not. */
+    fun takeEntryBubble(sources: MapRecordSources): TappedMapThing? = null
+
     /** The fan keys waiting for the new map (read-only, for tests); `null` when none. */
     val pendingFanKeys: List<FanKey>? get() = fanRestore
 
