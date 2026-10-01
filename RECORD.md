@@ -9600,3 +9600,28 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 - The second fan-flicker coder window was given a "go" by an earlier stand-in planner session and was interrupted by the owner before any build or phone read; the first ended on an API error. Neither built or installed. The third window, on Sonnet 5.5, did Part 1.
 **Blocked on:** free disk, 2008 MB against the 2048 MB floor. The planner proposed deleting ~/Zynergy/Forager/app/build/intermediates (707 MB); the owner has not answered, and nothing has been deleted.
 **Notes:** Written by a planner session that did not write the dispatch: the original planner session went offline at 06:09Z and its conversation was read from its transcript.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-371
+**Timestamp:** 2026-10-01T12:06:58Z
+**Continues:** 2026-09-28-369 (preserved 2026-10-01-07, where the second amendment is appended), after continuation -370; the first fix is on fan-flicker at 1ead81ea with its completion report at 49d1c38b, not merged
+**The owner, verbatim:** "The flickering is better, but now there is a brief moment when the icons blink before fanning out", after looking at the fix build (1.0.2334+g2b5e9f88.dirty) on the S22. Then "Go ahead" to the planner's proposal: measure the gap and confirm the cause first; fix it inside the fan's own code so the copies are on screen before the originals are hidden, with no map-wide setting; check the fold's end; hold the merge until it is done.
+**Earlier in this chain, also the owner:** "yes" to deleting ~/Zynergy/Forager/app/build/intermediates (707 MB). The planner's delete was refused by the permission system; the owner ran it ("done"), and free disk read 2682 MB afterwards.
+**The first fix, from the coder's completion report and the planner's own reads:**
+- 1ead81ea: PlacementTransitions.kt (transitionWithoutPlacementFade, disableSymbolFade), one call at the head of the setStyle callback, PlacementTransitionsTest. 3 app files, 72 insertions.
+- On the S22, animator 1 and 5, open and fold: 0 circle-without-icon frames, 0 reversals, icons at final brightness before the fan rests (58 ms before, at animator 1; the base was 259 ms after). One recording per cell.
+- Full unit suite on 1ead81ea: 407 suites, 3278 tests, 0 failures, 0 errors, 24 skipped; the planner tallied the saved XML itself. The placement test fails 2 of 3 on the stub and on the revert ("placement transitions must be off"), with 0 e: lines in both build logs, and passes on the fix.
+- The transition read on a loaded style before the change: duration 300, delay 0, placement on.
+- The location dot is drawn by symbol layers (the non-specialised renderer), so the setting reaches it; read in bytecode, not observed. At rest it looks the same on both builds.
+- A cold start shows no marker fade-in on the base either, so no difference was seen there; one clip each.
+**What the planner observed for this continuation** (frames cut from the coder's recordings): on the fix build the stack is gone for one frame, about 33 ms by the clip's timestamps, with only the location dot showing, before the copies appear (ff_fix_a1.mp4 frames 269 to 270); the base has the same empty frame for about 9 ms (ff_base_a1.mp4 frames 265 to 266). One recording each, so whether the first fix lengthened it is not known. -319's record has it as "three blank frames at the open's start".
+**What the planner read** (at 49d1c38b): the fan-draw effect hides the originals with setFilter (FanOutLayers.kt:264-281) and pushes the copies with setGeoJson (:286-296) in the same pass (SightingsMap.kt:802, :805). The diagnosis, inferred: the filter lands before the copies are drawn.
+**Change:**
+- Measure the gap over at least five runs before and after, confirm the cause, then hide the originals on a signal that the copies are drawn, not after a fixed wait; a fixed wait is a stop with options.
+- No state where a marker shows twice or not at all, the fold's end and interrupted opens included.
+- The first amendment's measures must hold unchanged; disableSymbolFade stays.
+- The phone's end state becomes the final build with both fixes, on the planner's call: the base cannot be installed over the fix build without a downgrade (INSTALL_FAILED_VERSION_DOWNGRADE, 2329 under 2334), which is not authorised. To be confirmed by the owner.
+**Open with the owner:** whether anything still flickers while the fan moves ("better", not "gone"); whether "no icon without its circle" is a pass item (the planner's 4 dp floor was wrong: the flagged circles are 6 to 13 dp and hidden behind their glyphs, which is -299's growth; the planner recommends dropping it as a pass item); the phone's end state; the merge.
+**Notes:** Written by the planner session that wrote -370. The cold-start recordings open on the phone's own wallpaper for about 1.4 s; they are kept untrimmed in the evidence folder, outside the repository, and a scratch sheet that included those frames was deleted.
