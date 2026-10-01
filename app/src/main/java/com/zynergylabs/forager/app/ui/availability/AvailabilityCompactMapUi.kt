@@ -659,7 +659,12 @@ internal fun CompactMapTab(
                         tapped = null
                     },
                     minY = topInset + compassStripClearance,
-                    backEnabled = !isDrawerOpen && pendingAction == null && !pickingSearchLocation && !showActionMenu,
+                    // Fullscreen is left out as the drawer and the menu states are (dispatch 2026-09-28-312, item 11): a bubble
+                    // closes after anything opened after it, and fullscreen's Back handler was registered before the bubble layer's, so without
+                    // this term a bubble over a fan took the first Back and fullscreen the second. The search dropdown has the same order
+                    // defect and is NOT fixed here: its term makes the dropdown's refocus-reopen (see the item 12 report) hold the bubble's
+                    // Back off after the drawer closes, and -293's unchanged tests then fail. Stopped for the owner.
+                    backEnabled = !isDrawerOpen && !isFullscreen && pendingAction == null && !pickingSearchLocation && !showActionMenu,
                     insetLeft = bubbleInsetLeft,
                     insetRight = bubbleInsetRight,
                 )
