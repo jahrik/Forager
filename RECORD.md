@@ -9145,3 +9145,21 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Next:** the planner tracks CI for about 6 consecutive green runs (-296 §7).
 **Device items open:** tap and long-press album photos straight after opening, on a cold start, in portrait and landscape and on the tablet tree. These are in -319 through -340.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-348
+**Timestamp:** 2026-10-01T00:52:08Z
+**Title:** Capture the wrong-thread DecodedPhotoTest failure seen once in -317's pinned runs
+**Dispatch-file:** preserved/2026-09-30-27.md
+**The owner, verbatim:** "Option 1 with 3 as a followup".
+**The planner's reading:** see terminal -347's open item.
+**Change:**
+- Diagnosis only, on scratch branch decoded-photo-thread, never merged.
+- Establish what makes the harness run the apply inline on the resuming thread.
+- Instrument scratch copies, and repeat the pinned set to a sized budget.
+- If it recurs, compare against the pre-(-317) build.
+- Watch CI since 851e28fd.
+- A fix is proposed, not applied.
+**Notes:** Written by the planner by hand.
