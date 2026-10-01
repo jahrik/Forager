@@ -203,7 +203,7 @@ class FanOutLayersTest {
     fun `at progress 1 every copy carries its glyph's full centring offset`() {
         val offsets = offsetsAt(1f)
         val expected = mapOf(
-            MapLayerIds.WAYPOINTS to (0f to 14f), MapLayerIds.FINDS to (0f to 12.5f), MapLayerIds.PLANNED_TRIPS to (-7.5893f to 12.5f),
+            MapLayerIds.WAYPOINTS to (0f to 14f), MapLayerIds.FINDS to (0f to 12.5f), MapLayerIds.PLANNED_TRIPS to (-6.9821f to 11.5f),
             MapLayerIds.PHOTOS to (0f to 0f), MapLayerIds.SEARCH_CENTRE to (0f to 0f),
         )
         for ((id, xy) in expected) {
@@ -216,7 +216,7 @@ class FanOutLayersTest {
     fun `at progress half every copy carries half its glyph's centring offset`() {
         val offsets = offsetsAt(0.5f)
         val expected = mapOf(
-            MapLayerIds.WAYPOINTS to (0f to 7f), MapLayerIds.FINDS to (0f to 6.25f), MapLayerIds.PLANNED_TRIPS to (-3.79465f to 6.25f),
+            MapLayerIds.WAYPOINTS to (0f to 7f), MapLayerIds.FINDS to (0f to 6.25f), MapLayerIds.PLANNED_TRIPS to (-3.49107f to 5.75f),
             MapLayerIds.PHOTOS to (0f to 0f), MapLayerIds.SEARCH_CENTRE to (0f to 0f),
         )
         for ((id, xy) in expected) {

@@ -40,9 +40,11 @@ class MarkerGlyphsTest {
     /** The glyph board §1 fill extents and anchors, and the reticle's own dimensions (C2), in dp. */
     private val expected = mapOf(
         MarkerGlyph.WAYPOINT to floatArrayOf(22f, 28f, 11f, 28f),
-        // Dispatch 2026-09-28-286: the find and the flag are scaled evenly to 25 dp tall (25/26 and 25/28), anchors included.
+        // Dispatch 2026-09-28-286: the find is scaled evenly to 25 dp tall (25/26), anchor included.
         MarkerGlyph.FIND to floatArrayOf(23.0769f, 25f, 11.5385f, 25f),
-        MarkerGlyph.PLANNED_TRIP to floatArrayOf(17.8571f, 25f, 1.3393f, 25f),
+        // Dispatch 2026-09-28-358: the flag is scaled evenly to 23 dp tall (23/28), anchor included: 20 x 28 becomes 16.4286 x 23,
+        // its anchor (1.5, 28) becomes (1.2321, 23).
+        MarkerGlyph.PLANNED_TRIP to floatArrayOf(16.4286f, 23f, 1.2321f, 23f),
         MarkerGlyph.PHOTO to floatArrayOf(22f, 22f, 11f, 11f),
         MarkerGlyph.SEARCH_CENTRE to floatArrayOf(26f, 26f, 13f, 13f),
     )
@@ -59,7 +61,7 @@ class MarkerGlyphsTest {
             MarkerGlyph.PHOTO to (0f to 0f),
             MarkerGlyph.WAYPOINT to (0f to 14f),
             MarkerGlyph.FIND to (0f to 12.5f),
-            MarkerGlyph.PLANNED_TRIP to (-7.5893f to 12.5f),
+            MarkerGlyph.PLANNED_TRIP to (-6.9821f to 11.5f),
             MarkerGlyph.SEARCH_CENTRE to (0f to 0f),
         )
         for ((glyph, xy) in expected) {
@@ -86,15 +88,37 @@ class MarkerGlyphsTest {
 
     // Dispatch 2026-09-28-286. The owner: "I noticed the flag for the planned trip is a bit large compared to the other
     // icons... The finds icon is a bit large also, but not by much. Location pin icon is acceptable. Somewhere between the
-    // photo icon and location pin size would be preferable"; scope "Everywhere". Both are 25 dp tall, between the photo's
-    // 22 and the pin's 28, with their proportions kept.
+    // photo icon and location pin size would be preferable"; scope "Everywhere". Both were 25 dp tall, between the photo's
+    // 22 and the pin's 28, with their proportions kept. Dispatch 2026-09-28-358 then shrank the flag alone, to 23 dp.
     @Test
-    fun `the flag and the find are 25 dp tall with their proportions kept, between the photo and the pin`() {
-        assertEquals("the flag's height", 25f, MarkerGlyph.PLANNED_TRIP.heightDp, 1e-3f)
+    fun `the find is 25 dp tall with its proportions kept, between the photo and the pin`() {
         assertEquals("the find's height", 25f, MarkerGlyph.FIND.heightDp, 1e-3f)
-        assertEquals("the flag keeps its 20:28 proportions", 20f / 28f, MarkerGlyph.PLANNED_TRIP.widthDp / MarkerGlyph.PLANNED_TRIP.heightDp, 1e-4f)
         assertEquals("the find keeps its 24:26 proportions", 24f / 26f, MarkerGlyph.FIND.widthDp / MarkerGlyph.FIND.heightDp, 1e-4f)
         assertTrue("between the photo's height and the pin's", MarkerGlyph.PHOTO.heightDp < 25f && 25f < MarkerGlyph.WAYPOINT.heightDp)
+    }
+
+    // Dispatch 2026-09-28-358. The owner, of the 36 dp circles: "The circle size was perfect at 36dp since the trip icon fit
+    // neatly in it"; then "the trip icon is a bit large still. Scale it down very slightly so that it fits more comfortably
+    // inside the circle." The 23 dp is the planner's number, not the owner's.
+    @Test
+    fun `the flag is 23 dp tall with its 20 by 28 proportions kept, and its anchor on the pole foot`() {
+        val flag = MarkerGlyph.PLANNED_TRIP
+        assertEquals("the flag's height, was 25", 23f, flag.heightDp, 1e-3f)
+        assertEquals("the flag keeps its 20:28 proportions", 20f / 28f, flag.widthDp / flag.heightDp, 1e-4f)
+        assertEquals("the flag's anchor scales with it: the pole foot (1.5, 28) becomes (1.2321, 23)", 1.5f * 23f / 28f, flag.anchorXDp, 1e-3f)
+        assertEquals("the flag's anchor is still on the foot of the pole, its bottom edge", flag.heightDp, flag.anchorYDp, 1e-3f)
+        assertTrue("the flag is shorter than the find", flag.heightDp < MarkerGlyph.FIND.heightDp)
+    }
+
+    // Dispatch 2026-09-28-358: the flag alone changed. The find, the pin and the photo are exactly what they were.
+    @Test
+    fun `the flag's resize left the find, the waypoint and the photo exactly as they were`() {
+        assertEquals("find", listOf(23.0769f, 25f, 11.5385f, 25f), MarkerGlyph.FIND.let { listOf(it.widthDp, it.heightDp, it.anchorXDp, it.anchorYDp).map { v -> Math.round(v * 10000f) / 10000f } })
+        assertEquals("waypoint", listOf(22f, 28f, 11f, 28f), MarkerGlyph.WAYPOINT.let { listOf(it.widthDp, it.heightDp, it.anchorXDp, it.anchorYDp) })
+        assertEquals("photo", listOf(22f, 22f, 11f, 11f), MarkerGlyph.PHOTO.let { listOf(it.widthDp, it.heightDp, it.anchorXDp, it.anchorYDp) })
+        assertEquals("find fan offset", 12.5f, MarkerGlyph.FIND.fanCentringOffsetDp().yDp, 1e-4f)
+        assertEquals("waypoint fan offset", 14f, MarkerGlyph.WAYPOINT.fanCentringOffsetDp().yDp, 1e-4f)
+        assertEquals("photo fan offset", 0f, MarkerGlyph.PHOTO.fanCentringOffsetDp().yDp, 1e-4f)
     }
 
     @Test
