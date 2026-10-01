@@ -9538,3 +9538,22 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 - **Not changed:** the noun "ruling", about 240 lines, by the owner's acceptance of the planner's proposal to leave it.
 **Checks:** the comment-lines-only count; a build and a unit-test compile; the classes that run the renamed test, with the same counts as at the base.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-368
+**Timestamp:** 2026-10-01T05:53:44Z
+**Closes:** 2026-09-28-367 (preserved 2026-10-01-06)
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as 0867e8be, no-ff, from owner-wording-2 0d43781b. The owner said "Merge". The coder ran on Sonnet 5.5.
+- **The Weekly question:** the owner did choose it. docs/plans/journal-redesign.md:911-920 holds the owner's answers of 2026-09-29, item 8: "weekly to start, with default off, let the user set the frequency from there". The planner read that passage itself. BackupSchedule.kt's comment, which had said the frequency "has no ruled default", was wrong and is corrected; the test's name was right.
+- **The rename:** BackupSettingsScreenTest's test now ends "… the default the owner chose". It is the only non-comment line in the diff.
+- **Comments:** six reworded ("decided" or "chose"): BackupSchedule.kt, EntryMapFrame.kt, TrackSelfJoin.kt, CameraArrangement.kt, CompactToolsDrawerTest.kt, DrawerBackOverJournalTest.kt.
+- **Left, each read by the coder:** AndroidBackupNotifier.kt:43 ("which nobody ruled"), ScheduledBackup.kt:69 ("none is ruled") and FanPlacement.kt:57 ("is ruled on"), none of which states a decision the owner made; "ruled out"; the app user's and the planner's decisions; every noun "ruling".
+- **The planner's checks:** filtering the diff for non-comment lines leaves the renamed function line only; no comment in app/src now pairs "owner" with "ruled"; the two saved XML files each give 27 tests, 0 failures, with the test under its new name; no @Ignore is added; the merged head's whole tree is identical to the branch's.
+- **The coder's check, not re-run by the planner:** :app:assembleDebug and :app:compileDebugUnitTestKotlin, BUILD SUCCESSFUL, 0 "e:" lines. The base counts of 27 and 27 come from -358's saved full-suite XML, not a fresh base run.
+**This ends the wording work that began with -361:** -361, -364 with -365, and -367. The noun "ruling" is left by the owner's acceptance of the planner's proposal.
+**CI:** the last completed run is green on 18c7f301 (36819607632). Every run since was cancelled by the next push; all changes since are comments, records and this one test name.
+**Notes:** Written by the planner by hand.
