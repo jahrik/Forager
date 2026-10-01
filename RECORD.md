@@ -9495,3 +9495,16 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 - Not changed: "the owner ruled …" and "the owner's ruling", which eight other comments use; the owner has been told they exist.
 **Checks:** the diff touches comment lines only; a compile of main and unit tests. No test run, by the dispatch.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-365
+**Timestamp:** 2026-10-01T05:42:26Z
+**Continues:** 2026-09-28-364 (preserved 2026-10-01-05, where the amendment is appended); edits pushed, not yet built
+**The owner, verbatim:** "All the others you noted", of the comments that say "the owner ruled".
+**Change:**
+- Nine comments have the verb replaced: "ruled" becomes "decided", "chose" or "said". The planner told the owner eight; its grep had missed "has ruled" (AvailabilityScreenMapBubblesTest.kt:483), and the ninth is included.
+- Comment lines only, the manifest's XML comment among them, so the check becomes assembleDebug plus a unit-test compile.
+- Not changed: the noun "ruling" (about 190 lines naming an owner's ruling and 53 a planner's, mostly citations of recorded decisions or document names), and one test name, BackupSettingsScreenTest.kt:358. Both are put to the owner.
+**Notes:** Written by the planner by hand.
