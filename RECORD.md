@@ -9102,3 +9102,17 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 - fix where the cause is. A harness cause is fixed in the test, with the assertion kept. A (c) cause is fixed in DecodedPhoto, with a stop-and-ask on any change to semantics, size or behaviour.
 **Rejected:** merging now and tracking it on CI. A new 1-in-12 failure would undermine the post-merge green-run count.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-346
+**Timestamp:** 2026-10-01T00:35:06Z
+**Closes:** 2026-09-28-336 (preserved -26), with continuation -344
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as de1e1933, no-ff, from topo-night-tests 451bdeb2. The owner said "Yes". It is docs only: the report, a README row and two XML archives. No app or test source changed.
+- **Gap 1, the caption's night wiring:** device-only, at the owner's "C" (-344).
+- **Gap 2, the crossfade:** nothing uncovered. With b1fc980d's hard-switch style swapped in, 2 of TopoNightStreetSwitchTest's 13 fail with messages specific to that edit ("street layer maxzoom … expected:<9.7> but was:<9.5>"; "at 9.5 both, Street under …"). There were 0 `e:` lines, and the forward file was restored (sha256 b8321b06).
+- **The coder's suite:** 396 files, 3225/0/0/24.
+**Notes:** Written by the planner by hand.
