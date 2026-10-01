@@ -9181,3 +9181,28 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 - Diagnosis only, on scratch branch leaving-journal-flake, never merged.
 - Collect the full messages, read the path, check for a shared cause with -296/-317, -348 and -297's stall, reproduce pinned, and propose a fix.
 **Notes:** Written by the planner by hand. This push also starts a CI run. The planner batches record-only pushes from here on, so that runs can complete.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-350
+**Timestamp:** 2026-10-01T01:21:46Z
+**Closes:** 2026-09-28-318 (preserved -22)
+**Outcome:** completed
+**Observed:**
+- **What merged** into journal-redesign as 2c2971f9, no-ff, from s22-fails 88da433a. The owner said "1 and 2 : go ahead".
+- **Fail 3,** the puck under the markers after a basemap swap:
+  - by javap on 13.5.0, MapLibreMap.notifyStyleLoaded calls LocationComponent.onFinishLoadingStyle before the app's layers exist, so the SDK re-places the puck with no layerBelow target;
+  - the fix: puckReplacementOptions re-applies the position just before activation, when the component is already initialised;
+  - it is reproduced headless at the SDK's own decision, **not** on a real map.
+- **Fail 5,** the z-order pop:
+  - the planner's "feature order" reading was partly wrong. Overlapping allow-overlap icons are y-ordered (inferred from the spec);
+  - the fix: each icon copy carries a sortKey, its layer's index in the registry draw order.
+- **The coder's checks:**
+  - the failing-first run: 27 tests, 6 failed (4 stacking, 2 swap);
+  - a revert check per fix, each failing only its own tests.
+- **The planner's check:** the worktree's XML gives 401 files and 3246/0/0/24, written at 18:00.
+- **Disclosed by the coder:** one build began at 1966 MB free, under the floor.
+**Device items open:** in -319 (-340): the puck above the markers and below an open fan after swapping to each basemap; fold and open a mixed fan with no z-order pop.
+**CI, with -317:** run 36798317295 (60d626b9) failed on LeavingTheJournalFixesTest alone, which -349 is diagnosing. Run 36799559211 (d94d4ca1) was green: 1 green of the roughly 6 needed.
+**Notes:** Written by the planner by hand.
