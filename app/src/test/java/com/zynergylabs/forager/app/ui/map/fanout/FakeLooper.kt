@@ -11,6 +11,11 @@ class FakeLooper {
         queue.addLast(task)
     }
 
+    /** One turn: the task at the front runs, and what it posts goes to the back. */
+    fun runNext() {
+        queue.removeFirst().invoke()
+    }
+
     fun runAll() {
         while (queue.isNotEmpty()) queue.removeFirst().invoke()
     }
