@@ -54,7 +54,7 @@ interface MapTapSinks {
  *  - **The tap resolves to a marker whose touch area overlaps another's** (a stack): the stack
  *    fans out and nothing else is reported (the owner's choice, dispatch 2026-09-28-197).
  *
- * The camera moving folds it ([onCameraMoveStarted]); what the map draws changing, a new style included, folds it only
+ * The camera moving folds it unless it is the map following the location ([onCameraMoveStarted]); what the map draws changing, a new style included, folds it only
  * when a member changed ([onContentChanged]).
  */
 class MapTapHandler(
@@ -66,12 +66,14 @@ class MapTapHandler(
     private val bubbleOpen: () -> Boolean = { false },
     /** Whether a layer's switch is on. A record on a layer switched off is not drawn, so it is not a fan member. */
     private val layerDrawn: (String) -> Boolean = { true },
+    /** Where a fallback is reported, never silent: the host passes `Log.w`; a test passes its own. */
+    private val warn: (String) -> Unit = {},
 ) {
     fun onMapTap(at: LatLng, xPx: Float, yPx: Float) {
         val density = probe.density
         var holdFanForEmptyTap = false
         if (fan.isOpen) {
-            val picked = fanMemberAt(fan.members, fan.progress, xPx / density, yPx / density)
+            val picked = fanMemberAt(liveMembers(), fan.progress, xPx / density, yPx / density)
             if (picked != null) {
                 dispatch(mapTapOutcome(TapHit(picked.key.layerId, picked.key.featureId)), at, xPx, yPx)
                 return
@@ -115,8 +117,16 @@ class MapTapHandler(
         return probe.markersOf(keys.filter { it.layerId in fanLayers && layerDrawn(it.layerId) }).distinctBy { it.key }
     }
 
-    /** The camera started to move, by a gesture or by the app: the copies are placed in screen space, so the fan folds. */
-    fun onCameraMoveStarted() = fan.fold()
+    /**
+     * The camera started to move. The user's touch, or a move the app made because the user asked, folds the fan; the map re-centring itself while it
+     * follows the location ([CameraMoveCause.LOCATION_FOLLOW]) does not: the user did not mean it, and the fan travels with the map (its copies are
+     * placed from where the markers are, and its touch areas are read from the same places, [liveMembers]). A fan that is carried off screen is left
+     * alone; Back still folds it (dispatch 2026-09-28-380).
+     */
+    fun onCameraMoveStarted(cause: CameraMoveCause = CameraMoveCause.UNKNOWN) {
+        if (cause == CameraMoveCause.LOCATION_FOLLOW) return
+        fan.fold()
+    }
 
     /**
      * What the map draws changed (its records, its layer switches): the fan folds only if its members changed (intent
@@ -135,6 +145,25 @@ class MapTapHandler(
         val unchanged = drawn.size == members.size && drawn.all { d -> members.any { it.key == d.key && it.lat == d.lat && it.lng == d.lng } }
         if (unchanged) return
         if (!openFanFor(drawn.map { it.key })) fan.fold()
+    }
+
+    /**
+     * The open fan's members with their markers' places now. A member's stored place is where its marker was when the fan opened; the map may have moved
+     * since (the location follower carries it), and the copies are drawn from where the markers are, so a tap is tested against the same places. The
+     * marker is located from its record's coordinates through the projection ([MapProbe.markersOf]), not from what is drawn, so a hidden original is found.
+     * A member the map cannot locate keeps its stored place and the host is told.
+     */
+    private fun liveMembers(): List<FanMember> {
+        val located = probe.markersOf(fan.members.map { it.key }).associateBy { it.key }
+        return fan.members.map { member ->
+            val now = located[member.key]
+            if (now == null) {
+                warn("Fan member ${member.key.layerId}/${member.key.featureId} is not located on the map; its touch area stays where it was when the fan opened.")
+                member
+            } else {
+                member.copy(trueXDp = now.xPx / probe.density, trueYDp = now.yPx / probe.density)
+            }
+        }
     }
 
     private fun FanRect.scaled(by: Float) = FanRect(left * by, top * by, right * by, bottom * by)
