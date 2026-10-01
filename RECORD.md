@@ -9883,3 +9883,15 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Open with the owner:** after a tap on a fanned icon puts the fan away and shows the item's bubble, whether Back closes the bubble and brings the fan back, or closes it and leaves the stack folded. Not built either way.
 **Also from the owner, on -380:** they repeated their walk on the final build and sent a second screenshot, "Same result"; the planner read 1.0.2385+gc170cf54 on the phone, installed 11:13:22, the screenshot timed 11:18. That closes the walk -382 listed as still theirs.
 **Notes:** Written by the planner session that wrote -370 to -382.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-384
+**Timestamp:** 2026-10-01T18:35:49Z
+**Continues:** 2026-09-28-381 (preserved 2026-10-01-10, where a second amendment is appended), after -383
+**The owner, verbatim:** "Return to home meaning, it skips directly back to the maps with everything closed"; and, to the planner's question what Back does from a bubble reached by tapping a fanned icon: "Tap stacked icons > icons fan out > tap x icon > bubble opens > tap to go to X page > On X page > hit back > return to fan + bubble > hit back > bubble closes > hit back > fan closes > hit back "Tap Back Button Again To Exit" (currently does this, finish line is exiting the app)".
+**The planner's reading:** the way out is the way in reversed, one step a Back. So after a tap on a fanned icon puts the fan away and shows the bubble, Back closes the bubble and the fan is showing again, and the next Back folds it; the exit prompt and everything after it are untouched. The owner's path names the case that goes through the page; the case that does not is the planner's reading of its steps 2 and 3, told to the owner.
+**Also the planner's reading, told to the owner:** only Back retraces. A tap on empty map with that bubble showing closes the bubble and brings no fan back.
+**Change:** the open question of -383 is closed as above and built under -381, tests first.
+**Notes:** Written by the planner session that wrote -370 to -383.
