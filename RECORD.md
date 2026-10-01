@@ -9996,3 +9996,16 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Before this merge,** main was merged into journal-redesign as c73bd68f so that both merges ahead are clean: main's only commits were the owner's "Disable Claude-kit hooks" (c5b2a10b, PR #138), one line in .claude/settings.json; the conflict (modified on main, deleted here by the owner's e1363308) was resolved by keeping the file deleted; the tree was identical before and after.
 **Next:** CI on this head; a backup; PR #140 into pre-main; then pre-main into main.
 **Notes:** Written by the planner session that wrote -370 to -389.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-391
+**Timestamp:** 2026-10-01T19:49:15Z
+**Title:** readme-section-move: the README's "What is not verified, or is known to be limited" section taken out and kept, deferred for the owner's review
+**Dispatch-file:** preserved/2026-10-01-12.md; sent by message to the coder window that ran -379
+**The owner, verbatim,** after the planner pasted the merged README at their request ("Paste the readme here and report the status?"): "Remove the what is not verified area and move it. Some of it contains items I may consider features that incorrectly reports it as an issue. So defer that for now".
+**Change:** the section leaves README.md whole and goes, word for word, to docs/audits/2026-10-01-readme-deferred-section.md under a header saying it is deferred for the owner's review and is not a list of faults; not linked from the README; the README's claims table and link check re-run against the README as it stands. Docs only.
+**What this supersedes:** -390's statement that the README's last section carries the known issue and the two paths not run on a phone. Those lines were added at the planner's request and are among what the owner has deferred. The known issue itself stays recorded in -389 and -390 and in the bubble-paths report's addendum; whether it is an issue at all is now with the owner's review.
+**Holds:** PR #140's merge into pre-main, which waits for this and for CI on the head that follows. Nothing has been merged into pre-main or main.
+**Notes:** Written by the planner session that wrote -370 to -390.
