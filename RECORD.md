@@ -9820,3 +9820,22 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **The phone rules for this dispatch:** a tap on the locate button is allowed, to switch following on, beside a tap on a stack and Back. The planner added it and told the owner; the owner had allowed one such tap under -369.
 **A first draft of this dispatch,** covering the tap rules as well, was written and not sent; the owner stopped it before it was recorded and narrowed the work to the location-movement fault.
 **Notes:** Written by the planner session that wrote -370 to -379.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-381
+**Timestamp:** 2026-10-01T17:27:32Z
+**Title:** fan-tap: a tap on a fanned icon shows that item and dismisses the fan, and Back from a find's page still returns to the same fan
+**Dispatch-file:** preserved/2026-10-01-10.md; for the coder window that runs -380, to start once -380 is merged
+**The owner, verbatim:** "The fan can travel off screen as a result. A way to fix that is that when an icon gets tapped, immediately display the icon and dismiss the fan upon that single tap"; "If it's another fan then fan it out, etc. Act as normal taps when the old fan is out, while dismissing it at the same time"; "When going to the finds page via the fan, hitting the Back button/arrow should return you to the map with the same fan". On -380's scope: "Keep the intentional map movements". Told that the tap rule is not in the app today and would be built next, before the README and the merges: "That's the correct order. Let's continue on, device still in portrait. This is why we document things".
+**Order now:** -380 (fan-holds), then this, then the README (-379), then PR #140 into pre-main and pre-main into main, by the planner.
+**What -380's coder established from the code at 4075b1e5, not re-read by the planner:**
+- A tap on a fanned icon dispatches that marker's outcome and returns without folding the fan (MapTapHandler.kt:73-78), for every kind a fan can hold: finds, photos, waypoints and planned trips, each a bubble only (SightingsMap.kt:521-525). So the owner's belief that the tap already dismissed the fan was not so; what they most likely saw was the fan folding by itself with the map following.
+- The return to the same fan exists for finds only, from the find bubble's "Open in Journal", which remembers the fan's members at that moment (AvailabilityCompactMapUi.kt:643-650, MapReturnMemory.kt:41-43, FanReopen.kt:44-46).
+- The camera's moves cannot be told apart by the library's reason code (the follower's and the app's own are both reason 3), so -380 marks the app's own moves; and the fan's touch areas were fixed where the fan opened, which -380 also corrects.
+**Change:** a tap on a fanned icon gives its outcome and folds the fan on that one tap; the other taps unchanged; the fan a find was picked from is what returns after its page; the bubble points at the marker where it is; -255 item 7's bubble-then-fan order named where it becomes unreachable and removed only where plainly dead. Unit tests first; device runs on the S22.
+**The phone rules for this dispatch,** set by the planner and told to the owner: beside -380's, a tap on a fanned icon and, in a bubble, "Open in Journal" found by its text, with Back and nothing else on the find's page.
+**-380 when this was written:** the fix is pushed on fan-holds at 951feea7 (tests first at 52d9843f) and its build 1.0.2378+g951feea7 is on the S22; not yet handed back. **The laptop lost power and rebooted at 17:19Z** (an earlier cut at about 17:01Z restarted the sessions only). /tmp was wiped: the planner's scratch scripts and the coder's scratch and Python environment. Nothing committed was lost, and the evidence folder under ~/Zynergy/device-evidence/2026-10-01-fan-holds/ is intact: the suite's XML, a revert run, and eleven recordings, five of them with following on, made minutes before the reboot. The restarted coder did not remember making those five; the planner told it to re-derive every result from the saved files or to re-run it, and to cite nothing from memory. The planner had not received those results when this was written.
+**Also from the owner:** "Kill some idle processes please"; the planner killed nothing, the restart having left no idle process that was safe to kill, and said so.
+**Notes:** Written by the planner session that wrote -370 to -380.
