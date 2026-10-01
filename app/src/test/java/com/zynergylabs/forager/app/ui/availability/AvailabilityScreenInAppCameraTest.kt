@@ -72,16 +72,16 @@ import org.robolectric.annotation.Config
 /**
  * The in-app camera through [AvailabilityScreen]'s real controls, for the rotation bug found on
  * the device check on 2026-09-15: a Camera button deep in one window-width tree, the width
- * flipping from COMPACT to MEDIUM the way a phone's rotation flips it, and the camera still
+ * flipping from COMPACT to MEDIUM the way a phone's rotation flipped it (then), and the camera still
  * there afterwards with its photo still routed to the surface that asked.
  *
- * **The width flip is real, the rotation is not.** `currentWindowWidthClass` reads
- * `LocalConfiguration.screenWidthDp`, so providing a `Configuration` with that field set is what
- * moves the screen between its two trees, which is mechanism (2) on `InAppCameraHost`. Activity
- * recreation, mechanism (1), is what the ViewModel is for and is the platform's contract, not
- * composable here; the device check runs it ("Don't keep activities", and a rotation with the
- * camera open). The camera open flag is plain test state standing in for `InAppCameraViewModel`,
- * the same way `cartographyState` below stands in for `CartographyViewModel`.
+ * **Since dispatch 2026-09-28-245 there is one tree at every width**, so the width change these tests
+ * make (a `Configuration` with `screenWidthDp` set) no longer swaps trees as it did at 600 dp; it is
+ * still a width change with the camera open, which is what they assert survives. Activity
+ * recreation, mechanism (1) on `InAppCameraHost`, is what the ViewModel is for and is the platform's
+ * contract, not composable here; the device check runs it ("Don't keep activities", and a rotation
+ * with the camera open). The camera open flag is plain test state standing in for
+ * `InAppCameraViewModel`, the same way `cartographyState` below stands in for `CartographyViewModel`.
  *
  * The camera slot is the real [InAppCameraDialog] over [FakeCameraCaptureSession], so "shoot" is
  * the shutter and a file on disk, and the map slot is a box, as in every other test of this screen.
@@ -207,7 +207,7 @@ class AvailabilityScreenInAppCameraTest {
     /** Journal → a new Cartography entry → its add-photo picker, whose Camera button is the deepest one in the compact tree. */
     private fun openEditorCamera() {
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithContentDescription("New Cartography entry").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_FAB_TAG).performClick() // J2 T4: the New entry floating button, was the "+" tile
         composeRule.onNodeWithContentDescription("Add a photo from the Album").performClick()
         composeRule.onNodeWithText("Camera").performClick()
         composeRule.waitForIdle()
@@ -228,17 +228,23 @@ class AvailabilityScreenInAppCameraTest {
         composeRule.onNodeWithTag(CAMERA_SHUTTER_TAG).assertIsEnabled()
     }
 
-    /** The bug: on the shipped code the width flip disposed the screen holding the dialog, and the camera closed. */
+    /**
+     * Reworked in dispatch 2026-09-28-245 (tablets as a big phone). This was the bug where a width flip at
+     * 600 dp swapped the compact tree for the tablet's, disposing the screen that held the dialog. There is
+     * one tree at every width now, so nothing swaps, and the test asserts that (the bottom nav is still
+     * there at 700 dp) and keeps the rest of its claim: a width change with the camera open leaves it open,
+     * and its photo still routes.
+     */
     @Test
-    fun `the camera survives the width-class flip a rotation causes, and its photo still routes`() {
+    fun `the camera survives a width change, and its photo still routes`() {
         setScreen()
         openEditorCamera()
         composeRule.onAllNodesWithTag(IN_APP_CAMERA_TAG).assertCountEquals(1)
 
-        setWidthDp(700) // MEDIUM: the PermanentNavigationDrawer tree replaces the compact one
+        setWidthDp(700) // formerly MEDIUM, where the tablet tree replaced the compact one; now the same tree
         composeRule.waitForIdle()
 
-        composeRule.onAllNodesWithText("Tools").assertCountEquals(0) // the compact bottom nav is gone: the flip happened
+        composeRule.onAllNodesWithText("Tools").assertCountEquals(1) // the bottom nav is still there: nothing swapped
         composeRule.onAllNodesWithTag(IN_APP_CAMERA_TAG).assertCountEquals(1)
         composeRule.onNodeWithTag(CAMERA_SHUTTER_TAG).assertIsEnabled()
 
@@ -253,8 +259,9 @@ class AvailabilityScreenInAppCameraTest {
         composeRule.onAllNodesWithTag(IN_APP_CAMERA_TAG).assertCountEquals(0)
     }
 
+    /** Reworked with the test above (dispatch 2026-09-28-245): a second width change, back to 360 dp, keeps the camera too. */
     @Test
-    fun `flipping back to compact keeps the camera too`() {
+    fun `changing the width back keeps the camera too`() {
         setScreen()
         openEditorCamera()
         setWidthDp(700)
@@ -283,15 +290,20 @@ class AvailabilityScreenInAppCameraTest {
     fun `with the camera open, a real touch where the Camera button sits is taken by the camera and not by the button behind it`() {
         setScreen()
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithText("Album").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_VIEW_ALBUM_TAG).performClick() // J2 T3: the album view toggle, was the "Album" sub-tab
         composeRule.waitForIdle()
 
-        val button = composeRule.onNodeWithText("Camera").getBoundsInRoot()
+        // J2 (second coder): the album's Camera button became the Add photo floating button's Take
+        // photo item (owner ruling "Menu of both"). The point under test is now the floating button,
+        // the album control that stays on screen; the camera opens through its menu.
+        val button = composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_FAB_TAG).getBoundsInRoot()
         val x = (button.left + button.right) / 2
         val y = (button.top + button.bottom) / 2
 
         // Positive control: this exact point is live when the camera is not covering it.
         tapAtRoot(x, y)
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_FAB_MENU_TAKE_PHOTO_TAG).performTouchInput { click(center) }
+        composeRule.waitForIdle()
         assertEquals("the control: the touch reached the button", listOf(InAppCameraTarget.ALBUM), opened)
         composeRule.onAllNodesWithTag(IN_APP_CAMERA_TAG).assertCountEquals(1)
 
@@ -313,8 +325,10 @@ class AvailabilityScreenInAppCameraTest {
     fun `the Album's Camera button opens the camera for the Album`() {
         setScreen()
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithText("Album").performClick()
-        composeRule.onNodeWithText("Camera").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_VIEW_ALBUM_TAG).performClick() // J2 T3: the album view toggle, was the "Album" sub-tab
+        // J2 (second coder): the album's Camera button is now Add photo's Take photo item.
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_FAB_TAG).performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.ENTRIES_FAB_MENU_TAKE_PHOTO_TAG).performClick()
         composeRule.waitForIdle()
 
         assertEquals(listOf(InAppCameraTarget.ALBUM), opened)

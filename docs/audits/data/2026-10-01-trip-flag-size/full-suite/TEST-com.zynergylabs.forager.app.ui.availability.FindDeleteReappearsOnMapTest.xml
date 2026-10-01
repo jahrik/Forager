@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.FindDeleteReappearsOnMapTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:37.317Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.12">
+  <properties/>
+  <testcase name="Undo brings the find back on the map" classname="com.zynergylabs.forager.app.ui.availability.FindDeleteReappearsOnMapTest" time="0.025"/>
+  <testcase name="a deleted find is not drawn after its delete commits" classname="com.zynergylabs.forager.app.ui.availability.FindDeleteReappearsOnMapTest" time="0.023"/>
+  <testcase name="a second delete that commits the first leaves the first undrawn" classname="com.zynergylabs.forager.app.ui.availability.FindDeleteReappearsOnMapTest" time="0.024"/>
+  <testcase name="a find deleted while the map was re-shown is not drawn after the Undo window ends, with nothing tapped" classname="com.zynergylabs.forager.app.ui.availability.FindDeleteReappearsOnMapTest" time="0.023"/>
+  <testcase name="a delete that fails leaves the find drawn" classname="com.zynergylabs.forager.app.ui.availability.FindDeleteReappearsOnMapTest" time="0.024"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

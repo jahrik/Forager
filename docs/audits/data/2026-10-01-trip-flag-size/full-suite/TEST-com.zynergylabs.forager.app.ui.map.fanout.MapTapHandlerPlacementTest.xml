@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.fanout.MapTapHandlerPlacementTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:13.002Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.003">
+  <properties/>
+  <testcase name="the handler shifts the fan by the space it is given - off a control beside the stack, and inside the bounds" classname="com.zynergylabs.forager.app.ui.map.fanout.MapTapHandlerPlacementTest" time="0.001"/>
+  <testcase name="markers up to the stacking distance apart fan into places that clear each other, and their true spots stay where they were" classname="com.zynergylabs.forager.app.ui.map.fanout.MapTapHandlerPlacementTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

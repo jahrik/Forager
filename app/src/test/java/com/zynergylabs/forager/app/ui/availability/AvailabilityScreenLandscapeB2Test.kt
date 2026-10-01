@@ -268,7 +268,7 @@ class AvailabilityScreenLandscapeB2Test {
     }
 
     @Test
-    fun `S3 at ROTATION_90 the filter chip sits directly under the search bar, at its start, within its width`() {
+    fun `S3 at ROTATION_90 the filter chip sits directly under the search bar, at its end away from the cluster, within its width`() {
         setScreen(Surface.ROTATION_90, B2_SEARCHED_STATE.copy(forecast = B2_FORECAST, selectedMonth = LocalDate.now().monthValue))
         showTaxonFilterChip()
         val bar = searchBar()
@@ -276,7 +276,9 @@ class AvailabilityScreenLandscapeB2Test {
 
         assertTrue("the chip $chip is below the bar $bar", chip.top >= bar.bottom - 0.5.dp)
         assertTrue("the chip $chip is directly under the bar $bar, not below the strip's band too", chip.top <= bar.bottom + 16.dp)
-        assertEquals("the chip starts at the bar's start", bar.left.value, chip.left.value, 0.5f)
+        // Part 1 layout fixes, item 7 (planner message 2026-09-29-04): at 90 the cluster's default is the left, so the
+        // chip row aligns to the bar's right end, away from it. It began at the bar's start before this ruling.
+        assertEquals("the chip ends at the bar's end, away from the cluster on the left", bar.right.value, chip.right.value, 0.5f)
         assertTrue("the chip $chip lies within the bar's width $bar", chip.left >= bar.left - 0.5.dp && chip.right <= bar.right + 0.5.dp)
     }
 
@@ -543,7 +545,11 @@ class AvailabilityScreenLandscapeB2Test {
         assertCentreClear(listOf(SEARCH_ENTRY_BAR_TAG, NAVIGATION_HUD_TAG, MAP_ICON_CLUSTER_TAG, COMPACT_NAVIGATION_RAIL_TAG))
     }
 
+    // Planner message 2026-09-29-05 (the owner's "Option B"): a harness correction, not a weaker assertion. The default
+    // graphics mode measures text at near-zero width, which put the chip row at a different place from the phone's;
+    // the central-third assertion below is unchanged.
     @Test
+    @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
     fun `S10 at ROTATION_90 with the filter chip showing, the central third stays clear`() {
         setScreen(Surface.ROTATION_90, B2_SEARCHED_STATE.copy(forecast = B2_FORECAST, selectedMonth = LocalDate.now().monthValue))
         showTaxonFilterChip()

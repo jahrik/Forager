@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelFilterTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:21.455Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.022">
+  <properties/>
+  <testcase name="the top of the Fungi list is a fungus at full relative likelihood" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelFilterTest" time="0.01"/>
+  <testcase name="the Fungi map sightings contain no lichens" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelFilterTest" time="0.006"/>
+  <testcase name="the Fungi ranked list contains no lichens" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelFilterTest" time="0.005"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

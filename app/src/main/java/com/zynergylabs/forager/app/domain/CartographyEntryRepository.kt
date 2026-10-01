@@ -32,6 +32,14 @@ interface CartographyEntryRepository {
     /** How many entries currently keep a reference to offline region [offlineRegionId] — the count behind Records' 4b deletion warning. */
     suspend fun countEntriesReferencingOfflineRegion(offlineRegionId: Long): Result<Int>
 
-    /** How many entries currently keep [photoId] attached — [PhotoGalleryScreen]'s own deletion warning, per the owner's own 4b extension (a photo can carry a wordless entry, so its deletion deserves the same warning tracks/waypoints/regions get). */
+    /** How many entries currently keep [photoId] attached — the photo delete's warning (first the removed Photo Gallery screen's confirm dialog, now the album's Undo snackbar), per the owner's own 4b extension (a photo can carry a wordless entry, so its deletion deserves the same warning tracks/waypoints/regions get). */
     suspend fun countEntriesReferencingPhoto(photoId: String): Result<Int>
+
+    /**
+     * Sets [CartographyEntry.shownOnMap] on the stored entry [id] to [shown], and nothing else (J8):
+     * the entry's writing, decisions and [CartographyEntry.updatedAtEpochMillis] are untouched, since
+     * showing an entry on the map is not an edit of it. A failure, not a no-op, when no entry [id] is
+     * stored, so a toggle that reached nothing is reported rather than taken as done.
+     */
+    suspend fun setShownOnMap(id: String, shown: Boolean): Result<Unit>
 }

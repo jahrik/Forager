@@ -6,10 +6,12 @@ import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.TrackPointRecord
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import java.io.File
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -120,5 +122,28 @@ class TrackGpxExporterTest {
             file.readText(),
         )
         assertTrue("the waypoint's own id must reach the file", file.readText().contains("id=\"w1\""))
+    }
+
+    /**
+     * F5 (dispatch 2026-09-28-216; owner, "3 A"): an export is shared through a chooser that reports nothing
+     * back, so the file cannot go when the sheet closes; one more than an hour old is deleted before the next
+     * export is written. 61 and 59 minutes either side of the hour, against the real clock.
+     */
+    @Test
+    fun `before it writes, an export deletes the exports more than an hour old and keeps the ones within the hour`() {
+        val dir = tempFolder.newFolder("tracks")
+        val now = System.currentTimeMillis()
+        val stale = File(dir, "forager-track-2025-08-01-090000.gpx").apply { writeText("<gpx/>"); assertTrue(setLastModified(now - 61 * MINUTE_MILLIS)) }
+        val recent = File(dir, "forager-track-2025-08-02-090000.gpx").apply { writeText("<gpx/>"); assertTrue(setLastModified(now - 59 * MINUTE_MILLIS)) }
+
+        val written = TrackGpxExporter(dir).write(track, fullRecord = fullRecord, waypoints = emptyList())
+
+        assertFalse("an export more than an hour old is deleted before the next one is written", stale.exists())
+        assertTrue("an export within the hour is kept: the app it was shared to may still be reading it", recent.exists())
+        assertEquals("the folder holds the recent export and the new one", setOf(recent.name, written.name), dir.list()!!.toSet())
+    }
+
+    private companion object {
+        const val MINUTE_MILLIS = 60_000L
     }
 }

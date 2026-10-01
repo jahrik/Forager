@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.CompactSearchBarLocationControlsTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:27.987Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.196">
+  <properties/>
+  <testcase name="in portrait the user's own collapse of the manual coordinates stands after the tap expanded them" classname="com.zynergylabs.forager.app.ui.availability.CompactSearchBarLocationControlsTest" time="0.104"/>
+  <testcase name="in portrait a real touch on the compact search bar shows Set on map, Use current location and the manual coordinates at once" classname="com.zynergylabs.forager.app.ui.availability.CompactSearchBarLocationControlsTest" time="0.09"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

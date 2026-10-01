@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest" tests="26" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:33.509Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="1.127">
+  <properties/>
+  <testcase name="with no flash unit there is no flash chip, the timer chip comes first and the grid chip second, and the shutter is where it was" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest" time="0.062"/>
+  <testcase name="at Grid the grid fills the preview and sits under both bands" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest" time="0.049"/>
+  <testcase name="the status bar is hidden on the Activity's window and shown again when the camera leaves" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest" time="0.043"/>
+  <testcase name="an unavailable camera says why, and the shutter cannot be used" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest" time="0.045"/>
+  <testcase name="at Off there is no grid and no level" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest" time="0.035"/>
+  <testcase name="Back closes the camera and the photos already taken are not withdrawn, and there is no Done control" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest" time="0.036"/>
+  <testcase name="the camera stays open across several shots and hands up one photo per tap" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest" time="0.053"/>
+  <testcase name="the fake leaves a partial file on failure, which is what makes the cleanup test able to fail" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest" time="0.028"/>
+  <testcase name="in portrait all four chips sit inside the strip, Flash, Timer, Grid, Location, none overlapping" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest" time="0.029"/>
+  <testcase name="opened in portrait, the arrangement follows a window turned to landscape, shutter to the port edge and strip to the punch-hole edge" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest" time="0.033"/>
+  <testcase name="the running count is the only feedback and it reads as a sentence" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest" time="0.032"/>
+  <testcase name="a failed capture leaves no file behind" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest" time="0.051"/>
+  <testcase name="the count label is singular at one and plural either side" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest" time="0.028"/>
+  <testcase name="the failure message clears on the next successful shot" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest" time="0.035"/>
+  <testcase name="each shot goes to its own file" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest" time="0.033"/>
+  <testcase name="at Grid and Level the level is shown and its sensor is released when the camera closes" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest" time="0.031"/>
+  <testcase name="in portrait the strip is flush with the top edge and the shutter band with the bottom" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest" time="0.053"/>
+  <testcase name="a real touch anywhere on the flash chip reaches it, over the viewfinder" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest" time="0.074"/>
+  <testcase name="the Activity's window asks for seamless rotation while the camera is open, and stops on the way out" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest" time="0.04"/>
+  <testcase name="a failed capture is shown, the count does not move, and nothing is handed up" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest" time="0.082"/>
+  <testcase name="an unavailable camera can still be dismissed" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest" time="0.052"/>
+  <testcase name="a camera still opening shows progress rather than a dead viewfinder" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest" time="0.057"/>
+  <testcase name="outlined overlay text is one text node, not two" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest" time="0.042"/>
+  <testcase name="the viewfinder is composed once the session opens" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest" time="0.035"/>
+  <testcase name="the session is opened once on enter and closed once when the dialog leaves" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest" time="0.03"/>
+  <testcase name="a photo is handed over as it lands, before the camera is dismissed" classname="com.zynergylabs.forager.app.ui.log.InAppCameraDialogTest" time="0.031"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

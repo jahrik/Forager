@@ -56,9 +56,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.MgrsConverter
@@ -66,6 +68,8 @@ import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.ReturnToStartInfo
+import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
+import com.zynergylabs.forager.app.ui.map.MAP_CHROME_OVER_MAP_ALPHA
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_CORNER_RADIUS
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_EDGE_INSET
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_DARK
@@ -79,6 +83,7 @@ import com.zynergylabs.forager.app.ui.map.MapModePicker
 import com.zynergylabs.forager.app.ui.map.TrueHeadingReading
 import com.zynergylabs.forager.app.ui.map.rememberTrueHeading
 import com.zynergylabs.forager.app.ui.map.mapIconBarRecordAccent
+import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_LANDSCAPE_ROW_SPACING
 import com.zynergylabs.forager.app.ui.map.mapIconBarRowAnchorOffset
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
 import com.zynergylabs.forager.app.ui.theme.Bark
@@ -86,12 +91,6 @@ import com.zynergylabs.forager.app.ui.theme.Cream
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import kotlin.math.roundToInt
-
-/** Translucent background for [CompassElevationStripContent] and [SearchDropdown]'s own panel — dark-theme value. Was 0.78, one alpha step off the app's settled 80% map-chrome opacity ([MapIconStackButtonColorDark]'s own value); the map/navigation search-UI redo dispatch names 80% as the one value all map chrome shares, so this now matches rather than carrying its own near-miss. */
-internal val CompassStripBackgroundColorDark = Bark.copy(alpha = 0.8f)
-
-/** [CompassStripBackgroundColorDark]'s light-theme counterpart — same reasoning as [MapIconStackButtonColorLight]: picked per [com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme], independent of the map's own night mode, unverified on hardware. */
-internal val CompassStripBackgroundColorLight = Cream.copy(alpha = 0.8f)
 
 /** The compass strip's heading text — one of the two places a heading can appear, never both at once (the strip hides while the HUD shows). */
 internal const val COMPASS_STRIP_HEADING_TAG = "compass-strip-heading"
@@ -145,12 +144,22 @@ internal fun TrailheadControls(
     distanceUnit: DistanceUnit,
     onLeftSide: Boolean,
     modifier: Modifier = Modifier,
+    /** Landscape L (dispatch 2026-09-28-160): turns the pill horizontal, record then return; see [ControlPill]. */
+    horizontal: Boolean = false,
+    /** Landscape L: the pill's own fill, at the standing chrome alpha, where no container sits under it; default is the cluster child fill. */
+    fillColor: Color = Color.Unspecified,
+    /** Landscape L: spacing and end padding inside the pill; [Spacing.xs] as it has always been, zero in the L. */
+    rowSpacing: Dp = Spacing.xs,
 ) {
     Column(
         modifier = modifier,
         horizontalAlignment = if (onLeftSide) Alignment.Start else Alignment.End,
     ) {
         ControlPill(
+            horizontal = horizontal,
+            onLeftSide = onLeftSide,
+            fillColor = fillColor,
+            rowSpacing = rowSpacing,
             isRecording = isRecording,
             onToggleRecording = onToggleRecording,
             returnToStart = returnToStart,
@@ -183,22 +192,22 @@ private fun ControlPill(
     onToggleReturning: () -> Unit,
     distanceUnit: DistanceUnit,
     modifier: Modifier = Modifier,
+    horizontal: Boolean = false,
+    /** Which side the cluster is on: the horizontal pill keeps record at the outer end, under the bar, so its order mirrors. */
+    onLeftSide: Boolean = true,
+    fillColor: Color = Color.Unspecified,
+    rowSpacing: Dp = Spacing.xs,
 ) {
     val isDarkTheme = LocalForagerDarkTheme.current
-    Surface(
-        shape = RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS),
-        // A child of the cluster container — see MAP_ICON_CLUSTER_CHILD_ALPHA's own doc comment.
-        color = mapIconClusterChildColor(),
-        contentColor = if (isDarkTheme) Color.White else Bark,
-        shadowElevation = 2.dp,
-        border = BorderStroke(1.dp, if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT),
-        modifier = modifier.testTag("control-pill"),
-    ) {
-        Column(
-            modifier = Modifier.padding(vertical = Spacing.xs),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
+    // A child of the cluster container — see MAP_ICON_CLUSTER_CHILD_ALPHA's own doc comment — unless the landscape L hands it
+    // its own single-layer fill.
+    val pillFill = fillColor.takeOrElse { mapIconClusterChildColor() }
+    val pillContentColor = if (isDarkTheme) Color.White else Bark
+    val pillBorder = BorderStroke(1.dp, if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT)
+    val buttons: @Composable () -> Unit = {
+        // The two buttons, once: the vertical pill lays them in a Column, the landscape L's horizontal pill (record under the bar's
+        // column, return extending inboard) in a Row. Same buttons, tags, states and accents either way.
+        val record: @Composable () -> Unit = {
             MapBarIconButton(
                 icon = if (isRecording) Icons.Filled.Stop else Icons.Filled.FiberManualRecord,
                 contentDescription = if (isRecording) "Stop recording track" else "Start recording track",
@@ -208,6 +217,8 @@ private fun ControlPill(
                 fillContentColor = mapIconBarRecordAccent(isDarkTheme).onFill,
                 modifier = Modifier.testTag("control-pill-record"),
             )
+        }
+        val returnToVehicle: @Composable () -> Unit = {
             MapBarIconButton(
                 icon = Icons.Filled.Directions,
                 contentDescription = returnToStartStripText(isRecording, returnToStart, distanceUnit)
@@ -222,6 +233,53 @@ private fun ControlPill(
                 modifier = Modifier.testTag("control-pill-return-to-vehicle"),
             )
         }
+        if (horizontal) {
+            Row(
+                modifier = Modifier.padding(horizontal = rowSpacing),
+                horizontalArrangement = Arrangement.spacedBy(rowSpacing),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (onLeftSide) {
+                    record()
+                    returnToVehicle()
+                } else {
+                    returnToVehicle()
+                    record()
+                }
+            }
+        } else {
+            Column(
+                modifier = Modifier.padding(vertical = rowSpacing),
+                verticalArrangement = Arrangement.spacedBy(rowSpacing),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                record()
+                returnToVehicle()
+            }
+        }
+    }
+    if (horizontal) {
+        // Owner's ruling (d), continuation 2026-09-28-172: both buttons take touches across their full 48 x 48 squares, corners
+        // included. The drawn pill is a content-less Surface underneath, so its rounded ends do not clip the buttons' hit areas.
+        Box(modifier = modifier.testTag("control-pill").mapChromeContainerColor(pillFill)) {
+            Surface(
+                shape = RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS),
+                color = pillFill,
+                shadowElevation = 2.dp,
+                border = pillBorder,
+                modifier = Modifier.matchParentSize(),
+            ) {}
+            CompositionLocalProvider(LocalContentColor provides pillContentColor) { buttons() }
+        }
+    } else {
+        Surface(
+            shape = RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS),
+            color = pillFill,
+            contentColor = pillContentColor,
+            shadowElevation = 2.dp,
+            border = pillBorder,
+            modifier = modifier.testTag("control-pill").mapChromeContainerColor(pillFill),
+        ) { buttons() }
     }
 }
 
@@ -323,7 +381,7 @@ private fun CompassElevationStripContent(
                 // ControlPill (Part B), so this strip wraps its Row's natural text-content height
                 // again, the same as before that dispatch.
                 .background(
-                    color = if (isDarkTheme) CompassStripBackgroundColorDark else CompassStripBackgroundColorLight,
+                    color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
                     shape = RectangleShape,
                 )
                 // Lets CompactMapTab's own onGloballyPositioned measure this strip's real height —
@@ -331,7 +389,8 @@ private fun CompassElevationStripContent(
                 // clear it, and now that it wraps content instead of sitting at a fixed 48dp, a
                 // measured value is the only one that stays correct as font scale or content change
                 // it. Also still what this composable's own regression test targets directly.
-                .testTag("compass-elevation-strip"),
+                .testTag("compass-elevation-strip")
+                .mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight),
         ) {
             Row(
                 // fillMaxWidth, not fillMaxSize — see this Box's own doc comment above for the
@@ -472,13 +531,10 @@ internal fun returnToStartStripText(isRecording: Boolean, info: ReturnToStartInf
 }
 
 /**
- * [CompactMapTab]'s own version of the same three-way chooser [ThreeWayActionDialog] shows on
- * medium/expanded windows — same three choices, same shared [PendingMapAction] state, but
+ * [CompactMapTab]'s three-way chooser — three choices over the shared [PendingMapAction] state,
  * presented as a small tile that grows out of the add button's own corner of the icon bar rather
  * than [AlertDialog]'s centered scale-in, per the project owner's own description of how it should
- * open. Compact-only: the medium/expanded window's own add button (added alongside this rework —
- * see [MapTab]'s doc comment) has no icon bar for a tile to grow out of, so [MapTab] keeps the
- * plain dialog instead.
+ * open. (The tablet's plain `ThreeWayActionDialog` was removed in dispatch 2026-09-28-245.)
  *
  * **Real [AssistChip]s, short labels, no title row.** The original had a "Add..." title plus four
  * full-width [TextButton]s (three choices, and its own "Cancel") — a real hardware-reported
@@ -571,7 +627,7 @@ internal fun AddActionTile(
                 .offset(x = anchorOffset.x, y = anchorOffset.y),
         ) {
             Surface(
-                modifier = Modifier.testTag(ADD_ACTION_TILE_TAG),
+                modifier = Modifier.testTag(ADD_ACTION_TILE_TAG).mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight),
                 shape = RoundedCornerShape(Spacing.md),
                 shadowElevation = 4.dp,
                 color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
@@ -609,3 +665,9 @@ internal const val ADD_ACTION_TILE_TAG = "add-action-tile"
  * `MapModePicker` call can use the same row-anchor arithmetic this file's calls already did.
  */
 internal val ADD_TILE_ANCHOR_OFFSET = mapIconBarRowAnchorOffset(rowIndexFromTop = 5)
+
+/**
+ * [ADD_TILE_ANCHOR_OFFSET] for the landscape L's bar (dispatch 2026-09-28-160), whose rows are 48 dp apart, not 52: the add row's
+ * centre is 96 dp below the bar's, not 104.
+ */
+internal val ADD_TILE_ANCHOR_OFFSET_LANDSCAPE = mapIconBarRowAnchorOffset(rowIndexFromTop = 5, rowSpacing = MAP_ICON_BAR_LANDSCAPE_ROW_SPACING)

@@ -46,23 +46,34 @@ class BasemapNightStyleTest {
      * exactly `raster-brightness-min 1`, `raster-brightness-max 0` and `raster-hue-rotate 180`, and
      * nothing else. Replaces the earlier desaturate-and-contrast block, whose `raster-saturation` and
      * `raster-contrast` are asserted absent here on purpose, as is the old "no brightness at all".
+     * Street carries it at every zoom; Topographical carries it from map zoom 9.5 up (next test).
      */
     @Test
-    fun `night mode on Topographical and Street carries exactly the three V1 properties`() {
-        for (basemap in listOf(Basemap.OPEN_TOPO_MAP, Basemap.OSM_STANDARD)) {
-            val paint = rasterLayer(basemap, night = true)["paint"]
-                ?: error("${basemap.name} has no raster paint in night mode")
-            val obj = paint.jsonObject
+    fun `night mode on Street carries exactly the three V1 properties`() {
+        val paint = rasterLayer(Basemap.OSM_STANDARD, night = true)["paint"]
+            ?: error("OSM_STANDARD has no raster paint in night mode")
+        val obj = paint.jsonObject
 
-            assertEquals(
-                "${basemap.name}: the night paint is exactly the V1 properties",
-                setOf("raster-brightness-min", "raster-brightness-max", "raster-hue-rotate"),
-                obj.keys,
-            )
-            assertEquals("${basemap.name}: brightness-min", 1.0, obj.getValue("raster-brightness-min").jsonPrimitive.double, 0.0)
-            assertEquals("${basemap.name}: brightness-max", 0.0, obj.getValue("raster-brightness-max").jsonPrimitive.double, 0.0)
-            assertEquals("${basemap.name}: hue-rotate", 180.0, obj.getValue("raster-hue-rotate").jsonPrimitive.double, 0.0)
-        }
+        assertEquals("the night paint is exactly the V1 properties", setOf("raster-brightness-min", "raster-brightness-max", "raster-hue-rotate"), obj.keys)
+        assertEquals("brightness-min", 1.0, obj.getValue("raster-brightness-min").jsonPrimitive.double, 0.0)
+        assertEquals("brightness-max", 0.0, obj.getValue("raster-brightness-max").jsonPrimitive.double, 0.0)
+        assertEquals("hue-rotate", 180.0, obj.getValue("raster-hue-rotate").jsonPrimitive.double, 0.0)
+    }
+
+    /**
+     * Topographical's night style carries V1 on its topo layer exactly as Street does, plus a `raster-opacity` fade-in,
+     * from map zoom 9.5 (`minzoom`); below that a Street layer carries the same V1 (`TopoNightStreetSwitchTest`).
+     */
+    @Test
+    fun `night mode on Topographical carries the three V1 properties and the opacity fade on its topo layer`() {
+        val layer = rasterLayer(Basemap.OPEN_TOPO_MAP, night = true)
+        val paint = layer["paint"]?.jsonObject ?: error("OPEN_TOPO_MAP has no raster paint in night mode")
+
+        assertEquals(setOf("raster-brightness-min", "raster-brightness-max", "raster-hue-rotate", "raster-opacity"), paint.keys)
+        assertEquals(1.0, paint.getValue("raster-brightness-min").jsonPrimitive.double, 0.0)
+        assertEquals(0.0, paint.getValue("raster-brightness-max").jsonPrimitive.double, 0.0)
+        assertEquals(180.0, paint.getValue("raster-hue-rotate").jsonPrimitive.double, 0.0)
+        assertEquals(9.5, layer.getValue("minzoom").jsonPrimitive.double, 0.0)
     }
 
     /** Owner ruling: "Satellite stays as it is at night". Its night document is its day document. */
@@ -88,7 +99,15 @@ class BasemapNightStyleTest {
         for (basemap in Basemap.entries) {
             val day = json.parseToJsonElement(styleJsonFor(basemap, night = false)).jsonObject
             val night = json.parseToJsonElement(styleJsonFor(basemap, night = true)).jsonObject
-            assertEquals("${basemap.name}: sources must be identical", day["sources"], night["sources"])
+            if (basemap == Basemap.OPEN_TOPO_MAP) {
+                // Topo night adds the Street source and nothing else; the topo source itself is the day one.
+                val dayMap = day.getValue("sources").jsonObject
+                val nightMap = night.getValue("sources").jsonObject
+                assertEquals("${basemap.name}: the topo source is unchanged", dayMap.getValue(RASTER_SOURCE_ID), nightMap.getValue(RASTER_SOURCE_ID))
+                assertEquals("${basemap.name}: night adds one source", dayMap.size + 1, nightMap.size)
+            } else {
+                assertEquals("${basemap.name}: sources must be identical", day["sources"], night["sources"])
+            }
             assertEquals("${basemap.name}: glyphs must be identical", day["glyphs"], night["glyphs"])
             assertEquals("${basemap.name}: version must be identical", day["version"], night["version"])
 

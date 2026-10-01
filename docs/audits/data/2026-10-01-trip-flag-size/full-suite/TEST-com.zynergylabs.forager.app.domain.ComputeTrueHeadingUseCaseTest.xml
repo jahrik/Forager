@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.ComputeTrueHeadingUseCaseTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:52.562Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.002">
+  <properties/>
+  <testcase name="more than a day at the same spot recomputes declination" classname="com.zynergylabs.forager.app.domain.ComputeTrueHeadingUseCaseTest" time="0.001"/>
+  <testcase name="moving more than ten kilometres recomputes declination" classname="com.zynergylabs.forager.app.domain.ComputeTrueHeadingUseCaseTest" time="0.0"/>
+  <testcase name="a west declination is subtracted, and the result wraps into zero to 360" classname="com.zynergylabs.forager.app.domain.ComputeTrueHeadingUseCaseTest" time="0.0"/>
+  <testcase name="an east declination is added to the magnetic heading" classname="com.zynergylabs.forager.app.domain.ComputeTrueHeadingUseCaseTest" time="0.0"/>
+  <testcase name="declination is computed once for a walk that stays within ten kilometres and one day" classname="com.zynergylabs.forager.app.domain.ComputeTrueHeadingUseCaseTest" time="0.0"/>
+  <testcase name="a recompute is what the next heading actually uses" classname="com.zynergylabs.forager.app.domain.ComputeTrueHeadingUseCaseTest" time="0.0"/>
+  <testcase name="350 degrees magnetic at plus 15 declination is 5 degrees true, not 365" classname="com.zynergylabs.forager.app.domain.ComputeTrueHeadingUseCaseTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

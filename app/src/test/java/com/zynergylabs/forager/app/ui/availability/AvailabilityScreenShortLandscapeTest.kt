@@ -465,13 +465,13 @@ class AvailabilityScreenTurnToShortLandscapeTest {
         assertTrue("portrait: the bottom bar's band is handed to the map (${map.renderMode?.bottomInset})", (map.renderMode?.bottomInset ?: 0.dp) > 0.dp)
 
         composeRule.onNodeWithText("Journal").performClick()
-        composeRule.onNodeWithText("Cartography").assertIsDisplayed()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.journalSwitchTestTag(com.zynergylabs.forager.app.ui.log.JournalTopTab.CARTOGRAPHY)).assertIsDisplayed() // J2 T1: the switch's "Entries", was the "Cartography" tab
 
         Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(Surface.ROTATION_90)
         landscape = true
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithText("Cartography").assertIsDisplayed()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.journalSwitchTestTag(com.zynergylabs.forager.app.ui.log.JournalTopTab.CARTOGRAPHY)).assertIsDisplayed() // J2 T1: the switch's "Entries", was the "Cartography" tab
         composeRule.onNodeWithText("Journal").assertIsSelected()
         val labels = RAIL_LABELS.map { composeRule.onNodeWithText(it).getUnclippedBoundsInRoot() }
         labels.forEach { assertEquals("landscape labels are one column", labels.first().centreX(), it.centreX(), 1f) }

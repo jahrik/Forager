@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.FanClarityTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:07.507Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.013">
+  <properties/>
+  <testcase name="the touch area stays 48 dp, so the circle is smaller than the touch square it sits in" classname="com.zynergylabs.forager.app.ui.map.FanClarityTest" time="0.0"/>
+  <testcase name="a layer that does not fade is returned untouched even while a fan is open" classname="com.zynergylabs.forager.app.ui.map.FanClarityTest" time="0.002"/>
+  <testcase name="no line, fill or colour field fades" classname="com.zynergylabs.forager.app.ui.map.FanClarityTest" time="0.0"/>
+  <testcase name="the circle is 36 dp across, so 18 dp in radius, at 80 percent, in the chrome colour it is given" classname="com.zynergylabs.forager.app.ui.map.FanClarityTest" time="0.01"/>
+  <testcase name="a layer opacity the user set is kept under the fade, multiplied not replaced" classname="com.zynergylabs.forager.app.ui.map.FanClarityTest" time="0.0"/>
+  <testcase name="while a fan is open a fading layer draws at 80 percent of what it drew" classname="com.zynergylabs.forager.app.ui.map.FanClarityTest" time="0.0"/>
+  <testcase name="a folded fan gives back exactly the paint the layer state resolves to" classname="com.zynergylabs.forager.app.ui.map.FanClarityTest" time="0.001"/>
+  <testcase name="the sighting dot's fill and ring are both scaled, keeping their own base" classname="com.zynergylabs.forager.app.ui.map.FanClarityTest" time="0.0"/>
+  <testcase name="the layers that fade are exactly the marker icons - finds, photos, waypoints, planned trips and sighting dots" classname="com.zynergylabs.forager.app.ui.map.FanClarityTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

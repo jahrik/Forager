@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.data.repository.NetworkFixExclusionPerConsumerTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:49.609Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.2">
+  <properties/>
+  <testcase name="the live breadcrumb poll sees the survivors" classname="com.zynergylabs.forager.app.data.repository.NetworkFixExclusionPerConsumerTest" time="0.042"/>
+  <testcase name="the exported file names the rule set in force and the rule that excluded each point" classname="com.zynergylabs.forager.app.data.repository.NetworkFixExclusionPerConsumerTest" time="0.038"/>
+  <testcase name="Records - GetTracksUseCase and the row subtitle see the survivors, with no note in the ordinary case" classname="com.zynergylabs.forager.app.data.repository.NetworkFixExclusionPerConsumerTest" time="0.032"/>
+  <testcase name="the derived trip, the entry map, and trip-report coverage all see the survivors" classname="com.zynergylabs.forager.app.data.repository.NetworkFixExclusionPerConsumerTest" time="0.031"/>
+  <testcase name="the repository returns the survivors with the excluded count, and the rows on disk are untouched" classname="com.zynergylabs.forager.app.data.repository.NetworkFixExclusionPerConsumerTest" time="0.026"/>
+  <testcase name="GPX export writes the survivors to trkseg, and the full raw record with verdicts to extensions" classname="com.zynergylabs.forager.app.data.repository.NetworkFixExclusionPerConsumerTest" time="0.028"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

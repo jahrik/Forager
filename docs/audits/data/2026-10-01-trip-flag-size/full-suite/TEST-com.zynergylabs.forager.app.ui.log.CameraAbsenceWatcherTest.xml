@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.CameraAbsenceWatcherTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:25.406Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.211">
+  <properties/>
+  <testcase name="an over-threshold absence and an under-threshold one are different readings, not the same instant" classname="com.zynergylabs.forager.app.ui.log.CameraAbsenceWatcherTest" time="0.031"/>
+  <testcase name="leaving composition removes the observer, so a closed camera measures nothing" classname="com.zynergylabs.forager.app.ui.log.CameraAbsenceWatcherTest" time="0.027"/>
+  <testcase name="entering composition replays ON_START, and it is harmless because no departure is recorded" classname="com.zynergylabs.forager.app.ui.log.CameraAbsenceWatcherTest" time="0.059"/>
+  <testcase name="a pause without a stop is not a departure" classname="com.zynergylabs.forager.app.ui.log.CameraAbsenceWatcherTest" time="0.049"/>
+  <testcase name="ON_STOP reports the departure and ON_START the return, each with the clock's reading" classname="com.zynergylabs.forager.app.ui.log.CameraAbsenceWatcherTest" time="0.043"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,6 +1,24 @@
 package com.zynergylabs.forager.app
 
 import android.content.Context
+import java.io.File
+import com.zynergylabs.forager.app.domain.RunScheduledBackupUseCase
+import com.zynergylabs.forager.app.domain.JournalBackup
+import com.zynergylabs.forager.app.domain.ErrorLog
+import com.zynergylabs.forager.app.domain.BackupScheduler
+import com.zynergylabs.forager.app.domain.BackupScheduleSettings
+import com.zynergylabs.forager.app.domain.BackupSchedulePreferences
+import com.zynergylabs.forager.app.domain.BackupFiles
+import com.zynergylabs.forager.app.domain.BackupNotifier
+import com.zynergylabs.forager.app.domain.ScheduledBackupReporter
+import com.zynergylabs.forager.app.data.repository.DataStoreBackupSchedulePreferences
+import com.zynergylabs.forager.app.data.repository.RoomOfflineRegionIdReplacer
+import com.zynergylabs.forager.app.data.backup.WorkManagerBackupScheduler
+import com.zynergylabs.forager.app.data.backup.RoomJournalBackup
+import com.zynergylabs.forager.app.data.backup.AndroidBackupNotifier
+import com.zynergylabs.forager.app.data.backup.ContentResolverBackupFiles
+import androidx.core.content.pm.PackageInfoCompat
+import android.util.Log
 import com.zynergylabs.forager.app.crash.CrashFileStore
 import com.zynergylabs.forager.app.data.local.ForagerDatabase
 import com.zynergylabs.forager.app.data.local.fungiindex.FungiIndexDatabase
@@ -19,6 +37,7 @@ import com.zynergylabs.forager.app.data.repository.LocalFungiIndexRepository
 import com.zynergylabs.forager.app.data.repository.OpenMeteoHistoricalWeatherProvider
 import com.zynergylabs.forager.app.data.repository.OpenMeteoWeatherProvider
 import com.zynergylabs.forager.app.data.repository.RoomCartographyEntryRepository
+import com.zynergylabs.forager.app.data.repository.RoomKeptTrackPathRepository
 import com.zynergylabs.forager.app.data.repository.RoomMushroomLogRepository
 import com.zynergylabs.forager.app.data.repository.RoomOfflineRegionDayIndex
 import com.zynergylabs.forager.app.data.repository.RoomPlannedTripRepository
@@ -59,6 +78,7 @@ import com.zynergylabs.forager.app.domain.GetAvailabilityUseCase
 import com.zynergylabs.forager.app.domain.GetCartographyDraftEntriesUseCase
 import com.zynergylabs.forager.app.domain.GetCartographyEntriesUseCase
 import com.zynergylabs.forager.app.domain.GetCartographyEntryMapDataUseCase
+import com.zynergylabs.forager.app.domain.KeptTrackPathRepository
 import com.zynergylabs.forager.app.domain.GetCartographyEntryOfflineRegionUseCase
 import com.zynergylabs.forager.app.domain.GetCartographyEntryUseCase
 import com.zynergylabs.forager.app.domain.GetConditionsUseCase
@@ -81,6 +101,10 @@ import com.zynergylabs.forager.app.domain.HistoricalWeatherProvider
 import com.zynergylabs.forager.app.domain.LocationProvider
 import com.zynergylabs.forager.app.domain.LocationTracker
 import com.zynergylabs.forager.app.domain.MapPreferencesRepository
+import com.zynergylabs.forager.app.domain.ForecastCellStore
+import com.zynergylabs.forager.app.domain.GetMapRecordsUseCase
+import com.zynergylabs.forager.app.domain.MapLayerPreferencesRepository
+import com.zynergylabs.forager.app.forecast.forecastCellStore
 import com.zynergylabs.forager.app.domain.SundownPreferencesRepository
 import com.zynergylabs.forager.app.domain.MushroomLogRepository
 import com.zynergylabs.forager.app.domain.MushroomRepository
@@ -96,6 +120,7 @@ import com.zynergylabs.forager.app.domain.PullPhotoIntoEntryUseCase
 import com.zynergylabs.forager.app.domain.RecordTrackPointsUseCase
 import com.zynergylabs.forager.app.domain.RemovePhotoFromLogEntryUseCase
 import com.zynergylabs.forager.app.domain.SaveCartographyEntryUseCase
+import com.zynergylabs.forager.app.domain.SetCartographyEntryShownOnMapUseCase
 import com.zynergylabs.forager.app.domain.SaveMushroomLogEntryUseCase
 import com.zynergylabs.forager.app.domain.SavePlannedTripUseCase
 import com.zynergylabs.forager.app.domain.SearchCacheRepository
@@ -173,6 +198,33 @@ class AppContainer(context: Context) {
     )
 
     private val database = ForagerDatabase.create(context)
+
+    /** `Log.w`-backed, for the pieces (the backup) that take an [ErrorLog] and are built here rather than in an Activity. */
+    val errorLog: ErrorLog = ErrorLog { tag, message, error -> Log.w(tag, message, error) }
+
+    // Journal backup and restore (dispatch 2026-09-28-127). The snapshot copies `forager.db` itself, so the
+    // backup is built over the same file the database above opened. Scratch space is the cache folder: the
+    // system may clear it, and nothing there is anyone's only copy.
+    val journalBackup: JournalBackup = RoomJournalBackup(
+        context = context.applicationContext,
+        database = database,
+        databaseFile = context.getDatabasePath(ForagerDatabase.DATABASE_NAME),
+        filesDir = context.filesDir,
+        scratchDir = File(context.cacheDir, "journal-backup"),
+        appVersionCode = PackageInfoCompat.getLongVersionCode(context.packageManager.getPackageInfo(context.packageName, 0)),
+        errorLog = errorLog,
+    )
+    val backupSchedulePreferences: BackupSchedulePreferences = DataStoreBackupSchedulePreferences(context)
+    val backupFiles: BackupFiles = ContentResolverBackupFiles(context)
+
+    /** Touches WorkManager only when the schedule changes, so a launch that never opens Backup never starts it. */
+    val backupScheduler: BackupScheduler = object : BackupScheduler {
+        override fun apply(settings: BackupScheduleSettings) =
+            WorkManagerBackupScheduler(androidx.work.WorkManager.getInstance(context.applicationContext)).apply(settings)
+    }
+    val runScheduledBackupUseCase = RunScheduledBackupUseCase(journalBackup, backupSchedulePreferences, backupFiles)
+    val backupNotifier: BackupNotifier = AndroidBackupNotifier(context.applicationContext)
+    val scheduledBackupReporter = ScheduledBackupReporter(backupNotifier, backupSchedulePreferences, errorLog)
     val plannedTripRepository: PlannedTripRepository = RoomPlannedTripRepository(database.plannedTripDao())
     val getPlannedTripsUseCase = GetPlannedTripsUseCase(plannedTripRepository)
     val savePlannedTripUseCase = SavePlannedTripUseCase(plannedTripRepository)
@@ -185,9 +237,22 @@ class AppContainer(context: Context) {
     val getAvailabilityUseCase = GetAvailabilityUseCase(predictAvailabilityUseCase, searchCacheRepository)
     val getRecentSearchesUseCase = GetRecentSearchesUseCase(searchCacheRepository)
 
-    val offlineMapRepository: OfflineMapRepository = MapLibreOfflineMapRepository(context, database.offlineRegionDao())
+    val offlineMapRepository: OfflineMapRepository = MapLibreOfflineMapRepository(context, database.offlineRegionDao(), RoomOfflineRegionIdReplacer(database))
     val getTripReportOfflineRegionsUseCase = GetTripReportOfflineRegionsUseCase(offlineMapRepository)
-    val mapPreferencesRepository: MapPreferencesRepository = DataStoreMapPreferencesRepository(context)
+    // One instance for both interfaces (map layers L0b, planner's ruling on F1): DataStore refuses a
+    // second live instance on `map_preferences`, so the layer choices live in this same class.
+    private val dataStoreMapPreferencesRepository = DataStoreMapPreferencesRepository(context)
+    val mapPreferencesRepository: MapPreferencesRepository = dataStoreMapPreferencesRepository
+    val mapLayerPreferencesRepository: MapLayerPreferencesRepository = dataStoreMapPreferencesRepository
+
+    /**
+     * Where the map's colour fields read their cells (map layers L0b, B5 and B6): one source-set-split
+     * factory, shaped like `DebugDiagnostics.install` (planner's ruling on Q12). The debug build's is the
+     * synthetic store behind the Diagnostics switch, which also owns the one `debug_diagnostics_preferences`
+     * DataStore; the release build's reports "no forecast data" and nothing else. One instance per process,
+     * because DataStore refuses a second live instance on a file.
+     */
+    val forecastCellStore: ForecastCellStore = forecastCellStore(context)
     val unitSystemPreferenceRepository: UnitSystemPreferenceRepository = DataStoreUnitSystemPreferenceRepository(context)
     val appThemePreferenceRepository: AppThemePreferenceRepository = DataStoreAppThemePreferenceRepository(context)
     val sundownPreferencesRepository: SundownPreferencesRepository = DataStoreSundownPreferencesRepository(context)
@@ -224,9 +289,11 @@ class AppContainer(context: Context) {
     val getCartographyEntryUseCase = GetCartographyEntryUseCase(cartographyEntryRepository)
     val commitCartographyEntryUseCase = CommitCartographyEntryUseCase(cartographyEntryRepository)
     val deleteCartographyEntryUseCase = DeleteCartographyEntryUseCase(cartographyEntryRepository)
+    // J8: the report menu's "Show on map" and the Maps-tab chip's "Hide" write shownOnMap through this.
+    val setCartographyEntryShownOnMapUseCase = SetCartographyEntryShownOnMapUseCase(cartographyEntryRepository)
     val getEntryReferenceCountUseCase = GetEntryReferenceCountUseCase(cartographyEntryRepository)
 
-    // Phase 1a of the Forager Navigator plan (docs/plans/forager-navigator-plan.md) — track
+    // Phase 1a of the Forager Navigator plan (docs/navigation/forager-navigator-plan.md) — track
     // recording and waypoints. TrackRecordingService (com.zynergylabs.forager.app.service) reaches these
     // through ForagerApplication.container, the same way every other Android-layer class in this
     // app reaches its dependencies; there is no separate service-scoped graph.
@@ -235,6 +302,15 @@ class AppContainer(context: Context) {
     val recordTrackPointsUseCase = RecordTrackPointsUseCase(trackRepository)
     val endTrackUseCase = EndTrackUseCase(trackRepository)
     val getTracksUseCase = GetTracksUseCase(trackRepository)
+
+    // Map layers L0b, B2: every saved record the Maps tab draws, through the read paths the Journal
+    // and Records already use.
+    val getMapRecordsUseCase = GetMapRecordsUseCase(
+        getFinds = getMushroomLogEntriesUseCase,
+        getTracks = getTracksUseCase,
+        getPhotos = getGalleryPhotosUseCase,
+        offlineMapRepository = offlineMapRepository,
+    )
     val computeTrackStatisticsUseCase = ComputeTrackStatisticsUseCase()
     val computeReturnToStartUseCase = ComputeReturnToStartUseCase()
     val detectOffTrackUseCase = DetectOffTrackUseCase()
@@ -252,7 +328,8 @@ class AppContainer(context: Context) {
     val deleteWaypointUseCase = DeleteWaypointUseCase(waypointRepository)
     // After waypointRepository (Kotlin initialises properties in source order): deleting a track
     // now detaches its waypoints first — HUD-foundations dispatch, Item 3, see DeleteTrackUseCase.
-    val deleteTrackUseCase = DeleteTrackUseCase(trackRepository, waypointRepository)
+    val keptTrackPathRepository: KeptTrackPathRepository = RoomKeptTrackPathRepository(database.cartographyEntryDao())
+    val deleteTrackUseCase = DeleteTrackUseCase(trackRepository, waypointRepository, keptTrackPathRepository)
     // The origin-waypoint read path for Track.originWaypointId — no consumer until the navigation
     // HUD dispatch, by design; see GetTrackOriginWaypointUseCase's own doc comment.
     val getTrackOriginWaypointUseCase = GetTrackOriginWaypointUseCase(trackRepository, waypointRepository)
@@ -260,7 +337,7 @@ class AppContainer(context: Context) {
     // Journal Stage 2d: CartographyEntryReportScreen's own map, resolving kept references
     // (tracks/finds live-fetched, waypoints/photos/offline-regions already in the entry's own
     // snapshot) — see GetCartographyEntryMapDataUseCase's own doc comment.
-    val getCartographyEntryMapDataUseCase = GetCartographyEntryMapDataUseCase(trackRepository, mushroomLogRepository)
+    val getCartographyEntryMapDataUseCase = GetCartographyEntryMapDataUseCase(trackRepository, mushroomLogRepository, keptTrackPathRepository)
 
     // Journal Stage 2e-i: the same screen's manual offline-map toggle — see
     // GetCartographyEntryOfflineRegionUseCase's own doc comment.

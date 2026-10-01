@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelOfflineCacheTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:21.601Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.024">
+  <properties/>
+  <testcase name="the exception's own message never reaches errorMessage, however recognizable it is" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelOfflineCacheTest" time="0.005"/>
+  <testcase name="selecting a recent search re-runs it with that entry's region, month and filter" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelOfflineCacheTest" time="0.003"/>
+  <testcase name="selecting a recent search asks the network first and falls back only when that fails" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelOfflineCacheTest" time="0.003"/>
+  <testcase name="a failed search with nothing cached reports the failure and shows no cached-results banner state" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelOfflineCacheTest" time="0.002"/>
+  <testcase name="a live search after a cached one clears the cached-results flags" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelOfflineCacheTest" time="0.002"/>
+  <testcase name="a live search leaves the cached-results flags off" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelOfflineCacheTest" time="0.002"/>
+  <testcase name="falling back to the cache sets both cached-results fields" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelOfflineCacheTest" time="0.004"/>
+  <testcase name="a completed search appears in the recent-searches state" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityViewModelOfflineCacheTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

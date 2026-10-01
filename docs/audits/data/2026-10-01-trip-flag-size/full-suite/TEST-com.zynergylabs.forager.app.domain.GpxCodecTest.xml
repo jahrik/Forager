@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.GpxCodecTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:53.608Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.021">
+  <properties/>
+  <testcase name="a waypoint's id survives the round trip rather than being regenerated" classname="com.zynergylabs.forager.app.domain.GpxCodecTest" time="0.004"/>
+  <testcase name="a waypoint's track link and designation round-trip through the forager extension" classname="com.zynergylabs.forager.app.domain.GpxCodecTest" time="0.001"/>
+  <testcase name="a waypoint from a file with no forager extension gets a fresh id, not an empty one" classname="com.zynergylabs.forager.app.domain.GpxCodecTest" time="0.001"/>
+  <testcase name="an ordinary waypoint with no track link carries only its id in the extensions block" classname="com.zynergylabs.forager.app.domain.GpxCodecTest" time="0.001"/>
+  <testcase name="a waypoint round-trips through encode and decode with name and note intact" classname="com.zynergylabs.forager.app.domain.GpxCodecTest" time="0.001"/>
+  <testcase name="the full record round-trips through encode and decode with every field and verdict intact" classname="com.zynergylabs.forager.app.domain.GpxCodecTest" time="0.003"/>
+  <testcase name="a track round-trips through encode and decode with lat, lng, altitude, and timestamp intact" classname="com.zynergylabs.forager.app.domain.GpxCodecTest" time="0.001"/>
+  <testcase name="a document with no track decodes with a null track" classname="com.zynergylabs.forager.app.domain.GpxCodecTest" time="0.001"/>
+  <testcase name="a document with no declared rule set writes no rule attribute at all" classname="com.zynergylabs.forager.app.domain.GpxCodecTest" time="0.002"/>
+  <testcase name="the full record declares its rule set and names the rule on excluded points only" classname="com.zynergylabs.forager.app.domain.GpxCodecTest" time="0.001"/>
+  <testcase name="an empty full record encodes no extensions block and decodes back to empty" classname="com.zynergylabs.forager.app.domain.GpxCodecTest" time="0.001"/>
+  <testcase name="special characters in names are escaped and survive the round trip" classname="com.zynergylabs.forager.app.domain.GpxCodecTest" time="0.001"/>
+  <testcase name="a full record written before the rule attribute decodes with no rules, not this build's" classname="com.zynergylabs.forager.app.domain.GpxCodecTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

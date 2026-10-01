@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.TrackDeleteTest" tests="14" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:05.629Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="1.013">
+  <properties/>
+  <testcase name="a pending track is gone from All and from All's count" classname="com.zynergylabs.forager.app.ui.log.TrackDeleteTest" time="0.081"/>
+  <testcase name="the compact details sheet of a recording track has no Delete" classname="com.zynergylabs.forager.app.ui.log.TrackDeleteTest" time="0.127"/>
+  <testcase name="a track no entry uses says only Track deleted" classname="com.zynergylabs.forager.app.ui.log.TrackDeleteTest" time="0.067"/>
+  <testcase name="a second swipe commits the first track when its snackbar replaces the first" classname="com.zynergylabs.forager.app.ui.log.TrackDeleteTest" time="0.059"/>
+  <testcase name="a recording track has no swipe on the Tracks chip and none in All" classname="com.zynergylabs.forager.app.ui.log.TrackDeleteTest" time="0.046"/>
+  <testcase name="a real swipe across the recording track's row deletes and pends nothing" classname="com.zynergylabs.forager.app.ui.log.TrackDeleteTest" time="0.043"/>
+  <testcase name="the view model logs a delete asked for a track it does not have" classname="com.zynergylabs.forager.app.ui.log.TrackDeleteTest" time="0.037"/>
+  <testcase name="when the snackbar times out the track's waypoints are detached and then it is deleted, once" classname="com.zynergylabs.forager.app.ui.log.TrackDeleteTest" time="0.064"/>
+  <testcase name="the compact details sheet of a finished track has a Delete that starts the same pending delete" classname="com.zynergylabs.forager.app.ui.log.TrackDeleteTest" time="0.059"/>
+  <testcase name="the details Delete deletes through the use case only when the Undo window closes" classname="com.zynergylabs.forager.app.ui.log.TrackDeleteTest" time="0.107"/>
+  <testcase name="swiping a finished track's row hides it, warns of its references, and deletes nothing yet" classname="com.zynergylabs.forager.app.ui.log.TrackDeleteTest" time="0.091"/>
+  <testcase name="Undo brings the track row back and deletes nothing, even after the timeout would have passed" classname="com.zynergylabs.forager.app.ui.log.TrackDeleteTest" time="0.13"/>
+  <testcase name="the view model refuses a delete of a recording track, logs it, and pends nothing" classname="com.zynergylabs.forager.app.ui.log.TrackDeleteTest" time="0.061"/>
+  <testcase name="the track row's Delete accessibility action does the same pending delete" classname="com.zynergylabs.forager.app.ui.log.TrackDeleteTest" time="0.036"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

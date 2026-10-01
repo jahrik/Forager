@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenWideWindowLayoutTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:21.260Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.131">
+  <properties/>
+  <testcase name="the seasonal tab's content is capped to a readable width, not stretched to the window" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenWideWindowLayoutTest" time="0.129"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

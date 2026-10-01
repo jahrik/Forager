@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.CameraGridChipTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:25.908Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.232">
+  <properties/>
+  <testcase name="a tap writes the next mode, and the chip then shows it, Off to Grid to Grid and Level to Off" classname="com.zynergylabs.forager.app.ui.log.CameraGridChipTest" time="0.049"/>
+  <testcase name="the grid chip comes after the flash chip" classname="com.zynergylabs.forager.app.ui.log.CameraGridChipTest" time="0.054"/>
+  <testcase name="a real touch anywhere on the grid chip reaches it" classname="com.zynergylabs.forager.app.ui.log.CameraGridChipTest" time="0.049"/>
+  <testcase name="the stored mode is what the chip shows when the camera opens" classname="com.zynergylabs.forager.app.ui.log.CameraGridChipTest" time="0.04"/>
+  <testcase name="a write that fails leaves the chip showing what is stored" classname="com.zynergylabs.forager.app.ui.log.CameraGridChipTest" time="0.038"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

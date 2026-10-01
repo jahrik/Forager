@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.domain.MovingPaceTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:53.658Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.003">
+  <properties/>
+  <testcase name="a stored speed below the floor is skipped and counted as such, and one at the floor is counted" classname="com.zynergylabs.forager.app.domain.MovingPaceTest" time="0.001"/>
+  <testcase name="stored Doppler speeds govern once they cover five minutes, and the comparison against differencing is reported" classname="com.zynergylabs.forager.app.domain.MovingPaceTest" time="0.001"/>
+  <testcase name="a track with no stored speeds is measured by point differencing, and every point is reported as skipped for Doppler" classname="com.zynergylabs.forager.app.domain.MovingPaceTest" time="0.0"/>
+  <testcase name="Doppler below its own five minutes yields to differencing, and the skipped rows are reported" classname="com.zynergylabs.forager.app.domain.MovingPaceTest" time="0.0"/>
+  <testcase name="no points or one point gives the default with nothing measured" classname="com.zynergylabs.forager.app.domain.MovingPaceTest" time="0.0"/>
+  <testcase name="Doppler samples are weighted by their interval's duration" classname="com.zynergylabs.forager.app.domain.MovingPaceTest" time="0.0"/>
+  <testcase name="below five minutes of moving time the default applies, and at five minutes it stops applying" classname="com.zynergylabs.forager.app.domain.MovingPaceTest" time="0.0"/>
+  <testcase name="an interval counts as moving at the floor and not below it" classname="com.zynergylabs.forager.app.domain.MovingPaceTest" time="0.0"/>
+  <testcase name="the measured speed is stable across an inserted stop, by differencing and by Doppler" classname="com.zynergylabs.forager.app.domain.MovingPaceTest" time="0.001"/>
+  <testcase name="a multi-minute stop in the middle of a walk does not drag the moving speed down" classname="com.zynergylabs.forager.app.domain.MovingPaceTest" time="0.0"/>
+  <testcase name="the point after a stop carries a moving speed but is not a Doppler sample, because its interval was the stop" classname="com.zynergylabs.forager.app.domain.MovingPaceTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

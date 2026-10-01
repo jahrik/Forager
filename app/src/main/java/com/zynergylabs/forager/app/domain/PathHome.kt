@@ -74,7 +74,7 @@ import com.zynergylabs.forager.app.domain.model.Waypoint
  * [trackMeters] is **not** the sum of the legs. That sum never decreases during a recording —
  * points only append — so on a plain out-and-back it read the whole trip while the walker stood
  * beside the car, and on a patch worked for twenty minutes it read 733 m for a 6 m walk. The
- * owner ruled the track-network candidate inside the retrace ruling: the track is joined to
+ * owner decided the track-network candidate inside the retrace ruling: the track is joined to
  * itself wherever it passes within ε ([SELF_JOIN_EPSILON_METERS]) of itself, and the distance is
  * the shortest route home along the joined track ([joinedTrackHome]). Every edge of that route
  * is either a leg between consecutive stored points or a join between two points the walker

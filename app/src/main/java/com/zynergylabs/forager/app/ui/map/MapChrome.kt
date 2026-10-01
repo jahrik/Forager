@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -35,6 +36,12 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.window.DialogWindowProvider
+import android.os.Build
+import android.util.Log
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -44,11 +51,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import com.zynergylabs.forager.app.ui.theme.SurfaceContainerDark
+import com.zynergylabs.forager.app.ui.theme.SurfaceContainerLight
+import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
 import com.zynergylabs.forager.app.ui.theme.Bark
 import com.zynergylabs.forager.app.ui.theme.Cream
@@ -69,6 +80,12 @@ internal val MIN_TOUCH_TARGET = 48.dp
 internal val MAP_ICON_BAR_EDGE_INSET = Spacing.sm
 
 /**
+ * The landscape L's row spacing and end padding (dispatch 2026-09-28-160; the owner's "A"): none. Five 48 dp rows are 240 dp,
+ * and the horizontal pill uses the same zero so its two 48 dp buttons are 96 dp and record sits exactly under the bar's column.
+ */
+internal val MAP_ICON_BAR_LANDSCAPE_ROW_SPACING = 0.dp
+
+/**
  * Offset from [MapIconBar]'s own vertical center (where both `AddActionTile` and [MapModePicker]
  * anchor their `Alignment.CenterEnd`-based popups) to the center of one of its rows, counting from
  * the top. Promoted here from `AvailabilityScreen.kt` (fullscreen-fixes dispatch, Item 2) so the
@@ -81,10 +98,10 @@ internal val MAP_ICON_BAR_EDGE_INSET = Spacing.sm
 // rowCount re-derived directly against the tree, not assumed: this bar sits at 5 rows as of the
 // fullscreen-maps dispatch (fullscreen, orientation-reset, locate-me, map mode, fifth row) — see
 // MapIconBar's own doc comment.
-internal fun mapIconBarRowAnchorOffset(rowIndexFromTop: Int): Dp {
+internal fun mapIconBarRowAnchorOffset(rowIndexFromTop: Int, rowSpacing: Dp = Spacing.xs): Dp {
     val rowCount = 5
-    val contentHeight = MIN_TOUCH_TARGET * rowCount + Spacing.xs * (rowCount - 1)
-    val rowCenterFromTop = (MIN_TOUCH_TARGET + Spacing.xs) * (rowIndexFromTop - 1) + MIN_TOUCH_TARGET / 2
+    val contentHeight = MIN_TOUCH_TARGET * rowCount + rowSpacing * (rowCount - 1)
+    val rowCenterFromTop = (MIN_TOUCH_TARGET + rowSpacing) * (rowIndexFromTop - 1) + MIN_TOUCH_TARGET / 2
     return rowCenterFromTop - contentHeight / 2
 }
 
@@ -95,6 +112,9 @@ internal fun mapIconBarRowAnchorOffset(rowIndexFromTop: Int): Dp {
  * a usable proxy for the panel's edges under Robolectric.
  */
 internal const val MAP_MODE_PICKER_TAG = "map-mode-picker"
+
+/** The map icon bar's own fill (portrait cluster, landscape L, tablet and the entry map's bar), for tests reading its container colour. */
+internal const val MAP_ICON_BAR_TAG = "map-icon-bar"
 
 /**
  * The picker [MapModeToggle] (medium/expanded) and [MapIconBar]'s layers row (compact) both open —
@@ -165,7 +185,7 @@ internal fun MapModePicker(
                 .offset(x = anchorOffset.x, y = anchorOffset.y),
         ) {
             Surface(
-                modifier = Modifier.testTag(MAP_MODE_PICKER_TAG),
+                modifier = Modifier.testTag(MAP_MODE_PICKER_TAG).mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight),
                 shape = RoundedCornerShape(Spacing.md),
                 color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
                 contentColor = if (isDarkTheme) Color.White else Bark,
@@ -230,13 +250,54 @@ internal val MAP_ICON_BAR_CORNER_RADIUS = MIN_TOUCH_TARGET / 2
  * reasoning for the opposite risk (merging into snow, sand, or other pale terrain), but nobody has
  * looked at it on a real screen yet.
  */
-internal val MapIconStackButtonColorDark = Bark.copy(alpha = MAP_CHROME_OVER_MAP_ALPHA)
+internal val MapIconStackButtonColorDark = SurfaceContainerDark.copy(alpha = MAP_CHROME_OVER_MAP_ALPHA)
 
-/** [MapIconStackButtonColorDark]'s light-theme counterpart — see that color's own doc comment. */
-internal val MapIconStackButtonColorLight = Cream.copy(alpha = MAP_CHROME_OVER_MAP_ALPHA)
+/**
+ * C1 (dispatch 2026-09-28-210): **this colour, and [MapIconStackButtonColorLight], are the navigation bar's container
+ * colour, not a hue of their own.** They were Bark and Cream. They are built from `SurfaceContainerDark` and
+ * `SurfaceContainerLight`, the two values `Theme.kt` gives `colorScheme.surfaceContainer` (what
+ * [com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor] returns), because they are read at about twenty
+ * places that cannot call a composable; `MapChromeColourTokenTest` asserts they equal the scheme's own in both
+ * themes. Kept under their names, with their 0.8, because `MapChromeAlphaTest` pins that alpha. The owner, verbatim:
+ * "Have them be the same color as the bottom app navigation bar."
+ *
+ * [MapIconStackButtonColorDark]'s light-theme counterpart — see that color's own doc comment. */
+internal val MapIconStackButtonColorLight = SurfaceContainerLight.copy(alpha = MAP_CHROME_OVER_MAP_ALPHA)
 
 /** The standing opacity for chrome floating over the map — the one value every fill here targets. */
 internal const val MAP_CHROME_OVER_MAP_ALPHA = 0.8f
+
+/**
+ * Map chrome at 80% where it covers a map (dispatch 2026-09-28-56 as amended by -58; planner message
+ * -77): the container colour a sheet, dialog, menu, drawer, snackbar or surface was given, exposed to
+ * tests the way the Layers sheet exposes its own (`MapLayersSheet`). Set on the node that is given the
+ * colour, beside its test tag.
+ */
+internal val MapChromeContainerColor = SemanticsPropertyKey<Color>("MapChromeContainerColor")
+
+/**
+ * The content colour inside the same surface: `LocalContentColor` as read inside it wherever the
+ * surface has a child to read it on, else the content colour the surface was given.
+ */
+internal val MapChromeContentColor = SemanticsPropertyKey<Color>("MapChromeContentColor")
+
+/**
+ * A surface's fill for where it is shown (owner, 2026-09-28: "My idea is that nothing should fully
+ * obstruct the map view. All map chrome gets 80% opacity as a result"): its [role] at
+ * [MAP_CHROME_OVER_MAP_ALPHA] when a map is drawn on screen beneath it ([overMap]; planner message
+ * 2026-09-28-77, Q2), and the role itself, solid, where none is (owner: "In the places that aren't
+ * covering a map, they can stay solid"). Only the fill: each caller pins its content colour to the
+ * unaltered role's own, because `contentColorFor` matches a colour-scheme role exactly and a
+ * translucent fill matches none (`MapLayersSheet`).
+ */
+internal fun mapChromeFill(role: Color, overMap: Boolean): Color =
+    if (overMap) role.copy(alpha = MAP_CHROME_OVER_MAP_ALPHA) else role
+
+/** Marks this node with the container colour it was given ([MapChromeContainerColor]). */
+internal fun Modifier.mapChromeContainerColor(color: Color): Modifier = semantics { set(MapChromeContainerColor, color) }
+
+/** Marks this node with the content colour read inside its surface ([MapChromeContentColor]). */
+internal fun Modifier.mapChromeContentColor(color: Color): Modifier = semantics { set(MapChromeContentColor, color) }
 
 /**
  * Icon-bar-unify-container dispatch: [MapIconBar] and `TrailheadControls` now sit inside one
@@ -265,13 +326,19 @@ internal fun srcOverAlpha(top: Float, bottom: Float): Float = top + bottom * (1f
 @Composable
 @ReadOnlyComposable
 internal fun mapIconClusterContainerColor(): Color =
-    (if (LocalForagerDarkTheme.current) Bark else Cream).copy(alpha = MAP_ICON_CLUSTER_CONTAINER_ALPHA)
+    navigationBarContainerColor().copy(alpha = MAP_ICON_CLUSTER_CONTAINER_ALPHA)
+
+/** The standing single-layer chrome fill ([MapIconStackButtonColorDark]/[MapIconStackButtonColorLight], 0.8) for whichever theme is current — the landscape L's pill, which has no container under it. */
+@Composable
+@ReadOnlyComposable
+internal fun mapIconChromeFillColor(): Color =
+    if (LocalForagerDarkTheme.current) MapIconStackButtonColorDark else MapIconStackButtonColorLight
 
 /** The fill of each child inside the cluster container — see [MAP_ICON_CLUSTER_CHILD_ALPHA]. */
 @Composable
 @ReadOnlyComposable
 internal fun mapIconClusterChildColor(): Color =
-    (if (LocalForagerDarkTheme.current) Bark else Cream).copy(alpha = MAP_ICON_CLUSTER_CHILD_ALPHA)
+    navigationBarContainerColor().copy(alpha = MAP_ICON_CLUSTER_CHILD_ALPHA)
 
 /** The hairline edge for whichever theme is current — [MAP_ICON_STACK_BORDER_COLOR_DARK]/[MAP_ICON_STACK_BORDER_COLOR_LIGHT]. */
 @Composable
@@ -291,7 +358,8 @@ internal val MAP_ICON_STACK_BORDER_COLOR_LIGHT = Bark.copy(alpha = 0.4f)
  * [MaterialTheme.colorScheme.error] directly, even though every value it holds is one of those same
  * roles' own hues. See [MapIconBarAccent]'s own doc comment for the full reasoning (Material's tonal
  * inversion exists for legibility against a plain [MaterialTheme.colorScheme.surface]; these two
- * rows sit on [MapIconBar]'s own opaque bar fill instead, which already does that job, so reading
+ * rows sit on [MapIconBar]'s own bar fill instead (the cluster's 0.8 composite, see
+ * [MAP_ICON_CLUSTER_CONTAINER_ALPHA]), which already does that job, so reading
  * Material's roles directly here just reads backwards).
  */
 private fun mapIconBarAddAccent(isDarkTheme: Boolean) =
@@ -346,7 +414,8 @@ internal fun MapIconBar(
     onLocateMe: () -> Unit,
     onResetOrientation: () -> Unit,
     mapMode: MapMode,
-    onOpenMapModePicker: () -> Unit,
+    /** Opens the Layers sheet (map layers L0b, B1), which replaced the basemap-only `MapModePicker`. */
+    onOpenLayers: () -> Unit,
     onAdd: () -> Unit,
     modifier: Modifier = Modifier,
     /**
@@ -356,14 +425,6 @@ internal fun MapIconBar(
      * lighter fill that composites back to 80% over its cluster container.
      */
     fillColor: Color = Color.Unspecified,
-    /**
-     * Night mode as it currently resolves — Settings' "Night Maps" checkbox
-     * ([AvailabilityUiState.nightModeMaps]), shown here in slot 4's content description so the
-     * state is readable rather than merely visible. No longer toggleable from this bar directly
-     * (a long-press here used to hold it; that control moved to Settings — see
-     * [com.zynergylabs.forager.app.domain.MapPreferencesRepository.getNightModeMaps]'s own doc comment).
-     */
-    isNightMode: Boolean = false,
     /**
      * Whether slot 4 (map mode) is present at all — fullscreen-maps dispatch: the Cartography entry
      * map's own offline-tiles toggle needs this row gone while offline tiles are in use, since
@@ -381,6 +442,20 @@ internal fun MapIconBar(
      * second offline style is hosted; only the disabled-state branch and its copy are gone.
      */
     mapModePickerEnabled: Boolean = true,
+    /**
+     * Landscape L (dispatch 2026-09-28-160): the gap between rows and the padding at the bar's two ends. [Spacing.xs] for every
+     * caller that has always had it (the portrait cluster, the Cartography entry map); the short-landscape cluster passes
+     * [MAP_ICON_BAR_LANDSCAPE_ROW_SPACING], no spacing at all, so its five 48 dp rows are 240 dp.
+     */
+    rowSpacing: Dp = Spacing.xs,
+    /**
+     * Landscape L (owner's ruling (d), continuation 2026-09-28-172): every row takes touches across its full 48 x 48 square, corners
+     * included, even where the bar's rounded end curves away. The default draws the fill, border and shadow on a `Surface` that
+     * also holds the rows, so the `Surface`'s rounded clip decides which touches the end rows get; with this set the drawn shape is a
+     * sibling underneath (a content-less `Surface` sized to the rows) and the rows sit above it unclipped. Nothing outside the rows'
+     * squares takes a touch: the shape lies inside their union. `false` for every other caller.
+     */
+    fullSquareHits: Boolean = false,
     /**
      * The bar's 5th (last) row — fullscreen-maps dispatch: a second map surface (the Cartography
      * entry map) needs this row to mean something other than "plan a trip or log a find here,"
@@ -407,17 +482,13 @@ internal fun MapIconBar(
     // Independent of the map's own night mode -- see MapIconStackButtonColorDark's own doc
     // comment for why the two axes are kept separate rather than one steering the other.
     val isDarkTheme = LocalForagerDarkTheme.current
-    Surface(
-        shape = RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS),
-        color = fillColor.takeOrElse { if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight },
-        contentColor = if (isDarkTheme) Color.White else Bark,
-        shadowElevation = 2.dp,
-        border = BorderStroke(1.dp, if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT),
-        modifier = modifier,
-    ) {
+    val barFill = fillColor.takeOrElse { if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight }
+    val barContentColor = if (isDarkTheme) Color.White else Bark
+    val barBorder = BorderStroke(1.dp, if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT)
+    val rows: @Composable () -> Unit = {
         Column(
-            modifier = Modifier.padding(vertical = Spacing.xs),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+            modifier = Modifier.padding(vertical = rowSpacing),
+            verticalArrangement = Arrangement.spacedBy(rowSpacing),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             MapBarIconButton(
@@ -436,20 +507,38 @@ internal fun MapIconBar(
                 onClick = onLocateMe,
             )
             if (mapModePickerEnabled) {
+                // Map layers L0b, B1: the Layers sheet. The old description's night clause ("Night
+                // mode on/off") went with it: the picker never had a night control, and Night Maps
+                // is Settings' checkbox.
                 MapBarIconButton(
                     icon = Icons.Filled.Layers,
-                    contentDescription = buildString {
-                        append("Map mode: ${mapMode.label}. Choose Street, Topographical, or Satellite.")
-                        // Appended rather than replacing the tap description: the button still
-                        // primarily opens the map mode picker, and a reader needs to know night mode
-                        // is on — now toggled from Settings' "Night Maps" checkbox, not from here.
-                        append(if (isNightMode) " Night mode on." else " Night mode off.")
-                    },
-                    onClick = onOpenMapModePicker,
+                    contentDescription = layersButtonDescription(mapMode),
+                    onClick = onOpenLayers,
                 )
             }
             fifthRow(isDarkTheme)
         }
+    }
+    if (fullSquareHits) {
+        Box(modifier = modifier) {
+            Surface(
+                shape = RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS),
+                color = barFill,
+                shadowElevation = 2.dp,
+                border = barBorder,
+                modifier = Modifier.matchParentSize().testTag(MAP_ICON_BAR_TAG).mapChromeContainerColor(barFill),
+            ) {}
+            CompositionLocalProvider(LocalContentColor provides barContentColor) { rows() }
+        }
+    } else {
+        Surface(
+            shape = RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS),
+            color = barFill,
+            contentColor = barContentColor,
+            shadowElevation = 2.dp,
+            border = barBorder,
+            modifier = modifier.testTag(MAP_ICON_BAR_TAG).mapChromeContainerColor(barFill),
+        ) { rows() }
     }
 }
 
@@ -461,7 +550,8 @@ internal fun MapIconBar(
  *
  * **Owner's design for this control:** a drag box on the right side of the icon bar, at mid-height
  * — attached to the bar's own edge rather than stacked above or below its rows, rectangular (not a
- * circle/icon button), and themed the same opaque-fill-plus-hairline-border way as [MapIconBar]
+ * circle/icon button), and themed the same fill-plus-hairline-border way (the fill at
+ * [MAP_CHROME_OVER_MAP_ALPHA]) as [MapIconBar]
  * itself ([MapIconStackButtonColorDark]/[MapIconStackButtonColorLight]) so it reads as an extension
  * of the bar rather than an unrelated new control. Tapping it slides the bar (and, at the call
  * site, [TrailheadControls] alongside it — see that composable's own doc comment) away.
@@ -489,6 +579,12 @@ internal fun MapIconBarMinimizeHandle(
      * so the rounding still faces inward rather than reading backwards once the bar is over there.
      */
     onLeftSide: Boolean = false,
+    /**
+     * The tap box's height. [HANDLE_DEFAULT_TAP_HEIGHT] (72 dp) everywhere it has always been; the landscape L passes 48 dp, one row's
+     * height, so with the rows 48 dp apart the box is centred on the locate row and reaches neither the compass nor the Layers row
+     * (owner's ruling (c), continuation 2026-09-28-172). The mark is 48 dp tall either way and fills the shorter box exactly.
+     */
+    tapHeight: Dp = HANDLE_DEFAULT_TAP_HEIGHT,
 ) {
     val isDarkTheme = LocalForagerDarkTheme.current
     val shape = if (onLeftSide) {
@@ -543,7 +639,7 @@ internal fun MapIconBarMinimizeHandle(
     // the edge, on or beside the mark.
     Box(
         modifier = modifier
-            .size(width = HANDLE_TAP_WIDTH, height = MIN_TOUCH_TARGET * 1.5f)
+            .size(width = HANDLE_TAP_WIDTH, height = tapHeight)
             .clickable(onClick = onMinimize)
             .semantics { contentDescription = "Hide map controls" }
             .testTag("map-icon-bar-minimize-handle"),
@@ -555,10 +651,10 @@ internal fun MapIconBarMinimizeHandle(
                     start = if (onLeftSide) HANDLE_MARK_EDGE_PADDING else 0.dp,
                     end = if (onLeftSide) 0.dp else HANDLE_MARK_EDGE_PADDING,
                 )
-                .padding(vertical = Spacing.md)
-                .fillMaxHeight()
+                .height(HANDLE_MARK_HEIGHT)
                 .width(HANDLE_VISIBLE_MARK_WIDTH)
                 .testTag("map-icon-bar-minimize-handle-mark")
+                .mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight)
                 .background(color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight, shape = shape)
                 .border(
                     width = 1.dp,
@@ -568,6 +664,14 @@ internal fun MapIconBarMinimizeHandle(
         )
     }
 }
+
+/**
+ * The minimise handle's default tap-box height, and the drawn mark's height: the mark was the box less [Spacing.md] above and below,
+ * 72 - 24 = 48. Now a constant so a shorter box (the landscape L's, [MapIconBarMinimizeHandle]'s `tapHeight`) leaves the mark as it
+ * was, 48 tall, filling that box exactly.
+ */
+internal val HANDLE_DEFAULT_TAP_HEIGHT = MIN_TOUCH_TARGET * 1.5f
+private val HANDLE_MARK_HEIGHT = HANDLE_DEFAULT_TAP_HEIGHT - Spacing.md * 2
 
 /** How much of [MapIconBarMinimizeHandle]'s / [MapIconBarRestoreHandle]'s own 48dp-wide tap target is actually drawn — see either composable's own doc comment for why this is much narrower than the hit area itself. */
 private val HANDLE_VISIBLE_MARK_WIDTH = 10.dp
@@ -653,6 +757,7 @@ internal fun MapIconBarRestoreHandle(
                 .fillMaxHeight()
                 .width(HANDLE_VISIBLE_MARK_WIDTH)
                 .testTag("map-icon-bar-restore-handle-mark")
+                .mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight)
                 .background(
                     color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
                     shape = outlineShape,
@@ -723,8 +828,8 @@ internal fun MapBarIconButton(
  * A single freestanding circular icon button — MEDIUM/EXPANDED's own add-trip/log-find trigger is
  * the one remaining user of the compact bar's old per-icon-circle look, now that [MapIconBar]'s
  * rows share one background instead. Kept as its own small composable rather than folded into
- * [MapBarIconButton]: a lone button floating directly over the map still needs its own opaque
- * fill plus hairline border to read against the map, the way [MapIconStackButtonColorDark]'s own
+ * [MapBarIconButton]: a lone button floating directly over the map still needs its own fill (at
+ * [MAP_CHROME_OVER_MAP_ALPHA], or the solid accent when `filled`) plus hairline border to read against the map, the way [MapIconStackButtonColorDark]'s own
  * doc comment documents — a bar row can lean on the shared bar background for that instead.
  *
  * `filled`'s own accent is [mapIconBarAddAccent], the same theme-swapped [MapIconBarAccent]
@@ -766,5 +871,31 @@ internal fun MapFloatingIconButton(
         Box(contentAlignment = Alignment.Center) {
             Icon(imageVector = icon, contentDescription = contentDescription)
         }
+    }
+}
+
+/**
+ * Lets the map show through the navigation-bar band under a modal bottom sheet (dispatch
+ * 2026-09-28-104, item 3). The device check found that band flat and opaque, (20, 19, 18), while a sheet
+ * was up, so the sheet's own 0.8 container stopped short of the screen's foot. **The cause was not
+ * established there** (the sheet window's navigation-bar background, or Android's contrast scrim for
+ * three-button navigation), and I could not establish it here without a device. This turns off the
+ * documented one of the two that an app can turn off: [android.view.Window.setNavigationBarContrastEnforced]
+ * on the sheet's own window (API 29+). The other candidate, the window's navigation-bar colour, is
+ * ignored for a target of API 35+ (see `log/CameraWindowChrome.kt`'s note on the status bar's colour), so
+ * there is nothing to set for it. **A hypothesis, unverified by any test here**: if the band is still
+ * opaque on the phone, the cause is the second one and the fix is not this. Call it inside the sheet's
+ * content, where [LocalView]'s parent is the sheet's dialog window.
+ */
+@Composable
+internal fun MapChromeSheetNavigationBar() {
+    val window = (LocalView.current.parent as? DialogWindowProvider)?.window
+    if (window == null) {
+        // Not swallowed: the sheet's content was not inside a dialog window, so nothing was changed.
+        SideEffect { Log.w("MapChrome", "MapChromeSheetNavigationBar: no dialog window above this sheet; the navigation-bar band is left as it was") }
+        return
+    }
+    SideEffect {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) window.isNavigationBarContrastEnforced = false
     }
 }

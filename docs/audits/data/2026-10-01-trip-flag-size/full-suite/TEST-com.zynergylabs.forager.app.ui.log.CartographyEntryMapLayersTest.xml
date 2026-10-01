@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.CartographyEntryMapLayersTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:26.674Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.107">
+  <properties/>
+  <testcase name="the entry map draws with the shared layer choices, and with no forecast store" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryMapLayersTest" time="0.041"/>
+  <testcase name="its sheet lists only the five record overlays this map draws, and a switch there goes to the shared choices" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryMapLayersTest" time="0.063"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

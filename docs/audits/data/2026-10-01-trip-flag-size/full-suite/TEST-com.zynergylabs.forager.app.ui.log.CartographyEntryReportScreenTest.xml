@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:28.118Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.619">
+  <properties/>
+  <testcase name="a wordless entry with only kept photos shows no empty-entry message" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenTest" time="0.04"/>
+  <testcase name="only kept decisions render, never a withheld one" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenTest" time="0.075"/>
+  <testcase name="a kept photo whose gallery row is gone shows the Photo unavailable fallback" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenTest" time="0.053"/>
+  <testcase name="a wordless entry with only two kept photos renders with no incomplete treatment anywhere" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenTest" time="0.047"/>
+  <testcase name="the overflow menu's Edit entry option calls onEdit" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenTest" time="0.095"/>
+  <testcase name="the back arrow calls onBack" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenTest" time="0.057"/>
+  <testcase name="a kept track survives as text even though nothing backs its id" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenTest" time="0.036"/>
+  <testcase name="cancelling the delete confirmation never calls onDeleteEntry" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenTest" time="0.056"/>
+  <testcase name="text and tags render when present" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenTest" time="0.03"/>
+  <testcase name="the overflow menu's Delete entry option confirms before calling onDeleteEntry" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenTest" time="0.064"/>
+  <testcase name="text and tags are omitted when blank or empty" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenTest" time="0.031"/>
+  <testcase name="an entirely empty entry shows the empty-entry message, exactly as worded" classname="com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreenTest" time="0.032"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

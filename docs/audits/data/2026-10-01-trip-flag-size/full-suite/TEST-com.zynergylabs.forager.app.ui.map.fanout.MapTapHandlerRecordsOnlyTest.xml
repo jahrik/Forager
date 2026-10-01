@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.map.fanout.MapTapHandlerRecordsOnlyTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:21:13.006Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.002">
+  <properties/>
+  <testcase name="a planned trip and a waypoint fan together" classname="com.zynergylabs.forager.app.ui.map.fanout.MapTapHandlerRecordsOnlyTest" time="0.0"/>
+  <testcase name="the layers that fan are exactly finds, photos, waypoints and planned trips" classname="com.zynergylabs.forager.app.ui.map.fanout.MapTapHandlerRecordsOnlyTest" time="0.0"/>
+  <testcase name="one record over dots is a lone record - its bubble opens, no fan, dots unmoved" classname="com.zynergylabs.forager.app.ui.map.fanout.MapTapHandlerRecordsOnlyTest" time="0.001"/>
+  <testcase name="several dots at one spot never fan - the tap opens one, as before" classname="com.zynergylabs.forager.app.ui.map.fanout.MapTapHandlerRecordsOnlyTest" time="0.0"/>
+  <testcase name="a lone sighting dot opens its bubble as before, and no fan opens" classname="com.zynergylabs.forager.app.ui.map.fanout.MapTapHandlerRecordsOnlyTest" time="0.0"/>
+  <testcase name="a dot next to an open fan is still tappable as before" classname="com.zynergylabs.forager.app.ui.map.fanout.MapTapHandlerRecordsOnlyTest" time="0.0"/>
+  <testcase name="records stacked over dots fan without the dots, and the dots stay put" classname="com.zynergylabs.forager.app.ui.map.fanout.MapTapHandlerRecordsOnlyTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

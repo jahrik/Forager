@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.JournalEntriesOnMapFollowUpsTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:19:37.600Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.615">
+  <properties/>
+  <testcase name="a photo not highlighted keeps its whole line, and once its entry is shown on the map the line drops its Kept in" classname="com.zynergylabs.forager.app.ui.availability.JournalEntriesOnMapFollowUpsTest" time="0.204"/>
+  <testcase name="a highlighted photo kept by more than three shown entries has exactly one Kept in line, the tappable count" classname="com.zynergylabs.forager.app.ui.availability.JournalEntriesOnMapFollowUpsTest" time="0.101"/>
+  <testcase name="an ORIGIN and an END waypoint kept by a shown entry get no ring, and an ordinary kept waypoint still does" classname="com.zynergylabs.forager.app.ui.availability.JournalEntriesOnMapFollowUpsTest" time="0.08"/>
+  <testcase name="a highlighted photo in a find, kept by up to three shown entries, says In the find and its date lines, with no Kept in" classname="com.zynergylabs.forager.app.ui.availability.JournalEntriesOnMapFollowUpsTest" time="0.065"/>
+  <testcase name="with the Journal entries switch off the photo keeps its whole line, and turned on the line drops its Kept in" classname="com.zynergylabs.forager.app.ui.availability.JournalEntriesOnMapFollowUpsTest" time="0.082"/>
+  <testcase name="a highlighted photo in no find has no attachment line, and never says it is not in a journal entry" classname="com.zynergylabs.forager.app.ui.availability.JournalEntriesOnMapFollowUpsTest" time="0.079"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.data.backup.ScheduledBackupNoticeTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:38.768Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.007">
+  <properties/>
+  <testcase name="a clean run says nothing" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupNoticeTest" time="0.002"/>
+  <testcase name="a run that left photos out posts how many" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupNoticeTest" time="0.001"/>
+  <testcase name="a notice that cannot be kept either is logged, not lost silently" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupNoticeTest" time="0.002"/>
+  <testcase name="the words are exactly the approved texts, with 1 photo in the singular" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupNoticeTest" time="0.0"/>
+  <testcase name="a notice that was shown as a notification is not kept for the app" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupNoticeTest" time="0.001"/>
+  <testcase name="a notice that could not be shown as a notification is kept, to be shown in the app once at launch" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupNoticeTest" time="0.0"/>
+  <testcase name="a failed run posts the did-not-finish notice" classname="com.zynergylabs.forager.app.data.backup.ScheduledBackupNoticeTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenFanBackOthersTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:18:30.235Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.84">
+  <properties/>
+  <testcase name="with a fan open and the add-action menu open, Back closes the menu and then folds the fan" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenFanBackOthersTest" time="0.116"/>
+  <testcase name="with a fan open in fullscreen, Back leaves fullscreen first and then folds the fan" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenFanBackOthersTest" time="0.256"/>
+  <testcase name="with a fan open and nothing else, Back folds the fan, as it did" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenFanBackOthersTest" time="0.182"/>
+  <testcase name="with a fan open and the search dropdown's Set on map picker open, Back closes the picker and then folds the fan" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenFanBackOthersTest" time="0.172"/>
+  <testcase name="with a fan open and a pin picker open from the menu, Back closes the picker and then folds the fan" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenFanBackOthersTest" time="0.112"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

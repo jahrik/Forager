@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.map.MapLibreInitializerTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:17:56.552Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="0.082">
+  <properties/>
+  <testcase name="a failed initialisation is logged and rethrown, and the next call tries again" classname="com.zynergylabs.forager.app.map.MapLibreInitializerTest" time="0.036"/>
+  <testcase name="the SDK is initialised once however many callers ask" classname="com.zynergylabs.forager.app.map.MapLibreInitializerTest" time="0.022"/>
+  <testcase name="the application initialises MapLibre at start, before any screen or read" classname="com.zynergylabs.forager.app.map.MapLibreInitializerTest" time="0.023"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

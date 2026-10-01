@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapBubblesTest" tests="14" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:18:57.066Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="1.845">
+  <properties/>
+  <testcase name="a waypoint's Details opens the J5c sheet on the Maps tab, and closes the bubble" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapBubblesTest" time="0.42"/>
+  <testcase name="a photo's bubble says what it is attached to, and View photo opens the viewer in place" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapBubblesTest" time="0.13"/>
+  <testcase name="a waypoint's Directions hands the waypoint to a navigation app" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapBubblesTest" time="0.093"/>
+  <testcase name="real touches across the bubble do not reach the map, and the bubble stays" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapBubblesTest" time="0.079"/>
+  <testcase name="an offline region's bubble says Stale when stale, and its Details opens the sheet" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapBubblesTest" time="0.103"/>
+  <testcase name="a forecast cell's bubble shows the stored cell's numbers beside its layer name, dates and reference class" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapBubblesTest" time="0.095"/>
+  <testcase name="a point bubble follows its glyph when the camera settles, and a dismissed one does not come back" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapBubblesTest" time="0.084"/>
+  <testcase name="a real touch on a waypoint glyph shows its bubble with its name and MGRS, and is not a plain map tap" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapBubblesTest" time="0.076"/>
+  <testcase name="a touch on empty map dismisses the bubble" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapBubblesTest" time="0.071"/>
+  <testcase name="Open in Journal opens the find in its report over the Journal, Back returns to the Maps tab, and the Journal keeps its saved chip" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapBubblesTest" time="0.317"/>
+  <testcase name="one bubble at a time - a second glyph replaces the first" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapBubblesTest" time="0.108"/>
+  <testcase name="the close button and Back each dismiss the bubble" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapBubblesTest" time="0.082"/>
+  <testcase name="a track's bubble shows its distance and duration, and its Details opens the sheet" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapBubblesTest" time="0.105"/>
+  <testcase name="a planned trip's bubble shows its row's lines and its Directions" classname="com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapBubblesTest" time="0.08"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

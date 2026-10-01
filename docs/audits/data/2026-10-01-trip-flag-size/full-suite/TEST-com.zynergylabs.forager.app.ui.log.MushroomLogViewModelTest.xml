@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" tests="72" skipped="0" failures="0" errors="0" timestamp="2026-10-01T05:20:46.832Z" hostname="zynergy-labs-HP-Laptop-17t-by200" time="1.787">
+  <properties/>
+  <testcase name="the loaders return a Job, and once joined show what was written behind the screen's back" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.031"/>
+  <testcase name="a find delete still pending when the ViewModel is cleared is committed" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.028"/>
+  <testcase name="after a restore, an open find whose record is gone is closed, and one that is still there stays open" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.021"/>
+  <testcase name="a camera capture never overwrites a location the find already has" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.021"/>
+  <testcase name="a find started with no location and no fix in hand still starts, with no location" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.018"/>
+  <testcase name="an Import into a find with no location leaves the find's location null" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.019"/>
+  <testcase name="setting a location during a re-edit writes to the draft row only, never the committed entry" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.033"/>
+  <testcase name="a capture fix that resolves after the find was closed is not written to it" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.019"/>
+  <testcase name="the gallery photos load on init, independent of the entry list" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.02"/>
+  <testcase name="with the setting off, an Album camera capture asks for no position" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.02"/>
+  <testcase name="a photo attached to a draft of an existing entry is discarded on Cancel, never reaching the committed entry" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.02"/>
+  <testcase name="a freshly-started entry is its own standalone draft, invisible in entries until it is resolved" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.021"/>
+  <testcase name="with the setting off, a find started with no location does not take the device fix" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.022"/>
+  <testcase name="a photo attached to a draft of an existing entry repoints onto the committed entry on Save" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.022"/>
+  <testcase name="undo of a pending photo delete shows it again and deletes neither row nor file" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.042"/>
+  <testcase name="a find started with no location takes the fresh device fix in hand" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.021"/>
+  <testcase name="Cancelling a brand-new entry deletes it, leaving nothing in the log" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.022"/>
+  <testcase name="a second photo delete commits the first when it replaces it" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.022"/>
+  <testcase name="a held fix at the lost bound is discarded, and the discard is logged" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.021"/>
+  <testcase name="a held fix just inside the lost bound is still used" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.022"/>
+  <testcase name="a failed save sets saveErrorMessage, and the next successful save clears it" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.021"/>
+  <testcase name="leaving without answering persists a brand-new entry's draft without committing it" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.019"/>
+  <testcase name="a capture with no editing entry writes the diagnostic entry, with the photo's id" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.019"/>
+  <testcase name="deleting a gallery photo removes it from the gallery and refreshes entries" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.018"/>
+  <testcase name="a capture with an editing entry attaches as before and records no anomaly" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.043"/>
+  <testcase name="a second find delete commits the first when it replaces it" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.032"/>
+  <testcase name="an orphaned draft from a crashed new entry is surfaced separately from committed entries and can be reinstated" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.026"/>
+  <testcase name="with the setting off, a caller-supplied location is still honoured" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.026"/>
+  <testcase name="two photo operations issued back to back apply in the order issued" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.025"/>
+  <testcase name="deleting a gallery photo that the open editing entry references updates that entry too" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.055"/>
+  <testcase name="a capture with no editing entry records the anomaly even when the album save fails" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.032"/>
+  <testcase name="a photo delete still pending when the ViewModel is cleared is committed, row and file" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.024"/>
+  <testcase name="leaving a re-edit unchanged discards the draft outright, never surfaces it" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.024"/>
+  <testcase name="a gallery-imported photo never triggers the camera-capture location patch" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.038"/>
+  <testcase name="after a restore, an open draft whose record is gone is closed too" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.023"/>
+  <testcase name="a requested photo delete hides it from the gallery and from its find, carries its journal count, and deletes nothing" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.023"/>
+  <testcase name="a photo attach queued behind a loadEntries read is never lost to that read's stale snapshot" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.022"/>
+  <testcase name="Save on a reopened existing entry's draft commits its fields onto the parent, same id, draft row gone" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.018"/>
+  <testcase name="a requested find delete closes its report, hides it from the visible state, and deletes nothing" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.019"/>
+  <testcase name="a camera capture inside a find with no location promotes its fix to foundAt" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.019"/>
+  <testcase name="with the setting on, a camera capture asks for a position once" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.018"/>
+  <testcase name="after a crash mid-edit of a committed entry, both the committed version and its orphaned draft survive and are choosable" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.036"/>
+  <testcase name="a delete asked for a photo that is not loaded pends nothing" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.02"/>
+  <testcase name="committing a pending find delete (the snackbar timing out) deletes exactly that find once" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.023"/>
+  <testcase name="with the setting off, a camera capture asks for no position and leaves the photo and the find without one" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.02"/>
+  <testcase name="a refresh triggered mid-edit preserves uncommitted edits" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.018"/>
+  <testcase name="a requested delete of an open draft hides it from the visible drafts and leaves its committed parent" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.018"/>
+  <testcase name="leaving a re-edit with an actual change still surfaces the draft, unchanged from before this dispatch" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.018"/>
+  <testcase name="a failed photo delete puts the photo back and says so, and deletes no file" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.018"/>
+  <testcase name="deleting an entry with photos removes it from the list but leaves the gallery photo and PhotoStore untouched" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.039"/>
+  <testcase name="an incidental exit persists a location changed during a re-edit into the draft row" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.019"/>
+  <testcase name="a camera-captured photo picks up a location fix as a follow-up patch once one resolves" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.018"/>
+  <testcase name="committing a pending photo delete deletes its row and then its file, exactly once each" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.018"/>
+  <testcase name="From Album into a find with no location leaves the find's location null" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.018"/>
+  <testcase name="adding a photo refreshes the gallery so the new photo appears without a restart" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.018"/>
+  <testcase name="undo of a pending find delete shows it again and deletes nothing" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.018"/>
+  <testcase name="onAddGalleryPhoto with no onPersisted argument still persists and refreshes the gallery" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.018"/>
+  <testcase name="Save commits a brand-new entry's draft in place, making it visible in the list under the same id" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.021"/>
+  <testcase name="a capture with no editing entry is saved to the album rather than dropped" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.022"/>
+  <testcase name="onAddGalleryPhoto adds a standalone photo to the gallery with no open entry and no reference" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.048"/>
+  <testcase name="loadEntries racing ahead of a keystroke's own write while loadEntries' own read wins the race to the lock" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.026"/>
+  <testcase name="pulling a gallery photo into the editing draft adds a reference only" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.026"/>
+  <testcase name="a caller-supplied location wins over the device fix" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.025"/>
+  <testcase name="deleting an entry with no photos succeeds and never touches PhotoStore" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.024"/>
+  <testcase name="onAddGalleryPhoto invokes onPersisted with the newly persisted photo's id on success" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.061"/>
+  <testcase name="a successful delete clears a saveErrorMessage left by an earlier failed save" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.033"/>
+  <testcase name="Cancelling an edit discards a location changed during the session, leaving the committed entry's location untouched" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.024"/>
+  <testcase name="Cancelling a reopened existing entry deletes only its draft row, and the committed entry was never touched" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.036"/>
+  <testcase name="a camera-captured photo with no location fix available still succeeds, with no location patch" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.024"/>
+  <testcase name="leaving without answering an untouched brand-new entry persists it as a draft, never deletes it" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.022"/>
+  <testcase name="a file-deletion failure during gallery deletion still removes the rows" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.022"/>
+  <testcase name="onSaveErrorDismissed clears saveErrorMessage" classname="com.zynergylabs.forager.app.ui.log.MushroomLogViewModelTest" time="0.018"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
