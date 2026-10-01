@@ -41,7 +41,7 @@ enum class ZGroup { COLOUR_FIELDS, AREAS, DECORATIONS, LINES, MARKERS }
 enum class LayerRenderer { FILL, LINE, CIRCLE, SYMBOL }
 
 /**
- * The tap precedence the owner ruled (L0 design rulings, 3: "Markers, then lines, then colour"):
+ * The tap precedence the owner chose (L0 design rulings, 3: "Markers, then lines, then colour"):
  * lower [precedence] wins. [NONE] is a layer a tap never lands on: a casing (decoration under its
  * own track, which is itself tappable), and the offline region's fill (owner's ruling 4 on
  * 2026-09-27-30: the outline is tappable, taps on the fill fall through).

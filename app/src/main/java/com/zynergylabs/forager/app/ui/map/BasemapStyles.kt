@@ -298,7 +298,7 @@ internal data class AppliedMapStyle(
     val basemap: Basemap,
     /**
      * The marker palette: `MapPalette.forMode` of the **raw** Night Maps toggle, on every basemap,
-     * Satellite included (colour build C2; the owner ruled that on Satellite only the markers switch).
+     * Satellite included (colour build C2; the owner decided that on Satellite only the markers switch).
      * The overlay layers bake these colours in when the style loads, so a palette change is a reload:
      * that is why a toggle over Satellite reloads, even though [night] stays false there.
      */
