@@ -9206,3 +9206,44 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Device items open:** in -319 (-340): the puck above the markers and below an open fan after swapping to each basemap; fold and open a mixed fan with no z-order pop.
 **CI, with -317:** run 36798317295 (60d626b9) failed on LeavingTheJournalFixesTest alone, which -349 is diagnosing. Run 36799559211 (d94d4ca1) was green: 1 green of the roughly 6 needed.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-352
+**Timestamp:** 2026-10-01T01:33:54Z
+**Closes:** 2026-09-28-348 (preserved 2026-09-30-27) and 2026-09-28-349 (preserved 2026-10-01-01)
+**Outcome:** parked by the owner, with findings and no reproduction
+**The owner, verbatim:** "I'll be conducting a flake hunt once dev cools down a bit, this can wait until then."
+**Observed:**
+- **-349** (leaving-journal-flake c3c76d54, never merged):
+  - 6 LeavingTheJournalFixesTest F3 failures in 99 test-reaching CI runs (Wilson 2.8% to 12.6%), which corrects the planner's "3 in 119";
+  - one message family: "performMeasureAndLayout called during measure layout", and once multithreaded access to SnapshotStateObserver;
+  - the same message appears in WideJournalTest, JournalEntriesOnMapFollowUpsTest and DiagnosticsSyntheticForecastSwitchTest;
+  - 3 of the 6 predate -317.
+- **-348** (decoded-photo-thread e6c37010, never merged): by javap, the Compose test harness has one instance-wide isDeferringContinuations flag, set only in performFrame, and no thread check in FrameDeferredContinuation.resumeWith.
+- **The shared mechanism, inferred from stacks and never reproduced:** DecodedPhoto's LaunchedEffect resumes inline on the IO worker after withContext(Dispatchers.IO), and that worker recomposes and applies while the main thread lays out.
+- **Never run:** -349's pilot, deterministic attempts and budget of about 125 runs; -348's 35 pinned runs. The plans are in the interim reports, ready to start.
+- **-297's DrawerBackOverJournalTest stall:** cause not established.
+**Next:** the owner's flake hunt. A direct fix for the mechanism is dispatched as -351.
+**Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-351
+**Timestamp:** 2026-10-01T01:33:54Z
+**Title:** Tests control the thread DecodedPhoto decodes on
+**Dispatch-file:** preserved/2026-10-01-02.md
+**The owner, verbatim:** "Go with option C from your fix question", then "Fix 1".
+- **C:** skip reproducing the failure, fix directly, and judge by CI.
+- **Fix 1:** tests control the photo-loading thread; production is unchanged.
+**Change:**
+- One provider for DecodedPhoto's decode dispatcher, defaulting to Dispatchers.IO.
+- A test-wide default that keeps the effect's resumption on the main test thread, without editing each test class.
+- An opt-in for tests that need a real background decode (-317's gated tests).
+- The other composable IO hops are reported, not changed.
+- The fix is not proven against the CI failure itself. CI judges it.
+**Rejected:** Fix 2, a per-class test harness setting: it does not cover new tests.
+**CI so far, with -317:** 60d626b9 red (this family, not the album tests); d94d4ca1 green; 9c9d92cd green.
+**Notes:** Written by the planner by hand.
