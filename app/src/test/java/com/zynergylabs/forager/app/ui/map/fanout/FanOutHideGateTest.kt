@@ -207,4 +207,43 @@ class FanOutHideGateTest {
         assertFalse(restarted.awaiting)
         assertNull(gate.onRest())
     }
+
+    // --- the fold's end, the mirror of the open: the copies must not be cleared before the originals they stand on are drawn again.
+
+    @Test
+    fun `a release names the originals it shows again`() {
+        val gate = FanOutHideGate()
+        gate.onCopiesDrawn(gate.onMembers(fanA).generation)
+
+        val released = gate.onMembers(emptyList())
+
+        assertEquals("the copies on these must wait for them", fanA, released.reveal)
+        assertEquals(emptyList<FanMember>(), released.hide)
+    }
+
+    @Test
+    fun `a release before anything was hidden has nothing to wait for`() {
+        val gate = FanOutHideGate()
+        gate.onMembers(fanA)
+
+        assertEquals(emptyList<FanMember>(), gate.onMembers(emptyList()).reveal)
+    }
+
+    @Test
+    fun `a release of a fan whose originals only partly stayed hidden names just those`() {
+        val gate = FanOutHideGate()
+        gate.onCopiesDrawn(gate.onMembers(fanA).generation)
+        gate.onMembers(listOf(a1, b1))
+
+        assertEquals(listOf(a1), gate.onMembers(emptyList()).reveal)
+    }
+
+    @Test
+    fun `releasing an already released gate reveals nothing`() {
+        val gate = FanOutHideGate()
+        gate.onCopiesDrawn(gate.onMembers(fanA).generation)
+        gate.onMembers(emptyList())
+
+        assertEquals(emptyList<FanMember>(), gate.onMembers(emptyList()).reveal)
+    }
 }
