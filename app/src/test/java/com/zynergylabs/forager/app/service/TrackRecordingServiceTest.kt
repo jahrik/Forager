@@ -271,6 +271,9 @@ class TrackRecordingServiceTest {
             container.returnWatch,
             container.alertAudibility,
             deleteTrack = container.deleteTrackUseCase,
+            getTrackOriginWaypoint = container.getTrackOriginWaypointUseCase,
+            alreadyRecordingMessage = "Forager is already recording a track. Stop it before starting another.",
+            abandonedTrackSweepOnce = container.abandonedTrackSweepOnce,
         )
         try {
             viewModel.startRecording()
