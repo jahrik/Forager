@@ -49,6 +49,18 @@ interface TrackRepository {
     suspend fun end(trackId: String, endedAtEpochMillis: Long): Result<Unit>
 
     /**
+     * Marks the track with id [trackId] as finished at [endedAtEpochMillis] **only if it has no end
+     * time yet**, and says whether it wrote: `true` if the row was open and is now ended, `false`
+     * if it was already ended or does not exist. Unlike [end], it can never replace an end time
+     * that is already there (dispatch 2026-09-28-400, Amendment 3, ruling C).
+     *
+     * The default answers "unsupported", explicitly, so an implementation that has not been given
+     * this cannot be mistaken for one that ended nothing.
+     */
+    suspend fun endIfOpen(trackId: String, endedAtEpochMillis: Long): Result<Boolean> =
+        Result.failure(UnsupportedOperationException("endIfOpen is not supported by ${this::class.simpleName}"))
+
+    /**
      * Points [com.zynergylabs.forager.app.domain.model.Track.originWaypointId] at [waypointId] — the write path
      * for that column (navigation HUD stage one), run once by `TrackRecordingViewModel` after it
      * creates the origin waypoint from the first accuracy-gated fix. A no-op, not a failure, if no
