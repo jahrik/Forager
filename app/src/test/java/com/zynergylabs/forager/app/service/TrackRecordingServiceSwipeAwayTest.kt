@@ -48,8 +48,9 @@ import org.robolectric.shadows.ShadowLog
  * the real `AndroidAlertDelivery` posts. The container's delivery cannot be swapped for a fake, so
  * the notification is the reading.
  *
- * **Two tests here still pin a fault, and say so in their names.** The reopened screen (the
- * dispatch's second path) is Part 3. They are green while the fault is still there.
+ * **The reopened screen (Amendment 3, Part 3a).** Part 2 left two tests here pinning a fault. They
+ * are replaced: a ViewModel built while the service records takes the recording up, Stop on it
+ * ends the recording, and Record on it cannot start a second one.
  *
  * ## What is real here, and the three steps that are not
  *
@@ -119,6 +120,8 @@ class TrackRecordingServiceSwipeAwayTest {
                         container.returnWatch,
                         container.alertAudibility,
                         deleteTrack = container.deleteTrackUseCase,
+                        getTrackOriginWaypoint = container.getTrackOriginWaypointUseCase,
+                        alreadyRecordingMessage = ALREADY_RECORDING,
                     ).also(createdViewModels::add)
                 }
             },
@@ -157,7 +160,11 @@ class TrackRecordingServiceSwipeAwayTest {
             val service = controller.create().get()
             controller.startCommand(0, 1)
             assertNotNull("precondition: the service is in the foreground, recording", shadowOf(service).lastForegroundNotification)
-            assertEquals("the service began the watch for its track", ReturnWatchState(trackId = trackId), container.returnWatch.state.value)
+            assertEquals(
+                "the service began the watch for its track, in the mode it was started in",
+                ReturnWatchState(trackId = trackId, isBegun = true, mode = TrackRecordingMode.HIGH_ACCURACY),
+                container.returnWatch.state.value,
+            )
             assertEquals("precondition: the service's listener is the only one; no ViewModel exists", 1, awaitListenerCount(1))
 
             container.returnWatch.setStartPoint(trackId, TrackPoint(45.000, -122.0, null, null, FIRST_FIX_EPOCH_MILLIS))
@@ -257,20 +264,53 @@ class TrackRecordingServiceSwipeAwayTest {
     }
 
     /**
-     * **Still a fault, and Part 3's to fix** (the dispatch's second path, confirmed by the owner,
-     * not built here): after the swipe-away the service records, and a reopened app does not know.
-     * The service is left running while the first ViewModel's store is cleared; a second ViewModel
-     * is built over the same container and enters the foreground.
-     *
-     * The listener count is who is listening for fixes: two while the screen is alive (the
-     * service's, and the ViewModel's own for the screen's distance and the origin waypoint), one
-     * after the clear. Since Amendment 2 the one that is left, the service's, is the one that feeds
-     * the off-track decision.
-     *
-     * **When Part 3 lands:** `isRecording` in the last block becomes true.
+     * Amendment 3, step 3: a start for the track already being recorded is not a fault. A screen
+     * that takes up a running recording is a new Activity, and its effect sends `ACTION_START`
+     * again for that same track. The service says nothing and changes nothing. A start for a
+     * **different** track is still dropped with the warning (the second-recording test below).
      */
     @Test
-    fun `PART 3 FAULT, still true - the service goes on recording after the ViewModel is cleared, and a reopened ViewModel reports not recording`() {
+    fun `a repeated start for the track already being recorded says nothing and changes nothing`() {
+        var controller: ServiceController<TrackRecordingService>? = null
+        try {
+            val trackId = runBlocking { container.startTrackUseCase(null) }.getOrThrow().id
+            controller = Robolectric.buildService(TrackRecordingService::class.java, startIntent(trackId))
+            val service = controller.create().get()
+            controller.startCommand(0, 1)
+            assertEquals(1, awaitListenerCount(1))
+            val before = container.returnWatch.state.value
+
+            ShadowLog.clear()
+            controller.withIntent(startIntent(trackId)).startCommand(0, 2)
+
+            assertEquals(
+                "no warning for a start that names the track already being recorded",
+                emptyList<String>(),
+                ShadowLog.getLogsForTag("TrackRecordingService").filter { it.type >= android.util.Log.WARN }.map { it.msg },
+            )
+            assertEquals("still one collection of fixes", 1, awaitListenerCount(1))
+            assertEquals("the watch is as it was", before, container.returnWatch.state.value)
+            assertFalse(shadowOf(service).isStoppedBySelf)
+        } finally {
+            endEverything(controller)
+        }
+    }
+
+    /**
+     * The owner's main path with the real service and container:
+     * `Recording > swipe the app away > open Forager again > the screen shows the recording still
+     * running`, and `Stop on that screen ends the recording`.
+     *
+     * **This replaces Part 2's first `PART 3 FAULT` pin here.** The assertion that turned:
+     * `isRecording` on the reopened ViewModel was false and is true.
+     *
+     * The reopened Activity's effect sends `ACTION_START` again for the track it took up
+     * (`hasStartedRecordingOnce` starts false in a new Activity). That intent is sent here by hand,
+     * as the effect would, and the service says nothing for it (step 3). Then Stop: the screen's
+     * callback, and the `ACTION_STOP` the effect sends for it.
+     */
+    @Test
+    fun `the service goes on recording after the ViewModel is cleared, a reopened ViewModel takes the recording up, and its Stop ends it`() {
         val firstStore = ViewModelStore()
         val first = viewModelIn(firstStore)
         var controller: ServiceController<TrackRecordingService>? = null
@@ -286,60 +326,52 @@ class TrackRecordingServiceSwipeAwayTest {
 
             // The swipe-away, as far as either class can tell: the Activity's store is cleared, the service is not told anything.
             firstStore.clear()
-
-            assertEquals(
-                "one listener is left, the service's",
-                1,
-                awaitListenerCount(1),
-            )
+            assertEquals("one listener is left, the service's", 1, awaitListenerCount(1))
             assertFalse("the service has not stopped itself", shadowOf(service).isStoppedBySelf)
             assertNull("the track is still open in storage", trackRow(trackId)?.endedAtEpochMillis)
 
-            // Forager is opened again: a new Activity, so a new ViewModel. ON_START calls onEnteredForeground.
+            // Forager is opened again: a new Activity, so a new ViewModel.
             val reopened = viewModelIn(ViewModelStore())
-            reopened.onEnteredForeground()
-            assertTrue(
-                "precondition: the reopened ViewModel has finished loading, so what it reports below is its settled state",
-                awaitTrackListed(reopened, trackId),
+
+            assertEquals("the reopened screen took up the recording the service is making", trackId, awaitActiveTrackId(reopened))
+            assertTrue("so the record button offers Stop", reopened.uiState.value.isRecording)
+            assertEquals(TrackRecordingMode.HIGH_ACCURACY, reopened.uiState.value.activeTrack?.mode)
+            assertEquals("and it is listening for fixes again, beside the service", 2, awaitListenerCount(2))
+
+            // What MainActivity's effect sends for the reopened screen's activeTrack: a start for the track already recording.
+            ShadowLog.clear()
+            controller.withIntent(startIntent(trackId)).startCommand(0, 2)
+            assertEquals(
+                "the repeated start is not a fault and is not logged as one",
+                emptyList<String>(),
+                ShadowLog.getLogsForTag("TrackRecordingService").filter { it.type >= android.util.Log.WARN }.map { it.msg },
             )
 
-            assertFalse(
-                "FAULT: the record button reads isRecording, and it says nothing is recording while the service records",
-                reopened.uiState.value.isRecording,
-            )
-            assertNull(reopened.uiState.value.activeTrack)
-            assertFalse(reopened.uiState.value.isReturning)
-            assertEquals("the reopened ViewModel is not listening for fixes either", 1, awaitListenerCount(1))
-            assertFalse("and the service is still going", shadowOf(service).isStoppedBySelf)
-            assertNull(trackRow(trackId)?.endedAtEpochMillis)
+            // Stop on the reopened screen, then the ACTION_STOP the effect sends for it.
+            reopened.stopRecording()
+            controller.withIntent(stopIntent()).startCommand(0, 3)
+
+            assertNotNull("Stop on the reopened screen ended the recording", awaitEndedAt(trackId))
+            assertTrue(awaitStoppedBySelf(service))
+            assertFalse(reopened.uiState.value.isRecording)
+            assertEquals("one track, ended; no second row was made anywhere on the way", listOf(trackId), allTrackIds())
         } finally {
             endEverything(controller)
         }
     }
 
     /**
-     * **Still a fault, and Part 3's to fix:** a second recording started over the first. The record
-     * button on the reopened screen creates a second track row; its `ACTION_START` reaches a
-     * service that is already recording and is dropped; every point goes on being written to the
-     * first track.
+     * The owner's path 3 with the real service and container: Record pressed while another
+     * recording is running. The reopened ViewModel is asked to start before its take-up has
+     * finished (the row is still being read), which is the one moment Record could be pressed in
+     * that state. Nothing is started, no track row is made, and the screen carries the owner's
+     * words.
      *
-     * **What Amendment 2 changed here (ruling 8):** the dropped start is no longer silent. The
-     * service logs a warning naming both tracks, and this test reads it. `CLAUDE.md`: no fallback
-     * that is not logged when it fires.
-     *
-     * Twenty fixes are sent because twenty accepted points is the service's batch
-     * (`FLUSH_BATCH_SIZE`), the only write a test can wait for without waiting thirty real
-     * seconds. They are spaced so that HIGH_ACCURACY's sampler accepts each one (10 s and about
-     * 111 m apart, 5 m accuracy). That the first track then holds twenty points is the positive
-     * half: the fixes did flow, so the second track's zero is a reading and not an empty stream.
-     *
-     * Then the stop button: the screen stops, `ACTION_STOP` ends the **first** track, and the
-     * second row is left open for good. Nothing ever ends it.
-     *
-     * **When Part 3 lands:** "two open rows, points in the wrong one" must not survive it.
+     * **This replaces Part 2's second `PART 3 FAULT` pin here** (two open rows, points in the wrong
+     * one). The assertion that turned: a second track id then, one row now.
      */
     @Test
-    fun `PART 3 FAULT, still true - a second recording started over the first is dropped by the service with a warning, so its row gets no points and is never ended`() {
+    fun `Record on a reopened screen while the service is recording starts nothing, makes no second track, and says so`() {
         val firstStore = ViewModelStore()
         val first = viewModelIn(firstStore)
         var controller: ServiceController<TrackRecordingService>? = null
@@ -348,65 +380,66 @@ class TrackRecordingServiceSwipeAwayTest {
             val firstTrackId = awaitActiveTrackId(first)
             assertNotNull(firstTrackId)
             controller = Robolectric.buildService(TrackRecordingService::class.java, startIntent(firstTrackId!!))
-            val service = controller.create().get()
+            controller.create().get()
             controller.startCommand(0, 1)
-            assertNotNull("precondition: the service is recording the first track", shadowOf(service).lastForegroundNotification)
             assertEquals(2, awaitListenerCount(2))
             firstStore.clear()
             assertEquals(1, awaitListenerCount(1))
 
             val reopened = viewModelIn(ViewModelStore())
-            reopened.onEnteredForeground()
-            assertTrue(awaitTrackListed(reopened, firstTrackId))
-            assertFalse("precondition: the reopened screen offers Record, not Stop", reopened.uiState.value.isRecording)
+            assertFalse("precondition: the take-up has not finished, so this screen has no recording yet", reopened.uiState.value.isRecording)
 
-            // The record button, with isRecording false: MainActivity.kt:602.
-            reopened.startRecording(TrackRecordingMode.HIGH_ACCURACY)
-            val secondTrackId = awaitActiveTrackId(reopened)
-            assertNotNull(secondTrackId)
-            assertNotEquals("FAULT: a second track row was created while the first is still open", firstTrackId, secondTrackId)
-            assertNull(trackRow(firstTrackId)?.endedAtEpochMillis)
-            assertNull(trackRow(secondTrackId!!)?.endedAtEpochMillis)
+            reopened.startRecording(TrackRecordingMode.HIGH_ACCURACY) // the record button, MainActivity.kt's onToggleRecording
 
-            // What MainActivity's LaunchedEffect sends for the new activeTrack.
+            assertEquals(ALREADY_RECORDING, reopened.uiState.value.startRecordingErrorMessage)
+            assertEquals("the screen then takes up the recording that is running, the first one", firstTrackId, awaitActiveTrackId(reopened))
+            assertEquals("no second track row was made", listOf(firstTrackId), allTrackIds())
+        } finally {
+            endEverything(controller)
+        }
+    }
+
+    /**
+     * Amendment 2's ruling 8, kept: a start for a **different** track while one is being recorded
+     * is dropped with a warning that names both, and every point still goes to the track being
+     * recorded. Since step 4 the app itself can no longer make that second track; the second row
+     * here is made by hand, to show what the service does if such a start ever reaches it.
+     *
+     * Twenty fixes, because twenty kept points is the service's batch, the one write a test can
+     * wait for. That the first track then holds twenty is the positive half: the fixes did flow,
+     * so the second track's zero is a reading and not an empty stream.
+     */
+    @Test
+    fun `a start for a different track while one is being recorded is dropped with a warning, and every point still goes to the first`() {
+        var controller: ServiceController<TrackRecordingService>? = null
+        try {
+            val firstTrackId = runBlocking { container.startTrackUseCase(null) }.getOrThrow().id
+            val secondTrackId = runBlocking { container.startTrackUseCase(null) }.getOrThrow().id
+            controller = Robolectric.buildService(TrackRecordingService::class.java, startIntent(firstTrackId))
+            val service = controller.create().get()
+            controller.startCommand(0, 1)
+            assertNotNull("precondition: the service is recording the first track", shadowOf(service).lastForegroundNotification)
+            assertEquals(1, awaitListenerCount(1))
+
             ShadowLog.clear()
             controller.withIntent(startIntent(secondTrackId)).startCommand(0, 2)
+
             assertEquals(
                 "the dropped start is logged, naming the track it was for and the track being recorded",
                 listOf("Ignoring a start for track '$secondTrackId': already recording track '$firstTrackId'."),
                 ShadowLog.getLogsForTag("TrackRecordingService").filter { it.type == android.util.Log.WARN }.map { it.msg },
             )
             assertEquals("the watch is still for the first track", firstTrackId, container.returnWatch.state.value.trackId)
-            assertEquals(
-                "the service did not start a second collection for the second track: its one listener, and the reopened ViewModel's",
-                2,
-                awaitListenerCount(2),
-            )
+            assertEquals("the service did not start a second collection", 1, awaitListenerCount(1))
 
             repeat(FLUSH_BATCH_SIZE) { index -> simulateFix(index) }
 
-            assertEquals(
-                "FAULT: the points went to the first track, the one the screen no longer shows",
-                FLUSH_BATCH_SIZE,
-                awaitPointCount(firstTrackId, FLUSH_BATCH_SIZE),
-            )
-            assertEquals(
-                "FAULT: the track the screen shows as recording has no points at all",
-                0,
-                pointCount(secondTrackId),
-            )
+            assertEquals("the points went to the first track", FLUSH_BATCH_SIZE, awaitPointCount(firstTrackId, FLUSH_BATCH_SIZE))
+            assertEquals("and none to the track whose start was dropped", 0, pointCount(secondTrackId))
 
-            // The stop button on the reopened screen, then the ACTION_STOP MainActivity's LaunchedEffect sends for it.
-            reopened.stopRecording()
             controller.withIntent(stopIntent()).startCommand(0, 3)
-
             assertNotNull("the stop ended the first track, the only one the service knows", awaitEndedAt(firstTrackId))
             assertTrue(awaitStoppedBySelf(service))
-            assertNull(
-                "FAULT: the second track's row is never ended. The service has stopped and nothing else writes an end time",
-                trackRow(secondTrackId)?.endedAtEpochMillis,
-            )
-            assertEquals("and it still has no points", 0, pointCount(secondTrackId))
         } finally {
             endEverything(controller)
         }
@@ -482,6 +515,8 @@ class TrackRecordingServiceSwipeAwayTest {
         }
         return false
     }
+
+    private fun allTrackIds(): List<String> = runBlocking { container.trackRepository.getAll() }.getOrThrow().map { it.id }
 
     private fun trackRow(trackId: String) = runBlocking { container.trackRepository.getById(trackId) }.getOrThrow()
 
@@ -582,5 +617,8 @@ class TrackRecordingServiceSwipeAwayTest {
         /** Mirrors `TrackRecordingService`'s own private constant of the same name. */
         const val FLUSH_BATCH_SIZE = 20
         const val FIRST_FIX_EPOCH_MILLIS = 1_790_000_000_000L
+
+        /** The owner's sentence, as `MainActivity` reads it from `strings.xml` and passes it in. */
+        const val ALREADY_RECORDING = "Forager is already recording a track. Stop it before starting another."
     }
 }

@@ -18,6 +18,7 @@ import com.zynergylabs.forager.app.domain.DetectOffTrackUseCase
 import com.zynergylabs.forager.app.domain.ReturnWatch
 import com.zynergylabs.forager.app.domain.GetCartographyEntryMapDataUseCase
 import com.zynergylabs.forager.app.domain.GetDerivedTripUseCase
+import com.zynergylabs.forager.app.domain.GetTrackOriginWaypointUseCase
 import com.zynergylabs.forager.app.domain.GetTracksUseCase
 import com.zynergylabs.forager.app.domain.GetTripReportOfflineRegionsUseCase
 import com.zynergylabs.forager.app.domain.GetWaypointsUseCase
@@ -292,6 +293,8 @@ class NetworkFixExclusionPerConsumerTest {
             createWaypoint = CreateWaypointUseCase(waypointRepository, currentTime = fixedTime, idGenerator = { "wp-${++waypointIds}" }),
             deleteWaypoint = DeleteWaypointUseCase(waypointRepository),
             deleteTrack = DeleteTrackUseCase(trackRepository, waypointRepository, InMemoryKeptTrackPaths()),
+            getTrackOriginWaypoint = GetTrackOriginWaypointUseCase(trackRepository, waypointRepository),
+            alreadyRecordingMessage = "Forager is already recording a track. Stop it before starting another.",
             computeReturnToStart = ComputeReturnToStartUseCase(),
             locationTracker = object : LocationTracker { override val fixes: Flow<LocationFix> = emptyFlow() },
             getTracks = GetTracksUseCase(trackRepository),

@@ -15,6 +15,7 @@ import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
 import com.zynergylabs.forager.app.domain.DetectOffTrackUseCase
+import com.zynergylabs.forager.app.domain.GetTrackOriginWaypointUseCase
 import com.zynergylabs.forager.app.domain.GetTracksUseCase
 import com.zynergylabs.forager.app.domain.GetWaypointsUseCase
 import com.zynergylabs.forager.app.domain.InMemoryKeptTrackPaths
@@ -32,6 +33,13 @@ import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.TrackPointRecord
 import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.domain.model.WaypointDesignation
+import com.zynergylabs.forager.app.ui.backup.BackupMessage
+import com.zynergylabs.forager.app.ui.backup.BackupViewModel
+import com.zynergylabs.forager.app.ui.backup.FakeBackupFiles
+import com.zynergylabs.forager.app.ui.backup.FakeJournalBackup
+import com.zynergylabs.forager.app.ui.backup.FakeSchedulePreferences
+import com.zynergylabs.forager.app.ui.backup.FakeScheduler
 import java.time.ZoneOffset
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -69,11 +77,14 @@ import org.junit.Test
  * **What stands in for the swipe-away:** `ViewModelStore.clear()`, as in Part 1. On the S22 the
  * real swipe was checked on 2026-10-02 (the report's "Phone check").
  *
- * ## Two tests here still pin a fault, and say so in their names
+ * ## The reopened screen (Amendment 3, Part 3a)
  *
- * The reopened screen (the dispatch's second path) is Part 3. Until then a ViewModel built after
- * the swipe does not know a recording is running, and pressing Record makes a second track. Those
- * two tests are green while that is still true. They are replaced when Part 3 lands.
+ * Part 2 left two tests here pinning a fault: a ViewModel built after the swipe did not know a
+ * recording was running, and pressing Record made a second track. They are replaced by the tests
+ * of the fixed behaviour. A ViewModel built while the watch is begun **takes the recording up**:
+ * it shows it as running, with its breadcrumbs, its start marker and the return that was under
+ * way. The begun watch is what it goes by, never an open track row, because a killed process
+ * leaves the same row.
  *
  * ## The poll loop
  *
@@ -112,6 +123,9 @@ class TrackRecordingSwipeAwayTest {
     private var trackIds = 0
     private var waypointIds = 0
     private val clock = CurrentTimeProvider { 1_000L }
+
+    /** What the phone's silence state is when a ViewModel reads it at Record. Silenced makes the trip-start warning. */
+    private var ringerMode = RingerMode.NORMAL
     private val returnWatch = ReturnWatch(ComputeReturnToStartUseCase(), DetectOffTrackUseCase(), { delivered += it }, clock)
 
     /** Whether a service is recording, in this test's world: only then does a fix reach the watch. */
@@ -130,11 +144,13 @@ class TrackRecordingSwipeAwayTest {
         getTracks = GetTracksUseCase(tracks),
         returnWatch = returnWatch,
         alertAudibility = object : AlertAudibility {
-            override fun current() = AlertAudibilityState(RingerMode.NORMAL, doNotDisturbOn = false, notificationsEnabled = true)
+            override fun current() = AlertAudibilityState(ringerMode, doNotDisturbOn = false, notificationsEnabled = true)
         },
         errorLog = ErrorLog { _, message, _ -> logged += message },
         currentTime = clock,
         zone = ZoneOffset.UTC,
+        getTrackOriginWaypoint = GetTrackOriginWaypointUseCase(tracks, waypoints),
+        alreadyRecordingMessage = ALREADY_RECORDING,
     ).also(createdViewModels::add)
 
     /** A ViewModel held the way an Activity holds one, so [ViewModelStore.clear] reaches its `onCleared`. */
@@ -143,7 +159,7 @@ class TrackRecordingSwipeAwayTest {
 
     /** `TrackRecordingService.startRecording`'s call. */
     private fun serviceBegins(trackId: String) {
-        returnWatch.begin(trackId)
+        returnWatch.begin(trackId, TrackRecordingMode.HIGH_ACCURACY)
         serviceRecording = true
     }
 
@@ -290,7 +306,7 @@ class TrackRecordingSwipeAwayTest {
         serviceBegins("track-1")
         runCurrent()
         assertTrue("the service beginning the same track keeps the return", vm.uiState.value.isReturning)
-        assertEquals(ReturnWatchState(trackId = "track-1", isReturning = true), returnWatch.state.value)
+        assertEquals(ReturnWatchState(trackId = "track-1", isBegun = true, mode = TrackRecordingMode.HIGH_ACCURACY, isReturning = true), returnWatch.state.value)
         vm.stopRecording()
     }
 
@@ -337,60 +353,124 @@ class TrackRecordingSwipeAwayTest {
     }
 
     /**
-     * **Still a fault, and Part 3's to fix** (the dispatch's second path, confirmed by the owner,
-     * not built here). A ViewModel built after the first was cleared does not know a recording is
-     * still open: `init` loads waypoints and tracks and nothing else, and `resyncRecordingState`
-     * returns at once when `activeTrack` is null.
+     * The owner's main path (2026-10-02, "Sounds good"):
+     * `Recording > swipe the app away > open Forager again > the screen shows the recording still
+     * running, and the return HUD if you were heading back`.
      *
-     * It also holds one of Amendment 2's design points: the ViewModel copies the watch's state
-     * only when the watch is for the ViewModel's own active track. The watch is still returning
-     * for `track-1` here, and the reopened screen, which has no active track, does not show it.
+     * **This replaces Part 2's first `PART 3 FAULT` pin.** The assertions that turned:
+     * `isRecording` and `isReturning` were false and are true; `activeTrack` and `originWaypoint`
+     * were null and are the running track and its start marker.
      *
-     * **When Part 3 lands:** `isRecording` and `isReturning` here become true.
+     * The HUD shows while `isReturning` is true and points at `originWaypoint`
+     * (`AvailabilityScreen`'s `isNavigating`), so those two are the HUD's state. The breadcrumbs
+     * are the row's, and the screen's own poll goes on reading them. The trip-start warning is not
+     * shown again: it belongs to a Record tap, and this is not one.
      */
     @Test
-    fun `PART 3 FAULT, still true - a ViewModel built while a recording runs reports not recording and not returning`() = runRecordingTest {
+    fun `Recording, swipe the app away, open Forager again - the screen shows the recording still running, and the return that was under way`() = runRecordingTest {
+        ringerMode = RingerMode.SILENT
         val firstStore = ViewModelStore()
-        recordAndStartReturning(viewModelIn(firstStore))
+        val first = viewModelIn(firstStore)
+        recordAndStartReturning(first)
+        assertEquals("precondition: the Record tap on a silenced phone raised the trip-start warning", 1, first.uiState.value.tripStartWarning?.id)
+        tracks.appendForTest("track-1", TrackPoint(45.000, -122.0, null, 5f, 2_000L))
+        tracks.appendForTest("track-1", TrackPoint(45.001, -122.0, null, 5f, 7_000L))
         firstStore.clear()
         runCurrent()
 
         // Forager is opened again: a new Activity, so a new store and a new ViewModel over the same storage.
         val reopened = viewModelIn(ViewModelStore())
         runCurrent()
-        reopened.onEnteredForeground() // what MainActivity's lifecycle observer calls on ON_START
-        runCurrent()
-
-        val openRow = tracks.getById("track-1").getOrThrow()
-        assertNull("precondition: the first recording's row is still open, as it is while the service records", openRow?.endedAtEpochMillis)
-        assertTrue("precondition: the watch is still returning for the first track", returnWatch.state.value.isReturning)
 
         val state = reopened.uiState.value
-        assertFalse("FAULT: the record button reads this, and it says nothing is recording", state.isRecording)
-        assertNull(state.activeTrack)
-        assertFalse("FAULT: the return that is under way is not shown on the reopened screen", state.isReturning)
-        assertNull("no start point is known either, so the HUD would have no target", state.originWaypoint)
-        assertTrue(state.breadcrumbPoints.isEmpty())
-        assertEquals(
-            "the open row is loaded into the Records list, with no end time; nothing treats that as a live recording",
-            listOf("track-1" to null),
-            state.tracks.map { it.id to it.endedAtEpochMillis },
-        )
+        assertTrue("the record button reads this: it offers Stop", state.isRecording)
+        assertEquals(ActiveTrack(trackId = "track-1", startedAtEpochMillis = 1_000L, mode = TrackRecordingMode.HIGH_ACCURACY), state.activeTrack)
+        assertTrue("the return that was under way is shown", state.isReturning)
+        assertEquals("the start marker the HUD points at is the one made before the swipe", "waypoint-1", state.originWaypoint?.id)
+        assertEquals("the breadcrumbs are the row's", listOf(45.000, 45.001), state.breadcrumbPoints.map { it.lat })
+        assertNull("taking a recording up is not a Record tap: no trip-start warning", state.tripStartWarning)
+        assertEquals("the reopened screen reads fixes for itself again", 1, fixes.subscriptionCount.value)
+        assertEquals("still one track", listOf("track-1"), tracks.getAll().getOrThrow().map { it.id })
+
+        // Its own poll runs: a point the service writes later reaches the screen.
+        tracks.appendForTest("track-1", TrackPoint(45.002, -122.0, null, 5f, 12_000L))
+        advanceTimeBy(POLL_INTERVAL_MILLIS)
+        runCurrent()
+        assertEquals(3, reopened.uiState.value.breadcrumbPoints.size)
+
+        // And the return is still live: the walk away alerts, and the reopened screen shows it.
+        walkAwayFromTheStart()
+        assertEquals(1, delivered.size)
+        assertTrue(reopened.uiState.value.isOffTrack)
+
+        // Stop on that screen. (That the service then ends the track is TrackRecordingServiceSwipeAwayTest's.)
+        reopened.stopRecording()
+        assertFalse(reopened.uiState.value.isRecording)
+        assertFalse(reopened.uiState.value.isReturning)
     }
 
     /**
-     * **Still a fault, and Part 3's to fix.** Pressing record on the reopened screen creates a
-     * second track row beside the first, which is still open. Nothing in `startRecording` looks
-     * for an open row. What the service does with the second row's start is pinned in
-     * `TrackRecordingServiceSwipeAwayTest`.
-     *
-     * New since Amendment 2, and recorded so it is not a surprise: Return on that second screen is
-     * refused. The watch is begun for the first track, a return for another track is not accepted,
-     * and the ViewModel logs it. Before the move the second screen would have marked itself
-     * returning against a track that gets no points.
+     * The recording ended while the app was away (Stop from the notification, or the service
+     * gone): the watch is not begun, nothing is taken up, and the screen offers Record. The row is
+     * still open here, as a killed process leaves it, to show the row is not what is gone by.
      */
     @Test
-    fun `PART 3 FAULT, still true - pressing record on the reopened screen creates a second open track row, and its Return is refused`() = runRecordingTest {
+    fun `the recording ended while the app was away - nothing is taken up, even with the track row still open`() = runRecordingTest {
+        val firstStore = ViewModelStore()
+        recordAndStartReturning(viewModelIn(firstStore))
+        firstStore.clear()
+        serviceEnds("track-1")
+        runCurrent()
+        assertNull("precondition: the row is open, as a killed process leaves it", tracks.getById("track-1").getOrThrow()?.endedAtEpochMillis)
+
+        val reopened = viewModelIn(ViewModelStore())
+        runCurrent()
+        reopened.onEnteredForeground()
+        runCurrent()
+
+        assertFalse(reopened.uiState.value.isRecording)
+        assertNull(reopened.uiState.value.activeTrack)
+        assertFalse(reopened.uiState.value.isReturning)
+        assertEquals("no fix collection was started", 0, fixes.subscriptionCount.value)
+    }
+
+    /**
+     * The second moment a recording is taken up: when the app comes to the foreground. Here the
+     * first try, at creation, could not read the track's row. That is logged and nothing is taken
+     * up; "could not read the row" is not treated as "no recording". The next `ON_START` tries
+     * again and takes it up.
+     */
+    @Test
+    fun `a recording that could not be read when the screen was created is taken up when the app next comes to the foreground`() = runRecordingTest {
+        val firstStore = ViewModelStore()
+        recordAndStartReturning(viewModelIn(firstStore))
+        firstStore.clear()
+        runCurrent()
+
+        tracks.failReads = true
+        logged.clear()
+        val reopened = viewModelIn(ViewModelStore())
+        runCurrent()
+        assertFalse(reopened.uiState.value.isRecording)
+        assertTrue("the failed read is logged, naming the track: $logged", logged.any { it == "Couldn't read track 'track-1' to take up its recording; the screen shows no recording." })
+
+        tracks.failReads = false
+        reopened.onEnteredForeground() // what MainActivity's lifecycle observer calls on ON_START
+        runCurrent()
+
+        assertEquals("track-1", reopened.uiState.value.activeTrack?.trackId)
+        assertTrue(reopened.uiState.value.isReturning)
+        reopened.stopRecording()
+    }
+
+    /**
+     * The pre-build report's flag 4, closed by taking the recording up: Restore from backup is
+     * refused while a track is recording, and the guard reads this ViewModel's `isRecording`
+     * (`MainActivity` wires it so). Before, a reopened screen read "not recording" while the
+     * service was writing points, and a restore was allowed.
+     */
+    @Test
+    fun `after the reopened screen takes up the recording, a restore from backup is refused as during any recording`() = runRecordingTest {
         val firstStore = ViewModelStore()
         recordAndStartReturning(viewModelIn(firstStore))
         firstStore.clear()
@@ -398,33 +478,152 @@ class TrackRecordingSwipeAwayTest {
         val reopened = viewModelIn(ViewModelStore())
         runCurrent()
 
+        val backup = FakeJournalBackup()
+        val backupViewModel = BackupViewModel(
+            backup = backup,
+            preferences = FakeSchedulePreferences(),
+            scheduler = FakeScheduler(),
+            files = FakeBackupFiles(),
+            errorLog = ErrorLog { _, _, _ -> },
+            ioDispatcher = Dispatchers.Unconfined,
+            // MainActivity's own wiring: isRecording = { trackRecordingViewModel.uiState.value.isRecording }
+            isRecording = { reopened.uiState.value.isRecording },
+        )
+        runCurrent()
+
+        val allowed = backupViewModel.controls(backupViewModel.uiState.value).onRestoreRequested()
+
+        assertFalse(allowed)
+        assertEquals(BackupMessage.RESTORE_BLOCKED_WHILE_RECORDING, backupViewModel.uiState.value.message)
+        assertTrue(backup.restored.isEmpty())
+        reopened.stopRecording()
+    }
+
+    /**
+     * The owner's path 3: `Record pressed while another recording is running`, answered with the
+     * words "Forager is already recording a track. Stop it before starting another."
+     *
+     * **This replaces Part 2's second `PART 3 FAULT` pin.** The assertion that turned: two open
+     * track rows then, one now. Once a recording is taken up the screen offers Stop, so Record is
+     * only reachable in this state when the take-up has not happened; here the row cannot be
+     * read. The guard is behind the screen, and goes by the watch.
+     */
+    @Test
+    fun `Record pressed while another recording is running starts nothing and says so in the owner's words`() = runRecordingTest {
+        val firstStore = ViewModelStore()
+        recordAndStartReturning(viewModelIn(firstStore))
+        firstStore.clear()
+        runCurrent()
+        tracks.failReads = true
+        val reopened = viewModelIn(ViewModelStore())
+        runCurrent()
+        assertFalse("precondition: the recording was not taken up, so the screen offers Record", reopened.uiState.value.isRecording)
+
         reopened.startRecording(TrackRecordingMode.HIGH_ACCURACY) // what the record button calls when isRecording is false
         runCurrent()
 
-        assertEquals("the screen now shows the second track as the one being recorded", "track-2", reopened.uiState.value.activeTrack?.trackId)
-        assertEquals(
-            "FAULT: two track rows are open at once",
-            listOf("track-1" to null, "track-2" to null),
-            tracks.getAll().getOrThrow().sortedBy { it.id }.map { it.id to it.endedAtEpochMillis },
-        )
+        assertEquals("Forager is already recording a track. Stop it before starting another.", reopened.uiState.value.startRecordingErrorMessage)
+        assertNull("no recording was started on this screen", reopened.uiState.value.activeTrack)
+        tracks.failReads = false
+        assertEquals("no second track row was made", listOf("track-1"), tracks.getAll().getOrThrow().map { it.id })
+        assertEquals("the watch is still for the first track", "track-1", returnWatch.state.value.trackId)
+    }
 
-        logged.clear()
-        reopened.startReturn()
-        assertFalse("the second screen's Return is refused: the watch belongs to the first track", reopened.uiState.value.isReturning)
-        assertEquals("track-1", returnWatch.state.value.trackId)
-        assertEquals(listOf("Return was not started for track 'track-2': the recording service is recording another track."), logged)
+    /**
+     * The owner's path 2: `a recording swiped away before the phone had a good GPS fix, so no start
+     * marker was made > reopen the app > a start marker is placed at the track's first recorded
+     * point`. Never where the phone is at the reopen.
+     *
+     * No gated fix reaches the first ViewModel, so it makes no origin. The service has written two
+     * points. On the reopen the marker is made at the first of them, 45.000. A good fix then
+     * arrives at 45.500, where the walker is now: the marker does not move, no second one is made,
+     * and the watch measures to the same point the screen shows.
+     */
+    @Test
+    fun `a recording taken up without a start marker gets one at its first recorded point, not at the fix after the reopen`() = runRecordingTest {
+        val firstStore = ViewModelStore()
+        val first = viewModelIn(firstStore)
+        first.startRecording(TrackRecordingMode.HIGH_ACCURACY)
+        runCurrent()
+        serviceBegins("track-1")
+        assertNull("precondition: no good fix, so no start marker", first.uiState.value.originWaypoint)
+        tracks.appendForTest("track-1", TrackPoint(45.000, -122.0, 120.0, 5f, 2_000L))
+        tracks.appendForTest("track-1", TrackPoint(45.001, -122.0, null, 5f, 7_000L))
+        firstStore.clear()
+        runCurrent()
+
+        val reopened = viewModelIn(ViewModelStore())
+        runCurrent()
+
+        val origin = requireNotNull(reopened.uiState.value.originWaypoint) { "a start marker was expected at the first recorded point" }
+        assertEquals(45.000, origin.lat, 1e-9)
+        assertEquals(120.0, origin.altitude)
+        assertEquals(WaypointDesignation.ORIGIN, origin.designation)
+        assertEquals("track-1", origin.trackId)
+        assertEquals("the track row points at it", origin.id, tracks.getById("track-1").getOrThrow()?.originWaypointId)
+
+        fixArrives(lat = 45.500, t = 60_000L) // a good fix, where the walker is now
+        assertEquals("the marker stays at the first recorded point", 45.000, reopened.uiState.value.originWaypoint!!.lat, 1e-9)
+        assertEquals("and no second start marker was made", 1, waypoints.getAll().getOrThrow().count { it.designation == WaypointDesignation.ORIGIN })
+        assertEquals(
+            "the watch measures to the same start the screen shows: 0.5 degrees of latitude, not zero",
+            55_597.0,
+            returnWatch.state.value.returnToStart!!.distanceMeters,
+            60.0,
+        )
+        reopened.stopRecording()
+    }
+
+    /**
+     * Path 2 when the track has no recorded point yet at the reopen: no marker is made until one
+     * exists, and it is then made from that first recorded point. A good fix arriving in between
+     * makes none.
+     */
+    @Test
+    fun `a recording taken up with no recorded point yet gets its start marker when the first point is recorded, at that point`() = runRecordingTest {
+        val firstStore = ViewModelStore()
+        val first = viewModelIn(firstStore)
+        first.startRecording(TrackRecordingMode.HIGH_ACCURACY)
+        runCurrent()
+        serviceBegins("track-1")
+        firstStore.clear()
+        runCurrent()
+
+        val reopened = viewModelIn(ViewModelStore())
+        runCurrent()
+        assertTrue(reopened.uiState.value.isRecording)
+        assertNull("no recorded point yet, so no marker", reopened.uiState.value.originWaypoint)
+
+        fixArrives(lat = 45.500, t = 60_000L) // a good fix after the reopen
+        assertNull("the fix received after the reopen never makes the marker", reopened.uiState.value.originWaypoint)
+        assertTrue(waypoints.getAll().getOrThrow().isEmpty())
+
+        tracks.appendForTest("track-1", TrackPoint(45.250, -122.0, null, 5f, 61_000L)) // the service's first kept point
+        advanceTimeBy(POLL_INTERVAL_MILLIS)
+        runCurrent()
+
+        assertEquals(45.250, reopened.uiState.value.originWaypoint?.lat)
+        assertEquals(1, waypoints.getAll().getOrThrow().size)
         reopened.stopRecording()
     }
 
     private companion object {
         const val POLL_INTERVAL_MILLIS = 15_000L
+
+        /** The owner's sentence, as `MainActivity` reads it from `strings.xml` and passes it in. */
+        const val ALREADY_RECORDING = "Forager is already recording a track. Stop it before starting another."
     }
 }
 
 private class SwipeAwayTracks : TrackRepository {
     private val tracks = mutableMapOf<String, Track>()
+
+    /** While true, every read of a single track fails, as a database error would. */
+    var failReads = false
+
     override suspend fun getAll(): Result<List<Track>> = Result.success(tracks.values.toList())
-    override suspend fun getById(id: String): Result<Track?> = Result.success(tracks[id])
+    override suspend fun getById(id: String): Result<Track?> =
+        if (failReads) Result.failure(IllegalStateException("the database could not be read")) else Result.success(tracks[id])
     override suspend fun getFullRecord(id: String): Result<List<TrackPointRecord>> =
         Result.failure(UnsupportedOperationException("getFullRecord is not part of this test's path"))
     override suspend fun getForDay(dayStartInclusiveEpochMillis: Long, dayEndExclusiveEpochMillis: Long): Result<List<Track>> =

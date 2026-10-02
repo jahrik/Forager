@@ -14,6 +14,7 @@ import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
 import com.zynergylabs.forager.app.domain.ErrorLog
+import com.zynergylabs.forager.app.domain.GetTrackOriginWaypointUseCase
 import com.zynergylabs.forager.app.domain.GetTracksUseCase
 import com.zynergylabs.forager.app.domain.GetWaypointsUseCase
 import com.zynergylabs.forager.app.domain.HopBand
@@ -168,6 +169,8 @@ class TrackRecordingViewModel(
     private val getTrackReferenceCount: suspend (String) -> Int = { 0 },
     /** The real delete of a track, run only when its Undo window closes. Part 2 follow-ups F1 item 5. */
     private val deleteTrack: DeleteTrackUseCase,
+    @Suppress("unused") private val getTrackOriginWaypoint: GetTrackOriginWaypointUseCase,
+    @Suppress("unused") private val alreadyRecordingMessage: String,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TrackRecordingUiState())
