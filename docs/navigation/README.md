@@ -29,4 +29,5 @@ These files were moved here from `docs/plans/` and `docs/audits/`. Links in the 
 | [2026-09-28-navigator-plan-status-audit.md](2026-09-28-navigator-plan-status-audit.md) | 2026-09-28: Forager Navigator plan, status audit |
 | [2026-10-01-navigator-completion-plan.md](2026-10-01-navigator-completion-plan.md) | Forager Navigator: the plan for the rest |
 | [2026-10-02-alerts-in-service-prebuild-report.md](2026-10-02-alerts-in-service-prebuild-report.md) | Pre-build report: alerts move into the recording service (dispatch 2026-09-28-400, Part 1) |
+| [2026-10-02-alerts-in-service-part-2-completion-report.md](2026-10-02-alerts-in-service-part-2-completion-report.md) | Completion report: the off-track alert moves into the recording service (dispatch 2026-09-28-400, Part 2) |
 | [forager-navigator-plan.md](forager-navigator-plan.md) | Forager Navigator — plan |
