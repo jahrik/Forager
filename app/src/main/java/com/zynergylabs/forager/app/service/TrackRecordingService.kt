@@ -226,10 +226,18 @@ class TrackRecordingService : Service() {
      * already did for the content intent. Distinct request codes so the two are never conflated.
      */
     private fun buildNotification(): Notification {
+        // SINGLE_TOP and CLEAR_TOP, as the backup notification's tap sets (AndroidBackupNotifier):
+        // MainActivity is a standard activity, so a plain start from here made a second copy on
+        // top of the one already in the task, and Back from it landed on the older copy. Seen on
+        // the S22 (dispatch 2026-09-28-415). With these the existing screen comes to the front
+        // and gets the intent through onNewIntent, which ignores one with no extra. With no task
+        // alive the tap still opens the app as before. The manifest's launch mode is left alone:
+        // changing it would change every way the app is started.
         val openAppIntent = PendingIntent.getActivity(
             this,
             REQUEST_CODE_OPEN_APP,
-            Intent(this, MainActivity::class.java),
+            Intent(this, MainActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP),
             PendingIntent.FLAG_IMMUTABLE,
         )
         val stopIntent = PendingIntent.getService(
