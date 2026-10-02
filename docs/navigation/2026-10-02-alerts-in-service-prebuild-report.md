@@ -100,12 +100,13 @@ Both classes carry a header that says a green run means the fault is still there
 |---|---|---|---|---|---|---|
 | 1 | The two new classes alone | 2 | 7 | 0 | 0 | 0 |
 | 2 | The full unit suite, once (`:app:testDebugUnitTest --continue`) | 415 | 3393 | 0 | 0 | 24 |
-| 3 | The two new classes alone, five more times (`--rerun`) | REPEATS_PLACEHOLDER |
+| 3 | The two new classes alone, five more times (`--rerun`), each run | 2 | 7 | 0 | 0 | 0 |
 
 - Runs 1 and 2 were at commit `2717bded`, the commit that adds the two test classes. What came after it is this report and two index rows.
 - Both build logs were searched for compile errors before any result was read: none. Every XML timestamp in run 2 falls between 03:19:57Z and 03:24:04Z, inside the run, which started at 03:19:54Z. So these are this run's results and not a previous run's.
 - **The 24 skipped are not mine.** They are in five existing classes: `AvailabilityScreenMapIconStackTest` 19, `AvailabilityScreenTripPlanningFlowTest` 2, `AvailabilityScreenOfflineCacheTest` 1, `AvailabilityScreenWaypointFlowTest` 1, `GenerateFungiIndexDbAsset` 1. No test was skipped, silenced or edited by this dispatch.
 - **Nothing failed.** The two owner-held intermittent classes both passed in run 2: `MushroomLogViewModelWiringTest` 2 of 2, `DiagnosticsPanelTest` 8 of 8.
+- Run 3 is a small check that the Robolectric tests are not intermittent: 6 passes out of 6 runs alone, and 1 pass in the full suite. Seven runs cannot show a rare failure. It was run at `73ab3c65`, which differs from `2717bded` only in documents.
 - 3393 less my 7 is 3386 tests that were already there. That figure is derived; the suite was not run at the bare base.
 
 **No revert check was run, and why.** This project proves a test bites by reverting the behaviour and reading the failure. These tests pin a fault that is still in `app/src/main`, and Part 1 may not touch `app/src/main`, so there was nothing to revert. What stands in for it is inside the tests: the control test (same readings, one alert), the collector count going from 1 to 0, the listener count going from 2 to 1, and the first track's twenty points beside the second track's zero. Each fault assertion sits next to a reading that shows the path was live.
