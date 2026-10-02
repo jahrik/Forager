@@ -227,3 +227,20 @@ Appended by the planner. Nothing above is changed. Recorded in `RECORD.md` decis
   - **The tracks stay out of this repository.** It is public and they are real places. The owner exports them as GPX to a folder outside the repository; only the comparison figures and the size of the sample are filed.
 - **Still open:** items 1, 2, 3 and 5, each brought to the owner when its stage comes up, and the audit's decisions under item 7 that wait on Stages G and J.
 - **No task has a go.** The first by the plan's order is T1.
+
+## Addendum, 2026-10-02 (UTC): T1's shape, and a new task, T21
+
+Appended by the planner. Nothing above is changed. Recorded in `RECORD.md` decision 2026-09-28-402.
+
+- **T1's shape is decided: the shared tracker** (shape B of [`2026-10-02-alerts-in-service-prebuild-report.md`](2026-10-02-alerts-in-service-prebuild-report.md), on branch `alerts-in-service` when this was written). The owner, verbatim (2026-10-02T04:30Z): "Option B".
+- **T1 moves the off-track check as it is.** The owner, the same message: "Move as is, adjust as necessary. We need the definition to fit the user, not the software. So if the user benefits from a longer project, I'll buy that as an investment".
+- **T1 now also covers the reopened app.** The owner confirmed the second path on 2026-10-02T02:59Z (`RECORD.md` continuation 2026-09-28-401): a reopened app shows the recording still running, and the return HUD if a return was under way.
+
+**T21. What "off track" means, defined for the user** (new, Stage C)
+- Depends on: T1. Sits beside T5 to T7, since the way-back route brings its own "you have left the path you walked in".
+- Why: the Part 1 report's flag 2. Today's check compares three readings about one second apart and needs more than 25 m gained, so by arithmetic steady walking cannot trip it and one stray reading can. Inferred from the code and the one-second timing in `docs/audits/2026-09-07-fix-log-walk-findings.md`; not observed.
+- Does: starts from what a walker heading back needs to be told and when, put to the owner as step paths. Then a rule that fits it, with its numbers taken from recorded walks and not chosen in advance.
+- Blocked by: the owner's answers to those step paths, and recorded walks to measure against (open item 4).
+- Verify: the rule run over recorded walks, stating the sample: it alerts where the walker did stray and stays quiet where they did not.
+- Device-only: yes. A real walk, in both directions.
+- Not decided here: whether the rule replaces today's check or the way-back route's off-route state takes its place.
