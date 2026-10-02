@@ -506,3 +506,118 @@ Each failure is one that edit could produce.
 On a test build, on a phone that has a stuck track: open the app, then open Records. The track reads as finished, with an end time, and Delete is offered. `adb logcat -s EndAbandonedTracks` shows how many were ended and how many with no stored point were left.
 
 **Added 2026-10-02 (UTC), after the planner's review of Part 3b.** `EndAbandonedTracksUseCase.kt`'s header still said the sweep runs "once, at process start, from `ForagerApplication`", which was true at `6c9ccec1` and not at `1c047c66`. The paragraph is corrected to say that the first recording ViewModel launches it, pointing at `AbandonedTrackSweepOnce` for the reasons. Comment only: no code line changed and no Gradle run was made. So the use case is no longer byte-identical to `6c9ccec1`, as this section says above; it differs in that one comment paragraph.
+
+# Part 3c, 2026-10-02 (UTC): a stuck track with nothing recorded in it
+
+Appended at the third hand-back. Nothing above this heading is changed. Where Part 3b's section says a track with no stored point is "left exactly as it is", is "not built", or is "still open", this section is the later word.
+
+**Status: built and pushed on `alerts-in-service`, not merged, not run on a phone.**
+
+**Follows:** the dispatch file's "Amendment 3, the owner's answer on a track with no stored point: Part 3c" (continuation 2026-09-28-412), read on branch `records-after-149` at `957445f7`. Base: `origin/alerts-in-service` at `3b0e2d3e`. Evidence in `~/Zynergy/device-evidence/2026-10-02-alerts-in-service/part3c/`.
+
+## What changed for the user
+
+The owner's path, answered "2. Option A": `Open Records > a stuck track with nothing recorded in it > it shows as a finished track with no points, ended at its start time; you can delete it`.
+
+A track left as "Still recording" with nothing recorded in it now becomes a finished track, ended at its own start time, the next time the app is opened in a new process. Nothing is deleted by the app: no row is removed and no waypoint is touched. The user can then delete it.
+
+## What was built
+
+In `domain/EndAbandonedTracksUseCase.kt`: a candidate with no stored point is ended at its own start time, through the same conditional write (`endIfOpen`), under the same two conditions as every other candidate (it started before this process did, and the watch is not for it).
+
+- The sweep's result reports these apart, in `endedWithNoStoredPoint`, and the log line says so: "Ended N track(s) left open with nothing recorded in them, each at its own start time."
+- **The "left as they are" count and its log line are gone.** No case remains that leaves a row for want of points. The rows the sweep still leaves open are the ones it always did: the watch's track, a track started in this process, and a track it could not read or write (logged, and counted as failed).
+- The screen's reload after the sweep covers these rows too (`ui/track/TrackRecordingViewModel.kt`, one condition).
+
+Three files under `app/src/main`: the use case, `AppContainer.kt` (the log line), and the ViewModel (the reload's condition). The rule for tracks that have stored points, the cut-off, the watch's row, the clamp, the conditional write and the once-per-process launch are unchanged. No schema change.
+
+## Verified before building: what each reader shows for a finished track with no points
+
+Read at `3b0e2d3e`, not run on a screen.
+
+| Reader | What it shows |
+|---|---|
+| The details sheet, `ui/log/RecordDetailsSheet.kt:294-298` | Started and Ended, the same time. Distance zero. Duration "0m" (`:395-399`). Points "0". No thumbnail: it draws nothing for fewer than two points. |
+| Its Delete, `:314` | Offered. |
+| The Records row, `ui/track/TrackExportPanel.kt:200-209` | "0 points", without "· recording". |
+| Delete on the row, `:124`; the swipe, `ui/log/RecordsLogbookList.kt:168` | Offered. |
+| The Maps tab's saved records, `domain/GetMapRecordsUseCase.kt:103-104` | Nothing drawn: a track with no points has no line. |
+| The derived trip, `data/local/TrackDao.kt:38-42` | The track matches its start day only, where before it matched every later day too. |
+| GPX export, `ui/log/RecordDetailsSheet.kt:304` and `ui/track/TrackExportPanel.kt:187` | **Share is offered,** and writes a file (`domain/GpxCodec.kt:74-81`) holding a track with an empty segment and no points. |
+
+**Nothing fails, by reading.** Two things a user might find odd, reported and not fixed:
+- **Share is offered for a track with nothing in it,** and produces a GPX file with no points. Whether other apps open such a file I could not determine.
+- **Started and Ended read as the same minute, with "0m" and "0 points".** That is accurate, and it is what the owner chose.
+
+Neither is new with this change. A recording started and stopped normally before any fix arrived already reads exactly this way.
+
+## Tests
+
+| What | Held by |
+|---|---|
+| The path, on the screen | `ui/track/TrackRecordingSwipeAwayTest`: `Open Records, a stuck track with nothing recorded in it - it is a finished track with no points, ended at its start time, and it can be deleted`. It also asserts the row is still stored: the sweep deleted nothing. |
+| The path, with the real application, container and database | `ForagerApplicationAbandonedTracksTest`: the existing application test, whose "empty" track is now asserted ended at its start, on the database and on the screen that launched the sweep |
+| Ended at its start, reported apart, nothing else in the row changed | `domain/EndAbandonedTracksUseCaseTest`: `a track with no stored point is ended at its own start time, reported apart, and nothing else in its row changes` |
+| The same two conditions | `…a track with no stored point is left open when it started in this process, or the watch is for it` |
+| The conditional write | `…a track with no stored point that something else ended between the read and the write keeps that end` |
+
+**Tests of mine that changed, before and after:**
+
+| Test | Before | After |
+|---|---|---|
+| `EndAbandonedTracksUseCaseTest`: `a track with no stored point is left exactly as it is, and counted` | The row unchanged; `leftWithNoStoredPoint` is 1 | Renamed `…is ended at its own start time, reported apart, and nothing else in its row changes`: the row's end equals its start; it is in `endedWithNoStoredPoint` |
+| `ForagerApplicationAbandonedTracksTest`, the "empty" row | Asserted still open | Asserted ended at its start |
+| `TrackRecordingSwipeAwayTest`: `a recording started on this screen is not ended by the sweep` | The Record tap came after the sweep had already listed the tracks | The sweep's listing is made to come second, so the recording's row exists, open and with no points, when the sweep lists. Its assertions are the same, plus one on the screen's own list. |
+
+## The test that did not bite now does
+
+In Part 3b I reported that `a recording started on this screen is not ended by the sweep` passed with the cut-off removed. Two reasons, and I had named only the first: a track with no stored point was left alone whatever its start; and in that test the sweep had finished listing before the recording's row was made, so the row was never seen.
+
+Both are now changed, and with the cut-off removed (`d2-no-cutoff`) the test fails with: **`the recording's own row is still open expected null, but was:<1000>`**. The sweep ended the recording that had just been started, at its start time. That is the fault the cut-off prevents.
+
+## What landed
+
+| Commit | What |
+|---|---|
+| `b5f5c3e4` | Tests first, failing: 4 classes, 37 tests, 4 failures, 0 compile errors (`t1-tests-first`). The four: both application and screen path tests, and the two new use-case tests of the behaviour. |
+| `51b7ab32` | The build. |
+| this commit | This section. |
+
+## Revert checks
+
+One edit each, from a saved copy; the reverted build's log read for compile errors first (0 each time); the tree confirmed identical to `51b7ab32` afterwards.
+
+| Folder | The edit | What failed |
+|---|---|---|
+| `d1-no-point-left-alone` | A track with no stored point is left alone again | 4 of 37: the application test (`a track with no stored point is ended at its own start time`), both use-case tests of the behaviour, and the screen's path test |
+| `d2-no-cutoff` | The cut-off removed | 5: among them `expected:<[empty]> but was:<[starting-now, empty]>`, and the screen test above |
+| `d3-reload-misses-no-point` | The reload does not cover these rows | 1: the screen's path test, `ended at its own start time expected:<100> but was:<null>` |
+
+## Suite counts
+
+| Run | Commit | Result |
+|---|---|---|
+| Affected classes (`t2-built-targeted`) | the tree that became `51b7ab32` | 36 classes, 262 tests, 0 failures |
+| Full unit suite (`t3-full-suite`) | `51b7ab32`, clean tree | 420 classes, 3448 tests, 0 failures, 0 errors, 24 skipped |
+| `ForagerDatabaseDestructiveFallbackTest` alone, three times (`t4-fallback-1` to `-3`) | `51b7ab32` | 0 of 3 runs failed |
+| `assembleDebug` (`t5-assemble`) | `51b7ab32` | 0 `e:` lines |
+
+3445 plus 3 new tests is 3448. The 24 skipped are the same five classes. Both owner-held intermittent classes passed. Nothing here opens the database at app start.
+
+## What no headless test reaches
+
+- A real stuck track with nothing in it, on a real phone.
+- What the details sheet and the Records row draw for it. The readers table is read, not run.
+- Whether another app opens the empty GPX file.
+
+## Disclosures
+
+**Observed:** the counts and the failure messages, from the JUnit XML.
+**Read:** the readers table.
+**Could not determine:** whether any tester's phone holds such a track.
+**Premises that were wrong:** mine, in Part 3b. I gave one reason why that test did not bite. There were two, and the second (the order of the listing and the Record tap) would have kept it from biting even after this change.
+**Decided beyond scope:** nothing. One choice inside it: the result reports these tracks in their own list and the old count is removed, as the amendment asked, since no case still leaves a row for want of points.
+
+## For the owner afterwards (device-only)
+
+On a test build, on a phone that has a stuck track with nothing in it: open the app, then Records. It reads as finished, "0 points", and Delete is offered. `adb logcat -s EndAbandonedTracks` shows the count.
