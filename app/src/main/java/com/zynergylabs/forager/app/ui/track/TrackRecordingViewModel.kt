@@ -271,7 +271,7 @@ class TrackRecordingViewModel(
     private suspend fun sweepAbandonedTracks() {
         val result = abandonedTrackSweepOnce.runOnce() ?: return
         result
-            .onSuccess { sweep -> if (sweep.ended.isNotEmpty()) loadTracks() }
+            .onSuccess { sweep -> if (sweep.ended.isNotEmpty() || sweep.endedWithNoStoredPoint.isNotEmpty()) loadTracks() }
             .onFailure { error -> errorLog.w(TAG, "Couldn't list the tracks to end the ones left open by an earlier process; none was changed.", error) }
     }
 

@@ -7,13 +7,13 @@ package com.zynergylabs.forager.app.domain
 data class EndedAbandonedTrack(val trackId: String, val endedAtEpochMillis: Long, val clampedFromEpochMillis: Long?)
 
 /**
- * What one run of [EndAbandonedTracksUseCase] did. [leftWithNoStoredPoint] counts open tracks it
- * deliberately left as they are; [failed] counts tracks it could not read or write, each logged.
+ * What one run of [EndAbandonedTracksUseCase] did. [ended] are the tracks ended at their last
+ * stored point; [endedWithNoStoredPoint] are the ones with nothing recorded in them, ended at
+ * their own start; [failed] counts tracks it could not read or write, each logged.
  */
 data class AbandonedTracksSweep(
     val ended: List<EndedAbandonedTrack> = emptyList(),
     val endedWithNoStoredPoint: List<EndedAbandonedTrack> = emptyList(),
-    val leftWithNoStoredPoint: Int = 0,
     val failed: Int = 0,
 )
 
@@ -71,11 +71,19 @@ data class AbandonedTracksSweep(
  * recording service wrote the true end between this sweep's read and its write, that end stays
  * (ruling C).
  *
+ * ## A track with nothing recorded in it
+ *
+ * The owner's answer (Part 3c, "Option A"): `Open Records > a stuck track with nothing recorded in
+ * it > it shows as a finished track with no points, ended at its start time; you can delete it`.
+ * So a candidate with no stored point is ended **at its own start time**, through the same
+ * conditional write and under the same two conditions as every other candidate. It is reported
+ * apart from the others. The other answer on offer was for the app to remove such a track by
+ * itself; the owner chose not to have anything deleted without doing it themselves.
+ *
  * ## What it does not do
  *
- * **A track with no stored point is left exactly as it is,** and counted. What such a track should
- * become is the owner's to say and has not been said. Nothing is deleted, and no point is removed
- * from any track.
+ * Nothing is deleted. No row is removed, no waypoint is touched, and no point is removed from any
+ * track. A track it could not read or could not write is left open, logged and counted.
  */
 class EndAbandonedTracksUseCase(
     private val trackRepository: TrackRepository,
@@ -86,7 +94,7 @@ class EndAbandonedTracksUseCase(
     suspend operator fun invoke(processStartedAtEpochMillis: Long): Result<AbandonedTracksSweep> =
         trackRepository.getAll().map { tracks ->
             val ended = mutableListOf<EndedAbandonedTrack>()
-            var leftWithNoStoredPoint = 0
+            val endedWithNoStoredPoint = mutableListOf<EndedAbandonedTrack>()
             var failed = 0
             val candidates = tracks.filter {
                 it.endedAtEpochMillis == null && it.startedAtEpochMillis < processStartedAtEpochMillis && it.id != watchedTrackId()
@@ -99,23 +107,25 @@ class EndAbandonedTracksUseCase(
                 } ?: continue
                 // Stored order is by time, but the latest time is what is meant, so it is asked for by value.
                 val lastStoredAt = stored.maxOfOrNull { it.point.timestampEpochMillis }
-                if (lastStoredAt == null) {
-                    leftWithNoStoredPoint++
-                    continue
-                }
-                val endAt = maxOf(lastStoredAt, track.startedAtEpochMillis)
+                // Nothing recorded in it: ended at its own start. Otherwise at the last stored point, never before the start.
+                val endAt = if (lastStoredAt == null) track.startedAtEpochMillis else maxOf(lastStoredAt, track.startedAtEpochMillis)
                 // Asked again here: the reads above suspended, and the watch may have become for this track meanwhile.
                 if (track.id == watchedTrackId()) continue
                 trackRepository.endIfOpen(track.id, endAt)
                     .onSuccess { wrote ->
-                        if (wrote) ended += EndedAbandonedTrack(track.id, endAt, clampedFromEpochMillis = lastStoredAt.takeIf { it < track.startedAtEpochMillis })
+                        if (!wrote) return@onSuccess
+                        if (lastStoredAt == null) {
+                            endedWithNoStoredPoint += EndedAbandonedTrack(track.id, endAt, clampedFromEpochMillis = null)
+                        } else {
+                            ended += EndedAbandonedTrack(track.id, endAt, clampedFromEpochMillis = lastStoredAt.takeIf { it < track.startedAtEpochMillis })
+                        }
                     }
                     .onFailure { error ->
                         errorLog.w(TAG, "Couldn't end open track '${track.id}'; it is left open.", error)
                         failed++
                     }
             }
-            AbandonedTracksSweep(ended = ended, leftWithNoStoredPoint = leftWithNoStoredPoint, failed = failed)
+            AbandonedTracksSweep(ended = ended, endedWithNoStoredPoint = endedWithNoStoredPoint, failed = failed)
         }
 
     private companion object {
