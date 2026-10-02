@@ -243,3 +243,77 @@ As the amendment lists them; not run by me. On a test build:
 # Part 3b: step 6
 
 Not started. Appended here at the second hand-back.
+
+# Part 3a, follow-up, 2026-10-02 (UTC): the window after Stop
+
+Appended after the planner's review of Part 3a. Nothing above this heading is changed; where this corrects it, this is the later word. Evidence in the same folder, `part3a/`.
+
+## The fault, found by the planner by reading, and confirmed by a run
+
+`stopRecording` clears the screen's recording at once. The service is stopped a moment later, when `MainActivity`'s effect has sent the stop and the service has handled it, and only then does the service end the watch. In between, the watch is still begun for the track the screen has just stopped, and the screen has no active track. That is exactly the state Part 3a's refusal and take-up act on.
+
+**What the build at `186bef5a` did, observed** (`t5-stop-window-tests-first`, 16 tests, 2 failures):
+
+| Entry | Expected | What happened |
+|---|---|---|
+| `stopRecording()`, then `startRecording()` with the watch still begun for that track | A new recording on a new track, nothing refused, as before Part 3a | The stopped recording was taken back up: `expected:<track-[2]> but was:<track-[1]>` |
+| `stopRecording()`, then `onEnteredForeground()` in the same window | The screen stays stopped | It took the stopped recording back up: `the screen stays stopped` failed |
+
+So the mechanism is as the planner described it, with one detail different from the description. Record in that window was refused and the sentence was set, but the take-up that the refusal starts then cleared the sentence again in the same pass. In the test the user-facing sentence was `null` by the time it was read. On a phone it may show briefly or not at all; I could not determine which. Either way the outcome was wrong: the screen went back to recording the track it had just stopped.
+
+**What would have followed on a phone, by reading and not run:** with the recording back on screen, the effect sends a start for that track. The service handles the earlier stop first, ends the row, then handles the start with nothing recording and begins again into a row that already has an end time.
+
+## The fix
+
+`ui/track/TrackRecordingViewModel.kt`, and nothing else. The ViewModel remembers the track it has itself stopped. While the watch is still begun for that track, the Record refusal does not apply to it and the take-up leaves it alone. The memory is dropped as soon as the watch is seen to have moved on: ended, or begun for another track. So every other running recording is still refused against and still taken up.
+
+This is the planner's "smallest" as proposed. I did not find a smaller or safer one. Nothing in `MainActivity`'s effect or the service changed.
+
+## Tests
+
+In `TrackRecordingSwipeAwayTest`, through `stopRecording`, `startRecording` and `onEnteredForeground`:
+
+| Test | Holds |
+|---|---|
+| `Stop then Record at once, before the service has handled the stop, starts a new recording and refuses nothing` | A new track; no sentence; nothing logged |
+| `Stop, then the app comes to the foreground before the service has handled the stop - the stopped recording is not taken back up` | The screen stays stopped and reads no fixes |
+| `after its own stopped recording has ended, Record is still refused while a different recording is running` | The memory is only of the screen's own stop: a different running recording still gets the owner's sentence |
+
+## What landed
+
+| Commit | What |
+|---|---|
+| `301d56a4` | The three tests, pushed failing: 2 of 16 fail as in the table above. The third passed then and passes now; it guards the fix from being too wide. |
+| `f19d2d53` | The fix. |
+| this commit | This section. |
+
+## Evidence
+
+| Run | Commit | Result |
+|---|---|---|
+| Affected classes (`t6-stop-window-built`) | the tree that became `f19d2d53` | 12 classes, 209 tests, 0 failures |
+| Revert check `a8-forget-own-stop`: the one line that remembers the stopped track removed | `f19d2d53`, restored from a saved copy, 0 compile errors in the reverted build, tree confirmed identical afterwards | 2 of 16 fail, the same two tests with the same two messages as before the fix |
+| Full unit suite (`t7-full-suite-after-follow-up`) | `f19d2d53`, clean tree | 416 classes, 3423 tests, 0 failures, 0 errors, 24 skipped |
+| `assembleDebug` (`t8-assemble`) | `f19d2d53` | 0 `e:` lines |
+
+3420 plus the 3 new tests is 3423. Both owner-held intermittent classes passed. The 24 skipped are the same five classes.
+
+## Disclosures for the follow-up
+
+**Confirmed by observation:** the two failures before the fix, the revert check, and the counts.
+
+**Inferred, not run:** what the service would have done on a phone after the stopped recording was taken back up.
+
+**Could not determine:** whether the sentence was visible on a phone during that window.
+
+**What the fix rests on:** the stop reaching the service. If it never did, this same screen would go on leaving that recording alone until the watch changed. A new screen, after a swipe-away, has no such memory and takes it up. Not tested; I know of no route by which the stop is not sent after a Stop on a screen that started or took up the recording.
+
+**Not closed by this, and unchanged from the Part 2 report's flag 2:** after Stop then Record at once, the new recording's Return and start point are refused by the watch until the service has ended the old track and begun the new one. A few milliseconds by my reading; the start point is handed again at the next poll.
+
+**Premises that were wrong:** mine. Part 3a's tests never stopped a recording while the watch was still begun and then acted on the same screen, so the window was never exercised. The check never saw the state that could fail it.
+
+**Decided beyond scope:** nothing.
+
+## On the flag about location permission, the planner's reading added
+
+The flag above ("if location permission was taken away while the app was swiped away…") stands as written. The planner's reading, which I agree with as likely: Android kills an app's process when a runtime permission is revoked, so the service would not be running and the watch would not be begun, and the state the flag describes would not arise. **Inferred by both of us, not run.**
