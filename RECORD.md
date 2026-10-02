@@ -10288,3 +10288,114 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Change:** none by this entry. It is written on branch t1-part-2, which joins alerts-in-service at 0f6485a4 with records-after-147 at ea4d3d2f so that one pull request can carry the code and the record. No file under app/ differs between t1-part-2 and the coder's head.
 **Holds:** the merge into main, which is the owner's word; Part 3; the phone check, which needs a test build on the S22.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-406
+**Timestamp:** 2026-10-02T07:55:50Z
+**Continues:** 2026-09-28-400 (preserved 2026-10-02-01, where Amendment 3 is appended); Part 2 reviewed (-405), pull request #148 open for it
+**The owner, verbatim (2026-10-02, UTC):**
+- 07:52Z: "Open pr and merge t1-part-2". Pull request #148 is open on that word; CI was running when this was written, and the merge is not yet made.
+- 07:54Z, to three step paths for Part 3, each with the planner's recommendation: "1 A", "2 A", "3 I'll go with your recommendation".
+**The three paths, as put to the owner:**
+- **1.** "Open Records > a track nothing is recording any more. A: it shows as a normal finished track, ended at its last recorded point; Delete is offered as for any track. B: it still shows "Still recording", but Delete is offered." **A.**
+- **2.** "Reopen the app > the map shows the recording. A: a start marker is placed at the track's first recorded point. B: no start marker; Return still points at the first recorded point." **A.** The planner added: "Either way it must never be placed where you are standing when you reopen."
+- **3.** The words shown if Record is pressed while another recording is running: "Forager is already recording a track. Stop it before starting another." **Accepted.**
+- The main path was confirmed earlier (-401): a reopened app shows the recording still running, and the return HUD if a return was under way.
+**Where the three questions came from:** the coder's view on Part 3's order, sent by message after Part 2 and asked for by the planner. It named these as the owner's: what a stuck open track becomes, where the start marker goes for a recording adopted without one, and what the user is told if a second recording is refused.
+**Change:** Amendment 3 appended to the dispatch file. Part 3 in two hand-backs.
+- **3a, steps 1 to 5:** the watch carries the mode and says it is begun; the screen adopts a running recording when it is created and when the app comes to the foreground; a repeated start for the track already being recorded is not logged as a fault; Record cannot start a second recording, and says so in the owner's words; a recording adopted without a start marker gets one at its first recorded point, never at the fix received after the reopen.
+- **3b, step 6, started only on the planner's word:** open tracks that nothing is recording are ended at their last recorded point. It is the one step that changes stored data, and it opens with a report: how the end time is set today, every reader of an open row, and what each would then show. A track with no recorded point is a stop.
+- Also in 3a: a stale comment in MainActivity.kt and unused imports in one test file, both flagged by the coder after Part 2.
+**Not in Part 3:** what "off track" means (T21); the sundown alerts (T2); any change to the database's shape. No phone.
+**Holds:** the phone check for Parts 2 and 3 together, which needs the release build removed from the S22 and a test build installed (the owner's choice, -404), under its own amendment.
+**Notes:** Written by the planner by hand, on branch records-after-148 cut from t1-part-2 at c45a7117, pushed and not merged.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-407
+**Timestamp:** 2026-10-02T07:57:38Z
+**Continues:** 2026-09-28-400 (preserved 2026-10-02-01, where the ruling is appended beneath Amendment 3); Part 3a started, nothing handed back
+**What happened:** the coder started Part 3a without asking the owner again, under the terms of the owner's "Yes, build Part 2" (-404). It then stopped where Amendment 3 told it to: steps 2 and 4 each need one new argument in MainActivity's ViewModel factory, the lookup of a track's start marker and the refusal's words. It offered three options and preferred the first, naming that option's weakness itself.
+**The planner's ruling:** both are required constructor arguments with no default (the coder's option B). No test composes MainActivity, so a default on the lookup would let a forgotten wiring compile and run, quietly reporting no start marker and placing a second one; the compiler catches a missing required argument. A default for the sentence would be a second copy of the owner's words. The six constructing test files are edited again for the two arguments only; no assertion changes. MainActivity's start-and-stop effect is not touched.
+**Change:** the ruling appended to the dispatch file. No behaviour the owner was asked about changes.
+**Notes:** Written by the planner by hand, on branch records-after-148 with -406, pushed and not merged. Pull request #148's CI was still running when this was written.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-408
+**Timestamp:** 2026-10-02T08:23:15Z
+**Continues:** 2026-09-28-400 (preserved 2026-10-02-01); Part 3a handed back, sent back once, and accepted on alerts-in-service at cc6fd2ee; not merged, not run on a phone; Part 3b given the planner's word
+**Part 3a, from the coder's report** (docs/navigation/2026-10-02-alerts-in-service-part-3-completion-report.md; evidence ~/Zynergy/device-evidence/2026-10-02-alerts-in-service/part3a/):
+- **Commits:** 0ce04e2a, the tests pushed failing (13 of 155); 335b101f, the build; cdcb5e4e, main merged in; 186bef5a, the report.
+- **What was built:** the watch says whether it is begun and in which mode; the service passes the mode, and warns only for a start that names a different track. The ViewModel takes a running recording up when it is created, when the app comes to the foreground, and when Record is refused; refuses Record while another recording runs, in the owner's words; and settles the start marker of a taken-up recording, the track's own or else its first recorded point. MainActivity gains two required factory arguments (-407) and the corrected comment; its start-and-stop effect is untouched. No database change.
+- **Reported as asked:** the network-fixes notice can show a second time after a take-up. Read, not run.
+- **The coder's choices inside the amendment:** a taken-up recording's start marker is named with its first recorded point's time; "first recorded point" is the first of the points as the screen reads them; the take-up does not look at the row's end time.
+**The planner's review, and what it found:**
+- **Read:** the whole diff of ReturnWatch, the service, MainActivity, strings.xml and the ViewModel. **Re-counted from the saved XML:** the full suite at 335b101f, 416 classes, 3,420 tests, 0 failures, 0 errors, 24 skipped; seven revert checks, each failing on the test that claims its edit.
+- **A fault, found by reading and sent back before acceptance.** Stop clears the screen's recording at once, but the service is stopped a moment later, when MainActivity's effect has sent the stop and the service has handled it. In between, the watch is still begun for the track just stopped and the screen has no active track, which is the state the new refusal and the new take-up act on. The planner's reading: a second quick tap on Record would be refused, and the stopped recording could be taken back up, after which the service would record again into a row that already had an end time. Before Part 3a a quick Stop then Record started a new recording.
+- **Confirmed by the coder with a run,** on the build at 186bef5a: Stop then Record took the stopped recording back up ("expected:<track-[2]> but was:<track-[1]>"), and Stop then the app coming to the foreground did the same. One detail differed from the planner's description: the refusal's sentence was set and then cleared in the same pass by the take-up, so the test read none.
+- **Fixed** at f19d2d53 (tests first at 301d56a4, 2 of 16 failing; report section at cc6fd2ee): the ViewModel remembers the track it has itself stopped, and neither refuses against nor takes up a watch still begun for it, until the watch has moved on. A third test holds that a different running recording is still refused against. The planner read the fix and re-counted: the revert check fails the same two tests with the same two messages; the full suite at f19d2d53, 416 classes, 3,423 tests, 0 failures, 0 errors, 24 skipped; no file under app/ differs between f19d2d53 and cc6fd2ee.
+- **Why it was missed, in the coder's words:** none of Part 3a's tests stopped a recording with the watch still begun and then acted on the same screen.
+**Not closed, and said so:** right after Stop then Record, the new recording's Return and start point are refused by the watch until the service has ended the old track and begun the new one. The fix rests on the stop reaching the service.
+**The coder's flag on location permission taken away while the app was swiped away:** the planner's reading is that Android ends the app's process when a runtime permission is revoked, so no service would be running and nothing would be taken up. Inferred by both, not run.
+**Not verified by anyone:** anything on a phone, including MainActivity's effect on a reopened screen and the toast.
+**Change:** none by this entry. The planner gave the coder its word for Part 3b: findings first, by message, and no build until the planner replies. A track with no recorded point is put to the owner.
+**Notes:** Written by the planner by hand, on branch records-after-148 with -406 and -407, pushed and not merged. Pull request #148 (t1-part-2 into main, head c45a7117ef647ea6ef16c4d23430c53293831939, on which CI passed, run 36980882565) was merged as da9437faa81cb5fcd527c57ee6a3337ce167f468 at 2026-10-02T08:01:25Z, read from GitHub, on the owner's "Open pr and merge t1-part-2", with backup 2026-10-02-01; main's app code after the merge is the coder's reviewed 0f6485a4. That merge has no entry of its own, and this note stands in for one.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-409
+**Timestamp:** 2026-10-02T08:26:15Z
+**Continues:** 2026-09-28-400 (preserved 2026-10-02-01, where the rulings are appended beneath Amendment 3); Part 3b's findings received, nothing built
+**Part 3b's findings, sent by the coder before any code** (read at alerts-in-service cc6fd2ee, not run): a track is always ended at "now" today, by an update that overwrites an end time already there; six readers of an open row, two of which the planner's amendment had not listed (the swipe-to-delete in the Records list, and the derived trip, in which an open track matches every later day); a backup made before the sweep restores the row open; MainActivity has no launch mode and the recording notification opens it with no flags, so two screens over one watch are possible (inferred); and, when a recording is stopped, a moment in which the row is open and the watch is not begun.
+**The coder challenged the planner's "when" and the planner accepted it.** Amendment 3 read the sweep as running when the recording screen is created. The coder showed that moment needs three guards and still leaves one case resting on a single one, and proposed process start instead, where no recording, no screen and no just-stopped track can exist.
+**The planner's rulings** (appended to the dispatch file):
+- **A.** Once, at process start, from ForagerApplication. Only rows that started before the process did are swept, and a row the watch is for is left alone. Three costs accepted and to be stated: a row left open while the process lives waits for the next start; a screen created in the same instant may show "Still recording" until Records is next opened; rows restored from an older backup stay open until the next start.
+- **B.** "Last recorded point" is the last stored point, the fixes the screen leaves out included.
+- **C.** The write ends a row only if it is still open. A new query, no change to the database's shape.
+- **D.** The end time written is never earlier than the row's start; a clamp is logged.
+- **A track with no stored point** is left as it is and counted in a log line.
+**With the owner, unanswered when this was written:** what a stuck track with no recorded point becomes. As put: "Open Records > a stuck track with nothing recorded in it. A: it shows as a finished track with no points, ended at its start time; you can delete it. B: the app removes it by itself." The planner recommended A.
+**For the owner's list, outside this dispatch:** the recording notification's tap may put a second copy of the app's screen on top of the first. Added to the phone check.
+**Notes:** Written by the planner by hand, on branch records-after-148 with -406 to -408, pushed and not merged.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-410
+**Timestamp:** 2026-10-02T08:40:33Z
+**Continues:** 2026-09-28-400 (preserved 2026-10-02-01, where the ruling is appended); Part 3b built as first ruled and stopped by the coder before its full suite
+**The stop.** Built as ruled in -409, with the sweep called when the app starts (alerts-in-service 6c9ccec1; tests first at 0d4028db, 15 of 29 failing; the coder's own new tests fixed at 3dced063), an existing and unrelated test class, ForagerDatabaseDestructiveFallbackTest, failed in 7 of 10 runs alone, and in 0 of 10 with that one call removed. The coder measured both, touched neither that test nor anything else, and stopped.
+**Why, as read by the coder and not proved line by line:** nothing at app start touched the database before; it opens on the first query. The sweep became that first query, in the background, in every test's app start, and raced a test that deletes the database file and builds an old one in its place.
+**The planner's ruling** (the coder's option A, appended to the dispatch file): the rule is unchanged; what launches it changes. Once per process, when the first recording screen is created, not when the app starts. The app still notes its start time at once and only tracks older than that are candidates, which is what makes the new moment safe: every hazard of that moment involved a track started in the same process. The screen reloads its list when the sweep finishes.
+**The planner's error in -409:** ruling A placed a database query at app start without asking what else starts the app. Every Robolectric test does. The coder's challenge had not weighed it either, and says so.
+**Costs as they now stand:** a process that starts with no screen does not sweep until the app is next opened; a row left open while the process lives waits for the next start; rows restored from an older backup stay open until the next start. One earlier cost is removed by the reload.
+**Not chosen:** leaving the call at app start and changing the test, which would be a decision to reduce an existing test and is the owner's; a delay, which would pass by coincidence.
+**Notes:** Written by the planner by hand, on branch records-after-148 with -406 to -409, pushed and not merged.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-411
+**Timestamp:** 2026-10-02T08:58:11Z
+**Continues:** 2026-09-28-400 (preserved 2026-10-02-01); Part 3b handed back and accepted on alerts-in-service at 3b0e2d3e; not merged, not run on a phone
+**Part 3b, from the coder's report** (the Part 3b section of docs/navigation/2026-10-02-alerts-in-service-part-3-completion-report.md; evidence ~/Zynergy/device-evidence/2026-10-02-alerts-in-service/part3b/):
+- **Commits:** 0d4028db, the rule's tests pushed failing (15 of 29); 6c9ccec1, the rule, with the launch at app start as first ruled; 3dced063, a fix to the coder's own new tests; 82450b05, the new launch point's tests pushed failing (6 of 323); 1c047c66, the launch by the first recording screen; 1aef03f3, the report section; 3b0e2d3e, a comment corrected at the planner's request.
+- **What was built:** a track left open by an earlier run of the app, with at least one stored point, is ended at the time of its last stored point, never earlier than its start, by a write that changes a row only if it is still open. It runs once per process, launched by the first recording screen to be created, which then reads its track list again. A track the watch is for is left alone. A track with no stored point is left as it is and counted. One new database query; no change to the database's shape.
+- **The measurement:** ForagerDatabaseDestructiveFallbackTest alone, ten runs each: 7 failing with the sweep launched at app start, 0 with that call removed, 0 at the final build. The mechanism is read, not proved. That test was not edited.
+- **Tests:** the full unit suite at 1c047c66, 420 classes, 3,445 tests, 0 failures, 0 errors, 24 skipped; assembleDebug with no error lines; thirteen revert checks.
+**What the planner checked itself:**
+- **Read:** the use case and the once-per-process holder in full, and the whole diff of the container, the application class, MainActivity, the DAO, the repository and its interface, and the ViewModel since Part 3a's accepted head.
+- **Re-counted from the saved XML:** the full suite as reported; the three ten-run measurements, 7, 0 and 0 failing runs; each of the thirteen revert checks failing on the test that claims its edit, among them "expected:<[just-before]> but was:<[just-before, at-start, after-start]>" with the cut-off removed and "a track that already has an end time keeps it" with the write made unconditional.
+- **Checked:** no schema, migration, database-version or build file changed; no test skipped or silenced; nothing removed from the report; no file under app/ differs between 1c047c66 and 1aef03f3; the last commit changes comment lines only.
+- **Sent back, one thing:** the use case's header still said it runs at app start. Corrected by the coder at 3b0e2d3e, comment only.
+**Said by the coder and accepted as said:** the repository's new method has a default that answers "unsupported" explicitly, so six test fakes were not edited; "once" means once completed, so a sweep that could not list the tracks is tried again; the sweep's log lines are not held by a test; one of its own tests does not bite the way its name suggests, and the three that hold the cut-off are named.
+**Accepted costs:** a process that starts with no screen does not sweep until the app is next opened; a row left open while the process lives waits for the next start; rows restored from an older backup stay open until the next start.
+**Not built:** the track with no stored point, which is with the owner. **Not verified by anyone:** anything on a phone; what each reader of a newly ended track shows on a screen.
+**Holds:** the merge into main, which is the owner's word; the phone check for Parts 2 and 3.
+**Notes:** Written by the planner by hand, on branch records-after-148 with -406 to -410, pushed and not merged.
