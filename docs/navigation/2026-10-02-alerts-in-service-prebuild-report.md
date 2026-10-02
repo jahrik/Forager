@@ -345,3 +345,71 @@ Re-run from step 0 at the planner's word after the owner set the phone ("Ready")
 - **State left on the phone at 05:17:36Z:** a recording running, the prompt on screen, nothing else touched. I cannot end the recording inside the amendment's rules: the screen's Stop is behind the prompt, there is no notification to stop it from, and a force-stop, Back, and answering the prompt are all not allowed.
 
 Steps 3 to 7 were not attempted. The two predictions are still untested.
+
+### How the second attempt ended (run 2)
+
+The owner, as relayed by the planner: "I tapped allow, then stopped recording". The planner read the phone at 05:19:02Z: notification permission granted, no service, no Forager notification.
+
+- **What run 2 showed, for the record:** on a fresh install, the first tap on Record raises the system's notification prompt with the recording already started and no notification behind it. Until the prompt is answered Allow, the recording has no notification and so no Stop action in the shade.
+- **A short track was left on the phone by run 2.** It started at the Record tap, 05:17:22Z (10:17 PM on the phone), and ended when the owner pressed Stop, before 05:19:02Z. I could not read its exact times: this is not a debug build, so the database is not readable from here.
+
+### Third attempt (run 3), 05:19Z to 05:23Z: the check ran to the end
+
+Evidence in `phone-check/run3/`. Each state reading is four files with the step's name: `-state.txt` (time, rotation, awake, keyguard, pid), `-services.txt`, `-notifications.txt`, `-activities.txt`. The rotation was re-read as upright before every tap, the swipe and each key press.
+
+**Predictions (pushed at `d67019e5`, before any phone command), and what happened.** Step 4: I predicted the pid, the service and the notification would all survive. They did. Step 6: I predicted the Maps tab would offer Record and show no recording and no HUD, in the same process. It did. The planner's predictions were the same.
+
+| Step | What was done | Result | Evidence |
+|---|---|---|---|
+| 0 | Read-only baseline, 05:19:21Z | SM-S908U, Android 16, One UI 8.0, `1.0.2426+ge0239399`, versionCode 2426, ceDataInode 2470106. Notification permission granted. Upright, awake, no keyguard, USB powered, location on. pid 5455. No service, no Forager notification. Maps tab with "Start recording track". | `step0-baseline.txt`, `step0-*`, `step0.png`, `step0.xml` |
+| 1 | Launcher intent, 05:19:35Z | Unchanged; Maps tab, Record control in the dump. | `step1.png`, `step1.xml` |
+| 2 | One tap on "Start recording track", 05:19:39Z, bounds `[1275,1962][1365,2052]` from the dump | **Pass.** `TrackRecordingService` listed, `isForeground=true`, `foregroundId=1001`. Notification id 1001 posted. No dialog. The notice "Do Not Disturb is on. If you go off track, the alert may not be felt." showed as a passing message at the bottom of the map. | `step2-tap.txt`, `step2.png`, `step2.xml`, `step2-*` |
+| 3 | One tap on the Return control, 05:19:57Z, bounds `[1275,2157][1365,2247]` | Observation: the HUD showed, with a start point ("within 36 ft", "Approaching", and a "Stop navigating" control). **P1 = 5455.** | `step3-before.*`, `step3-tap.txt`, `step3.png`, `step3.xml`, `step3-*` |
+| 4 | `KEYCODE_APP_SWITCH` at 05:20:11Z; recents dump; one swipe up on Forager's card (bounds `[265,388][1174,2265]`) at 05:20:26Z; Home at 05:20:41Z | **The swipe did what it claims:** the Activity's task (`t254`) is in neither `dumpsys activity activities` nor `dumpsys activity recents`. **The gate, read at 05:20:56Z: all three as before.** pid 5455, service `isForeground=true`, notification id 1001 still posted. **The premise holds on this phone.** | `step4-appswitch.txt`, `step4-recents.png`, `step4-recents.xml`, `step4-swipe.txt`, `step4-after-swipe.png`, `step4-home.png`, `step4-state.txt`, `step4-services.txt`, `step4-notifications.txt`, `step4-activities.txt`, `step4-recents-dump.txt` |
+| 5 | Read again at 05:21:43Z, 62 s after Home | Unchanged: pid 5455, service foreground, notification posted. Screen awake throughout. | `step5-*`, `step5.png` |
+| 6 | Launcher intent, 05:21:45Z | **The screen offers Record and shows no recording.** "Start recording track" and "Return to vehicle — start recording first" are in the dump; no HUD. pid 5455, in a new task (`t255`). The service was still foreground and the notification still posted while the screen said this. Record was not tapped. | `step6-launch.txt`, `step6.png`, `step6.xml`, `step6-*` |
+| 7 | Shade expanded 05:22:00Z. The Stop action was not in the dump: Forager's notification was collapsed. I stopped and told the planner. At the planner's word, one tap on that row's own Expand button (`[1235,510][1400,780]`, fresh dump) at 05:22:56Z, then one tap on "Stop recording", found by its text (`[85,796][1355,976]`), at 05:23:09Z. Shade collapsed 05:23:15Z. | **Pass.** At 05:23:12Z the service is not listed and the notification is gone. No other notification was touched. | `step7-shade.*`, `step7-before-*`, `step7-before-expand.*`, `step7-expand-tap.txt`, `step7-expanded.*`, `step7-stop-tap.txt`, `step7-after-*`, `step7-shade-after.png`, `step7-end.*` |
+
+**End state, 05:23:21Z:** Forager in front on the Maps tab, offering Record. No service, no Forager notification, shade closed, upright, pid 5455.
+
+**Tracks left on the phone by this check:** two, both ended. Run 2's, started 05:17:22Z (10:17 PM on the phone). Run 3's, started 05:19:39Z (10:19 PM) and ended at 05:23:09Z (10:23 PM). The phone did not move. The owner decides whether they stay.
+
+**The row, for the project to keep:**
+
+| Device | Android / One UI | Build | Power | Process survived the swipe | Service survived | Notification survived | Reopened screen | HUD on reopen | Stop from the shade ended it |
+|---|---|---|---|---|---|---|---|---|---|
+| S22 Ultra, SM-S908U | 16 / 8.0 | `1.0.2426+ge0239399` (2426) | USB | yes (pid 5455 before and after) | yes | yes | Record offered | no | yes, after expanding the notification |
+
+**What this check cannot show:**
+- A phone that is unplugged. Everything here is on USB power, where battery management is at its most lenient.
+- A phone in a pocket with the screen off. The screen was awake the whole time.
+- Anything longer than about 80 seconds after the swipe.
+- A walk. The phone sat still, so nothing here is about the off-track alert.
+- What the second tap on Record would do. It was deliberately not tapped.
+
+**Two things seen on the way, not acted on:**
+- **The Stop action is one extra tap away.** On this phone the recording notification arrives collapsed, and "Stop recording" only appears after its Expand arrow is tapped. The notification is the one control that works when the screen does not know about the recording.
+- **A fresh install's first Record tap** starts the recording behind the system's notification prompt (run 2).
+
+#### Disclosures for the phone check
+
+**Confirmed by observation:** every row of the table above, from `dumpsys` output and screen dumps saved with their times.
+
+**Inferred:**
+- That the Activity was destroyed and its ViewModel cleared at the swipe. What was observed is that the task was gone, and that the reopened screen, in the same process, offered Record. That is what a new Activity with a new ViewModel would show, and it matches the headless tests. The ViewModel itself cannot be seen from outside the app.
+- That the service went on recording points after the swipe. What was observed is that it stayed a foreground service. The track's points were not read.
+
+**Could not determine:**
+- The exact start and end times and point counts of the two tracks. The build is not debuggable, so the database cannot be read from here.
+- Why the first attempt found the phone in landscape (run 1).
+
+**Evidence limits:**
+- The two screen dumps taken straight after the swipe and after Home (`step4-after-swipe.xml`, `step4-home.xml`) are stale copies of the recents dump: `uiautomator` reported that it could not get an idle state on the home screen and wrote nothing new. Step 4 rests on the `dumpsys` readings and the two screenshots, not on those dumps. From step 6 on, the old dump file was removed before each new dump, so a failed dump could not pass as a fresh one.
+- The home-screen screenshots show the owner's wallpaper, a personal photo. They stay in the local evidence folder. Nothing from that folder is committed.
+
+**Premises that were wrong:**
+- The amendment's step 7 assumed the Stop action would be in the shade's dump as soon as the shade was open. It is behind the notification's Expand arrow.
+- The amendment's baseline did not include the notification permission, which had never been granted on this install (run 2).
+- Mine, in run 1: my rotation reading at step 0 said upright and the screen was in landscape seconds later. From run 2 on, the rotation was read from one unambiguous line before every action.
+
+**Decided beyond scope:** nothing. Before the first `adb` command I asked the owner directly, because this session's launch prompt said "No phone, no adb"; the answer was "Yes, run the check". The one tap the amendment did not name, on the notification's Expand arrow, was made only after the planner said it was within step 7.
