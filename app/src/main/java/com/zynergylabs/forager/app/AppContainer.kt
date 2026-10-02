@@ -55,6 +55,7 @@ import com.zynergylabs.forager.app.alert.AndroidAlertAudibility
 import com.zynergylabs.forager.app.alert.AndroidAlertDelivery
 import com.zynergylabs.forager.app.domain.AlertAudibility
 import com.zynergylabs.forager.app.domain.AlertDelivery
+import com.zynergylabs.forager.app.domain.AbandonedTrackSweepOnce
 import com.zynergylabs.forager.app.domain.EndAbandonedTracksUseCase
 import com.zynergylabs.forager.app.domain.ReturnWatch
 import com.zynergylabs.forager.app.domain.ComputeReturnToStartUseCase
@@ -145,7 +146,7 @@ import com.zynergylabs.forager.app.sensor.AndroidCompassProvider
 import com.zynergylabs.forager.app.sensor.AndroidDeclinationProvider
 
 /** Hand-wired dependency graph. No DI framework: the graph is small enough not to need one. */
-class AppContainer(context: Context) {
+class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     private val api = INaturalistClient.create(debug = BuildConfig.DEBUG)
     private val weatherApi = OpenMeteoClient.create(debug = BuildConfig.DEBUG)
     private val historicalWeatherApi = OpenMeteoArchiveClient.create(debug = BuildConfig.DEBUG)
@@ -329,9 +330,12 @@ class AppContainer(context: Context) {
     // TrackRecordingViewModel calls it for Return and copies its state. See ReturnWatch.
     val returnWatch = ReturnWatch(computeReturnToStartUseCase, detectOffTrackUseCase, alertDelivery, currentTimeProvider)
 
-    // Run once at process start by ForagerApplication (dispatch 2026-09-28-400, Amendment 3, Part
-    // 3b): tracks an earlier process left open become finished tracks. See the use case.
+    // Tracks an earlier process left open become finished tracks (dispatch 2026-09-28-400,
+    // Amendment 3, Part 3b). The rule is the use case's; AbandonedTrackSweepOnce runs it once per
+    // process, launched by the first recording ViewModel to be created.
     val endAbandonedTracksUseCase = EndAbandonedTracksUseCase(trackRepository, watchedTrackId = { returnWatch.state.value.trackId }, errorLog = errorLog)
+
+    val abandonedTrackSweepOnce = AbandonedTrackSweepOnce(endAbandonedTracksUseCase, processStartedAtEpochMillis)
 
     val waypointRepository: WaypointRepository = RoomWaypointRepository(database.waypointDao())
     val createWaypointUseCase = CreateWaypointUseCase(waypointRepository)

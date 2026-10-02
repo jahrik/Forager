@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.ui.track
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.zynergylabs.forager.app.domain.AbandonedTrackSweepOnce
 import com.zynergylabs.forager.app.domain.AlertAudibility
 import com.zynergylabs.forager.app.domain.ComputeReturnToStartUseCase
 import com.zynergylabs.forager.app.domain.NETWORK_FIXES_RECORDING_NOTICE
@@ -187,6 +188,7 @@ class TrackRecordingViewModel(
      * this class does not. Required for the same reason: one copy of the words.
      */
     private val alreadyRecordingMessage: String,
+    @Suppress("unused") private val abandonedTrackSweepOnce: AbandonedTrackSweepOnce,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TrackRecordingUiState())
