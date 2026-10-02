@@ -10201,3 +10201,24 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Change:** Amendment 1 appended to the dispatch file: a seven-step check on the S22 by the coder, on the installed build, with no build and no install. The gate is step 4: after Forager is swiped from recents, the process, the foreground service and the recording notification are each read again. It ends the recording from the notification's Stop action and leaves one ended track on the phone.
 **Holds:** Part 2. Nothing is built until the check is back and the owner has answered the shape and flag 2.
 **Notes:** Written by the planner by hand, on branch records-after-146 cut from main at 9c3f103d, pushed and not merged; the coder reads the amendment from that branch. Pull request #146 (records-after-145 into main, head c90512805af5cc46be8939d4780e16d3a3692c91, on which CI passed, run 36957593569) was merged as 9c3f103dcd4b0a04a7bddedc71bf5f2dee867518 at 2026-10-02T03:01:07Z, read from GitHub, on the owner's "Yes open a pr and merge.", with backup 2026-10-01-06. That merge has no entry of its own, and this note stands in for one.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-402
+**Timestamp:** 2026-10-02T04:31:48Z
+**Subject:** plan task T1 (dispatch -400): the shape, and what happens to the off-track check
+**The owner, verbatim (2026-10-02, UTC):**
+- 03:58Z: "Explain 2 and 3", the second and third of the planner's questions after Part 1 (the shape; the off-track check's timing).
+- 04:30Z, to the planner's account of both and "A or B for the design; 'move as is' or 'rule first' for off-track": "Option B" and "Move as is, adjust as necessary. We need the definition to fit the user, not the software. So if the user benefits from a longer project, I'll buy that as an investment".
+**What the owner was told before answering:**
+- **Option A:** the recording service holds the return state; the screen messages it and opens a connection to read it back, so a reopened app has a moment of not knowing; that code sits where no automated test reaches.
+- **Option B:** one tracker shared by the service and the screen, kept alive and fed by the service; a reopened app reads it at once; nearly all of it testable without a phone; its cost is that two parts of the app write to it at the same time, and eight existing tests move to it one for one.
+- **The off-track check today:** three readings about one second apart, more than 25 m gained, so walking cannot trip it and one stray reading can. Arithmetic from the code and the 2026-09-07 walk log's one-second timing; not observed.
+**What is decided:**
+- **Shape B.**
+- **The off-track check moves as it is.** What it means is not changed by T1.
+- **Its meaning is to be redefined to fit the user,** as its own work, and the owner accepts a longer project for it where the user benefits. Recorded in the plan as a new task, T21, in Stage C. Nothing about the new rule is decided.
+**Change:** a dated addendum at the end of docs/navigation/2026-10-01-navigator-completion-plan.md. Docs only.
+**Holds:** Part 2 of -400 still waits for the phone check of continuation -401 (the coder's predictions are pushed on alerts-in-service at d67019e5; the check is running). The amendment that starts Part 2 is not written.
+**Notes:** Written by the planner by hand, on branch records-after-146 with -401, pushed and not merged.
