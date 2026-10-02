@@ -30,5 +30,6 @@ These files were moved here from `docs/plans/` and `docs/audits/`. Links in the 
 | [2026-10-01-navigator-completion-plan.md](2026-10-01-navigator-completion-plan.md) | Forager Navigator: the plan for the rest |
 | [2026-10-02-alerts-in-service-part-3-completion-report.md](2026-10-02-alerts-in-service-part-3-completion-report.md) | Completion report: the reopened app takes up the recording it left (dispatch 2026-09-28-400, Part 3) |
 | [2026-10-02-alerts-in-service-prebuild-report.md](2026-10-02-alerts-in-service-prebuild-report.md) | Pre-build report: alerts move into the recording service (dispatch 2026-09-28-400, Part 1) |
+| [2026-10-02-alerts-in-service-device-check.md](2026-10-02-alerts-in-service-device-check.md) | Device check: the off-track alert's move and the reopened app, on the S22 (dispatch 2026-09-28-400, Amendment 4) |
 | [2026-10-02-alerts-in-service-part-2-completion-report.md](2026-10-02-alerts-in-service-part-2-completion-report.md) | Completion report: the off-track alert moves into the recording service (dispatch 2026-09-28-400, Part 2) |
 | [forager-navigator-plan.md](forager-navigator-plan.md) | Forager Navigator — plan |
