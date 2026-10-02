@@ -51,7 +51,11 @@ class ForagerApplication : Application(), ScheduledBackupDependenciesProvider {
         super.onCreate()
         val startedAt = System.currentTimeMillis()
         diagnostics = DebugDiagnostics.install(this)
-        container = AppContainer(this)
+        // The start time goes to the container for the abandoned-track sweep's cut-off (dispatch
+        // 2026-09-28-400, Amendment 3, Part 3b). Taken above, before anything else runs. The sweep
+        // itself is not launched here: nothing in onCreate queries the database. See
+        // AbandonedTrackSweepOnce for what launches it and why.
+        container = AppContainer(this, processStartedAtEpochMillis = startedAt)
         installCrashHandler()
         initializeMapLibreAtStart()
         installMapHttpClientAtStart()

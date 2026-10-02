@@ -4,7 +4,6 @@ import com.zynergylabs.forager.app.domain.Alert
 import com.zynergylabs.forager.app.domain.AlertAudibility
 import com.zynergylabs.forager.app.domain.AlertAudibilityState
 import com.zynergylabs.forager.app.domain.AlertDelivery
-import com.zynergylabs.forager.app.domain.AlertKind
 import com.zynergylabs.forager.app.domain.ComputeReturnToStartUseCase
 import com.zynergylabs.forager.app.domain.CreateWaypointUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
@@ -13,6 +12,9 @@ import com.zynergylabs.forager.app.domain.InMemoryKeptTrackPaths
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
 import com.zynergylabs.forager.app.domain.DetectOffTrackUseCase
 import com.zynergylabs.forager.app.domain.ReturnWatch
+import com.zynergylabs.forager.app.domain.AbandonedTrackSweepOnce
+import com.zynergylabs.forager.app.domain.EndAbandonedTracksUseCase
+import com.zynergylabs.forager.app.domain.GetTrackOriginWaypointUseCase
 import com.zynergylabs.forager.app.domain.GetTracksUseCase
 import com.zynergylabs.forager.app.domain.GetWaypointsUseCase
 import com.zynergylabs.forager.app.domain.LocationFix
@@ -137,6 +139,9 @@ class TrackRecordingViewModelTest {
         createWaypoint = CreateWaypointUseCase(waypointRepository, currentTime = fixedTime, idGenerator = { "waypoint-${++waypointIds}" }),
         deleteWaypoint = DeleteWaypointUseCase(waypointRepository),
         deleteTrack = DeleteTrackUseCase(trackRepository, waypointRepository, InMemoryKeptTrackPaths()),
+        getTrackOriginWaypoint = GetTrackOriginWaypointUseCase(trackRepository, waypointRepository),
+        alreadyRecordingMessage = "Forager is already recording a track. Stop it before starting another.",
+        abandonedTrackSweepOnce = AbandonedTrackSweepOnce(EndAbandonedTracksUseCase(trackRepository, { null }, { _, _, _ -> }), processStartedAtEpochMillis = 0L),
         computeReturnToStart = ComputeReturnToStartUseCase(),
         locationTracker = locationTracker,
         getTracks = GetTracksUseCase(trackRepository),
@@ -683,9 +688,6 @@ class TrackRecordingViewModelTest {
 
     private companion object {
         const val POLL_INTERVAL_MILLIS = 15_000L
-
-        /** Mirrors TrackRecordingViewModel's own private constant of the same name — see its own doc comment. */
-        const val OFF_TRACK_ALERT_COOLDOWN_MILLIS = 120_000L
     }
 
     /**

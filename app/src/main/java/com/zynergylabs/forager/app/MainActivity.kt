@@ -203,6 +203,9 @@ class MainActivity : ComponentActivity() {
                     getWaypointReferenceCount = { id -> waypointEntryReferenceCountOrZero(id, container.getEntryReferenceCountUseCase::forWaypoint, androidErrorLog) },
                     getTrackReferenceCount = { id -> trackEntryReferenceCountOrZero(id, container.getEntryReferenceCountUseCase::forTrack, androidErrorLog) },
                     deleteTrack = container.deleteTrackUseCase,
+                    getTrackOriginWaypoint = container.getTrackOriginWaypointUseCase,
+                    alreadyRecordingMessage = getString(R.string.track_recording_already_recording),
+                    abandonedTrackSweepOnce = container.abandonedTrackSweepOnce,
                 )
             }
         }
@@ -321,11 +324,15 @@ class MainActivity : ComponentActivity() {
         // TrackRecordingViewModel is therefore driven from the same two callbacks now -- but it does
         // NOT release its subscription on ON_STOP the way AvailabilityViewModel does. It
         // resynchronizes against the track's own row and releases only if that row says the
-        // recording is over. Two things in its collector must keep running with the screen off
+        // recording is over. One thing in its collector must keep running with the screen off
         // during a legitimate recording: the origin waypoint, seeded from the first fix to clear the
-        // accuracy gate and which pathHome's own doc records may arrive very late under canopy, and
-        // the off-track alert, which is fed from that same collector. See
+        // accuracy gate and which pathHome's own doc records may arrive very late under canopy. See
         // TrackRecordingViewModel.onLeftForeground for the full reasoning.
+        //
+        // CORRECTED (dispatch 2026-09-28-400, Amendment 3). This comment used to name a second
+        // thing, "the off-track alert, which is fed from that same collector". That stopped being
+        // true with Amendment 2: the off-track decision is ReturnWatch's and is fed by
+        // TrackRecordingService, so it does not depend on the ViewModel's collector at all.
         lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onStart(owner: LifecycleOwner) {
                 viewModel.onEnteredForeground()

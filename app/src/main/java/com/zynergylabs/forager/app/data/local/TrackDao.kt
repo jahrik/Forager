@@ -57,6 +57,15 @@ abstract class TrackDao {
     @Query("UPDATE tracks SET endedAtEpochMillis = :endedAtEpochMillis WHERE id = :id")
     abstract suspend fun updateEndedAt(id: String, endedAtEpochMillis: Long)
 
+    /**
+     * As [updateEndedAt], but only for a row that has no end time yet. Returns how many rows it
+     * changed: 1, or 0 when the row was already ended or does not exist. The condition is in the
+     * statement itself, so no read-then-write gap exists in which another writer's end time could
+     * be replaced (dispatch 2026-09-28-400, Amendment 3, ruling C). No schema change.
+     */
+    @Query("UPDATE tracks SET endedAtEpochMillis = :endedAtEpochMillis WHERE id = :id AND endedAtEpochMillis IS NULL")
+    abstract suspend fun updateEndedAtIfOpen(id: String, endedAtEpochMillis: Long): Int
+
     /** See [com.zynergylabs.forager.app.domain.TrackRepository.setOriginWaypoint]. */
     @Query("UPDATE tracks SET originWaypointId = :waypointId WHERE id = :id")
     abstract suspend fun updateOriginWaypointId(id: String, waypointId: String)

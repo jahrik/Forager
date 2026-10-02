@@ -55,6 +55,8 @@ import com.zynergylabs.forager.app.alert.AndroidAlertAudibility
 import com.zynergylabs.forager.app.alert.AndroidAlertDelivery
 import com.zynergylabs.forager.app.domain.AlertAudibility
 import com.zynergylabs.forager.app.domain.AlertDelivery
+import com.zynergylabs.forager.app.domain.AbandonedTrackSweepOnce
+import com.zynergylabs.forager.app.domain.EndAbandonedTracksUseCase
 import com.zynergylabs.forager.app.domain.ReturnWatch
 import com.zynergylabs.forager.app.domain.ComputeReturnToStartUseCase
 import com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCase
@@ -144,7 +146,7 @@ import com.zynergylabs.forager.app.sensor.AndroidCompassProvider
 import com.zynergylabs.forager.app.sensor.AndroidDeclinationProvider
 
 /** Hand-wired dependency graph. No DI framework: the graph is small enough not to need one. */
-class AppContainer(context: Context) {
+class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     private val api = INaturalistClient.create(debug = BuildConfig.DEBUG)
     private val weatherApi = OpenMeteoClient.create(debug = BuildConfig.DEBUG)
     private val historicalWeatherApi = OpenMeteoArchiveClient.create(debug = BuildConfig.DEBUG)
@@ -328,6 +330,20 @@ class AppContainer(context: Context) {
     // TrackRecordingViewModel calls it for Return and copies its state. See ReturnWatch.
     val returnWatch = ReturnWatch(computeReturnToStartUseCase, detectOffTrackUseCase, alertDelivery, currentTimeProvider)
 
+    // Tracks an earlier process left open become finished tracks (dispatch 2026-09-28-400,
+    // Amendment 3, Part 3b). The rule is the use case's; AbandonedTrackSweepOnce runs it once per
+    // process, launched by the first recording ViewModel to be created.
+    val endAbandonedTracksUseCase = EndAbandonedTracksUseCase(trackRepository, watchedTrackId = { returnWatch.state.value.trackId }, errorLog = errorLog)
+
+    val abandonedTrackSweepOnce = AbandonedTrackSweepOnce(endAbandonedTracksUseCase, processStartedAtEpochMillis) { sweep ->
+        if (sweep.ended.isNotEmpty()) Log.i(SWEEP_TAG, "Ended ${sweep.ended.size} track(s) left open by an earlier process, each at its last stored point.")
+        sweep.ended.filter { it.clampedFromEpochMillis != null }.forEach {
+            Log.w(SWEEP_TAG, "Track '${it.trackId}': its last stored point is at ${it.clampedFromEpochMillis}, before its start at ${it.endedAtEpochMillis}; ended at its start.")
+        }
+        if (sweep.leftWithNoStoredPoint > 0) Log.i(SWEEP_TAG, "Left ${sweep.leftWithNoStoredPoint} open track(s) with no stored point as they are.")
+        if (sweep.failed > 0) Log.w(SWEEP_TAG, "${sweep.failed} open track(s) could not be read or ended and are left open.")
+    }
+
     val waypointRepository: WaypointRepository = RoomWaypointRepository(database.waypointDao())
     val createWaypointUseCase = CreateWaypointUseCase(waypointRepository)
     val getWaypointsUseCase = GetWaypointsUseCase(waypointRepository)
@@ -358,4 +374,8 @@ class AppContainer(context: Context) {
         waypointRepository,
         offlineRegionDayIndex,
     )
+
+    private companion object {
+        const val SWEEP_TAG = "EndAbandonedTracks"
+    }
 }

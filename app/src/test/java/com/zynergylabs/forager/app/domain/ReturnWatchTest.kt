@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.domain
 
 import com.zynergylabs.forager.app.domain.model.TrackPoint
+import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.CyclicBarrier
 import java.util.concurrent.atomic.AtomicReference
@@ -43,7 +44,7 @@ class ReturnWatchTest {
 
     /** A watch the service has begun for `track-1`, with the start at 45.0: where each moved test's own setup left the ViewModel. */
     private fun begunWatch(clock: CurrentTimeProvider = CurrentTimeProvider { nowMillis }) = watch(clock).apply {
-        begin("track-1")
+        begin("track-1", MODE)
         setStartPoint("track-1", point(lat = 45.0, lng = -122.0, t = 1_000L))
     }
 
@@ -196,7 +197,7 @@ class ReturnWatchTest {
         assertTrue("and the screen can show it at once", watch.state.value.isReturning)
         watch.setStartPoint("track-1", point(lat = 45.0, t = 1_000L))
 
-        watch.begin("track-1")
+        watch.begin("track-1", MODE)
         assertTrue("beginning the same track keeps the return", watch.state.value.isReturning)
 
         watch.onFix(point(lat = 45.001, t = 2_000L))
@@ -211,9 +212,9 @@ class ReturnWatchTest {
         watch.startReturn("track-1")
         watch.setStartPoint("track-1", point(lat = 45.0, t = 1_000L))
 
-        watch.begin("track-2")
+        watch.begin("track-2", MODE)
 
-        assertEquals(ReturnWatchState(trackId = "track-2"), watch.state.value)
+        assertEquals(ReturnWatchState(trackId = "track-2", isBegun = true, mode = MODE), watch.state.value)
     }
 
     @Test
@@ -249,7 +250,7 @@ class ReturnWatchTest {
     @Test
     fun `with no start point there is nothing to measure against, so nothing is decided`() {
         val watch = watch()
-        watch.begin("track-1")
+        watch.begin("track-1", MODE)
         watch.startReturn("track-1")
 
         watch.onFix(point(lat = 45.001, t = 2_000L))
@@ -287,7 +288,7 @@ class ReturnWatchTest {
         assertEquals(ReturnWatchState(), watch.state.value)
 
         // Same clock instant: a cooldown carried over from the first recording would block this.
-        watch.begin("track-2")
+        watch.begin("track-2", MODE)
         watch.setStartPoint("track-2", point(lat = 45.0, t = 5_000L))
         watch.startReturn("track-2")
         watch.onFix(point(lat = 45.001, t = 6_000L))
@@ -304,6 +305,36 @@ class ReturnWatchTest {
         watch.end(null)
 
         assertEquals(ReturnWatchState(), watch.state.value)
+    }
+
+    /**
+     * Amendment 3, step 1: the watch is the live source for "a recording is running". An open
+     * track row is not: a killed process leaves the same row. So the state says whether the
+     * service has begun it, for which track, and in which mode, and says so only between
+     * [ReturnWatch.begin] and [ReturnWatch.end].
+     */
+    @Test
+    fun `the watch says it is begun, for which track and in which mode, only between begin and end`() {
+        val watch = watch()
+        assertEquals(ReturnWatchState(), watch.state.value)
+
+        watch.begin("track-1", TrackRecordingMode.BATTERY_SAVER)
+        assertEquals(ReturnWatchState(trackId = "track-1", isBegun = true, mode = TrackRecordingMode.BATTERY_SAVER), watch.state.value)
+
+        watch.end("track-1")
+        assertEquals(ReturnWatchState(), watch.state.value)
+    }
+
+    /** A Return accepted early names a track, and is not a running recording: only the service's begin is. */
+    @Test
+    fun `a return accepted before the service has begun does not make the watch begun`() {
+        val watch = watch()
+
+        watch.startReturn("track-1")
+
+        assertFalse(watch.state.value.isBegun)
+        assertNull(watch.state.value.mode)
+        assertEquals("track-1", watch.state.value.trackId)
     }
 
     /**
@@ -428,5 +459,8 @@ class ReturnWatchTest {
     private companion object {
         /** Mirrors [ReturnWatch]'s own constant, as `TrackRecordingViewModelTest` mirrored the ViewModel's. */
         const val OFF_TRACK_ALERT_COOLDOWN_MILLIS = 120_000L
+
+        /** The mode the service is recording in, in these tests. The decision does not read it; the watch only carries it. */
+        val MODE = TrackRecordingMode.HIGH_ACCURACY
     }
 }

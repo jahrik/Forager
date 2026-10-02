@@ -75,6 +75,10 @@ class RoomTrackRepository(
         dao.updateEndedAt(trackId, endedAtEpochMillis)
     }
 
+    override suspend fun endIfOpen(trackId: String, endedAtEpochMillis: Long): Result<Boolean> = runCatchingCancellable {
+        dao.updateEndedAtIfOpen(trackId, endedAtEpochMillis) > 0
+    }
+
     override suspend fun setOriginWaypoint(trackId: String, waypointId: String): Result<Unit> = runCatchingCancellable {
         dao.updateOriginWaypointId(trackId, waypointId)
     }

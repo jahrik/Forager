@@ -10,6 +10,9 @@ import com.zynergylabs.forager.app.domain.InMemoryKeptTrackPaths
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
 import com.zynergylabs.forager.app.domain.DetectOffTrackUseCase
 import com.zynergylabs.forager.app.domain.ReturnWatch
+import com.zynergylabs.forager.app.domain.AbandonedTrackSweepOnce
+import com.zynergylabs.forager.app.domain.EndAbandonedTracksUseCase
+import com.zynergylabs.forager.app.domain.GetTrackOriginWaypointUseCase
 import com.zynergylabs.forager.app.domain.GetTracksUseCase
 import com.zynergylabs.forager.app.domain.GetWaypointsUseCase
 import com.zynergylabs.forager.app.domain.LocationFix
@@ -125,6 +128,9 @@ class TrackRecordingSundownTest {
             createWaypoint = CreateWaypointUseCase(waypoints, currentTime = clock, idGenerator = { "waypoint-${++waypointIds}" }),
             deleteWaypoint = DeleteWaypointUseCase(waypoints),
             deleteTrack = DeleteTrackUseCase(repository, waypoints, InMemoryKeptTrackPaths()),
+            getTrackOriginWaypoint = GetTrackOriginWaypointUseCase(repository, waypoints),
+            alreadyRecordingMessage = "Forager is already recording a track. Stop it before starting another.",
+            abandonedTrackSweepOnce = AbandonedTrackSweepOnce(EndAbandonedTracksUseCase(repository, { null }, { _, _, _ -> }), processStartedAtEpochMillis = 0L),
             computeReturnToStart = ComputeReturnToStartUseCase(),
             locationTracker = tracker,
             getTracks = GetTracksUseCase(repository),
