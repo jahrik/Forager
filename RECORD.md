@@ -10345,3 +10345,21 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Not verified by anyone:** anything on a phone, including MainActivity's effect on a reopened screen and the toast.
 **Change:** none by this entry. The planner gave the coder its word for Part 3b: findings first, by message, and no build until the planner replies. A track with no recorded point is put to the owner.
 **Notes:** Written by the planner by hand, on branch records-after-148 with -406 and -407, pushed and not merged. Pull request #148 (t1-part-2 into main, head c45a7117ef647ea6ef16c4d23430c53293831939, on which CI passed, run 36980882565) was merged as da9437faa81cb5fcd527c57ee6a3337ce167f468 at 2026-10-02T08:01:25Z, read from GitHub, on the owner's "Open pr and merge t1-part-2", with backup 2026-10-02-01; main's app code after the merge is the coder's reviewed 0f6485a4. That merge has no entry of its own, and this note stands in for one.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-409
+**Timestamp:** 2026-10-02T08:26:15Z
+**Continues:** 2026-09-28-400 (preserved 2026-10-02-01, where the rulings are appended beneath Amendment 3); Part 3b's findings received, nothing built
+**Part 3b's findings, sent by the coder before any code** (read at alerts-in-service cc6fd2ee, not run): a track is always ended at "now" today, by an update that overwrites an end time already there; six readers of an open row, two of which the planner's amendment had not listed (the swipe-to-delete in the Records list, and the derived trip, in which an open track matches every later day); a backup made before the sweep restores the row open; MainActivity has no launch mode and the recording notification opens it with no flags, so two screens over one watch are possible (inferred); and, when a recording is stopped, a moment in which the row is open and the watch is not begun.
+**The coder challenged the planner's "when" and the planner accepted it.** Amendment 3 read the sweep as running when the recording screen is created. The coder showed that moment needs three guards and still leaves one case resting on a single one, and proposed process start instead, where no recording, no screen and no just-stopped track can exist.
+**The planner's rulings** (appended to the dispatch file):
+- **A.** Once, at process start, from ForagerApplication. Only rows that started before the process did are swept, and a row the watch is for is left alone. Three costs accepted and to be stated: a row left open while the process lives waits for the next start; a screen created in the same instant may show "Still recording" until Records is next opened; rows restored from an older backup stay open until the next start.
+- **B.** "Last recorded point" is the last stored point, the fixes the screen leaves out included.
+- **C.** The write ends a row only if it is still open. A new query, no change to the database's shape.
+- **D.** The end time written is never earlier than the row's start; a clamp is logged.
+- **A track with no stored point** is left as it is and counted in a log line.
+**With the owner, unanswered when this was written:** what a stuck track with no recorded point becomes. As put: "Open Records > a stuck track with nothing recorded in it. A: it shows as a finished track with no points, ended at its start time; you can delete it. B: the app removes it by itself." The planner recommended A.
+**For the owner's list, outside this dispatch:** the recording notification's tap may put a second copy of the app's screen on top of the first. Added to the phone check.
+**Notes:** Written by the planner by hand, on branch records-after-148 with -406 to -408, pushed and not merged.
