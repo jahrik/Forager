@@ -340,7 +340,7 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
         sweep.ended.filter { it.clampedFromEpochMillis != null }.forEach {
             Log.w(SWEEP_TAG, "Track '${it.trackId}': its last stored point is at ${it.clampedFromEpochMillis}, before its start at ${it.endedAtEpochMillis}; ended at its start.")
         }
-        if (sweep.leftWithNoStoredPoint > 0) Log.i(SWEEP_TAG, "Left ${sweep.leftWithNoStoredPoint} open track(s) with no stored point as they are.")
+        if (sweep.endedWithNoStoredPoint.isNotEmpty()) Log.i(SWEEP_TAG, "Ended ${sweep.endedWithNoStoredPoint.size} track(s) left open with nothing recorded in them, each at its own start time.")
         if (sweep.failed > 0) Log.w(SWEEP_TAG, "${sweep.failed} open track(s) could not be read or ended and are left open.")
     }
 
