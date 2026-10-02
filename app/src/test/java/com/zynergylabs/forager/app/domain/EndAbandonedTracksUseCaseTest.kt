@@ -104,20 +104,58 @@ class EndAbandonedTracksUseCaseTest {
         assertNull(tracks.row("stuck")?.endedAtEpochMillis)
     }
 
-    /** Not built, by the planner's word: the owner has the question. Such a row is left exactly as it is, and counted. */
+    /**
+     * The owner's answer for a stuck track with nothing recorded in it, "Option A" (Part 3c): `it
+     * shows as a finished track with no points, ended at its start time; you can delete it`.
+     * Nothing is deleted. It is reported apart from the tracks ended at a stored point.
+     *
+     * This test asserted the opposite until Part 3c: that such a row was left exactly as it was
+     * and counted as left.
+     */
     @Test
-    fun `a track with no stored point is left exactly as it is, and counted`() = runTest {
-        val empty = open("empty", name = "No fix")
+    fun `a track with no stored point is ended at its own start time, reported apart, and nothing else in its row changes`() = runTest {
         val tracks = SweepTracks().apply {
-            put(empty)
+            put(open("empty", startedAt = 4_000L, name = "No fix", originWaypointId = "wp-9"))
             put(open("stuck"), stored(3_000L))
         }
 
         val sweep = useCase(tracks)(PROCESS_START).getOrThrow()
 
-        assertEquals(1, sweep.leftWithNoStoredPoint)
-        assertEquals(empty, tracks.row("empty"))
-        assertEquals(listOf("stuck"), sweep.ended.map { it.trackId })
+        assertEquals(listOf(EndedAbandonedTrack("empty", endedAtEpochMillis = 4_000L, clampedFromEpochMillis = null)), sweep.endedWithNoStoredPoint)
+        assertEquals(
+            Track(id = "empty", name = "No fix", startedAtEpochMillis = 4_000L, endedAtEpochMillis = 4_000L, points = emptyList(), originWaypointId = "wp-9"),
+            tracks.row("empty"),
+        )
+        assertEquals("the track with a stored point is still reported with the others", listOf("stuck"), sweep.ended.map { it.trackId })
+    }
+
+    /** The same two conditions as every other candidate: it started before this process did, and the watch is not for it. */
+    @Test
+    fun `a track with no stored point is left open when it started in this process, or the watch is for it`() = runTest {
+        val tracks = SweepTracks().apply {
+            put(open("starting-now", startedAt = PROCESS_START + 5))
+            put(open("watched", startedAt = 2_000L))
+            put(open("empty", startedAt = 3_000L))
+        }
+        watched = "watched"
+
+        val sweep = useCase(tracks)(PROCESS_START).getOrThrow()
+
+        assertEquals(listOf("empty"), sweep.endedWithNoStoredPoint.map { it.trackId })
+        assertNull(tracks.row("starting-now")?.endedAtEpochMillis)
+        assertNull(tracks.row("watched")?.endedAtEpochMillis)
+    }
+
+    /** The conditional write applies to these too: one ended by something else in the meantime keeps that end. */
+    @Test
+    fun `a track with no stored point that something else ended between the read and the write keeps that end`() = runTest {
+        val tracks = SweepTracks().apply { put(open("racing", startedAt = 3_000L)) }
+        tracks.beforeFullRecord = { tracks.forceEnd("racing", 99_000L) }
+
+        val sweep = useCase(tracks)(PROCESS_START).getOrThrow()
+
+        assertEquals(99_000L, tracks.row("racing")?.endedAtEpochMillis)
+        assertTrue(sweep.endedWithNoStoredPoint.isEmpty())
     }
 
     /** Ruling D: the end written is never earlier than the row's start. A point's time is the fix's own and the start is the phone's clock, so they can disagree. */
