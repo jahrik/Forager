@@ -205,6 +205,7 @@ class MainActivity : ComponentActivity() {
                     deleteTrack = container.deleteTrackUseCase,
                     getTrackOriginWaypoint = container.getTrackOriginWaypointUseCase,
                     alreadyRecordingMessage = getString(R.string.track_recording_already_recording),
+                    abandonedTrackSweepOnce = container.abandonedTrackSweepOnce,
                 )
             }
         }

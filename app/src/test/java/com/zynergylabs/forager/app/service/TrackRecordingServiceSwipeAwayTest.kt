@@ -122,6 +122,7 @@ class TrackRecordingServiceSwipeAwayTest {
                         deleteTrack = container.deleteTrackUseCase,
                         getTrackOriginWaypoint = container.getTrackOriginWaypointUseCase,
                         alreadyRecordingMessage = ALREADY_RECORDING,
+                        abandonedTrackSweepOnce = container.abandonedTrackSweepOnce,
                     ).also(createdViewModels::add)
                 }
             },

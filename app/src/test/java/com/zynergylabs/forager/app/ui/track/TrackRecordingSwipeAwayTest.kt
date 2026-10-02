@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.zynergylabs.forager.app.domain.AbandonedTrackSweepOnce
 import com.zynergylabs.forager.app.domain.Alert
 import com.zynergylabs.forager.app.domain.AlertAudibility
 import com.zynergylabs.forager.app.domain.AlertAudibilityState
@@ -15,6 +16,7 @@ import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
 import com.zynergylabs.forager.app.domain.DetectOffTrackUseCase
+import com.zynergylabs.forager.app.domain.EndAbandonedTracksUseCase
 import com.zynergylabs.forager.app.domain.GetTrackOriginWaypointUseCase
 import com.zynergylabs.forager.app.domain.GetTracksUseCase
 import com.zynergylabs.forager.app.domain.GetWaypointsUseCase
@@ -128,6 +130,16 @@ class TrackRecordingSwipeAwayTest {
     private var ringerMode = RingerMode.NORMAL
     private val returnWatch = ReturnWatch(ComputeReturnToStartUseCase(), DetectOffTrackUseCase(), { delivered += it }, clock)
 
+    /**
+     * The process's one sweep of tracks left open by an earlier process, as the container holds
+     * it. This test's "process" started at [PROCESS_START], before the clock's 1,000 that every
+     * recording here starts at, so no recording made in a test is ever a candidate.
+     */
+    private val sweepOnce = AbandonedTrackSweepOnce(
+        EndAbandonedTracksUseCase(tracks, watchedTrackId = { returnWatch.state.value.trackId }, errorLog = { _, message, _ -> logged += message }),
+        processStartedAtEpochMillis = PROCESS_START,
+    )
+
     /** Whether a service is recording, in this test's world: only then does a fix reach the watch. */
     private var serviceRecording = false
 
@@ -151,6 +163,7 @@ class TrackRecordingSwipeAwayTest {
         zone = ZoneOffset.UTC,
         getTrackOriginWaypoint = GetTrackOriginWaypointUseCase(tracks, waypoints),
         alreadyRecordingMessage = ALREADY_RECORDING,
+        abandonedTrackSweepOnce = sweepOnce,
     ).also(createdViewModels::add)
 
     /** A ViewModel held the way an Activity holds one, so [ViewModelStore.clear] reaches its `onCleared`. */
@@ -680,8 +693,70 @@ class TrackRecordingSwipeAwayTest {
         assertNull(vm.uiState.value.activeTrack)
     }
 
+    // ---- Tracks left open that nothing is recording (Amendment 3, Part 3b) ---------------------
+
+    /**
+     * The owner's path 1, answered "A": `Open Records > a track nothing is recording any more > it
+     * shows as a normal finished track, ended at its last recorded point; Delete is offered as for
+     * any track`.
+     *
+     * The first recording ViewModel created in a process launches the sweep. When it finishes the
+     * ViewModel reads its track list again, so the track reads as finished on this screen at once,
+     * without Records being reopened. Records shows "finished" and offers Delete from the row's
+     * end time (`canBeDeleted`), and the ViewModel's own refusal to delete a recording track goes
+     * by the same field, so those are what is asserted.
+     */
+    @Test
+    fun `Open Records, a track nothing is recording any more - it is a finished track ended at its last recorded point, and it can be deleted`() = runRecordingTest {
+        tracks.seedOpen("stuck", startedAt = 100L, TrackPoint(45.0, -122.0, null, 5f, 300L), TrackPoint(45.001, -122.0, null, 5f, 700L))
+
+        val vm = viewModelIn(ViewModelStore())
+        runCurrent()
+
+        val shown = vm.uiState.value.tracks.single { it.id == "stuck" }
+        assertEquals("ended at its last recorded point", 700L, shown.endedAtEpochMillis)
+        assertTrue("Records offers Delete for it, as for any finished track", shown.canBeDeleted)
+        assertEquals("no point was removed", 2, tracks.storedPointCount("stuck"))
+
+        logged.clear()
+        vm.requestRemoveTrack("stuck")
+        assertEquals("and the delete is no longer refused as 'still recording'", "stuck", vm.uiState.value.pendingTrackDelete?.item?.id)
+        assertEquals(emptyList<String>(), logged)
+    }
+
+    /** Once per process: a second recording ViewModel (a second Activity, or the screen reopened) does not sweep again. */
+    @Test
+    fun `a second ViewModel in the same process does not run the sweep again`() = runRecordingTest {
+        tracks.seedOpen("stuck", startedAt = 100L, TrackPoint(45.0, -122.0, null, 5f, 300L))
+        viewModelIn(ViewModelStore())
+        runCurrent()
+        assertEquals("precondition: the first ViewModel's sweep ended it", 300L, tracks.getById("stuck").getOrThrow()?.endedAtEpochMillis)
+
+        tracks.seedOpen("left-later", startedAt = 200L, TrackPoint(45.0, -122.0, null, 5f, 400L))
+        val second = viewModelIn(ViewModelStore())
+        runCurrent()
+
+        assertNull("the second ViewModel swept nothing", tracks.getById("left-later").getOrThrow()?.endedAtEpochMillis)
+        assertNull(second.uiState.value.tracks.single { it.id == "left-later" }.endedAtEpochMillis)
+    }
+
+    /** The sweep and a recording in the same process: the recording started after the process did, so it is never a candidate, even with no watch begun for it yet. */
+    @Test
+    fun `a recording started on this screen is not ended by the sweep`() = runRecordingTest {
+        val vm = viewModelIn(ViewModelStore())
+        vm.startRecording(TrackRecordingMode.HIGH_ACCURACY) // before the sweep's coroutine has run at all
+        runCurrent()
+
+        assertTrue(vm.uiState.value.isRecording)
+        assertNull(tracks.getById("track-1").getOrThrow()?.endedAtEpochMillis)
+        vm.stopRecording()
+    }
+
     private companion object {
         const val POLL_INTERVAL_MILLIS = 15_000L
+
+        /** When this test's "process" started: before every recording a test makes (the clock reads 1,000). */
+        const val PROCESS_START = 900L
 
         /** The owner's sentence, as `MainActivity` reads it from `strings.xml` and passes it in. */
         const val ALREADY_RECORDING = "Forager is already recording a track. Stop it before starting another."
@@ -698,7 +773,22 @@ private class SwipeAwayTracks : TrackRepository {
     override suspend fun getById(id: String): Result<Track?> =
         if (failReads) Result.failure(IllegalStateException("the database could not be read")) else Result.success(tracks[id])
     override suspend fun getFullRecord(id: String): Result<List<TrackPointRecord>> =
-        Result.failure(UnsupportedOperationException("getFullRecord is not part of this test's path"))
+        Result.success(tracks[id]?.points.orEmpty().map { TrackPointRecord(it, kept = true) })
+
+    /** The conditional end, as Room's: only a row that is still open. */
+    override suspend fun endIfOpen(trackId: String, endedAtEpochMillis: Long): Result<Boolean> {
+        val row = tracks[trackId] ?: return Result.success(false)
+        if (row.endedAtEpochMillis != null) return Result.success(false)
+        tracks[trackId] = row.copy(endedAtEpochMillis = endedAtEpochMillis)
+        return Result.success(true)
+    }
+
+    /** A track an earlier process left open, with the points it stored. */
+    fun seedOpen(id: String, startedAt: Long, vararg points: TrackPoint) {
+        tracks[id] = Track(id = id, name = null, startedAtEpochMillis = startedAt, endedAtEpochMillis = null, points = points.toList())
+    }
+
+    fun storedPointCount(id: String): Int = tracks[id]?.points?.size ?: 0
     override suspend fun getForDay(dayStartInclusiveEpochMillis: Long, dayEndExclusiveEpochMillis: Long): Result<List<Track>> =
         Result.failure(UnsupportedOperationException("getForDay is not part of this test's path"))
     override suspend fun create(track: Track): Result<Unit> = Result.success(Unit).also { tracks[track.id] = track }

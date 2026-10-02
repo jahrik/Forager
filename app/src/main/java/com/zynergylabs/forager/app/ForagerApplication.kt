@@ -51,13 +51,16 @@ class ForagerApplication : Application(), ScheduledBackupDependenciesProvider {
         super.onCreate()
         val startedAt = System.currentTimeMillis()
         diagnostics = DebugDiagnostics.install(this)
-        container = AppContainer(this)
+        // The start time goes to the container for the abandoned-track sweep's cut-off (dispatch
+        // 2026-09-28-400, Amendment 3, Part 3b). Taken above, before anything else runs. The sweep
+        // itself is not launched here: nothing in onCreate queries the database. See
+        // AbandonedTrackSweepOnce for what launches it and why.
+        container = AppContainer(this, processStartedAtEpochMillis = startedAt)
         installCrashHandler()
         initializeMapLibreAtStart()
         installMapHttpClientAtStart()
         sweepOrphanedCaptures(startedAt)
         deleteStaleGpxExports()
-        endAbandonedTracks(startedAt)
     }
 
     /**
@@ -133,34 +136,6 @@ class ForagerApplication : Application(), ScheduledBackupDependenciesProvider {
         applicationScope.launch {
             val deleted = TrackGpxExporter.forContext(this@ForagerApplication).deleteStaleExports()
             if (deleted > 0) Log.i(TAG, "Deleted $deleted GPX export(s) more than an hour old from the cache.")
-        }
-    }
-
-    /**
-     * Tracks an earlier process left open become finished tracks, ended at their last stored point
-     * (dispatch 2026-09-28-400, Amendment 3, Part 3b; the owner's answer "A" for a track nothing is
-     * recording any more). The rule, and why it runs here and not when a screen is created, are
-     * [com.zynergylabs.forager.app.domain.EndAbandonedTracksUseCase]'s.
-     *
-     * [processStartedAtMillis] is taken at the top of `onCreate`, before this is launched: only a
-     * track started before it is a candidate, so a Record tap cannot race this, whenever it runs.
-     * Off the main thread for the reason [sweepOrphanedCaptures] gives.
-     *
-     * Everything it did is logged, including what it left alone: this is the one place the app
-     * changes a stored record without being asked, and a log line is the only trace on a phone.
-     */
-    private fun endAbandonedTracks(processStartedAtMillis: Long) {
-        applicationScope.launch {
-            container.endAbandonedTracksUseCase(processStartedAtMillis)
-                .onSuccess { sweep ->
-                    if (sweep.ended.isNotEmpty()) Log.i(TAG, "Ended ${sweep.ended.size} track(s) left open by an earlier process, each at its last stored point.")
-                    sweep.ended.filter { it.clampedFromEpochMillis != null }.forEach {
-                        Log.w(TAG, "Track '${it.trackId}': its last stored point is at ${it.clampedFromEpochMillis}, before its start at ${it.endedAtEpochMillis}; ended at its start.")
-                    }
-                    if (sweep.leftWithNoStoredPoint > 0) Log.i(TAG, "Left ${sweep.leftWithNoStoredPoint} open track(s) with no stored point as they are.")
-                    if (sweep.failed > 0) Log.w(TAG, "${sweep.failed} open track(s) could not be read or ended and are left open.")
-                }
-                .onFailure { error -> Log.w(TAG, "Couldn't list the tracks to end the ones left open by an earlier process; none was changed.", error) }
         }
     }
 
