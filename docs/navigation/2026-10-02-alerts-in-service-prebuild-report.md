@@ -298,3 +298,12 @@ The dispatch's two checks stand. Two additions from this report, cheapest first:
 3. **Open Forager again.** Expected today, from the code and the tests: the Maps tab shows no recording, and the button offers Record, not Stop. Evidence: a screenshot.
 4. **Do not press Record there** unless you want the stuck track from flag 1. If you do want to see it: press Record, walk, press Stop, then open Records. Expected today: two tracks, the older one with all the points, the newer one with none and reading "Still recording", with no Delete offered. The stuck track cannot be removed from inside the app today.
 5. **End the test from the notification's Stop action,** which is the one control that works whatever the screen believes.
+
+## Note added 2026-10-02 (UTC), after the hand-back: flag 7 is not a model discrepancy
+
+Appended at the planner's word. Nothing above is changed; flag 7 stands as it was written and this note supersedes its reading.
+
+- **What was read, and when.** At the start of this session, from `get_session`: model `claude-opus-5-5`, both as configured and as last served, and effort `medium`. It was not read again afterwards, so a later change would not be in that reading.
+- **What the owner said to this session,** after the hand-back, verbatim: "Opus 5.5 Medium for this session".
+- **What the planner said:** that the owner changed coders to Opus 5.5 at medium effort for this session after the launch prompt was first pasted, so Opus 5.5 is what was intended.
+- **So flag 7 records a launch-prompt line that arrived incomplete, not a wrong model.** The line began " first, and state the model you run on", with the command before it missing. The session ran on the model the owner chose.
