@@ -1,9 +1,15 @@
 package com.zynergylabs.forager.app.domain
 
-/** One track the sweep ended. [clampedFromEpochMillis] is the last stored point's time when that was earlier than the track's start and the start was written in its place; `null` otherwise. */
+/**
+ * One track the sweep ended. [clampedFromEpochMillis] is the last stored point's time when that
+ * was earlier than the track's start and the start was written in its place; `null` otherwise.
+ */
 data class EndedAbandonedTrack(val trackId: String, val endedAtEpochMillis: Long, val clampedFromEpochMillis: Long?)
 
-/** What one run of [EndAbandonedTracksUseCase] did. */
+/**
+ * What one run of [EndAbandonedTracksUseCase] did. [leftWithNoStoredPoint] counts open tracks it
+ * deliberately left as they are; [failed] counts tracks it could not read or write, each logged.
+ */
 data class AbandonedTracksSweep(
     val ended: List<EndedAbandonedTrack> = emptyList(),
     val leftWithNoStoredPoint: Int = 0,
@@ -11,14 +17,104 @@ data class AbandonedTracksSweep(
 )
 
 /**
- * SKELETON (dispatch 2026-09-28-400, Amendment 3, Part 3b, tests first): the shape and nothing
- * else. It ends nothing yet, so its tests fail on their assertions and not on a missing symbol.
+ * Ends tracks that were left open and that nothing is recording any more (dispatch
+ * 2026-09-28-400, Amendment 3, Part 3b; plan task T1).
+ *
+ * ## What the owner asked for
+ *
+ * `Open Records > a track nothing is recording any more`, answered "A": **it shows as a normal
+ * finished track, ended at its last recorded point; Delete is offered as for any track.** Records
+ * reads "finished" from the row's end time and offers Delete from the same field, so the whole of
+ * this is one write: an end time on a row that has none.
+ *
+ * Such rows come from two places: a process killed while recording (nothing resumes a recording,
+ * and nothing else ever ends its row), and a fault in earlier builds that could start a second
+ * track the recording service never wrote to. Until this, they read "Still recording" for good
+ * and the app refused to delete them.
+ *
+ * ## When it runs, and why then
+ *
+ * Once, at process start, from `ForagerApplication`. At that moment no service is recording (a
+ * recording needs this process's service), no screen exists, and nothing has just been stopped, so
+ * an open row from before is by definition one nothing is recording. Run when a screen is created
+ * it would have needed guards against a recording that is just starting, one that is just
+ * stopping, and a second screen (the planner's ruling A, on the coder's challenge).
+ *
+ * ## Which rows
+ *
+ * An open row (no end time) whose **start is earlier than [invoke]'s `processStartedAtEpochMillis`**,
+ * and which is **not the track the watch is for**.
+ * - The cut-off is what makes the timing of this sweep against a Record tap not matter: a row
+ *   started in this process is never a candidate.
+ * - The watch's track covers a recording the service has begun and a Return accepted early for a
+ *   track about to be recorded. It is asked when the rows are listed and again just before each
+ *   write.
+ *
+ * ## What is written
+ *
+ * The end time, and nothing else. It is the time of the track's **last stored point**, read
+ * through [TrackRepository.getFullRecord], which includes the fixes the screen leaves out as
+ * network fixes: the end time says when recording stopped, and a fix the map hides is still a
+ * moment the phone was recording (ruling B). **This is not a display consumer.** `getFullRecord`'s
+ * own comment keeps display code away from the unfiltered record; this reads one timestamp from it
+ * to write a row, and shows nothing.
+ *
+ * Never earlier than the row's start. A point's time is the fix's own and the start is the phone's
+ * clock, so they can disagree; then the start is written, and the result says so with both times
+ * (ruling D).
+ *
+ * The write is [TrackRepository.endIfOpen], which ends a row only if it is still open. If the
+ * recording service wrote the true end between this sweep's read and its write, that end stays
+ * (ruling C).
+ *
+ * ## What it does not do
+ *
+ * **A track with no stored point is left exactly as it is,** and counted. What such a track should
+ * become is the owner's to say and has not been said. Nothing is deleted, and no point is removed
+ * from any track.
  */
 class EndAbandonedTracksUseCase(
-    @Suppress("unused") private val trackRepository: TrackRepository,
-    @Suppress("unused") private val watchedTrackId: () -> String?,
-    @Suppress("unused") private val errorLog: ErrorLog,
+    private val trackRepository: TrackRepository,
+    /** The track [ReturnWatch] is for right now, or `null`. A function, so it is asked at the moment it matters. */
+    private val watchedTrackId: () -> String?,
+    private val errorLog: ErrorLog,
 ) {
-    @Suppress("UNUSED_PARAMETER")
-    suspend operator fun invoke(processStartedAtEpochMillis: Long): Result<AbandonedTracksSweep> = Result.success(AbandonedTracksSweep())
+    suspend operator fun invoke(processStartedAtEpochMillis: Long): Result<AbandonedTracksSweep> =
+        trackRepository.getAll().map { tracks ->
+            val ended = mutableListOf<EndedAbandonedTrack>()
+            var leftWithNoStoredPoint = 0
+            var failed = 0
+            val candidates = tracks.filter {
+                it.endedAtEpochMillis == null && it.startedAtEpochMillis < processStartedAtEpochMillis && it.id != watchedTrackId()
+            }
+            for (track in candidates) {
+                val stored = trackRepository.getFullRecord(track.id).getOrElse { error ->
+                    errorLog.w(TAG, "Couldn't read the stored points of open track '${track.id}'; it is left open.", error)
+                    failed++
+                    null
+                } ?: continue
+                // Stored order is by time, but the latest time is what is meant, so it is asked for by value.
+                val lastStoredAt = stored.maxOfOrNull { it.point.timestampEpochMillis }
+                if (lastStoredAt == null) {
+                    leftWithNoStoredPoint++
+                    continue
+                }
+                val endAt = maxOf(lastStoredAt, track.startedAtEpochMillis)
+                // Asked again here: the reads above suspended, and the watch may have become for this track meanwhile.
+                if (track.id == watchedTrackId()) continue
+                trackRepository.endIfOpen(track.id, endAt)
+                    .onSuccess { wrote ->
+                        if (wrote) ended += EndedAbandonedTrack(track.id, endAt, clampedFromEpochMillis = lastStoredAt.takeIf { it < track.startedAtEpochMillis })
+                    }
+                    .onFailure { error ->
+                        errorLog.w(TAG, "Couldn't end open track '${track.id}'; it is left open.", error)
+                        failed++
+                    }
+            }
+            AbandonedTracksSweep(ended = ended, leftWithNoStoredPoint = leftWithNoStoredPoint, failed = failed)
+        }
+
+    private companion object {
+        const val TAG = "EndAbandonedTracks"
+    }
 }

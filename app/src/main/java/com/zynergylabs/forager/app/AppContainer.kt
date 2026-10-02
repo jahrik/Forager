@@ -329,6 +329,8 @@ class AppContainer(context: Context) {
     // TrackRecordingViewModel calls it for Return and copies its state. See ReturnWatch.
     val returnWatch = ReturnWatch(computeReturnToStartUseCase, detectOffTrackUseCase, alertDelivery, currentTimeProvider)
 
+    // Run once at process start by ForagerApplication (dispatch 2026-09-28-400, Amendment 3, Part
+    // 3b): tracks an earlier process left open become finished tracks. See the use case.
     val endAbandonedTracksUseCase = EndAbandonedTracksUseCase(trackRepository, watchedTrackId = { returnWatch.state.value.trackId }, errorLog = errorLog)
 
     val waypointRepository: WaypointRepository = RoomWaypointRepository(database.waypointDao())
