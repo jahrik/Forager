@@ -39,9 +39,13 @@ data class TrackRecordingUiState(
      * travel is never "off track" (you're the one making the track), so
      * [com.zynergylabs.forager.app.domain.DetectOffTrackUseCase] only runs once this is true. See
      * [TrackRecordingViewModel.startReturn]'s doc comment for the full reasoning.
+     *
+     * A copy, since dispatch 2026-09-28-400, Amendment 2: the flag itself is
+     * [com.zynergylabs.forager.app.domain.ReturnWatch]'s, which outlives this screen. The ViewModel copies it
+     * here only while the watch is for the track this ViewModel is recording.
      */
     val isReturning: Boolean = false,
-    /** Set by [TrackRecordingViewModel.returnToStart] while [isReturning] — see that method's doc comment. */
+    /** What [com.zynergylabs.forager.app.domain.ReturnWatch] last decided, while [isReturning]. A copy, on the same rule as [isReturning]. */
     val isOffTrack: Boolean = false,
     /**
      * Bearing/distance/elevation back to the track's start, refreshed on every live fix while
@@ -92,8 +96,9 @@ data class TrackRecordingUiState(
      * The off-track alert itself no longer passes through this state: it used to be an
      * `offTrackAlertId` counter here that a `LaunchedEffect` in `MainActivity` observed, and that
      * composed path is why nothing fired with the screen off — see
-     * [com.zynergylabs.forager.app.domain.AlertDelivery], which [TrackRecordingViewModel.returnToStart] now
-     * calls directly.
+     * [com.zynergylabs.forager.app.domain.AlertDelivery], which is called directly, since dispatch
+     * 2026-09-28-400 Amendment 2 by [com.zynergylabs.forager.app.domain.ReturnWatch] and no longer by this
+     * screen's ViewModel.
      */
     val tripStartWarning: RecordingNotice? = null,
     /**

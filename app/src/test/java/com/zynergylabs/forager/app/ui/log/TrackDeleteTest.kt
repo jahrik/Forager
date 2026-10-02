@@ -35,6 +35,7 @@ import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
 import com.zynergylabs.forager.app.domain.InMemoryKeptTrackPaths
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
 import com.zynergylabs.forager.app.domain.DetectOffTrackUseCase
+import com.zynergylabs.forager.app.domain.ReturnWatch
 import com.zynergylabs.forager.app.domain.ComputeReturnToStartUseCase
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.GetTracksUseCase
@@ -117,10 +118,9 @@ class TrackDeleteTest {
             deleteWaypoint = DeleteWaypointUseCase(waypointRepository),
             deleteTrack = DeleteTrackUseCase(trackRepository, waypointRepository, InMemoryKeptTrackPaths()),
             computeReturnToStart = ComputeReturnToStartUseCase(),
-            detectOffTrack = DetectOffTrackUseCase(),
             locationTracker = TrackDeleteNoOpLocationTracker,
             getTracks = GetTracksUseCase(trackRepository),
-            alertDelivery = { _: Alert -> },
+            returnWatch = ReturnWatch(ComputeReturnToStartUseCase(), DetectOffTrackUseCase(), { _: Alert -> }),
             alertAudibility = TrackDeleteAudible,
             errorLog = ErrorLog { tag, message, _ -> loggedFailures += "$tag: $message" },
             getTrackReferenceCount = { id -> referenceCounts[id] ?: 0 },

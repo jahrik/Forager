@@ -52,6 +52,16 @@ import kotlinx.coroutines.sync.withLock
  * service and its domain logic only; the UI that starts/stops it and observes live progress is
  * Phase 1c, once the map layer it would show breadcrumbs on is on the new renderer (see
  * `docs/navigation/forager-navigator-plan.md` §7).
+ *
+ * ## It also drives the return watch (dispatch 2026-09-28-400, Amendment 2)
+ *
+ * The off-track decision lives in [com.zynergylabs.forager.app.domain.ReturnWatch], held by the app's
+ * container so that it outlives the Activity. This service is what makes it run: it begins the
+ * watch when a recording starts, hands it **every raw fix** its collector receives (before the
+ * sampler decides what to keep, because the decision's window is counted in raw fixes), and ends
+ * it when the recording stops or the service is destroyed. Nothing else begins or feeds it. That
+ * is why the alert still arrives after the app is swiped away from recents: this service is the
+ * part that is still running.
  */
 class TrackRecordingService : Service() {
 
@@ -90,6 +100,12 @@ class TrackRecordingService : Service() {
                         Log.w(TAG, "Refusing to start recording for track '$trackId': no location permission.")
                         stopSelf()
                     }
+                } else if (trackId != null) {
+                    // One recording at a time. A start that arrives while one is running is
+                    // dropped, and said so: it happens today when the app is reopened after being
+                    // swiped away and Record is pressed again, and the track that start was for
+                    // then gets no points (dispatch 2026-09-28-400, Amendment 2, ruling 8).
+                    Log.w(TAG, "Ignoring a start for track '$trackId': already recording track '$currentTrackId'.")
                 }
             }
             ACTION_STOP -> stopRecording()
@@ -98,6 +114,8 @@ class TrackRecordingService : Service() {
     }
 
     override fun onDestroy() {
+        // Whatever recording this service had begun the watch for is over with the service.
+        (application as ForagerApplication).container.returnWatch.end(null)
         recordingJob?.cancel()
         scope.cancel()
         super.onDestroy()
@@ -108,6 +126,7 @@ class TrackRecordingService : Service() {
         startForegroundWithLocationType()
 
         val container = (application as ForagerApplication).container
+        container.returnWatch.begin(trackId)
         val sampler = LocationSampler(mode)
         var lastAccepted: TrackPoint? = null
 
@@ -117,6 +136,7 @@ class TrackRecordingService : Service() {
                     when (fix) {
                         is LocationFix.Update -> {
                             val candidate = fix.toTrackPoint()
+                            container.returnWatch.onFix(candidate)
                             if (sampler.shouldAccept(lastAccepted, candidate)) {
                                 lastAccepted = candidate
                                 val shouldFlush = bufferMutex.withLock {
@@ -146,6 +166,7 @@ class TrackRecordingService : Service() {
         recordingJob = null
         if (trackId != null) {
             val container = (application as ForagerApplication).container
+            container.returnWatch.end(trackId)
             scope.launch {
                 flushPendingPoints(trackId, container)
                 container.endTrackUseCase(trackId).onFailure { error ->
