@@ -203,6 +203,8 @@ class MainActivity : ComponentActivity() {
                     getWaypointReferenceCount = { id -> waypointEntryReferenceCountOrZero(id, container.getEntryReferenceCountUseCase::forWaypoint, androidErrorLog) },
                     getTrackReferenceCount = { id -> trackEntryReferenceCountOrZero(id, container.getEntryReferenceCountUseCase::forTrack, androidErrorLog) },
                     deleteTrack = container.deleteTrackUseCase,
+                    getTrackOriginWaypoint = container.getTrackOriginWaypointUseCase,
+                    alreadyRecordingMessage = getString(R.string.track_recording_already_recording),
                 )
             }
         }

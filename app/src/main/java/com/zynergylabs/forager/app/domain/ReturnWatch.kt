@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.domain
 
 import com.zynergylabs.forager.app.domain.model.ReturnToStartInfo
 import com.zynergylabs.forager.app.domain.model.TrackPoint
+import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,6 +19,8 @@ import kotlinx.coroutines.flow.asStateFlow
  */
 data class ReturnWatchState(
     val trackId: String? = null,
+    val isBegun: Boolean = false,
+    val mode: TrackRecordingMode? = null,
     val isReturning: Boolean = false,
     val isOffTrack: Boolean = false,
     val returnToStart: ReturnToStartInfo? = null,
@@ -116,7 +119,7 @@ class ReturnWatch(
      * The service has started recording [trackId]. Anything accepted early for this same track is
      * kept; anything held for another track is dropped.
      */
-    fun begin(trackId: String) = synchronized(lock) {
+    fun begin(trackId: String, @Suppress("UNUSED_PARAMETER") mode: TrackRecordingMode) = synchronized(lock) {
         if (this.trackId != trackId) forget()
         this.trackId = trackId
         begun = true

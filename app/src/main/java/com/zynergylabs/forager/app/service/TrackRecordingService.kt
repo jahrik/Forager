@@ -126,7 +126,7 @@ class TrackRecordingService : Service() {
         startForegroundWithLocationType()
 
         val container = (application as ForagerApplication).container
-        container.returnWatch.begin(trackId)
+        container.returnWatch.begin(trackId, mode)
         val sampler = LocationSampler(mode)
         var lastAccepted: TrackPoint? = null
 
