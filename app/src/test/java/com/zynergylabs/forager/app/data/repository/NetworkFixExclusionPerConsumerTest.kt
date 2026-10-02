@@ -293,10 +293,8 @@ class NetworkFixExclusionPerConsumerTest {
             deleteWaypoint = DeleteWaypointUseCase(waypointRepository),
             deleteTrack = DeleteTrackUseCase(trackRepository, waypointRepository, InMemoryKeptTrackPaths()),
             computeReturnToStart = ComputeReturnToStartUseCase(),
-            detectOffTrack = DetectOffTrackUseCase(),
             locationTracker = object : LocationTracker { override val fixes: Flow<LocationFix> = emptyFlow() },
             getTracks = GetTracksUseCase(trackRepository),
-            alertDelivery = AlertDelivery { _: Alert -> },
             returnWatch = ReturnWatch(ComputeReturnToStartUseCase(), DetectOffTrackUseCase(), AlertDelivery { _: Alert -> }),
             alertAudibility = object : AlertAudibility {
                 override fun current() = AlertAudibilityState(RingerMode.NORMAL, doNotDisturbOn = false, notificationsEnabled = true)

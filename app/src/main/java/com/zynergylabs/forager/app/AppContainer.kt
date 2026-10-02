@@ -323,6 +323,9 @@ class AppContainer(context: Context) {
     val alertDelivery: AlertDelivery = AndroidAlertDelivery(context.applicationContext)
     val alertAudibility: AlertAudibility = AndroidAlertAudibility(context.applicationContext)
 
+    // The off-track decision and its state, held here so they outlive the Activity (dispatch
+    // 2026-09-28-400, Amendment 2). TrackRecordingService begins, feeds and ends it;
+    // TrackRecordingViewModel calls it for Return and copies its state. See ReturnWatch.
     val returnWatch = ReturnWatch(computeReturnToStartUseCase, detectOffTrackUseCase, alertDelivery, currentTimeProvider)
 
     val waypointRepository: WaypointRepository = RoomWaypointRepository(database.waypointDao())
