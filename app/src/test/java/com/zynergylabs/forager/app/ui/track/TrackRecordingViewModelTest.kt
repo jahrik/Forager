@@ -12,6 +12,7 @@ import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
 import com.zynergylabs.forager.app.domain.InMemoryKeptTrackPaths
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
 import com.zynergylabs.forager.app.domain.DetectOffTrackUseCase
+import com.zynergylabs.forager.app.domain.ReturnWatch
 import com.zynergylabs.forager.app.domain.GetTracksUseCase
 import com.zynergylabs.forager.app.domain.GetWaypointsUseCase
 import com.zynergylabs.forager.app.domain.LocationFix
@@ -141,6 +142,7 @@ class TrackRecordingViewModelTest {
         locationTracker = locationTracker,
         getTracks = GetTracksUseCase(trackRepository),
         alertDelivery = alertDelivery,
+        returnWatch = ReturnWatch(ComputeReturnToStartUseCase(), DetectOffTrackUseCase(), alertDelivery, offTrackAlertClock),
         alertAudibility = alertAudibility,
         currentTime = offTrackAlertClock,
         getWaypointReferenceCount = getWaypointReferenceCount,

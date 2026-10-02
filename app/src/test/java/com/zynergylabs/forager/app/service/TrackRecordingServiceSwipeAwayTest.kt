@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.service
 
 import android.Manifest
 import android.app.Application
+import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
 import android.location.Location
@@ -14,6 +15,9 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.AppContainer
 import com.zynergylabs.forager.app.ForagerApplication
+import com.zynergylabs.forager.app.alert.OFF_TRACK_NOTIFICATION_ID
+import com.zynergylabs.forager.app.domain.ReturnWatchState
+import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
 import com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel
 import kotlinx.coroutines.runBlocking
@@ -32,35 +36,36 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.android.controller.ServiceController
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowLocationManager
+import org.robolectric.shadows.ShadowLog
 
 /**
- * **These tests describe a fault. A green run here does not mean "works"; it means the fault is
- * still there, exactly as written down.** Dispatch 2026-09-28-400, Part 1 (plan task T1,
- * `prompts/preserved/2026-10-02-01.md`): pin today's behaviour before anything is built. They are
- * replaced, not deleted, when the fix lands.
+ * The real [TrackRecordingService] and the real [AppContainer], around the moment the app is
+ * swiped away from recents (dispatch 2026-09-28-400; Part 1 pinned the fault here, Amendment 2
+ * moved the off-track decision into `ReturnWatch`, which this service begins, feeds and ends).
  *
- * The plain-JVM half is `TrackRecordingSwipeAwayFaultTest`, which shows the off-track decision
- * dying with the ViewModel. This class adds the real [TrackRecordingService] and the real
- * [AppContainer], so the two things that are supposed to agree about a recording (the service and
- * the screen's ViewModel) are both the production classes over the same database.
+ * The first two tests are the fixed behaviour: **the off-track alert is delivered with no
+ * ViewModel in existence,** through the service's own `onStartCommand`, read as the notification
+ * the real `AndroidAlertDelivery` posts. The container's delivery cannot be swapped for a fake, so
+ * the notification is the reading.
+ *
+ * **Two tests here still pin a fault, and say so in their names.** The reopened screen (the
+ * dispatch's second path) is Part 3. They are green while the fault is still there.
  *
  * ## What is real here, and the three steps that are not
  *
- * Real: the ViewModel's own callbacks (`startRecording`, `stopRecording`, `onEnteredForeground`),
- * the service through its own `onStartCommand`, the tracker over Robolectric's `LocationManager`,
- * and the Room database behind [AppContainer].
+ * Real: the ViewModel's own callbacks, the service through its own `onStartCommand`, the tracker
+ * over Robolectric's `LocationManager`, the Room database and the watch behind [AppContainer], and
+ * the alert delivery.
  *
  * Not reached, and said plainly:
  * 1. **The swipe from recents.** It is stood in for by `ViewModelStore.clear()` with the service
- *    left running. Whether the platform really destroys the Activity, keeps the process and leaves
- *    the service alone is the phone's to show. Robolectric has no task to remove.
- * 2. **`MainActivity`'s `LaunchedEffect(trackUiState.activeTrack)`** (`MainActivity.kt:411-438`),
- *    which is what turns a new `activeTrack` into `ACTION_START` and a cleared one into
- *    `ACTION_STOP`. No test in this repository composes `MainActivity`. [startIntent] and
- *    [stopIntent] are built here from the same three constants that effect uses, as
- *    `TrackRecordingServiceTest.startIntent` already does.
- * 3. **The process being killed** (premise 6). Only the null intent a sticky restart delivers is
- *    reachable; whether and when the system restarts the service is not.
+ *    left running. On the S22 the real swipe was checked on 2026-10-02 (the report's "Phone
+ *    check"): the process, the service and its notification survived.
+ * 2. **`MainActivity`'s `LaunchedEffect(trackUiState.activeTrack)`,** which is what turns a new
+ *    `activeTrack` into `ACTION_START` and a cleared one into `ACTION_STOP`. No test in this
+ *    repository composes `MainActivity`. [startIntent] and [stopIntent] are built here from the
+ *    same three constants that effect uses, as `TrackRecordingServiceTest.startIntent` does.
+ * 3. **The process being killed.** Only the null intent a sticky restart delivers is reachable.
  *
  * ## Ending what was started
  *
@@ -71,7 +76,7 @@ import org.robolectric.shadows.ShadowLocationManager
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
-class TrackRecordingServiceSwipeAwayFaultTest {
+class TrackRecordingServiceSwipeAwayTest {
 
     private lateinit var context: Application
     private lateinit var container: AppContainer
@@ -82,7 +87,12 @@ class TrackRecordingServiceSwipeAwayFaultTest {
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
         container = (context as ForagerApplication).container
-        shadowOf(context).grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+        shadowOf(context).grantPermissions(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            // Without it AndroidAlertDelivery posts nothing on API 33 and above, and the notification is this class's reading of a delivery.
+            Manifest.permission.POST_NOTIFICATIONS,
+        )
         val locationManager = context.getSystemService(android.content.Context.LOCATION_SERVICE) as LocationManager
         shadowLocationManager = shadowOf(locationManager)
         // One provider, so each collector of the tracker's stream is exactly one registered listener
@@ -108,6 +118,7 @@ class TrackRecordingServiceSwipeAwayFaultTest {
                         container.locationTracker,
                         container.getTracksUseCase,
                         container.alertDelivery,
+                        container.returnWatch,
                         container.alertAudibility,
                         deleteTrack = container.deleteTrackUseCase,
                     ).also(createdViewModels::add)
@@ -127,19 +138,141 @@ class TrackRecordingServiceSwipeAwayFaultTest {
     private fun stopIntent() = Intent(context, TrackRecordingService::class.java).setAction(TrackRecordingService.ACTION_STOP)
 
     /**
-     * Dispatch premise 3: after the swipe-away the service records, and a reopened app does not
-     * know. The service is left running while the first ViewModel's store is cleared; a second
-     * ViewModel is built over the same container and enters the foreground.
+     * Plan task T1's check, and the replacement for Part 1's fault: **the alert is delivered with no
+     * screen alive, through the service's own entry point.** No ViewModel is constructed in this
+     * test at all. The track row is made by the use case the ViewModel would have called, and the
+     * start point and the return are given to the watch as the ViewModel would have given them
+     * before it was swiped away. Then the service is the only thing running: it began the watch on
+     * `ACTION_START`, and each fix the platform delivers to it goes to the watch.
      *
-     * The listener count is the direct reading of who is still watching the walker: two while the
-     * screen is alive (the service's, and the ViewModel's own for the off-track decision), one
-     * after the clear. The one that is left is the service's, which decides nothing.
+     * Three fixes, each about 111 m further north of the start. The reading is the off-track
+     * notification itself, id 1002, posted by the real `AndroidAlertDelivery`.
      *
-     * **When the fix lands:** the last block is the dispatch's second path, which the owner has not
-     * confirmed. If a reopened app is to show the recording, `isRecording` there becomes true.
+     * Fails with the service's one feed call removed: "expected the off-track notification".
      */
     @Test
-    fun `FAULT today - the service goes on recording after the ViewModel is cleared, and a reopened ViewModel reports not recording`() {
+    fun `with no ViewModel in existence, a returning recording posts the off-track notification when the walker moves away`() {
+        var controller: ServiceController<TrackRecordingService>? = null
+        try {
+            val trackId = runBlocking { container.startTrackUseCase(null) }.getOrThrow().id
+            controller = Robolectric.buildService(TrackRecordingService::class.java, startIntent(trackId))
+            val service = controller.create().get()
+            controller.startCommand(0, 1)
+            assertNotNull("precondition: the service is in the foreground, recording", shadowOf(service).lastForegroundNotification)
+            assertEquals("the service began the watch for its track", ReturnWatchState(trackId = trackId), container.returnWatch.state.value)
+            assertEquals("precondition: the service's listener is the only one; no ViewModel exists", 1, awaitListenerCount(1))
+
+            container.returnWatch.setStartPoint(trackId, TrackPoint(45.000, -122.0, null, null, FIRST_FIX_EPOCH_MILLIS))
+            assertTrue(container.returnWatch.startReturn(trackId))
+            assertNull("precondition: no off-track notification yet", offTrackNotification())
+
+            simulateFix(1)
+            simulateFix(2)
+            simulateFix(3)
+
+            assertNotNull(
+                "expected the off-track notification after three readings moving away from the start, with no ViewModel alive",
+                awaitOffTrackNotification(),
+            )
+            assertTrue(container.returnWatch.state.value.isOffTrack)
+
+            controller.withIntent(stopIntent()).startCommand(0, 2)
+            assertNotNull(awaitEndedAt(trackId))
+            assertTrue(awaitStoppedBySelf(service))
+            assertEquals("stopping the recording ended the watch", ReturnWatchState(), container.returnWatch.state.value)
+        } finally {
+            endEverything(controller)
+        }
+    }
+
+    /**
+     * The dispatch's first path with the real ViewModel in it, as far as a headless test goes:
+     * `Recording, returning > the app is swiped away > the walker moves away > the alert arrives`.
+     * Record and Return are the ViewModel's own callbacks. The origin waypoint is seeded from a
+     * real fix and handed to the watch by the ViewModel. Then the ViewModel's store is cleared and
+     * the walk away is delivered to the one listener that is left, the service's.
+     */
+    @Test
+    fun `Record, Return, the ViewModel cleared, then a walk away from the start - the off-track notification is posted`() {
+        val store = ViewModelStore()
+        val vm = viewModelIn(store)
+        var controller: ServiceController<TrackRecordingService>? = null
+        try {
+            vm.startRecording(TrackRecordingMode.HIGH_ACCURACY)
+            val trackId = awaitActiveTrackId(vm)
+            assertNotNull(trackId)
+            controller = Robolectric.buildService(TrackRecordingService::class.java, startIntent(trackId!!))
+            val service = controller.create().get()
+            controller.startCommand(0, 1)
+            assertNotNull(shadowOf(service).lastForegroundNotification)
+            assertEquals(2, awaitListenerCount(2))
+
+            simulateFix(0) // 45.000, accuracy 5 m: the first gated fix, so the origin waypoint
+            assertTrue("precondition: the origin waypoint exists, so the watch has its start point", awaitOrigin(vm))
+            vm.startReturn()
+            assertTrue(vm.uiState.value.isReturning)
+
+            store.clear() // the swipe-away
+            assertEquals("only the service is listening now", 1, awaitListenerCount(1))
+            assertNull("precondition: no off-track notification yet", offTrackNotification())
+
+            simulateFix(1)
+            simulateFix(2)
+            simulateFix(3)
+
+            assertNotNull(
+                "expected the off-track notification: the return was started on the screen, the screen is gone, and the walker moved away",
+                awaitOffTrackNotification(),
+            )
+        } finally {
+            endEverything(controller)
+        }
+    }
+
+    /**
+     * The other side of the two tests above, so their notification is not one that would have been
+     * posted anyway: the same service, the same start point, more of the same walk away, and no
+     * return under way. Twenty fixes, because twenty kept points is the write a test can wait for;
+     * once they are stored, every one of them has been through the collector and so through the
+     * watch.
+     */
+    @Test
+    fun `with no return under way, the same walk away posts no off-track notification`() {
+        var controller: ServiceController<TrackRecordingService>? = null
+        try {
+            val trackId = runBlocking { container.startTrackUseCase(null) }.getOrThrow().id
+            controller = Robolectric.buildService(TrackRecordingService::class.java, startIntent(trackId))
+            controller.create().get()
+            controller.startCommand(0, 1)
+            assertEquals(1, awaitListenerCount(1))
+            container.returnWatch.setStartPoint(trackId, TrackPoint(45.000, -122.0, null, null, FIRST_FIX_EPOCH_MILLIS))
+
+            repeat(FLUSH_BATCH_SIZE) { index -> simulateFix(index + 1) }
+
+            assertEquals("precondition: all twenty fixes went through the service's collector", FLUSH_BATCH_SIZE, awaitPointCount(trackId, FLUSH_BATCH_SIZE))
+            assertNotNull("the watch measured them", container.returnWatch.state.value.returnToStart)
+            assertFalse(container.returnWatch.state.value.isOffTrack)
+            assertNull("outbound travel is never off track", offTrackNotification())
+        } finally {
+            endEverything(controller)
+        }
+    }
+
+    /**
+     * **Still a fault, and Part 3's to fix** (the dispatch's second path, confirmed by the owner,
+     * not built here): after the swipe-away the service records, and a reopened app does not know.
+     * The service is left running while the first ViewModel's store is cleared; a second ViewModel
+     * is built over the same container and enters the foreground.
+     *
+     * The listener count is who is listening for fixes: two while the screen is alive (the
+     * service's, and the ViewModel's own for the screen's distance and the origin waypoint), one
+     * after the clear. Since Amendment 2 the one that is left, the service's, is the one that feeds
+     * the off-track decision.
+     *
+     * **When Part 3 lands:** `isRecording` in the last block becomes true.
+     */
+    @Test
+    fun `PART 3 FAULT, still true - the service goes on recording after the ViewModel is cleared, and a reopened ViewModel reports not recording`() {
         val firstStore = ViewModelStore()
         val first = viewModelIn(firstStore)
         var controller: ServiceController<TrackRecordingService>? = null
@@ -157,7 +290,7 @@ class TrackRecordingServiceSwipeAwayFaultTest {
             firstStore.clear()
 
             assertEquals(
-                "FAULT: one listener is left, the service's. The one that fed the off-track decision is gone",
+                "one listener is left, the service's",
                 1,
                 awaitListenerCount(1),
             )
@@ -187,11 +320,14 @@ class TrackRecordingServiceSwipeAwayFaultTest {
     }
 
     /**
-     * Dispatch premise 4, the one the dispatch asked to be settled first: a second recording
-     * started over the first. Confirmed. The record button on the reopened screen creates a second
-     * track row; its `ACTION_START` reaches a service whose `recordingJob` is not null and is
-     * dropped without a log line (`TrackRecordingService.kt:82`); every point goes on being
-     * written to the first track.
+     * **Still a fault, and Part 3's to fix:** a second recording started over the first. The record
+     * button on the reopened screen creates a second track row; its `ACTION_START` reaches a
+     * service that is already recording and is dropped; every point goes on being written to the
+     * first track.
+     *
+     * **What Amendment 2 changed here (ruling 8):** the dropped start is no longer silent. The
+     * service logs a warning naming both tracks, and this test reads it. `CLAUDE.md`: no fallback
+     * that is not logged when it fires.
      *
      * Twenty fixes are sent because twenty accepted points is the service's batch
      * (`FLUSH_BATCH_SIZE`), the only write a test can wait for without waiting thirty real
@@ -202,12 +338,10 @@ class TrackRecordingServiceSwipeAwayFaultTest {
      * Then the stop button: the screen stops, `ACTION_STOP` ends the **first** track, and the
      * second row is left open for good. Nothing ever ends it.
      *
-     * **When the fix lands:** whether a reopened app may start a second recording at all is the
-     * owner's (the dispatch's second path). Whatever is decided, "two open rows, points in the
-     * wrong one" must not survive it.
+     * **When Part 3 lands:** "two open rows, points in the wrong one" must not survive it.
      */
     @Test
-    fun `FAULT today - a second recording started over the first is ignored by the service, so its row gets no points and is never ended`() {
+    fun `PART 3 FAULT, still true - a second recording started over the first is dropped by the service with a warning, so its row gets no points and is never ended`() {
         val firstStore = ViewModelStore()
         val first = viewModelIn(firstStore)
         var controller: ServiceController<TrackRecordingService>? = null
@@ -237,7 +371,14 @@ class TrackRecordingServiceSwipeAwayFaultTest {
             assertNull(trackRow(secondTrackId!!)?.endedAtEpochMillis)
 
             // What MainActivity's LaunchedEffect sends for the new activeTrack.
+            ShadowLog.clear()
             controller.withIntent(startIntent(secondTrackId)).startCommand(0, 2)
+            assertEquals(
+                "the dropped start is logged, naming the track it was for and the track being recorded",
+                listOf("Ignoring a start for track '$secondTrackId': already recording track '$firstTrackId'."),
+                ShadowLog.getLogsForTag("TrackRecordingService").filter { it.type == android.util.Log.WARN }.map { it.msg },
+            )
+            assertEquals("the watch is still for the first track", firstTrackId, container.returnWatch.state.value.trackId)
             assertEquals(
                 "the service did not start a second collection for the second track: its one listener, and the reopened ViewModel's",
                 2,
@@ -296,6 +437,7 @@ class TrackRecordingServiceSwipeAwayFaultTest {
             assertEquals(Service.START_STICKY, result)
             assertNull("nothing was promoted to the foreground", shadowOf(service).lastForegroundNotification)
             assertEquals("nothing is listening for fixes", 0, shadowLocationManager.requestLocationUpdateListeners.size)
+            assertEquals("the watch was not begun", ReturnWatchState(), container.returnWatch.state.value)
             assertFalse("and the service did not stop itself either: it sits there doing nothing", shadowOf(service).isStoppedBySelf)
         } finally {
             controller.destroy()
@@ -319,6 +461,28 @@ class TrackRecordingServiceSwipeAwayFaultTest {
             },
         )
         shadowOf(Looper.getMainLooper()).idle()
+    }
+
+    private fun offTrackNotification() =
+        shadowOf(context.getSystemService(NotificationManager::class.java)).getNotification(OFF_TRACK_NOTIFICATION_ID)
+
+    /** The watch is fed on the service's own background thread, so the notification is not there the instant the fix is simulated. Polls; `null` on timeout, so a missing delivery fails and does not hang. */
+    private fun awaitOffTrackNotification(timeoutMillis: Long = 10_000L): android.app.Notification? {
+        val deadline = System.currentTimeMillis() + timeoutMillis
+        while (System.currentTimeMillis() < deadline) {
+            offTrackNotification()?.let { return it }
+            idleAndSettle()
+        }
+        return null
+    }
+
+    private fun awaitOrigin(viewModel: TrackRecordingViewModel, timeoutMillis: Long = 10_000L): Boolean {
+        val deadline = System.currentTimeMillis() + timeoutMillis
+        while (System.currentTimeMillis() < deadline) {
+            if (viewModel.uiState.value.originWaypoint != null) return true
+            idleAndSettle()
+        }
+        return false
     }
 
     private fun trackRow(trackId: String) = runBlocking { container.trackRepository.getById(trackId) }.getOrThrow()

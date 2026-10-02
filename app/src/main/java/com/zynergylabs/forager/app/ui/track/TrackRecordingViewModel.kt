@@ -38,6 +38,7 @@ import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.model.WaypointDesignation
 import com.zynergylabs.forager.app.domain.PendingDeleteSlot
+import com.zynergylabs.forager.app.domain.ReturnWatch
 import com.zynergylabs.forager.app.ui.log.PendingDeleteCommitScope
 import java.time.ZoneId
 import kotlinx.coroutines.CoroutineScope
@@ -108,6 +109,7 @@ class TrackRecordingViewModel(
      * swipe-away hole this ViewModel's lifetime still leaves open.
      */
     private val alertDelivery: AlertDelivery,
+    @Suppress("unused") private val returnWatch: ReturnWatch,
     /** Read once per [startRecording] for [TrackRecordingUiState.tripStartWarning]; never watched live. */
     private val alertAudibility: AlertAudibility,
     /**

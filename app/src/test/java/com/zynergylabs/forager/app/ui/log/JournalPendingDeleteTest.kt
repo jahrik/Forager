@@ -112,6 +112,7 @@ import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
 import com.zynergylabs.forager.app.domain.InMemoryKeptTrackPaths
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
 import com.zynergylabs.forager.app.domain.DetectOffTrackUseCase
+import com.zynergylabs.forager.app.domain.ReturnWatch
 import com.zynergylabs.forager.app.domain.GetTracksUseCase
 import com.zynergylabs.forager.app.domain.GetWaypointsUseCase
 import com.zynergylabs.forager.app.domain.LocationFix
@@ -263,6 +264,7 @@ class JournalPendingDeleteTest {
             locationTracker = PendingDeleteNoOpLocationTracker,
             getTracks = GetTracksUseCase(trackRepository),
             alertDelivery = { _: Alert -> },
+            returnWatch = ReturnWatch(ComputeReturnToStartUseCase(), DetectOffTrackUseCase(), { _: Alert -> }),
             alertAudibility = PendingDeleteAudible,
             getWaypointReferenceCount = { id -> waypointReferenceCounts[id] ?: 0 },
         )
