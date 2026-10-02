@@ -10181,3 +10181,68 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Why in two parts:** the code's own header calls this "moving navigation ownership" into the service "with the ViewModel as a mirror" and says the decision was not yet made when written. The owner approved the move on 2026-09-11 (docs/navigation/2026-09-11-sundown-phase1-progress-report.md); who owns which state is still an unmade choice, so the coder reports the shapes before any is built.
 **Finish line:** the tests and the report pushed on branch alerts-in-service, the hand-back sent, nothing built.
 **Notes:** Written by the planner by hand, on branch records-after-145 with -399, so that one pull request carries both. The coder runs on Sonnet 5.5 in a window the owner opens, in its own worktree, forager-wt/alerts-in-service.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-401
+**Timestamp:** 2026-10-02T03:58:29Z
+**Continues:** 2026-09-28-400 (preserved 2026-10-02-01, where the amendment is appended); Part 1 reported on alerts-in-service at 5dc051b4, Part 2 not started
+**The owner, verbatim, in order (2026-10-02, UTC):**
+- 02:59Z, to the step path "Recording > swipe the app away > open Forager again > the screen shows the recording still running, and the return HUD if you were heading back. Is that what you want? I recommend yes.": "Sounds good. Paste the prompt here". So the second path -400 left unconfirmed is confirmed.
+- 03:09Z: "I'm going to do Opus 5.5 medium for coders this session". **This corrects -400's Notes,** which say the coder runs on Sonnet 5.5. The coder read its own session as claude-opus-5-5 at medium effort.
+- 03:56Z, to the planner's three questions after Part 1 (a phone check before any build; the shape; what to do about the off-track check's timing): "Go ahead and have the coder do the check. It's ready". Read as answering the first only. The other two are still with the owner.
+**Part 1, from the coder's report** (docs/navigation/2026-10-02-alerts-in-service-prebuild-report.md on alerts-in-service; evidence ~/Zynergy/device-evidence/2026-10-02-alerts-in-service/):
+- All six of the planner's premises are confirmed, read and, where a headless test reaches, observed. After the screen's ViewModel is cleared nothing can alert; a reopened screen reports no recording while the service records; pressing Record there makes a second track that gets no points, is never ended and cannot be deleted from the app.
+- Three shapes laid out. The coder would build B: one decision object held by the app's container, begun, fed every raw fix and ended by the service, with the ViewModel calling it and copying its state. Its costs: thread-safety, eight existing off-track tests moved one for one, six test files that construct the ViewModel edited.
+- Flag 2, outside scope and not touched: the off-track check compares three consecutive raw fixes about one second apart and needs more than 25 m gained, so by arithmetic steady walking cannot trip it and a stray network fix can. Inferred, not observed.
+- Could not determine: whether the S22 keeps the process and the service after a swipe from recents. That is what this amendment checks.
+**What the planner checked itself:** the branch at 4631ba8d was five files, 1,068 lines added, none removed, nothing under app/src/main, no existing test file changed; the later 5dc051b4 appends nine lines to the report. The JUnit XML in the evidence folder, re-counted: 7 tests in 2 classes alone and in each of five repeats, 0 failures; the full suite 415 classes, 3,393 tests, 0 failures, 0 errors, 24 skipped. Flag 2's reading at TrackRecordingViewModel.kt:546, DetectOffTrackUseCase.kt:16-20 and AndroidLocationTracker.kt's one-second request holds as an inference. The S22, read over adb without touching it: Forager 1.0.2426+ge0239399, a fresh install of 2026-10-01 16:00 local, ROTATION_0, no recording service listed; main's app code is unchanged from that build's.
+**Change:** Amendment 1 appended to the dispatch file: a seven-step check on the S22 by the coder, on the installed build, with no build and no install. The gate is step 4: after Forager is swiped from recents, the process, the foreground service and the recording notification are each read again. It ends the recording from the notification's Stop action and leaves one ended track on the phone.
+**Holds:** Part 2. Nothing is built until the check is back and the owner has answered the shape and flag 2.
+**Notes:** Written by the planner by hand, on branch records-after-146 cut from main at 9c3f103d, pushed and not merged; the coder reads the amendment from that branch. Pull request #146 (records-after-145 into main, head c90512805af5cc46be8939d4780e16d3a3692c91, on which CI passed, run 36957593569) was merged as 9c3f103dcd4b0a04a7bddedc71bf5f2dee867518 at 2026-10-02T03:01:07Z, read from GitHub, on the owner's "Yes open a pr and merge.", with backup 2026-10-01-06. That merge has no entry of its own, and this note stands in for one.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-402
+**Timestamp:** 2026-10-02T04:31:48Z
+**Subject:** plan task T1 (dispatch -400): the shape, and what happens to the off-track check
+**The owner, verbatim (2026-10-02, UTC):**
+- 03:58Z: "Explain 2 and 3", the second and third of the planner's questions after Part 1 (the shape; the off-track check's timing).
+- 04:30Z, to the planner's account of both and "A or B for the design; 'move as is' or 'rule first' for off-track": "Option B" and "Move as is, adjust as necessary. We need the definition to fit the user, not the software. So if the user benefits from a longer project, I'll buy that as an investment".
+**What the owner was told before answering:**
+- **Option A:** the recording service holds the return state; the screen messages it and opens a connection to read it back, so a reopened app has a moment of not knowing; that code sits where no automated test reaches.
+- **Option B:** one tracker shared by the service and the screen, kept alive and fed by the service; a reopened app reads it at once; nearly all of it testable without a phone; its cost is that two parts of the app write to it at the same time, and eight existing tests move to it one for one.
+- **The off-track check today:** three readings about one second apart, more than 25 m gained, so walking cannot trip it and one stray reading can. Arithmetic from the code and the 2026-09-07 walk log's one-second timing; not observed.
+**What is decided:**
+- **Shape B.**
+- **The off-track check moves as it is.** What it means is not changed by T1.
+- **Its meaning is to be redefined to fit the user,** as its own work, and the owner accepts a longer project for it where the user benefits. Recorded in the plan as a new task, T21, in Stage C. Nothing about the new rule is decided.
+**Change:** a dated addendum at the end of docs/navigation/2026-10-01-navigator-completion-plan.md. Docs only.
+**Holds:** Part 2 of -400 still waits for the phone check of continuation -401 (the coder's predictions are pushed on alerts-in-service at d67019e5; the check is running). The amendment that starts Part 2 is not written.
+**Notes:** Written by the planner by hand, on branch records-after-146 with -401, pushed and not merged.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-403
+**Timestamp:** 2026-10-02T05:26:01Z
+**Continues:** 2026-09-28-400 (preserved 2026-10-02-01, where Amendment 2 is appended); follows -401 (the phone check) and -402 (the shape and the off-track check)
+**The owner, verbatim, in order (2026-10-02, UTC):**
+- 04:49Z, in the coder's own window, to its question whether it may use adb on the S22 for the one check (its launch prompt said no phone): "Yes, run the check". Read from the coder's session log.
+- About 05:16Z, after the first run stopped: "Ready".
+- About 05:18Z, after the second run stopped: "I tapped allow, then stopped recording".
+- Earlier, on the planner's outline (if the check passes, Part 2 builds Option B, moves the alert unchanged, then the reopened app): "Sounds good. Check the coder".
+**The phone check, three runs on the S22** (SM-S908U, Android 16, One UI 8.0, Forager 1.0.2426+ge0239399, on USB power; the coder's report on alerts-in-service at 11d23217; evidence ~/Zynergy/device-evidence/2026-10-02-alerts-in-service/phone-check/):
+- **Run 1 stopped at step 1, nothing tapped:** the display was in landscape and Forager was on the Journal tab with the drawer open. The owner set the phone themselves.
+- **Run 2 stopped at step 2 with a recording running:** on this fresh install the first tap on Record raised Android's notification-permission prompt, with the recording already started behind it. The coder answered nothing. The owner allowed notifications and stopped the recording. A short track from it is on the phone.
+- **Run 3 ran to the end.** After Forager was swiped from recents: the same process (pid 5455), the service still foreground, the notification still posted, read at once and again about a minute later. Reopened: the Maps tab offered "Start recording track" and no return HUD, while the service still recorded. The coder did not tap Record. The recording was ended from the notification's Stop action, which on this phone sits behind the notification's own Expand button; the planner ruled that tap within step 7.
+- **Both of the coder's predictions held, and the planner's.**
+**What the planner checked itself:** from the saved files, task 254 and its activity record are present before the swipe and absent after it, and a new task 255 is present after the reopen; the pid reads 5455 in the state files of steps 3, 4, 5 and 6; the service reads foreground at steps 4 and 6; the reopened screen's labels include "Start recording track". The phone, read over adb afterwards: no service, no Forager notification. The coder's branch since Part 1's hand-back: appends to its report only, nothing removed, nothing under app/src/main, no image or dump committed.
+**What the check does not show:** an unplugged phone, a pocket, a screen that is off, more than about a minute, or the alert itself.
+**Seen and not acted on:** a fresh install's first Record tap starts the recording before the notification question is answered; the Stop action is behind the notification's Expand button on this phone.
+**Change:** Amendment 2 appended to the dispatch file. Part 2 builds shape B in the report's three steps and moves the off-track check unchanged. The planner's nine rulings are in it: one call beside the sampler and batching, changing neither; fed every raw fix; the service begins the object and an early return is kept; eight existing tests moved one for one with a before-and-after table; six constructing test files edited for one argument; the two fault classes replaced; thread-safety accounted for; a log line for a dropped second start; the window kept short with the decisions shown unchanged.
+**Not in Part 2:** the reopened app (the second path the owner confirmed), which follows as Part 3; the sundown alerts (T2); what "off track" means (T21). No phone.
+**Open for the owner:** how a build of Part 2 reaches the S22 for its device check, since the phone carries the release build and a debug build will not install over it.
+**Notes:** Written by the planner by hand, on branch records-after-146 with -401 and -402, pushed and not merged.
