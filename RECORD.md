@@ -10288,3 +10288,26 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Change:** none by this entry. It is written on branch t1-part-2, which joins alerts-in-service at 0f6485a4 with records-after-147 at ea4d3d2f so that one pull request can carry the code and the record. No file under app/ differs between t1-part-2 and the coder's head.
 **Holds:** the merge into main, which is the owner's word; Part 3; the phone check, which needs a test build on the S22.
 **Notes:** Written by the planner by hand.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-406
+**Timestamp:** 2026-10-02T07:55:50Z
+**Continues:** 2026-09-28-400 (preserved 2026-10-02-01, where Amendment 3 is appended); Part 2 reviewed (-405), pull request #148 open for it
+**The owner, verbatim (2026-10-02, UTC):**
+- 07:52Z: "Open pr and merge t1-part-2". Pull request #148 is open on that word; CI was running when this was written, and the merge is not yet made.
+- 07:54Z, to three step paths for Part 3, each with the planner's recommendation: "1 A", "2 A", "3 I'll go with your recommendation".
+**The three paths, as put to the owner:**
+- **1.** "Open Records > a track nothing is recording any more. A: it shows as a normal finished track, ended at its last recorded point; Delete is offered as for any track. B: it still shows "Still recording", but Delete is offered." **A.**
+- **2.** "Reopen the app > the map shows the recording. A: a start marker is placed at the track's first recorded point. B: no start marker; Return still points at the first recorded point." **A.** The planner added: "Either way it must never be placed where you are standing when you reopen."
+- **3.** The words shown if Record is pressed while another recording is running: "Forager is already recording a track. Stop it before starting another." **Accepted.**
+- The main path was confirmed earlier (-401): a reopened app shows the recording still running, and the return HUD if a return was under way.
+**Where the three questions came from:** the coder's view on Part 3's order, sent by message after Part 2 and asked for by the planner. It named these as the owner's: what a stuck open track becomes, where the start marker goes for a recording adopted without one, and what the user is told if a second recording is refused.
+**Change:** Amendment 3 appended to the dispatch file. Part 3 in two hand-backs.
+- **3a, steps 1 to 5:** the watch carries the mode and says it is begun; the screen adopts a running recording when it is created and when the app comes to the foreground; a repeated start for the track already being recorded is not logged as a fault; Record cannot start a second recording, and says so in the owner's words; a recording adopted without a start marker gets one at its first recorded point, never at the fix received after the reopen.
+- **3b, step 6, started only on the planner's word:** open tracks that nothing is recording are ended at their last recorded point. It is the one step that changes stored data, and it opens with a report: how the end time is set today, every reader of an open row, and what each would then show. A track with no recorded point is a stop.
+- Also in 3a: a stale comment in MainActivity.kt and unused imports in one test file, both flagged by the coder after Part 2.
+**Not in Part 3:** what "off track" means (T21); the sundown alerts (T2); any change to the database's shape. No phone.
+**Holds:** the phone check for Parts 2 and 3 together, which needs the release build removed from the S22 and a test build installed (the owner's choice, -404), under its own amendment.
+**Notes:** Written by the planner by hand, on branch records-after-148 cut from t1-part-2 at c45a7117, pushed and not merged.
