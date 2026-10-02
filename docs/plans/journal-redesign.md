@@ -1277,3 +1277,20 @@ Parked until after PR #140 merges. None of it is decided, and nothing is dispatc
 - **The alternative that avoids the question:** a companion on CC0/CC BY data only, like Forager. Donations, or even charging, are then fine, but it is not the "full" model.
 
 **Unchanged:** Forager ships the commercial-safe model and moves to a paid Open-Meteo subscription before release.
+
+### Not for sale: the owner's ruling (2026-10-01)
+
+**This supersedes "Commercial use: the owner's ruling (2026-09-28)" above and the line "Unchanged: Forager ships the commercial-safe model and moves to a paid Open-Meteo subscription before release".** Neither is edited. The full record, with every answer quoted and what the planner checked, is `RECORD.md` decision 2026-09-28-397.
+
+The owner, verbatim: "Actually we are switching to the non-commercial model. I can't find a way to charge for this app and get what I'm looking for out of it. So let's proceed with the open source model". Then, to the planner's questions: "1 A, full model"; "2 No, just keeping no proprietary software"; "3 yes"; "4 I'm considering donations and research grants for cost upkeep". Then, on the scope of answer 2: "stops at what's in the app, but my goal is to use open source databases and projects for my app. I just won't explicitly mention that unless asked".
+
+What this means here:
+- **The app is not sold.**
+- **The forecast Forager ships is the full model,** built on all records, the CC BY-NC ones included. The commercial-safe model no longer ships. So the **Gate** bullet under "What `slayer8366/forager-forecast` already fixes for the layer framework" is answered as far as commercial use goes; its other conditions stand.
+- **No licence is added to this repository.** "Open source" means no proprietary software inside the app, and it stops at what is in the app. The planner's reading, not confirmed: the README and the store listing do not call the app open source.
+- **Attribution** the app must carry once real data ships now covers the CC BY-NC records as well as the CC BY ones, in L0b's multi-credit attribution list.
+- **Open-Meteo:** the subscription was ruled because the app would be sold, and that reason is gone. Whether the owner still takes one is not said. The move to subscriber endpoints is no longer a pre-release item on these grounds.
+- **Map tiles:** the pre-release choice of a commercial tile provider was tied to the sale. The own-tiles plan (`own-map-tiles.md`) is not withdrawn; its line "Forager will be sold" is superseded by this section.
+- **The forecast repository opens up** (answer 3). That belongs to forager-forecast's decision log.
+- **Donations and research grants** are under consideration, not decided. The open questions under "A free companion app with the full forecast: parked" are the same ones and are still open: a free app that takes donations is a grey area under CC BY-NC, under Open-Meteo's free terms and under OpenStreetMap's tile policy. Not legal advice.
+- **Still unchecked:** iNaturalist's API and photo terms, now for a free app.
