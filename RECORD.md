@@ -10147,3 +10147,37 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 - **The owner's second answer** describes the return screen and matches what the code shows: the needle points at the start, and the way-back route of 2026-09-11 is not built. The planner's question was whether recorded walks with a way back exist; that is still open and is item 4 of the plan's open list.
 - **Nothing is dispatched.** Seven items are open for the owner; each names the task it blocks.
 **Notes:** Written by the planner by hand, on branch navigator-completion-plan cut from main at 0dded057, pushed and not merged. The earlier quotes (22:19Z to 22:25Z) were read from the earlier planner session's transcript and had no record entry; the proposed order they asked for was superseded the same evening by the owner's switch to a non-commercial model (decision 2026-09-28-397) before it was answered. Pull request #144 (records-noncommercial-ruling into main, head 85b12b522757bb0e769e78772dca2ab0b78873db, on which CI passed, run 36952102744) was merged as 0dded0579e44a372a8aaf7957052f157dbf73ccd at 2026-10-02T01:50:48Z, read from GitHub, on the owner's "Approve. Make a pr and merge", with backup 2026-10-01-04; main's tree after the merge is identical to the branch's. That merge has no entry of its own, and this note stands in for one.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-399
+**Timestamp:** 2026-10-02T02:21:42Z
+**Subject:** the navigation plan's release cut, and recorded walks (follows -398)
+**The owner, verbatim, in order (2026-10-02, UTC):**
+- 02:12Z, to three questions asked together (the release cut; whether a walk out and back has been recorded; "shall I open a PR for navigator-completion-plan and merge it when CI passes?"): "Yes". The planner read it as answering the last only, told the owner so, and asked the other two again.
+- 02:17Z, on the release cut: "A to F first and G to K next sounds good".
+- 02:17Z, to "has anyone recorded a walk out and back with the app? If yes, tell me whose phone they are on": "Yes, and the S26 ultra".
+**What is decided:**
+- **The release cut.** Stages A to F of docs/navigation/2026-10-01-navigator-completion-plan.md (tasks T1 to T20) are the short release. Stages G to K (Phases 1.5, 2, 3 and 4, and the look-alike page) follow in the next.
+- **Recorded walks exist,** on the owner's S26 Ultra. This answers the open question of docs/navigation/2026-09-11-sundown-decisions-and-walkback-sequencing.md ("Do walked tracks with known actual return times exist anywhere"), as far as existence goes. How many, and whether each has a clear turnaround, is not known.
+**Change:** a dated addendum at the end of the plan file. Docs only.
+- **The tracks do not enter this repository.** It is public and they are real places; the owner exports them outside it, and only the comparison figures and the sample's size are filed. This is the planner's handling, told to the owner, not yet answered.
+- **Nothing is dispatched.** The planner read the owner's second "Yes" as answering the walks question, not as a go for T1, and said so.
+**Notes:** Written by the planner by hand, on branch records-after-145 cut from main at c1610518, pushed and not merged. Pull request #145 (navigator-completion-plan into main, head e44224fbdb77e869db25d39ed9e8eac15eeff6af, on which CI passed, run 36954548324) was merged as c1610518bd00edbdbdbf74062b2e9f674a887104 at 2026-10-02T02:21:21Z, read from GitHub, on the owner's "Yes" above, with backup 2026-10-01-05; main's tree after the merge is identical to the branch's. That merge has no entry of its own, and this note stands in for one.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-400
+**Timestamp:** 2026-10-02T02:51:41Z
+**Title:** alerts-in-service, Part 1: read, pin today's behaviour and report, before the off-track alert moves into the recording service (plan task T1)
+**Dispatch-file:** preserved/2026-10-02-01.md; to a coder window the owner opens, from a launch prompt
+**The owner, verbatim (2026-10-02T02:48Z),** to "shall I open a PR [for records-after-145] and merge it when CI passes?" and "T1: say go when you want the first task started": "Yes open a pr and merge." and "Go".
+**The path that go covers, as put to the owner:** "the off-track alert moves into the recording service, so it still fires after the app is swiped away". Today nothing arrives after a swipe-away (domain/AlertDelivery.kt:56-67, the code's own account).
+**Not yet confirmed by the owner, and so not assumed by the dispatch:** that a reopened app shows the recording still running, and the return HUD if a return was under way. The planner reads from the code that today it shows no recording while the service still records (ui/track/TrackRecordingViewModel.kt:72-78 and :403), and that a second recording could then be started over the first (service/TrackRecordingService.kt:82). Read, not run. It goes to the owner as a step path.
+**Change:** none under app/src/main. Tests that pin today's behaviour, and a pre-build report: each of the planner's six premises confirmed or disproved; an inventory of the state that must outlive the Activity and its readers; at least two shapes for who owns it; how the sundown alerts (T2) would attach; a test plan; build steps of one session each.
+**Scope boundary:** Part 1 ends with the report and a stop. What "off track" means, its not overriding a silenced phone, the sampler, the batching, the notification and resyncRecordingState are not touched. No phone.
+**Why in two parts:** the code's own header calls this "moving navigation ownership" into the service "with the ViewModel as a mirror" and says the decision was not yet made when written. The owner approved the move on 2026-09-11 (docs/navigation/2026-09-11-sundown-phase1-progress-report.md); who owns which state is still an unmade choice, so the coder reports the shapes before any is built.
+**Finish line:** the tests and the report pushed on branch alerts-in-service, the hand-back sent, nothing built.
+**Notes:** Written by the planner by hand, on branch records-after-145 with -399, so that one pull request carries both. The coder runs on Sonnet 5.5 in a window the owner opens, in its own worktree, forager-wt/alerts-in-service.
