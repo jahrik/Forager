@@ -225,6 +225,12 @@ class TrackRecordingViewModel(
     private var takenUpOrigin: TakenUpOrigin? = null
     private var takeUpInFlight = false
 
+    /**
+     * The recording this screen has itself stopped, until the watch has moved on from it. See
+     * [isOwnStoppedRecording].
+     */
+    private var stoppedTrackId: String? = null
+
     private enum class TakenUpOrigin {
         /** The track's own start marker has not been looked up yet, or the lookup failed and is tried again. */
         NOT_LOOKED_UP,
@@ -289,7 +295,7 @@ class TrackRecordingViewModel(
         // words. A screen that has taken the recording up offers Stop and does not reach here;
         // this is the guard behind that.
         val running = returnWatch.state.value
-        if (running.isBegun && running.trackId != uiState.value.activeTrack?.trackId) {
+        if (running.isBegun && running.trackId != uiState.value.activeTrack?.trackId && !isOwnStoppedRecording(running)) {
             errorLog.w(
                 TAG,
                 "Record was refused: the recording service is already recording track '${running.trackId}'.",
@@ -374,7 +380,10 @@ class TrackRecordingViewModel(
         locationJob = null
         // This screen's return is over with its recording. The service ends the watch itself when
         // it stops; this covers the moment before it has, and a recording the service never began.
-        uiState.value.activeTrack?.let { returnWatch.stopReturn(it.trackId) }
+        uiState.value.activeTrack?.let {
+            returnWatch.stopReturn(it.trackId)
+            stoppedTrackId = it.trackId
+        }
         lastGatedFix = null
         originCreationInFlight = false
         takenUpOrigin = null
@@ -412,7 +421,7 @@ class TrackRecordingViewModel(
     private suspend fun takeUpRunningRecording() {
         if (uiState.value.activeTrack != null || takeUpInFlight) return
         val running = returnWatch.state.value
-        if (!running.isBegun) return
+        if (!running.isBegun || isOwnStoppedRecording(running)) return
         val trackId = running.trackId ?: return
         val mode = running.mode ?: return
         takeUpInFlight = true
@@ -432,6 +441,7 @@ class TrackRecordingViewModel(
             // The read suspended. Go by what is true now, not by what was true before it.
             val stillRunning = returnWatch.state.value
             if (uiState.value.activeTrack != null || !stillRunning.isBegun || stillRunning.trackId != trackId) return
+            if (isOwnStoppedRecording(stillRunning)) return
 
             val active = ActiveTrack(trackId, track.startedAtEpochMillis, mode)
             lastGatedFix = null
@@ -454,6 +464,32 @@ class TrackRecordingViewModel(
         } finally {
             takeUpInFlight = false
         }
+    }
+
+    /**
+     * Whether the watch is still begun for the recording this screen has just stopped.
+     *
+     * **The window this closes** (found in the planner's review of Part 3a): Stop clears this
+     * screen's recording at once, but the service is stopped a moment later, when `MainActivity`'s
+     * effect has sent `ACTION_STOP` and the service has handled it. Until then the watch is still
+     * begun for the stopped track while this screen has no active track, which is the very state
+     * the refusal in [startRecording] and [takeUpRunningRecording] act on. Without this, a second
+     * quick tap on Record took the stopped recording back up, and the service then began
+     * recording again into a track it had just ended.
+     *
+     * So a recording this screen stopped is neither refused against nor taken up. The memory is
+     * dropped as soon as the watch is seen to have moved on (ended, or begun for another track),
+     * so any other running recording is still refused against and still taken up.
+     *
+     * **What it rests on:** the stop reaching the service. If it never did, this screen would go
+     * on leaving that recording alone until the watch changed. A new screen (after a swipe-away)
+     * has no such memory and takes it up.
+     */
+    private fun isOwnStoppedRecording(running: ReturnWatchState): Boolean {
+        val stopped = stoppedTrackId ?: return false
+        if (running.isBegun && running.trackId == stopped) return true
+        stoppedTrackId = null
+        return false
     }
 
     /**
