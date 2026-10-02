@@ -504,3 +504,5 @@ Each failure is one that edit could produce.
 ## For the owner afterwards (device-only)
 
 On a test build, on a phone that has a stuck track: open the app, then open Records. The track reads as finished, with an end time, and Delete is offered. `adb logcat -s EndAbandonedTracks` shows how many were ended and how many with no stored point were left.
+
+**Added 2026-10-02 (UTC), after the planner's review of Part 3b.** `EndAbandonedTracksUseCase.kt`'s header still said the sweep runs "once, at process start, from `ForagerApplication`", which was true at `6c9ccec1` and not at `1c047c66`. The paragraph is corrected to say that the first recording ViewModel launches it, pointing at `AbandonedTrackSweepOnce` for the reasons. Comment only: no code line changed and no Gradle run was made. So the use case is no longer byte-identical to `6c9ccec1`, as this section says above; it differs in that one comment paragraph.

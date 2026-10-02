@@ -32,13 +32,16 @@ data class AbandonedTracksSweep(
  * track the recording service never wrote to. Until this, they read "Still recording" for good
  * and the app refused to delete them.
  *
- * ## When it runs, and why then
+ * ## When it runs
  *
- * Once, at process start, from `ForagerApplication`. At that moment no service is recording (a
- * recording needs this process's service), no screen exists, and nothing has just been stopped, so
- * an open row from before is by definition one nothing is recording. Run when a screen is created
- * it would have needed guards against a recording that is just starting, one that is just
- * stopping, and a second screen (the planner's ruling A, on the coder's challenge).
+ * Once in a process, when the first recording ViewModel is created. [AbandonedTrackSweepOnce]
+ * holds the "once" and the reasons: why it is launched from a screen and not from
+ * `ForagerApplication.onCreate`, where it was first put, and what that costs. This class only
+ * holds the rule, and is given the process's start time by whoever runs it.
+ *
+ * Whenever it runs in a process, the cut-off below is what keeps it away from anything that
+ * process is doing: a recording just starting, one just stopping, a second screen. Each of those
+ * concerns a track started in this process, and no such track is ever a candidate.
  *
  * ## Which rows
  *
