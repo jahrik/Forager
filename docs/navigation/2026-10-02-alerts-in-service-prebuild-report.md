@@ -307,3 +307,14 @@ Appended at the planner's word. Nothing above is changed; flag 7 stands as it wa
 - **What the owner said to this session,** after the hand-back, verbatim: "Opus 5.5 Medium for this session".
 - **What the planner said:** that the owner changed coders to Opus 5.5 at medium effort for this session after the launch prompt was first pasted, so Opus 5.5 is what was intended.
 - **So flag 7 records a launch-prompt line that arrived incomplete, not a wrong model.** The line began " first, and state the model you run on", with the command before it missing. The session ran on the model the owner chose.
+
+## Phone check, S22, 2026-10-02
+
+Amendment 1 to the dispatch (continuation 2026-09-28-401), read on branch `records-after-146` at `d319df15`. Nothing above this heading is changed.
+
+### Predictions, pushed before the phone was touched
+
+Written at `2026-10-02` (UTC) with no `adb` command yet run by this session.
+
+- **Step 4 (after the swipe from recents):** the process keeps the same pid, `TrackRecordingService` is still a foreground service, and the recording notification is still posted.
+- **Step 6 (Forager opened again):** the Maps tab offers Record and shows no recording and no return HUD, in the same process (pid unchanged).
