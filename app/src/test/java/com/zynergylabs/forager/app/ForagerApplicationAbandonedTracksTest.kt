@@ -78,7 +78,7 @@ class ForagerApplicationAbandonedTracksTest {
             // Left open by an earlier process, with stored points: the one to end.
             tracks.create(Track(id = "stuck", name = null, startedAtEpochMillis = hourAgo, endedAtEpochMillis = null, points = emptyList())).getOrThrow()
             tracks.appendPoints("stuck", listOf(point(hourAgo + 60_000L), point(hourAgo + 120_000L))).getOrThrow()
-            // Left open with no stored point: not built, left exactly as it is.
+            // Left open with no stored point: ended at its own start time (the owner's "Option A", Part 3c).
             tracks.create(Track(id = "empty", name = null, startedAtEpochMillis = hourAgo, endedAtEpochMillis = null, points = emptyList())).getOrThrow()
             // Already finished: its end must not move.
             tracks.create(Track(id = "finished", name = null, startedAtEpochMillis = hourAgo, endedAtEpochMillis = hourAgo + 30_000L, points = emptyList())).getOrThrow()
@@ -107,7 +107,12 @@ class ForagerApplicationAbandonedTracksTest {
             hourAgo + 120_000L,
             viewModel.uiState.value.tracks.firstOrNull { it.id == "stuck" }?.endedAtEpochMillis,
         )
-        assertNull("a track with no stored point is left open", app.endOf("empty"))
+        assertEquals("a track with no stored point is ended at its own start time", hourAgo, app.endOf("empty"))
+        assertEquals(
+            "and the screen shows it finished too",
+            hourAgo,
+            viewModel.uiState.value.tracks.firstOrNull { it.id == "empty" }?.endedAtEpochMillis,
+        )
         assertNull("a track started in this process is left open", app.endOf("new"))
         assertEquals("a finished track keeps its end", hourAgo + 30_000L, app.endOf("finished"))
     }
