@@ -740,16 +740,45 @@ class TrackRecordingSwipeAwayTest {
         assertNull(second.uiState.value.tracks.single { it.id == "left-later" }.endedAtEpochMillis)
     }
 
-    /** The sweep and a recording in the same process: the recording started after the process did, so it is never a candidate, even with no watch begun for it yet. */
+    /**
+     * The sweep and a Record tap in the same process, with the tap landing first: the sweep's own
+     * listing is slow here (it gives way once before it reads), so the recording's row already
+     * exists, open, with no stored point and no watch begun for it, when the sweep lists the
+     * tracks. Only the cut-off keeps it from being ended: it started after the process did.
+     *
+     * Until Part 3c this test passed with the cut-off removed, because a track with no stored
+     * point was left alone whatever its start, and its row was made after the sweep had already
+     * listed. Both are changed: such a track is now ended unless the cut-off or the watch excludes
+     * it, and the listing is made to come second.
+     */
     @Test
     fun `a recording started on this screen is not ended by the sweep`() = runRecordingTest {
+        tracks.giveWayBeforeListing = true
         val vm = viewModelIn(ViewModelStore())
-        vm.startRecording(TrackRecordingMode.HIGH_ACCURACY) // before the sweep's coroutine has run at all
+        vm.startRecording(TrackRecordingMode.HIGH_ACCURACY) // lands before the sweep has listed the tracks
         runCurrent()
 
         assertTrue(vm.uiState.value.isRecording)
-        assertNull(tracks.getById("track-1").getOrThrow()?.endedAtEpochMillis)
+        assertNull("the recording's own row is still open", tracks.getById("track-1").getOrThrow()?.endedAtEpochMillis)
+        assertNull(vm.uiState.value.tracks.firstOrNull { it.id == "track-1" }?.endedAtEpochMillis)
         vm.stopRecording()
+    }
+
+    /** The owner's "Option A" for a stuck track with nothing recorded in it (Part 3c), on the screen: finished, ended at its start, and it can be deleted. */
+    @Test
+    fun `Open Records, a stuck track with nothing recorded in it - it is a finished track with no points, ended at its start time, and it can be deleted`() = runRecordingTest {
+        tracks.seedOpen("empty", startedAt = 100L)
+
+        val vm = viewModelIn(ViewModelStore())
+        runCurrent()
+
+        val shown = vm.uiState.value.tracks.single { it.id == "empty" }
+        assertEquals("ended at its own start time", 100L, shown.endedAtEpochMillis)
+        assertTrue(shown.points.isEmpty())
+        assertTrue("Records offers Delete for it", shown.canBeDeleted)
+        vm.requestRemoveTrack("empty")
+        assertEquals("empty", vm.uiState.value.pendingTrackDelete?.item?.id)
+        assertEquals("nothing was deleted by the sweep itself: the row is still stored", listOf("empty"), tracks.getAll().getOrThrow().map { it.id })
     }
 
     private companion object {
@@ -769,7 +798,13 @@ private class SwipeAwayTracks : TrackRepository {
     /** While true, every read of a single track fails, as a database error would. */
     var failReads = false
 
-    override suspend fun getAll(): Result<List<Track>> = Result.success(tracks.values.toList())
+    /** While true, a listing gives way once before it reads, so whatever else is queued runs first: a slow query. */
+    var giveWayBeforeListing = false
+
+    override suspend fun getAll(): Result<List<Track>> {
+        if (giveWayBeforeListing) kotlinx.coroutines.yield()
+        return Result.success(tracks.values.toList())
+    }
     override suspend fun getById(id: String): Result<Track?> =
         if (failReads) Result.failure(IllegalStateException("the database could not be read")) else Result.success(tracks[id])
     override suspend fun getFullRecord(id: String): Result<List<TrackPointRecord>> =

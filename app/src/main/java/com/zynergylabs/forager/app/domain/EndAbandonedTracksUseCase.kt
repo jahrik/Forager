@@ -12,6 +12,7 @@ data class EndedAbandonedTrack(val trackId: String, val endedAtEpochMillis: Long
  */
 data class AbandonedTracksSweep(
     val ended: List<EndedAbandonedTrack> = emptyList(),
+    val endedWithNoStoredPoint: List<EndedAbandonedTrack> = emptyList(),
     val leftWithNoStoredPoint: Int = 0,
     val failed: Int = 0,
 )
