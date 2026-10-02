@@ -270,6 +270,7 @@ class TrackRecordingServiceTest {
             container.locationTracker,
             container.getTracksUseCase,
             container.alertDelivery,
+            container.returnWatch,
             container.alertAudibility,
             deleteTrack = container.deleteTrackUseCase,
         )

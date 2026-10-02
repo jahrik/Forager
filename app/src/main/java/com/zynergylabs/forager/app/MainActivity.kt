@@ -199,6 +199,7 @@ class MainActivity : ComponentActivity() {
                     container.locationTracker,
                     container.getTracksUseCase,
                     container.alertDelivery,
+                    container.returnWatch,
                     container.alertAudibility,
                     androidErrorLog,
                     getWaypointReferenceCount = { id -> waypointEntryReferenceCountOrZero(id, container.getEntryReferenceCountUseCase::forWaypoint, androidErrorLog) },
