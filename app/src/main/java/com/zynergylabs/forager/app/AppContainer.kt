@@ -55,6 +55,7 @@ import com.zynergylabs.forager.app.alert.AndroidAlertAudibility
 import com.zynergylabs.forager.app.alert.AndroidAlertDelivery
 import com.zynergylabs.forager.app.domain.AlertAudibility
 import com.zynergylabs.forager.app.domain.AlertDelivery
+import com.zynergylabs.forager.app.domain.EndAbandonedTracksUseCase
 import com.zynergylabs.forager.app.domain.ReturnWatch
 import com.zynergylabs.forager.app.domain.ComputeReturnToStartUseCase
 import com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCase
@@ -327,6 +328,8 @@ class AppContainer(context: Context) {
     // 2026-09-28-400, Amendment 2). TrackRecordingService begins, feeds and ends it;
     // TrackRecordingViewModel calls it for Return and copies its state. See ReturnWatch.
     val returnWatch = ReturnWatch(computeReturnToStartUseCase, detectOffTrackUseCase, alertDelivery, currentTimeProvider)
+
+    val endAbandonedTracksUseCase = EndAbandonedTracksUseCase(trackRepository, watchedTrackId = { returnWatch.state.value.trackId }, errorLog = errorLog)
 
     val waypointRepository: WaypointRepository = RoomWaypointRepository(database.waypointDao())
     val createWaypointUseCase = CreateWaypointUseCase(waypointRepository)
