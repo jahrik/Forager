@@ -10377,3 +10377,25 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Costs as they now stand:** a process that starts with no screen does not sweep until the app is next opened; a row left open while the process lives waits for the next start; rows restored from an older backup stay open until the next start. One earlier cost is removed by the reload.
 **Not chosen:** leaving the call at app start and changing the test, which would be a decision to reduce an existing test and is the owner's; a delay, which would pass by coincidence.
 **Notes:** Written by the planner by hand, on branch records-after-148 with -406 to -409, pushed and not merged.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-411
+**Timestamp:** 2026-10-02T08:58:11Z
+**Continues:** 2026-09-28-400 (preserved 2026-10-02-01); Part 3b handed back and accepted on alerts-in-service at 3b0e2d3e; not merged, not run on a phone
+**Part 3b, from the coder's report** (the Part 3b section of docs/navigation/2026-10-02-alerts-in-service-part-3-completion-report.md; evidence ~/Zynergy/device-evidence/2026-10-02-alerts-in-service/part3b/):
+- **Commits:** 0d4028db, the rule's tests pushed failing (15 of 29); 6c9ccec1, the rule, with the launch at app start as first ruled; 3dced063, a fix to the coder's own new tests; 82450b05, the new launch point's tests pushed failing (6 of 323); 1c047c66, the launch by the first recording screen; 1aef03f3, the report section; 3b0e2d3e, a comment corrected at the planner's request.
+- **What was built:** a track left open by an earlier run of the app, with at least one stored point, is ended at the time of its last stored point, never earlier than its start, by a write that changes a row only if it is still open. It runs once per process, launched by the first recording screen to be created, which then reads its track list again. A track the watch is for is left alone. A track with no stored point is left as it is and counted. One new database query; no change to the database's shape.
+- **The measurement:** ForagerDatabaseDestructiveFallbackTest alone, ten runs each: 7 failing with the sweep launched at app start, 0 with that call removed, 0 at the final build. The mechanism is read, not proved. That test was not edited.
+- **Tests:** the full unit suite at 1c047c66, 420 classes, 3,445 tests, 0 failures, 0 errors, 24 skipped; assembleDebug with no error lines; thirteen revert checks.
+**What the planner checked itself:**
+- **Read:** the use case and the once-per-process holder in full, and the whole diff of the container, the application class, MainActivity, the DAO, the repository and its interface, and the ViewModel since Part 3a's accepted head.
+- **Re-counted from the saved XML:** the full suite as reported; the three ten-run measurements, 7, 0 and 0 failing runs; each of the thirteen revert checks failing on the test that claims its edit, among them "expected:<[just-before]> but was:<[just-before, at-start, after-start]>" with the cut-off removed and "a track that already has an end time keeps it" with the write made unconditional.
+- **Checked:** no schema, migration, database-version or build file changed; no test skipped or silenced; nothing removed from the report; no file under app/ differs between 1c047c66 and 1aef03f3; the last commit changes comment lines only.
+- **Sent back, one thing:** the use case's header still said it runs at app start. Corrected by the coder at 3b0e2d3e, comment only.
+**Said by the coder and accepted as said:** the repository's new method has a default that answers "unsupported" explicitly, so six test fakes were not edited; "once" means once completed, so a sweep that could not list the tracks is tried again; the sweep's log lines are not held by a test; one of its own tests does not bite the way its name suggests, and the three that hold the cut-off are named.
+**Accepted costs:** a process that starts with no screen does not sweep until the app is next opened; a row left open while the process lives waits for the next start; rows restored from an older backup stay open until the next start.
+**Not built:** the track with no stored point, which is with the owner. **Not verified by anyone:** anything on a phone; what each reader of a newly ended track shows on a screen.
+**Holds:** the merge into main, which is the owner's word; the phone check for Parts 2 and 3.
+**Notes:** Written by the planner by hand, on branch records-after-148 with -406 to -410, pushed and not merged.
