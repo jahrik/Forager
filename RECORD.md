@@ -10476,3 +10476,22 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **What the owner does first, by their second sentence:** walks the off-track alert. The sundown alerts (plan task T2) wait for that. Dispatch -400 has no terminal yet for the same reason.
 **Finish line:** the fix and its report pushed on branch notification-tap, the phone step's result recorded, the hand-back sent.
 **Notes:** Written by the planner by hand, on branch records-after-151 cut from t1-device-check at 9c1a609c, pushed and not merged.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-416
+**Timestamp:** 2026-10-02T19:12:31Z
+**Closes:** 2026-09-28-415 (preserved 2026-10-02-02)
+**Outcome:** completed
+**Observed:**
+- **What landed,** on branch notification-tap at 6d78266f, not merged when this was written: e89516d9, the test pushed failing ("Flags were 0x0"); c5c77acc, the fix; 6d78266f, the report docs/navigation/2026-10-02-notification-tap-completion-report.md and its two index rows.
+- **The diagnosis was confirmed** on every point, with one correction to the dispatch: AndroidBackupNotifierTest asserts the backup intent's component and extra, not its flags. The two getActivity calls are the only two.
+- **The fix:** the recording notification's intent now carries SINGLE_TOP and CLEAR_TOP. One file under app/src/main, nine lines added and one removed, and a new test class. The manifest, MainActivity and the notification's text, channel and Stop action are untouched.
+- **On the S22,** debug build 1.0.2490+gc5c77acc installed over the earlier debug build, nothing wiped: after the tap the task holds one MainActivity record, the same one as before the tap, showing "Stop recording track"; before the fix it held two. With Forager swiped away during a recording, the tap opened one screen showing "Stop recording track", and Stop on it ended the service and the notification.
+- **Tests:** the full unit suite at c5c77acc, 421 classes, 3,449 tests, 0 failures, 0 errors, 24 skipped; the revert check fails the new test with its own message; assembleDebug with no error lines.
+- **The owner's words to the coder,** in its window, read from the coder's hand-back: "Yes, build it" and "Yes, run the phone step".
+**What the planner checked itself:** the fix's diff, read; the saved XML re-counted (1 of 12 failing first, the revert check failing the same test, the full suite as reported); one MainActivity record in the saved dump after the tap; and, on the phone over adb without touching it, the build's versionName, no service, no notification and one MainActivity record. No file under app/ differs between c5c77acc and 6d78266f.
+**Deviations:** none. **Not shown:** Back after the tap (the check does not allow Back; with one screen in the task there is no older copy, which is inferred); the tap from anything but the home screen; an unplugged phone.
+**Next:** the owner walks the off-track alert with this build on the S22 ("I'll do a full walk for this one", "Have the coder work first"). Dispatch -400's terminal and plan task T2 wait for that walk.
+**Notes:** Written by the planner by hand, on branch records-after-151 with -415. Pull request #151 (t1-device-check into main, head 9c1a609ccafd47daa4dced4eaff812015a0cbb22, on which CI passed, run 37041745684) was merged as 3e82b5ca2fc8e762dd6253cd1d32d6800de57084 at 2026-10-02T17:42:56Z, read from GitHub, on the owner's "I told the coder the merge device check", with backup 2026-10-02-04; no file under app/ changed. That merge has no entry of its own, and this note stands in for one.
