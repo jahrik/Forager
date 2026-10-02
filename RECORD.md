@@ -10399,3 +10399,33 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Not built:** the track with no stored point, which is with the owner. **Not verified by anyone:** anything on a phone; what each reader of a newly ended track shows on a screen.
 **Holds:** the merge into main, which is the owner's word; the phone check for Parts 2 and 3.
 **Notes:** Written by the planner by hand, on branch records-after-148 with -406 to -410, pushed and not merged.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-412
+**Timestamp:** 2026-10-02T12:16:20Z
+**Continues:** 2026-09-28-400 (preserved 2026-10-02-01, where Part 3c is appended); Part 3 accepted (-408, -411), pull request #149 open for it
+**The owner, verbatim (2026-10-02T12:14Z),** to "shall I open a PR for t1-part-3 and merge it when CI passes?" and to the empty stuck track: "Open a pr and merge" and "2. Option A".
+**The path the second answers, as put:** "Open Records > a stuck track with nothing recorded in it. A: it shows as a finished track with no points, ended at its start time; you can delete it. B: the app removes it by itself." The planner had recommended A: nothing is deleted without the owner doing it.
+**Pull request #149** (t1-part-3 into main, head b4720edfa62ea4feb0a95dc4d62034bb07205232, whose app code is the coder's 3b0e2d3e) is open on the first answer; CI was running when this was written and the merge is not yet made. Backup 2026-10-02-02 is written.
+**Change:** Part 3c appended to the dispatch file. A track left open by an earlier run of the app, with no stored point, is ended at its own start time, by the same conditional write and under the same two conditions as every other candidate. Nothing is deleted. The coder first reads what each reader shows for a finished track with no points and reports anything misleading without fixing it, and shows that one of its earlier tests, which it had reported as not biting, now does.
+**Holds:** the phone check for Parts 2 and 3, until Part 3c is in.
+**Notes:** Written by the planner by hand, on branch records-after-149 cut from t1-part-3 at b4720edf, pushed and not merged.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-413
+**Timestamp:** 2026-10-02T12:29:52Z
+**Continues:** 2026-09-28-400 (preserved 2026-10-02-01, where Amendment 4 is appended); Part 3c handed back and accepted on alerts-in-service at 2b9546cb, not merged; Parts 2 and 3 on main, none of it run on a phone
+**Part 3c, from the coder's report** (the Part 3c section of docs/navigation/2026-10-02-alerts-in-service-part-3-completion-report.md; evidence ~/Zynergy/device-evidence/2026-10-02-alerts-in-service/part3c/):
+- **Commits:** b5f5c3e4, the tests pushed failing (4 of 37); 51b7ab32, the build; 36bc233f, main merged in; 2b9546cb, the report section.
+- **What was built:** a track left open by an earlier run of the app, with nothing recorded in it, is ended at its own start time, by the same conditional write and under the same two conditions as every other candidate, and reported apart with its own log line. Nothing is deleted. Three files under app/src/main. No database change.
+- **Read before building, a finished track with no points:** the details sheet shows the same start and end time, zero distance, "0m" and "0" points, and offers Delete; the Records row reads "0 points" and offers Delete; the Maps tab draws nothing; it counts toward its start day's trip only. Share is offered and writes a GPX file with no points; whether other apps open such a file was not determined. Not new: a recording started and stopped before any fix already reads this way. Reported, not changed.
+- **A test that did not bite now does,** and the coder corrected its own earlier account: there were two reasons it had not, and it had named one. With the cut-off removed it now fails with "the recording's own row is still open expected null, but was:<1000>".
+- **Tests:** the full unit suite at 51b7ab32, 420 classes, 3,448 tests, 0 failures, 0 errors, 24 skipped; three revert checks; ForagerDatabaseDestructiveFallbackTest alone three times, none failing.
+**What the planner checked itself:** read the whole change to the use case, the container's log line and the ViewModel's one condition; re-counted the saved XML (the full suite as reported; 4 of 37 failing first; the three revert checks failing on the tests that claim them; the three single-class runs clean); no schema or build file changed, no test skipped, nothing removed from the report, and no file under app/ differing between 51b7ab32 and 2b9546cb. Nothing is sent back.
+**For the owner's list, from the coder's reading:** Share on a track with nothing in it produces a GPX file with no points.
+**Change:** Amendment 4 appended to the dispatch file, the phone check for Parts 2 and 3 on the S22. It is not started: the planner gives the word only when the owner has given the go, and the coder asks the owner directly before touching the phone. It removes the release build and installs a debug build, which wipes Forager's data on that phone, as the owner chose (-404). Nine steps: the reopened screen shows Stop and the return HUD; Stop on that screen ends the service, which is MainActivity's effect that no test composes; a stop from the notification is seen by the screen; a track made stuck on purpose by one force-stop is ended at the next open; and whether the recording notification's tap stacks a second copy of the screen. The off-track alert itself is not checked; the phone is on a desk.
+**Notes:** Written by the planner by hand, on branch records-after-149 with -412, pushed and not merged. Pull request #149 (t1-part-3 into main, head b4720edfa62ea4feb0a95dc4d62034bb07205232, on which CI passed, run 37005619706) was merged as fe598a7dd41f77c7f1127cd2372e19097239c211 at 2026-10-02T12:24:38Z, read from GitHub, on the owner's "Open a pr and merge", with backup 2026-10-02-02; main's app code after the merge is the coder's reviewed 3b0e2d3e. That merge has no entry of its own, and this note stands in for one.
