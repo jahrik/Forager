@@ -331,3 +331,17 @@ Evidence in `~/Zynergy/device-evidence/2026-10-02-alerts-in-service/phone-check/
 - **Seen and not acted on:** the status bar shows Do Not Disturb on and the ringer muted.
 
 Steps 2 to 7 were not attempted. The two predictions above are untested.
+
+### Second attempt, stopped at step 2, 05:17Z: a recording is running and a system prompt is unanswered
+
+Re-run from step 0 at the planner's word after the owner set the phone ("Ready"). Evidence in `phone-check/run2/`.
+
+- **Step 0 (05:17:04Z, `step0-*`).** Same build and inode as before. Upright (`ROTATION_0`), awake, no keyguard, USB powered, pid 5455, no service, no Forager notification. Maps tab, with "Start recording track" in the dump.
+- **Step 1 (05:17:18Z, `step1.png`, `step1.xml`).** Launcher intent; unchanged.
+- **Step 2 (05:17:22Z, `step2-tap.txt`).** Rotation re-read upright, then one tap on "Start recording track" at the centre of its bounds from the dump, `[1275,1962][1365,2052]`.
+  - **The system asked "Allow Forager to send you notifications?"** (`step2.png`, `step2.xml`; Allow / Don't allow). This is the amendment's stop: a permission prompt is not to be answered. It was not.
+  - **The recording did start** (`step2-services.txt`, 05:17:29Z): `TrackRecordingService` listed, `isForeground=true`, `foregroundId=1001`, pid 5455. This matches `MainActivity.kt:592-602`, which asks for the permission and starts the recording without waiting for the answer.
+  - **No notification is posted** (`step2-notifications.txt`): the permission reads `granted=false`. So on this install, step 4's third reading and step 7's Stop action do not exist until the prompt is answered Allow.
+- **State left on the phone at 05:17:36Z:** a recording running, the prompt on screen, nothing else touched. I cannot end the recording inside the amendment's rules: the screen's Stop is behind the prompt, there is no notification to stop it from, and a force-stop, Back, and answering the prompt are all not allowed.
+
+Steps 3 to 7 were not attempted. The two predictions are still untested.
