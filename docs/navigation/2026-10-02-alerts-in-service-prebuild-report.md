@@ -318,3 +318,16 @@ Written at `2026-10-02` (UTC) with no `adb` command yet run by this session.
 
 - **Step 4 (after the swipe from recents):** the process keeps the same pid, `TrackRecordingService` is still a foreground service, and the recording notification is still posted.
 - **Step 6 (Forager opened again):** the Maps tab offers Record and shows no recording and no return HUD, in the same process (pid unchanged).
+
+### Stopped at step 1, 04:49Z: the check did not run
+
+Evidence in `~/Zynergy/device-evidence/2026-10-02-alerts-in-service/phone-check/`. One thing was done to the phone: Forager was brought to the front by its launcher intent. No tap, no swipe, no key press.
+
+- **Step 0, baseline, read-only (`step0-baseline.txt`, `step0-services.txt`, 04:49:32Z).** SM-S908U, Android 16, One UI 8.0, `1.0.2426+ge0239399`, versionCode 2426, ceDataInode 2470106, pid 20684, awake, no keyguard, USB powered, location on, no service listed. The rotation line read `ROTATION_0`.
+- **Step 1 (`step1-front.png`, `step1-front.xml`, 04:49:45Z; `step1-rotation.txt`, 04:49:56Z).** Forager came to the front, and two of the amendment's stop conditions were met:
+  - **The display is at `ROTATION_90`,** 3088 by 1440, with auto-rotate on. The amendment assumes `ROTATION_0`. Either the phone turned when Forager came forward or my step 0 reading took the wrong line of the dump; I could not tell which from what was saved.
+  - **The Record control is not in the dump.** The screen is the Journal tab (Entries, "No entries yet") with the settings drawer open over it. Reaching the Maps tab would take a tap to close the drawer and then a tap on the navigation, and the first is not a tap the amendment allows.
+- **State left on the phone:** Forager in front, as it was found apart from being in front; pid still 20684; no `TrackRecordingService` (`step1-services-after-stop.txt`); no recording started; no track created.
+- **Seen and not acted on:** the status bar shows Do Not Disturb on and the ringer muted.
+
+Steps 2 to 7 were not attempted. The two predictions above are untested.
