@@ -10457,3 +10457,22 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **For the owner's list:** the recording notification's tap stacks a second copy of the screen.
 **State of the S22:** the debug build is installed; the release build is not; three ended tracks from the check.
 **Notes:** Written by the planner by hand, on branch t1-device-check, which joins alerts-in-service at 4fc262fa with main at 009d8951; pushed and not merged. Dispatch -400 is not closed by this entry: its terminal waits for the owner's word on what remains (the alert on a walk).
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-415
+**Timestamp:** 2026-10-02T17:36:51Z
+**Title:** notification-tap: the recording notification's tap must not stack a second copy of the screen
+**Dispatch-file:** preserved/2026-10-02-02.md; to the coder window that ran -400
+**The owner, verbatim (2026-10-02, UTC):**
+- 17:34Z, to the planner's one-line request to confirm a relayed "Merge the device check": "I told the coder the merge device check". Pull request #151 (t1-device-check into main) is open on it; no CI run had appeared when this was written.
+- 17:35Z, to "the stacked-screen fault: fix it now as a small task, or leave it on the list?" and "what next: the sundown alerts, or walking the off-track alert first?": "Fix the fault now, I'll do off track alert first".
+**The fault:** confirmed on the S22 in the device check of -400 (-414): with Forager open and a recording running, a tap on the recording notification leaves two copies of the app's screen in one task, and Back from the new one lands on the old.
+**The path the fix restores, not put to the owner as a choice because it is what a notification's tap is expected to do:** "Forager open, a recording running > Home > tap the recording notification > the screen you already had comes to the front, as you left it > Back does what it did before the tap".
+**The planner's diagnosis, for the coder to confirm or disprove:** the recording notification opens MainActivity with no flags (service/TrackRecordingService.kt:229-232) and MainActivity has no launch mode, so a new copy is created; the backup notification sets two flags that prevent it (data/backup/AndroidBackupNotifier.kt:65-70).
+**Change:** the smallest change that brings the existing screen forward, on that one notification. Not the manifest's launch mode. A test pushed failing first, a revert check, the full suite, and one step on the S22: the same tap, then one MainActivity record in the task.
+**Scope boundary:** the notification's text, its Stop action, the service, the watch and everything -400 built are not touched.
+**What the owner does first, by their second sentence:** walks the off-track alert. The sundown alerts (plan task T2) wait for that. Dispatch -400 has no terminal yet for the same reason.
+**Finish line:** the fix and its report pushed on branch notification-tap, the phone step's result recorded, the hand-back sent.
+**Notes:** Written by the planner by hand, on branch records-after-151 cut from t1-device-check at 9c1a609c, pushed and not merged.
