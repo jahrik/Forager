@@ -607,6 +607,79 @@ class TrackRecordingSwipeAwayTest {
         reopened.stopRecording()
     }
 
+    // ---- The window after Stop (found by the planner's review of Part 3a) ------------------------
+    //
+    // stopRecording() clears this screen's recording at once. The service is stopped a moment
+    // later: MainActivity's effect sends ACTION_STOP after the next recomposition, and the service
+    // ends the watch only when it handles that. In between, the watch is still begun for the track
+    // this screen has just stopped, and the screen has no active track: exactly the state the
+    // refusal and the take-up act on. In these tests the service simply has not ended the watch yet.
+
+    /**
+     * Stop, then Record again at once (a second quick tap on the same button), before the service
+     * has handled the stop. As before Part 3a: a new recording starts. The recording this screen
+     * has just stopped is not "another recording running", and the user who stopped it must not be
+     * told to stop it.
+     */
+    @Test
+    fun `Stop then Record at once, before the service has handled the stop, starts a new recording and refuses nothing`() = runRecordingTest {
+        val vm = viewModelIn(ViewModelStore())
+        vm.startRecording(TrackRecordingMode.HIGH_ACCURACY)
+        runCurrent()
+        serviceBegins("track-1")
+
+        vm.stopRecording()
+        assertTrue("precondition: the service has not handled the stop, so the watch is still begun for the stopped track", returnWatch.state.value.isBegun)
+        logged.clear()
+        vm.startRecording(TrackRecordingMode.HIGH_ACCURACY)
+        runCurrent()
+
+        assertNull("nothing was refused", vm.uiState.value.startRecordingErrorMessage)
+        assertEquals("a new recording started, on a new track", "track-2", vm.uiState.value.activeTrack?.trackId)
+        assertEquals(emptyList<String>(), logged)
+        vm.stopRecording()
+    }
+
+    /** The same window, reached by the app coming to the foreground: the recording this screen has just stopped is not taken back up. */
+    @Test
+    fun `Stop, then the app comes to the foreground before the service has handled the stop - the stopped recording is not taken back up`() = runRecordingTest {
+        val vm = viewModelIn(ViewModelStore())
+        vm.startRecording(TrackRecordingMode.HIGH_ACCURACY)
+        runCurrent()
+        serviceBegins("track-1")
+
+        vm.stopRecording()
+        vm.onEnteredForeground()
+        runCurrent()
+
+        assertFalse("the screen stays stopped", vm.uiState.value.isRecording)
+        assertNull(vm.uiState.value.activeTrack)
+        assertEquals("and reads no fixes", 0, fixes.subscriptionCount.value)
+    }
+
+    /**
+     * The other side: what this screen remembers is only the recording it stopped itself, and only
+     * until the watch has moved on. Once the service has ended that one, a recording begun for
+     * another track is still refused against, in the owner's words.
+     */
+    @Test
+    fun `after its own stopped recording has ended, Record is still refused while a different recording is running`() = runRecordingTest {
+        val vm = viewModelIn(ViewModelStore())
+        vm.startRecording(TrackRecordingMode.HIGH_ACCURACY)
+        runCurrent()
+        serviceBegins("track-1")
+        vm.stopRecording()
+        serviceEnds("track-1")
+
+        tracks.failReads = true // so the running recording cannot be taken up, and Record is what the screen offers
+        serviceBegins("track-9")
+        vm.startRecording(TrackRecordingMode.HIGH_ACCURACY)
+        runCurrent()
+
+        assertEquals(ALREADY_RECORDING, vm.uiState.value.startRecordingErrorMessage)
+        assertNull(vm.uiState.value.activeTrack)
+    }
+
     private companion object {
         const val POLL_INTERVAL_MILLIS = 15_000L
 
