@@ -317,3 +317,190 @@ In `TrackRecordingSwipeAwayTest`, through `stopRecording`, `startRecording` and 
 ## On the flag about location permission, the planner's reading added
 
 The flag above ("if location permission was taken away while the app was swiped away…") stands as written. The planner's reading, which I agree with as likely: Android kills an app's process when a runtime permission is revoked, so the service would not be running and the watch would not be begun, and the state the flag describes would not arise. **Inferred by both of us, not run.**
+
+# Part 3b, 2026-10-02 (UTC): tracks left open that nothing is recording (step 6)
+
+Appended at the second hand-back. Nothing above this heading is changed; the placeholder "Part 3b: step 6, not started" further up is superseded by this section.
+
+**Status: built and pushed on `alerts-in-service`, not merged, not run on a phone. One case is deliberately not built: a track with no stored point. The owner has that question.**
+
+**Rulings this follows,** all in the dispatch file on branch `records-after-148`: Amendment 3's step 6; "rulings for Part 3b" (continuation 2026-09-28-409, at `6e7cb06c`); "a second ruling for Part 3b: what launches the sweep" (continuation 2026-09-28-410, at `b953b412`).
+
+Evidence in `~/Zynergy/device-evidence/2026-10-02-alerts-in-service/part3b/`.
+
+## What changed for the user
+
+The owner's path 1, answered "A": `Open Records > a track nothing is recording any more > it shows as a normal finished track, ended at its last recorded point; Delete is offered as for any track`.
+
+A track left as "Still recording" by a killed process, or by the old second-recording fault, now becomes a finished track the next time the app is opened in a new process. Its end time is the time of its last stored point. Nothing else in it changes and no point is removed. It can then be deleted like any other.
+
+## The rule, as ruled
+
+- **Which rows:** a track with no end time, whose start is earlier than the moment this process started, and which is not the track the watch is for (begun, or accepted early).
+- **What is written:** the end time only. It is the time of the track's last stored point, read through `getFullRecord`, network fixes included (ruling B). The code says it is not a display consumer, where `getFullRecord`'s own comment will be read.
+- **Never earlier than the start** (ruling D). If the last stored point is stamped before the row's start, the start is written, and the log names the track with both times.
+- **Only if the row is still open** (ruling C). The write is a new conditional update, `UPDATE … WHERE id = :id AND endedAtEpochMillis IS NULL`. If the recording service wrote the true end first, it stays.
+- **A track with no stored point is left exactly as it is,** and the log says how many were left. Not built, by the planner's word.
+
+## What launches it, and a finding on the way
+
+**As first ruled (A):** once at process start, from `ForagerApplication.onCreate`. Built at `6c9ccec1`.
+
+**The finding.** That made the app's database open at every app start. Nothing had done that before: the database opens on its first query, and nothing in `onCreate` queried it. An existing test, `data/local/ForagerDatabaseDestructiveFallbackTest`, replaces the database file to test the migration fallback, and it began to fail intermittently.
+
+| `ForagerDatabaseDestructiveFallbackTest`, run alone ten times | Failed runs | Folders |
+|---|---|---|
+| With the sweep launched from `onCreate` (`3dced063`) | 7 of 10 | `t5-with-sweep-1` to `-10` |
+| The same build with that one call removed (from a saved copy, 0 compile errors, restored) | 0 of 10 | `t5-without-sweep-1` to `-10` |
+| With the sweep launched by the first recording ViewModel (`1c047c66`) | 0 of 10 | `t8-fallback-at-new-build-1` to `-10` |
+
+The failure was `the destructive fallback must actually have wiped the old schema, not coincidentally opened it`. **The mechanism is read, not proved:** the sweep's background open of the database file races the test's own delete-and-rebuild of the same file. What is measured is that the call caused it. I did not touch that test.
+
+**Whether any other test class changed its behaviour under `6c9ccec1`:** I only know about this one. No full suite was run at `6c9ccec1`; the stop came before it. The three database and backup runs I made there (`t4-db-tests-repeat-1` to `-3`, 20 classes) showed only this class failing, once in three.
+
+**How I first saw the same kind of interference,** in my own new tests: they dated their rows an hour back while `onCreate` still swept, so the first app start's own sweep could reach a row before the app start under test did. A revert check (`b2-unconditional-write`) then failed a test for a reason that was not its edit: the watch's track had been ended, which an unconditional write alone could not explain. I fixed my tests at `3dced063`, and that failure is what led me to measure the existing test.
+
+**As ruled the second time:** once per process, when the first recording ViewModel is created. `ForagerApplication.onCreate` only notes the process's start time and hands it to the container; nothing in it queries the database. The container holds the once-only holder. A second ViewModel in the same process does not run it again. When the sweep has ended a track, the ViewModel that launched it reads its track list again.
+
+**Why that moment is safe:** the cut-off does the work. A recording just starting, one just stopping, and anything a second screen is doing all concern a track started in this process, and no such track is a candidate, whenever the sweep runs.
+
+## The accepted costs, as they now are
+
+- **A process that starts with no screen does not sweep.** The scheduled backup's worker, or a sticky restart of the recording service. The sweep runs when the app is next opened.
+- **A track left open while the process lives waits for the next process.** I know of no way to make one since Part 3a.
+- **Tracks restored from an older backup stay open until the next process.** A backup made before the sweep holds the row open; one made after holds the end time.
+- **Gone:** "Still recording until Records is next opened". The ViewModel that launches the sweep reloads its track list when a track was ended. Held by a test and a revert check (`c3-no-reload`).
+
+## What each reader shows once a stuck track is ended
+
+| Reader | Before | After |
+|---|---|---|
+| `ui/log/RecordDetailsSheet.kt:295` | "Still recording" | The end time |
+| `ui/log/RecordDetailsSheet.kt:314` | No Delete | Delete offered |
+| `ui/track/TrackExportPanel.kt:209` | Subtitle ends "· recording" | Subtitle without it |
+| `ui/track/TrackExportPanel.kt:124`, by the rule at `:224` | No Delete | Delete offered |
+| `ui/log/RecordsLogbookList.kt:168` | No swipe to delete | Swipe to delete offered |
+| `ui/track/TrackRecordingViewModel.kt`, `requestRemoveTrack` | Refused as "still recording" | Accepted |
+| `domain/GetMapRecordsUseCase.kt:103` | Left off the Maps tab's saved records | Its line is drawn there |
+| `data/local/TrackDao.kt:38-42`, read by `domain/GetDerivedTripUseCase.kt:42` | Matched every day from its start onward | Matches only the days up to its end, so it leaves the derived trip of every later day |
+| The Duration in the details sheet (`domain/ComputeTrackStatisticsUseCase.kt:89`) | From the points | Unchanged: it never read the end time |
+| The backup (`data/backup`) | Copies the row open | Copies the row with its end time |
+
+Read, not run on a screen, except the two the tests hold: the delete is accepted, and `canBeDeleted` is true.
+
+## What landed
+
+| Commit | What |
+|---|---|
+| `0d4028db` | Tests first for the rule, failing: 4 classes, 29 tests, 15 failures. |
+| `6c9ccec1` | The rule, the conditional write, and the launch from `onCreate` as first ruled. |
+| `3dced063` | A fix to my own new app-start tests. |
+| `82450b05` | Tests first for the new launch point, failing: 36 classes, 323 tests, 6 failures. The `onCreate` call is removed here. |
+| `1c047c66` | The launch by the first recording ViewModel, once per process, and the reload. |
+| this commit | This section. |
+
+**Under `app/src/main`, since Part 3a's follow-up:**
+- `domain/EndAbandonedTracksUseCase.kt`, new: the rule.
+- `domain/AbandonedTrackSweepOnce.kt`, new: once per process, with the cut-off.
+- `domain/TrackRepository.kt`: `endIfOpen`, with a default that answers "unsupported" explicitly, so the six existing test fakes of that interface did not have to be edited and none can be mistaken for one that ended nothing.
+- `data/local/TrackDao.kt` and `data/repository/RoomTrackRepository.kt`: the conditional update. **No schema change, no migration, no database version.**
+- `AppContainer.kt`: takes the process's start time; holds the use case and the once-only holder; logs what each run did.
+- `ForagerApplication.kt`: passes the start time to the container. It launches nothing new.
+- `ui/track/TrackRecordingViewModel.kt`: launches the sweep at creation and reloads its tracks; one new required constructor argument.
+- `MainActivity.kt`: that one argument in the factory.
+
+The service's own end path (`EndTrackUseCase`, `TrackRecordingService.stopRecording`) is unchanged.
+
+**Every call site edited for the new required argument, one argument each and nothing else:** `MainActivity.kt` (the factory); `service/TrackRecordingServiceTest.kt`; `ui/track/TrackRecordingSundownTest.kt`; `ui/log/TrackDeleteTest.kt`; `ui/log/JournalPendingDeleteTest.kt`; `data/repository/NetworkFixExclusionPerConsumerTest.kt`; `ui/track/TrackRecordingViewModelTest.kt`. The five with named arguments pass a holder whose process started at time zero, so it can never find a candidate, plus two imports. No assertion changed. `RoomTrackRepositoryTest` was not edited; the conditional write's tests are in their own class.
+
+## Tests, and what holds each ruling
+
+| Ruling | Held by |
+|---|---|
+| The path: a stuck track becomes a finished one, ended at its last recorded point, and can be deleted | `ui/track/TrackRecordingSwipeAwayTest`: `Open Records, a track nothing is recording any more - it is a finished track ended at its last recorded point, and it can be deleted`. With the real application, container and database: `ForagerApplicationAbandonedTracksTest`: `app start alone ends nothing, and the first recording ViewModel ends a track an earlier process left open, at its last stored point` |
+| Nothing else in the row changes; no point removed | `domain/EndAbandonedTracksUseCaseTest`: `a track left open by an earlier process is ended at its last stored point, and nothing else in its row changes`; `data/repository/RoomTrackRepositoryEndIfOpenTest`: `an open track is ended at the time given, says so, and nothing else in it changes` |
+| A: the cut-off | `EndAbandonedTracksUseCaseTest`: `a track started in this process is left open, at the cut-off and after it` |
+| A: the watch's track left alone, and asked again before the write | `…the track the watch is for is left open`; `…a track the watch takes up while the sweep is reading is left open`; and the container's own wiring in `ForagerApplicationAbandonedTracksTest` |
+| A, second ruling: launched by the first ViewModel, once per process | `domain/AbandonedTrackSweepOnceTest` (2 tests); `TrackRecordingSwipeAwayTest`: `a second ViewModel in the same process does not run the sweep again` |
+| A, second ruling: `onCreate` queries nothing | The measurement above, and the "app start alone ends nothing" half of the application test |
+| The reload | The `Open Records…` test reads the ViewModel's own list; the application test asserts the same on the real database |
+| B: the last stored point, network fixes included | `…the last stored point counts even when it is one the screen leaves out as a network fix` |
+| C: the conditional write | `RoomTrackRepositoryEndIfOpenTest` (4 tests, against Room); `…a track ended by something else between the read and the write keeps that end` |
+| D: the clamp, reported with both times | `…an end that would be earlier than the start is written as the start, and reported with both times` |
+| No stored point: left as it is, and counted | `…a track with no stored point is left exactly as it is, and counted` |
+| A failure is not an empty sweep | `…a track whose points cannot be read is left open, logged and counted, and the others are still ended`; `…a failure to list the tracks is a failure, not an empty sweep` |
+
+**One test of mine that does not bite the way its name suggests,** said plainly: `TrackRecordingSwipeAwayTest`, `a recording started on this screen is not ended by the sweep`. It passes with the cut-off removed too, because the track it makes has no stored point and is left alone for that reason. The cut-off is held by the three tests in the table, not by this one.
+
+## Revert checks
+
+One edit each, from a saved copy and never from git; the reverted build's log read for compile errors first (0 each time); the tree confirmed identical to the commit afterwards.
+
+At `6c9ccec1`, the rule (the use case and the database files are byte-identical at `1c047c66`):
+
+| Folder | The edit | What failed |
+|---|---|---|
+| `b3-no-clamp` | The clamp removed | The clamp test |
+| `b5-no-recheck` | The watch not asked again before the write | `a track the watch takes up while the sweep is reading is left open` |
+| `b7-kept-only` | The last kept point, not the last stored | `…expected:<7000> but was:<2000>`, and both application tests |
+
+`b1`, `b2`, `b4` and `b6` were also run at `6c9ccec1`. They are superseded by the re-made checks below, and `b2` is the one whose odd failure exposed the interference.
+
+At `1c047c66`, the launch, and the three the planner asked to be re-made:
+
+| Folder | The edit | What failed |
+|---|---|---|
+| `c1-vm-does-not-launch` | The ViewModel does not launch the sweep (this replaces "not run at app start") | 3: the application test, and both ViewModel tests |
+| `c2-no-once-flag` | The once-only check removed | 3: both `AbandonedTrackSweepOnceTest` tests, and `the second ViewModel swept nothing expected null, but was:<400>` |
+| `c3-no-reload` | No reload after the sweep | 2: the `Open Records…` test, and the application test's `the screen that launched the sweep shows it finished without Records being reopened` |
+| `c4-watch-not-asked` | The container's sweep is not given the watch | 1: `expected:<[stuck]> but was:<[watched, stuck]>` |
+| `c5-unconditional-write` | The DAO's condition removed | 1: `a track that already has an end time keeps it…` |
+| `c6-no-cutoff` | The cut-off removed | 3: one in each of the application test, `AbandonedTrackSweepOnceTest` and `EndAbandonedTracksUseCaseTest` |
+
+Each failure is one that edit could produce.
+
+## Suite counts
+
+| Run | Commit | Result |
+|---|---|---|
+| Affected classes (`t7-relaunch-built`) | the tree that became `1c047c66` | 58 classes, 454 tests, 0 failures |
+| Full unit suite (`t9-full-suite`) | `1c047c66`, clean tree | 420 classes, 3445 tests, 0 failures, 0 errors, 24 skipped |
+| `assembleDebug` (`t10-assemble`) | `1c047c66` | 0 `e:` lines |
+
+3423 plus 11, 2, 4, 2 and 3 new tests is 3445; 416 plus 4 new classes is 420. The 24 skipped are the same five classes. Both owner-held intermittent classes passed. `ForagerDatabaseDestructiveFallbackTest` passed in the full run, 2 of 2.
+
+## What no headless test reaches
+
+- **A real stuck track on a real phone,** from a real killed process or from the old fault on build 2426.
+- **What Records and the Maps tab draw** for the ended track. The tests assert the end time and the two rules that read it.
+- **A process that starts with no screen.** By reading, it does not sweep.
+- **The log lines** the container writes for each run. They are not asserted.
+
+## Disclosures
+
+**Observed:** every count and every failure message above, from the JUnit XML.
+**Read:** the readers table, at `1c047c66`.
+**Inferred:** the mechanism of the interference with the existing test.
+
+**Could not determine:**
+- How many stuck tracks exist on any tester's phone, and whether any has no stored point.
+- Whether any other test class was disturbed at `6c9ccec1`.
+
+**Premises that were wrong:**
+- **Mine, in my challenge:** I argued for process start and listed its costs, and did not see that it would be the first thing ever to open the database in `onCreate`. The existing test showed it. The planner's cut-off is what then made the screen's creation safe, which was the moment I had argued against.
+- **Mine, in my first app-start tests:** they could be satisfied or spoiled by a sweep other than the one under test.
+
+**Decided beyond scope:** nothing beyond the rulings. Choices inside them:
+- **`endIfOpen` has an interface default that answers "unsupported",** so existing fakes were not edited.
+- **"Once" means once completed.** A sweep that could not list the tracks, or was cancelled with its screen, is tried again by the next ViewModel.
+- **The log lines moved from `ForagerApplication` to `AppContainer`** with the launch, since the holder is built there.
+- **The latest time among the stored points is used,** asked for by value and not by position.
+
+## Still open
+
+- **A track with no stored point.** Left exactly as it is, and counted in the log. It still reads "Still recording" and still cannot be deleted. The owner has the question.
+- **The recording notification's tap opens `MainActivity` with no flags,** so a second Activity can exist. Recorded by the planner for the owner's list; not acted on. The once-only holder is what keeps a second ViewModel from sweeping again.
+
+## For the owner afterwards (device-only)
+
+On a test build, on a phone that has a stuck track: open the app, then open Records. The track reads as finished, with an end time, and Delete is offered. `adb logcat -s EndAbandonedTracks` shows how many were ended and how many with no stored point were left.
