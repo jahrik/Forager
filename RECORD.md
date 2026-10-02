@@ -10311,3 +10311,14 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Not in Part 3:** what "off track" means (T21); the sundown alerts (T2); any change to the database's shape. No phone.
 **Holds:** the phone check for Parts 2 and 3 together, which needs the release build removed from the S22 and a test build installed (the owner's choice, -404), under its own amendment.
 **Notes:** Written by the planner by hand, on branch records-after-148 cut from t1-part-2 at c45a7117, pushed and not merged.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-407
+**Timestamp:** 2026-10-02T07:57:38Z
+**Continues:** 2026-09-28-400 (preserved 2026-10-02-01, where the ruling is appended beneath Amendment 3); Part 3a started, nothing handed back
+**What happened:** the coder started Part 3a without asking the owner again, under the terms of the owner's "Yes, build Part 2" (-404). It then stopped where Amendment 3 told it to: steps 2 and 4 each need one new argument in MainActivity's ViewModel factory, the lookup of a track's start marker and the refusal's words. It offered three options and preferred the first, naming that option's weakness itself.
+**The planner's ruling:** both are required constructor arguments with no default (the coder's option B). No test composes MainActivity, so a default on the lookup would let a forgotten wiring compile and run, quietly reporting no start marker and placing a second one; the compiler catches a missing required argument. A default for the sentence would be a second copy of the owner's words. The six constructing test files are edited again for the two arguments only; no assertion changes. MainActivity's start-and-stop effect is not touched.
+**Change:** the ruling appended to the dispatch file. No behaviour the owner was asked about changes.
+**Notes:** Written by the planner by hand, on branch records-after-148 with -406, pushed and not merged. Pull request #148's CI was still running when this was written.
