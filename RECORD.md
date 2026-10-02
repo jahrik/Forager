@@ -10246,3 +10246,21 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Not in Part 2:** the reopened app (the second path the owner confirmed), which follows as Part 3; the sundown alerts (T2); what "off track" means (T21). No phone.
 **Open for the owner:** how a build of Part 2 reaches the S22 for its device check, since the phone carries the release build and a debug build will not install over it.
 **Notes:** Written by the planner by hand, on branch records-after-146 with -401 and -402, pushed and not merged.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-404
+**Timestamp:** 2026-10-02T07:16:20Z
+**Continues:** 2026-09-28-400 (preserved 2026-10-02-01, where the rulings are appended beneath Amendment 2); Part 2 started, nothing handed back
+**The owner, verbatim, in order (2026-10-02, UTC):**
+- 05:36Z, to "shall I open a PR [for records-after-146] and merge it when CI passes?" and to how a Part 2 build reaches the S22 (build and install it themselves, or have the release build removed, which wipes the app's data on that phone): "1 yes open a pr and merge when ready" and "2 have the release build removed so a test build can go on". **The second is not carried out.** It waits for Part 2's hand-back and its own amendment naming the uninstall and the install.
+- 05:38Z: "Dual app also works in case you need it". The planner's answer, not tried on the phone: the S22 has Samsung's dual-app profile (user 95), but Android keeps one copy of an app's code per phone with one signature, shared by every profile, so a test build cannot sit there beside the release build under the same app identity. A separate identity for test builds would; none exists (app/build.gradle.kts:243), and it is its own decision. The owner has not changed their choice.
+- 06:44Z, to the planner's account of the coder's question, with its three answers: "Option 1". Then 07:13Z, in the coder's own window (read from the coder's session log): "Yes, build Part 2", whose terms are that later planner amendments to this dispatch carry the owner's go and that the coder still asks directly before anything touching the phone.
+**What happened between Amendment 2 and the build:** the coder did not start on the planner's word. Its launch prompt said "Do not start a fix", so at 05:26Z it asked the owner in its own window and waited until 07:13Z. The same happened before the phone check (-403). The planner had not told the owner to expect either question. From now on a launch prompt says that amendments to its dispatch carry the owner's go, with the phone as the stated exception.
+**The coder's questions at the start of Part 2, and the planner's rulings** (appended to the dispatch file):
+- **The distance to the start is not a copy.** Amendment 2's step 3 said it would be; that sentence is withdrawn. Five existing tests outside the eight that move need the ViewModel to work the distance out itself (TrackRecordingViewModelTest :304, :325, :334, :354, :816). The returning flag and "off track now" become copies; the distance and bearing stay with the ViewModel as today. The planner's error: the sentence was taken from the shape's description without checking those tests.
+- **Two constructor arguments leave the ViewModel** (alertDelivery, detectOffTrack), since it no longer uses them. Ruling 5 is widened to that and no further; no assertion changes; a test that used either to assert something is a stop.
+- **Ruling 6 corrected:** only the first-path fault test has a fixed behaviour in Part 2. The reopen tests stay as pins for Part 3. The planner's ruling said "each"; the coder's reading replaces it.
+- Two design points accepted: the ViewModel hands the start point to the object and the object keeps the last one; the ViewModel copies the object's state only for its own active track.
+**Notes:** Written by the planner by hand, on branch records-after-147 cut from main at f5103d0d, pushed and not merged. Pull request #147 (records-after-146 into main, head 966bf5288afa3b5c20090166fc0cac2f71128cfc, on which CI passed, run 36969756817) was merged as f5103d0d93caaffa3e6c1830d77571d530adcd80 at 2026-10-02T05:45:13Z, read from GitHub, on the owner's "1 yes open a pr and merge when ready", with backup 2026-10-01-07. That merge has no entry of its own, and this note stands in for one.
