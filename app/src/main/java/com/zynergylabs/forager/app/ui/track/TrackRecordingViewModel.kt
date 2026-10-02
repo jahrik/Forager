@@ -2,10 +2,7 @@ package com.zynergylabs.forager.app.ui.track
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.zynergylabs.forager.app.domain.Alert
 import com.zynergylabs.forager.app.domain.AlertAudibility
-import com.zynergylabs.forager.app.domain.AlertDelivery
-import com.zynergylabs.forager.app.domain.AlertKind
 import com.zynergylabs.forager.app.domain.ComputeReturnToStartUseCase
 import com.zynergylabs.forager.app.domain.NETWORK_FIXES_RECORDING_NOTICE
 import com.zynergylabs.forager.app.domain.alertAudibilityWarning
@@ -16,7 +13,6 @@ import com.zynergylabs.forager.app.domain.ComputeSundownCountdownUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
-import com.zynergylabs.forager.app.domain.DetectOffTrackUseCase
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.GetTracksUseCase
 import com.zynergylabs.forager.app.domain.GetWaypointsUseCase
@@ -39,6 +35,7 @@ import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.model.WaypointDesignation
 import com.zynergylabs.forager.app.domain.PendingDeleteSlot
 import com.zynergylabs.forager.app.domain.ReturnWatch
+import com.zynergylabs.forager.app.domain.ReturnWatchState
 import com.zynergylabs.forager.app.ui.log.PendingDeleteCommitScope
 import java.time.ZoneId
 import kotlinx.coroutines.CoroutineScope
@@ -83,14 +80,28 @@ import kotlinx.coroutines.launch
  * The first pass of the return-to-vehicle screen recomputed [ReturnToStartInfo] from
  * `AvailabilityViewModel`'s `locateMeStatus` — a one-shot "where am I right now" fetch, refreshed
  * only when the user taps the locate-me icon. That made the bearing/distance shown stale between
- * taps, and made [DetectOffTrackUseCase] unworkable — it needs a running series of readings, not
- * one. This ViewModel now collects [LocationTracker.fixes] itself, the same continuous stream
+ * taps. This ViewModel now collects [LocationTracker.fixes] itself, the same continuous stream
  * [com.zynergylabs.forager.app.service.TrackRecordingService] collects for the track's own points, whenever a
- * recording is active — so [TrackRecordingUiState.returnToStart] and [TrackRecordingUiState.isOffTrack]
- * update on every fix, not just on demand. This does mean two independent OS location-listener
+ * recording is active — so [TrackRecordingUiState.returnToStart] updates on every fix, not just on
+ * demand. This does mean two independent OS location-listener
  * registrations while recording (the service's and this one) rather than one shared stream — a
  * real, accepted duplication, not a hidden one, in exchange for not re-plumbing the service to
  * publish its fixes back out to the UI layer for this one reader.
+ *
+ * ## The off-track decision is not here any more (dispatch 2026-09-28-400, Amendment 2)
+ *
+ * It was: the returning flag, the rolling window, the cooldown and the alert were this class's,
+ * fed by the collection above, and all of it died when the app was swiped away. They are
+ * [ReturnWatch]'s now, held by the app's container and fed by the recording service. This class
+ * calls the watch from [startReturn] and [stopReturn], hands it the start point when that changes,
+ * and copies two things from it into [TrackRecordingUiState]: [TrackRecordingUiState.isReturning]
+ * and [TrackRecordingUiState.isOffTrack]. The distance on the Return button is still worked out
+ * here ([returnToStart]), from this class's own fixes.
+ *
+ * So the same sum is done in two places, from the two listeners that already existed. They can
+ * differ by one fix: the button's distance is from the last fix this class's listener received,
+ * "off track now" from the last the service's received. On a phone both arrive about once a
+ * second from the same source. Nothing on screen compares the two.
  */
 class TrackRecordingViewModel(
     private val trackRepository: TrackRepository,
@@ -99,17 +110,15 @@ class TrackRecordingViewModel(
     private val createWaypoint: CreateWaypointUseCase,
     private val deleteWaypoint: DeleteWaypointUseCase,
     private val computeReturnToStart: ComputeReturnToStartUseCase,
-    private val detectOffTrack: DetectOffTrackUseCase,
     private val locationTracker: LocationTracker,
     private val getTracks: GetTracksUseCase,
     /**
-     * Alert-delivery dispatch: where an off-track alert actually goes. Called directly from
-     * [returnToStart] — not via UI state — so delivery does not depend on a composed tree being
-     * live; see [AlertDelivery]'s own doc comment for the failure that replaced, and for the
-     * swipe-away hole this ViewModel's lifetime still leaves open.
+     * Where the off-track decision lives and where its alert is delivered from: the app's one
+     * [ReturnWatch], the same instance the recording service feeds. Required, with no default: a
+     * ViewModel that quietly built its own would be the old fault again, a decision that dies
+     * with the screen. This class no longer takes an `AlertDelivery`, because it delivers nothing.
      */
-    private val alertDelivery: AlertDelivery,
-    @Suppress("unused") private val returnWatch: ReturnWatch,
+    private val returnWatch: ReturnWatch,
     /** Read once per [startRecording] for [TrackRecordingUiState.tripStartWarning]; never watched live. */
     private val alertAudibility: AlertAudibility,
     /**
@@ -120,7 +129,7 @@ class TrackRecordingViewModel(
      * `Log.w`-backed one for production.
      */
     private val errorLog: ErrorLog = ErrorLog { _, _, _ -> },
-    /** Injected so a test can fix the off-track alert cooldown's clock — see [returnToStart]'s own doc comment. */
+    /** The clock the auto-created waypoints' names and the sundown countdown read. The off-track cooldown's clock is [ReturnWatch]'s own. */
     private val currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
     /**
      * How many Cartography entries currently keep a reference to a waypoint — Journal Stage 2b's
@@ -173,16 +182,6 @@ class TrackRecordingViewModel(
     private val trackDeletes = PendingDeleteSlot<String, Track> { it.id }
     private var locationJob: Job? = null
 
-    // Oldest first, cleared on every startReturn()/stopReturn()/stopRecording() — see
-    // returnToStart()'s doc comment for why this lives here rather than in TrackRecordingUiState
-    // itself (it's tracking history feeding a decision, not state the UI reads directly).
-    private val recentReturnDistancesMeters = mutableListOf<Double>()
-
-    // When the last off-track alert fired, for returnToStart()'s own cooldown — cleared alongside
-    // recentReturnDistancesMeters for the same reason: a new return attempt should never be blocked
-    // by a cooldown left over from a much earlier one.
-    private var lastOffTrackAlertAtMillis: Long? = null
-
     // Navigation HUD stage one — the auto-created origin/end waypoints. lastGatedFix is the most
     // recent fix that passed the active mode's own accuracy gate (LocationSampler's first-fix
     // rule), what stopRecording() seeds the end waypoint from; originCreationInFlight stops a
@@ -202,6 +201,39 @@ class TrackRecordingViewModel(
     init {
         loadWaypoints()
         loadTracks()
+        // The watch changes on the service's thread as well as from this class's own calls (a
+        // fix decides off track; a stop from the notification ends it), so it is collected, not
+        // only read after each call.
+        viewModelScope.launch { returnWatch.state.collect(::copyFromWatch) }
+    }
+
+    /**
+     * Copies the watch's returning and off-track flags into the screen's state, **only when the
+     * watch is for the track this ViewModel is recording**. A ViewModel with no active track, or
+     * with a different one, shows no return: a screen reopened after a swipe-away does not adopt
+     * the running recording yet (that is the dispatch's second path, Part 3), and until it does it
+     * must not show half of one.
+     */
+    private fun copyFromWatch(watch: ReturnWatchState = returnWatch.state.value) {
+        _uiState.update { state ->
+            val mine = state.activeTrack != null && watch.trackId == state.activeTrack.trackId
+            state.copy(isReturning = mine && watch.isReturning, isOffTrack = mine && watch.isOffTrack)
+        }
+    }
+
+    /** The start point as the screen shows it: the origin waypoint once it exists, the first breadcrumb before that. */
+    private fun startPoint(): TrackPoint? =
+        uiState.value.originWaypoint?.asStartPoint() ?: uiState.value.breadcrumbPoints.firstOrNull()
+
+    /**
+     * Gives the watch the start point this ViewModel shows, so the alert and the screen measure to
+     * one place. Called whenever that point can have changed. The watch keeps the last one after
+     * this ViewModel is gone.
+     */
+    private fun handStartPointToWatch() {
+        val active = uiState.value.activeTrack ?: return
+        val start = startPoint() ?: return
+        returnWatch.setStartPoint(active.trackId, start)
     }
 
     /**
@@ -232,6 +264,7 @@ class TrackRecordingViewModel(
                             networkFixesNotice = null,
                         )
                     }
+                    copyFromWatch()
                     darknessMarginMillis = darknessMarginMinutes() * 60_000L
                     beginPolling(track.id)
                     beginLocationTracking()
@@ -280,8 +313,9 @@ class TrackRecordingViewModel(
         pollingJob = null
         locationJob?.cancel()
         locationJob = null
-        recentReturnDistancesMeters.clear()
-        lastOffTrackAlertAtMillis = null
+        // This screen's return is over with its recording. The service ends the watch itself when
+        // it stops; this covers the moment before it has, and a recording the service never began.
+        uiState.value.activeTrack?.let { returnWatch.stopReturn(it.trackId) }
         lastGatedFix = null
         originCreationInFlight = false
         _uiState.update {
@@ -347,9 +381,10 @@ class TrackRecordingViewModel(
      *    canopy that fix may arrive very late or never. A pocketed phone is the normal way to walk
      *    a track. Gate the collector off and a canopy recording acquires no origin at all, and the
      *    navigation HUD then has no target to point at — the return-to-vehicle safety feature.
-     * 2. The off-track alert. [returnToStart] is fed from that collector and is what runs
-     *    [detectOffTrack] and hands the [Alert] to [alertDelivery]. Gating on foreground would stop
-     *    it firing with the screen off, which is the exact condition it exists for.
+     * 2. The off-track alert. [returnToStart] was fed from that collector and ran the decision.
+     *    **No longer true since dispatch 2026-09-28-400, Amendment 2:** the decision is
+     *    [ReturnWatch]'s and is fed by the recording service, so it does not depend on this
+     *    collector at all. Reason 1 still stands on its own, so the collector is left as it was.
      *
      * So the collector stays bounded by the recording, as it always was. What changes is that
      * "the recording" now means the track's own row rather than a field nothing repopulates.
@@ -414,7 +449,7 @@ class TrackRecordingViewModel(
 
     /**
      * Marks the walker as now heading back to the track's start — the only state
-     * [DetectOffTrackUseCase] runs against, and, as of navigation HUD stage one, **the only way the
+     * [com.zynergylabs.forager.app.domain.DetectOffTrackUseCase] runs against, and, as of navigation HUD stage one, **the only way the
      * HUD appears**: `CompactMapTab` shows the HUD while this is true, targeting
      * [TrackRecordingUiState.originWaypoint]. Stage two's target picker (This Trip / Recents /
      * Nearby) will need a way to navigate *without* returning, so this coupling is stage one's
@@ -426,8 +461,19 @@ class TrackRecordingViewModel(
      */
     fun startReturn() {
         val active = uiState.value.activeTrack ?: return
-        recentReturnDistancesMeters.clear()
-        _uiState.update { it.copy(isReturning = true, isOffTrack = false) }
+        if (!returnWatch.startReturn(active.trackId)) {
+            // The watch is begun for another track: the service is recording something this
+            // screen did not start (today, a reopened screen that pressed Record again). Nothing
+            // would feed a return for this track, so none is shown.
+            errorLog.w(
+                TAG,
+                "Return was not started for track '${active.trackId}': the recording service is recording another track.",
+                IllegalStateException("the return watch is for track '${returnWatch.state.value.trackId}'"),
+            )
+            return
+        }
+        handStartPointToWatch()
+        copyFromWatch()
         // Path-home join dispatch: the poll is what computes TrackRecordingUiState.pathHome, and
         // only while returning — restarted here so the HUD's first path-home reading arrives with
         // the HUD rather than up to 15 s after it. Restarting also re-reads the breadcrumbs, which
@@ -437,8 +483,7 @@ class TrackRecordingViewModel(
 
     /** Clears returning/off-track state without touching the recording itself — see [startReturn]. */
     fun stopReturn() {
-        recentReturnDistancesMeters.clear()
-        lastOffTrackAlertAtMillis = null
+        uiState.value.activeTrack?.let { returnWatch.stopReturn(it.trackId) }
         _uiState.update { it.copy(isReturning = false, isOffTrack = false, pathHome = null) }
     }
 
@@ -448,6 +493,7 @@ class TrackRecordingViewModel(
             while (true) {
                 trackRepository.getById(trackId).onSuccess { track ->
                     _uiState.update { it.copy(breadcrumbPoints = track?.points.orEmpty()) }
+                    handStartPointToWatch()
                     // Timestamp-filter dispatch, Item 3: once per recording, the moment the read
                     // seam is seen to be excluding most of this track — see isMostlyNetworkFixes for
                     // why the threshold also waits for ten stored points before it can fire.
@@ -487,7 +533,7 @@ class TrackRecordingViewModel(
      *
      * **This drives the screen only.** It rides `viewModelScope`, which dies with the Activity, so
      * it stops when the task is swiped away. Harmless for a number nobody is looking at, and
-     * exactly why alert delivery must not be hung here; see [AlertDelivery]'s own doc comment on
+     * exactly why alert delivery must not be hung here; see [com.zynergylabs.forager.app.domain.AlertDelivery]'s own doc comment on
      * the same hole in the off-track alert.
      */
     private fun updateSundown() {
@@ -570,6 +616,7 @@ class TrackRecordingViewModel(
                         .onFailure { error -> errorLog.w(TAG, "Couldn't point track '${active.trackId}' at its origin waypoint.", error) }
                     if (uiState.value.activeTrack?.trackId == active.trackId) {
                         _uiState.update { it.copy(originWaypoint = waypoint) }
+                        handStartPointToWatch()
                     }
                     loadWaypoints()
                 }
@@ -787,57 +834,25 @@ class TrackRecordingViewModel(
     }
 
     /**
-     * [ReturnToStartInfo] from [current] back to the active track's first recorded point, or
-     * `null` if either is unavailable. Called on every fix [beginLocationTracking] collects, and
-     * also directly by tests — its result is written to [TrackRecordingUiState.returnToStart]
-     * either way, so a direct call and a collected fix behave identically. While
-     * [TrackRecordingUiState.isReturning], this doubles as the off-track heuristic's own data feed:
-     * each call's distance joins [recentReturnDistancesMeters], and [DetectOffTrackUseCase] re-runs
-     * against the updated history, updating [TrackRecordingUiState.isOffTrack]. Not fed at all while
-     * not returning, so the history only ever reflects an actual return attempt, never outbound
-     * travel.
+     * [ReturnToStartInfo] from [current] back to the active track's start, or `null` if either is
+     * unavailable. Called on every fix [beginLocationTracking] collects, and also directly by
+     * tests — its result is written to [TrackRecordingUiState.returnToStart] either way, so a
+     * direct call and a collected fix behave identically. It is what the Return button describes.
      *
-     * **Field-test dispatch item 4.** [DetectOffTrackUseCase]'s own output used to reach a user
-     * nowhere but an icon tint (see [com.zynergylabs.forager.app.ui.availability.AvailabilityScreen]'s
-     * `MapIconBar`) — nothing a forager with the phone pocketed on the return leg, exactly the body
-     * state this alert exists for, could ever perceive. Every call where the heuristic reads `true`
-     * hands an [Alert] to [alertDelivery] **directly from here** (alert-delivery dispatch: it used to
-     * bump a counter in UI state that a `LaunchedEffect` in `MainActivity` observed, and that
-     * composed hop is what stopped a stopped Activity delivering anything) — but **only** once
-     * [OFF_TRACK_ALERT_COOLDOWN_MILLIS] has passed
-     * since the last one: this method runs on every live fix while returning (as often as every few
-     * seconds — see [com.zynergylabs.forager.app.domain.model.TrackRecordingMode]), and a heuristic that stays
-     * `true` for a sustained drift would otherwise re-fire on every single one of those, buzzing a
-     * wandering forager continuously rather than reminding them periodically. Deliberately **not**
-     * edge-triggered (alert only on the false→true transition): a real, sustained drift should keep
-     * reminding every cooldown window for as long as it lasts, not go silent after the first buzz —
-     * see [DetectOffTrackUseCase]'s own doc comment on why the heuristic itself is left exactly as
-     * it was; only where its output goes is new here.
+     * **It decides nothing.** Until dispatch 2026-09-28-400, Amendment 2, this method was also the
+     * off-track decision: while returning, each call's distance joined a window here, the check
+     * re-ran, and the alert was delivered from here. That is all [ReturnWatch]'s now, fed by the
+     * recording service, so that it survives this ViewModel being cleared. The measurement stays
+     * because the screen needs a distance whether or not anything is deciding on it (the planner's
+     * ruling on question 1: the distance is not a copy of the watch's).
      */
     fun returnToStart(current: TrackPoint): ReturnToStartInfo? {
         // Navigation HUD stage one (owner decision): the origin *waypoint* is the target once it
         // exists, so the return arm and the HUD point at one place; before it exists — or for a
         // track that never gets one — the first breadcrumb stands in exactly as it always did.
-        val start = uiState.value.originWaypoint?.asStartPoint()
-            ?: uiState.value.breadcrumbPoints.firstOrNull()
-            ?: return null
+        val start = startPoint() ?: return null
         val info = computeReturnToStart(current, start)
-        if (uiState.value.isReturning) {
-            recentReturnDistancesMeters += info.distanceMeters
-            val isOffTrackNow = detectOffTrack(recentReturnDistancesMeters)
-            val shouldAlert = isOffTrackNow && canFireOffTrackAlert()
-            if (shouldAlert) {
-                lastOffTrackAlertAtMillis = currentTime.nowEpochMillis()
-                // overridesSilence = false — owner ruling, 2026-09-11, reversing the original.
-                // Straying is often deliberate, so off-track respects a phone the user silenced;
-                // the turnaround and sunset alerts are the ones that override it, because those
-                // are about not being stranded after dark. See AlertDelivery's own doc comment.
-                alertDelivery.deliver(Alert(kind = AlertKind.OFF_TRACK, overridesSilence = false))
-            }
-            _uiState.update { it.copy(returnToStart = info, isOffTrack = isOffTrackNow) }
-        } else {
-            _uiState.update { it.copy(returnToStart = info) }
-        }
+        _uiState.update { it.copy(returnToStart = info) }
         return info
     }
 
@@ -848,11 +863,6 @@ class TrackRecordingViewModel(
         accuracyMeters = null,
         timestampEpochMillis = createdAtEpochMillis,
     )
-
-    private fun canFireOffTrackAlert(): Boolean {
-        val last = lastOffTrackAlertAtMillis ?: return true
-        return currentTime.nowEpochMillis() - last >= OFF_TRACK_ALERT_COOLDOWN_MILLIS
-    }
 
     override fun onCleared() {
         pollingJob?.cancel()
@@ -878,15 +888,5 @@ class TrackRecordingViewModel(
     private companion object {
         const val POLL_INTERVAL_MILLIS = 15_000L
         const val TAG = "TrackRecordingViewModel"
-
-        /**
-         * Long enough that a forager checking their pocket after one buzz has time to actually
-         * look and self-correct before a second one, short enough that a sustained drift is still
-         * a real, periodic reminder rather than a single easily-missed alert — an adjustable
-         * assumption in the same spirit as [DetectOffTrackUseCase]'s own threshold, not a
-         * data-derived constant (this project has no field data yet on what cooldown a real
-         * forager would actually want).
-         */
-        const val OFF_TRACK_ALERT_COOLDOWN_MILLIS = 120_000L
     }
 }

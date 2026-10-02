@@ -65,6 +65,16 @@ data class Alert(
  * moving navigation ownership — returning state, start point, window, cooldown, and this call —
  * into the service, with the ViewModel as a mirror. That is a real hole in a safety feature and a
  * decision the owner has not yet made.
+ *
+ * **Closed for the off-track alert (dispatch 2026-09-28-400, Amendment 2; the owner chose
+ * "Option B").** The two paragraphs above are left as they were written, as the record of the
+ * hole. The decision, the returning flag, the start point, the window, the cooldown and the call
+ * to [deliver] are now [ReturnWatch]'s. It is held by `AppContainer` and begun, fed and ended by
+ * `TrackRecordingService`, and the ViewModel calls it and copies its state. So the one call site
+ * is `ReturnWatch.onFix`, not `TrackRecordingViewModel.returnToStart`, and a swiped-away app
+ * still alerts for as long as the service runs. What is still open: a reopened app does not yet
+ * show the recording it left (Part 3 of that dispatch), and the two sundown alerts have no caller
+ * (plan task T2).
  */
 fun interface AlertDelivery {
     fun deliver(alert: Alert)

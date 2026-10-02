@@ -126,10 +126,8 @@ class TrackRecordingSwipeAwayTest {
         deleteWaypoint = DeleteWaypointUseCase(waypoints),
         deleteTrack = DeleteTrackUseCase(tracks, waypoints, InMemoryKeptTrackPaths()),
         computeReturnToStart = ComputeReturnToStartUseCase(),
-        detectOffTrack = DetectOffTrackUseCase(),
         locationTracker = object : LocationTracker { override val fixes = this@TrackRecordingSwipeAwayTest.fixes },
         getTracks = GetTracksUseCase(tracks),
-        alertDelivery = AlertDelivery { delivered += it },
         returnWatch = returnWatch,
         alertAudibility = object : AlertAudibility {
             override fun current() = AlertAudibilityState(RingerMode.NORMAL, doNotDisturbOn = false, notificationsEnabled = true)
