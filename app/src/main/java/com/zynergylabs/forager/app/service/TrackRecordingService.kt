@@ -100,11 +100,14 @@ class TrackRecordingService : Service() {
                         Log.w(TAG, "Refusing to start recording for track '$trackId': no location permission.")
                         stopSelf()
                     }
-                } else if (trackId != null) {
-                    // One recording at a time. A start that arrives while one is running is
-                    // dropped, and said so: it happens today when the app is reopened after being
-                    // swiped away and Record is pressed again, and the track that start was for
-                    // then gets no points (dispatch 2026-09-28-400, Amendment 2, ruling 8).
+                } else if (trackId != null && trackId != currentTrackId) {
+                    // One recording at a time. A start for another track while one is running is
+                    // dropped, and said so, because the track that start was for then gets no
+                    // points (dispatch 2026-09-28-400, Amendment 2, ruling 8).
+                    //
+                    // A start that names the track already being recorded is not that, and says
+                    // nothing (Amendment 3, step 3): a screen reopened after a swipe-away takes the
+                    // recording up, and its Activity, being new, sends the start again for it.
                     Log.w(TAG, "Ignoring a start for track '$trackId': already recording track '$currentTrackId'.")
                 }
             }

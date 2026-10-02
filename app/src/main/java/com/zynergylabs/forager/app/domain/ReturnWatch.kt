@@ -12,6 +12,12 @@ import kotlinx.coroutines.flow.asStateFlow
  * for none. A screen copies [isReturning] and [isOffTrack] only when [trackId] is the track it is
  * itself recording; see `TrackRecordingViewModel`.
  *
+ * [isBegun] is **the live answer to "is a recording running"** (dispatch 2026-09-28-400, Amendment
+ * 3): true only between the recording service's `begin` and `end`. An open track row is not that
+ * answer, because a killed process leaves the same row. A screen opened while this is true takes
+ * the recording up, in [mode], the mode the service is recording in. A [trackId] with [isBegun]
+ * false is a Return accepted early, before the service has begun, and is not a recording.
+ *
  * [returnToStart] is the watch's own measurement, the one the decision was made on. The screen's
  * button shows a distance the ViewModel works out for itself from its own fixes (dispatch
  * 2026-09-28-400, Amendment 2, the planner's ruling on question 1), so nothing under `ui/` reads
@@ -100,6 +106,7 @@ class ReturnWatch(
     // Everything below is read and written only while holding [lock].
     private var trackId: String? = null
     private var begun = false
+    private var mode: TrackRecordingMode? = null
     private var returning = false
     private var offTrack = false
     private var start: TrackPoint? = null
@@ -116,12 +123,13 @@ class ReturnWatch(
     internal val keptReadingCount: Int get() = synchronized(lock) { recentReturnDistancesMeters.size }
 
     /**
-     * The service has started recording [trackId]. Anything accepted early for this same track is
-     * kept; anything held for another track is dropped.
+     * The service has started recording [trackId], in [mode]. Anything accepted early for this
+     * same track is kept; anything held for another track is dropped.
      */
-    fun begin(trackId: String, @Suppress("UNUSED_PARAMETER") mode: TrackRecordingMode) = synchronized(lock) {
+    fun begin(trackId: String, mode: TrackRecordingMode) = synchronized(lock) {
         if (this.trackId != trackId) forget()
         this.trackId = trackId
+        this.mode = mode
         begun = true
         publish()
     }
@@ -136,6 +144,7 @@ class ReturnWatch(
         if (trackId != null && trackId != this.trackId) return@synchronized
         forget()
         this.trackId = null
+        mode = null
         begun = false
         publish()
     }
@@ -236,7 +245,14 @@ class ReturnWatch(
 
     /** Call with [lock] held, so the published states are in the order the changes happened. */
     private fun publish() {
-        _state.value = ReturnWatchState(trackId = trackId, isReturning = returning, isOffTrack = offTrack, returnToStart = lastInfo)
+        _state.value = ReturnWatchState(
+            trackId = trackId,
+            isBegun = begun,
+            mode = mode,
+            isReturning = returning,
+            isOffTrack = offTrack,
+            returnToStart = lastInfo,
+        )
     }
 
     private companion object {
