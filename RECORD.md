@@ -10363,3 +10363,17 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **With the owner, unanswered when this was written:** what a stuck track with no recorded point becomes. As put: "Open Records > a stuck track with nothing recorded in it. A: it shows as a finished track with no points, ended at its start time; you can delete it. B: the app removes it by itself." The planner recommended A.
 **For the owner's list, outside this dispatch:** the recording notification's tap may put a second copy of the app's screen on top of the first. Added to the phone check.
 **Notes:** Written by the planner by hand, on branch records-after-148 with -406 to -408, pushed and not merged.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-410
+**Timestamp:** 2026-10-02T08:40:33Z
+**Continues:** 2026-09-28-400 (preserved 2026-10-02-01, where the ruling is appended); Part 3b built as first ruled and stopped by the coder before its full suite
+**The stop.** Built as ruled in -409, with the sweep called when the app starts (alerts-in-service 6c9ccec1; tests first at 0d4028db, 15 of 29 failing; the coder's own new tests fixed at 3dced063), an existing and unrelated test class, ForagerDatabaseDestructiveFallbackTest, failed in 7 of 10 runs alone, and in 0 of 10 with that one call removed. The coder measured both, touched neither that test nor anything else, and stopped.
+**Why, as read by the coder and not proved line by line:** nothing at app start touched the database before; it opens on the first query. The sweep became that first query, in the background, in every test's app start, and raced a test that deletes the database file and builds an old one in its place.
+**The planner's ruling** (the coder's option A, appended to the dispatch file): the rule is unchanged; what launches it changes. Once per process, when the first recording screen is created, not when the app starts. The app still notes its start time at once and only tracks older than that are candidates, which is what makes the new moment safe: every hazard of that moment involved a track started in the same process. The screen reloads its list when the sweep finishes.
+**The planner's error in -409:** ruling A placed a database query at app start without asking what else starts the app. Every Robolectric test does. The coder's challenge had not weighed it either, and says so.
+**Costs as they now stand:** a process that starts with no screen does not sweep until the app is next opened; a row left open while the process lives waits for the next start; rows restored from an older backup stay open until the next start. One earlier cost is removed by the reload.
+**Not chosen:** leaving the call at app start and changing the test, which would be a decision to reduce an existing test and is the owner's; a delay, which would pass by coincidence.
+**Notes:** Written by the planner by hand, on branch records-after-148 with -406 to -409, pushed and not merged.
