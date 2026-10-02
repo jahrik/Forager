@@ -335,7 +335,14 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     // process, launched by the first recording ViewModel to be created.
     val endAbandonedTracksUseCase = EndAbandonedTracksUseCase(trackRepository, watchedTrackId = { returnWatch.state.value.trackId }, errorLog = errorLog)
 
-    val abandonedTrackSweepOnce = AbandonedTrackSweepOnce(endAbandonedTracksUseCase, processStartedAtEpochMillis)
+    val abandonedTrackSweepOnce = AbandonedTrackSweepOnce(endAbandonedTracksUseCase, processStartedAtEpochMillis) { sweep ->
+        if (sweep.ended.isNotEmpty()) Log.i(SWEEP_TAG, "Ended ${sweep.ended.size} track(s) left open by an earlier process, each at its last stored point.")
+        sweep.ended.filter { it.clampedFromEpochMillis != null }.forEach {
+            Log.w(SWEEP_TAG, "Track '${it.trackId}': its last stored point is at ${it.clampedFromEpochMillis}, before its start at ${it.endedAtEpochMillis}; ended at its start.")
+        }
+        if (sweep.leftWithNoStoredPoint > 0) Log.i(SWEEP_TAG, "Left ${sweep.leftWithNoStoredPoint} open track(s) with no stored point as they are.")
+        if (sweep.failed > 0) Log.w(SWEEP_TAG, "${sweep.failed} open track(s) could not be read or ended and are left open.")
+    }
 
     val waypointRepository: WaypointRepository = RoomWaypointRepository(database.waypointDao())
     val createWaypointUseCase = CreateWaypointUseCase(waypointRepository)
@@ -367,4 +374,8 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
         waypointRepository,
         offlineRegionDayIndex,
     )
+
+    private companion object {
+        const val SWEEP_TAG = "EndAbandonedTracks"
+    }
 }

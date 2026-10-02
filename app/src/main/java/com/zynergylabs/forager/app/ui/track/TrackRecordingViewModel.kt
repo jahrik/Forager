@@ -188,7 +188,13 @@ class TrackRecordingViewModel(
      * this class does not. Required for the same reason: one copy of the words.
      */
     private val alreadyRecordingMessage: String,
-    @Suppress("unused") private val abandonedTrackSweepOnce: AbandonedTrackSweepOnce,
+    /**
+     * The process's one sweep of tracks an earlier process left open (dispatch 2026-09-28-400,
+     * Amendment 3, Part 3b). The first recording ViewModel to be created launches it; see
+     * [AbandonedTrackSweepOnce] for why here and not at app start, and why that is safe. Required,
+     * with no default, so a forgotten wiring does not compile.
+     */
+    private val abandonedTrackSweepOnce: AbandonedTrackSweepOnce,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TrackRecordingUiState())
@@ -248,10 +254,25 @@ class TrackRecordingViewModel(
         loadWaypoints()
         loadTracks()
         viewModelScope.launch { takeUpRunningRecording() }
+        viewModelScope.launch { sweepAbandonedTracks() }
         // The watch changes on the service's thread as well as from this class's own calls (a
         // fix decides off track; a stop from the notification ends it), so it is collected, not
         // only read after each call.
         viewModelScope.launch { returnWatch.state.collect(::copyFromWatch) }
+    }
+
+    /**
+     * Launches the process's one sweep of tracks left open by an earlier process, and reads the
+     * track list again when it has ended any, so a track it finished reads as finished on this
+     * screen without Records being reopened. `null` from [AbandonedTrackSweepOnce.runOnce] means
+     * another ViewModel already ran it in this process; nothing to do. A failure to list the tracks
+     * is logged, and the next ViewModel to be created tries again.
+     */
+    private suspend fun sweepAbandonedTracks() {
+        val result = abandonedTrackSweepOnce.runOnce() ?: return
+        result
+            .onSuccess { sweep -> if (sweep.ended.isNotEmpty()) loadTracks() }
+            .onFailure { error -> errorLog.w(TAG, "Couldn't list the tracks to end the ones left open by an earlier process; none was changed.", error) }
     }
 
     /**
