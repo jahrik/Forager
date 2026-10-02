@@ -216,3 +216,14 @@ A green test suite is not evidence for any of these: the row against the real to
 - The planner told the owner the HUD was missing on wide screens, from the audit. The file the audit named no longer exists.
 
 **Decided beyond scope:** nothing. The order is proposed; every open item above is the owner's.
+
+## Addendum, 2026-10-01 (local), after the plan was merged: two of the open items answered
+
+Appended by the planner. Nothing above is changed. Recorded in `RECORD.md` decision 2026-09-28-399.
+
+- **Open item 6, the release cut, is decided.** The owner, verbatim (2026-10-02T02:17Z): "A to F first and G to K next sounds good". Stages A to F (tasks T1 to T20) are the short release. Stages G to K follow in the next.
+- **Open item 4, recorded walks, is answered.** Asked whether anyone has recorded a walk out and back with the app, and on whose phone, the owner said (2026-10-02T02:17Z): "Yes, and the S26 ultra". So T12 has data to start from, on the owner's own phone.
+  - **Not known:** how many walks there are, and whether each has a clear turnaround. T12 checks that first and states what the sample can and cannot show.
+  - **The tracks stay out of this repository.** It is public and they are real places. The owner exports them as GPX to a folder outside the repository; only the comparison figures and the size of the sample are filed.
+- **Still open:** items 1, 2, 3 and 5, each brought to the owner when its stage comes up, and the audit's decisions under item 7 that wait on Stages G and J.
+- **No task has a go.** The first by the plan's order is T1.
