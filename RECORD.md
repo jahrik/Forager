@@ -10147,3 +10147,21 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 - **The owner's second answer** describes the return screen and matches what the code shows: the needle points at the start, and the way-back route of 2026-09-11 is not built. The planner's question was whether recorded walks with a way back exist; that is still open and is item 4 of the plan's open list.
 - **Nothing is dispatched.** Seven items are open for the owner; each names the task it blocks.
 **Notes:** Written by the planner by hand, on branch navigator-completion-plan cut from main at 0dded057, pushed and not merged. The earlier quotes (22:19Z to 22:25Z) were read from the earlier planner session's transcript and had no record entry; the proposed order they asked for was superseded the same evening by the owner's switch to a non-commercial model (decision 2026-09-28-397) before it was answered. Pull request #144 (records-noncommercial-ruling into main, head 85b12b522757bb0e769e78772dca2ab0b78873db, on which CI passed, run 36952102744) was merged as 0dded0579e44a372a8aaf7957052f157dbf73ccd at 2026-10-02T01:50:48Z, read from GitHub, on the owner's "Approve. Make a pr and merge", with backup 2026-10-01-04; main's tree after the merge is identical to the branch's. That merge has no entry of its own, and this note stands in for one.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-399
+**Timestamp:** 2026-10-02T02:21:42Z
+**Subject:** the navigation plan's release cut, and recorded walks (follows -398)
+**The owner, verbatim, in order (2026-10-02, UTC):**
+- 02:12Z, to three questions asked together (the release cut; whether a walk out and back has been recorded; "shall I open a PR for navigator-completion-plan and merge it when CI passes?"): "Yes". The planner read it as answering the last only, told the owner so, and asked the other two again.
+- 02:17Z, on the release cut: "A to F first and G to K next sounds good".
+- 02:17Z, to "has anyone recorded a walk out and back with the app? If yes, tell me whose phone they are on": "Yes, and the S26 ultra".
+**What is decided:**
+- **The release cut.** Stages A to F of docs/navigation/2026-10-01-navigator-completion-plan.md (tasks T1 to T20) are the short release. Stages G to K (Phases 1.5, 2, 3 and 4, and the look-alike page) follow in the next.
+- **Recorded walks exist,** on the owner's S26 Ultra. This answers the open question of docs/navigation/2026-09-11-sundown-decisions-and-walkback-sequencing.md ("Do walked tracks with known actual return times exist anywhere"), as far as existence goes. How many, and whether each has a clear turnaround, is not known.
+**Change:** a dated addendum at the end of the plan file. Docs only.
+- **The tracks do not enter this repository.** It is public and they are real places; the owner exports them outside it, and only the comparison figures and the sample's size are filed. This is the planner's handling, told to the owner, not yet answered.
+- **Nothing is dispatched.** The planner read the owner's second "Yes" as answering the walks question, not as a go for T1, and said so.
+**Notes:** Written by the planner by hand, on branch records-after-145 cut from main at c1610518, pushed and not merged. Pull request #145 (navigator-completion-plan into main, head e44224fbdb77e869db25d39ed9e8eac15eeff6af, on which CI passed, run 36954548324) was merged as c1610518bd00edbdbdbf74062b2e9f674a887104 at 2026-10-02T02:21:21Z, read from GitHub, on the owner's "Yes" above, with backup 2026-10-01-05; main's tree after the merge is identical to the branch's. That merge has no entry of its own, and this note stands in for one.
