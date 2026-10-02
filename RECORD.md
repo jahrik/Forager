@@ -10399,3 +10399,16 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Not built:** the track with no stored point, which is with the owner. **Not verified by anyone:** anything on a phone; what each reader of a newly ended track shows on a screen.
 **Holds:** the merge into main, which is the owner's word; the phone check for Parts 2 and 3.
 **Notes:** Written by the planner by hand, on branch records-after-148 with -406 to -410, pushed and not merged.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-412
+**Timestamp:** 2026-10-02T12:16:20Z
+**Continues:** 2026-09-28-400 (preserved 2026-10-02-01, where Part 3c is appended); Part 3 accepted (-408, -411), pull request #149 open for it
+**The owner, verbatim (2026-10-02T12:14Z),** to "shall I open a PR for t1-part-3 and merge it when CI passes?" and to the empty stuck track: "Open a pr and merge" and "2. Option A".
+**The path the second answers, as put:** "Open Records > a stuck track with nothing recorded in it. A: it shows as a finished track with no points, ended at its start time; you can delete it. B: the app removes it by itself." The planner had recommended A: nothing is deleted without the owner doing it.
+**Pull request #149** (t1-part-3 into main, head b4720edfa62ea4feb0a95dc4d62034bb07205232, whose app code is the coder's 3b0e2d3e) is open on the first answer; CI was running when this was written and the merge is not yet made. Backup 2026-10-02-02 is written.
+**Change:** Part 3c appended to the dispatch file. A track left open by an earlier run of the app, with no stored point, is ended at its own start time, by the same conditional write and under the same two conditions as every other candidate. Nothing is deleted. The coder first reads what each reader shows for a finished track with no points and reports anything misleading without fixing it, and shows that one of its earlier tests, which it had reported as not biting, now does.
+**Holds:** the phone check for Parts 2 and 3, until Part 3c is in.
+**Notes:** Written by the planner by hand, on branch records-after-149 cut from t1-part-3 at b4720edf, pushed and not merged.
