@@ -76,6 +76,11 @@ import kotlinx.coroutines.launch
  * comment already flags as the UI's responsibility, deliberately not built here to keep this pass
  * scoped to starting, stopping, and showing a recording that's actually running.
  *
+ * **One case of that is now handled (dispatch 2026-09-28-400, Amendment 3):** when the Activity is
+ * destroyed but the process and the service live on (the app swiped away from recents), a new
+ * ViewModel takes the running recording up; see [takeUpRunningRecording]. A process that died is
+ * still not resumed, and the open row it leaves is still not treated as a recording.
+ *
  * ## Why return-to-start is fed by [locationTracker], not a one-shot fetch
  *
  * The first pass of the return-to-vehicle screen recomputed [ReturnToStartInfo] from
@@ -169,8 +174,19 @@ class TrackRecordingViewModel(
     private val getTrackReferenceCount: suspend (String) -> Int = { 0 },
     /** The real delete of a track, run only when its Undo window closes. Part 2 follow-ups F1 item 5. */
     private val deleteTrack: DeleteTrackUseCase,
-    @Suppress("unused") private val getTrackOriginWaypoint: GetTrackOriginWaypointUseCase,
-    @Suppress("unused") private val alreadyRecordingMessage: String,
+    /**
+     * The start marker of a recording this ViewModel takes up ([takeUpRunningRecording]): the one
+     * the track row points at. Required, with no default: a default that answered "none recorded"
+     * would let a forgotten wiring place a second start marker without saying so (dispatch
+     * 2026-09-28-400, Amendment 3, the planner's ruling on the coder's stop).
+     */
+    private val getTrackOriginWaypoint: GetTrackOriginWaypointUseCase,
+    /**
+     * What the user is told when Record is pressed while another recording is running: the
+     * owner's sentence, held in `strings.xml` and read by `MainActivity`, which has the `Context`
+     * this class does not. Required for the same reason: one copy of the words.
+     */
+    private val alreadyRecordingMessage: String,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TrackRecordingUiState())
@@ -201,9 +217,29 @@ class TrackRecordingViewModel(
     private var recordingNoticeIds = 0
     private var networkFixesNoticeShown = false
 
+    /**
+     * How the start marker is settled for a recording this ViewModel took up, or `null` for a
+     * recording it started itself (whose marker comes from the first good fix, as always).
+     * See [settleTakenUpOrigin].
+     */
+    private var takenUpOrigin: TakenUpOrigin? = null
+    private var takeUpInFlight = false
+
+    private enum class TakenUpOrigin {
+        /** The track's own start marker has not been looked up yet, or the lookup failed and is tried again. */
+        NOT_LOOKED_UP,
+
+        /** The track has no start marker recorded: one is made at its first recorded point. */
+        NONE_RECORDED,
+
+        /** The track has one, and it is shown. */
+        FOUND,
+    }
+
     init {
         loadWaypoints()
         loadTracks()
+        viewModelScope.launch { takeUpRunningRecording() }
         // The watch changes on the service's thread as well as from this class's own calls (a
         // fix decides off track; a stop from the notification ends it), so it is collected, not
         // only read after each call.
@@ -246,11 +282,31 @@ class TrackRecordingViewModel(
      * becomes non-null — see `MainActivity`'s `LaunchedEffect` on this state.
      */
     fun startRecording(mode: TrackRecordingMode = TrackRecordingMode.BALANCED) {
+        // One recording at a time (dispatch 2026-09-28-400, Amendment 3, step 4). The begun watch
+        // is the live answer to "is something recording". If it is, and this screen is not the
+        // one showing it, a second track row would get no points and could never be ended, which
+        // is the fault Part 1 pinned. So no row is made, and the user is told in the owner's
+        // words. A screen that has taken the recording up offers Stop and does not reach here;
+        // this is the guard behind that.
+        val running = returnWatch.state.value
+        if (running.isBegun && running.trackId != uiState.value.activeTrack?.trackId) {
+            errorLog.w(
+                TAG,
+                "Record was refused: the recording service is already recording track '${running.trackId}'.",
+                IllegalStateException("a recording is already running"),
+            )
+            _uiState.update { it.copy(startRecordingErrorMessage = alreadyRecordingMessage) }
+            // The screen should be showing that recording. If it is not yet, take it up now, so
+            // that "Stop it" is something the user can do from here.
+            viewModelScope.launch { takeUpRunningRecording() }
+            return
+        }
         viewModelScope.launch {
             startTrack(null)
                 .onSuccess { track ->
                     lastGatedFix = null
                     originCreationInFlight = false
+                    takenUpOrigin = null
                     networkFixesNoticeShown = false
                     // Alert-delivery dispatch, Item 3: "the start of a trip" is here — the user
                     // just chose to rely on the app, and the screen is on because they tapped.
@@ -321,8 +377,119 @@ class TrackRecordingViewModel(
         uiState.value.activeTrack?.let { returnWatch.stopReturn(it.trackId) }
         lastGatedFix = null
         originCreationInFlight = false
+        takenUpOrigin = null
         _uiState.update {
             it.copy(activeTrack = null, isReturning = false, isOffTrack = false, returnToStart = null, originWaypoint = null, pathHome = null)
+        }
+    }
+
+    /**
+     * Takes up a recording that is running without this screen (dispatch 2026-09-28-400,
+     * Amendment 3, step 2). The owner's path: `Recording > swipe the app away > open Forager again
+     * > the screen shows the recording still running, and the return HUD if you were heading back`.
+     *
+     * **What it goes by:** [ReturnWatch]'s state saying it is begun. That is true only while the
+     * recording service is recording. An open track row is not enough: a killed process leaves the
+     * same row, with nothing recording into it.
+     *
+     * **What is taken up:** the track id and mode from the watch; the start time and the
+     * breadcrumbs from the track's row; the returning and off-track flags, copied from the watch
+     * as for any recording; the start marker ([settleTakenUpOrigin]). This ViewModel's own poll
+     * and fix collection start, as [startRecording] starts them.
+     *
+     * **What is not:** the trip-start warning. It belongs to a Record tap, and this is not one.
+     * The network-fixes notice has no memory outside this class, so it can show a second time for
+     * a recording that is taken up; that is reported in Part 3a's report, not designed around.
+     *
+     * **When:** when this ViewModel is created, when the app comes to the foreground
+     * ([onEnteredForeground]), and when Record is refused ([startRecording]). A no-op whenever
+     * this ViewModel already has a recording, or the watch is not begun: a recording that ended
+     * while the app was away is not taken up, and the screen offers Record.
+     *
+     * **A row that cannot be read takes up nothing** and is logged. "Could not read the row" is
+     * not "no recording", and it is tried again at the next foreground.
+     */
+    private suspend fun takeUpRunningRecording() {
+        if (uiState.value.activeTrack != null || takeUpInFlight) return
+        val running = returnWatch.state.value
+        if (!running.isBegun) return
+        val trackId = running.trackId ?: return
+        val mode = running.mode ?: return
+        takeUpInFlight = true
+        try {
+            val track = trackRepository.getById(trackId).getOrElse { error ->
+                errorLog.w(TAG, "Couldn't read track '$trackId' to take up its recording; the screen shows no recording.", error)
+                return
+            }
+            if (track == null) {
+                errorLog.w(
+                    TAG,
+                    "The recording service is recording track '$trackId', which has no row; the screen shows no recording.",
+                    IllegalStateException("no track '$trackId'"),
+                )
+                return
+            }
+            // The read suspended. Go by what is true now, not by what was true before it.
+            val stillRunning = returnWatch.state.value
+            if (uiState.value.activeTrack != null || !stillRunning.isBegun || stillRunning.trackId != trackId) return
+
+            val active = ActiveTrack(trackId, track.startedAtEpochMillis, mode)
+            lastGatedFix = null
+            originCreationInFlight = false
+            takenUpOrigin = TakenUpOrigin.NOT_LOOKED_UP
+            _uiState.update {
+                it.copy(
+                    activeTrack = active,
+                    startRecordingErrorMessage = null,
+                    breadcrumbPoints = track.points,
+                    originWaypoint = null,
+                    pathHome = null,
+                )
+            }
+            copyFromWatch()
+            darknessMarginMillis = darknessMarginMinutes() * 60_000L
+            settleTakenUpOrigin(active, track)
+            beginPolling(trackId)
+            beginLocationTracking()
+        } finally {
+            takeUpInFlight = false
+        }
+    }
+
+    /**
+     * The start marker of a recording that was taken up (Amendment 3, steps 2 and 5).
+     *
+     * First the marker the track already has, through [getTrackOriginWaypoint]. If it has none,
+     * the owner's answer (path 2, "A"): **a start marker is placed at the track's first recorded
+     * point.** Never at the fix this ViewModel receives after the reopen, which is where the
+     * walker is now and not where they started; that is why [beginLocationTracking] makes no
+     * marker for a taken-up recording. If the track has no recorded point yet, none is made until
+     * one exists. Called when the recording is taken up and again on every poll, so a late first
+     * point, a failed lookup or a failed save is picked up on the next one.
+     *
+     * "First recorded point" is the first of the track's points as this screen reads them, the
+     * same point the Return control already falls back to.
+     */
+    private suspend fun settleTakenUpOrigin(active: ActiveTrack, track: Track) {
+        if (takenUpOrigin == TakenUpOrigin.NOT_LOOKED_UP) {
+            getTrackOriginWaypoint(active.trackId)
+                .onSuccess { waypoint ->
+                    if (uiState.value.activeTrack?.trackId != active.trackId || takenUpOrigin != TakenUpOrigin.NOT_LOOKED_UP) return
+                    if (waypoint != null) {
+                        takenUpOrigin = TakenUpOrigin.FOUND
+                        _uiState.update { it.copy(originWaypoint = waypoint) }
+                        handStartPointToWatch()
+                    } else {
+                        takenUpOrigin = TakenUpOrigin.NONE_RECORDED
+                    }
+                }
+                .onFailure { error ->
+                    errorLog.w(TAG, "Couldn't read the start marker of track '${active.trackId}'; none is shown, and none is made until it can be read.", error)
+                }
+        }
+        if (takenUpOrigin == TakenUpOrigin.NONE_RECORDED && uiState.value.originWaypoint == null && !originCreationInFlight) {
+            val first = track.points.firstOrNull() ?: return
+            createOriginWaypoint(active, first, namedAtEpochMillis = first.timestampEpochMillis)
         }
     }
 
@@ -361,7 +528,12 @@ class TrackRecordingViewModel(
      * [resyncRecordingState].
      */
     fun onEnteredForeground() {
-        viewModelScope.launch { resyncRecordingState() }
+        viewModelScope.launch {
+            // First: a recording running without this screen is taken up (Amendment 3). Then the
+            // resync, unchanged, for a recording this screen already knows.
+            takeUpRunningRecording()
+            resyncRecordingState()
+        }
     }
 
     /**
@@ -496,6 +668,8 @@ class TrackRecordingViewModel(
             while (true) {
                 trackRepository.getById(trackId).onSuccess { track ->
                     _uiState.update { it.copy(breadcrumbPoints = track?.points.orEmpty()) }
+                    val active = uiState.value.activeTrack
+                    if (track != null && active != null && active.trackId == trackId) settleTakenUpOrigin(active, track)
                     handStartPointToWatch()
                     // Timestamp-filter dispatch, Item 3: once per recording, the moment the read
                     // seam is seen to be excluding most of this track — see isMostlyNetworkFixes for
@@ -592,7 +766,9 @@ class TrackRecordingViewModel(
                     // mode's ceiling — reused rather than restated.
                     if (active != null && LocationSampler(active.mode).shouldAccept(lastAccepted = null, candidate = point)) {
                         lastGatedFix = point
-                        if (uiState.value.originWaypoint == null && !originCreationInFlight) createOriginWaypoint(active, point)
+                        // Not for a recording that was taken up: its marker is the one it already
+                        // has, or its first recorded point, never this fix. See settleTakenUpOrigin.
+                        if (takenUpOrigin == null && uiState.value.originWaypoint == null && !originCreationInFlight) createOriginWaypoint(active, point)
                     }
                     returnToStart(point)
                 }
@@ -600,14 +776,20 @@ class TrackRecordingViewModel(
         }
     }
 
-    private fun createOriginWaypoint(active: ActiveTrack, fix: TrackPoint) {
+    /**
+     * [namedAtEpochMillis] is the time in the marker's default name. For a marker made from the
+     * first good fix it is now, which is when that fix arrived. For one made later from a track's
+     * first recorded point it is that point's own time, so the name says when the walk started
+     * and not when the app was reopened.
+     */
+    private fun createOriginWaypoint(active: ActiveTrack, fix: TrackPoint, namedAtEpochMillis: Long = currentTime.nowEpochMillis()) {
         originCreationInFlight = true
         viewModelScope.launch {
             createWaypoint(
                 lat = fix.lat,
                 lng = fix.lng,
                 altitude = fix.altitude,
-                name = autoWaypointName(WaypointDesignation.ORIGIN, currentTime.nowEpochMillis(), zone),
+                name = autoWaypointName(WaypointDesignation.ORIGIN, namedAtEpochMillis, zone),
                 trackId = active.trackId,
                 designation = WaypointDesignation.ORIGIN,
             )
