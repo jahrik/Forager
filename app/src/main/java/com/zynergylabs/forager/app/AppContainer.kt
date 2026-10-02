@@ -55,6 +55,7 @@ import com.zynergylabs.forager.app.alert.AndroidAlertAudibility
 import com.zynergylabs.forager.app.alert.AndroidAlertDelivery
 import com.zynergylabs.forager.app.domain.AlertAudibility
 import com.zynergylabs.forager.app.domain.AlertDelivery
+import com.zynergylabs.forager.app.domain.ReturnWatch
 import com.zynergylabs.forager.app.domain.ComputeReturnToStartUseCase
 import com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCase
 import com.zynergylabs.forager.app.domain.CartographyEntryRepository
@@ -321,6 +322,11 @@ class AppContainer(context: Context) {
     // Activity's composition — see AlertDelivery's doc comment, including the swipe-away hole.
     val alertDelivery: AlertDelivery = AndroidAlertDelivery(context.applicationContext)
     val alertAudibility: AlertAudibility = AndroidAlertAudibility(context.applicationContext)
+
+    // The off-track decision and its state, held here so they outlive the Activity (dispatch
+    // 2026-09-28-400, Amendment 2). TrackRecordingService begins, feeds and ends it;
+    // TrackRecordingViewModel calls it for Return and copies its state. See ReturnWatch.
+    val returnWatch = ReturnWatch(computeReturnToStartUseCase, detectOffTrackUseCase, alertDelivery, currentTimeProvider)
 
     val waypointRepository: WaypointRepository = RoomWaypointRepository(database.waypointDao())
     val createWaypointUseCase = CreateWaypointUseCase(waypointRepository)

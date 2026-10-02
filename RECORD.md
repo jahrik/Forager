@@ -10246,3 +10246,45 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Not in Part 2:** the reopened app (the second path the owner confirmed), which follows as Part 3; the sundown alerts (T2); what "off track" means (T21). No phone.
 **Open for the owner:** how a build of Part 2 reaches the S22 for its device check, since the phone carries the release build and a debug build will not install over it.
 **Notes:** Written by the planner by hand, on branch records-after-146 with -401 and -402, pushed and not merged.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-404
+**Timestamp:** 2026-10-02T07:16:20Z
+**Continues:** 2026-09-28-400 (preserved 2026-10-02-01, where the rulings are appended beneath Amendment 2); Part 2 started, nothing handed back
+**The owner, verbatim, in order (2026-10-02, UTC):**
+- 05:36Z, to "shall I open a PR [for records-after-146] and merge it when CI passes?" and to how a Part 2 build reaches the S22 (build and install it themselves, or have the release build removed, which wipes the app's data on that phone): "1 yes open a pr and merge when ready" and "2 have the release build removed so a test build can go on". **The second is not carried out.** It waits for Part 2's hand-back and its own amendment naming the uninstall and the install.
+- 05:38Z: "Dual app also works in case you need it". The planner's answer, not tried on the phone: the S22 has Samsung's dual-app profile (user 95), but Android keeps one copy of an app's code per phone with one signature, shared by every profile, so a test build cannot sit there beside the release build under the same app identity. A separate identity for test builds would; none exists (app/build.gradle.kts:243), and it is its own decision. The owner has not changed their choice.
+- 06:44Z, to the planner's account of the coder's question, with its three answers: "Option 1". Then 07:13Z, in the coder's own window (read from the coder's session log): "Yes, build Part 2", whose terms are that later planner amendments to this dispatch carry the owner's go and that the coder still asks directly before anything touching the phone.
+**What happened between Amendment 2 and the build:** the coder did not start on the planner's word. Its launch prompt said "Do not start a fix", so at 05:26Z it asked the owner in its own window and waited until 07:13Z. The same happened before the phone check (-403). The planner had not told the owner to expect either question. From now on a launch prompt says that amendments to its dispatch carry the owner's go, with the phone as the stated exception.
+**The coder's questions at the start of Part 2, and the planner's rulings** (appended to the dispatch file):
+- **The distance to the start is not a copy.** Amendment 2's step 3 said it would be; that sentence is withdrawn. Five existing tests outside the eight that move need the ViewModel to work the distance out itself (TrackRecordingViewModelTest :304, :325, :334, :354, :816). The returning flag and "off track now" become copies; the distance and bearing stay with the ViewModel as today. The planner's error: the sentence was taken from the shape's description without checking those tests.
+- **Two constructor arguments leave the ViewModel** (alertDelivery, detectOffTrack), since it no longer uses them. Ruling 5 is widened to that and no further; no assertion changes; a test that used either to assert something is a stop.
+- **Ruling 6 corrected:** only the first-path fault test has a fixed behaviour in Part 2. The reopen tests stay as pins for Part 3. The planner's ruling said "each"; the coder's reading replaces it.
+- Two design points accepted: the ViewModel hands the start point to the object and the object keeps the last one; the ViewModel copies the object's state only for its own active track.
+**Notes:** Written by the planner by hand, on branch records-after-147 cut from main at f5103d0d, pushed and not merged. Pull request #147 (records-after-146 into main, head 966bf5288afa3b5c20090166fc0cac2f71128cfc, on which CI passed, run 36969756817) was merged as f5103d0d93caaffa3e6c1830d77571d530adcd80 at 2026-10-02T05:45:13Z, read from GitHub, on the owner's "1 yes open a pr and merge when ready", with backup 2026-10-01-07. That merge has no entry of its own, and this note stands in for one.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-405
+**Timestamp:** 2026-10-02T07:39:28Z
+**Continues:** 2026-09-28-400 (preserved 2026-10-02-01); Part 2 handed back on alerts-in-service at 0f6485a4, not merged, not run on a phone
+**Part 2, from the coder's report** (docs/navigation/2026-10-02-alerts-in-service-part-2-completion-report.md; evidence ~/Zynergy/device-evidence/2026-10-02-alerts-in-service/part2/):
+- **Commits:** 7ae7266a and 1adfe2cb, the tests pushed failing; c57ee30f, the build; 943f7892, main merged in; 0f6485a4, the report.
+- **What was built:** domain/ReturnWatch, a plain class held by the app's container. The recording service begins it, feeds it every raw fix in one line before the sampler, ends it when the recording stops or the service is destroyed, and now logs a second start it drops. The ViewModel no longer decides anything about off track: it calls the watch for Return, hands it the start point, and copies the returning and off-track flags only while the watch is for its own track. The distance on the Return button is still worked out by the ViewModel. Seven files under app/src/main; MainActivity only its factory's arguments.
+- **What "off track" means is unchanged:** three readings, 25 m, a 120 s cooldown, and no override of a silenced phone.
+- **Tests:** the full unit suite at c57ee30f, 416 classes, 3,411 tests, 0 failures, 0 errors, 24 skipped; assembleDebug with no error lines; six revert checks.
+**What the planner checked itself:**
+- **Read:** ReturnWatch.kt in full, and the whole diff of the service, the ViewModel, the container, the screen's state class, AlertDelivery.kt and MainActivity.kt. One lock guards everything the watch holds; the alert is delivered after the lock is released; a reopened screen's calls for another track are refused and cannot disturb a running watch. The planner found nothing to send back.
+- **Re-counted from the saved XML:** the full suite as reported. The tests-first runs, 12 of 19 and 23 of 75 failing. Each revert check fails on the test that claims its edit; with the service's one feed call removed, the failure reads "expected the off-track notification after three readings moving away from the start, with no ViewModel alive".
+- **The eight moved tests:** each is gone from TrackRecordingViewModelTest and present under the same name in ReturnWatchTest, with the same number of assertions and the same expected values. What each assertion reads has changed from the ViewModel's state to the watch's, which is the move itself. The report's "every assertion unchanged" is true of the values, not of the subject.
+- **The other five constructing test files:** their only changed lines are the constructor's arguments; no assertion line changed. No test was skipped or silenced, and no build file changed.
+- **The app code on the branch's head is the build commit's:** no file under app/ differs between c57ee30f and 0f6485a4.
+**Not verified by anyone:** anything on a phone. The alert is now delivered from the service's background thread; the planner read the delivery code (a notification post and a vibration call) and sees nothing that needs the main thread, which is an inference.
+**Known, and left for Part 3:** a screen reopened after a swipe-away still shows no recording. If Record is pressed there and then Return, the Return is now refused and logged, where before the screen would have shown a return that nothing fed.
+**The coder's flags, not acted on:** a comment in MainActivity.kt (:322-329) still says the off-track alert is fed from the ViewModel's collector; unused imports and one unused constant left in TrackRecordingViewModelTest.
+**Change:** none by this entry. It is written on branch t1-part-2, which joins alerts-in-service at 0f6485a4 with records-after-147 at ea4d3d2f so that one pull request can carry the code and the record. No file under app/ differs between t1-part-2 and the coder's head.
+**Holds:** the merge into main, which is the owner's word; Part 3; the phone check, which needs a test build on the S22.
+**Notes:** Written by the planner by hand.

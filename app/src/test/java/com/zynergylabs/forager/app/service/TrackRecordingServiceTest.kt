@@ -266,10 +266,9 @@ class TrackRecordingServiceTest {
             container.createWaypointUseCase,
             container.deleteWaypointUseCase,
             container.computeReturnToStartUseCase,
-            container.detectOffTrackUseCase,
             container.locationTracker,
             container.getTracksUseCase,
-            container.alertDelivery,
+            container.returnWatch,
             container.alertAudibility,
             deleteTrack = container.deleteTrackUseCase,
         )
