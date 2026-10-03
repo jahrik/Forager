@@ -10772,3 +10772,16 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **What the planner checked itself:** against main, the branch now changes only -422's three app files, its test, its report and its two index rows; no added or removed app line names the navigation view; the full suite's XML re-counted as reported.
 **Next:** on the owner's word, a pull request for coordinate-format, and one for off-track-rule (-436).
 **Notes:** Written by the planner by hand, on branch records-after-155.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-438
+**Timestamp:** 2026-10-03T20:30:00Z
+**Continues:** 2026-09-28-436, 2026-09-28-437
+**Observed:**
+- **T21 merged.** Pull request #156 (t21-merge into main, head 9d404c027e9ea7f7732c707f549080add25f0af7, on which CI passed, run 37149313842) was merged as 093b28d697a1f1ef5a8f3478c6be761ec449a460 at 2026-10-03T20:21:08Z, read from GitHub, on the owner's "Open the pr and merhe", with backup 2026-10-03-04 of main at 4f9f344b. Main's tree equals t21-merge's; its app/ equals the coder's 7c7e25c5.
+- **On the S22 for the owner's walk:** the owner chose to wait for the new rule before walking ("Yeah I'll wait for it to finish"). The coder built 7c7e25c5 and installed it over 1.0.2527+g8b9e2719 with the data kept, on the owner's "Yes, install it" in the coder's window. The planner read 1.0.2539+g7c7e25c5 off the phone without touching it. The owner, before the walk: "I'll run the same divergence path as before." The planner's prediction, with Return at the turnaround: one alert at the detour's start, none on the way home.
+- **T18 brought up to main for its pull request,** by the planner, on branch t18-merge: coordinate-format (588d7b8e) with main (093b28d6) merged in. Only the two index files conflicted, each resolved keeping both rows, main's first; the row counts are both sides' sum less the base. AvailabilityScreen merged on its own; it carries both T21's comment and T18's held state. Against main, the app code differs by exactly -422's change. No local run of the combination: CI's full suite is the test of it.
+**Next:** the coordinate-format pull request, merged on green on the same word; then the owner's walk.
+**Notes:** Written by the planner by hand, on branch t18-merge.
