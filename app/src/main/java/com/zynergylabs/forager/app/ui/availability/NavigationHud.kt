@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Navigation
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
@@ -28,7 +29,9 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
@@ -64,6 +67,7 @@ internal const val NAVIGATION_HUD_STATUS_TAG = "navigation-hud-status"
 internal const val NAVIGATION_HUD_TARGET_TAG = "navigation-hud-target"
 internal const val NAVIGATION_HUD_ELEVATION_TAG = "navigation-hud-elevation"
 internal const val NAVIGATION_HUD_COORDINATES_TAG = "navigation-hud-coordinates"
+internal const val NAVIGATION_HUD_RETRY_TAG = "navigation-hud-retry"
 
 /**
  * The one message the strip and the HUD both show when there is no fix. One cause, one statement —
@@ -166,7 +170,8 @@ internal const val NO_FIX_MESSAGE = "Location services unavailable"
  *   recomputing could change the answer. Before the first route result the large slot is a dash
  *   (the planner's ruling on question 3). "Approaching" is still measured against the start
  *   itself. With no [ReturnRoute] at all the HUD is the straight-line HUD it was before, which
- *   decision D2 keeps for navigating anywhere but home; nothing passes it that way today.
+ *   decision D2 keeps for navigating to a waypoint; nothing passes it that way today, since
+ *   `AvailabilityScreen`'s HUD is the return HUD and always passes a route.
  * - **No origin waypoint** (a track whose first gated fix never came): says so. Nothing is
  *   substituted.
  * - **Elevation and coordinates** come from the same fix, through the same [coordinatesStripText]
@@ -265,13 +270,19 @@ internal fun NavigationHud(
                     }
                     // Distance and status.
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = readout.distanceText,
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFeatureSettings = "tnum"),
-                            color = if (readout.distanceDeEmphasised) LocalContentColor.current.copy(alpha = 0.5f) else LocalContentColor.current,
-                            maxLines = 1,
-                            modifier = Modifier.testTag(NAVIGATION_HUD_DISTANCE_TAG),
-                        )
+                        val distanceStyle = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFeatureSettings = "tnum")
+                        val distanceColor = if (readout.distanceDeEmphasised) LocalContentColor.current.copy(alpha = 0.5f) else LocalContentColor.current
+                        if (readout.routeRetryOffered) {
+                            RouteRetryLine(readout.distanceText, distanceStyle, distanceColor, onRetryRoute)
+                        } else {
+                            Text(
+                                text = readout.distanceText,
+                                style = distanceStyle,
+                                color = distanceColor,
+                                maxLines = 1,
+                                modifier = Modifier.testTag(NAVIGATION_HUD_DISTANCE_TAG),
+                            )
+                        }
                         Text(
                             text = readout.statusText,
                             style = MaterialTheme.typography.labelMedium,
@@ -320,6 +331,57 @@ internal fun NavigationHud(
         }
     }
 }
+
+/**
+ * The large slot when the route is withheld and recomputing could change that (dispatch
+ * 2026-09-28-423; the owner chose "Same line, tappable"): "Unable to calculate route · ⟳ Try again"
+ * on the one line, the whole line one tap target, so the HUD is no taller than in any other state.
+ * "Try again" reads as something to tap, not as more text: the primary colour, underlined, behind
+ * a refresh icon. A screen reader announces the line as a button whose action is "Try again".
+ *
+ * **Its height.** The line is laid out at the text's own height, so the HUD keeps its height in
+ * every route state. Its touch area is Compose's minimum touch target, 48 dp, which hit testing
+ * gives any clickable smaller than that; the top row is already 48 dp tall for the exit button,
+ * so the band that adds is inside the HUD. A line laid out 48 dp tall would have made the HUD
+ * taller in this state, which is the option the owner did not choose.
+ *
+ * **Its width.** "Try again" is never cut short. The message gives way first, ellipsised, because
+ * the control is the part the walker has to be able to find; how much of the message fits on a
+ * narrow phone is measured in `AvailabilityScreenReturnRouteTest` and recorded in the report.
+ */
+@Composable
+private fun RouteRetryLine(message: String, style: androidx.compose.ui.text.TextStyle, color: Color, onRetryRoute: () -> Unit) {
+    val primary = MaterialTheme.colorScheme.primary
+    Row(
+        modifier = Modifier
+            .clickable(role = Role.Button, onClickLabel = ROUTE_RETRY_TEXT, onClick = onRetryRoute)
+            .testTag(NAVIGATION_HUD_DISTANCE_TAG),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+    ) {
+        Text(
+            text = message,
+            style = style,
+            color = color,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false),
+        )
+        Text("·", style = MaterialTheme.typography.labelMedium)
+        Icon(imageVector = Icons.Filled.Refresh, contentDescription = null, tint = primary, modifier = Modifier.size(RETRY_ICON_SIZE))
+        Text(
+            text = ROUTE_RETRY_TEXT,
+            style = MaterialTheme.typography.labelLarge.copy(textDecoration = TextDecoration.Underline),
+            color = primary,
+            maxLines = 1,
+            softWrap = false,
+            modifier = Modifier.testTag(NAVIGATION_HUD_RETRY_TAG),
+        )
+    }
+}
+
+/** The refresh control's label, the planner's wording, confirmed by the owner's choice of placement (dispatch 2026-09-28-423, question 2). */
+internal const val ROUTE_RETRY_TEXT = "Try again"
 
 /** Everything the HUD draws, as plain values — the pure half, so a sign or threshold error is a pinned-literal test failure, not a visual one. */
 internal data class NavigationHudReadout(
@@ -502,4 +564,5 @@ internal fun formatFixAge(ageMillis: Long): String {
 }
 
 private val COMPASS_ICON_SIZE = 22.dp
+private val RETRY_ICON_SIZE = 16.dp
 private const val AGE_TICK_MILLIS = 1_000L
