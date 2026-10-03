@@ -11000,3 +11000,13 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **What the planner read** from the phone's log, read-only, into `~/Zynergy/device-evidence/2026-10-03-walk-zoom/`: every navigation start applied the view at the walker's own zoom (17.62, 16.18, 16.85, 14.91), never 18, on Street.
 **Change:** find each cause on the phone with log lines before fixing; the start zoom lands once; a pinch keeps following; a drag still leaves. Return greyed out without a recording is today's design (navigating without a recording is T8 and T9), not part of this.
 **Notes:** Written by the planner by hand, on branch records-after-159.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-458
+**Timestamp:** 2026-10-03T23:00:00Z
+**Decides:** the order of -451 and -457, and nudge protection
+**The owner, verbatim:** "Phone is attached to computer. Walk complete." Then: "When nudging the map accidentally it breaks the camera following. Some GPS navigation systems have a nudge protection that snaps the camera back if it falls under a threshold." Asked, the owner chose "Zoom and pinch fix first" (-457 before -451) and "Small nudge snaps back": a drag shorter than a set distance on screen, provisionally about a finger's width, is ignored and the map keeps following; only a deliberate drag past it leaves the view and shows "Return to Route".
+**Done:** -457 Amendment 1, with nudge protection as Part C, held until the owner confirms its step path: a short nudge springs back, still following and facing-up, no "Return to Route"; a longer drag leaves and shows it, as now; a pinch zooms and keeps following.
+**Notes:** Written by the planner by hand, on branch records-after-159.
