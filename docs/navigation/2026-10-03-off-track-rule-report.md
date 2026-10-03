@@ -4,7 +4,7 @@
 
 **Date:** 2026-10-03 (UTC).
 **Dispatch:** `prompts/preserved/2026-10-03-03.md`. The planner's rulings on the coder's findings came by message: question 2 ("truly once") and the accepted design. Question 1 was answered by the owner in the coder's window.
-**Base:** `origin/main` at `f1b53aca`, checked against the remote. MERGE_PLACEHOLDER
+**Base:** `origin/main` at `f1b53aca`, checked against the remote. `main` (`4f9f344b`, with T22) was merged in with `git pull --no-rebase` before the full suite (`9f779b29`). It merged without conflicts.
 **The owner's go,** to this session directly: "Yes, start -425", and, for the copy, "Yes, copy the track".
 
 App paths are relative to `app/src/main/java/com/zynergylabs/forager/app/`. Figures are read from files in `~/Zynergy/device-evidence/2026-10-03-off-track-rule/`. **The walk's positions stay there.** This repository is public and they are real places, so only times, distances and counts are filed here.
@@ -134,11 +134,40 @@ Nothing skipped or silenced.
 
 ### Revert checks
 
-REVERTS_PLACEHOLDER
+Run by `revert.sh`:
+- It edits from a saved copy, never git.
+- It reads the build log for compile errors first.
+- It confirms the tree is identical to HEAD (`ba99e817`) after each check.
+
+All 14 compiled with 0 errors and failed for their own edit (`reverts-out.txt`).
+
+| Check | One edit | Fails with |
+|---|---|---|
+| o01 | the line not widened by accuracy | "a GPS reading reporting poor accuracy widens the line": 0 expected, 1 |
+| o02 | no 15 s hold | alert "at 15" expected, at reading 2; "restarts the 15 s" |
+| o03 | one reading enough | "two readings 20 s apart are not enough" |
+| o04 | not once per stray | 16 alerts where 1; 121 over a sustained drift; 100 from two threads |
+| o05 | re-armed at once | "not re-armed after 5 s back on": 0 expected, 1 |
+| o06 | network readings count | "the network readings on the path did not count as back on": 1 expected, 0 |
+| o07 | the line at 10 m | "walking on the other side of a street never alerts": 0 expected, 1 |
+| o08 | distance to the start only, not the path | walking back along the path, the street, staying on track (10 tests) |
+| o09 | an empty path decides | "an empty path decides nothing": 0 expected, 1 |
+| o10 | the path live, not snapshotted at Return | "still the path at Return": 7 expected, 11 |
+| o11 | the service keeps nothing for the watch | the service's path: 20 expected, 0; the swipe-away notification not posted |
+| o12 | no start in front of the path | every walk away with no kept points: 0 alerts (9 tests) |
+| o13 | an alert on every off reading | 121 where 1; the watch against the judge, "deliveries so far" |
+| o14 | kept points kept before begun | "kept points before the service has begun the watch are not kept": 0 expected, 7 |
 
 ## Suite
 
-SUITE_PLACEHOLDER
+| Run | Tree | Result |
+|---|---|---|
+| Tests first, against the stub (`t1-tests-first`) | `2319ca33` | 9 tests, 6 failures, as expected |
+| Touched classes (`t2-built`) | before the service test | 10 classes, 176 tests, 0 failures |
+| The walk through the real judge (`t3-replay-real-judge`) | `ba99e817` plus the throwaway test | 1 alert at 07:56:07Z |
+| Full suite (`t4-full-suite`) | `9f779b29`, with `main` merged | 425 classes, 3509 tests, 0 failures, 0 errors, 24 skipped |
+
+**Reconciled, counted per file against `origin/main`.** `main`'s 3,501 tests (the navigation view's suite), minus `DetectOffTrackUseCaseTest`'s 6, plus `OffTrackJudgeTest`'s 9, `ReturnWatchTest` 21 → 25, and `TrackRecordingServiceSwipeAwayTest` 8 → 9: 3,509. Classes: one deleted, one added, so 425. The 24 skipped are as before.
 
 ## Not done, and why
 
