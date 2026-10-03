@@ -54,6 +54,12 @@ internal fun lineFor(event: ReturnRecordEvent, atMillis: Long): String {
         is ReturnRecordEvent.ReturnEnded -> "return-ended track=${event.trackId} reason=${event.reason.name.lowercase().replace('_', '-')}"
         is ReturnRecordEvent.WentOffTrack -> "went-off-track track=${event.trackId} reading=${utc(event.readingAtMillis)}"
         is ReturnRecordEvent.ReArmed -> "re-armed track=${event.trackId} reading=${utc(event.readingAtMillis)}"
+        is ReturnRecordEvent.AlertDelivered -> "alert-delivery track=${event.trackId} " + (
+            event.outcome?.let { o ->
+                "notification=${if (o.notificationPosted) "posted" else "not-posted(${o.notificationProblem})"} " +
+                    "vibration=${if (o.vibrated) "done" else "failed(${o.vibrationProblem})"}"
+            } ?: "outcome=not-reported"
+            )
     }
     return "${utc(atMillis)} $details"
 }
