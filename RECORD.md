@@ -10901,3 +10901,23 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 - **Two suggestions, not acted on:** record Return taps and the rule's decisions where log rotation cannot remove them; and decide whether "the path I walked" should be taken at Return.
 **What the planner checked itself:** the screenshot service's start at 20:07:54 in the log copy; the report read in full; the replay's saved XML present in the evidence folder.
 **Notes:** Written by the planner by hand, on branch dispatch-439.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-449
+**Timestamp:** 2026-10-03T22:45:00Z
+**Decides:** the two suggestions of -439's report
+**The owner, verbatim:**
+- To a lasting record of Return taps and the off-track rule's decisions: "Yes, small dispatch after the zoom". Dispatch preserved/2026-10-03-08.md, to the coder after -440 and before -446.
+- To whether "the path I walked" taken at Return should change now: "Settle it in trail navigation". Today's rule stays as built; trail navigation (-442 to -447) replaces the path at Return with the route along mapped paths and the walker's own track.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-450
+**Timestamp:** 2026-10-03T22:50:00Z
+**Decides:** -440's zoom on basemaps that cap below it
+**Observed by the coder:** `NAVIGATION_VIEW_ZOOM` = 18.0 (about two blocks ahead, by arithmetic for the S22, provisional); each basemap caps the camera at its operating limit (Street 19, Topo 17, Satellite 15).
+**The owner, verbatim:** "Zoom in past the cap", to: while navigating, Topo and Satellite zoom to two blocks too, by enlarging their closest tiles, slightly soft on Topo and blurry on Satellite, with no extra downloads. -440 Amendment 1: the camera's cap is raised while navigating; the tile sources' own maximum zoom is not, so no tile above a basemap's limit is requested; Stop restores the cap.
+**Notes:** Written by the planner by hand, on branch dispatch-439.
