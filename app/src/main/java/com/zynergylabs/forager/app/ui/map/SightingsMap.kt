@@ -1019,7 +1019,7 @@ fun SightingsMap(
     // map goes back to flat and north-up, still following if it was. Everything here is the SDK's
     // tracking API, not a camera move: an API camera move ends MapLibre's tracking. What MapLibre
     // then draws is device-only: a real MapView cannot run under Robolectric.
-    LaunchedEffect(mapLibreMap, loadedStyle, navigationView != null, navigationView?.following, navigationView?.facing, navigationView?.restoreRequestId, navigationMapHeightPx) {
+    LaunchedEffect(mapLibreMap, loadedStyle, navigationView != null, navigationView?.following, navigationView?.facing, navigationView?.restoreRequestId, navigationView?.zoomOnStart, navigationMapHeightPx) {
         val map = mapLibreMap ?: return@LaunchedEffect
         if (loadedStyle == null || !trackLiveLocation) return@LaunchedEffect
         val component = map.locationComponent
@@ -1028,13 +1028,23 @@ fun SightingsMap(
         if (view == null) {
             if (navigationModeChange.active) {
                 cameraMoveClassifier.markAppMove()
-                navigationModeChange.leaveNavigation(map)
+                navigationModeChange.leaveNavigation(map, navigationMaxZoom(basemap, navigating = false))
             }
             return@LaunchedEffect
         }
+        // Dispatch -440, Amendment 1: the camera may reach the start zoom on every basemap while
+        // navigating. Set on every run, since a style load (line above, setMaxZoomPreference) puts
+        // the basemap's own cap back.
+        map.setMaxZoomPreference(navigationMaxZoom(basemap, navigating = true))
         if (!view.following) return@LaunchedEffect
         cameraMoveClassifier.markAppMove()
-        navigationModeChange.applyView(map, view.facing, navigationViewTopPaddingPx(navigationMapHeightPx))
+        navigationModeChange.applyView(
+            map,
+            view.facing,
+            navigationViewTopPaddingPx(navigationMapHeightPx),
+            startZoom = if (view.zoomOnStart) NAVIGATION_VIEW_ZOOM else null,
+            onStartZoomApplied = view.onStartZoomApplied,
+        )
     }
 
     // Part 1 layout fixes, item 5 (Part 1's device check, flag 3; planner message 2026-09-28-98): MapLibre's

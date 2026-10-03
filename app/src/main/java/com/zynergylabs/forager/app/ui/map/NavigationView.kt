@@ -140,11 +140,26 @@ data class NavigationViewRequest(
     val onStartZoomApplied: () -> Unit = {},
 )
 
-/** Work in progress (dispatch 2026-09-28-440, tests first): the zoom the navigation view starts at. */
+/**
+ * The zoom the navigation view starts at, once per navigation (dispatch 2026-09-28-440; the owner:
+ * "About two blocks ahead"). Provisional. The working, for the S22's map (about 797 dp tall) at the
+ * owner's latitude (45.4° N), with MapLibre's default 36.87° field of view (a focal length of
+ * 0.5 × 797 / tan 18.43° = 1195 dp), the 45° tilt and the quarter-height top padding (the walker at
+ * 62.5% of the height): ground ahead = 0.7071 × (tan(45° + α) − 1) × 1195 × metres per dp. At 18,
+ * about 158 m ahead to the HUD's lower edge and about 250 m to the map's top; at 17, about twice
+ * that. Arithmetic, not measured on the phone.
+ */
 const val NAVIGATION_VIEW_ZOOM = 18.0
 
-/** Work in progress (dispatch 2026-09-28-440, tests first): the camera's maximum zoom. Not yet raised while navigating. */
-fun navigationMaxZoom(basemap: Basemap, navigating: Boolean): Double = basemap.maxZoom.toDouble()
+/**
+ * The camera's maximum zoom: each basemap's own operating limit ([Basemap.maxZoom]), raised to
+ * [NAVIGATION_VIEW_ZOOM] while navigating (Amendment 1; the owner: "Zoom in past the cap"). Only
+ * the camera's limit moves. The tile sources' own `maxzoom` in the style ([styleJsonFor], which takes
+ * no navigation input, held by `BasemapStyleTest`) does not, so no tile beyond a basemap's limit is
+ * ever requested: MapLibre enlarges the deepest tiles instead, softer on Topo, blurrier on Satellite.
+ */
+fun navigationMaxZoom(basemap: Basemap, navigating: Boolean): Double =
+    if (navigating) maxOf(basemap.maxZoom.toDouble(), NAVIGATION_VIEW_ZOOM) else basemap.maxZoom.toDouble()
 
 /**
  * MapLibre's [CompassEngine] fed the app's own true heading (ruling A). MapLibre's built-in engine
@@ -284,7 +299,7 @@ class NavigationModeChange {
      * The listener is called at the transition's end, or at once when there is none, so the tilt and
      * padding land either way.
      */
-    fun applyView(map: MapLibreMap, facing: NavigationFacing, topPaddingPx: Double) {
+    fun applyView(map: MapLibreMap, facing: NavigationFacing, topPaddingPx: Double, startZoom: Double? = null, onStartZoomApplied: () -> Unit = {}) {
         val mode = when (facing) {
             NavigationFacing.FACING_UP -> CameraMode.TRACKING_COMPASS
             NavigationFacing.CALIBRATING -> CameraMode.TRACKING
@@ -297,6 +312,20 @@ class NavigationModeChange {
             override fun onLocationCameraTransitionFinished(cameraMode: Int) {
                 if (expected != mode) return
                 component.tiltWhileTracking(NAVIGATION_VIEW_TILT_DEGREES, NAVIGATION_VIEW_TRANSITION_MILLIS)
+                // Dispatch -440: the start zoom, once per navigation, here for the same reason as the
+                // tilt and padding (zoomWhileTracking is refused while a mode transition runs). Reported
+                // applied when its animation ends, so the request does not change mid-animation.
+                if (startZoom != null) {
+                    component.zoomWhileTracking(
+                        startZoom,
+                        NAVIGATION_VIEW_TRANSITION_MILLIS,
+                        object : MapLibreMap.CancelableCallback {
+                            override fun onFinish() = onStartZoomApplied()
+
+                            override fun onCancel() = onStartZoomApplied()
+                        },
+                    )
+                }
                 component.paddingWhileTracking(
                     doubleArrayOf(0.0, topPaddingPx, 0.0, 0.0),
                     NAVIGATION_VIEW_TRANSITION_MILLIS,
@@ -327,29 +356,31 @@ class NavigationModeChange {
      * (from not following into following, so its own transition goes to the walker). Seen on the
      * S22 desk step: the first form, a following-to-following change, left the map tilted and turned.
      */
-    fun leaveNavigation(map: MapLibreMap) {
+    fun leaveNavigation(map: MapLibreMap, maxZoom: Double = Double.MAX_VALUE) {
         expected = null
         active = false
         val component = map.locationComponent
         val wasFollowing = component.cameraMode != CameraMode.NONE
         if (wasFollowing) byTheApp { component.cameraMode = CameraMode.NONE }
-        val flat = CameraPosition.Builder(map.cameraPosition).tilt(0.0).bearing(0.0).padding(0.0, 0.0, 0.0, 0.0).build()
+        // Dispatch -440, Amendment 1: a camera above the basemap's own cap comes back within it as part
+        // of this ease, and the cap is restored when the ease ends; setting it first would jump.
+        val flat = CameraPosition.Builder(map.cameraPosition).tilt(0.0).bearing(0.0).padding(0.0, 0.0, 0.0, 0.0)
+            .zoom(minOf(map.cameraPosition.zoom, maxZoom)).build()
+        val done = { what: String ->
+            if (!active) map.setMaxZoomPreference(maxZoom)
+            if (wasFollowing && !active) byTheApp { component.cameraMode = CameraMode.TRACKING }
+            logCamera(map, what)
+        }
         map.easeCamera(CameraUpdateFactory.newCameraPosition(flat), NAVIGATION_VIEW_TRANSITION_MILLIS.toInt(), object : MapLibreMap.CancelableCallback {
-            override fun onFinish() {
-                if (wasFollowing && !active) byTheApp { component.cameraMode = CameraMode.TRACKING }
-                logCamera(map, "navigation left")
-            }
+            override fun onFinish() = done("navigation left")
 
-            override fun onCancel() {
-                if (wasFollowing && !active) byTheApp { component.cameraMode = CameraMode.TRACKING }
-                logCamera(map, "navigation left, the ease cancelled")
-            }
+            override fun onCancel() = done("navigation left, the ease cancelled")
         })
     }
 
     /** The camera the navigation view left, for the device check: no position, only how the map is turned and tilted. */
     private fun logCamera(map: MapLibreMap, what: String) {
         val camera = map.cameraPosition
-        Log.i(NAVIGATION_VIEW_LOG_TAG, "$what: mode=${map.locationComponent.cameraMode}, bearing=${"%.1f".format(camera.bearing)}, tilt=${"%.1f".format(camera.tilt)}, padding=${camera.padding?.joinToString { "%.0f".format(it) }}")
+        Log.i(NAVIGATION_VIEW_LOG_TAG, "$what: mode=${map.locationComponent.cameraMode}, zoom=${"%.2f".format(camera.zoom)}, bearing=${"%.1f".format(camera.bearing)}, tilt=${"%.1f".format(camera.tilt)}, padding=${camera.padding?.joinToString { "%.0f".format(it) }}")
     }
 }

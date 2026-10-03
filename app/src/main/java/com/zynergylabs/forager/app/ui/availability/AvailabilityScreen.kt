@@ -887,6 +887,17 @@ fun AvailabilityScreen(
     var navigationFollowBroken by rememberSaveable { mutableStateOf(false) }
     var navigationViewRequestId by rememberSaveable { mutableStateOf(0) }
     LaunchedEffect(isNavigating) { if (!isNavigating) navigationFollowBroken = false }
+    // Dispatch 2026-09-28-440: the set zoom is applied once per navigation, when it starts: pending
+    // from the start until the map reports it applied. Held above the tab, so a tab change does not
+    // apply it again; the navigating flag it is set from is saved too, so a configuration change
+    // that recomposes this screen mid-navigation is not read as a new start.
+    var navigationZoomPending by rememberSaveable { mutableStateOf(false) }
+    var navigationWasOn by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(isNavigating) {
+        if (isNavigating && !navigationWasOn) navigationZoomPending = true
+        if (!isNavigating) navigationZoomPending = false
+        navigationWasOn = isNavigating
+    }
     var forecastCellsShown by remember { mutableStateOf<Map<String, ForecastCellsShown>>(emptyMap()) }
     val availableColourFieldGroups = COLOUR_FIELDS.filter { it.group in uiState.forecastGroups }.associate { it.layerId to it.group }
     val drawnMapLayers = withUnavailableColourFieldsHidden(uiState.mapLayers, MAP_LAYER_REGISTRY, availableColourFieldGroups.keys)
@@ -1385,6 +1396,8 @@ fun AvailabilityScreen(
                 navigationFollowBroken = false
                 navigationViewRequestId++
             },
+            navigationZoomPending = navigationZoomPending,
+            onNavigationZoomApplied = { navigationZoomPending = false },
             mapTaxonFilter = { mapTaxonFilter },
             basemap = basemap,
             tracks = tracks,

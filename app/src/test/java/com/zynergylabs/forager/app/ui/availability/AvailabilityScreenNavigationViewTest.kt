@@ -15,7 +15,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -103,8 +105,9 @@ class AvailabilityScreenNavigationViewTest {
         Box(modifier.testTag(MAP_TAG).pointerInput(Unit) { detectTapGestures(onLongPress = { longPresses++ }) })
     }
 
-    private fun setScreen() {
-        composeRule.setContent {
+    private fun setScreen(restoration: StateRestorationTester? = null) {
+        val set: (@Composable () -> Unit) -> Unit = restoration?.let { r -> { content: @Composable () -> Unit -> r.setContent(content) } } ?: { content -> composeRule.setContent(content) }
+        set {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = fix),
                 isRecording = true,
@@ -400,6 +403,19 @@ class AvailabilityScreenNavigationViewTest {
         switchReturning(false)
         switchReturning(true)
         assertTrue(view()!!.zoomOnStart)
+    }
+
+    /** A configuration change (a rotation) mid-navigation recreates the screen's state from saved state: not a new start. */
+    @Test
+    fun `a configuration change mid-navigation does not ask for the zoom again`() {
+        val restoration = StateRestorationTester(composeRule)
+        setScreen(restoration)
+        switchReturning(true)
+        theMapAppliesTheStartZoom()
+        restoration.emulateSavedInstanceStateRestore()
+        settle()
+        assertTrue("still navigating", view() != null)
+        assertFalse(view()!!.zoomOnStart)
     }
 
     @Test
