@@ -11045,3 +11045,12 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **The owner, verbatim,** asking whether the own tiles were researched enough to start, then: "Run the survey. I intend to use an RPI as a server for sending map tiles to the cloudflare worker to send to others as they call them. I have s 8GB RPI5 on 256GB nVME".
 **Done:** stage 2 of `docs/plans/trail-navigation-and-own-tiles.md`, the survey, started by the planner with three agents: the repository's map code and documents (read-only, at origin/main); the live Worker's public metadata, Cloudflare's published costs and limits, and the Raspberry Pi 5 as origin and as build machine; licences, outdoor styles and topo data. No Cloudflare account was read.
 **Notes:** Written by the planner by hand, on branch records-after-159.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-462
+**Timestamp:** 2026-10-03T23:40:00Z
+**Decides:** -457's merge, and -451's delivery outcome
+**The owner, verbatim:** to a pull request for -457, "Yes, PR and merge". To -451's question (the alert cannot report whether its notification and vibration went out, and an exception from posting them would end the service's fix collection): "Report and catch". So `AlertDelivery.deliver` returns an outcome (notification posted or the reason not, vibrated or the failure), and an exception from notify or vibrate is caught, logged and reported rather than thrown; nothing else in delivery changes.
+**Notes:** Written by the planner by hand, on branch records-after-159.
