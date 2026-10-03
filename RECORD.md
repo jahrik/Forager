@@ -10509,3 +10509,16 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **The research the owner asked for:** how established walking navigation decides a walker is off route, to inform plan task T21 and the tuning of this one. The planner runs it separately as background research from public sources, and files it under docs/navigation/. Not given to the coder.
 **Finish line:** the logic, its tests and the report pushed on branch way-back-route, the hand-back sent.
 **Notes:** Written by the planner by hand, on branch records-after-152 cut from notification-tap-merge at 23173479, pushed and not merged.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-418
+**Timestamp:** 2026-10-03T05:09:19Z
+**Continues:** 2026-09-28-417 (preserved 2026-10-02-03, where the rulings are appended); findings received, nothing built
+**What the coder found, before building** (read at main c42d857e): the existing path-home logic places the walker at the track's most recent stored point, not on the path, by an owner ruling against nearest-point projection; its only "off the route" line measures distance to that point, so a stray is recorded and becomes part of the route home; the route and the off-track alert can disagree in two ways a user would see; and the stored track lags the walker by 30 to 45 seconds, about 27 to 40 m, more than the 25 m lookahead, so a lookahead measured from the last stored point would often point back the way the walker came.
+**The owner's go for the build,** given in the coder's window (read from its message): "Yes, build it".
+**The planner's rulings** (appended to the dispatch file): the lookahead is measured (hop + 25 m) along the route from the most recent stored point, which stays within the owner's rulings and adds no number; the arrow stops short of cutting a corner, reusing the existing 10 m self-join distance in a second role, said so in the code and provisional; the route-finding code returns the route's points with its present behaviour unchanged; the shape as the coder proposed.
+**Not chosen, and why:** aiming from the last stored point alone, which points backwards often; nearest-point projection, which is against an owner ruling and is put to the owner only if the walk shows the chosen rule is not good enough; a faster write in the recording service, whose batching stays off limits.
+**For the owner:** the two disagreements between the route and the off-track alert, and that a stray becomes part of the route home. Both feed plan task T21.
+**Notes:** Written by the planner by hand, on branch records-after-152 with -417 and the research report, pushed and not merged. Pull request #152 (notification-tap-merge into main, head 23173479b6c3d12d1d77dc24cb8691d70c2a89d4, on which CI passed, run 37094401516) was merged as c42d857ef0191b2c8e1a641ec7e3925d143b7bdc at 2026-10-03T03:56:57Z, read from GitHub, on the owner's "merge it", with backup 2026-10-02-05. That merge has no entry of its own, and this note stands in for one.
