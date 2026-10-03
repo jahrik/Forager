@@ -37,3 +37,4 @@ These files were moved here from `docs/plans/` and `docs/audits/`. Links in the 
 | [forager-navigator-plan.md](forager-navigator-plan.md) | Forager Navigator — plan |
 | [2026-10-02-off-route-detection-research.md](2026-10-02-off-route-detection-research.md) | Off-route detection in walking navigation: what others do (research for plan task T21) |
 | [2026-10-03-way-back-route-part-2-report.md](2026-10-03-way-back-route-part-2-report.md) | Way-back route, Part 2: the HUD follows the route (dispatch 2026-09-28-423, plan task T6) |
+| [2026-10-03-coordinate-format-report.md](2026-10-03-coordinate-format-report.md) | The coordinate format survives a tab change (dispatch 2026-09-28-422, plan task T18) |
