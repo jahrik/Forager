@@ -36,6 +36,7 @@ class AlertDeliveryOutcomeTest {
 
     @Test
     fun `a delivered alert reports its notification posted and its vibration issued`() {
+        Shadows.shadowOf(context as Application).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
         val outcome = AndroidAlertDelivery(context).deliverReporting(offTrack)
         assertEquals(AlertDeliveryOutcome(notificationPosted = true, notificationProblem = null, vibrated = true, vibrationProblem = null), outcome)
         val manager = context.getSystemService(NotificationManager::class.java)
