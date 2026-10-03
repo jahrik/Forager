@@ -238,6 +238,23 @@ const val NAVIGATION_NUDGE_THRESHOLD_DP = 48f
 const val NAVIGATION_MULTI_FINGER_MOVE_THRESHOLD_DP = 400f
 
 /**
+ * The elastic nudge (dispatch 2026-09-28-463; the owner: "Give, then spring back"): under
+ * [NAVIGATION_NUDGE_THRESHOLD_DP] the map moves with one finger but stiffly, this share of the finger's
+ * travel, so at most half the threshold before a real drag takes over. Provisional.
+ */
+const val NAVIGATION_NUDGE_GIVE_RATIO = 0.5f
+
+/** How long the map takes to spring back to following once the nudging finger lifts. The owner: "about a quarter of a second". Provisional. */
+const val NAVIGATION_NUDGE_SPRING_MILLIS = 250L
+
+/**
+ * How far the spring carries past rest before it settles: Android's `OvershootInterpolator` tension,
+ * its own default. 2.0 peaks 13% past rest, about 3 dp after a full 24 dp give; 1.5 would be 8%.
+ * The owner: "a slight overshoot and settle". Provisional.
+ */
+const val NAVIGATION_NUDGE_OVERSHOOT_TENSION = 2.0
+
+/**
  * The start zoom's timing, apart from MapLibre so it can be tested (dispatch 2026-09-28-457, Part A).
  *
  * Seen on the owner's walk and at the desk (the `ForagerNavView` and `Mbgl-LocationComponent` lines in
@@ -255,6 +272,9 @@ class StartZoomGate {
     private var generation = 0
     private var inFlight: Int? = null
     private var wanted: Double? = null
+
+    /** Whether a mode transition of ours is running, during which MapLibre refuses padding (dispatch -463: no nudge give then). */
+    val transitioning: Boolean get() = inFlight != null
 
     /** A view is asked for. Returns the generation to give its transition listener, or `null` to wait for the transition already heading to the same mode. */
     fun request(sameModeAsInFlight: Boolean, startZoom: Double?): Int? {
@@ -319,6 +339,9 @@ class NavigationModeChange {
 
     private val startZoomGate = StartZoomGate()
     private var onStartZoomAppliedHeld: () -> Unit = {}
+
+    /** Whether a mode transition of ours is running: the padding, and so a nudge's give, is refused until it ends. */
+    val transitioning: Boolean get() = startZoomGate.transitioning
 
     /** Whether the location component holds the navigating options (nudge protection on). Reset by every activation, which applies the ordinary ones. */
     var gestureProtection = false
