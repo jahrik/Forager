@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.ui.map
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.Dp
@@ -256,6 +257,18 @@ data class MapRenderMode(
      * [layers] gives.
      */
     val backEnabled: Boolean = true,
+    /**
+     * The map's navigation view while navigating, `null` otherwise (dispatch 2026-09-28-430, plan
+     * task T22): tilted, turned to the way the walker faces, following them below the centre. See
+     * [NavigationViewRequest]. Off, the map is north-up and flat exactly as before.
+     */
+    val navigationView: NavigationViewRequest? = null,
+    /**
+     * The true heading the puck points and a facing-up map turns to, the one the compass strip and
+     * the HUD read (continuation 2026-09-28-432, ruling A). `null` here, the map makes its own from
+     * [LocalMapCompass] if one is provided, and otherwise keeps MapLibre's own (magnetic) compass.
+     */
+    val trueHeading: State<TrueHeadingReading>? = null,
 )
 
 /**
@@ -548,6 +561,8 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
         attributionKeepClear = renderMode.attributionKeepClear,
         returnMemory = renderMode.returnMemory,
         backEnabled = renderMode.backEnabled,
+        navigationView = renderMode.navigationView,
+        trueHeading = renderMode.trueHeading,
         modifier = modifier,
     )
 }
