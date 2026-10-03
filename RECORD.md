@@ -10965,3 +10965,16 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Change:** none to the app. Nine stages: the engine spike (-446, dispatched); the own-tiles survey; a spec for the owner; the data pipeline; the own basemap in the app; routing along the network; off the trail and back; the reference layer; the owner's walks. Each stage after the first is dispatched only when the one before it has reported. It carries the rulings -442 to -450 and supersedes the timing of `docs/plans/own-map-tiles.md`, whose survey becomes stage 2.
 **Open, not yet asked:** whether T7 waits for routing along the network; a storage ceiling for a region download; coverage beyond the US.
 **Notes:** Written by the planner by hand, on branch records-after-158.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-455
+**Timestamp:** 2026-10-03T22:05:00Z
+**Closes:** 2026-09-28-440 (preserved 2026-10-03-06, with Amendment 1)
+**Outcome:** completed
+**Observed:** on branch navigation-zoom at f7e80167, main (09e43bd3) merged in at 1ee92281, not merged; report `docs/navigation/2026-10-03-navigation-zoom-report.md` with its two index rows. `NAVIGATION_VIEW_ZOOM` = 18, provisional, with its working. Applied once per navigation by `zoomWhileTracking` in the view's transition listener, after the tilt and padding; the pending flag is held above the tab (`rememberSaveable` in AvailabilityScreen), so a tab change or a rotation is not a new start. While navigating the camera's cap is 18 on Topo and Satellite (Street keeps 19), set on every run of the navigation effect; the tile sources' maxzoom comes from `styleJsonFor`, which takes no navigation input, held by the existing BasemapStyleTest. Stop eases flat, north-up and within the basemap's cap, and restores the cap when the ease ends. One edge, stated: a drag before the start zoom lands leaves it pending, so "Return to Route" applies it. The owner's two cap answers were settled in the coder's window as "Zoom past the cap" (-452). Tests pushed failing first (eeb81afd); 7 new; six revert checks; full suite 426 classes, 3,517 tests, 0 failures, 24 skipped (the base's 3,510 plus 7). No phone.
+**What the planner checked itself:** the app diff, read; the full suite's XML re-counted as reported; revert.sh restores from a saved copy and refuses results on compile errors; each of the six revert checks read in its own folder, each with 0 compile errors and failing on its own test.
+**Device-only:** the zoom itself, the softer enlarged tiles, a pinch keeping following, Stop's ease back.
+**Next:** on the owner's word, a pull request; then -451.
+**Notes:** Written by the planner by hand, on branch records-after-158.
