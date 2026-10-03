@@ -76,6 +76,22 @@ class NavigationViewTest {
         assertEquals(listOf(95f, 100f), headings)
     }
 
+    /**
+     * Dispatch 2026-09-28-440, Amendment 1 (the owner: "Zoom in past the cap"): while navigating the
+     * camera may reach the start zoom on every basemap; otherwise each keeps its own operating limit.
+     * The tile sources' own limit is not this function's: `BasemapStyleTest`'s "the style's declared
+     * maxzoom matches Basemap's own operating limit" holds it, and the style takes no navigation input.
+     */
+    @Test
+    fun `while navigating the camera may reach the start zoom on every basemap, and not otherwise`() {
+        assertEquals(18.0, navigationMaxZoom(Basemap.OPEN_TOPO_MAP, navigating = true), 0.0)
+        assertEquals(18.0, navigationMaxZoom(Basemap.USGS_IMAGERY_ONLY, navigating = true), 0.0)
+        assertEquals("a higher cap is not lowered", 19.0, navigationMaxZoom(Basemap.OSM_STANDARD, navigating = true), 0.0)
+        assertEquals(17.0, navigationMaxZoom(Basemap.OPEN_TOPO_MAP, navigating = false), 0.0)
+        assertEquals(15.0, navigationMaxZoom(Basemap.USGS_IMAGERY_ONLY, navigating = false), 0.0)
+        assertEquals(19.0, navigationMaxZoom(Basemap.OSM_STANDARD, navigating = false), 0.0)
+    }
+
     @Test
     fun `the walker sits below the centre by an eighth of the map's height`() {
         // Top padding of a quarter: the map centres in the lower three quarters, so the walker is an eighth below the middle.
