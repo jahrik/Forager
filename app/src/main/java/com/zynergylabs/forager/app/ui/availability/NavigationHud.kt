@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -272,17 +273,14 @@ internal fun NavigationHud(
                     Column(modifier = Modifier.weight(1f)) {
                         val distanceStyle = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFeatureSettings = "tnum")
                         val distanceColor = if (readout.distanceDeEmphasised) LocalContentColor.current.copy(alpha = 0.5f) else LocalContentColor.current
-                        if (readout.routeRetryOffered) {
-                            RouteRetryLine(readout.distanceText, distanceStyle, distanceColor, onRetryRoute)
-                        } else {
-                            Text(
-                                text = readout.distanceText,
-                                style = distanceStyle,
-                                color = distanceColor,
-                                maxLines = 1,
-                                modifier = Modifier.testTag(NAVIGATION_HUD_DISTANCE_TAG),
-                            )
-                        }
+                        Text(
+                            text = readout.distanceText,
+                            style = distanceStyle,
+                            color = distanceColor,
+                            maxLines = 1,
+                            modifier = Modifier.testTag(NAVIGATION_HUD_DISTANCE_TAG),
+                        )
+                        if (readout.routeRetryOffered) RouteRetryRow(onRetryRoute)
                         Text(
                             text = readout.statusText,
                             style = MaterialTheme.typography.labelMedium,
@@ -333,54 +331,40 @@ internal fun NavigationHud(
 }
 
 /**
- * The large slot when the route is withheld and recomputing could change that (dispatch
- * 2026-09-28-423; the owner chose "Same line, tappable"): "Unable to calculate route · ⟳ Try again"
- * on the one line, the whole line one tap target, so the HUD is no taller than in any other state.
- * "Try again" reads as something to tap, not as more text: the primary colour, underlined, behind
- * a refresh icon. A screen reader announces the line as a button whose action is "Try again".
+ * "⟳ Try again", on its own line under "Unable to calculate route" (dispatch 2026-09-28-423; the
+ * owner chose "Own line under it", shown that on one line beside the message the owner's sentence
+ * was cut to "Unable to ca…" on a 360 dp phone and to 16 of its 25 characters on the S22). The
+ * message keeps the large slot's line whole, and this row makes the HUD one row taller **only while
+ * a route is withheld and recomputing could change that**; with no usable points it is not drawn,
+ * and that state keeps the HUD's usual height.
  *
- * **Its height.** The line is laid out at the text's own height, so the HUD keeps its height in
- * every route state. Its touch area is Compose's minimum touch target, 48 dp, which hit testing
- * gives any clickable smaller than that; the top row is already 48 dp tall for the exit button,
- * so the band that adds is inside the HUD. A line laid out 48 dp tall would have made the HUD
- * taller in this state, which is the option the owner did not choose.
- *
- * **Its width.** "Try again" is never cut short. The message gives way first, ellipsised, because
- * the control is the part the walker has to be able to find; how much of the message fits on a
- * narrow phone is measured in `AvailabilityScreenReturnRouteTest` and recorded in the report.
+ * At least 48 dp tall, the minimum touch target, laid out at that height rather than relying on
+ * hit testing to extend a shorter row, so what a finger can reach is what is drawn. "Try again"
+ * reads as something to tap, not as more text: the primary colour, underlined, behind a refresh
+ * icon. A screen reader announces the row as a button whose action is "Try again".
  */
 @Composable
-private fun RouteRetryLine(message: String, style: androidx.compose.ui.text.TextStyle, color: Color, onRetryRoute: () -> Unit) {
+private fun RouteRetryRow(onRetryRoute: () -> Unit) {
     val primary = MaterialTheme.colorScheme.primary
     Row(
         modifier = Modifier
+            .heightIn(min = RETRY_ROW_MIN_HEIGHT)
             .clickable(role = Role.Button, onClickLabel = ROUTE_RETRY_TEXT, onClick = onRetryRoute)
-            .testTag(NAVIGATION_HUD_DISTANCE_TAG),
+            .testTag(NAVIGATION_HUD_RETRY_TAG),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
-        Text(
-            text = message,
-            style = style,
-            color = color,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f, fill = false),
-        )
-        Text("·", style = MaterialTheme.typography.labelMedium)
         Icon(imageVector = Icons.Filled.Refresh, contentDescription = null, tint = primary, modifier = Modifier.size(RETRY_ICON_SIZE))
         Text(
             text = ROUTE_RETRY_TEXT,
             style = MaterialTheme.typography.labelLarge.copy(textDecoration = TextDecoration.Underline),
             color = primary,
             maxLines = 1,
-            softWrap = false,
-            modifier = Modifier.testTag(NAVIGATION_HUD_RETRY_TAG),
         )
     }
 }
 
-/** The refresh control's label, the planner's wording, confirmed by the owner's choice of placement (dispatch 2026-09-28-423, question 2). */
+/** The refresh control's label, the planner's wording (dispatch 2026-09-28-423), shown to the owner with its placement. */
 internal const val ROUTE_RETRY_TEXT = "Try again"
 
 /** Everything the HUD draws, as plain values — the pure half, so a sign or threshold error is a pinned-literal test failure, not a visual one. */
@@ -564,5 +548,6 @@ internal fun formatFixAge(ageMillis: Long): String {
 }
 
 private val COMPASS_ICON_SIZE = 22.dp
-private val RETRY_ICON_SIZE = 16.dp
+private val RETRY_ICON_SIZE = 18.dp
+private val RETRY_ROW_MIN_HEIGHT = 48.dp
 private const val AGE_TICK_MILLIS = 1_000L
