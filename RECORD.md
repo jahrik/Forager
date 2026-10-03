@@ -11020,3 +11020,28 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **The owner, verbatim,** to Part C's step path (a short nudge springs back, still following and facing-up, no "Return to Route"; a deliberate drag leaves and shows it; a pinch zooms and keeps following): "Confirmed 1 2 and 3". -457 Part C is released to build.
 **Also observed,** by the coder from the walk log and checked by the planner: MapLibre logged "LocationComponent#zoomWhileTracking method call is ignored because the camera mode is transitioning" at each of the four navigation starts (22:03:46, 22:03:59, 22:05:53, 22:06:00 UTC). The coder's reading, to be confirmed on the phone before fixing: the start zoom was issued mid-transition and refused, and the refusal cleared the pending flag.
 **Notes:** Written by the planner by hand, on branch records-after-159.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-460
+**Timestamp:** 2026-10-03T23:30:00Z
+**Closes:** 2026-09-28-457 (preserved 2026-10-03-09, with Amendment 1)
+**Outcome:** completed
+**Observed:** on branch zoom-walk-faults at 1a68c5ca, base cb035035, not merged; report `docs/navigation/2026-10-03-zoom-walk-faults-report.md` with its two index rows. The S22 carries 1.0.2578+gde369d9c (the fix), installed on the owner's word in the coder's window, data kept.
+- **Part A, seen on the phone first** (instrumented at aadef55b): the start zoom was issued while the mode change was still transitioning, refused by MapLibre, and the refusal cleared the pending flag; the pending flag had been set after the map's first run, and the re-run re-sent the same mode mid-transition. Fixed by `StartZoomGate`: a request for the mode already in flight waits, and that transition hands out the held zoom when it finishes. After the fix the phone logged the zoom finishing at 18.00 with no refusals.
+- **Parts B and C, one change:** before the fix, a second finger down or a one-finger nudge was followed within 40 to 200 ms by a tracking change made by MapLibre's move detector, not the app. Fixed by MapLibre's `trackingGesturesManagement` while navigating only: nudge threshold 48 dp (`NAVIGATION_NUDGE_THRESHOLD_DP`), multi-finger 400 dp (MapLibre's default, stated); outside navigation nothing changes. The owner did the gestures at the desk while the coder read the log (two-finger input cannot be injected without root); the owner said "As expected", and the log showed no tracking change on pinches or the small nudge, and the drags leaving with "Return to Route".
+- **Tests:** 5 new; 5 revert checks; full suite 427 classes, 3,522 tests, 0 failures, 24 skipped (3,517 + 5). The diagnostic log lines stay. Wrong premise recorded: -440's inference that a pinch keeps tracking.
+**What the planner checked itself:** the app diff, read; the full suite's XML re-counted as reported; revert.sh restores from a saved copy; each of the five revert checks read in its own folder, 0 compile errors, each failing on its own test.
+**Next:** on the owner's word, a pull request; -451 is with the coder, waiting on a delivery question.
+**Notes:** Written by the planner by hand, on branch records-after-159.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-461
+**Timestamp:** 2026-10-03T23:32:00Z
+**Continues:** 2026-09-28-454
+**The owner, verbatim,** asking whether the own tiles were researched enough to start, then: "Run the survey. I intend to use an RPI as a server for sending map tiles to the cloudflare worker to send to others as they call them. I have s 8GB RPI5 on 256GB nVME".
+**Done:** stage 2 of `docs/plans/trail-navigation-and-own-tiles.md`, the survey, started by the planner with three agents: the repository's map code and documents (read-only, at origin/main); the live Worker's public metadata, Cloudflare's published costs and limits, and the Raspberry Pi 5 as origin and as build machine; licences, outdoor styles and topo data. No Cloudflare account was read.
+**Notes:** Written by the planner by hand, on branch records-after-159.
