@@ -265,6 +265,34 @@ class TrackRecordingServiceSwipeAwayTest {
     }
 
     /**
+     * Dispatch 2026-09-28-425: a return is measured against the track as it stood when Return was
+     * tapped, and the watch has that track because the service hands it each point its sampler
+     * keeps. Twenty fixes through the real service's collector, stored as twenty points, then
+     * Return: the path the return is measured against has all twenty. Fails with the service's
+     * kept-point call removed (a path of 0).
+     */
+    @Test
+    fun `the points the service keeps before Return are the path the return is measured against`() {
+        var controller: ServiceController<TrackRecordingService>? = null
+        try {
+            val trackId = runBlocking { container.startTrackUseCase(null) }.getOrThrow().id
+            controller = Robolectric.buildService(TrackRecordingService::class.java, startIntent(trackId))
+            controller.create().get()
+            controller.startCommand(0, 1)
+            assertEquals(1, awaitListenerCount(1))
+            container.returnWatch.setStartPoint(trackId, TrackPoint(45.000, -122.0, null, null, FIRST_FIX_EPOCH_MILLIS))
+
+            repeat(FLUSH_BATCH_SIZE) { index -> simulateFix(index + 1) }
+            assertEquals("precondition: twenty points kept and stored", FLUSH_BATCH_SIZE, awaitPointCount(trackId, FLUSH_BATCH_SIZE))
+
+            assertTrue(container.returnWatch.startReturn(trackId))
+            assertEquals(FLUSH_BATCH_SIZE, container.returnWatch.pathPointCount)
+        } finally {
+            endEverything(controller)
+        }
+    }
+
+    /**
      * Amendment 3, step 3: a start for the track already being recorded is not a fault. A screen
      * that takes up a running recording is a new Activity, and its effect sends `ACTION_START`
      * again for that same track. The service says nothing and changes nothing. A start for a
