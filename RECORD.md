@@ -10742,3 +10742,22 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Observed:** pull request #155 (t22-merge into main, head 76190267980b286dff559a5c2b564dff9640e313, on which CI passed, run 37147361904) was merged as 4f9f344b159c97907ab4d59caf8ba09f296ae654 at 2026-10-03T19:28:43Z, read from GitHub, on the owner's "Open pr and merge", with backup 2026-10-03-03 of main at f1b53aca. Main's tree after the merge equals t22-merge's; no file under app/ differs from the coder's 8b9e2719. T22 (-430) and the records -432 to -434 are on main.
 **Next:** the coder merges main into coordinate-format (-422), re-tests, and it follows as its own pull request on the owner's word; -425 (T21) continues and takes main in before its hand-back.
 **Notes:** Written by the planner by hand, on branch records-after-155. T21's findings, the replay and the owner's answers to the coder about it go in -425's terminal, read from the coder's report.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-436
+**Timestamp:** 2026-10-03T19:55:00Z
+**Closes:** 2026-09-28-425 (preserved 2026-10-03-03)
+**Outcome:** completed
+**Observed:**
+- **What landed,** on branch off-track-rule at 7c7e25c5, not merged when this was written: tests first at 2319ca33, the build at ba99e817, main (4f9f344b, T22) merged in at 9f779b29 without conflicts, and the report docs/navigation/2026-10-03-off-track-rule-report.md with its two index rows.
+- **The rule now:** off track is more than 40 m plus the reading's reported accuracy from the path walked out (the start, then the points the recording kept before Return), for at least 15 s and 3 GPS readings; network readings are skipped by the timestamp rule; one alert per stray, re-armed after 10 s back on the path. The 120 s repeat is gone. Every figure is provisional and named once in domain/OffTrackJudge.kt. DetectOffTrackUseCase and its 6 tests are retired. The service hands the watch each point its sampler keeps, so the path includes the not-yet-written tail.
+- **One refinement by the coder of the accepted design:** the start sits in front of the path, so a Return before any point is kept is measured from the start; only no start at all decides nothing.
+- **The replay of the owner's walk,** Return at the turnaround (the owner, to the coder: "A: at the turnaround"): the old rule gives 0 alerts on the stored points; the new rule gives 1, at 07:56:07Z, the start of the deliberate detour, and none on the way home, by a Python replay and through the real ReturnWatch and OffTrackJudge alike. The old rule's five real alerts cannot be reproduced, because the network readings' positions were never stored. Positions stay in the evidence folder.
+- **Tests:** OffTrackJudgeTest (9), four new ReturnWatchTest cases, one new service test; existing ReturnWatchTest cases retimed to 15 s walks, the two cooldown tests replaced by once-per-stray, one swipe-away test given a fourth reading, six fixtures' constructor lines, each listed in the report. Fourteen revert checks. The full suite on the merge, 425 classes, 3,509 tests, 0 failures, 24 skipped.
+- **Reported, not reconciled:** four ways RouteHome's "off the route" and this rule can disagree (report, item 4); on the owner's walk, a detour after Return becomes RouteHome's route home while this rule calls it off the path.
+**What the planner checked itself:** OffTrackJudge, ReturnWatch and the service wiring, read; the saved XML re-counted (the full suite as reported; tests first, 9 tests, 6 failures); revert.sh edits from a saved copy, reads the build log for compile errors before citing results, and its tree check is against ba99e817, where the forward change is committed; the last two revert checks read, each failing on its own edit with fresh timestamps. A recording continues only while its service lives, so the watch's kept points cover the whole track whenever a return can be asked for (a killed process leaves the track to the sweep).
+**Not seen on a phone:** all of it. The owner's next walk tests the 40 m, 15 s and 10 s figures.
+**Next:** on the owner's word, a pull request for off-track-rule; -422 follows as its own.
+**Notes:** Written by the planner by hand, on branch records-after-155.
