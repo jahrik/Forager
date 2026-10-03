@@ -10522,3 +10522,14 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Not chosen, and why:** aiming from the last stored point alone, which points backwards often; nearest-point projection, which is against an owner ruling and is put to the owner only if the walk shows the chosen rule is not good enough; a faster write in the recording service, whose batching stays off limits.
 **For the owner:** the two disagreements between the route and the off-track alert, and that a stray becomes part of the route home. Both feed plan task T21.
 **Notes:** Written by the planner by hand, on branch records-after-152 with -417 and the research report, pushed and not merged. Pull request #152 (notification-tap-merge into main, head 23173479b6c3d12d1d77dc24cb8691d70c2a89d4, on which CI passed, run 37094401516) was merged as c42d857ef0191b2c8e1a641ec7e3925d143b7bdc at 2026-10-03T03:56:57Z, read from GitHub, on the owner's "merge it", with backup 2026-10-02-05. That merge has no entry of its own, and this note stands in for one.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-419
+**Timestamp:** 2026-10-03T05:14:24Z
+**Continues:** 2026-09-28-417 (preserved 2026-10-02-03, where the correction is appended); tests written and pushed failing, nothing built
+**The coder's stop:** the corner guard as the planner worded it in -418 checked route points from the last stored point onward. Those points are behind a walker who has moved on, so once the walker is more than 10 m past the last stored point the guard pulled the arrow back to that point, pointing it backwards: the very case the lookahead rule of -418 exists to avoid. The coder found it by writing the tests, before any code.
+**The planner's correction:** the guard checks only the route points from the walker's assumed place onward, up to the lookahead. The wording in -418 was the planner's error. Its cost is kept visible and tested: a walker standing well to the side of the route is pointed some way up the path. That, and the case where the arrow can still land behind the walker, are for a walk to judge.
+**Not chosen:** the guard as first worded; no guard, because the decision record names aiming across a bend as the costly failure on a forest path.
+**Notes:** Written by the planner by hand, on branch records-after-152 with -417 and -418, pushed and not merged.
