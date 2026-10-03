@@ -95,6 +95,8 @@ data class ReturnWatchState(
 class ReturnWatch(
     private val computeReturnToStart: ComputeReturnToStartUseCase,
     private val alertDelivery: AlertDelivery,
+    /** Dispatch 2026-09-28-451: the lasting record of Returns and off-track decisions. Work in progress: not yet written to. */
+    private val returnRecord: ReturnRecord = NoReturnRecord,
 ) {
     private val _state = MutableStateFlow(ReturnWatchState())
     val state: StateFlow<ReturnWatchState> = _state.asStateFlow()
