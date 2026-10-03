@@ -835,10 +835,11 @@ class TrackRecordingViewModel(
 
     /**
      * [TrackRecordingUiState.routeHome] from the track the poll last read and the last
-     * accuracy-gated fix, while returning ([endRouteTicks] clears it when the return ends). Before there is both a polled
-     * track and a gated fix it leaves the value as it is, `null` at the start of a return, which the
-     * HUD shows as a dash rather than a failure (the planner's ruling on question 3). The hop band is
-     * carried from the previous result (hysteresis, see [com.zynergylabs.forager.app.domain.pathHome],
+     * accuracy-gated fix, while returning ([endRouteTicks] clears it when the return ends). Before
+     * there is both a polled track and a gated fix it leaves the value as it is, `null` at the start
+     * of a return, which the HUD shows as a dash rather than a failure (the planner's ruling on
+     * question 3). The hop band is carried from the previous result, a withheld one included, as
+     * [RouteHome.Withheld.hopBand] asks (hysteresis, see [com.zynergylabs.forager.app.domain.pathHome],
      * "The hop"); a new return starts at [HopBand.NONE].
      *
      * Runs on the tick's own coroutine, the main dispatcher, as the poll's path-home search did:
