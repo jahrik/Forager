@@ -10785,3 +10785,35 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 - **T18 brought up to main for its pull request,** by the planner, on branch t18-merge: coordinate-format (588d7b8e) with main (093b28d6) merged in. Only the two index files conflicted, each resolved keeping both rows, main's first; the row counts are both sides' sum less the base. AvailabilityScreen merged on its own; it carries both T21's comment and T18's held state. Against main, the app code differs by exactly -422's change. No local run of the combination: CI's full suite is the test of it.
 **Next:** the coordinate-format pull request, merged on green on the same word; then the owner's walk.
 **Notes:** Written by the planner by hand, on branch t18-merge.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-439
+**Timestamp:** 2026-10-03T20:45:00Z
+**Title:** walk-findings: why the new off-track rule stayed silent on the owner's walk, and why the drawn line leaves the street (report only)
+**Dispatch-file:** preserved/2026-10-03-05.md; to the coder window
+**The walk:** the S22 with 1.0.2539+g7c7e25c5 (T21). The owner before it: "I'll run the same divergence path as before." The planner read the phone's log, read-only, into `~/Zynergy/device-evidence/2026-10-03-walk-t21/`: the recording ran from about 20:01:24 to 20:17:50 UTC, with no off-track notification (id 1002) and no vibration from Forager in it. The owner, asked: "No buzz, same detour". The owner on the walk, verbatim: "the tilt was nice, gave a straight ahead view while keeping it reasonable", and "the lines are off the street quite a bit. It shows I crossed the street halfway beyond the intersection, when I crossed it directly at the intersection, and is showing me going through people's yards when I'm on the sidewalk. Is there a way to help manage this?"; asked, "Study first, then decide". Later: "The rest of the report is on the phone's tracks", passed to the coder.
+**Change:** none. Part A finds why no alert came, replaying through the real rule; Part B measures why the line leaves the street and lists options. No fix.
+**Finish line:** the report with its disclosure sections, the hand-back.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-440
+**Timestamp:** 2026-10-03T20:50:00Z
+**Title:** navigation-zoom: the map zooms to a set level when navigation starts (T22 follow-up)
+**Dispatch-file:** preserved/2026-10-03-06.md; to the coder window, after -439
+**The owner, verbatim:** "when starting navigation mode, the camera should zoom to a set point to focus on the navigating. Right now no camera adjustments other than tilt exist." Asked, the owner chose "About two blocks ahead" and, for a pinch while navigating, "Keep my zoom". To the step path the planner put back (Return zooms to about two blocks ahead; a pinch is kept and following continues; "Return to Route" restores following at the walker's zoom; Stop eases flat and north-up): "Yes for the zoom behavior".
+**Change:** the set zoom is applied once, when navigation starts; not on a facing change, not on "Return to Route"; again on a new navigation. The zoom figure is the coder's to work out, provisional.
+**Scope boundary:** the tilt, the padding, the facing modes, "Return to Route", Stop's ease back, RouteHome and the off-track rule are not changed.
+**Finish line:** the report-first message, tests first, revert checks, the full suite, the report, the hand-back. The walk is the owner's.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-441
+**Timestamp:** 2026-10-03T20:52:00Z
+**Continues:** 2026-09-28-438
+**Observed:** pull request #157 (t18-merge into main, head 3f63455853d878a4ebb6a5634e653e38a78b746b, on which CI passed, run 37151285322) was merged as bb0b559ed6a401364ed82dcbb7ec307a98c3d92a at 2026-10-03T20:31:44Z, read from GitHub, on the owner's "Open the pr and merhe", with backup 2026-10-03-05 of main at 093b28d6. Main's tree equals t18-merge's. T18 (-422) and T21 (-425) are both on main.
+**Notes:** Written by the planner by hand, on branch dispatch-439.
