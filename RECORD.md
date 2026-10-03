@@ -10720,3 +10720,15 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Also recorded here, from 2026-10-03:** the owner on T6's findings: "1 is fine", "2 leave for T7", "Leave that as is", and "Unable to calculate route" is fine, leave as is". So "Unable to calculate route" in a recording's first half-minute stays, and "0 ft" at the start waits for T7. The planner's ruling for T22 on the Journal's picker: its puck points true north too. Pull request #154 (t6-merge into main, head ffa0e168a4c4dcb32b93f35c82f9476562fab621, on which CI passed, run 37140806700) was merged as f1b53aca17688954e257c7f5f37ea8dae8953532 at 2026-10-03T17:40:27Z, read from GitHub, on the owner's "Open a pr and merge when CI passes", with backup 2026-10-03-02.
 **Next:** -422, then -425.
 **Notes:** Written by the planner by hand, on branch records-after-154.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-434
+**Timestamp:** 2026-10-03T18:31:53Z
+**Closes:** 2026-09-28-422 (preserved 2026-10-03-01)
+**Outcome:** completed
+**Observed:** on branch coordinate-format at 40b131e0, not merged when this was written. The map's choice of MGRS or decimal degrees was remember state inside the Maps tab and reset whenever the tab left composition; it is now held above the tab in AvailabilityScreen, like the legend's flag, for the session only. A test through real touches (the coordinates, then the List tab, then Maps) was pushed failing first at 91b1735c with "decimal degrees after the round trip expected:<1> but was:<0>"; the revert check fails with the same message; the full suite, 424 classes, 3,485 tests, 0 failures, 24 skipped. No existing test edited. Not run on a phone.
+**What the planner checked itself:** the change, read (three files under app/src/main, the state moved up and passed down); the saved XML re-counted as reported; the revert script restores from a saved copy.
+**For the merge:** this branch was cut before T22 and conflicts with it in three app files. The planner does not resolve app-code conflicts: T22 merges first, then the coder merges main into this branch, re-runs the tests, and it follows as its own pull request.
+**Notes:** Written by the planner by hand, on branch records-after-154.
