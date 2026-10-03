@@ -72,11 +72,15 @@ const val SELF_JOIN_EPSILON_METERS = 10.0
  *
  * [points] must be non-empty; a single point is a zero-length way home with no joins.
  */
-fun joinedTrackHome(points: List<TrackPoint>, epsilonMeters: Double = SELF_JOIN_EPSILON_METERS): JoinedTrackHome {
+fun joinedTrackHome(points: List<TrackPoint>, epsilonMeters: Double = SELF_JOIN_EPSILON_METERS): JoinedTrackHome =
+    joinedTrackRoute(points, epsilonMeters).let { JoinedTrackHome(meters = it.meters, joinEdgeCount = it.joinEdgeCount, joinsOnRoute = it.joinsOnRoute) }
+
+/** See [JoinedTrackRoute] and [joinedTrackHome]: the search, with the route it found. */
+internal fun joinedTrackRoute(points: List<TrackPoint>, epsilonMeters: Double = SELF_JOIN_EPSILON_METERS): JoinedTrackRoute {
     require(points.isNotEmpty()) { "joinedTrackHome needs at least one point" }
     require(epsilonMeters >= 0.0) { "epsilonMeters must not be negative, was $epsilonMeters" }
     val n = points.size
-    if (n == 1) return JoinedTrackHome(meters = 0.0, joinEdgeCount = 0, joinsOnRoute = 0)
+    if (n == 1) return JoinedTrackRoute(meters = 0.0, joinEdgeCount = 0, joinsOnRoute = 0, route = listOf(0))
 
     val latLngs = Array(n) { LatLng(points[it].lat, points[it].lng) }
     val legMeters = DoubleArray(n - 1) { GeoDistance.metersBetween(latLngs[it], latLngs[it + 1]) }
@@ -140,20 +144,30 @@ fun joinedTrackHome(points: List<TrackPoint>, epsilonMeters: Double = SELF_JOIN_
     }
 
     var joinsOnRoute = 0
+    val firstToSource = ArrayList<Int>()
     var v = 0
     while (v != source) {
+        firstToSource += v
         if (previousViaJoin[v]) joinsOnRoute++
         v = previous[v]
     }
-    return JoinedTrackHome(meters = distance[0], joinEdgeCount = joinEdgeCount, joinsOnRoute = joinsOnRoute)
+    firstToSource += source
+    return JoinedTrackRoute(meters = distance[0], joinEdgeCount = joinEdgeCount, joinsOnRoute = joinsOnRoute, route = firstToSource.asReversed())
 }
 
-/** SKELETON (dispatch 2026-09-28-417, tests first). */
-internal data class JoinedTrackRoute(val meters: Double, val joinEdgeCount: Int, val joinsOnRoute: Int, val route: List<Int>)
-
-/** SKELETON (dispatch 2026-09-28-417, tests first): no route yet. */
-internal fun joinedTrackRoute(points: List<TrackPoint>, epsilonMeters: Double = SELF_JOIN_EPSILON_METERS): JoinedTrackRoute =
-    joinedTrackHome(points, epsilonMeters).let { JoinedTrackRoute(it.meters, it.joinEdgeCount, it.joinsOnRoute, emptyList()) }
+/**
+ * [joinedTrackHome] with the route itself: [route] is the index of every stored point the shortest
+ * route home passes through, most recent first, the first stored point last. Way-back-route
+ * dispatch (2026-09-28-417): the route home's lookahead needs the points, not only the metres.
+ * The search is the one [joinedTrackHome] always ran; it returns the predecessor chain it already
+ * held, and [joinedTrackHome] is this with the chain dropped, so the two cannot differ.
+ */
+internal data class JoinedTrackRoute(
+    val meters: Double,
+    val joinEdgeCount: Int,
+    val joinsOnRoute: Int,
+    val route: List<Int>,
+)
 
 /** See [joinedTrackHome]. */
 data class JoinedTrackHome(

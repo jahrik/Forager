@@ -26,8 +26,11 @@ import org.junit.Test
  * **The rulings these tests hold** (the dispatch file's "Rulings on the coder's findings"):
  * - The lookahead is (hop + 25 m) along the route from the most recent stored point. The stored
  *   track lags the walker, so it starts from where the walker must at least have got to.
- * - It stops at the last route point for which every route point before it lies within 10 m of
- *   the straight line from the walker. That reuses the self-join ruling's ε.
+ * - It stops at the last route point for which every route point from the walker's assumed place
+ *   (`hop` metres along the route) up to it lies within 10 m of the straight line from the
+ *   walker. That reuses the self-join ruling's ε. As first worded the guard read from the most
+ *   recent stored point, which pulled the lookahead back behind the walker whenever the hop
+ *   passed 10 m; the planner corrected it, and two tests below were rewritten for it.
  * - The route is withheld when the walker is in [HopBand.FAR] of the most recent stored point, and
  *   when there is no usable point.
  */
@@ -101,18 +104,18 @@ class RouteHomeTest {
     }
 
     /**
-     * A sharp bend. The way home runs west 40 m along an east-west leg, turns a right angle and
-     * runs south. The walker is 15 m east of the corner. 25 m on is 10 m past the corner, so the
-     * straight line to it passes inside the corner: by 8.3 m, which is inside the 10 m the guard
-     * allows. This holds the property the dispatch asks for: no route point between the walker
-     * and the lookahead is more than 10 m off the line the needle points along.
+     * A sharp bend. The way home runs west 15 m along an east-west leg, turns a right angle and
+     * runs south. The walker stands on the last stored point, 15 m east of the corner. 25 m on is
+     * 10 m past the corner, so the straight line to it passes inside the corner: by 8.3 m, which is
+     * inside the 10 m the guard allows. This holds the property the dispatch asks for: no route
+     * point between the walker and the lookahead is more than 10 m off the line the needle points
+     * along.
      */
     @Test
     fun `a sharp bend - the line to the lookahead never leaves the walked route by more than 10 m`() {
-        val track = trackOf(northLine(0..100 step 5) + eastLine(5..40 step 5, y = 100.0))
+        val track = trackOf(northLine(0..100 step 5) + eastLine(5..15 step 5, y = 100.0))
         val walker = at(15.0, 100.0)
 
-        // The walker stands 25 m back along the leg from the last stored point (40 m east): hop 25.
         val route = routeHome(track, current = walker, origin = null) as RouteHome.Ahead
 
         val beforeLookahead = routePointsUpTo(track, route.lookahead)
@@ -122,21 +125,24 @@ class RouteHomeTest {
     }
 
     /**
-     * A walker 30 m east of the path: still on the route ([HopBand.COUNTED]), so it is shown.
-     * (hop + 25) m along would be 55 m on, and the line from the walker to there would pass the
-     * last stored point 26 m off. The guard stops the lookahead at the last route point whose line
-     * keeps every point before it within 10 m.
+     * A walker 30 m east of the path, beside the last stored point: still on the route
+     * ([HopBand.COUNTED]), so it is shown. **What the rule does here, stated as a result and not
+     * softened:** the rule assumes the walker is `hop` metres along the route, so it reads the
+     * route from 30 m on, and the guard stops the lookahead at 45 m on, where the next point would
+     * put the line 10.3 m off the route. So a walker standing 30 m beside the path is pointed about
+     * 45 m up it. The planner's ruling keeps this visible as a thing to check on a walk, beside
+     * the "lands behind" case below.
      */
     @Test
-    fun `a walker 30 m off the path is still on the route, and the lookahead stops where the line to it stays within 10 m`() {
+    fun `a walker 30 m off the path is still on the route, and is pointed about 45 m up it, as the rule does`() {
         val track = trackOf(northLine(0..100 step 5))
         val walker = at(30.0, 100.0)
 
         val route = routeHome(track, current = walker, origin = null) as RouteHome.Ahead
 
         assertEquals(HopBand.COUNTED, route.hopBand)
-        assertNear("the route point 10 m on from the last stored point: 15 m on would put it 12 m off the line", at(0.0, 90.0), route.lookahead)
-        assertTrue(route.lookaheadAlongRouteMeters < 30.0 + ROUTE_LOOKAHEAD_METERS)
+        assertNear("45 m along the route from the last stored point", at(0.0, 55.0), route.lookahead)
+        assertEquals(45.0, route.lookaheadAlongRouteMeters, 0.5)
     }
 
     /** A walker 60 m from the last stored point is off the route: withheld, with its reason. */
@@ -189,11 +195,12 @@ class RouteHomeTest {
 
     /**
      * **The case where the lookahead still lands behind the walker, shown, not hidden.** The way
-     * home from the last stored point runs 30 m north, 12 m east, then south past the walker:
-     * a U the walker has already walked round inside the lag. In a straight line they are only
-     * 12 m from the stored point, so (hop + 25) m along is still on the U's first side, and the
-     * guard stops it earlier still. The lookahead is 20 m along the route; the walker is about
-     * 74 m along. The needle points back up the U.
+     * home from the last stored point runs up a U, 25 m north, across the top (the track joins
+     * itself there, within 10 m), then south past the walker: a U the walker has already walked
+     * round inside the lag. In a straight line they are only 12 m from the stored point, so
+     * (hop + 25) m along is near the top of the U, and the guard stops it at the top. The
+     * lookahead is about 34 m along the route; the walker is about 68 m along. The needle points
+     * back up the U.
      *
      * Not fixed: the ruling chose this rule knowing the case exists, and the lag behind it is the
      * service's batching, which is off limits here (reported as a finding).
@@ -206,8 +213,8 @@ class RouteHomeTest {
 
         val route = routeHome(track, current = walker, origin = null) as RouteHome.Ahead
 
-        assertNear("on the U's first side, 20 m along: behind the walker, who is about 74 m along", at(0.0, 20.0), route.lookahead)
-        assertEquals(20.0, route.lookaheadAlongRouteMeters, 0.5)
+        assertNear("at the top of the U, about 34 m along: behind the walker, who is about 68 m along", at(7.0, 30.0), route.lookahead)
+        assertEquals(33.6, route.lookaheadAlongRouteMeters, 0.5)
     }
 
     // ---- The route distance is PathHome's, on every shape above ----------------------------------
