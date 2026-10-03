@@ -10671,3 +10671,20 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Scope boundary:** the map outside navigation, the HUD's content, RouteHome, the off-track alert, the recording service and the fan's behaviour are not changed. Navigating to a waypoint (T8) is not built.
 **Finish line:** the report-first message, the build, tests, revert checks, the full suite, a desk step on the S22, the report, the hand-back. The walk is the owner's.
 **Queue after it:** -422 (the coordinate format) and -425 (the new off-track rule).
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-431
+**Timestamp:** 2026-10-03T17:29:10Z
+**Closes:** 2026-09-28-423 (preserved 2026-10-03-02, with the rulings of -426 appended)
+**Outcome:** completed
+**Observed:**
+- **What landed,** on branch way-back-route-2 at d4fc901a, not merged when this was written: the build in commits 4e224375 to 07d458af; the report docs/navigation/2026-10-03-way-back-route-part-2-report.md and its rows (fcc01981, d4fc901a).
+- **What was built:** while returning, the needle aims at RouteHome's point ahead along the walked route; the large figure is the route distance; the status line carries "Straight line …" with its accuracy-aware formatting; "—" before the first route result; "Unable to calculate route" when withheld, with "⟳ Try again" on its own 48 dp row only when the walker is off the route, as the owner chose; one route search per 5 s tick, which also gives the path-home figure. The HUD is 40 dp taller only in that state. Returns are always in route mode; the straight-line mode is kept for navigating to a waypoint.
+- **Tests:** the full unit suite, 423 classes, 3,484 tests, 0 failures, 24 skipped; seventeen revert checks, each restored from a saved copy. A deviation, accepted in -426: the new tests were written alongside the code. Existing tests changed: two path-home readout tests and five icon-stack assertions, listed before and after in the report.
+- **The S22, on the owner's word in the coder's window,** debug build installed over the last, nothing wiped: right after Return, "Unable to calculate route" whole with no "Try again", because no point had been stored yet; about 30 s later the route figure, nothing overlapping; Stop took the HUD away. Not seen on the phone: the straight line in the status line (at a desk "Approaching" holds it), "Try again", and the needle following a path.
+**What the planner checked itself:** the change to RouteHome is the one field ruled in -426; the revert script restores from a saved copy; the saved XML re-counted: the full suite as reported, and each of the seventeen revert checks failing on its own test, among them "expected:<[—]> but was:<[0.7 mi]>" with the pending state removed and "expected:<1> but was:<2>" with the poll searching again.
+**Two findings for the owner, not acted on:** (1) Tapping Return in a recording's first half-minute shows "Unable to calculate route", because the first points have not been saved yet; that is the recording's own lag, not a failure. (2) At the start the route figure reads "0 ft", the plain formatting the owner once struck for the straight line, which is why the straight line reads "within …".
+**Next:** -430 (T22), then -422, then -425.
+**Notes:** Written by the planner by hand, on branch records-after-153.
