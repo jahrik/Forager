@@ -34,6 +34,8 @@ internal object MapKeepOutIds {
     const val RAIL = "navigation-rail"
     const val TOP_STRIP = "compass-strip-or-hud"
     const val SEARCH_BAR = "search-bar"
+    /** Dispatch 2026-09-28-430: "Return to Route", while it shows. */
+    const val RETURN_TO_ROUTE = "return-to-route"
 }
 
 /**
