@@ -389,6 +389,31 @@ fun SightingsMap(
     val currentFindMarkers by rememberUpdatedState(findMarkers)
     val currentPhotoMarkers by rememberUpdatedState(photoMarkers)
     var mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
+    // Dispatch 2026-09-28-463: a nudge under the drag threshold gives, then springs back, while
+    // navigating and following (see NudgeElastic.kt). Fed by the map view's touch listener below.
+    val nudgeThresholdPx = NAVIGATION_NUDGE_THRESHOLD_DP * LocalDensity.current.density
+    // Built once: the factory below hands this instance to the map view's listener, which is attached once.
+    val nudgeElastic = remember {
+        NudgeElasticDriver(
+            camera = object : NudgeCamera {
+                override fun canGive(): Boolean {
+                    val component = mapLibreMap?.locationComponent ?: return false
+                    return component.isLocationComponentActivated &&
+                        currentNavigationView?.following == true &&
+                        navigationModeChange.expected != null &&
+                        !navigationModeChange.transitioning &&
+                        component.cameraMode != CameraMode.NONE
+                }
+
+                override fun showPadding(padding: DoubleArray) {
+                    mapLibreMap?.locationComponent?.paddingWhileTracking(padding, 0L)
+                }
+            },
+            thresholdPx = nudgeThresholdPx,
+            viewTopPaddingPx = { navigationViewTopPaddingPx(navigationMapHeightPx) },
+        )
+    }
+    DisposableEffect(nudgeElastic) { onDispose { nudgeElastic.cancel() } }
     // The Style instance from the most recently completed setStyle callback. Distinct from
     // "which style is currently applied" (appliedStyle, below) because this is what the data
     // effect keys on: a new Style object means new (empty) sources that need their content pushed.
@@ -1157,6 +1182,9 @@ fun SightingsMap(
                     if (event.actionMasked == MotionEvent.ACTION_DOWN) {
                         view.parent?.requestDisallowInterceptTouchEvent(true)
                     }
+                    // Dispatch -463: the elastic nudge reads the finger here, before MapLibre does, and
+                    // never consumes it.
+                    nudgeElastic.onTouch(event)
                     false
                 }
                 mapView
