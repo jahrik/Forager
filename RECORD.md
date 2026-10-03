@@ -10941,3 +10941,27 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Continues:** 2026-09-28-450
 **Observed, as the coder reported it:** the coder had put the same cap question to the owner in its own window, and the owner first chose there "Take 17 on topo (Recommended)". When the planner's relay of "Zoom in past the cap" reached it, the coder put both answers back to the owner in its window, and the owner chose "Zoom past the cap". So -450 and -440 Amendment 1 stand. The question had been asked in two windows at once; one window should ask.
 **Notes:** Written by the planner by hand, on branch dispatch-439.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-453
+**Timestamp:** 2026-10-03T21:40:00Z
+**Continues:** 2026-09-28-452
+**Observed:** pull request #158 (docs-merge-0310 into main, docs only: records -439 to -452, dispatches -439, -440, -446 and -451, the walk report and the trail navigation research; head 3b60b7a9894be9c7f7d7df2aebdb63b26768618e, on which CI passed) was merged as 09e43bd3f1768356693268e5a9af768ae8795c52 at 2026-10-03T21:34:05Z, read from GitHub, on the owner's "Go ahead and merge", with backup 2026-10-03-06 of main at bb0b559e. Main's tree equals the branch's.
+**The owner, verbatim:**
+- On -440's zoom: "I'm undecided on 17 or 18, but I'll try 18 for now and I may consider retiling the maps later on for our own custom tiles". So 18 stays provisional, for the walk to test.
+- "If we could do the map retiling around the trail navigation, that would be optimal and aligned with the core purpose". To the planner's recommendation (one combined plan, the engine spike as its first stage, and a packing question added to the spike): "Yes, do that".
+**Done:** -446 Amendment 2 (packing per offline region); the plan, -454.
+**Notes:** Written by the planner by hand, on branch records-after-158.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-454
+**Timestamp:** 2026-10-03T21:45:00Z
+**Title:** the plan for trail navigation and Forager's own map tiles, together
+**Plan-file:** `docs/plans/trail-navigation-and-own-tiles.md`, with its row in `docs/plans/README.md`
+**Change:** none to the app. Nine stages: the engine spike (-446, dispatched); the own-tiles survey; a spec for the owner; the data pipeline; the own basemap in the app; routing along the network; off the trail and back; the reference layer; the owner's walks. Each stage after the first is dispatched only when the one before it has reported. It carries the rulings -442 to -450 and supersedes the timing of `docs/plans/own-map-tiles.md`, whose survey becomes stage 2.
+**Open, not yet asked:** whether T7 waits for routing along the network; a storage ceiling for a region download; coverage beyond the US.
+**Notes:** Written by the planner by hand, on branch records-after-158.
