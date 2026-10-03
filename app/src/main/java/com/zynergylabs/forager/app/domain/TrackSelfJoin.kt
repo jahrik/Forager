@@ -148,6 +148,13 @@ fun joinedTrackHome(points: List<TrackPoint>, epsilonMeters: Double = SELF_JOIN_
     return JoinedTrackHome(meters = distance[0], joinEdgeCount = joinEdgeCount, joinsOnRoute = joinsOnRoute)
 }
 
+/** SKELETON (dispatch 2026-09-28-417, tests first). */
+internal data class JoinedTrackRoute(val meters: Double, val joinEdgeCount: Int, val joinsOnRoute: Int, val route: List<Int>)
+
+/** SKELETON (dispatch 2026-09-28-417, tests first): no route yet. */
+internal fun joinedTrackRoute(points: List<TrackPoint>, epsilonMeters: Double = SELF_JOIN_EPSILON_METERS): JoinedTrackRoute =
+    joinedTrackHome(points, epsilonMeters).let { JoinedTrackRoute(it.meters, it.joinEdgeCount, it.joinsOnRoute, emptyList()) }
+
 /** See [joinedTrackHome]. */
 data class JoinedTrackHome(
     /** Along the joined track, most recent point back to the first. */
