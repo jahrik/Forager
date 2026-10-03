@@ -256,3 +256,15 @@ Put to the owner as choices on 2026-10-03 and answered with the planner's recomm
 - **T6, the HUD follows the route:** started as dispatch 2026-09-28-423, after T18.
 
 Still open: item 5 (the check-in timer's step path) and the audit's decisions under item 7 that wait on Stages G and J.
+
+## Addendum, 2026-10-03 (UTC), later: a new task, T22, the navigation camera view
+
+Appended by the planner. Nothing above is changed. Recorded in `RECORD.md` decision 2026-09-28-427.
+
+The owner asked, verbatim: "Can the camera view in the app change to a more navigation friendly view, like in GPS apps when navigating?" Today the map follows the walker north-up and flat (`ui/map/SightingsMap.kt:973`, `CameraMode.TRACKING`). Asked three questions, the owner chose the planner's recommendation each time: **"Automatically when navigating"**, **"Yes, facing-up"**, **"A gentle tilt"**.
+
+**T22. The navigation camera view** (Stage C, after T6)
+- Does: while returning, and later while navigating to a waypoint (T8), the map follows the walker turned so the way they face is up, using the compass, with a gentle tilt and the walker placed a little below the centre. It switches on by itself and goes back to the normal map when navigation ends.
+- Facing comes from the compass, not GPS: at walking pace GPS direction is too noisy (`docs/navigation/2026-10-02-off-route-detection-research.md`, section c).
+- Open, to be put to the owner as a step path before it is dispatched: what happens when the walker pans the map, how they get back to the view, and what the map does when the compass reports itself unreliable (the compass-reliability work already detects that).
+- Device-only: yes. A walk.

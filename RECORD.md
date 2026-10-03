@@ -10624,3 +10624,15 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **A deviation, accepted:** the new tests were written alongside the code, not pushed failing first; each gets a revert check instead.
 **Also reported by the coder:** the route tick follows the screen's returning flag, so a return taken up after a reopen gets it too; disk was below the 2048 MB line until the coder deleted its own build folder.
 **Notes:** Written by the planner by hand, on branch records-after-153, pushed and not merged.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-427
+**Timestamp:** 2026-10-03T17:04:37Z
+**Subject:** a navigation camera view while navigating (new plan task T22)
+**The owner, verbatim (2026-10-03):** "Can the camera view in the app change to a more navigation friendly view, like in GPS apps when navigating?" Then, to three choices the planner put, each the planner's recommendation: "Automatically when navigating (Recommended)", "Yes, facing-up (Recommended)", "A gentle tilt (Recommended)".
+**What the planner told the owner first:** the map follows the walker north-up and flat today (ui/map/SightingsMap.kt:973); GPS apps turn the map to the direction faced, tilt it and place the walker below centre, switching on by themselves when navigation starts; at walking pace the facing must come from the compass, not GPS; tilt hides some of the map behind the walker.
+**Change:** a dated addendum to the navigation plan with task T22. Not dispatched. Three behaviours are still to be put to the owner as a step path: panning the map, getting back to the view, and an unreliable compass.
+**Also from 2026-10-03:** the owner chose "Own line under it (Recommended)" for "Try again", after the coder measured the one-line version cutting "Unable to calculate route" on every phone width tested; given to the coder for -423. And the owner offered a USB drive ("There is this drive we can move files to for clearing space if need be. It'll stay plugged in to the laptop"), to which the planner moved the older merge backups, verified, outside the repository.
+**Notes:** Written by the planner by hand, on branch records-after-153, pushed and not merged.
