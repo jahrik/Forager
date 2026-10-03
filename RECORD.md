@@ -10612,3 +10612,15 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Change:** today's rule (distance to the start rising by 25 m over three readings, every two minutes) is replaced by the owner's choices in -424: distance from the path walked out, GPS readings only, 40 m plus accuracy, 15 s off, one alert per stray. The alert's delivery is unchanged.
 **Gate before it ships:** a replay of the owner's 2026-10-03 walk through both rules. The walk's stored track is copied off the S22 only with the owner's word in the coder's window, and its positions stay out of the public repository.
 **Finish line:** the report, the replay's outcome, tests first, revert checks, the full suite, the hand-back. Then the owner walks it again.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-426
+**Timestamp:** 2026-10-03T16:27:51Z
+**Continues:** 2026-09-28-423 (preserved 2026-10-03-02, where the rulings are appended); being built on way-back-route-2
+**The owner, verbatim:** to the coder, "Build only, ask before phone" (read from the coder's message); and to the planner, on where "Try again" goes, "Same line, tappable".
+**The planner's rulings,** on the coder's report-first findings: one route search per 5 s tick, which also gives the path-home figure, so the 15 s poll stops computing its own; "—" before the first route result; "Try again" on the same line, tappable, as the owner chose; returning means route mode in tests as in production, so existing return tests are fed a route and their changed assertions listed.
+**A deviation, accepted:** the new tests were written alongside the code, not pushed failing first; each gets a revert check instead.
+**Also reported by the coder:** the route tick follows the screen's returning flag, so a return taken up after a reopen gets it too; disk was below the 2048 MB line until the coder deleted its own build folder.
+**Notes:** Written by the planner by hand, on branch records-after-153, pushed and not merged.
