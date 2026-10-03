@@ -10533,3 +10533,21 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **The planner's correction:** the guard checks only the route points from the walker's assumed place onward, up to the lookahead. The wording in -418 was the planner's error. Its cost is kept visible and tested: a walker standing well to the side of the route is pointed some way up the path. That, and the case where the arrow can still land behind the walker, are for a walk to judge.
 **Not chosen:** the guard as first worded; no guard, because the decision record names aiming across a bend as the costly failure on a forest path.
 **Notes:** Written by the planner by hand, on branch records-after-152 with -417 and -418, pushed and not merged.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-420
+**Timestamp:** 2026-10-03T05:27:13Z
+**Closes:** 2026-09-28-417 (preserved 2026-10-02-03, with the rulings of -418 and -419 appended)
+**Outcome:** completed
+**Observed:**
+- **What landed,** on branch way-back-route at 7d6fb2a2, not merged when this was written: 5c9aa3f6, the tests pushed failing with a skeleton (11 of 36); 840e8626, the build, with the coder's two guard-dependent tests rewritten for -419; 7d6fb2a2, the report docs/navigation/2026-10-02-way-back-route-part-1-report.md and its two index rows.
+- **What was built:** domain/RouteHome.kt, plain Kotlin, wired to nothing on screen. It answers either a point ahead along the walked route, (hop + 25 m) from the most recent stored point, stopped short of cutting across a bend by the 10 m self-join distance read from the walker's assumed place, with the same route distance the path-home figure gives; or "withheld" because the walker is off the route (the far band, over 50 m, with its hysteresis) or there are no usable points. A short track aims at the route's end. The route-finding code in domain/TrackSelfJoin.kt now also returns the route's points; its existing function is a thin wrapper, and its tests and the path-home tests pass unedited.
+- **Two cases held by tests that state what the rule does, for a walk to judge:** on a path winding hard inside the lag, the arrow can point back up the bend; a walker 30 m beside the route is pointed about 45 m up it. The coder reports the lag in the recording service's batching as the root of both, as a finding.
+- **Tests:** the full unit suite at 840e8626, 422 classes, 3,461 tests, 0 failures, 0 errors, 24 skipped; five revert checks, each failing on the tests that claim its edit.
+- **Said by the coder:** with no guard, the sharp-bend test still passes, because 25 m of route round a right angle stays within 10 m of the arrow's line; the guard acts only where the walker is not where the lookahead rule assumes, and two other tests hold it. For T6: the route search would run twice per poll if both figures are computed, and one can reuse the other; the refresh wording must not promise a change when the reason is no usable points.
+**What the planner checked itself:** RouteHome.kt's code and the refactor, read; the saved XML re-counted (11 of 36 failing first; the four route and path classes, 48 tests, none failing; the full suite as reported; each revert check failing as described, among them "expected:<Withheld(reason=OFF_ROUTE, hopBand=FAR)> but was:<Ahead..." with off-route not withheld); the path-home and self-join tests not edited; no file under app/ differing between 840e8626 and 7d6fb2a2.
+**Deviations:** the planner's wording of the corner guard in -418 was wrong and was corrected in -419 before any code was written.
+**Next:** T6, the HUD follows the route; T7, the route drawn on the map. Neither dispatched.
+**Notes:** Written by the planner by hand, on branch records-after-152 with -417 to -419 and the off-route research report.
