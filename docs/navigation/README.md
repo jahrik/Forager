@@ -32,4 +32,5 @@ These files were moved here from `docs/plans/` and `docs/audits/`. Links in the 
 | [2026-10-02-alerts-in-service-prebuild-report.md](2026-10-02-alerts-in-service-prebuild-report.md) | Pre-build report: alerts move into the recording service (dispatch 2026-09-28-400, Part 1) |
 | [2026-10-02-alerts-in-service-device-check.md](2026-10-02-alerts-in-service-device-check.md) | Device check: the off-track alert's move and the reopened app, on the S22 (dispatch 2026-09-28-400, Amendment 4) |
 | [2026-10-02-alerts-in-service-part-2-completion-report.md](2026-10-02-alerts-in-service-part-2-completion-report.md) | Completion report: the off-track alert moves into the recording service (dispatch 2026-09-28-400, Part 2) |
+| [2026-10-02-notification-tap-completion-report.md](2026-10-02-notification-tap-completion-report.md) | Completion report: the recording notification's tap no longer stacks a second copy of the screen (dispatch 2026-09-28-415) |
 | [forager-navigator-plan.md](forager-navigator-plan.md) | Forager Navigator — plan |
