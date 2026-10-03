@@ -304,6 +304,10 @@ internal fun CompactMapTab(
     returnRoute: ReturnRoute,
     /** See [AvailabilityScreen]'s own `onRetryRoute` doc comment. */
     onRetryRoute: () -> Unit,
+    /** MGRS or decimal degrees, shared by the strip and the HUD; held in `AvailabilityScreen` (dispatch 2026-09-28-422). */
+    showDecimalDegrees: Boolean,
+    /** Flips [showDecimalDegrees]. */
+    onToggleCoordinateFormat: () -> Unit,
     /** Dispatch 2026-09-28-430: whether the map follows in the navigation view; false once the user has moved it away. */
     navigationFollowing: Boolean,
     /** Dispatch 2026-09-28-430: counts "Return to Route" (and locate while navigating) requests. */
@@ -542,11 +546,10 @@ internal fun CompactMapTab(
             // own leaf (navigation-chrome dispatch) because the strip and the HUD now take turns
             // showing the coordinates: a format chosen while navigating must still be the format
             // the strip shows on exit (CLAUDE.md, UX defaults — user-set state that resets on its
-            // own is a bug). Local state, not AvailabilityUiState: purely which of two always-
-            // computable representations of the same fix to display, nothing the ViewModel or a
-            // future session needs. Still resets when this tab unmounts, as it did before.
-            var showDecimalDegrees by remember { mutableStateOf(false) }
-            val onToggleCoordinateFormat = { showDecimalDegrees = !showDecimalDegrees }
+            // own is a bug). Not AvailabilityUiState: purely which of two always-computable
+            // representations of the same fix to display, nothing the ViewModel needs. Held in
+            // AvailabilityScreen since dispatch 2026-09-28-422, so it also survives this tab
+            // unmounting on a tab change; it used to reset then.
             val compassStripTextMeasurer = rememberTextMeasurer()
             val compassStripLabelStyle = MaterialTheme.typography.labelMedium
             val compassStripDensity = LocalDensity.current
