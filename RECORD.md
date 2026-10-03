@@ -10932,3 +10932,12 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Change:** nothing the walker sees. An entry with its time for each Return tap and end, each off-track decision, and each alert delivery's outcome, kept where log rotation cannot remove it; no positions.
 **Finish line:** the report-first message, tests first, revert checks, the full suite, the report, the hand-back.
 **Notes:** Written by the planner by hand, on branch dispatch-439. The dispatch file was first committed titled -449, which is the decision's number; corrected to -451 in the next commit.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-452
+**Timestamp:** 2026-10-03T23:00:00Z
+**Continues:** 2026-09-28-450
+**Observed, as the coder reported it:** the coder had put the same cap question to the owner in its own window, and the owner first chose there "Take 17 on topo (Recommended)". When the planner's relay of "Zoom in past the cap" reached it, the coder put both answers back to the owner in its window, and the owner chose "Zoom past the cap". So -450 and -440 Amendment 1 stand. The question had been asked in two windows at once; one window should ask.
+**Notes:** Written by the planner by hand, on branch dispatch-439.
