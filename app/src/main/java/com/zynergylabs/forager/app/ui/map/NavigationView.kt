@@ -4,12 +4,14 @@ import android.hardware.SensorManager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.zynergylabs.forager.app.domain.CompassProvider
 import com.zynergylabs.forager.app.domain.ComputeTrueHeadingUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.LocationFix
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.location.CompassEngine
@@ -97,8 +99,8 @@ class NavigationFacingJudge(private val retryMillis: Long = NAVIGATION_COMPASS_R
 
 /**
  * [NavigationFacingJudge] over the one true heading, while [isNavigating]; [NavigationFacing.FACING_UP]
- * otherwise. Reads the heading on a short tick rather than on each reading, so the 15 s window ends
- * on time even if no new reading arrives. Read the result in a leaf: it changes rarely.
+ * otherwise. Judged on every change of the heading, and on a short tick so the 15 s window ends on
+ * time even if no new reading arrives. Read the result in a leaf: it changes rarely.
  */
 @Composable
 fun rememberNavigationFacing(heading: State<TrueHeadingReading>, isNavigating: Boolean, currentTime: CurrentTimeProvider): State<NavigationFacing> =
@@ -108,9 +110,13 @@ fun rememberNavigationFacing(heading: State<TrueHeadingReading>, isNavigating: B
             return@produceState
         }
         val judge = NavigationFacingJudge()
+        // At once on every change of the heading, so the label never shows the old word first; and
+        // on a short tick, so the retry window ends on time with no new reading. One dispatcher, so
+        // the two never run the judge at the same moment.
+        launch { snapshotFlow { heading.value }.collect { value = judge.next(it, currentTime.nowEpochMillis()) } }
         while (true) {
-            value = judge.next(heading.value, currentTime.nowEpochMillis())
             delay(NAVIGATION_FACING_TICK_MILLIS)
+            value = judge.next(heading.value, currentTime.nowEpochMillis())
         }
     }
 

@@ -4,6 +4,7 @@ import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.model.WaypointDesignation
+import com.zynergylabs.forager.app.ui.map.NavigationFacing
 import com.zynergylabs.forager.app.ui.map.TrueHeadingReading
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -31,6 +32,22 @@ class NavigationHudReadoutTest {
         showDecimalDegrees: Boolean = false,
         pathHomeMeters: Double? = null,
     ) = navigationReadout(heading, liveFix, target, unit, now, showDecimalDegrees, pathHomeMeters)
+
+    // ── Dispatch 2026-09-28-430, ruling E: the stuck-compass notice is the heading label ──────
+
+    @Test
+    fun `while a stuck compass is retried the heading label says so, and once north-up it says that`() {
+        val calibrating = navigationReadout(TrueHeadingReading.Unreliable, fix, north, DistanceUnit.MILES, t + 1_000L, facing = NavigationFacing.CALIBRATING)
+        assertEquals("Compass calibrating…", calibrating.headingText)
+        assertNull("the needle is still withheld", calibrating.targetArrowDegrees)
+        val northUp = navigationReadout(TrueHeadingReading.Unreliable, fix, north, DistanceUnit.MILES, t + 1_000L, facing = NavigationFacing.NORTH_UP)
+        assertEquals("Compass unavailable · north up", northUp.headingText)
+        val noSensor = navigationReadout(TrueHeadingReading.NoSensor, fix, north, DistanceUnit.MILES, t + 1_000L, facing = NavigationFacing.NORTH_UP)
+        assertEquals("Compass unavailable · north up", noSensor.headingText)
+        // Facing-up, the label is what it always was.
+        assertEquals("45° NE", navigationReadout(TrueHeadingReading.Available(45f), fix, north, DistanceUnit.MILES, t + 1_000L, facing = NavigationFacing.FACING_UP).headingText)
+        assertEquals("Compass unreliable", readout(heading = TrueHeadingReading.Unreliable).headingText)
+    }
 
     // ── Path-home join dispatch: the one more short string, and what it yields to ──────────
 

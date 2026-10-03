@@ -371,6 +371,10 @@ class AvailabilityScreenMapIconStackTest {
      * absent while navigating). The status-level fallback path is driven here too: a LOW status
      * with no estimate produces the same state.
      */
+    // Dispatch 2026-09-28-430, ruling E (continuation 2026-09-28-432) changed this test's label: while
+    // navigating, an unreliable compass is the stuck-compass notice, so the HUD's heading label reads
+    // "Compass calibrating…" where it read "Compass unreliable" (four assertions, the count included).
+    // The test's name is kept so its history reads on; the strip's own "Compass unreliable" is unchanged.
     @Test
     fun `an untrusted heading on the HUD withholds the needle and its text and reads Compass unreliable once`() {
         // Seeded trusted at 80° ("95° E" true) so the smoother holds history; recovery below is at a
@@ -391,23 +395,23 @@ class AvailabilityScreenMapIconStackTest {
 
         compass.emit(CompassReading(80f, HeadingUncertainty.Estimated(20.05f), timestampMillis = 0L))
         composeRule.waitForIdle()
-        assertEquals("Compass unreliable", textOfTag(NAVIGATION_HUD_HEADING_TAG))
+        assertEquals("Compass calibrating…", textOfTag(NAVIGATION_HUD_HEADING_TAG))
         assertEquals("", textOfTag(NAVIGATION_HUD_TARGET_TAG))
         assertEquals("1.1 km", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
-        composeRule.onAllNodesWithText("Compass unreliable").assertCountEquals(1)
+        composeRule.onAllNodesWithText("Compass calibrating…").assertCountEquals(1)
         composeRule.onAllNodesWithText("95° E").assertCountEquals(0)
 
         // The fallback path, on its own: no estimate, status LOW — the same state.
         compass.emit(CompassReading(80f, HeadingUncertainty.Status(CompassStatus.LOW), timestampMillis = 500L))
         composeRule.waitForIdle()
-        assertEquals("Compass unreliable", textOfTag(NAVIGATION_HUD_HEADING_TAG))
+        assertEquals("Compass calibrating…", textOfTag(NAVIGATION_HUD_HEADING_TAG))
 
         // Recovery through the status path: HIGH held for two seconds, then the needle is back —
         // at the new reading exactly: 170° magnetic + 15° declination = 185°, and the target due
         // north from a device facing 185° is a 175° turn.
         compass.emit(CompassReading(170f, HeadingUncertainty.Status(CompassStatus.HIGH), timestampMillis = 1_000L))
         composeRule.waitForIdle()
-        assertEquals("Compass unreliable", textOfTag(NAVIGATION_HUD_HEADING_TAG))
+        assertEquals("Compass calibrating…", textOfTag(NAVIGATION_HUD_HEADING_TAG))
         compass.emit(CompassReading(170f, HeadingUncertainty.Status(CompassStatus.HIGH), timestampMillis = 3_000L))
         composeRule.waitForIdle()
         assertEquals("185° S", textOfTag(NAVIGATION_HUD_HEADING_TAG))
@@ -583,7 +587,9 @@ class AvailabilityScreenMapIconStackTest {
         setNavigatingScreen(compassHeading = null)
         composeRule.waitForIdle()
 
-        assertEquals("Compass unavailable", textOfTag(NAVIGATION_HUD_HEADING_TAG))
+        // Dispatch 2026-09-28-430, rulings B and E: with no compass while navigating, the map is north-up
+        // and the heading label says so. Was "Compass unavailable".
+        assertEquals("Compass unavailable · north up", textOfTag(NAVIGATION_HUD_HEADING_TAG))
         // Was "Bearing 0° N" until the two-data-corrections dispatch (Part C, owner-authorised
         // change to this assertion). Asserted by node count as well as by the tagged text: no node
         // anywhere on the screen carries a bearing.
