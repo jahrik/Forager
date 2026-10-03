@@ -231,6 +231,10 @@ internal fun CompactMainScaffold(
     computeTrueHeading: ComputeTrueHeadingUseCase,
     navigationTarget: Waypoint?,
     pathHomeMeters: Double?,
+    navigationFollowing: Boolean,
+    navigationViewRequestId: Int,
+    onLeftNavigationView: () -> Unit,
+    onReturnToRoute: () -> Unit,
     mapTaxonFilter: () -> Long?,
     basemap: Basemap,
     tracks: List<Track>,
@@ -702,6 +706,8 @@ internal fun CompactMainScaffold(
                                     else -> Modifier.padding(bottom = bottomNavHeight)
                                 },
                             )
+                            // Dispatch 2026-09-28-430: above "Return to Route" while it shows, not over it.
+                            .padding(bottom = if (compactTab() == CompactTab.MAP && isNavigating && !navigationFollowing) RETURN_TO_ROUTE_SNACKBAR_LIFT else 0.dp)
                             .testTag(COMPACT_SNACKBAR_TAG)
                             .mapChromeContainerColor(snackbarColor)
                             .mapChromeContentColor(snackbarContentColor),
@@ -980,6 +986,10 @@ internal fun CompactMainScaffold(
                                 computeTrueHeading = computeTrueHeading,
                                 navigationTarget = navigationTarget,
                                 pathHomeMeters = pathHomeMeters,
+                                navigationFollowing = navigationFollowing,
+                                navigationViewRequestId = navigationViewRequestId,
+                                onLeftNavigationView = onLeftNavigationView,
+                                onReturnToRoute = onReturnToRoute,
                                 currentTime = currentTime,
                                 taxonFilter = mapTaxonFilter(),
                                 onClearTaxonFilter = onClearMapTaxonFilter,

@@ -16,6 +16,8 @@ package com.zynergylabs.forager.app.ui.availability
 // here. Seam F (the wide layout) was released by the owner for this split, as recorded in the
 // Understory amendment merged in #130.
 
+import com.zynergylabs.forager.app.ui.map.rememberNavigationFacing
+import com.zynergylabs.forager.app.ui.map.NavigationViewRequest
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.map.MapKeepOutIds
 import com.zynergylabs.forager.app.ui.map.mapKeepOut
@@ -300,6 +302,14 @@ internal fun CompactMapTab(
     navigationTarget: Waypoint?,
     /** See [AvailabilityScreen]'s own `pathHomeMeters` doc comment. */
     pathHomeMeters: Double?,
+    /** Dispatch 2026-09-28-430: whether the map follows in the navigation view; false once the user has moved it away. */
+    navigationFollowing: Boolean,
+    /** Dispatch 2026-09-28-430: counts "Return to Route" (and locate while navigating) requests. */
+    navigationViewRequestId: Int,
+    /** Dispatch 2026-09-28-430: the map reports the user moving it away from the navigation view. */
+    onLeftNavigationView: () -> Unit,
+    /** Dispatch 2026-09-28-430: "Return to Route", and locate while navigating. */
+    onReturnToRoute: () -> Unit,
     /** The HUD's fix-age clock — [AvailabilityScreen]'s own `currentTime`, so a test can pin an old fix as stale. */
     currentTime: CurrentTimeProvider,
     /** See [AvailabilityScreen]'s own `mapTaxonFilter` doc comment — "View on Map" from a List-tab row. */
@@ -522,6 +532,10 @@ internal fun CompactMapTab(
             // leaves — reading it here would recompose this whole tab at sensor rate. See
             // rememberTrueHeading's own doc comment before touching this.
             val trueHeading = rememberTrueHeading(compassProvider, computeTrueHeading, uiState.liveFix)
+            // Dispatch 2026-09-28-430: which way the map faces while navigating, from the same heading.
+            val navigationFacing by rememberNavigationFacing(trueHeading, isNavigating, currentTime)
+            val currentOnLeftNavigationView by rememberUpdatedState(onLeftNavigationView)
+            val onLeftView: () -> Unit = remember { { currentOnLeftNavigationView() } }
             // MGRS by default, the labelled decimal pair on tap — hoisted here from the strip's
             // own leaf (navigation-chrome dispatch) because the strip and the HUD now take turns
             // showing the coordinates: a format chosen while navigating must still be the format
@@ -583,6 +597,10 @@ internal fun CompactMapTab(
                         onCloseBubble = onCloseBubble,
                         cameraMemory = cameraMemory,
                         returnMemory = returnMemory,
+                        // Dispatch 2026-09-28-430: the navigation view while navigating, and the one
+                        // true heading for the puck and a facing-up map (ruling A).
+                        navigationView = if (isNavigating) NavigationViewRequest(navigationFacing, navigationFollowing, navigationViewRequestId, onLeftView) else null,
+                        trueHeading = trueHeading,
                         // Item 1 (dispatch 2026-09-29-57, amendment -262, "Move the 'i'"): the landscape L's measured bounds, in the map's own
                         // pixels, for MapLibre's attribution button to keep clear of. The L keeps its bottom limit at the nav inset; the
                         // button moves (SightingsMap, attributionEndInsetClearOf). Only the landscape L: portrait is unchanged.
@@ -693,7 +711,9 @@ internal fun CompactMapTab(
                         isFullscreen = isFullscreen,
                         onToggleFullscreen = onToggleFullscreen,
                         onLocateMe = {
-                            resumeTrackingRequestId++
+                            // Ruling D: while navigating, locate brings the navigation view back, as
+                            // "Return to Route" does; plain tracking would drop the compass follow.
+                            if (isNavigating) onReturnToRoute() else resumeTrackingRequestId++
                             onLocateMe()
                         },
                         onResetOrientation = { resetOrientationRequestId++ },
@@ -882,6 +902,7 @@ internal fun CompactMapTab(
                         target = navigationTarget,
                         distanceUnit = uiState.distanceUnit,
                         pathHomeMeters = pathHomeMeters,
+                        facing = navigationFacing,
                         currentTime = currentTime,
                         showDecimalDegrees = showDecimalDegrees,
                         onToggleCoordinateFormat = onToggleCoordinateFormat,
@@ -901,6 +922,23 @@ internal fun CompactMapTab(
                                 .fillMaxWidth()
                                 .padding(top = topInset)
                         }.mapKeepOut(MapKeepOutIds.TOP_STRIP),
+                    )
+                }
+
+                // Dispatch 2026-09-28-430 (plan task T22): "Return to Route", while navigating once the
+                // user has moved the map away from the navigation view. Bottom centre, above the
+                // attribution caption as the legend is (renderMode.bottomInset, then the "i"'s
+                // clearance), inside controlsPadding so it keeps clear of the landscape rail; the
+                // snackbars rise above it while it shows (the scaffold). Composed before the nav, so the
+                // nav keeps winning its own band.
+                if (isNavigating && !navigationFollowing) {
+                    ReturnToRoutePill(
+                        onClick = onReturnToRoute,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(controlsPadding)
+                            .padding(bottom = renderMode.bottomInset + LEGEND_ATTRIBUTION_CLEARANCE)
+                            .mapKeepOut(MapKeepOutIds.RETURN_TO_ROUTE),
                     )
                 }
 

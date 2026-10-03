@@ -48,6 +48,9 @@ import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorDark
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorLight
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.TrueHeadingReading
+import com.zynergylabs.forager.app.ui.map.COMPASS_NORTH_UP_TEXT
+import com.zynergylabs.forager.app.ui.map.COMPASS_CALIBRATING_TEXT
+import com.zynergylabs.forager.app.ui.map.NavigationFacing
 import com.zynergylabs.forager.app.ui.theme.Bark
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import com.zynergylabs.forager.app.ui.theme.Spacing
@@ -183,6 +186,11 @@ internal fun NavigationHud(
     modifier: Modifier = Modifier,
     /** See `AvailabilityScreen`'s own `pathHomeMeters` doc comment, and [navigationReadout] for where it shows. */
     pathHomeMeters: Double? = null,
+    /**
+     * Which way the map faces while navigating (dispatch 2026-09-28-430). While a stuck compass is
+     * retried, and once the map has turned north-up, the heading label says so; see [navigationReadout].
+     */
+    facing: NavigationFacing = NavigationFacing.FACING_UP,
 ) {
     // Read here, in this leaf, never higher — see rememberTrueHeading's own doc comment.
     val reading by heading
@@ -195,7 +203,7 @@ internal fun NavigationHud(
         }
     }
     val isDarkTheme = LocalForagerDarkTheme.current
-    val readout = navigationReadout(reading, liveFix, target, distanceUnit, now, showDecimalDegrees, pathHomeMeters)
+    val readout = navigationReadout(reading, liveFix, target, distanceUnit, now, showDecimalDegrees, pathHomeMeters, facing)
 
     CompositionLocalProvider(LocalContentColor provides if (isDarkTheme) Color.White else Bark) {
         // A plain Box with a background, deliberately opaque to touches only where its content
@@ -336,6 +344,7 @@ internal fun navigationReadout(
     nowEpochMillis: Long,
     showDecimalDegrees: Boolean = false,
     pathHomeMeters: Double? = null,
+    facing: NavigationFacing = NavigationFacing.FACING_UP,
 ): NavigationHudReadout {
     val headingDegrees = (heading as? TrueHeadingReading.Available)?.degrees
     val headingText = when (heading) {
@@ -347,6 +356,16 @@ internal fun navigationReadout(
         TrueHeadingReading.Unreliable -> "Compass unreliable"
         // A dash, not a message: the status line carries NO_FIX_MESSAGE, once (owner's call).
         TrueHeadingReading.NeedsFix -> "—"
+    }.let { label ->
+        // Dispatch 2026-09-28-430, ruling E (continuation 2026-09-28-432): one place, one word. While
+        // the map's navigation view retries a stuck compass, and once it has turned north-up, this
+        // label is the notice; no separate one is drawn on the map. Only in those two states, which
+        // only an unreliable compass or none at all produces.
+        when (facing) {
+            NavigationFacing.FACING_UP -> label
+            NavigationFacing.CALIBRATING -> COMPASS_CALIBRATING_TEXT
+            NavigationFacing.NORTH_UP -> COMPASS_NORTH_UP_TEXT
+        }
     }
     val compassUnreliable = heading is TrueHeadingReading.Unreliable
     val northArrowDegrees = headingDegrees?.let { -it }

@@ -2,6 +2,8 @@ package com.zynergylabs.forager.app.ui.map
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.rememberUpdatedState
@@ -70,14 +72,25 @@ fun rememberTrueHeading(
     compassProvider: CompassProvider,
     computeTrueHeading: ComputeTrueHeadingUseCase,
     liveFix: LocationFix.Update?,
+): State<TrueHeadingReading> = rememberTrueHeading(compassProvider, computeTrueHeading, rememberUpdatedState(liveFix))
+
+/**
+ * The same, with the fix handed over as a [State] (dispatch 2026-09-28-430): a map makes its own
+ * heading from [MapCompass] without reading the fix in its composition, which would recompose the
+ * whole map once a second. Keyed, as before, on whether there is a fix, not on each one.
+ */
+@Composable
+fun rememberTrueHeading(
+    compassProvider: CompassProvider,
+    computeTrueHeading: ComputeTrueHeadingUseCase,
+    liveFix: State<LocationFix.Update?>,
 ): State<TrueHeadingReading> {
-    val currentFix by rememberUpdatedState(liveFix)
-    val hasFix = liveFix != null
+    val hasFix by remember(liveFix) { derivedStateOf { liveFix.value != null } }
     return produceState<TrueHeadingReading>(initialValue = TrueHeadingReading.NeedsFix, compassProvider, computeTrueHeading, hasFix) {
         val smoother = HeadingSmoother()
         val trust = CompassTrustJudge()
         compassProvider.heading.collect { reading ->
-            val fix = currentFix
+            val fix = liveFix.value
             // The judge sees every reading, fix or no fix, so its hysteresis state is right the
             // moment a fix lands — it is fed before the `when` decides what to show.
             val unreliable = reading != null && trust.next(reading)
