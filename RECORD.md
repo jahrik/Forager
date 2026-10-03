@@ -10647,3 +10647,14 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **What this changes:** -427 recorded "A gentle tilt". The owner's refinement replaces that reading: the tilt is strong enough to focus on the path ahead. The planner's starting figure is about 45° (the map library's range is 0° to 60°), provisional and tuned on a walk. -427 is not edited.
 **Still open for T22:** panning, getting back to the view, and an unreliable compass, put to the owner with recommendations and not yet answered. Not dispatched.
 **Notes:** Written by the planner by hand, on branch records-after-153, pushed and not merged.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-429
+**Timestamp:** 2026-10-03T17:08:36Z
+**Subject:** T22: panning, getting back to the view, and an unreliable compass (follows -427, -428)
+**The owner, verbatim,** to the planner's three recommendations (dragging the map stops it following; the locate button brings the view back; an unreliable compass falls back to north-up and says so): "1 yes"; "2 Have a "Return to Route" button appear when panning away"; "3 give a notice first that the compass is calculating if it's stuck, after retrying to get it back, then the north up view."
+**So:** dragging the map stops it following; a "Return to Route" button appears when the walker pans away and brings back the navigation view (in place of the planner's locate-button suggestion); when the compass is stuck, a notice first says it is calculating, the app retries, and only then does the map fall back to north-up.
+**Not yet decided:** how long the retry lasts before the fall-back, and how "stuck" is told apart (the compass-reliability work already reads the sensor's own accuracy reports); the coder reports what exists first. The step path is put back to the owner before dispatch.
+**Notes:** Written by the planner by hand, on branch records-after-153, pushed and not merged.

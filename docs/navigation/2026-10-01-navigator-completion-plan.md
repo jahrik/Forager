@@ -270,3 +270,5 @@ The owner asked, verbatim: "Can the camera view in the app change to a more navi
 - Device-only: yes. A walk.
 
 **T22, the tilt refined by the owner** (2026-10-03, verbatim): "Have the tilt be enough to focus on the path ahead, not so gentle that it's a cosmetic tilt." So the tilt is strong enough to put the way ahead in front of the walker, not a slight lean. The planner's starting figure: about 45° (the map library allows 0° to 60°; car navigation sits near the top), a named constant tuned on a walk. Recorded in `RECORD.md` 2026-09-28-428.
+
+**T22, the owner's answers on panning, returning and the compass** (2026-10-03, verbatim): "1 yes" (dragging the map stops it following); "2 Have a "Return to Route" button appear when panning away"; "3 give a notice first that the compass is calculating if it's stuck, after retrying to get it back, then the north up view." Recorded in `RECORD.md` 2026-09-28-429. The step path built from them is put back to the owner for confirmation before T22 is dispatched.
