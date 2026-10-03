@@ -10732,3 +10732,13 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **What the planner checked itself:** the change, read (three files under app/src/main, the state moved up and passed down); the saved XML re-counted as reported; the revert script restores from a saved copy.
 **For the merge:** this branch was cut before T22 and conflicts with it in three app files. The planner does not resolve app-code conflicts: T22 merges first, then the coder merges main into this branch, re-runs the tests, and it follows as its own pull request.
 **Notes:** Written by the planner by hand, on branch records-after-154.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-435
+**Timestamp:** 2026-10-03T19:31:00Z
+**Continues:** 2026-09-28-433
+**Observed:** pull request #155 (t22-merge into main, head 76190267980b286dff559a5c2b564dff9640e313, on which CI passed, run 37147361904) was merged as 4f9f344b159c97907ab4d59caf8ba09f296ae654 at 2026-10-03T19:28:43Z, read from GitHub, on the owner's "Open pr and merge", with backup 2026-10-03-03 of main at f1b53aca. Main's tree after the merge equals t22-merge's; no file under app/ differs from the coder's 8b9e2719. T22 (-430) and the records -432 to -434 are on main.
+**Next:** the coder merges main into coordinate-format (-422), re-tests, and it follows as its own pull request on the owner's word; -425 (T21) continues and takes main in before its hand-back.
+**Notes:** Written by the planner by hand, on branch records-after-155. T21's findings, the replay and the owner's answers to the coder about it go in -425's terminal, read from the coder's report.
