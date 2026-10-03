@@ -35,6 +35,8 @@ import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.FixFreshness
 import com.zynergylabs.forager.app.domain.GeoDistance
 import com.zynergylabs.forager.app.domain.LocationFix
+import com.zynergylabs.forager.app.domain.RouteHome
+import com.zynergylabs.forager.app.domain.RouteWithheldReason
 import com.zynergylabs.forager.app.domain.ageMillis
 import com.zynergylabs.forager.app.domain.fixFreshness
 import com.zynergylabs.forager.app.domain.isApproaching
@@ -152,13 +154,19 @@ internal const val NO_FIX_MESSAGE = "Location services unavailable"
  *   age is shown — "Approaching · last fix 45 s ago" when both hold, since neither fact replaces
  *   the other; past 5 min the distance and needle are withheld and only the age remains. A
  *   one-second ticker inside this leaf keeps the age moving; it recomposes this panel only.
- * - **Path home** (path-home join dispatch): while returning, the status line's otherwise-empty
- *   state carries one more short string — "Path home 350 m", the walk back along the recorded
- *   track joined to itself ([com.zynergylabs.forager.app.domain.pathHome], via
- *   [com.zynergylabs.forager.app.ui.track.TrackRecordingUiState.pathHome]). One number, no time, no mode
- *   toggle: the distance slot keeps the straight line, which is what the needle and "Approaching"
- *   are about; this line says how far the *walk* is. It yields to every message the line already
- *   carried — stale, lost, approaching — see [navigationReadout].
+ * - **The route home** (dispatch 2026-09-28-423, plan task T6; decisions D1, D3 and D5), given as
+ *   [ReturnRoute] while returning. The needle aims at the route's lookahead point, a point of the
+ *   walked route, not straight at the start. The large figure is the distance home **along the
+ *   route** (D3, option B), in plain formatting: a sum over many stored points, not one fix's
+ *   radius. The status line's otherwise-empty state carries the straight line to the start,
+ *   labelled "Straight line" so the two figures cannot be confused, with the accuracy-aware
+ *   formatting that belongs to it. It yields to the messages that line already carried (stale,
+ *   lost, approaching), as "Path home" did before it. A withheld route reads "Unable to calculate
+ *   route" in the large slot (the owner's words) with no needle, and offers "Try again" only where
+ *   recomputing could change the answer. Before the first route result the large slot is a dash
+ *   (the planner's ruling on question 3). "Approaching" is still measured against the start
+ *   itself. With no [ReturnRoute] at all the HUD is the straight-line HUD it was before, which
+ *   decision D2 keeps for navigating anywhere but home; nothing passes it that way today.
  * - **No origin waypoint** (a track whose first gated fix never came): says so. Nothing is
  *   substituted.
  * - **Elevation and coordinates** come from the same fix, through the same [coordinatesStripText]
@@ -181,8 +189,10 @@ internal fun NavigationHud(
     onToggleCoordinateFormat: () -> Unit,
     onExit: () -> Unit,
     modifier: Modifier = Modifier,
-    /** See `AvailabilityScreen`'s own `pathHomeMeters` doc comment, and [navigationReadout] for where it shows. */
-    pathHomeMeters: Double? = null,
+    /** The route home while returning; see this composable's "The route home" and [ReturnRoute]. */
+    route: ReturnRoute? = null,
+    /** "Try again": recompute the route now. Offered only when [NavigationHudReadout.routeRetryOffered]. */
+    onRetryRoute: () -> Unit = {},
 ) {
     // Read here, in this leaf, never higher — see rememberTrueHeading's own doc comment.
     val reading by heading
@@ -195,7 +205,7 @@ internal fun NavigationHud(
         }
     }
     val isDarkTheme = LocalForagerDarkTheme.current
-    val readout = navigationReadout(reading, liveFix, target, distanceUnit, now, showDecimalDegrees, pathHomeMeters)
+    val readout = navigationReadout(reading, liveFix, target, distanceUnit, now, showDecimalDegrees, route)
 
     CompositionLocalProvider(LocalContentColor provides if (isDarkTheme) Color.White else Bark) {
         // A plain Box with a background, deliberately opaque to touches only where its content
@@ -326,7 +336,43 @@ internal data class NavigationHudReadout(
     val elevationText: String?,
     /** MGRS or the labelled decimal pair, per the shared toggle; `null` with no fix at all (the row is not drawn). */
     val coordinatesText: String?,
+    /** True when the large slot says the route could not be calculated and recomputing could change that: "Try again" is offered. */
+    val routeRetryOffered: Boolean = false,
 )
+
+/**
+ * The route home as the HUD shows it while returning (dispatch 2026-09-28-423, plan task T6). See
+ * [returnRouteOf] for how it is read from [RouteHome].
+ */
+sealed interface ReturnRoute {
+    /** No route result yet: the first seconds of a return, before there is a good fix. The large slot is a dash, not a failure. */
+    data object Pending : ReturnRoute
+
+    /** The needle aims at [lookahead]; the large figure is [routeMeters]. */
+    data class Ahead(val lookahead: LatLng, val routeMeters: Double) : ReturnRoute
+
+    /**
+     * Withheld: "Unable to calculate route". [canRetry] is false where recomputing against the
+     * same inputs cannot change the answer, a track with no usable points.
+     */
+    data class Unavailable(val canRetry: Boolean) : ReturnRoute
+}
+
+/**
+ * [RouteHome] as the HUD shows it. `null`, no result yet, is [ReturnRoute.Pending]. A route
+ * withheld because the walker is off it ([RouteWithheldReason.OFF_ROUTE]) offers "Try again", since
+ * the walker moving back towards it changes the answer; one withheld for
+ * [RouteWithheldReason.NO_USABLE_POINTS] does not, since nothing would (dispatch 2026-09-28-423).
+ */
+fun returnRouteOf(routeHome: RouteHome?): ReturnRoute = when (routeHome) {
+    null -> ReturnRoute.Pending
+    is RouteHome.Ahead -> ReturnRoute.Ahead(routeHome.lookahead, routeHome.routeMeters)
+    is RouteHome.Withheld -> ReturnRoute.Unavailable(canRetry = routeHome.reason == RouteWithheldReason.OFF_ROUTE)
+}
+
+/** The large slot's words when the route is withheld: the owner's, 2026-09-12. */
+internal const val ROUTE_UNAVAILABLE_TEXT = "Unable to calculate route"
+
 
 internal fun navigationReadout(
     heading: TrueHeadingReading,
@@ -335,7 +381,7 @@ internal fun navigationReadout(
     distanceUnit: DistanceUnit,
     nowEpochMillis: Long,
     showDecimalDegrees: Boolean = false,
-    pathHomeMeters: Double? = null,
+    route: ReturnRoute? = null,
 ): NavigationHudReadout {
     val headingDegrees = (heading as? TrueHeadingReading.Available)?.degrees
     val headingText = when (heading) {
@@ -362,7 +408,15 @@ internal fun navigationReadout(
 
     val here = LatLng(liveFix.lat, liveFix.lng)
     val there = LatLng(target.lat, target.lng)
-    val bearing = GeoDistance.initialBearingDegrees(here, there)
+    // Where the needle aims: the route's lookahead while returning (decision D1), the target
+    // itself with no route given. A route that is pending or withheld has nothing to aim at, so
+    // there is no needle (decision D5: never a straight line standing in for the route).
+    val aim = when (route) {
+        null -> there
+        is ReturnRoute.Ahead -> route.lookahead
+        ReturnRoute.Pending, is ReturnRoute.Unavailable -> null
+    }
+    val bearing = aim?.let { GeoDistance.initialBearingDegrees(here, it) }
     val distanceMeters = GeoDistance.metersBetween(here, there)
     val age = liveFix.ageMillis(nowEpochMillis)
     val freshness = fixFreshness(age)
@@ -370,7 +424,14 @@ internal fun navigationReadout(
     val approaching = freshness != FixFreshness.LOST && isApproaching(distanceMeters, liveFix.accuracyMeters)
     // Never more precision than the fix supports — "within 16 ft" inside the error circle, "≈ 10 m"
     // beyond it, today's formatting when no accuracy was reported. See formatDistanceWithAccuracy.
-    val distanceText = if (freshness == FixFreshness.LOST) "—" else formatDistanceWithAccuracy(distanceMeters, liveFix.accuracyMeters, distanceUnit)
+    val straightLineText = formatDistanceWithAccuracy(distanceMeters, liveFix.accuracyMeters, distanceUnit)
+    val distanceText = when {
+        freshness == FixFreshness.LOST -> "—"
+        route == null -> straightLineText
+        route is ReturnRoute.Ahead -> formatDistanceMeters(route.routeMeters, distanceUnit)
+        route is ReturnRoute.Unavailable -> ROUTE_UNAVAILABLE_TEXT
+        else -> "—"
+    }
 
     // Four things withhold the needle, and their ORDER IS DELIBERATE (compass-reliability
     // dispatch, owner decision) — do not let branch position imply it, and do not insert a fifth
@@ -383,7 +444,9 @@ internal fun navigationReadout(
     //      dispatch (Part C) it withholds the text as well, not just the needle.
     // `compassUnreliable` is named in the `if` even though headingDegrees is already null for that
     // state, so the term is visible where the order is stated rather than implied by a null.
-    val targetArrowDegrees = if (headingDegrees != null && freshness != FixFreshness.LOST && !compassUnreliable && !approaching) relativeBearingDegrees(bearing, headingDegrees) else null
+    // A fifth term, ranked last (dispatch 2026-09-28-423): no aim, a route pending or withheld.
+    // It is not a failure of the compass or the fix, so it ranks below all four.
+    val targetArrowDegrees = if (headingDegrees != null && freshness != FixFreshness.LOST && !compassUnreliable && !approaching && bearing != null) relativeBearingDegrees(bearing, headingDegrees) else null
     val targetText = when {
         freshness == FixFreshness.LOST -> "Target"
         // Same rendering as the approach case below, and for the same reason the owner recorded
@@ -393,6 +456,8 @@ internal fun navigationReadout(
         // Nothing — not the distance (that was one number in two slots on device, "9 ft · 9 ft ·
         // Approaching"), not a dash, not a placeholder. The distance slot carries the one number.
         approaching -> ""
+        // No aim: the large slot already says why (a dash, or "Unable to calculate route").
+        bearing == null -> ""
         headingDegrees != null -> "Turn ${relativeBearingDegrees(bearing, headingDegrees).roundToInt() % 360}°"
         // No sensor. This branch used to read "Bearing N° X" — the one state that still showed the
         // absolute bearing as text. The compass-reliability dispatch asked for the unreliable case
@@ -401,18 +466,20 @@ internal fun navigationReadout(
         // a number the user cannot orient to is withheld, the distance slot carries the one number.
         else -> ""
     }
-    // Path-home join dispatch: the one more short string this line can carry (pre-build report,
-    // §E) — the walk back along the track, joined to itself, as one number. Only in the state
-    // where the line was empty: a stale or lost fix already owns the line with a message the
-    // walker needs more, and an approaching walker is metres from the origin, where a second
-    // small number beside "within 4 m" is the "9 ft · 9 ft" duplicate the owner struck. Plain
-    // formatting, not the accuracy-aware kind: this is a sum over many stored points, not one
-    // fix's radius. Never "arrived", never a time — the walking time has no caller, on purpose.
-    val pathHomeText = pathHomeMeters?.let { "Path home ${formatDistanceMeters(it, distanceUnit)}" }
+    // Dispatch 2026-09-28-423 (decision D3, option B): while returning, the straight line moves
+    // here from the large slot, labelled, since the large slot now holds the route figure. It
+    // takes the state where the line was empty, the one "Path home" took before it: a stale or
+    // lost fix already owns the line with a message the walker needs more, and "Approaching" is
+    // left as it is until plan task T7 moves it onto the start's glyph. One line of labelMedium
+    // has no room for both a label and a stale fix's age.
     val statusText = when (freshness) {
         FixFreshness.LOST -> "No fix for ${formatFixAge(age)}"
         FixFreshness.STALE -> if (approaching) "Approaching · last fix ${formatFixAge(age)} ago" else "Last fix ${formatFixAge(age)} ago"
-        FixFreshness.FRESH -> if (approaching) "Approaching" else pathHomeText.orEmpty()
+        FixFreshness.FRESH -> when {
+            approaching -> "Approaching"
+            route != null -> "Straight line $straightLineText"
+            else -> ""
+        }
     }
     return NavigationHudReadout(
         headingText = headingText,
@@ -424,6 +491,7 @@ internal fun navigationReadout(
         statusText = statusText,
         elevationText = elevationText,
         coordinatesText = coordinatesText,
+        routeRetryOffered = freshness != FixFreshness.LOST && route is ReturnRoute.Unavailable && route.canRetry,
     )
 }
 

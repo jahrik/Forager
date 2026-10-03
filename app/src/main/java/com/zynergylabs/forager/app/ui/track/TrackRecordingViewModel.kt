@@ -21,7 +21,8 @@ import com.zynergylabs.forager.app.domain.GetWaypointsUseCase
 import com.zynergylabs.forager.app.domain.HopBand
 import com.zynergylabs.forager.app.domain.LocationSampler
 import com.zynergylabs.forager.app.domain.model.LatLng
-import com.zynergylabs.forager.app.domain.pathHome
+import com.zynergylabs.forager.app.domain.RouteHome
+import com.zynergylabs.forager.app.domain.routeHome
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.LocationTracker
 import com.zynergylabs.forager.app.domain.StartTrackUseCase
@@ -195,12 +196,23 @@ class TrackRecordingViewModel(
      * with no default, so a forgotten wiring does not compile.
      */
     private val abandonedTrackSweepOnce: AbandonedTrackSweepOnce,
+    /**
+     * The way-home search the route tick runs, [routeHome] in production. A parameter so a test
+     * can count the searches: "one route search per tick" (dispatch 2026-09-28-423) is a number.
+     */
+    private val findRouteHome: (track: Track, current: LatLng, origin: Waypoint?, previousHopBand: HopBand) -> RouteHome = ::routeHome,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TrackRecordingUiState())
     val uiState: StateFlow<TrackRecordingUiState> = _uiState.asStateFlow()
 
     private var pollingJob: Job? = null
+
+    /** The route tick, running only while returning. See [beginRouteTicks]. */
+    private var routeJob: Job? = null
+
+    /** The track the 15 s poll last read for the active recording: what the route tick routes along. */
+    private var lastPolledTrack: Track? = null
 
     /** The one waypoint whose delete is pending (journal redesign J4) — see [requestRemoveWaypoint]. */
     private val waypointDeletes = PendingDeleteSlot<String, Waypoint> { it.id }
@@ -287,6 +299,13 @@ class TrackRecordingViewModel(
             val mine = state.activeTrack != null && watch.trackId == state.activeTrack.trackId
             state.copy(isReturning = mine && watch.isReturning, isOffTrack = mine && watch.isOffTrack)
         }
+        // The route tick runs exactly while this screen shows a return, whichever way the return
+        // reached it: this screen's own Return, or a recording taken up mid-return.
+        if (uiState.value.isReturning) {
+            if (routeJob == null) beginRouteTicks()
+        } else if (routeJob != null) {
+            endRouteTicks()
+        }
     }
 
     /** The start point as the screen shows it: the origin waypoint once it exists, the first breadcrumb before that. */
@@ -334,6 +353,7 @@ class TrackRecordingViewModel(
             startTrack(null)
                 .onSuccess { track ->
                     lastGatedFix = null
+                    lastPolledTrack = null
                     originCreationInFlight = false
                     takenUpOrigin = null
                     networkFixesNoticeShown = false
@@ -347,7 +367,7 @@ class TrackRecordingViewModel(
                             startRecordingErrorMessage = null,
                             breadcrumbPoints = emptyList(),
                             originWaypoint = null,
-                            pathHome = null,
+                            routeHome = null,
                             tripStartWarning = warning?.let { message -> RecordingNotice(++recordingNoticeIds, message) },
                             networkFixesNotice = null,
                         )
@@ -399,6 +419,9 @@ class TrackRecordingViewModel(
     private fun clearRecordingState() {
         pollingJob?.cancel()
         pollingJob = null
+        routeJob?.cancel()
+        routeJob = null
+        lastPolledTrack = null
         locationJob?.cancel()
         locationJob = null
         // This screen's return is over with its recording. The service ends the watch itself when
@@ -411,7 +434,7 @@ class TrackRecordingViewModel(
         originCreationInFlight = false
         takenUpOrigin = null
         _uiState.update {
-            it.copy(activeTrack = null, isReturning = false, isOffTrack = false, returnToStart = null, originWaypoint = null, pathHome = null)
+            it.copy(activeTrack = null, isReturning = false, isOffTrack = false, returnToStart = null, originWaypoint = null, routeHome = null)
         }
     }
 
@@ -468,6 +491,7 @@ class TrackRecordingViewModel(
 
             val active = ActiveTrack(trackId, track.startedAtEpochMillis, mode)
             lastGatedFix = null
+            lastPolledTrack = null
             originCreationInFlight = false
             takenUpOrigin = TakenUpOrigin.NOT_LOOKED_UP
             _uiState.update {
@@ -476,7 +500,7 @@ class TrackRecordingViewModel(
                     startRecordingErrorMessage = null,
                     breadcrumbPoints = track.points,
                     originWaypoint = null,
-                    pathHome = null,
+                    routeHome = null,
                 )
             }
             copyFromWatch()
@@ -707,18 +731,54 @@ class TrackRecordingViewModel(
             return
         }
         handStartPointToWatch()
-        copyFromWatch()
-        // Path-home join dispatch: the poll is what computes TrackRecordingUiState.pathHome, and
-        // only while returning — restarted here so the HUD's first path-home reading arrives with
-        // the HUD rather than up to 15 s after it. Restarting also re-reads the breadcrumbs, which
-        // is harmless, and the network-fixes notice is guarded by its own once-per-recording flag.
+        // Restarted so the track the route tick routes along is read now, not up to 15 s from now.
+        // Restarting also re-reads the breadcrumbs, which is harmless, and the network-fixes notice
+        // is guarded by its own once-per-recording flag. Launched before copyFromWatch starts the
+        // route tick, so on the same dispatcher the poll's read runs first and the first route uses it.
         beginPolling(active.trackId)
+        copyFromWatch()
     }
 
     /** Clears returning/off-track state without touching the recording itself — see [startReturn]. */
     fun stopReturn() {
         uiState.value.activeTrack?.let { returnWatch.stopReturn(it.trackId) }
-        _uiState.update { it.copy(isReturning = false, isOffTrack = false, pathHome = null) }
+        _uiState.update { it.copy(isReturning = false, isOffTrack = false) }
+        endRouteTicks()
+    }
+
+    /**
+     * The HUD's "Try again" (dispatch 2026-09-28-423): the route recomputed now instead of at the
+     * next tick. It cannot make data appear; the HUD offers it only where the inputs can change
+     * (off the route), never for a track with no usable points.
+     */
+    fun retryRoute() {
+        updateRouteHome()
+    }
+
+    /**
+     * The route tick (dispatch 2026-09-28-423, plan task T6; decision D4, every 5 s): one route
+     * search per tick, at once and then every [ROUTE_TICK_MILLIS], while this screen shows a
+     * return ([copyFromWatch] starts and ends it). Its own job beside [beginPolling], not a branch
+     * inside it, because the two run at different rates. Like the poll it is unbounded, so its
+     * tests stop the recording inside the test body, in a `finally`
+     * (`TrackRecordingViewModelTest.runRecordingTest`); stopping the recording cancels it in
+     * [clearRecordingState], and [stopReturn] ends it.
+     */
+    private fun beginRouteTicks() {
+        routeJob?.cancel()
+        routeJob = viewModelScope.launch {
+            while (true) {
+                updateRouteHome()
+                delay(ROUTE_TICK_MILLIS)
+            }
+        }
+    }
+
+    /** Stops the route tick and clears its result: no return is shown, so there is no route. */
+    private fun endRouteTicks() {
+        routeJob?.cancel()
+        routeJob = null
+        _uiState.update { it.copy(routeHome = null) }
     }
 
     private fun beginPolling(trackId: String) {
@@ -729,6 +789,7 @@ class TrackRecordingViewModel(
                     _uiState.update { it.copy(breadcrumbPoints = track?.points.orEmpty()) }
                     val active = uiState.value.activeTrack
                     if (track != null && active != null && active.trackId == trackId) settleTakenUpOrigin(active, track)
+                    if (track != null && uiState.value.activeTrack?.trackId == trackId) lastPolledTrack = track
                     handStartPointToWatch()
                     // Timestamp-filter dispatch, Item 3: once per recording, the moment the read
                     // seam is seen to be excluding most of this track — see isMostlyNetworkFixes for
@@ -737,7 +798,6 @@ class TrackRecordingViewModel(
                         networkFixesNoticeShown = true
                         _uiState.update { it.copy(networkFixesNotice = RecordingNotice(++recordingNoticeIds, NETWORK_FIXES_RECORDING_NOTICE)) }
                     }
-                    updatePathHome(track)
                     updateSundown()
                 }
                 delay(POLL_INTERVAL_MILLIS)
@@ -746,22 +806,9 @@ class TrackRecordingViewModel(
     }
 
     /**
-     * Path-home join dispatch: [TrackRecordingUiState.pathHome] from this poll's [track] and the
-     * last accuracy-gated fix, while returning; `null` otherwise. The hop band is carried from the
-     * previous reading (hysteresis — see [pathHome], "The hop"); a reading that was withheld, or a
-     * return that has not started, carries none, so a new return begins at [HopBand.NONE].
-     *
-     * Runs on this poll's own coroutine — the main dispatcher. Measured on a desktop JVM at the
-     * four-hour HIGH_ACCURACY cap (2,880 points, dense patch at the end) the computation is about
-     * 19 ms per poll; a device figure does not exist yet (join dispatch completion report). If a
-     * device measurement says that is a visible stall every 15 s, the move to a background
-     * dispatcher or an incremental graph is the recorded next step, not done here on an estimate.
-     * The gated fix, not any fix: the same accuracy rule that seeds the origin, so the hop is
-     * measured from a position the mode's own ceiling admits.
-     */
-    /**
      * Recomputes the countdown from the last gated fix. A new path called from the poll loop
-     * rather than a branch inside it, following [updatePathHome]'s shape.
+     * rather than a branch inside it, following the shape of the path-home update the poll used
+     * to run (moved to the route tick, [updateRouteHome], by dispatch 2026-09-28-423).
      *
      * Stateless by construction: it reads the clock and the last fix and keeps nothing between
      * calls. A stop, a process death or a device restart therefore costs it nothing, which is the
@@ -786,15 +833,33 @@ class TrackRecordingViewModel(
         }
     }
 
-    private fun updatePathHome(track: Track?) {
+    /**
+     * [TrackRecordingUiState.routeHome] from the track the poll last read and the last
+     * accuracy-gated fix, while returning ([endRouteTicks] clears it when the return ends). Before there is both a polled
+     * track and a gated fix it leaves the value as it is, `null` at the start of a return, which the
+     * HUD shows as a dash rather than a failure (the planner's ruling on question 3). The hop band is
+     * carried from the previous result (hysteresis, see [com.zynergylabs.forager.app.domain.pathHome],
+     * "The hop"); a new return starts at [HopBand.NONE].
+     *
+     * Runs on the tick's own coroutine, the main dispatcher, as the poll's path-home search did:
+     * about 19 ms on a desktop JVM at the four-hour HIGH_ACCURACY cap (the join dispatch's
+     * measurement, for the same search), now every 5 s instead of every 15 s. A device figure
+     * does not exist yet; if one says that is a visible stall, moving it off the main dispatcher is
+     * the recorded next step, not done here on an estimate. The gated fix, not any fix: the same
+     * accuracy rule that seeds the origin.
+     */
+    private fun updateRouteHome() {
         val state = uiState.value
-        val current = lastGatedFix
-        val next = if (track != null && state.isReturning && current != null) {
-            pathHome(track, LatLng(current.lat, current.lng), state.originWaypoint, state.pathHome?.hopBand ?: HopBand.NONE)
-        } else {
-            null
+        if (!state.isReturning) return
+        val track = lastPolledTrack ?: return
+        val current = lastGatedFix ?: return
+        val previousHopBand = when (val previous = state.routeHome) {
+            is RouteHome.Ahead -> previous.hopBand
+            is RouteHome.Withheld -> previous.hopBand ?: HopBand.NONE
+            null -> HopBand.NONE
         }
-        _uiState.update { it.copy(pathHome = next) }
+        val next = findRouteHome(track, LatLng(current.lat, current.lng), state.originWaypoint, previousHopBand)
+        _uiState.update { it.copy(routeHome = next) }
     }
 
     /**
@@ -1131,6 +1196,9 @@ class TrackRecordingViewModel(
 
     private companion object {
         const val POLL_INTERVAL_MILLIS = 15_000L
+
+        /** Decision D4: the route is recomputed every 5 s while returning. */
+        const val ROUTE_TICK_MILLIS = 5_000L
         const val TAG = "TrackRecordingViewModel"
     }
 }

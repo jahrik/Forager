@@ -12,6 +12,11 @@ import com.zynergylabs.forager.app.domain.InMemoryKeptTrackPaths
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
 import com.zynergylabs.forager.app.domain.DetectOffTrackUseCase
 import com.zynergylabs.forager.app.domain.ReturnWatch
+import com.zynergylabs.forager.app.domain.HopBand
+import com.zynergylabs.forager.app.domain.RouteHome
+import com.zynergylabs.forager.app.domain.RouteWithheldReason
+import com.zynergylabs.forager.app.domain.routeHome
+import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.AbandonedTrackSweepOnce
 import com.zynergylabs.forager.app.domain.EndAbandonedTracksUseCase
 import com.zynergylabs.forager.app.domain.GetTrackOriginWaypointUseCase
@@ -51,6 +56,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -130,6 +136,7 @@ class TrackRecordingViewModelTest {
         alertAudibility: AlertAudibility = FakeAlertAudibility(AUDIBLE),
         getWaypointReferenceCount: suspend (String) -> Int = { 0 },
         pendingDeleteCommitScope: CoroutineScope? = null,
+        findRouteHome: (Track, LatLng, Waypoint?, HopBand) -> RouteHome = ::routeHome,
     ) = TrackRecordingViewModel(
         trackRepository = trackRepository,
         startTrack = StartTrackUseCase(trackRepository, currentTime = fixedTime, idGenerator = { "track-1" }),
@@ -151,6 +158,7 @@ class TrackRecordingViewModelTest {
         getWaypointReferenceCount = getWaypointReferenceCount,
         zone = ZoneOffset.UTC,
         pendingDeleteCommitScope = pendingDeleteCommitScope ?: com.zynergylabs.forager.app.ui.log.PendingDeleteCommitScope,
+        findRouteHome = findRouteHome,
     ).also(createdViewModels::add)
 
     @Test
@@ -688,6 +696,136 @@ class TrackRecordingViewModelTest {
 
     private companion object {
         const val POLL_INTERVAL_MILLIS = 15_000L
+
+        /** The ViewModel's route tick, decision D4. Repeated here as [POLL_INTERVAL_MILLIS] is. */
+        const val ROUTE_TICK_MILLIS = 5_000L
+    }
+
+    // ── Dispatch 2026-09-28-423: the route tick (plan task T6) ─────────────────────────────
+
+    private fun gatedFix(lat: Double, lng: Double = -122.0, t: Long) =
+        LocationFix.Update(lat = lat, lng = lng, altitude = null, accuracyMeters = 5f, timestampEpochMillis = t)
+
+    /**
+     * Record; the first gated fix seeds the origin at 45.000; the service stores three points north,
+     * 111 m apart; the walker stands on the last. Two polls have read the track. Returns the
+     * ViewModel and the fix stream.
+     */
+    private suspend fun kotlinx.coroutines.test.TestScope.recordThreePointsNorth(
+        trackRepository: InMemoryTrackRepository,
+        findRouteHome: (Track, LatLng, Waypoint?, HopBand) -> RouteHome = ::routeHome,
+    ): Pair<TrackRecordingViewModel, MutableSharedFlow<LocationFix>> {
+        val fixes = MutableSharedFlow<LocationFix>()
+        val vm = viewModel(trackRepository, locationTracker = FakeLocationTracker(fixes), findRouteHome = findRouteHome)
+        vm.startRecording()
+        runCurrent()
+        fixes.emit(gatedFix(lat = 45.000, t = 1_000L))
+        runCurrent()
+        trackRepository.appendPoints("track-1", listOf(45.000, 45.001, 45.002).mapIndexed { i, lat -> point(lat = lat, t = 1_000L + i * 15_000L) })
+        advanceTimeBy(POLL_INTERVAL_MILLIS * 2)
+        runCurrent()
+        fixes.emit(gatedFix(lat = 45.002, t = 31_000L))
+        runCurrent()
+        assertEquals("precondition: the poll has read the three points", 3, vm.uiState.value.breadcrumbPoints.size)
+        return vm to fixes
+    }
+
+    /**
+     * One route search per tick, through the real entry points: none before Return (the poll no
+     * longer searches), one at Return, one every 5 s after, none once the return stops. The
+     * path-home figure is the same object the route search built, so it cannot come from a second
+     * search. The count is the claim, so the search is counted, not inferred from timing. Fails
+     * with the poll still running its own path-home search (a second search on each 15 s poll),
+     * and with the tick removed (one search at Return and no more).
+     */
+    @Test
+    fun `while returning the route is searched once at Return and once every 5 s, and path home is that search's own figure`() = runRecordingTest {
+        var searches = 0
+        val (vm, _) = recordThreePointsNorth(InMemoryTrackRepository()) { track, current, origin, band ->
+            searches++
+            routeHome(track, current, origin, band)
+        }
+        assertEquals("no search before Return: the poll does not search", 0, searches)
+        assertNull(vm.uiState.value.routeHome)
+
+        vm.startReturn()
+        runCurrent()
+        assertEquals("one search at Return", 1, searches)
+        val first = vm.uiState.value.routeHome as RouteHome.Ahead
+        assertEquals(222.39016, first.routeMeters, 0.01)
+        assertSame("path home is the route search's own figure", first.pathHome, vm.uiState.value.pathHome)
+
+        advanceTimeBy(ROUTE_TICK_MILLIS)
+        runCurrent()
+        assertEquals(2, searches)
+        // 20 s after Return: ticks at 5, 10, 15 and 20 s, and a poll at 15 s that adds none.
+        advanceTimeBy(ROUTE_TICK_MILLIS * 3)
+        runCurrent()
+        assertEquals(5, searches)
+
+        vm.stopReturn()
+        assertNull(vm.uiState.value.routeHome)
+        assertNull(vm.uiState.value.pathHome)
+        advanceTimeBy(POLL_INTERVAL_MILLIS * 2)
+        runCurrent()
+        assertEquals("no search after the return stops", 5, searches)
+    }
+
+    /**
+     * "Try again" recomputes at once, not at the next tick; before Return it does nothing, since
+     * there is no route to show. Fails with retryRoute not searching.
+     */
+    @Test
+    fun `Try again searches the route at once while returning, and does nothing when not returning`() = runRecordingTest {
+        var searches = 0
+        val (vm, _) = recordThreePointsNorth(InMemoryTrackRepository()) { track, current, origin, band ->
+            searches++
+            routeHome(track, current, origin, band)
+        }
+        vm.retryRoute()
+        assertEquals(0, searches)
+        assertNull(vm.uiState.value.routeHome)
+
+        vm.startReturn()
+        runCurrent()
+        assertEquals(1, searches)
+        vm.retryRoute()
+        assertEquals("at once, with no time passing", 2, searches)
+    }
+
+    /**
+     * Off the route and back, through fixes: 78 m east of the last stored point is the far band,
+     * withheld as off the route; 48 m is still withheld, because the band leaves only below 45 m
+     * and the tick carries it from the last result; 39 m is back on the route. Fails with the band
+     * not carried between ticks (48 m would read as a route).
+     */
+    @Test
+    fun `a walker off the route has it withheld, and the hop band is carried between ticks`() = runRecordingTest {
+        val (vm, fixes) = recordThreePointsNorth(InMemoryTrackRepository())
+        vm.startReturn()
+        runCurrent()
+        assertTrue(vm.uiState.value.routeHome is RouteHome.Ahead)
+
+        // 0.001° of longitude at 45.002° N is 78.6 m.
+        fixes.emit(gatedFix(lat = 45.002, lng = -122.0 + 0.001, t = 36_000L))
+        runCurrent()
+        advanceTimeBy(ROUTE_TICK_MILLIS)
+        runCurrent()
+        val off = vm.uiState.value.routeHome as RouteHome.Withheld
+        assertEquals(RouteWithheldReason.OFF_ROUTE, off.reason)
+        assertNull("no path-home figure off the route", vm.uiState.value.pathHome)
+
+        fixes.emit(gatedFix(lat = 45.002, lng = -122.0 + 0.00061, t = 41_000L)) // 48 m
+        runCurrent()
+        advanceTimeBy(ROUTE_TICK_MILLIS)
+        runCurrent()
+        assertEquals(RouteWithheldReason.OFF_ROUTE, (vm.uiState.value.routeHome as RouteHome.Withheld).reason)
+
+        fixes.emit(gatedFix(lat = 45.002, lng = -122.0 + 0.0005, t = 46_000L)) // 39 m
+        runCurrent()
+        advanceTimeBy(ROUTE_TICK_MILLIS)
+        runCurrent()
+        assertTrue(vm.uiState.value.routeHome is RouteHome.Ahead)
     }
 
     /**

@@ -1,6 +1,13 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.domain.HopBand
 import com.zynergylabs.forager.app.domain.LocationFix
+import com.zynergylabs.forager.app.domain.RouteHome
+import com.zynergylabs.forager.app.domain.RouteWithheldReason
+import com.zynergylabs.forager.app.domain.model.LatLng
+import com.zynergylabs.forager.app.domain.model.Track
+import com.zynergylabs.forager.app.domain.model.TrackPoint
+import com.zynergylabs.forager.app.domain.routeHome
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.model.WaypointDesignation
@@ -29,29 +36,111 @@ class NavigationHudReadoutTest {
         unit: DistanceUnit = DistanceUnit.MILES,
         now: Long = t + 1_000L,
         showDecimalDegrees: Boolean = false,
-        pathHomeMeters: Double? = null,
-    ) = navigationReadout(heading, liveFix, target, unit, now, showDecimalDegrees, pathHomeMeters)
+        route: ReturnRoute? = null,
+    ) = navigationReadout(heading, liveFix, target, unit, now, showDecimalDegrees, route)
 
-    // ── Path-home join dispatch: the one more short string, and what it yields to ──────────
+    // ── Dispatch 2026-09-28-423: the route home. These two replace the path-home join
+    // dispatch's two tests of "Path home NNN" in the status line, which that dispatch retires: the
+    // route figure moves to the large slot (decision D3, option B) and the straight line, labelled,
+    // takes the status line. Same figures, same units, same yielding. ──────────────────────
+
+    /** A lookahead due east of the fix: from a device facing 45°, a 45° turn. */
+    private val east = LatLng(45.52, -122.679)
 
     @Test
-    fun `path home fills the status line's empty state as one number in the display unit`() {
-        assertEquals("Path home 0.9 mi", readout(pathHomeMeters = 1_500.0).statusText)
-        assertEquals("Path home 1.5 km", readout(pathHomeMeters = 1_500.0, unit = DistanceUnit.KILOMETERS).statusText)
+    fun `the route figure fills the large slot as one number in the display unit, and the status line carries the straight line, labelled`() {
+        assertEquals("0.9 mi", readout(route = ReturnRoute.Ahead(east, 1_500.0)).distanceText)
+        assertEquals("1.5 km", readout(route = ReturnRoute.Ahead(east, 1_500.0), unit = DistanceUnit.KILOMETERS).distanceText)
         // Below a quarter mile the unit is feet: 350 m is 1148.3 ft.
-        assertEquals("Path home 1148 ft", readout(pathHomeMeters = 350.0).statusText)
-        assertEquals("Path home 350 m", readout(pathHomeMeters = 350.0, unit = DistanceUnit.KILOMETERS).statusText)
-        // The distance slot is untouched: still the straight line.
-        assertEquals("0.7 mi", readout(pathHomeMeters = 1_500.0).distanceText)
+        assertEquals("1148 ft", readout(route = ReturnRoute.Ahead(east, 350.0)).distanceText)
+        assertEquals("350 m", readout(route = ReturnRoute.Ahead(east, 350.0), unit = DistanceUnit.KILOMETERS).distanceText)
+        // The straight line to the start, with the accuracy-aware formatting it had in the large slot.
+        assertEquals("Straight line 0.7 mi", readout(route = ReturnRoute.Ahead(east, 1_500.0)).statusText)
+        assertEquals("Straight line 1.1 km", readout(route = ReturnRoute.Ahead(east, 1_500.0), unit = DistanceUnit.KILOMETERS).statusText)
     }
 
     @Test
-    fun `path home yields to approaching, to a stale fix and to a lost fix`() {
+    fun `the straight line yields to approaching, to a stale fix and to a lost fix, and is absent with no route given`() {
         val close = north.copy(lat = 45.52009)
-        assertEquals("Approaching", readout(target = close, pathHomeMeters = 12.0).statusText)
-        assertEquals("Last fix 45 s ago", readout(now = t + 45_000L, pathHomeMeters = 1_500.0).statusText)
-        assertEquals("No fix for 6 min", readout(now = t + 6L * 60L * 1_000L, pathHomeMeters = 1_500.0).statusText)
-        assertEquals("", readout(pathHomeMeters = null).statusText)
+        assertEquals("Approaching", readout(target = close, route = ReturnRoute.Ahead(east, 12.0)).statusText)
+        assertEquals("Last fix 45 s ago", readout(now = t + 45_000L, route = ReturnRoute.Ahead(east, 1_500.0)).statusText)
+        assertEquals("No fix for 6 min", readout(now = t + 6L * 60L * 1_000L, route = ReturnRoute.Ahead(east, 1_500.0)).statusText)
+        assertEquals("", readout(route = null).statusText)
+    }
+
+    @Test
+    fun `the needle aims at the route's lookahead, not at the start`() {
+        // The start is due north (a 315° turn from 45°); the lookahead due east (a 45° turn).
+        val r = readout(route = ReturnRoute.Ahead(east, 1_500.0))
+        assertEquals("Turn 45°", r.targetText)
+        assertEquals(45f, r.targetArrowDegrees!!, 0.5f)
+        assertEquals("Turn 315°", readout(route = null).targetText)
+    }
+
+    @Test
+    fun `before the first route result the large slot is a dash, there is no needle, and the straight line is in the status line`() {
+        val r = readout(route = ReturnRoute.Pending)
+        assertEquals("—", r.distanceText)
+        assertNull(r.targetArrowDegrees)
+        assertEquals("", r.targetText)
+        assertEquals("Straight line 0.7 mi", r.statusText)
+        assertFalse(r.routeRetryOffered)
+    }
+
+    @Test
+    fun `a route withheld off the route says so in the large slot, with no needle, and offers Try again`() {
+        val r = readout(route = ReturnRoute.Unavailable(canRetry = true))
+        assertEquals("Unable to calculate route", r.distanceText)
+        assertNull(r.targetArrowDegrees)
+        assertEquals("", r.targetText)
+        assertEquals("Straight line 0.7 mi", r.statusText)
+        assertTrue(r.routeRetryOffered)
+    }
+
+    @Test
+    fun `a route withheld for no usable points says so and offers no Try again`() {
+        val r = readout(route = ReturnRoute.Unavailable(canRetry = false))
+        assertEquals("Unable to calculate route", r.distanceText)
+        assertNull(r.targetArrowDegrees)
+        assertFalse(r.routeRetryOffered)
+    }
+
+    @Test
+    fun `with the fix lost the large slot is a dash and nothing is offered, whatever the route`() {
+        val lost = t + 6L * 60L * 1_000L
+        listOf(ReturnRoute.Pending, ReturnRoute.Ahead(east, 1_500.0), ReturnRoute.Unavailable(canRetry = true)).forEach { route ->
+            val r = readout(now = lost, route = route)
+            assertEquals("$route", "—", r.distanceText)
+            assertNull("$route", r.targetArrowDegrees)
+            assertFalse("$route", r.routeRetryOffered)
+        }
+    }
+
+    @Test
+    fun `a stale fix de-emphasises the route figure as it did the straight line`() {
+        val r = readout(now = t + 45_000L, route = ReturnRoute.Ahead(east, 1_500.0))
+        assertEquals("0.9 mi", r.distanceText)
+        assertTrue(r.distanceDeEmphasised)
+    }
+
+    @Test
+    fun `routeHome results map to what the HUD shows, from real searches`() {
+        // A straight track north, 0.001° (111 m) a leg; the walker on its last point.
+        val points = listOf(45.520, 45.521, 45.522).mapIndexed { i, lat ->
+            TrackPoint(lat = lat, lng = -122.68, altitude = null, accuracyMeters = 5f, timestampEpochMillis = t + i * 15_000L)
+        }
+        val track = Track(id = "t1", name = "", startedAtEpochMillis = t, endedAtEpochMillis = null, points = points)
+        val ahead = routeHome(track, LatLng(45.522, -122.68), origin = null) as RouteHome.Ahead
+        assertEquals(ReturnRoute.Ahead(ahead.lookahead, ahead.routeMeters), returnRouteOf(ahead))
+        // 0.001° of longitude at 45.52° N is about 78 m: the far band, off the route.
+        val off = routeHome(track, LatLng(45.522, -122.679), origin = null)
+        assertEquals(RouteWithheldReason.OFF_ROUTE, (off as RouteHome.Withheld).reason)
+        assertEquals(ReturnRoute.Unavailable(canRetry = true), returnRouteOf(off))
+        val empty = routeHome(track.copy(points = emptyList()), LatLng(45.522, -122.68), origin = null)
+        assertEquals(RouteWithheldReason.NO_USABLE_POINTS, (empty as RouteHome.Withheld).reason)
+        assertEquals(ReturnRoute.Unavailable(canRetry = false), returnRouteOf(empty))
+        assertEquals(ReturnRoute.Pending, returnRouteOf(null))
+        assertEquals(HopBand.FAR, off.hopBand)
     }
 
     @Test
