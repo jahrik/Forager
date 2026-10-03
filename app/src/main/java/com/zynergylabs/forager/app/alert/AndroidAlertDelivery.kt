@@ -11,12 +11,14 @@ import android.os.VibrationAttributes
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.zynergylabs.forager.app.R
 import com.zynergylabs.forager.app.domain.Alert
 import com.zynergylabs.forager.app.domain.AlertDelivery
+import com.zynergylabs.forager.app.domain.AlertDeliveryOutcome
 import com.zynergylabs.forager.app.domain.AlertKind
 
 /**
@@ -55,20 +57,38 @@ class AndroidAlertDelivery internal constructor(
     }
 
     override fun deliver(alert: Alert) {
-        when (alert.kind) {
-            AlertKind.OFF_TRACK -> {
-                postOffTrackNotification(appContext)
-                vibrateForAlert(appContext, overridesSilence = alert.overridesSilence)
-            }
-            AlertKind.TURNAROUND -> {
-                postSundownNotification(appContext, SundownNotification.TURNAROUND)
-                vibrateForAlert(appContext, overridesSilence = alert.overridesSilence)
-            }
-            AlertKind.SUNSET -> {
-                postSundownNotification(appContext, SundownNotification.SUNSET)
-                vibrateForAlert(appContext, overridesSilence = alert.overridesSilence)
-            }
+        deliverReporting(alert)
+    }
+
+    /**
+     * The notification, then the vibration, each on its own: a failure of one does not stop the
+     * other (dispatch 2026-09-28-451; the owner: "Report and catch"). An exception from either is
+     * caught, logged and reported, never thrown. Before this it propagated into the recording
+     * service's fix collection, which it ended. What is posted and vibrated is unchanged.
+     */
+    override fun deliverReporting(alert: Alert): AlertDeliveryOutcome {
+        var notificationProblem: String? = null
+        val posted = try {
+            postNotification(appContext, alert).also { if (!it) notificationProblem = "POST_NOTIFICATIONS denied" }
+        } catch (e: Exception) {
+            Log.w(TAG, "The ${alert.kind} alert's notification could not be posted.", e)
+            notificationProblem = e::class.simpleName
+            false
         }
+        var vibrationProblem: String? = null
+        val vibrated = try {
+            vibrate(appContext, alert.overridesSilence)
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "The ${alert.kind} alert's vibration could not be issued.", e)
+            vibrationProblem = e::class.simpleName
+            false
+        }
+        return AlertDeliveryOutcome(posted, notificationProblem, vibrated, vibrationProblem)
+    }
+
+    private companion object {
+        const val TAG = "AlertDelivery"
     }
 }
 
