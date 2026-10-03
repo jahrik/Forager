@@ -10700,3 +10700,23 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **The planner's rulings** (appended to the dispatch file): the app's own true heading feeds the puck everywhere, fixing the 15° fault, with the map outside navigation otherwise unchanged; the owner's compass notice is carried by the HUD's heading label ("Compass calibrating…", then "Compass unavailable · north up"), one place and one word; the bubble re-anchors on every camera move while navigating; reset-to-north while navigating counts as leaving the view and shows "Return to Route"; the user's zoom is left alone; no rotation sensor gives the north-up notice once.
 **For the owner:** the puck correction outside navigation, and where the compass notice appears.
 **Notes:** Written by the planner by hand, on branch records-after-154 cut from t6-merge at ffa0e168, pushed and not merged.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-433
+**Timestamp:** 2026-10-03T18:24:56Z
+**Closes:** 2026-09-28-430 (preserved 2026-10-03-04, with the rulings of -432 appended)
+**Outcome:** completed
+**Observed:**
+- **What landed,** on branch navigation-view at 72528107, not merged when this was written: the build, main merged in at f9c5ac36 with both sides of every conflict kept, two fixes from the phone step at 8b9e2719, and the report docs/navigation/2026-10-03-navigation-view-report.md with its rows.
+- **What was built:** while returning, the map follows in the compass-following mode with a 45° tilt and the walker below centre; a drag, "Reset orientation" or the locate button leaves the view and shows "Return to Route", a content-width pill at the map-chrome 80%, which restores it; a stuck compass makes the HUD's heading label read "Compass calibrating…" for 15 s, then "Compass unavailable · north up" with the map north-up, and facing-up returns on recovery; Stop eases the map flat and north-up. The app's own true heading feeds the location puck on every map that has one, the Journal's and the offline-maps region picker included, through one value provided on the screen (a deviation from "parameters through the Journal flow", recorded in the report; no Journal composable changed).
+- **The magnetic puck, confirmed on hardware:** with the app's engine the map's bearing read 256.7° against the HUD's 257°; the library's own engine would have read about 242°, the 15° the coder had inferred from its bytecode.
+- **The phone step,** on the owner's word in the coder's window, found two faults that no test could reach (the walker stayed centred; Stop left the map tilted and turned); the coder read both causes from the library and fixed them, and the second pass logged the compass-following mode, tilt 45, a quarter-height top padding, the pill on a drag and the view restored by it, and Stop back to flat north-up.
+- **Tests:** seventeen new; two existing heading-label assertions changed by ruling E, listed; sixteen revert checks from saved copies; the full suite at 8b9e2719, 425 classes, 3,501 tests, 0 failures, 24 skipped. Every camera call in the map itself is device-only and not revert-checked.
+**What the planner checked itself:** the saved XML re-counted (the full suite as reported; each of the sixteen revert checks failing on its own test, among them "expected:<0.8> but was:<1.0>" with the pill made solid); the revert script restores from a saved copy; no file under app/ differs between 8b9e2719 and 72528107; the S22 carries 1.0.2527+g8b9e2719, read over adb without touching it.
+**Not seen on the phone:** a stuck compass; reset and locate while navigating, on the map; the bubble following the turning map; the pickers' pucks; a walk.
+**An existing behaviour, reported and not changed:** the first location activation's zoom-in ends the library's tracking, so the map is often not following when Return is tapped.
+**Also recorded here, from 2026-10-03:** the owner on T6's findings: "1 is fine", "2 leave for T7", "Leave that as is", and "Unable to calculate route" is fine, leave as is". So "Unable to calculate route" in a recording's first half-minute stays, and "0 ft" at the start waits for T7. The planner's ruling for T22 on the Journal's picker: its puck points true north too. Pull request #154 (t6-merge into main, head ffa0e168a4c4dcb32b93f35c82f9476562fab621, on which CI passed, run 37140806700) was merged as f1b53aca17688954e257c7f5f37ea8dae8953532 at 2026-10-03T17:40:27Z, read from GitHub, on the owner's "Open a pr and merge when CI passes", with backup 2026-10-03-02.
+**Next:** -422, then -425.
+**Notes:** Written by the planner by hand, on branch records-after-154.
