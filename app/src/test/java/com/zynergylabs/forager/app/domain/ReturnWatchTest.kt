@@ -16,50 +16,59 @@ import org.junit.Test
 /**
  * [ReturnWatch] on a plain JVM: no Activity, no Service, no Compose tree, no coroutine.
  *
- * ## The first eight tests were moved here, one for one
+ * ## Dispatch 2026-09-28-425 changed the rule these tests drive
  *
- * They were in `TrackRecordingViewModelTest` while the off-track decision lived in the ViewModel
- * (dispatch 2026-09-28-400, Amendment 2, ruling 4). Each keeps its name and its assertions. What
- * changed is how the readings arrive: there, `vm.returnToStart(point)` after a recording was
- * started and a breadcrumb polled; here, [ReturnWatch.onFix] after [ReturnWatch.begin] and
- * [ReturnWatch.setStartPoint], which is how the recording service and the ViewModel drive it.
- * The points, the clock and the expected values are the same. The table that maps old to new is in
- * `docs/navigation/2026-10-02-alerts-in-service-part-2-completion-report.md`.
+ * Off track was three readings' distance to the start rising by 25 m, with a 120 s repeat. It is
+ * now [OffTrackJudge]'s: further from the path walked out than 40 m plus the reading's accuracy,
+ * for 15 s and at least three readings, once per stray. The tests that walked away three readings a
+ * second apart now walk away over 15 s ([walkAway]); the cooldown's tests are replaced by "once per
+ * stray"; and the side-by-side test now holds the watch to a bare [OffTrackJudge] instead of the
+ * retired `DetectOffTrackUseCase`. What each asserted before and after is listed in
+ * `docs/navigation/2026-10-03-off-track-rule-report.md`.
+ *
+ * The path a return is measured against is the start, then the points the service kept before
+ * Return ([ReturnWatch.onKeptPoint]). A test that gives no kept points measures from the start alone.
  */
 class ReturnWatchTest {
 
     /** Every [Alert] the watch handed over, in order. Synchronized: the two-caller test delivers from two threads. */
     private val delivered = java.util.Collections.synchronizedList(mutableListOf<Alert>())
-    private var nowMillis = 1_000L
 
-    private fun watch(clock: CurrentTimeProvider = CurrentTimeProvider { nowMillis }) = ReturnWatch(
+    private fun watch() = ReturnWatch(
         computeReturnToStart = ComputeReturnToStartUseCase(),
-        detectOffTrack = DetectOffTrackUseCase(),
         alertDelivery = { delivered += it },
-        currentTime = clock,
     )
 
     private fun point(lat: Double, lng: Double = -122.0, t: Long) =
         TrackPoint(lat = lat, lng = lng, altitude = null, accuracyMeters = null, timestampEpochMillis = t)
 
-    /** A watch the service has begun for `track-1`, with the start at 45.0: where each moved test's own setup left the ViewModel. */
-    private fun begunWatch(clock: CurrentTimeProvider = CurrentTimeProvider { nowMillis }) = watch(clock).apply {
+    /** A watch the service has begun for `track-1`, with the start at 45.0. */
+    private fun begunWatch() = watch().apply {
         begin("track-1", MODE)
         setStartPoint("track-1", point(lat = 45.0, lng = -122.0, t = 1_000L))
     }
 
-    // ---- The eight moved tests ------------------------------------------------------------------
+    /**
+     * Four readings 111 m apart walking north from the start, 5 s apart from [fromMillis]: off the
+     * path from the first, and gone off at the fourth, 15 s and four readings in.
+     */
+    private fun ReturnWatch.walkAway(fromMillis: Long, fromLat: Double = 45.001) {
+        repeat(4) { i -> onFix(point(lat = fromLat + i * 0.001, t = fromMillis + i * 5_000L)) }
+    }
+
+    /** The walk out, kept by the service: 45.000 to 45.003 north, every 0.0005° (56 m). */
+    private fun ReturnWatch.keptWalkOut() {
+        (0..6).forEach { i -> onKeptPoint(point(lat = 45.0 + i * 0.0005, t = 1_000L + i * 10_000L)) }
+    }
+
+    // ---- Moved from the ViewModel (dispatch -400), retimed for the rule of dispatch -425 ---------
 
     @Test
     fun `moving steadily away from the start while returning sets off-track`() {
         val watch = begunWatch()
         watch.startReturn("track-1")
 
-        // Each step ~111m further north of the start point — well past the 25m/3-reading
-        // net-increase threshold DetectOffTrackUseCase uses.
-        watch.onFix(point(lat = 45.001, lng = -122.0, t = 2_000L))
-        watch.onFix(point(lat = 45.002, lng = -122.0, t = 3_000L))
-        watch.onFix(point(lat = 45.003, lng = -122.0, t = 4_000L))
+        watch.walkAway(fromMillis = 2_000L)
 
         assertTrue(watch.state.value.isOffTrack)
     }
@@ -70,75 +79,75 @@ class ReturnWatchTest {
      */
     @Test
     fun `going off-track delivers exactly one alert, not one per fix`() {
-        val watch = begunWatch(CurrentTimeProvider { 1_000L })
+        val watch = begunWatch()
         watch.startReturn("track-1")
         assertEquals(0, delivered.size)
 
-        watch.onFix(point(lat = 45.001, lng = -122.0, t = 2_000L))
-        watch.onFix(point(lat = 45.002, lng = -122.0, t = 3_000L))
-        watch.onFix(point(lat = 45.003, lng = -122.0, t = 4_000L))
+        watch.walkAway(fromMillis = 2_000L)
         assertTrue(watch.state.value.isOffTrack)
         assertEquals(1, delivered.size)
         // Off-track passes overridesSilence = false (owner ruling 2026-09-11, reversing the
-        // original true) — asserted on the value the
-        // delivery received, since the parameter exists precisely so it is never assumed.
+        // original true) — asserted on the value the delivery received, since the parameter
+        // exists precisely so it is never assumed.
         assertEquals(Alert(kind = AlertKind.OFF_TRACK, overridesSilence = false), delivered.single())
 
-        // Still off-track (net distance keeps increasing) on the very next fix, same clock instant
-        // — the cooldown, not the heuristic, is what must keep this from delivering again immediately.
-        watch.onFix(point(lat = 45.004, lng = -122.0, t = 5_000L))
+        // Still off on the next fix: once per stray, not once per fix.
+        watch.onFix(point(lat = 45.005, t = 22_000L))
         assertEquals(1, delivered.size)
     }
 
+    /** Replaces "a sustained drift alerts again once the cooldown elapses": the owner chose once per stray (dispatch -425, question 2). */
     @Test
-    fun `a sustained drift alerts again once the cooldown elapses`() {
+    fun `a sustained drift alerts once, and not again however long it lasts`() {
         val watch = begunWatch()
         watch.startReturn("track-1")
-
-        watch.onFix(point(lat = 45.001, lng = -122.0, t = 2_000L))
-        watch.onFix(point(lat = 45.002, lng = -122.0, t = 3_000L))
-        watch.onFix(point(lat = 45.003, lng = -122.0, t = 4_000L))
+        watch.walkAway(fromMillis = 2_000L)
         assertEquals(1, delivered.size)
 
-        // Just short of the cooldown: still just the one alert.
-        nowMillis += OFF_TRACK_ALERT_COOLDOWN_MILLIS - 1
-        watch.onFix(point(lat = 45.004, lng = -122.0, t = 5_000L))
+        // Ten more minutes off the path, a reading every 5 s: no reminder.
+        (1..120).forEach { i -> watch.onFix(point(lat = 45.005, t = 17_000L + i * 5_000L)) }
         assertEquals(1, delivered.size)
+        assertTrue(watch.state.value.isOffTrack)
+    }
 
-        // Cooldown elapsed, and the drift continues: a second, real reminder.
-        nowMillis += 1
-        watch.onFix(point(lat = 45.005, lng = -122.0, t = 6_000L))
+    /** New with the rule: back on the path for 10 s re-arms it, and a second stray alerts again. */
+    @Test
+    fun `back on the path for 10 s re-arms the alert for a second stray`() {
+        val watch = begunWatch()
+        watch.keptWalkOut()
+        watch.startReturn("track-1")
+        repeat(4) { i -> watch.onFix(point(lat = 45.0015, lng = -122.0 + 60.0 / 78_620.0, t = 100_000L + i * 5_000L)) }
+        assertEquals(1, delivered.size)
+        repeat(3) { i -> watch.onFix(point(lat = 45.0015, t = 120_000L + i * 5_000L)) }
+        assertFalse("back on for 10 s", watch.state.value.isOffTrack)
+        repeat(4) { i -> watch.onFix(point(lat = 45.0015, lng = -122.0 + 60.0 / 78_620.0, t = 140_000L + i * 5_000L)) }
         assertEquals(2, delivered.size)
     }
 
     @Test
     fun `staying on track never delivers an alert`() {
         val watch = begunWatch()
+        watch.keptWalkOut()
         watch.startReturn("track-1")
 
-        watch.onFix(point(lat = 45.003, lng = -122.0, t = 2_000L))
-        watch.onFix(point(lat = 45.002, lng = -122.0, t = 3_000L))
-        watch.onFix(point(lat = 45.001, lng = -122.0, t = 4_000L))
+        // Back along the path walked out, from its far end.
+        listOf(45.003, 45.0025, 45.002, 45.0015, 45.001).forEachIndexed { i, lat -> watch.onFix(point(lat = lat, t = 100_000L + i * 5_000L)) }
 
         assertEquals(0, delivered.size)
     }
 
+    /** Was "stopReturn resets the cooldown so a later return attempt can alert immediately": there is no cooldown; a new return starts armed. */
     @Test
-    fun `stopReturn resets the cooldown so a later return attempt can alert immediately`() {
-        val watch = begunWatch(CurrentTimeProvider { 1_000L })
+    fun `stopReturn ends the stray, so a later return attempt can alert again`() {
+        val watch = begunWatch()
         watch.startReturn("track-1")
-        watch.onFix(point(lat = 45.001, lng = -122.0, t = 2_000L))
-        watch.onFix(point(lat = 45.002, lng = -122.0, t = 3_000L))
-        watch.onFix(point(lat = 45.003, lng = -122.0, t = 4_000L))
+        watch.walkAway(fromMillis = 2_000L)
         assertEquals(1, delivered.size)
 
         watch.stopReturn("track-1")
         watch.startReturn("track-1")
-        // Same fixed clock instant as the first alert — without the cooldown reset on stopReturn(),
-        // this would be blocked exactly like the immediate-repeat case above.
-        watch.onFix(point(lat = 45.001, lng = -122.0, t = 5_000L))
-        watch.onFix(point(lat = 45.002, lng = -122.0, t = 6_000L))
-        watch.onFix(point(lat = 45.003, lng = -122.0, t = 7_000L))
+        // Still off, straight away: a new return's judge is armed.
+        watch.walkAway(fromMillis = 30_000L)
 
         assertEquals(2, delivered.size)
     }
@@ -146,11 +155,10 @@ class ReturnWatchTest {
     @Test
     fun `moving steadily toward the start while returning stays on track`() {
         val watch = begunWatch()
+        watch.keptWalkOut()
         watch.startReturn("track-1")
 
-        watch.onFix(point(lat = 45.003, lng = -122.0, t = 2_000L))
-        watch.onFix(point(lat = 45.002, lng = -122.0, t = 3_000L))
-        watch.onFix(point(lat = 45.001, lng = -122.0, t = 4_000L))
+        listOf(45.003, 45.002, 45.001).forEachIndexed { i, lat -> watch.onFix(point(lat = lat, t = 100_000L + i * 10_000L)) }
 
         assertFalse(watch.state.value.isOffTrack)
     }
@@ -160,20 +168,17 @@ class ReturnWatchTest {
         val watch = begunWatch()
 
         // No startReturn() call — this is ordinary outbound travel.
-        watch.onFix(point(lat = 45.001, lng = -122.0, t = 2_000L))
-        watch.onFix(point(lat = 45.002, lng = -122.0, t = 3_000L))
-        watch.onFix(point(lat = 45.003, lng = -122.0, t = 4_000L))
+        watch.walkAway(fromMillis = 2_000L)
 
         assertFalse(watch.state.value.isOffTrack)
+        assertEquals(0, delivered.size)
     }
 
     @Test
     fun `stopping the recording clears returning and off-track state`() {
         val watch = begunWatch()
         watch.startReturn("track-1")
-        watch.onFix(point(lat = 45.001, lng = -122.0, t = 2_000L))
-        watch.onFix(point(lat = 45.002, lng = -122.0, t = 3_000L))
-        watch.onFix(point(lat = 45.003, lng = -122.0, t = 4_000L))
+        watch.walkAway(fromMillis = 2_000L)
         assertTrue(watch.state.value.isOffTrack)
 
         watch.end("track-1") // what the service calls when the recording stops
@@ -182,7 +187,55 @@ class ReturnWatchTest {
         assertFalse(watch.state.value.isOffTrack)
     }
 
-    // ---- New with the class ---------------------------------------------------------------------
+    // ---- The path a return is measured against (dispatch -425) ----------------------------------
+
+    /**
+     * The path is the kept points as they stood at Return. Points kept after it (the return leg,
+     * a detour) are recorded, and are not part of what the return is measured against: a detour
+     * stays off the path however far the track follows it.
+     */
+    @Test
+    fun `the path is the points kept before Return, and a detour kept after it is still off the path`() {
+        val watch = begunWatch()
+        watch.keptWalkOut()
+        watch.startReturn("track-1")
+        assertEquals(7, watch.pathPointCount)
+
+        // A detour 100 m east, kept by the service as it is walked, read for 15 s.
+        repeat(4) { i ->
+            val detour = point(lat = 45.0015, lng = -122.0 + 100.0 / 78_620.0, t = 100_000L + i * 5_000L)
+            watch.onKeptPoint(detour)
+            watch.onFix(detour)
+        }
+        assertEquals("still the path at Return", 7, watch.pathPointCount)
+        assertEquals(1, delivered.size)
+    }
+
+    /** The owner's walk: a network reading claiming 400 m accuracy, far from the path, among GPS readings on it. Nothing. */
+    @Test
+    fun `a far network reading among GPS readings on the path does not alert`() {
+        val watch = begunWatch()
+        watch.keptWalkOut()
+        watch.startReturn("track-1")
+        repeat(30) { i ->
+            watch.onFix(point(lat = 45.003 - i * 0.0001, t = 100_000L + i * 1_000L))
+            watch.onFix(TrackPoint(lat = 45.0015, lng = -122.0 + 400.0 / 78_620.0, altitude = null, accuracyMeters = 400f, timestampEpochMillis = 100_000L + i * 1_000L + 567L))
+        }
+        assertEquals(0, delivered.size)
+        assertFalse(watch.state.value.isOffTrack)
+    }
+
+    @Test
+    fun `kept points before the service has begun the watch are not kept`() {
+        val watch = watch()
+        watch.startReturn("track-1")
+        watch.keptWalkOut()
+        watch.begin("track-1", MODE)
+        watch.startReturn("track-1")
+        assertEquals(0, watch.pathPointCount)
+    }
+
+    // ---- New with the class (dispatch -400), retimed for the rule of dispatch -425 --------------
 
     /**
      * Amendment 2, ruling 3: the service begins the watch, and that happens a moment after the
@@ -200,9 +253,7 @@ class ReturnWatchTest {
         watch.begin("track-1", MODE)
         assertTrue("beginning the same track keeps the return", watch.state.value.isReturning)
 
-        watch.onFix(point(lat = 45.001, t = 2_000L))
-        watch.onFix(point(lat = 45.002, t = 3_000L))
-        watch.onFix(point(lat = 45.003, t = 4_000L))
+        watch.walkAway(fromMillis = 2_000L)
         assertEquals("and the early start point was kept too, so the walk away alerts", 1, delivered.size)
     }
 
@@ -239,9 +290,7 @@ class ReturnWatchTest {
         watch.startReturn("track-1")
         watch.setStartPoint("track-1", point(lat = 45.0, t = 1_000L))
 
-        watch.onFix(point(lat = 45.001, t = 2_000L))
-        watch.onFix(point(lat = 45.002, t = 3_000L))
-        watch.onFix(point(lat = 45.003, t = 4_000L))
+        watch.walkAway(fromMillis = 2_000L)
 
         assertEquals(0, delivered.size)
         assertNull(watch.state.value.returnToStart)
@@ -253,9 +302,7 @@ class ReturnWatchTest {
         watch.begin("track-1", MODE)
         watch.startReturn("track-1")
 
-        watch.onFix(point(lat = 45.001, t = 2_000L))
-        watch.onFix(point(lat = 45.002, t = 3_000L))
-        watch.onFix(point(lat = 45.003, t = 4_000L))
+        watch.walkAway(fromMillis = 2_000L)
 
         assertEquals(0, delivered.size)
         assertFalse(watch.state.value.isOffTrack)
@@ -277,23 +324,22 @@ class ReturnWatchTest {
 
     @Test
     fun `ending the recording leaves nothing behind for the next one`() {
-        val watch = begunWatch(CurrentTimeProvider { 1_000L })
+        val watch = begunWatch()
+        watch.keptWalkOut()
         watch.startReturn("track-1")
-        watch.onFix(point(lat = 45.001, t = 2_000L))
-        watch.onFix(point(lat = 45.002, t = 3_000L))
-        watch.onFix(point(lat = 45.003, t = 4_000L))
+        watch.walkAway(fromMillis = 200_000L, fromLat = 45.010)
         assertEquals(1, delivered.size)
 
         watch.end("track-1")
         assertEquals(ReturnWatchState(), watch.state.value)
 
-        // Same clock instant: a cooldown carried over from the first recording would block this.
+        // The first recording's kept points and stray are gone: the second is measured from its own start.
         watch.begin("track-2", MODE)
+        assertEquals(0, watch.pathPointCount)
         watch.setStartPoint("track-2", point(lat = 45.0, t = 5_000L))
         watch.startReturn("track-2")
-        watch.onFix(point(lat = 45.001, t = 6_000L))
-        watch.onFix(point(lat = 45.002, t = 7_000L))
-        watch.onFix(point(lat = 45.003, t = 8_000L))
+        assertEquals(0, watch.pathPointCount)
+        watch.walkAway(fromMillis = 300_000L)
         assertEquals(2, delivered.size)
     }
 
@@ -338,65 +384,58 @@ class ReturnWatchTest {
     }
 
     /**
-     * Amendment 2, ruling 9: the watch keeps only the readings the check reads, where the
-     * ViewModel kept every reading of a return. This runs the old arithmetic beside the new, on
-     * the same readings: the real [DetectOffTrackUseCase] over a list that is never trimmed, with
-     * the same cooldown. 200 random walks of 400 readings, steps large enough to cross the
-     * threshold both ways, with the clock moving so the cooldown opens and closes. Every reading's
-     * "off track now" and every delivery must match.
-     *
-     * It would also catch the check's window growing past what the watch keeps: the untrimmed side
-     * would then see a reading the watch had dropped.
+     * Was "keeping only the readings the check reads decides exactly as keeping every reading did",
+     * which held the watch to the retired `DetectOffTrackUseCase`. Now: the watch decides exactly as
+     * a bare [OffTrackJudge] over the same path and readings, so the lock, the start in front of the
+     * path and the delivery add nothing to the decision and drop none of it. 200 random walks of 400
+     * readings, some on the walk-out path and some off it, some network-stamped, the time moving so
+     * the 15 s hold and the 10 s re-arm both open and close. Every reading's "off track now" and every
+     * delivery must match.
      */
     @Test
-    fun `keeping only the readings the check reads decides exactly as keeping every reading did`() {
-        val random = Random(20261002)
-        val detect = DetectOffTrackUseCase()
+    fun `the watch decides exactly as the judge does, over the same path and readings`() {
+        val random = Random(20261003)
+        val walkOut = (0..6).map { i -> point(lat = 45.0 + i * 0.0005, t = 1_000L + i * 10_000L) }
         repeat(200) { walk ->
             delivered.clear()
-            nowMillis = 1_000L
             val watch = begunWatch()
+            walkOut.forEach(watch::onKeptPoint)
             watch.startReturn("track-1")
+            val judge = OffTrackJudge(listOf(point(lat = 45.0, t = 1_000L)) + walkOut)
 
-            val everyReading = mutableListOf<Double>()
-            var lastAlertAt: Long? = null
             var expectedDeliveries = 0
-            var lat = 45.0
+            var east = 0.0
+            var t = 100_000L
             repeat(400) { step ->
-                lat += random.nextDouble(-0.0003, 0.0003) // up to about 33 m either way per reading
-                nowMillis += random.nextLong(1_000L, 40_000L)
-                val current = point(lat = lat, t = nowMillis)
+                east = (east + random.nextDouble(-25.0, 25.0)).coerceIn(-150.0, 150.0)
+                t += random.nextLong(1, 9) * 1_000L
+                val network = random.nextInt(10) == 0
+                val reading = point(lat = 45.0015, lng = -122.0 + east / 78_620.0, t = if (network) t + 321L else t)
 
-                everyReading += ComputeReturnToStartUseCase()(current, point(lat = 45.0, t = 1_000L)).distanceMeters
-                val expectedOffTrack = detect(everyReading)
-                val last = lastAlertAt
-                if (expectedOffTrack && (last == null || nowMillis - last >= OFF_TRACK_ALERT_COOLDOWN_MILLIS)) {
-                    lastAlertAt = nowMillis
-                    expectedDeliveries++
-                }
+                val verdict = judge.next(reading)
+                if (verdict.alert) expectedDeliveries++
+                watch.onFix(reading)
 
-                watch.onFix(current)
-
-                assertEquals("walk $walk, reading $step: off track now", expectedOffTrack, watch.state.value.isOffTrack)
+                assertEquals("walk $walk, reading $step: off track now", verdict.isOffTrack, watch.state.value.isOffTrack)
                 assertEquals("walk $walk, reading $step: deliveries so far", expectedDeliveries, delivered.size)
             }
             assertTrue("walk $walk never went off track, so it compared nothing", expectedDeliveries > 0)
-            assertEquals("the watch holds only what the check reads", 3, watch.keptReadingCount)
         }
     }
 
     /**
      * Amendment 2, ruling 7: two callers at once. The service feeds fixes on a background thread
      * while the ViewModel calls from the main thread. Here two threads feed the same watch the
-     * same walk away from the start, released together, with the clock fixed so the cooldown can
-     * open only once. One alert is the only right answer: two would mean both threads read "no
-     * alert yet" before either wrote it down. Repeated, because a race does not show every time.
+     * same walk away from the start, released together. One alert is the only right answer: two
+     * would mean both threads read "not alerted yet" before either wrote it down. Repeated, because
+     * a race does not show every time. (Retimed for dispatch -425: the walk is off the path for 15 s
+     * before the threads start, so each reading they feed can be the one that goes off.)
      */
     @Test
     fun `two threads feeding the same walk away deliver one alert, not two`() {
         repeat(300) { round ->
             delivered.clear()
-            val watch = begunWatch(CurrentTimeProvider { 1_000L })
+            val watch = begunWatch()
             watch.startReturn("track-1")
             watch.onFix(point(lat = 45.001, t = 2_000L))
             watch.onFix(point(lat = 45.002, t = 3_000L))
@@ -408,7 +447,7 @@ class ReturnWatchTest {
                 thread {
                     try {
                         together.await()
-                        repeat(50) { i -> watch.onFix(point(lat = 45.003 + (i * 2 + feeder) * 0.001, t = 4_000L + i)) }
+                        repeat(50) { i -> watch.onFix(point(lat = 45.003 + (i * 2 + feeder) * 0.001, t = 17_000L + i * 1_000L)) }
                     } catch (t: Throwable) {
                         failure.compareAndSet(null, t)
                     } finally {
@@ -420,7 +459,6 @@ class ReturnWatchTest {
 
             assertNull("round $round: a feeder threw", failure.get())
             assertEquals("round $round: deliveries", 1, delivered.size)
-            assertEquals("round $round: readings kept", 3, watch.keptReadingCount)
         }
     }
 
@@ -433,7 +471,11 @@ class ReturnWatchTest {
         val feeder = thread {
             try {
                 together.await()
-                repeat(20_000) { i -> watch.onFix(point(lat = 45.0 + (i % 50) * 0.001, t = 2_000L + i)) }
+                repeat(20_000) { i ->
+                    val p = point(lat = 45.0 + (i % 50) * 0.001, t = 2_000L + i * 1_000L)
+                    watch.onKeptPoint(p)
+                    watch.onFix(p)
+                }
             } catch (t: Throwable) {
                 failure.compareAndSet(null, t)
             }
@@ -453,13 +495,10 @@ class ReturnWatchTest {
         watch.stopReturn("track-1")
         assertFalse(watch.state.value.isReturning)
         assertFalse(watch.state.value.isOffTrack)
-        assertEquals("a stopped return keeps no readings", 0, watch.keptReadingCount)
+        assertEquals("a stopped return keeps no path", 0, watch.pathPointCount)
     }
 
     private companion object {
-        /** Mirrors [ReturnWatch]'s own constant, as `TrackRecordingViewModelTest` mirrored the ViewModel's. */
-        const val OFF_TRACK_ALERT_COOLDOWN_MILLIS = 120_000L
-
         /** The mode the service is recording in, in these tests. The decision does not read it; the watch only carries it. */
         val MODE = TrackRecordingMode.HIGH_ACCURACY
     }

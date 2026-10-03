@@ -74,7 +74,6 @@ import com.zynergylabs.forager.app.domain.DeleteMushroomLogEntryUseCase
 import com.zynergylabs.forager.app.domain.DeletePlannedTripUseCase
 import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
-import com.zynergylabs.forager.app.domain.DetectOffTrackUseCase
 import com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository
 import com.zynergylabs.forager.app.domain.EndTrackUseCase
 import com.zynergylabs.forager.app.domain.GetAvailabilityUseCase
@@ -316,7 +315,6 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     )
     val computeTrackStatisticsUseCase = ComputeTrackStatisticsUseCase()
     val computeReturnToStartUseCase = ComputeReturnToStartUseCase()
-    val detectOffTrackUseCase = DetectOffTrackUseCase()
 
     // Alert-delivery dispatch: the one path by which the app interrupts the user, and the
     // trip-start read of whether the device would let it. Built here, at process start, so the
@@ -328,7 +326,7 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     // The off-track decision and its state, held here so they outlive the Activity (dispatch
     // 2026-09-28-400, Amendment 2). TrackRecordingService begins, feeds and ends it;
     // TrackRecordingViewModel calls it for Return and copies its state. See ReturnWatch.
-    val returnWatch = ReturnWatch(computeReturnToStartUseCase, detectOffTrackUseCase, alertDelivery, currentTimeProvider)
+    val returnWatch = ReturnWatch(computeReturnToStartUseCase, alertDelivery)
 
     // Tracks an earlier process left open become finished tracks (dispatch 2026-09-28-400,
     // Amendment 3, Part 3b). The rule is the use case's; AbandonedTrackSweepOnce runs it once per

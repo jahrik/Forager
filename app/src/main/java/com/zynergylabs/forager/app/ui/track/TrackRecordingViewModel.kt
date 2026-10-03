@@ -707,7 +707,7 @@ class TrackRecordingViewModel(
 
     /**
      * Marks the walker as now heading back to the track's start — the only state
-     * [com.zynergylabs.forager.app.domain.DetectOffTrackUseCase] runs against, and, as of navigation HUD stage one, **the only way the
+     * [com.zynergylabs.forager.app.domain.OffTrackJudge] runs against, and, as of navigation HUD stage one, **the only way the
      * HUD appears**: `CompactMapTab` shows the HUD while this is true, targeting
      * [TrackRecordingUiState.originWaypoint]. Stage two's target picker (This Trip / Recents /
      * Nearby) will need a way to navigate *without* returning, so this coupling is stage one's

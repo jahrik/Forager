@@ -639,7 +639,7 @@ fun AvailabilityScreen(
     returnToStart: ReturnToStartInfo? = null,
     /** Whether the walker has said they're heading back — see [com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel.startReturn]'s own doc comment. */
     isReturning: Boolean = false,
-    /** Set once [isReturning] and the live distance back has been trending up rather than down — see `DetectOffTrackUseCase`. */
+    /** Set once [isReturning] and the walker has gone off the path they walked out, until back on it — see `OffTrackJudge` (dispatch 2026-09-28-425). */
     isOffTrack: Boolean = false,
     onToggleReturning: () -> Unit = {},
     /**

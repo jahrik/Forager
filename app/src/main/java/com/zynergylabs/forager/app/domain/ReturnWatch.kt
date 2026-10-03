@@ -35,10 +35,11 @@ data class ReturnWatchState(
 /**
  * Watches a walker on the way back to a recording's start, and delivers the off-track alert.
  *
- * It owns what used to be `TrackRecordingViewModel`'s: the returning flag, the start point, the
- * rolling window of distances, the cooldown, and the one [AlertDelivery.deliver] call. The
- * decision itself is unchanged and is still [DetectOffTrackUseCase]'s, over distances from
- * [ComputeReturnToStartUseCase].
+ * It owns what used to be `TrackRecordingViewModel`'s: the returning flag, the start point and
+ * the one [AlertDelivery.deliver] call. The decision is [OffTrackJudge]'s (dispatch 2026-09-28-425,
+ * plan task T21): the distance from the path walked out, not, as before, three readings' distance
+ * to the start rising. The distance to the start ([ComputeReturnToStartUseCase]) is still measured
+ * and published, for nothing but [ReturnWatchState.returnToStart].
  *
  * ## Why it exists (dispatch 2026-09-28-400, Amendment 2; the owner chose "Option B")
  *
@@ -52,15 +53,17 @@ data class ReturnWatchState(
  * ## Who calls what
  *
  * - **The recording service** calls [begin] when a recording starts, [onFix] for **every raw fix**
- *   its collector receives, and [end] when the recording stops or the service is destroyed.
- *   Nothing else begins it, and nothing else feeds it.
+ *   its collector receives, [onKeptPoint] for every point its sampler keeps for the track, and
+ *   [end] when the recording stops or the service is destroyed. Nothing else begins it, and nothing
+ *   else feeds it.
  * - **The ViewModel** calls [startReturn] and [stopReturn] from the screen's Return control, and
  *   [setStartPoint] whenever the start point it shows changes. It collects [state].
  *
- * **Every raw fix, not the sampled points.** The ViewModel fed the decision every fix its own
- * listener received, about one a second, and "three readings" means three of those. The service's
- * sampler keeps far fewer. Feeding the kept points would change what the window spans, and what
- * off track means is not this class's to change (Amendment 2, ruling 2; plan task T21 owns it).
+ * **Two streams, two uses.** The kept points ([onKeptPoint]) are the track as it is stored, and the
+ * ones kept before Return, behind the start point, are the path a return is measured against: the
+ * track as it stood when Return was tapped, with its not-yet-written tail, so not read back from the
+ * store, which lags by up to 30 s. The raw fixes ([onFix]), about one a second, are the readings the
+ * path is measured from; [OffTrackJudge] skips the network ones itself.
  *
  * ## A return asked for before the service has begun
  *
@@ -74,17 +77,15 @@ data class ReturnWatchState(
  *
  * The service's collector runs on a background thread and the ViewModel on the main thread, so
  * unlike the ViewModel's version this has two writers. Everything the object holds is read and
- * written inside one lock, including the "has the cooldown passed" check and the write that
- * closes it, so two fixes arriving together cannot both decide to alert. [state] is a
+ * written inside one lock, the judge's reading included, so two fixes arriving together cannot
+ * both decide to alert. [state] is a
  * `StateFlow`, which is safe to read from any thread. [AlertDelivery.deliver] is called after the
  * lock is released: it posts a notification and vibrates, and nothing here should wait on that.
  *
  * ## What it keeps
  *
- * Only the readings the check reads. [DetectOffTrackUseCase] looks at the last three, so three are
- * kept. The ViewModel's list grew by one reading per fix for the whole of a return and was never
- * trimmed. `ReturnWatchTest` runs both side by side on the same readings and requires the same
- * answer at every one.
+ * The kept points of the recording it is begun for, which are the stored track: a few thousand at
+ * the four-hour cap. A return snapshots them; a new recording, or the end of this one, drops them.
  *
  * ## Left able to take the sundown alerts, which are not built
  *
@@ -93,10 +94,7 @@ data class ReturnWatchState(
  */
 class ReturnWatch(
     private val computeReturnToStart: ComputeReturnToStartUseCase,
-    private val detectOffTrack: DetectOffTrackUseCase,
     private val alertDelivery: AlertDelivery,
-    /** Injected so a test can fix the cooldown's clock. */
-    private val currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
 ) {
     private val _state = MutableStateFlow(ReturnWatchState())
     val state: StateFlow<ReturnWatchState> = _state.asStateFlow()
@@ -112,15 +110,19 @@ class ReturnWatch(
     private var start: TrackPoint? = null
     private var lastInfo: ReturnToStartInfo? = null
 
-    // Oldest first. Never more than KEPT_READINGS long, and empty whenever no return is under way.
-    private val recentReturnDistancesMeters = ArrayDeque<Double>()
+    // The kept points of the track the watch is for, oldest first: the stored track, tail included.
+    private val keptPoints = mutableListOf<TrackPoint>()
 
-    // When the last off-track alert was delivered. Cleared when a return stops, so a new return
-    // attempt is never blocked by a cooldown left over from an earlier one.
-    private var lastOffTrackAlertAtMillis: Long? = null
+    // The kept points as they stood when Return was tapped: the path the return is measured against.
+    private var pathAtReturn: List<TrackPoint> = emptyList()
 
-    /** How many readings are held right now. For tests: the claim "it keeps only what the check reads" is a number. */
-    internal val keptReadingCount: Int get() = synchronized(lock) { recentReturnDistancesMeters.size }
+    // The return's judge, made at its first measurable fix with the start point in front of the
+    // path: the start can reach the watch a moment after Return does. Null whenever no return is
+    // under way, so a new return starts with a fresh judge, armed.
+    private var judge: OffTrackJudge? = null
+
+    /** How many kept points the path a return is measured against has. For tests. */
+    internal val pathPointCount: Int get() = synchronized(lock) { pathAtReturn.size }
 
     /**
      * The service has started recording [trackId], in [mode]. Anything accepted early for this
@@ -152,22 +154,23 @@ class ReturnWatch(
     /**
      * The walker is now heading back to the start of [trackId]: the only state the off-track
      * check runs in. Returns `false`, changing nothing, if the watch is begun for another track.
-     * A new return starts with an empty window; the cooldown is left as it is, as it always was.
+     * A new return snapshots the kept points as its path and starts with a fresh judge, armed.
      */
     fun startReturn(trackId: String): Boolean = synchronized(lock) {
         if (!holdFor(trackId)) return@synchronized false
-        recentReturnDistancesMeters.clear()
+        pathAtReturn = keptPoints.toList()
+        judge = null
         returning = true
         offTrack = false
         publish()
         true
     }
 
-    /** The return is over, the recording is not. Clears the window and the cooldown. Ignored for a track the watch is not for. */
+    /** The return is over, the recording is not. Drops the path and the judge. Ignored for a track the watch is not for. */
     fun stopReturn(trackId: String) = synchronized(lock) {
         if (trackId != this.trackId) return@synchronized
-        recentReturnDistancesMeters.clear()
-        lastOffTrackAlertAtMillis = null
+        pathAtReturn = emptyList()
+        judge = null
         returning = false
         offTrack = false
         publish()
@@ -184,13 +187,22 @@ class ReturnWatch(
     }
 
     /**
+     * One point the service's sampler kept for the track: what is stored, in the order it is
+     * stored. Only while begun, as [onFix] is.
+     */
+    fun onKeptPoint(point: TrackPoint) = synchronized(lock) {
+        if (!begun) return@synchronized
+        keptPoints += point
+    }
+
+    /**
      * One raw fix from the service's collector. Not a reading until the service has begun the
      * watch, and not measurable until there is a start point.
      *
-     * Every measurable fix updates [ReturnWatchState.returnToStart]. While returning it also joins
-     * the window, [DetectOffTrackUseCase] re-runs, and an [Alert] is delivered if the check reads
-     * off track and [OFF_TRACK_ALERT_COOLDOWN_MILLIS] has passed since the last one. Not
-     * edge-triggered: a drift that lasts keeps reminding once per cooldown, as it always did.
+     * Every measurable fix updates [ReturnWatchState.returnToStart]. While returning it is also
+     * [OffTrackJudge]'s reading, against the start and the path as they stood at Return, and an
+     * [Alert] is delivered on the reading the judge says goes off: once per stray (the owner's
+     * choice), no repeat while it lasts.
      */
     fun onFix(current: TrackPoint) {
         val alert = synchronized(lock) {
@@ -200,13 +212,9 @@ class ReturnWatch(
             lastInfo = info
             var shouldAlert = false
             if (returning) {
-                recentReturnDistancesMeters.addLast(info.distanceMeters)
-                while (recentReturnDistancesMeters.size > KEPT_READINGS) recentReturnDistancesMeters.removeFirst()
-                offTrack = detectOffTrack(recentReturnDistancesMeters)
-                if (offTrack && cooldownHasPassed()) {
-                    lastOffTrackAlertAtMillis = currentTime.nowEpochMillis()
-                    shouldAlert = true
-                }
+                val verdict = (judge ?: OffTrackJudge(listOf(start) + pathAtReturn).also { judge = it }).next(current)
+                offTrack = verdict.isOffTrack
+                shouldAlert = verdict.alert
             }
             publish()
             shouldAlert
@@ -234,13 +242,9 @@ class ReturnWatch(
         offTrack = false
         start = null
         lastInfo = null
-        recentReturnDistancesMeters.clear()
-        lastOffTrackAlertAtMillis = null
-    }
-
-    private fun cooldownHasPassed(): Boolean {
-        val last = lastOffTrackAlertAtMillis ?: return true
-        return currentTime.nowEpochMillis() - last >= OFF_TRACK_ALERT_COOLDOWN_MILLIS
+        keptPoints.clear()
+        pathAtReturn = emptyList()
+        judge = null
     }
 
     /** Call with [lock] held, so the published states are in the order the changes happened. */
@@ -253,24 +257,5 @@ class ReturnWatch(
             isOffTrack = offTrack,
             returnToStart = lastInfo,
         )
-    }
-
-    private companion object {
-        /**
-         * How many readings [DetectOffTrackUseCase] looks at. Its own constant is private, and
-         * that class is not this dispatch's to change, so the number is repeated here.
-         * `ReturnWatchTest`'s side-by-side test fails if the two ever differ.
-         */
-        const val KEPT_READINGS = 3
-
-        /**
-         * Long enough that a forager checking their pocket after one buzz has time to actually
-         * look and self-correct before a second one, short enough that a sustained drift is still
-         * a real, periodic reminder rather than a single easily-missed alert — an adjustable
-         * assumption in the same spirit as [DetectOffTrackUseCase]'s own threshold, not a
-         * data-derived constant (this project has no field data yet on what cooldown a real
-         * forager would actually want). Moved here unchanged from `TrackRecordingViewModel`.
-         */
-        const val OFF_TRACK_ALERT_COOLDOWN_MILLIS = 120_000L
     }
 }
