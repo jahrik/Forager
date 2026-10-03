@@ -10828,3 +10828,14 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **What the planner read, so the direction can be planned honestly:** the online basemaps (Street, Topo, Satellite) are raster images (`tile.openstreetmap.org`, `a.tile.opentopomap.org`, the USGS imagery server), which the app draws but cannot read trails from. The offline maps are Protomaps vector tiles served from Forager's own Worker (`docs/plans/own-map-tiles.md`), which carry path lines but are simplified and cut at tile edges, and are not a routable network. Navigating along trails needs trail data the app can read, with its junctions, held offline: a decision of its own, not yet made.
 **Not decided:** the data source, the engine, coverage where trails are missing, and where it sits in the roadmap. No dispatch.
 **Notes:** Written by the planner by hand, on branch dispatch-439.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-443
+**Timestamp:** 2026-10-03T21:15:00Z
+**Continues:** 2026-09-28-442
+**The owner, verbatim:** "Agreed. Run some research agents to see if we can get a comprehensive trail dataset so that we can use them for navigation. When a user moves off trail, which they often would do to score a find, then default to the user's own trail marks, and have a way to guide the user safely back to the trail to resume navigating."
+**Done:** three research agents started by the planner, on the web only, no patents: (1) trail datasets for the US, their licences, coverage, routability and size; (2) open-source offline routing engines for Android; (3) how to guide a walker who left the trail back to it safely, and when to switch between trail navigation and the walker's own track. Their findings go into one research report under `docs/navigation/`, for the owner.
+**Not decided:** everything the research informs. No dispatch.
+**Notes:** Written by the planner by hand, on branch dispatch-439.
