@@ -222,6 +222,68 @@ data class MapCompass(
 /** See [MapCompass]. `null` outside `AvailabilityScreen`: such a map keeps MapLibre's own compass. */
 val LocalMapCompass = staticCompositionLocalOf<MapCompass?> { null }
 
+/**
+ * Nudge protection while navigating (dispatch 2026-09-28-457, Part C; the owner: "Small nudge snaps
+ * back", "about a finger's width"): a one-finger drag shorter than this leaves the camera following;
+ * only a longer, deliberate drag leaves the view. A fingertip's contact is about 7 to 10 mm, close to
+ * Android's 48 dp touch target, so 48 dp. Provisional. MapLibre's own default is 25 dp.
+ */
+const val NAVIGATION_NUDGE_THRESHOLD_DP = 48f
+
+/**
+ * How far two fingers must move together before following ends while navigating (Part B): above any
+ * pinch's drift, so a pinch zooms and keeps following. MapLibre's own default for this option, 400 dp,
+ * stated here so it is a choice, not an accident.
+ */
+const val NAVIGATION_MULTI_FINGER_MOVE_THRESHOLD_DP = 400f
+
+/**
+ * The start zoom's timing, apart from MapLibre so it can be tested (dispatch 2026-09-28-457, Part A).
+ *
+ * Seen on the owner's walk and at the desk (the `ForagerNavView` and `Mbgl-LocationComponent` lines in
+ * the report): the navigation effect re-runs within milliseconds of Return, while the first mode
+ * transition is still running. A second request for the same mode made MapLibre call the transition
+ * listener at once, so the zoom (with the tilt and padding) was issued mid-transition and refused, and
+ * the refusal cleared the pending flag; the first transition then finished without it.
+ *
+ * So: a request for the mode a transition of ours is already heading to waits for that transition
+ * instead of being re-sent; the wanted start zoom is held, and handed out only by the listener of the
+ * transition actually in flight, when it really finishes. A listener superseded by a newer request
+ * hands out nothing, and the zoom stays held for the newer one.
+ */
+class StartZoomGate {
+    private var generation = 0
+    private var inFlight: Int? = null
+    private var wanted: Double? = null
+
+    /** A view is asked for. Returns the generation to give its transition listener, or `null` to wait for the transition already heading to the same mode. */
+    fun request(sameModeAsInFlight: Boolean, startZoom: Double?): Int? {
+        if (startZoom != null) wanted = startZoom
+        if (inFlight != null && sameModeAsInFlight) return null
+        generation++
+        inFlight = generation
+        return generation
+    }
+
+    /** The transition for [generation] has finished. Returns the start zoom to apply now, if this is the transition in flight and one is held. */
+    fun finished(generation: Int): Double? {
+        if (inFlight != generation) return null
+        inFlight = null
+        return wanted.also { wanted = null }
+    }
+
+    /** The transition for [generation] was cancelled: nothing is applied, and the zoom stays held. */
+    fun cancelled(generation: Int) {
+        if (inFlight == generation) inFlight = null
+    }
+
+    /** Navigation has stopped. */
+    fun reset() {
+        inFlight = null
+        wanted = null
+    }
+}
+
 /** The log tag the navigation view's camera lines go under (read on the device check). */
 const val NAVIGATION_VIEW_LOG_TAG = "ForagerNavView"
 
@@ -255,6 +317,12 @@ class NavigationModeChange {
     var active = false
         private set
 
+    private val startZoomGate = StartZoomGate()
+    private var onStartZoomAppliedHeld: () -> Unit = {}
+
+    /** Whether the location component holds the navigating options (nudge protection on). Reset by every activation, which applies the ordinary ones. */
+    var gestureProtection = false
+
     /** Runs [block], an app-made change of camera mode, so the listener does not read it as the user's. */
     fun byTheApp(block: () -> Unit) {
         appChanging = true
@@ -274,6 +342,8 @@ class NavigationModeChange {
             override fun onCameraTrackingDismissed() = Unit
 
             override fun onCameraTrackingChanged(currentMode: Int) {
+                // Dispatch -457: every tracking-mode change, for reading on the phone (a pinch that ends following, in particular).
+                Log.i(NAVIGATION_VIEW_LOG_TAG, "tracking changed to $currentMode: expected=$expected, byTheApp=$appChanging, navigating=${view() != null}")
                 if (appChanging) return
                 val wanted = expected ?: return
                 if (currentMode == wanted) return
@@ -305,24 +375,42 @@ class NavigationModeChange {
             NavigationFacing.CALIBRATING -> CameraMode.TRACKING
             NavigationFacing.NORTH_UP -> CameraMode.TRACKING_GPS_NORTH
         }
+        Log.i(NAVIGATION_VIEW_LOG_TAG, "apply view: $facing, start zoom ${startZoom ?: "none"}, mode now ${map.locationComponent.cameraMode}, asking $mode")
+        if (startZoom != null) onStartZoomAppliedHeld = onStartZoomApplied
+        val generation = startZoomGate.request(sameModeAsInFlight = expected == mode, startZoom = startZoom)
+        if (generation == null) {
+            Log.i(NAVIGATION_VIEW_LOG_TAG, "apply view: a transition to $mode is in flight; waiting for it")
+            return
+        }
         expected = mode
         active = true
         val component = map.locationComponent
         val then = object : OnLocationCameraTransitionListener {
             override fun onLocationCameraTransitionFinished(cameraMode: Int) {
+                val zoom = startZoomGate.finished(generation)
                 if (expected != mode) return
                 component.tiltWhileTracking(NAVIGATION_VIEW_TILT_DEGREES, NAVIGATION_VIEW_TRANSITION_MILLIS)
                 // Dispatch -440: the start zoom, once per navigation, here for the same reason as the
                 // tilt and padding (zoomWhileTracking is refused while a mode transition runs). Reported
                 // applied when its animation ends, so the request does not change mid-animation.
-                if (startZoom != null) {
+                if (zoom != null) {
+                    val applied = onStartZoomAppliedHeld
+                    Log.i(NAVIGATION_VIEW_LOG_TAG, "start zoom requested: $zoom")
                     component.zoomWhileTracking(
-                        startZoom,
+                        zoom,
                         NAVIGATION_VIEW_TRANSITION_MILLIS,
                         object : MapLibreMap.CancelableCallback {
-                            override fun onFinish() = onStartZoomApplied()
+                            override fun onFinish() {
+                                logCamera(map, "start zoom finished")
+                                applied()
+                            }
 
-                            override fun onCancel() = onStartZoomApplied()
+                            // Issued only once nothing is transitioning, so a cancel here is a gesture
+                            // taking over: the walker's own zoom, as the owner chose for a pinch.
+                            override fun onCancel() {
+                                logCamera(map, "start zoom cancelled")
+                                applied()
+                            }
                         },
                     )
                 }
@@ -337,7 +425,7 @@ class NavigationModeChange {
                 )
             }
 
-            override fun onLocationCameraTransitionCanceled(cameraMode: Int) = Unit
+            override fun onLocationCameraTransitionCanceled(cameraMode: Int) = startZoomGate.cancelled(generation)
         }
         byTheApp { component.setCameraMode(mode, NAVIGATION_VIEW_TRANSITION_MILLIS, null, null, NAVIGATION_VIEW_TILT_DEGREES, then) }
     }
@@ -359,6 +447,7 @@ class NavigationModeChange {
     fun leaveNavigation(map: MapLibreMap, maxZoom: Double = Double.MAX_VALUE) {
         expected = null
         active = false
+        startZoomGate.reset()
         val component = map.locationComponent
         val wasFollowing = component.cameraMode != CameraMode.NONE
         if (wasFollowing) byTheApp { component.cameraMode = CameraMode.NONE }

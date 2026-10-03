@@ -787,6 +787,7 @@ fun SightingsMap(
                     activateLiveLocationIfPermitted(map, style, context, restoreCameraMode = cameraRestore?.cameraMode ?: previousCameraMode, compassEngine = appCompassEngine)
                 }
                 navigationModeChange.listenTo(map) { currentNavigationView }
+                navigationModeChange.gestureProtection = false
             }
         }
     }
@@ -1008,6 +1009,7 @@ fun SightingsMap(
         } else {
             navigationModeChange.byTheApp { activateLiveLocationIfPermitted(map, style, context, compassEngine = appCompassEngine) }
             navigationModeChange.listenTo(map) { currentNavigationView }
+            navigationModeChange.gestureProtection = false
         }
     }
 
@@ -1026,11 +1028,21 @@ fun SightingsMap(
         if (!component.isLocationComponentActivated) return@LaunchedEffect
         val view = navigationView
         if (view == null) {
+            if (navigationModeChange.gestureProtection) {
+                component.applyStyle(liveLocationComponentOptions(context))
+                navigationModeChange.gestureProtection = false
+            }
             if (navigationModeChange.active) {
                 cameraMoveClassifier.markAppMove()
                 navigationModeChange.leaveNavigation(map, navigationMaxZoom(basemap, navigating = false))
             }
             return@LaunchedEffect
+        }
+        // Dispatch -457, Parts B and C: nudge and pinch protection, on while navigating. Every
+        // activation (a style load, locate) applies the ordinary options and resets this.
+        if (!navigationModeChange.gestureProtection) {
+            component.applyStyle(liveLocationComponentOptions(context, navigating = true))
+            navigationModeChange.gestureProtection = true
         }
         // Dispatch -440, Amendment 1: the camera may reach the start zoom on every basemap while
         // navigating. Set on every run, since a style load (line above, setMaxZoomPreference) puts
@@ -1588,8 +1600,22 @@ internal fun locationIndicatorTrackingAnimationMultiplier(): Float =
  * options are unit-testable: `LocationComponentOptions` is a plain value class, unlike the
  * native-backed `Style` the activation itself needs.
  */
-internal fun liveLocationComponentOptions(context: Context): LocationComponentOptions =
+internal fun liveLocationComponentOptions(context: Context, navigating: Boolean = false): LocationComponentOptions =
     LocationComponentOptions.builder(context)
+        // Dispatch 2026-09-28-457, Parts B and C: while navigating, MapLibre's own tracking-gesture
+        // management (off by default, 13.5.0) raises the move thresholds while following: a one-finger
+        // drag must pass NAVIGATION_NUDGE_THRESHOLD_DP and a two-finger movement
+        // NAVIGATION_MULTI_FINGER_MOVE_THRESHOLD_DP before tracking ends. Seen at the desk without it:
+        // a pinch's second finger, then about 0.1 to 0.2 s later "tracking changed to 8" by the library,
+        // and a one-finger nudge the same within 40 ms. Off outside navigation, so the map there is unchanged.
+        .trackingGesturesManagement(navigating)
+        .apply {
+            if (navigating) {
+                val density = context.resources.displayMetrics.density
+                trackingInitialMoveThreshold(NAVIGATION_NUDGE_THRESHOLD_DP * density)
+                trackingMultiFingerMoveThreshold(NAVIGATION_MULTI_FINGER_MOVE_THRESHOLD_DP * density)
+            }
+        }
         // Duration ratio, not an absolute value: see locationIndicatorTrackingAnimationMultiplier()
         // above — its base (750ms) came from javap-inspecting the pinned MapLibre artifact, not
         // public API or documentation, so it can silently go stale on a MapLibre version bump.
