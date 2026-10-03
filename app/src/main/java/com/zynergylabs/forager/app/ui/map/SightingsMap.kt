@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -98,6 +99,7 @@ import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng as MapLibreLatLng
 import org.maplibre.android.geometry.LatLngBounds
+import org.maplibre.android.location.CompassEngine
 import org.maplibre.android.location.LocationComponentActivationOptions
 import org.maplibre.android.location.LocationComponentOptions
 import org.maplibre.android.location.modes.CameraMode
@@ -291,6 +293,10 @@ fun SightingsMap(
     returnMemory: MapReturnMemory? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.backEnabled]'s own doc comment. */
     backEnabled: Boolean = true,
+    /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.navigationView]'s own doc comment. */
+    navigationView: NavigationViewRequest? = null,
+    /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.trueHeading]'s own doc comment. */
+    trueHeading: State<TrueHeadingReading>? = null,
 ) {
     val context = LocalContext.current
 
@@ -314,6 +320,25 @@ fun SightingsMap(
     val currentOnLongPress by rememberUpdatedState(onLongPress)
     val currentOnCameraIdle by rememberUpdatedState(onCameraIdle)
     val currentOnUserCameraGesture by rememberUpdatedState(onUserCameraGesture)
+    val currentNavigationView by rememberUpdatedState(navigationView)
+    // Ruling A (continuation 2026-09-28-432): the puck, and a facing-up map, take the app's own true
+    // heading, not MapLibre's magnetic one. The heading handed in, else one made here from the
+    // screen's compass (LocalMapCompass), else none, and MapLibre's own engine stays. Which applies
+    // is fixed for a map's life: a map is given a heading or a compass from the start, or neither.
+    val mapCompass = LocalMapCompass.current
+    val headingSource: State<TrueHeadingReading>? = trueHeading
+        ?: mapCompass?.let { rememberTrueHeading(it.compassProvider, it.computeTrueHeading, it.liveFix) }
+    val appCompassEngine = remember(headingSource != null) { if (headingSource != null) TrueHeadingCompassEngine() else null }
+    LaunchedEffect(appCompassEngine, headingSource) {
+        val engine = appCompassEngine ?: return@LaunchedEffect
+        val source = headingSource ?: return@LaunchedEffect
+        snapshotFlow { source.value }.collect { engine.update(it) }
+    }
+    // The navigation view's own camera mode changes, marked so the tracking listener below does not
+    // read them as the user moving away from the view; and the mode the view last asked for.
+    val navigationModeChange = remember { NavigationModeChange() }
+    // The map's height, for the padding that puts the walker below the centre; recomputed on resize (fullscreen, rotation).
+    var navigationMapHeightPx by remember { mutableIntStateOf(0) }
     val currentOnFeatureTap by rememberUpdatedState(onFeatureTap)
     val currentOnCloseBubble by rememberUpdatedState(onCloseBubble)
     // Read by the click listener (the draw order the tap precedence ranks against) and by each
@@ -566,6 +591,12 @@ fun SightingsMap(
             // Only a touch counts: REASON_API_GESTURE is dispatched from MapGestureDetector's
             // listeners alone, every programmatic move from Transform as REASON_API_ANIMATION —
             // see MapRenderMode.onUserCameraGesture's doc comment for the javap check.
+            // Dispatch 2026-09-28-430, ruling C: while navigating the map turns with the compass and
+            // rarely rests, so a shown bubble is kept on its glyph on every camera move, not only at
+            // idle. Outside navigation it is re-anchored at idle as before.
+            map.addOnCameraMoveListener {
+                if (currentNavigationView != null) reanchorFocusedBubble(map)
+            }
             map.addOnCameraMoveStartedListener { reason ->
                 // A fanned stack folds on a camera move the user made or asked for, a gesture or the app's own; it stays open when the map re-centres
                 // itself while it follows the location (dispatch 2026-09-28-380: the user did not mean that move, and the fan travels with the map).
@@ -752,7 +783,10 @@ fun SightingsMap(
             // the camera for the device's current location at all.
             if (trackLiveLocation) {
                 cameraMoveClassifier.markAppMove() // activating (or re-activating, after a style swap) sets the camera mode and may ease the zoom
-                activateLiveLocationIfPermitted(map, style, context, restoreCameraMode = cameraRestore?.cameraMode ?: previousCameraMode)
+                navigationModeChange.byTheApp {
+                    activateLiveLocationIfPermitted(map, style, context, restoreCameraMode = cameraRestore?.cameraMode ?: previousCameraMode, compassEngine = appCompassEngine)
+                }
+                navigationModeChange.listenTo(map) { currentNavigationView }
             }
         }
     }
@@ -972,8 +1006,35 @@ fun SightingsMap(
         if (map.locationComponent.isLocationComponentActivated) {
             map.locationComponent.cameraMode = CameraMode.TRACKING
         } else {
-            activateLiveLocationIfPermitted(map, style, context)
+            navigationModeChange.byTheApp { activateLiveLocationIfPermitted(map, style, context, compassEngine = appCompassEngine) }
+            navigationModeChange.listenTo(map) { currentNavigationView }
         }
+    }
+
+    // Dispatch 2026-09-28-430 (plan task T22): the navigation view. Applied while navigating and
+    // following: on Return, on "Return to Route" or locate (restoreRequestId), when the facing
+    // changes (a stuck compass), after a style load or a tab's camera restore (loadedStyle), and when
+    // the map's height changes (the padding that puts the walker below the centre). Not while the
+    // user has moved away from it: the camera stays where they put it. When navigation stops, the
+    // map goes back to flat and north-up, still following if it was. Everything here is the SDK's
+    // tracking API, not a camera move: an API camera move ends MapLibre's tracking. What MapLibre
+    // then draws is device-only: a real MapView cannot run under Robolectric.
+    LaunchedEffect(mapLibreMap, loadedStyle, navigationView != null, navigationView?.following, navigationView?.facing, navigationView?.restoreRequestId, navigationMapHeightPx) {
+        val map = mapLibreMap ?: return@LaunchedEffect
+        if (loadedStyle == null || !trackLiveLocation) return@LaunchedEffect
+        val component = map.locationComponent
+        if (!component.isLocationComponentActivated) return@LaunchedEffect
+        val view = navigationView
+        if (view == null) {
+            if (navigationModeChange.active) {
+                cameraMoveClassifier.markAppMove()
+                navigationModeChange.leaveNavigation(map)
+            }
+            return@LaunchedEffect
+        }
+        if (!view.following) return@LaunchedEffect
+        cameraMoveClassifier.markAppMove()
+        navigationModeChange.applyView(map, view.facing, navigationViewTopPaddingPx(navigationMapHeightPx))
     }
 
     // Part 1 layout fixes, item 5 (Part 1's device check, flag 3; planner message 2026-09-28-98): MapLibre's
@@ -1019,9 +1080,21 @@ fun SightingsMap(
     // disabled above (see the DisposableEffect(mapView) block's own comment), so this is the only
     // way to straighten the map back to north once a rotate gesture has turned it. easeCamera, not
     // an instant jump, matching this map's other camera moves; bearing only, not target or zoom.
+    // Ruling D (continuation 2026-09-28-432): while navigating and following, a tap here is a move
+    // away from the view: north-up, still following, and "Return to Route" shown. The first run
+    // (this map's own creation) is not a tap, and keeps its old behaviour.
+    val lastResetOrientationRequestId = remember { intArrayOf(resetOrientationRequestId) }
     LaunchedEffect(resetOrientationRequestId) {
         val map = mapLibreMap ?: return@LaunchedEffect
         cameraMoveClassifier.markAppMove()
+        val tapped = resetOrientationRequestId != lastResetOrientationRequestId[0]
+        lastResetOrientationRequestId[0] = resetOrientationRequestId
+        val view = currentNavigationView
+        if (tapped && view != null && view.following && map.locationComponent.isLocationComponentActivated) {
+            navigationModeChange.northUpKeepingFollow(map)
+            view.onLeftView()
+            return@LaunchedEffect
+        }
         map.easeCamera(CameraUpdateFactory.bearingTo(0.0))
     }
 
@@ -1075,7 +1148,10 @@ fun SightingsMap(
                 // After the view's own layout has taken the new size (the post), so the projection is the new
                 // one; a no-op while no map is ready or nothing is focused.
                 .trackMapFanSpace(fanSpace)
-                .onSizeChanged { mapSizePx = it }
+                .onSizeChanged {
+                    mapSizePx = it
+                    navigationMapHeightPx = it.height
+                }
                 .onViewportResized { mapView.post { mapLibreMap?.let(::reanchorFocusedBubble) } },
         )
         // The always-visible attribution line CopyrightOverlay used to draw directly onto the
@@ -1580,6 +1656,8 @@ private fun activateLiveLocationIfPermitted(
     // javap output -- a final class of `int` constants, not a real Kotlin type), so this and
     // LocationComponent's own cameraMode property are both plain Int, not CameraMode.
     restoreCameraMode: Int? = null,
+    // Ruling A (continuation 2026-09-28-432): the app's true-heading engine, when the map has one.
+    compassEngine: CompassEngine? = null,
 ) {
     if (!hasLocationPermission(context)) return
     val locationComponent = map.locationComponent
@@ -1592,6 +1670,7 @@ private fun activateLiveLocationIfPermitted(
             .build(),
     )
     locationComponent.isLocationComponentEnabled = true
+    compassEngine?.let { locationComponent.compassEngine = it }
     // COMPASS, not NORMAL: the puck itself points the device's own heading, the same live sensor
     // the compass strip's heading text already reads — matching, not duplicating, that readout.
     locationComponent.renderMode = RenderMode.COMPASS
