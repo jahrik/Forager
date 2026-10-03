@@ -11074,3 +11074,17 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Observed:** the survey's three agents reported; the planner filed `docs/plans/2026-10-03-own-tiles-survey.md` with its two index rows. In short: the tile server is one hand-made extract of 2026-08-19 (8.8 GB) with no refresh, no rate limiting, and zoom 15 fetched live from Protomaps' public host; the labelled style was never committed; the night recolour covers no text; trails need Forager's own build with a modified profile; Cloudflare costs are about $0 to $7 a month at 1,000 to 10,000 users; the Raspberry Pi 5 can build Oregon and Washington easily and plausibly the US basemap, and as serving origin would still need R2 as a fallback. Six premises of `docs/plans/own-map-tiles.md` are wrong.
 **Open for the owner:** the seven decisions at the end of the survey.
 **Notes:** Written by the planner by hand, on branch records-after-160.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-465
+**Timestamp:** 2026-10-04T00:10:00Z
+**Closes:** 2026-09-28-451 (preserved 2026-10-03-08, with the ruling of -462)
+**Outcome:** completed
+**Observed:** on branch return-record at 7f86b715, main (bdb27f03) merged in at 8db6eb3c, not merged; report `docs/navigation/2026-10-03-return-record-report.md` with its two index rows. A plain file, `filesDir/return-record.log`, 512 KB with the oldest half dropped beyond it, no positions, written by ReturnWatch through a domain-owned `ReturnRecord` interface: Return taken, refused (naming the watched recording), ended (by the walker, recording stopped, service destroyed), went off track and re-armed (each with its reading's time), and the alert's delivery outcome. Per -462, `AndroidAlertDelivery.deliverReporting` posts and vibrates each in its own try: a denial reports "POST_NOTIFICATIONS denied", an exception is logged under `AlertDelivery` and reported by class name, and the fix collection goes on. The catch covers all three alert kinds; only off-track outcomes are recorded. 15 new tests in 3 new classes, no existing test file changed; 14 revert checks; full suite on the merge 430 classes, 3,537 tests, 0 failures, 24 skipped (3,522 + 15).
+**What the planner checked itself:** the app diff, read; both full-suite XMLs re-counted as reported; revert.sh restores from a saved copy; all 14 revert checks with 0 compile errors and failures of their own.
+**Flag, not a fault:** a Return tap writes its line from the main thread (a small file append); harmless at this size, noted for the record.
+**Device-only:** the file on the phone, read with `adb shell run-as com.zynergylabs.forager.app cat files/return-record.log`.
+**Next:** on the owner's word, a pull request; then -463.
+**Notes:** Written by the planner by hand, on branch records-after-160.
