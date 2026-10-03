@@ -244,3 +244,15 @@ Appended by the planner. Nothing above is changed. Recorded in `RECORD.md` decis
 - Verify: the rule run over recorded walks, stating the sample: it alerts where the walker did stray and stays quiet where they did not.
 - Device-only: yes. A real walk, in both directions.
 - Not decided here: whether the rule replaces today's check or the way-back route's off-route state takes its place.
+
+## Addendum, 2026-10-03 (UTC): open items 1 and 3 answered, and T18 and T6 started
+
+Appended by the planner. Nothing above is changed. Recorded in `RECORD.md` decision 2026-09-28-421.
+
+Put to the owner as choices on 2026-10-03 and answered with the planner's recommendation each time:
+- **Open item 1, T3, where the sundown countdown sits:** "Strip, then HUD": in the top strip while recording, and inside the HUD once Return is tapped. Not one combined strip.
+- **Open item 3, T8 and T9, navigating to a waypoint:** offered from the waypoint's bubble, its details sheet and its row in Records; it works **without a recording running**; Back from the navigating HUD **stops navigating**, one step at a time as Back does elsewhere in the app.
+- **T18, the coordinate format:** remembered across tab changes. Started as dispatch 2026-09-28-422.
+- **T6, the HUD follows the route:** started as dispatch 2026-09-28-423, after T18.
+
+Still open: item 5 (the check-in timer's step path) and the audit's decisions under item 7 that wait on Stages G and J.
