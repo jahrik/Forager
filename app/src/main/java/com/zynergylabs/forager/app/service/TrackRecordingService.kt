@@ -142,6 +142,9 @@ class TrackRecordingService : Service() {
                             container.returnWatch.onFix(candidate)
                             if (sampler.shouldAccept(lastAccepted, candidate)) {
                                 lastAccepted = candidate
+                                // Dispatch 2026-09-28-425: the kept point to the watch too, which
+                                // measures a return against the track as it stood at Return.
+                                container.returnWatch.onKeptPoint(candidate)
                                 val shouldFlush = bufferMutex.withLock {
                                     pendingPoints += candidate
                                     pendingPoints.size >= FLUSH_BATCH_SIZE

@@ -15,7 +15,6 @@ import com.zynergylabs.forager.app.domain.CreateWaypointUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
-import com.zynergylabs.forager.app.domain.DetectOffTrackUseCase
 import com.zynergylabs.forager.app.domain.EndAbandonedTracksUseCase
 import com.zynergylabs.forager.app.domain.GetTrackOriginWaypointUseCase
 import com.zynergylabs.forager.app.domain.GetTracksUseCase
@@ -129,7 +128,7 @@ class TrackRecordingSwipeAwayTest {
 
     /** What the phone's silence state is when a ViewModel reads it at Record. Silenced makes the trip-start warning. */
     private var ringerMode = RingerMode.NORMAL
-    private val returnWatch = ReturnWatch(ComputeReturnToStartUseCase(), DetectOffTrackUseCase(), { delivered += it }, clock)
+    private val returnWatch = ReturnWatch(ComputeReturnToStartUseCase(), { delivered += it })
 
     /**
      * The process's one sweep of tracks left open by an earlier process, as the container holds
@@ -288,7 +287,8 @@ class TrackRecordingSwipeAwayTest {
         assertTrue("and the screen says so without waiting", vm.uiState.value.isReturning)
 
         // To the watch only, as the service feeds it. Nothing is emitted on the ViewModel's own stream.
-        listOf(45.001 to 7_000L, 45.002 to 12_000L, 45.003 to 17_000L).forEach { (lat, t) ->
+        // Dispatch 2026-09-28-425: four readings over 15 s (was three over 10 s), the new rule's hold.
+        listOf(45.001 to 7_000L, 45.002 to 12_000L, 45.003 to 17_000L, 45.004 to 22_000L).forEach { (lat, t) ->
             returnWatch.onFix(TrackPoint(lat, -122.0, null, 5f, t))
         }
         runCurrent()

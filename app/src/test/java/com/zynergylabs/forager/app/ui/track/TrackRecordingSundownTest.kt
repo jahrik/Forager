@@ -8,7 +8,6 @@ import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
 import com.zynergylabs.forager.app.domain.InMemoryKeptTrackPaths
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
-import com.zynergylabs.forager.app.domain.DetectOffTrackUseCase
 import com.zynergylabs.forager.app.domain.ReturnWatch
 import com.zynergylabs.forager.app.domain.AbandonedTrackSweepOnce
 import com.zynergylabs.forager.app.domain.EndAbandonedTracksUseCase
@@ -134,7 +133,7 @@ class TrackRecordingSundownTest {
             computeReturnToStart = ComputeReturnToStartUseCase(),
             locationTracker = tracker,
             getTracks = GetTracksUseCase(repository),
-            returnWatch = ReturnWatch(ComputeReturnToStartUseCase(), DetectOffTrackUseCase(), AlertDelivery { }),
+            returnWatch = ReturnWatch(ComputeReturnToStartUseCase(), AlertDelivery { }),
             alertAudibility = object : AlertAudibility { override fun current() = AlertAudibilityState(RingerMode.NORMAL, doNotDisturbOn = false, notificationsEnabled = true) },
             currentTime = clock,
             zone = ZoneOffset.UTC,
