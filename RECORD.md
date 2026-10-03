@@ -10658,3 +10658,16 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **So:** dragging the map stops it following; a "Return to Route" button appears when the walker pans away and brings back the navigation view (in place of the planner's locate-button suggestion); when the compass is stuck, a notice first says it is calculating, the app retries, and only then does the map fall back to north-up.
 **Not yet decided:** how long the retry lasts before the fall-back, and how "stuck" is told apart (the compass-reliability work already reads the sensor's own accuracy reports); the coder reports what exists first. The step path is put back to the owner before dispatch.
 **Notes:** Written by the planner by hand, on branch records-after-153, pushed and not merged.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-430
+**Timestamp:** 2026-10-03T17:09:37Z
+**Title:** navigation-view: the map's navigation camera view while navigating (plan task T22)
+**Dispatch-file:** preserved/2026-10-03-04.md; to the coder window, straight after -423
+**The owner, verbatim,** to the full step path the planner put back (recorded in -427 to -429): "Go on T22".
+**Change:** while returning, the map tilts about 45°, turns to the direction faced by the compass, places the walker below centre and follows; a drag stops following and shows "Return to Route", which restores the view; a stuck compass shows "Compass calibrating…", retries about 15 s, then falls back to north-up and returns to facing-up on recovery; Stop navigating restores the flat north-up map. The figures and the notice's wording are the planner's, provisional.
+**Scope boundary:** the map outside navigation, the HUD's content, RouteHome, the off-track alert, the recording service and the fan's behaviour are not changed. Navigating to a waypoint (T8) is not built.
+**Finish line:** the report-first message, the build, tests, revert checks, the full suite, a desk step on the S22, the report, the hand-back. The walk is the owner's.
+**Queue after it:** -422 (the coordinate format) and -425 (the new off-track rule).
