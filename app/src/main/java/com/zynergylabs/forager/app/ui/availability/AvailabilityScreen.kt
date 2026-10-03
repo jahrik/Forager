@@ -874,6 +874,12 @@ fun AvailabilityScreen(
     // pending deletes left out (planner's ruling on Q7). The legend's expanded flag is held here, above
     // the tab, so it survives leaving the Maps tab and coming back (CLAUDE.md, UX defaults).
     var mapLegendExpanded by rememberSaveable { mutableStateOf(false) }
+    // Dispatch 2026-09-28-422 (plan task T18): the coordinate format, MGRS or decimal degrees, held
+    // here above the tab like the legend's flag, so a format chosen on the Maps tab is the format it
+    // shows after leaving the tab and coming back (CLAUDE.md, UX defaults). It was the Maps tab's own
+    // `remember`, which leaves composition with the tab, so it reset. Held for the session only,
+    // not across a restart (not asked for).
+    var showDecimalDegrees by rememberSaveable { mutableStateOf(false) }
     // Dispatch 2026-09-28-430 (plan task T22): whether the user has moved the map away from the
     // navigation view, and the "Return to Route" requests, held here above the tab so that leaving
     // the Maps tab and coming back keeps them (CLAUDE.md, UX defaults; the legend's flag above is
@@ -1370,6 +1376,8 @@ fun AvailabilityScreen(
             navigationTarget = navigationTarget,
             returnRoute = returnRoute,
             onRetryRoute = onRetryRoute,
+            showDecimalDegrees = showDecimalDegrees,
+            onToggleCoordinateFormat = { showDecimalDegrees = !showDecimalDegrees },
             navigationFollowing = !navigationFollowBroken,
             navigationViewRequestId = navigationViewRequestId,
             onLeftNavigationView = { navigationFollowBroken = true },
