@@ -1,6 +1,6 @@
 # Way-back route, Part 2: the HUD follows the route (dispatch 2026-09-28-423, plan task T6)
 
-**Status: built and pushed on `way-back-route-2`, not merged. Phone step not yet run** (it waits for the owner's word in the coder's window). The route drawn on the map, and the start's glyph changing form on approach, are T7.
+**Status: built and pushed on `way-back-route-2`, not merged. Phone step run on the S22, at the desk** (the owner's word in the coder's window: "Yes, run the phone step"). The route drawn on the map, and the start's glyph changing form on approach, are T7.
 
 **Date:** 2026-10-03 (UTC).
 **Dispatch:** `prompts/preserved/2026-10-03-02.md`, read on branch `records-after-153`. The planner's rulings on the coder's three questions came by message: question 1 (i), question 3 (a), and question 2 put to the owner twice (below).
@@ -180,9 +180,32 @@ The revert checks have one gap: `MainActivity`'s one line, `returnRoute = return
   - `AvailabilityScreenMapIconStackTest` 104 → 104
 - 3,461 + 23 = 3,484. The 24 skipped match Part 1's 24.
 
+## The phone step, on the S22 (SM-S908U), at the desk
+
+**The install.** `adb install -r` of `t4-assemble`'s `app-debug.apk` over the installed build (`1.0.2490+gc5c77acc`); nothing wiped. The installed version reads `1.0.2510+g07d458af.dirty`. "dirty" because this report's draft was uncommitted in the tree when the APK was built; the app code is `07d458af` exactly.
+
+The steps: Record, Return at once, wait, Stop. Five screenshots, in the local evidence folder only (`device/`), since they show a position.
+
+| Step | The HUD showed |
+|---|---|
+| Return at once, no point stored yet | "Unable to calculate route" whole on the large line, **no** "Try again" (no usable points), "Approaching" in the status line, no needle. Nothing overlapping. |
+| About 30 s later, the first stored point read | "0 ft" in the large slot, the route distance from the start, with "Approaching" in the status line. Nothing overlapping. |
+| Stop | The HUD gone, the strip back. |
+
+**Not seen on the phone, said plainly:**
+- **"Straight line …".** At the desk the walker is at the start, so "Approaching" owns the status line, as ruled.
+- **"⟳ Try again".** It needs a walker more than 50 m from the last stored point.
+- **The needle following the path.** That needs a walk.
+- All three are covered by the tests above, not by the device.
+
+**A finding for the owner, not acted on: "0 ft".**
+- The route figure is in plain formatting, so a walker standing at the start reads "0 ft" in the large slot.
+- That is the string the owner saw and struck for the straight line, which is why the straight line has had accuracy-aware formatting since ("within 16 ft").
+- The dispatch kept the accuracy-aware formatting with the straight line and gave the route figure plain formatting, so this is the build as ruled.
+- Whether the route figure near the start should read otherwise ("within …", or nothing beside "Approaching") is the owner's to decide. It overlaps T7, which moves "Approaching" onto the start's glyph.
+
 ## Not done, and why
 
-- **The phone step.** It waits for the owner's word in the coder's window.
 - **The needle following a path** needs a walk, and that is the owner's.
 - **Unchanged:**
   - The two cases Part 1 kept visible for a walk: the lookahead behind a walker who rounded a bend inside the lag, and a walker beside the route pointed up the path.
