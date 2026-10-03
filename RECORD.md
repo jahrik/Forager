@@ -10817,3 +10817,14 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Continues:** 2026-09-28-438
 **Observed:** pull request #157 (t18-merge into main, head 3f63455853d878a4ebb6a5634e653e38a78b746b, on which CI passed, run 37151285322) was merged as bb0b559ed6a401364ed82dcbb7ec307a98c3d92a at 2026-10-03T20:31:44Z, read from GitHub, on the owner's "Open the pr and merhe", with backup 2026-10-03-05 of main at 093b28d6. Main's tree equals t18-merge's. T18 (-422) and T21 (-425) are both on main.
 **Notes:** Written by the planner by hand, on branch dispatch-439.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-442
+**Timestamp:** 2026-10-03T21:05:00Z
+**Continues:** 2026-09-28-439
+**The owner, verbatim,** after the walk: "For trails and such, there are a lot of branching paths that could run parallel, but only one will lead the right way. And an off track measuring by distance is probably only half of the approach." Then, to the planner's three layers (distance from the path; direction and progress along it; a warning at a fork from trail data): "The map has trails and such, so when that data is available, I think we should take advantage of them and navigate against them rather than open space".
+**What the planner read, so the direction can be planned honestly:** the online basemaps (Street, Topo, Satellite) are raster images (`tile.openstreetmap.org`, `a.tile.opentopomap.org`, the USGS imagery server), which the app draws but cannot read trails from. The offline maps are Protomaps vector tiles served from Forager's own Worker (`docs/plans/own-map-tiles.md`), which carry path lines but are simplified and cut at tile edges, and are not a routable network. Navigating along trails needs trail data the app can read, with its junctions, held offline: a decision of its own, not yet made.
+**Not decided:** the data source, the engine, coverage where trails are missing, and where it sits in the roadmap. No dispatch.
+**Notes:** Written by the planner by hand, on branch dispatch-439.
