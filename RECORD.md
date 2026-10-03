@@ -10551,3 +10551,140 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Deviations:** the planner's wording of the corner guard in -418 was wrong and was corrected in -419 before any code was written.
 **Next:** T6, the HUD follows the route; T7, the route drawn on the map. Neither dispatched.
 **Notes:** Written by the planner by hand, on branch records-after-152 with -417 to -419 and the off-route research report.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-421
+**Timestamp:** 2026-10-03T08:00:29Z
+**Subject:** the navigation plan's open items 1 and 3, the coordinate format, and starting T6
+**The owner (2026-10-03, UTC),** in the planner's window: "Merge it." (pull request #153, now open on it) and "On the walk, ask me those open questions from before". Then, to four choices the planner put, each answered with the planner's recommendation:
+- Where the sundown countdown sits: **"Strip, then HUD (Recommended)"**: in the top strip while recording, inside the HUD once Return is tapped.
+- Where Navigate to a waypoint is offered: **"Bubble, details, Records (Recommended)"**.
+- Whether it needs a recording, and Back: **"No recording; Back stops (Recommended)"**: it works without a recording running, and Back from the navigating HUD stops navigating.
+- The coordinate format and T6: **"Both yes (Recommended)"**: the format survives a tab change, and T6 starts.
+**Change:** a dated addendum to the navigation plan; dispatches -422 (coordinate format, T18) and -423 (the HUD follows the route, T6), opened by the two intents below.
+**Notes:** Written by the planner by hand, on branch records-after-153 cut from way-back-route-merge at cb539329, pushed and not merged.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-422
+**Timestamp:** 2026-10-03T08:00:29Z
+**Title:** coordinate-format: the map's coordinate format survives a tab change (plan task T18)
+**Dispatch-file:** preserved/2026-10-03-01.md; to the coder window that ran -400 to -417
+**Change:** the toggle between decimal degrees and MGRS stops resetting when the Maps tab is left, for the life of the session. Not across app restarts, which is not asked for.
+**Finish line:** a test pushed failing first, the fix, a revert check, the full suite, a short report, the hand-back sent.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-423
+**Timestamp:** 2026-10-03T08:00:29Z
+**Title:** way-back-route Part 2: the HUD follows the route (plan task T6)
+**Dispatch-file:** preserved/2026-10-03-02.md; the same window, after -422
+**Change:** while returning, the needle aims at RouteHome's point ahead along the walked route; the large figure is the route distance; the status line keeps the straight line; "Unable to calculate route" with "Try again" when the route is withheld off the route, and no refresh when there are no usable points; recomputed every 5 s with one route search per tick. The route on the map and the approach glyph are T7, not this.
+**The planner's wording, to be confirmed by the owner at the phone step:** the refresh reads "Try again".
+**Scope boundary:** RouteHome's rules, PathHome, the off-track alert, the recording service's batching and every other composable are not touched.
+**Finish line:** tests first, the build, revert checks, the full suite, one desk step on the S22, the report, the hand-back sent. The needle on a real path is the owner's walk.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-424
+**Timestamp:** 2026-10-03T08:27:24Z
+**Subject:** what "off track" means, defined for the walker (plan task T21), after the owner's walk
+**The walk, 2026-10-03, from the S22's log** (read-only; ~/Zynergy/device-evidence/2026-10-03-owner-walk/PLANNER-READING.md): five off-track alerts, two minutes apart (the cooldown), each a few seconds after a network location reading claiming 400 m accuracy (once 150 m) among GPS readings at about 4 m. The log has no positions, so this is a strong correlation, not a proof. The first fourteen minutes of the recording have no reading lines; why is not determined.
+**The owner's account, verbatim:** "1 back towards the start. Only one of those times was when I diverged from the track. The rest was walking on the other side of the street." "2 open, phone off" "3 yes, that one time I diverged was deliberate" "4 nothing felt wrong outside the known issues".
+**The owner's choices,** to four questions the planner put, each answered with the planner's recommendation: off track is measured against **"The path I walked"**; **"About 40 m"**, allowing more when GPS reports itself as poor; **"About 15 seconds"** off the path before it alerts; **"Once per stray"**. The planner also told the owner, as not a choice, that rough network readings stop counting, since all five alerts followed one and every app in the research ignores or discounts them.
+**The planner's numbers inside those choices, provisional:** the line is 40 m plus the reading's reported accuracy; going off needs 15 s and at least three GPS readings, none back on; re-armed after 10 s back on the path; "the path I walked" is the track as it stood when Return was tapped.
+**Change:** dispatch -425 (preserved 2026-10-03-03), opened below. Nothing ships until a replay of the owner's walk shows the new rule alerting at the divergence and not on the other side of the street.
+**Also from 2026-10-03, not yet recorded:** pull request #153 (way-back-route-merge into main, head cb53932921d0beac2cead8a8e11ca66f682d53b2, on which CI passed, run 37108083344) was merged as 5b856b6ae00fdfbd6e177aeb4589f2899d790822 at 2026-10-03T08:12:05Z, read from GitHub, on the owner's "Merge it.", with backup 2026-10-03-01. And the owner: "And have the coder start T6"; the coder was told to start -423.
+**Notes:** Written by the planner by hand, on branch records-after-153 with -421 to -423, pushed and not merged.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-425
+**Timestamp:** 2026-10-03T08:27:24Z
+**Title:** off-track-rule: "off track" redefined to fit the walker (plan task T21)
+**Dispatch-file:** preserved/2026-10-03-03.md; to the coder window, after -422 and -423
+**Change:** today's rule (distance to the start rising by 25 m over three readings, every two minutes) is replaced by the owner's choices in -424: distance from the path walked out, GPS readings only, 40 m plus accuracy, 15 s off, one alert per stray. The alert's delivery is unchanged.
+**Gate before it ships:** a replay of the owner's 2026-10-03 walk through both rules. The walk's stored track is copied off the S22 only with the owner's word in the coder's window, and its positions stay out of the public repository.
+**Finish line:** the report, the replay's outcome, tests first, revert checks, the full suite, the hand-back. Then the owner walks it again.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-426
+**Timestamp:** 2026-10-03T16:27:51Z
+**Continues:** 2026-09-28-423 (preserved 2026-10-03-02, where the rulings are appended); being built on way-back-route-2
+**The owner, verbatim:** to the coder, "Build only, ask before phone" (read from the coder's message); and to the planner, on where "Try again" goes, "Same line, tappable".
+**The planner's rulings,** on the coder's report-first findings: one route search per 5 s tick, which also gives the path-home figure, so the 15 s poll stops computing its own; "—" before the first route result; "Try again" on the same line, tappable, as the owner chose; returning means route mode in tests as in production, so existing return tests are fed a route and their changed assertions listed.
+**A deviation, accepted:** the new tests were written alongside the code, not pushed failing first; each gets a revert check instead.
+**Also reported by the coder:** the route tick follows the screen's returning flag, so a return taken up after a reopen gets it too; disk was below the 2048 MB line until the coder deleted its own build folder.
+**Notes:** Written by the planner by hand, on branch records-after-153, pushed and not merged.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-427
+**Timestamp:** 2026-10-03T17:04:37Z
+**Subject:** a navigation camera view while navigating (new plan task T22)
+**The owner, verbatim (2026-10-03):** "Can the camera view in the app change to a more navigation friendly view, like in GPS apps when navigating?" Then, to three choices the planner put, each the planner's recommendation: "Automatically when navigating (Recommended)", "Yes, facing-up (Recommended)", "A gentle tilt (Recommended)".
+**What the planner told the owner first:** the map follows the walker north-up and flat today (ui/map/SightingsMap.kt:973); GPS apps turn the map to the direction faced, tilt it and place the walker below centre, switching on by themselves when navigation starts; at walking pace the facing must come from the compass, not GPS; tilt hides some of the map behind the walker.
+**Change:** a dated addendum to the navigation plan with task T22. Not dispatched. Three behaviours are still to be put to the owner as a step path: panning the map, getting back to the view, and an unreliable compass.
+**Also from 2026-10-03:** the owner chose "Own line under it (Recommended)" for "Try again", after the coder measured the one-line version cutting "Unable to calculate route" on every phone width tested; given to the coder for -423. And the owner offered a USB drive ("There is this drive we can move files to for clearing space if need be. It'll stay plugged in to the laptop"), to which the planner moved the older merge backups, verified, outside the repository.
+**Notes:** Written by the planner by hand, on branch records-after-153, pushed and not merged.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-428
+**Timestamp:** 2026-10-03T17:05:35Z
+**Subject:** T22's tilt, refined (amends -427)
+**The owner, verbatim:** "Have the tilt be enough to focus on the path ahead, not so gentle that it's a cosmetic tilt."
+**What this changes:** -427 recorded "A gentle tilt". The owner's refinement replaces that reading: the tilt is strong enough to focus on the path ahead. The planner's starting figure is about 45° (the map library's range is 0° to 60°), provisional and tuned on a walk. -427 is not edited.
+**Still open for T22:** panning, getting back to the view, and an unreliable compass, put to the owner with recommendations and not yet answered. Not dispatched.
+**Notes:** Written by the planner by hand, on branch records-after-153, pushed and not merged.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-429
+**Timestamp:** 2026-10-03T17:08:36Z
+**Subject:** T22: panning, getting back to the view, and an unreliable compass (follows -427, -428)
+**The owner, verbatim,** to the planner's three recommendations (dragging the map stops it following; the locate button brings the view back; an unreliable compass falls back to north-up and says so): "1 yes"; "2 Have a "Return to Route" button appear when panning away"; "3 give a notice first that the compass is calculating if it's stuck, after retrying to get it back, then the north up view."
+**So:** dragging the map stops it following; a "Return to Route" button appears when the walker pans away and brings back the navigation view (in place of the planner's locate-button suggestion); when the compass is stuck, a notice first says it is calculating, the app retries, and only then does the map fall back to north-up.
+**Not yet decided:** how long the retry lasts before the fall-back, and how "stuck" is told apart (the compass-reliability work already reads the sensor's own accuracy reports); the coder reports what exists first. The step path is put back to the owner before dispatch.
+**Notes:** Written by the planner by hand, on branch records-after-153, pushed and not merged.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-430
+**Timestamp:** 2026-10-03T17:09:37Z
+**Title:** navigation-view: the map's navigation camera view while navigating (plan task T22)
+**Dispatch-file:** preserved/2026-10-03-04.md; to the coder window, straight after -423
+**The owner, verbatim,** to the full step path the planner put back (recorded in -427 to -429): "Go on T22".
+**Change:** while returning, the map tilts about 45°, turns to the direction faced by the compass, places the walker below centre and follows; a drag stops following and shows "Return to Route", which restores the view; a stuck compass shows "Compass calibrating…", retries about 15 s, then falls back to north-up and returns to facing-up on recovery; Stop navigating restores the flat north-up map. The figures and the notice's wording are the planner's, provisional.
+**Scope boundary:** the map outside navigation, the HUD's content, RouteHome, the off-track alert, the recording service and the fan's behaviour are not changed. Navigating to a waypoint (T8) is not built.
+**Finish line:** the report-first message, the build, tests, revert checks, the full suite, a desk step on the S22, the report, the hand-back. The walk is the owner's.
+**Queue after it:** -422 (the coordinate format) and -425 (the new off-track rule).
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-431
+**Timestamp:** 2026-10-03T17:29:10Z
+**Closes:** 2026-09-28-423 (preserved 2026-10-03-02, with the rulings of -426 appended)
+**Outcome:** completed
+**Observed:**
+- **What landed,** on branch way-back-route-2 at d4fc901a, not merged when this was written: the build in commits 4e224375 to 07d458af; the report docs/navigation/2026-10-03-way-back-route-part-2-report.md and its rows (fcc01981, d4fc901a).
+- **What was built:** while returning, the needle aims at RouteHome's point ahead along the walked route; the large figure is the route distance; the status line carries "Straight line …" with its accuracy-aware formatting; "—" before the first route result; "Unable to calculate route" when withheld, with "⟳ Try again" on its own 48 dp row only when the walker is off the route, as the owner chose; one route search per 5 s tick, which also gives the path-home figure. The HUD is 40 dp taller only in that state. Returns are always in route mode; the straight-line mode is kept for navigating to a waypoint.
+- **Tests:** the full unit suite, 423 classes, 3,484 tests, 0 failures, 24 skipped; seventeen revert checks, each restored from a saved copy. A deviation, accepted in -426: the new tests were written alongside the code. Existing tests changed: two path-home readout tests and five icon-stack assertions, listed before and after in the report.
+- **The S22, on the owner's word in the coder's window,** debug build installed over the last, nothing wiped: right after Return, "Unable to calculate route" whole with no "Try again", because no point had been stored yet; about 30 s later the route figure, nothing overlapping; Stop took the HUD away. Not seen on the phone: the straight line in the status line (at a desk "Approaching" holds it), "Try again", and the needle following a path.
+**What the planner checked itself:** the change to RouteHome is the one field ruled in -426; the revert script restores from a saved copy; the saved XML re-counted: the full suite as reported, and each of the seventeen revert checks failing on its own test, among them "expected:<[—]> but was:<[0.7 mi]>" with the pending state removed and "expected:<1> but was:<2>" with the poll searching again.
+**Two findings for the owner, not acted on:** (1) Tapping Return in a recording's first half-minute shows "Unable to calculate route", because the first points have not been saved yet; that is the recording's own lag, not a failure. (2) At the start the route figure reads "0 ft", the plain formatting the owner once struck for the straight line, which is why the straight line reads "within …".
+**Next:** -430 (T22), then -422, then -425.
+**Notes:** Written by the planner by hand, on branch records-after-153.
