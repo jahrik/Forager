@@ -17,7 +17,9 @@ sealed interface RouteHome {
      * [PathHome.totalMeters] gives. [hopBand] is passed back as the next call's `previousHopBand`.
      * [lookaheadAlongRouteMeters] is how far along the route, from the most recent stored point,
      * the lookahead is. [aimsAtRouteEnd] is true when the route home is shorter than the lookahead
-     * and the needle aims at the start itself.
+     * and the needle aims at the start itself. [pathHome] is the [PathHome] [routeMeters] is read
+     * from, built from the same route search, so a caller that wants both needs one search, not two
+     * (dispatch 2026-09-28-423, the planner's ruling on question 1).
      */
     data class Ahead(
         val lookahead: LatLng,
@@ -25,6 +27,7 @@ sealed interface RouteHome {
         val hopBand: HopBand,
         val lookaheadAlongRouteMeters: Double,
         val aimsAtRouteEnd: Boolean,
+        val pathHome: PathHome,
     ) : RouteHome
 
     /**
@@ -120,12 +123,12 @@ const val ROUTE_LOOKAHEAD_METERS = 25.0
  * [PathHome.totalMeters] for the same inputs, built from the same route search, so the HUD's
  * route figure and today's path-home figure cannot differ.
  *
- * ## Who calls it, and how often (not wired here)
+ * ## Who calls it, and how often
  *
- * Nothing calls it yet. Decision D4 is a recompute every 5 s. For plan task T6 that belongs to
- * its own job in `TrackRecordingViewModel`, beside the track poll that computes path home today,
- * fed the polled track, the last accuracy-gated fix and the origin waypoint, and stopped inside
- * its tests' bodies as that class's poll loop is.
+ * `TrackRecordingViewModel`'s route tick (dispatch 2026-09-28-423, plan task T6), every 5 s while
+ * returning (decision D4), fed the track its 15 s poll last read, the last accuracy-gated fix and
+ * the origin waypoint. That tick is also where the ViewModel's path-home figure now comes from,
+ * [RouteHome.Ahead.pathHome], so there is one route search per tick and none in the poll.
  */
 fun routeHome(track: Track, current: LatLng, origin: Waypoint?, previousHopBand: HopBand = HopBand.NONE): RouteHome {
     val points = track.points
@@ -169,6 +172,7 @@ fun routeHome(track: Track, current: LatLng, origin: Waypoint?, previousHopBand:
         hopBand = hopBand,
         lookaheadAlongRouteMeters = alongMeters[chosen],
         aimsAtRouteEnd = chosen == last,
+        pathHome = distance,
     )
 }
 

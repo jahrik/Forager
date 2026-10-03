@@ -189,6 +189,8 @@ class AvailabilityScreenMapIconStackTest {
         computeTrueHeading: ComputeTrueHeadingUseCase = ComputeTrueHeadingUseCase(IconStackFixedDeclination(0f)),
         navigationTarget: Waypoint? = null,
         currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
+        /** Dispatch 2026-09-28-423: the route home a return is fed, as `MainActivity` feeds it. Pending is the state before the first result. */
+        returnRoute: ReturnRoute = ReturnRoute.Pending,
     ) {
         val plannedTripRepository = IconStackInMemoryPlannedTripRepository()
         viewModel = AvailabilityViewModel(
@@ -264,6 +266,7 @@ class AvailabilityScreenMapIconStackTest {
                 computeTrueHeading = computeTrueHeading,
                 navigationTarget = navigationTarget,
                 currentTime = currentTime,
+                returnRoute = returnRoute,
             )
         }
     }
@@ -279,12 +282,22 @@ class AvailabilityScreenMapIconStackTest {
     private val hudOrigin = Waypoint(id = "origin", lat = 45.53, lng = -122.68, altitude = null, name = "Start · Sep 5, 9:41 AM", note = "", createdAtEpochMillis = 1_700_000_000_000L, trackId = "t1", designation = WaypointDesignation.ORIGIN)
     private val hudClock = CurrentTimeProvider { 1_700_000_001_000L }
 
+    /**
+     * Dispatch 2026-09-28-423: a return is always in route mode (the planner's ruling), so the
+     * return tests here are fed a route as production feeds one. 1500 m home along the route
+     * ("1.5 km", where the straight line is "1.1 km"), with the lookahead 111 m due north of the
+     * fix: the same direction as the origin, so the turns these tests pin are unchanged.
+     * `AvailabilityScreenReturnRouteTest` is where the lookahead and the origin point different ways.
+     */
+    private val hudRoute = ReturnRoute.Ahead(lookahead = LatLng(45.521, -122.68), routeMeters = 1_500.0)
+
     private fun setNavigatingScreen(
         compassHeading: Float? = 80f,
         withFix: Boolean = true,
         fix: LocationFix.Update = hudFix,
         returning: State<Boolean>? = null,
         onToggleReturning: () -> Unit = {},
+        returnRoute: ReturnRoute = hudRoute,
     ) = setScreen(
         compassProvider = FakeCompassProvider(compassHeading),
         locationTracker = if (withFix) IconStackFixedLocationTracker(fix) else IconStackNoOpLocationTracker,
@@ -295,6 +308,7 @@ class AvailabilityScreenMapIconStackTest {
         computeTrueHeading = ComputeTrueHeadingUseCase(IconStackFixedDeclination(15f)),
         navigationTarget = hudOrigin,
         currentTime = hudClock,
+        returnRoute = returnRoute,
     )
 
     private fun textOfTag(tag: String): String =
@@ -389,6 +403,7 @@ class AvailabilityScreenMapIconStackTest {
             computeTrueHeading = ComputeTrueHeadingUseCase(IconStackFixedDeclination(15f)),
             navigationTarget = hudOrigin,
             currentTime = hudClock,
+            returnRoute = hudRoute,
         )
         composeRule.waitForIdle()
         assertEquals("95° E", textOfTag(NAVIGATION_HUD_HEADING_TAG))
@@ -397,7 +412,7 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.waitForIdle()
         assertEquals("Compass calibrating…", textOfTag(NAVIGATION_HUD_HEADING_TAG))
         assertEquals("", textOfTag(NAVIGATION_HUD_TARGET_TAG))
-        assertEquals("1.1 km", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
+        assertEquals("1.5 km", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
         composeRule.onAllNodesWithText("Compass calibrating…").assertCountEquals(1)
         composeRule.onAllNodesWithText("95° E").assertCountEquals(0)
 
@@ -438,12 +453,19 @@ class AvailabilityScreenMapIconStackTest {
         assertEquals("95° E", textOfTag(COMPASS_STRIP_HEADING_TAG))
     }
 
+    /**
+     * Dispatch 2026-09-28-423 changed this test: it was "the HUD shows the straight-line distance
+     * to the origin in the display unit and the turn to it", asserting "1.1 km" in the large slot.
+     * A return is in route mode now, so the large slot is the route and the straight line is in the
+     * status line, labelled.
+     */
     @Test
-    fun `the HUD shows the straight-line distance to the origin in the display unit and the turn to it`() {
+    fun `while returning the HUD shows the route distance and the straight line in the display unit, and the turn`() {
         setNavigatingScreen()
         composeRule.waitForIdle()
 
-        assertEquals("1.1 km", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
+        assertEquals("1.5 km", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
+        assertEquals("Straight line 1.1 km", textOfTag(NAVIGATION_HUD_STATUS_TAG))
         // Target due north (0°) from a device facing 95° true: 265° relative, a left turn.
         assertEquals("Turn 265°", textOfTag(NAVIGATION_HUD_TARGET_TAG))
     }
@@ -595,7 +617,7 @@ class AvailabilityScreenMapIconStackTest {
         // anywhere on the screen carries a bearing.
         assertEquals("", textOfTag(NAVIGATION_HUD_TARGET_TAG))
         composeRule.onAllNodesWithText("Bearing", substring = true).assertCountEquals(0)
-        assertEquals("1.1 km", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
+        assertEquals("1.5 km", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
     }
 
     @Test
@@ -608,6 +630,7 @@ class AvailabilityScreenMapIconStackTest {
             computeTrueHeading = ComputeTrueHeadingUseCase(IconStackFixedDeclination(15f)),
             navigationTarget = hudOrigin,
             currentTime = CurrentTimeProvider { 1_700_000_000_000L + 6L * 60L * 1_000L },
+            returnRoute = hudRoute,
         )
         composeRule.waitForIdle()
 
@@ -668,18 +691,22 @@ class AvailabilityScreenMapIconStackTest {
      * the heading test does — the duplicate heading was caught that way and this is the same class
      * of bug. The fix is 10 m north of the origin with 12.5 m accuracy (threshold 25 m).
      */
+    /**
+     * Dispatch 2026-09-28-423 changed this test's figures: the large slot asserted "within 13 m",
+     * the straight line, counted once. A return is in route mode now, so the walker 10 m from the
+     * origin is fed the route home from there (12 m along the path), the large slot reads that,
+     * once, and "Approaching" still owns the status line, so the straight line is not shown.
+     */
     @Test
     fun `inside the approach threshold the distance appears exactly once and the target column is empty`() {
-        setNavigatingScreen(fix = hudFix.copy(lat = 45.53009))
+        setNavigatingScreen(fix = hudFix.copy(lat = 45.53009), returnRoute = ReturnRoute.Ahead(LatLng(hudOrigin.lat, hudOrigin.lng), 12.0))
         composeRule.waitForIdle()
 
-        // Location-accuracy dispatch, item 2: 10 m from the origin with 12.5 m accuracy is inside
-        // the error circle, so the slot reads the accuracy ("within 13 m", 12.5 rounded half up),
-        // not a to-the-metre "10 m" the fix cannot support.
-        assertEquals("within 13 m", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
+        assertEquals("12 m", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
         assertEquals("Approaching", textOfTag(NAVIGATION_HUD_STATUS_TAG))
         assertEquals("", textOfTag(NAVIGATION_HUD_TARGET_TAG))
-        composeRule.onAllNodesWithText("within 13 m").assertCountEquals(1)
+        composeRule.onAllNodesWithText("12 m").assertCountEquals(1)
+        composeRule.onAllNodesWithText("within 13 m").assertCountEquals(0)
         composeRule.onAllNodesWithText("10 m").assertCountEquals(0)
     }
 
@@ -701,19 +728,22 @@ class AvailabilityScreenMapIconStackTest {
             computeTrueHeading = ComputeTrueHeadingUseCase(IconStackFixedDeclination(15f)),
             navigationTarget = hudOrigin,
             currentTime = hudClock,
+            returnRoute = hudRoute,
         )
         composeRule.waitForIdle()
 
+        // Dispatch 2026-09-28-423: the straight line, which is the fix's figure, is in the status
+        // line now; these two assertions read "1.1 km" from the large slot before.
         fixes.tryEmit(hudFix)
         composeRule.waitForIdle()
-        assertEquals("1.1 km", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
+        assertEquals("Straight line 1.1 km", textOfTag(NAVIGATION_HUD_STATUS_TAG))
 
         // 0.0045° of latitude north of the fix is 500 m; 60 m accuracy fails the 50 m gate.
         fixes.tryEmit(hudFix.copy(lat = 45.5245, accuracyMeters = 60f, timestampEpochMillis = 1_700_000_001_000L))
         composeRule.waitForIdle()
 
-        assertEquals("1.1 km", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
-        composeRule.onAllNodesWithText("≈ 600 m").assertCountEquals(0)
+        assertEquals("Straight line 1.1 km", textOfTag(NAVIGATION_HUD_STATUS_TAG))
+        composeRule.onAllNodesWithText("≈ 600 m", substring = true).assertCountEquals(0)
     }
 
     // ── Navigation-chrome amendment, Fix 2: back asks, and never exits ──────────────────────
