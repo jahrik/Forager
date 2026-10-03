@@ -14,7 +14,6 @@ import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
 import com.zynergylabs.forager.app.domain.InMemoryKeptTrackPaths
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
-import com.zynergylabs.forager.app.domain.DetectOffTrackUseCase
 import com.zynergylabs.forager.app.domain.ReturnWatch
 import com.zynergylabs.forager.app.domain.GetCartographyEntryMapDataUseCase
 import com.zynergylabs.forager.app.domain.GetDerivedTripUseCase
@@ -301,7 +300,7 @@ class NetworkFixExclusionPerConsumerTest {
             computeReturnToStart = ComputeReturnToStartUseCase(),
             locationTracker = object : LocationTracker { override val fixes: Flow<LocationFix> = emptyFlow() },
             getTracks = GetTracksUseCase(trackRepository),
-            returnWatch = ReturnWatch(ComputeReturnToStartUseCase(), DetectOffTrackUseCase(), AlertDelivery { _: Alert -> }),
+            returnWatch = ReturnWatch(ComputeReturnToStartUseCase(), AlertDelivery { _: Alert -> }),
             alertAudibility = object : AlertAudibility {
                 override fun current() = AlertAudibilityState(RingerMode.NORMAL, doNotDisturbOn = false, notificationsEnabled = true)
             },

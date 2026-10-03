@@ -38,7 +38,7 @@ data class TrackRecordingUiState(
     /**
      * Whether the walker has said they're now heading back, distinct from [isRecording] — outbound
      * travel is never "off track" (you're the one making the track), so
-     * [com.zynergylabs.forager.app.domain.DetectOffTrackUseCase] only runs once this is true. See
+     * [com.zynergylabs.forager.app.domain.OffTrackJudge] only runs once this is true. See
      * [TrackRecordingViewModel.startReturn]'s doc comment for the full reasoning.
      *
      * A copy, since dispatch 2026-09-28-400, Amendment 2: the flag itself is
