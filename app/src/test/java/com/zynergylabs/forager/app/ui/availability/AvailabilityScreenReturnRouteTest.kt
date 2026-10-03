@@ -15,7 +15,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.semantics.SemanticsActions
-import androidx.compose.ui.test.assertTouchHeightIsAtLeast
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -53,6 +52,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 /**
  * Dispatch 2026-09-28-423 (plan task T6): the HUD follows the route, read on the real screen.
@@ -68,6 +68,10 @@ import org.robolectric.annotation.Config
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w360dp-h640dp-xhdpi")
+// Native graphics, as AvailabilityScreenLandscapeB2Test: without it Robolectric measures text at a
+// few dp wide (a heading label measured 3.5 dp), and the width question this class answers for
+// "Try again", and the bounds its real touches sample, would be read off fake text.
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class AvailabilityScreenReturnRouteTest {
 
     private val composeRule = createComposeRule()
@@ -258,7 +262,8 @@ class AvailabilityScreenReturnRouteTest {
         val config = line.fetchSemanticsNode().config
         assertEquals(androidx.compose.ui.semantics.Role.Button, config[SemanticsProperties.Role])
         assertEquals("Try again", config[SemanticsActions.OnClick].label)
-        line.assertTouchHeightIsAtLeast(48.dp)
+        val touchHeight = with(composeRule.density) { line.fetchSemanticsNode().touchBoundsInRoot.height.toDp() }
+        assertTrue("the touch height $touchHeight is at least 48 dp", touchHeight >= 48.dp - 0.5.dp)
     }
 
     /** No usable points: nothing would change, so nothing is offered, and the line is not a control. */
@@ -284,14 +289,62 @@ class AvailabilityScreenReturnRouteTest {
     fun `Try again is never cut short, and how much of the message fits is measured`() {
         setScreen(ReturnRoute.Unavailable(canRetry = true))
         val retryLayout = layoutOf(NAVIGATION_HUD_RETRY_TAG)
-        assertFalse("Try again is drawn whole", retryLayout.hasVisualOverflow)
+        val retryNode = composeRule.onNodeWithTag(NAVIGATION_HUD_RETRY_TAG, useUnmergedTree = true).fetchSemanticsNode()
+        println("MEASURED at w360dp: Try again box ${with(composeRule.density) { retryNode.boundsInRoot.width.toDp() }}, needs ${with(composeRule.density) { retryLayout.multiParagraph.maxIntrinsicWidth.toDp() }}, overflowed width=${retryLayout.didOverflowWidth} height=${retryLayout.didOverflowHeight}; HUD ${boundsOf(NAVIGATION_HUD_TAG)}; line ${boundsOf(NAVIGATION_HUD_DISTANCE_TAG)}; status ${boundsOf(NAVIGATION_HUD_STATUS_TAG)}; target ${boundsOf(NAVIGATION_HUD_TARGET_TAG)}; heading ${boundsOf(NAVIGATION_HUD_HEADING_TAG)}; exit ${boundsOf(NAVIGATION_HUD_EXIT_TAG)}")
+        // Not didOverflowWidth: with softWrap off the paragraph is laid out against an unbounded
+        // width, so that flag reads true for any such text (seen here: true with the box wider than
+        // the text). The claim is the box is as wide as the text needs, and nothing is ellipsised.
+        assertTrue("Try again's box is as wide as the text needs", retryNode.boundsInRoot.width >= retryLayout.multiParagraph.maxIntrinsicWidth - 0.5f)
+        assertFalse("Try again is not ellipsised", retryLayout.isLineEllipsized(0))
         val line = composeRule.onNodeWithTag(NAVIGATION_HUD_DISTANCE_TAG).fetchSemanticsNode()
         val message = composeRule.onAllNodes(androidx.compose.ui.test.hasText("Unable to calculate route"), useUnmergedTree = true).fetchSemanticsNodes().single { it.id != line.id }
         val results = mutableListOf<TextLayoutResult>()
         message.config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
         val m = results.single()
-        println("MEASURED at w360dp: line ${with(composeRule.density) { line.boundsInRoot.width.toDp() }}, message box ${with(composeRule.density) { m.size.width.toDp() }}, message overflowed=${m.hasVisualOverflow}, visible chars=${m.getLineEnd(0, visibleEnd = true)} of ${"Unable to calculate route".length}")
+        println("MEASURED at w360dp: line ${with(composeRule.density) { line.boundsInRoot.width.toDp() }}, message box ${with(composeRule.density) { m.size.width.toDp() }}, message ellipsised=${m.isLineEllipsized(0)}, overflowed width=${m.didOverflowWidth}, visible chars=${m.getLineEnd(0, visibleEnd = true)} of ${"Unable to calculate route".length}")
     }
+
+    /**
+     * Measurements for the report, at three phone widths: how much of the owner's message the
+     * large slot shows, beside "Try again" and alone (no usable points). Prints; asserts only that
+     * the message node was found.
+     */
+    private fun measureMessage(width: String) {
+        for (canRetry in listOf(true, false)) {
+            setScreenOnce(ReturnRoute.Unavailable(canRetry))
+            val all = composeRule.onAllNodes(androidx.compose.ui.test.hasText("Unable to calculate route"), useUnmergedTree = true).fetchSemanticsNodes()
+            val node = all.last()
+            val results = mutableListOf<TextLayoutResult>()
+            node.config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
+            val m = results.single()
+            val needs = with(composeRule.density) { m.multiParagraph.maxIntrinsicWidth.toDp() }
+            val box = with(composeRule.density) { node.boundsInRoot.width.toDp() }
+            println("MEASURED at $width, Try again offered=$canRetry: message box $box, needs $needs, ellipsised=${m.isLineEllipsized(0)}, visible chars=${m.getLineEnd(0, visibleEnd = true)} of 25")
+        }
+    }
+
+    private var composed = false
+
+    private fun setScreenOnce(state: ReturnRoute) {
+        if (!composed) {
+            setScreen(state)
+            composed = true
+        } else {
+            composeRule.runOnIdle { route = state }
+            composeRule.waitForIdle()
+        }
+    }
+
+    @Test
+    fun `measure the message at 360 dp`() = measureMessage("w360dp")
+
+    @Test
+    @Config(qualifiers = "w384dp-h823dp-xxhdpi")
+    fun `measure the message at 384 dp, the S22`() = measureMessage("w384dp")
+
+    @Test
+    @Config(qualifiers = "w412dp-h915dp-xxhdpi")
+    fun `measure the message at 412 dp`() = measureMessage("w412dp")
 
     private fun layoutOf(tag: String): TextLayoutResult {
         val results = mutableListOf<TextLayoutResult>()
