@@ -134,7 +134,17 @@ data class NavigationViewRequest(
     val following: Boolean,
     val restoreRequestId: Int,
     val onLeftView: () -> Unit,
+    /** Dispatch 2026-09-28-440: true from the start of a navigation until the map has applied [NAVIGATION_VIEW_ZOOM] once. */
+    val zoomOnStart: Boolean = false,
+    /** The map reports the start zoom applied, so it is not applied again in this navigation. */
+    val onStartZoomApplied: () -> Unit = {},
 )
+
+/** Work in progress (dispatch 2026-09-28-440, tests first): the zoom the navigation view starts at. */
+const val NAVIGATION_VIEW_ZOOM = 18.0
+
+/** Work in progress (dispatch 2026-09-28-440, tests first): the camera's maximum zoom. Not yet raised while navigating. */
+fun navigationMaxZoom(basemap: Basemap, navigating: Boolean): Double = basemap.maxZoom.toDouble()
 
 /**
  * MapLibre's [CompassEngine] fed the app's own true heading (ruling A). MapLibre's built-in engine
