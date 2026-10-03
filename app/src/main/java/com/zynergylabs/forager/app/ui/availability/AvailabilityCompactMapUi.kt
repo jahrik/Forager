@@ -298,8 +298,10 @@ internal fun CompactMapTab(
     computeTrueHeading: ComputeTrueHeadingUseCase,
     /** See [AvailabilityScreen]'s own `navigationTarget` doc comment. */
     navigationTarget: Waypoint?,
-    /** See [AvailabilityScreen]'s own `pathHomeMeters` doc comment. */
-    pathHomeMeters: Double?,
+    /** See [AvailabilityScreen]'s own `returnRoute` doc comment. */
+    returnRoute: ReturnRoute?,
+    /** See [AvailabilityScreen]'s own `onRetryRoute` doc comment. */
+    onRetryRoute: () -> Unit,
     /** The HUD's fix-age clock — [AvailabilityScreen]'s own `currentTime`, so a test can pin an old fix as stale. */
     currentTime: CurrentTimeProvider,
     /** See [AvailabilityScreen]'s own `mapTaxonFilter` doc comment — "View on Map" from a List-tab row. */
@@ -881,7 +883,8 @@ internal fun CompactMapTab(
                         liveFix = uiState.liveFix,
                         target = navigationTarget,
                         distanceUnit = uiState.distanceUnit,
-                        pathHomeMeters = pathHomeMeters,
+                        route = returnRoute,
+                        onRetryRoute = onRetryRoute,
                         currentTime = currentTime,
                         showDecimalDegrees = showDecimalDegrees,
                         onToggleCoordinateFormat = onToggleCoordinateFormat,
