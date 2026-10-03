@@ -172,36 +172,54 @@ class AvailabilityScreenReturnRouteTest {
     fun `a withheld route reads Unable to calculate route in the large slot, with the straight line kept`() {
         setScreen(ReturnRoute.Unavailable(canRetry = false))
 
-        assertTrue(textOfTag(NAVIGATION_HUD_DISTANCE_TAG).startsWith("Unable to calculate route"))
+        assertEquals("Unable to calculate route", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
         assertEquals("Straight line 0.7 mi", textOfTag(NAVIGATION_HUD_STATUS_TAG))
         assertEquals("", textOfTag(NAVIGATION_HUD_TARGET_TAG))
     }
 
     /**
-     * No new surface: the HUD is the same height on the route, pending and withheld, so nothing it
-     * draws in the withheld state reaches further over the map than it did. The map-chrome fill at
-     * 80% is the HUD's existing one (`MapChromeAlphaTest`); nothing new is drawn over the map.
+     * The HUD is the same height on the route, pending, and withheld with no usable points; only
+     * with "Try again" offered is it taller, by the "Try again" row (the owner's choice, "Own line
+     * under it"). No new surface either way: the map-chrome fill at 80% is the HUD's existing one
+     * (`MapChromeAlphaTest`).
      */
     @Test
-    fun `the HUD keeps its height in every route state`() {
+    fun `the HUD is one row taller only while Try again is offered`() {
         setScreen(ReturnRoute.Ahead(east, 1_500.0))
-        val onRoute = boundsOf(NAVIGATION_HUD_TAG)
-        listOf(ReturnRoute.Pending, ReturnRoute.Unavailable(canRetry = true), ReturnRoute.Unavailable(canRetry = false)).forEach { state ->
+        val onRoute = boundsOf(NAVIGATION_HUD_TAG).let { it.bottom - it.top }
+        listOf(ReturnRoute.Pending, ReturnRoute.Unavailable(canRetry = false)).forEach { state ->
             composeRule.runOnIdle { route = state }
             composeRule.waitForIdle()
-            val b = boundsOf(NAVIGATION_HUD_TAG)
-            assertEquals("the HUD's height with $state", (onRoute.bottom - onRoute.top).value, (b.bottom - b.top).value, 0.5f)
+            val h = boundsOf(NAVIGATION_HUD_TAG).let { it.bottom - it.top }
+            assertEquals("the HUD's height with $state", onRoute.value, h.value, 0.5f)
         }
+        composeRule.runOnIdle { route = ReturnRoute.Unavailable(canRetry = true) }
+        composeRule.waitForIdle()
+        val taller = boundsOf(NAVIGATION_HUD_TAG).let { it.bottom - it.top }
+        val row = boundsOf(NAVIGATION_HUD_RETRY_TAG).let { it.bottom - it.top }
+        // Taller, and by no more than the row: the top row is already 48 dp tall for the exit
+        // button, so part of the row fits in height the HUD had (measured: 40 dp taller, row 48 dp).
+        assertTrue("taller with Try again: $taller against $onRoute", taller > onRoute + 0.5.dp)
+        assertTrue("taller by no more than the row ($row): $taller against $onRoute", taller <= onRoute + row + 0.5.dp)
     }
 
     /**
      * CLAUDE.md, the `Surface` pitfall: real long-presses on the map just below the HUD, across its
-     * width, reach the map with "Try again" offered. A point inside any clickable control (the icon
-     * cluster) is skipped, and the number sampled is asserted, so an empty sample cannot pass.
+     * width, reach the map, in the taller state with "Try again" offered and in the usual one. A
+     * point inside any clickable control (the icon cluster) is skipped, and the number sampled is
+     * asserted, so an empty sample cannot pass.
      */
     @Test
-    fun `with Try again offered, real long-presses on the map below the HUD reach the map`() {
+    fun `real long-presses on the map below the HUD reach the map, taller with Try again or not`() {
         setScreen(ReturnRoute.Unavailable(canRetry = true))
+        longPressesBelowTheHudReachTheMap()
+        composeRule.runOnIdle { route = ReturnRoute.Ahead(east, 1_500.0) }
+        composeRule.waitForIdle()
+        longPressesBelowTheHudReachTheMap()
+        assertEquals("no long-press on the map asked for a new route", 0, retries)
+    }
+
+    private fun longPressesBelowTheHudReachTheMap() {
         val hud = boundsOf(NAVIGATION_HUD_TAG)
         val controls = composeRule.onAllNodes(hasClickAction(), useUnmergedTree = true).fetchSemanticsNodes().map {
             with(composeRule.density) { DpRect(it.boundsInRoot.left.toDp(), it.boundsInRoot.top.toDp(), it.boundsInRoot.right.toDp(), it.boundsInRoot.bottom.toDp()) }
@@ -216,25 +234,25 @@ class AvailabilityScreenReturnRouteTest {
                 val p = with(composeRule.density) { Offset(x.toPx(), y.toPx()) }
                 composeRule.onRoot().performTouchInput { longClick(p) }
                 composeRule.waitForIdle()
-                assertEquals("a long-press at ($x, $y) must reach the map", before + 1, longPresses)
+                assertEquals("a long-press at ($x, $y), HUD bottom ${hud.bottom}, must reach the map", before + 1, longPresses)
                 sampled++
             }
         }
         assertTrue("at least $MIN_SAMPLED points were sampled, not $sampled", sampled >= MIN_SAMPLED)
-        assertEquals("no long-press on the map asked for a new route", 0, retries)
     }
 
     /**
-     * "Try again" by real touches at five points across the line's own bounds (CLAUDE.md: a finger
-     * is not a point, and a semantic click asserts wiring, not routing). Each must reach the retry.
+     * "Try again" by real touches at five points across the row's own bounds (CLAUDE.md: a finger
+     * is not a point, and a semantic click asserts wiring, not routing). Each must reach the retry,
+     * and a touch on the message above it must not.
      */
     @Test
-    fun `Try again is reached by real touches across the whole line`() {
+    fun `Try again is reached by real touches across its row, and not by a touch on the message`() {
         setScreen(ReturnRoute.Unavailable(canRetry = true))
-        assertEquals("Try again", textOfTag(NAVIGATION_HUD_RETRY_TAG, unmerged = true))
+        assertEquals("Try again", textOfTag(NAVIGATION_HUD_RETRY_TAG))
 
-        val b = boundsOf(NAVIGATION_HUD_DISTANCE_TAG)
-        val inset = 2.dp
+        val b = boundsOf(NAVIGATION_HUD_RETRY_TAG)
+        val inset = 3.dp
         val samples = listOf(
             DpOffset((b.left + b.right) / 2, (b.top + b.bottom) / 2),
             DpOffset(b.left + inset, b.top + inset),
@@ -248,30 +266,29 @@ class AvailabilityScreenReturnRouteTest {
             composeRule.waitForIdle()
             assertEquals("touch $index at $sample must reach Try again", index + 1, retries)
         }
+        val m = boundsOf(NAVIGATION_HUD_DISTANCE_TAG)
+        val p = with(composeRule.density) { Offset(((m.left + m.right) / 2).toPx(), (m.top + 2.dp).toPx()) }
+        composeRule.onRoot().performTouchInput { click(p) }
+        composeRule.waitForIdle()
+        assertEquals("the message is not the control", samples.size, retries)
     }
 
-    /**
-     * The line is one control: announced as a button whose action is "Try again", with a touch
-     * area of at least 48 dp though it is laid out at the text's height (Compose's minimum touch
-     * target), so the HUD does not grow.
-     */
+    /** One control: announced as a button whose action is "Try again", laid out at least 48 dp tall. */
     @Test
-    fun `the Try again line is one button, labelled Try again, with a 48 dp touch height`() {
+    fun `the Try again row is one button, labelled Try again, at least 48 dp tall`() {
         setScreen(ReturnRoute.Unavailable(canRetry = true))
-        val line = composeRule.onNodeWithTag(NAVIGATION_HUD_DISTANCE_TAG)
-        val config = line.fetchSemanticsNode().config
+        val config = composeRule.onNodeWithTag(NAVIGATION_HUD_RETRY_TAG).fetchSemanticsNode().config
         assertEquals(androidx.compose.ui.semantics.Role.Button, config[SemanticsProperties.Role])
         assertEquals("Try again", config[SemanticsActions.OnClick].label)
-        val touchHeight = with(composeRule.density) { line.fetchSemanticsNode().touchBoundsInRoot.height.toDp() }
-        assertTrue("the touch height $touchHeight is at least 48 dp", touchHeight >= 48.dp - 0.5.dp)
+        val b = boundsOf(NAVIGATION_HUD_RETRY_TAG)
+        assertTrue("the row is ${b.bottom - b.top} tall", b.bottom - b.top >= 48.dp - 0.5.dp)
     }
 
-    /** No usable points: nothing would change, so nothing is offered, and the line is not a control. */
+    /** No usable points: nothing would change, so nothing is offered, and the message is not a control. */
     @Test
-    fun `with no usable points there is no Try again and the line takes no taps`() {
+    fun `with no usable points there is no Try again and the message takes no taps`() {
         setScreen(ReturnRoute.Unavailable(canRetry = false))
         assertEquals(0, composeRule.onAllNodesWithTag(NAVIGATION_HUD_RETRY_TAG, useUnmergedTree = true).fetchSemanticsNodes().size)
-        assertEquals("Unable to calculate route", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
         assertFalse(SemanticsActions.OnClick in composeRule.onNodeWithTag(NAVIGATION_HUD_DISTANCE_TAG).fetchSemanticsNode().config)
         val b = boundsOf(NAVIGATION_HUD_DISTANCE_TAG)
         val p = with(composeRule.density) { Offset(((b.left + b.right) / 2).toPx(), ((b.top + b.bottom) / 2).toPx()) }
@@ -281,70 +298,43 @@ class AvailabilityScreenReturnRouteTest {
     }
 
     /**
-     * A measurement, recorded for the report rather than a pass-or-fail claim about the design:
-     * on this 360 dp phone, whether the owner's message fits beside "Try again" or is ellipsised.
-     * What is asserted is that "Try again" itself is never cut short.
+     * The owner's sentence shows whole, with "Try again" offered and without, at three phone
+     * widths: the reason for "Own line under it". On one line beside "Try again" it showed 12, 16
+     * and 20 of its 25 characters at these widths (measured in this class at 4401ce2d). Not
+     * ellipsised, all 25 characters visible, and the box as wide as the text needs.
      */
-    @Test
-    fun `Try again is never cut short, and how much of the message fits is measured`() {
-        setScreen(ReturnRoute.Unavailable(canRetry = true))
-        val retryLayout = layoutOf(NAVIGATION_HUD_RETRY_TAG)
-        val retryNode = composeRule.onNodeWithTag(NAVIGATION_HUD_RETRY_TAG, useUnmergedTree = true).fetchSemanticsNode()
-        println("MEASURED at w360dp: Try again box ${with(composeRule.density) { retryNode.boundsInRoot.width.toDp() }}, needs ${with(composeRule.density) { retryLayout.multiParagraph.maxIntrinsicWidth.toDp() }}, overflowed width=${retryLayout.didOverflowWidth} height=${retryLayout.didOverflowHeight}; HUD ${boundsOf(NAVIGATION_HUD_TAG)}; line ${boundsOf(NAVIGATION_HUD_DISTANCE_TAG)}; status ${boundsOf(NAVIGATION_HUD_STATUS_TAG)}; target ${boundsOf(NAVIGATION_HUD_TARGET_TAG)}; heading ${boundsOf(NAVIGATION_HUD_HEADING_TAG)}; exit ${boundsOf(NAVIGATION_HUD_EXIT_TAG)}")
-        // Not didOverflowWidth: with softWrap off the paragraph is laid out against an unbounded
-        // width, so that flag reads true for any such text (seen here: true with the box wider than
-        // the text). The claim is the box is as wide as the text needs, and nothing is ellipsised.
-        assertTrue("Try again's box is as wide as the text needs", retryNode.boundsInRoot.width >= retryLayout.multiParagraph.maxIntrinsicWidth - 0.5f)
-        assertFalse("Try again is not ellipsised", retryLayout.isLineEllipsized(0))
-        val line = composeRule.onNodeWithTag(NAVIGATION_HUD_DISTANCE_TAG).fetchSemanticsNode()
-        val message = composeRule.onAllNodes(androidx.compose.ui.test.hasText("Unable to calculate route"), useUnmergedTree = true).fetchSemanticsNodes().single { it.id != line.id }
-        val results = mutableListOf<TextLayoutResult>()
-        message.config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
-        val m = results.single()
-        println("MEASURED at w360dp: line ${with(composeRule.density) { line.boundsInRoot.width.toDp() }}, message box ${with(composeRule.density) { m.size.width.toDp() }}, message ellipsised=${m.isLineEllipsized(0)}, overflowed width=${m.didOverflowWidth}, visible chars=${m.getLineEnd(0, visibleEnd = true)} of ${"Unable to calculate route".length}")
-    }
-
-    /**
-     * Measurements for the report, at three phone widths: how much of the owner's message the
-     * large slot shows, beside "Try again" and alone (no usable points). Prints; asserts only that
-     * the message node was found.
-     */
-    private fun measureMessage(width: String) {
+    private fun theWholeSentenceShows(width: String) {
+        var composed = false
         for (canRetry in listOf(true, false)) {
-            setScreenOnce(ReturnRoute.Unavailable(canRetry))
-            val all = composeRule.onAllNodes(androidx.compose.ui.test.hasText("Unable to calculate route"), useUnmergedTree = true).fetchSemanticsNodes()
-            val node = all.last()
-            val results = mutableListOf<TextLayoutResult>()
-            node.config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
-            val m = results.single()
-            val needs = with(composeRule.density) { m.multiParagraph.maxIntrinsicWidth.toDp() }
+            val state = ReturnRoute.Unavailable(canRetry)
+            if (!composed) {
+                setScreen(state)
+                composed = true
+            } else {
+                composeRule.runOnIdle { route = state }
+                composeRule.waitForIdle()
+            }
+            val m = layoutOf(NAVIGATION_HUD_DISTANCE_TAG)
+            val node = composeRule.onNodeWithTag(NAVIGATION_HUD_DISTANCE_TAG, useUnmergedTree = true).fetchSemanticsNode()
             val box = with(composeRule.density) { node.boundsInRoot.width.toDp() }
-            println("MEASURED at $width, Try again offered=$canRetry: message box $box, needs $needs, ellipsised=${m.isLineEllipsized(0)}, visible chars=${m.getLineEnd(0, visibleEnd = true)} of 25")
-        }
-    }
-
-    private var composed = false
-
-    private fun setScreenOnce(state: ReturnRoute) {
-        if (!composed) {
-            setScreen(state)
-            composed = true
-        } else {
-            composeRule.runOnIdle { route = state }
-            composeRule.waitForIdle()
+            val needs = with(composeRule.density) { m.multiParagraph.maxIntrinsicWidth.toDp() }
+            println("MEASURED at $width, Try again offered=$canRetry: message box $box, needs $needs, visible chars=${m.getLineEnd(0, visibleEnd = true)} of 25")
+            assertFalse("at $width, offered=$canRetry: not ellipsised", m.isLineEllipsized(0))
+            assertEquals("at $width, offered=$canRetry: all 25 characters visible", 25, m.getLineEnd(0, visibleEnd = true))
+            assertTrue("at $width, offered=$canRetry: box $box holds the text's $needs", box >= needs - 0.5.dp)
         }
     }
 
     @Test
-    fun `measure the message at 360 dp`() = measureMessage("w360dp")
+    fun `the whole sentence shows at 360 dp`() = theWholeSentenceShows("w360dp")
 
     @Test
     @Config(qualifiers = "w384dp-h823dp-xxhdpi")
-    fun `measure the message at 384 dp, the S22`() = measureMessage("w384dp")
+    fun `the whole sentence shows at 384 dp, the S22`() = theWholeSentenceShows("w384dp")
 
     @Test
     @Config(qualifiers = "w412dp-h915dp-xxhdpi")
-    fun `measure the message at 412 dp`() = measureMessage("w412dp")
+    fun `the whole sentence shows at 412 dp`() = theWholeSentenceShows("w412dp")
 
     private fun layoutOf(tag: String): TextLayoutResult {
         val results = mutableListOf<TextLayoutResult>()
