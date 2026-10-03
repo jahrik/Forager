@@ -316,6 +316,10 @@ internal fun CompactMapTab(
     onLeftNavigationView: () -> Unit,
     /** Dispatch 2026-09-28-430: "Return to Route", and locate while navigating. */
     onReturnToRoute: () -> Unit,
+    /** Dispatch 2026-09-28-440: the set zoom is still to be applied in this navigation. */
+    navigationZoomPending: Boolean,
+    /** Dispatch 2026-09-28-440: the map has applied the set zoom. */
+    onNavigationZoomApplied: () -> Unit,
     /** The HUD's fix-age clock — [AvailabilityScreen]'s own `currentTime`, so a test can pin an old fix as stale. */
     currentTime: CurrentTimeProvider,
     /** See [AvailabilityScreen]'s own `mapTaxonFilter` doc comment — "View on Map" from a List-tab row. */
@@ -542,6 +546,8 @@ internal fun CompactMapTab(
             val navigationFacing by rememberNavigationFacing(trueHeading, isNavigating, currentTime)
             val currentOnLeftNavigationView by rememberUpdatedState(onLeftNavigationView)
             val onLeftView: () -> Unit = remember { { currentOnLeftNavigationView() } }
+            val currentOnNavigationZoomApplied by rememberUpdatedState(onNavigationZoomApplied)
+            val onStartZoomApplied: () -> Unit = remember { { currentOnNavigationZoomApplied() } }
             // MGRS by default, the labelled decimal pair on tap — hoisted here from the strip's
             // own leaf (navigation-chrome dispatch) because the strip and the HUD now take turns
             // showing the coordinates: a format chosen while navigating must still be the format
@@ -604,7 +610,7 @@ internal fun CompactMapTab(
                         returnMemory = returnMemory,
                         // Dispatch 2026-09-28-430: the navigation view while navigating, and the one
                         // true heading for the puck and a facing-up map (ruling A).
-                        navigationView = if (isNavigating) NavigationViewRequest(navigationFacing, navigationFollowing, navigationViewRequestId, onLeftView) else null,
+                        navigationView = if (isNavigating) NavigationViewRequest(navigationFacing, navigationFollowing, navigationViewRequestId, onLeftView, navigationZoomPending, onStartZoomApplied) else null,
                         trueHeading = trueHeading,
                         // Item 1 (dispatch 2026-09-29-57, amendment -262, "Move the 'i'"): the landscape L's measured bounds, in the map's own
                         // pixels, for MapLibre's attribution button to keep clear of. The L keeps its bottom limit at the nav inset; the

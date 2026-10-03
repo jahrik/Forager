@@ -15,7 +15,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -103,8 +105,9 @@ class AvailabilityScreenNavigationViewTest {
         Box(modifier.testTag(MAP_TAG).pointerInput(Unit) { detectTapGestures(onLongPress = { longPresses++ }) })
     }
 
-    private fun setScreen() {
-        composeRule.setContent {
+    private fun setScreen(restoration: StateRestorationTester? = null) {
+        val set: (@Composable () -> Unit) -> Unit = restoration?.let { r -> { content: @Composable () -> Unit -> r.setContent(content) } } ?: { content -> composeRule.setContent(content) }
+        set {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = fix),
                 isRecording = true,
@@ -350,6 +353,79 @@ class AvailabilityScreenNavigationViewTest {
         val snackbar = boundsOf(COMPACT_SNACKBAR_TAG)
         val pill = boundsOf(RETURN_TO_ROUTE_TAG)
         assertTrue("the snackbar's bottom ${snackbar.bottom} is at or above the pill's top ${pill.top}", snackbar.bottom <= pill.top + 0.5.dp)
+    }
+
+    // ── Dispatch 2026-09-28-440: the zoom when navigation starts, once ──────────────────────
+
+    private fun theMapAppliesTheStartZoom() {
+        val request = view() ?: throw AssertionError("navigating")
+        composeRule.runOnIdle { request.onStartZoomApplied() }
+        settle()
+    }
+
+    @Test
+    fun `starting navigation asks once for the set zoom, and not again once the map has applied it`() {
+        setScreen()
+        assertNull(view())
+        switchReturning(true)
+        assertTrue("Return asks for the start zoom", view()!!.zoomOnStart)
+        theMapAppliesTheStartZoom()
+        assertFalse("applied once, not asked again", view()!!.zoomOnStart)
+    }
+
+    @Test
+    fun `a facing change does not ask for the zoom again`() {
+        setScreen()
+        switchReturning(true)
+        theMapAppliesTheStartZoom()
+        compass.value = CompassReading(80f, HeadingUncertainty.Estimated(20f), 1_000L)
+        settle()
+        assertEquals(NavigationFacing.CALIBRATING, view()!!.facing)
+        assertFalse(view()!!.zoomOnStart)
+    }
+
+    @Test
+    fun `Return to Route brings the view back at the walker's zoom, without asking for the set one`() {
+        setScreen()
+        switchReturning(true)
+        theMapAppliesTheStartZoom()
+        userMovesTheMapAway()
+        touchCentreOf(boundsOf(RETURN_TO_ROUTE_TAG))
+        assertTrue(view()!!.following)
+        assertFalse(view()!!.zoomOnStart)
+    }
+
+    @Test
+    fun `a new navigation after Stop asks for the set zoom again`() {
+        setScreen()
+        switchReturning(true)
+        theMapAppliesTheStartZoom()
+        switchReturning(false)
+        switchReturning(true)
+        assertTrue(view()!!.zoomOnStart)
+    }
+
+    /** A configuration change (a rotation) mid-navigation recreates the screen's state from saved state: not a new start. */
+    @Test
+    fun `a configuration change mid-navigation does not ask for the zoom again`() {
+        val restoration = StateRestorationTester(composeRule)
+        setScreen(restoration)
+        switchReturning(true)
+        theMapAppliesTheStartZoom()
+        restoration.emulateSavedInstanceStateRestore()
+        settle()
+        assertTrue("still navigating", view() != null)
+        assertFalse(view()!!.zoomOnStart)
+    }
+
+    @Test
+    fun `leaving the Maps tab and coming back does not ask for the zoom again`() {
+        setScreen()
+        switchReturning(true)
+        theMapAppliesTheStartZoom()
+        touchCentreOf(composeRule.onNodeWithText("List").getUnclippedBoundsInRoot())
+        touchCentreOf(composeRule.onNodeWithText("Maps").getUnclippedBoundsInRoot())
+        assertFalse(view()!!.zoomOnStart)
     }
 
     /** "Nothing fully obstructs the map view": the pill's fill is the map chrome's 80%. */
