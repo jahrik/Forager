@@ -872,6 +872,12 @@ fun AvailabilityScreen(
     // pending deletes left out (planner's ruling on Q7). The legend's expanded flag is held here, above
     // the tab, so it survives leaving the Maps tab and coming back (CLAUDE.md, UX defaults).
     var mapLegendExpanded by rememberSaveable { mutableStateOf(false) }
+    // Dispatch 2026-09-28-422 (plan task T18): the coordinate format, MGRS or decimal degrees, held
+    // here above the tab like the legend's flag, so a format chosen on the Maps tab is the format it
+    // shows after leaving the tab and coming back (CLAUDE.md, UX defaults). It was the Maps tab's own
+    // `remember`, which leaves composition with the tab, so it reset. Held for the session only,
+    // not across a restart (not asked for).
+    var showDecimalDegrees by rememberSaveable { mutableStateOf(false) }
     var forecastCellsShown by remember { mutableStateOf<Map<String, ForecastCellsShown>>(emptyMap()) }
     val availableColourFieldGroups = COLOUR_FIELDS.filter { it.group in uiState.forecastGroups }.associate { it.layerId to it.group }
     val drawnMapLayers = withUnavailableColourFieldsHidden(uiState.mapLayers, MAP_LAYER_REGISTRY, availableColourFieldGroups.keys)
@@ -1361,6 +1367,8 @@ fun AvailabilityScreen(
             navigationTarget = navigationTarget,
             returnRoute = returnRoute,
             onRetryRoute = onRetryRoute,
+            showDecimalDegrees = showDecimalDegrees,
+            onToggleCoordinateFormat = { showDecimalDegrees = !showDecimalDegrees },
             mapTaxonFilter = { mapTaxonFilter },
             basemap = basemap,
             tracks = tracks,
