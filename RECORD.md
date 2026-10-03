@@ -10839,3 +10839,13 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Done:** three research agents started by the planner, on the web only, no patents: (1) trail datasets for the US, their licences, coverage, routability and size; (2) open-source offline routing engines for Android; (3) how to guide a walker who left the trail back to it safely, and when to switch between trail navigation and the walker's own track. Their findings go into one research report under `docs/navigation/`, for the owner.
 **Not decided:** everything the research informs. No dispatch.
 **Notes:** Written by the planner by hand, on branch dispatch-439.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-444
+**Timestamp:** 2026-10-03T21:40:00Z
+**Continues:** 2026-09-28-443
+**Observed:** the three research agents reported, and the planner filed their findings as `docs/navigation/2026-10-03-trail-navigation-research.md`, with its two index rows. Sources not re-checked by the planner; no patents. In short: OpenStreetMap is the practical routable trail base (ODbL); the agency trails are public domain but are loose lines; Valhalla (through `valhalla-mobile`) and BRouter are open-source engines that run offline, neither measured on a phone; off the trail, the walker's own track is the only way back known to be passable, which matches the owner's requirement.
+**Open for the owner:** the five decisions at the end of the report (data, "not for navigation" sources, an engine spike, the off-trail step path, where it sits).
+**Notes:** Written by the planner by hand, on branch dispatch-439.
