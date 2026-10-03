@@ -10849,3 +10849,27 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Observed:** the three research agents reported, and the planner filed their findings as `docs/navigation/2026-10-03-trail-navigation-research.md`, with its two index rows. Sources not re-checked by the planner; no patents. In short: OpenStreetMap is the practical routable trail base (ODbL); the agency trails are public domain but are loose lines; Valhalla (through `valhalla-mobile`) and BRouter are open-source engines that run offline, neither measured on a phone; off the trail, the walker's own track is the only way back known to be passable, which matches the owner's requirement.
 **Open for the owner:** the five decisions at the end of the report (data, "not for navigation" sources, an engine spike, the off-trail step path, where it sits).
 **Notes:** Written by the planner by hand, on branch dispatch-439.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-445
+**Timestamp:** 2026-10-03T21:50:00Z
+**Decides:** the five decisions of `docs/navigation/2026-10-03-trail-navigation-research.md`
+**The owner, verbatim:** "Confirm 1 to 5", to the planner's recommendations:
+1. **Data:** OpenStreetMap is the routable base. The public-domain agency trails (Forest Service, BLM, USGS) are a separate reference layer, used to flag gaps, not merged into the route network.
+2. **"Not for navigation" sources:** National Park Service and Washington RCO trail data are left out.
+3. **Engine:** a spike on the S22 comparing Valhalla and BRouter with real Oregon data before choosing (dispatch -446).
+4. **Off-trail behaviour,** as a starting point with every number provisional: off the trail for about 15 s, the map quietly dims the trail, highlights the walker's own track and shows "Off trail · your track leads back", with no sound; no alerts while foraging, and a readout of the way back along their own track; heading back, guidance follows their own track to where they left the trail, with no straight-line shortcut; one gentle alert only when far from both the trail and their track, or near dusk; back on the trail, trail navigation resumes and "Back on trail" shows briefly.
+5. **Where it sits:** the next update, alongside the own map tiles (`docs/plans/own-map-tiles.md`) and T7.
+**Notes:** Written by the planner by hand, on branch dispatch-439.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-446
+**Timestamp:** 2026-10-03T21:52:00Z
+**Title:** engine-spike: Valhalla and BRouter routing along trails on the S22 (measurement only)
+**Dispatch-file:** preserved/2026-10-03-07.md; to the coder window, after -439 and -440
+**Change:** none to the Forager app. A separate spike app measures each engine's data size, app size, route time and memory, and its handling of a start off the trail, with Oregon data.
+**Finish line:** the report with its disclosure sections; the spike's code pushed on its own branch, not merged.
