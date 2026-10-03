@@ -92,6 +92,46 @@ class NavigationViewTest {
         assertEquals(19.0, navigationMaxZoom(Basemap.OSM_STANDARD, navigating = false), 0.0)
     }
 
+    /**
+     * Dispatch 2026-09-28-457, Part A, the sequence the S22 logged at Return: the view asked for with
+     * no start zoom (the mode transition starts), then again with 18 while it runs, then again with
+     * none. Before the gate the second request re-sent the mode, MapLibre called it finished at once,
+     * and the zoom was issued mid-transition and refused. Now the second and third wait, and the
+     * transition actually in flight hands out the zoom when it finishes, once.
+     */
+    @Test
+    fun `the start zoom waits for the transition in flight and lands when it finishes`() {
+        val gate = StartZoomGate()
+        val first = gate.request(sameModeAsInFlight = false, startZoom = null)!!
+        assertEquals("the second request waits", null, gate.request(sameModeAsInFlight = true, startZoom = 18.0))
+        assertEquals("so does the third", null, gate.request(sameModeAsInFlight = true, startZoom = null))
+        assertEquals("the transition in flight hands it out", 18.0, gate.finished(first))
+        assertEquals("once", null, gate.finished(first))
+    }
+
+    @Test
+    fun `a superseded transition hands out nothing, and the newer one gets the zoom`() {
+        val gate = StartZoomGate()
+        val first = gate.request(sameModeAsInFlight = false, startZoom = 18.0)!!
+        // A facing change mid-transition asks for another mode.
+        val second = gate.request(sameModeAsInFlight = false, startZoom = null)!!
+        assertEquals(null, gate.finished(first))
+        assertEquals(18.0, gate.finished(second))
+    }
+
+    @Test
+    fun `a cancelled transition keeps the zoom for the next one, and Stop drops it`() {
+        val gate = StartZoomGate()
+        val first = gate.request(sameModeAsInFlight = false, startZoom = 18.0)!!
+        gate.cancelled(first)
+        val again = gate.request(sameModeAsInFlight = true, startZoom = null)!!
+        assertEquals(18.0, gate.finished(again))
+
+        val third = gate.request(sameModeAsInFlight = false, startZoom = 18.0)!!
+        gate.reset()
+        assertEquals(null, gate.finished(third))
+    }
+
     @Test
     fun `the walker sits below the centre by an eighth of the map's height`() {
         // Top padding of a quarter: the map centres in the lower three quarters, so the walker is an eighth below the middle.
