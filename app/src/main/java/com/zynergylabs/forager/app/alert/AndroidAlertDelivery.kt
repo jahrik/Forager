@@ -38,7 +38,15 @@ import com.zynergylabs.forager.app.domain.AlertKind
  * owner-accepted cost: any per-channel adjustment a user made to the old channel is gone, and
  * Android lists one deleted category in the app's notification settings.
  */
-class AndroidAlertDelivery(context: Context) : AlertDelivery {
+class AndroidAlertDelivery internal constructor(
+    context: Context,
+    /** Posts the alert's notification; `false` when it could not (POST_NOTIFICATIONS denied). A seam for tests. */
+    private val postNotification: (Context, Alert) -> Boolean,
+    /** Issues the alert's vibration. A seam for tests. */
+    private val vibrate: (Context, Boolean) -> Unit,
+) : AlertDelivery {
+    constructor(context: Context) : this(context, ::postNotificationFor, ::vibrateForAlert)
+
     private val appContext = context.applicationContext
 
     init {
@@ -62,6 +70,13 @@ class AndroidAlertDelivery(context: Context) : AlertDelivery {
             }
         }
     }
+}
+
+/** The notification for [alert]'s kind; `false` when it could not be posted. */
+internal fun postNotificationFor(context: Context, alert: Alert): Boolean = when (alert.kind) {
+    AlertKind.OFF_TRACK -> postOffTrackNotification(context)
+    AlertKind.TURNAROUND -> postSundownNotification(context, SundownNotification.TURNAROUND)
+    AlertKind.SUNSET -> postSundownNotification(context, SundownNotification.SUNSET)
 }
 
 internal const val OFF_TRACK_CHANNEL_ID = "off_track_alert_v2"
@@ -96,11 +111,11 @@ internal fun createOffTrackNotificationChannel(context: Context) {
  * crash, and the vibration (a different, install-time VIBRATE permission) still runs. The user is
  * told about a denial once, at trip start — see `alertAudibilityWarning`.
  */
-internal fun postOffTrackNotification(context: Context) {
+internal fun postOffTrackNotification(context: Context): Boolean {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
     ) {
-        return
+        return false
     }
     val notification = NotificationCompat.Builder(context, OFF_TRACK_CHANNEL_ID)
         .setContentTitle(context.getString(R.string.off_track_notification_title))
@@ -110,6 +125,7 @@ internal fun postOffTrackNotification(context: Context) {
         .setAutoCancel(true)
         .build()
     NotificationManagerCompat.from(context).notify(OFF_TRACK_NOTIFICATION_ID, notification)
+    return true
 }
 
 /** VIBRATE is a normal (install-time) permission — declared in AndroidManifest.xml, no runtime check needed. */
@@ -190,11 +206,11 @@ internal fun createSundownNotificationChannel(context: Context) {
  * Best-effort, the same stance [postOffTrackNotification] takes: a POST_NOTIFICATIONS denial means
  * no notification, not a crash, and the vibration still runs on its install-time permission.
  */
-internal fun postSundownNotification(context: Context, which: SundownNotification) {
+internal fun postSundownNotification(context: Context, which: SundownNotification): Boolean {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
     ) {
-        return
+        return false
     }
     val title = when (which) {
         SundownNotification.TURNAROUND -> R.string.sundown_turnaround_notification_title
@@ -212,4 +228,5 @@ internal fun postSundownNotification(context: Context, which: SundownNotificatio
         .setAutoCancel(true)
         .build()
     NotificationManagerCompat.from(context).notify(SUNDOWN_NOTIFICATION_ID, notification)
+    return true
 }

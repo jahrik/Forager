@@ -255,11 +255,13 @@ class ReturnWatch(
             shouldAlert
         }
         recorded?.let(returnRecord::write)
+        val alertedTrack = (recorded as? ReturnRecordEvent.WentOffTrack)?.trackId
         if (alert) {
             // overridesSilence = false: owner ruling, 2026-09-11, reversing the original. Straying
             // is often deliberate, so off-track respects a phone the user silenced. See
             // AlertDelivery's own doc comment.
-            alertDelivery.deliver(Alert(kind = AlertKind.OFF_TRACK, overridesSilence = false))
+            val outcome = alertDelivery.deliverReporting(Alert(kind = AlertKind.OFF_TRACK, overridesSilence = false))
+            if (alertedTrack != null) returnRecord.write(ReturnRecordEvent.AlertDelivered(alertedTrack, outcome))
         }
     }
 

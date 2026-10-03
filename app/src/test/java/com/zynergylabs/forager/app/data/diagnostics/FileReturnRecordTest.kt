@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.data.diagnostics
 
+import com.zynergylabs.forager.app.domain.AlertDeliveryOutcome
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.ReturnEndReason
 import com.zynergylabs.forager.app.domain.ReturnRecordEvent
@@ -50,6 +51,21 @@ class FileReturnRecordTest {
                 "2026-10-03T20:00:00.000Z went-off-track track=track-1 reading=2026-10-03T20:00:27.000Z",
                 "2026-10-03T20:00:00.000Z re-armed track=track-1 reading=2026-10-03T20:01:00.000Z",
                 "2026-10-03T20:00:00.000Z return-refused track=track-2 watched=track-1",
+            ),
+            file.readLines(),
+        )
+    }
+
+    @Test
+    fun `a delivery's outcome is one line, reported or not`() {
+        val file = folder.root.resolve("return-record.log")
+        val record = FileReturnRecord(file, clock)
+        record.write(ReturnRecordEvent.AlertDelivered("track-1", AlertDeliveryOutcome(false, "SecurityException", true, null)))
+        record.write(ReturnRecordEvent.AlertDelivered("track-1", null))
+        assertEquals(
+            listOf(
+                "2026-10-03T20:00:00.000Z alert-delivery track=track-1 notification=not-posted(SecurityException) vibration=done",
+                "2026-10-03T20:00:00.000Z alert-delivery track=track-1 outcome=not-reported",
             ),
             file.readLines(),
         )

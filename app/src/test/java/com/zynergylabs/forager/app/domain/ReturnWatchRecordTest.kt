@@ -61,6 +61,21 @@ class ReturnWatchRecordTest {
     }
 
     @Test
+    fun `an alert's delivery outcome is written after the decision`() {
+        val outcome = AlertDeliveryOutcome(notificationPosted = false, notificationProblem = "POST_NOTIFICATIONS denied", vibrated = true, vibrationProblem = null)
+        val reporting = object : AlertDelivery {
+            override fun deliver(alert: Alert) = Unit
+            override fun deliverReporting(alert: Alert) = outcome
+        }
+        val watch = ReturnWatch(ComputeReturnToStartUseCase(), reporting, ReturnRecord { written += it })
+        watch.begin("track-1", TrackRecordingMode.HIGH_ACCURACY)
+        watch.setStartPoint("track-1", point(45.0, t = 1_000L))
+        watch.startReturn("track-1")
+        repeat(4) { i -> watch.onFix(point(45.001 + i * 0.001, t = 2_000L + i * 5_000L)) }
+        assertEquals(ReturnRecordEvent.AlertDelivered("track-1", outcome), written.last())
+    }
+
+    @Test
     fun `going off the path writes the decision with its reading's time, and coming back on writes re-armed`() {
         begun().startReturn("track-1")
         // 111 m north a reading every 5 s: off from the first, gone off at the fourth (15 s).
@@ -68,7 +83,13 @@ class ReturnWatchRecordTest {
         // Back at the start for 10 s.
         repeat(3) { i -> watch.onFix(point(45.0, t = 20_000L + i * 5_000L)) }
         assertEquals(
-            listOf(ReturnStarted("track-1"), WentOffTrack("track-1", readingAtMillis = 17_000L), ReArmed("track-1", readingAtMillis = 30_000L)),
+            listOf(
+                ReturnStarted("track-1"),
+                WentOffTrack("track-1", readingAtMillis = 17_000L),
+                // A delivery that cannot say what it did (this test's), recorded as such.
+                ReturnRecordEvent.AlertDelivered("track-1", outcome = null),
+                ReArmed("track-1", readingAtMillis = 30_000L),
+            ),
             written,
         )
     }

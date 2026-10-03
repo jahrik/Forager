@@ -33,6 +33,9 @@ sealed interface ReturnRecordEvent {
     /** The off-track rule decided the walker has gone off the path: the alert. [readingAtMillis] is the deciding reading's own time. */
     data class WentOffTrack(override val trackId: String, val readingAtMillis: Long) : ReturnRecordEvent
 
+    /** The alert's delivery and what it did; [outcome] `null` when the delivery cannot say. */
+    data class AlertDelivered(override val trackId: String, val outcome: AlertDeliveryOutcome?) : ReturnRecordEvent
+
     /** The off-track rule decided the walker is back on the path long enough to alert again. */
     data class ReArmed(override val trackId: String, val readingAtMillis: Long) : ReturnRecordEvent
 }
