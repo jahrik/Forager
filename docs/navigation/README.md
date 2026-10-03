@@ -35,3 +35,4 @@ These files were moved here from `docs/plans/` and `docs/audits/`. Links in the 
 | [2026-10-02-notification-tap-completion-report.md](2026-10-02-notification-tap-completion-report.md) | Completion report: the recording notification's tap no longer stacks a second copy of the screen (dispatch 2026-09-28-415) |
 | [2026-10-02-way-back-route-part-1-report.md](2026-10-02-way-back-route-part-1-report.md) | Way-back route, Part 1: the route home as logic (dispatch 2026-09-28-417, plan task T5) |
 | [forager-navigator-plan.md](forager-navigator-plan.md) | Forager Navigator — plan |
+| [2026-10-02-off-route-detection-research.md](2026-10-02-off-route-detection-research.md) | Off-route detection in walking navigation: what others do (research for plan task T21) |
