@@ -10909,7 +10909,7 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Timestamp:** 2026-10-03T22:45:00Z
 **Decides:** the two suggestions of -439's report
 **The owner, verbatim:**
-- To a lasting record of Return taps and the off-track rule's decisions: "Yes, small dispatch after the zoom". Dispatch preserved/2026-10-03-08.md, to the coder after -440 and before -446.
+- To a lasting record of Return taps and the off-track rule's decisions: "Yes, small dispatch after the zoom". Dispatch -451 (preserved/2026-10-03-08.md), to the coder after -440 and before -446.
 - To whether "the path I walked" taken at Return should change now: "Settle it in trail navigation". Today's rule stays as built; trail navigation (-442 to -447) replaces the path at Return with the route along mapped paths and the walker's own track.
 
 ---
@@ -10921,3 +10921,14 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Observed by the coder:** `NAVIGATION_VIEW_ZOOM` = 18.0 (about two blocks ahead, by arithmetic for the S22, provisional); each basemap caps the camera at its operating limit (Street 19, Topo 17, Satellite 15).
 **The owner, verbatim:** "Zoom in past the cap", to: while navigating, Topo and Satellite zoom to two blocks too, by enlarging their closest tiles, slightly soft on Topo and blurry on Satellite, with no extra downloads. -440 Amendment 1: the camera's cap is raised while navigating; the tile sources' own maximum zoom is not, so no tile above a basemap's limit is requested; Stop restores the cap.
 **Notes:** Written by the planner by hand, on branch dispatch-439.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-451
+**Timestamp:** 2026-10-03T22:55:00Z
+**Title:** return-record: a lasting record of Return taps and the off-track rule's decisions
+**Dispatch-file:** preserved/2026-10-03-08.md; to the coder window, after -440 and before -446
+**Change:** nothing the walker sees. An entry with its time for each Return tap and end, each off-track decision, and each alert delivery's outcome, kept where log rotation cannot remove it; no positions.
+**Finish line:** the report-first message, tests first, revert checks, the full suite, the report, the hand-back.
+**Notes:** Written by the planner by hand, on branch dispatch-439. The dispatch file was first committed titled -449, which is the decision's number; corrected to -451 in the next commit.
