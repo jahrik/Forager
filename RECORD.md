@@ -10873,3 +10873,16 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Dispatch-file:** preserved/2026-10-03-07.md; to the coder window, after -439 and -440
 **Change:** none to the Forager app. A separate spike app measures each engine's data size, app size, route time and memory, and its handling of a start off the trail, with Oregon data.
 **Finish line:** the report with its disclosure sections; the spike's code pushed on its own branch, not merged.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-447
+**Timestamp:** 2026-10-03T22:00:00Z
+**Decides:** roads, and the two kinds of divergence
+**The owner, verbatim:** "Trails get this treatment and roads should get the same treatment. Navigation lines should follow established trails unless user deliberately wanders off. So the app needs to detect when the user is moving off trail with a degree of accuracy that updates them upon divergence."
+**Asked, the owner chose** (each the planner's recommendation):
+- "Wrong turn alerts, wandering is quiet": walking along a different trail or road than the route, away from it, gives one alert ("Wrong way, your route is back there", the planner's wording, provisional) and the line shows the way back; leaving all paths is the quiet switch to the walker's own track of -445, with no sound.
+- "Yes, add a street route": the engine spike (-446, Amendment 1) adds a route on streets and tests telling which street, sidewalk or trail the walker is on, using today's town walk.
+**So:** the route follows the path network, trails and roads alike, where it exists. Telling which path the walker is on becomes a requirement of the engine choice.
+**Notes:** Written by the planner by hand, on branch dispatch-439.
