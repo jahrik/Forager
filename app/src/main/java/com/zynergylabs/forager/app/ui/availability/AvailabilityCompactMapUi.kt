@@ -300,8 +300,10 @@ internal fun CompactMapTab(
     computeTrueHeading: ComputeTrueHeadingUseCase,
     /** See [AvailabilityScreen]'s own `navigationTarget` doc comment. */
     navigationTarget: Waypoint?,
-    /** See [AvailabilityScreen]'s own `pathHomeMeters` doc comment. */
-    pathHomeMeters: Double?,
+    /** See [AvailabilityScreen]'s own `returnRoute` doc comment. */
+    returnRoute: ReturnRoute,
+    /** See [AvailabilityScreen]'s own `onRetryRoute` doc comment. */
+    onRetryRoute: () -> Unit,
     /** Dispatch 2026-09-28-430: whether the map follows in the navigation view; false once the user has moved it away. */
     navigationFollowing: Boolean,
     /** Dispatch 2026-09-28-430: counts "Return to Route" (and locate while navigating) requests. */
@@ -901,7 +903,8 @@ internal fun CompactMapTab(
                         liveFix = uiState.liveFix,
                         target = navigationTarget,
                         distanceUnit = uiState.distanceUnit,
-                        pathHomeMeters = pathHomeMeters,
+                        route = returnRoute,
+                        onRetryRoute = onRetryRoute,
                         facing = navigationFacing,
                         currentTime = currentTime,
                         showDecimalDegrees = showDecimalDegrees,

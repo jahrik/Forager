@@ -663,12 +663,16 @@ fun AvailabilityScreen(
      */
     navigationTarget: Waypoint? = null,
     /**
-     * Path-home join dispatch: the walk back to [navigationTarget] along the recorded track joined
-     * to itself, in metres ([com.zynergylabs.forager.app.ui.track.TrackRecordingUiState.pathHome]'s
-     * `totalMeters`), or `null` when there is none — not returning, no gated fix yet, no usable
-     * points. The HUD's status line carries it as one number; see [navigationReadout].
+     * The route home while returning (dispatch 2026-09-28-423, plan task T6), read from
+     * [com.zynergylabs.forager.app.ui.track.TrackRecordingUiState.routeHome] by [returnRouteOf].
+     * The HUD's needle, large figure and "Try again" come from it; see [NavigationHud]. Not
+     * nullable: this screen's HUD is the return HUD, and a return is always in route mode (the
+     * planner's ruling), so no caller can put it in the straight-line mode by leaving this out.
+     * [ReturnRoute.Pending] until there is a result, as `MainActivity` passes it.
      */
-    pathHomeMeters: Double? = null,
+    returnRoute: ReturnRoute = ReturnRoute.Pending,
+    /** The HUD's "Try again": `TrackRecordingViewModel.retryRoute`. */
+    onRetryRoute: () -> Unit = {},
     /**
      * What fills the map's box. Defaults to the real map, so no production caller passes it; see
      * [MapSlot] for why the map is reached through a slot rather than named directly here.
@@ -1364,7 +1368,8 @@ fun AvailabilityScreen(
             compassProvider = compassProvider,
             computeTrueHeading = computeTrueHeading,
             navigationTarget = navigationTarget,
-            pathHomeMeters = pathHomeMeters,
+            returnRoute = returnRoute,
+            onRetryRoute = onRetryRoute,
             navigationFollowing = !navigationFollowBroken,
             navigationViewRequestId = navigationViewRequestId,
             onLeftNavigationView = { navigationFollowBroken = true },
