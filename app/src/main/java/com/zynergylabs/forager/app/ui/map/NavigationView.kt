@@ -274,6 +274,8 @@ class NavigationModeChange {
             override fun onCameraTrackingDismissed() = Unit
 
             override fun onCameraTrackingChanged(currentMode: Int) {
+                // Dispatch -457: every tracking-mode change, for reading on the phone (a pinch that ends following, in particular).
+                Log.i(NAVIGATION_VIEW_LOG_TAG, "tracking changed to $currentMode: expected=$expected, byTheApp=$appChanging, navigating=${view() != null}")
                 if (appChanging) return
                 val wanted = expected ?: return
                 if (currentMode == wanted) return
@@ -305,6 +307,7 @@ class NavigationModeChange {
             NavigationFacing.CALIBRATING -> CameraMode.TRACKING
             NavigationFacing.NORTH_UP -> CameraMode.TRACKING_GPS_NORTH
         }
+        Log.i(NAVIGATION_VIEW_LOG_TAG, "apply view: $facing, start zoom ${startZoom ?: "none"}, mode now ${map.locationComponent.cameraMode}, asking $mode")
         expected = mode
         active = true
         val component = map.locationComponent
@@ -320,9 +323,15 @@ class NavigationModeChange {
                         startZoom,
                         NAVIGATION_VIEW_TRANSITION_MILLIS,
                         object : MapLibreMap.CancelableCallback {
-                            override fun onFinish() = onStartZoomApplied()
+                            override fun onFinish() {
+                                logCamera(map, "start zoom finished")
+                                onStartZoomApplied()
+                            }
 
-                            override fun onCancel() = onStartZoomApplied()
+                            override fun onCancel() {
+                                logCamera(map, "start zoom cancelled")
+                                onStartZoomApplied()
+                            }
                         },
                     )
                 }
