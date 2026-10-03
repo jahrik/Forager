@@ -244,3 +244,31 @@ Appended by the planner. Nothing above is changed. Recorded in `RECORD.md` decis
 - Verify: the rule run over recorded walks, stating the sample: it alerts where the walker did stray and stays quiet where they did not.
 - Device-only: yes. A real walk, in both directions.
 - Not decided here: whether the rule replaces today's check or the way-back route's off-route state takes its place.
+
+## Addendum, 2026-10-03 (UTC): open items 1 and 3 answered, and T18 and T6 started
+
+Appended by the planner. Nothing above is changed. Recorded in `RECORD.md` decision 2026-09-28-421.
+
+Put to the owner as choices on 2026-10-03 and answered with the planner's recommendation each time:
+- **Open item 1, T3, where the sundown countdown sits:** "Strip, then HUD": in the top strip while recording, and inside the HUD once Return is tapped. Not one combined strip.
+- **Open item 3, T8 and T9, navigating to a waypoint:** offered from the waypoint's bubble, its details sheet and its row in Records; it works **without a recording running**; Back from the navigating HUD **stops navigating**, one step at a time as Back does elsewhere in the app.
+- **T18, the coordinate format:** remembered across tab changes. Started as dispatch 2026-09-28-422.
+- **T6, the HUD follows the route:** started as dispatch 2026-09-28-423, after T18.
+
+Still open: item 5 (the check-in timer's step path) and the audit's decisions under item 7 that wait on Stages G and J.
+
+## Addendum, 2026-10-03 (UTC), later: a new task, T22, the navigation camera view
+
+Appended by the planner. Nothing above is changed. Recorded in `RECORD.md` decision 2026-09-28-427.
+
+The owner asked, verbatim: "Can the camera view in the app change to a more navigation friendly view, like in GPS apps when navigating?" Today the map follows the walker north-up and flat (`ui/map/SightingsMap.kt:973`, `CameraMode.TRACKING`). Asked three questions, the owner chose the planner's recommendation each time: **"Automatically when navigating"**, **"Yes, facing-up"**, **"A gentle tilt"**.
+
+**T22. The navigation camera view** (Stage C, after T6)
+- Does: while returning, and later while navigating to a waypoint (T8), the map follows the walker turned so the way they face is up, using the compass, with a gentle tilt and the walker placed a little below the centre. It switches on by itself and goes back to the normal map when navigation ends.
+- Facing comes from the compass, not GPS: at walking pace GPS direction is too noisy (`docs/navigation/2026-10-02-off-route-detection-research.md`, section c).
+- Open, to be put to the owner as a step path before it is dispatched: what happens when the walker pans the map, how they get back to the view, and what the map does when the compass reports itself unreliable (the compass-reliability work already detects that).
+- Device-only: yes. A walk.
+
+**T22, the tilt refined by the owner** (2026-10-03, verbatim): "Have the tilt be enough to focus on the path ahead, not so gentle that it's a cosmetic tilt." So the tilt is strong enough to put the way ahead in front of the walker, not a slight lean. The planner's starting figure: about 45° (the map library allows 0° to 60°; car navigation sits near the top), a named constant tuned on a walk. Recorded in `RECORD.md` 2026-09-28-428.
+
+**T22, the owner's answers on panning, returning and the compass** (2026-10-03, verbatim): "1 yes" (dragging the map stops it following); "2 Have a "Return to Route" button appear when panning away"; "3 give a notice first that the compass is calculating if it's stuck, after retrying to get it back, then the north up view." Recorded in `RECORD.md` 2026-09-28-429. The step path built from them is put back to the owner for confirmation before T22 is dispatched.
