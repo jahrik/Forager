@@ -10688,3 +10688,15 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Two findings for the owner, not acted on:** (1) Tapping Return in a recording's first half-minute shows "Unable to calculate route", because the first points have not been saved yet; that is the recording's own lag, not a failure. (2) At the start the route figure reads "0 ft", the plain formatting the owner once struck for the straight line, which is why the straight line reads "within …".
 **Next:** -430 (T22), then -422, then -425.
 **Notes:** Written by the planner by hand, on branch records-after-153.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-432
+**Timestamp:** 2026-10-03T17:32:05Z
+**Continues:** 2026-09-28-430 (preserved 2026-10-03-04, where the rulings are appended); findings received, being built on navigation-view
+**The owner's go, to the coder in its window:** "Yes, start T22".
+**What the coder found, before building:** the map library can follow with the compass, tilt and pad; its own compass engine reads magnetic north, so today's location puck has pointed about 15° off true north on a true-north map (inferred from the library's bytecode, not seen on a phone); "stuck" maps onto the existing unreliable-compass state; the bubble would drift off its glyph on a continuously turning map; the reset-to-north control would be undone by the compass; and the HUD already says "Compass unreliable", so a separate map notice would double it.
+**The planner's rulings** (appended to the dispatch file): the app's own true heading feeds the puck everywhere, fixing the 15° fault, with the map outside navigation otherwise unchanged; the owner's compass notice is carried by the HUD's heading label ("Compass calibrating…", then "Compass unavailable · north up"), one place and one word; the bubble re-anchors on every camera move while navigating; reset-to-north while navigating counts as leaving the view and shows "Return to Route"; the user's zoom is left alone; no rotation sensor gives the north-up notice once.
+**For the owner:** the puck correction outside navigation, and where the compass notice appears.
+**Notes:** Written by the planner by hand, on branch records-after-154 cut from t6-merge at ffa0e168, pushed and not merged.
