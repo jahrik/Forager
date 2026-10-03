@@ -40,4 +40,5 @@ These files were moved here from `docs/plans/` and `docs/audits/`. Links in the 
 | [2026-10-03-navigation-view-report.md](2026-10-03-navigation-view-report.md) | The map's navigation view (dispatch 2026-09-28-430, plan task T22) |
 | [2026-10-03-off-track-rule-report.md](2026-10-03-off-track-rule-report.md) | "Off track" redefined to fit the walker (dispatch 2026-09-28-425, plan task T21) |
 | [2026-10-03-coordinate-format-report.md](2026-10-03-coordinate-format-report.md) | The coordinate format survives a tab change (dispatch 2026-09-28-422, plan task T18) |
+| [2026-10-03-walk-findings-report.md](2026-10-03-walk-findings-report.md) | Walk findings: why the new off-track rule stayed silent, and why the line leaves the street (dispatch 2026-09-28-439, report only) |
 | [2026-10-03-trail-navigation-research.md](2026-10-03-trail-navigation-research.md) | Navigating along trails, and back to them: trail data, offline route engines, leaving the trail (research for the owner, RECORD -442, -443) |
