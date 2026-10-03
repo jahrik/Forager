@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.ui.map
 
 import android.hardware.SensorManager
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.produceState
@@ -18,6 +19,7 @@ import org.maplibre.android.location.CompassEngine
 import org.maplibre.android.location.CompassListener
 import org.maplibre.android.location.LocationComponent
 import org.maplibre.android.location.OnCameraTrackingChangedListener
+import org.maplibre.android.location.OnLocationCameraTransitionListener
 import org.maplibre.android.location.modes.CameraMode
 import org.maplibre.android.maps.MapLibreMap
 
@@ -195,6 +197,9 @@ data class MapCompass(
 /** See [MapCompass]. `null` outside `AvailabilityScreen`: such a map keeps MapLibre's own compass. */
 val LocalMapCompass = staticCompositionLocalOf<MapCompass?> { null }
 
+/** The log tag the navigation view's camera lines go under (read on the device check). */
+const val NAVIGATION_VIEW_LOG_TAG = "ForagerNavView"
+
 /** The time the navigation view's own camera changes take, so the tilt and the turn ease in rather than jump. */
 private const val NAVIGATION_VIEW_TRANSITION_MILLIS = 750L
 
@@ -255,7 +260,20 @@ class NavigationModeChange {
         })
     }
 
-    /** The view for [facing]: its camera mode, tilted, with the walker [topPaddingPx] below the top padding's line. */
+    /**
+     * The view for [facing]: its camera mode, then the tilt and the top padding that puts the walker
+     * below the centre.
+     *
+     * The tilt and padding go in the mode change's own transition listener, not straight after it.
+     * Read from the pinned 13.5.0 bytecode, and seen on the S22 desk step:
+     * - `paddingWhileTracking` and `tiltWhileTracking` are ignored ("the camera mode is
+     *   transitioning") while a mode transition runs. Called straight after the mode change, the
+     *   padding was always dropped, and the walker stayed at the centre.
+     * - A mode change runs a transition, and applies the bearing and tilt handed to it, only from
+     *   not following into following; between two following modes it does neither.
+     * The listener is called at the transition's end, or at once when there is none, so the tilt and
+     * padding land either way.
+     */
     fun applyView(map: MapLibreMap, facing: NavigationFacing, topPaddingPx: Double) {
         val mode = when (facing) {
             NavigationFacing.FACING_UP -> CameraMode.TRACKING_COMPASS
@@ -265,8 +283,24 @@ class NavigationModeChange {
         expected = mode
         active = true
         val component = map.locationComponent
-        byTheApp { component.setCameraMode(mode, NAVIGATION_VIEW_TRANSITION_MILLIS, null, null, NAVIGATION_VIEW_TILT_DEGREES, null) }
-        component.paddingWhileTracking(doubleArrayOf(0.0, topPaddingPx, 0.0, 0.0), NAVIGATION_VIEW_TRANSITION_MILLIS)
+        val then = object : OnLocationCameraTransitionListener {
+            override fun onLocationCameraTransitionFinished(cameraMode: Int) {
+                if (expected != mode) return
+                component.tiltWhileTracking(NAVIGATION_VIEW_TILT_DEGREES, NAVIGATION_VIEW_TRANSITION_MILLIS)
+                component.paddingWhileTracking(
+                    doubleArrayOf(0.0, topPaddingPx, 0.0, 0.0),
+                    NAVIGATION_VIEW_TRANSITION_MILLIS,
+                    object : MapLibreMap.CancelableCallback {
+                        override fun onFinish() = logCamera(map, "view applied, $facing")
+
+                        override fun onCancel() = logCamera(map, "view applied, $facing, the padding cancelled")
+                    },
+                )
+            }
+
+            override fun onLocationCameraTransitionCanceled(cameraMode: Int) = Unit
+        }
+        byTheApp { component.setCameraMode(mode, NAVIGATION_VIEW_TRANSITION_MILLIS, null, null, NAVIGATION_VIEW_TILT_DEGREES, then) }
     }
 
     /** "Reset orientation" while navigating (ruling D): north-up, still following. The caller reports the move away. */
@@ -275,16 +309,37 @@ class NavigationModeChange {
         byTheApp { map.locationComponent.setCameraMode(CameraMode.TRACKING_GPS_NORTH, NAVIGATION_VIEW_TRANSITION_MILLIS, null, null, null, null) }
     }
 
-    /** Navigation has stopped: flat and north-up, as before it started, still following if the map was. */
+    /**
+     * Navigation has stopped: flat and north-up, as before it started, still following if the map
+     * was. A following-to-following mode change does not touch the bearing or the tilt (see
+     * [applyView]), and plain tracking has no bearing of its own to ease, so following is paused,
+     * the camera eased flat and north-up with no padding, and following resumed when that ends
+     * (from not following into following, so its own transition goes to the walker). Seen on the
+     * S22 desk step: the first form, a following-to-following change, left the map tilted and turned.
+     */
     fun leaveNavigation(map: MapLibreMap) {
         expected = null
         active = false
         val component = map.locationComponent
-        if (component.cameraMode != CameraMode.NONE) {
-            byTheApp { component.setCameraMode(CameraMode.TRACKING, NAVIGATION_VIEW_TRANSITION_MILLIS, null, 0.0, 0.0, null) }
-            component.paddingWhileTracking(doubleArrayOf(0.0, 0.0, 0.0, 0.0), NAVIGATION_VIEW_TRANSITION_MILLIS)
-        } else {
-            map.easeCamera(CameraUpdateFactory.newCameraPosition(CameraPosition.Builder(map.cameraPosition).tilt(0.0).bearing(0.0).padding(0.0, 0.0, 0.0, 0.0).build()))
-        }
+        val wasFollowing = component.cameraMode != CameraMode.NONE
+        if (wasFollowing) byTheApp { component.cameraMode = CameraMode.NONE }
+        val flat = CameraPosition.Builder(map.cameraPosition).tilt(0.0).bearing(0.0).padding(0.0, 0.0, 0.0, 0.0).build()
+        map.easeCamera(CameraUpdateFactory.newCameraPosition(flat), NAVIGATION_VIEW_TRANSITION_MILLIS.toInt(), object : MapLibreMap.CancelableCallback {
+            override fun onFinish() {
+                if (wasFollowing && !active) byTheApp { component.cameraMode = CameraMode.TRACKING }
+                logCamera(map, "navigation left")
+            }
+
+            override fun onCancel() {
+                if (wasFollowing && !active) byTheApp { component.cameraMode = CameraMode.TRACKING }
+                logCamera(map, "navigation left, the ease cancelled")
+            }
+        })
+    }
+
+    /** The camera the navigation view left, for the device check: no position, only how the map is turned and tilted. */
+    private fun logCamera(map: MapLibreMap, what: String) {
+        val camera = map.cameraPosition
+        Log.i(NAVIGATION_VIEW_LOG_TAG, "$what: mode=${map.locationComponent.cameraMode}, bearing=${"%.1f".format(camera.bearing)}, tilt=${"%.1f".format(camera.tilt)}, padding=${camera.padding?.joinToString { "%.0f".format(it) }}")
     }
 }
