@@ -11088,3 +11088,19 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Device-only:** the file on the phone, read with `adb shell run-as com.zynergylabs.forager.app cat files/return-record.log`.
 **Next:** on the owner's word, a pull request; then -463.
 **Notes:** Written by the planner by hand, on branch records-after-160.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-466
+**Timestamp:** 2026-10-04T00:20:00Z
+**Decides:** the seven decisions of `docs/plans/2026-10-03-own-tiles-survey.md`
+**The owner, verbatim:** "I'll take your recommendations from 1 to 7. Set up the RPI5 as server and cloudflare as backup".
+1. **The Pi's role:** the owner's explicit instruction stands over the planner's recommendation (builder, with R2 serving): the Raspberry Pi 5 is the serving origin, and Cloudflare (R2 behind the Worker) is the backup. The survey's points carry: Cloudflare Tunnel with no open ports, a cache in front, and the R2 copy kept current so the Worker can serve when the Pi or the home connection is down.
+2. A custom domain for the tile server, so Cloudflare's edge cache works properly.
+3. Forager's own map build with trail attributes, not extracts of Protomaps' build.
+4. Zoom 15 built by Forager, ending the live dependency on Protomaps' public host.
+5. US-only coverage to start; the Street basemap becomes US-only.
+6. Topo: OpenTopoMap stays for now; Forager's own contours and hillshade from USGS 3DEP come later.
+7. A device check that a labelled vector map renders online on MapLibre 13.5.0 without the old crash, before any online switch.
+**Notes:** Written by the planner by hand, on branch records-after-160.
