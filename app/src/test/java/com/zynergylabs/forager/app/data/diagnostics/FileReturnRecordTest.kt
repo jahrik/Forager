@@ -19,7 +19,7 @@ class FileReturnRecordTest {
     @get:Rule
     val folder = TemporaryFolder()
 
-    private var now = 1_791_014_400_000L // 2026-10-03T20:00:00Z
+    private var now = 1_791_057_600_000L // 2026-10-03T20:00:00Z
     private val clock = CurrentTimeProvider { now }
 
     @Test
@@ -42,8 +42,8 @@ class FileReturnRecordTest {
     fun `the off-track decisions carry their reading's time, and a refusal names the watched recording`() {
         val file = folder.root.resolve("return-record.log")
         val record = FileReturnRecord(file, clock)
-        record.write(ReturnRecordEvent.WentOffTrack("track-1", readingAtMillis = 1_791_014_427_000L))
-        record.write(ReturnRecordEvent.ReArmed("track-1", readingAtMillis = 1_791_014_460_000L))
+        record.write(ReturnRecordEvent.WentOffTrack("track-1", readingAtMillis = 1_791_057_627_000L))
+        record.write(ReturnRecordEvent.ReArmed("track-1", readingAtMillis = 1_791_057_660_000L))
         record.write(ReturnRecordEvent.ReturnRefused("track-2", watchedTrackId = "track-1"))
         assertEquals(
             listOf(
