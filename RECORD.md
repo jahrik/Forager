@@ -10457,3 +10457,41 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **For the owner's list:** the recording notification's tap stacks a second copy of the screen.
 **State of the S22:** the debug build is installed; the release build is not; three ended tracks from the check.
 **Notes:** Written by the planner by hand, on branch t1-device-check, which joins alerts-in-service at 4fc262fa with main at 009d8951; pushed and not merged. Dispatch -400 is not closed by this entry: its terminal waits for the owner's word on what remains (the alert on a walk).
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-415
+**Timestamp:** 2026-10-02T17:36:51Z
+**Title:** notification-tap: the recording notification's tap must not stack a second copy of the screen
+**Dispatch-file:** preserved/2026-10-02-02.md; to the coder window that ran -400
+**The owner, verbatim (2026-10-02, UTC):**
+- 17:34Z, to the planner's one-line request to confirm a relayed "Merge the device check": "I told the coder the merge device check". Pull request #151 (t1-device-check into main) is open on it; no CI run had appeared when this was written.
+- 17:35Z, to "the stacked-screen fault: fix it now as a small task, or leave it on the list?" and "what next: the sundown alerts, or walking the off-track alert first?": "Fix the fault now, I'll do off track alert first".
+**The fault:** confirmed on the S22 in the device check of -400 (-414): with Forager open and a recording running, a tap on the recording notification leaves two copies of the app's screen in one task, and Back from the new one lands on the old.
+**The path the fix restores, not put to the owner as a choice because it is what a notification's tap is expected to do:** "Forager open, a recording running > Home > tap the recording notification > the screen you already had comes to the front, as you left it > Back does what it did before the tap".
+**The planner's diagnosis, for the coder to confirm or disprove:** the recording notification opens MainActivity with no flags (service/TrackRecordingService.kt:229-232) and MainActivity has no launch mode, so a new copy is created; the backup notification sets two flags that prevent it (data/backup/AndroidBackupNotifier.kt:65-70).
+**Change:** the smallest change that brings the existing screen forward, on that one notification. Not the manifest's launch mode. A test pushed failing first, a revert check, the full suite, and one step on the S22: the same tap, then one MainActivity record in the task.
+**Scope boundary:** the notification's text, its Stop action, the service, the watch and everything -400 built are not touched.
+**What the owner does first, by their second sentence:** walks the off-track alert. The sundown alerts (plan task T2) wait for that. Dispatch -400 has no terminal yet for the same reason.
+**Finish line:** the fix and its report pushed on branch notification-tap, the phone step's result recorded, the hand-back sent.
+**Notes:** Written by the planner by hand, on branch records-after-151 cut from t1-device-check at 9c1a609c, pushed and not merged.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-416
+**Timestamp:** 2026-10-02T19:12:31Z
+**Closes:** 2026-09-28-415 (preserved 2026-10-02-02)
+**Outcome:** completed
+**Observed:**
+- **What landed,** on branch notification-tap at 6d78266f, not merged when this was written: e89516d9, the test pushed failing ("Flags were 0x0"); c5c77acc, the fix; 6d78266f, the report docs/navigation/2026-10-02-notification-tap-completion-report.md and its two index rows.
+- **The diagnosis was confirmed** on every point, with one correction to the dispatch: AndroidBackupNotifierTest asserts the backup intent's component and extra, not its flags. The two getActivity calls are the only two.
+- **The fix:** the recording notification's intent now carries SINGLE_TOP and CLEAR_TOP. One file under app/src/main, nine lines added and one removed, and a new test class. The manifest, MainActivity and the notification's text, channel and Stop action are untouched.
+- **On the S22,** debug build 1.0.2490+gc5c77acc installed over the earlier debug build, nothing wiped: after the tap the task holds one MainActivity record, the same one as before the tap, showing "Stop recording track"; before the fix it held two. With Forager swiped away during a recording, the tap opened one screen showing "Stop recording track", and Stop on it ended the service and the notification.
+- **Tests:** the full unit suite at c5c77acc, 421 classes, 3,449 tests, 0 failures, 0 errors, 24 skipped; the revert check fails the new test with its own message; assembleDebug with no error lines.
+- **The owner's words to the coder,** in its window, read from the coder's hand-back: "Yes, build it" and "Yes, run the phone step".
+**What the planner checked itself:** the fix's diff, read; the saved XML re-counted (1 of 12 failing first, the revert check failing the same test, the full suite as reported); one MainActivity record in the saved dump after the tap; and, on the phone over adb without touching it, the build's versionName, no service, no notification and one MainActivity record. No file under app/ differs between c5c77acc and 6d78266f.
+**Deviations:** none. **Not shown:** Back after the tap (the check does not allow Back; with one screen in the task there is no older copy, which is inferred); the tap from anything but the home screen; an unplugged phone.
+**Next:** the owner walks the off-track alert with this build on the S22 ("I'll do a full walk for this one", "Have the coder work first"). Dispatch -400's terminal and plan task T2 wait for that walk.
+**Notes:** Written by the planner by hand, on branch records-after-151 with -415. Pull request #151 (t1-device-check into main, head 9c1a609ccafd47daa4dced4eaff812015a0cbb22, on which CI passed, run 37041745684) was merged as 3e82b5ca2fc8e762dd6253cd1d32d6800de57084 at 2026-10-02T17:42:56Z, read from GitHub, on the owner's "I told the coder the merge device check", with backup 2026-10-02-04; no file under app/ changed. That merge has no entry of its own, and this note stands in for one.
