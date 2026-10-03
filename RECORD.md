@@ -10886,3 +10886,18 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 - "Yes, add a street route": the engine spike (-446, Amendment 1) adds a route on streets and tests telling which street, sidewalk or trail the walker is on, using today's town walk.
 **So:** the route follows the path network, trails and roads alike, where it exists. Telling which path the walker is on becomes a requirement of the engine choice.
 **Notes:** Written by the planner by hand, on branch dispatch-439.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-448
+**Timestamp:** 2026-10-03T22:30:00Z
+**Closes:** 2026-09-28-439 (preserved 2026-10-03-05)
+**Outcome:** completed, report only
+**Observed:** on branch walk-findings at 1170db25, docs only, not merged: `docs/navigation/2026-10-03-walk-findings-report.md` with its two index rows. The owner told the coder in its window that "The rest of the report is on the phone's tracks" meant "The line itself", and, asked when Return was tapped, "B: before the detour".
+- **Part A, no buzz:** the cause on the evidence is when Return was tapped. The phone's own screenshot record (20:07:54Z, the owner's 1:07 screenshot, no HUD) shows no return under way a minute and a half into the detour. Through the real ReturnWatch and OffTrackJudge, Return up to 20:08:50 alerts and from 20:08:55 on is silent, because the detour's way out becomes part of the path and its way back runs 15 to 17 m from it. The phone woke and Forager came to the front at 20:09:29 to 20:09:31, at the detour's far end. The detour reached 167 m (the last walk's 175 m), so geometry is not the cause; the timestamp rule misclassifies 1 of 387 GPS fixes; no off-track notification or vibration was attempted. The app's own log before 20:12:10 rotated away, so the tap is recorded nowhere. This conflicts with the owner's memory; both hold only if an earlier tap did not take or was ended, which nothing records.
+- **Part B, the line off the street:** 188 of 194 points report exactly 3.79 m, a floor rather than a measurement; kept points are a median 6.3 m and 5 s apart; the line is smooth (median 1.2 m off its neighbours' chord). So the error is a displacement of several metres to about 15 m, GPS bias, not corner-cutting or noise. Of the options listed, only matching to the mapped path network addresses it (-446, item 8).
+- **Premise wrong in the dispatch:** the large detour was 20:06:30 to 20:12:48, not the 1:15 to 1:18 screenshots, which show it because the whole track is drawn.
+- **Two suggestions, not acted on:** record Return taps and the rule's decisions where log rotation cannot remove them; and decide whether "the path I walked" should be taken at Return.
+**What the planner checked itself:** the screenshot service's start at 20:07:54 in the log copy; the report read in full; the replay's saved XML present in the evidence folder.
+**Notes:** Written by the planner by hand, on branch dispatch-439.
