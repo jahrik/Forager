@@ -10551,3 +10551,39 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Deviations:** the planner's wording of the corner guard in -418 was wrong and was corrected in -419 before any code was written.
 **Next:** T6, the HUD follows the route; T7, the route drawn on the map. Neither dispatched.
 **Notes:** Written by the planner by hand, on branch records-after-152 with -417 to -419 and the off-route research report.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-421
+**Timestamp:** 2026-10-03T08:00:29Z
+**Subject:** the navigation plan's open items 1 and 3, the coordinate format, and starting T6
+**The owner (2026-10-03, UTC),** in the planner's window: "Merge it." (pull request #153, now open on it) and "On the walk, ask me those open questions from before". Then, to four choices the planner put, each answered with the planner's recommendation:
+- Where the sundown countdown sits: **"Strip, then HUD (Recommended)"**: in the top strip while recording, inside the HUD once Return is tapped.
+- Where Navigate to a waypoint is offered: **"Bubble, details, Records (Recommended)"**.
+- Whether it needs a recording, and Back: **"No recording; Back stops (Recommended)"**: it works without a recording running, and Back from the navigating HUD stops navigating.
+- The coordinate format and T6: **"Both yes (Recommended)"**: the format survives a tab change, and T6 starts.
+**Change:** a dated addendum to the navigation plan; dispatches -422 (coordinate format, T18) and -423 (the HUD follows the route, T6), opened by the two intents below.
+**Notes:** Written by the planner by hand, on branch records-after-153 cut from way-back-route-merge at cb539329, pushed and not merged.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-422
+**Timestamp:** 2026-10-03T08:00:29Z
+**Title:** coordinate-format: the map's coordinate format survives a tab change (plan task T18)
+**Dispatch-file:** preserved/2026-10-03-01.md; to the coder window that ran -400 to -417
+**Change:** the toggle between decimal degrees and MGRS stops resetting when the Maps tab is left, for the life of the session. Not across app restarts, which is not asked for.
+**Finish line:** a test pushed failing first, the fix, a revert check, the full suite, a short report, the hand-back sent.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-423
+**Timestamp:** 2026-10-03T08:00:29Z
+**Title:** way-back-route Part 2: the HUD follows the route (plan task T6)
+**Dispatch-file:** preserved/2026-10-03-02.md; the same window, after -422
+**Change:** while returning, the needle aims at RouteHome's point ahead along the walked route; the large figure is the route distance; the status line keeps the straight line; "Unable to calculate route" with "Try again" when the route is withheld off the route, and no refresh when there are no usable points; recomputed every 5 s with one route search per tick. The route on the map and the approach glyph are T7, not this.
+**The planner's wording, to be confirmed by the owner at the phone step:** the refresh reads "Try again".
+**Scope boundary:** RouteHome's rules, PathHome, the off-track alert, the recording service's batching and every other composable are not touched.
+**Finish line:** tests first, the build, revert checks, the full suite, one desk step on the S22, the report, the hand-back sent. The needle on a real path is the owner's walk.
