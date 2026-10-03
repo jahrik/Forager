@@ -27,6 +27,7 @@ import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.ReturnWatch
 import com.zynergylabs.forager.app.domain.ReturnWatchState
 import com.zynergylabs.forager.app.domain.RingerMode
+import com.zynergylabs.forager.app.domain.RouteHome
 import com.zynergylabs.forager.app.domain.StartTrackUseCase
 import com.zynergylabs.forager.app.domain.TrackRepository
 import com.zynergylabs.forager.app.domain.WaypointRepository
@@ -423,6 +424,33 @@ class TrackRecordingSwipeAwayTest {
     }
 
     /**
+     * Dispatch 2026-09-28-423: a return the reopened screen takes up gets the route home, with no
+     * second Return tap. The route tick follows the screen's returning flag, whichever way it was
+     * set. Fails with the tick started only by this screen's own Return (the route stays null).
+     */
+    @Test
+    fun `a return taken up by the reopened screen gets the route home without a second Return tap`() = runRecordingTest {
+        val firstStore = ViewModelStore()
+        val first = viewModelIn(firstStore)
+        recordAndStartReturning(first)
+        tracks.appendForTest("track-1", TrackPoint(45.000, -122.0, null, 5f, 2_000L))
+        tracks.appendForTest("track-1", TrackPoint(45.001, -122.0, null, 5f, 7_000L))
+        firstStore.clear()
+        runCurrent()
+
+        val reopened = viewModelIn(ViewModelStore())
+        runCurrent()
+        assertTrue("precondition: the return that was under way is shown", reopened.uiState.value.isReturning)
+        fixArrives(lat = 45.001, t = 12_000L)
+        advanceTimeBy(ROUTE_TICK_MILLIS)
+        runCurrent()
+
+        val route = reopened.uiState.value.routeHome
+        assertTrue("the reopened screen has a route home, not $route", route is RouteHome.Ahead)
+        assertEquals(111.19508, (route as RouteHome.Ahead).routeMeters, 0.01)
+    }
+
+    /**
      * The recording ended while the app was away (Stop from the notification, or the service
      * gone): the watch is not begun, nothing is taken up, and the screen offers Record. The row is
      * still open here, as a killed process leaves it, to show the row is not what is gone by.
@@ -783,6 +811,9 @@ class TrackRecordingSwipeAwayTest {
 
     private companion object {
         const val POLL_INTERVAL_MILLIS = 15_000L
+
+        /** The ViewModel's route tick, decision D4. Repeated here as [POLL_INTERVAL_MILLIS] is. */
+        const val ROUTE_TICK_MILLIS = 5_000L
 
         /** When this test's "process" started: before every recording a test makes (the clock reads 1,000). */
         const val PROCESS_START = 900L

@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.ui.track
 
 import com.zynergylabs.forager.app.domain.PathHome
 import com.zynergylabs.forager.app.domain.PendingDelete
+import com.zynergylabs.forager.app.domain.RouteHome
 import com.zynergylabs.forager.app.domain.withoutPending
 import com.zynergylabs.forager.app.domain.model.ReturnToStartInfo
 import com.zynergylabs.forager.app.domain.model.Track
@@ -65,18 +66,15 @@ data class TrackRecordingUiState(
      */
     val originWaypoint: Waypoint? = null,
     /**
-     * Path-home join dispatch: the walk back to the origin along the recorded track, joined to
-     * itself ([com.zynergylabs.forager.app.domain.pathHome]) — the first and only production reader of that
-     * function. Computed by [TrackRecordingViewModel]'s 15 s breadcrumb poll (the caller the
-     * return-estimate work always intended), from the last accuracy-gated fix to the polled
-     * track, **only while [isReturning]** — the HUD is its one surface, so nothing is computed
-     * for a walker who has not turned round; `null` otherwise, before the first gated fix, and
-     * whenever the track has no usable points. Its `hopBand` is the hysteresis carried between
-     * polls; a new return starts at [com.zynergylabs.forager.app.domain.HopBand.NONE]. The HUD shows
-     * [com.zynergylabs.forager.app.domain.PathHome.totalMeters] as one number; the walking time built on the
-     * same value ([com.zynergylabs.forager.app.domain.returnWalkingTime]) still has no caller, on purpose.
+     * The way home along the walked route ([com.zynergylabs.forager.app.domain.routeHome]): where
+     * the HUD's needle aims, the route distance, or why there is none (dispatch 2026-09-28-423, plan
+     * task T6). Computed by [TrackRecordingViewModel]'s route tick, every 5 s **only while
+     * [isReturning]**, from the track its 15 s poll last read and the last accuracy-gated fix;
+     * `null` otherwise, and until the first tick has both a polled track and a gated fix. Its hop
+     * band is the hysteresis carried between ticks; a new return starts at
+     * [com.zynergylabs.forager.app.domain.HopBand.NONE].
      */
-    val pathHome: PathHome? = null,
+    val routeHome: RouteHome? = null,
     /**
      * Every recorded track, newest-started first — the Settings "Recorded Tracks" export surface's
      * only data source. Loaded on init and refreshed whenever that panel is opened (see
@@ -132,6 +130,18 @@ data class TrackRecordingUiState(
     val tracksErrorMessage: String? = null,
 ) {
     val isRecording: Boolean get() = activeTrack != null
+
+    /**
+     * The walk back to the origin along the recorded track, joined to itself
+     * ([com.zynergylabs.forager.app.domain.pathHome]): the [PathHome] [routeHome] was built from,
+     * so it comes from the same route search (dispatch 2026-09-28-423, the planner's ruling on
+     * question 1; until then the 15 s poll ran a search of its own for it). `null` whenever
+     * [routeHome] is not [RouteHome.Ahead], which, unlike before, includes a walker in the far hop
+     * band; nothing reads it there, since the HUD shows [routeHome] itself. The walking time built
+     * on the same value ([com.zynergylabs.forager.app.domain.returnWalkingTime]) still has no
+     * caller, on purpose.
+     */
+    val pathHome: PathHome? get() = (routeHome as? RouteHome.Ahead)?.pathHome
 
     /**
      * [waypoints] without [pendingWaypointDelete]: what every screen shows (J4, "a pending record is
