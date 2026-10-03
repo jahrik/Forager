@@ -662,11 +662,13 @@ fun AvailabilityScreen(
     navigationTarget: Waypoint? = null,
     /**
      * The route home while returning (dispatch 2026-09-28-423, plan task T6), read from
-     * [com.zynergylabs.forager.app.ui.track.TrackRecordingUiState.routeHome] by [returnRouteOf];
-     * `null` when not returning. The HUD's needle, large figure and "Try again" come from it; see
-     * [NavigationHud].
+     * [com.zynergylabs.forager.app.ui.track.TrackRecordingUiState.routeHome] by [returnRouteOf].
+     * The HUD's needle, large figure and "Try again" come from it; see [NavigationHud]. Not
+     * nullable: this screen's HUD is the return HUD, and a return is always in route mode (the
+     * planner's ruling), so no caller can put it in the straight-line mode by leaving this out.
+     * [ReturnRoute.Pending] until there is a result, as `MainActivity` passes it.
      */
-    returnRoute: ReturnRoute? = null,
+    returnRoute: ReturnRoute = ReturnRoute.Pending,
     /** The HUD's "Try again": `TrackRecordingViewModel.retryRoute`. */
     onRetryRoute: () -> Unit = {},
     /**

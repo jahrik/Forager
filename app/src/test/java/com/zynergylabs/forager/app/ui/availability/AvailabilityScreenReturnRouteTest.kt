@@ -14,12 +14,18 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertTouchHeightIsAtLeast
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
@@ -37,6 +43,7 @@ import com.zynergylabs.forager.app.ui.map.MapSlot
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -83,7 +90,7 @@ class AvailabilityScreenReturnRouteTest {
     private val start = Waypoint(id = "origin", lat = 45.53, lng = -122.68, altitude = null, name = "Start", note = "", createdAtEpochMillis = t, trackId = "t1", designation = WaypointDesignation.ORIGIN)
     private val east = LatLng(45.52, -122.679)
 
-    private var route by mutableStateOf<ReturnRoute?>(ReturnRoute.Pending)
+    private var route by mutableStateOf<ReturnRoute>(ReturnRoute.Pending)
     private var retries = 0
     private var longPresses = 0
 
@@ -91,7 +98,7 @@ class AvailabilityScreenReturnRouteTest {
         Box(modifier.testTag(MAP_TAG).pointerInput(Unit) { detectTapGestures(onLongPress = { longPresses++ }) })
     }
 
-    private fun setScreen(initial: ReturnRoute?) {
+    private fun setScreen(initial: ReturnRoute) {
         route = initial
         composeRule.setContent {
             AvailabilityScreen(
@@ -134,8 +141,8 @@ class AvailabilityScreenReturnRouteTest {
         composeRule.waitForIdle()
     }
 
-    private fun textOfTag(tag: String): String =
-        composeRule.onNodeWithTag(tag).fetchSemanticsNode().config[SemanticsProperties.Text].joinToString { it.text }
+    private fun textOfTag(tag: String, unmerged: Boolean = false): String =
+        composeRule.onNodeWithTag(tag, useUnmergedTree = unmerged).fetchSemanticsNode().config[SemanticsProperties.Text].joinToString { it.text }
 
     private fun boundsOf(tag: String): DpRect = composeRule.onNodeWithTag(tag).getUnclippedBoundsInRoot()
 
@@ -211,6 +218,85 @@ class AvailabilityScreenReturnRouteTest {
         }
         assertTrue("at least $MIN_SAMPLED points were sampled, not $sampled", sampled >= MIN_SAMPLED)
         assertEquals("no long-press on the map asked for a new route", 0, retries)
+    }
+
+    /**
+     * "Try again" by real touches at five points across the line's own bounds (CLAUDE.md: a finger
+     * is not a point, and a semantic click asserts wiring, not routing). Each must reach the retry.
+     */
+    @Test
+    fun `Try again is reached by real touches across the whole line`() {
+        setScreen(ReturnRoute.Unavailable(canRetry = true))
+        assertEquals("Try again", textOfTag(NAVIGATION_HUD_RETRY_TAG, unmerged = true))
+
+        val b = boundsOf(NAVIGATION_HUD_DISTANCE_TAG)
+        val inset = 2.dp
+        val samples = listOf(
+            DpOffset((b.left + b.right) / 2, (b.top + b.bottom) / 2),
+            DpOffset(b.left + inset, b.top + inset),
+            DpOffset(b.right - inset, b.top + inset),
+            DpOffset(b.left + inset, b.bottom - inset),
+            DpOffset(b.right - inset, b.bottom - inset),
+        )
+        samples.forEachIndexed { index, sample ->
+            val p = with(composeRule.density) { Offset(sample.x.toPx(), sample.y.toPx()) }
+            composeRule.onRoot().performTouchInput { click(p) }
+            composeRule.waitForIdle()
+            assertEquals("touch $index at $sample must reach Try again", index + 1, retries)
+        }
+    }
+
+    /**
+     * The line is one control: announced as a button whose action is "Try again", with a touch
+     * area of at least 48 dp though it is laid out at the text's height (Compose's minimum touch
+     * target), so the HUD does not grow.
+     */
+    @Test
+    fun `the Try again line is one button, labelled Try again, with a 48 dp touch height`() {
+        setScreen(ReturnRoute.Unavailable(canRetry = true))
+        val line = composeRule.onNodeWithTag(NAVIGATION_HUD_DISTANCE_TAG)
+        val config = line.fetchSemanticsNode().config
+        assertEquals(androidx.compose.ui.semantics.Role.Button, config[SemanticsProperties.Role])
+        assertEquals("Try again", config[SemanticsActions.OnClick].label)
+        line.assertTouchHeightIsAtLeast(48.dp)
+    }
+
+    /** No usable points: nothing would change, so nothing is offered, and the line is not a control. */
+    @Test
+    fun `with no usable points there is no Try again and the line takes no taps`() {
+        setScreen(ReturnRoute.Unavailable(canRetry = false))
+        assertEquals(0, composeRule.onAllNodesWithTag(NAVIGATION_HUD_RETRY_TAG, useUnmergedTree = true).fetchSemanticsNodes().size)
+        assertEquals("Unable to calculate route", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
+        assertFalse(SemanticsActions.OnClick in composeRule.onNodeWithTag(NAVIGATION_HUD_DISTANCE_TAG).fetchSemanticsNode().config)
+        val b = boundsOf(NAVIGATION_HUD_DISTANCE_TAG)
+        val p = with(composeRule.density) { Offset(((b.left + b.right) / 2).toPx(), ((b.top + b.bottom) / 2).toPx()) }
+        composeRule.onRoot().performTouchInput { click(p) }
+        composeRule.waitForIdle()
+        assertEquals(0, retries)
+    }
+
+    /**
+     * A measurement, recorded for the report rather than a pass-or-fail claim about the design:
+     * on this 360 dp phone, whether the owner's message fits beside "Try again" or is ellipsised.
+     * What is asserted is that "Try again" itself is never cut short.
+     */
+    @Test
+    fun `Try again is never cut short, and how much of the message fits is measured`() {
+        setScreen(ReturnRoute.Unavailable(canRetry = true))
+        val retryLayout = layoutOf(NAVIGATION_HUD_RETRY_TAG)
+        assertFalse("Try again is drawn whole", retryLayout.hasVisualOverflow)
+        val line = composeRule.onNodeWithTag(NAVIGATION_HUD_DISTANCE_TAG).fetchSemanticsNode()
+        val message = composeRule.onAllNodes(androidx.compose.ui.test.hasText("Unable to calculate route"), useUnmergedTree = true).fetchSemanticsNodes().single { it.id != line.id }
+        val results = mutableListOf<TextLayoutResult>()
+        message.config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
+        val m = results.single()
+        println("MEASURED at w360dp: line ${with(composeRule.density) { line.boundsInRoot.width.toDp() }}, message box ${with(composeRule.density) { m.size.width.toDp() }}, message overflowed=${m.hasVisualOverflow}, visible chars=${m.getLineEnd(0, visibleEnd = true)} of ${"Unable to calculate route".length}")
+    }
+
+    private fun layoutOf(tag: String): TextLayoutResult {
+        val results = mutableListOf<TextLayoutResult>()
+        composeRule.onNodeWithTag(tag, useUnmergedTree = true).fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
+        return results.single()
     }
 
     private class FixedCompass(degrees: Float) : CompassProvider {

@@ -68,6 +68,22 @@ class NavigationHudReadoutTest {
         assertEquals("", readout(route = null).statusText)
     }
 
+    /**
+     * The straight-line mode, held by a test named for it (the planner's ruling on -423): decision
+     * D2 keeps the straight line for navigating to a waypoint, where there is no walked route to
+     * follow. With no route given, the large slot is the straight line, the needle aims at the
+     * waypoint itself, and the status line says nothing more. Nothing passes the HUD this way
+     * today; the return HUD always passes a route.
+     */
+    @Test
+    fun `navigating to a waypoint with no route keeps the straight line in the large slot and aims at the waypoint`() {
+        val r = readout(route = null)
+        assertEquals("0.7 mi", r.distanceText)
+        assertEquals("Turn 315°", r.targetText)
+        assertEquals("", r.statusText)
+        assertFalse(r.routeRetryOffered)
+    }
+
     @Test
     fun `the needle aims at the route's lookahead, not at the start`() {
         // The start is due north (a 315° turn from 45°); the lookahead due east (a 45° turn).

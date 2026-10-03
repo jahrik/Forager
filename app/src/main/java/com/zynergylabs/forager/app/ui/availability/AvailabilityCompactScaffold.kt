@@ -230,7 +230,7 @@ internal fun CompactMainScaffold(
     compassProvider: CompassProvider,
     computeTrueHeading: ComputeTrueHeadingUseCase,
     navigationTarget: Waypoint?,
-    returnRoute: ReturnRoute?,
+    returnRoute: ReturnRoute,
     onRetryRoute: () -> Unit,
     mapTaxonFilter: () -> Long?,
     basemap: Basemap,

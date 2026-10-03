@@ -299,7 +299,7 @@ internal fun CompactMapTab(
     /** See [AvailabilityScreen]'s own `navigationTarget` doc comment. */
     navigationTarget: Waypoint?,
     /** See [AvailabilityScreen]'s own `returnRoute` doc comment. */
-    returnRoute: ReturnRoute?,
+    returnRoute: ReturnRoute,
     /** See [AvailabilityScreen]'s own `onRetryRoute` doc comment. */
     onRetryRoute: () -> Unit,
     /** The HUD's fix-age clock — [AvailabilityScreen]'s own `currentTime`, so a test can pin an old fix as stale. */
