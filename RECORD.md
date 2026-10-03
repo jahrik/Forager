@@ -11010,3 +11010,13 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **The owner, verbatim:** "Phone is attached to computer. Walk complete." Then: "When nudging the map accidentally it breaks the camera following. Some GPS navigation systems have a nudge protection that snaps the camera back if it falls under a threshold." Asked, the owner chose "Zoom and pinch fix first" (-457 before -451) and "Small nudge snaps back": a drag shorter than a set distance on screen, provisionally about a finger's width, is ignored and the map keeps following; only a deliberate drag past it leaves the view and shows "Return to Route".
 **Done:** -457 Amendment 1, with nudge protection as Part C, held until the owner confirms its step path: a short nudge springs back, still following and facing-up, no "Return to Route"; a longer drag leaves and shows it, as now; a pinch zooms and keeps following.
 **Notes:** Written by the planner by hand, on branch records-after-159.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-459
+**Timestamp:** 2026-10-03T23:10:00Z
+**Continues:** 2026-09-28-458
+**The owner, verbatim,** to Part C's step path (a short nudge springs back, still following and facing-up, no "Return to Route"; a deliberate drag leaves and shows it; a pinch zooms and keeps following): "Confirmed 1 2 and 3". -457 Part C is released to build.
+**Also observed,** by the coder from the walk log and checked by the planner: MapLibre logged "LocationComponent#zoomWhileTracking method call is ignored because the camera mode is transitioning" at each of the four navigation starts (22:03:46, 22:03:59, 22:05:53, 22:06:00 UTC). The coder's reading, to be confirmed on the phone before fixing: the start zoom was issued mid-transition and refused, and the refusal cleared the pending flag.
+**Notes:** Written by the planner by hand, on branch records-after-159.
