@@ -10495,3 +10495,59 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Deviations:** none. **Not shown:** Back after the tap (the check does not allow Back; with one screen in the task there is no older copy, which is inferred); the tap from anything but the home screen; an unplugged phone.
 **Next:** the owner walks the off-track alert with this build on the S22 ("I'll do a full walk for this one", "Have the coder work first"). Dispatch -400's terminal and plan task T2 wait for that walk.
 **Notes:** Written by the planner by hand, on branch records-after-151 with -415. Pull request #151 (t1-device-check into main, head 9c1a609ccafd47daa4dced4eaff812015a0cbb22, on which CI passed, run 37041745684) was merged as 3e82b5ca2fc8e762dd6253cd1d32d6800de57084 at 2026-10-02T17:42:56Z, read from GitHub, on the owner's "I told the coder the merge device check", with backup 2026-10-02-04; no file under app/ changed. That merge has no entry of its own, and this note stands in for one.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-417
+**Timestamp:** 2026-10-03T03:48:50Z
+**Title:** way-back-route, Part 1: the route home as logic (plan task T5)
+**Dispatch-file:** preserved/2026-10-02-03.md; to the coder window that ran -400 and -415
+**The owner, verbatim (2026-10-02, UTC),** to the planner's list of work for while the owner walks the off-track alert: "1 merge it" (pull request #152, the notification fix, now open on it); "2 let's begin that task" (the way-back route); on the one open number, "25m is fine. We can go with this at first and see how well it behaves. We can also research how and when Google determines off-track behavior for their walking navigation to see where we can improve our methods."; "3 and 4: we can do this by message whenever I have a moment on the walk" (the step paths for the sundown countdown's place and for navigating to a waypoint, and the coordinate format).
+**Change:** the logic that gives the arrow a point 25 m ahead along the walked route, the distance along the route, and a withheld state with a reason when the walker is off the route. Decisions D1 to D6 of docs/navigation/2026-09-11-way-back-route-decisions.md. Nothing on screen; the HUD (T6) and the drawn route (T7) follow.
+**Scope boundary:** PathHome's behaviour, the off-track alert and everything -400 built are not touched. What "off the route" means is read from the code that exists (the planner's reading: more than 50 m from the walked path), not invented.
+**The research the owner asked for:** how established walking navigation decides a walker is off route, to inform plan task T21 and the tuning of this one. The planner runs it separately as background research from public sources, and files it under docs/navigation/. Not given to the coder.
+**Finish line:** the logic, its tests and the report pushed on branch way-back-route, the hand-back sent.
+**Notes:** Written by the planner by hand, on branch records-after-152 cut from notification-tap-merge at 23173479, pushed and not merged.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-418
+**Timestamp:** 2026-10-03T05:09:19Z
+**Continues:** 2026-09-28-417 (preserved 2026-10-02-03, where the rulings are appended); findings received, nothing built
+**What the coder found, before building** (read at main c42d857e): the existing path-home logic places the walker at the track's most recent stored point, not on the path, by an owner ruling against nearest-point projection; its only "off the route" line measures distance to that point, so a stray is recorded and becomes part of the route home; the route and the off-track alert can disagree in two ways a user would see; and the stored track lags the walker by 30 to 45 seconds, about 27 to 40 m, more than the 25 m lookahead, so a lookahead measured from the last stored point would often point back the way the walker came.
+**The owner's go for the build,** given in the coder's window (read from its message): "Yes, build it".
+**The planner's rulings** (appended to the dispatch file): the lookahead is measured (hop + 25 m) along the route from the most recent stored point, which stays within the owner's rulings and adds no number; the arrow stops short of cutting a corner, reusing the existing 10 m self-join distance in a second role, said so in the code and provisional; the route-finding code returns the route's points with its present behaviour unchanged; the shape as the coder proposed.
+**Not chosen, and why:** aiming from the last stored point alone, which points backwards often; nearest-point projection, which is against an owner ruling and is put to the owner only if the walk shows the chosen rule is not good enough; a faster write in the recording service, whose batching stays off limits.
+**For the owner:** the two disagreements between the route and the off-track alert, and that a stray becomes part of the route home. Both feed plan task T21.
+**Notes:** Written by the planner by hand, on branch records-after-152 with -417 and the research report, pushed and not merged. Pull request #152 (notification-tap-merge into main, head 23173479b6c3d12d1d77dc24cb8691d70c2a89d4, on which CI passed, run 37094401516) was merged as c42d857ef0191b2c8e1a641ec7e3925d143b7bdc at 2026-10-03T03:56:57Z, read from GitHub, on the owner's "merge it", with backup 2026-10-02-05. That merge has no entry of its own, and this note stands in for one.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-419
+**Timestamp:** 2026-10-03T05:14:24Z
+**Continues:** 2026-09-28-417 (preserved 2026-10-02-03, where the correction is appended); tests written and pushed failing, nothing built
+**The coder's stop:** the corner guard as the planner worded it in -418 checked route points from the last stored point onward. Those points are behind a walker who has moved on, so once the walker is more than 10 m past the last stored point the guard pulled the arrow back to that point, pointing it backwards: the very case the lookahead rule of -418 exists to avoid. The coder found it by writing the tests, before any code.
+**The planner's correction:** the guard checks only the route points from the walker's assumed place onward, up to the lookahead. The wording in -418 was the planner's error. Its cost is kept visible and tested: a walker standing well to the side of the route is pointed some way up the path. That, and the case where the arrow can still land behind the walker, are for a walk to judge.
+**Not chosen:** the guard as first worded; no guard, because the decision record names aiming across a bend as the costly failure on a forest path.
+**Notes:** Written by the planner by hand, on branch records-after-152 with -417 and -418, pushed and not merged.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-420
+**Timestamp:** 2026-10-03T05:27:13Z
+**Closes:** 2026-09-28-417 (preserved 2026-10-02-03, with the rulings of -418 and -419 appended)
+**Outcome:** completed
+**Observed:**
+- **What landed,** on branch way-back-route at 7d6fb2a2, not merged when this was written: 5c9aa3f6, the tests pushed failing with a skeleton (11 of 36); 840e8626, the build, with the coder's two guard-dependent tests rewritten for -419; 7d6fb2a2, the report docs/navigation/2026-10-02-way-back-route-part-1-report.md and its two index rows.
+- **What was built:** domain/RouteHome.kt, plain Kotlin, wired to nothing on screen. It answers either a point ahead along the walked route, (hop + 25 m) from the most recent stored point, stopped short of cutting across a bend by the 10 m self-join distance read from the walker's assumed place, with the same route distance the path-home figure gives; or "withheld" because the walker is off the route (the far band, over 50 m, with its hysteresis) or there are no usable points. A short track aims at the route's end. The route-finding code in domain/TrackSelfJoin.kt now also returns the route's points; its existing function is a thin wrapper, and its tests and the path-home tests pass unedited.
+- **Two cases held by tests that state what the rule does, for a walk to judge:** on a path winding hard inside the lag, the arrow can point back up the bend; a walker 30 m beside the route is pointed about 45 m up it. The coder reports the lag in the recording service's batching as the root of both, as a finding.
+- **Tests:** the full unit suite at 840e8626, 422 classes, 3,461 tests, 0 failures, 0 errors, 24 skipped; five revert checks, each failing on the tests that claim its edit.
+- **Said by the coder:** with no guard, the sharp-bend test still passes, because 25 m of route round a right angle stays within 10 m of the arrow's line; the guard acts only where the walker is not where the lookahead rule assumes, and two other tests hold it. For T6: the route search would run twice per poll if both figures are computed, and one can reuse the other; the refresh wording must not promise a change when the reason is no usable points.
+**What the planner checked itself:** RouteHome.kt's code and the refactor, read; the saved XML re-counted (11 of 36 failing first; the four route and path classes, 48 tests, none failing; the full suite as reported; each revert check failing as described, among them "expected:<Withheld(reason=OFF_ROUTE, hopBand=FAR)> but was:<Ahead..." with off-route not withheld); the path-home and self-join tests not edited; no file under app/ differing between 840e8626 and 7d6fb2a2.
+**Deviations:** the planner's wording of the corner guard in -418 was wrong and was corrected in -419 before any code was written.
+**Next:** T6, the HUD follows the route; T7, the route drawn on the map. Neither dispatched.
+**Notes:** Written by the planner by hand, on branch records-after-152 with -417 to -419 and the off-route research report.
