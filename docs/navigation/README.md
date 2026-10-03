@@ -43,3 +43,4 @@ These files were moved here from `docs/plans/` and `docs/audits/`. Links in the 
 | [2026-10-03-walk-findings-report.md](2026-10-03-walk-findings-report.md) | Walk findings: why the new off-track rule stayed silent, and why the line leaves the street (dispatch 2026-09-28-439, report only) |
 | [2026-10-03-trail-navigation-research.md](2026-10-03-trail-navigation-research.md) | Navigating along trails, and back to them: trail data, offline route engines, leaving the trail (research for the owner, RECORD -442, -443) |
 | [2026-10-03-navigation-zoom-report.md](2026-10-03-navigation-zoom-report.md) | The map zooms to a set level when navigation starts (dispatch 2026-09-28-440) |
+| [2026-10-03-zoom-walk-faults-report.md](2026-10-03-zoom-walk-faults-report.md) | The start zoom never landed, and a pinch left the navigation view (dispatch 2026-09-28-457, with nudge protection) |
