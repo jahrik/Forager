@@ -10495,3 +10495,17 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Deviations:** none. **Not shown:** Back after the tap (the check does not allow Back; with one screen in the task there is no older copy, which is inferred); the tap from anything but the home screen; an unplugged phone.
 **Next:** the owner walks the off-track alert with this build on the S22 ("I'll do a full walk for this one", "Have the coder work first"). Dispatch -400's terminal and plan task T2 wait for that walk.
 **Notes:** Written by the planner by hand, on branch records-after-151 with -415. Pull request #151 (t1-device-check into main, head 9c1a609ccafd47daa4dced4eaff812015a0cbb22, on which CI passed, run 37041745684) was merged as 3e82b5ca2fc8e762dd6253cd1d32d6800de57084 at 2026-10-02T17:42:56Z, read from GitHub, on the owner's "I told the coder the merge device check", with backup 2026-10-02-04; no file under app/ changed. That merge has no entry of its own, and this note stands in for one.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-417
+**Timestamp:** 2026-10-03T03:48:50Z
+**Title:** way-back-route, Part 1: the route home as logic (plan task T5)
+**Dispatch-file:** preserved/2026-10-02-03.md; to the coder window that ran -400 and -415
+**The owner, verbatim (2026-10-02, UTC),** to the planner's list of work for while the owner walks the off-track alert: "1 merge it" (pull request #152, the notification fix, now open on it); "2 let's begin that task" (the way-back route); on the one open number, "25m is fine. We can go with this at first and see how well it behaves. We can also research how and when Google determines off-track behavior for their walking navigation to see where we can improve our methods."; "3 and 4: we can do this by message whenever I have a moment on the walk" (the step paths for the sundown countdown's place and for navigating to a waypoint, and the coordinate format).
+**Change:** the logic that gives the arrow a point 25 m ahead along the walked route, the distance along the route, and a withheld state with a reason when the walker is off the route. Decisions D1 to D6 of docs/navigation/2026-09-11-way-back-route-decisions.md. Nothing on screen; the HUD (T6) and the drawn route (T7) follow.
+**Scope boundary:** PathHome's behaviour, the off-track alert and everything -400 built are not touched. What "off the route" means is read from the code that exists (the planner's reading: more than 50 m from the walked path), not invented.
+**The research the owner asked for:** how established walking navigation decides a walker is off route, to inform plan task T21 and the tuning of this one. The planner runs it separately as background research from public sources, and files it under docs/navigation/. Not given to the coder.
+**Finish line:** the logic, its tests and the report pushed on branch way-back-route, the hand-back sent.
+**Notes:** Written by the planner by hand, on branch records-after-152 cut from notification-tap-merge at 23173479, pushed and not merged.
