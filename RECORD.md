@@ -10587,3 +10587,28 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **The planner's wording, to be confirmed by the owner at the phone step:** the refresh reads "Try again".
 **Scope boundary:** RouteHome's rules, PathHome, the off-track alert, the recording service's batching and every other composable are not touched.
 **Finish line:** tests first, the build, revert checks, the full suite, one desk step on the S22, the report, the hand-back sent. The needle on a real path is the owner's walk.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-424
+**Timestamp:** 2026-10-03T08:27:24Z
+**Subject:** what "off track" means, defined for the walker (plan task T21), after the owner's walk
+**The walk, 2026-10-03, from the S22's log** (read-only; ~/Zynergy/device-evidence/2026-10-03-owner-walk/PLANNER-READING.md): five off-track alerts, two minutes apart (the cooldown), each a few seconds after a network location reading claiming 400 m accuracy (once 150 m) among GPS readings at about 4 m. The log has no positions, so this is a strong correlation, not a proof. The first fourteen minutes of the recording have no reading lines; why is not determined.
+**The owner's account, verbatim:** "1 back towards the start. Only one of those times was when I diverged from the track. The rest was walking on the other side of the street." "2 open, phone off" "3 yes, that one time I diverged was deliberate" "4 nothing felt wrong outside the known issues".
+**The owner's choices,** to four questions the planner put, each answered with the planner's recommendation: off track is measured against **"The path I walked"**; **"About 40 m"**, allowing more when GPS reports itself as poor; **"About 15 seconds"** off the path before it alerts; **"Once per stray"**. The planner also told the owner, as not a choice, that rough network readings stop counting, since all five alerts followed one and every app in the research ignores or discounts them.
+**The planner's numbers inside those choices, provisional:** the line is 40 m plus the reading's reported accuracy; going off needs 15 s and at least three GPS readings, none back on; re-armed after 10 s back on the path; "the path I walked" is the track as it stood when Return was tapped.
+**Change:** dispatch -425 (preserved 2026-10-03-03), opened below. Nothing ships until a replay of the owner's walk shows the new rule alerting at the divergence and not on the other side of the street.
+**Also from 2026-10-03, not yet recorded:** pull request #153 (way-back-route-merge into main, head cb53932921d0beac2cead8a8e11ca66f682d53b2, on which CI passed, run 37108083344) was merged as 5b856b6ae00fdfbd6e177aeb4589f2899d790822 at 2026-10-03T08:12:05Z, read from GitHub, on the owner's "Merge it.", with backup 2026-10-03-01. And the owner: "And have the coder start T6"; the coder was told to start -423.
+**Notes:** Written by the planner by hand, on branch records-after-153 with -421 to -423, pushed and not merged.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-425
+**Timestamp:** 2026-10-03T08:27:24Z
+**Title:** off-track-rule: "off track" redefined to fit the walker (plan task T21)
+**Dispatch-file:** preserved/2026-10-03-03.md; to the coder window, after -422 and -423
+**Change:** today's rule (distance to the start rising by 25 m over three readings, every two minutes) is replaced by the owner's choices in -424: distance from the path walked out, GPS readings only, 40 m plus accuracy, 15 s off, one alert per stray. The alert's delivery is unchanged.
+**Gate before it ships:** a replay of the owner's 2026-10-03 walk through both rules. The walk's stored track is copied off the S22 only with the owner's word in the coder's window, and its positions stay out of the public repository.
+**Finish line:** the report, the replay's outcome, tests first, revert checks, the full suite, the hand-back. Then the owner walks it again.
