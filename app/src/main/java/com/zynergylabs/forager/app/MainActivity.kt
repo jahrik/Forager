@@ -33,6 +33,7 @@ import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
 import com.zynergylabs.forager.app.service.TrackRecordingService
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreen
 import com.zynergylabs.forager.app.ui.availability.AvailabilityViewModel
+import com.zynergylabs.forager.app.ui.availability.returnRouteOf
 import com.zynergylabs.forager.app.data.backup.EXTRA_OPEN_BACKUP_SECTION
 import com.zynergylabs.forager.app.data.backup.opensBackupSection
 import com.zynergylabs.forager.app.ui.backup.BackupRestoreOverlay
@@ -629,7 +630,8 @@ class MainActivity : ComponentActivity() {
                     compassProvider = container.compassProvider,
                     computeTrueHeading = container.computeTrueHeadingUseCase,
                     navigationTarget = trackUiState.originWaypoint,
-                    pathHomeMeters = trackUiState.pathHome?.totalMeters,
+                    returnRoute = returnRouteOf(trackUiState.routeHome),
+                    onRetryRoute = trackRecordingViewModel::retryRoute,
                     crashFileStore = container.crashFileStore,
                     // Part 2 follow-ups F1 item 5: the visible list leaves out a track whose delete is pending
                     // (Undo snackbar up), as the waypoints' does; a swipe or the details' Delete asks for that
