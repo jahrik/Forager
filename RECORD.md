@@ -10785,3 +10785,159 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 - **T18 brought up to main for its pull request,** by the planner, on branch t18-merge: coordinate-format (588d7b8e) with main (093b28d6) merged in. Only the two index files conflicted, each resolved keeping both rows, main's first; the row counts are both sides' sum less the base. AvailabilityScreen merged on its own; it carries both T21's comment and T18's held state. Against main, the app code differs by exactly -422's change. No local run of the combination: CI's full suite is the test of it.
 **Next:** the coordinate-format pull request, merged on green on the same word; then the owner's walk.
 **Notes:** Written by the planner by hand, on branch t18-merge.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-439
+**Timestamp:** 2026-10-03T20:45:00Z
+**Title:** walk-findings: why the new off-track rule stayed silent on the owner's walk, and why the drawn line leaves the street (report only)
+**Dispatch-file:** preserved/2026-10-03-05.md; to the coder window
+**The walk:** the S22 with 1.0.2539+g7c7e25c5 (T21). The owner before it: "I'll run the same divergence path as before." The planner read the phone's log, read-only, into `~/Zynergy/device-evidence/2026-10-03-walk-t21/`: the recording ran from about 20:01:24 to 20:17:50 UTC, with no off-track notification (id 1002) and no vibration from Forager in it. The owner, asked: "No buzz, same detour". The owner on the walk, verbatim: "the tilt was nice, gave a straight ahead view while keeping it reasonable", and "the lines are off the street quite a bit. It shows I crossed the street halfway beyond the intersection, when I crossed it directly at the intersection, and is showing me going through people's yards when I'm on the sidewalk. Is there a way to help manage this?"; asked, "Study first, then decide". Later: "The rest of the report is on the phone's tracks", passed to the coder.
+**Change:** none. Part A finds why no alert came, replaying through the real rule; Part B measures why the line leaves the street and lists options. No fix.
+**Finish line:** the report with its disclosure sections, the hand-back.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-440
+**Timestamp:** 2026-10-03T20:50:00Z
+**Title:** navigation-zoom: the map zooms to a set level when navigation starts (T22 follow-up)
+**Dispatch-file:** preserved/2026-10-03-06.md; to the coder window, after -439
+**The owner, verbatim:** "when starting navigation mode, the camera should zoom to a set point to focus on the navigating. Right now no camera adjustments other than tilt exist." Asked, the owner chose "About two blocks ahead" and, for a pinch while navigating, "Keep my zoom". To the step path the planner put back (Return zooms to about two blocks ahead; a pinch is kept and following continues; "Return to Route" restores following at the walker's zoom; Stop eases flat and north-up): "Yes for the zoom behavior".
+**Change:** the set zoom is applied once, when navigation starts; not on a facing change, not on "Return to Route"; again on a new navigation. The zoom figure is the coder's to work out, provisional.
+**Scope boundary:** the tilt, the padding, the facing modes, "Return to Route", Stop's ease back, RouteHome and the off-track rule are not changed.
+**Finish line:** the report-first message, tests first, revert checks, the full suite, the report, the hand-back. The walk is the owner's.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-441
+**Timestamp:** 2026-10-03T20:52:00Z
+**Continues:** 2026-09-28-438
+**Observed:** pull request #157 (t18-merge into main, head 3f63455853d878a4ebb6a5634e653e38a78b746b, on which CI passed, run 37151285322) was merged as bb0b559ed6a401364ed82dcbb7ec307a98c3d92a at 2026-10-03T20:31:44Z, read from GitHub, on the owner's "Open the pr and merhe", with backup 2026-10-03-05 of main at 093b28d6. Main's tree equals t18-merge's. T18 (-422) and T21 (-425) are both on main.
+**Notes:** Written by the planner by hand, on branch dispatch-439.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-442
+**Timestamp:** 2026-10-03T21:05:00Z
+**Continues:** 2026-09-28-439
+**The owner, verbatim,** after the walk: "For trails and such, there are a lot of branching paths that could run parallel, but only one will lead the right way. And an off track measuring by distance is probably only half of the approach." Then, to the planner's three layers (distance from the path; direction and progress along it; a warning at a fork from trail data): "The map has trails and such, so when that data is available, I think we should take advantage of them and navigate against them rather than open space".
+**What the planner read, so the direction can be planned honestly:** the online basemaps (Street, Topo, Satellite) are raster images (`tile.openstreetmap.org`, `a.tile.opentopomap.org`, the USGS imagery server), which the app draws but cannot read trails from. The offline maps are Protomaps vector tiles served from Forager's own Worker (`docs/plans/own-map-tiles.md`), which carry path lines but are simplified and cut at tile edges, and are not a routable network. Navigating along trails needs trail data the app can read, with its junctions, held offline: a decision of its own, not yet made.
+**Not decided:** the data source, the engine, coverage where trails are missing, and where it sits in the roadmap. No dispatch.
+**Notes:** Written by the planner by hand, on branch dispatch-439.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-443
+**Timestamp:** 2026-10-03T21:15:00Z
+**Continues:** 2026-09-28-442
+**The owner, verbatim:** "Agreed. Run some research agents to see if we can get a comprehensive trail dataset so that we can use them for navigation. When a user moves off trail, which they often would do to score a find, then default to the user's own trail marks, and have a way to guide the user safely back to the trail to resume navigating."
+**Done:** three research agents started by the planner, on the web only, no patents: (1) trail datasets for the US, their licences, coverage, routability and size; (2) open-source offline routing engines for Android; (3) how to guide a walker who left the trail back to it safely, and when to switch between trail navigation and the walker's own track. Their findings go into one research report under `docs/navigation/`, for the owner.
+**Not decided:** everything the research informs. No dispatch.
+**Notes:** Written by the planner by hand, on branch dispatch-439.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-444
+**Timestamp:** 2026-10-03T21:40:00Z
+**Continues:** 2026-09-28-443
+**Observed:** the three research agents reported, and the planner filed their findings as `docs/navigation/2026-10-03-trail-navigation-research.md`, with its two index rows. Sources not re-checked by the planner; no patents. In short: OpenStreetMap is the practical routable trail base (ODbL); the agency trails are public domain but are loose lines; Valhalla (through `valhalla-mobile`) and BRouter are open-source engines that run offline, neither measured on a phone; off the trail, the walker's own track is the only way back known to be passable, which matches the owner's requirement.
+**Open for the owner:** the five decisions at the end of the report (data, "not for navigation" sources, an engine spike, the off-trail step path, where it sits).
+**Notes:** Written by the planner by hand, on branch dispatch-439.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-445
+**Timestamp:** 2026-10-03T21:50:00Z
+**Decides:** the five decisions of `docs/navigation/2026-10-03-trail-navigation-research.md`
+**The owner, verbatim:** "Confirm 1 to 5", to the planner's recommendations:
+1. **Data:** OpenStreetMap is the routable base. The public-domain agency trails (Forest Service, BLM, USGS) are a separate reference layer, used to flag gaps, not merged into the route network.
+2. **"Not for navigation" sources:** National Park Service and Washington RCO trail data are left out.
+3. **Engine:** a spike on the S22 comparing Valhalla and BRouter with real Oregon data before choosing (dispatch -446).
+4. **Off-trail behaviour,** as a starting point with every number provisional: off the trail for about 15 s, the map quietly dims the trail, highlights the walker's own track and shows "Off trail · your track leads back", with no sound; no alerts while foraging, and a readout of the way back along their own track; heading back, guidance follows their own track to where they left the trail, with no straight-line shortcut; one gentle alert only when far from both the trail and their track, or near dusk; back on the trail, trail navigation resumes and "Back on trail" shows briefly.
+5. **Where it sits:** the next update, alongside the own map tiles (`docs/plans/own-map-tiles.md`) and T7.
+**Notes:** Written by the planner by hand, on branch dispatch-439.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-446
+**Timestamp:** 2026-10-03T21:52:00Z
+**Title:** engine-spike: Valhalla and BRouter routing along trails on the S22 (measurement only)
+**Dispatch-file:** preserved/2026-10-03-07.md; to the coder window, after -439 and -440
+**Change:** none to the Forager app. A separate spike app measures each engine's data size, app size, route time and memory, and its handling of a start off the trail, with Oregon data.
+**Finish line:** the report with its disclosure sections; the spike's code pushed on its own branch, not merged.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-447
+**Timestamp:** 2026-10-03T22:00:00Z
+**Decides:** roads, and the two kinds of divergence
+**The owner, verbatim:** "Trails get this treatment and roads should get the same treatment. Navigation lines should follow established trails unless user deliberately wanders off. So the app needs to detect when the user is moving off trail with a degree of accuracy that updates them upon divergence."
+**Asked, the owner chose** (each the planner's recommendation):
+- "Wrong turn alerts, wandering is quiet": walking along a different trail or road than the route, away from it, gives one alert ("Wrong way, your route is back there", the planner's wording, provisional) and the line shows the way back; leaving all paths is the quiet switch to the walker's own track of -445, with no sound.
+- "Yes, add a street route": the engine spike (-446, Amendment 1) adds a route on streets and tests telling which street, sidewalk or trail the walker is on, using today's town walk.
+**So:** the route follows the path network, trails and roads alike, where it exists. Telling which path the walker is on becomes a requirement of the engine choice.
+**Notes:** Written by the planner by hand, on branch dispatch-439.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-448
+**Timestamp:** 2026-10-03T22:30:00Z
+**Closes:** 2026-09-28-439 (preserved 2026-10-03-05)
+**Outcome:** completed, report only
+**Observed:** on branch walk-findings at 1170db25, docs only, not merged: `docs/navigation/2026-10-03-walk-findings-report.md` with its two index rows. The owner told the coder in its window that "The rest of the report is on the phone's tracks" meant "The line itself", and, asked when Return was tapped, "B: before the detour".
+- **Part A, no buzz:** the cause on the evidence is when Return was tapped. The phone's own screenshot record (20:07:54Z, the owner's 1:07 screenshot, no HUD) shows no return under way a minute and a half into the detour. Through the real ReturnWatch and OffTrackJudge, Return up to 20:08:50 alerts and from 20:08:55 on is silent, because the detour's way out becomes part of the path and its way back runs 15 to 17 m from it. The phone woke and Forager came to the front at 20:09:29 to 20:09:31, at the detour's far end. The detour reached 167 m (the last walk's 175 m), so geometry is not the cause; the timestamp rule misclassifies 1 of 387 GPS fixes; no off-track notification or vibration was attempted. The app's own log before 20:12:10 rotated away, so the tap is recorded nowhere. This conflicts with the owner's memory; both hold only if an earlier tap did not take or was ended, which nothing records.
+- **Part B, the line off the street:** 188 of 194 points report exactly 3.79 m, a floor rather than a measurement; kept points are a median 6.3 m and 5 s apart; the line is smooth (median 1.2 m off its neighbours' chord). So the error is a displacement of several metres to about 15 m, GPS bias, not corner-cutting or noise. Of the options listed, only matching to the mapped path network addresses it (-446, item 8).
+- **Premise wrong in the dispatch:** the large detour was 20:06:30 to 20:12:48, not the 1:15 to 1:18 screenshots, which show it because the whole track is drawn.
+- **Two suggestions, not acted on:** record Return taps and the rule's decisions where log rotation cannot remove them; and decide whether "the path I walked" should be taken at Return.
+**What the planner checked itself:** the screenshot service's start at 20:07:54 in the log copy; the report read in full; the replay's saved XML present in the evidence folder.
+**Notes:** Written by the planner by hand, on branch dispatch-439.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-449
+**Timestamp:** 2026-10-03T22:45:00Z
+**Decides:** the two suggestions of -439's report
+**The owner, verbatim:**
+- To a lasting record of Return taps and the off-track rule's decisions: "Yes, small dispatch after the zoom". Dispatch -451 (preserved/2026-10-03-08.md), to the coder after -440 and before -446.
+- To whether "the path I walked" taken at Return should change now: "Settle it in trail navigation". Today's rule stays as built; trail navigation (-442 to -447) replaces the path at Return with the route along mapped paths and the walker's own track.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-450
+**Timestamp:** 2026-10-03T22:50:00Z
+**Decides:** -440's zoom on basemaps that cap below it
+**Observed by the coder:** `NAVIGATION_VIEW_ZOOM` = 18.0 (about two blocks ahead, by arithmetic for the S22, provisional); each basemap caps the camera at its operating limit (Street 19, Topo 17, Satellite 15).
+**The owner, verbatim:** "Zoom in past the cap", to: while navigating, Topo and Satellite zoom to two blocks too, by enlarging their closest tiles, slightly soft on Topo and blurry on Satellite, with no extra downloads. -440 Amendment 1: the camera's cap is raised while navigating; the tile sources' own maximum zoom is not, so no tile above a basemap's limit is requested; Stop restores the cap.
+**Notes:** Written by the planner by hand, on branch dispatch-439.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-451
+**Timestamp:** 2026-10-03T22:55:00Z
+**Title:** return-record: a lasting record of Return taps and the off-track rule's decisions
+**Dispatch-file:** preserved/2026-10-03-08.md; to the coder window, after -440 and before -446
+**Change:** nothing the walker sees. An entry with its time for each Return tap and end, each off-track decision, and each alert delivery's outcome, kept where log rotation cannot remove it; no positions.
+**Finish line:** the report-first message, tests first, revert checks, the full suite, the report, the hand-back.
+**Notes:** Written by the planner by hand, on branch dispatch-439. The dispatch file was first committed titled -449, which is the decision's number; corrected to -451 in the next commit.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-452
+**Timestamp:** 2026-10-03T23:00:00Z
+**Continues:** 2026-09-28-450
+**Observed, as the coder reported it:** the coder had put the same cap question to the owner in its own window, and the owner first chose there "Take 17 on topo (Recommended)". When the planner's relay of "Zoom in past the cap" reached it, the coder put both answers back to the owner in its window, and the owner chose "Zoom past the cap". So -450 and -440 Amendment 1 stand. The question had been asked in two windows at once; one window should ask.
+**Notes:** Written by the planner by hand, on branch dispatch-439.
