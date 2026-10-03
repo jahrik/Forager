@@ -268,3 +268,5 @@ The owner asked, verbatim: "Can the camera view in the app change to a more navi
 - Facing comes from the compass, not GPS: at walking pace GPS direction is too noisy (`docs/navigation/2026-10-02-off-route-detection-research.md`, section c).
 - Open, to be put to the owner as a step path before it is dispatched: what happens when the walker pans the map, how they get back to the view, and what the map does when the compass reports itself unreliable (the compass-reliability work already detects that).
 - Device-only: yes. A walk.
+
+**T22, the tilt refined by the owner** (2026-10-03, verbatim): "Have the tilt be enough to focus on the path ahead, not so gentle that it's a cosmetic tilt." So the tilt is strong enough to put the way ahead in front of the walker, not a slight lean. The planner's starting figure: about 45° (the map library allows 0° to 60°; car navigation sits near the top), a named constant tuned on a walk. Recorded in `RECORD.md` 2026-09-28-428.

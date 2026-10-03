@@ -10636,3 +10636,14 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Change:** a dated addendum to the navigation plan with task T22. Not dispatched. Three behaviours are still to be put to the owner as a step path: panning the map, getting back to the view, and an unreliable compass.
 **Also from 2026-10-03:** the owner chose "Own line under it (Recommended)" for "Try again", after the coder measured the one-line version cutting "Unable to calculate route" on every phone width tested; given to the coder for -423. And the owner offered a USB drive ("There is this drive we can move files to for clearing space if need be. It'll stay plugged in to the laptop"), to which the planner moved the older merge backups, verified, outside the repository.
 **Notes:** Written by the planner by hand, on branch records-after-153, pushed and not merged.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-428
+**Timestamp:** 2026-10-03T17:05:35Z
+**Subject:** T22's tilt, refined (amends -427)
+**The owner, verbatim:** "Have the tilt be enough to focus on the path ahead, not so gentle that it's a cosmetic tilt."
+**What this changes:** -427 recorded "A gentle tilt". The owner's refinement replaces that reading: the tilt is strong enough to focus on the path ahead. The planner's starting figure is about 45° (the map library's range is 0° to 60°), provisional and tuned on a walk. -427 is not edited.
+**Still open for T22:** panning, getting back to the view, and an unreliable compass, put to the owner with recommendations and not yet answered. Not dispatched.
+**Notes:** Written by the planner by hand, on branch records-after-153, pushed and not merged.
