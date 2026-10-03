@@ -10761,3 +10761,14 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Not seen on a phone:** all of it. The owner's next walk tests the 40 m, 15 s and 10 s figures.
 **Next:** on the owner's word, a pull request for off-track-rule; -422 follows as its own.
 **Notes:** Written by the planner by hand, on branch records-after-155.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-437
+**Timestamp:** 2026-10-03T20:05:00Z
+**Continues:** 2026-09-28-434
+**Observed:** the coder merged main (4f9f344b, T22) into coordinate-format at 588d7b8e, keeping both sides of five app-code hunks in AvailabilityScreen, AvailabilityCompactScaffold and AvailabilityCompactMapUi, and both rows in each index. The touched classes of both sides, 6 classes, 163 tests, 0 failures, 19 skipped (the icon-stack class's existing ignores); the full suite on 588d7b8e, 426 classes, 3,502 tests, 0 failures, 24 skipped.
+**What the planner checked itself:** against main, the branch now changes only -422's three app files, its test, its report and its two index rows; no added or removed app line names the navigation view; the full suite's XML re-counted as reported.
+**Next:** on the owner's word, a pull request for coordinate-format, and one for off-track-rule (-436).
+**Notes:** Written by the planner by hand, on branch records-after-155.
