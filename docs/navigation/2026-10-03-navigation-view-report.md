@@ -1,10 +1,13 @@
 # The map's navigation view (dispatch 2026-09-28-430, plan task T22)
 
-**Status: built and pushed on `navigation-view`, not merged.** PHONE_STATUS_PLACEHOLDER
+**Status: built and pushed on `navigation-view`, not merged; `origin/main` (with -423, PR #154) merged in. Desk step run on the S22** (the owner's word in the coder's window: "Yes, run the phone step"). It found two faults, both fixed and seen fixed on the phone. The walk is the owner's.
 
 **Date:** 2026-10-03 (UTC).
 **Dispatch:** `prompts/preserved/2026-10-03-04.md`, read on `records-after-153` at `d0db4618`. Its rulings on the coder's findings are "Rulings on the coder's findings (continuation 2026-09-28-432)", on `records-after-154` at `ec6ae5cb`. One later ruling, (i) on the Journal's picker, came by message and goes into the dispatch file with the next record entry.
-**Base:** `origin/main` at `5b856b6a`, checked against the remote. Way-back route Part 2 (-423) was not merged when this was cut, so this branch does not have it. The two touch the HUD's readout signature, so expect a small merge in `NavigationHud.kt` (both add one parameter to `navigationReadout`).
+**Base:** `origin/main` at `5b856b6a`, checked against the remote. Way-back route Part 2 (-423) was not merged then.
+- **The merge:** it landed on `main` while this was being built (PR #154, `f1b53aca`), and was merged into this branch (`f9c5ac36`) with `git pull --no-rebase`.
+- **The conflicts:** only where the two each added parameters (the HUD, its readout, the scaffold, the Maps tab, the screen) and in two test hunks. Both sides were kept; `pathHomeMeters` is gone, as on `main`.
+- **The phone step** ran on the merged build.
 **The owner's go:** to the planner, "Go on T22", to the step path below. To this session directly, asked because this is a new dispatch: "Yes, start T22".
 
 App paths are relative to `app/src/main/java/com/zynergylabs/forager/app/`. Figures are read from files in `~/Zynergy/device-evidence/2026-10-03-navigation-view/`.
@@ -95,7 +98,7 @@ MapLibre's own compass engine (`LocationComponentCompassEngine`) has no `Geomagn
     - Facing-up is `TRACKING_COMPASS`.
     - Calibrating is `TRACKING`, with the bearing holding.
     - North-up is `TRACKING_GPS_NORTH`.
-    - All three are tilted 45° with the top padding. Leaving navigation is `TRACKING` with bearing 0 and tilt 0 and no padding, or, when not following, one eased camera move to flat and north-up.
+    - All three are tilted 45° with the top padding, applied in the mode change's transition listener (see the phone step for why). Leaving navigation pauses following, eases flat and north-up with no padding, and resumes following if the map was following.
     - Its one tracking listener reads any mode change the app did not make, while following, as the user moving away. A drag ends tracking; a rotate gesture ends the compass's hold. A pinch to zoom keeps MapLibre tracking and is not a move away.
   - **`MapCompass` and `LocalMapCompass`:** see "The puck, everywhere".
 - **`ui/map/SightingsMap.kt`:**
@@ -168,7 +171,7 @@ Run by `revert.sh`:
 - It reads the build log for compile errors first.
 - It confirms the tree is identical to HEAD (`37402e19`) after each check.
 
-All 16 compiled with 0 errors, and each failed for its own edit. The four whose failure has no message (n08, n11, n12, n13) were traced to their line in the XML's stack trace, each the assertion its edit targets.
+All 16 ran on `37402e19`, before the merge and the device fixes; neither touched what they check. All 16 compiled with 0 errors, and each failed for its own edit. The four whose failure has no message (n08, n11, n12, n13) were traced to their line in the XML's stack trace, each the assertion its edit targets.
 
 | Check | One edit | Fails with |
 |---|---|---|
@@ -193,7 +196,19 @@ All 16 compiled with 0 errors, and each failed for its own edit. The four whose 
 
 ## Suite
 
-FULL_SUITE_PLACEHOLDER
+| Run | Tree | Result |
+|---|---|---|
+| Touched classes (`t1-touched`) | before the merge | 5 classes, 149 tests, 0 failures, 19 skipped (the icon-stack class's existing `@Ignore`s); the new screen class then 11 with the snackbar test (`t1b-snackbar`) |
+| Full suite (`t3-full-suite`) | `37402e19`, before the merge | 424 classes, 3478 tests, 0 failures, 24 skipped |
+| Both dispatches' classes (`m1-merged-touched`) | the merge | 7 classes, 217 tests, 0 failures, 19 skipped |
+| Full suite (`m3-full-suite`) | `f9c5ac36`, the merge | 425 classes, 3501 tests, 0 failures, 24 skipped |
+| Full suite (`m6-full-suite`) | `8b9e2719`, after the device fixes | 425 classes, 3501 tests, 0 failures, 24 skipped |
+| `assembleDebug` (`m5-assemble`) | `8b9e2719` | BUILD SUCCESSFUL; the APK installed on the S22 |
+
+**Reconciled, not assumed.**
+- **Before the merge:** 3,461 + 17 = 3,478, against the base's 3,461 at `5b856b6a` (way-back route Part 1's suite). The 17 are 11 (`AvailabilityScreenNavigationViewTest`) + 5 (`NavigationViewTest`) + 1 (`NavigationHudReadoutTest`), and the classes are 422 + 2.
+- **On the merge:** `main`'s 3,484 (way-back route Part 2's suite) + 17 = 3,501, and 423 + 2 classes.
+- **Skipped:** 24 throughout, as before.
 
 ## What Robolectric cannot show here, said plainly
 
@@ -202,4 +217,45 @@ FULL_SUITE_PLACEHOLDER
 - **The compass on a phone.**
 - **Real window insets,** so where the pill sits above the nav and caption on a phone.
 
-PHONE_SECTION_PLACEHOLDER
+## The phone step, on the S22 (SM-S908U), at the desk
+
+**Install:**
+- `adb install -r` over the installed build (`1.0.2510+g07d458af.dirty`, -423's), nothing wiped. First `1.0.2526+gf9c5ac36` (the merge), then, after the faults below, `1.0.2527+g8b9e2719`.
+- Screenshots in the local evidence folder only (`device/`, `device2/`), since they show a position.
+- The camera values are from the app's own `ForagerNavView` log lines, which name no position.
+
+**The first pass (`f9c5ac36`) found two faults:**
+1. **The walker stayed at the centre,** not below it: the dot at about y 1030 of 2000, where the padding puts it about an eighth lower.
+   - From the library's bytecode: `paddingWhileTracking` "is ignored because the camera mode is transitioning", and it was called straight after starting a mode transition.
+2. **Stop left the map tilted and turned,** though the HUD had gone.
+   - From the bytecode: a mode change runs its transition, and applies the bearing and tilt handed to it, only from not following into following (`transitionToCurrentLocation` returns at once when `wasTracking`).
+   - Leaving went following to following, so neither applied.
+   - The same rule explains why the first pass did tilt on Return: the first activation's zoom-in is an app camera move, which ends MapLibre's tracking, so the map was not following when Return was tapped. That is an existing behaviour, outside this dispatch, and is reported here, not changed.
+
+**The fixes (`8b9e2719`):**
+- The tilt and padding are applied in the mode change's transition listener. It is called at the transition's end, or at once when there is none.
+- Stop pauses following, eases flat and north-up with no padding, and resumes following when the ease ends.
+- Each change logs the camera's mode, bearing, tilt and padding.
+
+**The second pass (`8b9e2719`)**, record, Return, drag, "Return to Route", Stop:
+
+| Step | Seen | The camera, from the log |
+|---|---|---|
+| Return | Tilted, turned, the walker below the centre (about y 1270 of 2000); the HUD reads "257° W" | mode 32 (`TRACKING_COMPASS`), bearing 279.8, tilt 45.0, padding top 747 px, a quarter of the 2,988 px map |
+| Drag | The map stays where it was put; "Return to Route" at bottom centre, translucent over the map | |
+| "Return to Route" | The view back | mode 32, **bearing 256.7**, tilt 45.0, padding top 747 |
+| Stop | Flat and north-up, following; the HUD gone, the strip back | mode 24 (`TRACKING`), bearing 0.0, tilt 0.0, padding 0 |
+
+**What the bearings show:**
+- The first bearing, 279.8, was taken while the map was still turning from north towards the heading; turning anticlockwise from 360 to 257 passes 280.
+- The second, 256.7, against the HUD's 257° W, is **the map facing the app's true heading.** MapLibre's own magnetic engine would have put it near 242° (true minus the local declination of about 15°).
+- That is the evidence that the app's engine is the one installed on the Maps tab, so the puck there takes the same heading.
+- **The puck's own direction** looks consistent with west-southwest in the screenshots, which cannot tell 15° apart by eye. Not measured.
+
+**Not seen on the phone, said plainly:**
+- **A stuck compass** ("Compass calibrating…", then north-up): a desk can't make the compass unreliable on demand. The tests above cover it.
+- **"Reset orientation" and locate while navigating.** Covered by tests on the screen side only; what the map then does is device-only and unseen.
+- **The bubble following the turning map.** No bubble was open.
+- **The Journal's and the offline-maps pickers' pucks:** they need new taps (open a find, edit, pick a location), so they are **unverified on the phone.**
+- **The walk:** the map following a walker and turning as they turn. That is the owner's.
+
