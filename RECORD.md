@@ -10988,3 +10988,15 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Observed:** pull request #159 (t440-merge into main, head 2fe5869e9488228a46c51d27f799cb9878b187b1, on which CI passed) was merged as cb035035573f9256990ff5f484cc878855061b1a at 2026-10-03T21:51:49Z, read from GitHub, on the owner's "Yes go ahead and open a PR and merge", with backup 2026-10-03-07 of main at 09e43bd3. Main's tree equals t440-merge's; its app/ equals the coder's f7e80167. On the owner's "And install it for my walk please" in the planner's window and "Yes, install it" in the coder's, the coder installed f7e80167 on the S22 over 1.0.2539+g7c7e25c5 with the data kept; the planner read 1.0.2572+gf7e80167 off the phone without touching it.
 **Next:** the owner's walk with the zoom; -451 with the coder.
 **Notes:** Written by the planner by hand, on branch records-after-159.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-457
+**Timestamp:** 2026-10-03T22:45:00Z
+**Title:** zoom-walk-faults: the start zoom never landed, and a pinch leaves the navigation view
+**Dispatch-file:** preserved/2026-10-03-09.md; to the coder window, next after -451
+**The owner's walk, verbatim:** "It rotates and tilts, but didn't zoom." "When pinching to zoom, it broke camera following and the Return to Route dialog appeared, no matter how steady I was not to pan it." "When stopping recording, it returns to flat view, north up. Return is greyed out after recording stopped."
+**What the planner read** from the phone's log, read-only, into `~/Zynergy/device-evidence/2026-10-03-walk-zoom/`: every navigation start applied the view at the walker's own zoom (17.62, 16.18, 16.85, 14.91), never 18, on Street.
+**Change:** find each cause on the phone with log lines before fixing; the start zoom lands once; a pinch keeps following; a drag still leaves. Return greyed out without a recording is today's design (navigating without a recording is T8 and T9), not part of this.
+**Notes:** Written by the planner by hand, on branch records-after-159.
