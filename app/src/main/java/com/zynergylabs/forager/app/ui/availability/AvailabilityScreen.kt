@@ -1,5 +1,7 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.ui.map.MapCompass
+import com.zynergylabs.forager.app.ui.map.LocalMapCompass
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.map.LocalMapKeepOuts
 import com.zynergylabs.forager.app.ui.map.fanout.MapKeepOuts
@@ -868,6 +870,13 @@ fun AvailabilityScreen(
     // pending deletes left out (planner's ruling on Q7). The legend's expanded flag is held here, above
     // the tab, so it survives leaving the Maps tab and coming back (CLAUDE.md, UX defaults).
     var mapLegendExpanded by rememberSaveable { mutableStateOf(false) }
+    // Dispatch 2026-09-28-430 (plan task T22): whether the user has moved the map away from the
+    // navigation view, and the "Return to Route" requests, held here above the tab so that leaving
+    // the Maps tab and coming back keeps them (CLAUDE.md, UX defaults; the legend's flag above is
+    // held the same way). Cleared when navigation stops, so the next Return starts in the view.
+    var navigationFollowBroken by rememberSaveable { mutableStateOf(false) }
+    var navigationViewRequestId by rememberSaveable { mutableStateOf(0) }
+    LaunchedEffect(isNavigating) { if (!isNavigating) navigationFollowBroken = false }
     var forecastCellsShown by remember { mutableStateOf<Map<String, ForecastCellsShown>>(emptyMap()) }
     val availableColourFieldGroups = COLOUR_FIELDS.filter { it.group in uiState.forecastGroups }.associate { it.layerId to it.group }
     val drawnMapLayers = withUnavailableColourFieldsHidden(uiState.mapLayers, MAP_LAYER_REGISTRY, availableColourFieldGroups.keys)
@@ -1356,6 +1365,13 @@ fun AvailabilityScreen(
             computeTrueHeading = computeTrueHeading,
             navigationTarget = navigationTarget,
             pathHomeMeters = pathHomeMeters,
+            navigationFollowing = !navigationFollowBroken,
+            navigationViewRequestId = navigationViewRequestId,
+            onLeftNavigationView = { navigationFollowBroken = true },
+            onReturnToRoute = {
+                navigationFollowBroken = false
+                navigationViewRequestId++
+            },
             mapTaxonFilter = { mapTaxonFilter },
             basemap = basemap,
             tracks = tracks,
@@ -1496,7 +1512,11 @@ fun AvailabilityScreen(
     }
     // Where the controls over the map are, for the marker fan-out to keep clear of (MapKeepOut.kt).
     val mapKeepOuts = remember { MapKeepOuts() }
-    CompositionLocalProvider(LocalLayoutDirection provides drawerDirection, LocalMapKeepOuts provides mapKeepOuts) {
+    // Ruling A (continuation 2026-09-28-432): every map under this screen can point its puck to true
+    // north, the pickers included, with no new parameter through the Journal (the planner's ruling (i)).
+    val liveFixForMaps = rememberUpdatedState(uiState.liveFix)
+    val mapCompass = remember(compassProvider, computeTrueHeading, liveFixForMaps) { MapCompass(compassProvider, computeTrueHeading, liveFixForMaps) }
+    CompositionLocalProvider(LocalLayoutDirection provides drawerDirection, LocalMapKeepOuts provides mapKeepOuts, LocalMapCompass provides mapCompass) {
     ModalNavigationDrawer(
         drawerState = drawerState,
         // Swipe-to-open is off on purpose: the content behind the drawer is a full-screen
