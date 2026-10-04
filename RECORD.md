@@ -11254,3 +11254,12 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **The owner, verbatim:** "Pi hidden behind the Worker", to: users reach `tiles.zynergy-labs.com`, which is the Worker (caching, abuse limits, fallback to R2 when the Pi is down); the Pi gets a behind-the-scenes origin hostname only the Worker can use, guarded by a Cloudflare Access service token; standard, non-beta features; the tunnel stays managed on the Pi. -468 Amendment 1.
 **Also from the Pi's run so far:** steps 1 to 7 done on the owner's word: go-pmtiles 1.31.2 (binary SHA-256 recorded; upstream publishes no checksums), rclone 1.75.1 (verified against its signed SHA256SUMS), the read-only R2 token entered by the owner, the archive copied and verified (8,817,909,309 bytes, MD5 matching R2, PMTiles v3, OSM data of 2026-08-19, Protomaps 4.15.2, the same as production), the `forager-tiles` service user, `pmtiles serve` bound to 127.0.0.1:8080 and refused from the LAN, the journal capped at 2 GB with history kept. cloudflared 2026.9.3 installed (step 8).
 **Notes:** Written by the planner by hand, on branch records-after-163.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-480
+**Timestamp:** 2026-10-04T05:40:00Z
+**Decides:** which Cloudflare account holds the map service
+**The owner, verbatim:** "Zynergy-labs is on another account from the pmtiles". Told that a Worker can use a custom domain only from its own account, the owner chose "Move the map service to zynergy-labs": the Worker is redeployed and the archive copied (R2 to R2) into the zynergy-labs.com account in a later dispatch; the old Worker keeps serving until the app switches. The Pi's tunnel, DNS record, Access application and service token go in the zynergy-labs.com account now (-468 Amendment 2).
+**Notes:** Written by the planner by hand, on branch records-after-163.
