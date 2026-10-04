@@ -11367,3 +11367,47 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Continues:** 2026-09-28-488
 **Observed:** pull request #165 (the map-style scaffold, -485, with records -486 and -487) was merged as f4e6726af97592de86675b247cd60393a168e0f9 at 2026-10-04T06:53:04Z, on green CI at its head, on the owner's "Yes merge it", with backup 2026-10-04-05. The owner, verbatim: "I'll update but I'll hold off on moving the Pi. The area isn't ready and the wifi is still connected." The owner updated the Pi (`apt upgrade`) and rebooted. **Checked by the planner from the laptop as `planner`:** up since 00:32:26 Pi time; kernel 6.12.109+rpt-rpi-2712; linux-image-rpi-2712 6.12.109-1+rpt1, raspi-firmware 1.20260915, rpi-eeprom 28.33-1, firmware-brcm80211 20240709-2~bpo12+1+rpt4; NetworkManager-wait-online **active** this boot (it had failed on the last); `forager-tunnel` active at 00:33:00 with **0 restarts** (29 on the last boot); both services active, 8080 on 127.0.0.1 only, local `/us.json` 200, origin without the token 403; startup finished in 34.0 s. One boot after the update connected cleanly; whether the update or chance made the difference is not settled by one boot.
 **Notes:** Written by the planner by hand, on branch records-after-164.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-490
+**Timestamp:** 2026-10-04T08:15:00Z
+**Title:** label-check: does MapLibre Android 13.5.0 draw the labelled Forager style, online and in an offline pack, without the old crash (measurement only)
+**Dispatch-file:** preserved/2026-10-04-05.md; to the laptop coder
+**The owner, verbatim:** "Proceed with 1 to 3", to: (1) the planner merges the Pi origin and engine spike reports into main; (2) this phone check; (3) the planner drafts the spec while it runs.
+**Change:** none to Forager. A separate test app on the S22 loads `map-style/forager-light.json` online and as an offline pack, and reports whether the old label crash happens and where.
+**Notes:** Written by the planner by hand, on branch records-after-164.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-491
+**Timestamp:** 2026-10-04T08:40:00Z
+**Continues:** 2026-09-28-490
+**Done:** the planner drafted the spec, stage 3 of `docs/plans/trail-navigation-and-own-tiles.md`: `docs/plans/2026-10-04-own-map-service-spec.md`, carrying the owner's decisions -445, -447, -466, -479, -481 and -484 and seven testable requirements. Five questions open for the owner: coverage first, a region-size ceiling, how the app tells which path the walker is on, whether T7 waits for network routes, and the refresh cadence. Unverified: labels offline on 13.5.0 (-490 measuring), a US build within the Pi's 8 GB, map and routing data in step through refreshes.
+**Notes:** Written by the planner by hand, on branch records-after-164.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-492
+**Timestamp:** 2026-10-04T09:00:00Z
+**Decides:** four of the spec's five open questions (`docs/plans/2026-10-04-own-map-service-spec.md`)
+**The owner, verbatim, each the planner's recommendation:**
+1. Coverage first: "Oregon + Washington first"; the whole US once the pipeline is proven.
+2. Telling which path the walker is on: "Our own matching", against the trails and roads in the region's data; no second engine.
+3. T7: "Ship first on the walked track"; it switches to network routes when they arrive.
+4. Refresh: "Weekly".
+**Still open:** a ceiling for one region download. Read by the planner for it: offline regions today are capped at a 24 km radius (`OfflineMapRepository.kt:203`, `MAX_RADIUS_KM`) and 6,000 tiles (`:101`, `TILE_COUNT_LIMIT`); the spike's 60 × 60 km region carried 0.64 MB of BRouter data.
+**Notes:** Written by the planner by hand, on branch records-after-164.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-493
+**Timestamp:** 2026-10-04T09:10:00Z
+**Decides:** the spec's last open question, a region-size ceiling
+**The owner, verbatim:** "Keep today's limit and see what suits it before we release it". So offline regions stay at a 24 km radius and 6,000 tiles, with the routing data added; the limit is revisited from real use before the release. The spec (`docs/plans/2026-10-04-own-map-service-spec.md`) has no open questions left and is marked ruled.
+**Next, by the plan:** stage 4, the data pipeline on the Pi, dispatched after -490 reports, since its answer on labels offline bears on what the build must carry.
+**Notes:** Written by the planner by hand, on branch records-after-164.
