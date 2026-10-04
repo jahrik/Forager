@@ -45,3 +45,4 @@ These files were moved here from `docs/plans/` and `docs/audits/`. Links in the 
 | [2026-10-03-navigation-zoom-report.md](2026-10-03-navigation-zoom-report.md) | The map zooms to a set level when navigation starts (dispatch 2026-09-28-440) |
 | [2026-10-03-zoom-walk-faults-report.md](2026-10-03-zoom-walk-faults-report.md) | The start zoom never landed, and a pinch left the navigation view (dispatch 2026-09-28-457, with nudge protection) |
 | [2026-10-03-return-record-report.md](2026-10-03-return-record-report.md) | A lasting record of Return taps and the off-track rule's decisions, and the alert's delivery reporting and catching its failures (dispatch 2026-09-28-451) |
+| [2026-10-03-nudge-elastic-report.md](2026-10-03-nudge-elastic-report.md) | A small nudge gives and springs back while navigating; with the map staying tilted after Stop, seen at the desk and not caused here (dispatch 2026-09-28-463) |

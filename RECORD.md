@@ -11104,3 +11104,48 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 6. Topo: OpenTopoMap stays for now; Forager's own contours and hillshade from USGS 3DEP come later.
 7. A device check that a labelled vector map renders online on MapLibre 13.5.0 without the old crash, before any online switch.
 **Notes:** Written by the planner by hand, on branch records-after-160.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-467
+**Timestamp:** 2026-10-04T00:15:00Z
+**Continues:** 2026-09-28-466
+**Observed:** pull request #161 (t451-merge into main: -451, the own-tiles survey, dispatch -463 and records -463 to -466) was merged as 88a5b785fdc75a3592a8a95f5963be94dd2994dd at 2026-10-04T00:08:37Z, on green CI at its head, read from GitHub, on the owner's "Yes merge it", with backup 2026-10-04-01 of main at bdb27f03. Main's tree equals t451-merge's.
+**The owner on the Pi:** it has its OS installed and no SSH yet; the domain is on Cloudflare; the hands-on setup is a coder session's. Then: "I have claude code installed on it, is that fine?" The planner's recommendation: the Pi's own Claude Code does the setup from a dispatch in the repository, with the owner relaying, and SSH from the laptop is enabled so the planner can check the Pi read-only. Waiting on the Pi's address, username and the domain.
+**Notes:** Written by the planner by hand, on branch records-after-161.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-468
+**Timestamp:** 2026-10-04T00:30:00Z
+**Title:** pi-origin, part 1: the Raspberry Pi 5 as Forager's tile origin, behind a Cloudflare Tunnel, serving the current archive locally
+**Dispatch-file:** preserved/2026-10-04-01.md; to a Claude Code session on the Pi, the owner relaying
+**The owner, verbatim:** "Set up the RPI5 as server and cloudflare as backup" (-466); "Claude code is running on the Pi now under the folder/Forager".
+**Change:** none to the app or the production Worker. Report first; then, each step on the owner's word: `pmtiles serve` on localhost from a verified copy of `us.pmtiles`, a Cloudflare Tunnel exposing only it at a hostname on the owner's domain, both as systemd services under a non-root user. No secrets in the repository.
+**Finish line:** the report-first message, the steps on the owner's word, the report on branch pi-origin, the hand-back through the owner.
+**Notes:** Written by the planner by hand, on branch records-after-161.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-469
+**Timestamp:** 2026-10-04T00:50:00Z
+**Closes:** 2026-09-28-463 (preserved 2026-10-03-10)
+**Outcome:** completed
+**Observed:** on branch nudge-elastic at 6ecdaf8e, base bdb27f03 (before #161), not merged; report `docs/navigation/2026-10-03-nudge-elastic-report.md` with its two index rows. The give is shown through `paddingWhileTracking(…, 0)`, half of one finger's travel, capped at half the threshold; the spring is the app's own animator, 250 ms, overshoot tension 2.0; gated on following, no transition running, and a mode other than NONE; a second finger springs back what one gave. 14 new tests in 2 new classes, no existing test file changed; 11 revert checks that bite, one earlier mid-spring test found by its own revert to be unable to fail under Robolectric and rewritten (the 250 ms itself is device-only); full suite 429 classes, 3,536 tests, 0 failures, 24 skipped. Desk step on the S22 (1.0.2590+g4f4ff93a, the owner's word and gestures in the coder's window): six nudges gave 9 to 23 dp and sprang back with no tracking change; two drags left and "Return to Route" restored the view.
+**A fault the owner found, outside the dispatch, reported and not fixed:** "Map stayed tilted after Stop". All three Stops came within 750 ms of a view apply, and each leave logged "navigation left, the ease cancelled" at a tilt of 43.6 to 43.9°. The coder's inference from the timing: the tilt and padding animators started by the view keep moving the camera after the leave and cancel the leave's ease. Not yet seen on a build without -463.
+**What the planner checked itself:** the full suite's XML re-counted as reported; revert.sh restores from a saved copy; the revert folders read (all 0 compile errors; the superseded mid-spring check fails nothing and its rewrite fails one); the branch merges with main without conflicts.
+**Next:** on the owner's word, a pull request; a fault dispatch for Stop's tilt, if the owner wants it now.
+**Notes:** Written by the planner by hand, on branch records-after-161.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-470
+**Timestamp:** 2026-10-04T01:00:00Z
+**Decides:** -463's merge, and Stop's tilt fault
+**The owner, verbatim:** to a pull request for -463, "Yes, PR and merge"; to fixing Stop leaving the map tilted before the engine spike, "Fix it first". Dispatch -470 (preserved/2026-10-04-02.md), to the coder next, before -446.
+**Correction to -469:** it says the branch "merges with main without conflicts". The app code merges without conflicts; the two index files (`docs/audits/README.md`, `docs/navigation/README.md`) conflict, and are resolved keeping every row.
+**Notes:** Written by the planner by hand, on branch records-after-161.
