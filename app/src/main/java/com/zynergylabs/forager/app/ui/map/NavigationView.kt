@@ -512,6 +512,15 @@ class NavigationModeChange {
         startZoomGate.reset()
         val component = map.locationComponent
         val wasFollowing = component.cameraMode != CameraMode.NONE
+        // Dispatch -470: the view's padding animation (applyView) is stopped first. Leaving tracking
+        // cancels MapLibre's zoom and tilt animations but not the padding one (13.5.0 bytecode:
+        // LocationComponent$8.onCameraTrackingChanged cancels zoom and tilt only), and its listener stays
+        // attached in every mode, so it went on setting the padding through Transform.moveCamera after the
+        // mode was NONE and cancelled the ease below. Seen on the S22: the ease's first frame set the
+        // padding to 0, the next put it back to the animation's 282, and the ease was cancelled, leaving
+        // the map tilted; every leave with that animation in flight did so, and none without.
+        val inFlightAtLeave = inFlight() // read before the cancel below clears it
+        component.cancelPaddingWhileTrackingAnimation()
         if (wasFollowing) byTheApp { component.cameraMode = CameraMode.NONE }
         // Dispatch -440, Amendment 1: a camera above the basemap's own cap comes back within it as part
         // of this ease, and the cap is restored when the ease ends; setting it first would jump.
@@ -522,7 +531,7 @@ class NavigationModeChange {
             if (wasFollowing && !active) byTheApp { component.cameraMode = CameraMode.TRACKING }
             logCamera(map, what)
         }
-        Log.i(NAVIGATION_VIEW_LOG_TAG, "leaving navigation: was following=$wasFollowing, ${inFlight()}")
+        Log.i(NAVIGATION_VIEW_LOG_TAG, "leaving navigation: was following=$wasFollowing, at the leave $inFlightAtLeave")
         leaveEaseStartedAt = android.os.SystemClock.uptimeMillis()
         map.easeCamera(CameraUpdateFactory.newCameraPosition(flat), NAVIGATION_VIEW_TRANSITION_MILLIS.toInt(), object : MapLibreMap.CancelableCallback {
             override fun onFinish() = done("navigation left")
