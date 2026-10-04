@@ -394,6 +394,19 @@ fun SightingsMap(
     val nudgeThresholdPx = NAVIGATION_NUDGE_THRESHOLD_DP * LocalDensity.current.density
     // Dispatch -477, Part A: where the current touch came down, for the release's log line.
     val touchDownAt = remember { FloatArray(2) }
+    // Dispatch -477, Part B: a quick flick under the drag threshold springs back instead of ending
+    // following through MapLibre's fling (see NudgeFlingGuard). Fed by the map view's touch listener below.
+    val nudgeFlingGuard = remember {
+        NudgeFlingGuard(
+            object : FlingSwitch {
+                override var enabled: Boolean
+                    get() = mapLibreMap?.uiSettings?.isFlingVelocityAnimationEnabled ?: true
+                    set(value) {
+                        mapLibreMap?.uiSettings?.isFlingVelocityAnimationEnabled = value
+                    }
+            },
+        )
+    }
     // Built once: the factory below hands this instance to the map view's listener, which is attached once.
     val nudgeElastic = remember {
         NudgeElasticDriver(
@@ -1197,6 +1210,13 @@ fun SightingsMap(
                     // Dispatch -463: the elastic nudge reads the finger here, before MapLibre does, and
                     // never consumes it.
                     nudgeElastic.onTouch(event)
+                    // Dispatch -477: read before MapLibre handles this event, so a release while following
+                    // reaches MapLibre with its fling switched off.
+                    nudgeFlingGuard.onTouch(
+                        event,
+                        stillFollowing = currentNavigationView != null &&
+                            mapLibreMap?.locationComponent?.let { it.isLocationComponentActivated && it.cameraMode != CameraMode.NONE } == true,
+                    )
                     // Dispatch -477, Part A: each release while navigating, whether the map still follows and
                     // how far the finger travelled. Logging only.
                     when (event.actionMasked) {
