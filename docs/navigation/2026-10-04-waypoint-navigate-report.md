@@ -298,3 +298,17 @@ The owner chose to compare against main's build (`1.0.2654+ge295fbe1`, the same 
 
 **A slip of mine.** `343d8dfe`'s co-author trailer names a model, against this session's rule. It was not amended (push before you tidy); the planner noted it in the record.
 
+
+## Addendum: the GPS side-by-side (RECORD -508)
+
+The owner held that only the -502 build lost GPS indoors. So both builds were run in the same spot with the S22 untouched. Each was installed, force-stopped, launched and left for 120 s; then a screenshot and `dumpsys location` were taken.
+
+| | main's build, `1.0.2654+ge295fbe1` | -502, `1.0.2678+g631b913b` |
+|---|---|---|
+| The strip | "Location services unavailable" | "Location services unavailable" |
+| The app registered for GPS | yes | yes |
+| The GPS chip's last fix | the same stale one, about 2 h old, 265 m | the same, unchanged |
+
+**Not a -502 regression:** neither build had a GPS fix to use. The rough network position the phone did have, about 100 m, is refused by the existing 50 m gate in both. The owner then decided on a follow-up, to be its own dispatch: an approximate position shown until GPS arrives, never used for tracks, alerts or "Arrived", with the last known position marked old when there is nothing at all.
+
+Evidence: `~/Zynergy/device-evidence/2026-10-04-waypoint-navigate/device/ab/`, local only (it shows positions).
