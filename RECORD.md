@@ -11149,3 +11149,49 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **The owner, verbatim:** to a pull request for -463, "Yes, PR and merge"; to fixing Stop leaving the map tilted before the engine spike, "Fix it first". Dispatch -470 (preserved/2026-10-04-02.md), to the coder next, before -446.
 **Correction to -469:** it says the branch "merges with main without conflicts". The app code merges without conflicts; the two index files (`docs/audits/README.md`, `docs/navigation/README.md`) conflict, and are resolved keeping every row.
 **Notes:** Written by the planner by hand, on branch records-after-161.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-471
+**Timestamp:** 2026-10-04T01:20:00Z
+**Continues:** 2026-09-28-470
+**Observed:** pull request #162 (t463-merge into main: -463 with main's -451 merged in, records -467 to -470, dispatches -468 and -470) was merged as 7c072bfc1569b70b6d790407f48aaba40b0030ca at 2026-10-04T01:13:20Z, on green CI at its head, read from GitHub, on the owner's "Yes, PR and merge", with backup 2026-10-04-02 of main at 88a5b785. Main's tree equals t463-merge's. The S22 carries 1.0.2590+g4f4ff93a, -463's desk build without -451; main now has both.
+**Notes:** Written by the planner by hand, on branch records-after-162.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-472
+**Timestamp:** 2026-10-04T02:30:00Z
+**Decides:** the Pi's network link
+**Observed, as the Pi's session reported it during -468's step 4:** the archive copy from R2 runs at about 0.44 to 1.48 MiB/s over Wi-Fi (5 GHz, signal −65 dBm, receive rate falling from 45 to 6 Mbit/s between samples, 1.65% of transmits failed); likely the Wi-Fi link, not confirmed against the ISP or R2. Ethernet (`eth0`) is down with no carrier.
+**The owner, verbatim:** "No etherenet so it'll be on wifi". So the Pi serves over Wi-Fi.
+**What follows, for the later serving dispatch:** Cloudflare's cache in front matters more (a cached tile never crosses the home link), and the R2 copy behind the Worker is the fallback when the Pi is slow or down; moving the Pi or the access point closer is the remaining way to strengthen the link.
+**Notes:** Written by the planner by hand, on branch records-after-162.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-473
+**Timestamp:** 2026-10-04T03:00:00Z
+**Closes:** 2026-09-28-470 (preserved 2026-10-04-02)
+**Outcome:** completed
+**Observed:** on branch stop-tilt at 134a1c20, base 7c072bfc, not merged; report `docs/navigation/2026-10-04-stop-tilt-report.md` with its two index rows. The owner's go in the coder's window: "-470 first (Recommended)", then "Yes, use the phone".
+- **Seen first:** without -463 (bdb27f03), 11 of 17 leaves logged "the ease cancelled", so -463 does not cause it. With log lines (1.0.2611): all 5 Stops with the view's padding animation in flight were cancelled, both without one eased flat; at 6 ms the ease set padding to zero and at 8 ms it was back at the view's padding in mode NONE, cancelling the ease. From the library's bytecode: ending tracking cancels the zoom and tilt animations only, and the padding animation keeps moving the camera.
+- **The fix** (c9641436): `leaveNavigation` calls `component.cancelPaddingWhileTrackingAnimation()` before ending tracking. After (1.0.2612): 30 leaves, 18 flat and north-up (9 with the padding animation in flight); the other 12 were superseded by a new Return just before them (rapid Return and Stop taps). 6 Stops mid-spring ended flat. The owner: "Flat every time". The facing-change case was not reached at the desk.
+- **No new test:** the leave needs a real LocationComponent; the device pair a10c6046/c9641436, differing only by the cancel, is the revert (5 of 5 cancelled before, 0 of 9 after). Full suite 432 classes, 3,551 tests, 0 failures, 24 skipped.
+- **Seen on the way, not changed:** twice MapLibre ended following 1 ms after a nudge's release with no drag past the threshold; inferred to be the location camera's fling listener, so a fast-released nudge can leave following.
+**What the planner checked itself:** the app diff, read (the one-line cancel plus log lines); the full suite's XML re-counted as reported; the device logs counted (pre-463: 17 leaves, 11 cancelled; instrumented: 7 and 5; after the fix: 30 and 12); each of the 12 cancelled leaves after the fix has a new view apply 0 to 16 ms before it (the coder's report says 0 to 12; the same finding).
+**Next:** on the owner's word, a pull request; the fling finding to the owner; then -446.
+**Notes:** Written by the planner by hand, on branch records-after-162.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-474
+**Timestamp:** 2026-10-04T03:10:00Z
+**Decides:** -470's merge, and the fling after a nudge
+**The owner, verbatim:** to a pull request for -470, "Yes, PR and merge"; to the coder's finding that a quick flick-release of a small nudge can end following (inferred to be MapLibre's fling listener), "Small fix after the engine trial": a short dispatch after -446 confirms it is the fling, then keeps following for a flick under the threshold.
+**Also noted:** -446's verify-first report, accepted by the planner: valhalla-mobile 0.6.3 (bundling Valhalla 3.6.3, tiles built with pyvalhalla 3.6.3), BRouter v1.7.10 from source, Oregon data on the owner's USB drive, routes on the McKenzie River trail, Mount Hood near Zigzag, Deschutes Green Lakes and the 2026-10-03 walk's town. Wrong premise in the research, found by the coder: valhalla-mobile exposes map matching on the device (`trace_route`, `trace_attributes`), not batch only.
+**Notes:** Written by the planner by hand, on branch records-after-162.

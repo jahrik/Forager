@@ -621,8 +621,10 @@ fun SightingsMap(
             // idle. Outside navigation it is re-anchored at idle as before.
             map.addOnCameraMoveListener {
                 if (currentNavigationView != null) reanchorFocusedBubble(map)
+                navigationModeChange.noteCameraMove(map) // dispatch -470, Part A: logging only
             }
             map.addOnCameraMoveStartedListener { reason ->
+                navigationModeChange.noteCameraMoveStarted(reason) // dispatch -470, Part A: logging only
                 // A fanned stack folds on a camera move the user made or asked for, a gesture or the app's own; it stays open when the map re-centres
                 // itself while it follows the location (dispatch 2026-09-28-380: the user did not mean that move, and the fan travels with the map).
                 val following = map.locationComponent.isLocationComponentActivated && map.locationComponent.cameraMode != CameraMode.NONE
@@ -1059,6 +1061,7 @@ fun SightingsMap(
             }
             if (navigationModeChange.active) {
                 cameraMoveClassifier.markAppMove()
+                Log.i(NAVIGATION_VIEW_LOG_TAG, "leaving navigation: nudge spring running=${nudgeElastic.springing}") // dispatch -470, Part A
                 navigationModeChange.leaveNavigation(map, navigationMaxZoom(basemap, navigating = false))
             }
             return@LaunchedEffect
