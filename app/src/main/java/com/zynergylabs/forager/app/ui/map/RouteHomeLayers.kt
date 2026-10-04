@@ -39,7 +39,8 @@ import org.maplibre.geojson.Point
  * "A straight dashed line" from the walker to the waypoint, until real trail routes arrive, thin and dashed
  * so it does not read as a path to follow. It is [RouteOnMap.straight], drawn by its own layer above the
  * return's lines; the return's lines are not drawn meanwhile. Arrival is the start's: the ring at the
- * waypoint, and the line ends.
+ * waypoint, and the line ends. Once the fix is lost, the last line is kept, faded, as the withheld way back
+ * is (the owner's choice at the desk check: "Keep the last line, faded"): [RouteOnMap.straightIsCurrent].
  */
 
 /**
@@ -110,8 +111,11 @@ internal fun routeHomeFeatureCollections(route: RouteOnMap?): Map<String, Featur
 /** The line ahead's opacity: full while the route is current, faded while it is withheld. */
 internal fun routeAheadOpacity(route: RouteOnMap?): Float = if (route?.line?.aheadIsCurrent == false) ROUTE_AHEAD_FADED_OPACITY else 1f
 
-/** Dispatch -502: the straight line's opacity. */
-internal fun routeStraightOpacity(route: RouteOnMap?): Float = 1f
+/**
+ * Dispatch -502: the straight line's opacity. Full while drawn from a current fix; once kept after the fix is
+ * lost (the owner: "Keep the last line, faded"), the same faded opacity as the way back's withheld line.
+ */
+internal fun routeStraightOpacity(route: RouteOnMap?): Float = if (route?.straightIsCurrent == false) ROUTE_AHEAD_FADED_OPACITY else 1f
 
 private fun lineCollection(points: List<LatLng>?): FeatureCollection =
     FeatureCollection.fromFeatures(
@@ -176,6 +180,7 @@ internal fun updateRouteHomeLayers(style: Style, route: RouteOnMap?) {
     val opacity = routeAheadOpacity(route)
     style.getLayer(RouteHomeIds.AHEAD_LAYER)?.setProperties(PropertyFactory.lineOpacity(opacity))
     style.getLayer(RouteHomeIds.AHEAD_CASING_LAYER)?.setProperties(PropertyFactory.lineOpacity(opacity))
+    style.getLayer(RouteHomeIds.STRAIGHT_LAYER)?.setProperties(PropertyFactory.lineOpacity(routeStraightOpacity(route)))
 }
 
 /**

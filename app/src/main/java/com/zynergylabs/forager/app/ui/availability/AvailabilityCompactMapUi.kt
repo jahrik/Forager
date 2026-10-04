@@ -321,6 +321,12 @@ internal fun CompactMapTab(
      */
     isNavigatingToWaypoint: Boolean = false,
     /**
+     * Dispatch 2026-09-28-502, step 3: the dashed line from the walker to the waypoint, current or kept faded after the
+     * fix was lost (the owner's "Keep the last line, faded"). Worked out and held in [AvailabilityScreen], above the tab
+     * switch; `null` draws none.
+     */
+    waypointStraightLine: StraightLine? = null,
+    /**
      * Dispatch 2026-09-28-502, Amendment 1: Back ended a waypoint navigation started from this tab's bubble
      * or the details sheet opened from it, and that step is opened again here, once; then
      * [onWaypointReopenConsumed]. `null` asks for nothing.
@@ -590,12 +596,6 @@ internal fun CompactMapTab(
             } else {
                 null
             }
-            // Dispatch -502, step 3: navigating to a waypoint, the dashed line from the walker to it, ending on arrival.
-            val straightLine = if (isNavigating && isNavigatingToWaypoint && navigationTarget != null) {
-                straightLineToTarget(uiState.liveFix, navigationTarget, currentTime.nowEpochMillis())
-            } else {
-                null
-            }
             val currentOnLeftNavigationView by rememberUpdatedState(onLeftNavigationView)
             val onLeftView: () -> Unit = remember { { currentOnLeftNavigationView() } }
             val currentOnNavigationZoomApplied by rememberUpdatedState(onNavigationZoomApplied)
@@ -642,7 +642,7 @@ internal fun CompactMapTab(
                         // Dispatch -502: a waypoint navigation's dashed line beside the return's way back. There is no way back to
                         // draw meanwhile: the return the waypoint overrules is paused, and pausing it clears its line
                         // (TrackRecordingViewModel.stopReturn), so nothing here has to hide it.
-                        route = if (isNavigating) RouteOnMap(routeLine, arrivedAt, straightLine) else null,
+                        route = if (isNavigating) RouteOnMap(routeLine, arrivedAt, waypointStraightLine?.points, waypointStraightLine?.isCurrent ?: true) else null,
                         resumeTrackingRequestId = resumeTrackingRequestId,
                         resetOrientationRequestId = resetOrientationRequestId,
                         focusedObservationId = tapped.focusedObservationId,

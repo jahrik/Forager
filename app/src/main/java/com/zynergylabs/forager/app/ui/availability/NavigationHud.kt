@@ -38,6 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.FixFreshness
+import com.zynergylabs.forager.app.domain.LOST_AFTER_MILLIS
 import com.zynergylabs.forager.app.domain.GeoDistance
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.RouteHome
@@ -451,14 +452,38 @@ internal fun straightLineToTarget(liveFix: LocationFix.Update?, target: Waypoint
     return listOf(LatLng(liveFix.lat, liveFix.lng), LatLng(target.lat, target.lng))
 }
 
-/** Dispatch -502, the owner's "Keep the last line, faded": the dashed line, and whether it is from a current fix. */
+/**
+ * The dashed line navigating to a waypoint draws (dispatch -502), and whether it is from a current fix
+ * ([isCurrent]) or kept, faded, from the last one after the fix was lost.
+ */
 internal data class StraightLine(val points: List<LatLng>, val isCurrent: Boolean)
 
-/** Dispatch -502, the owner's "Keep the last line, faded": the line to draw next, given the one drawn last. */
-internal fun nextStraightLine(previous: StraightLine?, liveFix: LocationFix.Update?, target: Waypoint, nowEpochMillis: Long): StraightLine? = null
+/**
+ * The line to draw next, given [previous], the one drawn last (dispatch -502). The owner's choice at the S22
+ * desk check, 2026-10-04, in the coder's window: "Keep the last line, faded", whose option read "If the
+ * location is lost after it was found, keep the last dashed line, faded, as the way back does when its route
+ * can't be calculated. Right after the app opens there's no last line, so it still waits for the first fix."
+ * - With a current fix: the line from it ([straightLineToTarget]), current.
+ * - Arrived: none; the line ends there, as before.
+ * - No fix, or a lost one (the HUD's "No fix for N min"): [previous] kept, faded, if it was drawn to this
+ *   [target]; none if nothing was drawn yet, as when the app has just opened.
+ * A stale fix (30 s to 5 min) is not lost: the line is drawn from it, current, as the HUD still gives a
+ * distance from it.
+ */
+internal fun nextStraightLine(previous: StraightLine?, liveFix: LocationFix.Update?, target: Waypoint, nowEpochMillis: Long): StraightLine? {
+    straightLineToTarget(liveFix, target, nowEpochMillis)?.let { return StraightLine(it, isCurrent = true) }
+    val lost = liveFix == null || fixFreshness(liveFix.ageMillis(nowEpochMillis)) == FixFreshness.LOST
+    if (!lost) return null
+    return previous?.takeIf { it.points.lastOrNull() == LatLng(target.lat, target.lng) }?.copy(isCurrent = false)
+}
 
-/** How long until [fix] is lost, so the line can fade then. */
-internal fun millisUntilFixLost(fix: LocationFix.Update?, nowEpochMillis: Long): Long? = null
+/**
+ * How long until [fix] counts as lost ([LOST_AFTER_MILLIS]), 0 once it has, `null` with no fix. What lets the
+ * kept line fade at that moment even when nothing else changes on screen, since no new fix is coming to
+ * prompt it.
+ */
+internal fun millisUntilFixLost(fix: LocationFix.Update?, nowEpochMillis: Long): Long? =
+    fix?.let { (LOST_AFTER_MILLIS - it.ageMillis(nowEpochMillis)).coerceAtLeast(0L) }
 
 /** The large slot's words when the route is withheld: the owner's, 2026-09-12. */
 internal const val ROUTE_UNAVAILABLE_TEXT = "Unable to calculate route"
