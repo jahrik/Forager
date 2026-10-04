@@ -393,3 +393,127 @@ automatic security updates, the planner's key, and disabling SSH password authen
 
 Backups kept before editing, as copies rather than git restores (`CLAUDE.md`, revert-runner pitfall):
 `/etc/systemd/journald.conf.pre-pi-origin` and `/etc/systemd/system/forager-tiles.service.pre-step7`.
+
+---
+
+# Addendum, 2026-10-04: the reboot test, and three changes after it
+
+Appended after the body above was pushed at `07030cb8`, deliberately before the reboot so the record
+would survive it (`CLAUDE.md`, "Push before you tidy"). The Pi rebooted at 23:52 PDT; boot
+`829add4d` succeeded the boot that had been running 18 days.
+
+## The reboot test: the configuration survives, but the tunnel was down about three minutes
+
+| Check | Baseline | After reboot |
+|---|---|---|
+| `forager-tiles` | enabled, active | **enabled, active** |
+| `forager-tunnel` | enabled, active | **enabled, active**, after 29 restarts |
+| Listener | `127.0.0.1:8080` | **`127.0.0.1:8080`** only |
+| Local `/us.json` | 200 | **200** |
+| Local z5 tile | 45,472 bytes | **45,472 bytes** |
+| Through the tunnel, no token | 403 | **403** |
+| Tunnel connections | 4 | **4** |
+| Archive | 8,817,909,309 bytes | **identical**, owner `forager-tiles` |
+
+Stability afterwards: zero registrations and zero terminations in a clean 60-second window, five
+probes returning 403 in 0.14 to 0.55 s with one 5.2 s outlier. **`enabled` is now evidence rather
+than a claim**, which is what the test existed to establish.
+
+### What went wrong, and what it was not
+
+`forager-tunnel` crash-looped **29 times** between 23:53:36 and 23:56:31, each cycle exiting on
+`Failed to fetch features ... lookup cfd-features.argotunnel.com on [::1]:53: connection refused` —
+Go falling back to `[::1]:53` because `/etc/resolv.conf` was not yet populated, and nothing listening
+there. `Restart=always` recovered it once DNS worked.
+
+**The cause is the Wi-Fi association, not these units, and that was checked rather than assumed.**
+`NetworkManager-wait-online` **failed this boot** on its 60 s timeout but **succeeded on both
+previous boots**, taking 36 s on the last. This boot `wlan0` cycled through `need-auth` repeatedly
+and reached `config -> failed (reason 'no-secrets')` twice before connecting at about 23:56. The
+three saved Wi-Fi profiles are all `wpa-psk` with no `permissions` and no `psk-flags`, so secrets are
+system-wide and available at boot; `no-secrets` here follows repeated authentication failure, which
+is consistent with the -65 dBm signal measured during the archive copy. These units reference only
+`network-online.target` and cannot delay NetworkManager. `NetworkManager-wait-online` is left as a
+**failed unit** on this boot.
+
+**Why this matters beyond the test.** For a box whose job is to be a serving origin, this is the
+substantive finding: after a power cut the Pi is unreachable for minutes, and if Wi-Fi authentication
+failed outright it would not return without intervention. Survey section 6 lists a UPS as a later
+item; this suggests the Wi-Fi link is the more pressing half. It also sharpens the deferred step 16:
+disabling password authentication on a Pi that may take minutes to join the network, with no key for
+`bwann83` and `eth0` down, narrows the recovery path considerably.
+
+## Change 1: automatic security updates (step 14)
+
+`unattended-upgrades` installed and enabled, with
+`/etc/apt/apt.conf.d/20auto-upgrades` setting `Update-Package-Lists "1"` and `Unattended-Upgrade "1"`.
+
+**A correction to what was described when this was approved.** It was put to the owner as Debian's
+default being "security updates only". It is not: the shipped `Origins-Pattern` also carries
+`origin=Debian,codename=${distro_codename},label=Debian`, which is general stable updates. Because
+the owner's instruction was security-only, `/etc/apt/apt.conf.d/52forager-security-only` now narrows
+it to the two `Debian-Security` patterns. A first attempt simply declared the narrower list and
+**did not work** — apt.conf lists accumulate, so `label=Debian` survived; `#clear
+Unattended-Upgrade::Origins-Pattern;` before the declaration was required. Verified by reading
+`Allowed origins are:` back from `unattended-upgrade --dry-run --debug`, not from the file.
+
+- **No automatic reboot** (`Automatic-Reboot` unset, defaults false), as instructed.
+- **No mail configuration** — there is no MTA on this Pi, so failures are silent and land in
+  `/var/log/unattended-upgrades/`.
+- The Raspberry Pi Foundation archive is **not** an allowed origin, so `chromium` and similar are
+  untouched.
+- **The pins hold.** `cloudflared` has no apt source at all (deliberate, see the body).
+  `pmtiles` is a bare binary and invisible to apt. **`rclone` needed a correction to an earlier
+  claim**: Debian bookworm *does* carry `rclone`, so the statement that no rclone apt source exists
+  was wrong. It is nonetheless safe, because the installed 1.75.1 is higher than the repository's
+  1.60.1, so apt reports `Candidate: 1.75.1` and the package does not appear in the upgrade
+  candidate list at all. A dry run upgrades nothing today.
+
+## Change 2: the tunnel waits for working DNS
+
+`/usr/local/sbin/forager-wait-dns` (root, `0755`) polls `getent hosts region1.v2.argotunnel.com`
+every 2 s for up to 60 s, and is wired in as `ExecStartPre` on `forager-tunnel.service`.
+`TimeoutStartSec` was raised from 60 s to 150 s in the same change — at 60 s systemd would have
+killed the unit while the pre-check was still inside its own budget, which would have replaced one
+failure mode with another.
+
+The script exits 0 either way, so a persistent DNS failure still starts cloudflared and surfaces as
+cloudflared's own error rather than being hidden. This does not fix the Wi-Fi; it stops a slow
+association from producing 29 restart cycles that bury the real cause.
+
+Verified: the script returns `DNS usable after 0s`, the unit restarts cleanly, 4 connections
+register, and the pair still holds — **403 without the token, 200 with it** (10,427 bytes).
+
+## Change 3: Wi-Fi profile priority
+
+The active Wi-Fi profile (named by the owner in window; SSID withheld here) set to `connection.autoconnect-priority 100` with `autoconnect yes`. **No profile
+was deleted and no other profile was modified**, as instructed.
+
+**This is unlikely to fix the boot delay on its own, and should not be recorded as a fix.**
+That profile was *already* the highest-priority one (1, against 0 for the other two) and was already the active connection. That weakens the working hypothesis that
+NetworkManager was cycling through candidate profiles: it was not choosing between them so much as
+failing to authenticate on a weak link. The change makes the preference emphatic and costs nothing;
+the association problem itself remains open and is expected to be addressed by moving the Pi closer
+to the router. **A second reboot after the move is the test that would settle it** — one boot is a
+single data point, and the two preceding boots behaved differently.
+
+Applied without disrupting the live link: NetworkManager stayed `connected` and the tunnel continued
+to answer through the change.
+
+## Still outstanding
+
+- **Step 16, SSH password authentication, remains ON** at the owner's instruction, on hold until the
+  Pi has been moved. `bwann83` and `root` still have no `authorized_keys`; `planner` is the only
+  account with one.
+- **The Wi-Fi association** at boot, per change 3.
+- **`NetworkManager-wait-online` is a failed unit** on the current boot.
+- A **UPS**, and the Worker work, both already out of scope for this part.
+
+## Rollback for the addendum
+
+| Change | Undo |
+|---|---|
+| unattended-upgrades | `apt-get purge unattended-upgrades`, `rm /etc/apt/apt.conf.d/20auto-upgrades /etc/apt/apt.conf.d/52forager-security-only` |
+| Security-only narrowing alone | `rm /etc/apt/apt.conf.d/52forager-security-only` |
+| DNS wait | restore `/etc/systemd/system/forager-tunnel.service.pre-dnswait`, `rm /usr/local/sbin/forager-wait-dns`, `daemon-reload`, restart |
+| Wi-Fi priority | `nmcli connection modify <profile> connection.autoconnect-priority 1` |
