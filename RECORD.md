@@ -11158,3 +11158,14 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Continues:** 2026-09-28-470
 **Observed:** pull request #162 (t463-merge into main: -463 with main's -451 merged in, records -467 to -470, dispatches -468 and -470) was merged as 7c072bfc1569b70b6d790407f48aaba40b0030ca at 2026-10-04T01:13:20Z, on green CI at its head, read from GitHub, on the owner's "Yes, PR and merge", with backup 2026-10-04-02 of main at 88a5b785. Main's tree equals t463-merge's. The S22 carries 1.0.2590+g4f4ff93a, -463's desk build without -451; main now has both.
 **Notes:** Written by the planner by hand, on branch records-after-162.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-472
+**Timestamp:** 2026-10-04T02:30:00Z
+**Decides:** the Pi's network link
+**Observed, as the Pi's session reported it during -468's step 4:** the archive copy from R2 runs at about 0.44 to 1.48 MiB/s over Wi-Fi (5 GHz, signal −65 dBm, receive rate falling from 45 to 6 Mbit/s between samples, 1.65% of transmits failed); likely the Wi-Fi link, not confirmed against the ISP or R2. Ethernet (`eth0`) is down with no carrier.
+**The owner, verbatim:** "No etherenet so it'll be on wifi". So the Pi serves over Wi-Fi.
+**What follows, for the later serving dispatch:** Cloudflare's cache in front matters more (a cached tile never crosses the home link), and the R2 copy behind the Worker is the fallback when the Pi is slow or down; moving the Pi or the access point closer is the remaining way to strengthen the link.
+**Notes:** Written by the planner by hand, on branch records-after-162.
