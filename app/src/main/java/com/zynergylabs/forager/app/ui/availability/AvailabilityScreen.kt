@@ -150,6 +150,7 @@ import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -978,6 +979,22 @@ fun AvailabilityScreen(
     val onNavigationControl: () -> Unit = {
         if (navigatingToWaypoint != null) endWaypointNavigation(false) else onToggleReturning()
     }
+    // Dispatch -502, the owner's choice at the S22 desk check ("Keep the last line, faded"): the dashed line to the
+    // waypoint, and the one drawn last, which nextStraightLine keeps, faded, once the fix is lost. Held here, above the tab
+    // switch, so a lost fix does not lose the line by a trip to the Journal; not across a restart, where there is no last
+    // line and the first fix draws it (the option the owner chose said so). The clock moves on once when the fix turns
+    // lost, so the line fades then even though no new fix comes to prompt it.
+    var waypointStraightLine by remember { mutableStateOf<StraightLine?>(null) }
+    val straightLineNow by produceState(currentTime.nowEpochMillis(), uiState.liveFix, currentTime) {
+        value = currentTime.nowEpochMillis()
+        val untilLost = millisUntilFixLost(uiState.liveFix, value)
+        if (untilLost != null && untilLost > 0L) {
+            delay(untilLost)
+            value = currentTime.nowEpochMillis()
+        }
+    }
+    val nextWaypointLine = navigatingToWaypoint?.let { nextStraightLine(waypointStraightLine, uiState.liveFix, it, straightLineNow) }
+    LaunchedEffect(nextWaypointLine) { waypointStraightLine = nextWaypointLine }
     var forecastCellsShown by remember { mutableStateOf<Map<String, ForecastCellsShown>>(emptyMap()) }
     val availableColourFieldGroups = COLOUR_FIELDS.filter { it.group in uiState.forecastGroups }.associate { it.layerId to it.group }
     val drawnMapLayers = withUnavailableColourFieldsHidden(uiState.mapLayers, MAP_LAYER_REGISTRY, availableColourFieldGroups.keys)
@@ -1492,6 +1509,7 @@ fun AvailabilityScreen(
             onRetryRoute = onRetryRoute,
             waypointNavigate = WaypointNavigateControls(
                 isNavigatingToWaypoint = navigatingToWaypoint != null,
+                straightLine = nextWaypointLine,
                 onNavigate = onNavigateToWaypoint?.let { startWaypointNavigation },
                 mapReopen = mapWaypointReopen,
                 onMapReopenConsumed = { mapWaypointReopen = null },

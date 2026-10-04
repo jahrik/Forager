@@ -443,6 +443,14 @@ class AvailabilityScreenWaypointNavigateTest {
         assertEquals("the last line is kept", drawn, map.content!!.route!!.straight)
         assertFalse("faded", map.content!!.route!!.straightIsCurrent)
 
+        // Held above the tab switch: a trip to the Journal and back keeps it.
+        composeRule.onNodeWithText("Journal").performTouchInput { click(center) }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Maps").performTouchInput { click(center) }
+        composeRule.waitForIdle()
+        assertEquals("kept after leaving the Maps tab and coming back", drawn, map.content!!.route!!.straight)
+        assertFalse(map.content!!.route!!.straightIsCurrent)
+
         composeRule.runOnIdle { fix = southOfCreek(300.0) }
         composeRule.waitForIdle()
 

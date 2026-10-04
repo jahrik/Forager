@@ -998,6 +998,7 @@ internal fun CompactMainScaffold(
                                 routeLine = routeLine,
                                 onRetryRoute = onRetryRoute,
                                 isNavigatingToWaypoint = waypointNavigate.isNavigatingToWaypoint,
+                                waypointStraightLine = waypointNavigate.straightLine,
                                 waypointReopen = waypointNavigate.mapReopen,
                                 onWaypointReopenConsumed = waypointNavigate.onMapReopenConsumed,
                                 showDecimalDegrees = showDecimalDegrees,
