@@ -1,0 +1,14 @@
+{
+  "name": "forager-map-style",
+  "private": true,
+  "type": "module",
+  "description": "Forager's map style source (dispatch 2026-09-28-485). Not part of the app build.",
+  "scripts": {
+    "generate": "node generate.mjs",
+    "check": "node tools/check-style.mjs"
+  },
+  "dependencies": {
+    "@protomaps/basemaps": "5.7.2",
+    "maplibre-gl": "6.12.0"
+  }
+}
