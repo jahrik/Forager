@@ -7,6 +7,7 @@ import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.MapRecords
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.PendingDelete
+import com.zynergylabs.forager.app.domain.WaypointNavigation
 import com.zynergylabs.forager.app.domain.withoutPending
 import com.zynergylabs.forager.app.domain.model.AppThemeMode
 import com.zynergylabs.forager.app.domain.model.AvailabilityForecast
@@ -277,6 +278,14 @@ data class AvailabilityUiState(
      * state is derived here; that policy belongs to the HUD, not to this state.
      */
     val liveFix: LocationFix.Update? = null,
+    /**
+     * The waypoint being navigated to, if any (dispatch 2026-09-28-502, plan tasks T8 and T9): set by
+     * [AvailabilityViewModel.onNavigateToWaypoint], cleared by [AvailabilityViewModel.onStopWaypointNavigation],
+     * and picked back up from [com.zynergylabs.forager.app.domain.WaypointNavigationRepository] when the
+     * app starts. Held here, not in the screen, so it outlives a tab change and a recreation, and needs
+     * no recording: the live fix it measures from is this ViewModel's own.
+     */
+    val waypointNavigation: WaypointNavigation? = null,
     /**
      * The system of units this person reads, restored from
      * [com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository.getUnitSystem] at startup and

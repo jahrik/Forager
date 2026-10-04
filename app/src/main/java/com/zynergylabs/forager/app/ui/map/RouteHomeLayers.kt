@@ -36,10 +36,15 @@ import org.maplibre.geojson.Point
  * included (both lines are placed above KEPT_TRACKS, the registry's last line), and below every marker.
  */
 
-/** What the map draws of the way back: [line] (`null` for none) and, once arrived, the start's place for its ring. */
-data class RouteOnMap(val line: RouteLine?, val arrivedAt: LatLng?)
+/**
+ * What the map draws of the way back: [line] (`null` for none) and, once arrived, the start's place for its ring.
+ * [straight] is navigating to a waypoint's line (dispatch 2026-09-28-502): the walker to the waypoint, dashed.
+ */
+data class RouteOnMap(val line: RouteLine?, val arrivedAt: LatLng?, val straight: List<LatLng>? = null)
 
 internal object RouteHomeIds {
+    const val STRAIGHT_SOURCE = "route-home-straight"
+    const val STRAIGHT_LAYER = "route-home-straight-layer"
     const val PASSED_SOURCE = "route-home-passed"
     const val PASSED_LAYER = "route-home-passed-layer"
     const val AHEAD_SOURCE = "route-home-ahead"

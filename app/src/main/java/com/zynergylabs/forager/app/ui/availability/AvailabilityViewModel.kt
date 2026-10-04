@@ -29,7 +29,12 @@ import com.zynergylabs.forager.app.domain.MapLayerPreferencesRepository
 import com.zynergylabs.forager.app.domain.MapPreferencesRepository
 import com.zynergylabs.forager.app.domain.MapRecords
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
+import com.zynergylabs.forager.app.domain.NoReturnLeg
+import com.zynergylabs.forager.app.domain.NoStoredWaypointNavigation
 import com.zynergylabs.forager.app.domain.PredictAvailabilityUseCase
+import com.zynergylabs.forager.app.domain.ReturnLeg
+import com.zynergylabs.forager.app.domain.WaypointNavigation
+import com.zynergylabs.forager.app.domain.WaypointNavigationRepository
 import com.zynergylabs.forager.app.domain.SavePlannedTripUseCase
 import com.zynergylabs.forager.app.domain.SearchTaxaUseCase
 import com.zynergylabs.forager.app.domain.estimateOfflineTileCount
@@ -127,6 +132,10 @@ class AvailabilityViewModel(
     private val forecastCellStore: ForecastCellStore = AbsentForecastCellStore,
     /** Today, for the forecast's ISO week. */
     private val today: () -> LocalDate = { LocalDate.now() },
+    /** Dispatch 2026-09-28-502: where the waypoint being navigated to is kept across the process. */
+    private val waypointNavigationRepository: WaypointNavigationRepository = NoStoredWaypointNavigation,
+    /** Dispatch 2026-09-28-502, step 6: the return a waypoint navigation pauses and picks back up. */
+    private val returnLeg: ReturnLeg = NoReturnLeg,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AvailabilityUiState())
@@ -1205,6 +1214,12 @@ class AvailabilityViewModel(
             )
         }
     }
+
+    /** Dispatch 2026-09-28-502: "Navigate" on waypoint [waypointId]. */
+    fun onNavigateToWaypoint(waypointId: String) = Unit
+
+    /** Dispatch 2026-09-28-502: ends the waypoint navigation. */
+    fun onStopWaypointNavigation() = Unit
 
     /** Restores Settings' theme choice (Light/Dark/System Default) — same read-failure treatment as [loadOfflineMapPreferences]. */
     private fun loadThemeModePreference() {

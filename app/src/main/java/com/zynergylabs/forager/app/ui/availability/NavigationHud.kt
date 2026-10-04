@@ -438,6 +438,9 @@ internal fun arrivedAtStart(liveFix: LocationFix.Update?, start: Waypoint, nowEp
     return hasArrived(GeoDistance.metersBetween(LatLng(liveFix.lat, liveFix.lng), LatLng(start.lat, start.lng)), liveFix.accuracyMeters)
 }
 
+/** Dispatch 2026-09-28-502, step 3: the dashed line navigating to a waypoint draws, from the walker to [target]. */
+internal fun straightLineToTarget(liveFix: LocationFix.Update?, target: Waypoint, nowEpochMillis: Long): List<LatLng>? = null
+
 /** The large slot's words when the route is withheld: the owner's, 2026-09-12. */
 internal const val ROUTE_UNAVAILABLE_TEXT = "Unable to calculate route"
 

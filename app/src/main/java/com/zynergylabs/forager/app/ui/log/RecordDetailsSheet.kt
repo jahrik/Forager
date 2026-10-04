@@ -168,6 +168,8 @@ internal fun RecordDetailsSheet(
      * otherwise solid, unchanged. Each call site says which it is.
      */
     overMap: Boolean = false,
+    /** Dispatch 2026-09-28-502: a waypoint's "Navigate", given its id; `null` offers none (an entry map's sheet). */
+    onNavigateToWaypoint: ((String) -> Unit)? = null,
 ) {
     val waypoint = (target as? RecordDetailsTarget.WaypointDetails)?.let { t -> waypoints.firstOrNull { it.id == t.id } }
     val track = (target as? RecordDetailsTarget.TrackDetails)?.let { t -> tracks.firstOrNull { it.id == t.id } }
@@ -410,6 +412,7 @@ internal const val RECORD_DETAILS_NOTE_TAG = "record-details-note"
 internal const val RECORD_DETAILS_ZOOM_TAG = "record-details-zoom"
 internal const val RECORD_DETAILS_THUMBNAIL_TAG = "record-details-thumbnail"
 internal const val RECORD_DETAILS_DIRECTIONS_TAG = "record-details-directions"
+internal const val RECORD_DETAILS_NAVIGATE_TAG = "record-details-navigate"
 internal const val RECORD_DETAILS_SHARE_TAG = "record-details-share"
 internal const val RECORD_DETAILS_DELETE_TAG = "record-details-delete"
 
