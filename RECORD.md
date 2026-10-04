@@ -11450,3 +11450,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **The owner, verbatim:** "Write a handoff for the next planner and I'll have it set up on the RPI while you deal with the laptop side".
 **The split:** the Pi planner owns the map service (the Pi, the Worker and storage in the zynergy-labs account, the data pipeline, stages 4 onward); the laptop planner owns the app, its coder, app pull requests and the S22. The owner relays between them. **Record IDs:** the Pi planner uses the block 2026-09-28-600 to -699; the laptop planner continues below it from -497. Shared files (`RECORD.md`, the index READMEs) are merged, never rebased, with every entry and row kept.
 **Notes:** Written by the planner by hand, on branch records-after-166.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-497
+**Timestamp:** 2026-10-04T11:15:00Z
+**Decides:** T7's behaviour
+**The owner,** to the laptop planner's step path for T7: "T7 next"; the passed part "It stays, dimmed"; arrival "Start marker changes shape + HUD says Arrived"; a withheld route "Keep the last line, faded". Then, to the restated path, verbatim: "As written, but change the following: in the dimming out the lines, it's acceptable to also grey them out to make it easier to identify an already traveled path. For the final one, in the dark trying to find your way back, having your tracks disappear is a scary thing. So I decided to keep them faded also. At least they can move along their way while the route is being calculated. The navigation icon should turn into an X circle to let the user know it's used to exit navigation".
+**So:** the whole way back drawn along the walked path in its own colour; the passed part dimmed and greyed; a withheld route keeps the last line, faded (the planner reads "the final one" as this step, the last question asked; the owner may correct it); arrival within about twice the walker's accuracy turns the start marker into a ring with a check and the HUD into "Arrived", navigation staying on; the navigation control's icon an X in a circle while navigating, ending navigation as today; the line gone when navigation ends. Dispatch -497 (preserved/2026-10-04-08.md), to the laptop coder.
+**Also:** the planner moved device-evidence folders 2026-10-01-fan-flicker and 2026-09-30-part-3 (about 6.8 GB) to the USB drive, every file's hash compared on both sides; the laptop has 8.3 GB free.
+**Notes:** Written by the planner by hand, on branch records-after-166.
