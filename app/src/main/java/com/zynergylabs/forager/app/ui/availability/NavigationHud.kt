@@ -424,6 +424,12 @@ fun returnRouteOf(routeHome: RouteHome?): ReturnRoute = when (routeHome) {
     is RouteHome.Withheld -> ReturnRoute.Unavailable(canRetry = routeHome.reason == RouteWithheldReason.OFF_ROUTE)
 }
 
+/** The large slot's words once the walker has arrived at the start (dispatch 2026-09-28-497). */
+internal const val ARRIVED_TEXT = "Arrived"
+
+/** Tests-first stub (dispatch 2026-09-28-497). */
+internal fun arrivedAtStart(liveFix: LocationFix.Update?, start: Waypoint, nowEpochMillis: Long): Boolean = false
+
 /** The large slot's words when the route is withheld: the owner's, 2026-09-12. */
 internal const val ROUTE_UNAVAILABLE_TEXT = "Unable to calculate route"
 

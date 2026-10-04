@@ -942,6 +942,46 @@ class TrackRecordingViewModelTest {
         vm.stopRecording()
     }
 
+
+    // ── Dispatch 2026-09-28-497: the way back drawn (plan task T7) ──────────────────────────
+
+    /**
+     * Through the real entry points: Return draws the line (the route at Return and the route ahead);
+     * a later tick moves only the line ahead; ending the return removes it. Fails with the ViewModel
+     * not keeping the line, and with it kept after the return ends.
+     */
+    @Test
+    fun `Return draws the way back, a later tick keeps the line at Return, and ending the return removes it`() = runRecordingTest {
+        val (vm, _) = recordThreePointsNorth(InMemoryTrackRepository())
+        assertNull("no line before Return", vm.uiState.value.routeLine)
+
+        vm.startReturn()
+        runCurrent()
+        val first = vm.uiState.value.routeLine!!
+        val ahead = vm.uiState.value.routeHome as RouteHome.Ahead
+        assertEquals("the line at Return is the first route", ahead.route, first.atReturn)
+        assertEquals(ahead.routeAhead, first.ahead)
+        assertEquals(3, first.atReturn.size)
+
+        advanceTimeBy(ROUTE_TICK_MILLIS)
+        runCurrent()
+        assertEquals("a later tick keeps the line at Return", first.atReturn, vm.uiState.value.routeLine!!.atReturn)
+
+        vm.stopReturn()
+        assertNull("ending the return removes the line", vm.uiState.value.routeLine)
+    }
+
+    /** Stopping the recording mid-return removes the line too. */
+    @Test
+    fun `stopping the recording while returning removes the way back`() = runRecordingTest {
+        val (vm, _) = recordThreePointsNorth(InMemoryTrackRepository())
+        vm.startReturn()
+        runCurrent()
+        assertTrue(vm.uiState.value.routeLine != null)
+        vm.stopRecording()
+        runCurrent()
+        assertNull(vm.uiState.value.routeLine)
+    }
 }
 
 private class NoOpLocationTracker : LocationTracker {

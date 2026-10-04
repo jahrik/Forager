@@ -16,6 +16,8 @@ package com.zynergylabs.forager.app.ui.availability
 // here. Seam F (the wide layout) was released by the owner for this split, as recorded in the
 // Understory amendment merged in #130.
 
+import com.zynergylabs.forager.app.ui.map.RouteOnMap
+import com.zynergylabs.forager.app.domain.RouteLine
 import com.zynergylabs.forager.app.ui.map.rememberNavigationFacing
 import com.zynergylabs.forager.app.ui.map.NavigationViewRequest
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
@@ -302,6 +304,8 @@ internal fun CompactMapTab(
     navigationTarget: Waypoint?,
     /** See [AvailabilityScreen]'s own `returnRoute` doc comment. */
     returnRoute: ReturnRoute,
+    /** The way back to draw while navigating (dispatch 2026-09-28-497). */
+    routeLine: RouteLine?,
     /** See [AvailabilityScreen]'s own `onRetryRoute` doc comment. */
     onRetryRoute: () -> Unit,
     /** MGRS or decimal degrees, shared by the strip and the HUD; held in `AvailabilityScreen` (dispatch 2026-09-28-422). */
@@ -544,6 +548,13 @@ internal fun CompactMapTab(
             val trueHeading = rememberTrueHeading(compassProvider, computeTrueHeading, uiState.liveFix)
             // Dispatch 2026-09-28-430: which way the map faces while navigating, from the same heading.
             val navigationFacing by rememberNavigationFacing(trueHeading, isNavigating, currentTime)
+            // Dispatch -497: where the start is once the walker has arrived, by the same rule the HUD's
+            // "Arrived" reads (arrivedAtStart); null otherwise.
+            val arrivedAt = if (isNavigating && navigationTarget != null && arrivedAtStart(uiState.liveFix, navigationTarget, currentTime.nowEpochMillis())) {
+                com.zynergylabs.forager.app.domain.model.LatLng(navigationTarget.lat, navigationTarget.lng)
+            } else {
+                null
+            }
             val currentOnLeftNavigationView by rememberUpdatedState(onLeftNavigationView)
             val onLeftView: () -> Unit = remember { { currentOnLeftNavigationView() } }
             val currentOnNavigationZoomApplied by rememberUpdatedState(onNavigationZoomApplied)
@@ -584,7 +595,10 @@ internal fun CompactMapTab(
                         sightings = filteredSightings,
                         plannedTrips = uiState.plannedTrips,
                         breadcrumbPoints = breadcrumbPoints,
-                        waypoints = waypoints,
+                        // Dispatch -497: once arrived, the start's pin is left out and the arrival
+                        // ring drawn in its place (RouteHomeLayers.kt), so the start changes form.
+                        waypoints = if (arrivedAt != null) waypoints.filterNot { it.id == navigationTarget?.id } else waypoints,
+                        route = if (isNavigating) RouteOnMap(routeLine, arrivedAt) else null,
                         resumeTrackingRequestId = resumeTrackingRequestId,
                         resetOrientationRequestId = resetOrientationRequestId,
                         focusedObservationId = tapped.focusedObservationId,

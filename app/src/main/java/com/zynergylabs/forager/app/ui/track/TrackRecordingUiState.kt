@@ -3,6 +3,8 @@ package com.zynergylabs.forager.app.ui.track
 import com.zynergylabs.forager.app.domain.PathHome
 import com.zynergylabs.forager.app.domain.PendingDelete
 import com.zynergylabs.forager.app.domain.RouteHome
+import com.zynergylabs.forager.app.domain.RouteLine
+import com.zynergylabs.forager.app.domain.nextRouteLine
 import com.zynergylabs.forager.app.domain.withoutPending
 import com.zynergylabs.forager.app.domain.model.ReturnToStartInfo
 import com.zynergylabs.forager.app.domain.model.Track
@@ -75,6 +77,11 @@ data class TrackRecordingUiState(
      * [com.zynergylabs.forager.app.domain.HopBand.NONE].
      */
     val routeHome: RouteHome? = null,
+    /**
+     * The way back as the map draws it while returning (dispatch 2026-09-28-497, plan task T7):
+     * [nextRouteLine] of each [routeHome], cleared wherever [routeHome] is cleared.
+     */
+    val routeLine: RouteLine? = null,
     /**
      * Every recorded track, newest-started first — the Settings "Recorded Tracks" export surface's
      * only data source. Loaded on init and refreshed whenever that panel is opened (see

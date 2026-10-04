@@ -281,6 +281,8 @@ fun SightingsMap(
     cameraRequest: MapCameraRequest? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapOverlayContent.journalHighlights]'s own doc comment. */
     journalHighlights: JournalEntryHighlights = JournalEntryHighlights.NONE,
+    /** See [com.zynergylabs.forager.app.ui.map.MapOverlayContent.route]'s own doc comment. */
+    route: RouteOnMap? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.cameraMemory]'s own doc comment. */
     cameraMemory: MapCameraMemory? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.attributionEndInset]'s own doc comment. */
