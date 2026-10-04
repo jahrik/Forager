@@ -26,9 +26,12 @@ class NudgeElasticDriverTest {
     private val top = 200.0
     private val events = mutableListOf<MotionEvent>()
     private var following = true
+
+    /** Following ends once this many paddings have been shown: a leave at a set frame, however the frames are timed. */
+    private var followingEndsAfter = Int.MAX_VALUE
     private val shown = mutableListOf<DoubleArray>()
     private val camera = object : NudgeCamera {
-        override fun canGive() = following
+        override fun canGive() = following && shown.size < followingEndsAfter
 
         override fun showPadding(padding: DoubleArray) {
             shown += padding
@@ -90,11 +93,11 @@ class NudgeElasticDriverTest {
     fun `leaving following mid-spring stops the spring`() {
         touch(MotionEvent.ACTION_DOWN, 0f, 0f)
         touch(MotionEvent.ACTION_MOVE, 40f, 0f)
+        // Under Robolectric the whole spring's frames run within the first idle (seen: 18 frames inside
+        // 50 ms), so the leave is set by frame, not by time: following ends after the spring's third.
+        followingEndsAfter = shown.size + 3
         touch(MotionEvent.ACTION_UP, 40f, 0f)
-        springFor(50)
-        following = false
-        val before = shown.size
         springFor(NAVIGATION_NUDGE_SPRING_MILLIS + 100)
-        assertEquals("nothing sent once following ended", before, shown.size)
+        assertEquals("three spring frames, then nothing once following ended", followingEndsAfter, shown.size)
     }
 }
