@@ -392,6 +392,21 @@ fun SightingsMap(
     // Dispatch 2026-09-28-463: a nudge under the drag threshold gives, then springs back, while
     // navigating and following (see NudgeElastic.kt). Fed by the map view's touch listener below.
     val nudgeThresholdPx = NAVIGATION_NUDGE_THRESHOLD_DP * LocalDensity.current.density
+    // Dispatch -477, Part A: where the current touch came down, for the release's log line.
+    val touchDownAt = remember { FloatArray(2) }
+    // Dispatch -477, Part B: a quick flick under the drag threshold springs back instead of ending
+    // following through MapLibre's fling (see NudgeFlingGuard). Fed by the map view's touch listener below.
+    val nudgeFlingGuard = remember {
+        NudgeFlingGuard(
+            object : FlingSwitch {
+                override var enabled: Boolean
+                    get() = mapLibreMap?.uiSettings?.isFlingVelocityAnimationEnabled ?: true
+                    set(value) {
+                        mapLibreMap?.uiSettings?.isFlingVelocityAnimationEnabled = value
+                    }
+            },
+        )
+    }
     // Built once: the factory below hands this instance to the map view's listener, which is attached once.
     val nudgeElastic = remember {
         NudgeElasticDriver(
@@ -622,6 +637,13 @@ fun SightingsMap(
             map.addOnCameraMoveListener {
                 if (currentNavigationView != null) reanchorFocusedBubble(map)
                 navigationModeChange.noteCameraMove(map) // dispatch -470, Part A: logging only
+            }
+            // Dispatch -477, Part A: every fling MapLibre reports while navigating, with the camera mode then.
+            // Logging only.
+            map.addOnFlingListener {
+                if (currentNavigationView != null) {
+                    Log.i(NAVIGATION_VIEW_LOG_TAG, "fling reported: mode=${map.locationComponent.takeIf { it.isLocationComponentActivated }?.cameraMode}")
+                }
             }
             map.addOnCameraMoveStartedListener { reason ->
                 navigationModeChange.noteCameraMoveStarted(reason) // dispatch -470, Part A: logging only
@@ -1188,6 +1210,23 @@ fun SightingsMap(
                     // Dispatch -463: the elastic nudge reads the finger here, before MapLibre does, and
                     // never consumes it.
                     nudgeElastic.onTouch(event)
+                    // Dispatch -477: read before MapLibre handles this event, so a release while following
+                    // reaches MapLibre with its fling switched off.
+                    nudgeFlingGuard.onTouch(
+                        event,
+                        stillFollowing = currentNavigationView != null &&
+                            mapLibreMap?.locationComponent?.let { it.isLocationComponentActivated && it.cameraMode != CameraMode.NONE } == true,
+                    )
+                    // Dispatch -477, Part A: each release while navigating, whether the map still follows and
+                    // how far the finger travelled. Logging only.
+                    when (event.actionMasked) {
+                        MotionEvent.ACTION_DOWN -> { touchDownAt[0] = event.x; touchDownAt[1] = event.y }
+                        MotionEvent.ACTION_UP -> if (currentNavigationView != null) {
+                            val travelDp = kotlin.math.hypot(event.x - touchDownAt[0], event.y - touchDownAt[1]) / view.resources.displayMetrics.density
+                            val mode = mapLibreMap?.locationComponent?.takeIf { it.isLocationComponentActivated }?.cameraMode
+                            Log.i(NAVIGATION_VIEW_LOG_TAG, "touch released: mode=$mode, travel=${"%.0f".format(travelDp)} dp")
+                        }
+                    }
                     false
                 }
                 mapView
