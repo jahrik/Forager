@@ -46,7 +46,7 @@ import org.maplibre.geojson.Point
  * What the map draws of the way back: [line] (`null` for none) and, once arrived, the start's place for its ring.
  * [straight] is navigating to a waypoint's line (dispatch 2026-09-28-502): the walker to the waypoint, dashed.
  */
-data class RouteOnMap(val line: RouteLine?, val arrivedAt: LatLng?, val straight: List<LatLng>? = null)
+data class RouteOnMap(val line: RouteLine?, val arrivedAt: LatLng?, val straight: List<LatLng>? = null, val straightIsCurrent: Boolean = true)
 
 internal object RouteHomeIds {
     const val STRAIGHT_SOURCE = "route-home-straight"
@@ -109,6 +109,9 @@ internal fun routeHomeFeatureCollections(route: RouteOnMap?): Map<String, Featur
 
 /** The line ahead's opacity: full while the route is current, faded while it is withheld. */
 internal fun routeAheadOpacity(route: RouteOnMap?): Float = if (route?.line?.aheadIsCurrent == false) ROUTE_AHEAD_FADED_OPACITY else 1f
+
+/** Dispatch -502: the straight line's opacity. */
+internal fun routeStraightOpacity(route: RouteOnMap?): Float = 1f
 
 private fun lineCollection(points: List<LatLng>?): FeatureCollection =
     FeatureCollection.fromFeatures(

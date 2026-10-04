@@ -122,6 +122,8 @@ class AvailabilityScreenWaypointNavigateTest {
     )
 
     private var fix by mutableStateOf(southOfCreek(500.0))
+    /** False while the phone has no fix at all, as just after the app opens. */
+    private var fixPresent by mutableStateOf(true)
     private var waypoints by mutableStateOf(listOf(creek, oak))
     private var waypointsLoaded by mutableStateOf(true)
     private var recording by mutableStateOf(false)
@@ -153,7 +155,7 @@ class AvailabilityScreenWaypointNavigateTest {
         composeRule.setContent {
             val state by viewModel.uiState.collectAsState()
             AvailabilityScreen(
-                uiState = state.copy(liveFix = fix),
+                uiState = state.copy(liveFix = if (fixPresent) fix else null),
                 onUseCurrentLocation = {},
                 onManualLatChanged = {},
                 onManualLngChanged = {},
@@ -421,6 +423,48 @@ class AvailabilityScreenWaypointNavigateTest {
         assertTrue("the waypoint's pin is left out", map.content!!.waypoints.none { it.id == "wp-1" })
         assertEquals(ARRIVED_TEXT, text(NAVIGATION_HUD_DISTANCE_TAG))
         assertEquals("navigation stays on until ended", WaypointNavigation("wp-1", resumesReturn = false), navigatingTo())
+    }
+
+    // ── The owner's "Keep the last line, faded" (desk check, 2026-10-04) ──
+
+    @Test
+    fun `once the fix is lost the map keeps the last line, faded, and a fresh fix brings it back current`() {
+        setScreen()
+        openBubble()
+        touchCentreOf(MAP_BUBBLE_NAVIGATE_TAG)
+        val drawn = listOf(LatLng(fix.lat, fix.lng), LatLng(creek.lat, creek.lng))
+        assertEquals(drawn, map.content!!.route!!.straight)
+        assertTrue("current", map.content!!.route!!.straightIsCurrent)
+
+        // The same place, last heard from ten minutes ago: lost.
+        composeRule.runOnIdle { fix = fix.copy(timestampEpochMillis = t - 10 * 60_000L) }
+        composeRule.waitForIdle()
+
+        assertEquals("the last line is kept", drawn, map.content!!.route!!.straight)
+        assertFalse("faded", map.content!!.route!!.straightIsCurrent)
+
+        composeRule.runOnIdle { fix = southOfCreek(300.0) }
+        composeRule.waitForIdle()
+
+        assertEquals(listOf(LatLng(fix.lat, fix.lng), LatLng(creek.lat, creek.lng)), map.content!!.route!!.straight)
+        assertTrue("current again", map.content!!.route!!.straightIsCurrent)
+    }
+
+    @Test
+    fun `picked back up with no fix yet, there is no line until the first fix`() {
+        store.stored = WaypointNavigation("wp-1", resumesReturn = false)
+        fixPresent = false
+
+        setScreen()
+
+        composeRule.onNodeWithTag(NAVIGATION_HUD_TAG).assertIsDisplayed()
+        assertNull("no last line to keep: the app has just opened", map.content!!.route!!.straight)
+
+        composeRule.runOnIdle { fixPresent = true }
+        composeRule.waitForIdle()
+
+        assertEquals(listOf(LatLng(fix.lat, fix.lng), LatLng(creek.lat, creek.lng)), map.content!!.route!!.straight)
+        assertTrue(map.content!!.route!!.straightIsCurrent)
     }
 
     // ── A return under way (steps 6 and 7) ──

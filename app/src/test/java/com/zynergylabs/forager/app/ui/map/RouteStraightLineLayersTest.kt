@@ -33,6 +33,14 @@ class RouteStraightLineLayersTest {
     }
 
     @Test
+    fun `the line is full while current and faded, as the withheld way back is, once kept after the fix is lost`() {
+        assertEquals(1f, routeStraightOpacity(RouteOnMap(line = null, arrivedAt = null, straight = listOf(walker, waypoint), straightIsCurrent = true)))
+        val kept = RouteOnMap(line = null, arrivedAt = null, straight = listOf(walker, waypoint), straightIsCurrent = false)
+        assertEquals(ROUTE_AHEAD_FADED_OPACITY, routeStraightOpacity(kept))
+        assertEquals("the kept line is still drawn", listOf(walker, waypoint), lineOf(routeHomeFeatureCollections(kept).getValue(RouteHomeIds.STRAIGHT_SOURCE)))
+    }
+
+    @Test
     fun `once arrived at the waypoint its ring is drawn there`() {
         val sources = routeHomeFeatureCollections(RouteOnMap(line = null, arrivedAt = waypoint, straight = null))
         assertEquals(1, sources.getValue(RouteHomeIds.ARRIVED_SOURCE).features()!!.size)
