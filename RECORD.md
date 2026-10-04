@@ -11298,3 +11298,26 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **What the planner checked itself:** the full suite's XML re-counted as reported; revert.sh restores from a saved copy; all five revert checks with 0 compile errors and failures of their own; the app changes are three files under `ui/map/`.
 **Phone:** the S22 carries 1.0.2622+g0891b7de, this branch, not main.
 **Notes:** Written by the planner by hand, on branch records-after-163.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-484
+**Timestamp:** 2026-10-04T07:45:00Z
+**Decides:** -477's merge, the routing engine, and map-style scaffolding
+**The owner, verbatim:**
+- To a pull request for -477: "Yes, PR and merge".
+- To the engine, after -446 Amendment 3 (Valhalla's best documented settings moved the McKenzie route from 48% to 51% on the trail; no documented pedestrian option prices a road above a trail, in 3.6.3 or 3.9.0; BRouter 100%): "BRouter routes". Telling which path the walker is on, for the wrong-turn alert, is decided at the spec: Forager's own matching against the trail data, or Valhalla's matcher alongside.
+- To map-style scaffolding: "Yes, after the current work". Dispatch -485 (preserved/2026-10-04-04.md).
+**Also observed:** the owner asked "We'll need to design our own maps now. Do we have any scaffolding for that?"; the planner's answer, from the survey: very little. -446 Amendment 3's addendum is on branch engine-spike at bcce9606, with `tools/tune_valhalla.py` (no positions); wrong premise recorded by the coder: the amendment named `use_roads`, which is a cycling option.
+**Notes:** Written by the planner by hand, on branch records-after-163.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-485
+**Timestamp:** 2026-10-04T07:50:00Z
+**Title:** map-style-scaffold: an editable Forager map style with a preview, from Protomaps' public-domain styles
+**Dispatch-file:** preserved/2026-10-04-04.md; to the laptop coder, next
+**Change:** nothing in the app or on either Cloudflare account. A style source generated from a pinned `@protomaps/basemaps` with Forager's overrides in one file, self-hosted fonts and icons with their licences, a MapLibre GL JS preview against the old Worker's tiles, Maputnik steps, and a plain guide for the owner.
+**Notes:** Written by the planner by hand, on branch records-after-163.
