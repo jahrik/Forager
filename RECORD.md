@@ -11429,3 +11429,13 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Also:** pull request #166 (docs: the Pi origin report, the engine spike report, records -488 and -489) failed CI once on `MushroomLogViewModelWiringTest`, "an album photo deleted through the Journal's ViewModel leaves the Maps tab's records" (line 92), a pull request changing nothing under `app/`; the same test and case failed once before (pre-main push run 36919950945, recorded near the -340s). The planner re-ran the job once without touching the test; it passed (run 37186542389), and #166 was merged as bc364238abc5662de2fbf8c23fb1d72679eef7d3 at 2026-10-04T08:02:17Z on the owner's "Proceed with 1 to 3", backup 2026-10-04-06. A second occurrence for the parked flake hunt.
 **Disk:** the laptop is at about 1.7 GB free, below a Gradle run's 2,048 MB; `~/.gradle` is 6.5 GB.
 **Notes:** Written by the planner by hand, on branch records-after-166.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-495
+**Timestamp:** 2026-10-04T10:30:00Z
+**Title:** pi-build, part 1: Forager's own Oregon and Washington map with trail details, and BRouter's routing data, built on the Pi from one extract
+**Dispatch-file:** preserved/2026-10-04-06.md; to a Claude Code session on the Pi, the owner relaying
+**Change:** none served or uploaded, nothing in the app. Report first; then, on the owner's word, one manual run: a merged Oregon and Washington extract → `forager-orwa.pmtiles` (z0 to z15) from a pinned Protomaps basemap profile patched in the repository to emit trail attributes, and BRouter rd5 files from the same extract; verified; a weekly timer written and left disabled.
+**Notes:** Written by the planner by hand, on branch records-after-166. Stage 4 of the plan, ruled by the spec's R1.
