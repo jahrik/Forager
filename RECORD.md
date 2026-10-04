@@ -11482,3 +11482,16 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Observed:** the coder built -497 at 41cb9130 with 15 new tests and 15 revert checks (one redone after its first edit failed to compile and the runner refused to cite it); the full suite had 4 failures, all in `AvailabilityScreenMapIconStackTest`, each encoding behaviour the owner changed: the large slot inside the approach threshold during a return (now "Arrived"), and the Return control's label while navigating (now "Stop navigating").
 **Ruled by the laptop planner** (-497 Amendment 2): those four tests change, each listed with before and after, as -425 allowed for the off-track tests; and the control's label while navigating is "Stop navigating" alone, the HUD carrying the bearing, distance and elevation.
 **Notes:** Written by the planner by hand, on branch records-after-166.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-500
+**Timestamp:** 2026-10-04T13:00:00Z
+**Closes:** 2026-09-28-497 (preserved 2026-10-04-08, with Amendments 1 and 2)
+**Outcome:** completed
+**Observed:** on branch route-drawn at b9ebde4f, not merged; report `docs/navigation/2026-10-04-route-drawn-report.md` with its two index rows. `RouteHome.Ahead` gains the route and the route ahead; the line at Return kept and drawn grey (#8A8A8A at 0.6) under the line ahead (azure #0288D1 with a casing, 0.4 while withheld), all provisional, in their own layers above the live track and the kept tracks, outside the layer registry; `hasArrived` within the larger of twice the accuracy and 15 m (`ARRIVAL_MIN_RADIUS_METERS`), one rule for the HUD's "Arrived" and the map's ring-with-check, which replaces the origin pin while arrived; the control an X in a circle with "Stop navigating" while navigating. 23 new tests (tests first, 16 failing; two of the coder's own new tests corrected, recorded); the four existing tests changed per Amendment 2, each listed; 15 revert checks that bite (one refused for failing to compile and replaced); full suite 439 classes, 3,581 tests, 0 failures, 24 skipped. Desk step on the S22 (1.0.2654+ge295fbe1, the owner's word, "Done, as expected"): "Arrived" over "Approaching", the X-circle and the ring seen; no route line at the desk (inferred: under two stored points at Return), so the line itself, its grey part, its fading and its end at arrival are for the owner's walk.
+**What the planner checked itself:** both full-suite XMLs re-counted (4 failures before the amendment, 0 after); revert.sh restores from a saved copy; the 15 revert folders read (the refused r15 had 3 compile errors and no cited result; r15b fails its own test); the only existing test files modified are `AvailabilityScreenMapIconStackTest` (the four amended tests) and `TrackRecordingViewModelTest` (additions only, no removed lines).
+**Phone:** the S22 carries 1.0.2654, this branch.
+**Next:** on the owner's word, a pull request; then the owner's walk.
+**Notes:** Written by the planner by hand, on branch records-after-166.
