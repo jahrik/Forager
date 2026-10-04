@@ -11195,3 +11195,129 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **The owner, verbatim:** to a pull request for -470, "Yes, PR and merge"; to the coder's finding that a quick flick-release of a small nudge can end following (inferred to be MapLibre's fling listener), "Small fix after the engine trial": a short dispatch after -446 confirms it is the fling, then keeps following for a flick under the threshold.
 **Also noted:** -446's verify-first report, accepted by the planner: valhalla-mobile 0.6.3 (bundling Valhalla 3.6.3, tiles built with pyvalhalla 3.6.3), BRouter v1.7.10 from source, Oregon data on the owner's USB drive, routes on the McKenzie River trail, Mount Hood near Zigzag, Deschutes Green Lakes and the 2026-10-03 walk's town. Wrong premise in the research, found by the coder: valhalla-mobile exposes map matching on the device (`trace_route`, `trace_attributes`), not batch only.
 **Notes:** Written by the planner by hand, on branch records-after-162.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-475
+**Timestamp:** 2026-10-04T03:30:00Z
+**Continues:** 2026-09-28-474
+**Observed:** pull request #163 (t470-merge into main: -470 and records -471 to -474) was merged as 6c85e436fbe45b439d6bae176161456359003938 at 2026-10-04T02:55:38Z, on green CI at its head, read from GitHub, on the owner's "Yes, PR and merge", with backup 2026-10-04-03 of main at 7c072bfc. Main's tree equals t470-merge's.
+**Notes:** Written by the planner by hand, on branch records-after-163.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-476
+**Timestamp:** 2026-10-04T04:30:00Z
+**Closes:** 2026-09-28-446 (preserved 2026-10-03-07, with Amendments 1 and 2)
+**Outcome:** completed, measurement only
+**Observed:** on branch engine-spike at afdbef33, base 7c072bfc, not merged; report `docs/navigation/2026-10-03-engine-spike-report.md` with its two index rows; the spike's code under `spikes/engine-spike/`, no positions in the repository. On the S22 in aeroplane mode, on the owner's word in the coder's window; the spike app uninstalled afterwards and Forager untouched.
+- **Speed and memory** (50 runs, 0 errors): Valhalla 670 to 715 ms per 10 km trail route (including a 0.55 s start paid once), about 85 MB peak; BRouter 525 to 605 ms, about 25 MB. Town route: Valhalla 802 ms, BRouter 1,142 ms.
+- **Staying on trails, defaults only:** on the McKenzie River route Valhalla took a road for half the way, BRouter stayed on the trail throughout; on Green Lakes Valhalla 87% on the trail, BRouter 100%. Valhalla's trail-preference options were not tried.
+- **Off-trail start:** both snap 207 m to the trail and return no connecting segment.
+- **Data:** Valhalla 346.8 MB for Oregon (OR+WA about 840 MB, scaled); BRouter 154.6 MB for OR+WA.
+- **App size:** Valhalla's native library 7 to 9 MB per ABI plus about 4.2 MB of JVM code; BRouter 0.31 MB.
+- **Integration and licences:** BRouter runs in-process from five pure-Java modules compiled from source; all bundled licences permissive (MIT, BSD, BSL-1.0, Apache-2.0).
+- **Streets:** the same route length on both; no sidewalk mapped as a separate line near the route, so that question was not tested.
+- **Which path the walker is on:** valhalla-mobile exposes Valhalla's matcher on the device (a wrong premise in the research). On the laptop, today's 194-reading walk matched 92, interpolated 94, left 8 unmatched, median 8.3 m from the line, 9 streets in 19 stable stretches; a wrong-turn rule should compare streets or trails, not OSM way ids. BRouter has no matcher.
+- **Packing per region:** a 60 × 60 km square cut from one extract: Valhalla 4.0 MB, BRouter 0.64 MB (no elevation; its SRTM link is dead); both route identically to their state builds.
+**What the planner checked itself:** the branch changes only `spikes/` and `docs/` against its base; no coordinates in its diff.
+**Notes:** Written by the planner by hand, on branch records-after-163.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-477
+**Timestamp:** 2026-10-04T04:35:00Z
+**Title:** nudge-fling: a quick flick-release of a small nudge ends following
+**Dispatch-file:** preserved/2026-10-04-03.md; to the coder, next
+**Change:** see it on the phone first; a flick under the threshold springs back and keeps following; a fling after a real drag leaves as now.
+**Notes:** Written by the planner by hand, on branch records-after-163.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-478
+**Timestamp:** 2026-10-04T04:45:00Z
+**Decides:** the next step for the engine choice
+**The owner, verbatim:** "One more Valhalla run first", to: re-run the trail routes with Valhalla's trail-preference settings; if it then stays on trails, Valhalla does both routing and telling which path the walker is on; if not, BRouter routes and that question is decided separately. -446 Amendment 3.
+**Notes:** Written by the planner by hand, on branch records-after-163.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-479
+**Timestamp:** 2026-10-04T05:30:00Z
+**Decides:** how the Worker reaches the Pi
+**Observed by the Pi's session (-468, before step 10):** Workers VPC supports locally-managed tunnels but Cloudflare recommends dashboard-managed ones for it, and it is in beta; a public-hostname tunnel and a VPC service are different models.
+**The owner, verbatim:** "Pi hidden behind the Worker", to: users reach `tiles.zynergy-labs.com`, which is the Worker (caching, abuse limits, fallback to R2 when the Pi is down); the Pi gets a behind-the-scenes origin hostname only the Worker can use, guarded by a Cloudflare Access service token; standard, non-beta features; the tunnel stays managed on the Pi. -468 Amendment 1.
+**Also from the Pi's run so far:** steps 1 to 7 done on the owner's word: go-pmtiles 1.31.2 (binary SHA-256 recorded; upstream publishes no checksums), rclone 1.75.1 (verified against its signed SHA256SUMS), the read-only R2 token entered by the owner, the archive copied and verified (8,817,909,309 bytes, MD5 matching R2, PMTiles v3, OSM data of 2026-08-19, Protomaps 4.15.2, the same as production), the `forager-tiles` service user, `pmtiles serve` bound to 127.0.0.1:8080 and refused from the LAN, the journal capped at 2 GB with history kept. cloudflared 2026.9.3 installed (step 8).
+**Notes:** Written by the planner by hand, on branch records-after-163.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-480
+**Timestamp:** 2026-10-04T05:40:00Z
+**Decides:** which Cloudflare account holds the map service
+**The owner, verbatim:** "Zynergy-labs is on another account from the pmtiles". Told that a Worker can use a custom domain only from its own account, the owner chose "Move the map service to zynergy-labs": the Worker is redeployed and the archive copied (R2 to R2) into the zynergy-labs.com account in a later dispatch; the old Worker keeps serving until the app switches. The Pi's tunnel, DNS record, Access application and service token go in the zynergy-labs.com account now (-468 Amendment 2).
+**Notes:** Written by the planner by hand, on branch records-after-163.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-481
+**Timestamp:** 2026-10-04T05:55:00Z
+**Decides:** how the map service reaches the zynergy-labs account
+**Correction first:** the planner told the owner the archive would be copied between accounts "directly ... rather than through your home connection". As stated that was wrong: a copy between two accounts streams through the machine running it, unless Cloudflare's migration tool can read the old bucket, which was not confirmed.
+**The owner, verbatim:** "Option 3. Let's use the zynergy-labs account as the launch account and the current one can maintain status quo with the app until it gets implemented."
+- **The zynergy-labs.com account is the launch account** for Forager's map service: Worker, storage, custom domain, the Pi's tunnel and its guard.
+- **The old account keeps serving the app as it does today,** unchanged, until the new service is built and the app switched.
+- **The old archive is not copied.** The new account's storage starts with Forager's own build with trail attributes (stage 4 of `docs/plans/trail-navigation-and-own-tiles.md`). The Pi's copy of the old archive serves for testing the origin meanwhile.
+**Notes:** Written by the planner by hand, on branch records-after-163.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-482
+**Timestamp:** 2026-10-04T06:30:00Z
+**Decides:** the nudge line while navigating
+**Observed by the coder (-477):** with MapLibre's fling switched off for a release while following, 0 flings ended following in 136 releases; the flicks that still left were the drag threshold (56 to 91 dp of travel, past 48 dp).
+**The owner** chose in the coder's window "Raise the line for all drags" at "1.5 finger widths, 72 dp", and confirmed in the planner's window, verbatim "Confirmed": a nudge or flick under 72 dp springs back and keeps following (give up to 36 dp); a drag past 72 dp leaves and shows "Return to Route"; a pinch zooms and keeps following. -477 Amendment 1.
+**Notes:** Written by the planner by hand, on branch records-after-163.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-483
+**Timestamp:** 2026-10-04T07:30:00Z
+**Closes:** 2026-09-28-477 (preserved 2026-10-04-03, with Amendment 1)
+**Outcome:** completed
+**Observed:** on branch nudge-fling at 9e74e1ae, base 6c85e436, not merged; report `docs/navigation/2026-10-04-nudge-fling-report.md` with its two index rows. Seen first (1.0.2620): 10 of 45 releases while following were MapLibre flings, each ending following 1 to 2 ms later; from the bytecode, the fling fires on speed alone and the location camera sets NONE unconditionally, with no option for it. Fixed by `NudgeFlingGuard` (90f15944): MapLibre's fling is switched off for a release while following and back on at the next touch. After it, 0 flings while following in 136 releases. Amendment 1 (0891b7de): `NAVIGATION_NUDGE_THRESHOLD_DP` 48 → 72, the give cap to 36 dp; on the S22 at 1.0.2622, 70 releases while following with 0 flings, 17 flicks between 48 and 72 dp kept following, all 12 leaves drags of 89 to 211 dp; the owner: "As expected". 7 new tests; 5 revert checks; full suite 434 classes, 3,558 tests, 0 failures, 24 skipped. Noted by the coder: `NavigationGestureOptionsTest` follows the constant, so it covers the wiring, not the value; and its first log of the owner's "Keep as is", superseded by "Raise the line for all drags".
+**What the planner checked itself:** the full suite's XML re-counted as reported; revert.sh restores from a saved copy; all five revert checks with 0 compile errors and failures of their own; the app changes are three files under `ui/map/`.
+**Phone:** the S22 carries 1.0.2622+g0891b7de, this branch, not main.
+**Notes:** Written by the planner by hand, on branch records-after-163.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-484
+**Timestamp:** 2026-10-04T07:45:00Z
+**Decides:** -477's merge, the routing engine, and map-style scaffolding
+**The owner, verbatim:**
+- To a pull request for -477: "Yes, PR and merge".
+- To the engine, after -446 Amendment 3 (Valhalla's best documented settings moved the McKenzie route from 48% to 51% on the trail; no documented pedestrian option prices a road above a trail, in 3.6.3 or 3.9.0; BRouter 100%): "BRouter routes". Telling which path the walker is on, for the wrong-turn alert, is decided at the spec: Forager's own matching against the trail data, or Valhalla's matcher alongside.
+- To map-style scaffolding: "Yes, after the current work". Dispatch -485 (preserved/2026-10-04-04.md).
+**Also observed:** the owner asked "We'll need to design our own maps now. Do we have any scaffolding for that?"; the planner's answer, from the survey: very little. -446 Amendment 3's addendum is on branch engine-spike at bcce9606, with `tools/tune_valhalla.py` (no positions); wrong premise recorded by the coder: the amendment named `use_roads`, which is a cycling option.
+**Notes:** Written by the planner by hand, on branch records-after-163.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-485
+**Timestamp:** 2026-10-04T07:50:00Z
+**Title:** map-style-scaffold: an editable Forager map style with a preview, from Protomaps' public-domain styles
+**Dispatch-file:** preserved/2026-10-04-04.md; to the laptop coder, next
+**Change:** nothing in the app or on either Cloudflare account. A style source generated from a pinned `@protomaps/basemaps` with Forager's overrides in one file, self-hosted fonts and icons with their licences, a MapLibre GL JS preview against the old Worker's tiles, Maputnik steps, and a plain guide for the owner.
+**Notes:** Written by the planner by hand, on branch records-after-163.
