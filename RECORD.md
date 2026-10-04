@@ -11234,3 +11234,12 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Dispatch-file:** preserved/2026-10-04-03.md; to the coder, next
 **Change:** see it on the phone first; a flick under the threshold springs back and keeps following; a fling after a real drag leaves as now.
 **Notes:** Written by the planner by hand, on branch records-after-163.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-478
+**Timestamp:** 2026-10-04T04:45:00Z
+**Decides:** the next step for the engine choice
+**The owner, verbatim:** "One more Valhalla run first", to: re-run the trail routes with Valhalla's trail-preference settings; if it then stays on trails, Valhalla does both routing and telling which path the walker is on; if not, BRouter routes and that question is decided separately. -446 Amendment 3.
+**Notes:** Written by the planner by hand, on branch records-after-163.
