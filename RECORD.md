@@ -11139,3 +11139,13 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **What the planner checked itself:** the full suite's XML re-counted as reported; revert.sh restores from a saved copy; the revert folders read (all 0 compile errors; the superseded mid-spring check fails nothing and its rewrite fails one); the branch merges with main without conflicts.
 **Next:** on the owner's word, a pull request; a fault dispatch for Stop's tilt, if the owner wants it now.
 **Notes:** Written by the planner by hand, on branch records-after-161.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-470
+**Timestamp:** 2026-10-04T01:00:00Z
+**Decides:** -463's merge, and Stop's tilt fault
+**The owner, verbatim:** to a pull request for -463, "Yes, PR and merge"; to fixing Stop leaving the map tilted before the engine spike, "Fix it first". Dispatch -470 (preserved/2026-10-04-02.md), to the coder next, before -446.
+**Correction to -469:** it says the branch "merges with main without conflicts". The app code merges without conflicts; the two index files (`docs/audits/README.md`, `docs/navigation/README.md`) conflict, and are resolved keeping every row.
+**Notes:** Written by the planner by hand, on branch records-after-161.
