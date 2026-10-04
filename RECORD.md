@@ -11533,3 +11533,12 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Observed:** the coder stopped on a premise of -502 Amendment 1: dropping the HUD's route gate for "Arrived" changes four more existing tests (`NavigationHudReadoutTest` :208, :234, :258, :357), the straight-line HUD inside arrival's radius now reading "Arrived".
 **Ruled by the laptop planner** (-502 Amendment 2): the four change their large-slot assertion only, each listed, as -497 Amendment 2 did; no arrival flag. The coder's five calls accepted: two DataStore keys in their own file; Back's destination as saved screen state (after a swipe-away Back ends it on the map); "Stopped navigating: that waypoint was deleted." (provisional) with a loaded flag guarding against a false "deleted"; Navigate re-entering the view without a new start zoom; Navigate listed first.
 **Notes:** Written by the planner by hand, on branch records-after-167.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-505
+**Timestamp:** 2026-10-04T15:05:00Z
+**Continues:** 2026-09-28-504
+**The owner, verbatim,** of the four extra test changes and the coder's five calls recorded in -504: "Those calls are accepted by me".
+**Notes:** Written by the planner by hand, on branch records-after-167.
