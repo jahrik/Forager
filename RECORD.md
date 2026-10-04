@@ -11367,3 +11367,131 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Continues:** 2026-09-28-488
 **Observed:** pull request #165 (the map-style scaffold, -485, with records -486 and -487) was merged as f4e6726af97592de86675b247cd60393a168e0f9 at 2026-10-04T06:53:04Z, on green CI at its head, on the owner's "Yes merge it", with backup 2026-10-04-05. The owner, verbatim: "I'll update but I'll hold off on moving the Pi. The area isn't ready and the wifi is still connected." The owner updated the Pi (`apt upgrade`) and rebooted. **Checked by the planner from the laptop as `planner`:** up since 00:32:26 Pi time; kernel 6.12.109+rpt-rpi-2712; linux-image-rpi-2712 6.12.109-1+rpt1, raspi-firmware 1.20260915, rpi-eeprom 28.33-1, firmware-brcm80211 20240709-2~bpo12+1+rpt4; NetworkManager-wait-online **active** this boot (it had failed on the last); `forager-tunnel` active at 00:33:00 with **0 restarts** (29 on the last boot); both services active, 8080 on 127.0.0.1 only, local `/us.json` 200, origin without the token 403; startup finished in 34.0 s. One boot after the update connected cleanly; whether the update or chance made the difference is not settled by one boot.
 **Notes:** Written by the planner by hand, on branch records-after-164.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-490
+**Timestamp:** 2026-10-04T08:15:00Z
+**Title:** label-check: does MapLibre Android 13.5.0 draw the labelled Forager style, online and in an offline pack, without the old crash (measurement only)
+**Dispatch-file:** preserved/2026-10-04-05.md; to the laptop coder
+**The owner, verbatim:** "Proceed with 1 to 3", to: (1) the planner merges the Pi origin and engine spike reports into main; (2) this phone check; (3) the planner drafts the spec while it runs.
+**Change:** none to Forager. A separate test app on the S22 loads `map-style/forager-light.json` online and as an offline pack, and reports whether the old label crash happens and where.
+**Notes:** Written by the planner by hand, on branch records-after-164.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-491
+**Timestamp:** 2026-10-04T08:40:00Z
+**Continues:** 2026-09-28-490
+**Done:** the planner drafted the spec, stage 3 of `docs/plans/trail-navigation-and-own-tiles.md`: `docs/plans/2026-10-04-own-map-service-spec.md`, carrying the owner's decisions -445, -447, -466, -479, -481 and -484 and seven testable requirements. Five questions open for the owner: coverage first, a region-size ceiling, how the app tells which path the walker is on, whether T7 waits for network routes, and the refresh cadence. Unverified: labels offline on 13.5.0 (-490 measuring), a US build within the Pi's 8 GB, map and routing data in step through refreshes.
+**Notes:** Written by the planner by hand, on branch records-after-164.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-492
+**Timestamp:** 2026-10-04T09:00:00Z
+**Decides:** four of the spec's five open questions (`docs/plans/2026-10-04-own-map-service-spec.md`)
+**The owner, verbatim, each the planner's recommendation:**
+1. Coverage first: "Oregon + Washington first"; the whole US once the pipeline is proven.
+2. Telling which path the walker is on: "Our own matching", against the trails and roads in the region's data; no second engine.
+3. T7: "Ship first on the walked track"; it switches to network routes when they arrive.
+4. Refresh: "Weekly".
+**Still open:** a ceiling for one region download. Read by the planner for it: offline regions today are capped at a 24 km radius (`OfflineMapRepository.kt:203`, `MAX_RADIUS_KM`) and 6,000 tiles (`:101`, `TILE_COUNT_LIMIT`); the spike's 60 × 60 km region carried 0.64 MB of BRouter data.
+**Notes:** Written by the planner by hand, on branch records-after-164.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-493
+**Timestamp:** 2026-10-04T09:10:00Z
+**Decides:** the spec's last open question, a region-size ceiling
+**The owner, verbatim:** "Keep today's limit and see what suits it before we release it". So offline regions stay at a 24 km radius and 6,000 tiles, with the routing data added; the limit is revisited from real use before the release. The spec (`docs/plans/2026-10-04-own-map-service-spec.md`) has no open questions left and is marked ruled.
+**Next, by the plan:** stage 4, the data pipeline on the Pi, dispatched after -490 reports, since its answer on labels offline bears on what the build must carry.
+**Notes:** Written by the planner by hand, on branch records-after-164.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-494
+**Timestamp:** 2026-10-04T10:15:00Z
+**Closes:** 2026-09-28-490 (preserved 2026-10-04-05)
+**Outcome:** completed, measurement only
+**Observed:** on branch label-check at 570b781a, not merged, changing only `spikes/label-check/` and `docs/audits/`; report `docs/audits/2026-10-04-label-check-report.md` with its row. On the S22, on the owner's word in the coder's window, MapLibre Android 13.5.0 exactly, `map-style/forager-light.json` with fonts and icons from the laptop over `adb reverse`, tiles from the old Worker:
+- **Online:** Portland, Ramona Falls and Cannon Beach drew fully, street and place names, a road shield and icons; no errors, empty crash buffer.
+- **Offline packs,** Cannon Beach 2 × 2 km, z10 to z15, Forager's definition: the localhost-glyph style completed in 3.97 s (318 resources, 6.0 MB), the HTTPS-glyph style in 3.06 s (318, 6.0 MB); both past the old crash's checkpoint with no errors.
+- **Aeroplane mode, server stopped:** both drew with labels and icons; the HTTPS style had never been viewed online, so its labels could only come from its pack.
+- **Matches the GL JS preview** by eye.
+- **Not determined:** why PR #23's demo style crashed on the same 13.5.0; its style was not re-run.
+So labels can ship online and in offline regions on today's MapLibre with Forager's style: the survey's seventh decision is met for this style.
+**Also:** pull request #166 (docs: the Pi origin report, the engine spike report, records -488 and -489) failed CI once on `MushroomLogViewModelWiringTest`, "an album photo deleted through the Journal's ViewModel leaves the Maps tab's records" (line 92), a pull request changing nothing under `app/`; the same test and case failed once before (pre-main push run 36919950945, recorded near the -340s). The planner re-ran the job once without touching the test; it passed (run 37186542389), and #166 was merged as bc364238abc5662de2fbf8c23fb1d72679eef7d3 at 2026-10-04T08:02:17Z on the owner's "Proceed with 1 to 3", backup 2026-10-04-06. A second occurrence for the parked flake hunt.
+**Disk:** the laptop is at about 1.7 GB free, below a Gradle run's 2,048 MB; `~/.gradle` is 6.5 GB.
+**Notes:** Written by the planner by hand, on branch records-after-166.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-495
+**Timestamp:** 2026-10-04T10:30:00Z
+**Title:** pi-build, part 1: Forager's own Oregon and Washington map with trail details, and BRouter's routing data, built on the Pi from one extract
+**Dispatch-file:** preserved/2026-10-04-06.md; to a Claude Code session on the Pi, the owner relaying
+**Change:** none served or uploaded, nothing in the app. Report first; then, on the owner's word, one manual run: a merged Oregon and Washington extract → `forager-orwa.pmtiles` (z0 to z15) from a pinned Protomaps basemap profile patched in the repository to emit trail attributes, and BRouter rd5 files from the same extract; verified; a weekly timer written and left disabled.
+**Notes:** Written by the planner by hand, on branch records-after-166. Stage 4 of the plan, ruled by the spec's R1.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-496
+**Timestamp:** 2026-10-04T10:45:00Z
+**Title:** a second planner, for the map service, on the Raspberry Pi
+**Handoff-file:** `prompts/preserved/2026-10-04-07-pi-planner-handoff.md`
+**The owner, verbatim:** "Write a handoff for the next planner and I'll have it set up on the RPI while you deal with the laptop side".
+**The split:** the Pi planner owns the map service (the Pi, the Worker and storage in the zynergy-labs account, the data pipeline, stages 4 onward); the laptop planner owns the app, its coder, app pull requests and the S22. The owner relays between them. **Record IDs:** the Pi planner uses the block 2026-09-28-600 to -699; the laptop planner continues below it from -497. Shared files (`RECORD.md`, the index READMEs) are merged, never rebased, with every entry and row kept.
+**Notes:** Written by the planner by hand, on branch records-after-166.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-497
+**Timestamp:** 2026-10-04T11:15:00Z
+**Decides:** T7's behaviour
+**The owner,** to the laptop planner's step path for T7: "T7 next"; the passed part "It stays, dimmed"; arrival "Start marker changes shape + HUD says Arrived"; a withheld route "Keep the last line, faded". Then, to the restated path, verbatim: "As written, but change the following: in the dimming out the lines, it's acceptable to also grey them out to make it easier to identify an already traveled path. For the final one, in the dark trying to find your way back, having your tracks disappear is a scary thing. So I decided to keep them faded also. At least they can move along their way while the route is being calculated. The navigation icon should turn into an X circle to let the user know it's used to exit navigation".
+**So:** the whole way back drawn along the walked path in its own colour; the passed part dimmed and greyed; a withheld route keeps the last line, faded (the planner reads "the final one" as this step, the last question asked; the owner may correct it); arrival within about twice the walker's accuracy turns the start marker into a ring with a check and the HUD into "Arrived", navigation staying on; the navigation control's icon an X in a circle while navigating, ending navigation as today; the line gone when navigation ends. Dispatch -497 (preserved/2026-10-04-08.md), to the laptop coder.
+**Also:** the planner moved device-evidence folders 2026-10-01-fan-flicker and 2026-09-30-part-3 (about 6.8 GB) to the USB drive, every file's hash compared on both sides; the laptop has 8.3 GB free.
+**Notes:** Written by the planner by hand, on branch records-after-166.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-498
+**Timestamp:** 2026-10-04T11:40:00Z
+**Decides:** T7's arrival threshold, and how the passed part is drawn
+**The owner, verbatim:** "It turns into an X circle upon activating navigation, and reverts upon exit"; "That's how I want it. Send it to the coder". Then, told that the existing approach rule (twice the reported accuracy) is a fixed 7.6 m on the S22 and that the town walk measured the GPS line 5 to 15 m off the street (-439), the owner chose "Twice accuracy, at least 15 m": "Arrived" shows within the larger of twice the reported accuracy and 15 m of the start (15 m with no accuracy reported). The HUD's "Approaching" rule is unchanged.
+**Ruled by the laptop planner:** the passed part drawn by method B (the first full route of the return kept, drawn dimmed and grey under the route still ahead), adding no projection onto the route, which the owner has ruled out for the route home. -497 Amendment 1.
+**Noted:** the code's comment on `isApproaching` says the app does "never 'arrived'"; no record entry holds that as an owner ruling (the coder searched; the planner found none); the owner's -497 choice of "Arrived" stands.
+**Notes:** Written by the planner by hand, on branch records-after-166.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-499
+**Timestamp:** 2026-10-04T12:20:00Z
+**Continues:** 2026-09-28-498
+**Observed:** the coder built -497 at 41cb9130 with 15 new tests and 15 revert checks (one redone after its first edit failed to compile and the runner refused to cite it); the full suite had 4 failures, all in `AvailabilityScreenMapIconStackTest`, each encoding behaviour the owner changed: the large slot inside the approach threshold during a return (now "Arrived"), and the Return control's label while navigating (now "Stop navigating").
+**Ruled by the laptop planner** (-497 Amendment 2): those four tests change, each listed with before and after, as -425 allowed for the off-track tests; and the control's label while navigating is "Stop navigating" alone, the HUD carrying the bearing, distance and elevation.
+**Notes:** Written by the planner by hand, on branch records-after-166.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-500
+**Timestamp:** 2026-10-04T13:00:00Z
+**Closes:** 2026-09-28-497 (preserved 2026-10-04-08, with Amendments 1 and 2)
+**Outcome:** completed
+**Observed:** on branch route-drawn at b9ebde4f, not merged; report `docs/navigation/2026-10-04-route-drawn-report.md` with its two index rows. `RouteHome.Ahead` gains the route and the route ahead; the line at Return kept and drawn grey (#8A8A8A at 0.6) under the line ahead (azure #0288D1 with a casing, 0.4 while withheld), all provisional, in their own layers above the live track and the kept tracks, outside the layer registry; `hasArrived` within the larger of twice the accuracy and 15 m (`ARRIVAL_MIN_RADIUS_METERS`), one rule for the HUD's "Arrived" and the map's ring-with-check, which replaces the origin pin while arrived; the control an X in a circle with "Stop navigating" while navigating. 23 new tests (tests first, 16 failing; two of the coder's own new tests corrected, recorded); the four existing tests changed per Amendment 2, each listed; 15 revert checks that bite (one refused for failing to compile and replaced); full suite 439 classes, 3,581 tests, 0 failures, 24 skipped. Desk step on the S22 (1.0.2654+ge295fbe1, the owner's word, "Done, as expected"): "Arrived" over "Approaching", the X-circle and the ring seen; no route line at the desk (inferred: under two stored points at Return), so the line itself, its grey part, its fading and its end at arrival are for the owner's walk.
+**What the planner checked itself:** both full-suite XMLs re-counted (4 failures before the amendment, 0 after); revert.sh restores from a saved copy; the 15 revert folders read (the refused r15 had 3 compile errors and no cited result; r15b fails its own test); the only existing test files modified are `AvailabilityScreenMapIconStackTest` (the four amended tests) and `TrackRecordingViewModelTest` (additions only, no removed lines).
+**Phone:** the S22 carries 1.0.2654, this branch.
+**Next:** on the owner's word, a pull request; then the owner's walk.
+**Notes:** Written by the planner by hand, on branch records-after-166.
