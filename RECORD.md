@@ -11126,3 +11126,16 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Change:** none to the app or the production Worker. Report first; then, each step on the owner's word: `pmtiles serve` on localhost from a verified copy of `us.pmtiles`, a Cloudflare Tunnel exposing only it at a hostname on the owner's domain, both as systemd services under a non-root user. No secrets in the repository.
 **Finish line:** the report-first message, the steps on the owner's word, the report on branch pi-origin, the hand-back through the owner.
 **Notes:** Written by the planner by hand, on branch records-after-161.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-469
+**Timestamp:** 2026-10-04T00:50:00Z
+**Closes:** 2026-09-28-463 (preserved 2026-10-03-10)
+**Outcome:** completed
+**Observed:** on branch nudge-elastic at 6ecdaf8e, base bdb27f03 (before #161), not merged; report `docs/navigation/2026-10-03-nudge-elastic-report.md` with its two index rows. The give is shown through `paddingWhileTracking(…, 0)`, half of one finger's travel, capped at half the threshold; the spring is the app's own animator, 250 ms, overshoot tension 2.0; gated on following, no transition running, and a mode other than NONE; a second finger springs back what one gave. 14 new tests in 2 new classes, no existing test file changed; 11 revert checks that bite, one earlier mid-spring test found by its own revert to be unable to fail under Robolectric and rewritten (the 250 ms itself is device-only); full suite 429 classes, 3,536 tests, 0 failures, 24 skipped. Desk step on the S22 (1.0.2590+g4f4ff93a, the owner's word and gestures in the coder's window): six nudges gave 9 to 23 dp and sprang back with no tracking change; two drags left and "Return to Route" restored the view.
+**A fault the owner found, outside the dispatch, reported and not fixed:** "Map stayed tilted after Stop". All three Stops came within 750 ms of a view apply, and each leave logged "navigation left, the ease cancelled" at a tilt of 43.6 to 43.9°. The coder's inference from the timing: the tilt and padding animators started by the view keep moving the camera after the leave and cancel the leave's ease. Not yet seen on a build without -463.
+**What the planner checked itself:** the full suite's XML re-counted as reported; revert.sh restores from a saved copy; the revert folders read (all 0 compile errors; the superseded mid-spring check fails nothing and its rewrite fails one); the branch merges with main without conflicts.
+**Next:** on the owner's word, a pull request; a fault dispatch for Stop's tilt, if the owner wants it now.
+**Notes:** Written by the planner by hand, on branch records-after-161.
