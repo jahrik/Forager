@@ -151,6 +151,9 @@ class NudgeElasticDriver(
     /** The map is going away. */
     fun cancel() = stopSpring()
 
+    /** Whether a spring is running (dispatch -470: logged when navigation is left). */
+    val springing: Boolean get() = spring?.isRunning == true
+
     private fun release() {
         val from = give.release(stillFollowing = camera.canGive())
         if (from == null) {
