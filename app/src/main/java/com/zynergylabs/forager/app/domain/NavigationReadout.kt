@@ -37,6 +37,11 @@ fun relativeBearingDegrees(bearingDegrees: Double, headingDegrees: Float): Float
  * mis-make. One device so far; the beta trip report asks whether the "within" number ever
  * changes on other phones. Until a device is known to report real accuracy, do not build on this
  * threshold as if it tracked fix quality, and do not tune the multiplier against that device.
+ *
+ * **The return now declares arrival** at the start (dispatch 2026-09-28-497 and the planner's ruling
+ * -498): the owner chose "Start marker changes shape + HUD says Arrived", by its own rule,
+ * [hasArrived]. No record holds "never arrived" as an owner ruling; this function and "Approaching"
+ * are unchanged.
  */
 fun isApproaching(distanceMeters: Double, accuracyMeters: Float?): Boolean {
     if (accuracyMeters == null) return false
@@ -45,9 +50,18 @@ fun isApproaching(distanceMeters: Double, accuracyMeters: Float?): Boolean {
 
 const val APPROACHING_ACCURACY_MULTIPLIER = 2.0
 
-/** Tests-first stub (dispatch 2026-09-28-497). */
-fun hasArrived(distanceMeters: Double, accuracyMeters: Float?): Boolean = false
+/**
+ * Arrival at the start, for the return (dispatch 2026-09-28-497, plan task T7, with Amendment 1):
+ * within twice the fix's own accuracy of the start, straight line, but never closer than
+ * [ARRIVAL_MIN_RADIUS_METERS], and that distance alone when no accuracy is reported. The owner,
+ * told that the S22 reports a constant 3.79 m (so twice it is a fixed 7.6 m) and that the walk drifted
+ * 5 to 15 m: "Twice accuracy, at least 15 m". A separate rule from [isApproaching], which, with the
+ * HUD's "Approaching", is unchanged.
+ */
+fun hasArrived(distanceMeters: Double, accuracyMeters: Float?): Boolean =
+    distanceMeters <= maxOf(ARRIVAL_MIN_RADIUS_METERS, APPROACHING_ACCURACY_MULTIPLIER * (accuracyMeters ?: 0f))
 
+/** The least distance arrival counts within, however good the fix claims to be. **Provisional**: tuned on a walk, here and nowhere else. */
 const val ARRIVAL_MIN_RADIUS_METERS = 15.0
 
 /**

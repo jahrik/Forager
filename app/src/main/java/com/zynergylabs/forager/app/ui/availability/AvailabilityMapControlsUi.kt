@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Directions
 import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.Navigation
@@ -511,12 +512,20 @@ private fun CompassElevationStripContent(
     }
 }
 
-/** Tests-first stub (dispatch 2026-09-28-497). */
-internal fun returnControlIcon(isReturning: Boolean): ImageVector = Icons.Filled.Directions
+/**
+ * The Return control's icon (dispatch 2026-09-28-497, plan task T7): an X in a circle while
+ * navigating, so it reads as the way out (the owner: "The navigation icon should turn into an X
+ * circle to let the user know it's used to exit navigation"); its own directions icon otherwise.
+ */
+internal fun returnControlIcon(isReturning: Boolean): ImageVector = if (isReturning) Icons.Filled.Cancel else Icons.Filled.Directions
 
-/** Tests-first stub (dispatch 2026-09-28-497). */
+/** The Return control's label, matching its icon: the HUD exit's own words while navigating, today's label otherwise. */
 internal fun returnControlDescription(isReturning: Boolean, isRecording: Boolean, info: ReturnToStartInfo?, distanceUnit: DistanceUnit): String =
-    returnToStartStripText(isRecording, info, distanceUnit).ifBlank { "Return to vehicle — start recording first" }
+    if (isReturning) {
+        "Stop navigating"
+    } else {
+        returnToStartStripText(isRecording, info, distanceUnit).ifBlank { "Return to vehicle — start recording first" }
+    }
 
 /**
  * The return-to-vehicle line's text — blank while not recording (nothing to return to), a status

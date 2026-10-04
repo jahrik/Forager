@@ -140,7 +140,8 @@ class AvailabilityScreenRouteDrawnTest {
     }
 
     private fun returnControlLabel(): String? =
-        composeRule.onNodeWithTag(RETURN_CONTROL_TAG, useUnmergedTree = true).fetchSemanticsNode()
+        // The merged node: the button as accessibility presents it, its icon's description included.
+        composeRule.onNodeWithTag(RETURN_CONTROL_TAG).fetchSemanticsNode()
             .config.getOrNull(SemanticsProperties.ContentDescription)?.joinToString()
 
     @Test
