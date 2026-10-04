@@ -225,10 +225,15 @@ val LocalMapCompass = staticCompositionLocalOf<MapCompass?> { null }
 /**
  * Nudge protection while navigating (dispatch 2026-09-28-457, Part C; the owner: "Small nudge snaps
  * back", "about a finger's width"): a one-finger drag shorter than this leaves the camera following;
- * only a longer, deliberate drag leaves the view. A fingertip's contact is about 7 to 10 mm, close to
- * Android's 48 dp touch target, so 48 dp. Provisional. MapLibre's own default is 25 dp.
+ * only a longer, deliberate drag leaves the view. MapLibre's own default is 25 dp.
+ *
+ * 72 dp since dispatch 2026-09-28-477, Amendment 1; it was 48 dp, a finger's width. Seen on the S22:
+ * quick flicks the owner meant as nudges travelled 56 to 91 dp and crossed 48 dp before the finger
+ * lifted, so they left following. The owner chose "Raise the line for all drags", at "1.5 finger
+ * widths, 72 dp", and confirmed the step path ("Confirmed"). The nudge's give cap follows it, half of
+ * this, 36 dp. Provisional.
  */
-const val NAVIGATION_NUDGE_THRESHOLD_DP = 48f
+const val NAVIGATION_NUDGE_THRESHOLD_DP = 72f
 
 /**
  * How far two fingers must move together before following ends while navigating (Part B): above any
