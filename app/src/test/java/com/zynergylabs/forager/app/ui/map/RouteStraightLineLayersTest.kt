@@ -41,6 +41,16 @@ class RouteStraightLineLayersTest {
     }
 
     @Test
+    fun `kept after location is lost, the line goes to the grey offline source, not the blue one`() {
+        val offline = RouteOnMap(line = null, arrivedAt = null, straight = listOf(walker, waypoint), straightIsCurrent = false, straightOffline = true)
+        val sources = routeHomeFeatureCollections(offline)
+        assertEquals(listOf(walker, waypoint), lineOf(sources.getValue(RouteHomeIds.STRAIGHT_OFFLINE_SOURCE)))
+        assertEquals("not drawn blue", 0, sources.getValue(RouteHomeIds.STRAIGHT_SOURCE).features()!!.size)
+        val stale = offline.copy(straightOffline = false)
+        assertEquals("a stale line stays blue, faded", 0, routeHomeFeatureCollections(stale).getValue(RouteHomeIds.STRAIGHT_OFFLINE_SOURCE).features()!!.size)
+    }
+
+    @Test
     fun `once arrived at the waypoint its ring is drawn there`() {
         val sources = routeHomeFeatureCollections(RouteOnMap(line = null, arrivedAt = waypoint, straight = null))
         assertEquals(1, sources.getValue(RouteHomeIds.ARRIVED_SOURCE).features()!!.size)

@@ -47,11 +47,13 @@ import org.maplibre.geojson.Point
  * What the map draws of the way back: [line] (`null` for none) and, once arrived, the start's place for its ring.
  * [straight] is navigating to a waypoint's line (dispatch 2026-09-28-502): the walker to the waypoint, dashed.
  */
-data class RouteOnMap(val line: RouteLine?, val arrivedAt: LatLng?, val straight: List<LatLng>? = null, val straightIsCurrent: Boolean = true)
+data class RouteOnMap(val line: RouteLine?, val arrivedAt: LatLng?, val straight: List<LatLng>? = null, val straightIsCurrent: Boolean = true, val straightOffline: Boolean = false)
 
 internal object RouteHomeIds {
     const val STRAIGHT_SOURCE = "route-home-straight"
     const val STRAIGHT_LAYER = "route-home-straight-layer"
+    const val STRAIGHT_OFFLINE_SOURCE = "route-home-straight-offline"
+    const val STRAIGHT_OFFLINE_LAYER = "route-home-straight-offline-layer"
     const val PASSED_SOURCE = "route-home-passed"
     const val PASSED_LAYER = "route-home-passed-layer"
     const val AHEAD_SOURCE = "route-home-ahead"
@@ -102,6 +104,7 @@ internal fun routeHomeFeatureCollections(route: RouteOnMap?): Map<String, Featur
         RouteHomeIds.PASSED_SOURCE to lineCollection(line?.atReturn),
         RouteHomeIds.AHEAD_SOURCE to lineCollection(line?.ahead?.takeIf { arrivedAt == null }),
         RouteHomeIds.STRAIGHT_SOURCE to lineCollection(route?.straight?.takeIf { arrivedAt == null }),
+        RouteHomeIds.STRAIGHT_OFFLINE_SOURCE to lineCollection(null),
         RouteHomeIds.ARRIVED_SOURCE to FeatureCollection.fromFeatures(
             listOfNotNull(arrivedAt?.let { Feature.fromGeometry(Point.fromLngLat(it.lng, it.lat)) }),
         ),

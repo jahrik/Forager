@@ -457,7 +457,7 @@ internal fun straightLineToTarget(liveFix: LocationFix.Update?, target: Waypoint
  * The dashed line navigating to a waypoint draws (dispatch -502), and whether it is from a current fix
  * ([isCurrent]) or faded: from a stale fix, or kept from the last one after the fix was lost.
  */
-internal data class StraightLine(val points: List<LatLng>, val isCurrent: Boolean)
+internal data class StraightLine(val points: List<LatLng>, val isCurrent: Boolean, val isOffline: Boolean = false)
 
 /**
  * The line to draw next, given [previous], the one drawn last (dispatch -502). Two choices of the owner's:

@@ -442,6 +442,7 @@ class AvailabilityScreenWaypointNavigateTest {
 
         assertEquals("the last line is kept", drawn, map.content!!.route!!.straight)
         assertFalse("faded", map.content!!.route!!.straightIsCurrent)
+        assertTrue("grey, offline (the owner: \"Grey once location is lost\")", map.content!!.route!!.straightOffline)
 
         // Held above the tab switch: a trip to the Journal and back keeps it.
         composeRule.onNodeWithText("Journal").performTouchInput { click(center) }
@@ -471,6 +472,7 @@ class AvailabilityScreenWaypointNavigateTest {
 
         assertEquals("from the stale fix", listOf(LatLng(fix.lat, fix.lng), LatLng(creek.lat, creek.lng)), map.content!!.route!!.straight)
         assertFalse("faded with the HUD", map.content!!.route!!.straightIsCurrent)
+        assertFalse("stale is not offline: still blue", map.content!!.route!!.straightOffline)
 
         composeRule.runOnIdle { fix = southOfCreek(300.0) }
         composeRule.waitForIdle()
