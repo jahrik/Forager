@@ -255,10 +255,23 @@ internal fun MapBubbleLayer(
     backEnabled: Boolean = true,
     insetLeft: Dp = 0.dp,
     insetRight: Dp = 0.dp,
+    /**
+     * Dispatch 2026-09-28-502, Amendment 1: a details sheet to open again, once, because Back ended the
+     * waypoint navigation started from it ("Back to where you tapped Navigate"); [onReopenDetailsConsumed]
+     * is told once it is open. `null` (the default) asks for nothing.
+     */
+    reopenDetails: RecordDetailsTarget? = null,
+    onReopenDetailsConsumed: () -> Unit = {},
 ) {
     val context = LocalContext.current
     var detailsTarget by rememberSaveable(stateSaver = RecordDetailsTargetSaver) { mutableStateOf<RecordDetailsTarget?>(null) }
     var viewerPhotoId by rememberSaveable { mutableStateOf<String?>(null) }
+    LaunchedEffect(reopenDetails) {
+        reopenDetails?.let {
+            detailsTarget = it
+            onReopenDetailsConsumed()
+        }
+    }
 
     BackHandler(enabled = backEnabled && tapped != null) { onDismiss() }
 
@@ -311,6 +324,13 @@ internal fun MapBubbleLayer(
                             onDirections = { name, at -> onDismiss(); launchDirections(context, name, at) },
                             onDetails = { details -> onDismiss(); detailsTarget = details },
                             onOpenEntry = sources.onOpenEntry?.let { open -> { id: String -> onDismiss(); open(id) } },
+                            // Dispatch -502: where the bubble was, for Back to open it there again.
+                            onNavigate = sources.onNavigateToWaypoint?.let { navigate ->
+                                { id: String ->
+                                    onDismiss()
+                                    navigate(WaypointNavigationOrigin.MapBubble(id, tapped.anchorPx, tapped.bearingDeg))
+                                }
+                            },
                         )
                     }
                 }
@@ -332,6 +352,13 @@ internal fun MapBubbleLayer(
             onDismiss = { detailsTarget = null },
             // Opened from a bubble, which only a map's own Box composes: always over a map.
             overMap = true,
+            // Dispatch -502: the sheet closes, and Back opens it again (Amendment 1).
+            onNavigateToWaypoint = sources.onNavigateToWaypoint?.let { navigate ->
+                { id: String ->
+                    detailsTarget = null
+                    navigate(WaypointNavigationOrigin.MapDetails(id))
+                }
+            },
         )
     }
     viewerPhotoId?.let { id ->
@@ -377,6 +404,11 @@ internal fun MapFeatureBubble(
      * highlighted record's bubble draws its keeping entries ([KeptInEntries]); `null` draws none.
      */
     onOpenEntry: ((String) -> Unit)? = null,
+    /**
+     * Dispatch 2026-09-28-502: a waypoint's "Navigate", given its id, first among its actions, beside
+     * Directions (T9). `null` offers none: an entry map's bubble keeps Directions only (Amendment 1).
+     */
+    onNavigate: ((String) -> Unit)? = null,
 ) {
     MapBubbleShell(tipInBubble = tipInBubble, onDismiss = onDismiss, cardTag = MAP_BUBBLE_TAG, closeTag = MAP_BUBBLE_CLOSE_TAG) {
         when (content) {
@@ -407,6 +439,7 @@ internal fun MapFeatureBubble(
                 content.mgrs?.let { BubbleLine(it) }
                 KeptInEntries(content.keptIn, onOpenEntry)
                 BubbleActions {
+                    onNavigate?.let { navigate -> BubbleAction("Navigate", MAP_BUBBLE_NAVIGATE_TAG) { navigate(content.waypoint.id) } }
                     BubbleAction("Directions", MAP_BUBBLE_DIRECTIONS_TAG) { onDirections(content.waypoint.name, LatLng(content.waypoint.lat, content.waypoint.lng)) }
                     if (content.hasDetails) {
                         BubbleAction("Details", MAP_BUBBLE_DETAILS_TAG) { onDetails(RecordDetailsTarget.WaypointDetails(content.waypoint.id)) }
@@ -547,6 +580,7 @@ internal const val MAP_BUBBLE_CLOSE_TAG = "map-bubble-close"
 internal const val MAP_BUBBLE_OPEN_FIND_TAG = "map-bubble-open-find"
 internal const val MAP_BUBBLE_VIEW_PHOTO_TAG = "map-bubble-view-photo"
 internal const val MAP_BUBBLE_DIRECTIONS_TAG = "map-bubble-directions"
+internal const val MAP_BUBBLE_NAVIGATE_TAG = "map-bubble-navigate"
 internal const val MAP_BUBBLE_DETAILS_TAG = "map-bubble-details"
 internal const val MAP_BUBBLE_STALE_TAG = "map-bubble-stale"
 internal const val MAP_BUBBLE_CHANCE_TAG = "map-bubble-chance"

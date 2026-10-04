@@ -49,6 +49,10 @@ import com.zynergylabs.forager.app.domain.TaxonSearchRepository
 import com.zynergylabs.forager.app.domain.TripPlanningWeatherProvider
 import com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository
 import com.zynergylabs.forager.app.domain.WeatherProvider
+import com.zynergylabs.forager.app.domain.NoReturnLeg
+import com.zynergylabs.forager.app.domain.NoStoredWaypointNavigation
+import com.zynergylabs.forager.app.domain.ReturnLeg
+import com.zynergylabs.forager.app.domain.WaypointNavigationRepository
 import com.zynergylabs.forager.app.domain.model.AppThemeMode
 import com.zynergylabs.forager.app.domain.model.ConditionsSummary
 import com.zynergylabs.forager.app.domain.model.DailyWeather
@@ -149,6 +153,9 @@ internal fun mapLayersViewModel(
     offlineRegions: List<OfflineRegionSummary> = emptyList(),
     // Dispatch 2026-09-28-312: a store whose delete a test can hold; by default the fixed list, whose delete fails.
     offlineMapRepository: OfflineMapRepository = MapLayersUiOfflineMapRepository(offlineRegions),
+    // Dispatch 2026-09-28-502: where the waypoint navigation is kept, and the return it pauses. Defaulted to none, as before.
+    waypointNavigationRepository: WaypointNavigationRepository = NoStoredWaypointNavigation,
+    returnLeg: ReturnLeg = NoReturnLeg,
 ): AvailabilityViewModel {
     val searchCache = InMemorySearchCacheRepository()
     val plannedTripRepository = MapLayersUiPlannedTripRepository(plannedTrips)
@@ -179,6 +186,8 @@ internal fun mapLayersViewModel(
         mapLayerPreferencesRepository = layerPreferences,
         forecastCellStore = store,
         today = { MAP_LAYERS_TEST_WEEK },
+        waypointNavigationRepository = waypointNavigationRepository,
+        returnLeg = returnLeg,
     )
 }
 

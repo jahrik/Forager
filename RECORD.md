@@ -11495,3 +11495,92 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Phone:** the S22 carries 1.0.2654, this branch.
 **Next:** on the owner's word, a pull request; then the owner's walk.
 **Notes:** Written by the planner by hand, on branch records-after-166.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-501
+**Timestamp:** 2026-10-04T13:40:00Z
+**Continues:** 2026-09-28-500
+**Observed:** pull request #167 (t497-merge into main: T7 with records -490 to -500, dispatches -490 and -495, the spec and the Pi planner's handoff) was merged as a501a8a0230eaf32904976ae041b2174bf9770d4 at 2026-10-04T14:26:57Z, on green CI at its head, read from GitHub, on the owner's "Open a PR and merge", with backup 2026-10-04-07 of main at bc364238. Main's tree equals t497-merge's; its app equals the S22's 1.0.2654 build's source.
+**Notes:** Written by the planner by hand, on branch records-after-167.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-502
+**Timestamp:** 2026-10-04T14:00:00Z
+**Decides:** T8 and T9's step path
+**The owner, verbatim:** "T8 to T9 next, I'll test it on my next walk in addition to the last checks". To the planner's step path (Navigate from the bubble, details sheet or Records, with or without a recording; the navigation view and the X-circle; Back or the X-circle ends it), each the planner's recommendation: a line to the waypoint, "A straight dashed line"; arrival, "Same as the start"; a return under way, "The return picks up again". Dispatch -502 (preserved/2026-10-04-09.md), to the laptop coder.
+**Notes:** Written by the planner by hand, on branch records-after-167.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-503
+**Timestamp:** 2026-10-04T14:40:00Z
+**Decides:** -502's open points
+**The owner, verbatim, each the planner's recommendation:** Back during a waypoint navigation, "Back to where you tapped Navigate" (one Back ends it and returns to Records or the reopened bubble or sheet); reopening after the phone closes the app, "Pick navigation back up"; entry maps, "No, only Maps, the sheet and Records".
+**Ruled by the laptop planner:** a resumed return's grey line is captured afresh; `RecordDetailsSheetTest` (:426-441) and `NavigationHudArrivedTest` (:50) change because their behaviour changed, each listed, the latter asserting "Arrived" for a waypoint with no extra arrival flag; no new start zoom from a return straight into a waypoint. -502 Amendment 1.
+**Notes:** Written by the planner by hand, on branch records-after-167.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-504
+**Timestamp:** 2026-10-04T15:00:00Z
+**Continues:** 2026-09-28-503
+**Observed:** the coder stopped on a premise of -502 Amendment 1: dropping the HUD's route gate for "Arrived" changes four more existing tests (`NavigationHudReadoutTest` :208, :234, :258, :357), the straight-line HUD inside arrival's radius now reading "Arrived".
+**Ruled by the laptop planner** (-502 Amendment 2): the four change their large-slot assertion only, each listed, as -497 Amendment 2 did; no arrival flag. The coder's five calls accepted: two DataStore keys in their own file; Back's destination as saved screen state (after a swipe-away Back ends it on the map); "Stopped navigating: that waypoint was deleted." (provisional) with a loaded flag guarding against a false "deleted"; Navigate re-entering the view without a new start zoom; Navigate listed first.
+**Notes:** Written by the planner by hand, on branch records-after-167.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-505
+**Timestamp:** 2026-10-04T15:05:00Z
+**Continues:** 2026-09-28-504
+**The owner, verbatim,** of the four extra test changes and the coder's five calls recorded in -504: "Those calls are accepted by me".
+**Notes:** Written by the planner by hand, on branch records-after-167.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-506
+**Timestamp:** 2026-10-04T16:00:00Z
+**Decides:** the waypoint line without a fresh fix
+**Observed, as the coder reported it:** -502 built at fa5faf84 (49 new tests; 29 revert checks, one first passing because the coder's own fake store answered late, rewritten so r06b bites; full suite 446 classes, 3,630 tests, 0 failures, 24 skipped). Desk check on the S22 (1.0.2672+gfa5faf84) with the owner: Navigate from a bubble reached "Arrived", the ring, the X-circle and the tilted view; Back reopened the bubble and the next Back closed it; from a Records row to a far waypoint the dashed line appeared once a fix was found and not before; after a swipe-away the navigation came back, with no line until a fix. The owner, at the desk: "It's been there when the location is found, but doesn't appear when you can't find location". **Slip disclosed by the coder:** commit 343d8dfe's co-author line names a model; not amended (push before you tidy).
+**The owner chose, in the coder's window,** "Keep the last line, faded": once the line has been drawn, if location is lost, the last line stays faded (T7's 0.4); a fresh fix brings it back bright; right after the app opens there is no last line, so it waits for the first fix. **In the planner's window,** asked about a fix between 30 s and 5 min old, when the HUD already dims its distance: "Fade with the HUD": the line fades then too, so the map and the HUD agree.
+**Notes:** Written by the planner by hand, on branch records-after-167.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-507
+**Timestamp:** 2026-10-04T17:30:00Z
+**Closes:** 2026-09-28-502 (preserved 2026-10-04-09, with Amendments 1 and 2)
+**Outcome:** completed
+**Observed:** on branch waypoint-navigate at 10044948, not merged; report `docs/navigation/2026-10-04-waypoint-navigate-report.md` with its two index rows. T8 and T9 per Amendments 1 and 2, plus: the waypoint's line fades (blue at 0.4) from 30 s without a fresh fix ("Fade with the HUD", -506); and, **the owner's later choice in the coder's window,** "Grey once location is lost (Recommended)", after seeing the line vanish when the fix dropped indoors ("An offline grey color will work"): the kept line turns grey at full opacity once location is lost, in its own layer; a stale line stays blue at 0.4. 63 new tests in 7 classes and 3 added to `TrackRecordingSwipeAwayTest`; the shared fixture gains two defaulted parameters; the six existing tests changed per the amendments; 42 revert checks (r06 found not to bite because the coder's own fake store answered late, rewritten as r06b, which bites); full suite 446 classes, 3,644 tests, 0 failures, 24 skipped. On the S22: 1.0.2678+g631b913b. Desk check: Navigate from a bubble, Back reopening the bubble, Navigate from Records and resuming after a swipe-away behaved as built; the grey line was not seen (no indoor fix).
+**The owner suspected the build broke GPS.** The coder's reading of the phone: the app was registered for GPS every second; the GPS chip's last fix was 1.5 h old; the 100 m network location another app showed is refused by the app's existing 50 m gate. The planner confirmed no file under `app/src/main` with location, GPS or fix in its name changed in the branch. A side-by-side with main's build was set up and not taken. Unconfirmed, not ruled out; an outdoor check settles it.
+**What the planner checked itself:** the full-suite XMLs re-counted; revert.sh restores from a saved copy; 41 of 42 revert folders bite with 0 compile errors, the 42nd (r06) superseded as the coder reported; the existing test files changed are the four amended HUD and sheet tests, `TrackRecordingSwipeAwayTest` (additions only) and the fixture (defaulted parameters only), as the report lists.
+**Notes:** Written by the planner by hand, on branch records-after-167.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-508
+**Timestamp:** 2026-10-04T18:30:00Z
+**Decides:** the location question on -502, and an approximate position until GPS arrives
+**The owner, verbatim:** "Hold off on merging. We have a location issue with the build and I'm trying to figure it out". The planner read the S22 over adb without touching it: aeroplane mode off, location on in high-accuracy mode, Forager requesting GPS every second, the GPS provider's last fix over two hours old and marginal (4 satellites, about 265 m), only network locations (100 m) arriving, which the app's existing 50 m gate refuses; no mock-location app. **The coder's side-by-side** at the same spot, each build installed, force-stopped, launched and given 120 s: main's build (1.0.2654+ge295fbe1) and -502's (1.0.2678+g631b913b) both showed "Location services unavailable", both registered for GPS, the GPS chip's same stale fix unchanged through both. So no -502 regression: indoor GPS gave no fix to either build. Evidence local only.
+**Then the owner:** "We should have a way to grab location just to establish a position, so users aren't stuck waiting for something". To the planner's shape, each the recommendation: "Yes, as proposed": with no precise fix, the map shows an approximate position (a soft dot in a circle sized to its accuracy, labelled "Approximate location") and centres there; the HUD shows a far target's distance as "≈ …" with the needle, and hides the needle with "Approximate, finding GPS…" when the target is inside the uncertainty; an approximate reading never enters a track, the off-track alert or "Arrived"; GPS replaces it without the user doing anything. With no location at all: "Last known position, marked old" (greyed, with its age). Timing: "Right after T8–T9 merges", as its own dispatch.
+**Notes:** Written by the planner by hand, on branch records-after-167.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-509
+**Timestamp:** 2026-10-04T19:00:00Z
+**Decides:** a round of location work: Forager's own open sensor fusion
+**The owner, verbatim:** "I think another run of GPS improvements is due. How much of the phone can we use to actually establish a position? Can the accelerometer or other sensor be used to track movement? Mobile tower signals get weaker when you walk away, and stronger when you walk towards. Can a position be triangulated by detecting these things, and putting it all together into a precise locatoon?" To the planner's answer (GPS for position; steps and compass to carry through gaps and smooth jitter; the barometer for height; cell towers only a rough fallback, hundreds of metres or more in the forest; trail matching as a correction; a fusion filter combining them; Google's fused location excluded as proprietary): "GPS fusion will be useful and I think the real work will pay off, especially keeping it open source."
+**Done:** two research agents started by the planner, web only, no patents: pedestrian dead reckoning and its fusion with GNSS, the barometer, battery and pitfalls; and open libraries, Android's raw GNSS measurements and the S22's support, the platform location APIs without Play services, and offline cell positioning (OpenCelliD). Findings go into one report under `docs/navigation/` for the owner. Nothing built.
+**Notes:** Written by the planner by hand, on branch records-after-167.

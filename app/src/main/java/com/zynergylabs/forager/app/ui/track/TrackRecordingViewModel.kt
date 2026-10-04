@@ -947,7 +947,7 @@ class TrackRecordingViewModel(
         return viewModelScope.launch {
             getWaypoints()
                 .onSuccess { waypoints ->
-                    _uiState.update { it.copy(waypoints = waypoints, waypointsErrorMessage = null) }
+                    _uiState.update { it.copy(waypoints = waypoints, waypointsErrorMessage = null, waypointsLoaded = true) }
                     // A handful of rows at most (see this list's own empty-state copy) — one query
                     // per waypoint is simpler than a batched read this table has no precedent for,
                     // and cheap at this scale. See TrackRecordingUiState.waypointEntryReferenceCounts'
