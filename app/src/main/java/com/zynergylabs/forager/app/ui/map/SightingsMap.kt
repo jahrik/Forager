@@ -621,6 +621,7 @@ fun SightingsMap(
             // idle. Outside navigation it is re-anchored at idle as before.
             map.addOnCameraMoveListener {
                 if (currentNavigationView != null) reanchorFocusedBubble(map)
+                navigationModeChange.noteCameraMove(map) // dispatch -470, Part A: logging only
             }
             map.addOnCameraMoveStartedListener { reason ->
                 navigationModeChange.noteCameraMoveStarted(reason) // dispatch -470, Part A: logging only

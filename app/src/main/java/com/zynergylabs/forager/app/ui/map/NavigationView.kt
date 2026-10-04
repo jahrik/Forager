@@ -345,7 +345,11 @@ class NavigationModeChange {
 
     // Dispatch -470, Part A: what of ours is still animating when navigation is left, and what moves the
     // camera during the leave's ease, for reading on the phone. Logging only.
-    private var paddingAnimationsInFlight = 0
+    // A token per padding animation, not a count: MapLibre can call both a callback's onCancel and its
+    // onFinish for one animation (seen on the S22: a count went to -4), so only the latest animation's
+    // own first callback clears it.
+    private var paddingAnimationToken = 0
+    private var paddingAnimationInFlight: Int? = null
     private var startZoomInFlight = false
     private var leaveEaseStartedAt: Long? = null
 
@@ -358,7 +362,14 @@ class NavigationModeChange {
         Log.i(NAVIGATION_VIEW_LOG_TAG, "camera move during the leave's ease, $sinceLeave ms in: reason=$reason, ${inFlight()}")
     }
 
-    private fun inFlight() = "padding animations in flight=$paddingAnimationsInFlight, start zoom in flight=$startZoomInFlight, transition in flight=${startZoomGate.transitioning}"
+    /** The camera has moved: within 1 s of a leave, its tilt, zoom, padding and mode are logged, so what pulls it away from the leave's ease shows by what changes. */
+    fun noteCameraMove(map: MapLibreMap) {
+        val sinceLeave = android.os.SystemClock.uptimeMillis() - (leaveEaseStartedAt ?: return)
+        if (sinceLeave > 1_000L) return
+        logCamera(map, "camera during the leave's ease, $sinceLeave ms in")
+    }
+
+    private fun inFlight() = "padding animation in flight=${paddingAnimationInFlight != null}, start zoom in flight=$startZoomInFlight, transition in flight=${startZoomGate.transitioning}"
 
     /** Whether the location component holds the navigating options (nudge protection on). Reset by every activation, which applies the ordinary ones. */
     var gestureProtection = false
@@ -457,18 +468,19 @@ class NavigationModeChange {
                         },
                     )
                 }
-                paddingAnimationsInFlight++
+                val paddingToken = ++paddingAnimationToken
+                paddingAnimationInFlight = paddingToken
                 component.paddingWhileTracking(
                     doubleArrayOf(0.0, topPaddingPx, 0.0, 0.0),
                     NAVIGATION_VIEW_TRANSITION_MILLIS,
                     object : MapLibreMap.CancelableCallback {
                         override fun onFinish() {
-                            paddingAnimationsInFlight--
+                            if (paddingAnimationInFlight == paddingToken) paddingAnimationInFlight = null
                             logCamera(map, "view applied, $facing")
                         }
 
                         override fun onCancel() {
-                            paddingAnimationsInFlight--
+                            if (paddingAnimationInFlight == paddingToken) paddingAnimationInFlight = null
                             logCamera(map, "view applied, $facing, the padding cancelled")
                         }
                     },
@@ -510,7 +522,7 @@ class NavigationModeChange {
             if (wasFollowing && !active) byTheApp { component.cameraMode = CameraMode.TRACKING }
             logCamera(map, what)
         }
-        Log.i(NAVIGATION_VIEW_LOG_TAG, "leaving navigation: ${inFlight()}")
+        Log.i(NAVIGATION_VIEW_LOG_TAG, "leaving navigation: was following=$wasFollowing, ${inFlight()}")
         leaveEaseStartedAt = android.os.SystemClock.uptimeMillis()
         map.easeCamera(CameraUpdateFactory.newCameraPosition(flat), NAVIGATION_VIEW_TRANSITION_MILLIS.toInt(), object : MapLibreMap.CancelableCallback {
             override fun onFinish() = done("navigation left")
