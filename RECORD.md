@@ -11343,3 +11343,27 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **What the planner checked itself:** the branch changes only `map-style/` and `docs/audits/`; no symlinks committed; the largest committed files are the two generated styles (about 268 KB each); `node_modules`, assets and screenshots are gitignored.
 **Disk:** the laptop was at 1.9 GB free. The planner moved its own backup folders 2026-10-03-01 to -08 to the USB drive, each verified on both sides before removal, logged in the backups' INDEX.md; 2.6 GB free after.
 **Notes:** Written by the planner by hand, on branch records-after-164.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-488
+**Timestamp:** 2026-10-04T10:30:00Z
+**Continues:** 2026-09-28-486
+**The Pi (-468), as its session reported, report on branch pi-origin at 6c54797c (552 lines, four commits, scanned for addresses and credentials by the planner at 07030cb8):**
+- **Reboot test, on the owner's word:** both services came back enabled and active, 127.0.0.1:8080 only, the archive identical, 403 without the token and 200 with it; checked independently by the planner from the laptop as `planner` (up 5 minutes, both active, local 200, origin 403). The tunnel crash-looped 29 times over about three minutes on unusable DNS while Wi-Fi failed to authenticate (`no-secrets` twice; NetworkManager-wait-online failed at 60 s this boot, having taken 36 s the last). Cause: the weak Wi-Fi link; the services cannot delay it.
+- **Step 14:** unattended-upgrades, narrowed by a drop-in to security only (Debian's default also carries general stable updates; the Pi's earlier description was wrong and it corrected it), no automatic reboot; verified from a dry run. The Raspberry Pi archive (kernel, firmware, Wi-Fi firmware) is not covered: three updates pending (kernel 6.12.96 → 6.12.109, raspi-firmware, rpi-eeprom), needing a manual update and reboot. The Wi-Fi firmware update is a plausible, untested input to the association failure.
+- **Option 2:** the tunnel waits up to 60 s for working DNS before starting (TimeoutStartSec raised to 150 s); verified with a clean restart.
+- **Wi-Fi priority:** the home profile was already highest and active, which weakens the profile-cycling hypothesis; recorded as not a fix.
+- **Done without asking, disclosed:** Wi-Fi network names redacted from the report, being locatable through public positioning databases.
+- **On hold:** step 16 (password authentication) until the owner moves the Pi, the owner's choice; a second reboot after the move.
+**Notes:** Written by the planner by hand, on branch records-after-164.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-489
+**Timestamp:** 2026-10-04T07:45:00Z
+**Continues:** 2026-09-28-488
+**Observed:** pull request #165 (the map-style scaffold, -485, with records -486 and -487) was merged as f4e6726af97592de86675b247cd60393a168e0f9 at 2026-10-04T06:53:04Z, on green CI at its head, on the owner's "Yes merge it", with backup 2026-10-04-05. The owner, verbatim: "I'll update but I'll hold off on moving the Pi. The area isn't ready and the wifi is still connected." The owner updated the Pi (`apt upgrade`) and rebooted. **Checked by the planner from the laptop as `planner`:** up since 00:32:26 Pi time; kernel 6.12.109+rpt-rpi-2712; linux-image-rpi-2712 6.12.109-1+rpt1, raspi-firmware 1.20260915, rpi-eeprom 28.33-1, firmware-brcm80211 20240709-2~bpo12+1+rpt4; NetworkManager-wait-online **active** this boot (it had failed on the last); `forager-tunnel` active at 00:33:00 with **0 restarts** (29 on the last boot); both services active, 8080 on 127.0.0.1 only, local `/us.json` 200, origin without the token 403; startup finished in 34.0 s. One boot after the update connected cleanly; whether the update or chance made the difference is not settled by one boot.
+**Notes:** Written by the planner by hand, on branch records-after-164.
