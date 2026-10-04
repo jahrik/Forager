@@ -11104,3 +11104,13 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 6. Topo: OpenTopoMap stays for now; Forager's own contours and hillshade from USGS 3DEP come later.
 7. A device check that a labelled vector map renders online on MapLibre 13.5.0 without the old crash, before any online switch.
 **Notes:** Written by the planner by hand, on branch records-after-160.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-467
+**Timestamp:** 2026-10-04T00:15:00Z
+**Continues:** 2026-09-28-466
+**Observed:** pull request #161 (t451-merge into main: -451, the own-tiles survey, dispatch -463 and records -463 to -466) was merged as 88a5b785fdc75a3592a8a95f5963be94dd2994dd at 2026-10-04T00:08:37Z, on green CI at its head, read from GitHub, on the owner's "Yes merge it", with backup 2026-10-04-01 of main at bdb27f03. Main's tree equals t451-merge's.
+**The owner on the Pi:** it has its OS installed and no SSH yet; the domain is on Cloudflare; the hands-on setup is a coder session's. Then: "I have claude code installed on it, is that fine?" The planner's recommendation: the Pi's own Claude Code does the setup from a dispatch in the repository, with the owner relaying, and SSH from the laptop is enabled so the planner can check the Pi read-only. Waiting on the Pi's address, username and the domain.
+**Notes:** Written by the planner by hand, on branch records-after-161.
