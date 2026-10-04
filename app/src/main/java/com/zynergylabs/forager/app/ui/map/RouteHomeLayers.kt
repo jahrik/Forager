@@ -112,8 +112,9 @@ internal fun routeHomeFeatureCollections(route: RouteOnMap?): Map<String, Featur
 internal fun routeAheadOpacity(route: RouteOnMap?): Float = if (route?.line?.aheadIsCurrent == false) ROUTE_AHEAD_FADED_OPACITY else 1f
 
 /**
- * Dispatch -502: the straight line's opacity. Full while drawn from a current fix; once kept after the fix is
- * lost (the owner: "Keep the last line, faded"), the same faded opacity as the way back's withheld line.
+ * Dispatch -502: the straight line's opacity. Full while drawn from a fresh fix; faded, the same as the way back's
+ * withheld line, while drawn from a stale one (the owner: "Fade with the HUD") or kept after the fix is lost ("Keep
+ * the last line, faded").
  */
 internal fun routeStraightOpacity(route: RouteOnMap?): Float = if (route?.straightIsCurrent == false) ROUTE_AHEAD_FADED_OPACITY else 1f
 

@@ -982,14 +982,15 @@ fun AvailabilityScreen(
     // Dispatch -502, the owner's choice at the S22 desk check ("Keep the last line, faded"): the dashed line to the
     // waypoint, and the one drawn last, which nextStraightLine keeps, faded, once the fix is lost. Held here, above the tab
     // switch, so a lost fix does not lose the line by a trip to the Journal; not across a restart, where there is no last
-    // line and the first fix draws it (the option the owner chose said so). The clock moves on once when the fix turns
-    // lost, so the line fades then even though no new fix comes to prompt it.
+    // line and the first fix draws it (the option the owner chose said so). The owner's "Fade with the HUD" (RECORD -506)
+    // fades it from 30 s as well. The clock moves on at each of those two moments, so the line fades then even though
+    // no new fix comes to prompt it.
     var waypointStraightLine by remember { mutableStateOf<StraightLine?>(null) }
     val straightLineNow by produceState(currentTime.nowEpochMillis(), uiState.liveFix, currentTime) {
         value = currentTime.nowEpochMillis()
-        val untilLost = millisUntilFixLost(uiState.liveFix, value)
-        if (untilLost != null && untilLost > 0L) {
-            delay(untilLost)
+        while (true) {
+            val untilNextChange = millisUntilFreshnessChanges(uiState.liveFix, value) ?: break
+            delay(untilNextChange)
             value = currentTime.nowEpochMillis()
         }
     }
