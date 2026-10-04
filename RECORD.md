@@ -11504,3 +11504,12 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Continues:** 2026-09-28-500
 **Observed:** pull request #167 (t497-merge into main: T7 with records -490 to -500, dispatches -490 and -495, the spec and the Pi planner's handoff) was merged as a501a8a0230eaf32904976ae041b2174bf9770d4 at 2026-10-04T14:26:57Z, on green CI at its head, read from GitHub, on the owner's "Open a PR and merge", with backup 2026-10-04-07 of main at bc364238. Main's tree equals t497-merge's; its app equals the S22's 1.0.2654 build's source.
 **Notes:** Written by the planner by hand, on branch records-after-167.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-502
+**Timestamp:** 2026-10-04T14:00:00Z
+**Decides:** T8 and T9's step path
+**The owner, verbatim:** "T8 to T9 next, I'll test it on my next walk in addition to the last checks". To the planner's step path (Navigate from the bubble, details sheet or Records, with or without a recording; the navigation view and the X-circle; Back or the X-circle ends it), each the planner's recommendation: a line to the waypoint, "A straight dashed line"; arrival, "Same as the start"; a return under way, "The return picks up again". Dispatch -502 (preserved/2026-10-04-09.md), to the laptop coder.
+**Notes:** Written by the planner by hand, on branch records-after-167.
