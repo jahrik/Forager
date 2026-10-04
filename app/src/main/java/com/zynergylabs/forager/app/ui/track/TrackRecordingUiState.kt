@@ -35,6 +35,11 @@ data class TrackRecordingUiState(
     val breadcrumbPoints: List<TrackPoint> = emptyList(),
     val waypoints: List<Waypoint> = emptyList(),
     val waypointsErrorMessage: String? = null,
+    /**
+     * Whether [waypoints] has been read at least once (dispatch 2026-09-28-502). Until it has, an empty
+     * list says nothing, so a waypoint being navigated to that is not in it is not yet "deleted".
+     */
+    val waypointsLoaded: Boolean = false,
     /** How many Cartography entries currently keep a reference to each waypoint (by id) — Journal Stage 2b's 4b deletion warning. Loaded alongside [waypoints]; a waypoint missing from this map has never been counted, treated as zero the same as an explicit zero. */
     val waypointEntryReferenceCounts: Map<String, Int> = emptyMap(),
     /**

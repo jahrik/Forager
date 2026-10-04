@@ -27,6 +27,7 @@ import com.zynergylabs.forager.app.data.repository.DataStoreCameraGridModeReposi
 import com.zynergylabs.forager.app.data.repository.DataStoreCameraOrientationPreferenceRepository
 import com.zynergylabs.forager.app.data.repository.DataStorePhotoLocationPreferenceRepository
 import com.zynergylabs.forager.app.data.repository.DataStoreSundownPreferencesRepository
+import com.zynergylabs.forager.app.data.repository.DataStoreWaypointNavigationRepository
 import com.zynergylabs.forager.app.data.remote.INaturalistClient
 import com.zynergylabs.forager.app.data.remote.OpenMeteoArchiveClient
 import com.zynergylabs.forager.app.data.remote.OpenMeteoClient
@@ -110,6 +111,7 @@ import com.zynergylabs.forager.app.domain.GetMapRecordsUseCase
 import com.zynergylabs.forager.app.domain.MapLayerPreferencesRepository
 import com.zynergylabs.forager.app.forecast.forecastCellStore
 import com.zynergylabs.forager.app.domain.SundownPreferencesRepository
+import com.zynergylabs.forager.app.domain.WaypointNavigationRepository
 import com.zynergylabs.forager.app.domain.MushroomLogRepository
 import com.zynergylabs.forager.app.domain.MushroomRepository
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
@@ -260,6 +262,9 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     val unitSystemPreferenceRepository: UnitSystemPreferenceRepository = DataStoreUnitSystemPreferenceRepository(context)
     val appThemePreferenceRepository: AppThemePreferenceRepository = DataStoreAppThemePreferenceRepository(context)
     val sundownPreferencesRepository: SundownPreferencesRepository = DataStoreSundownPreferencesRepository(context)
+
+    /** Dispatch 2026-09-28-502: the waypoint being navigated to, picked back up when the app opens again. One per process, as DataStore requires. */
+    val waypointNavigationRepository: WaypointNavigationRepository = DataStoreWaypointNavigationRepository(context)
     val photoLocationPreferenceRepository: PhotoLocationPreferenceRepository = DataStorePhotoLocationPreferenceRepository(context)
     val cameraOrientationPreferenceRepository: CameraOrientationPreferenceRepository = DataStoreCameraOrientationPreferenceRepository(context)
     val cameraGridModeRepository: CameraGridModeRepository = DataStoreCameraGridModeRepository(context)
