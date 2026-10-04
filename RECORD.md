@@ -11595,3 +11595,13 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Dispatched,** on the owner's "Go ahead with the next dispatch when ready": -510, approximate-position (preserved/2026-10-04-10.md), the owner's choices of -508, to the laptop coder.
 **Also:** both fusion research agents stopped on a network error (the API server unreachable) and were resumed.
 **Notes:** Written by the planner by hand, on branch records-after-168.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-511
+**Timestamp:** 2026-10-04T23:30:00Z
+**Continues:** 2026-09-28-509
+**Observed:** both research agents reported (each after resuming from a network error); the planner filed `docs/navigation/2026-10-04-location-fusion-research.md` with its two index rows. In short: no open fusion to adopt (Android's open "fused" provider picks the newer or more accurate source and does not fuse); steps and compass smooth and bridge gaps (one published phone test: 15 m mean with GNSS alone, 8 m with steps); satellite status (satellites used, signal strength) can judge a fix despite the S22's constant 3.79 m; dual-frequency L5 and carrier phase on the US S22 unconfirmed, carrier phase probably absent; cell towers only a rough first fix (OpenCelliD, CC BY-SA). Sources not re-checked by the planner.
+**Open for the owner:** four decisions: the order (judge fixes by satellite status, a debug walk logger, then a filter built against the logs); the walk logger kept on the phone and never in the repository; open references only (Apache, MIT, BSD); cell towers deferred.
+**Notes:** Written by the planner by hand, on branch records-after-168.
