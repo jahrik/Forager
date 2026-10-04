@@ -451,6 +451,15 @@ internal fun straightLineToTarget(liveFix: LocationFix.Update?, target: Waypoint
     return listOf(LatLng(liveFix.lat, liveFix.lng), LatLng(target.lat, target.lng))
 }
 
+/** Dispatch -502, the owner's "Keep the last line, faded": the dashed line, and whether it is from a current fix. */
+internal data class StraightLine(val points: List<LatLng>, val isCurrent: Boolean)
+
+/** Dispatch -502, the owner's "Keep the last line, faded": the line to draw next, given the one drawn last. */
+internal fun nextStraightLine(previous: StraightLine?, liveFix: LocationFix.Update?, target: Waypoint, nowEpochMillis: Long): StraightLine? = null
+
+/** How long until [fix] is lost, so the line can fade then. */
+internal fun millisUntilFixLost(fix: LocationFix.Update?, nowEpochMillis: Long): Long? = null
+
 /** The large slot's words when the route is withheld: the owner's, 2026-09-12. */
 internal const val ROUTE_UNAVAILABLE_TEXT = "Unable to calculate route"
 
