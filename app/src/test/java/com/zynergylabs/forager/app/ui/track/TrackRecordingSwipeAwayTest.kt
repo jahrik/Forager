@@ -36,6 +36,7 @@ import com.zynergylabs.forager.app.domain.model.TrackPointRecord
 import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.model.WaypointDesignation
+import com.zynergylabs.forager.app.ui.availability.mapLayersViewModel
 import com.zynergylabs.forager.app.ui.backup.BackupMessage
 import com.zynergylabs.forager.app.ui.backup.BackupViewModel
 import com.zynergylabs.forager.app.ui.backup.FakeBackupFiles
@@ -807,6 +808,68 @@ class TrackRecordingSwipeAwayTest {
         vm.requestRemoveTrack("empty")
         assertEquals("empty", vm.uiState.value.pendingTrackDelete?.item?.id)
         assertEquals("nothing was deleted by the sweep itself: the row is still stored", listOf("empty"), tracks.getAll().getOrThrow().map { it.id })
+    }
+
+    // ── Dispatch 2026-09-28-502, steps 6 and 7: a waypoint navigation overrules a return while active ──
+    //
+    // Through the real entry points on both sides: `AvailabilityViewModel.onNavigateToWaypoint` and
+    // `onStopWaypointNavigation`, holding this ViewModel through `TrackRecordingReturnLeg` as `MainActivity`
+    // wires it, and the watch fed as the service feeds it. The walk is the control's readings and one more, so
+    // a fresh return's judge sees four readings over 15 s, which the control shows is an off-track alert.
+
+    private suspend fun TestScope.walkAwayFromTheStartForFifteenSeconds() {
+        walkAwayFromTheStart()
+        fixArrives(lat = 45.005, t = 27_000L)
+    }
+
+    @Test
+    fun `navigating to a waypoint during a return pauses the return, and walking away from the start then delivers no off-track alert`() = runRecordingTest {
+        val vm = viewModelIn(ViewModelStore())
+        recordAndStartReturning(vm)
+        assertTrue("the leg reads the return under way", TrackRecordingReturnLeg(vm).isReturning)
+        val navigation = mapLayersViewModel(returnLeg = TrackRecordingReturnLeg(vm))
+        runCurrent()
+
+        navigation.onNavigateToWaypoint("wp-1")
+        runCurrent()
+
+        assertFalse("the return is paused on the watch", returnWatch.state.value.isReturning)
+        assertFalse("and on the screen", vm.uiState.value.isReturning)
+        assertTrue("the recording carries on", vm.uiState.value.isRecording)
+
+        walkAwayFromTheStartForFifteenSeconds()
+
+        assertEquals("no off-track alert while navigating to a waypoint", emptyList<Alert>(), delivered)
+        assertFalse(vm.uiState.value.isOffTrack)
+    }
+
+    @Test
+    fun `ending the waypoint navigation picks the return back up, and walking away from the start then alerts again`() = runRecordingTest {
+        val vm = viewModelIn(ViewModelStore())
+        recordAndStartReturning(vm)
+        val navigation = mapLayersViewModel(returnLeg = TrackRecordingReturnLeg(vm))
+        runCurrent()
+        navigation.onNavigateToWaypoint("wp-1")
+        runCurrent()
+        assertFalse("precondition: the waypoint navigation paused the return", returnWatch.state.value.isReturning)
+
+        navigation.onStopWaypointNavigation()
+        runCurrent()
+
+        assertTrue("the return picks up again on the watch", returnWatch.state.value.isReturning)
+        assertTrue("and on the screen", vm.uiState.value.isReturning)
+        walkAwayFromTheStartForFifteenSeconds()
+        assertEquals(listOf(Alert(kind = AlertKind.OFF_TRACK, overridesSilence = false)), delivered)
+    }
+
+    @Test
+    fun `the waypoints are marked loaded once they have been read, not before`() = runRecordingTest {
+        val vm = viewModelIn(ViewModelStore())
+        assertFalse("not read yet", vm.uiState.value.waypointsLoaded)
+
+        runCurrent()
+
+        assertTrue(vm.uiState.value.waypointsLoaded)
     }
 
     private companion object {

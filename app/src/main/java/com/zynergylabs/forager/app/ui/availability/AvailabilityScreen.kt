@@ -677,6 +677,21 @@ fun AvailabilityScreen(
     /** The HUD's "Try again": `TrackRecordingViewModel.retryRoute`. */
     onRetryRoute: () -> Unit = {},
     /**
+     * Dispatch 2026-09-28-502 (plan tasks T8 and T9): "Navigate" on a waypoint, given its id
+     * (`AvailabilityViewModel.onNavigateToWaypoint`). Offered in the Maps tab's bubbles, the waypoint's
+     * details sheet and the Records rows; `null` (the default) offers it nowhere, as [onDeleteTrack]
+     * does for its delete.
+     */
+    onNavigateToWaypoint: ((String) -> Unit)? = null,
+    /** Dispatch 2026-09-28-502: ends the waypoint navigation (`AvailabilityViewModel.onStopWaypointNavigation`). */
+    onStopWaypointNavigation: () -> Unit = {},
+    /**
+     * Dispatch 2026-09-28-502: whether [waypoints] has been read yet (`TrackRecordingUiState.waypointsLoaded`).
+     * Until it has, a waypoint being navigated to that is missing from it is waited for, not taken as
+     * deleted. `true` by default: a caller that hands a list has loaded it.
+     */
+    waypointsLoaded: Boolean = true,
+    /**
      * What fills the map's box. Defaults to the real map, so no production caller passes it; see
      * [MapSlot] for why the map is reached through a slot rather than named directly here.
      */
@@ -1635,3 +1650,9 @@ fun AvailabilityScreen(
 
 /** The compact Tools drawer's sheet, for tests (map chrome at 80%, dispatch 2026-09-28-56 as amended by -58). */
 internal const val TOOLS_DRAWER_SHEET_TAG = "tools-drawer-sheet"
+
+/**
+ * Dispatch 2026-09-28-502, Amendment 1: what the walker is told when the waypoint they are navigating to
+ * was deleted, meanwhile or while the app was closed. Provisional words, accepted by the planner.
+ */
+internal const val WAYPOINT_NAVIGATION_GONE_TEXT = "Stopped navigating: that waypoint was deleted."

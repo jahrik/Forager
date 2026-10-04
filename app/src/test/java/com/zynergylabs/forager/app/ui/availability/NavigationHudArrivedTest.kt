@@ -19,6 +19,7 @@ import org.junit.Test
  * Dispatch 2026-09-28-497 (plan task T7) with Amendment 1: "Arrived" in the HUD's large slot while
  * returning, within max(2 x accuracy, 15 m) of the start on a fix that is not lost, by the one rule
  * the map also reads ([arrivedAtStart]); and the Return control's X in a circle while navigating.
+ * Since dispatch 2026-09-28-502, "Arrived" reads for a waypoint navigation as well, by the same rule.
  */
 class NavigationHudArrivedTest {
 
@@ -47,8 +48,12 @@ class NavigationHudArrivedTest {
     }
 
     @Test
-    fun `navigating to anything but the start never reads Arrived`() {
-        assertNotEquals("no route: not a return", ARRIVED_TEXT, readout(fixAt(5.0), route = null).distanceText)
+    fun `navigating to a waypoint, with no route, within 15 m of it the large figure reads Arrived too`() {
+        // Dispatch -502 changed this. Before: named "navigating to anything but the start never reads
+        // Arrived", it asserted that with no route (navigating to a waypoint) a fix 5 m away did not read
+        // "Arrived". After: the owner chose arrival "Same as the start" for a waypoint, and Amendment 1 drops
+        // the HUD's dependence on a route for "Arrived", with no arrival flag, so it asserts that it does.
+        assertEquals("no route: a waypoint navigation", ARRIVED_TEXT, readout(fixAt(5.0), route = null).distanceText)
     }
 
     @Test
