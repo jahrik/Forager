@@ -11495,3 +11495,12 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Phone:** the S22 carries 1.0.2654, this branch.
 **Next:** on the owner's word, a pull request; then the owner's walk.
 **Notes:** Written by the planner by hand, on branch records-after-166.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-501
+**Timestamp:** 2026-10-04T13:40:00Z
+**Continues:** 2026-09-28-500
+**Observed:** pull request #167 (t497-merge into main: T7 with records -490 to -500, dispatches -490 and -495, the spec and the Pi planner's handoff) was merged as a501a8a0230eaf32904976ae041b2174bf9770d4 at 2026-10-04T14:26:57Z, on green CI at its head, read from GitHub, on the owner's "Open a PR and merge", with backup 2026-10-04-07 of main at bc364238. Main's tree equals t497-merge's; its app equals the S22's 1.0.2654 build's source.
+**Notes:** Written by the planner by hand, on branch records-after-167.
