@@ -11387,3 +11387,17 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Continues:** 2026-09-28-490
 **Done:** the planner drafted the spec, stage 3 of `docs/plans/trail-navigation-and-own-tiles.md`: `docs/plans/2026-10-04-own-map-service-spec.md`, carrying the owner's decisions -445, -447, -466, -479, -481 and -484 and seven testable requirements. Five questions open for the owner: coverage first, a region-size ceiling, how the app tells which path the walker is on, whether T7 waits for network routes, and the refresh cadence. Unverified: labels offline on 13.5.0 (-490 measuring), a US build within the Pi's 8 GB, map and routing data in step through refreshes.
 **Notes:** Written by the planner by hand, on branch records-after-164.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-492
+**Timestamp:** 2026-10-04T09:00:00Z
+**Decides:** four of the spec's five open questions (`docs/plans/2026-10-04-own-map-service-spec.md`)
+**The owner, verbatim, each the planner's recommendation:**
+1. Coverage first: "Oregon + Washington first"; the whole US once the pipeline is proven.
+2. Telling which path the walker is on: "Our own matching", against the trails and roads in the region's data; no second engine.
+3. T7: "Ship first on the walked track"; it switches to network routes when they arrive.
+4. Refresh: "Weekly".
+**Still open:** a ceiling for one region download. Read by the planner for it: offline regions today are capped at a 24 km radius (`OfflineMapRepository.kt:203`, `MAX_RADIUS_KM`) and 6,000 tiles (`:101`, `TILE_COUNT_LIMIT`); the spike's 60 × 60 km region carried 0.64 MB of BRouter data.
+**Notes:** Written by the planner by hand, on branch records-after-164.
