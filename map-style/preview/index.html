@@ -1,0 +1,48 @@
+<!doctype html>
+<!-- The Forager map style's preview (dispatch 2026-09-28-485). Open through serve.py:
+     http://localhost:8765/preview/  — the address bar keeps the view (#zoom/lat/lon). -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Forager map style preview</title>
+  <link rel="stylesheet" href="/node_modules/maplibre-gl/dist/maplibre-gl.css">
+  <script src="/node_modules/maplibre-gl/dist/maplibre-gl.js"></script>
+  <style>
+    html, body, #map { margin: 0; height: 100%; }
+    #note { position: absolute; top: 8px; left: 8px; z-index: 1; max-width: 26em; padding: 6px 10px;
+            background: rgba(255, 255, 255, 0.9); font: 13px/1.35 sans-serif; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div id="note">
+    <b>Forager light</b>, previewed in MapLibre GL JS <span id="version"></span> (the web engine).
+    The phone uses MapLibre Android 13.5.0, which can draw some things differently,
+    <b>labels in particular</b>: check on the phone before trusting what you see here.
+    Zoom <span id="zoom"></span>. <a href="#" id="reload">Reload the style</a> after <code>npm run generate</code>.
+  </div>
+  <div id="map"></div>
+  <script>
+    document.getElementById("version").textContent = maplibregl.getVersion();
+    const map = new maplibregl.Map({
+      container: "map",
+      style: "/forager-light.json",
+      center: [-122.68, 45.52],
+      zoom: 11,
+      hash: true,
+    });
+    map.addControl(new maplibregl.NavigationControl());
+    const showZoom = () => (document.getElementById("zoom").textContent = map.getZoom().toFixed(1));
+    map.on("move", showZoom);
+    showZoom();
+    // For the screenshot script: the view is drawn and nothing is still loading.
+    map.on("idle", () => (window.styleIdle = true));
+    map.on("movestart", () => (window.styleIdle = false));
+    document.getElementById("reload").onclick = (e) => {
+      e.preventDefault();
+      window.styleIdle = false;
+      map.setStyle(`/forager-light.json?${Date.now()}`);
+    };
+  </script>
+</body>
+</html>
