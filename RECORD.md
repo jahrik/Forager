@@ -11461,3 +11461,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **So:** the whole way back drawn along the walked path in its own colour; the passed part dimmed and greyed; a withheld route keeps the last line, faded (the planner reads "the final one" as this step, the last question asked; the owner may correct it); arrival within about twice the walker's accuracy turns the start marker into a ring with a check and the HUD into "Arrived", navigation staying on; the navigation control's icon an X in a circle while navigating, ending navigation as today; the line gone when navigation ends. Dispatch -497 (preserved/2026-10-04-08.md), to the laptop coder.
 **Also:** the planner moved device-evidence folders 2026-10-01-fan-flicker and 2026-09-30-part-3 (about 6.8 GB) to the USB drive, every file's hash compared on both sides; the laptop has 8.3 GB free.
 **Notes:** Written by the planner by hand, on branch records-after-166.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-498
+**Timestamp:** 2026-10-04T11:40:00Z
+**Decides:** T7's arrival threshold, and how the passed part is drawn
+**The owner, verbatim:** "It turns into an X circle upon activating navigation, and reverts upon exit"; "That's how I want it. Send it to the coder". Then, told that the existing approach rule (twice the reported accuracy) is a fixed 7.6 m on the S22 and that the town walk measured the GPS line 5 to 15 m off the street (-439), the owner chose "Twice accuracy, at least 15 m": "Arrived" shows within the larger of twice the reported accuracy and 15 m of the start (15 m with no accuracy reported). The HUD's "Approaching" rule is unchanged.
+**Ruled by the laptop planner:** the passed part drawn by method B (the first full route of the return kept, drawn dimmed and grey under the route still ahead), adding no projection onto the route, which the owner has ruled out for the route home. -497 Amendment 1.
+**Noted:** the code's comment on `isApproaching` says the app does "never 'arrived'"; no record entry holds that as an owner ruling (the coder searched; the planner found none); the owner's -497 choice of "Arrived" stands.
+**Notes:** Written by the planner by hand, on branch records-after-166.
