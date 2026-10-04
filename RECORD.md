@@ -11276,3 +11276,13 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 - **The old account keeps serving the app as it does today,** unchanged, until the new service is built and the app switched.
 - **The old archive is not copied.** The new account's storage starts with Forager's own build with trail attributes (stage 4 of `docs/plans/trail-navigation-and-own-tiles.md`). The Pi's copy of the old archive serves for testing the origin meanwhile.
 **Notes:** Written by the planner by hand, on branch records-after-163.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-482
+**Timestamp:** 2026-10-04T06:30:00Z
+**Decides:** the nudge line while navigating
+**Observed by the coder (-477):** with MapLibre's fling switched off for a release while following, 0 flings ended following in 136 releases; the flicks that still left were the drag threshold (56 to 91 dp of travel, past 48 dp).
+**The owner** chose in the coder's window "Raise the line for all drags" at "1.5 finger widths, 72 dp", and confirmed in the planner's window, verbatim "Confirmed": a nudge or flick under 72 dp springs back and keeps following (give up to 36 dp); a drag past 72 dp leaves and shows "Return to Route"; a pinch zooms and keeps following. -477 Amendment 1.
+**Notes:** Written by the planner by hand, on branch records-after-163.
