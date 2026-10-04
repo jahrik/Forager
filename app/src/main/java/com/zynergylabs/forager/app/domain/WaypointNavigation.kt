@@ -83,5 +83,12 @@ sealed interface WaypointNavigationTarget {
  * is [WaypointNavigationTarget.Waiting], never [WaypointNavigationTarget.Gone]: an empty list before
  * the first load is not a deletion.
  */
-fun waypointNavigationTarget(navigation: WaypointNavigation?, waypoints: List<Waypoint>, waypointsLoaded: Boolean): WaypointNavigationTarget =
-    WaypointNavigationTarget.None
+fun waypointNavigationTarget(navigation: WaypointNavigation?, waypoints: List<Waypoint>, waypointsLoaded: Boolean): WaypointNavigationTarget {
+    if (navigation == null) return WaypointNavigationTarget.None
+    val found = waypoints.firstOrNull { it.id == navigation.waypointId }
+    return when {
+        found != null -> WaypointNavigationTarget.Found(found)
+        waypointsLoaded -> WaypointNavigationTarget.Gone
+        else -> WaypointNavigationTarget.Waiting
+    }
+}

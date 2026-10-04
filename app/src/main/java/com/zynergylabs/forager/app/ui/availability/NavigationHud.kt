@@ -175,8 +175,8 @@ internal const val NO_FIX_MESSAGE = "Location services unavailable"
  *   recomputing could change the answer. Before the first route result the large slot is a dash
  *   (the planner's ruling on question 3). "Approaching" is still measured against the start
  *   itself. With no [ReturnRoute] at all the HUD is the straight-line HUD it was before, which
- *   decision D2 keeps for navigating to a waypoint; nothing passes it that way today, since
- *   `AvailabilityScreen`'s HUD is the return HUD and always passes a route.
+ *   decision D2 keeps for navigating to a waypoint: since dispatch 2026-09-28-502 that is how
+ *   `CompactMapTab` passes it while a chosen waypoint is the target. "Arrived" reads in either mode.
  * - **No origin waypoint** (a track whose first gated fix never came): says so. Nothing is
  *   substituted.
  * - **Elevation and coordinates** come from the same fix, through the same [coordinatesStripText]
@@ -431,15 +431,25 @@ internal const val ARRIVED_TEXT = "Arrived"
 /**
  * Whether the walker has arrived at [start] (dispatch 2026-09-28-497, plan task T7): a fix that is
  * not lost, within [hasArrived]'s radius, straight line. The one rule the HUD's "Arrived" and the
- * map's ring both read, so the two cannot disagree.
+ * map's ring both read, so the two cannot disagree. Since dispatch 2026-09-28-502 [start] is any
+ * navigation target, a chosen waypoint as well as the start (the owner: "Same as the start"); the name
+ * is kept from T7.
  */
 internal fun arrivedAtStart(liveFix: LocationFix.Update?, start: Waypoint, nowEpochMillis: Long): Boolean {
     if (liveFix == null || fixFreshness(liveFix.ageMillis(nowEpochMillis)) == FixFreshness.LOST) return false
     return hasArrived(GeoDistance.metersBetween(LatLng(liveFix.lat, liveFix.lng), LatLng(start.lat, start.lng)), liveFix.accuracyMeters)
 }
 
-/** Dispatch 2026-09-28-502, step 3: the dashed line navigating to a waypoint draws, from the walker to [target]. */
-internal fun straightLineToTarget(liveFix: LocationFix.Update?, target: Waypoint, nowEpochMillis: Long): List<LatLng>? = null
+/**
+ * Dispatch 2026-09-28-502, step 3: the dashed line navigating to a waypoint draws, from the walker's fix to
+ * [target]. None with no fix or a lost one (the HUD withholds its distance then too: there is no walker to
+ * draw from), and none once arrived ([arrivedAtStart]), where the line ends as the return's does.
+ */
+internal fun straightLineToTarget(liveFix: LocationFix.Update?, target: Waypoint, nowEpochMillis: Long): List<LatLng>? {
+    if (liveFix == null || fixFreshness(liveFix.ageMillis(nowEpochMillis)) == FixFreshness.LOST) return null
+    if (arrivedAtStart(liveFix, target, nowEpochMillis)) return null
+    return listOf(LatLng(liveFix.lat, liveFix.lng), LatLng(target.lat, target.lng))
+}
 
 /** The large slot's words when the route is withheld: the owner's, 2026-09-12. */
 internal const val ROUTE_UNAVAILABLE_TEXT = "Unable to calculate route"
@@ -509,9 +519,11 @@ internal fun navigationReadout(
     val straightLineText = formatDistanceWithAccuracy(distanceMeters, liveFix.accuracyMeters, distanceUnit)
     val distanceText = when {
         freshness == FixFreshness.LOST -> "—"
-        // Dispatch -497: the return's arrival at the start. Only while returning (a route is given);
-        // navigation stays on until the walker ends it.
-        route != null && arrivedAtStart(liveFix, target, nowEpochMillis) -> ARRIVED_TEXT
+        // Dispatch -497: the return's arrival at the start; navigation stays on until the walker ends it.
+        // Dispatch -502 (Amendment 1): any target, a waypoint navigated to with no route as well, so this
+        // and the map's ring read the one rule and agree. There is no arrival flag: until -502 this
+        // branch was gated on a route being given.
+        arrivedAtStart(liveFix, target, nowEpochMillis) -> ARRIVED_TEXT
         route == null -> straightLineText
         route is ReturnRoute.Ahead -> formatDistanceMeters(route.routeMeters, distanceUnit)
         route is ReturnRoute.Unavailable -> ROUTE_UNAVAILABLE_TEXT

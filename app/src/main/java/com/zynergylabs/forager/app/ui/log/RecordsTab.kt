@@ -27,6 +27,7 @@ import com.zynergylabs.forager.app.ui.availability.AvailabilityUiState
 import com.zynergylabs.forager.app.ui.availability.OfflineMapsPanel
 import com.zynergylabs.forager.app.ui.availability.WaypointsSection
 import com.zynergylabs.forager.app.ui.map.MapSlot
+import com.zynergylabs.forager.app.ui.map.WaypointNavigationOrigin
 import com.zynergylabs.forager.app.ui.track.TrackExportList
 
 /**
@@ -178,6 +179,18 @@ internal fun RecordsTab(
     /** Off while the Tools drawer is open over the Journal, so Back closes the drawer (intent 2026-09-28-28); see [JournalTab]'s parameter of the same name. `true` (the default) is every other caller, unchanged. */
     backEnabled: Boolean = true,
     modifier: Modifier = Modifier,
+    /**
+     * Dispatch 2026-09-28-502 (plan task T9): a waypoint's Navigate, in its rows (the All logbook and the
+     * Waypoints chip) and its details sheet, given where it was tapped, so Back can come back here. `null`
+     * (the default) offers none.
+     */
+    onNavigateToWaypoint: ((WaypointNavigationOrigin) -> Unit)? = null,
+    /**
+     * Dispatch 2026-09-28-502, Amendment 1: the waypoint whose details sheet to open again, once, because
+     * Back ended the navigation started from it; [onReopenWaypointDetailsConsumed] is told once it is open.
+     */
+    reopenWaypointDetails: String? = null,
+    onReopenWaypointDetailsConsumed: () -> Unit = {},
 ) {
     var selectedTab by selectedTabState
 
@@ -206,6 +219,14 @@ internal fun RecordsTab(
     // type that opens a sheet sets it; the sheet's own dismissal (Back, a scrim tap) clears it.
     var detailsTarget by rememberSaveable(stateSaver = RecordDetailsTargetSaver) { mutableStateOf<RecordDetailsTarget?>(null) }
     val openDetails: (RecordDetailsTarget) -> Unit = { target -> detailsTarget = target }
+    // Dispatch -502: Back from a navigation started in this sheet opens it again.
+    LaunchedEffect(reopenWaypointDetails) {
+        reopenWaypointDetails?.let { id ->
+            detailsTarget = RecordDetailsTarget.WaypointDetails(id)
+            onReopenWaypointDetailsConsumed()
+        }
+    }
+    val navigateFromRow: ((String) -> Unit)? = onNavigateToWaypoint?.let { navigate -> { id -> navigate(WaypointNavigationOrigin.RecordsRow(id)) } }
 
     // Back-nav-and-save-flow dispatch, Item 1, retargeted by journal redesign J1 (S3, the planner's
     // call in prompts/preserved/2026-09-27-16.md; the owner may overrule): step back to All — the
@@ -274,6 +295,7 @@ internal fun RecordsTab(
                     }
                 },
                 onOpenDetails = openDetails,
+                onNavigateToWaypoint = navigateFromRow,
             )
 
             RecordsSubTab.WAYPOINTS -> WaypointsSection(
@@ -282,6 +304,7 @@ internal fun RecordsTab(
                 onDeleteWaypoint = onDeleteWaypoint,
                 modifier = Modifier.weight(1f),
                 onOpenWaypointDetails = { id -> openDetails(RecordDetailsTarget.WaypointDetails(id)) },
+                onNavigateToWaypoint = navigateFromRow,
             )
 
             RecordsSubTab.OFFLINE_MAPS -> OfflineMapsPanel(
@@ -339,6 +362,13 @@ internal fun RecordsTab(
             // which is `isLandscapeJournal`). In portrait the panel is stacked and the sheet lies over
             // the region list, not a map, so it stays solid.
             overMap = selectedTab == RecordsSubTab.OFFLINE_MAPS && isLandscapeJournal(),
+            // Dispatch -502: the sheet closes, and Back from the navigation opens it again (Amendment 1).
+            onNavigateToWaypoint = onNavigateToWaypoint?.let { navigate ->
+                { id: String ->
+                    detailsTarget = null
+                    navigate(WaypointNavigationOrigin.RecordsDetails(id))
+                }
+            },
         )
     }
 }

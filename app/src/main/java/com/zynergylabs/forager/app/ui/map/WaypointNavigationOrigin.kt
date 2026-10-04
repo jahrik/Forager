@@ -24,8 +24,38 @@ sealed interface WaypointNavigationOrigin {
     data class RecordsDetails(override val waypointId: String) : WaypointNavigationOrigin
 }
 
-/** Saves a [WaypointNavigationOrigin] as one string. */
+/**
+ * Saves a [WaypointNavigationOrigin] as one string, its kind first and the waypoint's id last, so an id
+ * holding the separator still comes back whole: `bubble:<x>:<y>:<bearing>:<id>`, `map-details:<id>`,
+ * `records-row:<id>`, `records-details:<id>`, or empty for none. A string that is none of these fails
+ * loudly on restore, as [com.zynergylabs.forager.app.ui.log.RecordDetailsTargetSaver] does.
+ */
 internal val WaypointNavigationOriginSaver: Saver<WaypointNavigationOrigin?, String> = Saver(
-    save = { "" },
-    restore = { null },
+    save = { origin ->
+        when (origin) {
+            null -> ""
+            is WaypointNavigationOrigin.MapBubble -> "$BUBBLE_KEY${origin.anchorPx.x}:${origin.anchorPx.y}:${origin.bearingDeg}:${origin.waypointId}"
+            is WaypointNavigationOrigin.MapDetails -> "$MAP_DETAILS_KEY${origin.waypointId}"
+            is WaypointNavigationOrigin.RecordsRow -> "$RECORDS_ROW_KEY${origin.waypointId}"
+            is WaypointNavigationOrigin.RecordsDetails -> "$RECORDS_DETAILS_KEY${origin.waypointId}"
+        }
+    },
+    restore = { saved ->
+        when {
+            saved.isEmpty() -> null
+            saved.startsWith(BUBBLE_KEY) -> {
+                val (x, y, bearing, id) = saved.removePrefix(BUBBLE_KEY).split(":", limit = 4)
+                WaypointNavigationOrigin.MapBubble(id, Offset(x.toFloat(), y.toFloat()), bearing.toFloat())
+            }
+            saved.startsWith(MAP_DETAILS_KEY) -> WaypointNavigationOrigin.MapDetails(saved.removePrefix(MAP_DETAILS_KEY))
+            saved.startsWith(RECORDS_ROW_KEY) -> WaypointNavigationOrigin.RecordsRow(saved.removePrefix(RECORDS_ROW_KEY))
+            saved.startsWith(RECORDS_DETAILS_KEY) -> WaypointNavigationOrigin.RecordsDetails(saved.removePrefix(RECORDS_DETAILS_KEY))
+            else -> error("Not a saved waypoint navigation origin: '$saved'")
+        }
+    },
 )
+
+private const val BUBBLE_KEY = "bubble:"
+private const val MAP_DETAILS_KEY = "map-details:"
+private const val RECORDS_ROW_KEY = "records-row:"
+private const val RECORDS_DETAILS_KEY = "records-details:"

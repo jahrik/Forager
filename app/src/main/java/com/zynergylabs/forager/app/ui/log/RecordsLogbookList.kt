@@ -101,6 +101,8 @@ internal fun RecordsLogbookList(
      * tap on a row whose two-stage swipe is open closes the row instead (J4b's overlay takes it).
      */
     onOpenDetails: ((RecordDetailsTarget) -> Unit)? = null,
+    /** Dispatch 2026-09-28-502: a waypoint row's Navigate, given its id; `null` (the default) offers none. */
+    onNavigateToWaypoint: ((String) -> Unit)? = null,
 ) {
     val days = buildRecordsLogbook(
         finds = finds.orEmpty(),
@@ -191,7 +193,7 @@ internal fun RecordsLogbookList(
                                 detailsName = record.waypoint.name,
                                 onClick = onOpenDetails?.let { open -> { open(RecordDetailsTarget.WaypointDetails(record.waypoint.id)) } },
                             ) {
-                                WaypointRow(waypoint = record.waypoint)
+                                WaypointRow(waypoint = record.waypoint, onNavigate = onNavigateToWaypoint?.let { navigate -> { navigate(record.waypoint.id) } })
                             }
                         }
                     }

@@ -152,6 +152,12 @@ internal fun TrailheadControls(
     fillColor: Color = Color.Unspecified,
     /** Landscape L: spacing and end padding inside the pill; [Spacing.xs] as it has always been, zero in the L. */
     rowSpacing: Dp = Spacing.xs,
+    /**
+     * Dispatch 2026-09-28-502: whether any navigation is on, a return or a chosen waypoint. The return
+     * control is then the X in a circle, "Stop navigating", and takes a tap with or without a recording,
+     * since a waypoint navigation needs none. [isReturning] by default, so the return alone is as before.
+     */
+    isNavigating: Boolean = isReturning,
 ) {
     Column(
         modifier = modifier,
@@ -166,6 +172,7 @@ internal fun TrailheadControls(
             onToggleRecording = onToggleRecording,
             returnToStart = returnToStart,
             isReturning = isReturning,
+            isNavigating = isNavigating,
             isOffTrack = isOffTrack,
             onToggleReturning = onToggleReturning,
             distanceUnit = distanceUnit,
@@ -190,6 +197,8 @@ private fun ControlPill(
     onToggleRecording: () -> Unit,
     returnToStart: ReturnToStartInfo?,
     isReturning: Boolean,
+    /** Dispatch 2026-09-28-502: see [TrailheadControls]' parameter of the same name. */
+    isNavigating: Boolean,
     isOffTrack: Boolean,
     onToggleReturning: () -> Unit,
     distanceUnit: DistanceUnit,
@@ -222,13 +231,14 @@ private fun ControlPill(
         }
         val returnToVehicle: @Composable () -> Unit = {
             MapBarIconButton(
-                icon = returnControlIcon(isReturning),
-                contentDescription = returnControlDescription(isReturning, isRecording, returnToStart, distanceUnit),
+                icon = returnControlIcon(isNavigating),
+                contentDescription = returnControlDescription(isNavigating, isRecording, returnToStart, distanceUnit),
                 onClick = onToggleReturning,
-                enabled = isRecording,
+                // Dispatch -502: a waypoint navigation needs no recording, and its X-circle must still end it.
+                enabled = isRecording || isNavigating,
                 activeColor = when {
                     isOffTrack -> MaterialTheme.colorScheme.error
-                    isReturning -> MaterialTheme.colorScheme.primary
+                    isNavigating -> MaterialTheme.colorScheme.primary
                     else -> null
                 },
                 modifier = Modifier.testTag("control-pill-return-to-vehicle"),
@@ -516,10 +526,13 @@ private fun CompassElevationStripContent(
  * The Return control's icon (dispatch 2026-09-28-497, plan task T7): an X in a circle while
  * navigating, so it reads as the way out (the owner: "The navigation icon should turn into an X
  * circle to let the user know it's used to exit navigation"); its own directions icon otherwise.
+ * [isReturning] is whether any navigation is on: since dispatch 2026-09-28-502 the pill passes its
+ * `isNavigating` here, a waypoint navigation included. The parameter keeps the name T7 gave it, which
+ * T7's own test calls it by.
  */
 internal fun returnControlIcon(isReturning: Boolean): ImageVector = if (isReturning) Icons.Filled.Cancel else Icons.Filled.Directions
 
-/** The Return control's label, matching its icon: the HUD exit's own words while navigating, today's label otherwise. */
+/** The Return control's label, matching its icon: the HUD exit's own words while navigating, today's label otherwise. [isReturning] as in [returnControlIcon]. */
 internal fun returnControlDescription(isReturning: Boolean, isRecording: Boolean, info: ReturnToStartInfo?, distanceUnit: DistanceUnit): String =
     if (isReturning) {
         "Stop navigating"
