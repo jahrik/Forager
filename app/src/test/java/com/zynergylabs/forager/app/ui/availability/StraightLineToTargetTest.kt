@@ -56,12 +56,14 @@ class StraightLineToTargetTest {
     }
 
     @Test
-    fun `once the fix is lost, the line already drawn is kept, faded`() {
+    fun `once the fix is lost, the line already drawn is kept, grey (offline)`() {
+        // The owner, at the desk check after seeing it: "An offline grey color will work", then "Grey once location is
+        // lost". This dispatch's own test until then expected the kept line faded blue.
         val from = fix(500.0)
         val drawn = nextStraightLine(null, from, creek, t + 1_000L)
 
-        assertEquals(StraightLine(lineFrom(from), isCurrent = false), nextStraightLine(drawn, from, creek, sixMinutesLater))
-        assertEquals("no fix at all keeps it too", StraightLine(lineFrom(from), isCurrent = false), nextStraightLine(drawn, null, creek, sixMinutesLater))
+        assertEquals(StraightLine(lineFrom(from), isCurrent = false, isOffline = true), nextStraightLine(drawn, from, creek, sixMinutesLater))
+        assertEquals("no fix at all keeps it too", StraightLine(lineFrom(from), isCurrent = false, isOffline = true), nextStraightLine(drawn, null, creek, sixMinutesLater))
     }
 
     @Test
@@ -104,8 +106,8 @@ class StraightLineToTargetTest {
     fun `at the 5 min boundary - just before it the line is from the stale fix, faded, at it the line kept from before, faded`() {
         val before = StraightLine(lineFrom(fix(500.0)), isCurrent = true)
         val stale = fix(300.0, at = t)
-        assertEquals(StraightLine(lineFrom(stale), isCurrent = false), nextStraightLine(before, stale, creek, t + 5 * 60_000L - 1L))
-        assertEquals(StraightLine(lineFrom(fix(500.0)), isCurrent = false), nextStraightLine(before, stale, creek, t + 5 * 60_000L))
+        assertEquals("stale: faded blue, not grey", StraightLine(lineFrom(stale), isCurrent = false, isOffline = false), nextStraightLine(before, stale, creek, t + 5 * 60_000L - 1L))
+        assertEquals(StraightLine(lineFrom(fix(500.0)), isCurrent = false, isOffline = true), nextStraightLine(before, stale, creek, t + 5 * 60_000L))
     }
 
     @Test
