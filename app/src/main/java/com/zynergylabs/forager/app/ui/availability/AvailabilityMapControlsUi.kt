@@ -12,6 +12,7 @@ package com.zynergylabs.forager.app.ui.availability
 // AvailabilityCompactMapUi.kt. No symbol left behind is reached from here. Seam F (the wide layout)
 // was released by the owner for this split, as recorded in the Understory amendment merged in #130.
 
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandIn
 import androidx.compose.animation.fadeIn
@@ -32,6 +33,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Directions
 import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.Navigation
@@ -220,9 +222,8 @@ private fun ControlPill(
         }
         val returnToVehicle: @Composable () -> Unit = {
             MapBarIconButton(
-                icon = Icons.Filled.Directions,
-                contentDescription = returnToStartStripText(isRecording, returnToStart, distanceUnit)
-                    .ifBlank { "Return to vehicle — start recording first" },
+                icon = returnControlIcon(isReturning),
+                contentDescription = returnControlDescription(isReturning, isRecording, returnToStart, distanceUnit),
                 onClick = onToggleReturning,
                 enabled = isRecording,
                 activeColor = when {
@@ -510,6 +511,21 @@ private fun CompassElevationStripContent(
         }
     }
 }
+
+/**
+ * The Return control's icon (dispatch 2026-09-28-497, plan task T7): an X in a circle while
+ * navigating, so it reads as the way out (the owner: "The navigation icon should turn into an X
+ * circle to let the user know it's used to exit navigation"); its own directions icon otherwise.
+ */
+internal fun returnControlIcon(isReturning: Boolean): ImageVector = if (isReturning) Icons.Filled.Cancel else Icons.Filled.Directions
+
+/** The Return control's label, matching its icon: the HUD exit's own words while navigating, today's label otherwise. */
+internal fun returnControlDescription(isReturning: Boolean, isRecording: Boolean, info: ReturnToStartInfo?, distanceUnit: DistanceUnit): String =
+    if (isReturning) {
+        "Stop navigating"
+    } else {
+        returnToStartStripText(isRecording, info, distanceUnit).ifBlank { "Return to vehicle — start recording first" }
+    }
 
 /**
  * The return-to-vehicle line's text — blank while not recording (nothing to return to), a status

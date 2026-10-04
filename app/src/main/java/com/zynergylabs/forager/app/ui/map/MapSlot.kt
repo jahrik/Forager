@@ -429,6 +429,12 @@ data class MapOverlayContent(
      * geometry only). Only the Maps tab sets it; every other map draws no highlight.
      */
     val journalHighlights: JournalEntryHighlights = JournalEntryHighlights.NONE,
+    /**
+     * The way back while returning (dispatch 2026-09-28-497, plan task T7): the line at Return
+     * (dimmed), the line ahead (bright, faded while withheld), and the start's place once arrived.
+     * `null` on every map but the Maps tab while navigating.
+     */
+    val route: RouteOnMap? = null,
 )
 
 /**
@@ -555,6 +561,7 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
         forecast = renderMode.forecast,
         cameraRequest = renderMode.cameraRequest,
         journalHighlights = content.journalHighlights,
+        route = content.route,
         cameraMemory = renderMode.cameraMemory,
         attributionEndInset = renderMode.attributionEndInset,
         attributionBottomInset = renderMode.attributionBottomInset,

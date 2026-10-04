@@ -631,6 +631,7 @@ class MainActivity : ComponentActivity() {
                     computeTrueHeading = container.computeTrueHeadingUseCase,
                     navigationTarget = trackUiState.originWaypoint,
                     returnRoute = returnRouteOf(trackUiState.routeHome),
+                    routeLine = trackUiState.routeLine,
                     onRetryRoute = trackRecordingViewModel::retryRoute,
                     crashFileStore = container.crashFileStore,
                     // Part 2 follow-ups F1 item 5: the visible list leaves out a track whose delete is pending

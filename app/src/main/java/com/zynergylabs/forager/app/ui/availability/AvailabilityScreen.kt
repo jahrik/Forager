@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.domain.RouteLine
 import com.zynergylabs.forager.app.ui.map.MapCompass
 import com.zynergylabs.forager.app.ui.map.LocalMapCompass
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
@@ -671,6 +672,8 @@ fun AvailabilityScreen(
      * [ReturnRoute.Pending] until there is a result, as `MainActivity` passes it.
      */
     returnRoute: ReturnRoute = ReturnRoute.Pending,
+    /** The way back drawn on the map while returning (dispatch 2026-09-28-497); `null` draws none. */
+    routeLine: RouteLine? = null,
     /** The HUD's "Try again": `TrackRecordingViewModel.retryRoute`. */
     onRetryRoute: () -> Unit = {},
     /**
@@ -1386,6 +1389,7 @@ fun AvailabilityScreen(
             computeTrueHeading = computeTrueHeading,
             navigationTarget = navigationTarget,
             returnRoute = returnRoute,
+            routeLine = routeLine,
             onRetryRoute = onRetryRoute,
             showDecimalDegrees = showDecimalDegrees,
             onToggleCoordinateFormat = { showDecimalDegrees = !showDecimalDegrees },
