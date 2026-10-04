@@ -11439,3 +11439,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Dispatch-file:** preserved/2026-10-04-06.md; to a Claude Code session on the Pi, the owner relaying
 **Change:** none served or uploaded, nothing in the app. Report first; then, on the owner's word, one manual run: a merged Oregon and Washington extract → `forager-orwa.pmtiles` (z0 to z15) from a pinned Protomaps basemap profile patched in the repository to emit trail attributes, and BRouter rd5 files from the same extract; verified; a weekly timer written and left disabled.
 **Notes:** Written by the planner by hand, on branch records-after-166. Stage 4 of the plan, ruled by the spec's R1.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-496
+**Timestamp:** 2026-10-04T10:45:00Z
+**Title:** a second planner, for the map service, on the Raspberry Pi
+**Handoff-file:** `prompts/preserved/2026-10-04-07-pi-planner-handoff.md`
+**The owner, verbatim:** "Write a handoff for the next planner and I'll have it set up on the RPI while you deal with the laptop side".
+**The split:** the Pi planner owns the map service (the Pi, the Worker and storage in the zynergy-labs account, the data pipeline, stages 4 onward); the laptop planner owns the app, its coder, app pull requests and the S22. The owner relays between them. **Record IDs:** the Pi planner uses the block 2026-09-28-600 to -699; the laptop planner continues below it from -497. Shared files (`RECORD.md`, the index READMEs) are merged, never rebased, with every entry and row kept.
+**Notes:** Written by the planner by hand, on branch records-after-166.
