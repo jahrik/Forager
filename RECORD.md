@@ -11367,3 +11367,14 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Continues:** 2026-09-28-488
 **Observed:** pull request #165 (the map-style scaffold, -485, with records -486 and -487) was merged as f4e6726af97592de86675b247cd60393a168e0f9 at 2026-10-04T06:53:04Z, on green CI at its head, on the owner's "Yes merge it", with backup 2026-10-04-05. The owner, verbatim: "I'll update but I'll hold off on moving the Pi. The area isn't ready and the wifi is still connected." The owner updated the Pi (`apt upgrade`) and rebooted. **Checked by the planner from the laptop as `planner`:** up since 00:32:26 Pi time; kernel 6.12.109+rpt-rpi-2712; linux-image-rpi-2712 6.12.109-1+rpt1, raspi-firmware 1.20260915, rpi-eeprom 28.33-1, firmware-brcm80211 20240709-2~bpo12+1+rpt4; NetworkManager-wait-online **active** this boot (it had failed on the last); `forager-tunnel` active at 00:33:00 with **0 restarts** (29 on the last boot); both services active, 8080 on 127.0.0.1 only, local `/us.json` 200, origin without the token 403; startup finished in 34.0 s. One boot after the update connected cleanly; whether the update or chance made the difference is not settled by one boot.
 **Notes:** Written by the planner by hand, on branch records-after-164.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-490
+**Timestamp:** 2026-10-04T08:15:00Z
+**Title:** label-check: does MapLibre Android 13.5.0 draw the labelled Forager style, online and in an offline pack, without the old crash (measurement only)
+**Dispatch-file:** preserved/2026-10-04-05.md; to the laptop coder
+**The owner, verbatim:** "Proceed with 1 to 3", to: (1) the planner merges the Pi origin and engine spike reports into main; (2) this phone check; (3) the planner drafts the spec while it runs.
+**Change:** none to Forager. A separate test app on the S22 loads `map-style/forager-light.json` online and as an offline pack, and reports whether the old label crash happens and where.
+**Notes:** Written by the planner by hand, on branch records-after-164.
