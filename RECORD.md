@@ -11472,3 +11472,13 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Ruled by the laptop planner:** the passed part drawn by method B (the first full route of the return kept, drawn dimmed and grey under the route still ahead), adding no projection onto the route, which the owner has ruled out for the route home. -497 Amendment 1.
 **Noted:** the code's comment on `isApproaching` says the app does "never 'arrived'"; no record entry holds that as an owner ruling (the coder searched; the planner found none); the owner's -497 choice of "Arrived" stands.
 **Notes:** Written by the planner by hand, on branch records-after-166.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-499
+**Timestamp:** 2026-10-04T12:20:00Z
+**Continues:** 2026-09-28-498
+**Observed:** the coder built -497 at 41cb9130 with 15 new tests and 15 revert checks (one redone after its first edit failed to compile and the runner refused to cite it); the full suite had 4 failures, all in `AvailabilityScreenMapIconStackTest`, each encoding behaviour the owner changed: the large slot inside the approach threshold during a return (now "Arrived"), and the Return control's label while navigating (now "Stop navigating").
+**Ruled by the laptop planner** (-497 Amendment 2): those four tests change, each listed with before and after, as -425 allowed for the off-track tests; and the control's label while navigating is "Stop navigating" alone, the HUD carrying the bearing, distance and elevation.
+**Notes:** Written by the planner by hand, on branch records-after-166.
