@@ -1,6 +1,6 @@
 # Spec: Forager's own map service and trail navigation (stage 3)
 
-**Status: draft for the owner to rule on.** Written by the planner on 2026-10-04 (UTC) at `main` `f4e6726a`. Plan: `docs/plans/trail-navigation-and-own-tiles.md`. Inputs: the own-tiles survey, the trail research, the engine spike (with its addendum), the Pi origin report, `map-style/`, and `RECORD.md` -442 to -490.
+**Status: ruled by the owner** (`RECORD.md` -492, -493); the open questions are answered below. Written by the planner on 2026-10-04 (UTC) at `main` `f4e6726a`. Plan: `docs/plans/trail-navigation-and-own-tiles.md`. Inputs: the own-tiles survey, the trail research, the engine spike (with its addendum), the Pi origin report, `map-style/`, and `RECORD.md` -442 to -490.
 
 ## Goal
 
@@ -53,8 +53,4 @@ That labels draw offline on 13.5.0 (dispatch -490 is measuring it). That a US bu
 
 ## Open questions
 
-1. **Coverage first:** Oregon and Washington (builds in minutes on the Pi), or the whole US (hours, tight on memory)?
-2. **Region size:** a ceiling for one download (the spike's 60 × 60 km region: about 0.6 MB routing plus the map tiles).
-3. **Telling which path the walker is on:** Forager's own matching against the routing data, or Valhalla's matcher alongside BRouter (about 8 MB more in the app, more data)?
-4. **T7:** wait for routes along the network, or ship first along the walked track?
-5. **Refresh:** how often the Pi rebuilds (weekly is the planner's suggestion).
+None. The owner's answers (`RECORD.md` -492, -493): Oregon and Washington first; Forager's own matching for which path the walker is on; T7 ships first on the walked track; a weekly rebuild; today's region limit (24 km radius, 6,000 tiles) kept, and revisited from use before release.

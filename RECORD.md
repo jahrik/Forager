@@ -11401,3 +11401,13 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 4. Refresh: "Weekly".
 **Still open:** a ceiling for one region download. Read by the planner for it: offline regions today are capped at a 24 km radius (`OfflineMapRepository.kt:203`, `MAX_RADIUS_KM`) and 6,000 tiles (`:101`, `TILE_COUNT_LIMIT`); the spike's 60 × 60 km region carried 0.64 MB of BRouter data.
 **Notes:** Written by the planner by hand, on branch records-after-164.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-493
+**Timestamp:** 2026-10-04T09:10:00Z
+**Decides:** the spec's last open question, a region-size ceiling
+**The owner, verbatim:** "Keep today's limit and see what suits it before we release it". So offline regions stay at a 24 km radius and 6,000 tiles, with the routing data added; the limit is revisited from real use before the release. The spec (`docs/plans/2026-10-04-own-map-service-spec.md`) has no open questions left and is marked ruled.
+**Next, by the plan:** stage 4, the data pipeline on the Pi, dispatched after -490 reports, since its answer on labels offline bears on what the build must carry.
+**Notes:** Written by the planner by hand, on branch records-after-164.
