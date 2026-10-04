@@ -460,8 +460,35 @@ Unattended-Upgrade::Origins-Pattern;` before the declaration was required. Verif
 - **No automatic reboot** (`Automatic-Reboot` unset, defaults false), as instructed.
 - **No mail configuration** — there is no MTA on this Pi, so failures are silent and land in
   `/var/log/unattended-upgrades/`.
-- The Raspberry Pi Foundation archive is **not** an allowed origin, so `chromium` and similar are
-  untouched.
+- **The Raspberry Pi archive is not covered, so the kernel and firmware are not updated
+  automatically.** `archive.raspberrypi.com` publishes as `origin=Raspberry Pi Foundation,
+  label=Raspberry Pi Foundation`, matching neither allowed origin. Confirmed from behaviour, not
+  inference: `unattended-upgrade --dry-run --debug` inspects each of these packages and then logs
+  `adjusting candidate version:` back to the **installed** version, declining the available upgrade
+  because its origin is not permitted. Three updates were already pending when this was written and
+  will not be applied by any automatic run:
+
+  | Package | Installed | Available |
+  |---|---|---|
+  | `linux-image-rpi-2712` | 1:6.12.96-1+rpt1 | 1:6.12.109-1+rpt1 |
+  | `raspi-firmware` | 1:1.20260521-1~bookworm | 1:1.20260915-1~bookworm |
+  | `rpi-eeprom` | 28.27-1 | 28.33-1 |
+
+  **These need a deliberate manual update and a reboot**, which no timer on this Pi will do:
+  `sudo apt update && sudo apt upgrade` pulls them, and a kernel, bootloader or EEPROM change only
+  takes effect after a restart. `Automatic-Reboot` is off by design, so even if the origin were
+  allowed the Pi would run the old kernel until someone rebooted it. That is a standing maintenance
+  obligation for this box, not a one-off.
+
+  Two consequences specific to this deployment. A kernel this far behind matters more than usual
+  here because **`firmware-brcm80211`, the Wi-Fi driver firmware, also comes from this archive** —
+  the same archive as the kernel — and the open problem on this Pi is Wi-Fi association at boot. A
+  kernel or Wi-Fi firmware update is therefore a plausible, untested input to that problem and
+  should be tried before concluding the link is purely a signal-strength matter. And the reboot
+  these updates require is the same reboot that takes the tile origin offline for minutes, so it is
+  a deliberate maintenance window rather than something to do casually.
+
+- Other Raspberry Pi archive packages — `chromium` and similar — are likewise untouched.
 - **The pins hold.** `cloudflared` has no apt source at all (deliberate, see the body).
   `pmtiles` is a bare binary and invisible to apt. **`rclone` needed a correction to an earlier
   claim**: Debian bookworm *does* carry `rclone`, so the statement that no rclone apt source exists
@@ -507,6 +534,9 @@ to answer through the change.
   account with one.
 - **The Wi-Fi association** at boot, per change 3.
 - **`NetworkManager-wait-online` is a failed unit** on the current boot.
+- **Kernel, bootloader and EEPROM updates are a manual, standing obligation** — not covered by
+  unattended-upgrades, and three were already pending when this was written. See change 1. Worth
+  trying against the Wi-Fi association problem before concluding it is signal strength alone.
 - A **UPS**, and the Worker work, both already out of scope for this part.
 
 ## Rollback for the addendum
