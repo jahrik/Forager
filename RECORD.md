@@ -11204,3 +11204,33 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Continues:** 2026-09-28-474
 **Observed:** pull request #163 (t470-merge into main: -470 and records -471 to -474) was merged as 6c85e436fbe45b439d6bae176161456359003938 at 2026-10-04T02:55:38Z, on green CI at its head, read from GitHub, on the owner's "Yes, PR and merge", with backup 2026-10-04-03 of main at 7c072bfc. Main's tree equals t470-merge's.
 **Notes:** Written by the planner by hand, on branch records-after-163.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-476
+**Timestamp:** 2026-10-04T04:30:00Z
+**Closes:** 2026-09-28-446 (preserved 2026-10-03-07, with Amendments 1 and 2)
+**Outcome:** completed, measurement only
+**Observed:** on branch engine-spike at afdbef33, base 7c072bfc, not merged; report `docs/navigation/2026-10-03-engine-spike-report.md` with its two index rows; the spike's code under `spikes/engine-spike/`, no positions in the repository. On the S22 in aeroplane mode, on the owner's word in the coder's window; the spike app uninstalled afterwards and Forager untouched.
+- **Speed and memory** (50 runs, 0 errors): Valhalla 670 to 715 ms per 10 km trail route (including a 0.55 s start paid once), about 85 MB peak; BRouter 525 to 605 ms, about 25 MB. Town route: Valhalla 802 ms, BRouter 1,142 ms.
+- **Staying on trails, defaults only:** on the McKenzie River route Valhalla took a road for half the way, BRouter stayed on the trail throughout; on Green Lakes Valhalla 87% on the trail, BRouter 100%. Valhalla's trail-preference options were not tried.
+- **Off-trail start:** both snap 207 m to the trail and return no connecting segment.
+- **Data:** Valhalla 346.8 MB for Oregon (OR+WA about 840 MB, scaled); BRouter 154.6 MB for OR+WA.
+- **App size:** Valhalla's native library 7 to 9 MB per ABI plus about 4.2 MB of JVM code; BRouter 0.31 MB.
+- **Integration and licences:** BRouter runs in-process from five pure-Java modules compiled from source; all bundled licences permissive (MIT, BSD, BSL-1.0, Apache-2.0).
+- **Streets:** the same route length on both; no sidewalk mapped as a separate line near the route, so that question was not tested.
+- **Which path the walker is on:** valhalla-mobile exposes Valhalla's matcher on the device (a wrong premise in the research). On the laptop, today's 194-reading walk matched 92, interpolated 94, left 8 unmatched, median 8.3 m from the line, 9 streets in 19 stable stretches; a wrong-turn rule should compare streets or trails, not OSM way ids. BRouter has no matcher.
+- **Packing per region:** a 60 × 60 km square cut from one extract: Valhalla 4.0 MB, BRouter 0.64 MB (no elevation; its SRTM link is dead); both route identically to their state builds.
+**What the planner checked itself:** the branch changes only `spikes/` and `docs/` against its base; no coordinates in its diff.
+**Notes:** Written by the planner by hand, on branch records-after-163.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-477
+**Timestamp:** 2026-10-04T04:35:00Z
+**Title:** nudge-fling: a quick flick-release of a small nudge ends following
+**Dispatch-file:** preserved/2026-10-04-03.md; to the coder, next
+**Change:** see it on the phone first; a flick under the threshold springs back and keeps following; a fling after a real drag leaves as now.
+**Notes:** Written by the planner by hand, on branch records-after-163.
