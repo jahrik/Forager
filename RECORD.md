@@ -11584,3 +11584,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **The owner, verbatim:** "I think another run of GPS improvements is due. How much of the phone can we use to actually establish a position? Can the accelerometer or other sensor be used to track movement? Mobile tower signals get weaker when you walk away, and stronger when you walk towards. Can a position be triangulated by detecting these things, and putting it all together into a precise locatoon?" To the planner's answer (GPS for position; steps and compass to carry through gaps and smooth jitter; the barometer for height; cell towers only a rough fallback, hundreds of metres or more in the forest; trail matching as a correction; a fusion filter combining them; Google's fused location excluded as proprietary): "GPS fusion will be useful and I think the real work will pay off, especially keeping it open source."
 **Done:** two research agents started by the planner, web only, no patents: pedestrian dead reckoning and its fusion with GNSS, the barometer, battery and pitfalls; and open libraries, Android's raw GNSS measurements and the S22's support, the platform location APIs without Play services, and offline cell positioning (OpenCelliD). Findings go into one report under `docs/navigation/` for the owner. Nothing built.
 **Notes:** Written by the planner by hand, on branch records-after-167.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-510
+**Timestamp:** 2026-10-04T22:50:00Z
+**Continues:** 2026-09-28-509
+**Observed:** pull request #168 (t502-merge into main: T8 and T9 with records -501 to -509) was merged as d4bd00bf1e7f74acba65d0847b8c71ecb349017a at 2026-10-04T22:42:11Z, on green CI at its head, read from GitHub, on the owner's "Merge now (Recommended)", with backup 2026-10-04-08 of main at a501a8a0. Main's tree equals t502-merge's; its app equals the S22's build.
+**Dispatched,** on the owner's "Go ahead with the next dispatch when ready": -510, approximate-position (preserved/2026-10-04-10.md), the owner's choices of -508, to the laptop coder.
+**Also:** both fusion research agents stopped on a network error (the API server unreachable) and were resumed.
+**Notes:** Written by the planner by hand, on branch records-after-168.
