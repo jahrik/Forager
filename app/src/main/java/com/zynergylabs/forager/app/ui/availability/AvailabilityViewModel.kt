@@ -182,6 +182,7 @@ class AvailabilityViewModel(
         loadMapFullscreenPreference()
         loadThemeModePreference()
         loadMapLayerPreferences()
+        loadWaypointNavigation()
         // The compass strip's live coordinates are NOT started here any more. Construction-time
         // collection ran on viewModelScope, which cancels at onCleared() -- Activity destruction,
         // not stop -- so the OS listener stayed registered while the app was backgrounded and
@@ -1215,11 +1216,73 @@ class AvailabilityViewModel(
         }
     }
 
-    /** Dispatch 2026-09-28-502: "Navigate" on waypoint [waypointId]. */
-    fun onNavigateToWaypoint(waypointId: String) = Unit
+    /**
+     * Whether the walker has started or ended a waypoint navigation since this ViewModel was made. A kept
+     * navigation read after that ([loadWaypointNavigation]) is older than what they just did, so it is not
+     * applied over it.
+     */
+    private var waypointNavigationChosenHere = false
 
-    /** Dispatch 2026-09-28-502: ends the waypoint navigation. */
-    fun onStopWaypointNavigation() = Unit
+    /**
+     * Picks the waypoint navigation back up when the app opens (dispatch 2026-09-28-502, Amendment 1, "Pick
+     * navigation back up"). A failed read is logged and nothing is resumed. Whether that waypoint still
+     * exists is the screen's to judge, once the waypoints have loaded (`waypointNavigationTarget`).
+     */
+    private fun loadWaypointNavigation() {
+        viewModelScope.launch {
+            waypointNavigationRepository.getCurrent().fold(
+                onSuccess = { kept ->
+                    if (kept != null && !waypointNavigationChosenHere) _uiState.update { it.copy(waypointNavigation = kept) }
+                },
+                onFailure = { error -> errorLog.w(TAG, "Couldn't read the waypoint navigation to pick back up; none is resumed.", error) },
+            )
+        }
+    }
+
+    /**
+     * "Navigate" on waypoint [waypointId] (dispatch 2026-09-28-502, plan tasks T8 and T9), with or without a
+     * recording. A return under way is paused first (step 6: the waypoint overrules it while active) and
+     * remembered, so [onStopWaypointNavigation] picks it back up; choosing another waypoint while navigating
+     * keeps that. The pause comes before this state changes, on the same thread, so the screen never sees a
+     * moment with neither on: no new start zoom (the planner's ruling).
+     */
+    fun onNavigateToWaypoint(waypointId: String) {
+        waypointNavigationChosenHere = true
+        val current = _uiState.value.waypointNavigation
+        val resumesReturn = when {
+            current != null -> current.resumesReturn
+            returnLeg.isReturning -> {
+                returnLeg.pause()
+                true
+            }
+            else -> false
+        }
+        val navigation = WaypointNavigation(waypointId, resumesReturn)
+        _uiState.update { it.copy(waypointNavigation = navigation) }
+        keepWaypointNavigation(navigation)
+    }
+
+    /**
+     * Ends the waypoint navigation (Back, the X-circle, the HUD's ✕, or its waypoint deleted), clears what is
+     * kept, and picks a paused return back up (step 6). The return captures its line afresh (the planner's
+     * ruling). Nothing to end does nothing.
+     */
+    fun onStopWaypointNavigation() {
+        waypointNavigationChosenHere = true
+        val ending = _uiState.value.waypointNavigation ?: return
+        _uiState.update { it.copy(waypointNavigation = null) }
+        keepWaypointNavigation(null)
+        if (ending.resumesReturn) returnLeg.resume()
+    }
+
+    /** Writes [navigation] to the store; a failure is logged, and the navigation on screen carries on regardless. */
+    private fun keepWaypointNavigation(navigation: WaypointNavigation?) {
+        viewModelScope.launch {
+            waypointNavigationRepository.setCurrent(navigation).onFailure { error ->
+                errorLog.w(TAG, "Couldn't keep the waypoint navigation; it will not be picked back up if the app is closed.", error)
+            }
+        }
+    }
 
     /** Restores Settings' theme choice (Light/Dark/System Default) — same read-failure treatment as [loadOfflineMapPreferences]. */
     private fun loadThemeModePreference() {

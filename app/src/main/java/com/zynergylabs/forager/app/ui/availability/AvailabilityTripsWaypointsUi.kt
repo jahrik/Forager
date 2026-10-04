@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Directions
+import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -39,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import com.zynergylabs.forager.app.domain.MgrsConverter
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.MgrsCoordinate
@@ -190,6 +192,8 @@ internal fun WaypointsSection(
      * the default, leaves the rows without a tap.
      */
     onOpenWaypointDetails: ((String) -> Unit)? = null,
+    /** Dispatch 2026-09-28-502: a row's Navigate, given the waypoint's id; `null` (the default) offers none. */
+    onNavigateToWaypoint: ((String) -> Unit)? = null,
 ) {
     // J4b L6: one open row at a time, and a touch elsewhere on the list closes it.
     val swipeGroup = rememberSwipeRevealGroup()
@@ -220,7 +224,11 @@ internal fun WaypointsSection(
                         onDelete = { onDeleteWaypoint(waypoint.id) },
                         onEdit = null,
                     ) {
-                        WaypointRow(waypoint = waypoint, onClick = onOpenWaypointDetails?.let { open -> { open(waypoint.id) } })
+                        WaypointRow(
+                            waypoint = waypoint,
+                            onClick = onOpenWaypointDetails?.let { open -> { open(waypoint.id) } },
+                            onNavigate = onNavigateToWaypoint?.let { navigate -> { navigate(waypoint.id) } },
+                        )
                     }
                 }
             }
@@ -237,9 +245,13 @@ internal fun WaypointsSection(
  * [onClick] (journal redesign J5c) is what a tap on the card opens, the waypoint's details sheet, or
  * `null` for no card tap. The All logbook passes `null` and puts the tap on its badged row instead,
  * so the type badge takes it too. Directions keeps its own tap either way.
+ *
+ * [onNavigate] (dispatch 2026-09-28-502, plan task T9) is the app's own navigation to this waypoint, an
+ * icon button before Directions; `null` leaves the row with Directions only. Like Directions it takes
+ * its own tap, not the card's.
  */
 @Composable
-internal fun WaypointRow(waypoint: Waypoint, onClick: (() -> Unit)? = null) {
+internal fun WaypointRow(waypoint: Waypoint, onClick: (() -> Unit)? = null, onNavigate: (() -> Unit)? = null) {
     val context = LocalContext.current
     val location = LatLng(waypoint.lat, waypoint.lng)
     Card(
@@ -263,6 +275,11 @@ internal fun WaypointRow(waypoint: Waypoint, onClick: (() -> Unit)? = null) {
                     is MgrsCoordinate.Unsupported -> Unit
                 }
                 Text(decimalDegreesLabel(waypoint.lat, waypoint.lng), style = MaterialTheme.typography.bodySmall)
+            }
+            onNavigate?.let { navigate ->
+                IconButton(onClick = navigate, modifier = Modifier.testTag(waypointRowNavigateTag(waypoint.id))) {
+                    Icon(Icons.Filled.Navigation, contentDescription = "Navigate to ${waypoint.name}")
+                }
             }
             IconButton(onClick = { launchDirections(context, waypoint.name, location) }) {
                 Icon(Icons.Filled.Directions, contentDescription = "Directions to ${waypoint.name}")

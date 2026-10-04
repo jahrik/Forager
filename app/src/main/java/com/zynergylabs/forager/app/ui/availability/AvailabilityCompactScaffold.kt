@@ -196,6 +196,8 @@ internal fun CompactMainScaffold(
     onSetCartographyEntryShownOnMap: (entryId: String, shown: Boolean) -> Unit = { _, _ -> },
     /** M1: what the Maps tab's glyph bubbles look records up in; threaded to [CompactMapTab]. */
     mapBubbleSources: MapRecordSources = MapRecordSources(),
+    /** Dispatch 2026-09-28-502: navigating to a chosen waypoint, threaded to [CompactMapTab] and [JournalTab]; see [WaypointNavigateControls]. */
+    waypointNavigate: WaypointNavigateControls = WaypointNavigateControls(),
     currentTime: CurrentTimeProvider,
     mapSlot: MapSlot,
     mapIconClusterPosition: MapIconClusterPositionState,
@@ -995,6 +997,9 @@ internal fun CompactMainScaffold(
                                 returnRoute = returnRoute,
                                 routeLine = routeLine,
                                 onRetryRoute = onRetryRoute,
+                                isNavigatingToWaypoint = waypointNavigate.isNavigatingToWaypoint,
+                                waypointReopen = waypointNavigate.mapReopen,
+                                onWaypointReopenConsumed = waypointNavigate.onMapReopenConsumed,
                                 showDecimalDegrees = showDecimalDegrees,
                                 onToggleCoordinateFormat = onToggleCoordinateFormat,
                                 navigationFollowing = navigationFollowing,
@@ -1254,6 +1259,9 @@ internal fun CompactMainScaffold(
                                 findEntryModeState = findEntryModeState,
                                 findOverViewState = findOverViewState,
                                 modifier = Modifier.fillMaxSize(),
+                                onNavigateToWaypoint = waypointNavigate.onNavigate,
+                                reopenWaypointDetails = waypointNavigate.recordsReopenDetails,
+                                onReopenWaypointDetailsConsumed = waypointNavigate.onRecordsReopenConsumed,
                             )
                             // Never actually reached — CompactTab.TOOLS never becomes compactTab itself,
                             // see that entry's own doc comment. Kept as a real branch (not an else) so

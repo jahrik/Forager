@@ -1,6 +1,11 @@
 package com.zynergylabs.forager.app.ui.availability
 
 import com.zynergylabs.forager.app.domain.RouteLine
+import com.zynergylabs.forager.app.domain.WaypointNavigationTarget
+import com.zynergylabs.forager.app.domain.waypointNavigationTarget
+import com.zynergylabs.forager.app.ui.log.JournalTopTab
+import com.zynergylabs.forager.app.ui.map.WaypointNavigationOrigin
+import com.zynergylabs.forager.app.ui.map.WaypointNavigationOriginSaver
 import com.zynergylabs.forager.app.ui.map.MapCompass
 import com.zynergylabs.forager.app.ui.map.LocalMapCompass
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
@@ -814,12 +819,29 @@ fun AvailabilityScreen(
     // mode, the return leg, so this is isReturning; stage two's target picker ORs its own state
     // into this one line, and the strip, the HUD and the map cannot drift apart because none of
     // them was ever written against isReturning directly.
-    val isNavigating = isReturning
+    //
+    // Dispatch 2026-09-28-502 (plan tasks T8 and T9) is that second mode: navigating to a chosen waypoint,
+    // with or without a recording. The waypoint is the AvailabilityViewModel's (uiState.waypointNavigation),
+    // resolved here against the waypoints the app has loaded; while it is found it is the target, and it
+    // overrules the return, which the ViewModel paused when it began. Before the waypoints load it is
+    // waited for; once loaded and missing, it was deleted, and the navigation ends with a message (below).
+    val waypointTarget = waypointNavigationTarget(uiState.waypointNavigation, waypoints, waypointsLoaded)
+    val navigatingToWaypoint = (waypointTarget as? WaypointNavigationTarget.Found)?.waypoint
+    val isNavigating = isReturning || navigatingToWaypoint != null
+    val target = navigatingToWaypoint ?: navigationTarget
     // Navigation HUD stage one's display rules, applied once here so the map and the
     // Records list agree — see mapVisibleWaypoints. Records keeps the full list.
-    val mapWaypoints = remember(waypoints, isNavigating, navigationTarget) {
-        mapVisibleWaypoints(waypoints, isNavigating = isNavigating, target = navigationTarget)
+    val mapWaypoints = remember(waypoints, isNavigating, target) {
+        mapVisibleWaypoints(waypoints, isNavigating = isNavigating, target = target)
     }
+    // Dispatch -502, Amendment 1 ("Back to where you tapped Navigate"): where Navigate was tapped, so one Back ends the
+    // waypoint navigation and puts the walker back at that step. Saved with the screen, so it outlives a tab change, a
+    // recreation and the phone closing and restoring the app; a swipe-away loses it, and Back then ends the navigation on
+    // the map (the planner accepted). Cleared wherever the navigation ends: Back, the X-circle or the HUD's X, a deletion.
+    var waypointNavigationOrigin by rememberSaveable(stateSaver = WaypointNavigationOriginSaver) { mutableStateOf<WaypointNavigationOrigin?>(null) }
+    // The step Back opens again, once, on the tab it switched to: a bubble or sheet on the Maps tab, or the sheet in Records.
+    var mapWaypointReopen by remember { mutableStateOf<WaypointNavigationOrigin?>(null) }
+    var recordsWaypointReopen by remember { mutableStateOf<String?>(null) }
 
     // Local remembered state, same reasoning as selectedTab/mapMode below: purely a display
     // decision the ViewModel has no part in. The compact map icon stack's fullscreen toggle sets
@@ -915,6 +937,46 @@ fun AvailabilityScreen(
         if (isNavigating && !navigationWasOn) navigationZoomPending = true
         if (!isNavigating) navigationZoomPending = false
         navigationWasOn = isNavigating
+    }
+    // Dispatch -502: "Navigate" on a waypoint, from the Maps tab's bubble or its sheet, or from Records. The Maps tab comes
+    // up with the navigation view. Already navigating (a return, or another waypoint), isNavigating never goes false in
+    // between, so there is no new start zoom (the planner's ruling); a view the walker had moved away from is taken back,
+    // as "Return to Route" does.
+    val startWaypointNavigation: (WaypointNavigationOrigin) -> Unit = { origin ->
+        onNavigateToWaypoint?.let { navigate ->
+            val wasNavigating = isNavigating
+            waypointNavigationOrigin = origin
+            navigate(origin.waypointId)
+            compactTab = CompactTab.MAP
+            selectedTab = ResultsTab.MAP
+            if (wasNavigating && navigationFollowBroken) {
+                navigationFollowBroken = false
+                navigationViewRequestId++
+            }
+        }
+    }
+    // Dispatch -502: ends the waypoint navigation. With [retrace] (Back) the walker is put back where Navigate was tapped,
+    // one step, as the owner chose; the X-circle and the HUD's X end it where the walker is. A return it paused picks up
+    // again (the ViewModel's doing).
+    val endWaypointNavigation: (Boolean) -> Unit = { retrace ->
+        val origin = waypointNavigationOrigin
+        waypointNavigationOrigin = null
+        onStopWaypointNavigation()
+        if (retrace) {
+            when (origin) {
+                null -> Unit
+                is WaypointNavigationOrigin.MapBubble, is WaypointNavigationOrigin.MapDetails -> mapWaypointReopen = origin
+                is WaypointNavigationOrigin.RecordsRow, is WaypointNavigationOrigin.RecordsDetails -> {
+                    journalScreenState.topTab = JournalTopTab.RECORDS
+                    compactTab = CompactTab.JOURNAL
+                    if (origin is WaypointNavigationOrigin.RecordsDetails) recordsWaypointReopen = origin.waypointId
+                }
+            }
+        }
+    }
+    // The return control and the HUD's X: a waypoint navigation first, while there is one; otherwise the return, as before.
+    val onNavigationControl: () -> Unit = {
+        if (navigatingToWaypoint != null) endWaypointNavigation(false) else onToggleReturning()
     }
     var forecastCellsShown by remember { mutableStateOf<Map<String, ForecastCellsShown>>(emptyMap()) }
     val availableColourFieldGroups = COLOUR_FIELDS.filter { it.group in uiState.forecastGroups }.associate { it.layerId to it.group }
@@ -1124,8 +1186,17 @@ fun AvailabilityScreen(
     // dialog window's own dismiss; the guarantee (back never exits) holds by either route, but
     // the dialog's own back handling is device-only coverage.
     var showExitNavigationPrompt by remember { mutableStateOf(false) }
-    BackHandler(enabled = !isDrawerOpen && !isMapFullscreen && compactTab == CompactTab.MAP && isNavigating) {
+    // Off while a waypoint is the target: Back has its own step for that, below. With no waypoint chosen it is as it was.
+    BackHandler(enabled = !isDrawerOpen && !isMapFullscreen && compactTab == CompactTab.MAP && isNavigating && navigatingToWaypoint == null) {
         showExitNavigationPrompt = !showExitNavigationPrompt
+    }
+    // Dispatch 2026-09-28-502: navigating to a chosen waypoint, "Back from the navigating HUD stops navigating", with no
+    // prompt, and goes back to where Navigate was tapped (Amendment 1). The loop above is the return's; it does not apply
+    // here. The same exclusions as the handlers above, so what is drawn on top (the drawer, fullscreen, another tab, and
+    // the bubbles and menus registered after this) is backed out of first. A return the waypoint overruled picks up again,
+    // and the next Back on the bare map is the loop above, untouched.
+    BackHandler(enabled = !isDrawerOpen && !isMapFullscreen && compactTab == CompactTab.MAP && navigatingToWaypoint != null) {
+        endWaypointNavigation(true)
     }
     // If navigation ends by any other route while the prompt is up (the recording stopping under
     // it, say), the prompt has nothing left to ask about.
@@ -1225,6 +1296,17 @@ fun AvailabilityScreen(
     LaunchedEffect(networkFixesNotice?.id) {
         networkFixesNotice?.let { notice ->
             logDraftSnackbarHostState.showSnackbar(message = notice.message, duration = SnackbarDuration.Long)
+        }
+    }
+    // Dispatch -502, Amendment 1: the waypoint being navigated to was deleted, while navigating (its pending delete hides it
+    // at once) or while the app was closed. The navigation ends and says so, in this same host, not a silent drop. Shown on
+    // the host's own scope, as the backup notice is: ending the navigation changes this effect's key and would cancel a
+    // snackbar shown from inside it.
+    val waypointTargetGone = waypointTarget is WaypointNavigationTarget.Gone
+    LaunchedEffect(waypointTargetGone) {
+        if (waypointTargetGone) {
+            endWaypointNavigation(false)
+            logDraftSnackbarScope.launch { logDraftSnackbarHostState.showSnackbar(message = WAYPOINT_NAVIGATION_GONE_TEXT, duration = SnackbarDuration.Long) }
         }
     }
     // Intent 2026-09-28-44, F1 (the owner: "Snackbar only for real drafts (Recommended)"). This used
@@ -1335,6 +1417,8 @@ fun AvailabilityScreen(
             pendingJournalDestination = PendingJournalDestination.VIEW_ENTRY
             compactTab = CompactTab.JOURNAL
         },
+        // Dispatch -502: the Maps tab's bubbles and the sheet opened from them offer Navigate; an entry map's do not.
+        onNavigateToWaypoint = onNavigateToWaypoint?.let { startWaypointNavigation },
     )
 
     // J8, continuation 2026-09-28-65 (the owner: "Set it to "Changes not applied. Try again.""): a failed
@@ -1402,10 +1486,18 @@ fun AvailabilityScreen(
             isOffTrack = isOffTrack,
             compassProvider = compassProvider,
             computeTrueHeading = computeTrueHeading,
-            navigationTarget = navigationTarget,
+            navigationTarget = target,
             returnRoute = returnRoute,
             routeLine = routeLine,
             onRetryRoute = onRetryRoute,
+            waypointNavigate = WaypointNavigateControls(
+                isNavigatingToWaypoint = navigatingToWaypoint != null,
+                onNavigate = onNavigateToWaypoint?.let { startWaypointNavigation },
+                mapReopen = mapWaypointReopen,
+                onMapReopenConsumed = { mapWaypointReopen = null },
+                recordsReopenDetails = recordsWaypointReopen,
+                onRecordsReopenConsumed = { recordsWaypointReopen = null },
+            ),
             showDecimalDegrees = showDecimalDegrees,
             onToggleCoordinateFormat = { showDecimalDegrees = !showDecimalDegrees },
             navigationFollowing = !navigationFollowBroken,
@@ -1452,7 +1544,8 @@ fun AvailabilityScreen(
             onPlaceTripPin = onPlaceTripPin,
             onToggleRecording = onToggleRecording,
             onDropWaypoint = onDropWaypoint,
-            onToggleReturning = onToggleReturning,
+            // Dispatch -502: the return control and the HUD's X end a waypoint navigation first, while there is one.
+            onToggleReturning = onNavigationControl,
             onClearMapTaxonFilter = onClearMapTaxonFilter,
             onManualLatChanged = onManualLatChanged,
             onManualLngChanged = onManualLngChanged,

@@ -48,6 +48,7 @@ import com.zynergylabs.forager.app.ui.map.Basemap
 import com.zynergylabs.forager.app.ui.map.MapMode
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker
 import com.zynergylabs.forager.app.ui.map.MapSlot
+import com.zynergylabs.forager.app.ui.map.WaypointNavigationOrigin
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.LocalDate
 
@@ -308,6 +309,11 @@ internal fun JournalTab(
     findEntryModeState: MutableState<JournalEntryMode> = remember { mutableStateOf(JournalEntryMode.REPORT) },
     findOverViewState: MutableState<FindOverView?> = remember { mutableStateOf(null) },
     modifier: Modifier = Modifier,
+    /** Dispatch 2026-09-28-502: Records' Navigate on a waypoint, handed to [RecordsTab]; `null` (the default) offers none. */
+    onNavigateToWaypoint: ((WaypointNavigationOrigin) -> Unit)? = null,
+    /** Dispatch 2026-09-28-502, Amendment 1: a waypoint details sheet for [RecordsTab] to open again, once; see its parameters. */
+    reopenWaypointDetails: String? = null,
+    onReopenWaypointDetailsConsumed: () -> Unit = {},
 ) {
     // The Toast below both shows the field and immediately clears it.
     val context = LocalContext.current
@@ -754,6 +760,9 @@ internal fun JournalTab(
                     // gets out of the way while the list scrolls, with the tighter chip spacing.
                     shortWindow = shortLandscape,
                     backEnabled = backEnabled,
+                    onNavigateToWaypoint = onNavigateToWaypoint,
+                    reopenWaypointDetails = reopenWaypointDetails,
+                    onReopenWaypointDetailsConsumed = onReopenWaypointDetailsConsumed,
                     )
             }
         }
