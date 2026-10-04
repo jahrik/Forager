@@ -11542,3 +11542,13 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Continues:** 2026-09-28-504
 **The owner, verbatim,** of the four extra test changes and the coder's five calls recorded in -504: "Those calls are accepted by me".
 **Notes:** Written by the planner by hand, on branch records-after-167.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-506
+**Timestamp:** 2026-10-04T16:00:00Z
+**Decides:** the waypoint line without a fresh fix
+**Observed, as the coder reported it:** -502 built at fa5faf84 (49 new tests; 29 revert checks, one first passing because the coder's own fake store answered late, rewritten so r06b bites; full suite 446 classes, 3,630 tests, 0 failures, 24 skipped). Desk check on the S22 (1.0.2672+gfa5faf84) with the owner: Navigate from a bubble reached "Arrived", the ring, the X-circle and the tilted view; Back reopened the bubble and the next Back closed it; from a Records row to a far waypoint the dashed line appeared once a fix was found and not before; after a swipe-away the navigation came back, with no line until a fix. The owner, at the desk: "It's been there when the location is found, but doesn't appear when you can't find location". **Slip disclosed by the coder:** commit 343d8dfe's co-author line names a model; not amended (push before you tidy).
+**The owner chose, in the coder's window,** "Keep the last line, faded": once the line has been drawn, if location is lost, the last line stays faded (T7's 0.4); a fresh fix brings it back bright; right after the app opens there is no last line, so it waits for the first fix. **In the planner's window,** asked about a fix between 30 s and 5 min old, when the HUD already dims its distance: "Fade with the HUD": the line fades then too, so the map and the HUD agree.
+**Notes:** Written by the planner by hand, on branch records-after-167.
