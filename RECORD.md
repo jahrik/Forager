@@ -11263,3 +11263,16 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Decides:** which Cloudflare account holds the map service
 **The owner, verbatim:** "Zynergy-labs is on another account from the pmtiles". Told that a Worker can use a custom domain only from its own account, the owner chose "Move the map service to zynergy-labs": the Worker is redeployed and the archive copied (R2 to R2) into the zynergy-labs.com account in a later dispatch; the old Worker keeps serving until the app switches. The Pi's tunnel, DNS record, Access application and service token go in the zynergy-labs.com account now (-468 Amendment 2).
 **Notes:** Written by the planner by hand, on branch records-after-163.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-481
+**Timestamp:** 2026-10-04T05:55:00Z
+**Decides:** how the map service reaches the zynergy-labs account
+**Correction first:** the planner told the owner the archive would be copied between accounts "directly ... rather than through your home connection". As stated that was wrong: a copy between two accounts streams through the machine running it, unless Cloudflare's migration tool can read the old bucket, which was not confirmed.
+**The owner, verbatim:** "Option 3. Let's use the zynergy-labs account as the launch account and the current one can maintain status quo with the app until it gets implemented."
+- **The zynergy-labs.com account is the launch account** for Forager's map service: Worker, storage, custom domain, the Pi's tunnel and its guard.
+- **The old account keeps serving the app as it does today,** unchanged, until the new service is built and the app switched.
+- **The old archive is not copied.** The new account's storage starts with Forager's own build with trail attributes (stage 4 of `docs/plans/trail-navigation-and-own-tiles.md`). The Pi's copy of the old archive serves for testing the origin meanwhile.
+**Notes:** Written by the planner by hand, on branch records-after-163.
