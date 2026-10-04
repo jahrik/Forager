@@ -642,7 +642,7 @@ internal fun CompactMapTab(
                         // Dispatch -502: a waypoint navigation's dashed line beside the return's way back. There is no way back to
                         // draw meanwhile: the return the waypoint overrules is paused, and pausing it clears its line
                         // (TrackRecordingViewModel.stopReturn), so nothing here has to hide it.
-                        route = if (isNavigating) RouteOnMap(routeLine, arrivedAt, waypointStraightLine?.points, waypointStraightLine?.isCurrent ?: true) else null,
+                        route = if (isNavigating) RouteOnMap(routeLine, arrivedAt, waypointStraightLine?.points, waypointStraightLine?.isCurrent ?: true, waypointStraightLine?.isOffline ?: false) else null,
                         resumeTrackingRequestId = resumeTrackingRequestId,
                         resetOrientationRequestId = resetOrientationRequestId,
                         focusedObservationId = tapped.focusedObservationId,
