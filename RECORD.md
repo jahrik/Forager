@@ -11185,3 +11185,13 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **What the planner checked itself:** the app diff, read (the one-line cancel plus log lines); the full suite's XML re-counted as reported; the device logs counted (pre-463: 17 leaves, 11 cancelled; instrumented: 7 and 5; after the fix: 30 and 12); each of the 12 cancelled leaves after the fix has a new view apply 0 to 16 ms before it (the coder's report says 0 to 12; the same finding).
 **Next:** on the owner's word, a pull request; the fling finding to the owner; then -446.
 **Notes:** Written by the planner by hand, on branch records-after-162.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-474
+**Timestamp:** 2026-10-04T03:10:00Z
+**Decides:** -470's merge, and the fling after a nudge
+**The owner, verbatim:** to a pull request for -470, "Yes, PR and merge"; to the coder's finding that a quick flick-release of a small nudge can end following (inferred to be MapLibre's fling listener), "Small fix after the engine trial": a short dispatch after -446 confirms it is the fling, then keeps following for a flick under the threshold.
+**Also noted:** -446's verify-first report, accepted by the planner: valhalla-mobile 0.6.3 (bundling Valhalla 3.6.3, tiles built with pyvalhalla 3.6.3), BRouter v1.7.10 from source, Oregon data on the owner's USB drive, routes on the McKenzie River trail, Mount Hood near Zigzag, Deschutes Green Lakes and the 2026-10-03 walk's town. Wrong premise in the research, found by the coder: valhalla-mobile exposes map matching on the device (`trace_route`, `trace_attributes`), not batch only.
+**Notes:** Written by the planner by hand, on branch records-after-162.
