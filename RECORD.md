@@ -11321,3 +11321,13 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Dispatch-file:** preserved/2026-10-04-04.md; to the laptop coder, next
 **Change:** nothing in the app or on either Cloudflare account. A style source generated from a pinned `@protomaps/basemaps` with Forager's overrides in one file, self-hosted fonts and icons with their licences, a MapLibre GL JS preview against the old Worker's tiles, Maputnik steps, and a plain guide for the owner.
 **Notes:** Written by the planner by hand, on branch records-after-163.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-486
+**Timestamp:** 2026-10-04T08:30:00Z
+**Continues:** 2026-09-28-484
+**Observed:** pull request #164 (t477-merge into main: -477 with Amendment 1, records -475 to -485, dispatch -485, -468 Amendments 1 and 2) was merged as 61f2c3638491375328236026889d336a03b150b8 at 2026-10-04T06:11:56Z, on green CI at its head, read from GitHub, on the owner's "Yes, PR and merge", with backup 2026-10-04-04 of main at 6c85e436. Main's tree equals t477-merge's; its app equals the S22's 1.0.2622+g0891b7de build's source.
+**The Pi (-468), as its session reported:** steps 9 to 12 done on the owner's word: the tunnel login in the zynergy-labs.com account (redone once, the first callback having expired); tunnel `forager-origin` and the `origin.zynergy-labs.com` record; the owner's Access application ("origin", a Service Auth policy including the `forager-worker` service token) and the token's values in a root-only file on the Pi; `forager-tunnel.service` running as `forager-tiles`, 4 connections over QUIC. The paired check: without the token 403 from Access on `/us.json` and a z5 tile; with it 200, the tile byte-identical to the Pi's local copy once both were decompressed; the TileJSON advertises `tiles.zynergy-labs.com`. cloudflared's IPv4 prechecks failed while all connections registered over IPv6: an observation for the Worker part. Next on the Pi: security steps 14 to 16, a reboot test, the report.
+**Notes:** Written by the planner by hand, on branch records-after-164.
