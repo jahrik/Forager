@@ -11195,3 +11195,12 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **The owner, verbatim:** to a pull request for -470, "Yes, PR and merge"; to the coder's finding that a quick flick-release of a small nudge can end following (inferred to be MapLibre's fling listener), "Small fix after the engine trial": a short dispatch after -446 confirms it is the fling, then keeps following for a flick under the threshold.
 **Also noted:** -446's verify-first report, accepted by the planner: valhalla-mobile 0.6.3 (bundling Valhalla 3.6.3, tiles built with pyvalhalla 3.6.3), BRouter v1.7.10 from source, Oregon data on the owner's USB drive, routes on the McKenzie River trail, Mount Hood near Zigzag, Deschutes Green Lakes and the 2026-10-03 walk's town. Wrong premise in the research, found by the coder: valhalla-mobile exposes map matching on the device (`trace_route`, `trace_attributes`), not batch only.
 **Notes:** Written by the planner by hand, on branch records-after-162.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-475
+**Timestamp:** 2026-10-04T03:30:00Z
+**Continues:** 2026-09-28-474
+**Observed:** pull request #163 (t470-merge into main: -470 and records -471 to -474) was merged as 6c85e436fbe45b439d6bae176161456359003938 at 2026-10-04T02:55:38Z, on green CI at its head, read from GitHub, on the owner's "Yes, PR and merge", with backup 2026-10-04-03 of main at 7c072bfc. Main's tree equals t470-merge's.
+**Notes:** Written by the planner by hand, on branch records-after-163.
