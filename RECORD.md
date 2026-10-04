@@ -11114,3 +11114,15 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Observed:** pull request #161 (t451-merge into main: -451, the own-tiles survey, dispatch -463 and records -463 to -466) was merged as 88a5b785fdc75a3592a8a95f5963be94dd2994dd at 2026-10-04T00:08:37Z, on green CI at its head, read from GitHub, on the owner's "Yes merge it", with backup 2026-10-04-01 of main at bdb27f03. Main's tree equals t451-merge's.
 **The owner on the Pi:** it has its OS installed and no SSH yet; the domain is on Cloudflare; the hands-on setup is a coder session's. Then: "I have claude code installed on it, is that fine?" The planner's recommendation: the Pi's own Claude Code does the setup from a dispatch in the repository, with the owner relaying, and SSH from the laptop is enabled so the planner can check the Pi read-only. Waiting on the Pi's address, username and the domain.
 **Notes:** Written by the planner by hand, on branch records-after-161.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-468
+**Timestamp:** 2026-10-04T00:30:00Z
+**Title:** pi-origin, part 1: the Raspberry Pi 5 as Forager's tile origin, behind a Cloudflare Tunnel, serving the current archive locally
+**Dispatch-file:** preserved/2026-10-04-01.md; to a Claude Code session on the Pi, the owner relaying
+**The owner, verbatim:** "Set up the RPI5 as server and cloudflare as backup" (-466); "Claude code is running on the Pi now under the folder/Forager".
+**Change:** none to the app or the production Worker. Report first; then, each step on the owner's word: `pmtiles serve` on localhost from a verified copy of `us.pmtiles`, a Cloudflare Tunnel exposing only it at a hostname on the owner's domain, both as systemd services under a non-root user. No secrets in the repository.
+**Finish line:** the report-first message, the steps on the owner's word, the report on branch pi-origin, the hand-back through the owner.
+**Notes:** Written by the planner by hand, on branch records-after-161.
