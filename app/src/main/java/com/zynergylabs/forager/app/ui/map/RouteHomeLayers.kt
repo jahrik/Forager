@@ -103,8 +103,8 @@ internal fun routeHomeFeatureCollections(route: RouteOnMap?): Map<String, Featur
     return mapOf(
         RouteHomeIds.PASSED_SOURCE to lineCollection(line?.atReturn),
         RouteHomeIds.AHEAD_SOURCE to lineCollection(line?.ahead?.takeIf { arrivedAt == null }),
-        RouteHomeIds.STRAIGHT_SOURCE to lineCollection(route?.straight?.takeIf { arrivedAt == null }),
-        RouteHomeIds.STRAIGHT_OFFLINE_SOURCE to lineCollection(null),
+        RouteHomeIds.STRAIGHT_SOURCE to lineCollection(route?.straight?.takeIf { arrivedAt == null && !route.straightOffline }),
+        RouteHomeIds.STRAIGHT_OFFLINE_SOURCE to lineCollection(route?.straight?.takeIf { arrivedAt == null && route.straightOffline }),
         RouteHomeIds.ARRIVED_SOURCE to FeatureCollection.fromFeatures(
             listOfNotNull(arrivedAt?.let { Feature.fromGeometry(Point.fromLngLat(it.lng, it.lat)) }),
         ),
@@ -135,7 +135,7 @@ private fun lineCollection(points: List<LatLng>?): FeatureCollection =
  */
 internal fun addRouteHomeLayers(style: Style, palette: MapPalette, density: Float, aboveLineLayerId: String, aboveMarkerLayerId: String) {
     val night = palette == MapPalette.NIGHT
-    listOf(RouteHomeIds.PASSED_SOURCE, RouteHomeIds.AHEAD_SOURCE, RouteHomeIds.STRAIGHT_SOURCE, RouteHomeIds.ARRIVED_SOURCE).forEach {
+    listOf(RouteHomeIds.PASSED_SOURCE, RouteHomeIds.AHEAD_SOURCE, RouteHomeIds.STRAIGHT_SOURCE, RouteHomeIds.STRAIGHT_OFFLINE_SOURCE, RouteHomeIds.ARRIVED_SOURCE).forEach {
         if (style.getSource(it) == null) style.addSource(GeoJsonSource(it, FeatureCollection.fromFeatures(emptyList())))
     }
     style.addImage(RouteHomeIds.ARRIVED_IMAGE, arrivedRingImage(if (night) ROUTE_AHEAD_COLOUR_NIGHT else ROUTE_AHEAD_COLOUR_DAY, density))
@@ -164,6 +164,14 @@ internal fun addRouteHomeLayers(style: Style, palette: MapPalette, density: Floa
         PropertyFactory.lineDasharray(STRAIGHT_DASHES),
         PropertyFactory.lineCap(Property.LINE_CAP_BUTT),
     )
+    // Dispatch -502: the line kept once location is lost, grey (the owner: "An offline grey color will work"), the
+    // passed way back's grey at full opacity so it still shows over a pale map. Provisional.
+    val straightOffline = LineLayer(RouteHomeIds.STRAIGHT_OFFLINE_LAYER, RouteHomeIds.STRAIGHT_OFFLINE_SOURCE).withProperties(
+        PropertyFactory.lineColor(if (night) ROUTE_PASSED_COLOUR_NIGHT else ROUTE_PASSED_COLOUR_DAY),
+        PropertyFactory.lineWidth(STRAIGHT_WIDTH_DP),
+        PropertyFactory.lineDasharray(STRAIGHT_DASHES),
+        PropertyFactory.lineCap(Property.LINE_CAP_BUTT),
+    )
     val ring = SymbolLayer(RouteHomeIds.ARRIVED_LAYER, RouteHomeIds.ARRIVED_SOURCE).withProperties(
         PropertyFactory.iconImage(RouteHomeIds.ARRIVED_IMAGE),
         PropertyFactory.iconAllowOverlap(true),
@@ -173,6 +181,7 @@ internal fun addRouteHomeLayers(style: Style, palette: MapPalette, density: Floa
     style.addLayerAbove(aheadCasing, RouteHomeIds.PASSED_LAYER)
     style.addLayerAbove(ahead, RouteHomeIds.AHEAD_CASING_LAYER)
     style.addLayerAbove(straight, RouteHomeIds.AHEAD_LAYER)
+    style.addLayerAbove(straightOffline, RouteHomeIds.STRAIGHT_LAYER)
     style.addLayerAbove(ring, aboveMarkerLayerId)
 }
 

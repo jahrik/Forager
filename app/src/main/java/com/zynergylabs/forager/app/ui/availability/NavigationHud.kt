@@ -472,8 +472,9 @@ internal data class StraightLine(val points: List<LatLng>, val isCurrent: Boolea
  * - A fresh fix (under 30 s): the line from it ([straightLineToTarget]), current.
  * - A stale fix (30 s to 5 min, the HUD's dimmed distance): the line from it, faded.
  * - Arrived (on a fix that is not lost): none; the line ends there, as before.
- * - No fix, or a lost one (the HUD's "No fix for N min"): [previous] kept, faded, if it was drawn to this
- *   [target]; none if nothing was drawn yet, as when the app has just opened.
+ * - No fix, or a lost one (the HUD's "No fix for N min"): [previous] kept, grey ([StraightLine.isOffline];
+ *   the owner, at the desk check: "Grey once location is lost"), if it was drawn to this [target]; none if
+ *   nothing was drawn yet, as when the app has just opened.
  */
 internal fun nextStraightLine(previous: StraightLine?, liveFix: LocationFix.Update?, target: Waypoint, nowEpochMillis: Long): StraightLine? {
     straightLineToTarget(liveFix, target, nowEpochMillis)?.let { points ->
@@ -482,7 +483,8 @@ internal fun nextStraightLine(previous: StraightLine?, liveFix: LocationFix.Upda
     }
     val lost = liveFix == null || fixFreshness(liveFix.ageMillis(nowEpochMillis)) == FixFreshness.LOST
     if (!lost) return null
-    return previous?.takeIf { it.points.lastOrNull() == LatLng(target.lat, target.lng) }?.copy(isCurrent = false)
+    // The owner, after seeing the kept line at the desk check: "Grey once location is lost": kept, it is the offline line.
+    return previous?.takeIf { it.points.lastOrNull() == LatLng(target.lat, target.lng) }?.copy(isCurrent = false, isOffline = true)
 }
 
 /**
