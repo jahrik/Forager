@@ -11513,3 +11513,13 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Decides:** T8 and T9's step path
 **The owner, verbatim:** "T8 to T9 next, I'll test it on my next walk in addition to the last checks". To the planner's step path (Navigate from the bubble, details sheet or Records, with or without a recording; the navigation view and the X-circle; Back or the X-circle ends it), each the planner's recommendation: a line to the waypoint, "A straight dashed line"; arrival, "Same as the start"; a return under way, "The return picks up again". Dispatch -502 (preserved/2026-10-04-09.md), to the laptop coder.
 **Notes:** Written by the planner by hand, on branch records-after-167.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-503
+**Timestamp:** 2026-10-04T14:40:00Z
+**Decides:** -502's open points
+**The owner, verbatim, each the planner's recommendation:** Back during a waypoint navigation, "Back to where you tapped Navigate" (one Back ends it and returns to Records or the reopened bubble or sheet); reopening after the phone closes the app, "Pick navigation back up"; entry maps, "No, only Maps, the sheet and Records".
+**Ruled by the laptop planner:** a resumed return's grey line is captured afresh; `RecordDetailsSheetTest` (:426-441) and `NavigationHudArrivedTest` (:50) change because their behaviour changed, each listed, the latter asserting "Arrived" for a waypoint with no extra arrival flag; no new start zoom from a return straight into a waypoint. -502 Amendment 1.
+**Notes:** Written by the planner by hand, on branch records-after-167.
