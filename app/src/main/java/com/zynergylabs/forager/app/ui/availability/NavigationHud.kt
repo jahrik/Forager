@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.domain.hasArrived
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -427,8 +428,15 @@ fun returnRouteOf(routeHome: RouteHome?): ReturnRoute = when (routeHome) {
 /** The large slot's words once the walker has arrived at the start (dispatch 2026-09-28-497). */
 internal const val ARRIVED_TEXT = "Arrived"
 
-/** Tests-first stub (dispatch 2026-09-28-497). */
-internal fun arrivedAtStart(liveFix: LocationFix.Update?, start: Waypoint, nowEpochMillis: Long): Boolean = false
+/**
+ * Whether the walker has arrived at [start] (dispatch 2026-09-28-497, plan task T7): a fix that is
+ * not lost, within [hasArrived]'s radius, straight line. The one rule the HUD's "Arrived" and the
+ * map's ring both read, so the two cannot disagree.
+ */
+internal fun arrivedAtStart(liveFix: LocationFix.Update?, start: Waypoint, nowEpochMillis: Long): Boolean {
+    if (liveFix == null || fixFreshness(liveFix.ageMillis(nowEpochMillis)) == FixFreshness.LOST) return false
+    return hasArrived(GeoDistance.metersBetween(LatLng(liveFix.lat, liveFix.lng), LatLng(start.lat, start.lng)), liveFix.accuracyMeters)
+}
 
 /** The large slot's words when the route is withheld: the owner's, 2026-09-12. */
 internal const val ROUTE_UNAVAILABLE_TEXT = "Unable to calculate route"
@@ -498,6 +506,9 @@ internal fun navigationReadout(
     val straightLineText = formatDistanceWithAccuracy(distanceMeters, liveFix.accuracyMeters, distanceUnit)
     val distanceText = when {
         freshness == FixFreshness.LOST -> "—"
+        // Dispatch -497: the return's arrival at the start. Only while returning (a route is given);
+        // navigation stays on until the walker ends it.
+        route != null && arrivedAtStart(liveFix, target, nowEpochMillis) -> ARRIVED_TEXT
         route == null -> straightLineText
         route is ReturnRoute.Ahead -> formatDistanceMeters(route.routeMeters, distanceUnit)
         route is ReturnRoute.Unavailable -> ROUTE_UNAVAILABLE_TEXT

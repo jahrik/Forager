@@ -848,6 +848,10 @@ fun SightingsMap(
     // after a basemap swap) — the same "rebuild content every update, regardless of why the update
     // fired" behaviour the deleted osmdroid version had in its single `update` block, split here
     // because MapLibre's own API separates "style ready" from "camera/property changed".
+    // Dispatch -497: the way back, pushed whenever it or the style changes (a new style starts empty).
+    LaunchedEffect(loadedStyle, route) {
+        loadedStyle?.let { updateRouteHomeLayers(it, route) }
+    }
     LaunchedEffect(
         loadedStyle, region, sightings, plannedTrips, focusOverride, breadcrumbPoints, waypoints, focusedObservationId,
         keptTrackPolylines, findMarkers, photoMarkers, offlineRegionCircles, showSearchCentre, cameraRequest, journalHighlights,
@@ -1332,6 +1336,14 @@ private fun initializeOverlayLayers(
         if (addedSources.add(spec.sourceId)) style.addSource(GeoJsonSource(spec.sourceId, emptyFeatureCollection()))
         layer.setProperties(*paintProperties(layerPaintFor(spec, layersState)))
         style.addLayer(layer)
+    }
+    // Dispatch -497: the way back while returning (RouteHomeLayers.kt), outside the registry as the
+    // fan-out is: its lines above every track line (the kept tracks are the registry's last line, above
+    // the live breadcrumb), below every marker; the arrival ring above the waypoints.
+    if (style.getLayer(MapLayerIds.KEPT_TRACKS) != null && style.getLayer(MapLayerIds.WAYPOINTS) != null) {
+        addRouteHomeLayers(style, palette, density, aboveLineLayerId = MapLayerIds.KEPT_TRACKS, aboveMarkerLayerId = MapLayerIds.WAYPOINTS)
+    } else {
+        Log.w(SIGHTINGS_MAP_TAG, "The kept-tracks or waypoints layer is missing; the way back is not drawn.")
     }
     // The marker fan-out's own layers, above every registry layer (FanOutLayers.kt).
     addFanOutLayers(style, palette, chromeColour, density)

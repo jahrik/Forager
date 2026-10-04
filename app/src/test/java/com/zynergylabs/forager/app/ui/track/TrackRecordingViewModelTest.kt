@@ -961,7 +961,7 @@ class TrackRecordingViewModelTest {
         val ahead = vm.uiState.value.routeHome as RouteHome.Ahead
         assertEquals("the line at Return is the first route", ahead.route, first.atReturn)
         assertEquals(ahead.routeAhead, first.ahead)
-        assertEquals(3, first.atReturn.size)
+        assertEquals("the three stored points, then the origin", 4, first.atReturn.size)
 
         advanceTimeBy(ROUTE_TICK_MILLIS)
         runCurrent()

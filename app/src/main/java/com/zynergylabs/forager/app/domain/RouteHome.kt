@@ -181,6 +181,8 @@ fun routeHome(track: Track, current: LatLng, origin: Waypoint?, previousHopBand:
         lookaheadAlongRouteMeters = alongMeters[chosen],
         aimsAtRouteEnd = chosen == last,
         pathHome = distance,
+        route = nodes,
+        routeAhead = nodes.subList(walkerPlace, nodes.size),
     )
 }
 
