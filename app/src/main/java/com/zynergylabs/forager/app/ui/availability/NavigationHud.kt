@@ -485,6 +485,9 @@ internal fun nextStraightLine(previous: StraightLine?, liveFix: LocationFix.Upda
 internal fun millisUntilFixLost(fix: LocationFix.Update?, nowEpochMillis: Long): Long? =
     fix?.let { (LOST_AFTER_MILLIS - it.ageMillis(nowEpochMillis)).coerceAtLeast(0L) }
 
+/** How long until the line next changes. */
+internal fun millisUntilFreshnessChanges(fix: LocationFix.Update?, nowEpochMillis: Long): Long? = null
+
 /** The large slot's words when the route is withheld: the owner's, 2026-09-12. */
 internal const val ROUTE_UNAVAILABLE_TEXT = "Unable to calculate route"
 
