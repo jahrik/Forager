@@ -11286,3 +11286,15 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Observed by the coder (-477):** with MapLibre's fling switched off for a release while following, 0 flings ended following in 136 releases; the flicks that still left were the drag threshold (56 to 91 dp of travel, past 48 dp).
 **The owner** chose in the coder's window "Raise the line for all drags" at "1.5 finger widths, 72 dp", and confirmed in the planner's window, verbatim "Confirmed": a nudge or flick under 72 dp springs back and keeps following (give up to 36 dp); a drag past 72 dp leaves and shows "Return to Route"; a pinch zooms and keeps following. -477 Amendment 1.
 **Notes:** Written by the planner by hand, on branch records-after-163.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-483
+**Timestamp:** 2026-10-04T07:30:00Z
+**Closes:** 2026-09-28-477 (preserved 2026-10-04-03, with Amendment 1)
+**Outcome:** completed
+**Observed:** on branch nudge-fling at 9e74e1ae, base 6c85e436, not merged; report `docs/navigation/2026-10-04-nudge-fling-report.md` with its two index rows. Seen first (1.0.2620): 10 of 45 releases while following were MapLibre flings, each ending following 1 to 2 ms later; from the bytecode, the fling fires on speed alone and the location camera sets NONE unconditionally, with no option for it. Fixed by `NudgeFlingGuard` (90f15944): MapLibre's fling is switched off for a release while following and back on at the next touch. After it, 0 flings while following in 136 releases. Amendment 1 (0891b7de): `NAVIGATION_NUDGE_THRESHOLD_DP` 48 → 72, the give cap to 36 dp; on the S22 at 1.0.2622, 70 releases while following with 0 flings, 17 flicks between 48 and 72 dp kept following, all 12 leaves drags of 89 to 211 dp; the owner: "As expected". 7 new tests; 5 revert checks; full suite 434 classes, 3,558 tests, 0 failures, 24 skipped. Noted by the coder: `NavigationGestureOptionsTest` follows the constant, so it covers the wiring, not the value; and its first log of the owner's "Keep as is", superseded by "Raise the line for all drags".
+**What the planner checked itself:** the full suite's XML re-counted as reported; revert.sh restores from a saved copy; all five revert checks with 0 compile errors and failures of their own; the app changes are three files under `ui/map/`.
+**Phone:** the S22 carries 1.0.2622+g0891b7de, this branch, not main.
+**Notes:** Written by the planner by hand, on branch records-after-163.
