@@ -11243,3 +11243,14 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Decides:** the next step for the engine choice
 **The owner, verbatim:** "One more Valhalla run first", to: re-run the trail routes with Valhalla's trail-preference settings; if it then stays on trails, Valhalla does both routing and telling which path the walker is on; if not, BRouter routes and that question is decided separately. -446 Amendment 3.
 **Notes:** Written by the planner by hand, on branch records-after-163.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-479
+**Timestamp:** 2026-10-04T05:30:00Z
+**Decides:** how the Worker reaches the Pi
+**Observed by the Pi's session (-468, before step 10):** Workers VPC supports locally-managed tunnels but Cloudflare recommends dashboard-managed ones for it, and it is in beta; a public-hostname tunnel and a VPC service are different models.
+**The owner, verbatim:** "Pi hidden behind the Worker", to: users reach `tiles.zynergy-labs.com`, which is the Worker (caching, abuse limits, fallback to R2 when the Pi is down); the Pi gets a behind-the-scenes origin hostname only the Worker can use, guarded by a Cloudflare Access service token; standard, non-beta features; the tunnel stays managed on the Pi. -468 Amendment 1.
+**Also from the Pi's run so far:** steps 1 to 7 done on the owner's word: go-pmtiles 1.31.2 (binary SHA-256 recorded; upstream publishes no checksums), rclone 1.75.1 (verified against its signed SHA256SUMS), the read-only R2 token entered by the owner, the archive copied and verified (8,817,909,309 bytes, MD5 matching R2, PMTiles v3, OSM data of 2026-08-19, Protomaps 4.15.2, the same as production), the `forager-tiles` service user, `pmtiles serve` bound to 127.0.0.1:8080 and refused from the LAN, the journal capped at 2 GB with history kept. cloudflared 2026.9.3 installed (step 8).
+**Notes:** Written by the planner by hand, on branch records-after-163.
