@@ -11523,3 +11523,13 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **The owner, verbatim, each the planner's recommendation:** Back during a waypoint navigation, "Back to where you tapped Navigate" (one Back ends it and returns to Records or the reopened bubble or sheet); reopening after the phone closes the app, "Pick navigation back up"; entry maps, "No, only Maps, the sheet and Records".
 **Ruled by the laptop planner:** a resumed return's grey line is captured afresh; `RecordDetailsSheetTest` (:426-441) and `NavigationHudArrivedTest` (:50) change because their behaviour changed, each listed, the latter asserting "Arrived" for a waypoint with no extra arrival flag; no new start zoom from a return straight into a waypoint. -502 Amendment 1.
 **Notes:** Written by the planner by hand, on branch records-after-167.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-504
+**Timestamp:** 2026-10-04T15:00:00Z
+**Continues:** 2026-09-28-503
+**Observed:** the coder stopped on a premise of -502 Amendment 1: dropping the HUD's route gate for "Arrived" changes four more existing tests (`NavigationHudReadoutTest` :208, :234, :258, :357), the straight-line HUD inside arrival's radius now reading "Arrived".
+**Ruled by the laptop planner** (-502 Amendment 2): the four change their large-slot assertion only, each listed, as -497 Amendment 2 did; no arrival flag. The coder's five calls accepted: two DataStore keys in their own file; Back's destination as saved screen state (after a swipe-away Back ends it on the map); "Stopped navigating: that waypoint was deleted." (provisional) with a loaded flag guarding against a false "deleted"; Navigate re-entering the view without a new start zoom; Navigate listed first.
+**Notes:** Written by the planner by hand, on branch records-after-167.
