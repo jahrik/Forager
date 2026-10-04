@@ -11054,3 +11054,53 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **Decides:** -457's merge, and -451's delivery outcome
 **The owner, verbatim:** to a pull request for -457, "Yes, PR and merge". To -451's question (the alert cannot report whether its notification and vibration went out, and an exception from posting them would end the service's fix collection): "Report and catch". So `AlertDelivery.deliver` returns an outcome (notification posted or the reason not, vibrated or the failure), and an exception from notify or vibrate is caught, logged and reported rather than thrown; nothing else in delivery changes.
 **Notes:** Written by the planner by hand, on branch records-after-159.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-463
+**Timestamp:** 2026-10-03T23:55:00Z
+**Continues:** 2026-09-28-462
+**Observed:** pull request #160 (t457-merge into main, head 69791942a6be085488547a20d75c32e8b912372c, on which CI passed) was merged: MERGED 2026-10-03T23:12:30Z bdb27f0393b7f5785138ee205eedfab8d40d0708, read from GitHub, on the owner's "Yes, PR and merge", with backup 2026-10-03-08 of main at cb035035. Main's tree equals t457-merge's; its app/ equals the coder's 1a68c5ca, the build on the S22.
+**The owner, verbatim:** "When nudging it add a slight elastic snap to show the user that the nudge was corrected." Told that a nudge under the threshold does not move the map today, so the map must give first, the owner chose "Give, then spring back": a nudge moves the map stiffly, about half as far as the finger; lifted before the threshold, it springs back to following with a slight overshoot in about a quarter of a second; past the threshold it leaves and shows "Return to Route" as now; a pinch zooms and keeps following. Dispatch -463 (preserved/2026-10-03-10.md), to the coder after -451.
+**Notes:** Written by the planner by hand, on branch records-after-160.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-464
+**Timestamp:** 2026-10-03T23:58:00Z
+**Continues:** 2026-09-28-461
+**Observed:** the survey's three agents reported; the planner filed `docs/plans/2026-10-03-own-tiles-survey.md` with its two index rows. In short: the tile server is one hand-made extract of 2026-08-19 (8.8 GB) with no refresh, no rate limiting, and zoom 15 fetched live from Protomaps' public host; the labelled style was never committed; the night recolour covers no text; trails need Forager's own build with a modified profile; Cloudflare costs are about $0 to $7 a month at 1,000 to 10,000 users; the Raspberry Pi 5 can build Oregon and Washington easily and plausibly the US basemap, and as serving origin would still need R2 as a fallback. Six premises of `docs/plans/own-map-tiles.md` are wrong.
+**Open for the owner:** the seven decisions at the end of the survey.
+**Notes:** Written by the planner by hand, on branch records-after-160.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-465
+**Timestamp:** 2026-10-04T00:10:00Z
+**Closes:** 2026-09-28-451 (preserved 2026-10-03-08, with the ruling of -462)
+**Outcome:** completed
+**Observed:** on branch return-record at 7f86b715, main (bdb27f03) merged in at 8db6eb3c, not merged; report `docs/navigation/2026-10-03-return-record-report.md` with its two index rows. A plain file, `filesDir/return-record.log`, 512 KB with the oldest half dropped beyond it, no positions, written by ReturnWatch through a domain-owned `ReturnRecord` interface: Return taken, refused (naming the watched recording), ended (by the walker, recording stopped, service destroyed), went off track and re-armed (each with its reading's time), and the alert's delivery outcome. Per -462, `AndroidAlertDelivery.deliverReporting` posts and vibrates each in its own try: a denial reports "POST_NOTIFICATIONS denied", an exception is logged under `AlertDelivery` and reported by class name, and the fix collection goes on. The catch covers all three alert kinds; only off-track outcomes are recorded. 15 new tests in 3 new classes, no existing test file changed; 14 revert checks; full suite on the merge 430 classes, 3,537 tests, 0 failures, 24 skipped (3,522 + 15).
+**What the planner checked itself:** the app diff, read; both full-suite XMLs re-counted as reported; revert.sh restores from a saved copy; all 14 revert checks with 0 compile errors and failures of their own.
+**Flag, not a fault:** a Return tap writes its line from the main thread (a small file append); harmless at this size, noted for the record.
+**Device-only:** the file on the phone, read with `adb shell run-as com.zynergylabs.forager.app cat files/return-record.log`.
+**Next:** on the owner's word, a pull request; then -463.
+**Notes:** Written by the planner by hand, on branch records-after-160.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-466
+**Timestamp:** 2026-10-04T00:20:00Z
+**Decides:** the seven decisions of `docs/plans/2026-10-03-own-tiles-survey.md`
+**The owner, verbatim:** "I'll take your recommendations from 1 to 7. Set up the RPI5 as server and cloudflare as backup".
+1. **The Pi's role:** the owner's explicit instruction stands over the planner's recommendation (builder, with R2 serving): the Raspberry Pi 5 is the serving origin, and Cloudflare (R2 behind the Worker) is the backup. The survey's points carry: Cloudflare Tunnel with no open ports, a cache in front, and the R2 copy kept current so the Worker can serve when the Pi or the home connection is down.
+2. A custom domain for the tile server, so Cloudflare's edge cache works properly.
+3. Forager's own map build with trail attributes, not extracts of Protomaps' build.
+4. Zoom 15 built by Forager, ending the live dependency on Protomaps' public host.
+5. US-only coverage to start; the Street basemap becomes US-only.
+6. Topo: OpenTopoMap stays for now; Forager's own contours and hillshade from USGS 3DEP come later.
+7. A device check that a labelled vector map renders online on MapLibre 13.5.0 without the old crash, before any online switch.
+**Notes:** Written by the planner by hand, on branch records-after-160.

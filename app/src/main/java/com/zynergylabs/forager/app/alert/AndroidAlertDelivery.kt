@@ -11,12 +11,14 @@ import android.os.VibrationAttributes
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.zynergylabs.forager.app.R
 import com.zynergylabs.forager.app.domain.Alert
 import com.zynergylabs.forager.app.domain.AlertDelivery
+import com.zynergylabs.forager.app.domain.AlertDeliveryOutcome
 import com.zynergylabs.forager.app.domain.AlertKind
 
 /**
@@ -38,7 +40,15 @@ import com.zynergylabs.forager.app.domain.AlertKind
  * owner-accepted cost: any per-channel adjustment a user made to the old channel is gone, and
  * Android lists one deleted category in the app's notification settings.
  */
-class AndroidAlertDelivery(context: Context) : AlertDelivery {
+class AndroidAlertDelivery internal constructor(
+    context: Context,
+    /** Posts the alert's notification; `false` when it could not (POST_NOTIFICATIONS denied). A seam for tests. */
+    private val postNotification: (Context, Alert) -> Boolean,
+    /** Issues the alert's vibration. A seam for tests. */
+    private val vibrate: (Context, Boolean) -> Unit,
+) : AlertDelivery {
+    constructor(context: Context) : this(context, ::postNotificationFor, ::vibrateForAlert)
+
     private val appContext = context.applicationContext
 
     init {
@@ -47,21 +57,46 @@ class AndroidAlertDelivery(context: Context) : AlertDelivery {
     }
 
     override fun deliver(alert: Alert) {
-        when (alert.kind) {
-            AlertKind.OFF_TRACK -> {
-                postOffTrackNotification(appContext)
-                vibrateForAlert(appContext, overridesSilence = alert.overridesSilence)
-            }
-            AlertKind.TURNAROUND -> {
-                postSundownNotification(appContext, SundownNotification.TURNAROUND)
-                vibrateForAlert(appContext, overridesSilence = alert.overridesSilence)
-            }
-            AlertKind.SUNSET -> {
-                postSundownNotification(appContext, SundownNotification.SUNSET)
-                vibrateForAlert(appContext, overridesSilence = alert.overridesSilence)
-            }
-        }
+        deliverReporting(alert)
     }
+
+    /**
+     * The notification, then the vibration, each on its own: a failure of one does not stop the
+     * other (dispatch 2026-09-28-451; the owner: "Report and catch"). An exception from either is
+     * caught, logged and reported, never thrown. Before this it propagated into the recording
+     * service's fix collection, which it ended. What is posted and vibrated is unchanged.
+     */
+    override fun deliverReporting(alert: Alert): AlertDeliveryOutcome {
+        var notificationProblem: String? = null
+        val posted = try {
+            postNotification(appContext, alert).also { if (!it) notificationProblem = "POST_NOTIFICATIONS denied" }
+        } catch (e: Exception) {
+            Log.w(TAG, "The ${alert.kind} alert's notification could not be posted.", e)
+            notificationProblem = e::class.simpleName
+            false
+        }
+        var vibrationProblem: String? = null
+        val vibrated = try {
+            vibrate(appContext, alert.overridesSilence)
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "The ${alert.kind} alert's vibration could not be issued.", e)
+            vibrationProblem = e::class.simpleName
+            false
+        }
+        return AlertDeliveryOutcome(posted, notificationProblem, vibrated, vibrationProblem)
+    }
+
+    private companion object {
+        const val TAG = "AlertDelivery"
+    }
+}
+
+/** The notification for [alert]'s kind; `false` when it could not be posted. */
+internal fun postNotificationFor(context: Context, alert: Alert): Boolean = when (alert.kind) {
+    AlertKind.OFF_TRACK -> postOffTrackNotification(context)
+    AlertKind.TURNAROUND -> postSundownNotification(context, SundownNotification.TURNAROUND)
+    AlertKind.SUNSET -> postSundownNotification(context, SundownNotification.SUNSET)
 }
 
 internal const val OFF_TRACK_CHANNEL_ID = "off_track_alert_v2"
@@ -96,11 +131,11 @@ internal fun createOffTrackNotificationChannel(context: Context) {
  * crash, and the vibration (a different, install-time VIBRATE permission) still runs. The user is
  * told about a denial once, at trip start — see `alertAudibilityWarning`.
  */
-internal fun postOffTrackNotification(context: Context) {
+internal fun postOffTrackNotification(context: Context): Boolean {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
     ) {
-        return
+        return false
     }
     val notification = NotificationCompat.Builder(context, OFF_TRACK_CHANNEL_ID)
         .setContentTitle(context.getString(R.string.off_track_notification_title))
@@ -110,6 +145,7 @@ internal fun postOffTrackNotification(context: Context) {
         .setAutoCancel(true)
         .build()
     NotificationManagerCompat.from(context).notify(OFF_TRACK_NOTIFICATION_ID, notification)
+    return true
 }
 
 /** VIBRATE is a normal (install-time) permission — declared in AndroidManifest.xml, no runtime check needed. */
@@ -190,11 +226,11 @@ internal fun createSundownNotificationChannel(context: Context) {
  * Best-effort, the same stance [postOffTrackNotification] takes: a POST_NOTIFICATIONS denial means
  * no notification, not a crash, and the vibration still runs on its install-time permission.
  */
-internal fun postSundownNotification(context: Context, which: SundownNotification) {
+internal fun postSundownNotification(context: Context, which: SundownNotification): Boolean {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
     ) {
-        return
+        return false
     }
     val title = when (which) {
         SundownNotification.TURNAROUND -> R.string.sundown_turnaround_notification_title
@@ -212,4 +248,5 @@ internal fun postSundownNotification(context: Context, which: SundownNotificatio
         .setAutoCancel(true)
         .build()
     NotificationManagerCompat.from(context).notify(SUNDOWN_NOTIFICATION_ID, notification)
+    return true
 }

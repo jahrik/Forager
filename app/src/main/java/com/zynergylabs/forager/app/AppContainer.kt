@@ -58,6 +58,8 @@ import com.zynergylabs.forager.app.domain.AlertDelivery
 import com.zynergylabs.forager.app.domain.AbandonedTrackSweepOnce
 import com.zynergylabs.forager.app.domain.EndAbandonedTracksUseCase
 import com.zynergylabs.forager.app.domain.ReturnWatch
+import com.zynergylabs.forager.app.data.diagnostics.FileReturnRecord
+import com.zynergylabs.forager.app.data.diagnostics.RETURN_RECORD_FILE_NAME
 import com.zynergylabs.forager.app.domain.ComputeReturnToStartUseCase
 import com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCase
 import com.zynergylabs.forager.app.domain.CartographyEntryRepository
@@ -326,7 +328,9 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     // The off-track decision and its state, held here so they outlive the Activity (dispatch
     // 2026-09-28-400, Amendment 2). TrackRecordingService begins, feeds and ends it;
     // TrackRecordingViewModel calls it for Return and copies its state. See ReturnWatch.
-    val returnWatch = ReturnWatch(computeReturnToStartUseCase, alertDelivery)
+    // Dispatch 2026-09-28-451: the lasting record of Returns and off-track decisions, a file in app storage.
+    val returnRecord = FileReturnRecord(java.io.File(context.filesDir, RETURN_RECORD_FILE_NAME), currentTimeProvider)
+    val returnWatch = ReturnWatch(computeReturnToStartUseCase, alertDelivery, returnRecord)
 
     // Tracks an earlier process left open become finished tracks (dispatch 2026-09-28-400,
     // Amendment 3, Part 3b). The rule is the use case's; AbandonedTrackSweepOnce runs it once per

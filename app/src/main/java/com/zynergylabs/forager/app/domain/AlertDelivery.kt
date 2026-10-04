@@ -78,4 +78,25 @@ data class Alert(
  */
 fun interface AlertDelivery {
     fun deliver(alert: Alert)
+
+    /**
+     * The same delivery, saying what happened (dispatch 2026-09-28-451; the owner chose "Report
+     * and catch"). `null` from a delivery that cannot say, which is every one but the Android one.
+     */
+    fun deliverReporting(alert: Alert): AlertDeliveryOutcome? {
+        deliver(alert)
+        return null
+    }
 }
+
+/**
+ * What an alert's delivery did: whether its notification was posted and its vibration issued, and
+ * if not, why ([notificationProblem], [vibrationProblem]: a permission denied, or the exception's
+ * class). For the Return record; nothing a walker sees.
+ */
+data class AlertDeliveryOutcome(
+    val notificationPosted: Boolean,
+    val notificationProblem: String?,
+    val vibrated: Boolean,
+    val vibrationProblem: String?,
+)
