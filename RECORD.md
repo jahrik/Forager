@@ -11149,3 +11149,12 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **The owner, verbatim:** to a pull request for -463, "Yes, PR and merge"; to fixing Stop leaving the map tilted before the engine spike, "Fix it first". Dispatch -470 (preserved/2026-10-04-02.md), to the coder next, before -446.
 **Correction to -469:** it says the branch "merges with main without conflicts". The app code merges without conflicts; the two index files (`docs/audits/README.md`, `docs/navigation/README.md`) conflict, and are resolved keeping every row.
 **Notes:** Written by the planner by hand, on branch records-after-161.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-471
+**Timestamp:** 2026-10-04T01:20:00Z
+**Continues:** 2026-09-28-470
+**Observed:** pull request #162 (t463-merge into main: -463 with main's -451 merged in, records -467 to -470, dispatches -468 and -470) was merged as 7c072bfc1569b70b6d790407f48aaba40b0030ca at 2026-10-04T01:13:20Z, on green CI at its head, read from GitHub, on the owner's "Yes, PR and merge", with backup 2026-10-04-02 of main at 88a5b785. Main's tree equals t463-merge's. The S22 carries 1.0.2590+g4f4ff93a, -463's desk build without -451; main now has both.
+**Notes:** Written by the planner by hand, on branch records-after-162.
