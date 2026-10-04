@@ -53,6 +53,7 @@ package com.zynergylabs.forager.app.ui.availability
 // behaviour change." The getter pattern and the ResultsTab widening are the planner's rulings on
 // this build's two stops, quoted in RECORD.md intent 2026-09-27-21.
 
+import com.zynergylabs.forager.app.domain.RouteLine
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.map.MapKeepOutIds
 import com.zynergylabs.forager.app.ui.map.mapKeepOut
@@ -231,6 +232,7 @@ internal fun CompactMainScaffold(
     computeTrueHeading: ComputeTrueHeadingUseCase,
     navigationTarget: Waypoint?,
     returnRoute: ReturnRoute,
+    routeLine: RouteLine?,
     onRetryRoute: () -> Unit,
     showDecimalDegrees: Boolean,
     onToggleCoordinateFormat: () -> Unit,
@@ -991,6 +993,7 @@ internal fun CompactMainScaffold(
                                 computeTrueHeading = computeTrueHeading,
                                 navigationTarget = navigationTarget,
                                 returnRoute = returnRoute,
+                                routeLine = routeLine,
                                 onRetryRoute = onRetryRoute,
                                 showDecimalDegrees = showDecimalDegrees,
                                 onToggleCoordinateFormat = onToggleCoordinateFormat,

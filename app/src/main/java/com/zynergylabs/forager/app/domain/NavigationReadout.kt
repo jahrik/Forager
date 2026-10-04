@@ -45,6 +45,11 @@ fun isApproaching(distanceMeters: Double, accuracyMeters: Float?): Boolean {
 
 const val APPROACHING_ACCURACY_MULTIPLIER = 2.0
 
+/** Tests-first stub (dispatch 2026-09-28-497). */
+fun hasArrived(distanceMeters: Double, accuracyMeters: Float?): Boolean = false
+
+const val ARRIVAL_MIN_RADIUS_METERS = 15.0
+
 /**
  * How the HUD treats the fix's age — HUD only, by the foundations dispatch's own rule that no
  * staleness policy lives anywhere else in the app. Thresholds are an owner-approved starting
