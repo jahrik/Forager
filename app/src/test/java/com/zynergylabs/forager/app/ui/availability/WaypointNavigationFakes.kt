@@ -17,8 +17,12 @@ internal class InMemoryWaypointNavigation(var stored: WaypointNavigation? = null
     var failWrites = false
 
     override suspend fun getCurrent(): Result<WaypointNavigation?> {
+        // What was kept when the read began: a write landing while it waits does not change what it returns. Reading
+        // [stored] after the gate instead let a late read return the walker's fresh choice, so the stale-read test could
+        // not fail (revert r06, dispatch -502).
+        val kept = stored
         readGate?.await()
-        return if (failReads) Result.failure(IllegalStateException("read refused")) else Result.success(stored)
+        return if (failReads) Result.failure(IllegalStateException("read refused")) else Result.success(kept)
     }
 
     override suspend fun setCurrent(navigation: WaypointNavigation?): Result<Unit> {
