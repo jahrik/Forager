@@ -458,6 +458,26 @@ class AvailabilityScreenWaypointNavigateTest {
         assertTrue("current again", map.content!!.route!!.straightIsCurrent)
     }
 
+    /** The owner's "Fade with the HUD" (relayed by the planner, RECORD -506): a fix 30 s to 5 min old draws the line from it, faded. */
+    @Test
+    fun `a stale fix draws the line from it, faded, while the HUD dims its distance, and a fresh fix brings both back`() {
+        setScreen()
+        openBubble()
+        touchCentreOf(MAP_BUBBLE_NAVIGATE_TAG)
+
+        // A minute old: stale, not lost.
+        composeRule.runOnIdle { fix = southOfCreek(400.0).copy(timestampEpochMillis = t - 60_000L) }
+        composeRule.waitForIdle()
+
+        assertEquals("from the stale fix", listOf(LatLng(fix.lat, fix.lng), LatLng(creek.lat, creek.lng)), map.content!!.route!!.straight)
+        assertFalse("faded with the HUD", map.content!!.route!!.straightIsCurrent)
+
+        composeRule.runOnIdle { fix = southOfCreek(300.0) }
+        composeRule.waitForIdle()
+
+        assertTrue("current again", map.content!!.route!!.straightIsCurrent)
+    }
+
     @Test
     fun `picked back up with no fix yet, there is no line until the first fix`() {
         store.stored = WaypointNavigation("wp-1", resumesReturn = false)

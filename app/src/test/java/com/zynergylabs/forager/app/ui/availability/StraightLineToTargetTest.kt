@@ -68,6 +68,7 @@ class StraightLineToTargetTest {
     fun `a fresh fix brings it back current, from the new fix`() {
         val kept = StraightLine(lineFrom(fix(500.0)), isCurrent = false)
         val fresh = fix(300.0, at = sixMinutesLater)
+        // One second old: fresh, so current.
         assertEquals(StraightLine(lineFrom(fresh), isCurrent = true), nextStraightLine(kept, fresh, creek, sixMinutesLater + 1_000L))
     }
 
@@ -89,10 +90,31 @@ class StraightLineToTargetTest {
         assertNull(nextStraightLine(toOak, null, creek, sixMinutesLater))
     }
 
+    // ── The owner's "Fade with the HUD" (relayed by the planner, RECORD -506): the line fades when the HUD dims its
+    // distance, from 30 s, as well as once the fix is lost. One test at each boundary. ──
+
     @Test
-    fun `how long until a fix is lost, so the line can fade at that moment`() {
-        assertEquals(4 * 60_000L, millisUntilFixLost(fix(500.0), t + 60_000L))
-        assertEquals("already lost", 0L, millisUntilFixLost(fix(500.0), sixMinutesLater))
-        assertNull("no fix, nothing to wait for", millisUntilFixLost(null, t))
+    fun `at the 30 s boundary - just before it the line is current, at it the line fades, from the same fix`() {
+        val from = fix(500.0)
+        assertEquals(StraightLine(lineFrom(from), isCurrent = true), nextStraightLine(null, from, creek, t + 29_999L))
+        assertEquals(StraightLine(lineFrom(from), isCurrent = false), nextStraightLine(null, from, creek, t + 30_000L))
+    }
+
+    @Test
+    fun `at the 5 min boundary - just before it the line is from the stale fix, faded, at it the line kept from before, faded`() {
+        val before = StraightLine(lineFrom(fix(500.0)), isCurrent = true)
+        val stale = fix(300.0, at = t)
+        assertEquals(StraightLine(lineFrom(stale), isCurrent = false), nextStraightLine(before, stale, creek, t + 5 * 60_000L - 1L))
+        assertEquals(StraightLine(lineFrom(fix(500.0)), isCurrent = false), nextStraightLine(before, stale, creek, t + 5 * 60_000L))
+    }
+
+    @Test
+    fun `how long until the line next changes, so it can fade at that moment with no new fix to prompt it`() {
+        // Dispatch -502 changed this own new test (Amendment of RECORD -506): it was "how long until a fix is lost", for the
+        // one moment the line faded; with "Fade with the HUD" it fades at 30 s too, so the wait is to whichever is next.
+        assertEquals("fresh, 10 s old: 20 s to stale", 20_000L, millisUntilFreshnessChanges(fix(500.0), t + 10_000L))
+        assertEquals("stale, 1 min old: 4 min to lost", 4 * 60_000L, millisUntilFreshnessChanges(fix(500.0), t + 60_000L))
+        assertNull("lost: nothing more to wait for", millisUntilFreshnessChanges(fix(500.0), sixMinutesLater))
+        assertNull("no fix, nothing to wait for", millisUntilFreshnessChanges(null, t))
     }
 }
