@@ -1,16 +1,31 @@
-# The Raspberry Pi 5 as Forager's tile origin: Part 1, the report
+# The Raspberry Pi 5 as Forager's tile origin: Part 1
 
-Dispatch `prompts/preserved/2026-10-04-01.md` (its title reads "Dispatch 2026-09-28-468";
-see Premises below). Part 1 is report-only: establish what the Pi is, what runs on it, what is
-installed, and the plan for the target — changing nothing. Run by a Claude Code session on the Pi
-itself, model `claude-opus-5[1m]` (Opus 5, 1M context).
+Dispatch `prompts/preserved/2026-10-04-01.md` (titled "Dispatch 2026-09-28-468"), with **Amendment 1**
+(the Pi hidden behind the Worker, an Access-protected origin hostname) and **Amendment 2** (two
+Cloudflare accounts; everything for this part on the `zynergy-labs.com` account). Run by a Claude
+Code session on the Pi itself, model `claude-opus-5[1m]` (Opus 5, 1M context). Reasoning effort is
+not exposed to the session and so is not stated.
 
-Written against `main` at `88a5b785`, which is the base the dispatch states it assumes and the
-commit `origin/main` carried when this was written — verified, no drift (`CLAUDE.md`, "A planner's
-picture of the repository is a claim about the past").
+Base `main` at `88a5b785`, which is the commit the dispatch states it assumes and the commit
+`origin/main` carried when this branch was cut. `origin/main` has since advanced to `61f2c363`,
+which includes both amendments and **three new rows in `docs/audits/README.md`** — a merge conflict
+is expected there and must be resolved by keeping every row (`CLAUDE.md`, serialization point).
 
-No addresses, credentials, tokens or key material appear in this document. The Pi's `wlan0` holds a
-globally-routable IPv6 address as well as a private LAN IPv4; both are omitted, as the home IP is.
+**This report contains no addresses, credentials, tokens, tunnel IDs or key material.** The Pi's
+`wlan0` carries a globally-routable IPv6 address as well as a private LAN IPv4; both are omitted, as
+the home IP is. The tunnel UUID, the Cloudflare zone certificate, the R2 credentials and the Access
+service token appear nowhere here.
+
+## Summary
+
+Part 1's target is met. The archive is on the Pi's NVMe, verified byte-for-byte against R2. A pinned
+`pmtiles serve` serves it on localhost only. A pinned `cloudflared` reaches Cloudflare outbound-only
+over QUIC, with no inbound port opened and no firewall change. `origin.zynergy-labs.com` is live and
+refused to everyone except the holder of one Access service token. Both services run as a non-root
+system user with bounded logs and restart-on-failure. The app and the Worker were not touched.
+
+Not yet done: the reboot test, SSH password authentication (deliberately left on), and automatic
+security updates. All three are recorded under "What remains".
 
 ## 1. The Pi
 
@@ -24,221 +39,357 @@ globally-routable IPv6 address as well as a private LAN IPv4; both are omitted, 
 | RAM | 7.9 GiB total, 6.7 GiB available; swap 199 MiB | `free -h`, `/etc/dphys-swapfile` |
 | CPU | 4x Cortex-A76, max 2400 MHz, observed 2.400 GHz | `lscpu`, `vcgencmd measure_clock arm` |
 | Temperature at idle | 47.7 C, load average 0.00 / 0.04 / 0.21 | `vcgencmd measure_temp`, `uptime` |
-| Power state | `throttled=0x0` — no under-voltage, no frequency cap, no throttling, none since boot | `vcgencmd get_throttled` |
-| Uptime | 18 days, 2:54 | `uptime` |
-| Boot device | NVMe. `/` is `/dev/nvme0n1p2`; `BOOT_ORDER=0xf416` | `findmnt`, `lsblk`, `vcgencmd bootloader_config` |
+| Power state | `throttled=0x0` — no under-voltage, no cap, no throttling, none since boot | `vcgencmd get_throttled` |
+| Uptime before this work | 18 days | `uptime` |
+| Boot device | **NVMe.** `/` is `/dev/nvme0n1p2`; `BOOT_ORDER=0xf416` | `findmnt`, `lsblk`, `vcgencmd bootloader_config` |
 | NVMe | FIKWOT FN501Pro 256GB, 238.5 G | `lsblk` |
-| Free disk | `/` 234 G total, 52 G used, **170 G available** (24% used) | `df -h` |
-| Second volume | `/dev/mmcblk0p1`, 119.4 G **SD card** at `/mnt/archive`, 111 G free, 24 K used | `lsblk`, `df -h` |
-| Network | **Wi-Fi.** `wlan0` up, default route via `wlan0` (DHCP). `eth0` is down, no carrier (`speed -1`, `carrier 0`) | `ip -br addr`, `ip route`, `/sys/class/net/*` |
+| Free disk | `/` 234 G total, **170 G available** before the archive, ~162 G after | `df -h` |
+| Second volume | `/dev/mmcblk0p1`, 119.4 G **SD card** at `/mnt/archive`, 111 G free, unused | `lsblk`, `df -h` |
+| Network | **Wi-Fi.** `wlan0` up, default route via `wlan0`. `eth0` **down, no carrier** | `ip -br addr`, `ip route`, `/sys/class/net/*` |
 
-**What already runs.** Listening sockets (`ss -tulpn`, as root):
+**What already ran**, before this work (`ss -tulpn`, as root): `sshd` on `0.0.0.0:22` and `[::]:22`
+(**not** localhost); `cupsd` on `127.0.0.1:631` and `[::1]:631` (localhost only); `avahi-daemon` on
+`0.0.0.0:5353` and ephemeral UDP ports (**not** localhost); `NetworkManager`'s DHCPv6 client on a
+link-local address. 32 enabled services, no failed units.
 
-| Proto | Bind | Process | Localhost only? |
-|---|---|---|---|
-| tcp | `0.0.0.0:22`, `[::]:22` | `sshd` | **No** |
-| tcp | `127.0.0.1:631`, `[::1]:631` | `cupsd` | Yes |
-| udp | `0.0.0.0:5353`, `*:5353`, + ephemeral 49458/51723 | `avahi-daemon` | **No** |
-| udp | link-local `:546` | `NetworkManager` (DHCPv6 client) | Link-local |
+**This is a desktop image, not a server image** — `lightdm`, `cups`, `cups-browsed`, `bluetooth`,
+`ModemManager`, `wayvnc-control`, `triggerhappy` and `avahi-daemon` are all enabled. The owner ruled
+to leave them.
 
-32 enabled services, no failed units. This is a **desktop image, not a server image**: `lightdm`,
-`cups`, `cups-browsed`, `bluetooth`, `ModemManager`, `wayvnc-control`, `triggerhappy` and
-`avahi-daemon` are all enabled. No tile-, `pmtiles`- or `cloudflared`-related unit exists.
+## 2. Security baseline as found
 
-## 2. Security baseline
+- **Claude Code runs as `bwann83`** (uid 1000), in `sudo` among other groups, with
+  `sudo -n -l` reporting `(ALL) NOPASSWD: ALL` — unrestricted, password-free root. Recorded because
+  it means nothing on the Pi mechanically enforces the owner's step-by-step consent rule; the gate
+  is the session's compliance, not permissions.
+- **SSH enabled and active.** Effective `sshd -T` as found: port 22, listening `0.0.0.0` and `[::]`,
+  `pubkeyauthentication yes`, **`passwordauthentication yes`**, `kbdinteractiveauthentication no`,
+  `permitemptypasswords no`, `permitrootlogin without-password`. `/etc/ssh/sshd_config.d/` is empty,
+  so no drop-in overrides.
+- **No `authorized_keys` for any account** — not `bwann83`, not `root`. Access was password-only.
+- **Automatic security updates off.** `unattended-upgrades` not installed; no
+  `/etc/apt/apt.conf.d/20auto-upgrades`. The `apt-daily` timers refresh metadata and apply nothing.
+- **No firewall.** `ufw` and `iptables` absent; `nft` present with an **empty ruleset**.
 
-- **Claude Code runs as `bwann83`** (uid 1000; groups include `sudo`, `adm`, `video`, `gpio`).
-  `sudo -n -l` reports `(ALL) NOPASSWD: ALL` — the session has unrestricted password-free root.
-  Recorded because it means nothing on the Pi mechanically enforces the owner's step-by-step
-  consent rule; the gate is the session's compliance, not permissions.
-- **SSH enabled and active** (`ssh.service` enabled + active, `ssh.socket` disabled). Effective
-  `sshd -T`: port 22, listening `0.0.0.0` and `[::]`, `pubkeyauthentication yes`,
-  **`passwordauthentication yes`**, `kbdinteractiveauthentication no`, `permitemptypasswords no`,
-  `permitrootlogin without-password` (root key-only).
-- **No `~/.ssh/authorized_keys`.** Access to `bwann83` is therefore **by password only** today.
-  The planner's requested read-only key access from the laptop does not exist yet.
-- **Automatic security updates are off.** `unattended-upgrades` is not installed
-  (`dpkg-query: no packages found`) and `/etc/apt/apt.conf.d/20auto-upgrades` does not exist.
-  `apt-daily.timer` and `apt-daily-upgrade.timer` fire, but with neither the package nor the
-  enabling config they refresh metadata and apply nothing. Nothing patches this Pi automatically.
-- **No firewall.** `ufw` and `iptables` not installed; `nft` present with an **empty ruleset**.
-  Inbound filtering is whatever the home router does, which was not probed.
-- **Off-localhost listeners:** `sshd` on 22 and `avahi-daemon` on 5353, per the table above.
+## 3. Installed among the five named, as found
 
-## 3. Installed among the five named
+None of `cloudflared`, `go-pmtiles`/`pmtiles`, `rclone`, Java or Docker. Present: `curl` 7.88.1,
+`git` 2.39.5, `nft`, `gpg`. Absent and worth noting: `jq`, `gh`, `dig`.
 
-| Tool | State |
-|---|---|
-| `cloudflared` | **Not installed.** No `~/.cloudflared`, no `/etc/cloudflared`, no Cloudflare apt source. |
-| `go-pmtiles` / `pmtiles` | **Not installed.** |
-| `rclone` | **Not installed.** No `~/.config/rclone`. Debian bookworm's candidate is `1.60.1+dfsg-2+b5`. |
-| Java | **Not installed.** No `java`, no `javac`, no `openjdk-*`. |
-| Docker | **Not installed.** No `docker`, `docker-compose`, `podman`. |
+**Push capability.** Tested with `git push --dry-run`, so nothing was created on the remote:
+HTTPS push **fails** (`could not read Username`; no credential helper, no `~/.git-credentials`, no
+`gh`); SSH push **succeeds** as `slayer8366`. The clone was HTTPS and was switched to SSH.
+`user.name`/`user.email` were unset and were taken from this repository's own history (1862 commits
+as `slayer8366`), not assumed.
 
-Present: `curl` 7.88.1, `git` 2.39.5, `nft`. Absent and worth noting: `jq`, `gh`.
+## 4. What was built
 
-**Push capability**, tested because the dispatch's record depends on it. Both probes were
-`git push --dry-run`, so nothing was created on the remote:
+Versions pinned per `CLAUDE.md` (Building), resolved from upstream release APIs on 2026-10-03.
 
-- **HTTPS push fails** — `fatal: could not read Username for 'https://github.com'`. No credential
-  helper, no `~/.git-credentials`, no `gh`.
-- **SSH push succeeds** — `* [new branch]` against `git@github.com:slayer8366/Forager.git`. The key
-  at `~/.ssh/id_ed25519_oscam` authenticates as `slayer8366` with write access.
-
-So this Pi can push, over SSH only. `user.name` and `user.email` were both unset; the identity used
-for this commit was taken from the repository's own history (1862 commits as
-`slayer8366`), not assumed.
-
-## 4. The plan, with versions pinned and each step's rollback
-
-Pins resolved from the upstream release APIs on 2026-10-03:
-
-| Component | Pin | Asset |
+| Component | Pin | Provenance |
 |---|---|---|
-| `cloudflared` | **2026.9.3** (published 2026-09-24) | `cloudflared-linux-arm64.deb` |
-| `go-pmtiles` | **v1.31.2** (published 2026-07-22) | `go-pmtiles_1.31.2_Linux_arm64.tar.gz` |
-| `rclone` | **v1.75.1** (published 2026-09-04) | `rclone-v1.75.1-linux-arm64.deb`, upstream rather than Debian's 1.60.1 |
+| `go-pmtiles` | **v1.31.2** | tarball over HTTPS; **upstream publishes no checksums or signatures** |
+| `rclone` | **v1.75.1** | `.deb` verified against a **PGP-signed** `SHA256SUMS` |
+| `cloudflared` | **2026.9.3** | `.deb` verified through Cloudflare's **GPG-signed apt index** |
 
-### Two findings that change the target's shape
+### Integrity, step by step
 
-Both read from go-pmtiles' own source at the pinned tag `v1.31.2`, not inferred from documentation.
+- **go-pmtiles.** The release carries no `checksums.txt`, and this is deliberate: `.goreleaser.yml`
+  at tag `v1.31.2` reads `checksum: disable: true`. The owner chose to proceed on HTTPS alone and
+  record the hashes computed on the Pi, for comparison on any future reinstall:
+  - tarball `go-pmtiles_1.31.2_Linux_arm64.tar.gz` — `f8bd47e7ea866863489cad588fbaf2f31f42e5821f7a03f009b3769f05801cb1`
+  - binary `pmtiles` — `8cd0affde1ba5380b7cea6de0f94c674f88e4f586c77ae5820ea9652862691f4`
+- **rclone.** `SHA256SUMS` is PGP clearsigned. `Good signature from "Nick Craig-Wood
+  <nick@craig-wood.com>"`, DSA key `FBF737ECE9F8AB18604BD2AC93935E02FF3B54FA`. That fingerprint was
+  cross-checked across **four independent channels** — rclone.org's signing page, the `key.rclone.org`
+  TXT record via Cloudflare's resolver, the same via Google's resolver, and the key file at
+  `craig-wood.com` — which is what substitutes for web-of-trust certification. The `.deb` hash
+  `773f3a76615f91f7d4654183a537afddce3343c8d99ac1d74984f060f2ade2d9` matched and `sha256sum -c`
+  returned `OK`.
+- **cloudflared.** The **GitHub release publishes no checksums or signatures**. Cloudflare's apt
+  repository carries the identical version with a GPG-signed `InRelease`, so the `.deb` was taken
+  from the repo pool and verified through the chain: `InRelease` signature good (`CloudFlare Software
+  Packaging 2025`, RSA `CC94B39C77AE7342A68B89628A682D308D4E5E73`) -> `Packages` index hash matched
+  -> `.deb` hash `bcce0111878f13d26e66b1d2ea7f270c8bde4bd549e32ce74d32474521583ca3` matched.
+  **No persistent apt source was added**, deliberately, so that automatic upgrades cannot later move
+  `cloudflared` off its pin.
+  Two honest caveats: the `InRelease` carries two signatures and only one verified, the other key not
+  being in Cloudflare's published bundle (consistent with rotation); and **this fingerprint could not
+  be cross-checked across independent channels** — key and packages share one origin — so it verifies
+  integrity in transit, not provenance from an independent root. Weaker than the rclone chain.
 
-1. **`pmtiles serve` defaults to `--interface 0.0.0.0`** (`main.go:105`). "Localhost only" is not
-   the default; it needs an explicit `--interface 127.0.0.1`. Left at the default on this Pi — which
-   has no firewall — the tile server would be exposed to the Wi-Fi LAN the moment it started.
-2. **`/us.json` returns HTTP 501 `"PUBLIC_URL must be set for TileJSON"`** unless the server is
-   started with `--public-url` (`pmtiles/server.go:292`). The dispatch's stated check — curl the
-   public hostname for `/us.json` — therefore cannot pass as written unless that flag is set at
-   launch. `/us/metadata` needs no such flag. A public hostname is not a secret, so the pin is safe
-   in a unit file.
+### The archive
 
-Also confirmed from source: `serve` takes a directory and resolves `<name>.pmtiles` within it
-(`server.go:257`), routing `/<name>.json`, `/<name>/metadata` and `/<name>/{z}/{x}/{y}.{ext}`
-(`server.go:441-442`, `parseTilePath`). The file must be named exactly `us.pmtiles` to yield
-`/us.json` and `/us/5/{x}/{y}.mvt`.
+Copied read-only from R2 with `rclone copyto … --s3-no-check-bucket` (`copyto`, not `copy`, per
+`server/pmtiles-worker/README.md:76-80`, which records `copy` landing the object nested).
 
-### Steps
+| Check | Expected | Got |
+|---|---|---|
+| Size | 8,817,909,309 bytes | 8,817,909,309 — **match** |
+| MD5 | `5fd65536e74301e0333ac42ee61acf54` | identical — **match** |
+| Readable as PMTiles | — | spec v3, mvt, clustered — **yes** |
 
-Each is asked in the owner's window first, one at a time, with what it changes and how to undo it.
+The R2 object's MD5 has no multipart suffix, so it is a true whole-object hash and end-to-end
+verification was possible; the dispatch's "where available, its checksum" clause is satisfied rather
+than reported unavailable. `pmtiles show` was run **in addition** to size and hash, because a matching
+hash proves the bytes arrived but not that the installed binary can parse them. It reports max zoom
+14 and bounds matching `README.md:60-62`; `planetiler:osm:osmosisreplicationtime 2026-08-19T04:00:00Z`,
+matching the `20260819.pmtiles` build and the object's ModTime; and **Protomaps Basemap 4.15.2**, the
+same version survey section 1 recorded the live Worker serving. The Pi's copy and production are the
+same archive.
 
-1. **Install `go-pmtiles` 1.31.2** — pinned tarball, checksum verified against the release's
-   `checksums.txt`, single binary to `/usr/local/bin/pmtiles`. *Undo:* delete the binary.
-2. **Install `rclone` v1.75.1** from the pinned `.deb`. *Undo:* `apt-get purge rclone`.
-3. **Configure the R2 remote.** The owner enters the credentials themselves via `rclone config` in
-   their own terminal; the session supplies the exact values to enter and never receives the key.
-   Written only to the service user's `~/.config/rclone/rclone.conf`, mode `0600`. Never in the
-   repository, a commit or a report. Shape per `server/pmtiles-worker/README.md:70-73` — provider
-   Cloudflare, the account's R2 endpoint. *Undo:* delete that file.
-4. **Copy the archive, read-only against R2**, onto the **NVMe** (owner's choice; see Decisions).
-   `rclone copyto r2:forager-maps/us.pmtiles <dir>/us.pmtiles --s3-no-check-bucket` — `copyto`, not
-   `copy`, per `README.md:76-80`, which records `copy` landing the object nested at
-   `us.pmtiles/us.pmtiles`. Verified against the source's size and, where available, its checksum
-   (`rclone lsjson --hash` versus local `sha256sum`), both reported. The bucket's contents stay
-   read-only. *Undo:* delete the local file.
-5. **Create a non-root service user** (`--system`, no login shell, no sudo) owning the archive
-   directory and both services. *Undo:* `userdel`, remove its home.
-6. **`pmtiles serve` as a systemd unit** — `--interface 127.0.0.1 --port <port>
-   --public-url https://<hostname>`, `Restart=on-failure`, `WantedBy=multi-user.target`, with
-   `NoNewPrivileges`, `ProtectSystem=strict`, `PrivateTmp` and a read-only archive path, plus a
-   unit-level log bound. Localhost-only binding **verified with `ss -tulpn`** before proceeding,
-   given finding 1. *Undo:* `systemctl disable --now`, delete the unit, `daemon-reload`.
-7. **Bound the journal.** `journalctl --disk-usage` already reports **966.7 MB** and
-   `/etc/systemd/journald.conf` carries no non-default settings, so the effective cap is the
-   10%-of-filesystem default — about 23 GB on a 234 GB root. Set `SystemMaxUse=` explicitly.
-   *Undo:* revert the line, restart `systemd-journald`.
-8. **Install `cloudflared` 2026.9.3** from the pinned arm64 `.deb`. *Undo:* `apt-get purge cloudflared`.
-9. **`cloudflared tunnel login`** — the owner's browser. The session hands over the URL; a
-   cert lands in the service user's `~/.cloudflared`. No Cloudflare resource created yet.
-   *Undo:* delete the cert file.
-10. **Create the tunnel and its one DNS record** on the hostname the owner names. The only changes
-    to the Cloudflare account this part makes. *Undo:* delete the DNS record, then
-    `cloudflared tunnel delete <name>`.
-11. **The tunnel as a systemd service** under the same non-root user, ingress restricted to the one
-    localhost tile port, `Restart=always`, log bound. **Outbound only — no inbound port opened and
-    no firewall change requested.** *Undo:* disable, delete the unit, `daemon-reload`.
-12. **Verify from the Pi** with `curl` to the public hostname: `/us.json` (per finding 2) and one z5
-    tile, expecting `200` and `application/x-protobuf`. Responses reported verbatim with headers.
-    The app and the Worker are **not** pointed at it — out of scope for this part.
-13. **This report**, its row in `docs/audits/README.md`, committed on `pi-origin` from
-    `origin/main` and pushed. Done first, per `CLAUDE.md`'s "Push before you tidy".
+The transfer took **85 minutes at 1.32 MiB/s** over Wi-Fi. `Multi-thread Copied` in the log confirms
+rclone was already using parallel streams, so single-threading is not the explanation. The file is at
+`/srv/forager-tiles/us.pmtiles` on the NVMe (the owner's choice over the SD card at `/mnt/archive`).
 
-### Added to this part by the owner, beyond the dispatch
+### Services
 
-Each still gated on the owner's word, in this order:
+Both run as **`forager-tiles`**, a system account with no password, no login shell
+(`/usr/sbin/nologin`), no sudo. Both carry `NoNewPrivileges`, `PrivateTmp`, `PrivateDevices`,
+`ProtectSystem=strict`, `ProtectHome`, `ProtectKernel*`, `RestrictAddressFamilies`,
+`RestrictNamespaces`, `LockPersonality`, `ReadOnlyPaths=/srv/forager-tiles`, restart on failure, and
+`LogRateLimitIntervalSec=30s` / `LogRateLimitBurst=1000`.
 
-14. **Enable unattended security upgrades** — install `unattended-upgrades`, write
-    `20auto-upgrades`. *Undo:* purge the package, remove the config.
-15. **Add the planner laptop's public key** to `authorized_keys` (the owner pastes the public key).
-    *Undo:* remove the line.
-16. **Disable SSH password authentication — only after key login is confirmed working.** Ordering
-    matters: done before confirmation, a failed key could lock the owner out of their own Pi.
-    *Undo:* restore `PasswordAuthentication yes`, reload `sshd`.
+**`forager-tiles.service`** —
+`pmtiles serve /srv/forager-tiles --interface 127.0.0.1 --port 8080 --cache-size 256
+--public-url https://tiles.zynergy-labs.com`.
 
-## Decisions the owner made on this report
+**`forager-tunnel.service`** — `cloudflared … tunnel run`, `Requires=forager-tiles.service`,
+config at `/srv/forager-tiles/.cloudflared/config.yml` with `protocol: quic`, `no-autoupdate: true`,
+and ingress routing `origin.zynergy-labs.com` to `http://127.0.0.1:8080` with a `http_status:404`
+catch-all. `cloudflared tunnel ingress validate` returns `OK` and rule #0 matches the hostname.
 
-1. Hostname `tiles.<owner's domain>` — **the literal domain is still outstanding**; see Could not
-   determine.
-2. R2 credentials entered by the owner directly at step 3, never pasted to the session.
-3. The archive goes on the **NVMe** (170 GB free), not the SD card at `/mnt/archive`.
-4. Push over SSH, identity `slayer8366`.
-5. The three security steps above added to this part.
-6. **Stay on Wi-Fi** for now.
-7. **Leave the desktop services** in place.
+**Journal bounded:** `SystemMaxUse=2G`, `SystemMaxFileSize=64M`, read back via
+`systemd-analyze cat-config` rather than from the file. Usage was 966.7 MB before and after the
+restart — the owner chose a cap above current usage so **no history was vacuumed**. The previous
+effective cap was the 10%-of-filesystem default, about 23 GB.
+
+### Two findings that changed the target's shape
+
+Both read from go-pmtiles source at the pinned tag and then **confirmed against the installed binary**,
+which is the check `CLAUDE.md` asks for — a source claim held up against something outside itself.
+
+1. **`pmtiles serve` defaults to `--interface 0.0.0.0`** (`main.go:105`; the installed binary's
+   `--help` prints `--interface="0.0.0.0"`). Localhost-only is an explicit flag, not a default. On a
+   Pi with an empty nft ruleset, taking the default would have published the tile server to the LAN.
+2. **`/us.json` returns HTTP 501 `"PUBLIC_URL must be set for TileJSON"`** without `--public-url`
+   (`pmtiles/server.go:292`). The dispatch's stated verification could not have passed as written.
+   With the flag set, `/us.json` returns 200 and its `tiles` array reads
+   `https://tiles.zynergy-labs.com/us/{z}/{x}/{y}.mvt` — the public Worker name, per Amendment 1.
+
+### The tunnel and its protection
+
+Tunnel `forager-origin` created on the **zynergy-labs.com** account (Amendment 2), with one proxied
+CNAME for `origin.zynergy-labs.com`. Credentials written by `cloudflared` at mode `0400`, owned by
+`forager-tiles`. Four connections registered, `protocol=quic`, edge locations 2x pdx03, 1x sea10,
+1x sea11.
+
+A Cloudflare **Access application** on `origin.zynergy-labs.com` with a **Service Auth** policy
+(not Allow) including service token `forager-worker`, created by the owner in the dashboard. The
+token's two values were entered by the owner directly into `/etc/forager/access-token.env`, root-owned
+`0600` — **the session never saw them**, and `forager-tiles` cannot read the file. Values were
+validated by shape and by behaviour, never by being read.
+
+**Ordering was deliberate:** the Access application was created *before* the tunnel service was
+started, so `origin.zynergy-labs.com` was never a publicly reachable unauthenticated tile server.
+Before the tunnel ran, an unauthenticated request returned **403 with `cf-access-domain:
+origin.zynergy-labs.com`** — distinguishing "Access is protecting it" from the earlier **530**
+("no origin available"), which 530 alone could not.
+
+### Step 12, the paired check
+
+| | Without token | With token |
+|---|---|---|
+| `/us.json` | **HTTP 403** | **HTTP 200**, `application/json`, 10,427 bytes |
+| z5 tile `us/5/7/12.mvt` | **HTTP 403** | **HTTP 200**, `application/x-protobuf`, 63,032 bytes |
+
+Refusals carry `cf-access-domain: origin.zynergy-labs.com` and `server: cloudflare`, so Access
+rejects at the edge and the tile server is never reached. Both paths were tested, not just TileJSON.
+
+**The tile is byte-identical to the one served locally.** The two SHA-256 hashes differed at first
+because the tunnel-delivered copy arrived decompressed (63,032 bytes) while the localhost copy was
+gzipped (45,472). After decompressing, both are
+`0f3bbaeee00d83a1615385f8f2c582e58d93aaba543eeb55e56149f0f45ae58d` and `cmp` is clean. Recorded
+because a size-only check would have read as a mismatch and a hash-only check as a failure; only
+normalising the encoding gives the right answer.
+
+The authenticated requests passed the token through a `curl` config on stdin, never as a command-line
+argument, so the secret did not enter the process table or any log.
+
+### Access control, as left
+
+A separate unprivileged user **`planner`** (uid 1001, group `planner` only, not in `sudo`, no
+password) holds the planner laptop's key at `/home/planner/.ssh/authorized_keys`, `0600` in a `0700`
+directory. Key `ssh-ed25519`, fingerprint `SHA256:CF9q6JZd4bpTLf948IazCPcpZOP5mWvQOUQXGni1KDQ`,
+confirmed by the planner against their own copy before installation.
+
+The dispatch asks for **read-only** access; adding the key to `bwann83` would have granted
+passwordless root, since that account has `NOPASSWD: ALL`. The owner chose the separate account.
+Read-only was **verified by testing**, not assumed: as `planner`, reads of
+`/etc/forager/access-token.env`, the Cloudflare zone certificate and `bwann83`'s GitHub key are all
+denied. The planner confirmed login works with no password prompt, `sudo` refused, both services
+visible, and `127.0.0.1:8080/us.json` returning 200.
+
+## 5. Pre-reboot baseline
+
+Captured before the reboot test, so that a post-reboot comparison has something to compare against:
+
+| | |
+|---|---|
+| `forager-tiles` | enabled, active, listening `127.0.0.1:8080` |
+| `forager-tunnel` | enabled, active, 12 connection registrations logged |
+| Local `/us.json` | HTTP 200 |
+| Through the tunnel, no token | HTTP 403 |
+| Archive | 8,817,909,309 bytes |
+| Uptime | 2 weeks 4 days |
+
+That last row matters: this Pi had not rebooted in 18 days and has never booted with any of this
+configuration present, so an unrelated pre-existing problem could surface at the reboot and look like
+this work's fault. This report exists before the reboot partly so the two can be told apart from a
+written record rather than from memory (`CLAUDE.md`, "Push before you tidy").
+
+## 6. Observations worth carrying forward
+
+- **cloudflared's own startup precheck reports `hard_fail=true`** — UDP and TCP connectivity to
+  `region1`/`region2.v2.argotunnel.com` and to `api.cloudflare.com:443` all fail — **yet all four
+  connections then register successfully over IPv6.** The prechecks appear to test IPv4 only, and
+  this Pi's working path to Cloudflare is IPv6. The precheck's verdict is therefore wrong about the
+  outcome. Anything later that depends on **IPv4** egress to Cloudflare may not work; the dispatch's
+  UDP 7844 question resolves as "yes, over IPv6".
+- **The Wi-Fi link is weak.** Measured during the archive copy: **-65 dBm**, RX bitrate collapsing
+  from 45 to 6 MBit/s between samples seconds apart, **4,075 TX failures** of 246,242 packets (1.65%),
+  about 12 Mbit/s effective. This is the **likely but not confirmed** cause of the 85-minute copy; a
+  second transfer from an unrelated host would be needed to separate it from an ISP cap or R2-side
+  throttling, and that test competes for the same link, so it was not run. Survey section 6 estimates
+  ~250 GB/month uploaded at 10,000 users with peaks well above the 0.8 Mbps average — that figure
+  should be weighed against a re-measurement after the Pi is moved closer to the router. **Ethernet
+  was rejected as unavailable, not on the merits.**
+- **A unit-file failure worth recording.** The tunnel's first unit used `Type=notify`; `cloudflared`
+  sends no readiness notification, so systemd waited, timed out and killed a tunnel that had been
+  connecting normally. Diagnosed before changing anything, from `Failed with result 'timeout'`
+  alongside healthy `Initial protocol quic` startup logs, with the teardown following systemd's
+  give-up rather than causing it. `Type=simple` plus `TimeoutStartSec=60` fixed it.
+
+## 7. Handback for the planner
+
+1. **Two Cloudflare accounts** — found by this session before step 10 and now settled by Amendment 2
+   and records -480/-481. Everything this part created is on the **zynergy-labs.com** account. The
+   R2 read token on the Pi still belongs to the **old** account's bucket and was left as is; the
+   archive copy does not depend on which account serves it later.
+2. **Workers VPC was researched and is not used.** Cloudflare's docs state Workers VPC supports both
+   tunnel types but *"we recommend creating a remotely-managed tunnel through the dashboard"*;
+   it requires `cloudflared` **2025.7.0+** (satisfied), **QUIC** transport (configured and confirmed
+   in the connection logs), and outbound **UDP 7844**. It is **in beta** and **free on all Workers
+   plans**, which confirms survey section 6's claim. The owner ruled locally-managed, no VPC.
+   Structurally the two differ: a public-hostname tunnel versus a registered VPC Service with no
+   public name — that is very likely *why* the dashboard-managed tunnel is recommended, since VPC
+   registration lives on Cloudflare's side while locally-managed ingress lives in a file on the Pi.
+3. **A Worker Custom Domain question the next part must answer.** With the map service moving to the
+   zynergy-labs account (Amendment 2), this may be moot — but it should be checked rather than
+   assumed. Cloudflare's docs say a Custom Domain cannot be created *"on a zone you do not own"* and
+   require an active zone, but **do not explicitly address the cross-account case**. The mechanism
+   suggests same-account is required, since attaching a Custom Domain creates a DNS record in that
+   zone from the Worker's account. **Unverified** — this session had no Cloudflare read access.
+4. **The Worker will need the Access service token's two headers** (`CF-Access-Client-Id`,
+   `CF-Access-Client-Secret`) to reach `origin.zynergy-labs.com`. They are on the Pi at
+   `/etc/forager/access-token.env`, root-only, and must be set as Worker secrets in the next part —
+   never committed.
+5. **`cloudflared` has no apt source**, by design. Automatic upgrades cannot move it off its pin; a
+   deliberate step is needed to update it.
+6. **`docs/audits/README.md` will conflict.** `origin/main` gained three rows while this branch was
+   open. Merge, never rebase, and keep every row.
 
 ## Disclosure
 
 ### Confirmed
 
-Every row of sections 1, 2 and 3, each from the command named beside it. Both push probes. Both
-go-pmtiles source findings, read at tag `v1.31.2`. All three version pins, from the upstream release
-APIs. The base commit matching `88a5b785`. The archive's description at
-`server/pmtiles-worker/README.md:52-54` and the `copyto` guidance at `:76-80`. The commit identity,
-from this repository's history.
+Every row of sections 1, 2 and 3 from the command named beside it. Both push probes. Both go-pmtiles
+findings, at source and against the installed binary. All three version pins and all three integrity
+chains. The archive's size, MD5 and parseability. Every service state, bind address, permission and
+ownership quoted. The step 12 results including the byte-identity of the tile after normalising
+compression. The tunnel's four QUIC registrations. The Access 403/200 pair. The planner account's
+inability to read the three sensitive files. The base commit, the drift to `61f2c363`, and both
+amendments.
 
 ### Inferred, not verified
 
-That the router does not forward 22 or 5353 — not probed. That `--public-url` set to the public
-hostname is what downstream TileJSON consumers need: read from source, not exercised. That 170 GB
-free on the NVMe is ample for an 8.8 GB archive plus future refreshes — arithmetic, not a measured
-refresh cycle.
+That the weak Wi-Fi link is the cause of the slow copy rather than an ISP cap or R2 throttling. That
+the router does not forward 22 or 5353 — not probed. That `--public-url` set to the public name is
+what downstream TileJSON consumers need — read from source, not exercised by a real client. That a
+Worker on another account can present this Access service token successfully: a service token is two
+HTTP headers and the client's account should not matter, but the documentation does not say so.
 
 ### Could not determine
 
-- **The power supply's rating.** `throttled=0x0` is the only power evidence available, and it is
-  good news: no under-voltage across 18 days of uptime. But there is no `max_current_a` device-tree
-  node and no PMIC or power line in `dmesg`, so the survey's `5 V 5 A supply` claim
-  (`docs/plans/2026-10-03-own-tiles-survey.md` section 6, marked `[C]`) **cannot be confirmed from
-  the Pi** and should be read as unverified.
-- **The archive's true size and checksum.** 8.8 GB is the README's figure, not a measurement. It is
-  verifiable only at step 3/4, once the R2 remote exists.
-- **The literal hostname.** See the first wrong premise below.
+- **The power supply's rating.** `throttled=0x0` is the only power evidence and it is good news, but
+  there is no `max_current_a` device-tree node and no PMIC line in `dmesg`, so survey section 6's
+  `5 V 5 A supply` claim, marked `[C]`, **cannot be confirmed from the Pi** and should be read as
+  unverified.
+- **Whether `cloudflared` 2026.9.3 exposes a `--protocol` flag.** It appears in no help output;
+  the string `quic` is in the binary and `protocol: quic` in the config file works, confirmed by
+  `Initial protocol quic` and `protocol=quic` in the registration logs. Behaviour was verified
+  instead of the flag's documented default.
+- **Whether a Worker Custom Domain works cross-account.** See handback item 3.
+- **Whether both services survive a reboot.** Not yet tested; see What remains.
 
 ### Premises that were wrong
 
-- **`pmtiles serve` binds `0.0.0.0` by default**, so the dispatch's "localhost only" is an explicit
-  flag rather than a property of the tool — and this Pi has no firewall to catch the mistake.
-- **`/us.json` 501s without `--public-url`**, so the dispatch's verification step cannot pass as
-  written.
-- **The Pi is on Wi-Fi, not Ethernet.** `eth0` is down with no carrier. The dispatch asks which,
-  and the survey's section 6 reasons about the Pi as a serving origin without settling it. The owner
-  has since ruled: stay on Wi-Fi for now.
-- **The hostname supplied was the placeholder `tiles.YOURDOMAIN`**, not a domain. Steps 6 and 9-12
-  cannot be executed until the literal domain is given; steps 1-5, 7, 8 and 14-16 do not depend on
-  it and can proceed.
-- **The dispatch's own label is inconsistent** with its filename: the file is
-  `prompts/preserved/2026-10-04-01.md`, its text says written 2026-10-04, and its title reads
-  "Dispatch 2026-09-28-468". Not blocking; recorded so the index row names the right thing.
-- **This is a desktop image, not a server image.** Nothing in the dispatch anticipates `lightdm`,
-  `cups`, `wayvnc-control`, `bluetooth`, `ModemManager` or `triggerhappy` running on the serving
-  origin. The owner has ruled to leave them.
+- **`pmtiles serve` binds `0.0.0.0` by default**, so "localhost only" is an explicit flag.
+- **`/us.json` 501s without `--public-url`**, so the dispatch's check could not pass as written.
+- **The Pi is on Wi-Fi, not Ethernet.** `eth0` is down with no carrier.
+- **`zynergy-labs.com` and the `forager-maps` bucket are on different Cloudflare accounts** — not
+  anticipated by the dispatch or Amendment 1; settled by Amendment 2.
+- **go-pmtiles publishes no checksums** (deliberately, `checksum: disable: true`), and
+  **cloudflared's GitHub release publishes none either** — the plan had promised verification against
+  a `checksums.txt` that does not exist.
+- **A Cloudflare Access service token secret is not 64 hex characters.** This session expected that
+  format and the real value did not match it; the authoritative test was behavioural — Access
+  accepted the token — and the format expectation was simply wrong.
+- **`cloudflared` does not support `Type=notify`.**
+- **The dispatch's title and filename disagree** — `2026-10-04-01.md`, written 2026-10-04, titled
+  "Dispatch 2026-09-28-468".
+- **Adding the planner's key to `authorized_keys` would not have been read-only access**, since the
+  obvious account for it has `NOPASSWD: ALL`.
 
 ### Decided beyond scope
 
-Nothing. At the time this report was written no package had been installed, no service or user
-created, no Cloudflare call made, and no file written outside the repository clone. The three
-security steps (14-16) are **the owner's additions to this part**, not the session's, and remain
-individually gated.
+Nothing was decided beyond scope by the session. Every change was put to the owner first with what it
+changed and how to undo it, and several were reordered or redirected on the owner's word: the archive
+onto the NVMe, the journal cap raised to keep existing history, the rclone config moved rather than
+copied, the separate `planner` account, and step 16 deferred.
 
-The only changes made on the Pi to produce this report: cloning the repository into the
-pre-existing empty `/home/bwann83/Forager` (authorised), switching `origin` to SSH, and setting
-`user.name` and `user.email` (authorised).
+Three items in this part are **the owner's additions** to the dispatch rather than the session's:
+automatic security updates, the planner's key, and disabling SSH password authentication.
+
+## What remains
+
+- **The reboot test.** `enabled` is a claim about configuration, not evidence that the services come
+  back. Approved; the report is being pushed first so the record survives the reboot.
+- **SSH password authentication is still ON, deliberately.** `bwann83` and `root` have **no**
+  `authorized_keys`, so disabling it would leave `planner` — unprivileged — as the only remote entry
+  and the owner reachable only by keyboard and monitor, on a Pi whose `eth0` is down. The owner chose
+  to defer the decision until after the reboot passes.
+- **Automatic security updates** are not yet enabled. Approved with Debian's security-only default,
+  **no automatic reboot**, and no mail configuration (there is no MTA, so failures would be silent in
+  `/var/log/unattended-upgrades/`).
+
+## Rollback
+
+| Step | Undo |
+|---|---|
+| go-pmtiles | `rm /usr/local/bin/pmtiles` |
+| rclone | `apt-get purge rclone` |
+| R2 config | delete `/srv/forager-tiles/.config/rclone/rclone.conf` |
+| Archive | `rm -rf /srv/forager-tiles` (8.2 GiB, 85 minutes to re-copy) |
+| Service user | `userdel forager-tiles`, restore ownership |
+| Tile service | `systemctl disable --now forager-tiles`, remove unit, `daemon-reload` |
+| Journal cap | restore `/etc/systemd/journald.conf.pre-pi-origin`, restart `systemd-journald` |
+| cloudflared | `apt-get purge cloudflared` |
+| Zone cert | delete `/srv/forager-tiles/.cloudflared/cert.pem` |
+| Tunnel + DNS | delete the DNS record in the dashboard, then `cloudflared tunnel delete forager-origin` |
+| Access app + token | delete both in the Zero Trust dashboard; remove `/etc/forager/` |
+| Tunnel service | `systemctl disable --now forager-tunnel`, remove unit, `daemon-reload` |
+| Planner account | `userdel -r planner` |
+
+Backups kept before editing, as copies rather than git restores (`CLAUDE.md`, revert-runner pitfall):
+`/etc/systemd/journald.conf.pre-pi-origin` and `/etc/systemd/system/forager-tiles.service.pre-step7`.
