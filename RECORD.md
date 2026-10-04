@@ -11378,3 +11378,12 @@ Each is read against `Forager/<versionName> (Android <release>; com.zynergylabs.
 **The owner, verbatim:** "Proceed with 1 to 3", to: (1) the planner merges the Pi origin and engine spike reports into main; (2) this phone check; (3) the planner drafts the spec while it runs.
 **Change:** none to Forager. A separate test app on the S22 loads `map-style/forager-light.json` online and as an offline pack, and reports whether the old label crash happens and where.
 **Notes:** Written by the planner by hand, on branch records-after-164.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-491
+**Timestamp:** 2026-10-04T08:40:00Z
+**Continues:** 2026-09-28-490
+**Done:** the planner drafted the spec, stage 3 of `docs/plans/trail-navigation-and-own-tiles.md`: `docs/plans/2026-10-04-own-map-service-spec.md`, carrying the owner's decisions -445, -447, -466, -479, -481 and -484 and seven testable requirements. Five questions open for the owner: coverage first, a region-size ceiling, how the app tells which path the walker is on, whether T7 waits for network routes, and the refresh cadence. Unverified: labels offline on 13.5.0 (-490 measuring), a US build within the Pi's 8 GB, map and routing data in step through refreshes.
+**Notes:** Written by the planner by hand, on branch records-after-164.
