@@ -11719,3 +11719,16 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Findings carried to the quick win (-512 step 1),** each pre-existing and not changed by -510: (1) a network fix of 50 m or better passes the live gate today (it tests accuracy alone, `LiveFixGate.kt:71-74`) and so reaches "Arrived", the waypoint's line and a new find's location, so -519's "nothing that acts relies on them" does not yet hold there; (2) GPS readings worse than 50 m enter Battery-saver tracks (up to 100 m, `TrackRecordingMode.kt:29`) and count for the off-track judge at any accuracy (`OffTrackJudge.kt:45-46,72`).
 **Disclosed by the coder:** the full suite ran with 1,428 MB in the free column (4,536 MB available), under the dispatch's 2,048 MB; co-author lines of four commits name a model, not amended.
 **Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-522
+**Timestamp:** 2026-10-05T03:40:00Z
+**Continues:** 2026-09-28-518
+**Decides:** three questions from the -516 coder, each relayed by the owner to the planner and the planner's answer sent by the owner to the coder; the owner, verbatim, to "did you send all three": "Yes".
+1. **Sunset from any fix, the last known position after -510:** yes, on the condition that -516 does not merge until the last known position is wired in (reusing -510's `LastKnownLocationSource`, no second copy), with a test that a recording with no live reading at all still gets a sunset time and its alerts. -510 merges first.
+2. **Telling GPS from network fixes:** the timestamp rule (`domain/NetworkProviderFix.kt:48`), the one the off-track judge and the track read use, so the current fix and the track agree; no provider field added to `LocationFix` in -516. Its failure direction (a phone whose GPS stamps milliseconds reads its GPS as network, the walk back reads "unknown", the alert falls back to sunset minus margin) is stated in the report against -519. Carrying the true provider from `location/AndroidLocationTracker.kt` is added to the quick win (-512 step 1), with -521's two findings.
+3. **The walks gate: A.** The coder's comparison found three usable walks on the S22 (not the S26 Ultra), all loops (about 330 m out, 900 m back), every estimate "at least" on the default pace; they cannot test an estimate along a retraced way out. Build now; when the estimate is "at least" or withheld the copy promises nothing; validation moves to a **release gate**: one out-and-back walk of 30 minutes or more, retracing the way out, compared as the three were. The planner's reasoning: walk-back time can only move the leave-by earlier than sunset minus margin, never later.
+**Also, by the planner as build traffic controller:** go to -516 for its compile and four test classes (3adf2fae, written with the code, not run first; a deviation from tests first the coder discloses, the revert checks being the evidence), with the -510 coder holding Gradle until -516 reports done. The planner recommended clock-time copy ("To finish it before dark, start by 5:42 PM"; "at the latest" for a thin estimate) over the coder's "Leave within 30 min"; the owner's approval of that wording is not yet recorded.
+**Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168.
