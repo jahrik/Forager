@@ -53,6 +53,7 @@ package com.zynergylabs.forager.app.ui.availability
 // behaviour change." The getter pattern and the ResultsTab widening are the planner's rulings on
 // this build's two stops, quoted in RECORD.md intent 2026-09-27-21.
 
+import com.zynergylabs.forager.app.domain.RouteLine
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.map.MapKeepOutIds
 import com.zynergylabs.forager.app.ui.map.mapKeepOut
@@ -195,6 +196,8 @@ internal fun CompactMainScaffold(
     onSetCartographyEntryShownOnMap: (entryId: String, shown: Boolean) -> Unit = { _, _ -> },
     /** M1: what the Maps tab's glyph bubbles look records up in; threaded to [CompactMapTab]. */
     mapBubbleSources: MapRecordSources = MapRecordSources(),
+    /** Dispatch 2026-09-28-502: navigating to a chosen waypoint, threaded to [CompactMapTab] and [JournalTab]; see [WaypointNavigateControls]. */
+    waypointNavigate: WaypointNavigateControls = WaypointNavigateControls(),
     currentTime: CurrentTimeProvider,
     mapSlot: MapSlot,
     mapIconClusterPosition: MapIconClusterPositionState,
@@ -231,6 +234,7 @@ internal fun CompactMainScaffold(
     computeTrueHeading: ComputeTrueHeadingUseCase,
     navigationTarget: Waypoint?,
     returnRoute: ReturnRoute,
+    routeLine: RouteLine?,
     onRetryRoute: () -> Unit,
     showDecimalDegrees: Boolean,
     onToggleCoordinateFormat: () -> Unit,
@@ -991,7 +995,12 @@ internal fun CompactMainScaffold(
                                 computeTrueHeading = computeTrueHeading,
                                 navigationTarget = navigationTarget,
                                 returnRoute = returnRoute,
+                                routeLine = routeLine,
                                 onRetryRoute = onRetryRoute,
+                                isNavigatingToWaypoint = waypointNavigate.isNavigatingToWaypoint,
+                                waypointStraightLine = waypointNavigate.straightLine,
+                                waypointReopen = waypointNavigate.mapReopen,
+                                onWaypointReopenConsumed = waypointNavigate.onMapReopenConsumed,
                                 showDecimalDegrees = showDecimalDegrees,
                                 onToggleCoordinateFormat = onToggleCoordinateFormat,
                                 navigationFollowing = navigationFollowing,
@@ -1251,6 +1260,9 @@ internal fun CompactMainScaffold(
                                 findEntryModeState = findEntryModeState,
                                 findOverViewState = findOverViewState,
                                 modifier = Modifier.fillMaxSize(),
+                                onNavigateToWaypoint = waypointNavigate.onNavigate,
+                                reopenWaypointDetails = waypointNavigate.recordsReopenDetails,
+                                onReopenWaypointDetailsConsumed = waypointNavigate.onRecordsReopenConsumed,
                             )
                             // Never actually reached — CompactTab.TOOLS never becomes compactTab itself,
                             // see that entry's own doc comment. Kept as a real branch (not an else) so

@@ -10,6 +10,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
@@ -81,8 +82,9 @@ import org.robolectric.shadows.ShadowDialog
  * - **Back** is a real Back key sent to the sheet's own window (the sheet is a dialog with its own
  *   back dispatcher, which is what a Back press reaches while it shows). **The scrim** is touched
  *   at a point the sheet does not cover.
- * - **Navigate is not built** (the dispatch's stop rule; see `RecordDetailsSheet`'s doc comment):
- *   the waypoint test pins its absence beside Directions' presence.
+ * - **Navigate** (dispatch 2026-09-28-502, which changed this): the waypoint test pins its presence
+ *   beside Directions', and Directions still starting its intent. Until -502 Navigate was not built and
+ *   that test pinned its absence. What Navigate does is `AvailabilityScreenWaypointNavigateTest`'s.
  *
  * Tags are literals so these compile against the base they were written before.
  */
@@ -107,7 +109,8 @@ class RecordDetailsSheetTest {
 
     private val deletedWaypointIds = mutableListOf<String>()
 
-    private fun setScreen(waypointCounts: Map<String, Int> = DETAILS_COUNTS) {
+    // Dispatch -502 changed this: onNavigateToWaypoint added, null by default, so every other test here sees the sheet as before.
+    private fun setScreen(waypointCounts: Map<String, Int> = DETAILS_COUNTS, onNavigateToWaypoint: ((String) -> Unit)? = null) {
         composeRule.setContent {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(offlineRegions = listOf(DETAILS_REGION)),
@@ -141,6 +144,7 @@ class RecordDetailsSheetTest {
                 onDeleteWaypoint = { id -> deletedWaypointIds += id },
                 tracks = DETAILS_TRACKS,
                 currentTime = CurrentTimeProvider { NOW },
+                onNavigateToWaypoint = onNavigateToWaypoint,
             )
         }
         composeRule.waitForIdle()
@@ -423,15 +427,18 @@ class RecordDetailsSheetTest {
     // ── Actions ──
 
     @Test
-    fun `the waypoint sheet's Directions starts directions to that waypoint, and there is no Navigate`() {
-        setScreen()
+    fun `the waypoint sheet offers Navigate beside Directions, and its Directions starts directions to that waypoint`() {
+        // Dispatch -502 changed this. Before: named "... and there is no Navigate", it asserted that no
+        // node's text contained "Navigate" (the J5c stop rule: no in-app entry point navigated to a chosen
+        // waypoint). After: the owner asked for Navigate beside Directions (-502, T9), so it asserts the
+        // sheet's Navigate is shown, labelled "Navigate"; Directions' assertions below are unchanged.
+        setScreen(onNavigateToWaypoint = {})
         registerFakeMapsApp()
         openRecords()
         touch(waypointRow("W1"), Offset(0.3f, 0.5f))
         composeRule.onNodeWithTag(DIRECTIONS).performScrollTo().assertIsDisplayed()
-        // The dispatch's stop rule: Navigate needs an in-app navigation entry point the app does not
-        // have, so the sheet ships with Directions only (RecordDetailsSheet's doc comment).
-        assertTrue("no Navigate action is offered", composeRule.onAllNodesWithText("Navigate", substring = true).fetchSemanticsNodes().isEmpty())
+        composeRule.onNodeWithTag(NAVIGATE).performScrollTo().assertIsDisplayed()
+        assertEquals("Navigate", composeRule.onNodeWithTag(NAVIGATE).fetchSemanticsNode().config[SemanticsProperties.Text].joinToString { it.text })
 
         composeRule.onNodeWithTag(DIRECTIONS).performTouchInput { click(Offset(width * 0.3f, height * 0.5f)) }
         composeRule.waitForIdle()
@@ -564,6 +571,7 @@ private const val TITLE = "record-details-title"
 private const val NOTE = "record-details-note"
 private const val ZOOM = "record-details-zoom"
 private const val DIRECTIONS = "record-details-directions"
+private const val NAVIGATE = "record-details-navigate"
 private const val SHARE = "record-details-share"
 
 /** Three touch points across a row: its start edge (the badge, in All), upper middle, lower right short of its buttons. */

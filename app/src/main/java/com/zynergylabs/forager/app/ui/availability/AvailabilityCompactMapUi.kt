@@ -16,6 +16,13 @@ package com.zynergylabs.forager.app.ui.availability
 // here. Seam F (the wide layout) was released by the owner for this split, as recorded in the
 // Understory amendment merged in #130.
 
+import android.util.Log
+import com.zynergylabs.forager.app.ui.map.MapBubbleKind
+import com.zynergylabs.forager.app.ui.map.WaypointNavigationOrigin
+import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
+import com.zynergylabs.forager.app.ui.log.RecordDetailsTarget
+import com.zynergylabs.forager.app.ui.map.RouteOnMap
+import com.zynergylabs.forager.app.domain.RouteLine
 import com.zynergylabs.forager.app.ui.map.rememberNavigationFacing
 import com.zynergylabs.forager.app.ui.map.NavigationViewRequest
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
@@ -302,8 +309,30 @@ internal fun CompactMapTab(
     navigationTarget: Waypoint?,
     /** See [AvailabilityScreen]'s own `returnRoute` doc comment. */
     returnRoute: ReturnRoute,
+    /** The way back to draw while navigating (dispatch 2026-09-28-497). */
+    routeLine: RouteLine?,
     /** See [AvailabilityScreen]'s own `onRetryRoute` doc comment. */
     onRetryRoute: () -> Unit,
+    /**
+     * Dispatch 2026-09-28-502: the navigation on is to a chosen waypoint, [navigationTarget]. The HUD is
+     * then the straight-line one (decision D2: no route given), the map draws the dashed line from the
+     * walker to the waypoint instead of the return's way back, and the return control is the X-circle
+     * whether or not a track is recording.
+     */
+    isNavigatingToWaypoint: Boolean = false,
+    /**
+     * Dispatch 2026-09-28-502, step 3: the dashed line from the walker to the waypoint, current or kept faded after the
+     * fix was lost (the owner's "Keep the last line, faded"). Worked out and held in [AvailabilityScreen], above the tab
+     * switch; `null` draws none.
+     */
+    waypointStraightLine: StraightLine? = null,
+    /**
+     * Dispatch 2026-09-28-502, Amendment 1: Back ended a waypoint navigation started from this tab's bubble
+     * or the details sheet opened from it, and that step is opened again here, once; then
+     * [onWaypointReopenConsumed]. `null` asks for nothing.
+     */
+    waypointReopen: WaypointNavigationOrigin? = null,
+    onWaypointReopenConsumed: () -> Unit = {},
     /** MGRS or decimal degrees, shared by the strip and the HUD; held in `AvailabilityScreen` (dispatch 2026-09-28-422). */
     showDecimalDegrees: Boolean,
     /** Flips [showDecimalDegrees]. */
@@ -403,6 +432,22 @@ internal fun CompactMapTab(
     }
     // A fan the map did not use before this tab left composition is not kept for a later map.
     DisposableEffect(returnMemory) { onDispose { returnMemory.clearRestore() } }
+    // Dispatch -502, Amendment 1: Back ended a waypoint navigation started in a bubble, which opens again where it was.
+    // The map re-anchors it on its glyph at the next camera idle (a waypoint is a point kind), as it does after a pan.
+    LaunchedEffect(waypointReopen) {
+        val bubble = waypointReopen as? WaypointNavigationOrigin.MapBubble ?: return@LaunchedEffect
+        val waypoint = bubbleSources.waypoints.firstOrNull { it.id == bubble.waypointId }
+        if (waypoint != null) {
+            tapped = TappedMapThing(
+                MapBubbleTarget.FeatureTarget(MapBubbleKind.WAYPOINT, MapLayerIds.WAYPOINTS, waypoint.id, LatLng(waypoint.lat, waypoint.lng)),
+                bubble.anchorPx,
+                bubble.bearingDeg,
+            )
+        } else {
+            Log.w(COMPACT_MAP_LOG_TAG, "Waypoint ${bubble.waypointId} is gone; its bubble was not opened again after Back ended its navigation.")
+        }
+        onWaypointReopenConsumed()
+    }
     val onFeatureTap: (MapFeatureTap) -> Unit = remember { { tap -> tappedThingOf(tap)?.let { tapped = it } } }
     // Part A of dispatch 2026-09-28-387: a tap on a stack closes the bubble that is showing. Remembered, like onFeatureTap, so renderMode compares equal across recompositions.
     val onCloseBubble: () -> Unit = remember { { tapped = null } }
@@ -544,6 +589,13 @@ internal fun CompactMapTab(
             val trueHeading = rememberTrueHeading(compassProvider, computeTrueHeading, uiState.liveFix)
             // Dispatch 2026-09-28-430: which way the map faces while navigating, from the same heading.
             val navigationFacing by rememberNavigationFacing(trueHeading, isNavigating, currentTime)
+            // Dispatch -497: where the start is once the walker has arrived, by the same rule the HUD's
+            // "Arrived" reads (arrivedAtStart); null otherwise.
+            val arrivedAt = if (isNavigating && navigationTarget != null && arrivedAtStart(uiState.liveFix, navigationTarget, currentTime.nowEpochMillis())) {
+                com.zynergylabs.forager.app.domain.model.LatLng(navigationTarget.lat, navigationTarget.lng)
+            } else {
+                null
+            }
             val currentOnLeftNavigationView by rememberUpdatedState(onLeftNavigationView)
             val onLeftView: () -> Unit = remember { { currentOnLeftNavigationView() } }
             val currentOnNavigationZoomApplied by rememberUpdatedState(onNavigationZoomApplied)
@@ -584,7 +636,13 @@ internal fun CompactMapTab(
                         sightings = filteredSightings,
                         plannedTrips = uiState.plannedTrips,
                         breadcrumbPoints = breadcrumbPoints,
-                        waypoints = waypoints,
+                        // Dispatch -497: once arrived, the start's pin is left out and the arrival
+                        // ring drawn in its place (RouteHomeLayers.kt), so the start changes form.
+                        waypoints = if (arrivedAt != null) waypoints.filterNot { it.id == navigationTarget?.id } else waypoints,
+                        // Dispatch -502: a waypoint navigation's dashed line beside the return's way back. There is no way back to
+                        // draw meanwhile: the return the waypoint overrules is paused, and pausing it clears its line
+                        // (TrackRecordingViewModel.stopReturn), so nothing here has to hide it.
+                        route = if (isNavigating) RouteOnMap(routeLine, arrivedAt, waypointStraightLine?.points, waypointStraightLine?.isCurrent ?: true, waypointStraightLine?.isOffline ?: false) else null,
                         resumeTrackingRequestId = resumeTrackingRequestId,
                         resetOrientationRequestId = resetOrientationRequestId,
                         focusedObservationId = tapped.focusedObservationId,
@@ -710,6 +768,9 @@ internal fun CompactMapTab(
                     backEnabled = !isDrawerOpen && !isFullscreen && renderMode.backEnabled && pendingAction == null && !pickingSearchLocation && !showActionMenu,
                     insetLeft = bubbleInsetLeft,
                     insetRight = bubbleInsetRight,
+                    // Dispatch -502, Amendment 1: Back ended a waypoint navigation started in the waypoint's details sheet here.
+                    reopenDetails = (waypointReopen as? WaypointNavigationOrigin.MapDetails)?.let { RecordDetailsTarget.WaypointDetails(it.waypointId) },
+                    onReopenDetailsConsumed = onWaypointReopenConsumed,
                 )
                 // The icon cluster (the bar and the record | return pill, their handles, drag, snap and clamps):
                 // MapIconCluster, shared with the tablet's map (J6c). Composed *before* CompassElevationStrip,
@@ -773,6 +834,8 @@ internal fun CompactMapTab(
                             onToggleReturning = onToggleReturning,
                             distanceUnit = uiState.distanceUnit,
                             onLeftSide = onLeftSide,
+                            // Dispatch -502: the X-circle for either navigation, a waypoint's included.
+                            isNavigating = isNavigating,
                         )
                     },
                     // Landscape L: the pill turned horizontal (record under the bar's column, return inboard, 96 x 48), one layer at the
@@ -790,6 +853,7 @@ internal fun CompactMapTab(
                             horizontal = true,
                             fillColor = mapIconChromeFillColor(),
                             rowSpacing = MAP_ICON_BAR_LANDSCAPE_ROW_SPACING,
+                            isNavigating = isNavigating,
                         )
                     },
                 )
@@ -912,7 +976,8 @@ internal fun CompactMapTab(
                         liveFix = uiState.liveFix,
                         target = navigationTarget,
                         distanceUnit = uiState.distanceUnit,
-                        route = returnRoute,
+                        // Dispatch -502: no route to a chosen waypoint, so the straight-line HUD (decision D2).
+                        route = if (isNavigatingToWaypoint) null else returnRoute,
                         onRetryRoute = onRetryRoute,
                         facing = navigationFacing,
                         currentTime = currentTime,
@@ -1205,3 +1270,6 @@ internal fun CompactMapTab(
 
 /** Landscape B2 (S4): the navigation HUD's width cap in the rail-side top corner. */
 private val LANDSCAPE_HUD_MAX_WIDTH = 360.dp
+
+/** Dispatch 2026-09-28-502: the tag this tab's one log line goes under. */
+private const val COMPACT_MAP_LOG_TAG = "CompactMapTab"

@@ -696,16 +696,20 @@ class AvailabilityScreenMapIconStackTest {
      * the straight line, counted once. A return is in route mode now, so the walker 10 m from the
      * origin is fed the route home from there (12 m along the path), the large slot reads that,
      * once, and "Approaching" still owns the status line, so the straight line is not shown.
+     *
+     * Dispatch 2026-09-28-497 changed this (Amendment 2): the large slot asserted "12 m", the route
+     * figure. Arrival's radius, max(2 x accuracy, 15 m), is never smaller than approaching's, so a
+     * return inside the approach threshold has arrived, and the large slot reads "Arrived", once.
      */
     @Test
     fun `inside the approach threshold the distance appears exactly once and the target column is empty`() {
         setNavigatingScreen(fix = hudFix.copy(lat = 45.53009), returnRoute = ReturnRoute.Ahead(LatLng(hudOrigin.lat, hudOrigin.lng), 12.0))
         composeRule.waitForIdle()
 
-        assertEquals("12 m", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
+        assertEquals(ARRIVED_TEXT, textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
         assertEquals("Approaching", textOfTag(NAVIGATION_HUD_STATUS_TAG))
         assertEquals("", textOfTag(NAVIGATION_HUD_TARGET_TAG))
-        composeRule.onAllNodesWithText("12 m").assertCountEquals(1)
+        composeRule.onAllNodesWithText(ARRIVED_TEXT).assertCountEquals(1)
         composeRule.onAllNodesWithText("within 13 m").assertCountEquals(0)
         composeRule.onAllNodesWithText("10 m").assertCountEquals(0)
     }
@@ -1614,12 +1618,16 @@ class AvailabilityScreenMapIconStackTest {
      * gone (navigation-chrome dispatch, item 3) and the visible distance is the HUD's — see `the
      * HUD shows the straight-line distance to the origin` above, which computes it from the live
      * fix rather than from [ReturnToStartInfo].
+     *
+     * Dispatch 2026-09-28-497 changed this (Amendment 2): it ran with `isReturning = true`. While
+     * navigating the control now reads "Stop navigating" (its X-circle step), so the sentence, this
+     * test's subject, is checked where it is still the control's label: recording, not navigating.
      */
     @Test
     fun `recording with a real fix and return-to-vehicle active shows the full sentence via contentDescription`() {
         setScreen(
             isRecording = true,
-            isReturning = true,
+            isReturning = false,
             returnToStart = ReturnToStartInfo(bearingDegrees = 180.0, distanceMeters = 1200.0, elevationDifferenceMeters = -45.0),
         )
         searchAReferenceRegion()
@@ -1705,6 +1713,9 @@ class AvailabilityScreenMapIconStackTest {
         // than the tint's actual pixel value, which this suite has no existing way to assert either.
         // The distance used to be read as visible text off DistanceArm; the arm is gone
         // (navigation-chrome dispatch, item 3), so it is read from the row's own sentence.
+        // Dispatch 2026-09-28-497 changed this (Amendment 2): it asserted the sentence "Return: 180°
+        // S · 500 m · elevation diff. unavailable". Off track happens only while navigating, where the
+        // control now reads "Stop navigating"; the subject, the error state reaching the control, is kept.
         setScreen(
             isRecording = true,
             returnToStart = ReturnToStartInfo(bearingDegrees = 180.0, distanceMeters = 500.0, elevationDifferenceMeters = null),
@@ -1715,15 +1726,17 @@ class AvailabilityScreenMapIconStackTest {
 
         composeRule.onNode(
             hasTestTag("control-pill-return-to-vehicle") and
-                hasContentDescription("Return: 180° S · 500 m · elevation diff. unavailable"),
+                hasContentDescription("Stop navigating"),
         ).assertIsDisplayed()
     }
 
     @Test
     fun `a return distance under a kilometer is shown in meters in the return row's sentence`() {
+        // Dispatch 2026-09-28-497 changed this (Amendment 2): it ran with isReturning = true; the
+        // sentence is the control's label only when not navigating now ("Stop navigating" while navigating).
         setScreen(
             isRecording = true,
-            isReturning = true,
+            isReturning = false,
             returnToStart = ReturnToStartInfo(bearingDegrees = 45.0, distanceMeters = 350.0, elevationDifferenceMeters = null),
         )
         searchAReferenceRegion()

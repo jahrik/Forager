@@ -20,6 +20,12 @@ sealed interface RouteHome {
      * and the needle aims at the start itself. [pathHome] is the [PathHome] [routeMeters] is read
      * from, built from the same route search, so a caller that wants both needs one search, not two
      * (dispatch 2026-09-28-423, the planner's ruling on question 1).
+     *
+     * [route] is the whole route as a line, from the most recent stored point to the start (and the
+     * origin waypoint when there is one), and [routeAhead] the part of it from the walker's assumed
+     * place (the first route point at least `hop` metres along, the same place the lookahead is
+     * measured from) to the end: the line the map draws while returning (dispatch 2026-09-28-497,
+     * plan task T7). No projection onto the nearest point, by the same owner ruling.
      */
     data class Ahead(
         val lookahead: LatLng,
@@ -28,6 +34,8 @@ sealed interface RouteHome {
         val lookaheadAlongRouteMeters: Double,
         val aimsAtRouteEnd: Boolean,
         val pathHome: PathHome,
+        val route: List<LatLng> = emptyList(),
+        val routeAhead: List<LatLng> = emptyList(),
     ) : RouteHome
 
     /**
@@ -173,6 +181,8 @@ fun routeHome(track: Track, current: LatLng, origin: Waypoint?, previousHopBand:
         lookaheadAlongRouteMeters = alongMeters[chosen],
         aimsAtRouteEnd = chosen == last,
         pathHome = distance,
+        route = nodes,
+        routeAhead = nodes.subList(walkerPlace, nodes.size),
     )
 }
 

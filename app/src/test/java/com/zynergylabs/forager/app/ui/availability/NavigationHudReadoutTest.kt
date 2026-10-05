@@ -205,16 +205,19 @@ class NavigationHudReadoutTest {
     }
 
     @Test
-    fun `approaching inside twice the reported accuracy - never arrived, and the needle is not drawn`() {
+    fun `approaching inside twice the reported accuracy - the needle is not drawn`() {
         // 0.00009° of latitude is 10.0 m; accuracy 12.5 m → threshold 25 m.
         val close = north.copy(lat = 45.52009)
 
         val r = readout(target = close)
 
         assertEquals("Approaching", r.statusText)
-        // Inside the error circle the distance is the accuracy — 12.5 m is 41.01 ft — never "33 ft"
-        // as if the fix knew where you stood to the foot (location-accuracy dispatch, item 2).
-        assertEquals("within 41 ft", r.distanceText)
+        // Dispatch -502 changed this (Amendment 2). Before: the name ended "- never arrived, and the
+        // needle is not drawn", and the large slot was asserted to read "within 41 ft" (inside the error
+        // circle the distance is the accuracy, 12.5 m being 41.01 ft; FormatDistanceMetersTest still pins
+        // that string). After: arrival applies to any target, and arrival's radius, max(2 x 12.5, 15) =
+        // 25 m, holds every approaching point, so the large slot reads "Arrived".
+        assertEquals(ARRIVED_TEXT, r.distanceText)
         assertNull(r.targetArrowDegrees)
         // The target column shows nothing — no "Turn N°" (the same unstable bearing as the
         // needle), no dash, no placeholder, and not the distance either: a first cut put the
@@ -237,9 +240,11 @@ class NavigationHudReadoutTest {
         val outside = north.copy(lat = 45.52 + 0.000148)
 
         val r1 = readout(liveFix = eightMetres, target = inside)
-        // 15.57 m is 51.08 ft; 8 m accuracy is 26.25 ft → step 50 ft → "≈ 50 ft". The needle claim
-        // below is the point of this test; the distance string is item 2's rounding, pinned too.
-        assertEquals("≈ 50 ft", r1.distanceText)
+        // Dispatch -502 changed this (Amendment 2). Before: the large slot was asserted to read "≈ 50 ft"
+        // (15.57 m is 51.08 ft; 8 m accuracy is 26.25 ft → step 50 ft). After: arrival applies to any
+        // target, and 15.57 m is inside arrival's max(2 x 8, 15) = 16 m, so it reads "Arrived". The needle
+        // claim below is the point of this test and is unchanged.
+        assertEquals(ARRIVED_TEXT, r1.distanceText)
         assertNull("no needle at 15.57 m with 8 m accuracy", r1.targetArrowDegrees)
         assertEquals("Approaching", r1.statusText)
         assertEquals("", r1.targetText)
@@ -264,8 +269,10 @@ class NavigationHudReadoutTest {
         assertNotNull(r.targetArrowDegrees)
         assertEquals("", r.statusText)
         assertEquals("Turn 315°", r.targetText)
-        // And the distance formats exactly as before item 2: no accuracy, no rounding, no marker.
-        assertEquals("33 ft", r.distanceText)
+        // Dispatch -502 changed this (Amendment 2). Before: the large slot was asserted to read "33 ft" (no
+        // accuracy, no rounding, no marker). After: arrival applies to any target, and with no accuracy its
+        // radius is 15 m, so 10 m reads "Arrived". The needle, drawn with no basis for approaching, is unchanged.
+        assertEquals(ARRIVED_TEXT, r.distanceText)
     }
 
     @Test
@@ -362,7 +369,9 @@ class NavigationHudReadoutTest {
         assertNull(r.targetArrowDegrees)
         assertEquals("", r.targetText)
         assertEquals("Approaching", r.statusText)
-        assertEquals("within 41 ft", r.distanceText)
+        // Dispatch -502 changed this (Amendment 2). Before: "within 41 ft". After: arrival applies to any
+        // target, and 10 m is inside arrival's max(2 x 12.5, 15) = 25 m, so the large slot reads "Arrived".
+        assertEquals(ARRIVED_TEXT, r.distanceText)
     }
 
     @Test
