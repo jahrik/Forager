@@ -4,20 +4,15 @@ import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.domain.CompassProvider
 import com.zynergylabs.forager.app.domain.CompassReading
@@ -29,19 +24,15 @@ import com.zynergylabs.forager.app.domain.LastKnownLocationSource
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.LocationTracker
 import com.zynergylabs.forager.app.domain.ShownPosition
-import com.zynergylabs.forager.app.domain.fixOrNull
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.model.WaypointDesignation
-import com.zynergylabs.forager.app.ui.map.MAP_CHROME_OVER_MAP_ALPHA
-import com.zynergylabs.forager.app.ui.map.MapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.MapOverlayContent
 import com.zynergylabs.forager.app.ui.map.MapPosition
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.LocalMapPosition
 import com.zynergylabs.forager.app.ui.map.PositionLook
 import com.zynergylabs.forager.app.ui.map.positionLookOf
-import kotlin.math.abs
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -62,13 +53,17 @@ import org.robolectric.annotation.Config
  * Dispatch 2026-09-28-510 (RECORD -508, and the owner's answers in the coder's window) through the real
  * [AvailabilityScreen] and the real [AvailabilityViewModel], fixes arriving on the ViewModel's own live
  * collection (started by [AvailabilityViewModel.onEnteredForeground], as `MainActivity` starts it):
- * a network reading over 50 m shows the approximate dot and its label and the strip says so; it never
+ * a network reading over 50 m shows the approximate dot and the strip says so; it never
  * becomes the gated fix, so never "Arrived" and never the waypoint's line; a far target shows "≈" with
  * the needle, a near one hides it with the message, and while returning there is no needle; a GPS fix
  * replaces it; with no reading the last known position shows with its age.
  *
+ * Dispatch 2026-09-28-535 (RECORD -534, the owner: "the bubble message is repeating what the strip
+ * says ... my vote is for the bubble message", and "Remove both"): no bubble under the dot, for an
+ * approximate position or a last known one; the strip and the HUD carry the words.
+ *
  * The map is [PositionMapSlot], which records the position the screen hands every map
- * ([LocalMapPosition]) and reports where the dot is, as `SightingsMap` does on a camera move. How
+ * ([LocalMapPosition]). How
  * MapLibre draws the dot and whether the camera centres on it is device-only: a real MapView cannot run
  * under Robolectric. What MapLibre is handed is `AppLocationEngineTest`'s and `PositionLookOptionsTest`'s.
  */
@@ -176,6 +171,12 @@ class AvailabilityScreenApproximatePositionTest {
 
     private fun textShown(text: String) = composeRule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
 
+    /**
+     * Dispatch 2026-09-28-535: nothing on screen reads exactly [words], the bubble's whole text. The strip
+     * and the HUD carry the same words with ", finding GPS…" after them, so an exact match is the bubble's.
+     */
+    private fun assertNoBubble(words: String) = assertFalse("no bubble reading \"$words\" (dispatch -535)", textShown(words))
+
     private fun shownPosition(): ShownPosition = map.position!!.shown.value
 
     private fun look(): PositionLook = map.position!!.let { positionLookOf(it.shown.value, it.liveFix.value) }
@@ -183,7 +184,7 @@ class AvailabilityScreenApproximatePositionTest {
     // ── The map and the strip ──
 
     @Test
-    fun `a network reading over 50 m shows the approximate dot, labelled at the dot, and the strip says so with no coordinates`() {
+    fun `a network reading over 50 m shows the approximate dot with no bubble, and the strip says so with no coordinates`() {
         setScreen()
         val reading = network(metersSouth = 3_240.0)
 
@@ -192,18 +193,7 @@ class AvailabilityScreenApproximatePositionTest {
         assertNull("the reading never becomes the gated fix, which \"Arrived\", the line and a find's location read", viewModel.uiState.value.liveFix)
         assertEquals("the map is handed the approximate position", ShownPosition.Approximate(reading), shownPosition())
         assertEquals("drawn as the soft dot", PositionLook.APPROXIMATE, look())
-        composeRule.onNodeWithTag(MAP_POSITION_LABEL_TAG).assertIsDisplayed()
-        assertEquals(APPROXIMATE_LOCATION_TEXT, text(MAP_POSITION_LABEL_TAG))
-        // Under the dot: centred on it across, its top below it.
-        val slot = composeRule.onNodeWithTag(POSITION_MAP_TAG).getUnclippedBoundsInRoot()
-        val label = composeRule.onNodeWithTag(MAP_POSITION_LABEL_TAG).getUnclippedBoundsInRoot()
-        val dotX = slot.left + PositionMapSlot.DOT_X
-        val dotY = slot.top + PositionMapSlot.DOT_Y
-        assertTrue("the label is centred under the dot: ${(label.left + label.right) / 2} against $dotX", abs(((label.left + label.right) / 2 - dotX).value) <= 1f)
-        assertTrue("the label's top is below the dot and near it: ${label.top} against $dotY", label.top > dotY && label.top - dotY <= 40.dp)
-        // Map chrome at 80% (CLAUDE.md, UX defaults).
-        val fill = composeRule.onNodeWithTag(MAP_POSITION_LABEL_TAG).fetchSemanticsNode().config[MapChromeContainerColor]
-        assertEquals(MAP_CHROME_OVER_MAP_ALPHA, fill.alpha, 0.001f)
+        assertNoBubble(APPROXIMATE_LOCATION_TEXT)
         // The strip: heading, then the note; no coordinates, no elevation.
         assertEquals("0° N", text(COMPASS_STRIP_HEADING_TAG))
         assertEquals("Approximate location, finding GPS…", text(COMPASS_STRIP_POSITION_NOTE_TAG))
@@ -212,7 +202,7 @@ class AvailabilityScreenApproximatePositionTest {
     }
 
     @Test
-    fun `a GPS fix replaces it, the normal dot, no label, the strip's coordinates`() {
+    fun `a GPS fix replaces it, the normal dot, the strip's coordinates`() {
         setScreen()
         arrive(network(metersSouth = 3_240.0))
         val fix = gps(metersSouth = 500.0)
@@ -222,7 +212,6 @@ class AvailabilityScreenApproximatePositionTest {
         assertEquals(fix, viewModel.uiState.value.liveFix)
         assertEquals(ShownPosition.Precise(fix), shownPosition())
         assertEquals(PositionLook.PRECISE, look())
-        assertFalse("the label goes", shown(MAP_POSITION_LABEL_TAG))
         assertFalse("the strip's note goes", shown(COMPASS_STRIP_POSITION_NOTE_TAG))
         assertTrue("the strip shows the fix's coordinates", textShown(coordinatesStripText(LatLng(fix.lat, fix.lng), false)))
     }
@@ -234,7 +223,7 @@ class AvailabilityScreenApproximatePositionTest {
 
         assertEquals(ShownPosition.LastKnown(lastKnown!!), shownPosition())
         assertEquals("drawn grey", PositionLook.LAST_KNOWN, look())
-        assertEquals("Last seen 2 h ago", text(MAP_POSITION_LABEL_TAG))
+        assertNoBubble("Last seen 2 h ago")
         assertEquals("Last seen 2 h ago, finding GPS…", text(COMPASS_STRIP_POSITION_NOTE_TAG))
         assertNull("never the gated fix", viewModel.uiState.value.liveFix)
 
@@ -242,7 +231,8 @@ class AvailabilityScreenApproximatePositionTest {
         arrive(reading)
 
         assertEquals("anything newer replaces it", ShownPosition.Approximate(reading), shownPosition())
-        assertEquals(APPROXIMATE_LOCATION_TEXT, text(MAP_POSITION_LABEL_TAG))
+        assertEquals("Approximate location, finding GPS…", text(COMPASS_STRIP_POSITION_NOTE_TAG))
+        assertNoBubble(APPROXIMATE_LOCATION_TEXT)
     }
 
     // ── The HUD ──
@@ -259,6 +249,9 @@ class AvailabilityScreenApproximatePositionTest {
         assertEquals("the needle: the creek is due north of a walker facing north", "Turn 0°", text(NAVIGATION_HUD_TARGET_TAG))
         assertEquals(APPROXIMATE_HUD_TEXT, text(NAVIGATION_HUD_STATUS_TAG))
         assertFalse("no coordinates row for a reading known to 120 m", shown(NAVIGATION_HUD_COORDINATES_TAG))
+        // Dispatch 2026-09-28-535: the HUD carries the words while navigating, and the strip is not composed.
+        assertFalse("the strip gives way to the HUD", shown(COMPASS_STRIP_POSITION_NOTE_TAG))
+        assertNoBubble(APPROXIMATE_LOCATION_TEXT)
     }
 
     @Test
@@ -310,32 +303,18 @@ class AvailabilityScreenApproximatePositionTest {
         assertEquals("—", text(NAVIGATION_HUD_DISTANCE_TAG))
         assertFalse("no needle", text(NAVIGATION_HUD_TARGET_TAG).startsWith("Turn"))
         assertEquals("Last seen 2 h ago, finding GPS…", text(NAVIGATION_HUD_STATUS_TAG))
+        assertNoBubble("Last seen 2 h ago")
     }
 
-    /**
-     * The map: records what the screen hands it and the position every map under the screen is given,
-     * and reports the dot at a fixed point in its own pixels whenever there is one, as `SightingsMap`
-     * reports it on a camera move.
-     */
+    /** The map: records what the screen hands it and the position every map under the screen is given. */
     private class PositionMapSlot {
         var content: MapOverlayContent? = null
         var position: MapPosition? = null
 
-        val slot: MapSlot = { _, content, renderMode, _, _, _, _, _, modifier ->
+        val slot: MapSlot = { _, content, _, _, _, _, _, _, modifier ->
             this.content = content
-            val position = LocalMapPosition.current
-            this.position = position
-            val fix = position?.shown?.value?.fixOrNull
-            val density = LocalDensity.current
-            LaunchedEffect(fix) {
-                renderMode.onShownPositionScreenPoint(if (fix != null) with(density) { Offset(DOT_X.toPx(), DOT_Y.toPx()) } else null)
-            }
+            this.position = LocalMapPosition.current
             Box(modifier.testTag(POSITION_MAP_TAG))
-        }
-
-        companion object {
-            val DOT_X = 192.dp
-            val DOT_Y = 520.dp
         }
     }
 
