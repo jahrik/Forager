@@ -1684,7 +1684,7 @@ internal fun locationIndicatorTrackingAnimationMultiplier(): Float =
  * options are unit-testable: `LocationComponentOptions` is a plain value class, unlike the
  * native-backed `Style` the activation itself needs.
  */
-internal fun liveLocationComponentOptions(context: Context, navigating: Boolean = false): LocationComponentOptions =
+internal fun liveLocationComponentOptions(context: Context, navigating: Boolean = false, look: PositionLook = PositionLook.PRECISE): LocationComponentOptions =
     LocationComponentOptions.builder(context)
         // Dispatch 2026-09-28-457, Parts B and C: while navigating, MapLibre's own tracking-gesture
         // management (off by default, 13.5.0) raises the move thresholds while following: a one-finger
