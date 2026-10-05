@@ -11920,3 +11920,16 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Observed by the planner over adb, read only:** the S26 is an SM-S948U (build CP2A.260605.016), Forager 1.0.2695+gc3ba0f46 sideloaded (installer com.google.android.packageinstaller, first installed 2026-10-03, updated 2026-10-04), signed with the committed `app/debug.keystore` (certificate SHA-256 CB:2F:6D:A5…, compared with keytool). So laptop debug builds install over it as updates with its data kept; -533's "S26 has no Play version" holds. Commit c3ba0f46 is on no branch of the remote.
 **The owner, verbatim:** "My S26 is connected and ready to load up". The walk logger is not built yet; asked what to load, the owner chose "-516's build (Recommended)": the sundown alerts on main 1d3d2bbb, installed by the -516 coder on a Gradle go, so the S26 can run the sunset check beside the S22 or the out-and-back walk.
 **Notes:** Written by the planner by hand, on branch records-after-173.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-540
+**Timestamp:** 2026-10-05T20:25:00Z
+**Continues:** 2026-09-28-539
+**Context:** The previous planner session stopped mid-turn (its computer unreachable) at 20:01 UTC, after the owner sent the walk screenshots from both phones; this entry is its successor's, from that session's transcript and a read-only adb pass. Screenshots pulled to /tmp on the laptop, kept out of the repository (street addresses).
+**Observed, read only:** both phones' clocks are set about 4 h 09 min ahead with automatic time off (2026-10-05 20:15:22 UTC on the laptop; the S22 read 2026-10-06 00:24:44 UTC, the S26 00:25:03 UTC; auto_time=0 on both). Both run 1.0.2763+gbf34fc87 (-516 on main 1d3d2bbb) and both are still recording (TrackRecordingService foreground).
+**What the walk screenshots show (phone clock 4:57 to 5:13 PM):** on both phones the strip read "Approximate location, finding GPS…" and the dot stayed at one spot in its circle while the recorded track moved along the road; navigating, the HUD read "≈ 0.3 mi · Approximate, finding GPS…", and on the S22 later "No fix for 249 min" with coordinates. 249 min is the clock offset. At 5:13 PM both phones posted "Sunset at 6:42 PM / The walk back is unknown." The bubble under the dot is absent, as -535 intends.
+**Inferred, not confirmed in code:** GPS fixes carry the satellite time and the app ages them against the phone's wall clock, so with the clock 4 h ahead every GPS fix reads 249 min old: lost. That alone explains the approximate dot, "No fix for 249 min" and "The walk back is unknown" (no GPS fix that is not lost), while the recorder kept storing the GPS points. Network readings evidently aged as fresh. The fix-time read site was not traced in this pass.
+**So:** this walk does not test -510 or -516's walk-back figure; it tests the app with a wrong phone clock. The heads-up itself fired on time by the phone's clock. Open for the owner: whether the clocks were set ahead on purpose for the sunset check; and whether a wrong phone clock is a failure the app should survive (RECORD -519, every failure has a fallback), for example by ageing fixes on the phone's since-boot clock.
+**Notes:** Written by the planner by hand, on branch records-after-173. Nothing on either phone was changed.
