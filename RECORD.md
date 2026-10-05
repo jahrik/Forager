@@ -11822,3 +11822,24 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **The owner, verbatim:** "The S22 step will wait until tomorrow. It's already past sunset here tonight. But good on the rest."
 **Where things stand:** -516 at 788f4ed7 on sundown-alerts, not merged, waiting on its S22 step (a real sunset, the owner's word in the coder's window) and the release-gate walk. -527, fix-provider (preserved/2026-10-05-01.md), held until -516 merges. -510's look unseen by the owner; its grey "Last seen" dot unconfirmed on a phone. No coder is building.
 **Notes:** Written by the planner by hand, on branch records-after-172.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-531
+**Timestamp:** 2026-10-05T10:05:00Z
+**Continues:** 2026-09-28-526
+**The owner, verbatim:** "I'll need to go for more walks in the woods to gather more data. My S22 has no working SIM card, so it'll be running purely without data network". To the planner's question (walks before the logger exists record only the app's track, enough for the release gate but little for fusion): "Alongside -527 (Recommended)": the walk logger moves up and runs in a second coder window at the same time as -527, once -516 merges.
+**What the no-SIM S22 means for the data:** in the woods it has neither cell positioning nor Wi-Fi, so its walks are GPS-only, the no-network case of -519, not a typical user's phone; its walks cannot show whether network fixes help a phone with a SIM. GPS starts without downloaded assistance unless refreshed on Wi-Fi beforehand.
+**Order now:** -516 merges; then -527 (fix-provider) and -532 (walk-logger) side by side, one Gradle run at a time; then the filter against the logs.
+**Notes:** Written by the planner by hand, on branch records-after-172.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-532
+**Timestamp:** 2026-10-05T10:10:00Z
+**Title:** walk-logger: a debug-only recorder of everything the phone senses on a walk
+**Dispatch-file:** preserved/2026-10-05-02.md
+**Not yet sent:** it starts after -516 merges, beside -527, on the owner's word then.
+**Notes:** Written by the planner by hand, on branch records-after-172.
