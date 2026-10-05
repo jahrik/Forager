@@ -91,3 +91,45 @@ The earlier text above stays as it was, and two of its claims are corrected here
   was removed afterwards. The tree was clean before and after. `node_modules/` is gitignored.
   `npm run build` (`wrangler deploy --dry-run`) was **still not run**, because the owner has not said
   "build".
+
+## Live, and checked (dispatch 2026-10-04-10)
+
+The owner said "B and yes to the tunnel test". That covered merging `main` into `pi-origin`, opening
+the PR and merging it, and stopping and starting the tunnel for check 4.
+
+- **The branch merge:** `bd3ace29`. The only conflict was in `docs/audits/README.md`. Every row is
+  kept: 263 at the base, plus 2 from this branch and 7 from `main`, gives 272.
+- **The PR:** #169, with CI "Build, test, publish APK" green and GitHub's merge state CLEAN.
+- **The merge was the owner's.** This session's attempt to merge was **refused by its permission
+  classifier** ("Merge Without Review"), so the owner merged #169 by hand. `main` is at `128f9e82`.
+
+**Which branch deploys, now confirmed by behaviour.** Cloudflare's check on `d4bd00bf` links to the
+Worker's *production* builds. Fifteen seconds after `128f9e82` reached `main`, a fresh `/us.json`
+response carried `X-Forager-Origin`, which only the new code sets. So a push to `main` deploys.
+
+**Every request below carried a one-off query string.** The edge cache keys on the full URL, so none
+of them could be answered from the cache.
+
+| Check | Request | Result |
+|---|---|---|
+| 1 | z5 tile `5/6/12` | **200, `X-Forager-Origin: pi`**, `application/x-protobuf`, 104,213 bytes, 1.6 s. **Byte-identical** to the same tile read from `pmtiles serve` on `127.0.0.1:8080`, after removing any gzip encoding |
+| 2 | `/us.json` | `maxzoom` 15, `minzoom` 0, `tiles` names only the Worker's own hostname, and `origin.zynergy-labs.com` appears nowhere in it |
+| 3 | z15 tile `15/6826/12436` (Denver) | **200, `X-Forager-Origin: r2`**, 210,416 bytes, 2.4 s. This is the z15 overflow path |
+| 4 | `forager-tunnel` stopped at 05:52:52Z, then z5 `5/6/12` | **200, `X-Forager-Origin: r2`**, 104,213 bytes, **1.07 s**. The origin, requested directly with no token, gave 403 while the tunnel was down |
+| 4, after | tunnel started at 05:53:00Z | `active` at once. A fresh z5 tile read **`pi` at 05:53:08Z**. `forager-tiles` stayed `active` throughout |
+
+Check 5 (`wrangler tail`) was **not run**, because this session has no wrangler login. So the
+fallback log line itself has **not been seen**. All that is known is that the fallback happened.
+
+### Settled by these checks
+
+- **The cross-account question.** A Worker on the old account presents the zynergy-labs Access token
+  successfully (check 1). This was part 1's inference, and it now stands confirmed.
+- **The Pi's `Content-Type`** is `application/x-protobuf` (check 1).
+
+### Still not observed
+
+- That the Pi answers 404 above z14. Check 3 reads `r2`, which the code also produces after a
+  timeout or any non-200/204 answer, so it does not tell those causes apart. `wrangler tail` would.
+- How the 4 s timeout behaves on a slow Pi, as opposed to a down one. Check 4 is the down case: the
+  tunnel's 5xx came back quickly, well inside the limit.
