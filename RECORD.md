@@ -11660,3 +11660,15 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Dispatch-file:** preserved/2026-10-04-11.md, dispatch -515's behaviour; to a second coder window, alongside -510
 **Dispatched,** on the owner's "Go ahead" to writing it now beside -510, with the -515 adjustments. One Gradle run at a time across both windows, each on the owner's "go".
 **Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-517
+**Timestamp:** 2026-10-05T02:20:00Z
+**Continues:** 2026-09-28-512
+**Decides:** the location fusion filter is open source for the community, in its own public repository
+**The owner, verbatim:** "With FLP we should also export this to allow other users to use the code, make it open source for the community." To the planner's two questions: the licence, "Decide later" (the planner had recommended Apache 2.0; it was told that published code with no licence can be read but not legally used); the form, "Its own public repo (Recommended)": a standalone library with no Forager code in it, which Forager depends on like any other library, built that way from the start.
+**What this sets for the fusion dispatches (-512's step 3, the filter):** the filter is written in its own repository, not under `app/`; nothing Forager-specific goes into it; its code borrows only from the open references -512 allowed (Apache, MIT, BSD), so every licence remains open to choose. The walk logs stay out of it as they stay out of Forager's (-512): its tests use synthetic or consented data only. The quick win (-512 step 1) and the walk logger (step 2) are Forager work and are not affected.
+**Open for the owner:** the licence, before the library's first public release; the repository's name and when it is created.
+**Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168.
