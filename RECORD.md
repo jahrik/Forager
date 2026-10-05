@@ -11605,3 +11605,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Observed:** both research agents reported (each after resuming from a network error); the planner filed `docs/navigation/2026-10-04-location-fusion-research.md` with its two index rows. In short: no open fusion to adopt (Android's open "fused" provider picks the newer or more accurate source and does not fuse); steps and compass smooth and bridge gaps (one published phone test: 15 m mean with GNSS alone, 8 m with steps); satellite status (satellites used, signal strength) can judge a fix despite the S22's constant 3.79 m; dual-frequency L5 and carrier phase on the US S22 unconfirmed, carrier phase probably absent; cell towers only a rough first fix (OpenCelliD, CC BY-SA). Sources not re-checked by the planner.
 **Open for the owner:** four decisions: the order (judge fixes by satellite status, a debug walk logger, then a filter built against the logs); the walk logger kept on the phone and never in the repository; open references only (Apache, MIT, BSD); cell towers deferred.
 **Notes:** Written by the planner by hand, on branch records-after-168.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-512
+**Timestamp:** 2026-10-05T00:48:00Z
+**Decides:** the four open decisions of -511, and which planner owns the fusion work
+**The owner, verbatim,** in the other planner window at 4:58 PM local, shown to this planner as a screenshot: "I'll take your recommendations", to that window's four decisions: the order (quick win: judge each GPS fix by its satellites; then a debug-only walk logger; then the fusion filter, built and tuned against the walk recordings on the laptop before it touches the live map, with honest limits, the screenshot's wording "after about 5 minutes or 300 m without GPS, your position shows as approximate"); the walk logger debug-only, kept on the phone and copied to the laptop, never in the repository; freely licensed open references only (Apache, MIT, BSD), so no code licence decision is forced; cell towers left for later. The 5 minutes and 300 m are the planner's provisional figures from that window, not yet derived; they are a premise for the filter's dispatch to check.
+**Ruled by the owner in this window:** this planner owns the fusion work from here ("This window (Recommended)"), so the other window records and dispatches nothing more on fusion; and the quick win is dispatched only after -510 (the approximate position) is built, against its code, because both change the same 50 m location gate ("Quick win after -510 (Recommended)"). One coder at a time on location.
+**Status:** -510 is with the owner to paste into a coder window; no branch for it existed at this timestamp. Nothing on fusion is dispatched yet.
+**Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168 and pushed to it, because the other planner's worktree holds that branch.
