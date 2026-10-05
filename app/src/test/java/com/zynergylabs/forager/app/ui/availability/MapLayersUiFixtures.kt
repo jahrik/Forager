@@ -33,7 +33,9 @@ import com.zynergylabs.forager.app.domain.InMemorySearchCacheRepository
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.LocationProvider
 import com.zynergylabs.forager.app.domain.LocationResult
+import com.zynergylabs.forager.app.domain.LastKnownLocationSource
 import com.zynergylabs.forager.app.domain.LocationTracker
+import com.zynergylabs.forager.app.domain.NoLastKnownLocation
 import com.zynergylabs.forager.app.domain.MapLayerPreferences
 import com.zynergylabs.forager.app.domain.MapLayerPreferencesRepository
 import com.zynergylabs.forager.app.domain.MapPreferencesRepository
@@ -156,12 +158,15 @@ internal fun mapLayersViewModel(
     // Dispatch 2026-09-28-502: where the waypoint navigation is kept, and the return it pauses. Defaulted to none, as before.
     waypointNavigationRepository: WaypointNavigationRepository = NoStoredWaypointNavigation,
     returnLeg: ReturnLeg = NoReturnLeg,
+    // Dispatch 2026-09-28-510: the live fixes and the platform's last known location. Defaulted to none, as before.
+    locationTracker: LocationTracker = MapLayersUiLocationTracker,
+    lastKnownLocation: LastKnownLocationSource = NoLastKnownLocation,
 ): AvailabilityViewModel {
     val searchCache = InMemorySearchCacheRepository()
     val plannedTripRepository = MapLayersUiPlannedTripRepository(plannedTrips)
     return AvailabilityViewModel(
         locationProvider = MapLayersUiLocationProvider,
-        locationTracker = MapLayersUiLocationTracker,
+        locationTracker = locationTracker,
         getAvailability = GetAvailabilityUseCase(PredictAvailabilityUseCase(MapLayersUiEmptyRepository), searchCache),
         getRecentSearches = GetRecentSearchesUseCase(searchCache),
         getSightings = GetSightingsUseCase(MapLayersUiEmptyRepository),
@@ -188,6 +193,7 @@ internal fun mapLayersViewModel(
         today = { MAP_LAYERS_TEST_WEEK },
         waypointNavigationRepository = waypointNavigationRepository,
         returnLeg = returnLeg,
+        lastKnownLocation = lastKnownLocation,
     )
 }
 

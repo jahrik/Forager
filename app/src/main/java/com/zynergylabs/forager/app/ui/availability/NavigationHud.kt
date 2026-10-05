@@ -210,6 +210,13 @@ internal fun NavigationHud(
      * retried, and once the map has turned north-up, the heading label says so; see [navigationReadout].
      */
     facing: NavigationFacing = NavigationFacing.FACING_UP,
+    /**
+     * Dispatch 2026-09-28-510: the newest reading the live gate refused, and the platform's last known
+     * location. Shown in place of the GPS fix only by [hudReadout]'s rule; never measured from for
+     * "Arrived", which reads [liveFix] alone.
+     */
+    approximateFix: LocationFix.Update? = null,
+    lastKnownFix: LocationFix.Update? = null,
 ) {
     // Read here, in this leaf, never higher — see rememberTrueHeading's own doc comment.
     val reading by heading
@@ -222,7 +229,7 @@ internal fun NavigationHud(
         }
     }
     val isDarkTheme = LocalForagerDarkTheme.current
-    val readout = navigationReadout(reading, liveFix, target, distanceUnit, now, showDecimalDegrees, route, facing)
+    val readout = hudReadout(reading, liveFix, approximateFix, lastKnownFix, target, distanceUnit, now, showDecimalDegrees, route, facing)
 
     CompositionLocalProvider(LocalContentColor provides if (isDarkTheme) Color.White else Bark) {
         // A plain Box with a background, deliberately opaque to touches only where its content
