@@ -11755,3 +11755,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **The owner, verbatim:** "I pasted the block too", of the planner's block sent to the -516 coder: clock times, not "within 30 min", so a notification read late stays true. Measured: "The walk back the way you came is about 1 h 30. To finish it before dark, start by 5:42 PM." Thin: "The walk back is at least 45 min. To finish it before dark, start by 5:57 PM at the latest." Unknown: "The walk back is unknown." Title: "Sunset at 7:12 PM". The heads-up and leave-by may share the text; the start-by time tells them apart. "Before dark" is sunset minus the darkness margin. The coder's "Leave within 30 min to walk it before dark" is not used.
 **Also, recorded here:** branch t510-merge (0f3d1cb9) pushed by the planner for merging -510: approximate-position at eb38bec0, main at 967fdd0b and records-after-168 at 55203701, the index conflicts resolved keeping every row; no app or server file differs from its source. The pull request is not opened: `gh auth status` reports the token in the laptop's gh config invalid, and the planner stopped there (RECORD :2246's ruling, no workaround).
 **Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-525
+**Timestamp:** 2026-10-05T07:55:00Z
+**Continues:** 2026-09-28-523
+**Observed:** after the owner re-authorised gh on the laptop ("It used to be authorized, yesterday in fact. But I redid it, try again"), the planner opened pull request #172 (t510-merge into main) on the owner's "Open the pr". CI passed at its head 699de03509a16e1ac00ae4051d0a35a83179ba58 (run 37278925063, 8 m 50 s), read from GitHub; it was merged as a9dfdd59eb2dada97f6bdca5d6d6f7afcf696d8a at 2026-10-05T07:49:08Z, on the owner's "Merge now (Recommended)" for -510 (-523's question), with backup 2026-10-05-01 of main at 967fdd0b. Main's tree equals t510-merge's. With it: -510 (approximate-position at eb38bec0), RECORD -509 to -524 and dispatches -510 and -516 are on main.
+**Still open from -510:** the grey "Last seen" dot not confirmed on a phone; the look's values provisional, the owner not yet having seen them.
+**Next:** the -516 coder brings main into sundown-alerts and wires in `LastKnownLocationSource` before -516 can merge (-522).
+**Notes:** Written by the planner by hand, on branch records-after-172 cut from main at a9dfdd59.
