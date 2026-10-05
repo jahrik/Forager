@@ -28,6 +28,11 @@ interface Env {
   CACHE_CONTROL?: string;
   PMTILES_PATH?: string;
   PUBLIC_HOSTNAME?: string;
+  /** Base URL of the Pi tile origin (`pmtiles serve` behind a tunnel and Cloudflare Access). */
+  PI_ORIGIN_URL?: string;
+  /** Access service token, set as Worker secrets — never in wrangler.toml or the repo. */
+  CF_ACCESS_CLIENT_ID?: string;
+  CF_ACCESS_CLIENT_SECRET?: string;
 }
 
 class KeyNotFoundError extends Error {}
@@ -245,6 +250,81 @@ async function overflowTileResponse(
   return cacheableResponse(tiledata.data, cacheableHeaders, 200);
 }
 
+// --- Pi origin, tried first for z/x/y tiles (dispatch 2026-10-04-01, part 2). The Pi runs
+// `pmtiles serve` on the same `us.pmtiles` R2 holds (verified identical by size and whole-object
+// MD5, docs/plans/2026-10-04-pi-origin-part1-report.md), reached through a tunnel behind an Access
+// Service Auth policy, so every request carries the service token's two headers. Anything other
+// than a 200 or 204 from the Pi — a 404 above its z14 ceiling, a 403, a tunnel 5xx, a timeout, a
+// network error — falls through to the R2 path below, which is unchanged and still owns TileJSON,
+// the z15 overflow and the archive-type check. The owner's ruling: Pi first, R2 fallback.
+//
+// Every fallback is logged, without the tile coordinates: observability is off for privacy (see
+// wrangler.toml), so these reach only a live `wrangler tail`. Which origin produced a response is
+// also stamped on it as X-Forager-Origin, so it can be read from the outside without any log.
+// -------------------------------------------------------------------------------------------------
+
+/**
+ * Operating limit on one Pi request, not a measured figure. The Pi is on a weak Wi-Fi link (part 1
+ * report, -65 dBm, 1.65% TX failures), and a slow Pi must cost a user seconds at most before R2
+ * answers instead. Revisit once real Pi latencies are observed.
+ */
+const PI_ORIGIN_TIMEOUT_MS = 4000;
+
+const ORIGIN_HEADER = "X-Forager-Origin";
+
+type PiResult = { kind: "served"; status: 200 | 204; body?: ArrayBuffer; contentType?: string } | { kind: "fallback" };
+
+async function fetchFromPi(env: Env, name: string, tile: [number, number, number], ext: string): Promise<PiResult> {
+  if (!env.PI_ORIGIN_URL) {
+    console.warn("pi-origin: PI_ORIGIN_URL not set, serving from R2");
+    return { kind: "fallback" };
+  }
+  if (!env.CF_ACCESS_CLIENT_ID || !env.CF_ACCESS_CLIENT_SECRET) {
+    console.warn("pi-origin: Access token secrets not set, serving from R2");
+    return { kind: "fallback" };
+  }
+  // The token rides on every Pi request, so only a plain archive name is forwarded: tilePath's
+  // pattern also admits '/' and '.', which would let a crafted path address other URLs on the origin.
+  if (!/^[A-Za-z0-9_-]+$/.test(name)) {
+    return { kind: "fallback" };
+  }
+  const [z, x, y] = tile;
+  const url = `${env.PI_ORIGIN_URL.replace(/\/+$/, "")}/${name}/${z}/${x}/${y}.${ext}`;
+  try {
+    const resp = await fetch(url, {
+      headers: {
+        "CF-Access-Client-Id": env.CF_ACCESS_CLIENT_ID,
+        "CF-Access-Client-Secret": env.CF_ACCESS_CLIENT_SECRET,
+      },
+      signal: AbortSignal.timeout(PI_ORIGIN_TIMEOUT_MS),
+      // A precaution, not an observed case: if Access ever answered with a redirect to its login
+      // page, following it would turn a refusal into a 200 of HTML. Any 3xx is a fallback instead.
+      redirect: "manual",
+    });
+    if (resp.status === 200) {
+      return {
+        kind: "served",
+        status: 200,
+        body: await resp.arrayBuffer(),
+        contentType: resp.headers.get("Content-Type") ?? undefined,
+      };
+    }
+    if (resp.status === 204) {
+      return { kind: "served", status: 204 };
+    }
+    // A 404 is the expected answer above the Pi's z14 ceiling (not yet observed through the Worker),
+    // where R2's overflow path takes over, so it is not logged as a fault.
+    if (resp.status !== 404) {
+      console.warn(`pi-origin: HTTP ${resp.status}, serving from R2`);
+    }
+    return { kind: "fallback" };
+  } catch (e) {
+    const reason = e instanceof Error ? e.name : "unknown error";
+    console.warn(`pi-origin: ${reason}, serving from R2`);
+    return { kind: "fallback" };
+  }
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     if (request.method.toUpperCase() === "POST") return new Response(undefined, { status: 405 });
@@ -298,6 +378,17 @@ export default {
     };
 
     const cacheableHeaders = new Headers();
+
+    if (tile) {
+      const pi = await fetchFromPi(env, name, tile, ext);
+      if (pi.kind === "served") {
+        if (pi.contentType) cacheableHeaders.set("Content-Type", pi.contentType);
+        cacheableHeaders.set(ORIGIN_HEADER, "pi");
+        return cacheableResponse(pi.body, cacheableHeaders, pi.status);
+      }
+    }
+
+    cacheableHeaders.set(ORIGIN_HEADER, "r2");
     const source = new R2Source(env, name);
     const p = new PMTiles(source, CACHE, nativeDecompress);
     try {
