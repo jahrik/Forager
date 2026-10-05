@@ -11707,3 +11707,15 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **The owner, verbatim:** "Battery optimization is something else to think about, but that can wait for the next update when we're done with the map tiling and navigation", to the planner's options (a low-battery warning set against the walk back; GPS less often when low) and recommendation (the short release, beside the sundown alerts), which the owner did not take.
 **What it sets:** battery work (warning and saving) is deferred to the update after map tiling and navigation are finished. Until then the gap stands as recorded in -519, and location dispatches name it where it applies.
 **Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-521
+**Timestamp:** 2026-10-05T04:00:00Z
+**Continues:** 2026-09-28-510
+**Observed:** -510 built on branch approximate-position at d949321f, not merged; report `docs/navigation/2026-10-04-approximate-position-report.md` with its two index rows. The owner answered five stop-and-asks in the coder's window, each the recommended option (the app feeds MapLibre's dot; shown before the first GPS fix and again once GPS is 5 min lost; the needle hidden within twice the circle; the strip says so, no coordinates; while returning, no needle, "≈" distance). 43 new tests in 7 classes, no existing test changed, one fixture with two defaulted parameters; 35 revert checks and 2 controls bite (r02 and r22 did not, explained; r20 did not compile and is not cited); full suite 453 classes, 3,687 tests, 0 failures, 24 skipped. The S22 desk step has not run; it needs the owner's word in the coder's window.
+**What the planner checked itself:** the full suite's 453 saved XML files re-counted (3,687 tests, 0 failures, 0 errors, 24 skipped) and its log (BUILD SUCCESSFUL, no compile-error lines), in `~/Zynergy/device-evidence/2026-10-04-approximate-position/`; `git diff --name-status` against main: the only modified test file is the fixture, the rest added.
+**Findings carried to the quick win (-512 step 1),** each pre-existing and not changed by -510: (1) a network fix of 50 m or better passes the live gate today (it tests accuracy alone, `LiveFixGate.kt:71-74`) and so reaches "Arrived", the waypoint's line and a new find's location, so -519's "nothing that acts relies on them" does not yet hold there; (2) GPS readings worse than 50 m enter Battery-saver tracks (up to 100 m, `TrackRecordingMode.kt:29`) and count for the off-track judge at any accuracy (`OffTrackJudge.kt:45-46,72`).
+**Disclosed by the coder:** the full suite ran with 1,428 MB in the free column (4,536 MB available), under the dispatch's 2,048 MB; co-author lines of four commits name a model, not amended.
+**Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168.
