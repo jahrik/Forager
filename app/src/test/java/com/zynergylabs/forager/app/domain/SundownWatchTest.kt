@@ -313,6 +313,59 @@ class SundownWatchTest {
         assertEquals(emptyList<AlertKind>(), kinds())
     }
 
+    /**
+     * The owner's merge condition for dispatch -516: with no live reading at all, the platform's
+     * last known position (-510's [LastKnownLocationSource]) still gives a sunset time and its
+     * alerts. It never gives a walk back: that stays unknown, so the leave-by time is sunset minus
+     * the margin.
+     */
+    @Test
+    fun `a recording with no live reading at all still gets a sunset time and its alerts, from the last known position`() {
+        val lastKnownHere = LocationFix.Update(origin.lat, origin.lng, null, 900f, sunset - 5 * hour + 123L)
+        val lastKnownOnly = SundownWatch(
+            alertDelivery = { delivered += clock.now to it },
+            clock = clock,
+            preferences = preferences,
+            readTrack = { Result.success(null) },
+            readWaypoint = { Result.success(null) },
+            isReturning = { false },
+            errorLog = { _, message, _ -> logged += message },
+            lastKnownLocation = { lastKnownHere },
+        )
+        lastKnownOnly.begin("t1")
+        clock.now = sunset - 2 * hour
+        while (clock.now <= sunset + minute) {
+            runBlocking { lastKnownOnly.tick() } // no onFix: nothing live, ever
+            clock.now += minute
+        }
+
+        assertEquals(listOf(AlertKind.HEADS_UP, AlertKind.LEAVE_BY, AlertKind.SUNSET), kinds())
+        assertTrue("leave-by at sunset minus the margin", delivered[1].first in (sunset - hour)..(sunset - hour + minute))
+        assertEquals("never a walk back from a last known position", WalkBack.Unknown, delivered[1].second.sundown?.walkBack)
+        assertSameSunset(sunset, delivered[1].second.sundown!!.sunsetAtEpochMillis)
+    }
+
+    @Test
+    fun `a live fix, once there is one, wins over the last known position`() {
+        val farAway = LocationFix.Update(70.0, 20.0, null, 900f, 0L) // Arctic Norway: another sunset entirely
+        val watchWithStale = SundownWatch(
+            alertDelivery = { delivered += clock.now to it },
+            clock = clock,
+            preferences = preferences,
+            readTrack = { Result.success(null) },
+            readWaypoint = { Result.success(null) },
+            isReturning = { false },
+            errorLog = { _, _, _ -> },
+            lastKnownLocation = { farAway },
+        )
+        watchWithStale.begin("t1")
+        clock.now = sunset - hour + minute
+        watchWithStale.onFix(networkFix(TrackPoint(origin.lat, origin.lng, null, 40f, 0L)))
+        runBlocking { watchWithStale.tick() }
+        assertEquals(listOf(AlertKind.LEAVE_BY), kinds())
+        assertSameSunset(sunset, delivered[0].second.sundown!!.sunsetAtEpochMillis)
+    }
+
     @Test
     fun `no position at all, nothing fires and nothing is read`() {
         var reads = 0

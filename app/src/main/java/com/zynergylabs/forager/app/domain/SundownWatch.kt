@@ -27,8 +27,10 @@ import kotlinx.coroutines.sync.withLock
  * - **Sunset**, from the newest fix of **any** kind, GPS or network. The owner, 2026-10-04:
  *   "Sunset moves about 4 s per km, and GPS-only would mean no sundown alert at all under canopy
  *   or indoors." An owner-approved exception to -510's rule that an approximate position never
- *   decides anything, for the sunset time only. The last known position joins this once -510's
- *   `LastKnownLocationSource` is on `main` (the owner's order: -510 merges first).
+ *   decides anything, for the sunset time only. With no live fix yet, the platform's last known
+ *   position ([LastKnownLocationSource], -510's, reused) stands in, for the sunset only: a
+ *   recording with no live reading at all still gets a sunset time and its alerts (the owner's
+ *   condition for merging this, with -510 merged first).
  * - **The walk back**, from [returnWalkingTime] over the stored track (read through the read seam,
  *   so the network-fix exclusion and its counts are the ones the estimate's "at least" rules
  *   expect), its origin waypoint, and the newest **GPS** fix only. GPS is told from network by
@@ -81,6 +83,11 @@ class SundownWatch(
     /** Whether the walker is heading back on this track ([ReturnWatch]'s state). */
     private val isReturning: (String) -> Boolean,
     private val errorLog: ErrorLog,
+    /**
+     * The platform's last known position (dispatch 2026-09-28-510's source, reused, not copied):
+     * the sunset position while no live fix has arrived. Never a walk-back position.
+     */
+    private val lastKnownLocation: LastKnownLocationSource = NoLastKnownLocation,
     private val computeCountdown: ComputeSundownCountdownUseCase = ComputeSundownCountdownUseCase(),
     private val decide: DecideSundownAlertUseCase = DecideSundownAlertUseCase(),
 ) {
@@ -133,8 +140,11 @@ class SundownWatch(
         val (id, anyFix, gpsFix, alreadyFired, band, heldSunset) = synchronized(lock) {
             val id = trackId
             if (id == null || arrived) return@withLock
-            Snapshot(id, newestFix ?: return@withLock, newestGpsFix, fired, hopBand, sunsetAt)
+            Snapshot(id, newestFix, newestGpsFix, fired, hopBand, sunsetAt)
         }
+        // With no live reading yet, the last known position gives the sunset, and only the sunset:
+        // the walk back reads gpsFix, which a last known position never becomes.
+        val sunsetFrom = anyFix ?: lastKnownLocation.lastKnown()?.toTrackPoint() ?: return@withLock
 
         val enabled = preferences.getAlertsEnabled().getOrElse { error ->
             errorLog.w(TAG, "Couldn't read whether the sundown alerts are on; they stay on, the default.", error)
@@ -148,7 +158,7 @@ class SundownWatch(
             DEFAULT_DARKNESS_MARGIN_MINUTES
         }
         val marginMillis = marginMinutes * 60_000L
-        val computed = computeCountdown(now, LatLng(anyFix.lat, anyFix.lng), anyFix.timestampEpochMillis, marginMillis)
+        val computed = computeCountdown(now, LatLng(sunsetFrom.lat, sunsetFrom.lng), sunsetFrom.timestampEpochMillis, marginMillis)
         if (computed !is SundownCountdown.Known) return@withLock
         // The countdown always looks for the *next* sunset, so at sunset it reports tomorrow's and
         // "past sunset" never happens; its search also turns to tomorrow a fraction of a second
@@ -225,7 +235,7 @@ class SundownWatch(
 
     private data class Snapshot(
         val trackId: String,
-        val anyFix: TrackPoint,
+        val anyFix: TrackPoint?,
         val gpsFix: TrackPoint?,
         val fired: Set<SundownAlert>,
         val hopBand: HopBand,
