@@ -11801,3 +11801,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Decisions the coder made, put to the owner:** the three alerts share one notification slot, each replacing the last; arrival at the start while returning silences the rest of the recording even if the walker sets out again; a failed read of the alerts on/off setting leaves them on, logged. **Gap the report names:** with no position of any kind (no live reading and no last known), nothing fires; battery stays open (-519, -520).
 **Open for the owner:** how to run the S22 step, since nothing in the app sets the darkness margin today (plan T4): a real sunset (a recording started about two hours before, phone silenced), or the margin written into the app's stored settings over USB.
 **Notes:** Written by the planner by hand, on branch records-after-172.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-529
+**Timestamp:** 2026-10-05T09:30:00Z
+**Continues:** 2026-09-28-528
+**The owner, verbatim choices:** the S22 step, "Real sunset (Recommended)": a recording started on the S22 about two hours before sunset, phone silenced, at the desk, so the walk back reads "unknown" and that path is what is tested (the release-gate walk tests the measured one); no app data edited by hand. Arrival, "Keep it (Recommended)": back at the start while returning silences the rest of the recording, even if the walker sets out again.
+**Not put to the owner as questions, accepted by the planner as the coder proposed, open to overrule:** one notification slot for the three alerts, each replacing the last; a failed read of the alerts on/off setting leaves them on, logged (failing toward the warning).
+**Next:** the owner gives the -516 coder the word at the phone, about two hours before that day's sunset.
+**Notes:** Written by the planner by hand, on branch records-after-172.
