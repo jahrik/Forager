@@ -75,3 +75,19 @@ Nothing is deployed. Going live needs this branch merged to whatever branch depl
 owner's call. After a deploy, the check is: request one z5 tile through the Worker and read
 `X-Forager-Origin: pi`, then stop `forager-tunnel` on the Pi and read `r2` on a tile not already in
 the edge cache.
+
+## Correction, after the owner's reply
+
+The owner replied: "CF_ACCESS_CLIENT_ID and CF_ACCESS_CLIENT_SECRET. Node is installed. Check again".
+The earlier text above stays as it was, and two of its claims are corrected here.
+
+- **The secret names are confirmed by the owner** and match the code. The first "Not verified"
+  item no longer stands.
+- **"Node is not installed on the Pi" was wrong.** Node v22.23.3 is at
+  `/opt/forager-build/node-v22.23.3-linux-arm64/bin`. It is not on `PATH`, which is the only reason
+  `which node` found nothing. With that directory on `PATH`, `npm ci` added 44 packages and
+  `tsc --noEmit` **exited 0**. To show that this check can fail, a file holding a deliberate type
+  error was added as `src/__control.ts`. `tsc` then exited 2 with `TS2322` on that file, and the file
+  was removed afterwards. The tree was clean before and after. `node_modules/` is gitignored.
+  `npm run build` (`wrangler deploy --dry-run`) was **still not run**, because the owner has not said
+  "build".
