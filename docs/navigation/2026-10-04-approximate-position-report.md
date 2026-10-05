@@ -1,6 +1,6 @@
 # Approximate position until GPS arrives (dispatch 2026-09-28-510)
 
-**Status: verify-before-building done and reported to the owner; build not started, waiting on the owner's answers to the stop-and-ask below.** This file is committed now so the findings are not only in a session transcript (CLAUDE.md, "Push before you tidy"); the build sections are added when the build happens.
+**Status: verify-before-building done and reported to the owner; the owner answered the stop-and-ask (below); build in progress.** This file is committed now so the findings are not only in a session transcript (CLAUDE.md, "Push before you tidy"); the build sections are added when the build happens.
 
 Dispatch: `prompts/preserved/2026-10-04-10.md` on `records-after-168` (429eb1bc when read). The owner's choices it carries: RECORD -508.
 
@@ -66,4 +66,13 @@ Read from the code and from the pinned MapLibre artifact (`13.5.0`, `gradle/libs
 3. **"Far" for "≈"** (item 3): twice the accuracy (recommended) or the drawn circle itself.
 4. **What the strip says while the position is approximate or last-known**, which the dispatch does not cover.
 
-The answers and what was built follow when the build happens.
+**The owner's answers, in the coder's window, 2026-10-04,** each the recommended option, quoted as chosen:
+
+1. Map dot: **"App feeds the dot (Recommended)"**. The dot shows the one position the app has judged: the normal dot with GPS, a soft dot in its circle labelled "Approximate location" otherwise, grey with its age for last known; dot, map-follow, HUD and strip cannot disagree; the map centres there through its existing follow. The option told the owner that it changes what the map follows while navigating (the same judged position), that the navigation camera's code is not edited but what it follows is, and that the dispatch listed that camera as do-not-touch.
+2. When shown: **"No GPS yet, or GPS lost (Recommended)"**. Before the first GPS fix, and again once the last GPS fix is 5 minutes old; between 30 s and 5 min the last GPS fix keeps showing, dimmed, as now.
+3. Needle: **"Within twice the circle (Recommended)"**. The needle hides, and the HUD reads "Approximate, finding GPS…", when the target is closer than twice the circle's radius; beyond it, "≈ distance" and the needle.
+4. Strip text: **"Say so, no coordinates (Recommended)"**. Heading, then "Approximate location, finding GPS…" or "Last seen 2 h ago, finding GPS…"; no coordinates or elevation.
+
+Also stated to the owner in the same message, as what would be built unless they said otherwise (they did not): with only a last-known position while navigating, the HUD shows no distance and no needle, and its status line reads "Last seen 2 h ago, finding GPS…".
+
+What was built follows when the build happens.
