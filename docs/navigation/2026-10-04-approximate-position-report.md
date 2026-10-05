@@ -1,6 +1,6 @@
 # Approximate position until GPS arrives (dispatch 2026-09-28-510)
 
-**Status: built and pushed on `approximate-position`, not merged.** Verified before building and reported by message; the owner answered five stop-and-ask questions in the coder's window. Tests first; revert checks; the full suite. The S22 desk step was run on the owner's word and found a defect in the dot's look, which was fixed and the steps run again from the top (below); one step could not be run indoors, and GPS taking over on a map already showing was <<TAKEOVER-STATUS>>.
+**Status: built and pushed on `approximate-position`, not merged.** Verified before building and reported by message; the owner answered five stop-and-ask questions in the coder's window. Tests first; revert checks; the full suite. The S22 desk step was run on the owner's word and found a defect in the dot's look, which was fixed and the steps run again from the top (below); one step could not be run indoors, and GPS taking over on a map already showing was seen to pass.
 
 Dispatch: `prompts/preserved/2026-10-04-10.md` on `records-after-168` (429eb1bc when read). The owner's choices it carries: RECORD -508.
 
@@ -234,7 +234,7 @@ The S22 Ultra (SM-S908U, Android 16), USB to the laptop, location on in high-acc
 | 5. Last known with no live reading | **Not run: impossible indoors today.** GPS kept giving poor readings (about 250 m), which are approximate readings, and aeroplane mode does not stop GPS, so the screen never had "nothing live". The only evidence is step 1's 0.2 s of the last known look at launch. | `dot2.txt` |
 | 6. The look | **Not judged:** the owner's call. | |
 | A look switch on a map already showing | **Pass** for GPS lost to approximate: at 20:22:33 the held GPS fix turned lost and the look switched; four seconds later the dot read the soft image's pixels. That is the switch that failed before, the other way round. | `r5-s4-approx-again.png` |
-| GPS takes over on a map already showing | <<TAKEOVER>> | |
+| GPS takes over on a map already showing | **Pass.** At 20:35:56 a 46 m GPS fix arrived with the soft dot showing; the app applied the GPS look 39 ms later (`ForagerDot`), and 2 s and 6 s after it the dot was MapLibre's own opaque blue (473 pixels of (74, 144, 226), none of the soft colour), the strip showed coordinates and the label had gone, with nothing tapped. The case that failed on the first two builds. | `r5-takeover-1s.png`, `r5-takeover-5s.png`, `dot2.txt` |
 
 **Observation, not a gate: the S22's GPS accuracy varied indoors** (19 m to 266 m within minutes). The record has the S22 reporting a constant 3.79 m (RECORD -497, -511; `LiveFixGate.kt:51-66` has it for the owner's phone); today's readings were not that, so the constant may hold only for a good fix. Recorded for the satellite-status work (-512).
 
@@ -277,7 +277,7 @@ RECORD -519 (2026-10-05, on `records-after-168`, read at hand-back) sets the pri
 **Confirmed vs inferred.**
 - Confirmed by tests through the real entry points: everything in the Tests table.
 - Confirmed by reading the pinned MapLibre 13.5.0 bytecode: which engine the dot used, that a custom engine replaces it entirely, and that the component calls only the callback requests.
-- Confirmed on the S22 (`1.0.2705+g54854e01`): steps 1 to 4 of the desk step, and a look switch on a map already showing (above).
+- Confirmed on the S22 (`1.0.2705+g54854e01`): steps 1 to 4 of the desk step; a look switch on a map already showing, both ways, GPS lost to approximate and GPS taking over (above).
 - Inferred, not seen: what the dot showed indoors before this dispatch.
 
 **Could not determine.**
