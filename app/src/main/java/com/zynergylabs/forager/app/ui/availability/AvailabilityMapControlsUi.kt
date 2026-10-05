@@ -332,6 +332,11 @@ internal fun CompassElevationStrip(
      * top corner on the rail side there. False (full width) everywhere else, as before.
      */
     contentWidth: Boolean = false,
+    /**
+     * Dispatch 2026-09-28-510: what the strip says while the position is approximate or last known
+     * ([rememberPositionNote]), read here, in this leaf, so its ticking age recomposes the strip alone.
+     */
+    positionNote: State<PositionNote?>? = null,
 ) {
     val reading by heading
     CompassElevationStripContent(
@@ -342,6 +347,7 @@ internal fun CompassElevationStrip(
         onToggleCoordinateFormat = onToggleCoordinateFormat,
         modifier = modifier,
         contentWidth = contentWidth,
+        positionNote = positionNote?.value,
     )
 }
 
@@ -371,6 +377,7 @@ private fun CompassElevationStripContent(
     onToggleCoordinateFormat: () -> Unit,
     modifier: Modifier = Modifier,
     contentWidth: Boolean = false,
+    positionNote: PositionNote? = null,
 ) {
     // A plain Box + background, not Surface: Surface (even with no onClick) intercepts pointer
     // input for the area it occupies, which — now that this strip is full-width — swallowed the
@@ -441,7 +448,35 @@ private fun CompassElevationStripContent(
                             .rotate((heading as? TrueHeadingReading.Available)?.degrees ?: 0f),
                     )
                 }
-                if (location == null) {
+                if (positionNote != null) {
+                    // Dispatch 2026-09-28-510 (the owner chose "Say so, no coordinates"): the heading,
+                    // then what the position is, in place of elevation and coordinates, which a reading
+                    // known to 100 m, or hours old, cannot honestly give. Not tappable: there is no
+                    // coordinate pair to toggle. Before the no-fix case, since an approximate or last
+                    // known position is something rather than nothing.
+                    Row(
+                        modifier = if (contentWidth) Modifier else Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
+                    ) {
+                        Text(
+                            text = stripHeadingText(heading),
+                            style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
+                            maxLines = 1,
+                            modifier = Modifier.testTag(COMPASS_STRIP_HEADING_TAG),
+                        )
+                        Text("·", style = MaterialTheme.typography.labelMedium)
+                        Text(
+                            text = positionNote.stripText,
+                            style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .weight(1f, fill = false)
+                                .testTag(COMPASS_STRIP_POSITION_NOTE_TAG),
+                        )
+                    }
+                } else if (location == null) {
                     // One statement across the strip — see this composable's own doc comment. Not
                     // tappable: there is no coordinate pair to toggle, and nothing to fabricate one
                     // from. The Row's remaining width, so it centres where the three segments did.
@@ -481,16 +516,7 @@ private fun CompassElevationStripContent(
                             // the next sensor emission (rememberTrueHeading restarts its producer on
                             // that transition). The transient shows a dash, the same as the HUD — the
                             // "needs a fix" wording is gone, replaced by NO_FIX_MESSAGE above.
-                            text = when (heading) {
-                                is TrueHeadingReading.Available -> "${heading.degrees.roundToInt() % 360}° ${cardinalDirection(heading.degrees)}"
-                                TrueHeadingReading.NoSensor -> "Compass unavailable"
-                                // Present but not to be trusted (compass-reliability dispatch).
-                                // Names no cause: the status cannot tell a truck from a poorly
-                                // calibrated sensor, and the remedies differ — telling someone to
-                                // calibrate beside a truck is wrong advice confidently given.
-                                TrueHeadingReading.Unreliable -> "Compass unreliable"
-                                TrueHeadingReading.NeedsFix -> "—"
-                            },
+                            text = stripHeadingText(heading),
                             // Landscape B2 (S5): tabular figures, so the strip's width holds
                             // steady as the digits change. Both orientations; labelMedium kept.
                             style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
@@ -700,3 +726,18 @@ internal val ADD_TILE_ANCHOR_OFFSET = mapIconBarRowAnchorOffset(rowIndexFromTop 
  * centre is 96 dp below the bar's, not 104.
  */
 internal val ADD_TILE_ANCHOR_OFFSET_LANDSCAPE = mapIconBarRowAnchorOffset(rowIndexFromTop = 5, rowSpacing = MAP_ICON_BAR_LANDSCAPE_ROW_SPACING)
+
+/**
+ * The strip's heading text, shared by its with-fix row and its position-note row (dispatch
+ * 2026-09-28-510), so the two word the compass identically.
+ */
+private fun stripHeadingText(heading: TrueHeadingReading): String = when (heading) {
+    is TrueHeadingReading.Available -> "${heading.degrees.roundToInt() % 360}° ${cardinalDirection(heading.degrees)}"
+    TrueHeadingReading.NoSensor -> "Compass unavailable"
+    // Present but not to be trusted (compass-reliability dispatch).
+    // Names no cause: the status cannot tell a truck from a poorly
+    // calibrated sensor, and the remedies differ — telling someone to
+    // calibrate beside a truck is wrong advice confidently given.
+    TrueHeadingReading.Unreliable -> "Compass unreliable"
+    TrueHeadingReading.NeedsFix -> "—"
+}

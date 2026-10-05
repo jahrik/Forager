@@ -279,6 +279,20 @@ data class AvailabilityUiState(
      */
     val liveFix: LocationFix.Update? = null,
     /**
+     * The newest fix the live gate refused ([com.zynergylabs.forager.app.domain.acceptLiveFix], over 50 m):
+     * an approximate reading, shown and never acted on (dispatch 2026-09-28-510; see
+     * [com.zynergylabs.forager.app.domain.ShownPosition]). Held **beside** [liveFix], never in it, so
+     * everything that reads [liveFix] to act ("Arrived", the waypoint's line, a new find's location) can
+     * never see it. `null` until a reading is refused.
+     */
+    val approximateFix: LocationFix.Update? = null,
+    /**
+     * The platform's own last known location, read when this screen starts collecting fixes
+     * ([com.zynergylabs.forager.app.domain.LastKnownLocationSource]); shown greyed with its age while
+     * nothing live has arrived (dispatch 2026-09-28-510). Never acted on, never moved into [liveFix].
+     */
+    val lastKnownFix: LocationFix.Update? = null,
+    /**
      * The waypoint being navigated to, if any (dispatch 2026-09-28-502, plan tasks T8 and T9): set by
      * [AvailabilityViewModel.onNavigateToWaypoint], cleared by [AvailabilityViewModel.onStopWaypointNavigation],
      * and picked back up from [com.zynergylabs.forager.app.domain.WaypointNavigationRepository] when the
@@ -334,4 +348,13 @@ data class AvailabilityUiState(
 
     /** See [liveLocation] — the same fix's altitude, `null` whenever the device didn't report one. */
     val liveAltitudeMeters: Double? get() = liveFix?.altitude
+
+    /**
+     * The position true north is worked out at (declination), dispatch 2026-09-28-510: the gated fix,
+     * else the approximate reading, else the last known one. Declination changes by a fraction of a
+     * degree over tens of kilometres, so a position good to a few hundred metres, or hours old, gives
+     * the same true north; without it the heading would read "needs a fix" exactly while the HUD shows
+     * an approximate position and its needle. Read only by the true heading, which only displays.
+     */
+    val headingFix: LocationFix.Update? get() = liveFix ?: approximateFix ?: lastKnownFix
 }
