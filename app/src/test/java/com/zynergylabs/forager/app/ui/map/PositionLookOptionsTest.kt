@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.ui.map
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import com.zynergylabs.forager.app.R
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.ShownPosition
 import org.junit.Assert.assertEquals
@@ -37,8 +38,8 @@ class PositionLookOptionsTest {
     fun `approximate is a soft dot in a stronger circle, which the app, not MapLibre's 30 s clock, greys`() {
         val options = liveLocationComponentOptions(context, look = PositionLook.APPROXIMATE)
 
-        assertEquals(APPROXIMATE_DOT_COLOR, options.foregroundTintColor())
-        assertTrue("soft: the dot is see-through", (APPROXIMATE_DOT_COLOR ushr 24) < 0xFF)
+        // Its own image, never a tint of MapLibre's (PuckImageTintTest has why, and reads the pixels).
+        assertEquals(R.drawable.puck_approximate, options.foregroundDrawable())
         assertEquals(APPROXIMATE_ACCURACY_ALPHA, options.accuracyAlpha(), 0.001f)
         assertTrue("the circle is stronger than MapLibre's own 15%", APPROXIMATE_ACCURACY_ALPHA > 0.15f)
         assertFalse(options.enableStaleState())
@@ -48,9 +49,8 @@ class PositionLookOptionsTest {
     fun `last known is a grey dot and circle`() {
         val options = liveLocationComponentOptions(context, look = PositionLook.LAST_KNOWN)
 
-        assertEquals(LAST_KNOWN_COLOR, options.foregroundTintColor())
+        assertEquals(R.drawable.puck_last_known, options.foregroundDrawable())
         assertEquals(LAST_KNOWN_COLOR, options.accuracyColor())
-        assertEquals(LAST_KNOWN_COLOR, options.bearingTintColor())
         assertFalse(options.enableStaleState())
     }
 
@@ -59,7 +59,7 @@ class PositionLookOptionsTest {
         val options = liveLocationComponentOptions(context, navigating = true, look = PositionLook.APPROXIMATE)
 
         assertTrue(options.trackingGesturesManagement())
-        assertEquals(APPROXIMATE_DOT_COLOR, options.foregroundTintColor())
+        assertEquals(R.drawable.puck_approximate, options.foregroundDrawable())
     }
 
     @Test
