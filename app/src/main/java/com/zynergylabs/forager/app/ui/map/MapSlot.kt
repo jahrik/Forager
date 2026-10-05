@@ -577,6 +577,7 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
         backEnabled = renderMode.backEnabled,
         navigationView = renderMode.navigationView,
         trueHeading = renderMode.trueHeading,
+        onShownPositionScreenPoint = renderMode.onShownPositionScreenPoint,
         modifier = modifier,
     )
 }

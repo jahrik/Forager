@@ -46,7 +46,8 @@ class AndroidLastKnownLocationSourceTest {
     @Test
     fun `the newest of the providers' last known locations, mapped field for field`() {
         shadowOf(context).grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
-        // GPS an hour older than the network's.
+        // GPS an hour older than the network's. setLastKnownLocation is deprecated in Robolectric 4.16 in favour of
+        // simulateLocation, which also delivers to listeners; this seeds what the provider holds and nothing else.
         shadowLocationManager.setLastKnownLocation(LocationManager.GPS_PROVIDER, location(LocationManager.GPS_PROVIDER, 45.5, -122.6, 1_700_000_000_000L - 3_600_000L, 8f, altitude = 100.0))
         shadowLocationManager.setLastKnownLocation(LocationManager.NETWORK_PROVIDER, location(LocationManager.NETWORK_PROVIDER, 45.51, -122.61, 1_700_000_000_123L, 120f))
 

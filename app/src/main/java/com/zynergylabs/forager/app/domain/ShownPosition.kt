@@ -48,14 +48,25 @@ fun shownPosition(
     approximate: LocationFix.Update?,
     lastKnown: LocationFix.Update?,
     nowEpochMillis: Long,
-): ShownPosition = ShownPosition.None
+): ShownPosition {
+    if (precise != null && !precise.isLost(nowEpochMillis)) return ShownPosition.Precise(precise)
+    // Only a reading newer than the GPS fix stands in for it; an older one is already superseded.
+    val newerApproximate = approximate?.takeIf { precise == null || it.timestampEpochMillis > precise.timestampEpochMillis }
+    if (newerApproximate != null && !newerApproximate.isLost(nowEpochMillis)) return ShownPosition.Approximate(newerApproximate)
+    val newest = listOfNotNull(precise, newerApproximate, lastKnown).maxByOrNull { it.timestampEpochMillis } ?: return ShownPosition.None
+    return ShownPosition.LastKnown(newest)
+}
+
+/** Lost by the HUD's own rule ([fixFreshness], five minutes), so the map, the strip and the HUD agree on when. */
+private fun LocationFix.Update.isLost(nowEpochMillis: Long): Boolean = fixFreshness(ageMillis(nowEpochMillis)) == FixFreshness.LOST
 
 /**
  * How long until [shownPosition] next changes with nothing arriving: when the held GPS fix, or the
  * approximate reading, turns lost. `null` when neither will, so a caller's clock can stop until a new
  * fix comes. Always more than 0 when not `null`.
  */
-fun millisUntilShownPositionChanges(precise: LocationFix.Update?, approximate: LocationFix.Update?, nowEpochMillis: Long): Long? = null
+fun millisUntilShownPositionChanges(precise: LocationFix.Update?, approximate: LocationFix.Update?, nowEpochMillis: Long): Long? =
+    listOfNotNull(precise, approximate).map { LOST_AFTER_MILLIS - it.ageMillis(nowEpochMillis) }.filter { it > 0 }.minOrNull()
 
 /**
  * The position shown **in place of GPS**, or `null` when today's GPS display applies: an approximate
@@ -64,4 +75,8 @@ fun millisUntilShownPositionChanges(precise: LocationFix.Update?, approximate: L
  * dot); only a reading other than it is shown as approximate or last known. One rule for the map's
  * label, the strip and the HUD, so the three cannot disagree.
  */
-fun ShownPosition.inPlaceOfGps(liveFix: LocationFix.Update?): ShownPosition? = null
+fun ShownPosition.inPlaceOfGps(liveFix: LocationFix.Update?): ShownPosition? = when (this) {
+    is ShownPosition.Approximate -> this
+    is ShownPosition.LastKnown -> takeIf { fix != liveFix }
+    is ShownPosition.Precise, ShownPosition.None -> null
+}
