@@ -11958,3 +11958,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **The owner, verbatim,** to -540's three questions: "1 yes" (the clocks were set ahead on purpose for the sunset check); "2 it's set back" (the S26's clock); "3 it should. An hour outside of network range means an hour of uncalibrated clock time. Is there any drawbacks to that?"
 **So:** the app should survive a wrong phone clock. Asked for the drawbacks of ageing fixes on the phone's since-boot clock; answered in the planner's window. No dispatch yet.
 **Notes:** Written by the planner by hand, on branch records-after-173.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-542
+**Timestamp:** 2026-10-05T20:50:00Z
+**Continues:** 2026-09-28-541
+**The planner's answer to the drawbacks question,** in brief: ageing a live fix on the phone's since-boot clock (Location's elapsed-realtime stamp) makes freshness immune to any wall-clock change. Its limits: it works only within one power-on, so stored things (the platform's last known position, track points) keep the wall clock; the sundown alerts still follow the phone's clock (correcting them from GPS time is a separate, larger decision with no data asking for it); a fix without the stamp falls back to wall-clock age, logged; the tests gain a second time per fix; a saved track's start (phone clock) and points (satellite time) still disagree when the clock is wrong. The premise "an hour outside network range is an hour of uncalibrated clock" was corrected: drift is about a second a day, and the 249 min of -540 was a manual change.
+**The owner, verbatim:** "I'd like to go on a few more walks before deciding that."
+**So:** no dispatch. The since-boot clock question waits for more walks, with the EKF's four questions (-538).
+**Notes:** Written by the planner by hand, on branch records-after-173.
