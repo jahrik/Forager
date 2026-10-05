@@ -98,6 +98,7 @@ class MainActivity : ComponentActivity() {
                     // Activity leaves nothing behind in it.
                     waypointNavigationRepository = container.waypointNavigationRepository,
                     returnLeg = TrackRecordingReturnLeg(trackRecordingViewModel),
+                    lastKnownLocation = container.lastKnownLocation,
                 )
             }
         }

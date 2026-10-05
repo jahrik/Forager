@@ -356,5 +356,5 @@ data class AvailabilityUiState(
      * the same true north; without it the heading would read "needs a fix" exactly while the HUD shows
      * an approximate position and its needle. Read only by the true heading, which only displays.
      */
-    val headingFix: LocationFix.Update? get() = liveFix
+    val headingFix: LocationFix.Update? get() = liveFix ?: approximateFix ?: lastKnownFix
 }
