@@ -17,6 +17,8 @@ Dispatch: `prompts/preserved/2026-10-04-10.md` on `records-after-168` (429eb1bc 
 
 ## Verify before building
 
+Line numbers in this section are as of `d4bd00bf`, where they were read; the build moves some of them.
+
 ### 1. The 50 m gate and every consumer of a fix that passes it
 
 **Where:** `domain/LiveFixGate.kt:68` (`LIVE_FIX_MAX_ACCURACY_METERS = 50f`) and `:71-74` (`acceptLiveFix`; a `null` accuracy passes). Applied once, in `ui/availability/AvailabilityViewModel.kt:266-277` (`collectLiveFixes`), which writes the passing fix to `AvailabilityUiState.liveFix` (`ui/availability/AvailabilityUiState.kt:280`). A refused fix is dropped and the previous one held.
@@ -88,7 +90,7 @@ Also stated to the owner in the same message, as what would be built unless they
 
 ## What was built
 
-**One rule, display only.** `domain/ShownPosition.kt`: from the gated GPS fix (`liveFix`, unchanged), the newest refused reading (`approximateFix`, new) and the platform's last known location (`lastKnownFix`, new), it decides what is shown: Precise (a GPS fix not lost), Approximate (a refused reading, newer, not lost), LastKnown (the newest of anything), or None. `inPlaceOfGps` says when the display differs from today's: an approximate reading, or a last known one that is not the held GPS fix (a lost GPS fix with nothing newer keeps today's display: "No fix for N min" in the HUD, MapLibre's own grey dot). The map's look, its label, the strip and the HUD all read that one rule.
+**One rule, display only.** `domain/ShownPosition.kt`: from the gated GPS fix (`liveFix`, unchanged), the newest refused reading (`approximateFix`, new) and the platform's last known location (`lastKnownFix`, new), it decides what is shown: Precise (a GPS fix not lost), Approximate (a refused reading not yet lost; past a lost or absent GPS fix it is necessarily the newer one, which r02 below confirmed), LastKnown (the newest of anything), or None. `inPlaceOfGps` says when the display differs from today's: an approximate reading, or a last known one that is not the held GPS fix (a lost GPS fix with nothing newer keeps today's display: "No fix for N min" in the HUD, MapLibre's own grey dot). The map's look, its label, the strip and the HUD all read that one rule.
 
 **Held beside the gated fix, never in it.** `AvailabilityViewModel.collectLiveFixes`: a fix the gate refuses now goes to `approximateFix`; the gate, and what it lets into `liveFix`, are untouched. `readLastKnownLocation` runs each time collection starts. Everything that acts (`arrivedAtStart`, the waypoint's line, `MushroomLogViewModel.freshDeviceLocation`) still reads `liveFix` alone.
 
@@ -130,7 +132,7 @@ Seven new classes, 43 tests, written first and seen failing against stubs (`3196
 
 ### Revert checks
 
-Run by a runner of my own, outside the repository (`~/Zynergy/device-evidence/2026-10-04-approximate-position/`, copied from `/tmp/ap510`). It saves a copy of every file an edit touches, applies the edit, runs the named classes, counts compile errors in the build log before reading any result and refuses to cite a run that has any, restores from the saved copies (never from git), and confirms the tree is identical to HEAD afterwards. Every run below printed a 0-line diff after restoring.
+Run by a runner of my own, outside the repository (`revert.sh`, `parse.py` and the edits are in `~/Zynergy/device-evidence/2026-10-04-approximate-position/`, with every log and XML). It saves a copy of every file an edit touches, applies the edit, runs the named classes, counts compile errors in the build log before reading any result and refuses to cite a run that has any, restores from the saved copies (never from git), and confirms the tree is identical to HEAD afterwards. Every run below printed a 0-line diff after restoring.
 
 **The runner was wrong once, and it was caught on the trial run.** Its XML reader used `find('failure') or find('error')`; an XML element with no children is false, so every failure would have read as a pass. The trial (r01) printed "failed 0" with a Python warning about exactly that; its saved XML was read again with a corrected reader before anything was cited (r01 bites, below). The two earlier counts (tests first: 35 failing; built: 0 failing) used the correct form and stand.
 
@@ -175,7 +177,9 @@ Each named failure is one its own edit could cause.
 | r33 | the last-known label says "Approximate location" | a last-known screen test |
 | c01 | control: the track read's network exclusion removed | on `cc0cee78`, **nothing** (a 120 m reading never reached the read); the 70 m case added in `fd9110aa`, then the track test |
 | c02 | control: the off-track judge counts network readings | the off-track test |
-<<R34>>
+| r34 | an approximate reading wins over a fresh GPS fix (run last, on `fd9110aa`) | three rule tests; the screen's "a GPS fix replaces it" |
+
+**In all:** 35 revert checks and 2 controls bite, each failing only tests its own edit could cause, every one compiled with 0 errors and left the tree identical to HEAD. r02 did not bite (explained in its row) and neither did r22 (explained just below), c01's first run did not bite (its test was extended, then it did), and r20 did not compile and is not cited. Logs: `rev-<name>.log`, with every run's summary in `reverts.txt`, `reverts2.txt` and `r34.txt`; c01's log and XML are its second run's, its first run's result is in `reverts.txt`.
 
 **r22, and what the 80% assertion holds.** The label reports its fill to tests through `mapChromeContainerColor`, the pattern every map-chrome surface here uses (`MapChromeAlphaTest`). The test reads the reported colour, not pixels, so a background that drifts from what it reports is invisible to it. The label passes one `fill` value to both, which r22b shows the test does hold.
 
@@ -198,7 +202,7 @@ Each named failure is one its own edit could cause.
 
 It needs the owner's word in the coder's window, asked for at hand-back. Everything MapLibre draws is device-only: the dot's three looks, the camera centring on the soft dot, the label following the dot on a moving camera, the navigation view following an approximate position. So is what the S22 actually returns as its last known location.
 
-## The S22 desk step, indoors (needs the owner's word in the coder's window)
+### The steps, indoors
 
 **Assumptions.** The S22 Ultra (SM-S908U), the test phone, connected over USB to the laptop; the debug build of `approximate-position` installed with `./gradlew :app:installDebug` (its version reads `1.0.<n>+g<hash>` in Settings; write it down). Location on, high-accuracy mode, as in RECORD -508. Indoors at the spot of -508, where the phone had only network fixes of about 100 m and no GPS fix. **If the build changes, run from the top**: a pass on an earlier build is evidence about that build.
 
@@ -259,4 +263,14 @@ Not in this step, since it needs the sky: **GPS takes over**: outdoors, the pale
 
 ## Commits
 
-<<COMMITS>>
+On `approximate-position`, from `d4bd00bf`:
+
+- `2824b8e7` the report, verify-before-building findings
+- `32cc9d10` the owner's answers recorded
+- `3196ce29` tests first, with stubs and wiring
+- `cc0cee78` the build
+- `fd9110aa` the redundant guard removed (r02); the track test follows a 70 m reading too (c01)
+- `809115fb` the report, work in progress
+- this commit: the report finished, with its two index rows
+
+Not merged. No pull request opened.
