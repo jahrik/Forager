@@ -11969,3 +11969,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **The owner, verbatim:** "I'd like to go on a few more walks before deciding that."
 **So:** no dispatch. The since-boot clock question waits for more walks, with the EKF's four questions (-538).
 **Notes:** Written by the planner by hand, on branch records-after-173.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-542
+**Timestamp:** 2026-10-05T20:50:00Z
+**Continues:** 2026-09-28-541
+**The planner's answer to the drawbacks question, in brief:** ageing live fixes on the since-boot clock (Location.elapsedRealtimeNanos) survives any wall-clock setting; it cannot age anything from before a reboot (the platform's last known position, stored points keep the wall clock); it does not correct the sundown alerts, which still follow the phone's clock (comparing against GPS time would be a separate, larger decision, not recommended without data); fixes lacking the since-boot time fall back to wall-clock age, logged; tests gain the second time; a saved track's start (phone clock) and points (satellite time) still disagree when the clock is wrong. Proposed as a small dispatch after -516 merges.
+**The owner, verbatim:** "I'd like to go on a few more walks before deciding that."
+**So:** deferred until after more walks, beside -538's EKF questions. Nothing dispatched.
+**Notes:** Written by the planner by hand, on branch records-after-173.
