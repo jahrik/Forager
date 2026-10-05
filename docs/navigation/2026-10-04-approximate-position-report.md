@@ -227,6 +227,15 @@ Not in this step, since it needs the sky: **GPS takes over**: outdoors, the pale
 3. **One fewer pair of GPS and network registrations while a map is open:** MapLibre's engine no longer listens. Battery not measured.
 4. **The first activation's zoom (16)** shows about 600 m across a phone, so a 100 m circle fits; a 2 km cell-tower circle would fill the screen. Not tuned: no data on how large a circle the S22 gives outdoors.
 
+## Against RECORD -519, written after this dispatch
+
+RECORD -519 (2026-10-05, on `records-after-168`, read at hand-back) sets the principle: network fixes stay collected and nothing that acts on position relies on them, citing -510; and each location dispatch states which failure it covers and what fills the gap.
+
+- **The failure this covers:** no GPS fix (indoors, a cold start, canopy past five minutes). **What fills it:** the newest network reading, shown as approximate and never acted on; failing that, the platform's last known position, greyed with its age; failing that, "Location services unavailable", as before.
+- **What this dispatch does not cover, and was there before it:**
+  - **A network fix of 50 m or better is acted on today.** The live gate tests accuracy alone (`LiveFixGate.kt:71-74`), so such a fix becomes the gated fix that "Arrived", the waypoint's line and a new find's location read. The timestamp rule that tells network fixes apart (`NetworkProviderFix.kt:48`) is applied to tracks and the off-track judge, not to the live fix. So -519's "nothing that acts relies on them" does not yet hold there. Not changed: the gate is what the satellite-status quick win (-512) changes next.
+  - Poor GPS readings in Battery-saver tracks and the off-track judge (finding 1).
+
 ## Disclosure
 
 **Confirmed vs inferred.**
