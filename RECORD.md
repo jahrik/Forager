@@ -11639,3 +11639,24 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Decides:** the open question of -513
 **The owner, verbatim:** "Ship it on the GPS pace", on the planner's recommendation: T13 ships on GPS pace (`domain/MovingPace.kt`'s two instruments) and takes step pace when the fusion filter lands. T13's dependencies are unchanged: T2 (the sundown alerts fire) and T12 (recorded out-and-back walks). Nothing dispatched by this entry; -510 is still the one location coder, and T2 is not yet dispatched.
 **Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-515
+**Timestamp:** 2026-10-05T02:00:00Z
+**Continues:** 2026-09-28-514
+**Decides:** how the sundown alerts warn, and that the walk back is in them from the start
+**The owner, verbatim:** before the dispatch was written, "we need to establish a point of return. We don't want to warn the user that they have 1 hour until sundown when they have a 1.5 hours of travel to do. We need to give ahead of time warning to avoid the afterthought". To the planner's step path (leave-by time = sunset − darkness margin − walk back at measured pace, moving earlier as the walker goes out; a heads-up 30 min before it; an alert at it; the sunset alert; leave-by at once if already past; each once; through a silenced phone): "Exact thing you described, but instead of 'turn around now' just tell them when sundown is. A lot of people do night forays for bioluminescence". Heads-up lead: "30 minutes, fixed (Recommended)". Order: "From the start (Recommended)": one dispatch for plan tasks T2 and T13, the estimate checked first against the owner's out-and-back walks (believed on the S26 Ultra, unverified), no plain sunset-minus-margin version shipped first.
+**Supersedes in part:** the plan's order of T2 before T12/T13 (`docs/navigation/2026-10-01-navigator-completion-plan.md:63, 150-161`); the 2026-09-11 walks gate stands, satisfied by the comparison inside the dispatch. The darkness margin's meaning is unchanged.
+**Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-516
+**Timestamp:** 2026-10-05T02:05:00Z
+**Title:** sundown-alerts: the sundown alerts fire from the recording service, with the walk back in them
+**Dispatch-file:** preserved/2026-10-04-11.md, dispatch -515's behaviour; to a second coder window, alongside -510
+**Dispatched,** on the owner's "Go ahead" to writing it now beside -510, with the -515 adjustments. One Gradle run at a time across both windows, each on the owner's "go".
+**Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168.
