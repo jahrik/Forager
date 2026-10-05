@@ -11755,3 +11755,134 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **The owner, verbatim:** "I pasted the block too", of the planner's block sent to the -516 coder: clock times, not "within 30 min", so a notification read late stays true. Measured: "The walk back the way you came is about 1 h 30. To finish it before dark, start by 5:42 PM." Thin: "The walk back is at least 45 min. To finish it before dark, start by 5:57 PM at the latest." Unknown: "The walk back is unknown." Title: "Sunset at 7:12 PM". The heads-up and leave-by may share the text; the start-by time tells them apart. "Before dark" is sunset minus the darkness margin. The coder's "Leave within 30 min to walk it before dark" is not used.
 **Also, recorded here:** branch t510-merge (0f3d1cb9) pushed by the planner for merging -510: approximate-position at eb38bec0, main at 967fdd0b and records-after-168 at 55203701, the index conflicts resolved keeping every row; no app or server file differs from its source. The pull request is not opened: `gh auth status` reports the token in the laptop's gh config invalid, and the planner stopped there (RECORD :2246's ruling, no workaround).
 **Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-525
+**Timestamp:** 2026-10-05T07:55:00Z
+**Continues:** 2026-09-28-523
+**Observed:** after the owner re-authorised gh on the laptop ("It used to be authorized, yesterday in fact. But I redid it, try again"), the planner opened pull request #172 (t510-merge into main) on the owner's "Open the pr". CI passed at its head 699de03509a16e1ac00ae4051d0a35a83179ba58 (run 37278925063, 8 m 50 s), read from GitHub; it was merged as a9dfdd59eb2dada97f6bdca5d6d6f7afcf696d8a at 2026-10-05T07:49:08Z, on the owner's "Merge now (Recommended)" for -510 (-523's question), with backup 2026-10-05-01 of main at 967fdd0b. Main's tree equals t510-merge's. With it: -510 (approximate-position at eb38bec0), RECORD -509 to -524 and dispatches -510 and -516 are on main.
+**Still open from -510:** the grey "Last seen" dot not confirmed on a phone; the look's values provisional, the owner not yet having seen them.
+**Next:** the -516 coder brings main into sundown-alerts and wires in `LastKnownLocationSource` before -516 can merge (-522).
+**Notes:** Written by the planner by hand, on branch records-after-172 cut from main at a9dfdd59.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-526
+**Timestamp:** 2026-10-05T08:45:00Z
+**Continues:** 2026-09-28-512
+**Decides:** the quick win split; poor GPS readings kept
+**Found by the planner while drafting, from the S22's own logs (counts only):** indoors at the desk (`~/Zynergy/device-evidence/2026-10-04-approximate-position/desk/`), 4,056 GPS fixes from 18.7 m to 267.7 m, none at 3.79 m, 586 at 50 m or better; 670 network fixes from 15.2 m to 100 m; the timestamp rule agreed with the provider on all 4,726. Outdoors (2026-10-03 owner-walk, walk-t21, walk-zoom), 4,614 GPS fixes, 4,460 at exactly 3.79 m, the rest up to 20.1 m. So 3.79 m is the S22's best-case floor, not a constant; `LiveFixGate.kt`'s doc comment, which says the field carries no signal on that phone's GPS path, is wrong indoors. This supersedes the "constant 3.79 m" premise of -511's research summary and of -512's quick win.
+**The owner, verbatim choices:** "Split it (Recommended)": carry each fix's true source through the app now so nothing that acts on position uses a network fix (no new data needed); satellite judging only if the walk logger's canopy logs show 3.79 m fixes that are really off (CLAUDE.md: no correction without data showing the case). "Keep them for now (Recommended)": GPS readings worse than 50 m stay in Battery-saver tracks and the off-track judge (which widens its line by accuracy), for the fusion filter to weigh.
+**Order now:** -516 merges; then -527, fix-provider (preserved/2026-10-05-01.md); then the walk logger (with satellite status and network fixes, -519); then the filter.
+**Notes:** Written by the planner by hand, on branch records-after-172.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-527
+**Timestamp:** 2026-10-05T08:50:00Z
+**Title:** fix-provider: every fix carries its true source, and nothing that acts on position uses a network fix
+**Dispatch-file:** preserved/2026-10-05-01.md, written on the owner's "Go ahead" to drafting the quick win
+**Not yet sent:** it starts only after -516 merges, on the owner's word then.
+**Notes:** Written by the planner by hand, on branch records-after-172.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-528
+**Timestamp:** 2026-10-05T09:20:00Z
+**Continues:** 2026-09-28-516
+**Observed, as the -516 coder reported it and the owner relayed it:** -516 built on branch sundown-alerts at 788f4ed7, not merged; report `docs/navigation/2026-10-05-sundown-alerts-report.md` with its two index rows. Main (a9dfdd59) merged in as 952927ea with no conflicts; the last known position reuses -510's `LastKnownLocationSource`, for the sunset time only. Ten revert checks bite, each with a message only its edit could cause, restored from saved copies with the forward change confirmed; a runner bug (R6, R7, R10 counted but not named) disclosed, names taken from each run's log. Tests written with the code, not run first, disclosed. Remaining before merge: the S22 step and the release-gate walk (an out-and-back of 30 minutes or more, retracing the way out, -522).
+**What the planner checked itself:** the full suite's XML in the coder's worktree at 788f4ed7: 457 files, 3,719 tests, 0 failures, 0 errors, 24 skipped; its log BUILD SUCCESSFUL; the run (finished 01:12 local) came after the last commit touching `app/` (75ebb13d, 00:57). main is an ancestor of the branch. The coder's scratch logs were in `/tmp/s516`, which a reboot clears; the planner copied the logs, scripts and harness (no positions found by a search for coordinates) to `~/Zynergy/device-evidence/2026-10-05-sundown-alerts/`.
+**A planner error, corrected by the coder:** -524's example times left out the darkness margin: sunset 7:12 PM with a 1 h 30 walk back and the default hour gives a start-by of 4:42 PM, not 5:42. The coder built the rule as recorded (sunset minus the margin minus the walk back); only the planner's examples were wrong.
+**Decisions the coder made, put to the owner:** the three alerts share one notification slot, each replacing the last; arrival at the start while returning silences the rest of the recording even if the walker sets out again; a failed read of the alerts on/off setting leaves them on, logged. **Gap the report names:** with no position of any kind (no live reading and no last known), nothing fires; battery stays open (-519, -520).
+**Open for the owner:** how to run the S22 step, since nothing in the app sets the darkness margin today (plan T4): a real sunset (a recording started about two hours before, phone silenced), or the margin written into the app's stored settings over USB.
+**Notes:** Written by the planner by hand, on branch records-after-172.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-529
+**Timestamp:** 2026-10-05T09:30:00Z
+**Continues:** 2026-09-28-528
+**The owner, verbatim choices:** the S22 step, "Real sunset (Recommended)": a recording started on the S22 about two hours before sunset, phone silenced, at the desk, so the walk back reads "unknown" and that path is what is tested (the release-gate walk tests the measured one); no app data edited by hand. Arrival, "Keep it (Recommended)": back at the start while returning silences the rest of the recording, even if the walker sets out again.
+**Not put to the owner as questions, accepted by the planner as the coder proposed, open to overrule:** one notification slot for the three alerts, each replacing the last; a failed read of the alerts on/off setting leaves them on, logged (failing toward the warning).
+**Next:** the owner gives the -516 coder the word at the phone, about two hours before that day's sunset.
+**Notes:** Written by the planner by hand, on branch records-after-172.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-530
+**Timestamp:** 2026-10-05T09:45:00Z
+**Continues:** 2026-09-28-529
+**The owner, verbatim:** "The S22 step will wait until tomorrow. It's already past sunset here tonight. But good on the rest."
+**Where things stand:** -516 at 788f4ed7 on sundown-alerts, not merged, waiting on its S22 step (a real sunset, the owner's word in the coder's window) and the release-gate walk. -527, fix-provider (preserved/2026-10-05-01.md), held until -516 merges. -510's look unseen by the owner; its grey "Last seen" dot unconfirmed on a phone. No coder is building.
+**Notes:** Written by the planner by hand, on branch records-after-172.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-531
+**Timestamp:** 2026-10-05T10:05:00Z
+**Continues:** 2026-09-28-526
+**The owner, verbatim:** "I'll need to go for more walks in the woods to gather more data. My S22 has no working SIM card, so it'll be running purely without data network". To the planner's question (walks before the logger exists record only the app's track, enough for the release gate but little for fusion): "Alongside -527 (Recommended)": the walk logger moves up and runs in a second coder window at the same time as -527, once -516 merges.
+**What the no-SIM S22 means for the data:** in the woods it has neither cell positioning nor Wi-Fi, so its walks are GPS-only, the no-network case of -519, not a typical user's phone; its walks cannot show whether network fixes help a phone with a SIM. GPS starts without downloaded assistance unless refreshed on Wi-Fi beforehand.
+**Order now:** -516 merges; then -527 (fix-provider) and -532 (walk-logger) side by side, one Gradle run at a time; then the filter against the logs.
+**Notes:** Written by the planner by hand, on branch records-after-172.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-532
+**Timestamp:** 2026-10-05T10:10:00Z
+**Title:** walk-logger: a debug-only recorder of everything the phone senses on a walk
+**Dispatch-file:** preserved/2026-10-05-02.md
+**Not yet sent:** it starts after -516 merges, beside -527, on the owner's word then.
+**Notes:** Written by the planner by hand, on branch records-after-172.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-533
+**Timestamp:** 2026-10-05T10:25:00Z
+**Continues:** 2026-09-28-532
+**The owner, verbatim:** "I'll use both the S26 and S22 running the data logger build for both data and non data approach". Told that debug builds share the Play app's identity with a different signing key, so a Play install on the S26 could only be replaced by uninstalling it, deleting its data, they answered "S26 has no Play version" (the planner had recommended a separate logger app identity; not needed on that answer).
+**What it sets:** -532 Amendment 1 (in preserved/2026-10-05-02.md, written before sending): both phones log; the header records SIM and data state; the S26 holds real data, so any install that would need an uninstall or wipe there is a stop for the owner's word; the desk run happens on both phones.
+**Notes:** Written by the planner by hand, on branch records-after-172.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-534
+**Timestamp:** 2026-10-05T10:50:00Z
+**Continues:** 2026-09-28-525
+**Decides:** -510's look, and its bubble
+**The owner, verbatim,** with an S22 screenshot of the approximate dot (kept out of the repository; it shows street addresses): "the color is fine, but the bubble message is repeating what the strip says. One has to go, and my vote is for the bubble message." To the planner's step path (no bubble on the soft dot or the grey dot; the strip, or the HUD while navigating, carries the words), asked twice at the owner's request: "Remove both (Recommended)" (the other options: only the approximate one; keep the bubbles and trim the strip).
+**What it sets:** the soft dot's colour and circle approved as they are; the "Approximate location" and "Last seen …" bubbles removed, superseding the label part of -508's choice 1. Closes -525's open item on the look. The grey dot is still unconfirmed on a phone.
+**Notes:** Written by the planner by hand, on branch records-after-172.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-535
+**Timestamp:** 2026-10-05T10:55:00Z
+**Title:** no-position-bubble: the bubble under the dot goes; the strip and the HUD carry the words
+**Dispatch-file:** preserved/2026-10-05-03.md
+**Not yet sent:** for the owner to send; it can run now (nothing is building), Gradle on the owner's "go".
+**Notes:** Written by the planner by hand, on branch records-after-172.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-536
+**Timestamp:** 2026-10-05T11:20:00Z
+**Closes:** 2026-09-28-535 (preserved 2026-10-05-03)
+**Outcome:** completed, not merged
+**Observed:** on branch no-position-bubble at 895104b5, report `docs/navigation/2026-10-05-no-position-bubble-report.md` with its two index rows. Both bubbles removed with everything that existed only for them (`MapPositionLabel` and its constants, `PositionNote.labelText`, the dot's screen-point report through `MapSlot` and `SightingsMap`); the strip's and HUD's text and the dot's looks unchanged. The strip shows in every state except navigating, when the HUD carries the words, confirmed by reading the code (portrait, landscape, fullscreen); not a stop. Tests first (c7e04dde): 4 of 8 failed with "no bubble reading …", as predicted; the build passes them; the revert (the five app files restored to a9dfdd59) failed the same four with the same messages, restored from saved copies. **One omission in the dispatch:** the bubble was also drawn while navigating; removed there too, under "Remove both".
+**What the planner checked itself:** the full suite's 454 XML files in the coder's worktree at 895104b5 (3,691 tests, 0 failures, 0 errors, 24 skipped); no compile-error lines in the full and revert logs. The coder's logs were in `/tmp/535`; the planner copied them to `~/Zynergy/device-evidence/2026-10-05-no-position-bubble/`.
+**Not shown:** the look on a phone, left for the next S22 session after it merges, with the grey dot still unconfirmed.
+**Notes:** Written by the planner by hand, on branch records-after-172.
