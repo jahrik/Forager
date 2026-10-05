@@ -24,6 +24,7 @@ import com.zynergylabs.forager.app.domain.LocationSampler
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
 import com.zynergylabs.forager.app.domain.toTrackPoint
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -62,6 +63,13 @@ import kotlinx.coroutines.sync.withLock
  * it when the recording stops or the service is destroyed. Nothing else begins or feeds it. That
  * is why the alert still arrives after the app is swiped away from recents: this service is the
  * part that is still running.
+ *
+ * ## And the sundown watch (dispatch 2026-09-28-516)
+ *
+ * The same way, for [com.zynergylabs.forager.app.domain.SundownWatch]: begun with the recording,
+ * handed every raw fix, evaluated on its own 15 s timer and once at the first fix, ended with the
+ * recording or the service. The three sundown alerts arrive with the app swiped away for the same
+ * reason the off-track alert does.
  */
 class TrackRecordingService : Service() {
 
@@ -119,6 +127,7 @@ class TrackRecordingService : Service() {
     override fun onDestroy() {
         // Whatever recording this service had begun the watch for is over with the service.
         (application as ForagerApplication).container.returnWatch.end(null)
+        (application as ForagerApplication).container.sundownWatch.end(null)
         recordingJob?.cancel()
         scope.cancel()
         super.onDestroy()
@@ -130,6 +139,7 @@ class TrackRecordingService : Service() {
 
         val container = (application as ForagerApplication).container
         container.returnWatch.begin(trackId, mode)
+        container.sundownWatch.begin(trackId)
         val sampler = LocationSampler(mode)
         var lastAccepted: TrackPoint? = null
 
@@ -140,6 +150,10 @@ class TrackRecordingService : Service() {
                         is LocationFix.Update -> {
                             val candidate = fix.toTrackPoint()
                             container.returnWatch.onFix(candidate)
+                            // Dispatch 2026-09-28-516: every raw fix to the sundown watch too, and
+                            // an evaluation at once on the first, so a recording started past the
+                            // leave-by time does not wait for the timer.
+                            if (container.sundownWatch.onFix(candidate)) launch { tickSundown(container) }
                             if (sampler.shouldAccept(lastAccepted, candidate)) {
                                 lastAccepted = candidate
                                 // Dispatch 2026-09-28-425: the kept point to the watch too, which
@@ -162,6 +176,26 @@ class TrackRecordingService : Service() {
                     flushPendingPoints(trackId, container)
                 }
             }
+            launch {
+                while (isActive) {
+                    delay(SUNDOWN_TICK_MILLIS)
+                    tickSundown(container)
+                }
+            }
+        }
+    }
+
+    /**
+     * One sundown evaluation. Anything it throws is logged and dropped: it runs as a child of the
+     * recording, and an exception escaping it would cancel the recording with it.
+     */
+    private suspend fun tickSundown(container: AppContainer) {
+        try {
+            container.sundownWatch.tick()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "A sundown evaluation failed; the next tick tries again.", e)
         }
     }
 
@@ -173,6 +207,7 @@ class TrackRecordingService : Service() {
         if (trackId != null) {
             val container = (application as ForagerApplication).container
             container.returnWatch.end(trackId)
+            container.sundownWatch.end(trackId)
             scope.launch {
                 flushPendingPoints(trackId, container)
                 container.endTrackUseCase(trackId).onFailure { error ->
@@ -319,5 +354,9 @@ class TrackRecordingService : Service() {
         // migration in the first place, just applied to the in-memory buffer ahead of it.
         private const val FLUSH_BATCH_SIZE = 20
         private const val FLUSH_INTERVAL_MILLIS = 30_000L
+
+        // How often the sundown alerts are re-evaluated (dispatch 2026-09-28-516): the screen's
+        // own re-read of the track runs at the same 15 s, and the alerts are minute-scale moments.
+        private const val SUNDOWN_TICK_MILLIS = 15_000L
     }
 }

@@ -1,42 +1,56 @@
 package com.zynergylabs.forager.app.domain
 
 /**
- * Which alert is being delivered. One kind today; the turnaround alert (light-budget work, not
- * built) is the second this was shaped for.
+ * Which alert is being delivered.
  */
 enum class AlertKind {
     OFF_TRACK,
 
     /**
-     * The darkness margin has been reached: time to start heading back. Passes
-     * `overridesSilence = true` — owner ruling, 2026-09-11: this is the alert that stops someone
-     * being stranded in the dark, so it is an alarm. Anyone who does not want it turns the feature
-     * off in settings, which is a choice about the feature rather than a side effect of having
-     * silenced the phone for something else.
+     * Thirty minutes before the leave-by time (dispatch 2026-09-28-516, RECORD -515). Passes
+     * `overridesSilence = true`, as all three sundown alerts do — owner ruling, 2026-09-11: these
+     * are the alerts about not being stranded after dark, so they are alarms. Anyone who does not
+     * want them turns the feature off in settings.
      */
-    TURNAROUND,
+    HEADS_UP,
 
-    /** The sun has set. Same reasoning and the same override as [TURNAROUND]. */
+    /**
+     * The leave-by time: sunset, minus the darkness margin, minus the walk back. Replaced the
+     * turnaround alert ("Time to head back"): the alerts inform and never order the walker back
+     * (the owner: "instead of 'turn around now' just tell them when sundown is").
+     */
+    LEAVE_BY,
+
+    /** The sun has set. Same override as [HEADS_UP]. */
     SUNSET,
 }
 
 /**
- * One alert to deliver. [overridesSilence] is **deliberately a parameter of the call, not a
- * constant inside the delivery** (alert-delivery dispatch, owner decision): off-track is advisory
- * and the turnaround alert, when it exists, is safety, and overriding a phone the user silenced on
- * purpose is defensible for one and arguably rude for the other. The two must be able to differ
- * without the delivery changing shape. **Off-track now passes `false`, reversing the original ruling (owner,
- * 2026-09-11).** It first passed `true`, on the reasoning that someone who started track recording
- * and walked into the woods has opted into being told they have strayed. The owner's revised
- * reading: straying is often deliberate, so off-track is the kind of thing a person may reasonably
- * want to hear only if their notifications are audible, whereas [AlertKind.TURNAROUND] and
- * [AlertKind.SUNSET] are about not being stranded after dark and override silence. The parameter
- * existing per call is what made this a one-line reversal rather than a redesign. **Do not
- * hard-code this inside an implementation**; that is the one thing it exists to prevent.
+ * The walk back as a sundown alert states it (dispatch 2026-09-28-516; the owner's copy rulings,
+ * 2026-10-04). Only [About] — a measured estimate — may say anything about getting back.
  */
-data class Alert(
-    val kind: AlertKind,
-    val overridesSilence: Boolean,
+sealed interface WalkBack {
+    /** A measured estimate ([ReturnWalkingTime.Estimate.isAtLeast] false). */
+    data class About(val millis: Long) : WalkBack
+
+    /** An estimate on thin data: a floor, never a promise. */
+    data class AtLeast(val millis: Long) : WalkBack
+
+    /** Withheld ([ReturnWalkingTime.Withheld]) or unreadable: no number is honest. */
+    data object Unknown : WalkBack
+
+    val millisOrNull: Long?
+        get() = when (this) {
+            is About -> millis
+            is AtLeast -> millis
+            Unknown -> null
+        }
+}
+
+/** What a sundown alert says: the sunset time and the walk back it was decided on. */
+data class SundownAlertDetail(
+    val sunsetAtEpochMillis: Long,
+    val walkBack: WalkBack,
 )
 
 /**
@@ -75,6 +89,9 @@ data class Alert(
  * still alerts for as long as the service runs. What is still open: a reopened app does not yet
  * show the recording it left (Part 3 of that dispatch), and the two sundown alerts have no caller
  * (plan task T2).
+ *
+ * **The sundown alerts now have one (dispatch 2026-09-28-516):** [SundownWatch], held by
+ * `AppContainer` and driven by `TrackRecordingService` the same way, and three of them, not two.
  */
 fun interface AlertDelivery {
     fun deliver(alert: Alert)
