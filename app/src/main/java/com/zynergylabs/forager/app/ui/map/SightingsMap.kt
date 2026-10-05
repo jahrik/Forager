@@ -48,6 +48,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.zynergylabs.forager.app.R
 import com.zynergylabs.forager.app.domain.EntryMapFrame
 import com.zynergylabs.forager.app.domain.GeoDistance
 import com.zynergylabs.forager.app.domain.fixOrNull
@@ -1773,21 +1774,24 @@ internal fun liveLocationComponentOptions(context: Context, navigating: Boolean 
         // addFanOutLayers, which initializeOverlayLayers runs before either activation call.
         .layerBelow(FanOutIds.LEGS_CASING_LAYER)
         // Dispatch 2026-09-28-510: how the dot is drawn for the position the app has judged (MapPosition.kt).
-        // PRECISE adds nothing, so a GPS dot is MapLibre's own exactly as before. The other two turn off
-        // MapLibre's 30 s stale greying: the app decides when a position is old, and a network reading
-        // arriving every 20 s or so would otherwise flicker between soft and grey.
+        // PRECISE adds nothing, so a GPS dot is MapLibre's own exactly as before. The other two draw the app's
+        // own dot images and never tint MapLibre's: MapLibre tints with setTint and no mutate(), so the first
+        // tint applied to its own vector dot stayed on every later copy, and the GPS dot stayed pale after
+        // GPS took over (seen at the S22 desk step; PuckImageTintTest). The heading arrow is left MapLibre's,
+        // since the compass is live whatever the position. Both turn off MapLibre's 30 s stale greying: the
+        // app decides when a position is old, and a network reading arriving every 20 s or so would
+        // otherwise flicker between soft and grey.
         .apply {
             when (look) {
                 PositionLook.PRECISE -> Unit
                 PositionLook.APPROXIMATE -> {
-                    foregroundTintColor(APPROXIMATE_DOT_COLOR)
+                    foregroundDrawable(R.drawable.puck_approximate)
                     accuracyAlpha(APPROXIMATE_ACCURACY_ALPHA)
                     enableStaleState(false)
                 }
                 PositionLook.LAST_KNOWN -> {
-                    foregroundTintColor(LAST_KNOWN_COLOR)
+                    foregroundDrawable(R.drawable.puck_last_known)
                     accuracyColor(LAST_KNOWN_COLOR)
-                    bearingTintColor(LAST_KNOWN_COLOR)
                     enableStaleState(false)
                 }
             }
