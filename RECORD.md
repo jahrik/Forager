@@ -11584,3 +11584,163 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **The owner, verbatim:** "I think another run of GPS improvements is due. How much of the phone can we use to actually establish a position? Can the accelerometer or other sensor be used to track movement? Mobile tower signals get weaker when you walk away, and stronger when you walk towards. Can a position be triangulated by detecting these things, and putting it all together into a precise locatoon?" To the planner's answer (GPS for position; steps and compass to carry through gaps and smooth jitter; the barometer for height; cell towers only a rough fallback, hundreds of metres or more in the forest; trail matching as a correction; a fusion filter combining them; Google's fused location excluded as proprietary): "GPS fusion will be useful and I think the real work will pay off, especially keeping it open source."
 **Done:** two research agents started by the planner, web only, no patents: pedestrian dead reckoning and its fusion with GNSS, the barometer, battery and pitfalls; and open libraries, Android's raw GNSS measurements and the S22's support, the platform location APIs without Play services, and offline cell positioning (OpenCelliD). Findings go into one report under `docs/navigation/` for the owner. Nothing built.
 **Notes:** Written by the planner by hand, on branch records-after-167.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-510
+**Timestamp:** 2026-10-04T22:50:00Z
+**Continues:** 2026-09-28-509
+**Observed:** pull request #168 (t502-merge into main: T8 and T9 with records -501 to -509) was merged as d4bd00bf1e7f74acba65d0847b8c71ecb349017a at 2026-10-04T22:42:11Z, on green CI at its head, read from GitHub, on the owner's "Merge now (Recommended)", with backup 2026-10-04-08 of main at a501a8a0. Main's tree equals t502-merge's; its app equals the S22's build.
+**Dispatched,** on the owner's "Go ahead with the next dispatch when ready": -510, approximate-position (preserved/2026-10-04-10.md), the owner's choices of -508, to the laptop coder.
+**Also:** both fusion research agents stopped on a network error (the API server unreachable) and were resumed.
+**Notes:** Written by the planner by hand, on branch records-after-168.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-511
+**Timestamp:** 2026-10-04T23:30:00Z
+**Continues:** 2026-09-28-509
+**Observed:** both research agents reported (each after resuming from a network error); the planner filed `docs/navigation/2026-10-04-location-fusion-research.md` with its two index rows. In short: no open fusion to adopt (Android's open "fused" provider picks the newer or more accurate source and does not fuse); steps and compass smooth and bridge gaps (one published phone test: 15 m mean with GNSS alone, 8 m with steps); satellite status (satellites used, signal strength) can judge a fix despite the S22's constant 3.79 m; dual-frequency L5 and carrier phase on the US S22 unconfirmed, carrier phase probably absent; cell towers only a rough first fix (OpenCelliD, CC BY-SA). Sources not re-checked by the planner.
+**Open for the owner:** four decisions: the order (judge fixes by satellite status, a debug walk logger, then a filter built against the logs); the walk logger kept on the phone and never in the repository; open references only (Apache, MIT, BSD); cell towers deferred.
+**Notes:** Written by the planner by hand, on branch records-after-168.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-512
+**Timestamp:** 2026-10-05T00:48:00Z
+**Decides:** the four open decisions of -511, and which planner owns the fusion work
+**The owner, verbatim,** in the other planner window at 4:58 PM local, shown to this planner as a screenshot: "I'll take your recommendations", to that window's four decisions: the order (quick win: judge each GPS fix by its satellites; then a debug-only walk logger; then the fusion filter, built and tuned against the walk recordings on the laptop before it touches the live map, with honest limits, the screenshot's wording "after about 5 minutes or 300 m without GPS, your position shows as approximate"); the walk logger debug-only, kept on the phone and copied to the laptop, never in the repository; freely licensed open references only (Apache, MIT, BSD), so no code licence decision is forced; cell towers left for later. The 5 minutes and 300 m are the planner's provisional figures from that window, not yet derived; they are a premise for the filter's dispatch to check.
+**Ruled by the owner in this window:** this planner owns the fusion work from here ("This window (Recommended)"), so the other window records and dispatches nothing more on fusion; and the quick win is dispatched only after -510 (the approximate position) is built, against its code, because both change the same 50 m location gate ("Quick win after -510 (Recommended)"). One coder at a time on location.
+**Status:** -510 is with the owner to paste into a coder window; no branch for it existed at this timestamp. Nothing on fusion is dispatched yet.
+**Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168 and pushed to it, because the other planner's worktree holds that branch.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-513
+**Timestamp:** 2026-10-05T01:20:00Z
+**Continues:** 2026-09-28-512
+**Decides:** walk-back time reaches the sundown alert, and step pace is learned beside GPS pace
+**The owner, verbatim,** to the planner's two open questions (should the sundown alert account for the walk back; should step-learned pace feed it): "1 yes absolutely. Users would benefit from knowing sundown is in 1 hour, but it takes an hour and a half to return" and "2 yes step paces should be learned alongside GPS pace so that we have several data references backing up a number".
+**Read by the planner on main d4bd00bf:** the first is already plan task T13 (`docs/navigation/2026-10-01-navigator-completion-plan.md:157-161`: the turnaround alert at sunset minus the darkness margin minus walking time, the stop allowance its own visible term), which depends on T2 (the sundown alerts fire; not dispatched, waiting on the owner's off-track walk, -400 era records) and T12 (recorded out-and-back walks compared with the estimate, the gate the owner's 2026-09-11 decisions set). `returnWalkingTime` (`domain/ReturnWalkingTime.kt`) is built and has no production caller on purpose: "the alert brings the surface". So the owner's answer reaffirms T13; it does not open new work. The second is new: steps become a third pace instrument beside the two in `domain/MovingPace.kt` (Doppler speed and point differencing), learned with the fusion filter (-512), under the same rules recorded there (moving speed only, no stop modelling) and `ReturnWalkingTime`'s (when the references disagree or are thin, "at least", rounding toward more time).
+**Also:** the walk logger (-512, fusion step 2) can collect T12's out-and-back walks in the same outings.
+**Open for the owner:** whether T13 ships on GPS pace and takes step pace when the filter lands, or waits for step pace.
+**Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-514
+**Timestamp:** 2026-10-05T01:35:00Z
+**Continues:** 2026-09-28-513
+**Decides:** the open question of -513
+**The owner, verbatim:** "Ship it on the GPS pace", on the planner's recommendation: T13 ships on GPS pace (`domain/MovingPace.kt`'s two instruments) and takes step pace when the fusion filter lands. T13's dependencies are unchanged: T2 (the sundown alerts fire) and T12 (recorded out-and-back walks). Nothing dispatched by this entry; -510 is still the one location coder, and T2 is not yet dispatched.
+**Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-515
+**Timestamp:** 2026-10-05T02:00:00Z
+**Continues:** 2026-09-28-514
+**Decides:** how the sundown alerts warn, and that the walk back is in them from the start
+**The owner, verbatim:** before the dispatch was written, "we need to establish a point of return. We don't want to warn the user that they have 1 hour until sundown when they have a 1.5 hours of travel to do. We need to give ahead of time warning to avoid the afterthought". To the planner's step path (leave-by time = sunset − darkness margin − walk back at measured pace, moving earlier as the walker goes out; a heads-up 30 min before it; an alert at it; the sunset alert; leave-by at once if already past; each once; through a silenced phone): "Exact thing you described, but instead of 'turn around now' just tell them when sundown is. A lot of people do night forays for bioluminescence". Heads-up lead: "30 minutes, fixed (Recommended)". Order: "From the start (Recommended)": one dispatch for plan tasks T2 and T13, the estimate checked first against the owner's out-and-back walks (believed on the S26 Ultra, unverified), no plain sunset-minus-margin version shipped first.
+**Supersedes in part:** the plan's order of T2 before T12/T13 (`docs/navigation/2026-10-01-navigator-completion-plan.md:63, 150-161`); the 2026-09-11 walks gate stands, satisfied by the comparison inside the dispatch. The darkness margin's meaning is unchanged.
+**Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-516
+**Timestamp:** 2026-10-05T02:05:00Z
+**Title:** sundown-alerts: the sundown alerts fire from the recording service, with the walk back in them
+**Dispatch-file:** preserved/2026-10-04-11.md, dispatch -515's behaviour; to a second coder window, alongside -510
+**Dispatched,** on the owner's "Go ahead" to writing it now beside -510, with the -515 adjustments. One Gradle run at a time across both windows, each on the owner's "go".
+**Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-517
+**Timestamp:** 2026-10-05T02:20:00Z
+**Continues:** 2026-09-28-512
+**Decides:** the location fusion filter is open source for the community, in its own public repository
+**The owner, verbatim:** "With FLP we should also export this to allow other users to use the code, make it open source for the community." To the planner's two questions: the licence, "Decide later" (the planner had recommended Apache 2.0; it was told that published code with no licence can be read but not legally used); the form, "Its own public repo (Recommended)": a standalone library with no Forager code in it, which Forager depends on like any other library, built that way from the start.
+**What this sets for the fusion dispatches (-512's step 3, the filter):** the filter is written in its own repository, not under `app/`; nothing Forager-specific goes into it; its code borrows only from the open references -512 allowed (Apache, MIT, BSD), so every licence remains open to choose. The walk logs stay out of it as they stay out of Forager's (-512): its tests use synthetic or consented data only. The quick win (-512 step 1) and the walk logger (step 2) are Forager work and are not affected.
+**Open for the owner:** the licence, before the library's first public release; the repository's name and when it is created.
+**Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-518
+**Timestamp:** 2026-10-05T02:45:00Z
+**Continues:** 2026-09-28-516
+**Decides:** which readings the sundown alerts use, on the -516 coder's question
+**The question, as the owner relayed it:** "is it OK for the background to use raw GPS fixes, skipping network fixes, so it stays clear of -510's accuracy filter?"
+**Ruled, the owner verbatim "Approved and sent"** to the planner's answer: walk-back time from GPS fixes only, told apart by provider in the service's raw stream (it carries network fixes too, `location/AndroidLocationTracker.kt:71`), not through the 50 m gate; sunset time from any reading, network fixes and the last known position included (sunset moves about 4 s per km; GPS-only would mean no sundown alert at all under canopy or indoors), an owner-approved exception to -510's "never decides anything" for the sunset time only; with no fresh GPS fix, the dispatch's fallback (sunset minus margin, walk back unknown). The coder records it under "decided beyond scope".
+**The owner's direction, verbatim, recorded and not yet a task:** "With no network collection on GPS, we automatically remove reliance on the network, so they won't rely on it in a failing moment. That means the rest of the work is canopy and I think all our combined metrics will be the driving differentiator for the rejection of network usage".
+**Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-519
+**Timestamp:** 2026-10-05T03:05:00Z
+**Continues:** 2026-09-28-518
+**Decides:** the principle the location work is built to, and network fixes in the walk logger
+**The owner, verbatim:** "Yes. I want to use all of the available resources to get it right for the user. If network isn't available I want to be confident I'm not sending people to get stranded. And that includes removing reliance on network data, but not total removal of collection at all. My goal is that for each failure, there is another method available that can help fill the gaps".
+**What it sets:** network fixes stay collected and recorded, and nothing that acts on position relies on them (-510, -518). The walk logger (-512 step 2) records network fixes beside everything else, so whether they ever add anything is measured, not assumed. Each location dispatch states, for what it touches, which failure it covers and what fills the gap when that method fails; a failure with no fallback is reported as a gap, never left implicit.
+**Gap found while answering, unverified beyond a search:** no code under `app/src/main` reads the battery level (no BatteryManager, battery broadcast or PowerManager reference on main d4bd00bf), so a phone running low has no fallback today.
+**Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-520
+**Timestamp:** 2026-10-05T03:15:00Z
+**Continues:** 2026-09-28-519
+**Decides:** when the battery gap of -519 is taken up
+**The owner, verbatim:** "Battery optimization is something else to think about, but that can wait for the next update when we're done with the map tiling and navigation", to the planner's options (a low-battery warning set against the walk back; GPS less often when low) and recommendation (the short release, beside the sundown alerts), which the owner did not take.
+**What it sets:** battery work (warning and saving) is deferred to the update after map tiling and navigation are finished. Until then the gap stands as recorded in -519, and location dispatches name it where it applies.
+**Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-521
+**Timestamp:** 2026-10-05T04:00:00Z
+**Continues:** 2026-09-28-510
+**Observed:** -510 built on branch approximate-position at d949321f, not merged; report `docs/navigation/2026-10-04-approximate-position-report.md` with its two index rows. The owner answered five stop-and-asks in the coder's window, each the recommended option (the app feeds MapLibre's dot; shown before the first GPS fix and again once GPS is 5 min lost; the needle hidden within twice the circle; the strip says so, no coordinates; while returning, no needle, "≈" distance). 43 new tests in 7 classes, no existing test changed, one fixture with two defaulted parameters; 35 revert checks and 2 controls bite (r02 and r22 did not, explained; r20 did not compile and is not cited); full suite 453 classes, 3,687 tests, 0 failures, 24 skipped. The S22 desk step has not run; it needs the owner's word in the coder's window.
+**What the planner checked itself:** the full suite's 453 saved XML files re-counted (3,687 tests, 0 failures, 0 errors, 24 skipped) and its log (BUILD SUCCESSFUL, no compile-error lines), in `~/Zynergy/device-evidence/2026-10-04-approximate-position/`; `git diff --name-status` against main: the only modified test file is the fixture, the rest added.
+**Findings carried to the quick win (-512 step 1),** each pre-existing and not changed by -510: (1) a network fix of 50 m or better passes the live gate today (it tests accuracy alone, `LiveFixGate.kt:71-74`) and so reaches "Arrived", the waypoint's line and a new find's location, so -519's "nothing that acts relies on them" does not yet hold there; (2) GPS readings worse than 50 m enter Battery-saver tracks (up to 100 m, `TrackRecordingMode.kt:29`) and count for the off-track judge at any accuracy (`OffTrackJudge.kt:45-46,72`).
+**Disclosed by the coder:** the full suite ran with 1,428 MB in the free column (4,536 MB available), under the dispatch's 2,048 MB; co-author lines of four commits name a model, not amended.
+**Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-522
+**Timestamp:** 2026-10-05T03:40:00Z
+**Continues:** 2026-09-28-518
+**Decides:** three questions from the -516 coder, each relayed by the owner to the planner and the planner's answer sent by the owner to the coder; the owner, verbatim, to "did you send all three": "Yes".
+1. **Sunset from any fix, the last known position after -510:** yes, on the condition that -516 does not merge until the last known position is wired in (reusing -510's `LastKnownLocationSource`, no second copy), with a test that a recording with no live reading at all still gets a sunset time and its alerts. -510 merges first.
+2. **Telling GPS from network fixes:** the timestamp rule (`domain/NetworkProviderFix.kt:48`), the one the off-track judge and the track read use, so the current fix and the track agree; no provider field added to `LocationFix` in -516. Its failure direction (a phone whose GPS stamps milliseconds reads its GPS as network, the walk back reads "unknown", the alert falls back to sunset minus margin) is stated in the report against -519. Carrying the true provider from `location/AndroidLocationTracker.kt` is added to the quick win (-512 step 1), with -521's two findings.
+3. **The walks gate: A.** The coder's comparison found three usable walks on the S22 (not the S26 Ultra), all loops (about 330 m out, 900 m back), every estimate "at least" on the default pace; they cannot test an estimate along a retraced way out. Build now; when the estimate is "at least" or withheld the copy promises nothing; validation moves to a **release gate**: one out-and-back walk of 30 minutes or more, retracing the way out, compared as the three were. The planner's reasoning: walk-back time can only move the leave-by earlier than sunset minus margin, never later.
+**Also, by the planner as build traffic controller:** go to -516 for its compile and four test classes (3adf2fae, written with the code, not run first; a deviation from tests first the coder discloses, the revert checks being the evidence), with the -510 coder holding Gradle until -516 reports done. The planner recommended clock-time copy ("To finish it before dark, start by 5:42 PM"; "at the latest" for a thin estimate) over the coder's "Leave within 30 min"; the owner's approval of that wording is not yet recorded.
+**Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-523
+**Timestamp:** 2026-10-05T04:10:00Z
+**Continues:** 2026-09-28-521
+**Observed, as the -510 coder reported it to the owner and the owner relayed it:** the S22 desk step done on approximate-position, head eb38bec0 (S22 runs 1.0.2708+geb38bec0), not merged, no pull request. One defect found and fixed: when GPS took over, the strip and label switched back but the dot stayed pale. Two causes in MapLibre's handling of the dot image: tinting its dot changes every later copy for the session (reproduced in a pixel test), and an image swapped for another of the same size under the same name is not redrawn (shown by a diagnostic build). Fixed on the second attempt by leaving MapLibre's dot untouched and giving the approximate and last-known looks their own named images. On the fixed build: steps 1 to 4 passed (soft dot, label and strip within 3 s; the label follows a drag; a waypoint about 2.6 km away showed "≈ 1.6 mi", the needle and "Approximate, finding GPS…" with the tilted view following; a waypoint at the desk showed a dash, no needle, never "Arrived"); on a showing map the dot turned soft when GPS was lost and back to the ordinary blue 2 s after a good GPS fix, nothing tapped. **Not done:** step 5, the grey "Last seen" dot with nothing live, could not be set up indoors (poor GPS readings count as approximate; aeroplane mode does not stop GPS); only a log showing the grey look for about 0.2 s at launch. The look's values stay provisional, the owner's call; at the reopened zoom the 100 m circle was smaller than the dot.
+**What the planner checked itself:** the second full suite's 454 saved XML files (3,691 tests, 0 failures, 0 errors, 24 skipped); r35 and r36 each compiled with no error lines and failed on the pixel test with "alpha of … expected:<255> but was:<128>", the pale dot, the failure their edits should cause.
+**Premise corrected:** the coder wrote that main was still d4bd00bf. It had moved to 967fdd0b (PRs #169 and #170, pi-origin: the tile Worker tries the Pi first), touching only `server/pmtiles-worker/`, two docs and `docs/audits/README.md`; no app code. Merging approximate-position will meet that index (merge, keep every row).
+**Finding for the quick win (-512 step 1):** indoors the S22's GPS reported accuracy from 19 m to 266 m, so the constant 3.79 m on record may hold only for a good fix.
+**Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168.
