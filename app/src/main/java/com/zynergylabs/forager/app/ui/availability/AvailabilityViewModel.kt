@@ -16,7 +16,9 @@ import com.zynergylabs.forager.app.domain.GetSeasonalPatternUseCase
 import com.zynergylabs.forager.app.domain.GetSightingsUseCase
 import com.zynergylabs.forager.app.domain.GetTodaysForecastUseCase
 import com.zynergylabs.forager.app.domain.GetTripWindowsUseCase
+import com.zynergylabs.forager.app.domain.LastKnownLocationSource
 import com.zynergylabs.forager.app.domain.LocationFix
+import com.zynergylabs.forager.app.domain.NoLastKnownLocation
 import com.zynergylabs.forager.app.domain.acceptLiveFix
 import com.zynergylabs.forager.app.domain.LocationProvider
 import com.zynergylabs.forager.app.domain.LocationResult
@@ -136,6 +138,8 @@ class AvailabilityViewModel(
     private val waypointNavigationRepository: WaypointNavigationRepository = NoStoredWaypointNavigation,
     /** Dispatch 2026-09-28-502, step 6: the return a waypoint navigation pauses and picks back up. */
     private val returnLeg: ReturnLeg = NoReturnLeg,
+    /** Dispatch 2026-09-28-510: the platform's last known location, shown greyed until anything live arrives. */
+    private val lastKnownLocation: LastKnownLocationSource = NoLastKnownLocation,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AvailabilityUiState())
@@ -264,6 +268,7 @@ class AvailabilityViewModel(
      */
     private fun collectLiveFixes() {
         liveFixJob = viewModelScope.launch {
+            readLastKnownLocation()
             locationTracker.fixes.collect { fix ->
                 // Location-accuracy dispatch, item 1: the one place the live fix is gated. A fix
                 // worse than LIVE_FIX_MAX_ACCURACY_METERS is dropped and the previous one held —
@@ -273,9 +278,32 @@ class AvailabilityViewModel(
                     // The whole fix, accuracy and timestamp included — see
                     // AvailabilityUiState.liveFix's own doc comment (HUD-foundations dispatch, Item 1).
                     _uiState.update { it.copy(liveFix = fix) }
+                } else if (fix is LocationFix.Update) {
+                    onRefusedFix(fix)
                 }
             }
         }
+    }
+
+    /**
+     * Dispatch 2026-09-28-510: a fix the gate refused is still held, as the approximate reading, beside
+     * [AvailabilityUiState.liveFix] and never in it. The gate itself, and what "held" means for the
+     * gated fix, are unchanged: everything that acts reads [AvailabilityUiState.liveFix] alone, and the
+     * screen decides what to show from both ([com.zynergylabs.forager.app.domain.shownPosition]).
+     */
+    private fun onRefusedFix(fix: LocationFix.Update) {
+        _uiState.update { it.copy(approximateFix = fix) }
+    }
+
+    /**
+     * Dispatch 2026-09-28-510: the platform's own last known position, read each time collection starts
+     * (each foreground, and after a permission grant, when it may first be readable). Shown greyed until
+     * anything newer arrives; never moved into [AvailabilityUiState.liveFix]. None held is the ordinary
+     * case on a fresh phone and changes nothing.
+     */
+    private fun readLastKnownLocation() {
+        val known = lastKnownLocation.lastKnown() ?: return
+        _uiState.update { it.copy(lastKnownFix = known) }
     }
 
     /**

@@ -7,6 +7,9 @@ import com.zynergylabs.forager.app.ui.log.JournalTopTab
 import com.zynergylabs.forager.app.ui.map.WaypointNavigationOrigin
 import com.zynergylabs.forager.app.ui.map.WaypointNavigationOriginSaver
 import com.zynergylabs.forager.app.ui.map.MapCompass
+import com.zynergylabs.forager.app.ui.map.MapPosition
+import com.zynergylabs.forager.app.ui.map.LocalMapPosition
+import com.zynergylabs.forager.app.ui.map.rememberShownPosition
 import com.zynergylabs.forager.app.ui.map.LocalMapCompass
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.map.LocalMapKeepOuts
@@ -1672,8 +1675,15 @@ fun AvailabilityScreen(
     // Ruling A (continuation 2026-09-28-432): every map under this screen can point its puck to true
     // north, the pickers included, with no new parameter through the Journal (the planner's ruling (i)).
     val liveFixForMaps = rememberUpdatedState(uiState.liveFix)
-    val mapCompass = remember(compassProvider, computeTrueHeading, liveFixForMaps) { MapCompass(compassProvider, computeTrueHeading, liveFixForMaps) }
-    CompositionLocalProvider(LocalLayoutDirection provides drawerDirection, LocalMapKeepOuts provides mapKeepOuts, LocalMapCompass provides mapCompass) {
+    // Dispatch 2026-09-28-510: true north is worked out at the best position there is, approximate or
+    // last known included (AvailabilityUiState.headingFix), so the puck's heading does not wait for GPS.
+    val headingFixForMaps = rememberUpdatedState(uiState.headingFix)
+    val mapCompass = remember(compassProvider, computeTrueHeading, headingFixForMaps) { MapCompass(compassProvider, computeTrueHeading, headingFixForMaps) }
+    // Dispatch 2026-09-28-510 (the owner: "App feeds the dot"): the position every map under this screen
+    // draws its dot at, the same way the compass reaches them.
+    val shownPosition = rememberShownPosition(uiState.liveFix, uiState.approximateFix, uiState.lastKnownFix, currentTime)
+    val mapPosition = remember(shownPosition, liveFixForMaps) { MapPosition(shownPosition, liveFixForMaps) }
+    CompositionLocalProvider(LocalLayoutDirection provides drawerDirection, LocalMapKeepOuts provides mapKeepOuts, LocalMapCompass provides mapCompass, LocalMapPosition provides mapPosition) {
     ModalNavigationDrawer(
         drawerState = drawerState,
         // Swipe-to-open is off on purpose: the content behind the drawer is a full-screen
