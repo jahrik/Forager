@@ -11853,3 +11853,24 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **The owner, verbatim:** "I'll use both the S26 and S22 running the data logger build for both data and non data approach". Told that debug builds share the Play app's identity with a different signing key, so a Play install on the S26 could only be replaced by uninstalling it, deleting its data, they answered "S26 has no Play version" (the planner had recommended a separate logger app identity; not needed on that answer).
 **What it sets:** -532 Amendment 1 (in preserved/2026-10-05-02.md, written before sending): both phones log; the header records SIM and data state; the S26 holds real data, so any install that would need an uninstall or wipe there is a stop for the owner's word; the desk run happens on both phones.
 **Notes:** Written by the planner by hand, on branch records-after-172.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-534
+**Timestamp:** 2026-10-05T10:50:00Z
+**Continues:** 2026-09-28-525
+**Decides:** -510's look, and its bubble
+**The owner, verbatim,** with an S22 screenshot of the approximate dot (kept out of the repository; it shows street addresses): "the color is fine, but the bubble message is repeating what the strip says. One has to go, and my vote is for the bubble message." To the planner's step path (no bubble on the soft dot or the grey dot; the strip, or the HUD while navigating, carries the words), asked twice at the owner's request: "Remove both (Recommended)" (the other options: only the approximate one; keep the bubbles and trim the strip).
+**What it sets:** the soft dot's colour and circle approved as they are; the "Approximate location" and "Last seen …" bubbles removed, superseding the label part of -508's choice 1. Closes -525's open item on the look. The grey dot is still unconfirmed on a phone.
+**Notes:** Written by the planner by hand, on branch records-after-172.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-535
+**Timestamp:** 2026-10-05T10:55:00Z
+**Title:** no-position-bubble: the bubble under the dot goes; the strip and the HUD carry the words
+**Dispatch-file:** preserved/2026-10-05-03.md
+**Not yet sent:** for the owner to send; it can run now (nothing is building), Gradle on the owner's "go".
+**Notes:** Written by the planner by hand, on branch records-after-172.
