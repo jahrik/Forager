@@ -198,6 +198,18 @@ The Gradle runner's own summary counted R6/R7/R10's failures but printed no name
 XML element's truthiness, false for one with no children); the names above are from each run's
 own Gradle log, and the runner was fixed before the full suite.
 
+## Installed on the phones (owner's go, 2026-10-05)
+
+`main` at `e1395fc9` merged in at `bf34fc87` (it includes the `1d3d2bbb` the owner named, PR #173;
+after it only PR #171's docs). Index conflicts resolved keeping every row. The five affected classes
+on that tree: 37/37. Debug APK `1.0.2763+gbf34fc87` (versionCode 2763), signed with the committed
+`app/debug.keystore`, built from a clean tree.
+
+| Phone | Serial | Before | Install | versionName read back |
+|---|---|---|---|---|
+| S26 Ultra (SM-S948U, the owner's daily phone) | `R5GYC4CYJ3X` | 1.0.2695+gc3ba0f46 | `adb install -r`: Success. First install time unchanged (2026-10-03 20:36), so an update with data kept | 1.0.2763+gbf34fc87 |
+| S22 Ultra | `R5CT321008R` | — | **Not done: not connected** when the install ran | — |
+
 ## The S22 step (needs the owner's word)
 
 Not done. **No way exists today to set the darkness margin on a phone** (`setDarknessMarginMinutes`
