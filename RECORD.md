@@ -11766,3 +11766,25 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Still open from -510:** the grey "Last seen" dot not confirmed on a phone; the look's values provisional, the owner not yet having seen them.
 **Next:** the -516 coder brings main into sundown-alerts and wires in `LastKnownLocationSource` before -516 can merge (-522).
 **Notes:** Written by the planner by hand, on branch records-after-172 cut from main at a9dfdd59.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-526
+**Timestamp:** 2026-10-05T08:45:00Z
+**Continues:** 2026-09-28-512
+**Decides:** the quick win split; poor GPS readings kept
+**Found by the planner while drafting, from the S22's own logs (counts only):** indoors at the desk (`~/Zynergy/device-evidence/2026-10-04-approximate-position/desk/`), 4,056 GPS fixes from 18.7 m to 267.7 m, none at 3.79 m, 586 at 50 m or better; 670 network fixes from 15.2 m to 100 m; the timestamp rule agreed with the provider on all 4,726. Outdoors (2026-10-03 owner-walk, walk-t21, walk-zoom), 4,614 GPS fixes, 4,460 at exactly 3.79 m, the rest up to 20.1 m. So 3.79 m is the S22's best-case floor, not a constant; `LiveFixGate.kt`'s doc comment, which says the field carries no signal on that phone's GPS path, is wrong indoors. This supersedes the "constant 3.79 m" premise of -511's research summary and of -512's quick win.
+**The owner, verbatim choices:** "Split it (Recommended)": carry each fix's true source through the app now so nothing that acts on position uses a network fix (no new data needed); satellite judging only if the walk logger's canopy logs show 3.79 m fixes that are really off (CLAUDE.md: no correction without data showing the case). "Keep them for now (Recommended)": GPS readings worse than 50 m stay in Battery-saver tracks and the off-track judge (which widens its line by accuracy), for the fusion filter to weigh.
+**Order now:** -516 merges; then -527, fix-provider (preserved/2026-10-05-01.md); then the walk logger (with satellite status and network fixes, -519); then the filter.
+**Notes:** Written by the planner by hand, on branch records-after-172.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-527
+**Timestamp:** 2026-10-05T08:50:00Z
+**Title:** fix-provider: every fix carries its true source, and nothing that acts on position uses a network fix
+**Dispatch-file:** preserved/2026-10-05-01.md, written on the owner's "Go ahead" to drafting the quick win
+**Not yet sent:** it starts only after -516 merges, on the owner's word then.
+**Notes:** Written by the planner by hand, on branch records-after-172.
