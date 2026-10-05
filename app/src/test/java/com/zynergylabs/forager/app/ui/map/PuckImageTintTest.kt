@@ -44,6 +44,22 @@ class PuckImageTintTest {
         assertEquals("$what: ${Integer.toHexString(pixel)} within 2 a channel of ${Integer.toHexString(rgb)}", true, near)
     }
 
+    /**
+     * The second cause, read from the S22 (`ForagerDot` log, run 4): after the GPS look was applied, MapLibre's
+     * style held its own opaque blue under `mapbox-location-icon` (centre ff4a90e2, 53x53), and the screen still
+     * drew the approximate dot, even after a zoom. MapLibre's renderer does not redraw an image replaced by one of
+     * the same size under the same name. So no look may change what MapLibre builds under its own name: every
+     * look must leave it MapLibre's opaque blue.
+     */
+    @Test
+    fun `no look changes the image MapLibre builds under its own name`() {
+        PositionLook.entries.forEach { look ->
+            val built = foreground(liveLocationComponentOptions(context, look = look)).centre()
+            assertEquals("$look: alpha of ${Integer.toHexString(built)}", 0xFF, Color.alpha(built))
+            assertEquals("$look: colour of ${Integer.toHexString(built)}", 0x4A90E2, built and 0xFFFFFF)
+        }
+    }
+
     @Test
     fun `after the approximate and last known looks, the GPS dot is MapLibre's own opaque blue again`() {
         foreground(liveLocationComponentOptions(context, look = PositionLook.APPROXIMATE))
