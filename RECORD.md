@@ -11874,3 +11874,15 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Dispatch-file:** preserved/2026-10-05-03.md
 **Not yet sent:** for the owner to send; it can run now (nothing is building), Gradle on the owner's "go".
 **Notes:** Written by the planner by hand, on branch records-after-172.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-536
+**Timestamp:** 2026-10-05T11:20:00Z
+**Closes:** 2026-09-28-535 (preserved 2026-10-05-03)
+**Outcome:** completed, not merged
+**Observed:** on branch no-position-bubble at 895104b5, report `docs/navigation/2026-10-05-no-position-bubble-report.md` with its two index rows. Both bubbles removed with everything that existed only for them (`MapPositionLabel` and its constants, `PositionNote.labelText`, the dot's screen-point report through `MapSlot` and `SightingsMap`); the strip's and HUD's text and the dot's looks unchanged. The strip shows in every state except navigating, when the HUD carries the words, confirmed by reading the code (portrait, landscape, fullscreen); not a stop. Tests first (c7e04dde): 4 of 8 failed with "no bubble reading …", as predicted; the build passes them; the revert (the five app files restored to a9dfdd59) failed the same four with the same messages, restored from saved copies. **One omission in the dispatch:** the bubble was also drawn while navigating; removed there too, under "Remove both".
+**What the planner checked itself:** the full suite's 454 XML files in the coder's worktree at 895104b5 (3,691 tests, 0 failures, 0 errors, 24 skipped); no compile-error lines in the full and revert logs. The coder's logs were in `/tmp/535`; the planner copied them to `~/Zynergy/device-evidence/2026-10-05-no-position-bubble/`.
+**Not shown:** the look on a phone, left for the next S22 session after it merges, with the grey dot still unconfirmed.
+**Notes:** Written by the planner by hand, on branch records-after-172.
