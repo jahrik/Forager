@@ -11696,3 +11696,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **What it sets:** network fixes stay collected and recorded, and nothing that acts on position relies on them (-510, -518). The walk logger (-512 step 2) records network fixes beside everything else, so whether they ever add anything is measured, not assumed. Each location dispatch states, for what it touches, which failure it covers and what fills the gap when that method fails; a failure with no fallback is reported as a gap, never left implicit.
 **Gap found while answering, unverified beyond a search:** no code under `app/src/main` reads the battery level (no BatteryManager, battery broadcast or PowerManager reference on main d4bd00bf), so a phone running low has no fallback today.
 **Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-520
+**Timestamp:** 2026-10-05T03:15:00Z
+**Continues:** 2026-09-28-519
+**Decides:** when the battery gap of -519 is taken up
+**The owner, verbatim:** "Battery optimization is something else to think about, but that can wait for the next update when we're done with the map tiling and navigation", to the planner's options (a low-battery warning set against the walk back; GPS less often when low) and recommendation (the short release, beside the sundown alerts), which the owner did not take.
+**What it sets:** battery work (warning and saving) is deferred to the update after map tiling and navigation are finished. Until then the gap stands as recorded in -519, and location dispatches name it where it applies.
+**Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168.
