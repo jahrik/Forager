@@ -50,10 +50,11 @@ fun shownPosition(
     nowEpochMillis: Long,
 ): ShownPosition {
     if (precise != null && !precise.isLost(nowEpochMillis)) return ShownPosition.Precise(precise)
-    // Only a reading newer than the GPS fix stands in for it; an older one is already superseded.
-    val newerApproximate = approximate?.takeIf { precise == null || it.timestampEpochMillis > precise.timestampEpochMillis }
-    if (newerApproximate != null && !newerApproximate.isLost(nowEpochMillis)) return ShownPosition.Approximate(newerApproximate)
-    val newest = listOfNotNull(precise, newerApproximate, lastKnown).maxByOrNull { it.timestampEpochMillis } ?: return ShownPosition.None
+    // No test of "newer than the GPS fix" is needed: past this line the GPS fix is lost or absent, and a
+    // reading older than a lost fix is lost too, by the same five minutes. (Revert check r02 found an
+    // explicit one changed nothing, and it was removed.)
+    if (approximate != null && !approximate.isLost(nowEpochMillis)) return ShownPosition.Approximate(approximate)
+    val newest = listOfNotNull(precise, approximate, lastKnown).maxByOrNull { it.timestampEpochMillis } ?: return ShownPosition.None
     return ShownPosition.LastKnown(newest)
 }
 

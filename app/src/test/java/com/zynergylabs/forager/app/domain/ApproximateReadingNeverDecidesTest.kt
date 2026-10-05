@@ -21,9 +21,9 @@ import org.junit.Test
  */
 class ApproximateReadingNeverDecidesTest {
 
-    /** A network reading of 120 m, as the tracker hands it on: stamped 123 ms past the second. */
-    private fun network(lat: Double, t: Long) =
-        LocationFix.Update(lat = lat, lng = -122.0, altitude = null, accuracyMeters = 120f, timestampEpochMillis = t + 123)
+    /** A network reading of [accuracy] (120 m by default), as the tracker hands it on: stamped 123 ms past the second. */
+    private fun network(lat: Double, t: Long, accuracy: Float = 120f) =
+        LocationFix.Update(lat = lat, lng = -122.0, altitude = null, accuracyMeters = accuracy, timestampEpochMillis = t + 123)
 
     /** The same, from GPS: on the whole second, 5 m. */
     private fun gps(lat: Double, t: Long) =
@@ -41,8 +41,13 @@ class ApproximateReadingNeverDecidesTest {
 
     @Test
     fun `a network reading over 50 m never becomes a point a track shows, in any recording mode`() {
-        TrackRecordingMode.entries.forEach { mode ->
-            assertTrue("$mode: refused by the sampler or excluded at the read", shownInTrack(network(45.01, 1_700_000_000_000L), mode).isEmpty())
+        // 120 m: refused by the sampler in every mode, Battery saver's 100 m ceiling included.
+        // 70 m: refused under High accuracy and Balanced; kept by Battery saver, and excluded when the track is read.
+        // (Revert check c01 found the 120 m reading alone never reached the read: both are needed.)
+        listOf(120f, 70f).forEach { accuracy ->
+            TrackRecordingMode.entries.forEach { mode ->
+                assertTrue("$mode, $accuracy m: refused by the sampler or excluded at the read", shownInTrack(network(45.01, 1_700_000_000_000L, accuracy), mode).isEmpty())
+            }
         }
         // Control: a GPS fix the same way is shown, so this path can show a point.
         TrackRecordingMode.entries.forEach { mode ->
