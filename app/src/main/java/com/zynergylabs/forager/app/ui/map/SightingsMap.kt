@@ -869,6 +869,7 @@ fun SightingsMap(
                 navigationModeChange.byTheApp {
                     activateLiveLocationIfPermitted(map, style, context, restoreCameraMode = cameraRestore?.cameraMode ?: previousCameraMode, compassEngine = appCompassEngine, locationEngine = appLocationEngine, look = currentPositionLook)
                     appliedPositionLook[0] = currentPositionLook
+                    Log.i(POSITION_DOT_LOG_TAG, "activated on a style load with look $currentPositionLook")
                 }
                 navigationModeChange.listenTo(map) { currentNavigationView }
                 navigationModeChange.gestureProtection = false
@@ -1096,12 +1097,17 @@ fun SightingsMap(
     // this catches a change after it. Navigation's own option swaps carry the look too (below), and this
     // keeps navigation's gesture options, so the two never undo each other.
     LaunchedEffect(mapLibreMap, loadedStyle, positionLook) {
-        val map = mapLibreMap ?: return@LaunchedEffect
+        val map = mapLibreMap
+        // Diagnostic, from the S22 desk step (the GPS dot stayed pale after GPS took over): every run of this
+        // effect and what it decided, so `adb logcat -s ForagerDot` shows whether a look reached MapLibre.
+        Log.i(POSITION_DOT_LOG_TAG, "look $positionLook: map=${map != null}, style=${loadedStyle != null}, track=$trackLiveLocation, engine=${appLocationEngine != null}, activated=${map?.locationComponent?.isLocationComponentActivated}, applied=${appliedPositionLook[0]}")
+        if (map == null) return@LaunchedEffect
         if (loadedStyle == null || !trackLiveLocation || appLocationEngine == null) return@LaunchedEffect
         val component = map.locationComponent
         if (!component.isLocationComponentActivated || appliedPositionLook[0] == positionLook) return@LaunchedEffect
         component.applyStyle(liveLocationComponentOptions(context, navigating = navigationModeChange.gestureProtection, look = positionLook))
         appliedPositionLook[0] = positionLook
+        Log.i(POSITION_DOT_LOG_TAG, "applied look $positionLook")
     }
 
     // Re-engages GPS camera tracking on demand — the map redesign's GPS/locate-me icon, tapped
@@ -1121,6 +1127,7 @@ fun SightingsMap(
         } else {
             navigationModeChange.byTheApp { activateLiveLocationIfPermitted(map, style, context, compassEngine = appCompassEngine, locationEngine = appLocationEngine, look = currentPositionLook) }
             appliedPositionLook[0] = currentPositionLook
+            Log.i(POSITION_DOT_LOG_TAG, "activated by locate with look $currentPositionLook")
             navigationModeChange.listenTo(map) { currentNavigationView }
             navigationModeChange.gestureProtection = false
         }
@@ -1723,6 +1730,9 @@ private fun applyCameraFrame(map: MapLibreMap, frame: EntryMapFrame, density: Fl
  * guaranteed stable across SDK versions; re-verify the same way after any MapLibre bump.
  */
 internal const val LOCATION_COMPONENT_BASE_ANIMATION_DURATION_MS = 750f
+
+/** Dispatch 2026-09-28-510: the dot's look decisions, `adb logcat -s ForagerDot`. Diagnostic. */
+internal const val POSITION_DOT_LOG_TAG = "ForagerDot"
 
 /**
  * docs/motion-spec.md §2 "User location": animate only on meaningful GPS change, avoid jitter.
