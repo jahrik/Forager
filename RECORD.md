@@ -11629,3 +11629,13 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Also:** the walk logger (-512, fusion step 2) can collect T12's out-and-back walks in the same outings.
 **Open for the owner:** whether T13 ships on GPS pace and takes step pace when the filter lands, or waits for step pace.
 **Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-514
+**Timestamp:** 2026-10-05T01:35:00Z
+**Continues:** 2026-09-28-513
+**Decides:** the open question of -513
+**The owner, verbatim:** "Ship it on the GPS pace", on the planner's recommendation: T13 ships on GPS pace (`domain/MovingPace.kt`'s two instruments) and takes step pace when the fusion filter lands. T13's dependencies are unchanged: T2 (the sundown alerts fire) and T12 (recorded out-and-back walks). Nothing dispatched by this entry; -510 is still the one location coder, and T2 is not yet dispatched.
+**Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168.
