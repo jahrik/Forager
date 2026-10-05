@@ -208,7 +208,7 @@ on that tree: 37/37. Debug APK `1.0.2763+gbf34fc87` (versionCode 2763), signed w
 | Phone | Serial | Before | Install | versionName read back |
 |---|---|---|---|---|
 | S26 Ultra (SM-S948U, the owner's daily phone) | `R5GYC4CYJ3X` | 1.0.2695+gc3ba0f46 | `adb install -r`: Success. First install time unchanged (2026-10-03 20:36), so an update with data kept | 1.0.2763+gbf34fc87 |
-| S22 Ultra | `R5CT321008R` | — | **Not done: not connected** when the install ran | — |
+| S22 Ultra | `R5CT321008R` | 1.0.2708+geb38bec0 | Not connected at first; installed once the owner reconnected it. `adb install -r`: Success. First install time unchanged (2026-10-02 06:21), so an update with data kept | 1.0.2763+gbf34fc87 |
 
 ## The S22 step (needs the owner's word)
 
