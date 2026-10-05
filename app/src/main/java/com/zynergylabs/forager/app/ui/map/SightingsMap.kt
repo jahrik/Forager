@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -49,6 +50,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.zynergylabs.forager.app.domain.EntryMapFrame
 import com.zynergylabs.forager.app.domain.GeoDistance
+import com.zynergylabs.forager.app.domain.fixOrNull
 import com.zynergylabs.forager.app.domain.JournalEntryHighlights
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
@@ -299,6 +301,8 @@ fun SightingsMap(
     navigationView: NavigationViewRequest? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.trueHeading]'s own doc comment. */
     trueHeading: State<TrueHeadingReading>? = null,
+    /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.onShownPositionScreenPoint]'s own doc comment. */
+    onShownPositionScreenPoint: (Offset?) -> Unit = {},
 ) {
     val context = LocalContext.current
 
@@ -335,6 +339,31 @@ fun SightingsMap(
         val engine = appCompassEngine ?: return@LaunchedEffect
         val source = headingSource ?: return@LaunchedEffect
         snapshotFlow { source.value }.collect { engine.update(it) }
+    }
+    // Dispatch 2026-09-28-510 (the owner: "App feeds the dot"): the dot is drawn where the app has judged
+    // the walker to be, the screen's position (LocalMapPosition), else MapLibre's own engine stays. Fixed
+    // for a map's life, like the compass. The look is read here, and changes rarely: it is derived, so a new
+    // fix of the same kind does not recompose this map.
+    val mapPosition = LocalMapPosition.current
+    val appLocationEngine = remember(mapPosition != null) { if (mapPosition != null) AppLocationEngine() else null }
+    val positionLook = mapPosition?.let { position -> remember(position) { derivedStateOf { positionLookOf(position.shown.value, position.liveFix.value) } }.value } ?: PositionLook.PRECISE
+    val currentPositionLook by rememberUpdatedState(positionLook)
+    val currentOnShownPositionScreenPoint by rememberUpdatedState(onShownPositionScreenPoint)
+    // The look last handed to MapLibre, so an unchanged look is not re-applied on every style load.
+    val appliedPositionLook = remember { arrayOf(PositionLook.PRECISE) }
+    val currentTrackLiveLocationForPosition by rememberUpdatedState(trackLiveLocation)
+    // Where the dot is on screen, for the Maps tab's label: on every camera move (the map follows the dot,
+    // so the camera moves as it does) and whenever the dot moves. Only for a map fed the app's position
+    // that draws a dot at all; a historical-place map (trackLiveLocation false) draws none.
+    val reportShownPositionScreenPoint: (MapLibreMap) -> Unit = remember(mapPosition) {
+        { map ->
+            if (mapPosition != null && currentTrackLiveLocationForPosition) {
+                val fix = mapPosition.shown.value.fixOrNull
+                currentOnShownPositionScreenPoint(
+                    fix?.let { map.projection.toScreenLocation(MapLibreLatLng(it.lat, it.lng)).let { point -> Offset(point.x, point.y) } },
+                )
+            }
+        }
     }
     // The navigation view's own camera mode changes, marked so the tracking listener below does not
     // read them as the user moving away from the view; and the mode the view last asked for.
@@ -639,6 +668,7 @@ fun SightingsMap(
             map.addOnCameraMoveListener {
                 if (currentNavigationView != null) reanchorFocusedBubble(map)
                 navigationModeChange.noteCameraMove(map) // dispatch -470, Part A: logging only
+                reportShownPositionScreenPoint(map) // dispatch 2026-09-28-510: the dot's label follows it
             }
             // Dispatch -477, Part A: every fling MapLibre reports while navigating, with the camera mode then.
             // Logging only.
@@ -667,6 +697,7 @@ fun SightingsMap(
             map.addOnCameraIdleListener {
                 cameraMoveClassifier.onCameraIdle()
                 cameraIdleCount++
+                reportShownPositionScreenPoint(map) // dispatch 2026-09-28-510
                 // CameraPosition.target is declared `LatLng?` in the pinned SDK itself (verified via
                 // javap: the vendor's own constructor carries an org.jetbrains.annotations.Nullable
                 // on this parameter) — null before the map has finished laying out a first camera
@@ -813,6 +844,9 @@ fun SightingsMap(
                 chromeColour = currentChromeColour,
             )
             fanCircleColour[0] = currentChromeColour
+            // Dispatch 2026-09-28-510: the approximate and last known dots, by name, before the dot is activated
+            // below; setStyle discards images with everything else, so on every style load.
+            if (appLocationEngine != null) addPositionLookImages(style, context)
             // The data+camera refresh effect below re-pushes every source right after this, keyed
             // on loadedStyle among other things — including the sighting source, with "selected"
             // baked in from whatever focusedObservationId is current at that point. Nothing here
@@ -835,7 +869,9 @@ fun SightingsMap(
             if (trackLiveLocation) {
                 cameraMoveClassifier.markAppMove() // activating (or re-activating, after a style swap) sets the camera mode and may ease the zoom
                 navigationModeChange.byTheApp {
-                    activateLiveLocationIfPermitted(map, style, context, restoreCameraMode = cameraRestore?.cameraMode ?: previousCameraMode, compassEngine = appCompassEngine)
+                    activateLiveLocationIfPermitted(map, style, context, restoreCameraMode = cameraRestore?.cameraMode ?: previousCameraMode, compassEngine = appCompassEngine, locationEngine = appLocationEngine, look = currentPositionLook)
+                    appliedPositionLook[0] = currentPositionLook
+                    Log.i(POSITION_DOT_LOG_TAG, "activated on a style load with look $currentPositionLook")
                 }
                 navigationModeChange.listenTo(map) { currentNavigationView }
                 navigationModeChange.gestureProtection = false
@@ -1047,6 +1083,35 @@ fun SightingsMap(
         currentForecast?.onCellsShown?.invoke(shown)
     }
 
+    // Dispatch 2026-09-28-510: the app's position into the dot. A new fix of any kind is handed to
+    // MapLibre (AppLocationEngine drops repeats), and the label is told where the dot now is.
+    LaunchedEffect(appLocationEngine, mapPosition, mapLibreMap) {
+        val engine = appLocationEngine ?: return@LaunchedEffect
+        val position = mapPosition ?: return@LaunchedEffect
+        snapshotFlow { position.shown.value.fixOrNull }.collect { fix ->
+            engine.update(fix)
+            mapLibreMap?.let(reportShownPositionScreenPoint)
+        }
+    }
+
+    // Dispatch 2026-09-28-510: the dot's look when the kind of position changes (soft for approximate,
+    // grey for last known, MapLibre's own for GPS). Activation already applies the look current then;
+    // this catches a change after it. Navigation's own option swaps carry the look too (below), and this
+    // keeps navigation's gesture options, so the two never undo each other.
+    LaunchedEffect(mapLibreMap, loadedStyle, positionLook) {
+        val map = mapLibreMap
+        // Every run of this effect and what it decided, so `adb logcat -s ForagerDot` shows whether a look
+        // reached MapLibre. It is how the S22 desk step found the GPS look applied and still not drawn.
+        Log.i(POSITION_DOT_LOG_TAG, "look $positionLook: map=${map != null}, style=${loadedStyle != null}, track=$trackLiveLocation, engine=${appLocationEngine != null}, activated=${map?.locationComponent?.isLocationComponentActivated}, applied=${appliedPositionLook[0]}")
+        if (map == null) return@LaunchedEffect
+        if (loadedStyle == null || !trackLiveLocation || appLocationEngine == null) return@LaunchedEffect
+        val component = map.locationComponent
+        if (!component.isLocationComponentActivated || appliedPositionLook[0] == positionLook) return@LaunchedEffect
+        component.applyStyle(liveLocationComponentOptions(context, navigating = navigationModeChange.gestureProtection, look = positionLook))
+        appliedPositionLook[0] = positionLook
+        Log.i(POSITION_DOT_LOG_TAG, "applied look $positionLook")
+    }
+
     // Re-engages GPS camera tracking on demand — the map redesign's GPS/locate-me icon, tapped
     // either for its first activation or to resume tracking after a manual pan/zoom broke it (see
     // activateLiveLocationIfPermitted's own doc comment on CameraMode.NONE). Also the natural retry
@@ -1062,7 +1127,9 @@ fun SightingsMap(
         if (map.locationComponent.isLocationComponentActivated) {
             map.locationComponent.cameraMode = CameraMode.TRACKING
         } else {
-            navigationModeChange.byTheApp { activateLiveLocationIfPermitted(map, style, context, compassEngine = appCompassEngine) }
+            navigationModeChange.byTheApp { activateLiveLocationIfPermitted(map, style, context, compassEngine = appCompassEngine, locationEngine = appLocationEngine, look = currentPositionLook) }
+            appliedPositionLook[0] = currentPositionLook
+            Log.i(POSITION_DOT_LOG_TAG, "activated by locate with look $currentPositionLook")
             navigationModeChange.listenTo(map) { currentNavigationView }
             navigationModeChange.gestureProtection = false
         }
@@ -1084,7 +1151,7 @@ fun SightingsMap(
         val view = navigationView
         if (view == null) {
             if (navigationModeChange.gestureProtection) {
-                component.applyStyle(liveLocationComponentOptions(context))
+                component.applyStyle(liveLocationComponentOptions(context, look = currentPositionLook))
                 navigationModeChange.gestureProtection = false
             }
             if (navigationModeChange.active) {
@@ -1097,7 +1164,7 @@ fun SightingsMap(
         // Dispatch -457, Parts B and C: nudge and pinch protection, on while navigating. Every
         // activation (a style load, locate) applies the ordinary options and resets this.
         if (!navigationModeChange.gestureProtection) {
-            component.applyStyle(liveLocationComponentOptions(context, navigating = true))
+            component.applyStyle(liveLocationComponentOptions(context, navigating = true, look = currentPositionLook))
             navigationModeChange.gestureProtection = true
         }
         // Dispatch -440, Amendment 1: the camera may reach the start zoom on every basemap while
@@ -1666,6 +1733,9 @@ private fun applyCameraFrame(map: MapLibreMap, frame: EntryMapFrame, density: Fl
  */
 internal const val LOCATION_COMPONENT_BASE_ANIMATION_DURATION_MS = 750f
 
+/** Dispatch 2026-09-28-510: the dot's look decisions, `adb logcat -s ForagerDot`. Diagnostic; nothing reads it. */
+internal const val POSITION_DOT_LOG_TAG = "ForagerDot"
+
 /**
  * docs/motion-spec.md §2 "User location": animate only on meaningful GPS change, avoid jitter.
  * [LocationComponentOptions.trackingAnimationDurationMultiplier] is the one knob MapLibre
@@ -1684,7 +1754,7 @@ internal fun locationIndicatorTrackingAnimationMultiplier(): Float =
  * options are unit-testable: `LocationComponentOptions` is a plain value class, unlike the
  * native-backed `Style` the activation itself needs.
  */
-internal fun liveLocationComponentOptions(context: Context, navigating: Boolean = false): LocationComponentOptions =
+internal fun liveLocationComponentOptions(context: Context, navigating: Boolean = false, look: PositionLook = PositionLook.PRECISE): LocationComponentOptions =
     LocationComponentOptions.builder(context)
         // Dispatch 2026-09-28-457, Parts B and C: while navigating, MapLibre's own tracking-gesture
         // management (off by default, 13.5.0) raises the move thresholds while following: a one-finger
@@ -1715,6 +1785,31 @@ internal fun liveLocationComponentOptions(context: Context, navigating: Boolean 
         // SymbolLocationLayerRenderer). The layer must already be in the style: see
         // addFanOutLayers, which initializeOverlayLayers runs before either activation call.
         .layerBelow(FanOutIds.LEGS_CASING_LAYER)
+        // Dispatch 2026-09-28-510: how the dot is drawn for the position the app has judged (MapPosition.kt).
+        // PRECISE adds nothing, so a GPS dot is MapLibre's own exactly as before. The other two point the dot
+        // at the app's own images, by name (registered on every style load, addPositionLookImages), and never
+        // change MapLibre's own: two causes, both seen at the S22 desk step, kept the GPS dot pale after GPS
+        // took over. MapLibre tints with setTint and no mutate(), so a tint applied to its own vector dot stays
+        // on every later copy; and MapLibre does not redraw an image replaced by one of the same size under the
+        // same name (PuckImageTintTest). A different name is a different image, so switching looks switches
+        // what is drawn. The heading arrow is left MapLibre's, since the compass is live whatever the position.
+        // Both turn off MapLibre's 30 s stale greying: the app decides when a position is old, and a network
+        // reading arriving every 20 s or so would otherwise flicker between soft and grey.
+        .apply {
+            when (look) {
+                PositionLook.PRECISE -> Unit
+                PositionLook.APPROXIMATE -> {
+                    foregroundName(PUCK_APPROXIMATE_IMAGE)
+                    accuracyAlpha(APPROXIMATE_ACCURACY_ALPHA)
+                    enableStaleState(false)
+                }
+                PositionLook.LAST_KNOWN -> {
+                    foregroundName(PUCK_LAST_KNOWN_IMAGE)
+                    accuracyColor(LAST_KNOWN_COLOR)
+                    enableStaleState(false)
+                }
+            }
+        }
         .build()
 
 /**
@@ -1778,15 +1873,19 @@ private fun activateLiveLocationIfPermitted(
     restoreCameraMode: Int? = null,
     // Ruling A (continuation 2026-09-28-432): the app's true-heading engine, when the map has one.
     compassEngine: CompassEngine? = null,
+    // Dispatch 2026-09-28-510: the app's position for the dot, when the map has one, and how to draw it.
+    // Without one, MapLibre's own engine stays, as before.
+    locationEngine: AppLocationEngine? = null,
+    look: PositionLook = PositionLook.PRECISE,
 ) {
     if (!hasLocationPermission(context)) return
     val locationComponent = map.locationComponent
-    val options = liveLocationComponentOptions(context)
+    val options = liveLocationComponentOptions(context, look = look)
     puckReplacementOptions(locationComponent.isLocationComponentActivated, options)?.let { locationComponent.applyStyle(it) }
     locationComponent.activateLocationComponent(
         LocationComponentActivationOptions.builder(context, style)
             .locationComponentOptions(options)
-            .useDefaultLocationEngine(true)
+            .apply { if (locationEngine != null) locationEngine(locationEngine) else useDefaultLocationEngine(true) }
             .build(),
     )
     locationComponent.isLocationComponentEnabled = true

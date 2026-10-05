@@ -17,6 +17,7 @@ package com.zynergylabs.forager.app.ui.availability
 // Understory amendment merged in #130.
 
 import android.util.Log
+import com.zynergylabs.forager.app.ui.map.LocalMapPosition
 import com.zynergylabs.forager.app.ui.map.MapBubbleKind
 import com.zynergylabs.forager.app.ui.map.WaypointNavigationOrigin
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
@@ -586,7 +587,13 @@ internal fun CompactMapTab(
             // HUD read. Passed down as the State object; its .value is read only inside those two
             // leaves — reading it here would recompose this whole tab at sensor rate. See
             // rememberTrueHeading's own doc comment before touching this.
-            val trueHeading = rememberTrueHeading(compassProvider, computeTrueHeading, uiState.liveFix)
+            // Dispatch 2026-09-28-510: at the best position there is (AvailabilityUiState.headingFix), so the
+            // HUD's needle and the strip's heading work while the position is approximate or last known.
+            val trueHeading = rememberTrueHeading(compassProvider, computeTrueHeading, uiState.headingFix)
+            // Dispatch 2026-09-28-510: what is shown in place of GPS, for the map's label and the strip, and
+            // where the map last reported the dot, for the label. Read only in those two leaves.
+            val positionNote = rememberPositionNote(LocalMapPosition.current, currentTime)
+            val positionAnchor = remember { mutableStateOf<Offset?>(null) }
             // Dispatch 2026-09-28-430: which way the map faces while navigating, from the same heading.
             val navigationFacing by rememberNavigationFacing(trueHeading, isNavigating, currentTime)
             // Dispatch -497: where the start is once the walker has arrived, by the same rule the HUD's
@@ -670,6 +677,8 @@ internal fun CompactMapTab(
                         // true heading for the puck and a facing-up map (ruling A).
                         navigationView = if (isNavigating) NavigationViewRequest(navigationFacing, navigationFollowing, navigationViewRequestId, onLeftView, navigationZoomPending, onStartZoomApplied) else null,
                         trueHeading = trueHeading,
+                        // Dispatch 2026-09-28-510: where the dot is, for its label.
+                        onShownPositionScreenPoint = { positionAnchor.value = it },
                         // Item 1 (dispatch 2026-09-29-57, amendment -262, "Move the 'i'"): the landscape L's measured bounds, in the map's own
                         // pixels, for MapLibre's attribution button to keep clear of. The L keeps its bottom limit at the nav inset; the
                         // button moves (SightingsMap, attributionEndInsetClearOf). Only the landscape L: portrait is unchanged.
@@ -712,6 +721,10 @@ internal fun CompactMapTab(
                 CompositionLocalProvider(LocalSearchNoticeInset provides searchNoticeInset) {
                     searchBarSlot(with(compassStripDensity) { compassStripHeightPx.toDp() })
                 }
+                // Dispatch 2026-09-28-510: "Approximate location" or "Last seen …" under the dot. After the
+                // search bar, which must stay the map's direct sibling (above), and before every control
+                // composed below, which win any overlap; it takes no touches, so nothing under it loses one.
+                MapPositionLabel(positionNote, positionAnchor)
                 // minY = compassStripClearance, a real measurement of the strip's own type style: the
                 // strip is composed after this in the same Box (so its own controls win any overlap)
                 // and is full-width against the map's top edge, so a glyph tapped near the top would
@@ -895,6 +908,7 @@ internal fun CompactMapTab(
                                 .onSizeChanged { compassStripHeightPx = it.height }
                         }.mapKeepOut(MapKeepOutIds.TOP_STRIP),
                         contentWidth = railPortEdge != null,
+                        positionNote = positionNote,
                     )
                     DisposableEffect(Unit) { onDispose { compassStripHeightPx = 0 } }
                 }
@@ -974,6 +988,9 @@ internal fun CompactMapTab(
                     NavigationHud(
                         heading = trueHeading,
                         liveFix = uiState.liveFix,
+                        // Dispatch 2026-09-28-510: shown in place of GPS by hudReadout's rule; never measured from for "Arrived".
+                        approximateFix = uiState.approximateFix,
+                        lastKnownFix = uiState.lastKnownFix,
                         target = navigationTarget,
                         distanceUnit = uiState.distanceUnit,
                         // Dispatch -502: no route to a chosen waypoint, so the straight-line HUD (decision D2).
