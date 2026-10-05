@@ -368,6 +368,7 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
         readWaypoint = waypointRepository::getById,
         isReturning = { trackId -> returnWatch.state.value.let { it.trackId == trackId && it.isReturning } },
         errorLog = errorLog,
+        lastKnownLocation = lastKnownLocation,
     )
     val createWaypointUseCase = CreateWaypointUseCase(waypointRepository)
     val getWaypointsUseCase = GetWaypointsUseCase(waypointRepository)

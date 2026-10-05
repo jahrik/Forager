@@ -177,6 +177,9 @@ class TrackRecordingService : Service() {
                 }
             }
             launch {
+                // Once at the start too: with no live reading, the last known position is all
+                // there is, and a recording already past its leave-by time should hear so at once.
+                tickSundown(container)
                 while (isActive) {
                     delay(SUNDOWN_TICK_MILLIS)
                     tickSundown(container)

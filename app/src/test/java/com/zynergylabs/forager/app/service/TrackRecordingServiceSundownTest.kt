@@ -105,6 +105,44 @@ class TrackRecordingServiceSundownTest {
         }
     }
 
+    /**
+     * The owner's merge condition: a recording with **no live reading at all** still gets a sunset
+     * time and its alerts, from the platform's last known position (-510's
+     * `AndroidLastKnownLocationSource`, through the container). No fix is ever simulated; the
+     * provider only holds a position, as a phone indoors would.
+     */
+    @Test
+    fun `with no live reading at all, the service posts the leave-by alert from the last known position`() {
+        var controller: ServiceController<TrackRecordingService>? = null
+        try {
+            runBlocking { container.sundownPreferencesRepository.setDarknessMarginMinutes(WHOLE_DAY_MINUTES) }.getOrThrow()
+            shadowLocationManager.setLastKnownLocation(
+                LocationManager.GPS_PROVIDER,
+                Location(LocationManager.GPS_PROVIDER).apply {
+                    latitude = 45.0
+                    longitude = -122.0
+                    accuracy = 30f
+                    time = System.currentTimeMillis() - 2 * 60 * 60 * 1_000L
+                },
+            )
+            val trackId = runBlocking { container.startTrackUseCase(null) }.getOrThrow().id
+            controller = Robolectric.buildService(TrackRecordingService::class.java, startIntent(trackId))
+            controller.create().get()
+            controller.startCommand(0, 1)
+
+            val notification = awaitSundownNotification()
+            assertNotNull("expected the leave-by notification with no live reading, from the last known position", notification)
+            val title = notification!!.extras.getCharSequence(Notification.EXTRA_TITLE).toString()
+            val text = notification.extras.getCharSequence(Notification.EXTRA_TEXT).toString()
+            assertTrue("titled with the sunset time: '$title'", title.startsWith("Sunset at "))
+            assertEquals("never a walk back from a last known position", context.getString(R.string.sundown_walk_back_unknown), text)
+        } finally {
+            controller?.let { end(it) }
+            shadowLocationManager.setLastKnownLocation(LocationManager.GPS_PROVIDER, null)
+            runBlocking { container.sundownPreferencesRepository.setDarknessMarginMinutes(DEFAULT_DARKNESS_MARGIN_MINUTES) }
+        }
+    }
+
     @Test
     fun `with the alerts turned off, the same recording posts nothing`() {
         var controller: ServiceController<TrackRecordingService>? = null
