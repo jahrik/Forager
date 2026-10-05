@@ -99,7 +99,7 @@ internal const val APPROXIMATE_ACCURACY_ALPHA = 0.3f
 /** The last known position's circle: MapLibre's own location grey (`#A1B0C0`, `maplibre_location_layer_gray`), as its dot is. */
 internal const val LAST_KNOWN_COLOR: Int = 0xFFA1B0C0.toInt()
 
-/** The look for [shown], by the one rule the label, the strip and the HUD read ([com.zynergylabs.forager.app.domain.inPlaceOfGps]). */
+/** The look for [shown], by the one rule the strip and the HUD read ([com.zynergylabs.forager.app.domain.inPlaceOfGps]). */
 fun positionLookOf(shown: ShownPosition, liveFix: LocationFix.Update?): PositionLook = when (shown.inPlaceOfGps(liveFix)) {
     is ShownPosition.Approximate -> PositionLook.APPROXIMATE
     is ShownPosition.LastKnown -> PositionLook.LAST_KNOWN
