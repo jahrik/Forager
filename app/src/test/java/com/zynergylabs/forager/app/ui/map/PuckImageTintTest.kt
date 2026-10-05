@@ -73,9 +73,14 @@ class PuckImageTintTest {
     }
 
     @Test
-    fun `the approximate dot is see-through and the last known dot grey, both drawn without a tint`() {
-        val approximate = foreground(liveLocationComponentOptions(context, look = PositionLook.APPROXIMATE)).centre()
-        val lastKnown = foreground(liveLocationComponentOptions(context, look = PositionLook.LAST_KNOWN)).centre()
+    fun `the approximate dot is see-through and the last known dot grey, the app's own named images`() {
+        val images = positionLookImages(context)
+        assertEquals(setOf(PUCK_APPROXIMATE_IMAGE, PUCK_LAST_KNOWN_IMAGE), images.keys)
+        val approximate = images.getValue(PUCK_APPROXIMATE_IMAGE).centre()
+        val lastKnown = images.getValue(PUCK_LAST_KNOWN_IMAGE).centre()
+        // The same size as MapLibre's own dot, built the same way.
+        val own = foreground(liveLocationComponentOptions(context))
+        assertEquals(own.width, images.getValue(PUCK_APPROXIMATE_IMAGE).width)
 
         assertEquals("soft: half see-through, ${Integer.toHexString(approximate)}", 0x80, Color.alpha(approximate))
         // Read back from a half-transparent pixel, a channel can round by one (#4A8FE1 for #4A90E2).

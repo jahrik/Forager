@@ -1,12 +1,17 @@
 package com.zynergylabs.forager.app.ui.map
 
 import android.app.PendingIntent
+import android.content.Context
+import android.graphics.Bitmap
 import android.location.Location
 import android.os.Looper
+import android.util.Log
+import androidx.core.content.ContextCompat
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.staticCompositionLocalOf
+import com.zynergylabs.forager.app.R
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.ShownPosition
@@ -18,6 +23,8 @@ import org.maplibre.android.location.engine.LocationEngine
 import org.maplibre.android.location.engine.LocationEngineCallback
 import org.maplibre.android.location.engine.LocationEngineRequest
 import org.maplibre.android.location.engine.LocationEngineResult
+import org.maplibre.android.maps.Style
+import org.maplibre.android.utils.BitmapUtils
 
 /**
  * The position the app has judged, for a map's dot (dispatch 2026-09-28-510; the owner chose "App feeds
@@ -63,12 +70,28 @@ enum class PositionLook {
     LAST_KNOWN,
 }
 
-/*
- * The two looks' dots are the app's own images, `res/drawable/puck_approximate.xml` (MapLibre's location
- * blue, `#4A90E2`, at half opacity) and `res/drawable/puck_last_known.xml` (its location grey, `#A1B0C0`),
- * never a tint of MapLibre's dot: see liveLocationComponentOptions for why. **Provisional**, for the desk
- * step to judge.
+/** The approximate dot's image name in the style: `res/drawable/puck_approximate.xml`, MapLibre's location blue (`#4A90E2`) at half opacity. **Provisional.** */
+internal const val PUCK_APPROXIMATE_IMAGE = "forager-puck-approximate"
+
+/** The last known dot's image name in the style: `res/drawable/puck_last_known.xml`, MapLibre's location grey (`#A1B0C0`). */
+internal const val PUCK_LAST_KNOWN_IMAGE = "forager-puck-last-known"
+
+/**
+ * The two looks' dot images, by the names their options give MapLibre (`foregroundName`), built the way
+ * MapLibre builds its own (`BitmapUtils.getBitmapFromDrawable`), so they come out the same size. Never a
+ * tint or a replacement of MapLibre's own dot: see liveLocationComponentOptions for the two causes that rules out.
  */
+internal fun positionLookImages(context: Context): Map<String, Bitmap> = buildMap {
+    listOf(PUCK_APPROXIMATE_IMAGE to R.drawable.puck_approximate, PUCK_LAST_KNOWN_IMAGE to R.drawable.puck_last_known).forEach { (name, res) ->
+        val bitmap = ContextCompat.getDrawable(context, res)?.let { BitmapUtils.getBitmapFromDrawable(it) }
+        if (bitmap == null) Log.w(POSITION_DOT_LOG_TAG, "Could not build the $name dot image; that look will draw no dot.") else put(name, bitmap)
+    }
+}
+
+/** Adds [positionLookImages] to [style]. Style is native, so this is device-only; the images themselves are tested. */
+internal fun addPositionLookImages(style: Style, context: Context) {
+    positionLookImages(context).forEach { (name, bitmap) -> style.addImage(name, bitmap) }
+}
 
 /** The approximate reading's circle: twice MapLibre's own 15%, so the circle, not the dot, reads as the position. **Provisional.** */
 internal const val APPROXIMATE_ACCURACY_ALPHA = 0.3f
