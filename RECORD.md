@@ -11896,3 +11896,17 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Observed:** pull request #173 (t535-merge into main: -535 and records -525 to -536) was merged as 1d3d2bbb35411888fc65c702742c7a922d0a87f6 at 2026-10-05T16:27:39Z, on green CI at its head 59c1e1648b6080d1099679022dd641ae455a868e (run 37339889002, 7 m 29 s), read from GitHub, on the owner's "Merge now (Recommended)", with backup 2026-10-05-02 of main at a9dfdd59. Main's tree equals t535-merge's.
 **Next:** the -516 coder brings main (1d3d2bbb) into sundown-alerts before its S22 step at sunset, so the S22 runs a build with no bubble too.
 **Notes:** Written by the planner by hand, on branch records-after-173 cut from main at 1d3d2bbb.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-538
+**Timestamp:** 2026-10-05T16:50:00Z
+**Continues:** 2026-09-28-526
+**The owner, verbatim,** to the planner's summary of the EKF plan and its open questions: "May as well wait for a fuller picture before answering anything".
+**Open for the owner, to be put with what the walk logs show, after -532's walks:**
+1. Which side of the live 50 m gate the filter sits. `domain/LiveFixGate.kt:47-48` says a future filter goes behind it, never in front ("a filter fed rejected fixes would smooth a bad position into a confident one"); -526 kept GPS readings worse than 50 m for the filter to weigh. Weighing them lightly would reconcile the two, but it reverses a ruling written into the code.
+2. What the filtered position replaces: the dot and HUD only, or also arrival, the off-track alert, the track and the way back.
+3. Where it runs: in the recording service (survives a swipe-away), and what serves the map when nothing is recording.
+4. The dead-reckoning cap (provisionally about 5 minutes or 300 m, not derived) and the jump gate, from the logs.
+**Notes:** Written by the planner by hand, on branch records-after-173.
