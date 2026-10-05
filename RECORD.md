@@ -11948,3 +11948,13 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Notes:** Written by the planner by hand, on branch records-after-173.
 
 **Confirmed (2026-10-05T20:31Z, read only):** each phone's newest `ForagerFix` GPS line, logged moments before, carries `time=` 249 min (S22) and 250 min (S26) behind that phone's own clock (`adb shell date +%s%3N`). The diagnosis in -540 holds: GPS is fine; the phones' clocks are wrong, and the app measures a fix's age against them.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-541
+**Timestamp:** 2026-10-05T20:40:00Z
+**Continues:** 2026-09-28-540
+**The owner, verbatim,** to -540's three questions: "1 yes" (the clocks were set ahead on purpose for the sunset check); "2 it's set back" (the S26's clock); "3 it should. An hour outside of network range means an hour of uncalibrated clock time. Is there any drawbacks to that?"
+**So:** the app should survive a wrong phone clock. Asked for the drawbacks of ageing fixes on the phone's since-boot clock; answered in the planner's window. No dispatch yet.
+**Notes:** Written by the planner by hand, on branch records-after-173.
