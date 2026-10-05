@@ -173,7 +173,7 @@ errors, and from XML written by that run):
 | Four classes, after the wording | Test sources did not compile (a colon in a test name). The XML on disk was the previous run's (timestamp 04:03); not read as results. |
 | Four classes | 31/31, fresh XML (07:33). |
 | Five classes on the merged tree (adds `AndroidLastKnownLocationSourceTest`) | 37/37. |
-| Full unit suite | FULL_SUITE_RESULT |
+| Full unit suite, on `83d9cdd1`'s code (`75ebb13d` plus docs) | 457 classes, 3,719 tests, 0 failed, 24 skipped (the same skips main carries; none added). No compile errors in the log. |
 
 Revert checks: one-line edits, each restored from a copy saved before editing (never from git),
 the forward change confirmed present afterwards (`git status`, `cmp`). Domain ones (R1–R5, R8, R9)
@@ -281,5 +281,5 @@ the darkness margin's name and default; settings screens (T4); the countdown row
 
 ## Housekeeping
 
-The S22 database copy and the walk CSVs are in `/tmp/s516` on the laptop, outside the repository,
-to be deleted at hand-back.
+The S22 database copy and the walk CSVs were kept in `/tmp/s516` on the laptop, outside the
+repository, and deleted when this report was finished. Only figures were ever written here.
