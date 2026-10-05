@@ -1100,8 +1100,8 @@ fun SightingsMap(
     // keeps navigation's gesture options, so the two never undo each other.
     LaunchedEffect(mapLibreMap, loadedStyle, positionLook) {
         val map = mapLibreMap
-        // Diagnostic, from the S22 desk step (the GPS dot stayed pale after GPS took over): every run of this
-        // effect and what it decided, so `adb logcat -s ForagerDot` shows whether a look reached MapLibre.
+        // Every run of this effect and what it decided, so `adb logcat -s ForagerDot` shows whether a look
+        // reached MapLibre. It is how the S22 desk step found the GPS look applied and still not drawn.
         Log.i(POSITION_DOT_LOG_TAG, "look $positionLook: map=${map != null}, style=${loadedStyle != null}, track=$trackLiveLocation, engine=${appLocationEngine != null}, activated=${map?.locationComponent?.isLocationComponentActivated}, applied=${appliedPositionLook[0]}")
         if (map == null) return@LaunchedEffect
         if (loadedStyle == null || !trackLiveLocation || appLocationEngine == null) return@LaunchedEffect
@@ -1110,16 +1110,6 @@ fun SightingsMap(
         component.applyStyle(liveLocationComponentOptions(context, navigating = navigationModeChange.gestureProtection, look = positionLook))
         appliedPositionLook[0] = positionLook
         Log.i(POSITION_DOT_LOG_TAG, "applied look $positionLook")
-        // Diagnostic: what MapLibre was handed and what its style now holds, as centre pixels.
-        val applied = component.locationComponentOptions
-        val built = org.maplibre.android.utils.BitmapUtils.getBitmapFromDrawable(
-            org.maplibre.android.utils.BitmapUtils.getDrawableFromRes(context, applied.foregroundDrawable(), applied.foregroundTintColor()),
-        )
-        val held = map.style?.getImage("mapbox-location-icon")
-        Log.i(
-            POSITION_DOT_LOG_TAG,
-            "foreground res ${applied.foregroundDrawable()} tint ${applied.foregroundTintColor()}; built centre ${built?.let { Integer.toHexString(it.getPixel(it.width / 2, it.height / 2)) }} ${built?.width}x${built?.height}; style holds ${held?.let { Integer.toHexString(it.getPixel(it.width / 2, it.height / 2)) }} ${held?.width}x${held?.height}",
-        )
     }
 
     // Re-engages GPS camera tracking on demand — the map redesign's GPS/locate-me icon, tapped
@@ -1743,7 +1733,7 @@ private fun applyCameraFrame(map: MapLibreMap, frame: EntryMapFrame, density: Fl
  */
 internal const val LOCATION_COMPONENT_BASE_ANIMATION_DURATION_MS = 750f
 
-/** Dispatch 2026-09-28-510: the dot's look decisions, `adb logcat -s ForagerDot`. Diagnostic. */
+/** Dispatch 2026-09-28-510: the dot's look decisions, `adb logcat -s ForagerDot`. Diagnostic; nothing reads it. */
 internal const val POSITION_DOT_LOG_TAG = "ForagerDot"
 
 /**
