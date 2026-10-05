@@ -11788,3 +11788,16 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Dispatch-file:** preserved/2026-10-05-01.md, written on the owner's "Go ahead" to drafting the quick win
 **Not yet sent:** it starts only after -516 merges, on the owner's word then.
 **Notes:** Written by the planner by hand, on branch records-after-172.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-528
+**Timestamp:** 2026-10-05T09:20:00Z
+**Continues:** 2026-09-28-516
+**Observed, as the -516 coder reported it and the owner relayed it:** -516 built on branch sundown-alerts at 788f4ed7, not merged; report `docs/navigation/2026-10-05-sundown-alerts-report.md` with its two index rows. Main (a9dfdd59) merged in as 952927ea with no conflicts; the last known position reuses -510's `LastKnownLocationSource`, for the sunset time only. Ten revert checks bite, each with a message only its edit could cause, restored from saved copies with the forward change confirmed; a runner bug (R6, R7, R10 counted but not named) disclosed, names taken from each run's log. Tests written with the code, not run first, disclosed. Remaining before merge: the S22 step and the release-gate walk (an out-and-back of 30 minutes or more, retracing the way out, -522).
+**What the planner checked itself:** the full suite's XML in the coder's worktree at 788f4ed7: 457 files, 3,719 tests, 0 failures, 0 errors, 24 skipped; its log BUILD SUCCESSFUL; the run (finished 01:12 local) came after the last commit touching `app/` (75ebb13d, 00:57). main is an ancestor of the branch. The coder's scratch logs were in `/tmp/s516`, which a reboot clears; the planner copied the logs, scripts and harness (no positions found by a search for coordinates) to `~/Zynergy/device-evidence/2026-10-05-sundown-alerts/`.
+**A planner error, corrected by the coder:** -524's example times left out the darkness margin: sunset 7:12 PM with a 1 h 30 walk back and the default hour gives a start-by of 4:42 PM, not 5:42. The coder built the rule as recorded (sunset minus the margin minus the walk back); only the planner's examples were wrong.
+**Decisions the coder made, put to the owner:** the three alerts share one notification slot, each replacing the last; arrival at the start while returning silences the rest of the recording even if the walker sets out again; a failed read of the alerts on/off setting leaves them on, logged. **Gap the report names:** with no position of any kind (no live reading and no last known), nothing fires; battery stays open (-519, -520).
+**Open for the owner:** how to run the S22 step, since nothing in the app sets the darkness margin today (plan T4): a real sunset (a recording started about two hours before, phone silenced), or the margin written into the app's stored settings over USB.
+**Notes:** Written by the planner by hand, on branch records-after-172.
