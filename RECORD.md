@@ -11980,3 +11980,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **The owner, verbatim:** "I'd like to go on a few more walks before deciding that."
 **So:** deferred until after more walks, beside -538's EKF questions. Nothing dispatched.
 **Notes:** Written by the planner by hand, on branch records-after-173.
+
+---
+
+**Kind:** correction
+**ID:** 2026-09-28-543
+**Timestamp:** 2026-10-05T20:35:00Z
+**Corrects:** 2026-09-28-540, 2026-09-28-542
+**What happened:** two planner sessions wrote to records-after-173 at once. `session_01HQ3WaFp8HUfiN2ixfEVCi5`, made planner by the owner as successor to `session_01Xv2hQteLSg8o3qTPX7Hqnd` (offline mid-turn at 20:01 UTC), wrote -540 (observation, f087f153), -541 (faace456) and -542 (0a62d8c1). The earlier session had reconnected and wrote its own -540 (finding, 91bd0936 and cd78f44c) and -542 (860d5ade). So -540 and -542 each name two entries. Both are kept; neither is rewritten.
+**Which to cite:** for -540, the **finding**, which confirms the clock diagnosis from both phones' `ForagerFix` logs; the observation reached the same diagnosis from screenshots only, as an inference. For -542, either: the same owner words and the same outcome, deferred until more walks.
+**Next free ID:** -544. Handoff: `docs/audits/2026-10-05-planner-handoff.md`.
+**Notes:** Written by the planner by hand, on branch records-after-173.
