@@ -63,16 +63,17 @@ enum class PositionLook {
     LAST_KNOWN,
 }
 
-/**
- * The soft dot: MapLibre's own location blue (`#4A90E2`, its `maplibre_location_layer_blue`) at half
- * opacity. **Provisional**, the planner's starting point, for the desk step to judge.
+/*
+ * The two looks' dots are the app's own images, `res/drawable/puck_approximate.xml` (MapLibre's location
+ * blue, `#4A90E2`, at half opacity) and `res/drawable/puck_last_known.xml` (its location grey, `#A1B0C0`),
+ * never a tint of MapLibre's dot: see liveLocationComponentOptions for why. **Provisional**, for the desk
+ * step to judge.
  */
-internal const val APPROXIMATE_DOT_COLOR: Int = 0x804A90E2.toInt()
 
 /** The approximate reading's circle: twice MapLibre's own 15%, so the circle, not the dot, reads as the position. **Provisional.** */
 internal const val APPROXIMATE_ACCURACY_ALPHA = 0.3f
 
-/** The last known position's dot, circle and heading: MapLibre's own location grey (`#A1B0C0`, `maplibre_location_layer_gray`). */
+/** The last known position's circle: MapLibre's own location grey (`#A1B0C0`, `maplibre_location_layer_gray`), as its dot is. */
 internal const val LAST_KNOWN_COLOR: Int = 0xFFA1B0C0.toInt()
 
 /** The look for [shown], by the one rule the label, the strip and the HUD read ([com.zynergylabs.forager.app.domain.inPlaceOfGps]). */
