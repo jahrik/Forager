@@ -85,7 +85,7 @@ class DecideSundownAlertUseCaseTest {
 
     @Test
     fun `a walk back that grows moves the leave-by time earlier, and can move it into the past`() {
-        val now = sunset - 2 * hour
+        val now = sunset - 2 * hour - 5 * minute // before the short walk's heads-up, at sunset minus 2 h
         val short = decide(countdownAt(now), 30 * minute, emptySet())
         assertEquals(sunset - hour - 30 * minute, short.leaveByAtEpochMillis)
         assertNull(short.fire)

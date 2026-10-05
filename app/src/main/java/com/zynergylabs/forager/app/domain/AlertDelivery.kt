@@ -54,6 +54,27 @@ data class SundownAlertDetail(
 )
 
 /**
+ * One alert to deliver. [overridesSilence] is **deliberately a parameter of the call, not a
+ * constant inside the delivery** (alert-delivery dispatch, owner decision): off-track is advisory
+ * and the turnaround alert, when it exists, is safety, and overriding a phone the user silenced on
+ * purpose is defensible for one and arguably rude for the other. The two must be able to differ
+ * without the delivery changing shape. **Off-track now passes `false`, reversing the original ruling (owner,
+ * 2026-09-11).** It first passed `true`, on the reasoning that someone who started track recording
+ * and walked into the woods has opted into being told they have strayed. The owner's revised
+ * reading: straying is often deliberate, so off-track is the kind of thing a person may reasonably
+ * want to hear only if their notifications are audible, whereas [AlertKind.HEADS_UP], [AlertKind.LEAVE_BY] and
+ * [AlertKind.SUNSET] are about not being stranded after dark and override silence. The parameter
+ * existing per call is what made this a one-line reversal rather than a redesign. **Do not
+ * hard-code this inside an implementation**; that is the one thing it exists to prevent.
+ */
+data class Alert(
+    val kind: AlertKind,
+    val overridesSilence: Boolean,
+    /** The sundown alerts' content; `null` for off-track, which has none. */
+    val sundown: SundownAlertDetail? = null,
+)
+
+/**
  * The owned seam through which anything in this app interrupts the user — a notification, a
  * vibration, whatever the platform implementation decides an [Alert] is made of. Domain and
  * ViewModel code call this; the Android implementation lives in `com.zynergylabs.forager.app.alert`.

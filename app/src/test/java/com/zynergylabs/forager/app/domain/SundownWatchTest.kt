@@ -236,10 +236,10 @@ class SundownWatchTest {
         track = trackOf(points)
         watch.begin("t1")
         watch.end("t0")
-        clock.now = sunset + minute
+        clock.now = sunset - 30 * minute // past the leave-by time
         watch.onFix(gpsFix(points.last()))
         tick()
-        assertEquals(listOf(AlertKind.SUNSET), kinds())
+        assertEquals(listOf(AlertKind.LEAVE_BY), kinds())
     }
 
     @Test
@@ -264,8 +264,9 @@ class SundownWatchTest {
         val atStart = TrackPoint(origin.lat, origin.lng, null, 4f, 0L)
         watch.begin("t1")
         returning = false
-        walkTheClock(sunset - minute, sunset + minute, atStart)
-        assertEquals(listOf(AlertKind.SUNSET), kinds())
+        // Arrival is what silences them, and arrival needs Return: standing at the start alone does not.
+        walkTheClock(sunset - 4 * hour, sunset + minute, atStart)
+        assertEquals(listOf(AlertKind.HEADS_UP, AlertKind.LEAVE_BY, AlertKind.SUNSET), kinds())
     }
 
     @Test
@@ -273,14 +274,27 @@ class SundownWatchTest {
         val points = walkOut(20)
         track = trackOf(points)
         watch.begin("t1")
-        clock.now = sunset + minute
+        clock.now = sunset - 30 * minute // past the leave-by time
         watch.onFix(gpsFix(points.last()))
         tick()
         watch.end("t1")
         watch.begin("t1")
         watch.onFix(gpsFix(points.last()))
         tick()
-        assertEquals(listOf(AlertKind.SUNSET, AlertKind.SUNSET), kinds())
+        assertEquals(listOf(AlertKind.LEAVE_BY, AlertKind.LEAVE_BY), kinds())
+    }
+
+    /**
+     * The countdown always reports the *next* sunset, so a recording that begins after sunset
+     * counts toward tomorrow's: nothing tonight. The night foray the owner described.
+     */
+    @Test
+    fun `a recording started after sunset alerts on nothing that night`() {
+        val points = walkOut(20)
+        track = trackOf(points)
+        watch.begin("t1")
+        walkTheClock(sunset + minute, sunset + 4 * hour, points.last())
+        assertEquals(emptyList<AlertKind>(), kinds())
     }
 
     @Test
