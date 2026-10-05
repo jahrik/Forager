@@ -301,8 +301,6 @@ fun SightingsMap(
     navigationView: NavigationViewRequest? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.trueHeading]'s own doc comment. */
     trueHeading: State<TrueHeadingReading>? = null,
-    /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.onShownPositionScreenPoint]'s own doc comment. */
-    onShownPositionScreenPoint: (Offset?) -> Unit = {},
 ) {
     val context = LocalContext.current
 
@@ -348,23 +346,8 @@ fun SightingsMap(
     val appLocationEngine = remember(mapPosition != null) { if (mapPosition != null) AppLocationEngine() else null }
     val positionLook = mapPosition?.let { position -> remember(position) { derivedStateOf { positionLookOf(position.shown.value, position.liveFix.value) } }.value } ?: PositionLook.PRECISE
     val currentPositionLook by rememberUpdatedState(positionLook)
-    val currentOnShownPositionScreenPoint by rememberUpdatedState(onShownPositionScreenPoint)
     // The look last handed to MapLibre, so an unchanged look is not re-applied on every style load.
     val appliedPositionLook = remember { arrayOf(PositionLook.PRECISE) }
-    val currentTrackLiveLocationForPosition by rememberUpdatedState(trackLiveLocation)
-    // Where the dot is on screen, for the Maps tab's label: on every camera move (the map follows the dot,
-    // so the camera moves as it does) and whenever the dot moves. Only for a map fed the app's position
-    // that draws a dot at all; a historical-place map (trackLiveLocation false) draws none.
-    val reportShownPositionScreenPoint: (MapLibreMap) -> Unit = remember(mapPosition) {
-        { map ->
-            if (mapPosition != null && currentTrackLiveLocationForPosition) {
-                val fix = mapPosition.shown.value.fixOrNull
-                currentOnShownPositionScreenPoint(
-                    fix?.let { map.projection.toScreenLocation(MapLibreLatLng(it.lat, it.lng)).let { point -> Offset(point.x, point.y) } },
-                )
-            }
-        }
-    }
     // The navigation view's own camera mode changes, marked so the tracking listener below does not
     // read them as the user moving away from the view; and the mode the view last asked for.
     val navigationModeChange = remember { NavigationModeChange() }
@@ -668,7 +651,6 @@ fun SightingsMap(
             map.addOnCameraMoveListener {
                 if (currentNavigationView != null) reanchorFocusedBubble(map)
                 navigationModeChange.noteCameraMove(map) // dispatch -470, Part A: logging only
-                reportShownPositionScreenPoint(map) // dispatch 2026-09-28-510: the dot's label follows it
             }
             // Dispatch -477, Part A: every fling MapLibre reports while navigating, with the camera mode then.
             // Logging only.
@@ -697,7 +679,6 @@ fun SightingsMap(
             map.addOnCameraIdleListener {
                 cameraMoveClassifier.onCameraIdle()
                 cameraIdleCount++
-                reportShownPositionScreenPoint(map) // dispatch 2026-09-28-510
                 // CameraPosition.target is declared `LatLng?` in the pinned SDK itself (verified via
                 // javap: the vendor's own constructor carries an org.jetbrains.annotations.Nullable
                 // on this parameter) — null before the map has finished laying out a first camera
@@ -1084,13 +1065,13 @@ fun SightingsMap(
     }
 
     // Dispatch 2026-09-28-510: the app's position into the dot. A new fix of any kind is handed to
-    // MapLibre (AppLocationEngine drops repeats), and the label is told where the dot now is.
+    // MapLibre (AppLocationEngine drops repeats). Keyed on the map as before: the label it once also
+    // reported to went with dispatch 2026-09-28-535, and the key is kept so nothing else changes.
     LaunchedEffect(appLocationEngine, mapPosition, mapLibreMap) {
         val engine = appLocationEngine ?: return@LaunchedEffect
         val position = mapPosition ?: return@LaunchedEffect
         snapshotFlow { position.shown.value.fixOrNull }.collect { fix ->
             engine.update(fix)
-            mapLibreMap?.let(reportShownPositionScreenPoint)
         }
     }
 
