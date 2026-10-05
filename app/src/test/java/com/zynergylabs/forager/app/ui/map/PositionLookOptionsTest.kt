@@ -2,7 +2,6 @@ package com.zynergylabs.forager.app.ui.map
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import com.zynergylabs.forager.app.R
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.ShownPosition
 import org.junit.Assert.assertEquals
@@ -32,14 +31,15 @@ class PositionLookOptionsTest {
         assertTrue(options.enableStaleState())
         assertNull(options.foregroundTintColor())
         assertNull(options.backgroundTintColor())
+        assertNull("MapLibre's own image name", options.foregroundName())
     }
 
     @Test
     fun `approximate is a soft dot in a stronger circle, which the app, not MapLibre's 30 s clock, greys`() {
         val options = liveLocationComponentOptions(context, look = PositionLook.APPROXIMATE)
 
-        // Its own image, never a tint of MapLibre's (PuckImageTintTest has why, and reads the pixels).
-        assertEquals(R.drawable.puck_approximate, options.foregroundDrawable())
+        // Its own image, by name, never a change to MapLibre's (PuckImageTintTest has why, and reads the pixels).
+        assertEquals(PUCK_APPROXIMATE_IMAGE, options.foregroundName())
         assertEquals(APPROXIMATE_ACCURACY_ALPHA, options.accuracyAlpha(), 0.001f)
         assertTrue("the circle is stronger than MapLibre's own 15%", APPROXIMATE_ACCURACY_ALPHA > 0.15f)
         assertFalse(options.enableStaleState())
@@ -49,7 +49,7 @@ class PositionLookOptionsTest {
     fun `last known is a grey dot and circle`() {
         val options = liveLocationComponentOptions(context, look = PositionLook.LAST_KNOWN)
 
-        assertEquals(R.drawable.puck_last_known, options.foregroundDrawable())
+        assertEquals(PUCK_LAST_KNOWN_IMAGE, options.foregroundName())
         assertEquals(LAST_KNOWN_COLOR, options.accuracyColor())
         assertFalse(options.enableStaleState())
     }
@@ -59,7 +59,7 @@ class PositionLookOptionsTest {
         val options = liveLocationComponentOptions(context, navigating = true, look = PositionLook.APPROXIMATE)
 
         assertTrue(options.trackingGesturesManagement())
-        assertEquals(R.drawable.puck_approximate, options.foregroundDrawable())
+        assertEquals(PUCK_APPROXIMATE_IMAGE, options.foregroundName())
     }
 
     @Test

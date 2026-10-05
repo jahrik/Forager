@@ -48,7 +48,6 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.zynergylabs.forager.app.R
 import com.zynergylabs.forager.app.domain.EntryMapFrame
 import com.zynergylabs.forager.app.domain.GeoDistance
 import com.zynergylabs.forager.app.domain.fixOrNull
@@ -845,6 +844,9 @@ fun SightingsMap(
                 chromeColour = currentChromeColour,
             )
             fanCircleColour[0] = currentChromeColour
+            // Dispatch 2026-09-28-510: the approximate and last known dots, by name, before the dot is activated
+            // below; setStyle discards images with everything else, so on every style load.
+            if (appLocationEngine != null) addPositionLookImages(style, context)
             // The data+camera refresh effect below re-pushes every source right after this, keyed
             // on loadedStyle among other things — including the sighting source, with "selected"
             // baked in from whatever focusedObservationId is current at that point. Nothing here
@@ -1794,23 +1796,25 @@ internal fun liveLocationComponentOptions(context: Context, navigating: Boolean 
         // addFanOutLayers, which initializeOverlayLayers runs before either activation call.
         .layerBelow(FanOutIds.LEGS_CASING_LAYER)
         // Dispatch 2026-09-28-510: how the dot is drawn for the position the app has judged (MapPosition.kt).
-        // PRECISE adds nothing, so a GPS dot is MapLibre's own exactly as before. The other two draw the app's
-        // own dot images and never tint MapLibre's: MapLibre tints with setTint and no mutate(), so the first
-        // tint applied to its own vector dot stayed on every later copy, and the GPS dot stayed pale after
-        // GPS took over (seen at the S22 desk step; PuckImageTintTest). The heading arrow is left MapLibre's,
-        // since the compass is live whatever the position. Both turn off MapLibre's 30 s stale greying: the
-        // app decides when a position is old, and a network reading arriving every 20 s or so would
-        // otherwise flicker between soft and grey.
+        // PRECISE adds nothing, so a GPS dot is MapLibre's own exactly as before. The other two point the dot
+        // at the app's own images, by name (registered on every style load, addPositionLookImages), and never
+        // change MapLibre's own: two causes, both seen at the S22 desk step, kept the GPS dot pale after GPS
+        // took over. MapLibre tints with setTint and no mutate(), so a tint applied to its own vector dot stays
+        // on every later copy; and MapLibre does not redraw an image replaced by one of the same size under the
+        // same name (PuckImageTintTest). A different name is a different image, so switching looks switches
+        // what is drawn. The heading arrow is left MapLibre's, since the compass is live whatever the position.
+        // Both turn off MapLibre's 30 s stale greying: the app decides when a position is old, and a network
+        // reading arriving every 20 s or so would otherwise flicker between soft and grey.
         .apply {
             when (look) {
                 PositionLook.PRECISE -> Unit
                 PositionLook.APPROXIMATE -> {
-                    foregroundDrawable(R.drawable.puck_approximate)
+                    foregroundName(PUCK_APPROXIMATE_IMAGE)
                     accuracyAlpha(APPROXIMATE_ACCURACY_ALPHA)
                     enableStaleState(false)
                 }
                 PositionLook.LAST_KNOWN -> {
-                    foregroundDrawable(R.drawable.puck_last_known)
+                    foregroundName(PUCK_LAST_KNOWN_IMAGE)
                     accuracyColor(LAST_KNOWN_COLOR)
                     enableStaleState(false)
                 }
