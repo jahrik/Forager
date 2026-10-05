@@ -332,6 +332,11 @@ internal fun CompassElevationStrip(
      * top corner on the rail side there. False (full width) everywhere else, as before.
      */
     contentWidth: Boolean = false,
+    /**
+     * Dispatch 2026-09-28-510: what the strip says while the position is approximate or last known
+     * ([rememberPositionNote]), read here, in this leaf, so its ticking age recomposes the strip alone.
+     */
+    positionNote: State<PositionNote?>? = null,
 ) {
     val reading by heading
     CompassElevationStripContent(

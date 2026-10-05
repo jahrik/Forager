@@ -16,7 +16,9 @@ import com.zynergylabs.forager.app.domain.GetSeasonalPatternUseCase
 import com.zynergylabs.forager.app.domain.GetSightingsUseCase
 import com.zynergylabs.forager.app.domain.GetTodaysForecastUseCase
 import com.zynergylabs.forager.app.domain.GetTripWindowsUseCase
+import com.zynergylabs.forager.app.domain.LastKnownLocationSource
 import com.zynergylabs.forager.app.domain.LocationFix
+import com.zynergylabs.forager.app.domain.NoLastKnownLocation
 import com.zynergylabs.forager.app.domain.acceptLiveFix
 import com.zynergylabs.forager.app.domain.LocationProvider
 import com.zynergylabs.forager.app.domain.LocationResult
@@ -136,6 +138,8 @@ class AvailabilityViewModel(
     private val waypointNavigationRepository: WaypointNavigationRepository = NoStoredWaypointNavigation,
     /** Dispatch 2026-09-28-502, step 6: the return a waypoint navigation pauses and picks back up. */
     private val returnLeg: ReturnLeg = NoReturnLeg,
+    /** Dispatch 2026-09-28-510: the platform's last known location, shown greyed until anything live arrives. */
+    private val lastKnownLocation: LastKnownLocationSource = NoLastKnownLocation,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AvailabilityUiState())

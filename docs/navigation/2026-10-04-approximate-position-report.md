@@ -75,4 +75,6 @@ Read from the code and from the pinned MapLibre artifact (`13.5.0`, `gradle/libs
 
 Also stated to the owner in the same message, as what would be built unless they said otherwise (they did not): with only a last-known position while navigating, the HUD shows no distance and no needle, and its status line reads "Last seen 2 h ago, finding GPS…".
 
+5. **A fifth question, asked before building the HUD**, because the dispatch's HUD rule did not say what happens while *returning* along the track, where decision D5 says the needle never points straight at the start in place of the route and the route needs a GPS position. The owner chose **"No needle, ≈ distance (Recommended)"**: large figure the straight-line distance to the start as "≈ 2.1 km", status line "Approximate, finding GPS…", no needle; a dash when the start is inside twice the circle, as in the waypoint case.
+
 What was built follows when the build happens.
