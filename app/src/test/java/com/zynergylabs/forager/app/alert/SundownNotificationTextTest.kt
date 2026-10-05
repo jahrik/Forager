@@ -20,10 +20,10 @@ import org.robolectric.annotation.Config
 import java.util.Date
 
 /**
- * What the three sundown notifications say (dispatch 2026-09-28-516, the owner's copy rulings in
- * the coder's window, 2026-10-04): the sunset time as the title, never an order; the walk back
- * "about" only when measured, "at least" when the estimate is thin, "unknown" when withheld; and
- * only a measured estimate says anything about getting back. Through [AndroidAlertDelivery.deliver],
+ * What the three sundown notifications say (dispatch 2026-09-28-516, the owner's wording in the
+ * coder's window, 2026-10-05): the sunset time as the title, never an order; the walk back "about"
+ * when measured and "at least" when thin, each with a start-by clock time, and "unknown" with
+ * nothing about getting back when withheld. Through [AndroidAlertDelivery.deliver],
  * the entry point the watch calls, read as the posted notification.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -42,39 +42,42 @@ class SundownNotificationTextTest {
         delivery = AndroidAlertDelivery(context, ::postNotificationFor) { _, _ -> }
     }
 
+    private val startBy = sunset - 90 * minute
+
     private fun post(kind: AlertKind, walkBack: WalkBack): Pair<String, String> {
-        delivery.deliver(Alert(kind, overridesSilence = true, sundown = SundownAlertDetail(sunset, walkBack)))
+        delivery.deliver(Alert(kind, overridesSilence = true, sundown = SundownAlertDetail(sunset, walkBack, startBy)))
         val n = shadowOf(context.getSystemService(NotificationManager::class.java)).getNotification(SUNDOWN_NOTIFICATION_ID)
         return n.extras.getCharSequence(Notification.EXTRA_TITLE).toString() to n.extras.getCharSequence(Notification.EXTRA_TEXT).toString()
     }
 
-    private val sunsetTitle get() = "Sunset at " + DateFormat.getTimeFormat(context).format(Date(sunset))
+    private fun clock(epochMillis: Long) = DateFormat.getTimeFormat(context).format(Date(epochMillis))
+
+    private val sunsetTitle get() = "Sunset at " + clock(sunset)
 
     @Test
-    fun `measured heads-up gives sunset and the walk back the way you came, with the 30 minutes`() {
-        assertEquals(
-            sunsetTitle to "The walk back the way you came is about 1 h 30. Leave within 30 min to walk it before dark.",
-            post(AlertKind.HEADS_UP, WalkBack.About(90 * minute)),
-        )
-    }
-
-    @Test
-    fun `measured leave-by gives sunset and the walk back, nothing more`() {
-        assertEquals(
-            sunsetTitle to "The walk back the way you came is about 1 h 30.",
-            post(AlertKind.LEAVE_BY, WalkBack.About(90 * minute)),
-        )
-    }
-
-    @Test
-    fun `at least never promises, on either alert`() {
+    fun `measured gives sunset, the walk back the way you came, and a start-by clock time, on either alert`() {
         for (kind in listOf(AlertKind.HEADS_UP, AlertKind.LEAVE_BY)) {
-            assertEquals(kind.name, sunsetTitle to "The walk back is at least 45 min.", post(kind, WalkBack.AtLeast(45 * minute)))
+            assertEquals(
+                kind.name,
+                sunsetTitle to "The walk back the way you came is about 1 h 30. To finish it before dark, start by ${clock(startBy)}.",
+                post(kind, WalkBack.About(90 * minute)),
+            )
         }
     }
 
     @Test
-    fun `unknown says unknown, on either alert`() {
+    fun `at least never promises - a floor, and the start-by time at the latest`() {
+        for (kind in listOf(AlertKind.HEADS_UP, AlertKind.LEAVE_BY)) {
+            assertEquals(
+                kind.name,
+                sunsetTitle to "The walk back is at least 45 min. To finish it before dark, start by ${clock(startBy)} at the latest.",
+                post(kind, WalkBack.AtLeast(45 * minute)),
+            )
+        }
+    }
+
+    @Test
+    fun `unknown says unknown and nothing about getting back, on either alert`() {
         for (kind in listOf(AlertKind.HEADS_UP, AlertKind.LEAVE_BY)) {
             assertEquals(kind.name, sunsetTitle to "The walk back is unknown.", post(kind, WalkBack.Unknown))
         }

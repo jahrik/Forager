@@ -128,6 +128,7 @@ class SundownWatchTest {
         assertTrue("sunset within the minute of sunset", sunsetAt in sunset..(sunset + minute))
         assertEquals(WalkBack.About(walkBack), headsUp.sundown?.walkBack)
         assertSameSunset(sunset, headsUp.sundown!!.sunsetAtEpochMillis)
+        assertSameSunset(leaveBy, headsUp.sundown!!.leaveByAtEpochMillis) // the start-by clock time the text shows
         assertTrue("every sundown alert overrides a silenced phone", delivered.all { it.second.overridesSilence })
     }
 

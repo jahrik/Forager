@@ -12,10 +12,9 @@
     <string name="sundown_notification_channel_description">Tells you when the sun sets and how long the walk back is.</string>
     <!-- Dispatch 2026-09-28-516: the heads-up and leave-by alerts inform and never order the walker back. %1$s is the sunset time. -->
     <string name="sundown_alert_title">Sunset at %1$s</string>
-    <!-- Only a measured walk back may say anything about getting back; "the way you came" because loops come home longer. Proposed, for the owner's approval. -->
-    <string name="sundown_heads_up_text_measured">The walk back the way you came is about %1$s. Leave within 30 min to walk it before dark.</string>
-    <string name="sundown_leave_by_text_measured">The walk back the way you came is about %1$s.</string>
-    <string name="sundown_walk_back_at_least">The walk back is at least %1$s.</string>
+    <!-- The owner's wording, 2026-10-05: clock times, so a notification read late stays true. %1$s the walk back, %2$s the start-by time. "The way you came" because loops come home longer. -->
+    <string name="sundown_walk_back_measured">The walk back the way you came is about %1$s. To finish it before dark, start by %2$s.</string>
+    <string name="sundown_walk_back_at_least">The walk back is at least %1$s. To finish it before dark, start by %2$s at the latest.</string>
     <string name="sundown_walk_back_unknown">The walk back is unknown.</string>
     <string name="sundown_sunset_notification_title">The sun has set</string>
     <string name="sundown_sunset_notification_text">Light is going now.</string>

@@ -202,7 +202,7 @@ class SundownWatch(
         }
         if (!stillThisRecording) return@withLock
         val outcome = alertDelivery.deliverReporting(
-            Alert(kind, overridesSilence = true, sundown = SundownAlertDetail(countdown.sunsetAtEpochMillis, walkBack)),
+            Alert(kind, overridesSilence = true, sundown = SundownAlertDetail(countdown.sunsetAtEpochMillis, walkBack, decision.leaveByAtEpochMillis ?: countdown.turnaroundAtEpochMillis)),
         )
         if (outcome != null && (!outcome.notificationPosted || !outcome.vibrated)) {
             errorLog.w(

@@ -47,10 +47,15 @@ sealed interface WalkBack {
         }
 }
 
-/** What a sundown alert says: the sunset time and the walk back it was decided on. */
+/**
+ * What a sundown alert says: the sunset time, the walk back it was decided on, and the leave-by
+ * time as a clock time ("start by 5:42 PM"), so a notification read late stays true (the owner,
+ * 2026-10-05).
+ */
 data class SundownAlertDetail(
     val sunsetAtEpochMillis: Long,
     val walkBack: WalkBack,
+    val leaveByAtEpochMillis: Long,
 )
 
 /**
