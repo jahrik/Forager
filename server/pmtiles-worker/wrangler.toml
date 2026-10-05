@@ -25,3 +25,8 @@ bucket_name = "forager-maps"
 # requests typically don't send an Origin header at all, so this is mostly relevant if a browser
 # client (e.g. a future web viewer) ever calls this Worker directly.
 ALLOWED_ORIGINS = "*"
+
+# The Pi tile origin, tried first for z/x/y tiles with R2 as fallback (src/index.ts, "Pi origin").
+# Behind Cloudflare Access: the service token's two values are Worker secrets, CF_ACCESS_CLIENT_ID
+# and CF_ACCESS_CLIENT_SECRET, set in the dashboard and never written here.
+PI_ORIGIN_URL = "https://origin.zynergy-labs.com"
