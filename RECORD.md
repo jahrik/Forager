@@ -11684,3 +11684,15 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Ruled, the owner verbatim "Approved and sent"** to the planner's answer: walk-back time from GPS fixes only, told apart by provider in the service's raw stream (it carries network fixes too, `location/AndroidLocationTracker.kt:71`), not through the 50 m gate; sunset time from any reading, network fixes and the last known position included (sunset moves about 4 s per km; GPS-only would mean no sundown alert at all under canopy or indoors), an owner-approved exception to -510's "never decides anything" for the sunset time only; with no fresh GPS fix, the dispatch's fallback (sunset minus margin, walk back unknown). The coder records it under "decided beyond scope".
 **The owner's direction, verbatim, recorded and not yet a task:** "With no network collection on GPS, we automatically remove reliance on the network, so they won't rely on it in a failing moment. That means the rest of the work is canopy and I think all our combined metrics will be the driving differentiator for the rejection of network usage".
 **Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-519
+**Timestamp:** 2026-10-05T03:05:00Z
+**Continues:** 2026-09-28-518
+**Decides:** the principle the location work is built to, and network fixes in the walk logger
+**The owner, verbatim:** "Yes. I want to use all of the available resources to get it right for the user. If network isn't available I want to be confident I'm not sending people to get stranded. And that includes removing reliance on network data, but not total removal of collection at all. My goal is that for each failure, there is another method available that can help fill the gaps".
+**What it sets:** network fixes stay collected and recorded, and nothing that acts on position relies on them (-510, -518). The walk logger (-512 step 2) records network fixes beside everything else, so whether they ever add anything is measured, not assumed. Each location dispatch states, for what it touches, which failure it covers and what fills the gap when that method fails; a failure with no fallback is reported as a gap, never left implicit.
+**Gap found while answering, unverified beyond a search:** no code under `app/src/main` reads the battery level (no BatteryManager, battery broadcast or PowerManager reference on main d4bd00bf), so a phone running low has no fallback today.
+**Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168.
