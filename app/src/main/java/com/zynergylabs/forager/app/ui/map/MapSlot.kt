@@ -269,6 +269,13 @@ data class MapRenderMode(
      * [LocalMapCompass] if one is provided, and otherwise keeps MapLibre's own (magnetic) compass.
      */
     val trueHeading: State<TrueHeadingReading>? = null,
+    /**
+     * Where the dot is on screen, in this slot's own pixels, each time the camera moves or the dot does
+     * (dispatch 2026-09-28-510): what the Maps tab anchors the "Approximate location" / "Last seen …"
+     * label to. `null` when no position is drawn. Reported only by a map fed the app's position
+     * ([LocalMapPosition]); `{}` by every caller with no label to place.
+     */
+    val onShownPositionScreenPoint: (Offset?) -> Unit = {},
 )
 
 /**
@@ -570,6 +577,7 @@ val SightingsMapSlot: MapSlot = { region, content, renderMode, focusOverride, on
         backEnabled = renderMode.backEnabled,
         navigationView = renderMode.navigationView,
         trueHeading = renderMode.trueHeading,
+        onShownPositionScreenPoint = renderMode.onShownPositionScreenPoint,
         modifier = modifier,
     )
 }

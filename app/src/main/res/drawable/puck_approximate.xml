@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dispatch 2026-09-28-510: the approximate position's dot. MapLibre's own maplibre_user_icon (same size,
+     same circle) in its location blue at half opacity: drawn as its own image, never by tinting MapLibre's,
+     whose tint would stick to every later copy of its dot (MapPosition.kt, PuckImageTintTest). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="14dp"
+    android:height="14dp"
+    android:viewportWidth="14.0"
+    android:viewportHeight="14.0">
+    <path
+        android:fillColor="#804A90E2"
+        android:pathData="M7,7m-7,0a7,7 0,1 1,14 0a7,7 0,1 1,-14 0" />
+</vector>

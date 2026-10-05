@@ -104,6 +104,7 @@ import com.zynergylabs.forager.app.domain.GetTripWindowsUseCase
 import com.zynergylabs.forager.app.domain.GetWaypointsUseCase
 import com.zynergylabs.forager.app.domain.HistoricalWeatherProvider
 import com.zynergylabs.forager.app.domain.LocationProvider
+import com.zynergylabs.forager.app.domain.LastKnownLocationSource
 import com.zynergylabs.forager.app.domain.LocationTracker
 import com.zynergylabs.forager.app.domain.MapPreferencesRepository
 import com.zynergylabs.forager.app.domain.ForecastCellStore
@@ -142,6 +143,7 @@ import com.zynergylabs.forager.app.domain.UpdatePhotoLocationUseCase
 import com.zynergylabs.forager.app.domain.WaypointRepository
 import com.zynergylabs.forager.app.domain.WeatherProvider
 import com.zynergylabs.forager.app.location.AndroidLocationProvider
+import com.zynergylabs.forager.app.location.AndroidLastKnownLocationSource
 import com.zynergylabs.forager.app.location.AndroidLocationTracker
 import com.zynergylabs.forager.app.map.MapLibreOfflineMapRepository
 import com.zynergylabs.forager.app.photo.CameraCaptureFiles
@@ -165,6 +167,8 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     val historicalWeatherProvider: HistoricalWeatherProvider = OpenMeteoHistoricalWeatherProvider(historicalWeatherApi)
     val locationProvider: LocationProvider = AndroidLocationProvider(context.applicationContext)
     val locationTracker: LocationTracker = AndroidLocationTracker(context.applicationContext)
+    /** Dispatch 2026-09-28-510: the platform's last known position, shown greyed until anything live arrives. */
+    val lastKnownLocation: LastKnownLocationSource = AndroidLastKnownLocationSource(context.applicationContext)
     val compassProvider: CompassProvider = AndroidCompassProvider(context.applicationContext)
 
     // HUD-foundations dispatch, Item 2: declination, and the one place magnetic heading becomes
