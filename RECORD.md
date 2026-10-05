@@ -11744,3 +11744,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Premise corrected:** the coder wrote that main was still d4bd00bf. It had moved to 967fdd0b (PRs #169 and #170, pi-origin: the tile Worker tries the Pi first), touching only `server/pmtiles-worker/`, two docs and `docs/audits/README.md`; no app code. Merging approximate-position will meet that index (merge, keep every row).
 **Finding for the quick win (-512 step 1):** indoors the S22's GPS reported accuracy from 19 m to 266 m, so the constant 3.79 m on record may hold only for a good fix.
 **Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-524
+**Timestamp:** 2026-10-05T04:40:00Z
+**Continues:** 2026-09-28-522
+**Decides:** the sundown alerts' wording
+**The owner, verbatim:** "I pasted the block too", of the planner's block sent to the -516 coder: clock times, not "within 30 min", so a notification read late stays true. Measured: "The walk back the way you came is about 1 h 30. To finish it before dark, start by 5:42 PM." Thin: "The walk back is at least 45 min. To finish it before dark, start by 5:57 PM at the latest." Unknown: "The walk back is unknown." Title: "Sunset at 7:12 PM". The heads-up and leave-by may share the text; the start-by time tells them apart. "Before dark" is sunset minus the darkness margin. The coder's "Leave within 30 min to walk it before dark" is not used.
+**Also, recorded here:** branch t510-merge (0f3d1cb9) pushed by the planner for merging -510: approximate-position at eb38bec0, main at 967fdd0b and records-after-168 at 55203701, the index conflicts resolved keeping every row; no app or server file differs from its source. The pull request is not opened: `gh auth status` reports the token in the laptop's gh config invalid, and the planner stopped there (RECORD :2246's ruling, no workaround).
+**Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168.
