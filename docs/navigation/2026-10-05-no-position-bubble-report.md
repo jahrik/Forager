@@ -74,7 +74,7 @@ The revert's restore came from copies saved before the edit, not from git. After
 
 ## Suite
 
-SUITE_PLACEHOLDER
+The full `:app:testDebugUnitTest` ran once at `3ca5b138` (`full.log`), started 09:24:53 UTC: BUILD SUCCESSFUL, 0 compile errors. 454 result files, 3,691 tests, **0 failures, 0 errors**, 24 skipped. Every file's timestamp falls inside this run (09:25:24 to 09:29:40 UTC), so none is left over from an earlier run.
 
 ## Not tested, and the phone
 
