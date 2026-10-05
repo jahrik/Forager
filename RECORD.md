@@ -11672,3 +11672,15 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **What this sets for the fusion dispatches (-512's step 3, the filter):** the filter is written in its own repository, not under `app/`; nothing Forager-specific goes into it; its code borrows only from the open references -512 allowed (Apache, MIT, BSD), so every licence remains open to choose. The walk logs stay out of it as they stay out of Forager's (-512): its tests use synthetic or consented data only. The quick win (-512 step 1) and the walk logger (step 2) are Forager work and are not affected.
 **Open for the owner:** the licence, before the library's first public release; the repository's name and when it is created.
 **Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-518
+**Timestamp:** 2026-10-05T02:45:00Z
+**Continues:** 2026-09-28-516
+**Decides:** which readings the sundown alerts use, on the -516 coder's question
+**The question, as the owner relayed it:** "is it OK for the background to use raw GPS fixes, skipping network fixes, so it stays clear of -510's accuracy filter?"
+**Ruled, the owner verbatim "Approved and sent"** to the planner's answer: walk-back time from GPS fixes only, told apart by provider in the service's raw stream (it carries network fixes too, `location/AndroidLocationTracker.kt:71`), not through the 50 m gate; sunset time from any reading, network fixes and the last known position included (sunset moves about 4 s per km; GPS-only would mean no sundown alert at all under canopy or indoors), an owner-approved exception to -510's "never decides anything" for the sunset time only; with no fresh GPS fix, the dispatch's fallback (sunset minus margin, walk back unknown). The coder records it under "decided beyond scope".
+**The owner's direction, verbatim, recorded and not yet a task:** "With no network collection on GPS, we automatically remove reliance on the network, so they won't rely on it in a failing moment. That means the rest of the work is canopy and I think all our combined metrics will be the driving differentiator for the rejection of network usage".
+**Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168.
