@@ -11812,3 +11812,13 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Not put to the owner as questions, accepted by the planner as the coder proposed, open to overrule:** one notification slot for the three alerts, each replacing the last; a failed read of the alerts on/off setting leaves them on, logged (failing toward the warning).
 **Next:** the owner gives the -516 coder the word at the phone, about two hours before that day's sunset.
 **Notes:** Written by the planner by hand, on branch records-after-172.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-530
+**Timestamp:** 2026-10-05T09:45:00Z
+**Continues:** 2026-09-28-529
+**The owner, verbatim:** "The S22 step will wait until tomorrow. It's already past sunset here tonight. But good on the rest."
+**Where things stand:** -516 at 788f4ed7 on sundown-alerts, not merged, waiting on its S22 step (a real sunset, the owner's word in the coder's window) and the release-gate walk. -527, fix-provider (preserved/2026-10-05-01.md), held until -516 merges. -510's look unseen by the owner; its grey "Last seen" dot unconfirmed on a phone. No coder is building.
+**Notes:** Written by the planner by hand, on branch records-after-172.
