@@ -11616,3 +11616,16 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Ruled by the owner in this window:** this planner owns the fusion work from here ("This window (Recommended)"), so the other window records and dispatches nothing more on fusion; and the quick win is dispatched only after -510 (the approximate position) is built, against its code, because both change the same 50 m location gate ("Quick win after -510 (Recommended)"). One coder at a time on location.
 **Status:** -510 is with the owner to paste into a coder window; no branch for it existed at this timestamp. Nothing on fusion is dispatched yet.
 **Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168 and pushed to it, because the other planner's worktree holds that branch.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-513
+**Timestamp:** 2026-10-05T01:20:00Z
+**Continues:** 2026-09-28-512
+**Decides:** walk-back time reaches the sundown alert, and step pace is learned beside GPS pace
+**The owner, verbatim,** to the planner's two open questions (should the sundown alert account for the walk back; should step-learned pace feed it): "1 yes absolutely. Users would benefit from knowing sundown is in 1 hour, but it takes an hour and a half to return" and "2 yes step paces should be learned alongside GPS pace so that we have several data references backing up a number".
+**Read by the planner on main d4bd00bf:** the first is already plan task T13 (`docs/navigation/2026-10-01-navigator-completion-plan.md:157-161`: the turnaround alert at sunset minus the darkness margin minus walking time, the stop allowance its own visible term), which depends on T2 (the sundown alerts fire; not dispatched, waiting on the owner's off-track walk, -400 era records) and T12 (recorded out-and-back walks compared with the estimate, the gate the owner's 2026-09-11 decisions set). `returnWalkingTime` (`domain/ReturnWalkingTime.kt`) is built and has no production caller on purpose: "the alert brings the surface". So the owner's answer reaffirms T13; it does not open new work. The second is new: steps become a third pace instrument beside the two in `domain/MovingPace.kt` (Doppler speed and point differencing), learned with the fusion filter (-512), under the same rules recorded there (moving speed only, no stop modelling) and `ReturnWalkingTime`'s (when the references disagree or are thin, "at least", rounding toward more time).
+**Also:** the walk logger (-512, fusion step 2) can collect T12's out-and-back walks in the same outings.
+**Open for the owner:** whether T13 ships on GPS pace and takes step pace when the filter lands, or waits for step pace.
+**Notes:** Written by the planner by hand, committed from a detached checkout of records-after-168.
