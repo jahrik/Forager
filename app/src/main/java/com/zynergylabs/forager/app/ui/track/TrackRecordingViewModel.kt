@@ -23,6 +23,7 @@ import com.zynergylabs.forager.app.domain.LocationSampler
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.RouteHome
 import com.zynergylabs.forager.app.domain.routeHome
+import com.zynergylabs.forager.app.domain.nextRouteLine
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.LocationTracker
 import com.zynergylabs.forager.app.domain.StartTrackUseCase
@@ -368,6 +369,7 @@ class TrackRecordingViewModel(
                             breadcrumbPoints = emptyList(),
                             originWaypoint = null,
                             routeHome = null,
+                            routeLine = null,
                             tripStartWarning = warning?.let { message -> RecordingNotice(++recordingNoticeIds, message) },
                             networkFixesNotice = null,
                         )
@@ -434,7 +436,7 @@ class TrackRecordingViewModel(
         originCreationInFlight = false
         takenUpOrigin = null
         _uiState.update {
-            it.copy(activeTrack = null, isReturning = false, isOffTrack = false, returnToStart = null, originWaypoint = null, routeHome = null)
+            it.copy(activeTrack = null, isReturning = false, isOffTrack = false, returnToStart = null, originWaypoint = null, routeHome = null, routeLine = null)
         }
     }
 
@@ -501,6 +503,7 @@ class TrackRecordingViewModel(
                     breadcrumbPoints = track.points,
                     originWaypoint = null,
                     routeHome = null,
+                    routeLine = null,
                 )
             }
             copyFromWatch()
@@ -778,7 +781,7 @@ class TrackRecordingViewModel(
     private fun endRouteTicks() {
         routeJob?.cancel()
         routeJob = null
-        _uiState.update { it.copy(routeHome = null) }
+        _uiState.update { it.copy(routeHome = null, routeLine = null) }
     }
 
     private fun beginPolling(trackId: String) {
@@ -860,7 +863,8 @@ class TrackRecordingViewModel(
             null -> HopBand.NONE
         }
         val next = findRouteHome(track, LatLng(current.lat, current.lng), state.originWaypoint, previousHopBand)
-        _uiState.update { it.copy(routeHome = next) }
+        // Dispatch -497: the line the map draws moves with the route (nextRouteLine).
+        _uiState.update { it.copy(routeHome = next, routeLine = nextRouteLine(it.routeLine, next)) }
     }
 
     /**
@@ -943,7 +947,7 @@ class TrackRecordingViewModel(
         return viewModelScope.launch {
             getWaypoints()
                 .onSuccess { waypoints ->
-                    _uiState.update { it.copy(waypoints = waypoints, waypointsErrorMessage = null) }
+                    _uiState.update { it.copy(waypoints = waypoints, waypointsErrorMessage = null, waypointsLoaded = true) }
                     // A handful of rows at most (see this list's own empty-state copy) — one query
                     // per waypoint is simpler than a batched read this table has no precedent for,
                     // and cheap at this scale. See TrackRecordingUiState.waypointEntryReferenceCounts'

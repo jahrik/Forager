@@ -174,6 +174,12 @@ data class MapRecordSources(
     val journalEntriesKeeping: Map<HighlightedRecord, List<JournalEntryOnMap>> = emptyMap(),
     /** J8: opens a keeping entry in its report (owner's Q1 ruling, "Open in Journal, prompt first"); `null` offers no entry lines. */
     val onOpenEntry: ((String) -> Unit)? = null,
+    /**
+     * Dispatch 2026-09-28-502: a waypoint's "Navigate", in its bubble and its details sheet, given where it
+     * was tapped. Only the Maps tab passes one (the owner: "only Maps, the sheet and Records"); `null`, an
+     * entry map's, offers Directions only.
+     */
+    val onNavigateToWaypoint: ((WaypointNavigationOrigin) -> Unit)? = null,
 )
 
 /** The Maps tab's find action (owner's M1 ruling 2). */

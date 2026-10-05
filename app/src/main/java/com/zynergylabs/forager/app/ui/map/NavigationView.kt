@@ -225,10 +225,15 @@ val LocalMapCompass = staticCompositionLocalOf<MapCompass?> { null }
 /**
  * Nudge protection while navigating (dispatch 2026-09-28-457, Part C; the owner: "Small nudge snaps
  * back", "about a finger's width"): a one-finger drag shorter than this leaves the camera following;
- * only a longer, deliberate drag leaves the view. A fingertip's contact is about 7 to 10 mm, close to
- * Android's 48 dp touch target, so 48 dp. Provisional. MapLibre's own default is 25 dp.
+ * only a longer, deliberate drag leaves the view. MapLibre's own default is 25 dp.
+ *
+ * 72 dp since dispatch 2026-09-28-477, Amendment 1; it was 48 dp, a finger's width. Seen on the S22:
+ * quick flicks the owner meant as nudges travelled 56 to 91 dp and crossed 48 dp before the finger
+ * lifted, so they left following. The owner chose "Raise the line for all drags", at "1.5 finger
+ * widths, 72 dp", and confirmed the step path ("Confirmed"). The nudge's give cap follows it, half of
+ * this, 36 dp. Provisional.
  */
-const val NAVIGATION_NUDGE_THRESHOLD_DP = 48f
+const val NAVIGATION_NUDGE_THRESHOLD_DP = 72f
 
 /**
  * How far two fingers must move together before following ends while navigating (Part B): above any
@@ -236,6 +241,23 @@ const val NAVIGATION_NUDGE_THRESHOLD_DP = 48f
  * stated here so it is a choice, not an accident.
  */
 const val NAVIGATION_MULTI_FINGER_MOVE_THRESHOLD_DP = 400f
+
+/**
+ * The elastic nudge (dispatch 2026-09-28-463; the owner: "Give, then spring back"): under
+ * [NAVIGATION_NUDGE_THRESHOLD_DP] the map moves with one finger but stiffly, this share of the finger's
+ * travel, so at most half the threshold before a real drag takes over. Provisional.
+ */
+const val NAVIGATION_NUDGE_GIVE_RATIO = 0.5f
+
+/** How long the map takes to spring back to following once the nudging finger lifts. The owner: "about a quarter of a second". Provisional. */
+const val NAVIGATION_NUDGE_SPRING_MILLIS = 250L
+
+/**
+ * How far the spring carries past rest before it settles: Android's `OvershootInterpolator` tension,
+ * its own default. 2.0 peaks 13% past rest, about 3 dp after a full 24 dp give; 1.5 would be 8%.
+ * The owner: "a slight overshoot and settle". Provisional.
+ */
+const val NAVIGATION_NUDGE_OVERSHOOT_TENSION = 2.0
 
 /**
  * The start zoom's timing, apart from MapLibre so it can be tested (dispatch 2026-09-28-457, Part A).
@@ -255,6 +277,9 @@ class StartZoomGate {
     private var generation = 0
     private var inFlight: Int? = null
     private var wanted: Double? = null
+
+    /** Whether a mode transition of ours is running, during which MapLibre refuses padding (dispatch -463: no nudge give then). */
+    val transitioning: Boolean get() = inFlight != null
 
     /** A view is asked for. Returns the generation to give its transition listener, or `null` to wait for the transition already heading to the same mode. */
     fun request(sameModeAsInFlight: Boolean, startZoom: Double?): Int? {
@@ -319,6 +344,37 @@ class NavigationModeChange {
 
     private val startZoomGate = StartZoomGate()
     private var onStartZoomAppliedHeld: () -> Unit = {}
+
+    /** Whether a mode transition of ours is running: the padding, and so a nudge's give, is refused until it ends. */
+    val transitioning: Boolean get() = startZoomGate.transitioning
+
+    // Dispatch -470, Part A: what of ours is still animating when navigation is left, and what moves the
+    // camera during the leave's ease, for reading on the phone. Logging only.
+    // A token per padding animation, not a count: MapLibre can call both a callback's onCancel and its
+    // onFinish for one animation (seen on the S22: a count went to -4), so only the latest animation's
+    // own first callback clears it.
+    private var paddingAnimationToken = 0
+    private var paddingAnimationInFlight: Int? = null
+    private var startZoomInFlight = false
+    private var leaveEaseStartedAt: Long? = null
+
+    /** A camera move has started (any reason): logged while the leave's ease runs, with what of ours is still animating. */
+    fun noteCameraMoveStarted(reason: Int) {
+        // A window, not the ease's own life: MapLibre posts the move-started notice to the main looper,
+        // so the notice of a move that cancels the ease arrives after the ease's cancel callback.
+        val sinceLeave = android.os.SystemClock.uptimeMillis() - (leaveEaseStartedAt ?: return)
+        if (sinceLeave > 1_500L) return
+        Log.i(NAVIGATION_VIEW_LOG_TAG, "camera move during the leave's ease, $sinceLeave ms in: reason=$reason, ${inFlight()}")
+    }
+
+    /** The camera has moved: within 1 s of a leave, its tilt, zoom, padding and mode are logged, so what pulls it away from the leave's ease shows by what changes. */
+    fun noteCameraMove(map: MapLibreMap) {
+        val sinceLeave = android.os.SystemClock.uptimeMillis() - (leaveEaseStartedAt ?: return)
+        if (sinceLeave > 1_000L) return
+        logCamera(map, "camera during the leave's ease, $sinceLeave ms in")
+    }
+
+    private fun inFlight() = "padding animation in flight=${paddingAnimationInFlight != null}, start zoom in flight=$startZoomInFlight, transition in flight=${startZoomGate.transitioning}"
 
     /** Whether the location component holds the navigating options (nudge protection on). Reset by every activation, which applies the ordinary ones. */
     var gestureProtection = false
@@ -396,11 +452,13 @@ class NavigationModeChange {
                 if (zoom != null) {
                     val applied = onStartZoomAppliedHeld
                     Log.i(NAVIGATION_VIEW_LOG_TAG, "start zoom requested: $zoom")
+                    startZoomInFlight = true
                     component.zoomWhileTracking(
                         zoom,
                         NAVIGATION_VIEW_TRANSITION_MILLIS,
                         object : MapLibreMap.CancelableCallback {
                             override fun onFinish() {
+                                startZoomInFlight = false
                                 logCamera(map, "start zoom finished")
                                 applied()
                             }
@@ -408,19 +466,28 @@ class NavigationModeChange {
                             // Issued only once nothing is transitioning, so a cancel here is a gesture
                             // taking over: the walker's own zoom, as the owner chose for a pinch.
                             override fun onCancel() {
+                                startZoomInFlight = false
                                 logCamera(map, "start zoom cancelled")
                                 applied()
                             }
                         },
                     )
                 }
+                val paddingToken = ++paddingAnimationToken
+                paddingAnimationInFlight = paddingToken
                 component.paddingWhileTracking(
                     doubleArrayOf(0.0, topPaddingPx, 0.0, 0.0),
                     NAVIGATION_VIEW_TRANSITION_MILLIS,
                     object : MapLibreMap.CancelableCallback {
-                        override fun onFinish() = logCamera(map, "view applied, $facing")
+                        override fun onFinish() {
+                            if (paddingAnimationInFlight == paddingToken) paddingAnimationInFlight = null
+                            logCamera(map, "view applied, $facing")
+                        }
 
-                        override fun onCancel() = logCamera(map, "view applied, $facing, the padding cancelled")
+                        override fun onCancel() {
+                            if (paddingAnimationInFlight == paddingToken) paddingAnimationInFlight = null
+                            logCamera(map, "view applied, $facing, the padding cancelled")
+                        }
                     },
                 )
             }
@@ -450,6 +517,15 @@ class NavigationModeChange {
         startZoomGate.reset()
         val component = map.locationComponent
         val wasFollowing = component.cameraMode != CameraMode.NONE
+        // Dispatch -470: the view's padding animation (applyView) is stopped first. Leaving tracking
+        // cancels MapLibre's zoom and tilt animations but not the padding one (13.5.0 bytecode:
+        // LocationComponent$8.onCameraTrackingChanged cancels zoom and tilt only), and its listener stays
+        // attached in every mode, so it went on setting the padding through Transform.moveCamera after the
+        // mode was NONE and cancelled the ease below. Seen on the S22: the ease's first frame set the
+        // padding to 0, the next put it back to the animation's 282, and the ease was cancelled, leaving
+        // the map tilted; every leave with that animation in flight did so, and none without.
+        val inFlightAtLeave = inFlight() // read before the cancel below clears it
+        component.cancelPaddingWhileTrackingAnimation()
         if (wasFollowing) byTheApp { component.cameraMode = CameraMode.NONE }
         // Dispatch -440, Amendment 1: a camera above the basemap's own cap comes back within it as part
         // of this ease, and the cap is restored when the ease ends; setting it first would jump.
@@ -460,6 +536,8 @@ class NavigationModeChange {
             if (wasFollowing && !active) byTheApp { component.cameraMode = CameraMode.TRACKING }
             logCamera(map, what)
         }
+        Log.i(NAVIGATION_VIEW_LOG_TAG, "leaving navigation: was following=$wasFollowing, at the leave $inFlightAtLeave")
+        leaveEaseStartedAt = android.os.SystemClock.uptimeMillis()
         map.easeCamera(CameraUpdateFactory.newCameraPosition(flat), NAVIGATION_VIEW_TRANSITION_MILLIS.toInt(), object : MapLibreMap.CancelableCallback {
             override fun onFinish() = done("navigation left")
 

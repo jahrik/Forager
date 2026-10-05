@@ -281,6 +281,8 @@ fun SightingsMap(
     cameraRequest: MapCameraRequest? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapOverlayContent.journalHighlights]'s own doc comment. */
     journalHighlights: JournalEntryHighlights = JournalEntryHighlights.NONE,
+    /** See [com.zynergylabs.forager.app.ui.map.MapOverlayContent.route]'s own doc comment. */
+    route: RouteOnMap? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.cameraMemory]'s own doc comment. */
     cameraMemory: MapCameraMemory? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.attributionEndInset]'s own doc comment. */
@@ -389,6 +391,46 @@ fun SightingsMap(
     val currentFindMarkers by rememberUpdatedState(findMarkers)
     val currentPhotoMarkers by rememberUpdatedState(photoMarkers)
     var mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
+    // Dispatch 2026-09-28-463: a nudge under the drag threshold gives, then springs back, while
+    // navigating and following (see NudgeElastic.kt). Fed by the map view's touch listener below.
+    val nudgeThresholdPx = NAVIGATION_NUDGE_THRESHOLD_DP * LocalDensity.current.density
+    // Dispatch -477, Part A: where the current touch came down, for the release's log line.
+    val touchDownAt = remember { FloatArray(2) }
+    // Dispatch -477, Part B: a quick flick under the drag threshold springs back instead of ending
+    // following through MapLibre's fling (see NudgeFlingGuard). Fed by the map view's touch listener below.
+    val nudgeFlingGuard = remember {
+        NudgeFlingGuard(
+            object : FlingSwitch {
+                override var enabled: Boolean
+                    get() = mapLibreMap?.uiSettings?.isFlingVelocityAnimationEnabled ?: true
+                    set(value) {
+                        mapLibreMap?.uiSettings?.isFlingVelocityAnimationEnabled = value
+                    }
+            },
+        )
+    }
+    // Built once: the factory below hands this instance to the map view's listener, which is attached once.
+    val nudgeElastic = remember {
+        NudgeElasticDriver(
+            camera = object : NudgeCamera {
+                override fun canGive(): Boolean {
+                    val component = mapLibreMap?.locationComponent ?: return false
+                    return component.isLocationComponentActivated &&
+                        currentNavigationView?.following == true &&
+                        navigationModeChange.expected != null &&
+                        !navigationModeChange.transitioning &&
+                        component.cameraMode != CameraMode.NONE
+                }
+
+                override fun showPadding(padding: DoubleArray) {
+                    mapLibreMap?.locationComponent?.paddingWhileTracking(padding, 0L)
+                }
+            },
+            thresholdPx = nudgeThresholdPx,
+            viewTopPaddingPx = { navigationViewTopPaddingPx(navigationMapHeightPx) },
+        )
+    }
+    DisposableEffect(nudgeElastic) { onDispose { nudgeElastic.cancel() } }
     // The Style instance from the most recently completed setStyle callback. Distinct from
     // "which style is currently applied" (appliedStyle, below) because this is what the data
     // effect keys on: a new Style object means new (empty) sources that need their content pushed.
@@ -596,8 +638,17 @@ fun SightingsMap(
             // idle. Outside navigation it is re-anchored at idle as before.
             map.addOnCameraMoveListener {
                 if (currentNavigationView != null) reanchorFocusedBubble(map)
+                navigationModeChange.noteCameraMove(map) // dispatch -470, Part A: logging only
+            }
+            // Dispatch -477, Part A: every fling MapLibre reports while navigating, with the camera mode then.
+            // Logging only.
+            map.addOnFlingListener {
+                if (currentNavigationView != null) {
+                    Log.i(NAVIGATION_VIEW_LOG_TAG, "fling reported: mode=${map.locationComponent.takeIf { it.isLocationComponentActivated }?.cameraMode}")
+                }
             }
             map.addOnCameraMoveStartedListener { reason ->
+                navigationModeChange.noteCameraMoveStarted(reason) // dispatch -470, Part A: logging only
                 // A fanned stack folds on a camera move the user made or asked for, a gesture or the app's own; it stays open when the map re-centres
                 // itself while it follows the location (dispatch 2026-09-28-380: the user did not mean that move, and the fan travels with the map).
                 val following = map.locationComponent.isLocationComponentActivated && map.locationComponent.cameraMode != CameraMode.NONE
@@ -797,6 +848,10 @@ fun SightingsMap(
     // after a basemap swap) — the same "rebuild content every update, regardless of why the update
     // fired" behaviour the deleted osmdroid version had in its single `update` block, split here
     // because MapLibre's own API separates "style ready" from "camera/property changed".
+    // Dispatch -497: the way back, pushed whenever it or the style changes (a new style starts empty).
+    LaunchedEffect(loadedStyle, route) {
+        loadedStyle?.let { updateRouteHomeLayers(it, route) }
+    }
     LaunchedEffect(
         loadedStyle, region, sightings, plannedTrips, focusOverride, breadcrumbPoints, waypoints, focusedObservationId,
         keptTrackPolylines, findMarkers, photoMarkers, offlineRegionCircles, showSearchCentre, cameraRequest, journalHighlights,
@@ -1034,6 +1089,7 @@ fun SightingsMap(
             }
             if (navigationModeChange.active) {
                 cameraMoveClassifier.markAppMove()
+                Log.i(NAVIGATION_VIEW_LOG_TAG, "leaving navigation: nudge spring running=${nudgeElastic.springing}") // dispatch -470, Part A
                 navigationModeChange.leaveNavigation(map, navigationMaxZoom(basemap, navigating = false))
             }
             return@LaunchedEffect
@@ -1157,6 +1213,26 @@ fun SightingsMap(
                     if (event.actionMasked == MotionEvent.ACTION_DOWN) {
                         view.parent?.requestDisallowInterceptTouchEvent(true)
                     }
+                    // Dispatch -463: the elastic nudge reads the finger here, before MapLibre does, and
+                    // never consumes it.
+                    nudgeElastic.onTouch(event)
+                    // Dispatch -477: read before MapLibre handles this event, so a release while following
+                    // reaches MapLibre with its fling switched off.
+                    nudgeFlingGuard.onTouch(
+                        event,
+                        stillFollowing = currentNavigationView != null &&
+                            mapLibreMap?.locationComponent?.let { it.isLocationComponentActivated && it.cameraMode != CameraMode.NONE } == true,
+                    )
+                    // Dispatch -477, Part A: each release while navigating, whether the map still follows and
+                    // how far the finger travelled. Logging only.
+                    when (event.actionMasked) {
+                        MotionEvent.ACTION_DOWN -> { touchDownAt[0] = event.x; touchDownAt[1] = event.y }
+                        MotionEvent.ACTION_UP -> if (currentNavigationView != null) {
+                            val travelDp = kotlin.math.hypot(event.x - touchDownAt[0], event.y - touchDownAt[1]) / view.resources.displayMetrics.density
+                            val mode = mapLibreMap?.locationComponent?.takeIf { it.isLocationComponentActivated }?.cameraMode
+                            Log.i(NAVIGATION_VIEW_LOG_TAG, "touch released: mode=$mode, travel=${"%.0f".format(travelDp)} dp")
+                        }
+                    }
                     false
                 }
                 mapView
@@ -1260,6 +1336,14 @@ private fun initializeOverlayLayers(
         if (addedSources.add(spec.sourceId)) style.addSource(GeoJsonSource(spec.sourceId, emptyFeatureCollection()))
         layer.setProperties(*paintProperties(layerPaintFor(spec, layersState)))
         style.addLayer(layer)
+    }
+    // Dispatch -497: the way back while returning (RouteHomeLayers.kt), outside the registry as the
+    // fan-out is: its lines above every track line (the kept tracks are the registry's last line, above
+    // the live breadcrumb), below every marker; the arrival ring above the waypoints.
+    if (style.getLayer(MapLayerIds.KEPT_TRACKS) != null && style.getLayer(MapLayerIds.WAYPOINTS) != null) {
+        addRouteHomeLayers(style, palette, density, aboveLineLayerId = MapLayerIds.KEPT_TRACKS, aboveMarkerLayerId = MapLayerIds.WAYPOINTS)
+    } else {
+        Log.w(SIGHTINGS_MAP_TAG, "The kept-tracks or waypoints layer is missing; the way back is not drawn.")
     }
     // The marker fan-out's own layers, above every registry layer (FanOutLayers.kt).
     addFanOutLayers(style, palette, chromeColour, density)

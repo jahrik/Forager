@@ -51,6 +51,7 @@ import com.zynergylabs.forager.app.ui.log.trackDeleteNotice
 import com.zynergylabs.forager.app.ui.log.waypointDeleteNotice
 import com.zynergylabs.forager.app.ui.theme.ForagerTheme
 import com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel
+import com.zynergylabs.forager.app.ui.track.TrackRecordingReturnLeg
 
 class MainActivity : ComponentActivity() {
 
@@ -92,6 +93,11 @@ class MainActivity : ComponentActivity() {
                     getMapRecords = { container.getMapRecordsUseCase() },
                     mapLayerPreferencesRepository = container.mapLayerPreferencesRepository,
                     forecastCellStore = container.forecastCellStore,
+                    // Dispatch 2026-09-28-502: the waypoint navigation kept across the process, and the return it pauses
+                    // and picks back up. The leg holds the recording ViewModel itself, not this Activity, so a recreated
+                    // Activity leaves nothing behind in it.
+                    waypointNavigationRepository = container.waypointNavigationRepository,
+                    returnLeg = TrackRecordingReturnLeg(trackRecordingViewModel),
                 )
             }
         }
@@ -631,7 +637,12 @@ class MainActivity : ComponentActivity() {
                     computeTrueHeading = container.computeTrueHeadingUseCase,
                     navigationTarget = trackUiState.originWaypoint,
                     returnRoute = returnRouteOf(trackUiState.routeHome),
+                    routeLine = trackUiState.routeLine,
                     onRetryRoute = trackRecordingViewModel::retryRoute,
+                    // Dispatch 2026-09-28-502: Navigate on a chosen waypoint, ending it, and whether the waypoints have loaded.
+                    onNavigateToWaypoint = viewModel::onNavigateToWaypoint,
+                    onStopWaypointNavigation = viewModel::onStopWaypointNavigation,
+                    waypointsLoaded = trackUiState.waypointsLoaded,
                     crashFileStore = container.crashFileStore,
                     // Part 2 follow-ups F1 item 5: the visible list leaves out a track whose delete is pending
                     // (Undo snackbar up), as the waypoints' does; a swipe or the details' Delete asks for that

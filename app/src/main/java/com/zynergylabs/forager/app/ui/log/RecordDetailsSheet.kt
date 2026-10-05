@@ -12,6 +12,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Directions
+import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.BottomSheetDefaults
@@ -72,7 +73,8 @@ import kotlinx.coroutines.launch
  * Held by [RecordsTab] in `rememberSaveable` state through [RecordDetailsTargetSaver], so an open
  * sheet survives a rotation (which is not a recreation here, J5 L7) and an Activity recreation.
  * Leaving the Journal tab with the sheet open is not possible: the sheet is modal, so its scrim
- * covers the bottom bar and the rail.
+ * covers the bottom bar and the rail. Its Navigate (dispatch 2026-09-28-502) closes it before the
+ * Maps tab comes up, and Back from that navigation opens it again by request.
  */
 internal sealed interface RecordDetailsTarget {
     data class WaypointDetails(val id: String) : RecordDetailsTarget
@@ -138,13 +140,11 @@ internal fun recordDetailsClickLabel(name: String): String = "Details for $name"
  * **Opened fully expanded** (`skipPartiallyExpanded`), so every field shows without a drag in
  * portrait; in a short landscape window the sheet takes the height it has and its content scrolls.
  *
- * **Waypoint: Directions only, no Navigate.** The owner's M1 ruling asks for Navigate (the app's own
- * HUD) beside Directions. The HUD today shows only while the walker is returning along an active
- * recording, and always targets that recording's origin waypoint
- * (`TrackRecordingViewModel.startReturn`, `AvailabilityScreen`'s `isNavigating = isReturning` and
- * `navigationTarget = trackUiState.originWaypoint` in `MainActivity`). There is no entry point that
- * navigates to a chosen waypoint, so the dispatch's stop rule applies: this sheet ships with
- * Directions only, and what Navigate would need is recorded in the J5c completion report.
+ * **Waypoint: Navigate, then Directions** (dispatch 2026-09-28-502, plan task T9). The owner's M1 ruling
+ * asked for Navigate (the app's own HUD) beside Directions; J5c shipped Directions only, because nothing
+ * then navigated to a chosen waypoint. [onNavigateToWaypoint] is that entry point now: the sheet closes
+ * and the Maps tab navigates to the waypoint, and Back opens this sheet again (Amendment 1). A host that
+ * passes none (an entry map's) offers Directions only.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -168,6 +168,8 @@ internal fun RecordDetailsSheet(
      * otherwise solid, unchanged. Each call site says which it is.
      */
     overMap: Boolean = false,
+    /** Dispatch 2026-09-28-502: a waypoint's "Navigate", given its id; `null` offers none (an entry map's sheet). */
+    onNavigateToWaypoint: ((String) -> Unit)? = null,
 ) {
     val waypoint = (target as? RecordDetailsTarget.WaypointDetails)?.let { t -> waypoints.firstOrNull { it.id == t.id } }
     val track = (target as? RecordDetailsTarget.TrackDetails)?.let { t -> tracks.firstOrNull { it.id == t.id } }
@@ -215,6 +217,7 @@ internal fun RecordDetailsSheet(
                 staleThresholdDays = staleThresholdDays,
                 getFullRecord = getFullRecord,
                 onDeleteTrack = onDeleteTrack,
+                onNavigateToWaypoint = onNavigateToWaypoint,
             )
         }
     }
@@ -234,16 +237,17 @@ private fun RecordDetailsBody(
     staleThresholdDays: Int,
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
     onDeleteTrack: ((String) -> Unit)?,
+    onNavigateToWaypoint: ((String) -> Unit)?,
 ) {
     when {
-        waypoint != null -> WaypointDetails(waypoint, tracks, waypointEntryReferenceCounts)
+        waypoint != null -> WaypointDetails(waypoint, tracks, waypointEntryReferenceCounts, onNavigateToWaypoint)
         track != null -> TrackDetails(track, waypoints, distanceUnit, getFullRecord, onDeleteTrack)
         region != null -> OfflineRegionDetails(region, distanceUnit, nowEpochMillis, staleThresholdDays)
     }
 }
 
 @Composable
-private fun WaypointDetails(waypoint: Waypoint, tracks: List<Track>, referenceCounts: Map<String, Int>) {
+private fun WaypointDetails(waypoint: Waypoint, tracks: List<Track>, referenceCounts: Map<String, Int>, onNavigate: ((String) -> Unit)?) {
     val context = LocalContext.current
     val location = LatLng(waypoint.lat, waypoint.lng)
     DetailsTitle(waypoint.name)
@@ -262,6 +266,16 @@ private fun WaypointDetails(waypoint: Waypoint, tracks: List<Track>, referenceCo
     }
     referenceCounts[waypoint.id]?.let { count -> DetailField(FIELD_USED_IN, "Used in", journalEntryCountLabel(count)) }
     DetailsActions {
+        // Dispatch -502: the app's own navigation first, then the hand-off to a maps app.
+        onNavigate?.let { navigate ->
+            OutlinedButton(
+                onClick = { navigate(waypoint.id) },
+                modifier = Modifier.testTag(RECORD_DETAILS_NAVIGATE_TAG),
+            ) {
+                Icon(Icons.Filled.Navigation, contentDescription = null, modifier = Modifier.size(18.dp))
+                Text("Navigate", modifier = Modifier.padding(start = Spacing.sm))
+            }
+        }
         OutlinedButton(
             onClick = { launchDirections(context, waypoint.name, location) },
             modifier = Modifier.testTag(RECORD_DETAILS_DIRECTIONS_TAG),
@@ -410,6 +424,7 @@ internal const val RECORD_DETAILS_NOTE_TAG = "record-details-note"
 internal const val RECORD_DETAILS_ZOOM_TAG = "record-details-zoom"
 internal const val RECORD_DETAILS_THUMBNAIL_TAG = "record-details-thumbnail"
 internal const val RECORD_DETAILS_DIRECTIONS_TAG = "record-details-directions"
+internal const val RECORD_DETAILS_NAVIGATE_TAG = "record-details-navigate"
 internal const val RECORD_DETAILS_SHARE_TAG = "record-details-share"
 internal const val RECORD_DETAILS_DELETE_TAG = "record-details-delete"
 
