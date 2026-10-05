@@ -43,6 +43,11 @@ import kotlinx.coroutines.sync.withLock
  * "unknown", and the leave-by time falls back to sunset minus the margin. Safe in direction: no
  * confident figure it does not have.
  *
+ * **The sunset held.** [ComputeSundownCountdownUseCase] always reports the *next* sunset, so
+ * after sunset it reports tomorrow's. The watch holds the sunset it has been counting toward once
+ * it passes, which is what lets the sunset alert fire at all. A recording started after sunset
+ * counts toward tomorrow's and alerts on nothing tonight: the night foray the owner described.
+ *
  * ## When nothing more fires
  *
  * Once per recording each. After [end]. With the alerts turned off
@@ -89,6 +94,10 @@ class SundownWatch(
     private var hopBand: HopBand = HopBand.NONE
     private var arrived = false
 
+    // The sunset this recording counts toward: followed while ahead, held once passed. Null until
+    // the first evaluation with a position.
+    private var sunsetAt: Long? = null
+
     /** The service has started recording [trackId]. Everything from any earlier recording is dropped. */
     fun begin(trackId: String) = synchronized(lock) {
         forget()
@@ -120,10 +129,10 @@ class SundownWatch(
 
     /** One evaluation. Delivers at most one alert. See the class header for what it works out. */
     suspend fun tick() = tickMutex.withLock {
-        val (id, anyFix, gpsFix, alreadyFired, band) = synchronized(lock) {
+        val (id, anyFix, gpsFix, alreadyFired, band, heldSunset) = synchronized(lock) {
             val id = trackId
             if (id == null || arrived) return@withLock
-            Snapshot(id, newestFix ?: return@withLock, newestGpsFix, fired, hopBand)
+            Snapshot(id, newestFix ?: return@withLock, newestGpsFix, fired, hopBand, sunsetAt)
         }
 
         val enabled = preferences.getAlertsEnabled().getOrElse { error ->
@@ -137,8 +146,13 @@ class SundownWatch(
             errorLog.w(TAG, "Couldn't read the darkness margin; using the default of $DEFAULT_DARKNESS_MARGIN_MINUTES minutes.", error)
             DEFAULT_DARKNESS_MARGIN_MINUTES
         }
-        val countdown = computeCountdown(now, LatLng(anyFix.lat, anyFix.lng), anyFix.timestampEpochMillis, marginMinutes * 60_000L)
-        if (countdown !is SundownCountdown.Known) return@withLock
+        val marginMillis = marginMinutes * 60_000L
+        val computed = computeCountdown(now, LatLng(anyFix.lat, anyFix.lng), anyFix.timestampEpochMillis, marginMillis)
+        if (computed !is SundownCountdown.Known) return@withLock
+        // The countdown always looks for the *next* sunset, so a minute after sunset it reports
+        // tomorrow's and "past sunset" never happens. Hold the one this recording is counting
+        // toward once it has passed; until then, follow the walker's position.
+        val countdown = heldSunset?.takeIf { it <= now }?.let { computed.copy(sunsetAtEpochMillis = it, turnaroundAtEpochMillis = it - marginMillis) } ?: computed
 
         val track = readTrack(id).getOrElse { error ->
             errorLog.w(TAG, "Couldn't read track '$id' for the walk back; it is unknown for this evaluation.", error)
@@ -171,6 +185,7 @@ class SundownWatch(
         val stillThisRecording = synchronized(lock) {
             if (trackId != id) return@synchronized false
             fired = decision.spent
+            sunsetAt = countdown.sunsetAtEpochMillis
             if (estimate is ReturnWalkingTime.Estimate) hopBand = estimate.path.hopBand
             true
         }
@@ -200,6 +215,7 @@ class SundownWatch(
         fired = emptySet()
         hopBand = HopBand.NONE
         arrived = false
+        sunsetAt = null
     }
 
     private data class Snapshot(
@@ -208,6 +224,7 @@ class SundownWatch(
         val gpsFix: TrackPoint?,
         val fired: Set<SundownAlert>,
         val hopBand: HopBand,
+        val heldSunset: Long?,
     )
 
     private companion object {
