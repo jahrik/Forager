@@ -11843,3 +11843,13 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Dispatch-file:** preserved/2026-10-05-02.md
 **Not yet sent:** it starts after -516 merges, beside -527, on the owner's word then.
 **Notes:** Written by the planner by hand, on branch records-after-172.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-533
+**Timestamp:** 2026-10-05T10:25:00Z
+**Continues:** 2026-09-28-532
+**The owner, verbatim:** "I'll use both the S26 and S22 running the data logger build for both data and non data approach". Told that debug builds share the Play app's identity with a different signing key, so a Play install on the S26 could only be replaced by uninstalling it, deleting its data, they answered "S26 has no Play version" (the planner had recommended a separate logger app identity; not needed on that answer).
+**What it sets:** -532 Amendment 1 (in preserved/2026-10-05-02.md, written before sending): both phones log; the header records SIM and data state; the S26 holds real data, so any install that would need an uninstall or wipe there is a stop for the owner's word; the desk run happens on both phones.
+**Notes:** Written by the planner by hand, on branch records-after-172.
