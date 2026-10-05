@@ -1,6 +1,6 @@
 # Approximate position until GPS arrives (dispatch 2026-09-28-510)
 
-**Status: built and pushed on `approximate-position`, not merged.** Verified before building and reported by message; the owner answered five stop-and-ask questions in the coder's window. Tests first; revert checks; the full suite once (below). The S22 desk step indoors has not been run: it needs the owner's word in the coder's window, asked for at hand-back.
+**Status: built and pushed on `approximate-position`, not merged.** Verified before building and reported by message; the owner answered five stop-and-ask questions in the coder's window. Tests first; revert checks; the full suite. The S22 desk step was run on the owner's word and found a defect in the dot's look, which was fixed and the steps run again from the top (below); one step could not be run indoors, and GPS taking over on a map already showing was <<TAKEOVER-STATUS>>.
 
 Dispatch: `prompts/preserved/2026-10-04-10.md` on `records-after-168` (429eb1bc when read). The owner's choices it carries: RECORD -508.
 
@@ -112,7 +112,7 @@ Also stated to the owner in the same message, as what would be built unless they
 
 ## Tests
 
-Seven new classes, 43 tests, written first and seen failing against stubs (`3196ce29`: 35 of 43 failing, each on its stub, 0 compile errors). Through the real entry points where the dispatch asks for them: the screen tests drive the real `AvailabilityScreen` and the real `AvailabilityViewModel`, fixes arriving on the ViewModel's own live collection, started by `onEnteredForeground` as `MainActivity` starts it.
+Eight new classes, 47 tests (seven classes and 43 tests before the desk step, `PuckImageTintTest`'s 4 after it), written first and seen failing against stubs (`3196ce29`: 35 of 43 failing, each on its stub, 0 compile errors). Through the real entry points where the dispatch asks for them: the screen tests drive the real `AvailabilityScreen` and the real `AvailabilityViewModel`, fixes arriving on the ViewModel's own live collection, started by `onEnteredForeground` as `MainActivity` starts it.
 
 | Class | Tests | What it holds |
 |---|---|---|
@@ -121,7 +121,8 @@ Seven new classes, 43 tests, written first and seen failing against stubs (`3196
 | `ApproximateDistanceTest` | 5 | Pinned literals, worked by hand beside each; the 600 m case that makes `formatDistanceWithAccuracy` throw. |
 | `AndroidLastKnownLocationSourceTest` | 3 | The newest provider, field for field, through Robolectric's `LocationManager`; none without permission; none held. |
 | `AppLocationEngineTest` | 6 | What MapLibre is handed: the platform location field for field, no repeats, the last location, removal, PendingIntent refused. |
-| `PositionLookOptionsTest` | 5 | The options per look; precise exactly MapLibre's defaults; the look kept through navigation's options; the look rule. |
+| `PositionLookOptionsTest` | 5 | The options per look: precise exactly MapLibre's defaults; approximate and last known name the app's own images; the look kept through navigation's options; the look rule. Changed after the desk step (it had asserted tints). |
+| `PuckImageTintTest` | 4 | Added after the desk step, under native graphics: the dot images as MapLibre builds them, read back as pixels. No look changes the image under MapLibre's own name; the GPS dot is MapLibre's opaque blue after the other looks; the soft and grey dots are the app's named images, the same size as MapLibre's; no look tints any MapLibre image. |
 | `ApproximateReadingNeverDecidesTest` | 2 | A network reading (120 m and 70 m) never becomes a point a track shows, in any mode; while returning, network readings far off the path never set off-track or alert. Each with its own control. |
 
 **"Never reaches the track, the off-track judge":** these two follow the reading down paths this dispatch does not touch and that never read the screen's state, so they pass before this dispatch as after it. They guard against a later change feeding the screen's approximate reading into recording or the return, and each has a control (c01, c02 below) showing it can fail. **"Never reaches arrival"** is the screen test, and it can fail: revert r13 (the refused reading also made the gated fix) fails it.
@@ -178,8 +179,10 @@ Each named failure is one its own edit could cause.
 | c01 | control: the track read's network exclusion removed | on `cc0cee78`, **nothing** (a 120 m reading never reached the read); the 70 m case added in `fd9110aa`, then the track test |
 | c02 | control: the off-track judge counts network readings | the off-track test |
 | r34 | an approximate reading wins over a fresh GPS fix (run last, on `fd9110aa`) | three rule tests; the screen's "a GPS fix replaces it" |
+| r35 | after the desk step, on `f1cae05a`: the approximate look tints MapLibre's dot again | `PuckImageTintTest`'s GPS-dot test (`804a8fe1`, the phone's pale dot) and no-tint test; two options tests |
+| r36 | on `1c4bdcdc`: the approximate look replaces MapLibre's own image instead of naming its own | "no look changes the image MapLibre builds under its own name" (`804a8fe1`); two options tests |
 
-**In all:** 35 revert checks and 2 controls bite, each failing only tests its own edit could cause, every one compiled with 0 errors and left the tree identical to HEAD. r02 did not bite (explained in its row) and neither did r22 (explained just below), c01's first run did not bite (its test was extended, then it did), and r20 did not compile and is not cited. Logs: `rev-<name>.log`, with every run's summary in `reverts.txt`, `reverts2.txt` and `r34.txt`; c01's log and XML are its second run's, its first run's result is in `reverts.txt`.
+**In all:** 37 revert checks and 2 controls bite, each failing only tests its own edit could cause, every one compiled with 0 errors and left the tree identical to HEAD. r02 did not bite (explained in its row) and neither did r22 (explained just below), c01's first run did not bite (its test was extended, then it did), and r20 did not compile and is not cited. Logs: `rev-<name>.log`, with every run's summary in `reverts.txt`, `reverts2.txt` and `r34.txt`; c01's log and XML are its second run's, its first run's result is in `reverts.txt`.
 
 **r22, and what the 80% assertion holds.** The label reports its fill to tests through `mapChromeContainerColor`, the pattern every map-chrome surface here uses (`MapChromeAlphaTest`). The test reads the reported colour, not pixels, so a background that drifts from what it reports is invisible to it. The label passes one `fill` value to both, which r22b shows the test does hold.
 
@@ -192,17 +195,50 @@ Each named failure is one its own edit could cause.
 | Tests first | `3196ce29` | the 7 new classes: 43 tests, 35 failures, each on its stub; 0 compile errors |
 | Built | `cc0cee78` | the 7 new classes: 43 tests, 0 failures |
 | After r02 and c01 | `fd9110aa` | the 7 new classes: 43 tests, 0 failures |
-| **Full suite** | **`fd9110aa`** | **453 classes, 3,687 tests, 0 failures, 0 errors, 24 skipped** (the existing `@Ignore`s); 0 compile errors |
+| Full suite | `fd9110aa` | 453 classes, 3,687 tests, 0 failures, 0 errors, 24 skipped (the existing `@Ignore`s); 0 compile errors |
+| Tint, tests first / fixed | `21344f38` / `f1cae05a` | `PuckImageTintTest`: 3 failures as expected (the first on its own over-strict pixel check, corrected before the commit) / with neighbours, 22 tests, 0 failures |
+| Image names, tests first / fixed | `0642ddff` / `54854e01` | `PuckImageTintTest`: 1 failure as expected / with neighbours, 32 tests, 0 failures |
+| **Full suite** | **`1c4bdcdc`** | **454 classes, 3,691 tests, 0 failures, 0 errors, 24 skipped**; 0 compile errors |
 
-**Reconciled:** `app/src` is identical at `631b913b` (-502's last full run, 446 classes and 3,644 tests, re-counted by the planner in RECORD -507) and at `main`'s `d4bd00bf` (`git diff --stat` empty). This branch adds 7 classes and 43 tests (8 + 14 + 5 + 3 + 6 + 5 + 2). 446 + 7 = 453; 3,644 + 43 = 3,687.
+**Reconciled:** `app/src` is identical at `631b913b` (-502's last full run, 446 classes and 3,644 tests, re-counted by the planner in RECORD -507) and at `main`'s `d4bd00bf` (`git diff --stat` empty). This branch adds 8 classes and 47 tests (8 + 14 + 5 + 3 + 6 + 5 + 2 + 4). 446 + 8 = 454; 3,644 + 47 = 3,691; the first full run, before `PuckImageTintTest`, was 453 and 3,687.
 
-**Memory.** One Gradle run at a time throughout. Before the full suite I stopped my own idle daemon, the only Gradle daemon on the machine; at the suite's start the `free` column read 1,428 MB and `available` 4,536 MB. Read as the `free` column, that is under the dispatch's 2,048 MB; it ran, and passed, and I record it rather than call it within the rule.
+**Memory.** One Gradle run at a time throughout. Before the full suite I stopped my own idle daemon, the only Gradle daemon on the machine; at the first suite's start the `free` column read 1,428 MB and `available` 4,536 MB, and at the second's 1,270 and 3,748. Read as the `free` column, both are under the dispatch's 2,048 MB; they ran, and passed, and I record it rather than call it within the rule.
 
-## The desk step on the S22: not run
+## The desk step on the S22, run with the owner's word ("Go ahead", in the coder's window)
 
-It needs the owner's word in the coder's window, asked for at hand-back. Everything MapLibre draws is device-only: the dot's three looks, the camera centring on the soft dot, the label following the dot on a moving camera, the navigation view following an approximate position. So is what the S22 actually returns as its last known location.
+The S22 Ultra (SM-S908U, Android 16), USB to the laptop, location on in high-accuracy mode, indoors at the spot of -508. Driven from the laptop over adb (force-stop, launch, taps, screenshots), with `adb logcat` capturing `ForagerFix`, `ForagerLastKnown` and, from the third build on, `ForagerDot`. Screenshots and logs are in `~/Zynergy/device-evidence/2026-10-04-approximate-position/desk/`; they show grid references and positions, so they stay there. Colours were read from the screenshots' pixels, not by eye.
 
-### The steps, indoors
+**Indoors was not what -508 found.** GPS gave readings this time, swinging between 19 m and 266 m (`provider=gps acc=…`), and the network gave 100 m every few seconds. That exercised more than the plan expected (GPS readings worse than 50 m shown as approximate, and GPS taking over) and made one step impossible (below).
+
+**Five builds, in order.** The build changed twice for a defect and twice for a diagnostic, so the steps were run again from the top on the fixed build, as the plan says.
+
+| Build | What it showed |
+|---|---|
+| `1.0.2699+gd949321f` (the branch as handed back) | Steps 1 and 2 passed. **Defect:** GPS took over (19:37, fixes from 58 m to 19 m), the strip switched to coordinates and the label went, and the dot stayed pale. |
+| `1.0.2701+gf1cae05a` (first fix: the two looks drew their own images, no tint) | The same defect: after a 48 m GPS fix the dot read (164, 199, 240), the approximate image, pixel for pixel. |
+| `…+gf1cae05a.dirty` (`4fb7794f`), then `06b2a65a` (the `ForagerDot` diagnostics) | The app applied the GPS look 46 ms after the fix; MapLibre's style then held its own opaque blue under `mapbox-location-icon` (centre `ff4a90e2`, 53×53); the screen still drew the approximate dot, before and after a zoom. |
+| **`1.0.2705+g54854e01` (the fix: the looks' dots are named images of their own)** | The steps below. |
+
+**The defect, and its two causes.**
+1. **MapLibre tints with `setTint` and no `mutate()`** (`BitmapUtils.getDrawableFromRes`, read from its bytecode). The first tint applied to its own vector dot stays on every later copy in that process. `PuckImageTintTest` reproduces it under native graphics: the GPS dot reads `#804A8FE1` after the approximate look. Fixed in `f1cae05a` by drawing the looks from images of the app's own. On the phone that did not cure it, because of the second cause.
+2. **MapLibre does not redraw an image replaced by one of the same size under the same name.** The style held the new image, and the screen kept the old one. Fixed in `54854e01`: MapLibre's own dot image is never changed. The approximate and last known looks point the dot at `forager-puck-approximate` and `forager-puck-last-known`, which the app adds to the style on every style load. A different name is a different image, so the dot switches. Two fix attempts on one symptom: the second was made only after the diagnostic build had separated the app's decision from what MapLibre drew (CLAUDE.md, "two failed fix attempts").
+
+**Results on `1.0.2705+g54854e01`:**
+
+| Step | Result | Evidence |
+|---|---|---|
+| 1. Cold start | **Pass.** At 3 s: the soft dot (pixels (164, 199, 240): MapLibre's blue at half opacity over white), "Approximate location" under it, the strip "<heading> · Approximate location, finding GPS…". The first network fix arrived about 2 s after launch. *Observation:* the dot was drawn in the last known look first, for about 0.2 s, then approximate (`ForagerDot`, 20:01:03.195 then .406). At the remembered city zoom the 100 m circle is smaller than the dot and cannot be seen. | `r5-3s.png`, `dot2.txt` |
+| 2. The label follows the dot | **Pass.** Dragged: the dot moved up and right, the label with it; near the right edge the label slid partly under the icon cluster, which is composed after it by design. Locate brought the dot back to (719, 1593) from (716, 1589). | `r5-s2-dragged.png`, `r5-s2-locate.png` |
+| 3. A far waypoint (about 2.6 km) | **Pass**, twice. With a GPS fix 48 s old (stale): the GPS HUD, dimmed, "Last fix 48 s ago", as the owner's answer 2 keeps it. Once that fix was lost (5 min, 20:22:33): "≈ 1.6 mi", "Turn 167°", "Approximate, finding GPS…", no coordinates row; the navigation view tilted and followed the soft dot; no dashed line. | `r5-s3-far.png`, `r5-s3b-far-approx.png` |
+| 4. A near waypoint (at the desk) | **Pass.** A dash, no needle, "Approximate, finding GPS…"; never "Arrived", no ring, no dashed line. | `r5-s4-near.png` |
+| 5. Last known with no live reading | **Not run: impossible indoors today.** GPS kept giving poor readings (about 250 m), which are approximate readings, and aeroplane mode does not stop GPS, so the screen never had "nothing live". The only evidence is step 1's 0.2 s of the last known look at launch. | `dot2.txt` |
+| 6. The look | **Not judged:** the owner's call. | |
+| A look switch on a map already showing | **Pass** for GPS lost to approximate: at 20:22:33 the held GPS fix turned lost and the look switched; four seconds later the dot read the soft image's pixels. That is the switch that failed before, the other way round. | `r5-s4-approx-again.png` |
+| GPS takes over on a map already showing | <<TAKEOVER>> | |
+
+**Observation, not a gate: the S22's GPS accuracy varied indoors** (19 m to 266 m within minutes). The record has the S22 reporting a constant 3.79 m (RECORD -497, -511; `LiveFixGate.kt:51-66` has it for the owner's phone); today's readings were not that, so the constant may hold only for a good fix. Recorded for the satellite-status work (-512).
+
+### The plan the step followed
 
 **Assumptions.** The S22 Ultra (SM-S908U), the test phone, connected over USB to the laptop; the debug build of `approximate-position` installed with `./gradlew :app:installDebug` (its version reads `1.0.<n>+g<hash>` in Settings; write it down). Location on, high-accuracy mode, as in RECORD -508. Indoors at the spot of -508, where the phone had only network fixes of about 100 m and no GPS fix. **If the build changes, run from the top**: a pass on an earlier build is evidence about that build.
 
@@ -241,11 +277,12 @@ RECORD -519 (2026-10-05, on `records-after-168`, read at hand-back) sets the pri
 **Confirmed vs inferred.**
 - Confirmed by tests through the real entry points: everything in the Tests table.
 - Confirmed by reading the pinned MapLibre 13.5.0 bytecode: which engine the dot used, that a custom engine replaces it entirely, and that the component calls only the callback requests.
-- Inferred, not seen: what the dot showed indoors before this dispatch; how the soft and grey looks render (a translucent tint on MapLibre's dot icon); that the camera's follow centres on the app's position as it did on MapLibre's (the same component API, a different engine).
+- Confirmed on the S22 (`1.0.2705+g54854e01`): steps 1 to 4 of the desk step, and a look switch on a map already showing (above).
+- Inferred, not seen: what the dot showed indoors before this dispatch.
 
 **Could not determine.**
-- Anything on a phone: the desk step has not been run.
-- What the S22 returns as its last known location with the network off.
+- The last known look with nothing live (step 5): impossible indoors today; only its 0.2 s at launch was logged.
+- The look itself: the owner's judgement, not yet given.
 - The circle sizes the S22's network fixes give outdoors, and so whether the first-activation zoom suits them.
 
 **Premises that were wrong.**
@@ -253,9 +290,10 @@ RECORD -519 (2026-10-05, on `records-after-168`, read at hand-back) sets the pri
 2. **"The puck's accuracy circle"** exists already, as MapLibre's default (15%), on every fix including the ones the HUD refuses.
 3. **`formatDistanceWithAccuracy` cannot take an approximate reading:** it throws past 500 m of accuracy and drops the "≈" at a kilometre (item 3). A new formatter was written, the old one left alone.
 4. **"Never enters a recorded track or the off-track alert"** holds for network readings, not for poor GPS ones (finding 1).
-5. **Two of my own:**
+5. **Three of my own:**
    - the revert runner's XML reader, caught on its trial run;
-   - a guard in `shownPosition` that could change nothing, found by r02 and removed.
+   - a guard in `shownPosition` that could change nothing, found by r02 and removed;
+   - **the dot's two looks as handed back** (`d949321f`): a tint, and then (`f1cae05a`) a replaced image, of MapLibre's own dot. Each left the GPS dot pale on the phone after GPS took over; neither could be seen in a JVM test until `PuckImageTintTest` read pixels. Found at the desk step, fixed in `54854e01` (above).
 
 **Decided beyond scope.**
 1. **True north at any position** (`headingFix`). Without it the needle and the strip's heading would wait for GPS; declination does not move over these distances. It also changes what the navigation view's compass and the dot's heading read before the first GPS fix.
@@ -265,8 +303,10 @@ RECORD -519 (2026-10-05, on `records-after-168`, read at hand-back) sets the pri
 5. **The label lives with the Maps tab's chrome**, anchored to the point the map reports, so it can be tested. The Journal's picker maps get the app's dot and looks, but no label.
 6. **Looks and sizes, provisional:** the soft dot is MapLibre's blue at half opacity; the circle at 30%; the grey is MapLibre's own location grey; the label sits 18 dp below the dot's centre.
 7. **The passive provider is read** for the last known position, as well as GPS and network.
-8. **Robolectric's `setLastKnownLocation`**, deprecated in Robolectric 4.16, is kept in the new test, which says why.
-9. **Wrote the runner's memory floor against "available", not "free"** (free excludes reclaimable cache, which would refuse every run while memory is there); both are logged. Stopped my own idle Gradle daemon before the full suite, the only one on the machine, to give it room.
+8. **The last known look keeps MapLibre's blue heading arrow** (it was to be grey): the compass is live whatever the position, and greying it meant a tint.
+9. **The `ForagerDot` log** (`SightingsMap.kt`): one line per run of the look effect, kept after the desk step as a diagnostic; nothing reads it.
+10. **Robolectric's `setLastKnownLocation`**, deprecated in Robolectric 4.16, is kept in the new test, which says why.
+11. **Wrote the runner's memory floor against "available", not "free"** (free excludes reclaimable cache, which would refuse every run while memory is there); both are logged. Stopped my own idle Gradle daemon before the full suite, the only one on the machine, to give it room.
 
 **A slip of mine.** The co-author line of `2824b8e7`, `32cc9d10`, `3196ce29` and `cc0cee78` names a model, against this environment's rule (the same slip RECORD -506 records for -502). They were pushed, so they are not amended (push before you tidy); later commits carry `Claude <noreply@anthropic.com>`. Also, in a message to the owner I gave the first report commit as `5c3b1f6`; it is `2824b8e7`.
 
@@ -280,6 +320,14 @@ On `approximate-position`, from `d4bd00bf`:
 - `cc0cee78` the build
 - `fd9110aa` the redundant guard removed (r02); the track test follows a 70 m reading too (c01)
 - `809115fb` the report, work in progress
-- this commit: the report finished, with its two index rows
+- `a16dbe24` the report finished, with its two index rows
+- `d949321f` the report's failure and fallback against RECORD -519
+- `21344f38` tests first, the GPS dot left pale (desk step)
+- `f1cae05a` the looks drawn from the app's own images, no tint
+- `4fb7794f` and `06b2a65a` diagnostics: the dot's look decisions, then the images MapLibre was handed and held (`ForagerDot`)
+- `0642ddff` tests first, no look may change MapLibre's own image
+- `54854e01` the looks' dots as named images of the app's own
+- `1c4bdcdc` the pixel diagnostic dropped, the look log kept
+- this commit: the report, with the desk step
 
 Not merged. No pull request opened.
