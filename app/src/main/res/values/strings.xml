@@ -9,10 +9,14 @@
     <string name="track_recording_needs_location">Track recording needs location access.</string>
     <string name="track_recording_already_recording">Forager is already recording a track. Stop it before starting another.</string>
     <string name="sundown_notification_channel_name">Sundown alert</string>
-    <string name="sundown_notification_channel_description">Tells you when to start heading back, and when the sun sets.</string>
-    <string name="sundown_turnaround_notification_title">Time to head back</string>
-    <!-- Says what is true and never that there is enough time: the walk back is not estimated. -->
-    <string name="sundown_turnaround_notification_text">Sunset is coming. Under trees or in a valley it gets dark sooner.</string>
+    <string name="sundown_notification_channel_description">Tells you when the sun sets and how long the walk back is.</string>
+    <!-- Dispatch 2026-09-28-516: the heads-up and leave-by alerts inform and never order the walker back. %1$s is the sunset time. -->
+    <string name="sundown_alert_title">Sunset at %1$s</string>
+    <!-- Only a measured walk back may say anything about getting back; "the way you came" because loops come home longer. Proposed, for the owner's approval. -->
+    <string name="sundown_heads_up_text_measured">The walk back the way you came is about %1$s. Leave within 30 min to walk it before dark.</string>
+    <string name="sundown_leave_by_text_measured">The walk back the way you came is about %1$s.</string>
+    <string name="sundown_walk_back_at_least">The walk back is at least %1$s.</string>
+    <string name="sundown_walk_back_unknown">The walk back is unknown.</string>
     <string name="sundown_sunset_notification_title">The sun has set</string>
     <string name="sundown_sunset_notification_text">Light is going now.</string>
     <string name="off_track_notification_channel_name">Off-track alert</string>

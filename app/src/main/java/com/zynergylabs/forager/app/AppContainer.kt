@@ -111,6 +111,7 @@ import com.zynergylabs.forager.app.domain.GetMapRecordsUseCase
 import com.zynergylabs.forager.app.domain.MapLayerPreferencesRepository
 import com.zynergylabs.forager.app.forecast.forecastCellStore
 import com.zynergylabs.forager.app.domain.SundownPreferencesRepository
+import com.zynergylabs.forager.app.domain.SundownWatch
 import com.zynergylabs.forager.app.domain.WaypointNavigationRepository
 import com.zynergylabs.forager.app.domain.MushroomLogRepository
 import com.zynergylabs.forager.app.domain.MushroomRepository
@@ -352,6 +353,18 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     }
 
     val waypointRepository: WaypointRepository = RoomWaypointRepository(database.waypointDao())
+
+    // The three sundown alerts, held here so they outlive the Activity, as ReturnWatch is
+    // (dispatch 2026-09-28-516). TrackRecordingService begins, feeds, ticks and ends it.
+    val sundownWatch = SundownWatch(
+        alertDelivery = alertDelivery,
+        clock = currentTimeProvider,
+        preferences = sundownPreferencesRepository,
+        readTrack = trackRepository::getById,
+        readWaypoint = waypointRepository::getById,
+        isReturning = { trackId -> returnWatch.state.value.let { it.trackId == trackId && it.isReturning } },
+        errorLog = errorLog,
+    )
     val createWaypointUseCase = CreateWaypointUseCase(waypointRepository)
     val getWaypointsUseCase = GetWaypointsUseCase(waypointRepository)
     val deleteWaypointUseCase = DeleteWaypointUseCase(waypointRepository)
