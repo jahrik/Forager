@@ -1108,6 +1108,16 @@ fun SightingsMap(
         component.applyStyle(liveLocationComponentOptions(context, navigating = navigationModeChange.gestureProtection, look = positionLook))
         appliedPositionLook[0] = positionLook
         Log.i(POSITION_DOT_LOG_TAG, "applied look $positionLook")
+        // Diagnostic: what MapLibre was handed and what its style now holds, as centre pixels.
+        val applied = component.locationComponentOptions
+        val built = org.maplibre.android.utils.BitmapUtils.getBitmapFromDrawable(
+            org.maplibre.android.utils.BitmapUtils.getDrawableFromRes(context, applied.foregroundDrawable(), applied.foregroundTintColor()),
+        )
+        val held = map.style?.getImage("mapbox-location-icon")
+        Log.i(
+            POSITION_DOT_LOG_TAG,
+            "foreground res ${applied.foregroundDrawable()} tint ${applied.foregroundTintColor()}; built centre ${built?.let { Integer.toHexString(it.getPixel(it.width / 2, it.height / 2)) }} ${built?.width}x${built?.height}; style holds ${held?.let { Integer.toHexString(it.getPixel(it.width / 2, it.height / 2)) }} ${held?.width}x${held?.height}",
+        )
     }
 
     // Re-engages GPS camera tracking on demand — the map redesign's GPS/locate-me icon, tapped
