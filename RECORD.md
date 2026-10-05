@@ -11886,3 +11886,13 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **What the planner checked itself:** the full suite's 454 XML files in the coder's worktree at 895104b5 (3,691 tests, 0 failures, 0 errors, 24 skipped); no compile-error lines in the full and revert logs. The coder's logs were in `/tmp/535`; the planner copied them to `~/Zynergy/device-evidence/2026-10-05-no-position-bubble/`.
 **Not shown:** the look on a phone, left for the next S22 session after it merges, with the grey dot still unconfirmed.
 **Notes:** Written by the planner by hand, on branch records-after-172.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-537
+**Timestamp:** 2026-10-05T16:30:00Z
+**Continues:** 2026-09-28-536
+**Observed:** pull request #173 (t535-merge into main: -535 and records -525 to -536) was merged as 1d3d2bbb35411888fc65c702742c7a922d0a87f6 at 2026-10-05T16:27:39Z, on green CI at its head 59c1e1648b6080d1099679022dd641ae455a868e (run 37339889002, 7 m 29 s), read from GitHub, on the owner's "Merge now (Recommended)", with backup 2026-10-05-02 of main at a9dfdd59. Main's tree equals t535-merge's.
+**Next:** the -516 coder brings main (1d3d2bbb) into sundown-alerts before its S22 step at sunset, so the S22 runs a build with no bubble too.
+**Notes:** Written by the planner by hand, on branch records-after-173 cut from main at 1d3d2bbb.
