@@ -11910,3 +11910,13 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 3. Where it runs: in the recording service (survives a swipe-away), and what serves the map when nothing is recording.
 4. The dead-reckoning cap (provisionally about 5 minutes or 300 m, not derived) and the jump gate, from the logs.
 **Notes:** Written by the planner by hand, on branch records-after-173.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-539
+**Timestamp:** 2026-10-05T18:35:00Z
+**Continues:** 2026-09-28-533
+**Observed by the planner over adb, read only:** the S26 is an SM-S948U (build CP2A.260605.016), Forager 1.0.2695+gc3ba0f46 sideloaded (installer com.google.android.packageinstaller, first installed 2026-10-03, updated 2026-10-04), signed with the committed `app/debug.keystore` (certificate SHA-256 CB:2F:6D:A5…, compared with keytool). So laptop debug builds install over it as updates with its data kept; -533's "S26 has no Play version" holds. Commit c3ba0f46 is on no branch of the remote.
+**The owner, verbatim:** "My S26 is connected and ready to load up". The walk logger is not built yet; asked what to load, the owner chose "-516's build (Recommended)": the sundown alerts on main 1d3d2bbb, installed by the -516 coder on a Gradle go, so the S26 can run the sunset check beside the S22 or the out-and-back walk.
+**Notes:** Written by the planner by hand, on branch records-after-173.
