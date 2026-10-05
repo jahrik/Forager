@@ -78,6 +78,17 @@ class SundownWatchTest {
 
     private fun tick() = runBlocking { watch.tick() }
 
+    /** Sunset where [point] is: the watch computes it at the newest fix, which is up to 1.4 km north of [origin]. */
+    private fun sunsetAt(point: TrackPoint) =
+        (ComputeSundownCountdownUseCase()(morning, LatLng(point.lat, point.lng), morning, 0L) as SundownCountdown.Known).sunsetAtEpochMillis
+
+    /**
+     * The crossing search is exact to a fraction of a second, and its answer moves by that much
+     * with the time it searches from (0.3 s seen), so a sunset is checked to the second.
+     */
+    private fun assertSameSunset(expected: Long, actual: Long) =
+        assertTrue("sunset $actual within a second of $expected", kotlin.math.abs(actual - expected) < 1_000L)
+
     private fun kinds() = delivered.map { it.second.kind }
 
     /** Ticks once a minute from [from] to [to], feeding a fresh GPS fix at [at] before each. */
@@ -102,6 +113,7 @@ class SundownWatchTest {
         track = trackOf(points)
         val here = points.last()
         val walkBack = measuredWalkBack(points, here)
+        val sunset = sunsetAt(here)
         val leaveBy = sunset - hour - walkBack
 
         watch.begin("t1")
@@ -114,7 +126,8 @@ class SundownWatchTest {
         assertTrue("heads-up within the minute of leave-by minus 30 min", headsUpAt in (leaveBy - 30 * minute)..(leaveBy - 29 * minute))
         assertTrue("leave-by within the minute of leave-by", leaveByAt in leaveBy..(leaveBy + minute))
         assertTrue("sunset within the minute of sunset", sunsetAt in sunset..(sunset + minute))
-        assertEquals(SundownAlertDetail(sunset, WalkBack.About(walkBack)), headsUp.sundown)
+        assertEquals(WalkBack.About(walkBack), headsUp.sundown?.walkBack)
+        assertSameSunset(sunset, headsUp.sundown!!.sunsetAtEpochMillis)
         assertTrue("every sundown alert overrides a silenced phone", delivered.all { it.second.overridesSilence })
     }
 
@@ -171,8 +184,10 @@ class SundownWatchTest {
 
         assertEquals(listOf(AlertKind.HEADS_UP, AlertKind.LEAVE_BY, AlertKind.SUNSET), kinds())
         val leaveByAt = delivered[1].first
-        assertTrue("leave-by at sunset minus the margin", leaveByAt in (sunset - hour)..(sunset - hour + minute))
-        assertEquals(SundownAlertDetail(sunset, WalkBack.Unknown), delivered[1].second.sundown)
+        val sunsetHere = sunsetAt(points.last())
+        assertTrue("leave-by at sunset minus the margin", leaveByAt in (sunsetHere - hour)..(sunsetHere - hour + minute))
+        assertEquals(WalkBack.Unknown, delivered[1].second.sundown?.walkBack)
+        assertSameSunset(sunsetHere, delivered[1].second.sundown!!.sunsetAtEpochMillis)
     }
 
     @Test

@@ -44,8 +44,9 @@ import kotlinx.coroutines.sync.withLock
  * confident figure it does not have.
  *
  * **The sunset held.** [ComputeSundownCountdownUseCase] always reports the *next* sunset, so
- * after sunset it reports tomorrow's. The watch holds the sunset it has been counting toward once
- * it passes, which is what lets the sunset alert fire at all. A recording started after sunset
+ * at sunset it reports tomorrow's (and its search turns over a fraction of a second early). The
+ * watch keeps the sunset it has been counting toward and refuses a jump to the next day, which is
+ * what lets the sunset alert fire at all. A recording started after sunset
  * counts toward tomorrow's and alerts on nothing tonight: the night foray the owner described.
  *
  * ## When nothing more fires
@@ -149,10 +150,14 @@ class SundownWatch(
         val marginMillis = marginMinutes * 60_000L
         val computed = computeCountdown(now, LatLng(anyFix.lat, anyFix.lng), anyFix.timestampEpochMillis, marginMillis)
         if (computed !is SundownCountdown.Known) return@withLock
-        // The countdown always looks for the *next* sunset, so a minute after sunset it reports
-        // tomorrow's and "past sunset" never happens. Hold the one this recording is counting
-        // toward once it has passed; until then, follow the walker's position.
-        val countdown = heldSunset?.takeIf { it <= now }?.let { computed.copy(sunsetAtEpochMillis = it, turnaroundAtEpochMillis = it - marginMillis) } ?: computed
+        // The countdown always looks for the *next* sunset, so at sunset it reports tomorrow's and
+        // "past sunset" never happens; its search also turns to tomorrow a fraction of a second
+        // before the sunset it reported a minute earlier. So once this recording has a sunset, a
+        // new one is taken only if it is the same evening (the walker's position moves it by
+        // seconds); a jump to the next day keeps the one held.
+        val countdown = heldSunset?.takeIf { computed.sunsetAtEpochMillis - it > SAME_SUNSET_WITHIN_MILLIS }
+            ?.let { computed.copy(sunsetAtEpochMillis = it, turnaroundAtEpochMillis = it - marginMillis) }
+            ?: computed
 
         val track = readTrack(id).getOrElse { error ->
             errorLog.w(TAG, "Couldn't read track '$id' for the walk back; it is unknown for this evaluation.", error)
@@ -229,5 +234,8 @@ class SundownWatch(
 
     private companion object {
         const val TAG = "SundownWatch"
+
+        /** Further than this from the held sunset is another day's, not a moved one: ~24 h apart, against seconds per km. */
+        const val SAME_SUNSET_WITHIN_MILLIS = 12L * 60L * 60L * 1_000L
     }
 }
