@@ -11946,3 +11946,5 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Why it matters beyond the test:** a phone whose clock is wrong (set by hand, or a phone without a SIM that never syncs) loses every precise position the app shows, with GPS working. The platform offers a clock that cannot be set by hand (`Location.getElapsedRealtimeNanos` against `SystemClock.elapsedRealtime`), which the app already uses elsewhere (`ui/log/CameraAbsence.kt:47`). This is the "phone's clock" row -519's fallback table did not yet have.
 **Open for the owner:** who set the clocks and why; whether to set them back (not done by the planner); and a fix, to be dispatched after a log confirms the diagnosis.
 **Notes:** Written by the planner by hand, on branch records-after-173.
+
+**Confirmed (2026-10-05T20:31Z, read only):** each phone's newest `ForagerFix` GPS line, logged moments before, carries `time=` 249 min (S22) and 250 min (S26) behind that phone's own clock (`adb shell date +%s%3N`). The diagnosis in -540 holds: GPS is fine; the phones' clocks are wrong, and the app measures a fix's age against them.
