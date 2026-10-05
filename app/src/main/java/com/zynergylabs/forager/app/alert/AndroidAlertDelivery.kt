@@ -248,18 +248,18 @@ internal fun postSundownNotification(context: Context, alert: Alert): Boolean {
 }
 
 /**
- * The sundown alerts' words (dispatch 2026-09-28-516; the owner's copy rulings in the coder's
- * window, 2026-10-04). The heads-up and leave-by are titled with the sunset time and never order
- * the walker back ("instead of 'turn around now' just tell them when sundown is"; people go on
- * night forays). The walk back is said the way the estimate supports it:
+ * The sundown alerts' words (dispatch 2026-09-28-516; the owner's wording in the coder's window,
+ * 2026-10-05). The heads-up and leave-by are titled with the sunset time and never order the
+ * walker back ("instead of 'turn around now' just tell them when sundown is"; people go on night
+ * forays). They share their text; the start-by clock time tells them apart, and a clock time
+ * rather than "in 30 min" keeps a notification read late true. The walk back is said the way the
+ * estimate supports it:
  *
- * - measured ([WalkBack.About]): "about", **the way you came**, because on the owner's three
- *   S22 walks the way home was longer than the way out and the estimate measures only the way
- *   out. Only this case may say anything about getting back, and only on the heads-up, where the
- *   30 minutes is new information; the leave-by's own "leave now" would be derivable from its
- *   first sentence (the owner);
- * - thin ([WalkBack.AtLeast]): "at least", and no promise;
- * - withheld ([WalkBack.Unknown]): "unknown".
+ * - measured ([WalkBack.About]): "about", **the way you came** (on the owner's three S22 walks the
+ *   way home was longer than the way out, and the estimate measures only the way out), and the
+ *   start-by time;
+ * - thin ([WalkBack.AtLeast]): "at least", and the start-by time "at the latest";
+ * - withheld ([WalkBack.Unknown]): "unknown", and nothing about getting back.
  *
  * The sunset alert is unchanged. An alert with no [Alert.sundown] (none is built that way) says
  * the walk back is unknown rather than inventing a time.
@@ -268,16 +268,14 @@ internal fun sundownNotificationText(context: Context, alert: Alert): Pair<Strin
     if (alert.kind == AlertKind.SUNSET) {
         return context.getString(R.string.sundown_sunset_notification_title) to context.getString(R.string.sundown_sunset_notification_text)
     }
-    val detail = alert.sundown
-    val title = detail?.let {
-        context.getString(R.string.sundown_alert_title, DateFormat.getTimeFormat(context).format(Date(it.sunsetAtEpochMillis)))
-    } ?: context.getString(R.string.sundown_notification_channel_name)
-    val text = when (val walkBack = detail?.walkBack ?: WalkBack.Unknown) {
-        is WalkBack.About -> context.getString(
-            if (alert.kind == AlertKind.HEADS_UP) R.string.sundown_heads_up_text_measured else R.string.sundown_leave_by_text_measured,
-            formatWalkDuration(walkBack.millis),
-        )
-        is WalkBack.AtLeast -> context.getString(R.string.sundown_walk_back_at_least, formatWalkDuration(walkBack.millis))
+    val detail = alert.sundown ?: return context.getString(R.string.sundown_notification_channel_name) to
+        context.getString(R.string.sundown_walk_back_unknown)
+    val clock = DateFormat.getTimeFormat(context)
+    val title = context.getString(R.string.sundown_alert_title, clock.format(Date(detail.sunsetAtEpochMillis)))
+    val startBy = clock.format(Date(detail.leaveByAtEpochMillis))
+    val text = when (val walkBack = detail.walkBack) {
+        is WalkBack.About -> context.getString(R.string.sundown_walk_back_measured, formatWalkDuration(walkBack.millis), startBy)
+        is WalkBack.AtLeast -> context.getString(R.string.sundown_walk_back_at_least, formatWalkDuration(walkBack.millis), startBy)
         WalkBack.Unknown -> context.getString(R.string.sundown_walk_back_unknown)
     }
     return title to text
