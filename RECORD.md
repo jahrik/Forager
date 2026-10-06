@@ -12134,3 +12134,16 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Backup:** 2026-10-06-01
 **Observed:** pull request #174 (t516-merge into main: -516 sundown-alerts at d85b4ae2 with records-after-173 at 57e5618f, the audit index resolved keeping every row) was merged as 4b72b25c at 2026-10-06T02:31:59Z, on green CI at its head ff0c6bc6 (run 37403790321, 9 m 16 s), read from GitHub, on the owner's "open the pr and merge when ready". Main's tree equals t516-merge's. -554 (09e74a42) is on records-after-173 after the PR's head, not yet on main. Plan tasks T2, T12 and T13 are now on main.
 **Notes:** Written by the planner by hand, on branch records-after-173.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-556
+**Timestamp:** 2026-10-06T03:33:00Z
+**Closes:** 2026-09-28-551 (preserved 2026-10-06-03)
+**Outcome:** completed; on main through PR #174 (4b72b25c)
+**Observed:** 57e5618f on records-after-173: the section "The 4:32 PM walk (added for -550)" appended to `docs/audits/2026-10-06-walks-2026-10-05-estimate-replay-and-clock.md`, its index row, and finding -552. No stop. The walk is a loop with a tail: every way-out row matches the way back's last 320 m, 0 to 6 m off, so "actual" there is the same route home; the turnaround row is shown beside the walk round the loop, as a different route, the way -516's report showed its loops. On the same-route rows the estimate, on the default pace and "at least" throughout, ran equal to about 1.6 times the actual, with one row under (the S26's quarter by time, 0.0 against 0.2 min, 8 m from the start, a saved track 2 m long), reported as under.
+**What the planner checked itself:** `git diff e960da49 57e5618f` removes nothing in RECORD.md, the index or the doc (the doc's earlier text unchanged). The doc holds no decimal-degree figure. The S26 and S22 quarter-by-time rows read from `est-432/s26.out` and `s22.out` in the evidence folder as the doc tables them. 16 of the run's 17 source files are blobs of bf34fc87 by `git hash-object` (the 17th is the harness). The same-route ratios recomputed from the doc's tables: 1.15 to 1.63, matching "about 1.15 to 1.6".
+**Correction, -552 not edited:** its Timestamp, 2026-10-06T03:00:00Z, is later than its own commit (57e5618f, 02:21:01Z); the same slip -546 recorded for -545.
+**Not checked by the planner:** the by-distance rows beyond the table's own arithmetic, the loop and last-leg split (the coder's 10 m threshold, used only to describe the walk), the point counts.
+**Notes:** Written by the planner by hand, on branch records-after-173 at 52a7acf7. Next free ID -557.
