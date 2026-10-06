@@ -7,6 +7,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * One walk log from start to stop, against a fake phone (dispatch 2026-09-28-532, Evidence):
@@ -14,7 +17,12 @@ import org.junit.rules.TemporaryFolder
  * unsupported, never left out; running out of storage stops the log and says so. The service-level
  * half (the log follows the recording, and storage-low never stops the recording) is
  * `WalkLoggerServiceTest`. Coordinates are made up.
+ *
+ * Under Robolectric only because the code logs its stops through `android.util.Log`, which a plain
+ * JVM test here cannot call.
  */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36])
 class WalkLogSessionTest {
 
     @get:Rule

@@ -8,12 +8,20 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * The walk log's file (dispatch 2026-09-28-532, verify item 5 and RECORD -559 choice 4): it stops
  * below 200 MB free and says so in the file; what was written reaches the disk within the flush
  * interval, so a process killed mid-walk loses seconds, not the walk.
+ *
+ * Under Robolectric only because the code logs its stops through `android.util.Log`, which a plain
+ * JVM test here cannot call.
  */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36])
 class WalkLogWriterTest {
 
     @get:Rule
