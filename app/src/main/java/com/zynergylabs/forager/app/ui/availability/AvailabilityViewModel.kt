@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.ui.availability
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.zynergylabs.forager.app.domain.DEFAULT_DARKNESS_MARGIN_MINUTES
 import com.zynergylabs.forager.app.domain.AppThemePreferenceRepository
 import com.zynergylabs.forager.app.domain.AvailabilitySearchResult
 import com.zynergylabs.forager.app.domain.CachedSearchSummary
@@ -122,6 +123,22 @@ class AvailabilityViewModel(
     private val getLockCameraToPortrait: suspend () -> Result<Boolean> = { Result.success(false) },
     private val setLockCameraToPortrait: suspend (Boolean) -> Result<Unit> = { Result.success(Unit) },
     /**
+     * Settings' "Sundown" section (dispatch 2026-09-28-592, plan task T4): the alerts switch and the
+     * darkness margin, from [com.zynergylabs.forager.app.domain.SundownPreferencesRepository], the
+     * same borrowed-capability shape as the pairs above, defaulted to that repository's defaults.
+     */
+    private val getSundownAlertsEnabled: suspend () -> Result<Boolean> = { Result.success(true) },
+    private val setSundownAlertsEnabled: suspend (Boolean) -> Result<Unit> = { Result.success(Unit) },
+    private val getDarknessMarginMinutes: suspend () -> Result<Int> = { Result.success(DEFAULT_DARKNESS_MARGIN_MINUTES) },
+    private val setDarknessMarginMinutes: suspend (Int) -> Result<Unit> = { Result.success(Unit) },
+    /**
+     * Told a new margin once it is stored, so the sundown line's start-back time moves at once
+     * ([com.zynergylabs.forager.app.domain.SundownWatch.onMarginChanged]); `MainActivity` wires it to
+     * the watch. Not called when storing fails: the alerts read the stored margin, and the line must
+     * not show a time the alerts do not use.
+     */
+    private val onDarknessMarginStored: (Int) -> Unit = {},
+    /**
      * Where an offline-region delete still pending when this ViewModel is cleared is committed
      * (journal redesign J4): `viewModelScope` is cancelled by then. See [PendingDeleteCommitScope].
      */
@@ -183,6 +200,7 @@ class AvailabilityViewModel(
         loadNightModePreferences()
         loadAutoSaveLocationToPhotos()
         loadLockCameraToPortrait()
+        loadSundownPreferences()
         loadMapFullscreenPreference()
         loadThemeModePreference()
         loadMapLayerPreferences()
@@ -1166,6 +1184,46 @@ class AvailabilityViewModel(
             setAutoSaveLocationToPhotos(enabled).fold(
                 onSuccess = {},
                 onFailure = { error -> errorLog.w(TAG, "Couldn't persist the photo-location preference.", error) },
+            )
+        }
+    }
+
+    /** Restores the Sundown section's two settings; a failed read is logged and leaves the default (on, one hour) showing. */
+    private fun loadSundownPreferences() {
+        viewModelScope.launch {
+            getSundownAlertsEnabled().fold(
+                onSuccess = { enabled -> _uiState.update { it.copy(sundownAlertsEnabled = enabled) } },
+                onFailure = { error -> errorLog.w(TAG, "Couldn't read whether the sundown alerts are on; the default, on, is shown.", error) },
+            )
+            getDarknessMarginMinutes().fold(
+                onSuccess = { minutes -> _uiState.update { it.copy(darknessMarginMinutes = minutes) } },
+                onFailure = { error -> errorLog.w(TAG, "Couldn't read the darkness margin; the default is shown.", error) },
+            )
+        }
+    }
+
+    /**
+     * Settings' "Sundown alerts" checkbox. Gates the notifications only: the sundown line stays
+     * (the owner's step path, RECORD -592). Shown at once and stored in the background, as
+     * [onAutoSaveLocationToPhotosChanged] is; the watch reads the stored value at its next tick.
+     */
+    fun onSundownAlertsEnabledChanged(enabled: Boolean) {
+        _uiState.update { it.copy(sundownAlertsEnabled = enabled) }
+        viewModelScope.launch {
+            setSundownAlertsEnabled(enabled).onFailure { error -> errorLog.w(TAG, "Couldn't store whether the sundown alerts are on.", error) }
+        }
+    }
+
+    /**
+     * Settings' "Dark under trees" choice. Shown at once; once stored, the sundown line is told
+     * ([onDarknessMarginStored]) so its start-back time moves at once (the owner's step path).
+     */
+    fun onDarknessMarginChanged(minutes: Int) {
+        _uiState.update { it.copy(darknessMarginMinutes = minutes) }
+        viewModelScope.launch {
+            setDarknessMarginMinutes(minutes).fold(
+                onSuccess = { onDarknessMarginStored(minutes) },
+                onFailure = { error -> errorLog.w(TAG, "Couldn't store the darkness margin; the line and the alerts keep the one stored.", error) },
             )
         }
     }

@@ -8,7 +8,7 @@ import com.zynergylabs.forager.app.domain.nextRouteLine
 import com.zynergylabs.forager.app.domain.withoutPending
 import com.zynergylabs.forager.app.domain.model.ReturnToStartInfo
 import com.zynergylabs.forager.app.domain.model.Track
-import com.zynergylabs.forager.app.domain.model.SundownCountdown
+import com.zynergylabs.forager.app.domain.SundownLine
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
 import com.zynergylabs.forager.app.domain.model.Waypoint
@@ -122,13 +122,13 @@ data class TrackRecordingUiState(
     val networkFixesNotice: RecordingNotice? = null,
 
     /**
-     * When the light goes, for the position this recording last had a fix at.
-     *
-     * Always present and never null: [SundownCountdown] has a case for every situation including
-     * "no position yet", so a screen cannot render a blank where a time should be. See that type
-     * for why a blank is the specific failure worth designing against here.
+     * The sundown line for this screen's recording, as [com.zynergylabs.forager.app.domain.SundownWatch]
+     * publishes it (dispatch 2026-09-28-592, Amendment 1): the map's strip shows it while recording,
+     * the navigation display once Return or Navigate is tapped. `null` with no recording. While
+     * recording it is never blank: [SundownLine] has a case for every situation, "finding your
+     * position" included. Replaces the countdown this state carried, which nothing rendered.
      */
-    val sundownCountdown: SundownCountdown = SundownCountdown.NoPositionYet,
+    val sundownLine: SundownLine? = null,
     /**
      * The waypoint whose delete was asked for (a swipe on its Records row, journal redesign J4) and
      * has not run yet: the Undo snackbar is still up. See [TrackRecordingViewModel.requestRemoveWaypoint].

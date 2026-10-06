@@ -230,6 +230,8 @@ internal fun CompactMainScaffold(
     isReturning: Boolean,
     isNavigating: Boolean,
     isOffTrack: Boolean,
+    /** See [AvailabilityScreen]'s own `recordingSundownLine` doc comment. */
+    recordingSundownLine: com.zynergylabs.forager.app.domain.SundownLine?,
     compassProvider: CompassProvider,
     computeTrueHeading: ComputeTrueHeadingUseCase,
     navigationTarget: Waypoint?,
@@ -990,6 +992,7 @@ internal fun CompactMainScaffold(
                                 isReturning = isReturning,
                                 isNavigating = isNavigating,
                                 isOffTrack = isOffTrack,
+                                recordingSundownLine = recordingSundownLine,
                                 onToggleReturning = onToggleReturning,
                                 compassProvider = compassProvider,
                                 computeTrueHeading = computeTrueHeading,

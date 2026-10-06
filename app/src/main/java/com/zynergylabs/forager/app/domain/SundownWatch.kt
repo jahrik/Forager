@@ -5,6 +5,9 @@ import com.zynergylabs.forager.app.domain.model.SundownCountdown
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -19,8 +22,25 @@ import kotlinx.coroutines.sync.withLock
  * and driven by `TrackRecordingService`, which is what keeps the process alive while recording:
  * [begin] when a recording starts, [onFix] for every raw fix its collector receives, [tick] on its
  * own timer (and once at the first position), [end] when the recording stops or the service is
- * destroyed. Nothing else drives it. The screen does not read it (the countdown row is plan task
- * T3); it could, rather than computing twice.
+ * destroyed. Nothing else drives it.
+ *
+ * ## What the screen reads from it ([shown], dispatch 2026-09-28-592, Amendment 1, RECORD -593)
+ *
+ * The sundown line on the map's strip and the navigation display (plan task T3) is published here,
+ * as [shown], from the same tick that decides the alerts, so its "start back by" is the leave-by
+ * alert's own time ([sundownLeaveByAt]) and never a second computation of it. The service and the
+ * screen share this process (the service declares no `android:process`), so the recording ViewModel
+ * collects it as it collects [ReturnWatch]'s state. The owner, allowing it: "Yes, allow it
+ * (Recommended)". To that end every tick with a position computes and publishes the line, and the
+ * two checks that used to end a tick first, the alerts turned off and arrival, now sit just before
+ * deciding and delivering: the line stays with the alerts off (the switch "gates the notifications
+ * only") and after arrival. **Every alert still fires at the moment it did** (the owner's
+ * condition, `SundownWatchAlertMomentsTest`, written and run against `main` first): what the
+ * decision remembers (the fired set, the held sunset, the hop band) is still written only when the
+ * alerts are on and the walker has not arrived, and arrival is still only noticed with the alerts
+ * on. A margin changed in Settings re-derives the line at once ([onMarginChanged]) from the last
+ * tick's sunset and walk back, through the same function, and never decides or delivers anything;
+ * the next tick reads the new margin for the alerts as before.
  *
  * ## What each tick works out
  *
@@ -109,10 +129,36 @@ class SundownWatch(
     // the first evaluation with a position.
     private var sunsetAt: Long? = null
 
+    // What the last tick published the line from, for [onMarginChanged]. Null until a tick has a sunset.
+    private var lineInputs: LineInputs? = null
+
+    private val _shown = MutableStateFlow<SundownShown?>(null)
+
+    /**
+     * The sundown line for the recording being watched, or `null` when nothing is. Written under
+     * [lock]; a [StateFlow], so safe to read from any thread.
+     */
+    val shown: StateFlow<SundownShown?> = _shown.asStateFlow()
+
     /** The service has started recording [trackId]. Everything from any earlier recording is dropped. */
     fun begin(trackId: String) = synchronized(lock) {
         forget()
         this.trackId = trackId
+        _shown.value = SundownShown(trackId, SundownLine.FindingPosition)
+    }
+
+    /**
+     * The darkness margin was changed in Settings to [minutes]. Re-derives the line's start-back
+     * time at once from the last tick's sunset and walk back, with [sundownLeaveByAt], the function
+     * the alerts decide on. Display only: nothing is decided, delivered or remembered for the alerts,
+     * which read the margin themselves at the next tick. A tick already under way when this is called
+     * may publish once more with the margin it read; the next tick agrees with this.
+     */
+    fun onMarginChanged(minutes: Int) = synchronized(lock) {
+        val id = trackId ?: return@synchronized
+        val inputs = lineInputs ?: return@synchronized
+        val countdown = inputs.countdown.copy(turnaroundAtEpochMillis = inputs.countdown.sunsetAtEpochMillis - minutes * 60_000L)
+        _shown.value = SundownShown(id, sundownLineFor(countdown, inputs.position, startBackAt(countdown, inputs.walkBack)))
     }
 
     /**
@@ -141,22 +187,24 @@ class SundownWatch(
         first
     }
 
-    /** One evaluation. Delivers at most one alert. See the class header for what it works out. */
+    /** One evaluation. Publishes the line, and delivers at most one alert. See the class header for what it works out. */
     suspend fun tick() = tickMutex.withLock {
-        val (id, anyFix, gpsFix, alreadyFired, band, heldSunset) = synchronized(lock) {
-            val id = trackId
-            if (id == null || arrived) return@withLock
-            Snapshot(id, newestFix, newestGpsFix, fired, hopBand, sunsetAt)
+        val (id, anyFix, gpsFix, alreadyFired, band, heldSunset, arrivedBefore) = synchronized(lock) {
+            val id = trackId ?: return@withLock
+            Snapshot(id, newestFix, newestGpsFix, fired, hopBand, sunsetAt, arrived)
         }
         // With no live reading yet, the last known position gives the sunset, and only the sunset:
         // the walk back reads gpsFix, which a last known position never becomes.
-        val sunsetFrom = anyFix ?: lastKnownLocation.lastKnown()?.toTrackPoint() ?: return@withLock
+        val sunsetFrom = anyFix ?: lastKnownLocation.lastKnown()?.toTrackPoint() ?: run {
+            publish(id, SundownLine.FindingPosition, null)
+            return@withLock
+        }
+        val position = LatLng(sunsetFrom.lat, sunsetFrom.lng)
 
         val enabled = preferences.getAlertsEnabled().getOrElse { error ->
             errorLog.w(TAG, "Couldn't read whether the sundown alerts are on; they stay on, the default.", error)
             true
         }
-        if (!enabled) return@withLock
 
         val now = clock.nowEpochMillis()
         val marginMinutes = preferences.getDarknessMarginMinutes().getOrElse { error ->
@@ -164,15 +212,19 @@ class SundownWatch(
             DEFAULT_DARKNESS_MARGIN_MINUTES
         }
         val marginMillis = marginMinutes * 60_000L
-        val computed = computeCountdown(now, LatLng(sunsetFrom.lat, sunsetFrom.lng), sunsetFrom.timestampEpochMillis, marginMillis)
-        if (computed !is SundownCountdown.Known) return@withLock
+        val computed = computeCountdown(now, position, sunsetFrom.timestampEpochMillis, marginMillis)
+        if (computed !is SundownCountdown.Known) {
+            publish(id, sundownLineFor(computed, position, null), null)
+            return@withLock
+        }
         // The countdown always looks for the *next* sunset, so at sunset it reports tomorrow's and
         // "past sunset" never happens; its search also turns to tomorrow a fraction of a second
         // before the sunset it reported a minute earlier. So once this recording has a sunset, a
         // new one is taken only if it is the same evening (the walker's position moves it by
-        // seconds); a jump to the next day keeps the one held.
+        // seconds); a jump to the next day keeps the one held. Its civil dusk is the held sunset's
+        // own (dispatch -592, Amendment 1): the copy used to keep the computed one, tomorrow's.
         val countdown = heldSunset?.takeIf { computed.sunsetAtEpochMillis - it > SAME_SUNSET_WITHIN_MILLIS }
-            ?.let { computed.copy(sunsetAtEpochMillis = it, turnaroundAtEpochMillis = it - marginMillis) }
+            ?.let { computed.copy(sunsetAtEpochMillis = it, turnaroundAtEpochMillis = it - marginMillis, civilDuskAtEpochMillis = civilDuskAfter(it, position)) }
             ?: computed
 
         val track = readTrack(id).getOrElse { error ->
@@ -188,11 +240,14 @@ class SundownWatch(
         val freshness = gpsFix?.let { fixFreshness(now - it.timestampEpochMillis) } ?: FixFreshness.LOST
         val current = gpsFix?.let { LatLng(it.lat, it.lng) }
 
-        if (track != null && gpsFix != null && current != null && freshness != FixFreshness.LOST && isReturning(id)) {
+        // Arrival is noticed only with the alerts on, as it always was: the moments they fire at
+        // depend on when it is noticed.
+        var arrivedNow = arrivedBefore
+        if (enabled && !arrivedBefore && track != null && gpsFix != null && current != null && freshness != FixFreshness.LOST && isReturning(id)) {
             val start = origin?.let { LatLng(it.lat, it.lng) } ?: track.points.firstOrNull()?.let { LatLng(it.lat, it.lng) }
             if (start != null && hasArrived(GeoDistance.metersBetween(current, start), gpsFix.accuracyMeters)) {
                 synchronized(lock) { if (trackId == id) arrived = true }
-                return@withLock
+                arrivedNow = true
             }
         }
 
@@ -201,6 +256,11 @@ class SundownWatch(
             is ReturnWalkingTime.Estimate -> if (estimate.isAtLeast) WalkBack.AtLeast(estimate.walkingMillis) else WalkBack.About(estimate.walkingMillis)
             is ReturnWalkingTime.Withheld, null -> WalkBack.Unknown
         }
+        publish(id, sundownLineFor(countdown, position, startBackAt(countdown, walkBack)), LineInputs(countdown, position, walkBack))
+
+        // The alerts from here on. Off, or arrived: nothing is decided and nothing remembered, so
+        // turning them on later finds what it always found.
+        if (!enabled || arrivedNow) return@withLock
         val decision = decide(countdown, walkBack.millisOrNull, alreadyFired)
 
         val stillThisRecording = synchronized(lock) {
@@ -229,6 +289,20 @@ class SundownWatch(
         }
     }
 
+    /** Publishes [line] for recording [id], if it is still the one watched. */
+    private fun publish(id: String, line: SundownLine, inputs: LineInputs?) = synchronized(lock) {
+        if (trackId != id) return@synchronized
+        _shown.value = SundownShown(id, line)
+        if (inputs != null) lineInputs = inputs
+    }
+
+    /**
+     * The line's start-back time: the leave-by alert's time when the walk back is known, measured
+     * or "at least" (the owner, Amendment 1: "Just "start back by 5:32""), else `null`.
+     */
+    private fun startBackAt(countdown: SundownCountdown.Known, walkBack: WalkBack): Long? =
+        if (walkBack == WalkBack.Unknown) null else sundownLeaveByAt(countdown.turnaroundAtEpochMillis, walkBack.millisOrNull)
+
     private fun forget() {
         trackId = null
         newestFix = null
@@ -237,6 +311,8 @@ class SundownWatch(
         hopBand = HopBand.NONE
         arrived = false
         sunsetAt = null
+        lineInputs = null
+        _shown.value = null
     }
 
     private data class Snapshot(
@@ -246,7 +322,10 @@ class SundownWatch(
         val fired: Set<SundownAlert>,
         val hopBand: HopBand,
         val heldSunset: Long?,
+        val arrived: Boolean,
     )
+
+    private data class LineInputs(val countdown: SundownCountdown.Known, val position: LatLng, val walkBack: WalkBack)
 
     private companion object {
         const val TAG = "SundownWatch"
@@ -255,3 +334,6 @@ class SundownWatch(
         const val SAME_SUNSET_WITHIN_MILLIS = 12L * 60L * 60L * 1_000L
     }
 }
+
+/** The sundown line for recording [trackId] ([SundownWatch.shown]). */
+data class SundownShown(val trackId: String, val line: SundownLine)

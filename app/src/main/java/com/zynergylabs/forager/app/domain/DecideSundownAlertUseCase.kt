@@ -69,7 +69,7 @@ class DecideSundownAlertUseCase {
             return SundownAlertDecision(fire = null, spent = alreadyFired)
         }
 
-        val leaveBy = countdown.turnaroundAtEpochMillis - (walkBackMillis ?: 0L)
+        val leaveBy = sundownLeaveByAt(countdown.turnaroundAtEpochMillis, walkBackMillis)
         val now = countdown.nowEpochMillis
         val due = buildSet {
             if (now >= leaveBy - SUNDOWN_HEADS_UP_LEAD_MILLIS) add(SundownAlert.HEADS_UP)

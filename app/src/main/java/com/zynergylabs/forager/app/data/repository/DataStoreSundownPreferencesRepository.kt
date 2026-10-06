@@ -8,6 +8,9 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
 import com.zynergylabs.forager.app.domain.DEFAULT_DARKNESS_MARGIN_MINUTES
 import com.zynergylabs.forager.app.domain.SundownPreferencesRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 
 /**
@@ -23,10 +26,18 @@ import kotlinx.coroutines.flow.first
  *
  * Its own file, `sundown_preferences`, matching the one-file-per-concern shape of the three
  * sibling repositories.
+ *
+ * [scope] is DataStore's own default unless a caller passes one, as [DataStoreMapPreferencesRepository]
+ * takes it: a test cancels it to release the file and read the settings back through a recreated
+ * instance, the way a restart reads them (dispatch 2026-09-28-592, "both survive closing the app").
  */
-class DataStoreSundownPreferencesRepository(context: Context) : SundownPreferencesRepository {
+class DataStoreSundownPreferencesRepository(
+    context: Context,
+    scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
+) : SundownPreferencesRepository {
 
     private val dataStore = PreferenceDataStoreFactory.create(
+        scope = scope,
         produceFile = { context.applicationContext.preferencesDataStoreFile(DATA_STORE_NAME) },
     )
 
