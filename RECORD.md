@@ -12109,3 +12109,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **The 4:32 PM walk (correct clocks):** a loop with a tail, both phones: way out 330 m and 323 m in 5.3 min to a turnaround 245 m and 244 m out at 16:38:06; way back 788 m and 779 m in 10.1 and 10.3 min, round a loop of 468 m and 460 m, then the last 320 m within 10 m of the way out. The build's estimate (16 files identical to bf34fc87 by `git hash-object`, the same harness, Kotlin 2.3.10 off Gradle) replayed on SundownWatch's cadence. Every way-out row matches the way back's last leg, 0 to 6 m off, so "actual" there is the walk home by the same route. On those rows the estimate, on the default pace and "at least" throughout (`NO_MEASURED_PACE`; the way out never reached 5 min of moving), ran from equal (S22, quarter by time) to about 1.6 times long, with one row under: the S26's quarter by time, 0.0 against 0.2 min, 8 m from the start, with a saved track 2 m long. At the turnaround the walk back went round the loop, a different route, and is shown beside the estimate as no evidence either way (-516's report). The label never reached "about" (13.5 min of moving by the end).
 **The gate:** closed by the owner's ruling on this walk and the 4:49 walk (-550); the leave-by and sunset alerts have still not been seen on a correct clock, which -553 dropped as a merge condition. This entry closes nothing.
 **Notes:** Written by the coder (`session_012X8w7DNXZcsSgjKy4BZkk8`) on branch records-after-173 at e960da49. The planner writes -551's terminal entry.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-554
+**Timestamp:** 2026-10-06T02:22:00Z
+**Continues:** 2026-09-28-542
+**Decides:** the since-boot clock fix is abandoned
+**The owner, verbatim:** "we had an open decision about GPS working with automatic network off. I am abandoning that due to the drawbacks".
+**What it sets:** the fix -540 to -542 deferred is not built: live fixes are not aged on the phone's since-boot clock. The drawbacks are the ones -542 lists: it works only within one power-on; stored things keep the wall clock; the sundown alerts still follow the phone's clock; a fix without the stamp falls back; the tests gain a second time per fix; a saved track's start and its points still disagree when the clock is wrong. -538's EKF questions are not part of this and stay deferred. A phone whose clock is wrong will show GPS fixes as old: an accepted gap in -519's fallback table ("every failure has a fallback"), recorded here rather than left open.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -555.
