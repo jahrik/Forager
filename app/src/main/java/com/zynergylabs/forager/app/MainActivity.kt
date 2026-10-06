@@ -90,6 +90,11 @@ class MainActivity : ComponentActivity() {
                     setAutoSaveLocationToPhotos = container.photoLocationPreferenceRepository::setAutoSaveLocationToPhotos,
                     getLockCameraToPortrait = container.cameraOrientationPreferenceRepository::getLockCameraToPortrait,
                     setLockCameraToPortrait = container.cameraOrientationPreferenceRepository::setLockCameraToPortrait,
+                    getSundownAlertsEnabled = container.sundownPreferencesRepository::getAlertsEnabled,
+                    setSundownAlertsEnabled = container.sundownPreferencesRepository::setAlertsEnabled,
+                    getDarknessMarginMinutes = container.sundownPreferencesRepository::getDarknessMarginMinutes,
+                    setDarknessMarginMinutes = container.sundownPreferencesRepository::setDarknessMarginMinutes,
+                    onDarknessMarginStored = container.sundownWatch::onMarginChanged,
                     getMapRecords = { container.getMapRecordsUseCase() },
                     mapLayerPreferencesRepository = container.mapLayerPreferencesRepository,
                     forecastCellStore = container.forecastCellStore,
@@ -214,6 +219,7 @@ class MainActivity : ComponentActivity() {
                     getTrackOriginWaypoint = container.getTrackOriginWaypointUseCase,
                     alreadyRecordingMessage = getString(R.string.track_recording_already_recording),
                     abandonedTrackSweepOnce = container.abandonedTrackSweepOnce,
+                    sundownShown = container.sundownWatch.shown,
                 )
             }
         }
@@ -504,6 +510,8 @@ class MainActivity : ComponentActivity() {
                     onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
                     onAutoSaveLocationToPhotosChanged = viewModel::onAutoSaveLocationToPhotosChanged,
                     onLockCameraToPortraitChanged = viewModel::onLockCameraToPortraitChanged,
+                    onSundownAlertsEnabledChanged = viewModel::onSundownAlertsEnabledChanged,
+                    onDarknessMarginChanged = viewModel::onDarknessMarginChanged,
                     backup = backupViewModel.controls(backupUiState),
                     returnToMapRequest = backupUiState.returnToMapRequest,
                     openBackupRequest = openBackupRequest,
@@ -631,6 +639,7 @@ class MainActivity : ComponentActivity() {
                     returnToStart = trackUiState.returnToStart,
                     isReturning = trackUiState.isReturning,
                     isOffTrack = trackUiState.isOffTrack,
+                    recordingSundownLine = trackUiState.sundownLine,
                     onToggleReturning = {
                         if (trackUiState.isReturning) trackRecordingViewModel.stopReturn() else trackRecordingViewModel.startReturn()
                     },

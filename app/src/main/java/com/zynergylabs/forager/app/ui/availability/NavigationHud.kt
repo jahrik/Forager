@@ -225,6 +225,12 @@ internal fun NavigationHud(
      */
     approximateFix: LocationFix.Update? = null,
     lastKnownFix: LocationFix.Update? = null,
+    /**
+     * The sundown line (dispatch 2026-09-28-592, plan task T3): the recording's, moved here from the
+     * strip once Return or Navigate is tapped, or, navigating with no recording, sunset and dark only.
+     * Its own last row; `null` draws nothing.
+     */
+    sundownLine: String? = null,
 ) {
     // Read here, in this leaf, never higher — see rememberTrueHeading's own doc comment.
     val reading by heading
@@ -350,6 +356,15 @@ internal fun NavigationHud(
                                 .testTag(NAVIGATION_HUD_COORDINATES_TAG),
                         )
                     }
+                }
+                if (sundownLine != null) {
+                    Text(
+                        text = sundownLine,
+                        style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.testTag(NAVIGATION_HUD_SUNDOWN_LINE_TAG),
+                    )
                 }
             }
         }

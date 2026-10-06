@@ -439,6 +439,10 @@ fun AvailabilityScreen(
     onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit = {},
     /** Settings' "Lock camera to portrait" checkbox — see [AvailabilityUiState.lockCameraToPortrait]. Defaulted like the one above. */
     onLockCameraToPortraitChanged: (Boolean) -> Unit = {},
+    /** Settings' "Sundown alerts" (dispatch 2026-09-28-592) — see [AvailabilityUiState.sundownAlertsEnabled]. */
+    onSundownAlertsEnabledChanged: (Boolean) -> Unit = {},
+    /** Settings' "Dark under trees" (dispatch 2026-09-28-592) — see [AvailabilityUiState.darknessMarginMinutes]. */
+    onDarknessMarginChanged: (Int) -> Unit = {},
     /**
      * Settings' Backup section (journal backup and restore, dispatch 2026-09-28-127): its state and callbacks.
      * Defaulted, so a caller with no backup still composes the section, inert.
@@ -651,6 +655,12 @@ fun AvailabilityScreen(
     isReturning: Boolean = false,
     /** Set once [isReturning] and the walker has gone off the path they walked out, until back on it — see `OffTrackJudge` (dispatch 2026-09-28-425). */
     isOffTrack: Boolean = false,
+    /**
+     * The recording's sundown line (dispatch 2026-09-28-592, plan task T3), from
+     * [com.zynergylabs.forager.app.ui.track.TrackRecordingUiState.sundownLine]: the strip shows it while
+     * recording, the navigation display once Return or Navigate is tapped. `null` with no recording.
+     */
+    recordingSundownLine: com.zynergylabs.forager.app.domain.SundownLine? = null,
     onToggleReturning: () -> Unit = {},
     /**
      * What reads the device compass for the compact map's top strip. Defaults to the real sensor,
@@ -1505,6 +1515,7 @@ fun AvailabilityScreen(
             isReturning = isReturning,
             isNavigating = isNavigating,
             isOffTrack = isOffTrack,
+            recordingSundownLine = recordingSundownLine,
             compassProvider = compassProvider,
             computeTrueHeading = computeTrueHeading,
             navigationTarget = target,
@@ -1730,6 +1741,12 @@ fun AvailabilityScreen(
                     crashFileStore = crashFileStore,
                     backup = backup,
                     openSettingsRequest = openBackupRequest,
+                    sundown = SundownSettings(
+                        alertsEnabled = uiState.sundownAlertsEnabled,
+                        darknessMarginMinutes = uiState.darknessMarginMinutes,
+                        onAlertsEnabledChanged = onSundownAlertsEnabledChanged,
+                        onDarknessMarginChanged = onDarknessMarginChanged,
+                    ),
                 )
                 }
                 }

@@ -342,6 +342,11 @@ internal fun CompassElevationStrip(
      * ([rememberPositionNote]), read here, in this leaf, so its ticking age recomposes the strip alone.
      */
     positionNote: State<PositionNote?>? = null,
+    /**
+     * The sundown line while recording (dispatch 2026-09-28-592, plan task T3), on its own line under
+     * the readout; `null` draws nothing and the strip is the height it was.
+     */
+    sundownLine: String? = null,
 ) {
     val reading by heading
     CompassElevationStripContent(
@@ -354,6 +359,7 @@ internal fun CompassElevationStrip(
         modifier = modifier,
         contentWidth = contentWidth,
         positionNote = positionNote?.value,
+        sundownLine = sundownLine,
     )
 }
 
@@ -385,6 +391,7 @@ private fun CompassElevationStripContent(
     modifier: Modifier = Modifier,
     contentWidth: Boolean = false,
     positionNote: PositionNote? = null,
+    sundownLine: String? = null,
 ) {
     // A plain Box + background, not Surface: Surface (even with no onClick) intercepts pointer
     // input for the area it occupies, which — now that this strip is full-width — swallowed the
@@ -417,6 +424,9 @@ private fun CompassElevationStripContent(
                 .testTag("compass-elevation-strip")
                 .mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight),
         ) {
+            // Dispatch 2026-09-28-592: a Column so the sundown line can sit under the readout. It draws
+            // nothing and takes no touches of its own, like the Box around it.
+            Column(modifier = if (contentWidth) Modifier else Modifier.fillMaxWidth()) {
             Row(
                 // fillMaxWidth, not fillMaxSize — see this Box's own doc comment above for the
                 // hardware-caught bug an unbounded-height descendant caused here previously; nothing
@@ -549,6 +559,20 @@ private fun CompassElevationStripContent(
                         )
                     }
                 }
+            }
+            if (sundownLine != null) {
+                Text(
+                    text = sundownLine,
+                    style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .padding(horizontal = Spacing.sm)
+                        .then(if (contentWidth) Modifier else Modifier.fillMaxWidth())
+                        .testTag(STRIP_SUNDOWN_LINE_TAG),
+                )
+            }
             }
         }
     }

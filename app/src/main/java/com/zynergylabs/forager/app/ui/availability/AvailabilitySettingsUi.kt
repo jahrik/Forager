@@ -55,6 +55,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -197,6 +198,7 @@ private fun CompactSettingsTab(
     backup: BackupControls,
     showBackupRequest: Int = 0,
     modifier: Modifier = Modifier,
+    sundown: SundownSettings = SundownSettings(),
 ) {
     var showCrashLogs by remember { mutableStateOf(false) }
     // Debug builds only — the row that sets this composes nothing in release. Same drill-in shape
@@ -246,6 +248,7 @@ private fun CompactSettingsTab(
                     onOpenDiagnostics = { showDiagnostics = true },
                     backup = backup,
                     showBackupRequest = showBackupRequest,
+                    sundown = sundown,
                 )
                 BuildIdentityFooter()
             }
@@ -289,6 +292,8 @@ internal fun SettingsContent(
     backup: BackupControls = BackupControls(),
     /** Counts up when a backup notification is tapped: scroll the Backup section into view. */
     showBackupRequest: Int = 0,
+    /** The Sundown section's two settings (dispatch 2026-09-28-592, plan task T4). */
+    sundown: SundownSettings = SundownSettings(),
 ) {
     // Scrolls to the Backup section when a notification's tap asks (dispatch 2026-09-28-153): its top is measured as it is
     // laid out, and the scroll waits for that measurement, so a section that is not yet laid out (the drawer still opening)
@@ -312,6 +317,8 @@ internal fun SettingsContent(
         ThemeModeSection(themeMode = themeMode, onThemeModeSelected = onThemeModeChanged)
         NightModeMapsSection(checked = nightModeMaps, onCheckedChange = onNightModeMapsChanged)
         HorizontalDivider()
+        SundownSection(sundown)
+        HorizontalDivider()
         PhotoLocationSection(checked = autoSaveLocationToPhotos, onCheckedChange = onAutoSaveLocationToPhotosChanged)
         CameraPortraitLockSection(checked = lockCameraToPortrait, onCheckedChange = onLockCameraToPortraitChanged)
         HorizontalDivider()
@@ -319,6 +326,68 @@ internal fun SettingsContent(
         HorizontalDivider()
         CrashLogsEntryRow(onClick = onOpenCrashLogs)
         DiagnosticsEntryRow(onClick = onOpenDiagnostics)
+    }
+}
+
+/**
+ * Settings' "Sundown" section (dispatch 2026-09-28-592, plan task T4; the owner's step path, RECORD
+ * -592): what the sundown alerts and the line read, from
+ * [com.zynergylabs.forager.app.domain.SundownPreferencesRepository].
+ */
+internal data class SundownSettings(
+    val alertsEnabled: Boolean = true,
+    val darknessMarginMinutes: Int = com.zynergylabs.forager.app.domain.DEFAULT_DARKNESS_MARGIN_MINUTES,
+    val onAlertsEnabledChanged: (Boolean) -> Unit = {},
+    val onDarknessMarginChanged: (Int) -> Unit = {},
+)
+
+/** The margin choices the owner chose, "30 min, 45 min, 1 h, 1 h 30 (Recommended)", in minutes with their labels. */
+internal val DARKNESS_MARGIN_CHOICES: List<Pair<Int, String>> = listOf(30 to "30 min", 45 to "45 min", 60 to "1 h", 90 to "1 h 30")
+
+internal const val SUNDOWN_ALERTS_LABEL = "Sundown alerts"
+internal const val DARK_UNDER_TREES_LABEL = "Dark under trees"
+internal const val DARK_UNDER_TREES_EXPLANATION = "Woods get dark before sunset. Alerts allow this much extra."
+internal const val SUNDOWN_ALERTS_TAG = "settings-sundown-alerts"
+internal fun darknessMarginTag(minutes: Int) = "settings-darkness-margin-$minutes"
+
+/**
+ * "Sundown alerts" is a checkbox row, the shape of this screen's other on/off settings
+ * ([NightModeMapsSection], [PhotoLocationSection]); the owner said "switch", and the planner chose the
+ * screen's own control and told the owner (RECORD -593). Off stops the notifications only; the line
+ * stays. "Dark under trees" is a radio group, the shape [DistanceUnitSection] and [ThemeModeSection]
+ * give a choice of more than two, so every choice shows without a tap. A stored value that is not one
+ * of the four (none is offered anywhere) selects none rather than pretending to be one.
+ */
+@Composable
+private fun SundownSection(sundown: SundownSettings) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Text("Sundown", style = MaterialTheme.typography.titleMedium)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(role = Role.Checkbox) { sundown.onAlertsEnabledChanged(!sundown.alertsEnabled) }
+                .testTag(SUNDOWN_ALERTS_TAG),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            Checkbox(checked = sundown.alertsEnabled, onCheckedChange = sundown.onAlertsEnabledChanged)
+            Text(SUNDOWN_ALERTS_LABEL, style = MaterialTheme.typography.bodyLarge)
+        }
+        Text(DARK_UNDER_TREES_LABEL, style = MaterialTheme.typography.bodyLarge)
+        Text(DARK_UNDER_TREES_EXPLANATION, style = MaterialTheme.typography.bodySmall)
+        DARKNESS_MARGIN_CHOICES.forEach { (minutes, label) ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(role = Role.RadioButton) { sundown.onDarknessMarginChanged(minutes) }
+                    .testTag(darknessMarginTag(minutes)),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                RadioButton(selected = sundown.darknessMarginMinutes == minutes, onClick = { sundown.onDarknessMarginChanged(minutes) })
+                Text(label, style = MaterialTheme.typography.bodyLarge)
+            }
+        }
     }
 }
 
@@ -520,6 +589,7 @@ internal fun CompactToolsDrawerContent(
     backup: BackupControls = BackupControls(),
     /** Counts up when a backup notification is tapped: open Settings, at the Backup section. */
     openSettingsRequest: Int = 0,
+    sundown: SundownSettings = SundownSettings(),
 ) {
     // Own drill-in step, same shape as CompactSettingsTab's own CrashLogs submenu — see this
     // composable's own doc comment, item 2. Composed inside this drawer sheet (which the
@@ -551,6 +621,7 @@ internal fun CompactToolsDrawerContent(
             backup = backup,
             showBackupRequest = openSettingsRequest,
             modifier = Modifier.fillMaxSize(),
+            sundown = sundown,
         )
         return
     }

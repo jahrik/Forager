@@ -820,7 +820,9 @@ class AvailabilityScreenSettingsPanelTest {
         openSettings()
 
         composeRule.onNodeWithText(PHOTO_LOCATION_SETTING_LABEL).performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText(PHOTO_LOCATION_SETTING_EXPLANATION).assertIsDisplayed()
+        // Scrolled to like the label: since the Sundown section above it (dispatch 2026-09-28-592), the
+        // explanation sits below the fold at h640dp once the label is scrolled into view.
+        composeRule.onNodeWithText(PHOTO_LOCATION_SETTING_EXPLANATION).performScrollTo().assertIsDisplayed()
         assertEquals("nothing is written just by opening Settings", null, capturedAutoSaveLocation)
 
         composeRule.onNodeWithText(PHOTO_LOCATION_SETTING_LABEL).performClick()
@@ -839,7 +841,9 @@ class AvailabilityScreenSettingsPanelTest {
         openSettings()
 
         composeRule.onNodeWithText(LOCK_CAMERA_SETTING_LABEL).performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText(LOCK_CAMERA_SETTING_EXPLANATION).assertIsDisplayed()
+        // Scrolled to like the label: since the Sundown section above it (dispatch 2026-09-28-592), the
+        // explanation sits below the fold at h640dp once the label is scrolled into view.
+        composeRule.onNodeWithText(LOCK_CAMERA_SETTING_EXPLANATION).performScrollTo().assertIsDisplayed()
         assertEquals("nothing is written just by opening Settings", null, capturedLockCamera)
 
         composeRule.onNodeWithText(LOCK_CAMERA_SETTING_LABEL).performClick()

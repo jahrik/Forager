@@ -161,6 +161,12 @@ internal fun mapLayersViewModel(
     // Dispatch 2026-09-28-510: the live fixes and the platform's last known location. Defaulted to none, as before.
     locationTracker: LocationTracker = MapLayersUiLocationTracker,
     lastKnownLocation: LastKnownLocationSource = NoLastKnownLocation,
+    // Dispatch 2026-09-28-592: the Sundown settings, stored and handed to the watch. Defaulted to the repository's defaults.
+    getSundownAlertsEnabled: suspend () -> Result<Boolean> = { Result.success(true) },
+    setSundownAlertsEnabled: suspend (Boolean) -> Result<Unit> = { Result.success(Unit) },
+    getDarknessMarginMinutes: suspend () -> Result<Int> = { Result.success(60) },
+    setDarknessMarginMinutes: suspend (Int) -> Result<Unit> = { Result.success(Unit) },
+    onDarknessMarginStored: (Int) -> Unit = {},
 ): AvailabilityViewModel {
     val searchCache = InMemorySearchCacheRepository()
     val plannedTripRepository = MapLayersUiPlannedTripRepository(plannedTrips)
@@ -194,6 +200,11 @@ internal fun mapLayersViewModel(
         waypointNavigationRepository = waypointNavigationRepository,
         returnLeg = returnLeg,
         lastKnownLocation = lastKnownLocation,
+        getSundownAlertsEnabled = getSundownAlertsEnabled,
+        setSundownAlertsEnabled = setSundownAlertsEnabled,
+        getDarknessMarginMinutes = getDarknessMarginMinutes,
+        setDarknessMarginMinutes = setDarknessMarginMinutes,
+        onDarknessMarginStored = onDarknessMarginStored,
     )
 }
 
