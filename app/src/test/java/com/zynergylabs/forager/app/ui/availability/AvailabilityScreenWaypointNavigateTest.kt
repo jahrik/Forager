@@ -34,6 +34,7 @@ import com.zynergylabs.forager.app.domain.CompassReading
 import com.zynergylabs.forager.app.domain.ComputeTrueHeadingUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.DeclinationProvider
+import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.GeoDistance
 import com.zynergylabs.forager.app.domain.HeadingUncertainty
 import com.zynergylabs.forager.app.domain.LocationFix
@@ -113,7 +114,7 @@ class AvailabilityScreenWaypointNavigateTest {
 
     /** A fix [metersSouth] metres due south of the creek pin, with the S22's constant 3.79 m accuracy. */
     private fun southOfCreek(metersSouth: Double) =
-        LocationFix.Update(lat = creek.lat - metersSouth / 111_195.08, lng = creek.lng, altitude = 50.0, accuracyMeters = 3.79f, timestampEpochMillis = t)
+        LocationFix.Update(lat = creek.lat - metersSouth / 111_195.08, lng = creek.lng, altitude = 50.0, accuracyMeters = 3.79f, timestampEpochMillis = t, provider = FixProvider.GPS)
 
     private val returnLine = RouteLine(
         atReturn = listOf(LatLng(45.32, -122.634), LatLng(45.31, -122.634)),

@@ -6,6 +6,7 @@ import com.zynergylabs.forager.app.domain.ComputeReturnToStartUseCase
 import com.zynergylabs.forager.app.domain.CreateWaypointUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
+import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.InMemoryKeptTrackPaths
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
 import com.zynergylabs.forager.app.domain.ReturnWatch
@@ -222,10 +223,33 @@ class TrackRecordingSundownTest {
         assertEquals("four minutes", 4 * 60_000L, known.fixAgeMillis)
     }
 
+    /**
+     * Dispatch 2026-09-28-527 and RECORD -558 (the owner: "Keep it working"): the origin and the route home
+     * now take GPS only, and the countdown does not. A recording indoors, on a 15 m network fix, still
+     * counts down to sunset rather than reading "no position yet". Passes before this dispatch as after:
+     * it guards the split, and is revert-checked by making the countdown read the GPS-only fix.
+     */
+    @Test
+    fun `a 15 m network fix still gives the countdown its place`() = runRecordingTest {
+        val now = SUNSET - 3 * HOUR
+        val tracker = EmittingTracker()
+        val viewModel = viewModel(now, tracker)
+        viewModel.startRecording()
+        runCurrent()
+
+        tracker.emitted.emit(londonFix(now - 1_000L + 123).copy(accuracyMeters = 15f, provider = FixProvider.NETWORK))
+        advanceTimeBy(POLL_INTERVAL_MILLIS + 1)
+        runCurrent()
+
+        val known = viewModel.uiState.value.sundownCountdown as SundownCountdown.Known
+        assertEquals("sunset, within a minute of the published time", SUNSET.toDouble(), known.sunsetAtEpochMillis.toDouble(), 60_000.0)
+    }
+
     /** Accuracy well inside BALANCED's 50 m ceiling, so the fix passes the gate and is kept. */
     private fun londonFix(atEpochMillis: Long) = LocationFix.Update(
         lat = 51.5074, lng = -0.1278, altitude = null,
         accuracyMeters = 5f, timestampEpochMillis = atEpochMillis,
+        provider = FixProvider.GPS,
     )
 
     private companion object {

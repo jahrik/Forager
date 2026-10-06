@@ -71,7 +71,7 @@ class ReturnWatchRecordTest {
         watch.begin("track-1", TrackRecordingMode.HIGH_ACCURACY)
         watch.setStartPoint("track-1", point(45.0, t = 1_000L))
         watch.startReturn("track-1")
-        repeat(4) { i -> watch.onFix(point(45.001 + i * 0.001, t = 2_000L + i * 5_000L)) }
+        repeat(4) { i -> watch.onFix(point(45.001 + i * 0.001, t = 2_000L + i * 5_000L), FixProvider.GPS) }
         assertEquals(ReturnRecordEvent.AlertDelivered("track-1", outcome), written.last())
     }
 
@@ -79,9 +79,9 @@ class ReturnWatchRecordTest {
     fun `going off the path writes the decision with its reading's time, and coming back on writes re-armed`() {
         begun().startReturn("track-1")
         // 111 m north a reading every 5 s: off from the first, gone off at the fourth (15 s).
-        repeat(4) { i -> watch.onFix(point(45.001 + i * 0.001, t = 2_000L + i * 5_000L)) }
+        repeat(4) { i -> watch.onFix(point(45.001 + i * 0.001, t = 2_000L + i * 5_000L), FixProvider.GPS) }
         // Back at the start for 10 s.
-        repeat(3) { i -> watch.onFix(point(45.0, t = 20_000L + i * 5_000L)) }
+        repeat(3) { i -> watch.onFix(point(45.0, t = 20_000L + i * 5_000L), FixProvider.GPS) }
         assertEquals(
             listOf(
                 ReturnStarted("track-1"),
