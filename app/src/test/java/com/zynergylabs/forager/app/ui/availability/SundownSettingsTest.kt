@@ -100,7 +100,7 @@ class SundownSettingsTest {
         getDarknessMarginMinutes = repository::getDarknessMarginMinutes,
         setDarknessMarginMinutes = repository::setDarknessMarginMinutes,
         onDarknessMarginStored = { stored += it },
-        errorLog = { _, message, error -> errors += "${'$'}message ${'$'}error" },
+        errorLog = { _, message, error -> errors += "$message $error" },
     )
 
     private fun setScreen(viewModel: AvailabilityViewModel) {
@@ -214,7 +214,7 @@ class SundownSettingsTest {
             composeRule.waitForIdle()
             Thread.sleep(20)
         }
-        assertEquals("a new ViewModel shows 45 min (state ${'$'}{next.uiState.value.darknessMarginMinutes}, errors ${'$'}errors)", 45, next.uiState.value.darknessMarginMinutes)
+        assertEquals("a new ViewModel shows 45 min (state ${next.uiState.value.darknessMarginMinutes}, errors $errors)", 45, next.uiState.value.darknessMarginMinutes)
         assertEquals("and alerts off", false, next.uiState.value.sundownAlertsEnabled)
     }
 
