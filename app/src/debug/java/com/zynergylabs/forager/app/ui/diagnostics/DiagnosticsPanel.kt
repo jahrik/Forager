@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import com.zynergylabs.forager.app.ForagerApplication
 import com.zynergylabs.forager.app.diagnostics.DiagnosticsLog
+import com.zynergylabs.forager.app.diagnostics.walklog.WalkLoggerSwitch
 import com.zynergylabs.forager.app.forecast.SyntheticForecastSwitch
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.io.File
@@ -148,6 +149,8 @@ internal fun DiagnosticsPanel(
     modifier: Modifier = Modifier,
     /** The "Synthetic forecast layers" toggle's switch (map layers L0b, B6); no toggle row when `null`. */
     syntheticForecastSwitch: SyntheticForecastSwitch? = null,
+    /** The "Walk logger" toggle's switch (dispatch 2026-09-28-532, Amendment 3); no toggle row when `null`. STUB: not drawn yet. */
+    @Suppress("UNUSED_PARAMETER") walkLoggerSwitch: WalkLoggerSwitch? = null,
 ) {
     var viewingLog by remember { mutableStateOf(false) }
     if (viewingLog) {
@@ -412,6 +415,8 @@ internal const val DIAGNOSTICS_SHARE_ERROR_TAG = "diagnostics-share-error"
 /** The "Synthetic forecast layers" toggle's label and tag (map layers L0b, B6). */
 internal const val SYNTHETIC_FORECAST_TOGGLE_LABEL = "Synthetic forecast layers"
 internal const val DIAGNOSTICS_SYNTHETIC_FORECAST_TAG = "diagnostics-synthetic-forecast"
+internal const val WALK_LOGGER_TOGGLE_LABEL = "Walk logger"
+internal const val DIAGNOSTICS_WALK_LOGGER_TAG = "diagnostics-walk-logger"
 internal fun diagnosticsShareTag(file: File): String = "diagnostics-share:${file.name}"
 
 private const val TAG = "DiagnosticsPanel"
