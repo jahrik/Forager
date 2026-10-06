@@ -3,31 +3,39 @@
 Dispatch 2026-09-28-592 (RECORD -592, `prompts/preserved/2026-10-06-11.md` on `records-after-173`),
 with Amendment 1 (RECORD -593), Amendment 2 (RECORD -595) and the no-position ruling (RECORD -596).
 Branch `sundown-line`, cut from `origin/main` at `ef269025` (still `origin/main` when this was
-written). Not merged; no pull request opened. Laptop coder, no phone, no adb.
+finished: `git merge-base HEAD origin/main` is `ef269025`, and `ef269025..origin/main` is empty).
+Not merged; no pull request opened. Laptop coder, no phone, no adb.
 
-The code was built by a coder session that the machine's restart killed after pushing `ea722ff7`.
-That session left no report and no recorded red runs. A second session finished the work: the revert
-checks, the strip layouts, the full suite and this report. Both are described below, and which
-session did what is stated where it matters.
+**Three sessions.** The first built the code and was killed by a machine restart after pushing
+`ea722ff7`; it left no report and no recorded red runs. The second added `33c6e322` and `59c4dd85`,
+ran revert checks and drafted this report; it was killed by an out-of-memory restart (a 3.9 GB
+Python job ran beside its Gradle suite), and the planner committed its draft as found (`c00ca917`).
+The third (this one) treated the draft's claims as unverified: it re-ran every revert check with a
+new runner, re-ran the alert-moment guards against `main`, ran the full suite on the final head, and
+rewrote the sections below that depend on those runs. **Every revert result and count in this report
+is from the third session's runs**; the second session's revert table is superseded, not merged in
+(see "Revert checks"). Statements kept from the draft that this session did not re-derive are marked
+as the draft's.
 
 ## Commits
 
 | Commit | What |
 |---|---|
-| `a9ca61fc` | Nine tests that pin when each sundown alert fires (`SundownWatchAlertMomentsTest`). The commit message says they were green on `main` before the watch changed. This session did not re-run them at that commit; see "Not done". |
+| `a9ca61fc` | Nine tests that pin when each sundown alert fires (`SundownWatchAlertMomentsTest`). Re-run by this session against `main` `ef269025`: 9 tests, 0 failures (see Tests). |
 | `ea722ff7` | The line, the settings, both amendments and -596. |
 | `33c6e322` | Strip tests in landscape and fullscreen, and three repairs found when reading `ea722ff7` (see below). |
 | `59c4dd85` | The strip tests read the laid-out line, not only its text; the 24-hour clock test can now fail. |
-| this report's commit | This report and its two index rows. |
+| `c00ca917` | The second session's report draft, committed by the planner as found. |
+| this session's commits | The revert table and suite counts in this report, and its two index rows. No code changed. |
 
-## The uncommitted line the dead session left
+## The uncommitted line the second session found (the draft's account, not re-verified)
 
-The worktree had one uncommitted line: `.clickable {}` on the strip's sundown line at
-`AvailabilityMapControlsUi.kt:573`. `git diff` showed this was the only difference from `ea722ff7`:
-one file, one insertion. It was a revert probe for the touch test. Restoring the file from git
-restored the committed forward change exactly, because there was no uncommitted forward work to lose.
-CLAUDE.md's rule against restoring from git protects uncommitted forward work, and there was none.
-The same probe was then run again under this session's runner (r01 below).
+The draft records that the worktree, as the first session left it, had one uncommitted line:
+`.clickable {}` on the strip's sundown line in `AvailabilityMapControlsUi.kt`, a revert probe for
+the touch test, and that `git diff` showed it as the only difference from `ea722ff7`, so restoring
+that file from git lost no forward work. This session cannot see that worktree state any more and
+did not verify it. It matters only for whether anything of the first session's was lost; the code at
+`ea722ff7` is what every check below runs against, and the touch behaviour is re-checked here (rA).
 
 ## What the walker sees
 
@@ -137,70 +145,120 @@ Two points need the owner's word:
 
 ## Tests
 
-- **Red first.** No red run of `ea722ff7`'s tests is recorded anywhere: the commit carries tests and code together, and the dead session's runs, if any, were not reported.
-  - Running those tests against `main`'s code would not compile (`SundownLine`, `SundownShown` and the rest do not exist there), so that would show nothing.
-  - Instead, the red half of each behaviour is shown by a revert check against the built code. Each one fails a named test with a message specific to its edit (below).
-  - The alert-moment tests in `a9ca61fc` are guards, meant to be green before and after. Their commit message says they were green on `main` first.
-- **Added.** 67 `@Test` annotations, 3,618 at `origin/main` to 3,685 here. That count includes the tests in `TrackRecordingSundownTest` that replaced the retired countdown's.
-- **Added by this session.** Two strip tests (landscape, fullscreen), the laid-out checks, and a 24-hour clock test that can fail.
-- **Fixed by this session.**
-  - The 24-hour test used 18:42 UTC, which is 11:42 in this laptop's zone, where "h:mm" and 24-hour agree. The revert of the 24-hour branch first passed it (r18), so it was changed to 18:42 in the JVM's own zone, and the revert then failed it (r18b).
-  - Three test strings wrote `${'$'}` where they meant `$`. The settings test's error log recorded the literal text "$message $error", and two failure messages printed names instead of values.
-  - `ThemeModeSection`'s KDoc had been left orphaned above the new Sundown block (`AvailabilitySettingsUi.kt`). It is back above its function.
-- No `@Ignore` was added, and no assertion was weakened.
+- **Red first.** No red run of `ea722ff7`'s tests is recorded anywhere: that commit carries tests and
+  code together, and the first session's runs, if any, were not reported.
+  - Running those tests against `main`'s code would not compile (`SundownLine`, `SundownShown` and the
+    rest do not exist there), so that would show nothing.
+  - Instead, the red half of each behaviour is shown by a revert check against the built code. Each
+    one fails a named test with a message specific to its edit (below).
+- **The alert-moment guards, re-run on `main`.** `SundownWatchAlertMomentsTest` from `a9ca61fc`
+  copied into a detached worktree at `ef269025` (no other change), XML deleted first, `--rerun`:
+  0 `e:` lines, 1 fresh XML, **9 tests, 0 failures**; the file was then removed and that worktree's
+  status is clean. They are green at the final head too (forward run below), and rQ shows four of
+  them fail when the alerts-off gate is removed, so they can fail.
+- **Added.** 67 `@Test` annotations: `git grep -c @Test` over `app/src/test` sums to 3,618 at
+  `ef269025` and 3,685 at the head. That count includes the tests in `TrackRecordingSundownTest`
+  that replaced the retired countdown's.
+- **Added by the second session** (`33c6e322`, `59c4dd85`, from their commit messages): two strip
+  tests (landscape, fullscreen), the laid-out checks, and a 24-hour clock test that can fail.
+- **Fixed by the second session** (from `33c6e322` and `59c4dd85`):
+  - The 24-hour test used 18:42 UTC, which is 11:42 in this laptop's zone, where "h:mm" and 24-hour
+    agree; the commit message says a revert of the 24-hour branch left it green. It now uses 18:42 in
+    the JVM's own zone. This session did not re-run the old version; rR below shows the current one
+    failing on that revert.
+  - Three test strings wrote `${'$'}` where they meant `$`.
+  - `ThemeModeSection`'s KDoc had been left orphaned above the new Sundown block. It is back above
+    its function.
+- No `@Ignore` was added, and no assertion was weakened. This session changed no test and no code.
 
 ## Revert checks
 
-**The runner.** For each revert, the runner:
+**The runner** (third session; `runner.py` in the session scratchpad, not committed). For each check
+it:
 
-1. saves every file it edits;
-2. applies a one-line (or two-line) revert and prints the diff;
-3. deletes the old JUnit XML and runs the classes `*Sundown*` and `*SunCrossing*` (133 tests; 14 for the screen class alone);
-4. counts `e:` lines in the build log, and refuses to cite any run that has them;
-5. reads only XML written after the run started;
-6. restores from the saved copy, never from git, and checks the sha256 against the saved copy;
-7. confirms the working tree against `HEAD` is the same as before the run.
+1. copies every file it will edit to a saved folder and records each file's sha256, `HEAD`,
+   `git status --porcelain` and a hash of `git diff HEAD`;
+2. applies the edit only if its target text occurs exactly once, and prints the resulting `git diff`;
+3. deletes every JUnit XML in `app/build/test-results/testDebugUnitTest`, then runs
+   `./gradlew :app:testDebugUnitTest --tests '*Sundown*' --tests '*SunCrossing*' --rerun`
+   (14 classes, 133 tests);
+4. counts lines starting `e: ` in the build log, and marks the run not citable if there are any;
+5. reads only XML written after the run started, and marks the run not citable if there is none;
+6. restores each file from its saved copy, never from git, and checks its sha256 against the saved one;
+7. checks `HEAD`, `git status --porcelain` and the `git diff HEAD` hash are what they were before.
 
-Every run below had 0 compile-error lines, a sha256 match, and an unchanged tree, except r19, noted.
+**Every run below:** 0 compile-error lines, 14 fresh XML files and 0 stale, 133 tests run, sha256
+match on restore, tree unchanged. The worktree was clean before and after every run (`git status
+--porcelain` empty), so "the forward change is still present" means the files are byte-identical to
+`HEAD` (`59c4dd85`'s code). A forward run with no edit, first: 133 tests, 0 failures.
 
-| # | Behaviour | Revert | Failed (message) |
+Each failure was read for whether this edit could cause it. All of them can; none belongs to another
+edit. Notes follow the table where the link is not obvious.
+
+| # | Behaviour | Revert | Failed (test: message) |
 |---|---|---|---|
-| r01 | Touches on the line reach the map (the dead session's probe) | `.clickable {}` on the line | the portrait, fullscreen and landscape touch tests: "at least 16 points sampled, not 5". The line became a control, so every point on it was skipped. |
-| r02 | Same, as a touch consumer | `.pointerInput { detectTapGestures(onLongPress = {}) }` on the line | the same three: "a long-press at (16.0.dp, 71.0.dp) … must reach the map expected:<1> but was:<0>" (landscape at 527 dp) |
-| r03 | Window: 2 h 30 min before sunset | 150 → 240 min (the owner's first 4 h) | 7, including "the two thresholds are the owner's numbers" (expected 9000000 but was 14400000) and "hidden at 2 h 31 min … expected:<false> but was:<true>" in the domain, text, screen, HUD and ViewModel tests |
-| r04 | Window: start-back under 1 h | the start-back clause replaced by `false` | 4: "shown early when the start-back time is 59 min away" (domain and screen), "a start-back time already passed shows", "hidden outside both windows" (expected "Sunset 6:42 PM · start back by 2:42" but was null) |
-| r05 | -596: no position, no line | `FindingPosition` shown, with "Sunset: finding your position…" restored | 4: "expected null, but was:<Sunset: finding your position…>", and both screen "finding your position never renders" tests, and "no position, and polar day, are hidden" |
-| r06 | Margin re-derives the line at once (watch) | `onMarginChanged` keeps the old turnaround | the watch test and the end-to-end ViewModel test: "thirty minutes later … expected:<…324737> but was:<…524737>" (30 min apart) |
-| r07 | Margin re-derives the line at once (wiring) | Settings' handler does not tell the watch | the end-to-end test (same 30 min message), and the settings test timing out waiting for the watch to be told |
-| r08 | Dusk fix: a held sunset keeps its own dusk | the held copy keeps the computed (tomorrow's) dusk | "after sunset on a recording begun before it … dark at today's dusk": dusk 1791166304354 against 1791080015038, a day apart |
-| r09 | Alerts off: the line stays | `if (!enabled) return` restored before the line | "with the alerts off … the line stays": ClassCastException, FindingPosition is not BeforeSunset |
-| r10 | Arrived: the line stays | the arrived early return restored | "after arriving at the start the line is still published": still BeforeSunset after sunset |
-| r11 | Start-back = the leave-by alert's time | the line uses the turnaround without the walk back | 4, including "exactly the alert's own time expected:<…460271> but was:<…660272>" (20 min, the walk back) |
-| r12 | No walk back, no start-back time | the `Unknown` check removed | "with no GPS fix … no start-back time" and "the last known position gives the line before any live fix": expected null |
-| r13 | Return or Navigate moves the line into the HUD | the HUD gets no line | 4 HUD tests: no node `navigation-hud-sundown-line` |
-| r14 | Navigate with no recording: sunset and dark only | the screen-computed line removed | "Navigate with no recording shows sunset and dark only": no node |
-| r15 | The margin survives (stored) | Settings' handler does not store the margin | "real touches … survive a recreated repository": expected 45 but was 60; end-to-end "stored expected:<30> but was:<60>" |
-| r16 | "Alerts off" survives (stored) | Settings' handler does not store the switch | see below |
-| r17 | Alerts off stops the notifications | the alerts-off gate before deciding removed | 7, including `SundownWatchTest` "with the alerts turned off nothing fires", `TrackRecordingServiceSundownTest` "alerts off: nothing on the sundown channel", and four alert-moment tests |
-| r18 | 24-hour clock | the short time always "h:mm" | **passed**: the test could not fail in this zone (see Tests); not evidence |
-| r18b | same, after the test fix | same | "the phone's clock, 24-hour …": expected 18:42 but was 6:42 |
-| r19 | After dark: no countdown to tomorrow | the backward search skipped | **compile errors (4 `e:` lines, a lost smart cast); not cited** |
-| r19b | same, rewritten to keep the smart cast | `position != null && false && …` | 5, including "a recording started after dark says dark since today's dusk" and "in the small hours, still dark since the evening's dusk": BeforeSunset, not DarkSince |
-| r20e | The line laid out whole (positive control) | a 60 dp width cap on the line | portrait, fullscreen and landscape: "not ellipsized: … visible end 4 of 36, ellipsized true" |
+| rA | Touches on the line reach the map | `.pointerInput(Unit) { detectTapGestures(onLongPress = {}) }` on the strip's line | 3: the portrait, fullscreen and landscape touch tests, "a long-press at (16.0.dp, 71.0.dp), line DpRect(left=8.0.dp, top=63.0.dp, right=376.0.dp, bottom=79.0.dp), must reach the map expected:<1> but was:<0>" (fullscreen at y 26 dp; landscape at (527.0.dp, 26.0.dp)) |
+| rB | Window: 2 h 30 min before sunset | `SUNDOWN_LINE_SUNSET_WINDOW_MILLIS` 150 → 240 min (the owner's first 4 h) | 7: "the two thresholds are the owner's numbers" (expected:<9000000> but was:<14400000>); "hidden at 2 h 31 min …" in the domain, text ("expected null, but was:<Sunset 6:42 PM · in 2 h 31 min>"), screen, HUD and ViewModel tests; "shown early when the start-back time is 59 min away, hidden at 61 min …" (the 61-min case now inside 4 h) |
+| rC | Window: start-back under 1 h | the start-back clause of `isShown` replaced by `false` | 4: "hidden outside both windows, written once either opens" (expected:<Sunset 6:42 PM · start back by 2:42> but was:<null>); "a start-back time already passed shows …"; "shown early when the start-back time is 59 min away …" (domain, and screen: assertExists) |
+| rD | -596: no position, no line | `FindingPosition` shown, with "Sunset: finding your position…" restored as its words | 4: "no position has no line …" (expected null, but was:<Sunset: finding your position…>); "no position, and polar day, are hidden" (expected:<false> but was:<true>); both screen "… finding your position never renders" tests |
+| rE | Margin re-derives the line at once (watch) | `onMarginChanged` keeps the last tick's turnaround | 2: watch "a margin changed in Settings moves the start-back time at once …" ("thirty minutes later, at once, with no tick expected:<1791075260741> but was:<1791073460741>"), and ViewModel "… on screen at once" (expected:<1789234324737> but was:<1789232524737>), each 30 min apart |
+| rF | Margin re-derives the line at once (wiring) | Settings' ViewModel does not tell the watch once the margin is stored | 2: the ViewModel end-to-end test (the same 30 min message), and `SundownSettingsTest` "real touches across each row …" timing out at its wait for the watch to be told 45 (`SundownSettingsTest.kt:201`, "Condition still not satisfied after 5000 ms") |
+| rG | Dusk fix: a held sunset keeps its own dusk | the held copy keeps the computed (tomorrow's) dusk | 1: "after sunset on a recording begun before it, sun set at today's sunset and dark at today's dusk": "1791166304354 within a second of 1791080015038", 86,289 s (a day) apart |
+| rH | Alerts off: the line stays | `if (!enabled) return@withLock` restored before the line is published | 1: "with the alerts off nothing is delivered and the line stays …": ClassCastException, `FindingPosition` cannot be cast to `BeforeSunset` |
+| rI | Arrived: the line stays | the arrived early return restored at the top of the tick | 1: "after arriving at the start the line is still published": "after sunset now: BeforeSunset(…)", the line frozen at the last pre-arrival tick |
+| rJ | Start-back = the leave-by alert's time | the line's start-back time is the turnaround, without the walk back | 4: "the line's start-back time is the time the leave-by alert states" ("exactly the alert's own time expected:<1791073460271> but was:<1791074660272>", 20 min, the walk back), and the alerts-off, margin and at-least tests, each off by the walk back |
+| rK | No walk back, no start-back time | the `Unknown` check removed from `startBackAt` | 2: "with no GPS fix the walk back is unknown and the line has no start-back time" and "the last known position gives the line before any live fix" ("never a walk back from a last known position expected null, but was:<1791074660742>") |
+| rL | Return or Navigate moves the recording's line into the HUD | the HUD takes only the screen-computed line, never the recording's | 3: "tapping Return moves the line into the HUD …", "Navigate while recording shows the recording's line in the HUD" (assertExists), "the window holds in the HUD too" |
+| rM | Navigate with no recording: sunset and dark only | the HUD's line dropped when there is no recording | 1: "Navigate with no recording shows sunset and dark only …": assertExists |
+| rN | Recording: the strip shows the line | the strip is passed no line | 7: every strip test, e.g. "recording, the strip shows the line": assertExists; the portrait touch test: "Failed to retrieve bounds of the node" |
+| rO | The margin survives (stored) | Settings' ViewModel does not store the margin | 2: "real touches across each row … survive a recreated repository" (expected:<45> but was:<60>); ViewModel end-to-end "stored expected:<30> but was:<60>" |
+| rP | "Alerts off" survives (stored) | Settings' ViewModel does not store the alerts setting | 1: "real touches across each row … survive a recreated repository": expected:<false> but was:<true>, at the switch's own assertion |
+| rQ | Alerts off stops the notifications | the alerts-off gate before deciding removed (`!enabled \|\| arrivedNow` → `arrivedNow`) | 7: `SundownWatchTest` "with the alerts turned off nothing fires" (expected:<[]> but was:<[HEADS_UP, LEAVE_BY, SUNSET]>); `TrackRecordingServiceSundownTest` "with the alerts turned off, the same recording posts nothing" ("alerts off: nothing on the sundown channel"); `SundownWatchLineTest` alerts-off; and four `SundownWatchAlertMomentsTest` tests |
+| rR | 24-hour clock | the later time always "h:mm" | 1: "the phone's clock, 24-hour, gives both times in 24-hour": expected:<[18]:42> but was:<[6]:42> |
+| rS | After sunset or dark: no countdown to tomorrow | the backward search skipped (`position != null && false && sunIsDown(…)`, so the smart cast stands and it compiles) | 5: "between sunset and dark with the countdown on tomorrow's sunset …", "after dark with the countdown on tomorrow's sunset …", "in the small hours, still dark since the evening's dusk …", "a recording started after dark says dark since today's dusk" (ClassCastException, `BeforeSunset` is not `AfterSunset`/`DarkSince`), and the arrived test (see notes) |
+| rT | The line laid out whole (positive control) | a 60 dp width cap placed **after** `fillMaxWidth` | 1: landscape only, "not ellipsized: … visible end 8 of 36, ellipsized true". **Not a valid control for portrait and fullscreen**, see notes |
+| rT2 | same, the cap placed before `fillMaxWidth` | `.widthIn(max = 60.dp)` before the fill | 3: portrait "recording, the strip shows the line", fullscreen and landscape: "not ellipsized: Sunset 1:46 AM · start back by 12:36: 1 line(s), visible end 8 of 36, ellipsized true, size 180 x 48" |
+| rU | "start back was" once the time has passed | the "by" branch taken always | 2: "start back was, once it has passed, and at the moment itself" and "each state of the owner's path reads as confirmed in the strip": expected:<… start back [was] …> but was:<… start back [by] …> |
+| rV | Stopping the recording takes the line away at once | `sundownLine = null` dropped from the stop's state update | 1: "stopping the recording takes the line away at once": expected null, but was:<DarkSince(…)> |
+| rW | Another recording's line is not this screen's | the track-id match dropped from `copySundownLine` | 1: "another recording's line is not this screen's": expected null, but was:<DarkSince(…)> |
 
-**r16 is only partly evidence.**
+**Notes on the table.**
 
-- In two of three runs, the settings test timed out first, at its wait for the watch to be told 45 min (`SundownSettingsTest.kt:201`). That wait is about the margin, not the switch, so that failure does not belong to this edit.
-- In the third run, with the wait wrapped to print its state, the wait passed and the test failed at the switch's own assertion ("expected:<false> but was:<true>").
-- The same test is green forward in 5 of 5 runs.
-- Why skipping the switch's writes delays the margin's is not known. It is recorded, not explained.
+- **rT was a misplaced probe, this session's, kept because it was run.** A `widthIn(max = 60.dp)` after
+  `fillMaxWidth()` cannot shrink the line: the fill has already fixed the minimum width, and
+  `widthIn` only narrows inside incoming constraints. So in portrait and fullscreen the cap did
+  nothing, and the two checks there stayed green because nothing was cut off, not because they cannot
+  see it. rT2 places the cap first, and all three layouts fail. The landscape line is content-width
+  (no fill), which is why rT bit there alone.
+- **rS also fails the arrived test.** After arrival nothing is remembered for the alerts, the held
+  sunset included, so after sunset the arrived recording's line depends on the backward search,
+  which this revert removes. That failure belongs to this edit.
+- **rQ's four alert-moment failures** are the guards from `a9ca61fc` doing their job: with the gate
+  gone, alerts fire while off.
+- **rF's timeout is this edit's own.** The settings test waits for the watch to be told 45; this
+  revert is exactly the missing telling.
+- **The draft's r16 timeout did not recur.** The second session reported that its revert of the
+  alerts-setting store (its r16) timed out at the margin wait (`SundownSettingsTest.kt:201`) in two of
+  three runs, which it could not explain. This session's equivalent (rP) ran once and failed at the
+  switch's own assertion with the margin wait passing. One run is not enough to say the timeout is
+  gone; it is not explained, and is left recorded as the second session reported it.
+- **Not checked by a revert:** the Sundown section's labels and defaults ("the section reads as
+  confirmed, alerts on and an hour selected by default"), and the polar cases. Their tests ran green
+  in every run; no revert was made to show they can fail.
 
-Earlier landscape runs of r01, r02 and r20 under legacy graphics are superseded by the runs above. The forward change was confirmed present after every check: the sha256 matched, the tree against `HEAD` was unchanged, and the forward suite is below.
+**Superseded.** The draft's revert table (its r01 to r20e, run by the second session with a runner
+this session never saw) is replaced by the table above. Its results agree in direction with this
+session's for every behaviour both covered; where messages differ (the touch probe, rT), the reason is
+a different edit, stated above.
 
 ## Full suite
 
-- **Before**: not run by this session. Taken from the arrived-alone report (`docs/navigation/2026-10-06-arrived-alone-report.md:142`): **3,823 tests, 0 failures, 0 errors, 24 skipped**. That figure was measured on the arrived-alone branch's merged tree (`b1f888a5`). That tree is the same as `ef269025`'s in `app/`: `git diff 428c6096 ef269025` is empty, and `428c6096` adds only docs to `b1f888a5`.
-- **After** (`59c4dd85`, `--rerun`): **FULL_RESULT**.
+- **Before**: not run by this session. Taken from the arrived-alone report
+  (`docs/navigation/2026-10-06-arrived-alone-report.md`, "Full suite", its "After" line): **3,823
+  tests, 0 failures, 0 errors, 24 skipped**, measured on that branch's merged tree. That tree is the
+  same as `ef269025`'s in `app/`: `git diff b1f888a5 ef269025 -- app` is empty (the merge `b1f888a5`
+  to `ef269025` adds only docs, `428c6096`, and the PR merge).
+- **After** (head, `--rerun`): FULL_RESULT_PENDING
 
 ## Device-only (listed, not run)
 
@@ -213,6 +271,8 @@ Earlier landscape runs of r01, r02 and r20 under legacy graphics are superseded 
 
 - No phone, no adb.
 - The full suite on `main` before was not re-run. The count comes from the arrived-alone report, as stated.
-- `a9ca61fc`'s claim that the nine alert-moment tests were green on `main` first was not re-run by this session. They are green here, and r17 shows that four of them fail when the alerts-off gate is removed.
-- r16's timeout is unexplained (above).
 - No recorded red run for the tests in `ea722ff7`. The revert checks stand in for it, as stated under Tests.
+- The second session's account of the uncommitted `.clickable {}` line was not verified.
+- The draft's r16 timeout is unexplained; this session's one equivalent run did not show it.
+- The labels and defaults of the Sundown section, and the polar cases, have no revert check.
+- Two points still need the owner's word (polar night's words, checkbox not switch); see "Owner rulings".
