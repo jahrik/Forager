@@ -12182,3 +12182,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **The owner, verbatim, to four questions:** (1) "Hooks in the service (Recommended)": three one-line calls in `TrackRecordingService` (start, stop, destroy); the overlap with -527 is the planner's to sequence. (2) "No, record as-is (Recommended)": no forced full GNSS tracking; a forced-full-GNSS walk can be a separate test later. (3) "Yes, keep it awake (Recommended)": the debug build holds a wake lock while logging, on both phones; the desk run measures its battery cost before any woods walk. (4) "Yes, as proposed (Recommended)": motion sensors at 25 Hz, rotation vectors at 10 Hz, the rest as delivered; stop below 200 MB free.
 **Still open:** item 3 (each phone's sensors and GNSS capabilities, read only) needs both phones plugged in. Gradle waits for the planner's go: -549 builds first, then -527, then this.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -560.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-560
+**Timestamp:** 2026-10-06T03:51:00Z
+**Continues:** 2026-09-28-559
+**Amendment 3 to -532 (walk-logger).** The coder's stop: the logger's own passive-provider listener would add one more registered location listener during a recording, which existing tests count (`TrackRecordingServiceSwipeAwayTest`, about 14 assertions, e.g. `:169`, `:462`; `TrackRecordingServiceSundownTest` `:91`, `:156`, via `shadowLocationManager.requestLocationUpdateListeners`; inferred, not run).
+**The owner, verbatim,** to "Should the walk logger have an on/off switch (test builds only), or log every recording automatically?": "A switch, off by default (Recommended)" (the other option: always on in test builds, with the counting tests changed).
+**What it sets:** a "Walk logger" switch in the debug build's diagnostics panel, off by default, remembered across restarts in the debug diagnostics preferences; the logger runs only when it is on. Existing tests run with it off and are not changed; the logger's tests switch it on. The S26 records normally until it is switched on for a logged walk. Rejected: hooking `AndroidLocationTracker`'s per-fix log (collides with -527, and sees only the tracker's providers).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -561.
