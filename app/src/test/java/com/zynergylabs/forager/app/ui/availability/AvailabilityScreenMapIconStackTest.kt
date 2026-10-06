@@ -718,6 +718,10 @@ class AvailabilityScreenMapIconStackTest {
      * Dispatch 2026-09-28-497 changed this (Amendment 2): the large slot asserted "12 m", the route
      * figure. Arrival's radius, max(2 x accuracy, 15 m), is never smaller than approaching's, so a
      * return inside the approach threshold has arrived, and the large slot reads "Arrived", once.
+     *
+     * Dispatch 2026-09-28-578 (Amendment 1, -579) changed this: the status line asserted "Approaching".
+     * Arrived, "Arrived" stands alone (the owner: "Drop "Approaching" when arrived"), so it is empty,
+     * and "Approaching" does not appear anywhere on screen.
      */
     @Test
     fun `inside the approach threshold the distance appears exactly once and the target column is empty`() {
@@ -725,11 +729,27 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.waitForIdle()
 
         assertEquals(ARRIVED_TEXT, textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
-        assertEquals("Approaching", textOfTag(NAVIGATION_HUD_STATUS_TAG))
+        assertEquals("", textOfTag(NAVIGATION_HUD_STATUS_TAG))
+        composeRule.onAllNodesWithText("Approaching", substring = true).assertCountEquals(0)
         assertEquals("", textOfTag(NAVIGATION_HUD_TARGET_TAG))
         composeRule.onAllNodesWithText(ARRIVED_TEXT).assertCountEquals(1)
         composeRule.onAllNodesWithText("within 13 m").assertCountEquals(0)
         composeRule.onAllNodesWithText("10 m").assertCountEquals(0)
+    }
+
+    /**
+     * Dispatch 2026-09-28-578 (Amendment 1, -579), through the real screen: 50 m from the origin with
+     * 12.5 m accuracy has not arrived (25 m) and is inside "Approaching"'s own 100 m zone (the owner:
+     * "Give Approaching its own zone", "100 m / 330 ft"), so the status line reads "Approaching" and
+     * the large slot holds the route figure, not "Arrived".
+     */
+    @Test
+    fun `inside the approaching zone and not arrived the status line reads Approaching under the route figure`() {
+        setNavigatingScreen(fix = hudFix.copy(lat = 45.53045), returnRoute = ReturnRoute.Ahead(LatLng(hudOrigin.lat, hudOrigin.lng), 60.0))
+        composeRule.waitForIdle()
+
+        assertEquals("Approaching", textOfTag(NAVIGATION_HUD_STATUS_TAG))
+        composeRule.onAllNodesWithText(ARRIVED_TEXT).assertCountEquals(0)
     }
 
     /**
