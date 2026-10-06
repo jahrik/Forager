@@ -12159,3 +12159,15 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Out of scope, as the coder proposed:** "Radius: N km" (`SightingsMap.kt:1916`, a snippet nothing reads, unverified on a device); "each 11 km cell" (`MapLegend.kt:31`, approved legend wording for a fixed grid); soil moisture m³/m³ (a ratio); bearings and the distance formatters' metric branches (already follow the setting).
 **Tests the report listed:** Imperial expectations change at `NavigationHudReadoutTest.kt:400`, `:416` and `AvailabilityScreenLandscapeB2Test.kt:780`; the Metric ones in `AvailabilityScreenMapIconStackTest.kt` (`:366`, `:504`, `:1493`, `:1637`) stay; `ForagingWeatherGuidanceTest.kt:66` gains an Imperial case; new tests for the soil-temperature row and `accuracyLabel`.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -558.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-558
+**Timestamp:** 2026-10-06T03:43:00Z
+**Continues:** 2026-09-28-527
+**Amendment 1 to -527 (fix-provider), after the coder's verify report** (`docs/navigation/2026-10-05-fix-provider-report.md` on fix-provider at f7824f15, base main 4b72b25c). Premises the report corrected: the dispatch's counts were log lines, not fixes (desk: 1,514 GPS, 252 network; walks: 1,735 GPS, 1,615 at 3.79 m); the timestamp rule disagreed with the provider 4 times in 1,969 walk fixes on the S22; the walk folders are named `2026-10-03-walk-t21` and `-walk-zoom`.
+**The owner, verbatim, to three questions:** (1) Camera finds, which ask GPS and network at once, take the first answer with no accuracy limit, and save it as the photo's and the find's location: "Later, on the list (Recommended)". Not changed here; recorded as an uncovered failure under -519 and added to the build list as L7 (camera finds prefer GPS, with a network fallback labelled approximate). (2) The recording screen's sundown countdown: "Keep it working (Recommended)". The origin waypoint and the route home take GPS only; the countdown keeps reading any fix, as -516's rule lets the sunset come from any fix. (3) Places that build a fix (2 in the app, 47 in tests across 26 files): "Must always say (Recommended)". No default provider; test fixtures say GPS; no assertion changes.
+**Stands as the coder proposed:** the provider passed along with each fix in the recording and alert stream, not stored; saved track points keep the timestamp rule; an unknown provider never acts and may be shown; the mismatch log under tag `ForagerFixRule`, only on disagreement. Not checked: the passive provider's last known position.
+**Gradle:** waits for the planner's word that -549's build has finished; one build at a time.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -559.

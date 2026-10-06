@@ -314,6 +314,7 @@ The owner, verbatim: "Let's add it to the table so it doesn't get lost, and so I
 | ⬜ | L4 The fusion filter (EKF), built and tuned against the walk logs, off the live map | Not started; -538's four questions wait on the logs ("May as well wait for a fuller picture before answering anything") |
 | ⬜ | L5 Judge GPS fixes by satellite status | Only if L3's logs show fixes reporting the 3.79 m floor while really off (-526) |
 | ⬜ | L6 The filter drives the live map | Not started; the owner's decision after L4 |
+| ⬜ | L7 Camera finds prefer GPS, with a network fallback labelled approximate | Not started; found by -527's verify step, deferred by the owner (-558). Today a camera find takes whichever of GPS and network answers first |
 
 Research behind it: `docs/navigation/2026-10-04-location-fusion-research.md`. The failures it answers: `docs/navigation/2026-10-05-location-failure-fallbacks.md` (-519). Abandoned, not part of it: ageing fixes on the since-boot clock (-554).
 
