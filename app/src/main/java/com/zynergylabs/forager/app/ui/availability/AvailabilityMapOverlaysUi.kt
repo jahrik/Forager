@@ -72,6 +72,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.domain.model.Sighting
+import com.zynergylabs.forager.app.domain.model.UnitSystem
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorDark
@@ -277,6 +278,8 @@ internal fun ObservationBubble(
     onViewOnINaturalist: () -> Unit,
     onDismiss: () -> Unit,
     tipInBubble: State<Offset?>,
+    /** Dispatch 2026-09-28-549 (Amendment 1, RECORD -557): the Units setting, which the accuracy note follows. */
+    unitSystem: UnitSystem,
     modifier: Modifier = Modifier,
 ) {
     MapBubbleShell(
@@ -313,7 +316,7 @@ internal fun ObservationBubble(
             )
         }
         Text(
-            accuracyLabel(sighting.positionalAccuracyMeters),
+            accuracyLabel(sighting.positionalAccuracyMeters, unitSystem),
             style = MaterialTheme.typography.bodySmall,
             color = LocalContentColor.current.copy(alpha = 0.7f),
             modifier = Modifier.testTag("observation-bubble-accuracy"),

@@ -272,3 +272,50 @@ The owner asked, verbatim: "Can the camera view in the app change to a more navi
 **T22, the tilt refined by the owner** (2026-10-03, verbatim): "Have the tilt be enough to focus on the path ahead, not so gentle that it's a cosmetic tilt." So the tilt is strong enough to put the way ahead in front of the walker, not a slight lean. The planner's starting figure: about 45° (the map library allows 0° to 60°; car navigation sits near the top), a named constant tuned on a walk. Recorded in `RECORD.md` 2026-09-28-428.
 
 **T22, the owner's answers on panning, returning and the compass** (2026-10-03, verbatim): "1 yes" (dragging the map stops it following); "2 Have a "Return to Route" button appear when panning away"; "3 give a notice first that the compass is calculating if it's stuck, after retrying to get it back, then the north up view." Recorded in `RECORD.md` 2026-09-28-429. The step path built from them is put back to the owner for confirmation before T22 is dispatched.
+
+## Addendum, 2026-10-06 (UTC): the build list, with location fusion added as track L
+
+The owner, verbatim: "Let's add it to the table so it doesn't get lost, and so I can keep track of it." Location fusion was never one of this plan's tasks; it ran as its own track through the record (-509, -511, -512, -519, -526, -538). It is added here as **track L**, so the one list holds everything being built. Status as of `main` at `4b72b25c` (PR #174, -516), checked task by task against the record and the code (the not-started items by a code read, as no record entry exists for them).
+
+**Stages A to F (the short release)**
+
+| Done | Task | Status |
+|---|---|---|
+| ✅ | T1 Off-track alert from the recording service | On main (PRs #148 to #150). Not yet seen firing on a walk with the app swiped away (-400 open) |
+| ✅ | T2 Turnaround and sunset alerts fire | On main (PR #174, -516) |
+| ⬜ | T3 Sunset countdown on the recording screen | Not started; placement decided, strip then HUD (-421) |
+| ⬜ | T4 Darkness margin and alerts on/off in Settings | Not started; the stored values exist, nothing sets them |
+| ✅ | T5 The route home, as logic | On main (PR #153) |
+| ✅ | T6 The HUD follows the route | On main (PR #154) |
+| ✅ | T7 Route drawn on the map, arrival shown | On main (PR #167) |
+| ✅ | T8 A chosen waypoint becomes the target | On main (PR #168) |
+| ✅ | T9 Navigate offered from bubble, details sheet and Records | On main (PR #168) |
+| ⬜ | T10 A dropped waypoint linked to its recording | Not started |
+| ⬜ | T11 The HUD in landscape and on a tablet | Not started; the owner's tablet check first |
+| ✅ | T12 Recorded walks with a real way back | On main (PR #174); closed by the owner's ruling on two walks (-550, -553) |
+| ✅ | T13 Turnaround alert uses walk-back time | On main (PR #174, -516) |
+| ⬜ | T14 Off-track alert's wording and battery-setting check | Not started |
+| ⬜ | T15 Overdue check-in timer | Not started; needs the owner's step path |
+| ⬜ | T16 GPX import | Not started |
+| ⬜ | T17 Recording battery mode | Not started |
+| ✅ | T18 Coordinate format remembered | On main (PR #157) |
+| ⬜ | T19 One source for the navigation disclaimer | Not started; possibly stale, its wording is no longer in the app |
+| ⬜ | T20 Offline readiness states | Not started |
+| ✅ | T21 What "off track" means, for the walker | On main (PR #156) |
+| ✅ | T22 Navigation camera view | On main (PR #155, follow-ups -440, -457) |
+
+**Track L, location fusion (added 2026-10-06).** The order is the owner's (-512, -526): data first, then the filter, built and tuned against real walks before it touches the live map.
+
+| Done | Task | Status |
+|---|---|---|
+| ⬜ | L1 Every fix carries its true source; nothing that acts on position uses a network fix | Written as dispatch -527 (`prompts/preserved/2026-10-05-01.md`); can start now -516 has merged |
+| ⬜ | L2 Walk logger: a debug-only record of everything the phone senses on a walk | Written as dispatch -532 (`prompts/preserved/2026-10-05-02.md`, with -533's Amendment 1); runs beside L1 |
+| ⬜ | L3 Woods walks with both phones, logs collected | The owner's walks, after L1 and L2 |
+| ⬜ | L4 The fusion filter (EKF), built and tuned against the walk logs, off the live map | Not started; -538's four questions wait on the logs ("May as well wait for a fuller picture before answering anything") |
+| ⬜ | L5 Judge GPS fixes by satellite status | Only if L3's logs show fixes reporting the 3.79 m floor while really off (-526) |
+| ⬜ | L6 The filter drives the live map | Not started; the owner's decision after L4 |
+| ⬜ | L7 Camera finds prefer GPS, with a network fallback labelled approximate | Not started; found by -527's verify step, deferred by the owner (-558). Today a camera find takes whichever of GPS and network answers first |
+
+Research behind it: `docs/navigation/2026-10-04-location-fusion-research.md`. The failures it answers: `docs/navigation/2026-10-05-location-failure-fallbacks.md` (-519). Abandoned, not part of it: ageing fixes on the since-boot clock (-554).
+
+**Outside both lists:** -549, units-follow (elevation in feet and soil temperature in °F under Imperial), written and not sent. Stages G to K: not started.
