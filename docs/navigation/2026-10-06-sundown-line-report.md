@@ -26,7 +26,9 @@ as the draft's.
 | `33c6e322` | Strip tests in landscape and fullscreen, and three repairs found when reading `ea722ff7` (see below). |
 | `59c4dd85` | The strip tests read the laid-out line, not only its text; the 24-hour clock test can now fail. |
 | `c00ca917` | The second session's report draft, committed by the planner as found. |
-| this session's commits | The revert table and suite counts in this report, and its two index rows. No code changed. |
+| `b55f3c80` | This session's revert table, replacing the draft's. |
+| `ee5c44c9` | Two existing settings tests scroll to the explanation they assert (see Full suite). No app code changed by this session. |
+| this report's last commit | The suite counts and the two index rows. |
 
 ## The uncommitted line the second session found (the draft's account, not re-verified)
 
@@ -96,7 +98,7 @@ App paths are relative to `app/src/main/java/com/zynergylabs/forager/app/`.
 ## Owner rulings this build follows, quoted
 
 - Placement, -421: "Strip, then HUD (Recommended)".
-- -592:
+- -592 (asked first: "Yes, confirm T3 and T4 with me"):
   - "Add "start back by" (Recommended)".
   - "30 min, 45 min, 1 h, 1 h 30 (Recommended)".
   - "Yes, write it (Recommended)".
@@ -105,9 +107,9 @@ App paths are relative to `app/src/main/java/com/zynergylabs/forager/app/`.
   - Navigating without recording: "Sunset and dark only (Recommended)".
   - The horizon sentence: "Leave it out for now".
   - The "at least" walk back: "Just "start back by 5:32"".
-- -595, the owner unprompted: "For sundown alerts, it wouldn't be useful in the morning or early noon so while navigating and tracking, those alerts can be clutter on the UI. Maybe have sundown alerts appear ~4 hours prior to sundown." Then: "Option 1, but change it from 4 hours to 2.5 hours before sunset".
+- -595, the owner unprompted: "For sundown alerts, it wouldn't be useful in the morning or early noon so while navigating and tracking, those alerts can be clutter on the UI. Maybe have sundown alerts appear ~4 hours prior to sundown." The option chosen: "Yes; also show if start-back is near" ("The line appears 4 hours before sunset, or earlier if the start-back time is less than 1 hour away, so it's never hidden when it matters"), with: "Option 1, but change it from 4 hours to 2.5 hours before sunset".
 - -596: "Yes hide it before a position is known".
-- Gradle: "Go ahead and build it." This came to this session from the planner; it was not read at its source.
+- Gradle: "Go ahead and build it." This reached the second session from the planner; it was not read at its source. This session was told by the planner "The owner's Gradle go stands", also not read at its source.
 
 Two points need the owner's word:
 
@@ -169,7 +171,9 @@ Two points need the owner's word:
   - Three test strings wrote `${'$'}` where they meant `$`.
   - `ThemeModeSection`'s KDoc had been left orphaned above the new Sundown block. It is back above
     its function.
-- No `@Ignore` was added, and no assertion was weakened. This session changed no test and no code.
+- No `@Ignore` was added (`git diff ef269025 HEAD -- app/src/test` adds none; 6 files carry one at both
+  commits), and no assertion was weakened. This session changed no app code; its one test change is
+  under Full suite.
 
 ## Revert checks
 
@@ -258,7 +262,32 @@ a different edit, stated above.
   tests, 0 failures, 0 errors, 24 skipped**, measured on that branch's merged tree. That tree is the
   same as `ef269025`'s in `app/`: `git diff b1f888a5 ef269025 -- app` is empty (the merge `b1f888a5`
   to `ef269025` adds only docs, `428c6096`, and the PR merge).
-- **After** (head, `--rerun`): FULL_RESULT_PENDING
+- **First run on this branch** (`b55f3c80`, `--rerun`): **3,890 tests, 2 failures, 24 skipped.**
+  Both in `AvailabilityScreenSettingsPanelTest`, which nothing in this dispatch had run before:
+  "the photo-location checkbox starts on, explains itself, and toggles" and "the lock-camera checkbox
+  starts off, explains that sideways photos save portrait, and toggles", each "… is not displayed!" on
+  its explanation text (`:823`, `:842`).
+  - **Cause, shown, not inferred.** Each test scrolls its *label* into view (`performScrollTo()`) and
+    then asserts the *explanation* under it displayed, without scrolling to it. The Sundown section,
+    placed above Photo Location, makes the panel taller, so at the class's `h640dp` the label lands at
+    the bottom edge and its explanation below the fold. Through the saved-copy runner, the class alone:
+    forward, 28 tests, 2 failures (the same two); with only `SundownSection(sundown)` and its divider
+    removed from `SettingsContent`, 28 tests, 0 failures. Both runs 0 `e:` lines, fresh XML, restored
+    and confirmed.
+  - **Fix** (`ee5c44c9`, test only): the explanation is scrolled to before it is asserted displayed,
+    as the label already is, with a comment saying why. The assertion is the same; what it no longer
+    holds is that label and explanation fit on one screen together, which was never its claim.
+    The class: 28 tests, 0 failures. **This is a change to existing tests that the dispatch did not
+    list; the alternative was to move the Sundown section below the camera setting, a placement
+    decision. The planner may prefer that; it is one revert of `ee5c44c9` plus moving two lines.**
+- **After** (`ee5c44c9`, the final code head, `--rerun`): **3,890 tests, 0 failures, 0 errors, 24
+  skipped.** 0 `e:` lines in the build log; the results directory was deleted before the run and all
+  473 XML files were written after it started. 3,890 = 3,823 + 67, the `@Test` annotations this branch
+  adds; 24 skipped, as before.
+- **Memory.** Run with the defaults (`org.gradle.jvmargs=-Xmx2048m`, one test fork, no test heap
+  setting in `app/build.gradle.kts`), not `--max-workers=2`: measured during the run, the Gradle daemon
+  was about 2.0 GB resident, the Kotlin daemon 1.9 GB and the one test executor 1.4 GB, about 5.4 GB in
+  all, under the 6 GB line. Nothing else heavy ran.
 
 ## Device-only (listed, not run)
 
@@ -275,4 +304,5 @@ a different edit, stated above.
 - The second session's account of the uncommitted `.clickable {}` line was not verified.
 - The draft's r16 timeout is unexplained; this session's one equivalent run did not show it.
 - The labels and defaults of the Sundown section, and the polar cases, have no revert check.
+- `ee5c44c9` changes two existing tests; see Full suite for the alternative.
 - Two points still need the owner's word (polar night's words, checkbox not switch); see "Owner rulings".
