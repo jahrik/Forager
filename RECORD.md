@@ -12065,3 +12065,24 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Dispatch-file:** preserved/2026-10-06-02.md
 **Not yet sent:** for the owner to send; it can run now (nothing is building; none of its five files differs on sundown-alerts), Gradle on the owner's "go".
 **Notes:** Written by the planner by hand, on branch records-after-173 at b6dcbcb4.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-550
+**Timestamp:** 2026-10-06T02:15:00Z
+**Continues:** 2026-09-28-546
+**Decides:** -516's release gate is closed by the two walks of about 4:30 PM on 2026-10-05
+**The owner, verbatim:** "There were two walks around 4:30pm. Use them both." Then, to the planner's question, which set out that neither walk meets the gate alone (the 4:32 walk 15.5 min and a loop, the way back a median 45 m off the way out; the 4:49 walk a 24.5-min out-and-back) and that the estimate is worked out afresh per recording, so it never had more than 15 minutes of walking to work from: "Both close the check" (the other options: both as evidence with the gate left open; both, and walk again).
+**What it sets:** supersedes the gate in the -516 report ("one out-and-back walk of 30 minutes or more ... This branch must not ship in a release until that comparison is filed"). The gate is now these two walks, with both comparisons filed: the 4:49 walk's in -545, and the 4:32 walk's by -551. Still open before -516 merges: the leave-by and sunset alerts seen on a correct clock (the planner's question described the merge as following once those are seen). The planner's caution, given before the ruling: the estimate has not been compared on a walk with more than 15 minutes of moving, the case the 30-minute gate was set to test.
+**Notes:** Written by the planner by hand, on branch records-after-173.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-551
+**Timestamp:** 2026-10-06T02:15:00Z
+**Title:** walk-evidence-2: file the 4:32 PM walk's estimate replay beside the 4:49 walk's
+**Dispatch-file:** preserved/2026-10-06-03.md
+**Not yet sent:** for the owner to send; records only, no Gradle, can run alongside -549's verify step (-549 builds only on the owner's "go").
+**Notes:** Written by the planner by hand, on branch records-after-173 at 2c11d3e7.
