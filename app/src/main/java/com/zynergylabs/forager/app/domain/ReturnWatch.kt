@@ -241,7 +241,7 @@ class ReturnWatch(
             lastInfo = info
             var shouldAlert = false
             if (returning) {
-                val verdict = (judge ?: OffTrackJudge(listOf(start) + pathAtReturn).also { judge = it }).next(current)
+                val verdict = (judge ?: OffTrackJudge(listOf(start) + pathAtReturn).also { judge = it }).next(current, provider)
                 val wasOff = offTrack
                 offTrack = verdict.isOffTrack
                 shouldAlert = verdict.alert
