@@ -12033,3 +12033,35 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Not checked by the planner:** items 2e, 2f and 3 (the log reach), the by-distance rows, and which phone said 5:32 and which 5:33; taken from the doc.
 **Open, carried:** what the six real-time network-class points are (-527, -532); -516's release gate and the leave-by and sunset alerts on a correct clock (the owner's walks, automatic time on); the elevation-units decision (2026-09-07 pre-build report); the record checkers absent from this tree (-544). **Next free ID:** -547.
 **Notes:** Written by the planner by hand, on branch records-after-173 at c23583d3.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-547
+**Timestamp:** 2026-10-06T02:13:00Z
+**Continues:** 2026-09-28-545
+**Decides:** elevation and soil temperature follow the Units setting
+**The owner, verbatim,** on -545's reading that the HUD shows "114 m" beside feet: "some metrics don't translate to imperial very well. Should we change it?" Then, to the planner's question "With Units set to Imperial (US), should elevation and soil temperature follow it too?", with the step path shown (Units: Imperial (US) > navigate > the HUD reads "374 ft" (now "114 m"); Maps > the compass strip "374 ft", rise "+33 ft"; Availability > "Soil temperature: 52.3°F"; Units: Metric > everything as today; nothing the app decides changes, only the printed figure): "Yes, both (Recommended)" (the other options: elevation only; leave as is).
+**What it sets:** completes the 2026-09-09 ruling that built `UnitSystem` and converted rainfall only (`domain/model/UnitSystem.kt`'s doc). The two quantities it left metric follow the setting: elevation (three sites) and soil temperature (one site, plus the guidance text's range). Values stay metric inside; only the label converts. Dispatched as -549.
+**Notes:** Written by the planner by hand, on branch records-after-173.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-548
+**Timestamp:** 2026-10-06T02:13:00Z
+**Continues:** 2026-09-28-544
+**Decides:** the record checkers are retired
+**The owner, verbatim,** on -544's note that the checkers are not in the tree: "depends if they're useful or not". Then, to "The two record-checking scripts: are they worth keeping?", with the planner's reading that as they stand they report about 1,650 errors on a sound record and that the copies on the laptop check their own folder and say PASS: "Retire them (Recommended)" (the other options: retire and add a check for an ID used twice; bring them back and rework the record to match).
+**What it sets:** the instruction in this file's header to run `check_record.py` and `check_prompts.py` before committing no longer applies. The header is not edited (this file is append-only); this entry supersedes that one instruction and nothing else in the header. No replacement script. What -544 to -546 did by hand in their place: fetch, confirm the next ID is free, and show that `git diff` against the remote branch adds lines only, at the end of RECORD.md and of the index.
+**Notes:** Written by the planner by hand, on branch records-after-173.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-549
+**Timestamp:** 2026-10-06T02:13:00Z
+**Title:** units-follow: elevation in feet and soil temperature in °F when Units is Imperial (US); Metric unchanged
+**Dispatch-file:** preserved/2026-10-06-02.md
+**Not yet sent:** for the owner to send; it can run now (nothing is building; none of its five files differs on sundown-alerts), Gradle on the owner's "go".
+**Notes:** Written by the planner by hand, on branch records-after-173 at b6dcbcb4.
