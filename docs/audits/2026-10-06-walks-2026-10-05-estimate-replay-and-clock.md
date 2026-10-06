@@ -58,7 +58,7 @@ clock offset itself is about a second less. Rounded figures such as -540's 249 a
   (S22 +0.899 s and +0.931 s; S26 +0.783 s and +0.643 s). Both clocks were correct by 4:32 PM. The evening tracks'
   five network-class points (S26: three on the 4:32 walk, two on the 4:49 walk; S22: none) also read correct time.
 - **2f:** the handoff (`docs/audits/2026-10-05-planner-handoff.md`) says "Both phones were still recording at 20:25 UTC".
-  Item 2b puts both ends at about 20:20:50Z, **about 4 to 4.5 minutes earlier**. The handoff is not edited.
+  Item 2b puts both ends at about 20:20:50Z, **about 4 minutes earlier** (4 m 07 s on the S22, 4 m 10 s on the S26). The handoff is not edited.
 
 ### Item 2c: the planner's prediction was wrong, and is left open
 
