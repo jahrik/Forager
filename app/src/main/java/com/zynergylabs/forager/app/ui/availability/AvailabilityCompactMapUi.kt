@@ -877,6 +877,7 @@ internal fun CompactMapTab(
                     CompassElevationStrip(
                         heading = trueHeading,
                         elevationMeters = uiState.liveAltitudeMeters,
+                        unitSystem = uiState.unitSystem,
                         location = uiState.liveLocation,
                         showDecimalDegrees = showDecimalDegrees,
                         onToggleCoordinateFormat = onToggleCoordinateFormat,

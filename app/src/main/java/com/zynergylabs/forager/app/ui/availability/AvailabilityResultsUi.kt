@@ -65,6 +65,7 @@ import com.zynergylabs.forager.app.domain.model.DailyWeather
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.UnitSystem
 import com.zynergylabs.forager.app.domain.model.formatRainfall
+import com.zynergylabs.forager.app.domain.model.formatSoilTemperature
 import com.zynergylabs.forager.app.domain.model.FruitingLagBucket
 import com.zynergylabs.forager.app.domain.model.FruitingLagDistribution
 import com.zynergylabs.forager.app.domain.model.TripWindow
@@ -540,7 +541,7 @@ internal fun TripWindowsCard(uiState: AvailabilityUiState) {
             }
 
             HorizontalDivider()
-            ForagingWeatherGuidanceSection(uiState.foragingSelection)
+            ForagingWeatherGuidanceSection(uiState.foragingSelection, uiState.unitSystem)
         }
     }
 }
@@ -584,7 +585,7 @@ private fun TripWindowRow(window: TripWindow, unitSystem: UnitSystem) {
             )
         }
         window.meanSoilTemperatureC?.let { temp ->
-            Text("Soil temperature: ${"%.1f".format(temp)}°C", style = MaterialTheme.typography.bodySmall)
+            Text("Soil temperature: ${formatSoilTemperature(temp, unitSystem)}", style = MaterialTheme.typography.bodySmall)
         }
         window.evapotranspirationSinceRainMm?.let { et0 ->
             Text(
@@ -601,8 +602,8 @@ private fun TripWindowRow(window: TripWindow, unitSystem: UnitSystem) {
  * [ForagingWeatherGuidance]'s doc comment for the rules this enforces.
  */
 @Composable
-private fun ForagingWeatherGuidanceSection(selection: ForagingSelection) {
-    val guidance = ForagingWeatherGuidance.forSelection(selection)
+private fun ForagingWeatherGuidanceSection(selection: ForagingSelection, unitSystem: UnitSystem) {
+    val guidance = ForagingWeatherGuidance.forSelection(selection, unitSystem)
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         // labelMedium + a muted color, not titleSmall/labelLarge: Material3 sizes titleSmall and
         // labelLarge identically (14sp/500), so this heading and the card's own "Trip Windows"

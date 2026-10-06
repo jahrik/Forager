@@ -69,6 +69,9 @@ import com.zynergylabs.forager.app.domain.MgrsConverter
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
 import com.zynergylabs.forager.app.domain.model.LatLng
+import com.zynergylabs.forager.app.domain.model.UnitSystem
+import com.zynergylabs.forager.app.domain.model.formatElevationChange
+import com.zynergylabs.forager.app.domain.model.formatWholeLength
 import com.zynergylabs.forager.app.domain.model.ReturnToStartInfo
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.MAP_CHROME_OVER_MAP_ALPHA
@@ -322,6 +325,8 @@ internal fun CompassElevationStrip(
      */
     heading: State<TrueHeadingReading>,
     elevationMeters: Double?,
+    /** Dispatch 2026-09-28-549: the Units setting, which the elevation follows. */
+    unitSystem: UnitSystem,
     location: LatLng?,
     /** The MGRS/decimal choice, hoisted to [CompactMapTab] and shared with [NavigationHud] — see that call site. */
     showDecimalDegrees: Boolean,
@@ -342,6 +347,7 @@ internal fun CompassElevationStrip(
     CompassElevationStripContent(
         heading = reading,
         elevationMeters = elevationMeters,
+        unitSystem = unitSystem,
         location = location,
         showDecimalDegrees = showDecimalDegrees,
         onToggleCoordinateFormat = onToggleCoordinateFormat,
@@ -372,6 +378,7 @@ internal fun CompassElevationStrip(
 private fun CompassElevationStripContent(
     heading: TrueHeadingReading,
     elevationMeters: Double?,
+    unitSystem: UnitSystem,
     location: LatLng?,
     showDecimalDegrees: Boolean,
     onToggleCoordinateFormat: () -> Unit,
@@ -525,9 +532,8 @@ private fun CompassElevationStripContent(
                         )
                         Text("·", style = MaterialTheme.typography.labelMedium)
                         Text(
-                            // Meters, matching this app's existing metric convention (radiusKm) rather
-                            // than introducing feet — nothing else in the app displays imperial units.
-                            text = elevationMeters?.let { "${it.roundToInt()} m" } ?: "Elevation unavailable",
+                            // Follows the Units setting (dispatch 2026-09-28-549); the value stays metres.
+                            text = elevationMeters?.let { formatWholeLength(it, unitSystem) } ?: "Elevation unavailable",
                             style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
                             maxLines = 1,
                         )
@@ -579,7 +585,7 @@ internal fun returnToStartStripText(isRecording: Boolean, info: ReturnToStartInf
     if (!isRecording) return ""
     if (info == null) return "Recording — waiting for a fix to compute the way back"
     val elevationText = info.elevationDifferenceMeters?.let {
-        "${if (it >= 0) "+" else ""}${it.roundToInt()} m"
+        formatElevationChange(it, UnitSystem.forDistanceUnit(distanceUnit))
     } ?: "elevation diff. unavailable"
     val bearing = info.bearingDegrees.roundToInt()
     return "Return: $bearing° ${cardinalDirection(info.bearingDegrees.toFloat())} · ${formatDistanceMeters(info.distanceMeters, distanceUnit)} · $elevationText"
