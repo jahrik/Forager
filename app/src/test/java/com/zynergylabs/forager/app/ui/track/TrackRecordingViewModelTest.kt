@@ -8,6 +8,7 @@ import com.zynergylabs.forager.app.domain.ComputeReturnToStartUseCase
 import com.zynergylabs.forager.app.domain.CreateWaypointUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
+import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.InMemoryKeptTrackPaths
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
 import com.zynergylabs.forager.app.domain.ReturnWatch
@@ -276,14 +277,14 @@ class TrackRecordingViewModelTest {
 
         vm.startRecording()
         runCurrent()
-        fixes.emit(LocationFix.Update(lat = 45.000, lng = -122.0, altitude = null, accuracyMeters = 5f, timestampEpochMillis = 1_000L))
+        fixes.emit(LocationFix.Update(lat = 45.000, lng = -122.0, altitude = null, accuracyMeters = 5f, timestampEpochMillis = 1_000L, provider = FixProvider.GPS))
         runCurrent()
         assertEquals(45.000, vm.uiState.value.originWaypoint!!.lat, 0.0)
         trackRepository.appendPoints(
             "track-1",
             listOf(45.000, 45.001, 45.002, 45.003, 45.002, 45.001).mapIndexed { i, lat -> point(lat = lat, t = 1_000L + i * 15_000L) },
         )
-        fixes.emit(LocationFix.Update(lat = 45.001, lng = -122.0, altitude = null, accuracyMeters = 5f, timestampEpochMillis = 76_000L))
+        fixes.emit(LocationFix.Update(lat = 45.001, lng = -122.0, altitude = null, accuracyMeters = 5f, timestampEpochMillis = 76_000L, provider = FixProvider.GPS))
         runCurrent()
         advanceTimeBy(POLL_INTERVAL_MILLIS)
         runCurrent()
@@ -301,7 +302,7 @@ class TrackRecordingViewModelTest {
 
         // The walker reaches the origin: the next poll reads zero — lower than before.
         trackRepository.appendPoints("track-1", listOf(point(lat = 45.000, t = 91_000L)))
-        fixes.emit(LocationFix.Update(lat = 45.000, lng = -122.0, altitude = null, accuracyMeters = 5f, timestampEpochMillis = 91_000L))
+        fixes.emit(LocationFix.Update(lat = 45.000, lng = -122.0, altitude = null, accuracyMeters = 5f, timestampEpochMillis = 91_000L, provider = FixProvider.GPS))
         runCurrent()
         advanceTimeBy(POLL_INTERVAL_MILLIS)
         runCurrent()
@@ -355,7 +356,7 @@ class TrackRecordingViewModelTest {
         runCurrent()
         assertNull(vm.uiState.value.returnToStart)
 
-        fixes.emit(LocationFix.Update(lat = 45.001, lng = -122.0, altitude = null, accuracyMeters = null, timestampEpochMillis = 2_000L))
+        fixes.emit(LocationFix.Update(lat = 45.001, lng = -122.0, altitude = null, accuracyMeters = null, timestampEpochMillis = 2_000L, provider = FixProvider.GPS))
         runCurrent()
 
         assertEquals(180.0, vm.uiState.value.returnToStart?.bearingDegrees ?: -1.0, 0.01)
@@ -373,7 +374,7 @@ class TrackRecordingViewModelTest {
         trackRepository.appendPoints("track-1", listOf(point(lat = 45.0, lng = -122.0, t = 1_000L)))
         advanceTimeBy(POLL_INTERVAL_MILLIS)
         runCurrent()
-        fixes.emit(LocationFix.Update(lat = 45.001, lng = -122.0, altitude = null, accuracyMeters = null, timestampEpochMillis = 2_000L))
+        fixes.emit(LocationFix.Update(lat = 45.001, lng = -122.0, altitude = null, accuracyMeters = null, timestampEpochMillis = 2_000L, provider = FixProvider.GPS))
         runCurrent()
         assertEquals(180.0, vm.uiState.value.returnToStart?.bearingDegrees ?: -1.0, 0.01)
 
@@ -592,7 +593,7 @@ class TrackRecordingViewModelTest {
     // (see the class doc comment), one mechanism for the whole class.
 
     private fun fix(lat: Double, accuracy: Float?, t: Long, altitude: Double? = null) =
-        LocationFix.Update(lat = lat, lng = -122.0, altitude = altitude, accuracyMeters = accuracy, timestampEpochMillis = t)
+        LocationFix.Update(lat = lat, lng = -122.0, altitude = altitude, accuracyMeters = accuracy, timestampEpochMillis = t, provider = FixProvider.GPS)
 
     @Test
     fun `the origin is created from the first fix that passes the mode's accuracy gate, linked to the track and pointed at by it`() = runRecordingTest {
@@ -690,6 +691,114 @@ class TrackRecordingViewModelTest {
         assertTrue(waypointRepository.getAll().getOrThrow().isEmpty())
     }
 
+    // ── Dispatch 2026-09-28-527: the origin, the end and the route home take GPS only ──
+    //
+    // A 15 m fix clears every mode's ceiling, so before this dispatch a network one seeded the origin,
+    // became the end and was where the route home was searched from. RECORD -558: the origin waypoint and
+    // the route home take GPS only (the end waypoint by the dispatch's rule 2, which it also writes); the
+    // sundown countdown keeps reading any fix (TrackRecordingSundownTest).
+
+    private fun networkFix(lat: Double, t: Long) =
+        LocationFix.Update(lat = lat, lng = -122.0, altitude = null, accuracyMeters = 15f, timestampEpochMillis = t + 123, provider = FixProvider.NETWORK)
+
+    @Test
+    fun `a 15 m network fix never seeds the origin, and a 15 m GPS fix after it does`() = runRecordingTest {
+        val waypointRepository = FakeWaypointRepository()
+        val fixes = MutableSharedFlow<LocationFix>()
+        val vm = viewModel(waypointRepository = waypointRepository, locationTracker = FakeLocationTracker(fixes))
+        vm.startRecording(TrackRecordingMode.HIGH_ACCURACY) // gate: 30 m, which 15 m clears
+        runCurrent()
+
+        fixes.emit(networkFix(lat = 45.0, t = 2_000L))
+        runCurrent()
+        assertNull("no origin from a network fix", vm.uiState.value.originWaypoint)
+        assertTrue(waypointRepository.getAll().getOrThrow().isEmpty())
+
+        fixes.emit(fix(lat = 45.001, accuracy = 15f, t = 3_000L))
+        runCurrent()
+        assertEquals("the origin is the GPS fix", 45.001, requireNotNull(vm.uiState.value.originWaypoint).lat, 1e-9)
+        vm.stopRecording()
+    }
+
+    @Test
+    fun `a 15 m fix from an unknown provider never seeds the origin`() = runRecordingTest {
+        val waypointRepository = FakeWaypointRepository()
+        val fixes = MutableSharedFlow<LocationFix>()
+        val vm = viewModel(waypointRepository = waypointRepository, locationTracker = FakeLocationTracker(fixes))
+        vm.startRecording(TrackRecordingMode.HIGH_ACCURACY)
+        runCurrent()
+
+        fixes.emit(fix(lat = 45.0, accuracy = 15f, t = 2_000L).copy(provider = FixProvider.UNKNOWN))
+        runCurrent()
+
+        assertNull(vm.uiState.value.originWaypoint)
+        assertTrue(waypointRepository.getAll().getOrThrow().isEmpty())
+        vm.stopRecording()
+    }
+
+    @Test
+    fun `stopping makes the end waypoint from the last GPS fix, not a later 15 m network fix`() = runRecordingTest {
+        val waypointRepository = FakeWaypointRepository()
+        val fixes = MutableSharedFlow<LocationFix>()
+        val vm = viewModel(waypointRepository = waypointRepository, locationTracker = FakeLocationTracker(fixes))
+        vm.startRecording(TrackRecordingMode.HIGH_ACCURACY)
+        runCurrent()
+        fixes.emit(fix(lat = 45.001, accuracy = 10f, t = 3_000L))
+        runCurrent()
+        fixes.emit(fix(lat = 45.010, accuracy = 10f, t = 4_000L))
+        runCurrent()
+        fixes.emit(networkFix(lat = 45.500, t = 5_000L))
+        runCurrent()
+        vm.stopRecording()
+        runCurrent()
+
+        val end = waypointRepository.getAll().getOrThrow().single { it.designation == WaypointDesignation.END }
+        assertEquals(45.010, end.lat, 1e-9)
+    }
+
+    /**
+     * Recorded north as in [recordThreePointsNorth], the walker's only fix a 15 m one from [provider]. Returns
+     * the route home once Return has been tapped.
+     */
+    private suspend fun kotlinx.coroutines.test.TestScope.routeHomeFrom(provider: FixProvider): RouteHome? {
+        val trackRepository = InMemoryTrackRepository()
+        val fixes = MutableSharedFlow<LocationFix>()
+        val vm = viewModel(trackRepository, locationTracker = FakeLocationTracker(fixes))
+        vm.startRecording()
+        runCurrent()
+        trackRepository.appendPoints("track-1", listOf(45.000, 45.001, 45.002).mapIndexed { i, lat -> point(lat = lat, t = 1_000L + i * 15_000L) })
+        advanceTimeBy(POLL_INTERVAL_MILLIS * 2)
+        runCurrent()
+        val t = 31_000L
+        fixes.emit(LocationFix.Update(lat = 45.002, lng = -122.0, altitude = null, accuracyMeters = 15f, timestampEpochMillis = if (provider == FixProvider.NETWORK) t + 123 else t, provider = provider))
+        runCurrent()
+        assertEquals("precondition: the poll has read the three points", 3, vm.uiState.value.breadcrumbPoints.size)
+
+        vm.startReturn()
+        runCurrent()
+        return vm.uiState.value.routeHome.also { vm.stopRecording() }
+    }
+
+    @Test
+    fun `the route home is never searched from a 15 m network fix`() = runRecordingTest {
+        assertNull(routeHomeFrom(FixProvider.NETWORK))
+    }
+
+    @Test
+    fun `the route home is never searched from a 15 m fix from an unknown provider`() = runRecordingTest {
+        assertNull(routeHomeFrom(FixProvider.UNKNOWN))
+    }
+
+    /**
+     * The control: the same fix from GPS is searched from, as today. Any result counts, since the GPS fix
+     * also seeds the origin where the walker stands: the claim is that a search ran, and without a gated
+     * fix [TrackRecordingViewModel] leaves the route home `null` without searching.
+     */
+    @Test
+    fun `the route home is searched from a 15 m GPS fix`() = runRecordingTest {
+        assertTrue(routeHomeFrom(FixProvider.GPS) != null)
+    }
+
     private fun point(lat: Double, lng: Double = -122.0, t: Long) =
         TrackPoint(lat = lat, lng = lng, altitude = null, accuracyMeters = null, timestampEpochMillis = t)
 
@@ -703,7 +812,7 @@ class TrackRecordingViewModelTest {
     // ── Dispatch 2026-09-28-423: the route tick (plan task T6) ─────────────────────────────
 
     private fun gatedFix(lat: Double, lng: Double = -122.0, t: Long) =
-        LocationFix.Update(lat = lat, lng = lng, altitude = null, accuracyMeters = 5f, timestampEpochMillis = t)
+        LocationFix.Update(lat = lat, lng = lng, altitude = null, accuracyMeters = 5f, timestampEpochMillis = t, provider = FixProvider.GPS)
 
     /**
      * Record; the first gated fix seeds the origin at 45.000; the service stores three points north,

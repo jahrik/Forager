@@ -37,10 +37,14 @@ data class OffTrackVerdict(val isOffTrack: Boolean, val alert: Boolean)
  *   tapped. Not the whole track, which keeps being recorded on the way back and would always read
  *   near zero. The distance is to the nearest point of the path's line, not to its nearest
  *   recorded point.
- * - **Only GPS readings count.** A network reading ([isNetworkProviderFix], the timestamp rule the
- *   tracks are already read with) counts neither toward going off nor as being back on: it is
- *   skipped, and the verdict stays as it was. Its cost, measured on the owner's walk: 2 of 648 GPS
- *   readings carry sub-second stamps too, and are skipped with the network ones.
+ * - **Only GPS readings count.** A network reading counts neither toward going off nor as being back
+ *   on: it is skipped, and the verdict stays as it was. A live reading is told by the provider the
+ *   platform reported ([next]'s `provider`, dispatch 2026-09-28-527), so an unknown provider is
+ *   skipped too. A reading with no provider, a stored point in a replay of a saved walk, and the
+ *   path itself, which is stored points, are told by the timestamp rule ([isNetworkProviderFix],
+ *   the rule the tracks are read with). Its cost, measured on the owner's walk: 2 of 648 GPS
+ *   readings carry sub-second stamps too, and are skipped with the network ones; on a live reading
+ *   that no longer happens.
  * - **Off the path** is further from it than [OFF_TRACK_LINE_METERS] plus the reading's own
  *   reported accuracy, so a reading that says it is poor gets a wider line. No ceiling on that
  *   accuracy: the walk had no poor GPS reading (worst 9.9 m) to choose one from.
@@ -66,8 +70,14 @@ class OffTrackJudge(path: List<TrackPoint>) {
     private var armed = true
     private var offTrack = false
 
-    fun next(reading: TrackPoint): OffTrackVerdict {
-        if (line.isEmpty() || reading.isNetworkProviderFix()) return OffTrackVerdict(offTrack, alert = false)
+    /**
+     * [provider] is the live reading's, as the platform reported it (dispatch 2026-09-28-527); `null` for a
+     * reading that has none, a stored point, which the timestamp rule judges instead. Not a default
+     * standing in for a provider: a stored point genuinely has none.
+     */
+    fun next(reading: TrackPoint, provider: FixProvider? = null): OffTrackVerdict {
+        val counts = provider?.mayAct ?: !reading.isNetworkProviderFix()
+        if (line.isEmpty() || !counts) return OffTrackVerdict(offTrack, alert = false)
         val t = reading.timestampEpochMillis
         val limit = OFF_TRACK_LINE_METERS + (reading.accuracyMeters?.toDouble() ?: 0.0)
         var alert = false
