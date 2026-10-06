@@ -12120,3 +12120,17 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **The owner, verbatim:** "we had an open decision about GPS working with automatic network off. I am abandoning that due to the drawbacks".
 **What it sets:** the fix -540 to -542 deferred is not built: live fixes are not aged on the phone's since-boot clock. The drawbacks are the ones -542 lists: it works only within one power-on; stored things keep the wall clock; the sundown alerts still follow the phone's clock; a fix without the stamp falls back; the tests gain a second time per fix; a saved track's start and its points still disagree when the clock is wrong. -538's EKF questions are not part of this and stay deferred. A phone whose clock is wrong will show GPS fixes as old: an accepted gap in -519's fallback table ("every failure has a fallback"), recorded here rather than left open.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -555.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-555
+**Timestamp:** 2026-10-06T02:32:00Z
+**PR:** 174
+**Head:** t516-merge
+**Base:** main
+**Merge-commit:** 4b72b25c0a281e8c632b9a118a6564a4789641bc
+**Pre-merge:** e1395fc960fd180f27af8e3cdacc6cab183b2dfb
+**Backup:** 2026-10-06-01
+**Observed:** pull request #174 (t516-merge into main: -516 sundown-alerts at d85b4ae2 with records-after-173 at 57e5618f, the audit index resolved keeping every row) was merged as 4b72b25c at 2026-10-06T02:31:59Z, on green CI at its head ff0c6bc6 (run 37403790321, 9 m 16 s), read from GitHub, on the owner's "open the pr and merge when ready". Main's tree equals t516-merge's. -554 (09e74a42) is on records-after-173 after the PR's head, not yet on main. Plan tasks T2, T12 and T13 are now on main.
+**Notes:** Written by the planner by hand, on branch records-after-173.
