@@ -194,6 +194,8 @@ inferred, not traced.
   - Inferred: that the grey dashed line in the first window is -502's kept line. I read that from the layer code
     and its colour; I did not trace that frame's source data.
   - Inferred: that the last WAL change is from my own actions.
+  - Inferred (C): which minutes the phone was outside, from GPS accuracy alone.
+  - Not seen by me (C): the dot and the strip outside; that rests on the owner's report.
 - **Could not determine.**
   - Whether "Arrived" on a GPS fix 2 minutes old is intended. `arrivedAtStart` requires a fix that is not
     lost, and I did not read the lost threshold. It is outside -527's claim, and is reported as an
