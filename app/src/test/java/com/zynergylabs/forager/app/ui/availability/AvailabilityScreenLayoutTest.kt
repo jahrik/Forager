@@ -34,6 +34,8 @@ import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.SoilAvailability
+import com.zynergylabs.forager.app.domain.model.RainEvent
+import com.zynergylabs.forager.app.domain.model.TripWindow
 import com.zynergylabs.forager.app.domain.model.TripWindowReport
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import java.time.LocalDate
@@ -169,6 +171,40 @@ private val SEARCHED_STATE = AvailabilityUiState(
     // Fixed explicitly — this file's assertions are hardcoded to "15 km" and "12.4mm" text, so it
     // must not drift with the default this field carries; the imperial rainfall case below opts in.
     unitSystem = UnitSystem.METRIC,
+)
+
+/**
+ * One window carrying a soil temperature, for the units-follow tests (dispatch 2026-09-28-549).
+ * Only the soil temperature is the subject; the other measurements are left null so their rows
+ * do not render.
+ */
+private val TRIP_WINDOW_REPORT_ONE_WINDOW = TripWindowReport(
+    region = REGION,
+    referenceDay = LocalDate.of(2025, 8, 14),
+    horizonEnd = LocalDate.of(2025, 8, 21),
+    rainEvents = emptyList(),
+    windows = listOf(
+        TripWindow(
+            startDate = LocalDate.of(2025, 8, 16),
+            endDate = LocalDate.of(2025, 8, 18),
+            precedingRainEvents = listOf(RainEvent(LocalDate.of(2025, 8, 5), LocalDate.of(2025, 8, 6), totalMm = 30.0, isForecast = false)),
+            daysAfterMostRecentRainAtStart = 10,
+            daysAfterMostRecentRainAtEnd = 12,
+            meanShallowSoilMoistureM3M3 = null,
+            meanDeeperSoilMoistureM3M3 = null,
+            meanSoilTemperatureC = 11.3,
+            minSoilTemperatureC = null,
+            maxSoilTemperatureC = null,
+            evapotranspirationSinceRainMm = null,
+            precipitationDuringWindowMm = 0.0,
+        ),
+    ),
+    noWindowReason = null,
+    soilAvailability = SoilAvailability(
+        shallowMoistureBand = null,
+        deeperMoistureBand = null,
+        temperatureBand = null,
+    ),
 )
 
 private val CONDITIONS = ConditionsSummary(
@@ -661,6 +697,35 @@ abstract class AvailabilityScreenLayoutTest {
         composeRule.onNodeWithText(
             "No forecast days were returned for this location, so there's nothing to plan against.",
         ).assertIsDisplayed()
+    }
+
+    /**
+     * Dispatch 2026-09-28-549: under Imperial (US) the window's soil temperature reads in °F to one
+     * decimal (11.3 °C × 9/5 + 32 = 52.34) and the guidance band in whole °F (10–20 °C = 50–68 °F).
+     * Driven through the real drawer as the test above is; the metric strings are the next test.
+     */
+    @Test
+    fun `under the imperial setting the trip window's soil temperature and the guidance band read in Fahrenheit`() {
+        setScreen(SEARCHED_STATE.copy(tripWindowReport = TRIP_WINDOW_REPORT_ONE_WINDOW, unitSystem = UnitSystem.IMPERIAL))
+
+        openToolsDrawer()
+        composeRule.onNodeWithText("Trip Planner").performClick()
+
+        composeRule.onNodeWithText("Soil temperature: 52.3°F").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("roughly 50–68 °F", substring = true).performScrollTo().assertIsDisplayed()
+        composeRule.onAllNodesWithText("°C", substring = true).assertCountEquals(0)
+    }
+
+    /** The metric half: the same window and band read exactly as before. */
+    @Test
+    fun `under the metric setting the trip window's soil temperature and the guidance band read as before`() {
+        setScreen(SEARCHED_STATE.copy(tripWindowReport = TRIP_WINDOW_REPORT_ONE_WINDOW))
+
+        openToolsDrawer()
+        composeRule.onNodeWithText("Trip Planner").performClick()
+
+        composeRule.onNodeWithText("Soil temperature: 11.3°C").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("roughly 10–20 °C", substring = true).performScrollTo().assertIsDisplayed()
     }
 
     /**
