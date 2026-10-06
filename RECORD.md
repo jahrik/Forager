@@ -12193,3 +12193,29 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **The owner, verbatim,** to "Should the walk logger have an on/off switch (test builds only), or log every recording automatically?": "A switch, off by default (Recommended)" (the other option: always on in test builds, with the counting tests changed).
 **What it sets:** a "Walk logger" switch in the debug build's diagnostics panel, off by default, remembered across restarts in the debug diagnostics preferences; the logger runs only when it is on. Existing tests run with it off and are not changed; the logger's tests switch it on. The S26 records normally until it is switched on for a logged walk. Rejected: hooking `AndroidLocationTracker`'s per-fix log (collides with -527, and sees only the tracker's providers).
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -561.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-561
+**Timestamp:** 2026-10-06T04:24:00Z
+**Closes:** 2026-09-28-549 (preserved 2026-10-06-02)
+**Outcome:** completed; merged through PR #175
+**Observed:** units-follow (session_01DCx5zTH8TM5ZT1nG4CMZ2W), cut from main 4b72b25c: a52fd87e (plumbing, output unchanged), 749ab711 (tests first), 00deb940 (the conversion), f5534a81 (report `docs/navigation/2026-10-06-units-follow-report.md` and its two index rows). Six sites under Amendment 1 (-557): HUD elevation, strip elevation, the Return button's spoken rise, the accuracy label, soil temperature, the guidance band. Tests first: every Imperial case failed on a52fd87e naming its own string; Metric cases passed before and after. Six revert checks, one per site, 0 compile errors in every log, each failing only on its own site, restored from saved copies with the forward changes confirmed present. Full suite 3,719 on main, 3,742 tests, 0 failures, 24 skipped on 00deb940. The coder disclosed a first filter that matched no class, caught by counting result files.
+**What the planner checked itself:** `git diff origin/main origin/units-follow`: no `@Ignore` added (the one hit is a comment); the only removed assertions are the two "50 m" ones now "164 ft", as reported; app changes confined to the six sites' files and their plumbing (9 files).
+**Not shown:** the five-step S22 check in the report, waiting for one test build carrying -549, -527 and -532.
+**Notes:** Written by the planner by hand, on branch records-after-173.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-562
+**Timestamp:** 2026-10-06T04:24:00Z
+**PR:** 175
+**Head:** t549-merge
+**Base:** main
+**Merge-commit:** 315669e533065bcc689d068fd8890e80eeb0e007
+**Pre-merge:** 4b72b25c0a281e8c632b9a118a6564a4789641bc
+**Backup:** 2026-10-06-02
+**Observed:** pull request #175 (t549-merge into main: units-follow at f5534a81 with records-after-173 at fb223136) was merged as 315669e5 at 2026-10-06T04:24:32Z, on green CI at its head e1e86e98 (run 37412749789, 8 m 54 s), read from GitHub, on the owner's "Open and merge now (Recommended)". Main's tree equals t549-merge's.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -563.
