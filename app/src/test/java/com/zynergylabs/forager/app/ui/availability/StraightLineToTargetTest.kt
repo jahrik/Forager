@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Waypoint
@@ -23,7 +24,7 @@ class StraightLineToTargetTest {
     private val oak = Waypoint("wp-2", 45.30, -122.60, null, "Big oak", "", 2_000L)
 
     private fun fix(metersSouth: Double, at: Long = t) =
-        LocationFix.Update(lat = creek.lat - metersSouth / 111_195.08, lng = creek.lng, altitude = null, accuracyMeters = 3.79f, timestampEpochMillis = at)
+        LocationFix.Update(lat = creek.lat - metersSouth / 111_195.08, lng = creek.lng, altitude = null, accuracyMeters = 3.79f, timestampEpochMillis = at, provider = FixProvider.GPS)
 
     private fun lineFrom(from: LocationFix.Update, to: Waypoint = creek) = listOf(LatLng(from.lat, from.lng), LatLng(to.lat, to.lng))
 

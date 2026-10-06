@@ -57,6 +57,7 @@ import com.zynergylabs.forager.app.domain.ForecastCell
 import com.zynergylabs.forager.app.domain.JournalEntryOnMap
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Sighting
+import com.zynergylabs.forager.app.domain.model.UnitSystem
 import com.zynergylabs.forager.app.ui.availability.ObservationBubble
 import com.zynergylabs.forager.app.ui.availability.launchDirections
 import com.zynergylabs.forager.app.ui.availability.rectEdgeIntersection
@@ -283,6 +284,7 @@ internal fun MapBubbleLayer(
                     onViewOnINaturalist = { onViewSightingOnINaturalist(target.sighting) },
                     onDismiss = onDismiss,
                     tipInBubble = tip,
+                    unitSystem = UnitSystem.forDistanceUnit(sources.distanceUnit),
                 )
             }
 

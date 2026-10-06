@@ -15,6 +15,7 @@ import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.domain.model.TripWindowReport
 import com.zynergylabs.forager.app.domain.model.UnitSystem
 import com.zynergylabs.forager.app.domain.model.formatRainfall
+import com.zynergylabs.forager.app.domain.model.formatWholeLength
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import kotlin.math.abs
 import kotlin.math.cos
@@ -255,8 +256,8 @@ internal fun rectEdgeIntersection(halfWidth: Float, halfHeight: Float, angleDeg:
  * Never omitted for a null accuracy — a missing figure is not the same as a good one, and
  * silence would read as "precise" to a user who has no way to tell the difference.
  */
-internal fun accuracyLabel(accuracyMeters: Int?): String =
-    if (accuracyMeters != null) "±$accuracyMeters m accuracy" else "Accuracy not reported"
+internal fun accuracyLabel(accuracyMeters: Int?, unitSystem: UnitSystem): String =
+    if (accuracyMeters != null) "±${formatWholeLength(accuracyMeters.toDouble(), unitSystem)} accuracy" else "Accuracy not reported"
 
 /**
  * Why no window was found, stated specifically with the numbers behind it — never a bare "none

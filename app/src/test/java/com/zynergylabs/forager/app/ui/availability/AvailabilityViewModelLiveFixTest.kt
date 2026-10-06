@@ -5,6 +5,7 @@ import com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCase
 import com.zynergylabs.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
 import com.zynergylabs.forager.app.domain.DeletePlannedTripUseCase
+import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository
 import com.zynergylabs.forager.app.domain.GetAvailabilityUseCase
 import com.zynergylabs.forager.app.domain.GetConditionsUseCase
@@ -122,6 +123,7 @@ class AvailabilityViewModelLiveFixTest {
         altitude = 50.0,
         accuracyMeters = 12.5f,
         timestampEpochMillis = 1_700_000_000_000L,
+        provider = FixProvider.GPS,
     )
 
     @Test
@@ -329,6 +331,73 @@ class AvailabilityViewModelLiveFixTest {
             0,
             fixes.subscriptionCount.value,
         )
+    }
+
+    // ── Dispatch 2026-09-28-527: only a GPS fix becomes the gated fix ──
+    //
+    // 15 m, inside the 50 m gate: the S22 gave network fixes this good at the desk (the report, item 5).
+    // The gated fix is what "Arrived", the waypoint's line and a new find's location read (see
+    // AvailabilityScreenApproximatePositionTest and MushroomLogViewModelWiringTest for those through
+    // their own entry points); the approximate reading is what the map, the strip and the HUD show.
+
+    private val gps15 = fix.copy(accuracyMeters = 15f, provider = FixProvider.GPS)
+    private val network15 = fix.copy(lat = 45.53, accuracyMeters = 15f, timestampEpochMillis = 1_700_000_005_123L, provider = FixProvider.NETWORK)
+
+    @Test
+    fun `a 15 m network fix never becomes the gated fix, and is held as the approximate reading`() = runTest(dispatcher) {
+        val fixes = MutableSharedFlow<LocationFix>(replay = 1)
+        val vm = viewModel(LiveFixFakeLocationTracker(fixes))
+        advanceUntilIdle()
+
+        fixes.emit(network15)
+        advanceUntilIdle()
+
+        assertNull("never the gated fix", vm.uiState.value.liveFix)
+        assertEquals("shown as the approximate reading", network15, vm.uiState.value.approximateFix)
+    }
+
+    @Test
+    fun `a 15 m GPS fix becomes the gated fix, as today`() = runTest(dispatcher) {
+        val fixes = MutableSharedFlow<LocationFix>(replay = 1)
+        val vm = viewModel(LiveFixFakeLocationTracker(fixes))
+        advanceUntilIdle()
+
+        fixes.emit(gps15)
+        advanceUntilIdle()
+
+        assertEquals(gps15, vm.uiState.value.liveFix)
+        assertNull(vm.uiState.value.approximateFix)
+    }
+
+    /** The planner's default, which the owner let stand (RECORD -558): an unknown provider never acts and may be shown. */
+    @Test
+    fun `a 15 m fix from an unknown provider never becomes the gated fix, and is held as the approximate reading`() = runTest(dispatcher) {
+        val fixes = MutableSharedFlow<LocationFix>(replay = 1)
+        val vm = viewModel(LiveFixFakeLocationTracker(fixes))
+        advanceUntilIdle()
+        val unknown = gps15.copy(provider = FixProvider.UNKNOWN)
+
+        fixes.emit(unknown)
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.liveFix)
+        assertEquals(unknown, vm.uiState.value.approximateFix)
+    }
+
+    /** Today a 15 m network fix replaces a held GPS fix outright; it must leave it held. */
+    @Test
+    fun `a 15 m network fix arriving after a GPS fix leaves the GPS fix held`() = runTest(dispatcher) {
+        val fixes = MutableSharedFlow<LocationFix>(replay = 1)
+        val vm = viewModel(LiveFixFakeLocationTracker(fixes))
+        advanceUntilIdle()
+        fixes.emit(gps15)
+        advanceUntilIdle()
+
+        fixes.emit(network15)
+        advanceUntilIdle()
+
+        assertEquals(gps15, vm.uiState.value.liveFix)
+        assertEquals(network15, vm.uiState.value.approximateFix)
     }
 }
 

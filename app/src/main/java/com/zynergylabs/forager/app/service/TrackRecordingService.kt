@@ -158,11 +158,11 @@ class TrackRecordingService : Service() {
                     when (fix) {
                         is LocationFix.Update -> {
                             val candidate = fix.toTrackPoint()
-                            container.returnWatch.onFix(candidate)
+                            container.returnWatch.onFix(candidate, fix.provider)
                             // Dispatch 2026-09-28-516: every raw fix to the sundown watch too, and
                             // an evaluation at once on the first, so a recording started past the
                             // leave-by time does not wait for the timer.
-                            if (container.sundownWatch.onFix(candidate)) launch { tickSundown(container) }
+                            if (container.sundownWatch.onFix(candidate, fix.provider)) launch { tickSundown(container) }
                             if (sampler.shouldAccept(lastAccepted, candidate)) {
                                 lastAccepted = candidate
                                 // Dispatch 2026-09-28-425: the kept point to the watch too, which

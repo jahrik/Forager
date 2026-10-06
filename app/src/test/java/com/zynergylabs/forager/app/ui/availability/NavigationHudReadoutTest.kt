@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.HopBand
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.RouteHome
@@ -27,7 +28,7 @@ import org.junit.Test
 class NavigationHudReadoutTest {
 
     private val t = 1_700_000_000_000L
-    private val fix = LocationFix.Update(lat = 45.52, lng = -122.68, altitude = 50.0, accuracyMeters = 12.5f, timestampEpochMillis = t)
+    private val fix = LocationFix.Update(lat = 45.52, lng = -122.68, altitude = 50.0, accuracyMeters = 12.5f, timestampEpochMillis = t, provider = FixProvider.GPS)
     private val north = Waypoint(id = "origin", lat = 45.53, lng = -122.68, altitude = null, name = "Start", note = "", createdAtEpochMillis = t, trackId = "t1", designation = WaypointDesignation.ORIGIN)
 
     private fun readout(
@@ -396,8 +397,9 @@ class NavigationHudReadoutTest {
         assertEquals("No origin waypoint for this track", r.statusText)
         assertEquals("—", r.distanceText)
         assertNull(r.targetArrowDegrees)
-        // A fix exists, so the second row still has something true to say.
-        assertEquals("50 m", r.elevationText)
+        // A fix exists, so the second row still has something true to say. In feet: this file's
+        // unit is miles, and the elevation follows Units (dispatch 2026-09-28-549; 50 / 0.3048 = 164.04).
+        assertEquals("164 ft", r.elevationText)
     }
 
     @Test
@@ -413,13 +415,17 @@ class NavigationHudReadoutTest {
     @Test
     fun `with a fix the second row carries the elevation and MGRS, decimal degrees on request`() {
         val r = readout()
-        assertEquals("50 m", r.elevationText)
+        // Dispatch 2026-09-28-549: miles here, so feet (50 / 0.3048 = 164.04); metres under metric, below.
+        assertEquals("164 ft", r.elevationText)
         // Pinned against MgrsConverterTest's own Portland point rather than this fix — same
         // converter, a value that test already fixes independently.
         val portland = fix.copy(lat = 45.5152, lng = -122.6784, altitude = null)
         val p = readout(liveFix = portland)
         assertEquals("Elevation unavailable", p.elevationText)
         assertEquals("10T ER 25118 40235", p.coordinatesText)
+        // Dispatch 2026-09-28-549: under metric the elevation reads exactly as before.
+        assertEquals("50 m", readout(unit = DistanceUnit.KILOMETERS).elevationText)
+        assertEquals("Elevation unavailable", readout(liveFix = portland, unit = DistanceUnit.KILOMETERS).elevationText)
         assertEquals("Lat. 45.5152 Long. -122.6784", readout(liveFix = portland, showDecimalDegrees = true).coordinatesText)
     }
 
