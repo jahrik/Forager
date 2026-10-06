@@ -229,3 +229,37 @@ The other rows (location lost while navigating, pace not yet measured, walk back
 
   Each phone reports a count of each event type, the battery drop, the file's size, the header's SIM and data line, and what it says about L5 and carrier phase.
 - **Sizes and battery are estimates** until then.
+
+## Superseding note (2026-10-06, RECORD -569): the first recording after an install was never logged
+
+Appended after the S22 desk run; the text above is unchanged. Where it disagrees with this note, this note holds.
+
+**What the desk run found.** On the S22 (1.0.2820+g38058cd8, built from `main` at `38058cd8`), the first recording after the install wrote only `STOPPED reason=storage-low free=0 min=209715200`. The recording itself was unaffected.
+
+The cause: the free-space check read `walklogs/` before that folder existed, and a folder that doesn't exist reports 0 bytes free. Writing the STOPPED line created the folder. The next recording logged normally (98 KB in about 8 s), which confirmed the cause on the phone. So the first recording after every fresh install was never logged.
+
+**Two premises above were wrong.**
+
+1. **"Robolectric reports 0 bytes free in the app's external files directory"** (under "The first green runs"), and the 10 GB stand-in it led to. It was this bug, not a Robolectric quirk: the tests had the same missing folder. The stand-in hid the one case that could fail them. This is CLAUDE.md's family "a check that passes because it never saw the data that could fail it". The storage-low test's earlier pass "on Robolectric's 0" was this bug too.
+2. **`READ_BASIC_PHONE_STATE` "runtime; granted over USB with `adb shell pm grant`"** (under "Verify before building", item 2, and "Not tested"). It isn't a runtime permission. `pm grant` refused it as "not a changeable permission type", and the package dump showed it already granted at install. Only `ACTIVITY_RECOGNITION` needs `pm grant`. On the S22 it was granted to user 0; user 95, Samsung's Dual App profile, was left alone.
+
+**The fix,** on branch `walk-logger-first-run` from `38058cd8`:
+
+| Commit | What | Result |
+|---|---|---|
+| `1b48b357` | The stand-in removed from `WalkLoggerServiceTest`'s setup; a precondition that no `walklogs/` folder exists; the start assertion prints the log. Tests only. | Against `main`'s code: 6 tests, 3 failing. The start test's log reads `STOPPED reason=storage-low free=0 min=209715200`, the phone's line. |
+| `ccba34be` | Free space is read from the app's files root, which always exists (`diagnostics/WalkLogger.kt`). | 6 of 6 pass. |
+
+- **Revert R14** (`directory.usableSpace` back, restored from a saved copy, forward change confirmed): the start test fails again with `free=0`.
+- **Also in that R14 run, one failure R14 cannot have caused:** "storage below 200 MB stops the log, never the recording" failed at "the recording kept its points" after its 10 s wait. That test sets its own 1,000 bytes, so it never reaches the reverted line, and it passed in the red run on code identical to R14's. Every test in that run was slow (the trivial switch test took 5 s, against 0.06 s in other runs), with the phone sampling and adb running at the same time. **Not explained; possibly timing. Not touched.** It passed in the full suite below.
+- **Full suite at `ccba34be`:** 467 files, 3,817 tests, 0 failures, 0 errors, 24 skipped; no compile-error lines.
+
+**Desk run, file size** (S22, the second recording, screen off, on USB, sampled each minute):
+
+- per minute: 792, 800, 832, 818, 820, 796, 751, 786, 802, 801 KB;
+- mean about 781 KiB a minute, about 96 MB per two hours, against the estimate of 160 MB above;
+- steady with the screen off, consistent with the wake lock keeping sensor data flowing.
+
+These are indoor figures; a walk outdoors may write more. Samples are in `~/Zynergy/device-evidence/2026-10-05-walk-logger/SM-S908U/desk-size-samples.txt`.
+
+**Battery:** not measured. It can't be while the phone is on USB, and the owner chose "Skip it for now" (RECORD -569); it will come from the first real logged walk.

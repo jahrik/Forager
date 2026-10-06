@@ -61,10 +61,10 @@ class WalkLoggerServiceTest {
         shadowLocationManager = shadowOf(locationManager)
         shadowLocationManager.setProviderEnabled(LocationManager.GPS_PROVIDER, true)
         shadowLocationManager.setProviderEnabled(LocationManager.NETWORK_PROVIDER, false)
-        // Robolectric reports 0 bytes free in the app's external files directory, so without this
-        // every log here would stop at once as storage-low (seen in the first green run: "free=0
-        // min=209715200"). Plenty, unless a test sets its own.
-        WalkLogger.freeBytesOverride = { PLENTY_OF_SPACE }
+        // No stand-in for free space: every test but the storage-low one reads the real temporary
+        // filesystem, with no walklogs/ folder yet, as on a fresh install (RECORD -569). A 10 GB
+        // stand-in here once hid the bug where a missing folder read as 0 bytes free.
+        assertTrue("precondition: no walklogs/ folder before the first recording", !walkLogDir().exists())
     }
 
     @After
@@ -141,7 +141,8 @@ class WalkLoggerServiceTest {
         try {
             controller.create().startCommand(0, 1)
 
-            assertTrue("the logger starts with the recording", await { WalkLogger.of(context).isLogging })
+            val started = await { WalkLogger.of(context).isLogging }
+            assertTrue("the logger starts with the recording; the log reads: ${walkLogFiles().map { it.readText() }}", started)
             val file = walkLogFiles().single()
             assertTrue("named for its start: ${file.name}", file.name.startsWith("walklog-") && file.name.endsWith(".txt"))
             assertEquals("# walklog version=1", file.readLines().first())
@@ -234,10 +235,6 @@ class WalkLoggerServiceTest {
         } finally {
             end(controller)
         }
-    }
-
-    private companion object {
-        const val PLENTY_OF_SPACE = 10L * 1024 * 1024 * 1024
     }
 
     private fun simulateFix(index: Int) {
