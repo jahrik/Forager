@@ -301,3 +301,115 @@ copied from is left in place.
   oldest-first eviction.
 - **The start-by minute's exact value per phone** (5:32 against 5:33). The replay is consistent with both.
 - **The by-time and by-distance readings rest on one walk of 24.5 minutes, on suburban streets.**
+
+## The 4:32 PM walk (added for -550)
+
+**Added by** the laptop coder window `session_012X8w7DNXZcsSgjKy4BZkk8` for dispatch 2026-09-28-551
+(`prompts/preserved/2026-10-06-03.md`, `ef1eefe9`), as RECORD -552. It is an addendum to this doc rather than a
+sibling, so the two comparisons the gate rests on read in one place. **The text above is unchanged**, including the
+"release gate" section, which predates the owner's ruling quoted below. -546's correction to "What the replay shows"
+still applies to the 4:49 figures.
+
+### The owner's ruling (-550 and -553)
+
+-550, verbatim: "There were two walks around 4:30pm. Use them both." Then, to the planner's question: "Both close the
+check". **-516's release gate is closed by the owner's ruling on these two walks**, the 4:49 walk above and the 4:32
+walk here. -553, verbatim: "Drop the condition." That removes, as a condition of merging, seeing the leave-by and
+sunset alerts on a correct clock. As a fact, **the leave-by and sunset alerts have still not been seen on a correct
+clock.**
+
+### The walk
+
+Both phones recorded it on correct clocks (item 2e above), from 4:32:44 (S26) and 4:32:45 (S22) to 4:48:24 (S26) and
+4:48:16 (S22). The S22 track has 168 points, all GPS-class. The S26 has 175, of which 3 are network-class and excluded
+by the read seam, leaving 172.
+
+**It is a loop with a tail**, not a plain out-and-back:
+
+| | S22 | S26 |
+|---|---|---|
+| Turnaround (the farthest point from the start) | 16:38:06, 245 m out | 16:38:06, 244 m out |
+| Way out, along the track | 330 m in 5.3 min | 323 m in 5.3 min |
+| Way back, along the track | 788 m in 10.1 min | 779 m in 10.3 min |
+| Way back's loop (off the way out) | 468 m, 16:38:06 to 16:44:16 | 460 m, 16:38:06 to 16:44:17 |
+| Way back's last leg, within 10 m of the way out | 320 m in 3.9 min, from 16:44:16 | 320 m in 4.1 min, from 16:44:17 |
+| Way back's median distance off the way out (whole way back) | 45 m | 44 m |
+
+### Method
+
+The same as for the 4:49 walk:
+
+- the 16 copied app files, re-checked identical to `bf34fc87` with `git hash-object` before this run;
+- the same harness, compiled with Kotlin 2.3.10 off Gradle;
+- an evaluation every 15 s;
+- the 30 s save cadence.
+
+The run's outputs are in the evidence folder under `est-432/`.
+
+**"Actual" on this walk.** As before, each point on the way out is matched to the nearest point on the way back, and
+"actual" is the time from that point to the track's last point. On this walk **every way-out row matches the way
+back's last leg** (16:44:31 onward on the S22, 16:44:32 onward on the S26). That leg comes home along the way out, and
+the matches are **0 to 6 m off**. For those rows, "actual" is the walk home by the same route the estimate measures.
+
+**At the turnaround there is no same-route walk back to compare against.** From there the walker went round the loop,
+468 m and 460 m, before rejoining the way out. So the turnaround row shows the estimate beside the real walk back from
+the turnaround, the way -516's report did for its three loops. That walk back is a different route home, and the
+comparison is no evidence either way about the estimate's error.
+
+**Pace and label on every way-out row:** the default pace, 0.89 m/s, labelled "at least" for `NO_MEASURED_PACE`. This
+walk's way out never reached the 5-minute moving bar (`MovingPace.kt:287`). The early S26 rows also carry
+`PATH_UNDER_MEASURED` and `FEW_POINTS`, and the early S22 rows `FEW_POINTS`. The measured pace (Doppler, 1.24 to 1.32
+m/s) first appears at 16:39:44 to 16:39:45, on the loop, still labelled "at least" (`PACE_FRESHLY_MEASURED`). The label
+never reached "about" on this walk: 13.5 minutes of moving by the end, under the 15-minute bar.
+
+### By time on the way out
+
+The way out lasted 5.3 min, so the 15 s evaluations fall about 5% apart. Each row is the evaluation nearest the mark.
+
+| Point on the way out (by time) | S22: when, how far | S22 estimate / actual (match off) | S26: when, how far | S26 estimate / actual (match off) |
+|---|---|---|---|---|
+| ¼ (23%) | 16:34:00, 5 m | at least 0.1 / 0.1 min (6 m) | 16:33:59, 8 m | at least 0.0 / 0.2 min (0 m) |
+| ½ (51%) | 16:35:30, 93 m | at least 1.4 / 1.2 min (3 m) | 16:35:29, 98 m | at least 1.5 / 1.3 min (0 m) |
+| ¾ (75%) | 16:36:45, 184 m | at least 3.9 / 2.4 min (1 m) | 16:36:44, 186 m | at least 3.8 / 2.6 min (4 m) |
+| Last evaluation before the turnaround (98%) | 16:38:00, 240 m | at least 5.4 / 3.7 min (2 m) | 16:37:59, 241 m | at least 5.4 / 3.8 min (1 m) |
+| Turnaround, first evaluation after (103%) | 16:38:15, 238 m | at least 6.4 min, beside **10.1 min** walked back round the loop (different route) | 16:38:14, 239 m | at least 6.2 min, beside **10.3 min** walked back round the loop (different route) |
+
+### By distance out
+
+Each row is the first evaluation at which the walker was at least a quarter, half or three quarters of the turnaround's
+distance from the start (S22 245 m, S26 244 m).
+
+| Point on the way out (by distance) | S22: when, how far | S22 estimate / actual (match off) | S26: when, how far | S26 estimate / actual (match off) |
+|---|---|---|---|---|
+| ¼ (≥ 61 m) | 16:35:15, 70 m | at least 1.4 / 0.9 min (2 m) | 16:35:14, 76 m | at least 1.5 / 1.1 min (1 m) |
+| ½ (≥ 123 m, ≥ 122 m) | 16:36:00, 138 m | at least 2.3 / 1.7 min (3 m) | 16:35:59, 140 m | at least 2.3 / 1.8 min (0 m) |
+| ¾ (≥ 184 m, ≥ 183 m) | 16:37:00, 202 m | at least 3.9 / 2.7 min (2 m) | 16:36:44, 186 m | at least 3.8 / 2.6 min (4 m) |
+
+### What this walk shows
+
+- **On the same-route rows the estimate was at or above the actual but for one row**: equal on the S22's quarter by
+  time (0.1 against 0.1 min, 5 m from the start), and otherwise about 1.15 to 1.6 times the actual, with every row on
+  the default pace. That is the margin the default pace (0.89 m/s) builds in against a walker whose measured pace on
+  this walk was 1.24 to 1.32 m/s.
+- **One row is under:** the S26's quarter by time, at 0.0 against 0.2 min, 8 m from the start. At that evaluation the
+  saved track was 2 m long (the 30 s save cadence) and labelled `PATH_UNDER_MEASURED` and `FEW_POINTS`. It is about
+  12 seconds of walking, inside the evaluation's own granularity, but it is a row where the estimate was under, and it
+  is reported as one.
+
+### What a loop can and cannot show
+
+- **It can show:** on the stretch where the walker came home the way they went out (the last 320 m), the estimate at
+  each matched point against the real time from there, on the default pace and the "at least" label, as built.
+- **It cannot show:**
+  - the estimate's error for the walk back from the turnaround, which went a different way. -516's report: a different
+    route home is "no evidence either way".
+  - the measured pace on the way out (never reached);
+  - the "about" label (never reached);
+  - anything longer than 16 minutes, or in woods.
+
+### Not verified (this section)
+
+- The harness's current position can be up to about 5 s old (the database keeps points about 5 s apart), as for the
+  4:49 walk.
+- The "within 10 m" split between loop and last leg is my threshold, not the app's; it is used only to describe the
+  walk's shape.
