@@ -370,7 +370,9 @@ from the saved copy; `git status` clean and the fix present afterwards.
 **Not checked.** Twenty-one other test files use `waitUntil`; only this one waits on a real DataStore
 write. Whether any of the others waits on something posted to the main looper was not checked.
 
-**Full suite** (`dae48454`, on disk, `--rerun`): SUITE_TBD
+**Full suite** (`dae48454`, on disk, `--rerun`): **3,890 tests, 0 failures, 0 errors, 24
+skipped.** 0 `e:` lines; the results directory was deleted first and all 473 XML files were
+written after the run started. Same count as `494a1754`, as expected for a change inside one test.
 
 ## Device-only (listed, not run)
 
