@@ -3,6 +3,8 @@ package com.zynergylabs.forager.app.domain
 import com.zynergylabs.forager.app.domain.model.TaxonFilter
 import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
 import com.zynergylabs.forager.app.domain.model.UnitSystem
+import com.zynergylabs.forager.app.domain.model.celsiusToFahrenheit
+import kotlin.math.roundToInt
 
 /**
  * What the user currently has selected, together with the broad iNaturalist group it belongs to
@@ -165,9 +167,16 @@ object ForagingWeatherGuidance {
         }
     }
 
-    /** A Celsius band as prose ("10–20 °C"), in the user's units. PLUMBING ONLY in this commit: °C in both systems. */
-    private fun soilTemperatureBand(band: ClosedFloatingPointRange<Double>, unitSystem: UnitSystem): String =
-        "${format(band.start)}–${format(band.endInclusive)} °C"
+    /**
+     * A Celsius band as prose in the user's units (dispatch 2026-09-28-549): "10–20 °C" under metric,
+     * exactly as before, and whole °F under imperial, from the same constant ("50–68 °F"). The band
+     * itself stays °C in [FruitingPatternAssumptions]; only the words convert.
+     */
+    private fun soilTemperatureBand(band: ClosedFloatingPointRange<Double>, unitSystem: UnitSystem): String = when (unitSystem) {
+        UnitSystem.METRIC -> "${format(band.start)}–${format(band.endInclusive)} °C"
+        UnitSystem.IMPERIAL ->
+            "${celsiusToFahrenheit(band.start).roundToInt()}–${celsiusToFahrenheit(band.endInclusive).roundToInt()} °F"
+    }
 
     /** Trims a whole-number double to "10" rather than "10.0" for use in prose. */
     private fun format(value: Double): String =
