@@ -47,6 +47,7 @@ import com.zynergylabs.forager.app.domain.RouteWithheldReason
 import com.zynergylabs.forager.app.domain.ageMillis
 import com.zynergylabs.forager.app.domain.fixFreshness
 import com.zynergylabs.forager.app.domain.isApproaching
+import com.zynergylabs.forager.app.domain.isInApproachingZone
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.UnitSystem
@@ -163,6 +164,11 @@ internal const val NO_FIX_MESSAGE = "Location services unavailable"
  *   [isApproaching]. Two thresholds would drift, producing a needle that vanishes before the label
  *   appears or the reverse. The bearing is never smoothed as a substitute — a smoothed unstable
  *   bearing is a stable wrong direction.
+ *   **Superseded for the word by dispatch 2026-09-28-578 (Amendment 1, RECORD -579):** arrival's
+ *   radius always held [isApproaching], so "Approaching" never showed without "Arrived". The word now
+ *   has its own zone, within 100 m and not arrived ([isInApproachingZone]), where the needle still
+ *   points; arrived, "Arrived" stands alone and the status line is empty, or the fix's age when stale.
+ *   [isApproaching] still gates the needle and the target column, as above.
  * - **Stale fix** ([fixFreshness], HUD-only policy): past 30 s the distance de-emphasises and its
  *   age is shown — "Approaching · last fix 45 s ago" when both hold, since neither fact replaces
  *   the other; past 5 min the distance and needle are withheld and only the age remains. A
@@ -572,8 +578,14 @@ internal fun navigationReadout(
     val distanceMeters = GeoDistance.metersBetween(here, there)
     val age = liveFix.ageMillis(nowEpochMillis)
     val freshness = fixFreshness(age)
-    // The one threshold — see the class doc's needle paragraph.
-    val approaching = freshness != FixFreshness.LOST && isApproaching(distanceMeters, liveFix.accuracyMeters)
+    // The needle's threshold — see the class doc's needle paragraph. Until dispatch 2026-09-28-578
+    // (Amendment 1, -579) this was `approaching` and also decided the word; the word now has its own
+    // zone (`approaching` below) and this gates only the needle and the target column, unchanged.
+    val withinFixError = freshness != FixFreshness.LOST && isApproaching(distanceMeters, liveFix.accuracyMeters)
+    // Dispatch -578 (Amendment 1, -579): "Approaching" within 100 m and not arrived; arrived, "Arrived"
+    // stands alone. The same arrival rule the large slot reads below, so the two cannot disagree.
+    val arrived = arrivedAtStart(liveFix, target, nowEpochMillis)
+    val approaching = freshness != FixFreshness.LOST && !arrived && isInApproachingZone(distanceMeters)
     // Never more precision than the fix supports — "within 16 ft" inside the error circle, "≈ 10 m"
     // beyond it, today's formatting when no accuracy was reported. See formatDistanceWithAccuracy.
     val straightLineText = formatDistanceWithAccuracy(distanceMeters, liveFix.accuracyMeters, distanceUnit)
@@ -603,7 +615,7 @@ internal fun navigationReadout(
     // state, so the term is visible where the order is stated rather than implied by a null.
     // A fifth term, ranked last (dispatch 2026-09-28-423): no aim, a route pending or withheld.
     // It is not a failure of the compass or the fix, so it ranks below all four.
-    val targetArrowDegrees = if (headingDegrees != null && freshness != FixFreshness.LOST && !compassUnreliable && !approaching && bearing != null) relativeBearingDegrees(bearing, headingDegrees) else null
+    val targetArrowDegrees = if (headingDegrees != null && freshness != FixFreshness.LOST && !compassUnreliable && !withinFixError && bearing != null) relativeBearingDegrees(bearing, headingDegrees) else null
     val targetText = when {
         freshness == FixFreshness.LOST -> "Target"
         // Same rendering as the approach case below, and for the same reason the owner recorded
@@ -612,7 +624,7 @@ internal fun navigationReadout(
         compassUnreliable -> ""
         // Nothing — not the distance (that was one number in two slots on device, "9 ft · 9 ft ·
         // Approaching"), not a dash, not a placeholder. The distance slot carries the one number.
-        approaching -> ""
+        withinFixError -> ""
         // No aim: the large slot already says why (a dash, or "Unable to calculate route").
         bearing == null -> ""
         headingDegrees != null -> "Turn ${relativeBearingDegrees(bearing, headingDegrees).roundToInt() % 360}°"
@@ -633,6 +645,10 @@ internal fun navigationReadout(
         FixFreshness.LOST -> "No fix for ${formatFixAge(age)}"
         FixFreshness.STALE -> if (approaching) "Approaching · last fix ${formatFixAge(age)} ago" else "Last fix ${formatFixAge(age)} ago"
         FixFreshness.FRESH -> when {
+            // The owner: "Drop "Approaching" when arrived", "Arrived" alone; with a route that also
+            // drops the straight line, which before this dispatch read under "Arrived" outside twice
+            // the accuracy.
+            arrived -> ""
             approaching -> "Approaching"
             route != null -> "Straight line $straightLineText"
             else -> ""
