@@ -12171,3 +12171,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Stands as the coder proposed:** the provider passed along with each fix in the recording and alert stream, not stored; saved track points keep the timestamp rule; an unknown provider never acts and may be shown; the mismatch log under tag `ForagerFixRule`, only on disagreement. Not checked: the passive provider's last known position.
 **Gradle:** waits for the planner's word that -549's build has finished; one build at a time.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -559.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-559
+**Timestamp:** 2026-10-06T03:47:00Z
+**Continues:** 2026-09-28-532
+**Amendment 2 to -532 (walk-logger; Amendment 1 is -533), after the coder's verify report** (session_01Gn2BRx1HoYB5oec6c4bjSY, branch walk-logger cut locally from main 4b72b25c). The release check is replaced as the coder proposed: `aapt` on a release APK is impossible without the signing identity, and a release unit test does not compile (CI runs `testDebugUnitTest` only), so the check is the merged release manifest (no `ACTIVITY_RECOGNITION`, no `READ_BASIC_PHONE_STATE`) and the compiled release classes (no logger classes).
+**The owner, verbatim, to four questions:** (1) "Hooks in the service (Recommended)": three one-line calls in `TrackRecordingService` (start, stop, destroy); the overlap with -527 is the planner's to sequence. (2) "No, record as-is (Recommended)": no forced full GNSS tracking; a forced-full-GNSS walk can be a separate test later. (3) "Yes, keep it awake (Recommended)": the debug build holds a wake lock while logging, on both phones; the desk run measures its battery cost before any woods walk. (4) "Yes, as proposed (Recommended)": motion sensors at 25 Hz, rotation vectors at 10 Hz, the rest as delivered; stop below 200 MB free.
+**Still open:** item 3 (each phone's sensors and GNSS capabilities, read only) needs both phones plugged in. Gradle waits for the planner's go: -549 builds first, then -527, then this.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -560.
