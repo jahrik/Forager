@@ -19,6 +19,7 @@ import com.zynergylabs.forager.app.AppContainer
 import com.zynergylabs.forager.app.ForagerApplication
 import com.zynergylabs.forager.app.MainActivity
 import com.zynergylabs.forager.app.R
+import com.zynergylabs.forager.app.diagnostics.WalkLogger
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.LocationSampler
 import com.zynergylabs.forager.app.domain.model.TrackPoint
@@ -70,6 +71,12 @@ import kotlinx.coroutines.sync.withLock
  * handed every raw fix, evaluated on its own 15 s timer and once at the first fix, ended with the
  * recording or the service. The three sundown alerts arrive with the app swiped away for the same
  * reason the off-track alert does.
+ *
+ * ## And the walk logger, in debug builds (dispatch 2026-09-28-532)
+ *
+ * Told when a recording starts and stops, and when the service is destroyed; it reads the phone and
+ * acts on nothing. A no-op in release builds (`src/release`), and in debug builds only while the
+ * Diagnostics screen's "Walk logger" switch is on.
  */
 class TrackRecordingService : Service() {
 
@@ -128,6 +135,7 @@ class TrackRecordingService : Service() {
         // Whatever recording this service had begun the watch for is over with the service.
         (application as ForagerApplication).container.returnWatch.end(null)
         (application as ForagerApplication).container.sundownWatch.end(null)
+        WalkLogger.of(this).onRecordingStopped()
         recordingJob?.cancel()
         scope.cancel()
         super.onDestroy()
@@ -140,6 +148,7 @@ class TrackRecordingService : Service() {
         val container = (application as ForagerApplication).container
         container.returnWatch.begin(trackId, mode)
         container.sundownWatch.begin(trackId)
+        WalkLogger.of(this).onRecordingStarted(trackId)
         val sampler = LocationSampler(mode)
         var lastAccepted: TrackPoint? = null
 
@@ -211,6 +220,7 @@ class TrackRecordingService : Service() {
             val container = (application as ForagerApplication).container
             container.returnWatch.end(trackId)
             container.sundownWatch.end(trackId)
+            WalkLogger.of(this).onRecordingStopped()
             scope.launch {
                 flushPendingPoints(trackId, container)
                 container.endTrackUseCase(trackId).onFailure { error ->
