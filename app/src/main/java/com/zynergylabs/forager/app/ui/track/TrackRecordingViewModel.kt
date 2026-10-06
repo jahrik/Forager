@@ -9,8 +9,7 @@ import com.zynergylabs.forager.app.domain.NETWORK_FIXES_RECORDING_NOTICE
 import com.zynergylabs.forager.app.domain.alertAudibilityWarning
 import com.zynergylabs.forager.app.domain.isMostlyNetworkFixes
 import com.zynergylabs.forager.app.domain.CreateWaypointUseCase
-import com.zynergylabs.forager.app.domain.DEFAULT_DARKNESS_MARGIN_MINUTES
-import com.zynergylabs.forager.app.domain.ComputeSundownCountdownUseCase
+import com.zynergylabs.forager.app.domain.SundownShown
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
@@ -139,7 +138,7 @@ class TrackRecordingViewModel(
      * `Log.w`-backed one for production.
      */
     private val errorLog: ErrorLog = ErrorLog { _, _, _ -> },
-    /** The clock the auto-created waypoints' names and the sundown countdown read. The off-track cooldown's clock is [ReturnWatch]'s own. */
+    /** The clock the auto-created waypoints' names read. The off-track cooldown's clock is [ReturnWatch]'s own. */
     private val currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
     /**
      * How many Cartography entries currently keep a reference to a waypoint — Journal Stage 2b's
@@ -152,20 +151,14 @@ class TrackRecordingViewModel(
     private val getWaypointReferenceCount: suspend (String) -> Int = { 0 },
     /** The zone the auto-created origin/end waypoints' default names are written in — injected so a test can pin the wall-clock text. */
     private val zone: ZoneId = ZoneId.systemDefault(),
-    /** Pure and stateless, so the default instance is the real one; injected only so a test can substitute. */
-    private val computeSundownCountdown: ComputeSundownCountdownUseCase = ComputeSundownCountdownUseCase(),
     /**
-     * The user's darkness margin, in minutes. **Read once per [startRecording]**, the same rule
-     * [alertAudibility] follows, rather than watched live: a trip does not need the setting to
-     * change under it mid-walk, and re-reading DataStore every fifteen seconds would be disk
-     * traffic for a value that does not move.
-     *
-     * A suspend function rather than the whole `SundownPreferencesRepository`, matching
-     * [getWaypointReferenceCount]'s reasoning: this ViewModel needs exactly one value from that
-     * surface, and a function type keeps every existing test fixture from having to stand one up
-     * to construct it. Defaults to the stated default margin.
+     * The sundown line the recording's [com.zynergylabs.forager.app.domain.SundownWatch] publishes
+     * (dispatch 2026-09-28-592, Amendment 1, RECORD -593): copied into
+     * [TrackRecordingUiState.sundownLine] while it is for this screen's recording. The watch is the
+     * one place the line's start-back time is computed, the leave-by alert's own; this ViewModel's
+     * own countdown, which nothing rendered, is retired. Defaults to a watch that publishes nothing.
      */
-    private val darknessMarginMinutes: suspend () -> Int = { DEFAULT_DARKNESS_MARGIN_MINUTES },
+    private val sundownShown: StateFlow<SundownShown?> = MutableStateFlow(null),
     /**
      * Where a waypoint delete still pending when this ViewModel is cleared is committed (journal
      * redesign J4): `viewModelScope` is cancelled by then. See [PendingDeleteCommitScope].
@@ -230,18 +223,11 @@ class TrackRecordingViewModel(
     //
     // Dispatch 2026-09-28-527 split it in two. lastGatedGpsFix is the same rule for GPS fixes only,
     // and is what everything that acts reads: the origin and end waypoints and the route home (RECORD
-    // -558, and the dispatch's rule 2 for the end). lastGatedFix, any provider, is now read only by the
-    // sundown countdown, which the owner kept working on any fix ("Keep it working", -558), as -516's
-    // sundown watch takes its sunset from any fix.
-    private var lastGatedFix: TrackPoint? = null
+    // -558, and the dispatch's rule 2 for the end). lastGatedFix, any provider, was read only by the
+    // sundown countdown, and went with it (dispatch 2026-09-28-592): the line is the watch's now, which
+    // takes its sunset from any fix as that countdown did.
     private var lastGatedGpsFix: TrackPoint? = null
 
-    /**
-     * The margin in millis, resolved once per recording. Seeded with the stated default so a
-     * countdown computed before that read lands is the documented behaviour rather than zero,
-     * which would put the turnaround exactly at sunset and quietly drop the point of having one.
-     */
-    private var darknessMarginMillis: Long = DEFAULT_DARKNESS_MARGIN_MINUTES * 60_000L
     private var originCreationInFlight = false
     private var recordingNoticeIds = 0
     private var networkFixesNoticeShown = false
@@ -280,6 +266,8 @@ class TrackRecordingViewModel(
         // fix decides off track; a stop from the notification ends it), so it is collected, not
         // only read after each call.
         viewModelScope.launch { returnWatch.state.collect(::copyFromWatch) }
+        // The sundown line, the same way: published by the watch the service ticks.
+        viewModelScope.launch { sundownShown.collect { copySundownLine() } }
     }
 
     /**
@@ -308,12 +296,25 @@ class TrackRecordingViewModel(
             val mine = state.activeTrack != null && watch.trackId == state.activeTrack.trackId
             state.copy(isReturning = mine && watch.isReturning, isOffTrack = mine && watch.isOffTrack)
         }
+        copySundownLine()
         // The route tick runs exactly while this screen shows a return, whichever way the return
         // reached it: this screen's own Return, or a recording taken up mid-return.
         if (uiState.value.isReturning) {
             if (routeJob == null) beginRouteTicks()
         } else if (routeJob != null) {
             endRouteTicks()
+        }
+    }
+
+    /**
+     * Copies the watch's sundown line into the screen's state while it is for this screen's
+     * recording, the rule [copyFromWatch] follows; `null` otherwise. Called when the watch publishes
+     * and from [copyFromWatch], which runs whenever this screen's recording changes.
+     */
+    private fun copySundownLine() {
+        _uiState.update { state ->
+            val shown = sundownShown.value
+            state.copy(sundownLine = shown?.line?.takeIf { state.activeTrack != null && shown.trackId == state.activeTrack.trackId })
         }
     }
 
@@ -361,7 +362,6 @@ class TrackRecordingViewModel(
         viewModelScope.launch {
             startTrack(null)
                 .onSuccess { track ->
-                    lastGatedFix = null
                     lastGatedGpsFix = null
                     lastPolledTrack = null
                     originCreationInFlight = false
@@ -384,7 +384,6 @@ class TrackRecordingViewModel(
                         )
                     }
                     copyFromWatch()
-                    darknessMarginMillis = darknessMarginMinutes() * 60_000L
                     beginPolling(track.id)
                     beginLocationTracking()
                 }
@@ -441,12 +440,11 @@ class TrackRecordingViewModel(
             returnWatch.stopReturn(it.trackId)
             stoppedTrackId = it.trackId
         }
-        lastGatedFix = null
         lastGatedGpsFix = null
         originCreationInFlight = false
         takenUpOrigin = null
         _uiState.update {
-            it.copy(activeTrack = null, isReturning = false, isOffTrack = false, returnToStart = null, originWaypoint = null, routeHome = null, routeLine = null)
+            it.copy(activeTrack = null, isReturning = false, isOffTrack = false, returnToStart = null, originWaypoint = null, routeHome = null, routeLine = null, sundownLine = null)
         }
     }
 
@@ -502,7 +500,6 @@ class TrackRecordingViewModel(
             if (isOwnStoppedRecording(stillRunning)) return
 
             val active = ActiveTrack(trackId, track.startedAtEpochMillis, mode)
-            lastGatedFix = null
             lastGatedGpsFix = null
             lastPolledTrack = null
             originCreationInFlight = false
@@ -518,7 +515,6 @@ class TrackRecordingViewModel(
                 )
             }
             copyFromWatch()
-            darknessMarginMillis = darknessMarginMinutes() * 60_000L
             settleTakenUpOrigin(active, track)
             beginPolling(trackId)
             beginLocationTracking()
@@ -812,38 +808,9 @@ class TrackRecordingViewModel(
                         networkFixesNoticeShown = true
                         _uiState.update { it.copy(networkFixesNotice = RecordingNotice(++recordingNoticeIds, NETWORK_FIXES_RECORDING_NOTICE)) }
                     }
-                    updateSundown()
                 }
                 delay(POLL_INTERVAL_MILLIS)
             }
-        }
-    }
-
-    /**
-     * Recomputes the countdown from the last gated fix. A new path called from the poll loop
-     * rather than a branch inside it, following the shape of the path-home update the poll used
-     * to run (moved to the route tick, [updateRouteHome], by dispatch 2026-09-28-423).
-     *
-     * Stateless by construction: it reads the clock and the last fix and keeps nothing between
-     * calls. A stop, a process death or a device restart therefore costs it nothing, which is the
-     * owner's requirement met by the shape of the problem rather than by recovery code.
-     *
-     * **This drives the screen only.** It rides `viewModelScope`, which dies with the Activity, so
-     * it stops when the task is swiped away. Harmless for a number nobody is looking at, and
-     * exactly why alert delivery must not be hung here; see [com.zynergylabs.forager.app.domain.AlertDelivery]'s own doc comment on
-     * the same hole in the off-track alert.
-     */
-    private fun updateSundown() {
-        val fix = lastGatedFix
-        _uiState.update { state ->
-            state.copy(
-                sundownCountdown = computeSundownCountdown(
-                    nowEpochMillis = currentTime.nowEpochMillis(),
-                    position = fix?.let { LatLng(it.lat, it.lng) },
-                    fixAtEpochMillis = fix?.timestampEpochMillis,
-                    darknessMarginMillis = darknessMarginMillis,
-                ),
-            )
         }
     }
 
@@ -905,9 +872,7 @@ class TrackRecordingViewModel(
                     // lastAccepted it accepts exactly the fixes whose reported accuracy clears the
                     // mode's ceiling — reused rather than restated.
                     if (active != null && LocationSampler(active.mode).shouldAccept(lastAccepted = null, candidate = point)) {
-                        lastGatedFix = point
-                        // Dispatch 2026-09-28-527: only a GPS fix acts. A network or unknown one gives
-                        // the countdown its place and nothing else.
+                        // Dispatch 2026-09-28-527: only a GPS fix acts.
                         if (fix.provider.mayAct) {
                             lastGatedGpsFix = point
                             // Not for a recording that was taken up: its marker is the one it already

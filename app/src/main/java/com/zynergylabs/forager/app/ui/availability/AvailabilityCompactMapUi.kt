@@ -303,6 +303,12 @@ internal fun CompactMapTab(
     isNavigating: Boolean,
     isOffTrack: Boolean,
     onToggleReturning: () -> Unit,
+    /**
+     * The recording's sundown line (dispatch 2026-09-28-592, plan task T3; placement RECORD -421,
+     * "Strip, then HUD"): in the strip while recording, in the HUD while navigating. Navigating with no
+     * recording, the HUD shows sunset and dark only, computed here ([rememberScreenSundownLine]).
+     */
+    recordingSundownLine: com.zynergylabs.forager.app.domain.SundownLine? = null,
     compassProvider: CompassProvider,
     /** See [AvailabilityScreen]'s own `computeTrueHeading` doc comment. */
     computeTrueHeading: ComputeTrueHeadingUseCase,
@@ -614,6 +620,8 @@ internal fun CompactMapTab(
             // AvailabilityScreen since dispatch 2026-09-28-422, so it also survives this tab
             // unmounting on a tab change; it used to reset then.
             val compassStripTextMeasurer = rememberTextMeasurer()
+            // Dispatch 2026-09-28-592: the phone's clock format for the sundown line, in the strip and the HUD.
+            val sundownClock = rememberSundownClock()
             val compassStripLabelStyle = MaterialTheme.typography.labelMedium
             val compassStripDensity = LocalDensity.current
             // The strip's real height, measured on the strip itself where it is composed below (item 2). Not
@@ -905,6 +913,8 @@ internal fun CompactMapTab(
                         }.mapKeepOut(MapKeepOutIds.TOP_STRIP),
                         contentWidth = railPortEdge != null,
                         positionNote = positionNote,
+                        // Amendment 2 (RECORD -595): hidden until its window opens; see isShown.
+                        sundownLine = recordingSundownLine?.let { sundownLineText(it, sundownClock) },
                     )
                     DisposableEffect(Unit) { onDispose { compassStripHeightPx = 0 } }
                 }
@@ -997,6 +1007,10 @@ internal fun CompactMapTab(
                         showDecimalDegrees = showDecimalDegrees,
                         onToggleCoordinateFormat = onToggleCoordinateFormat,
                         onExit = onToggleReturning,
+                        // The recording's line, or with no recording sunset and dark only, computed here; either
+                        // hidden until its window opens (Amendment 2, RECORD -595).
+                        sundownLine = (recordingSundownLine ?: rememberScreenSundownLine(uiState.headingFix?.let { com.zynergylabs.forager.app.domain.model.LatLng(it.lat, it.lng) }, currentTime))
+                            .let { sundownLineText(it, sundownClock) },
                         modifier = if (railPortEdge != null) {
                             // Landscape B2 (S4): the top corner on the rail side, below the
                             // status bar only, at most 360dp wide.
