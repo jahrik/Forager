@@ -117,9 +117,15 @@ class SundownLineTextTest {
         val context = ApplicationProvider.getApplicationContext<Application>()
         Settings.System.putString(context.contentResolver, Settings.System.TIME_12_24, "24")
         val phone = androidSundownClock(context)
-        val expected = DateFormat.getTimeFormat(context).format(Date(sunset))
-        assertEquals(expected, phone.full(sunset))
-        assertEquals(expected, phone.short(sunset))
+        // 6:42 PM in the JVM's own zone, which the formats write in: an afternoon hour, so a 12-hour
+        // "h:mm" would write "6:42" where 24-hour writes "18:42". The shared [sunset] fixture is a
+        // UTC evening, which is a morning hour in some zones (11:42 in Los Angeles), where the two
+        // formats agree and this test could not fail.
+        val evening = java.time.ZonedDateTime.of(2026, 10, 3, 18, 42, 0, 0, java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val expected = DateFormat.getTimeFormat(context).format(Date(evening))
+        assertEquals("the sample is an afternoon hour", true, expected.startsWith("18"))
+        assertEquals(expected, phone.full(evening))
+        assertEquals(expected, phone.short(evening))
         assertEquals("no AM/PM in 24-hour: $expected", false, expected.contains("M"))
     }
 }

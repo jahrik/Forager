@@ -62,6 +62,7 @@ import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 import org.robolectric.Shadows
 
 /**
@@ -199,10 +200,12 @@ class AvailabilityScreenSundownLineTest {
     // ── Strip, then HUD ──
 
     @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
     fun `recording, the strip shows the line`() {
         setScreen()
         recordingWith(startBackLine())
         assertEquals(expected(), text(STRIP_SUNDOWN_LINE_TAG))
+        assertLineLaidOutWhole()
         assertFalse("no HUD", shown(NAVIGATION_HUD_SUNDOWN_LINE_TAG))
     }
 
@@ -340,6 +343,7 @@ class AvailabilityScreenSundownLineTest {
      * status bar is device-only (CLAUDE.md: Robolectric reports zero insets).
      */
     @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
     fun `in fullscreen the line stays in the strip, and long-presses on it reach the map`() {
         setScreen()
         recordingWith(startBackLine())
@@ -348,6 +352,7 @@ class AvailabilityScreenSundownLineTest {
         composeRule.waitForIdle()
         assertTrue("fullscreen is on", composeRule.onAllNodesWithContentDescription("Exit fullscreen").fetchSemanticsNodes().isNotEmpty())
         assertEquals(expected(), text(STRIP_SUNDOWN_LINE_TAG))
+        assertLineLaidOutWhole()
         assertLongPressesReachTheMap()
     }
 
@@ -357,6 +362,7 @@ class AvailabilityScreenSundownLineTest {
      */
     @Test
     @Config(qualifiers = "w823dp-h384dp-land-xxhdpi")
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
     fun `in landscape the line sits in the content-width strip, and long-presses on it reach the map`() {
         setScreen()
         recordingWith(startBackLine())
@@ -364,7 +370,32 @@ class AvailabilityScreenSundownLineTest {
         val strip = composeRule.onNodeWithTag("compass-elevation-strip").getUnclippedBoundsInRoot()
         val root = composeRule.onRoot().getUnclippedBoundsInRoot()
         assertTrue("content-width, not the screen's: $strip in $root", strip.right - strip.left < root.right - root.left - 100.dp)
+        assertLineLaidOutWhole()
         assertLongPressesReachTheMap()
+    }
+
+    /**
+     * The words are drawn whole, not cut off by the strip's width: the semantic text alone reads whole
+     * even when ellipsized to a sliver, so this reads the laid-out text. Every character is visible on
+     * the one line and none is replaced by an ellipsis. Not `hasVisualOverflow`: with a content-width
+     * line, Compose lays the paragraph out a fraction of a pixel wider than the whole pixels it is given
+     * (648 px for the landscape line under native graphics, every character visible), which that flag
+     * reports as overflow. Only meaningful under native graphics, which every caller runs with:
+     * Robolectric's legacy text metrics measure a character as one pixel wide, so a line measures 37 px
+     * there whatever room it has, and nothing could cut it off.
+     */
+    private fun assertLineLaidOutWhole() {
+        val results = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+        composeRule.onNodeWithTag(STRIP_SUNDOWN_LINE_TAG).fetchSemanticsNode()
+            .config[androidx.compose.ui.semantics.SemanticsActions.GetTextLayoutResult].action?.invoke(results)
+        assertEquals("one layout", 1, results.size)
+        val layout = results.single()
+        val words = layout.layoutInput.text.text
+        val detail = "$words: ${layout.lineCount} line(s), visible end ${layout.getLineEnd(0, visibleEnd = true)} of ${words.length}, " +
+            "ellipsized ${layout.isLineEllipsized(0)}, size ${layout.size}"
+        assertEquals("one line: $detail", 1, layout.lineCount)
+        assertFalse("not ellipsized: $detail", layout.isLineEllipsized(0))
+        assertEquals("every character visible: $detail", words.length, layout.getLineEnd(0, visibleEnd = true))
     }
 
     private fun assertLongPressesReachTheMap() {
