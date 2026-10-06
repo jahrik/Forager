@@ -29,6 +29,7 @@ import com.zynergylabs.forager.app.domain.CompassReading
 import com.zynergylabs.forager.app.domain.ComputeTrueHeadingUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.DeclinationProvider
+import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.HeadingUncertainty
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.RouteLine
@@ -78,8 +79,8 @@ class AvailabilityScreenRouteDrawnTest {
 
     private val t = 1_700_000_000_000L
     private val start = Waypoint(id = "origin", lat = 45.53, lng = -122.68, altitude = null, name = "Start", note = "", createdAtEpochMillis = t, trackId = "t1", designation = WaypointDesignation.ORIGIN)
-    private val far = LocationFix.Update(lat = 45.52, lng = -122.68, altitude = 50.0, accuracyMeters = 3.79f, timestampEpochMillis = t)
-    private val atStart = LocationFix.Update(lat = start.lat + 10.0 / 111_195.08, lng = start.lng, altitude = 50.0, accuracyMeters = 3.79f, timestampEpochMillis = t)
+    private val far = LocationFix.Update(lat = 45.52, lng = -122.68, altitude = 50.0, accuracyMeters = 3.79f, timestampEpochMillis = t, provider = FixProvider.GPS)
+    private val atStart = LocationFix.Update(lat = start.lat + 10.0 / 111_195.08, lng = start.lng, altitude = 50.0, accuracyMeters = 3.79f, timestampEpochMillis = t, provider = FixProvider.GPS)
     private val line = RouteLine(
         atReturn = listOf(LatLng(45.52, -122.68), LatLng(45.525, -122.68), LatLng(45.53, -122.68)),
         ahead = listOf(LatLng(45.525, -122.68), LatLng(45.53, -122.68)),

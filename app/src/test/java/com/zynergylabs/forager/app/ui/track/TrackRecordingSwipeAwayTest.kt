@@ -16,6 +16,7 @@ import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
 import com.zynergylabs.forager.app.domain.EndAbandonedTracksUseCase
+import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.GetTrackOriginWaypointUseCase
 import com.zynergylabs.forager.app.domain.GetTracksUseCase
 import com.zynergylabs.forager.app.domain.GetWaypointsUseCase
@@ -185,8 +186,8 @@ class TrackRecordingSwipeAwayTest {
 
     /** One fix from the platform: to the service's listener (so to the watch) and to the ViewModel's own. */
     private suspend fun TestScope.fixArrives(lat: Double, t: Long) {
-        val fix = LocationFix.Update(lat = lat, lng = -122.0, altitude = null, accuracyMeters = 5f, timestampEpochMillis = t)
-        if (serviceRecording) returnWatch.onFix(TrackPoint(fix.lat, fix.lng, fix.altitude, fix.accuracyMeters, fix.timestampEpochMillis))
+        val fix = LocationFix.Update(lat = lat, lng = -122.0, altitude = null, accuracyMeters = 5f, timestampEpochMillis = t, provider = FixProvider.GPS)
+        if (serviceRecording) returnWatch.onFix(TrackPoint(fix.lat, fix.lng, fix.altitude, fix.accuracyMeters, fix.timestampEpochMillis), fix.provider)
         fixes.emit(fix)
         runCurrent()
     }
@@ -290,7 +291,7 @@ class TrackRecordingSwipeAwayTest {
         // To the watch only, as the service feeds it. Nothing is emitted on the ViewModel's own stream.
         // Dispatch 2026-09-28-425: four readings over 15 s (was three over 10 s), the new rule's hold.
         listOf(45.001 to 7_000L, 45.002 to 12_000L, 45.003 to 17_000L, 45.004 to 22_000L).forEach { (lat, t) ->
-            returnWatch.onFix(TrackPoint(lat, -122.0, null, 5f, t))
+            returnWatch.onFix(TrackPoint(lat, -122.0, null, 5f, t), FixProvider.GPS)
         }
         runCurrent()
 
@@ -340,12 +341,12 @@ class TrackRecordingSwipeAwayTest {
         advanceTimeBy(POLL_INTERVAL_MILLIS)
         runCurrent()
 
-        returnWatch.onFix(TrackPoint(45.002, -122.0, null, 5f, 2_000L))
+        returnWatch.onFix(TrackPoint(45.002, -122.0, null, 5f, 2_000L), FixProvider.GPS)
         assertEquals("to the first breadcrumb at 45.000", 222.4, returnWatch.state.value.returnToStart!!.distanceMeters, 1.0)
 
         fixArrives(lat = 45.001, t = 3_000L) // the first gated fix: the origin waypoint, at 45.001
         assertEquals(45.001, vm.uiState.value.originWaypoint?.lat)
-        returnWatch.onFix(TrackPoint(45.002, -122.0, null, 5f, 4_000L))
+        returnWatch.onFix(TrackPoint(45.002, -122.0, null, 5f, 4_000L), FixProvider.GPS)
         assertEquals("to the origin at 45.001", 111.2, returnWatch.state.value.returnToStart!!.distanceMeters, 1.0)
         vm.stopRecording()
     }

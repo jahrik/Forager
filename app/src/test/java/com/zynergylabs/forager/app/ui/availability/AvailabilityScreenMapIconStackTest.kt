@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.test.core.app.ApplicationProvider
+import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.model.WaypointDesignation
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -278,9 +279,9 @@ class AvailabilityScreenMapIconStackTest {
     // this harness's distance-unit stub reports kilometres). Magnetic 80° + a fake +15°
     // declination = 95° true, "95° E".
 
-    private val hudFix = LocationFix.Update(lat = 45.52, lng = -122.68, altitude = 50.0, accuracyMeters = 12.5f, timestampEpochMillis = 1_700_000_000_000L)
+    private val hudFix = LocationFix.Update(lat = 45.52, lng = -122.68, altitude = 50.0, accuracyMeters = 12.5f, timestampEpochMillis = 1_700_000_000_000L, provider = FixProvider.GPS)
     /** MgrsConverterTest's own Portland point ("10T ER 25118 40235"), with an altitude — for the HUD's second row. */
-    private val portlandFix = LocationFix.Update(lat = 45.5152, lng = -122.6784, altitude = 210.0, accuracyMeters = null, timestampEpochMillis = 1_700_000_000_000L)
+    private val portlandFix = LocationFix.Update(lat = 45.5152, lng = -122.6784, altitude = 210.0, accuracyMeters = null, timestampEpochMillis = 1_700_000_000_000L, provider = FixProvider.GPS)
     private val hudOrigin = Waypoint(id = "origin", lat = 45.53, lng = -122.68, altitude = null, name = "Start · Sep 5, 9:41 AM", note = "", createdAtEpochMillis = 1_700_000_000_000L, trackId = "t1", designation = WaypointDesignation.ORIGIN)
     private val hudClock = CurrentTimeProvider { 1_700_000_001_000L }
 
@@ -1579,7 +1580,7 @@ class AvailabilityScreenMapIconStackTest {
         setScreen(locationTracker = IconStackFakeLocationTracker(fixes))
         searchAReferenceRegion()
 
-        fixes.tryEmit(LocationFix.Update(lat = 45.5152, lng = -122.6784, altitude = 210.0, accuracyMeters = null, timestampEpochMillis = 0L))
+        fixes.tryEmit(LocationFix.Update(lat = 45.5152, lng = -122.6784, altitude = 210.0, accuracyMeters = null, timestampEpochMillis = 0L, provider = FixProvider.GPS))
         composeRule.waitForIdle()
 
         composeRule.onNodeWithText("10T ER 25118 40235").assertIsDisplayed()
@@ -1595,7 +1596,7 @@ class AvailabilityScreenMapIconStackTest {
         setScreen(locationTracker = IconStackFakeLocationTracker(fixes))
         searchAReferenceRegion()
 
-        fixes.tryEmit(LocationFix.Update(lat = 45.5152, lng = -122.6784, altitude = 210.0, accuracyMeters = null, timestampEpochMillis = 0L))
+        fixes.tryEmit(LocationFix.Update(lat = 45.5152, lng = -122.6784, altitude = 210.0, accuracyMeters = null, timestampEpochMillis = 0L, provider = FixProvider.GPS))
         composeRule.waitForIdle()
 
         composeRule.onNodeWithText("10T ER 25118 40235").performClick()

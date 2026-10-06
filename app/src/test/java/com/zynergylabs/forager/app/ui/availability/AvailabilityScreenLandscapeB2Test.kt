@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import androidx.test.core.app.ApplicationProvider
+import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.model.AvailabilityEntry
 import com.zynergylabs.forager.app.domain.model.AvailabilityForecast
@@ -805,6 +806,7 @@ private val B2_FIX_STATE = B2_SEARCHED_STATE.copy(
         altitude = 123.0,
         accuracyMeters = 5f,
         timestampEpochMillis = System.currentTimeMillis(),
+        provider = FixProvider.GPS,
     ),
 )
 

@@ -95,7 +95,7 @@ class SundownWatchTest {
     private fun walkTheClock(from: Long, to: Long, at: TrackPoint) {
         clock.now = from
         while (clock.now <= to) {
-            watch.onFix(gpsFix(at))
+            watch.onFix(gpsFix(at), FixProvider.GPS)
             tick()
             clock.now += minute
         }
@@ -140,7 +140,7 @@ class SundownWatchTest {
 
         watch.begin("t1")
         clock.now = shortLeaveBy - 31 * minute
-        watch.onFix(gpsFix(short.last()))
+        watch.onFix(gpsFix(short.last()), FixProvider.GPS)
         tick()
         assertEquals("before the heads-up, with the short track", emptyList<AlertKind>(), kinds())
 
@@ -149,7 +149,7 @@ class SundownWatchTest {
         track = trackOf(long)
         val longLeaveBy = sunset - hour - measuredWalkBack(long, long.last())
         assertTrue("precondition: the longer walk puts the leave-by time in the past", longLeaveBy < clock.now)
-        watch.onFix(gpsFix(long.last()))
+        watch.onFix(gpsFix(long.last()), FixProvider.GPS)
         tick()
 
         assertEquals("leave-by at once, the heads-up spent without sounding", listOf(AlertKind.LEAVE_BY), kinds())
@@ -178,7 +178,7 @@ class SundownWatchTest {
         watch.begin("t1")
         clock.now = sunset - 2 * hour
         while (clock.now <= sunset + minute) {
-            watch.onFix(networkFix(points.last())) // network only: a sunset position, no walk-back position
+            watch.onFix(networkFix(points.last()), FixProvider.NETWORK) // network only: a sunset position, no walk-back position
             tick()
             clock.now += minute
         }
@@ -191,14 +191,65 @@ class SundownWatchTest {
         assertSameSunset(sunsetHere, delivered[1].second.sundown!!.sunsetAtEpochMillis)
     }
 
+    // ── Dispatch 2026-09-28-527: the walk back reads the provider, not the clock ──
+    //
+    // The two disagreements the S22 gave on its walks (the report, item 5): a GPS fix stamped with
+    // milliseconds, and a network fix on the whole second. Before this dispatch the timestamp rule
+    // decided both the wrong way round.
+
+    /** Ticks a minute at a time to just past sunset, [fix] at the walker's position before each, from [provider]. */
+    private fun walkTheClockWith(points: List<TrackPoint>, provider: FixProvider, fix: (TrackPoint) -> TrackPoint) {
+        clock.now = sunset - 2 * hour
+        while (clock.now <= sunset + minute) {
+            watch.onFix(fix(points.last()), provider)
+            tick()
+            clock.now += minute
+        }
+    }
+
+    @Test
+    fun `a GPS fix stamped with milliseconds gives the walk back`() {
+        val points = walkOut(20)
+        track = trackOf(points)
+        val walkBack = measuredWalkBack(points, points.last())
+
+        watch.begin("t1")
+        walkTheClockWith(points, FixProvider.GPS) { gpsFix(it).copy(timestampEpochMillis = clock.now / 1_000L * 1_000L + 479L) }
+
+        assertEquals(WalkBack.About(walkBack), delivered.first().second.sundown?.walkBack)
+    }
+
+    @Test
+    fun `a network fix on the whole second gives no walk back, and the leave-by time falls back`() {
+        val points = walkOut(20)
+        track = trackOf(points)
+
+        watch.begin("t1")
+        walkTheClockWith(points, FixProvider.NETWORK) { gpsFix(it).copy(accuracyMeters = 15f) }
+
+        assertEquals(listOf(AlertKind.HEADS_UP, AlertKind.LEAVE_BY, AlertKind.SUNSET), kinds())
+        assertEquals(WalkBack.Unknown, delivered[1].second.sundown?.walkBack)
+    }
+
+    @Test
+    fun `a fix from an unknown provider gives no walk back`() {
+        val points = walkOut(20)
+        track = trackOf(points)
+
+        watch.begin("t1")
+        walkTheClockWith(points, FixProvider.UNKNOWN) { gpsFix(it).copy(accuracyMeters = 15f) }
+
+        assertEquals(WalkBack.Unknown, delivered[1].second.sundown?.walkBack)
+    }
+
     @Test
     fun `a GPS fix gone stale beyond five minutes withholds the walk back too`() {
         val points = walkOut(20)
         track = trackOf(points)
         watch.begin("t1")
-        watch.onFix(gpsFix(points.last(), at = sunset - 2 * hour))
+        watch.onFix(gpsFix(points.last(), at = sunset - 2 * hour), FixProvider.GPS)
         clock.now = sunset - hour
-        watch.onFix(networkFix(points.last()))
+        watch.onFix(networkFix(points.last()), FixProvider.NETWORK)
         tick()
         assertEquals(listOf(AlertKind.LEAVE_BY), kinds())
         assertEquals(WalkBack.Unknown, delivered[0].second.sundown?.walkBack)
@@ -253,7 +304,7 @@ class SundownWatchTest {
         watch.begin("t1")
         watch.end("t0")
         clock.now = sunset - 30 * minute // past the leave-by time
-        watch.onFix(gpsFix(points.last()))
+        watch.onFix(gpsFix(points.last()), FixProvider.GPS)
         tick()
         assertEquals(listOf(AlertKind.LEAVE_BY), kinds())
     }
@@ -266,7 +317,7 @@ class SundownWatchTest {
         watch.begin("t1")
         returning = true
         clock.now = sunset - 3 * hour
-        watch.onFix(gpsFix(atStart))
+        watch.onFix(gpsFix(atStart), FixProvider.GPS)
         tick()
 
         walkTheClock(sunset - 3 * hour, sunset + hour, points.last()) // even walking out again
@@ -291,11 +342,11 @@ class SundownWatchTest {
         track = trackOf(points)
         watch.begin("t1")
         clock.now = sunset - 30 * minute // past the leave-by time
-        watch.onFix(gpsFix(points.last()))
+        watch.onFix(gpsFix(points.last()), FixProvider.GPS)
         tick()
         watch.end("t1")
         watch.begin("t1")
-        watch.onFix(gpsFix(points.last()))
+        watch.onFix(gpsFix(points.last()), FixProvider.GPS)
         tick()
         assertEquals(listOf(AlertKind.LEAVE_BY, AlertKind.LEAVE_BY), kinds())
     }
@@ -321,7 +372,7 @@ class SundownWatchTest {
      */
     @Test
     fun `a recording with no live reading at all still gets a sunset time and its alerts, from the last known position`() {
-        val lastKnownHere = LocationFix.Update(origin.lat, origin.lng, null, 900f, sunset - 5 * hour + 123L)
+        val lastKnownHere = LocationFix.Update(origin.lat, origin.lng, null, 900f, sunset - 5 * hour + 123L, provider = FixProvider.NETWORK)
         val lastKnownOnly = SundownWatch(
             alertDelivery = { delivered += clock.now to it },
             clock = clock,
@@ -347,7 +398,7 @@ class SundownWatchTest {
 
     @Test
     fun `a live fix, once there is one, wins over the last known position`() {
-        val farAway = LocationFix.Update(70.0, 20.0, null, 900f, 0L) // Arctic Norway: another sunset entirely
+        val farAway = LocationFix.Update(70.0, 20.0, null, 900f, 0L, provider = FixProvider.GPS) // Arctic Norway: another sunset entirely
         val watchWithStale = SundownWatch(
             alertDelivery = { delivered += clock.now to it },
             clock = clock,
@@ -360,7 +411,7 @@ class SundownWatchTest {
         )
         watchWithStale.begin("t1")
         clock.now = sunset - hour + minute
-        watchWithStale.onFix(networkFix(TrackPoint(origin.lat, origin.lng, null, 40f, 0L)))
+        watchWithStale.onFix(networkFix(TrackPoint(origin.lat, origin.lng, null, 40f, 0L)), FixProvider.NETWORK)
         runBlocking { watchWithStale.tick() }
         assertEquals(listOf(AlertKind.LEAVE_BY), kinds())
         assertSameSunset(sunset, delivered[0].second.sundown!!.sunsetAtEpochMillis)
@@ -398,7 +449,7 @@ class SundownWatchTest {
         )
         failing.begin("t1")
         clock.now = sunset - hour + minute
-        failing.onFix(gpsFix(walkOut(1).last()))
+        failing.onFix(gpsFix(walkOut(1).last()), FixProvider.GPS)
         runBlocking { failing.tick() }
         assertEquals(listOf(AlertKind.LEAVE_BY), kinds())
         assertEquals(WalkBack.Unknown, delivered[0].second.sundown?.walkBack)
