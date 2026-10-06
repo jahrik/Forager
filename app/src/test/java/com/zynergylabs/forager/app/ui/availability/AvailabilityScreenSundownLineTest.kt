@@ -18,9 +18,12 @@ import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.DpRect
@@ -328,6 +331,43 @@ class AvailabilityScreenSundownLineTest {
     fun `real long-presses on the line and just below the strip reach the map`() {
         setScreen()
         recordingWith(startBackLine())
+        assertLongPressesReachTheMap()
+    }
+
+    /**
+     * Fullscreen (the icon bar's own toggle): the search bar slides away and the strip follows it up,
+     * the line still inside it, and touches on it still reach the map. Where it sits against the real
+     * status bar is device-only (CLAUDE.md: Robolectric reports zero insets).
+     */
+    @Test
+    fun `in fullscreen the line stays in the strip, and long-presses on it reach the map`() {
+        setScreen()
+        recordingWith(startBackLine())
+        composeRule.onNodeWithContentDescription("Fullscreen").performClick()
+        composeRule.mainClock.advanceTimeBy(2_000)
+        composeRule.waitForIdle()
+        assertTrue("fullscreen is on", composeRule.onAllNodesWithContentDescription("Exit fullscreen").fetchSemanticsNodes().isNotEmpty())
+        assertEquals(expected(), text(STRIP_SUNDOWN_LINE_TAG))
+        assertLongPressesReachTheMap()
+    }
+
+    /**
+     * Landscape: the strip is content-width at the rail's side (Landscape B2, S4), and the line sits in
+     * it, written whole, with touches on it reaching the map.
+     */
+    @Test
+    @Config(qualifiers = "w823dp-h384dp-land-xxhdpi")
+    fun `in landscape the line sits in the content-width strip, and long-presses on it reach the map`() {
+        setScreen()
+        recordingWith(startBackLine())
+        assertEquals(expected(), text(STRIP_SUNDOWN_LINE_TAG))
+        val strip = composeRule.onNodeWithTag("compass-elevation-strip").getUnclippedBoundsInRoot()
+        val root = composeRule.onRoot().getUnclippedBoundsInRoot()
+        assertTrue("content-width, not the screen's: $strip in $root", strip.right - strip.left < root.right - root.left - 100.dp)
+        assertLongPressesReachTheMap()
+    }
+
+    private fun assertLongPressesReachTheMap() {
         val lineBounds = composeRule.onNodeWithTag(STRIP_SUNDOWN_LINE_TAG).getUnclippedBoundsInRoot()
         val strip = composeRule.onNodeWithTag("compass-elevation-strip").getUnclippedBoundsInRoot()
         assertTrue("the line is inside the strip: $lineBounds in $strip", lineBounds.top >= strip.top && lineBounds.bottom <= strip.bottom + 0.5.dp)
@@ -350,7 +390,7 @@ class AvailabilityScreenSundownLineTest {
                 sampled++
             }
         }
-        assertTrue("at least ${'$'}MIN_SAMPLED points sampled, not ${'$'}sampled", sampled >= MIN_SAMPLED)
+        assertTrue("at least $MIN_SAMPLED points sampled, not $sampled", sampled >= MIN_SAMPLED)
         assertTrue("every point on the line itself is sampled (no control sits on it)", sampled >= 3 * SAMPLES)
     }
 

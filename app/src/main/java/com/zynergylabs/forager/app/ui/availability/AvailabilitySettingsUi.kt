@@ -330,20 +330,6 @@ internal fun SettingsContent(
 }
 
 /**
- * The app's own theme — a direct, persistent preference ([AvailabilityUiState.themeMode]), a
- * three-way choice rather than a single on/off checkbox now that [AppThemeMode.SYSTEM_DEFAULT]
- * exists alongside the two explicit choices this setting started as
- * ([AppThemeMode.LIGHT]/[AppThemeMode.DARK]) — only [AppThemeMode.SYSTEM_DEFAULT] is derived from
- * the device's own theme ([androidx.compose.foundation.isSystemInDarkTheme], resolved in
- * `MainActivity`); [AppThemeMode.LIGHT]/[AppThemeMode.DARK] stay direct choices independent of it.
- * Same radio-group shape as [DistanceUnitSection] above, for the same reason: more than two mutually
- * exclusive choices reads as a choice, not a toggle. [NightModeMapsSection] sits directly beneath
- * this one: that checkbox controls only the map's own basemap styling, independent of this app-wide
- * choice — see [AvailabilityUiState.nightModeMaps]'s own doc comment, and
- * [com.zynergylabs.forager.app.domain.AppThemePreferenceRepository]'s own doc comment for why that independence
- * held even once this setting grew a third option.
- */
-/**
  * Settings' "Sundown" section (dispatch 2026-09-28-592, plan task T4; the owner's step path, RECORD
  * -592): what the sundown alerts and the line read, from
  * [com.zynergylabs.forager.app.domain.SundownPreferencesRepository].
@@ -405,6 +391,20 @@ private fun SundownSection(sundown: SundownSettings) {
     }
 }
 
+/**
+ * The app's own theme — a direct, persistent preference ([AvailabilityUiState.themeMode]), a
+ * three-way choice rather than a single on/off checkbox now that [AppThemeMode.SYSTEM_DEFAULT]
+ * exists alongside the two explicit choices this setting started as
+ * ([AppThemeMode.LIGHT]/[AppThemeMode.DARK]) — only [AppThemeMode.SYSTEM_DEFAULT] is derived from
+ * the device's own theme ([androidx.compose.foundation.isSystemInDarkTheme], resolved in
+ * `MainActivity`); [AppThemeMode.LIGHT]/[AppThemeMode.DARK] stay direct choices independent of it.
+ * Same radio-group shape as [DistanceUnitSection] above, for the same reason: more than two mutually
+ * exclusive choices reads as a choice, not a toggle. [NightModeMapsSection] sits directly beneath
+ * this one: that checkbox controls only the map's own basemap styling, independent of this app-wide
+ * choice — see [AvailabilityUiState.nightModeMaps]'s own doc comment, and
+ * [com.zynergylabs.forager.app.domain.AppThemePreferenceRepository]'s own doc comment for why that independence
+ * held even once this setting grew a third option.
+ */
 @Composable
 private fun ThemeModeSection(themeMode: AppThemeMode, onThemeModeSelected: (AppThemeMode) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
