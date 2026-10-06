@@ -353,7 +353,10 @@ class AvailabilityScreenApproximatePositionTest {
         assertNull("$provider: no line to the waypoint", route.straight)
         assertEquals("$provider: shown as the approximate position", ShownPosition.Approximate(reading), shownPosition())
         assertEquals(PositionLook.APPROXIMATE, look())
-        assertEquals("Approximate location, finding GPS…", text(COMPASS_STRIP_POSITION_NOTE_TAG))
+        // Navigating, the HUD stands where the strip was (as in the -510 tests above): its message, and no
+        // needle, since the waypoint is inside twice the reading's circle.
+        assertEquals("$provider: the HUD's approximate message", APPROXIMATE_HUD_TEXT, text(NAVIGATION_HUD_STATUS_TAG))
+        assertEquals("$provider: no needle", "", text(NAVIGATION_HUD_TARGET_TAG))
     }
 
     @Test

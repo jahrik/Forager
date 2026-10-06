@@ -14,6 +14,8 @@ import androidx.core.content.ContextCompat
 import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.LocationTracker
+import com.zynergylabs.forager.app.domain.disagreesWithTimestampRule
+import com.zynergylabs.forager.app.domain.isNetworkProviderTimestamp
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -60,7 +62,19 @@ class AndroidLocationTracker(
                         "speedAccuracy=${if (location.hasSpeedAccuracy()) location.speedAccuracyMetersPerSecond else null} " +
                         "hasBearing=${location.hasBearing()} time=${location.time}",
                 )
-                trySend(location.toFix())
+                val fix = location.toFix()
+                // Dispatch 2026-09-28-527: where the provider and the timestamp rule disagree, so a
+                // phone where the rule fails becomes visible. Silent while they agree; debug level, as
+                // the line above.
+                if (fix.provider.disagreesWithTimestampRule(fix.timestampEpochMillis)) {
+                    Log.d(
+                        RULE_LOG_TAG,
+                        "provider=${location.provider} " +
+                            "timestampRule=${if (isNetworkProviderTimestamp(fix.timestampEpochMillis)) "network" else "gps"} " +
+                            "time=${fix.timestampEpochMillis}",
+                    )
+                }
+                trySend(fix)
             }
 
             @Suppress("OVERRIDE_DEPRECATION")

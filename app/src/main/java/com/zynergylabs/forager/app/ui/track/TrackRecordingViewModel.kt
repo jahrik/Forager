@@ -25,6 +25,7 @@ import com.zynergylabs.forager.app.domain.RouteHome
 import com.zynergylabs.forager.app.domain.routeHome
 import com.zynergylabs.forager.app.domain.nextRouteLine
 import com.zynergylabs.forager.app.domain.LocationFix
+import com.zynergylabs.forager.app.domain.mayAct
 import com.zynergylabs.forager.app.domain.LocationTracker
 import com.zynergylabs.forager.app.domain.StartTrackUseCase
 import com.zynergylabs.forager.app.domain.SystemCurrentTimeProvider
@@ -226,7 +227,14 @@ class TrackRecordingViewModel(
     // recent fix that passed the active mode's own accuracy gate (LocationSampler's first-fix
     // rule), what stopRecording() seeds the end waypoint from; originCreationInFlight stops a
     // second fix arriving during the origin's own async save from creating a second origin.
+    //
+    // Dispatch 2026-09-28-527 split it in two. lastGatedGpsFix is the same rule for GPS fixes only,
+    // and is what everything that acts reads: the origin and end waypoints and the route home (RECORD
+    // -558, and the dispatch's rule 2 for the end). lastGatedFix, any provider, is now read only by the
+    // sundown countdown, which the owner kept working on any fix ("Keep it working", -558), as -516's
+    // sundown watch takes its sunset from any fix.
     private var lastGatedFix: TrackPoint? = null
+    private var lastGatedGpsFix: TrackPoint? = null
 
     /**
      * The margin in millis, resolved once per recording. Seeded with the stated default so a
@@ -354,6 +362,7 @@ class TrackRecordingViewModel(
             startTrack(null)
                 .onSuccess { track ->
                     lastGatedFix = null
+                    lastGatedGpsFix = null
                     lastPolledTrack = null
                     originCreationInFlight = false
                     takenUpOrigin = null
@@ -433,6 +442,7 @@ class TrackRecordingViewModel(
             stoppedTrackId = it.trackId
         }
         lastGatedFix = null
+        lastGatedGpsFix = null
         originCreationInFlight = false
         takenUpOrigin = null
         _uiState.update {
@@ -493,6 +503,7 @@ class TrackRecordingViewModel(
 
             val active = ActiveTrack(trackId, track.startedAtEpochMillis, mode)
             lastGatedFix = null
+            lastGatedGpsFix = null
             lastPolledTrack = null
             originCreationInFlight = false
             takenUpOrigin = TakenUpOrigin.NOT_LOOKED_UP
@@ -591,7 +602,7 @@ class TrackRecordingViewModel(
      */
     fun stopRecording() {
         val endingTrack = uiState.value.activeTrack
-        val endFix = lastGatedFix
+        val endFix = lastGatedGpsFix
         clearRecordingState()
         if (endingTrack != null && endFix != null) {
             viewModelScope.launch {
@@ -674,7 +685,7 @@ class TrackRecordingViewModel(
      * **Why this is not routed through [stopRecording], which §2 asks to be justified.** It shares
      * [clearRecordingState] with it, so the state left behind is identical by construction rather
      * than by inspection. What it deliberately does **not** inherit is [stopRecording]'s end
-     * waypoint, which is seeded from [lastGatedFix] — the last fix that cleared the gate, which by
+     * waypoint, which is seeded from [lastGatedGpsFix] — the last GPS fix that cleared the gate, which by
      * the time this runs is where the walker was when they backgrounded the app, not where they
      * stopped recording. Writing a waypoint there would be a data write from a stale position onto
      * an already-ended track, which is the class of thing this whole change is about not doing.
@@ -856,7 +867,7 @@ class TrackRecordingViewModel(
         val state = uiState.value
         if (!state.isReturning) return
         val track = lastPolledTrack ?: return
-        val current = lastGatedFix ?: return
+        val current = lastGatedGpsFix ?: return
         val previousHopBand = when (val previous = state.routeHome) {
             is RouteHome.Ahead -> previous.hopBand
             is RouteHome.Withheld -> previous.hopBand ?: HopBand.NONE
@@ -895,9 +906,14 @@ class TrackRecordingViewModel(
                     // mode's ceiling — reused rather than restated.
                     if (active != null && LocationSampler(active.mode).shouldAccept(lastAccepted = null, candidate = point)) {
                         lastGatedFix = point
-                        // Not for a recording that was taken up: its marker is the one it already
-                        // has, or its first recorded point, never this fix. See settleTakenUpOrigin.
-                        if (takenUpOrigin == null && uiState.value.originWaypoint == null && !originCreationInFlight) createOriginWaypoint(active, point)
+                        // Dispatch 2026-09-28-527: only a GPS fix acts. A network or unknown one gives
+                        // the countdown its place and nothing else.
+                        if (fix.provider.mayAct) {
+                            lastGatedGpsFix = point
+                            // Not for a recording that was taken up: its marker is the one it already
+                            // has, or its first recorded point, never this fix. See settleTakenUpOrigin.
+                            if (takenUpOrigin == null && uiState.value.originWaypoint == null && !originCreationInFlight) createOriginWaypoint(active, point)
+                        }
                     }
                     returnToStart(point)
                 }

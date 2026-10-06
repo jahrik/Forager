@@ -279,7 +279,8 @@ data class AvailabilityUiState(
      */
     val liveFix: LocationFix.Update? = null,
     /**
-     * The newest fix the live gate refused ([com.zynergylabs.forager.app.domain.acceptLiveFix], over 50 m):
+     * The newest fix the live gate refused ([com.zynergylabs.forager.app.domain.acceptLiveFix]: over 50 m, or
+     * not from GPS, dispatch 2026-09-28-527):
      * an approximate reading, shown and never acted on (dispatch 2026-09-28-510; see
      * [com.zynergylabs.forager.app.domain.ShownPosition]). Held **beside** [liveFix], never in it, so
      * everything that reads [liveFix] to act ("Arrived", the waypoint's line, a new find's location) can
