@@ -12109,3 +12109,87 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **The 4:32 PM walk (correct clocks):** a loop with a tail, both phones: way out 330 m and 323 m in 5.3 min to a turnaround 245 m and 244 m out at 16:38:06; way back 788 m and 779 m in 10.1 and 10.3 min, round a loop of 468 m and 460 m, then the last 320 m within 10 m of the way out. The build's estimate (16 files identical to bf34fc87 by `git hash-object`, the same harness, Kotlin 2.3.10 off Gradle) replayed on SundownWatch's cadence. Every way-out row matches the way back's last leg, 0 to 6 m off, so "actual" there is the walk home by the same route. On those rows the estimate, on the default pace and "at least" throughout (`NO_MEASURED_PACE`; the way out never reached 5 min of moving), ran from equal (S22, quarter by time) to about 1.6 times long, with one row under: the S26's quarter by time, 0.0 against 0.2 min, 8 m from the start, with a saved track 2 m long. At the turnaround the walk back went round the loop, a different route, and is shown beside the estimate as no evidence either way (-516's report). The label never reached "about" (13.5 min of moving by the end).
 **The gate:** closed by the owner's ruling on this walk and the 4:49 walk (-550); the leave-by and sunset alerts have still not been seen on a correct clock, which -553 dropped as a merge condition. This entry closes nothing.
 **Notes:** Written by the coder (`session_012X8w7DNXZcsSgjKy4BZkk8`) on branch records-after-173 at e960da49. The planner writes -551's terminal entry.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-554
+**Timestamp:** 2026-10-06T02:22:00Z
+**Continues:** 2026-09-28-542
+**Decides:** the since-boot clock fix is abandoned
+**The owner, verbatim:** "we had an open decision about GPS working with automatic network off. I am abandoning that due to the drawbacks".
+**What it sets:** the fix -540 to -542 deferred is not built: live fixes are not aged on the phone's since-boot clock. The drawbacks are the ones -542 lists: it works only within one power-on; stored things keep the wall clock; the sundown alerts still follow the phone's clock; a fix without the stamp falls back; the tests gain a second time per fix; a saved track's start and its points still disagree when the clock is wrong. -538's EKF questions are not part of this and stay deferred. A phone whose clock is wrong will show GPS fixes as old: an accepted gap in -519's fallback table ("every failure has a fallback"), recorded here rather than left open.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -555.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-555
+**Timestamp:** 2026-10-06T02:32:00Z
+**PR:** 174
+**Head:** t516-merge
+**Base:** main
+**Merge-commit:** 4b72b25c0a281e8c632b9a118a6564a4789641bc
+**Pre-merge:** e1395fc960fd180f27af8e3cdacc6cab183b2dfb
+**Backup:** 2026-10-06-01
+**Observed:** pull request #174 (t516-merge into main: -516 sundown-alerts at d85b4ae2 with records-after-173 at 57e5618f, the audit index resolved keeping every row) was merged as 4b72b25c at 2026-10-06T02:31:59Z, on green CI at its head ff0c6bc6 (run 37403790321, 9 m 16 s), read from GitHub, on the owner's "open the pr and merge when ready". Main's tree equals t516-merge's. -554 (09e74a42) is on records-after-173 after the PR's head, not yet on main. Plan tasks T2, T12 and T13 are now on main.
+**Notes:** Written by the planner by hand, on branch records-after-173.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-556
+**Timestamp:** 2026-10-06T03:33:00Z
+**Closes:** 2026-09-28-551 (preserved 2026-10-06-03)
+**Outcome:** completed; on main through PR #174 (4b72b25c)
+**Observed:** 57e5618f on records-after-173: the section "The 4:32 PM walk (added for -550)" appended to `docs/audits/2026-10-06-walks-2026-10-05-estimate-replay-and-clock.md`, its index row, and finding -552. No stop. The walk is a loop with a tail: every way-out row matches the way back's last 320 m, 0 to 6 m off, so "actual" there is the same route home; the turnaround row is shown beside the walk round the loop, as a different route, the way -516's report showed its loops. On the same-route rows the estimate, on the default pace and "at least" throughout, ran equal to about 1.6 times the actual, with one row under (the S26's quarter by time, 0.0 against 0.2 min, 8 m from the start, a saved track 2 m long), reported as under.
+**What the planner checked itself:** `git diff e960da49 57e5618f` removes nothing in RECORD.md, the index or the doc (the doc's earlier text unchanged). The doc holds no decimal-degree figure. The S26 and S22 quarter-by-time rows read from `est-432/s26.out` and `s22.out` in the evidence folder as the doc tables them. 16 of the run's 17 source files are blobs of bf34fc87 by `git hash-object` (the 17th is the harness). The same-route ratios recomputed from the doc's tables: 1.15 to 1.63, matching "about 1.15 to 1.6".
+**Correction, -552 not edited:** its Timestamp, 2026-10-06T03:00:00Z, is later than its own commit (57e5618f, 02:21:01Z); the same slip -546 recorded for -545.
+**Not checked by the planner:** the by-distance rows beyond the table's own arithmetic, the loop and last-leg split (the coder's 10 m threshold, used only to describe the walk), the point counts.
+**Notes:** Written by the planner by hand, on branch records-after-173 at 52a7acf7. Next free ID -557.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-557
+**Timestamp:** 2026-10-06T03:38:00Z
+**Continues:** 2026-09-28-549
+**Amendment 1 to -549 (units-follow), after the coder's verify report:** base `origin/main` 4b72b25c, none of the five files changed since e1395fc9; -516 has merged (PR #174), so the dispatch's "-516 unmerged" note is stale and does not affect the work.
+**The owner, verbatim, to three questions the report raised:** (1) "Yes, include it (Recommended)": `accuracyLabel` (`ui/availability/AvailabilityPureFunctions.kt:259`, "±N m accuracy", shown in the bubble at `AvailabilityMapOverlaysUi.kt:316`) follows Units, "±40 ft accuracy" under Imperial (US), metric unchanged; a sixth site. (2) "Convert, no phone check (Recommended)": the rise from the start (`AvailabilityMapControlsUi.kt:582`) is only the Return button's screen-reader description (used at `:235`, `:566`), not on the strip as the dispatch's step path said; that was the planner's wrong premise. It converts, covered by a test; the device check drops the rise from step 1. (3) "Always a point (Recommended)": `Locale.US` in both systems for soil temperature, as `formatRainfall`; metric changes only on comma-language phones, which supersedes "byte-identical" for that one case.
+**Out of scope, as the coder proposed:** "Radius: N km" (`SightingsMap.kt:1916`, a snippet nothing reads, unverified on a device); "each 11 km cell" (`MapLegend.kt:31`, approved legend wording for a fixed grid); soil moisture m³/m³ (a ratio); bearings and the distance formatters' metric branches (already follow the setting).
+**Tests the report listed:** Imperial expectations change at `NavigationHudReadoutTest.kt:400`, `:416` and `AvailabilityScreenLandscapeB2Test.kt:780`; the Metric ones in `AvailabilityScreenMapIconStackTest.kt` (`:366`, `:504`, `:1493`, `:1637`) stay; `ForagingWeatherGuidanceTest.kt:66` gains an Imperial case; new tests for the soil-temperature row and `accuracyLabel`.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -558.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-558
+**Timestamp:** 2026-10-06T03:43:00Z
+**Continues:** 2026-09-28-527
+**Amendment 1 to -527 (fix-provider), after the coder's verify report** (`docs/navigation/2026-10-05-fix-provider-report.md` on fix-provider at f7824f15, base main 4b72b25c). Premises the report corrected: the dispatch's counts were log lines, not fixes (desk: 1,514 GPS, 252 network; walks: 1,735 GPS, 1,615 at 3.79 m); the timestamp rule disagreed with the provider 4 times in 1,969 walk fixes on the S22; the walk folders are named `2026-10-03-walk-t21` and `-walk-zoom`.
+**The owner, verbatim, to three questions:** (1) Camera finds, which ask GPS and network at once, take the first answer with no accuracy limit, and save it as the photo's and the find's location: "Later, on the list (Recommended)". Not changed here; recorded as an uncovered failure under -519 and added to the build list as L7 (camera finds prefer GPS, with a network fallback labelled approximate). (2) The recording screen's sundown countdown: "Keep it working (Recommended)". The origin waypoint and the route home take GPS only; the countdown keeps reading any fix, as -516's rule lets the sunset come from any fix. (3) Places that build a fix (2 in the app, 47 in tests across 26 files): "Must always say (Recommended)". No default provider; test fixtures say GPS; no assertion changes.
+**Stands as the coder proposed:** the provider passed along with each fix in the recording and alert stream, not stored; saved track points keep the timestamp rule; an unknown provider never acts and may be shown; the mismatch log under tag `ForagerFixRule`, only on disagreement. Not checked: the passive provider's last known position.
+**Gradle:** waits for the planner's word that -549's build has finished; one build at a time.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -559.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-559
+**Timestamp:** 2026-10-06T03:47:00Z
+**Continues:** 2026-09-28-532
+**Amendment 2 to -532 (walk-logger; Amendment 1 is -533), after the coder's verify report** (session_01Gn2BRx1HoYB5oec6c4bjSY, branch walk-logger cut locally from main 4b72b25c). The release check is replaced as the coder proposed: `aapt` on a release APK is impossible without the signing identity, and a release unit test does not compile (CI runs `testDebugUnitTest` only), so the check is the merged release manifest (no `ACTIVITY_RECOGNITION`, no `READ_BASIC_PHONE_STATE`) and the compiled release classes (no logger classes).
+**The owner, verbatim, to four questions:** (1) "Hooks in the service (Recommended)": three one-line calls in `TrackRecordingService` (start, stop, destroy); the overlap with -527 is the planner's to sequence. (2) "No, record as-is (Recommended)": no forced full GNSS tracking; a forced-full-GNSS walk can be a separate test later. (3) "Yes, keep it awake (Recommended)": the debug build holds a wake lock while logging, on both phones; the desk run measures its battery cost before any woods walk. (4) "Yes, as proposed (Recommended)": motion sensors at 25 Hz, rotation vectors at 10 Hz, the rest as delivered; stop below 200 MB free.
+**Still open:** item 3 (each phone's sensors and GNSS capabilities, read only) needs both phones plugged in. Gradle waits for the planner's go: -549 builds first, then -527, then this.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -560.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-560
+**Timestamp:** 2026-10-06T03:51:00Z
+**Continues:** 2026-09-28-559
+**Amendment 3 to -532 (walk-logger).** The coder's stop: the logger's own passive-provider listener would add one more registered location listener during a recording, which existing tests count (`TrackRecordingServiceSwipeAwayTest`, about 14 assertions, e.g. `:169`, `:462`; `TrackRecordingServiceSundownTest` `:91`, `:156`, via `shadowLocationManager.requestLocationUpdateListeners`; inferred, not run).
+**The owner, verbatim,** to "Should the walk logger have an on/off switch (test builds only), or log every recording automatically?": "A switch, off by default (Recommended)" (the other option: always on in test builds, with the counting tests changed).
+**What it sets:** a "Walk logger" switch in the debug build's diagnostics panel, off by default, remembered across restarts in the debug diagnostics preferences; the logger runs only when it is on. Existing tests run with it off and are not changed; the logger's tests switch it on. The S26 records normally until it is switched on for a logged walk. Rejected: hooking `AndroidLocationTracker`'s per-fix log (collides with -527, and sees only the tracker's providers).
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -561.

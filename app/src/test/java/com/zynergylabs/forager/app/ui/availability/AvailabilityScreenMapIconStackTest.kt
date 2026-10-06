@@ -192,6 +192,8 @@ class AvailabilityScreenMapIconStackTest {
         currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
         /** Dispatch 2026-09-28-423: the route home a return is fed, as `MainActivity` feeds it. Pending is the state before the first result. */
         returnRoute: ReturnRoute = ReturnRoute.Pending,
+        /** Dispatch 2026-09-28-549: metric unless a test opts into Imperial (US). */
+        unitSystemPreferenceRepository: UnitSystemPreferenceRepository = IconStackStubUnitSystemPreferenceRepository,
     ) {
         val plannedTripRepository = IconStackInMemoryPlannedTripRepository()
         viewModel = AvailabilityViewModel(
@@ -213,7 +215,7 @@ class AvailabilityScreenMapIconStackTest {
             ),
             offlineMapRepository = IconStackStubOfflineMapRepository,
             mapPreferencesRepository = mapPreferencesRepository,
-            unitSystemPreferenceRepository = IconStackStubUnitSystemPreferenceRepository,
+            unitSystemPreferenceRepository = unitSystemPreferenceRepository,
             appThemePreferenceRepository = IconStackStubAppThemePreferenceRepository,
             getTodaysForecast = GetTodaysForecastUseCase(IconStackStubTripPlanningWeatherProvider),
         )
@@ -299,6 +301,7 @@ class AvailabilityScreenMapIconStackTest {
         returning: State<Boolean>? = null,
         onToggleReturning: () -> Unit = {},
         returnRoute: ReturnRoute = hudRoute,
+        unitSystemPreferenceRepository: UnitSystemPreferenceRepository = IconStackStubUnitSystemPreferenceRepository,
     ) = setScreen(
         compassProvider = FakeCompassProvider(compassHeading),
         locationTracker = if (withFix) IconStackFixedLocationTracker(fix) else IconStackNoOpLocationTracker,
@@ -310,6 +313,7 @@ class AvailabilityScreenMapIconStackTest {
         navigationTarget = hudOrigin,
         currentTime = hudClock,
         returnRoute = returnRoute,
+        unitSystemPreferenceRepository = unitSystemPreferenceRepository,
     )
 
     private fun textOfTag(tag: String): String =
@@ -497,6 +501,19 @@ class AvailabilityScreenMapIconStackTest {
      * on the HUD's second row. Pinned against MgrsConverterTest's own Portland point, the same
      * value the strip's own MGRS test uses, so the two readouts are held to one converter.
      */
+    /**
+     * Dispatch 2026-09-28-549: under Imperial (US) the HUD's elevation reads in whole feet, the same
+     * 210 m fix as the metric test below (210 / 0.3048 = 688.98), and the metre figure is gone.
+     */
+    @Test
+    fun `under the imperial setting the HUD's elevation reads in feet`() {
+        setNavigatingScreen(fix = portlandFix, unitSystemPreferenceRepository = IconStackImperialUnitSystemPreferenceRepository)
+        composeRule.waitForIdle()
+
+        assertEquals("689 ft", textOfTag(NAVIGATION_HUD_ELEVATION_TAG))
+        composeRule.onAllNodesWithText("210 m").assertCountEquals(0)
+    }
+
     @Test
     fun `while navigating the HUD's second row shows the elevation and the MGRS grid reference`() {
         setNavigatingScreen(fix = portlandFix)
@@ -1485,6 +1502,23 @@ class AvailabilityScreenMapIconStackTest {
      * separately from the no-fix case above, since a test covering only one would pass while the
      * other collapsed into it.
      */
+    /**
+     * Dispatch 2026-09-28-549: under Imperial (US) the compass strip's elevation reads in whole feet
+     * (210 / 0.3048 = 688.98). The metric "210 m" is the test below.
+     */
+    @Test
+    fun `under the imperial setting the compass strip's elevation reads in feet`() {
+        setScreen(
+            compassProvider = FakeCompassProvider(null),
+            locationTracker = IconStackFixedLocationTracker(portlandFix),
+            unitSystemPreferenceRepository = IconStackImperialUnitSystemPreferenceRepository,
+        )
+        searchAReferenceRegion()
+
+        composeRule.onNodeWithText("689 ft").assertIsDisplayed()
+        composeRule.onAllNodesWithText("210 m").assertCountEquals(0)
+    }
+
     @Test
     fun `with a fix but no sensor the compass strip says the compass is unavailable and still shows elevation and coordinates`() {
         setScreen(compassProvider = FakeCompassProvider(null), locationTracker = IconStackFixedLocationTracker(portlandFix))
@@ -1636,6 +1670,27 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNode(
             hasTestTag("control-pill-return-to-vehicle") and
                 hasContentDescription("Return: 180° S · 1.2 km · -45 m"),
+        ).assertIsDisplayed()
+    }
+
+    /**
+     * Dispatch 2026-09-28-549, Amendment 1 (RECORD -557): the rise in the same sentence follows Units
+     * with the distance, so a TalkBack user does not hear miles and metres in one breath. 1200 m is
+     * 0.75 mi ("0.7 mi", formatDistanceMeters' one decimal), -45 / 0.3048 = -147.64.
+     */
+    @Test
+    fun `under the imperial setting the return sentence gives the rise in feet`() {
+        setScreen(
+            isRecording = true,
+            isReturning = false,
+            returnToStart = ReturnToStartInfo(bearingDegrees = 180.0, distanceMeters = 1200.0, elevationDifferenceMeters = -45.0),
+            unitSystemPreferenceRepository = IconStackImperialUnitSystemPreferenceRepository,
+        )
+        searchAReferenceRegion()
+
+        composeRule.onNode(
+            hasTestTag("control-pill-return-to-vehicle") and
+                hasContentDescription("Return: 180° S · 0.7 mi · -148 ft"),
         ).assertIsDisplayed()
     }
 
@@ -3305,6 +3360,12 @@ private object IconStackStubMapPreferencesRepository : MapPreferencesRepository 
 /** [DistanceUnit.KILOMETERS] fixed — this file's assertions are hardcoded to "km" text and have nothing to do with the km/mi preference. */
 private object IconStackStubUnitSystemPreferenceRepository : UnitSystemPreferenceRepository {
     override suspend fun getUnitSystem(): Result<UnitSystem> = Result.success(UnitSystem.METRIC)
+    override suspend fun setUnitSystem(system: UnitSystem): Result<Unit> = Result.success(Unit)
+}
+
+/** Dispatch 2026-09-28-549: Imperial (US), for the tests that check elevation follows Units. */
+private object IconStackImperialUnitSystemPreferenceRepository : UnitSystemPreferenceRepository {
+    override suspend fun getUnitSystem(): Result<UnitSystem> = Result.success(UnitSystem.IMPERIAL)
     override suspend fun setUnitSystem(system: UnitSystem): Result<Unit> = Result.success(Unit)
 }
 
