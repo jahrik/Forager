@@ -2,6 +2,9 @@ package com.zynergylabs.forager.app.domain
 
 import com.zynergylabs.forager.app.domain.model.TaxonFilter
 import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
+import com.zynergylabs.forager.app.domain.model.UnitSystem
+import com.zynergylabs.forager.app.domain.model.celsiusToFahrenheit
+import kotlin.math.roundToInt
 
 /**
  * What the user currently has selected, together with the broad iNaturalist group it belongs to
@@ -83,8 +86,9 @@ object ForagingWeatherGuidance {
     /** iNaturalist's iconic taxon name for plants. */
     private const val PLANTAE = "Plantae"
 
-    fun forSelection(selection: ForagingSelection): Guidance {
-        val group = groupGuidance(selection.iconicTaxonName)
+    /** [unitSystem] is the Units setting, which the soil temperature band follows (dispatch 2026-09-28-549). */
+    fun forSelection(selection: ForagingSelection, unitSystem: UnitSystem): Guidance {
+        val group = groupGuidance(selection.iconicTaxonName, unitSystem)
         return when (val filter = selection.filter) {
             is TaxonFilter.IconicCategory -> group
             is TaxonFilter.SpecificTaxon -> group.copy(
@@ -93,7 +97,7 @@ object ForagingWeatherGuidance {
         }
     }
 
-    private fun groupGuidance(iconicTaxonName: String?): Guidance = when (iconicTaxonName) {
+    private fun groupGuidance(iconicTaxonName: String?, unitSystem: UnitSystem): Guidance = when (iconicTaxonName) {
         FUNGI -> Guidance(
             heading = "Rain and fungi: the general pattern",
             paragraphs = listOf(
@@ -105,8 +109,7 @@ object ForagingWeatherGuidance {
                 "Soil moisture and soil temperature in the top few centimetres are shown because " +
                     "that is the layer mycelium actually sits in; surface rainfall can overstate " +
                     "or understate how wet it is down there. A soil temperature of roughly " +
-                    "${format(FruitingPatternAssumptions.TEMPERATE_FRUITING_SOIL_TEMPERATURE_C.start)}–" +
-                    "${format(FruitingPatternAssumptions.TEMPERATE_FRUITING_SOIL_TEMPERATURE_C.endInclusive)} °C " +
+                    "${soilTemperatureBand(FruitingPatternAssumptions.TEMPERATE_FRUITING_SOIL_TEMPERATURE_C, unitSystem)} " +
                     "is often quoted as broadly typical for temperate fleshy fungi. It is a wide " +
                     "band quoted as a rough one, and plenty of species sit outside it.",
                 // Worded without the words the guidance-text guard in ForagingWeatherGuidanceTest
@@ -162,6 +165,17 @@ object ForagingWeatherGuidance {
                 "fruiting or growth data, and iNaturalist returns thousands of species this app " +
                 "has no sourced information for."
         }
+    }
+
+    /**
+     * A Celsius band as prose in the user's units (dispatch 2026-09-28-549): "10–20 °C" under metric,
+     * exactly as before, and whole °F under imperial, from the same constant ("50–68 °F"). The band
+     * itself stays °C in [FruitingPatternAssumptions]; only the words convert.
+     */
+    private fun soilTemperatureBand(band: ClosedFloatingPointRange<Double>, unitSystem: UnitSystem): String = when (unitSystem) {
+        UnitSystem.METRIC -> "${format(band.start)}–${format(band.endInclusive)} °C"
+        UnitSystem.IMPERIAL ->
+            "${celsiusToFahrenheit(band.start).roundToInt()}–${celsiusToFahrenheit(band.endInclusive).roundToInt()} °F"
     }
 
     /** Trims a whole-number double to "10" rather than "10.0" for use in prose. */

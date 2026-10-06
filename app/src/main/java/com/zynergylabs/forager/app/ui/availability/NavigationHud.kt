@@ -49,6 +49,8 @@ import com.zynergylabs.forager.app.domain.fixFreshness
 import com.zynergylabs.forager.app.domain.isApproaching
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.LatLng
+import com.zynergylabs.forager.app.domain.model.UnitSystem
+import com.zynergylabs.forager.app.domain.model.formatWholeLength
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
 import com.zynergylabs.forager.app.domain.model.formatDistanceWithAccuracy
@@ -546,7 +548,7 @@ internal fun navigationReadout(
     }
     val compassUnreliable = heading is TrueHeadingReading.Unreliable
     val northArrowDegrees = headingDegrees?.let { -it }
-    val elevationText = liveFix?.let { fix -> fix.altitude?.let { "${it.roundToInt()} m" } ?: "Elevation unavailable" }
+    val elevationText = liveFix?.let { fix -> fix.altitude?.let { formatWholeLength(it, UnitSystem.forDistanceUnit(distanceUnit)) } ?: "Elevation unavailable" }
     val coordinatesText = liveFix?.let { coordinatesStripText(LatLng(it.lat, it.lng), showDecimalDegrees) }
 
     if (liveFix == null) {
