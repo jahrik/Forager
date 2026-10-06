@@ -11,6 +11,7 @@ import android.os.VibrationAttributes
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.text.format.DateFormat
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -20,6 +21,8 @@ import com.zynergylabs.forager.app.domain.Alert
 import com.zynergylabs.forager.app.domain.AlertDelivery
 import com.zynergylabs.forager.app.domain.AlertDeliveryOutcome
 import com.zynergylabs.forager.app.domain.AlertKind
+import com.zynergylabs.forager.app.domain.WalkBack
+import java.util.Date
 
 /**
  * The Android [AlertDelivery]: a notification for the visible record and the shade entry, and an
@@ -95,8 +98,7 @@ class AndroidAlertDelivery internal constructor(
 /** The notification for [alert]'s kind; `false` when it could not be posted. */
 internal fun postNotificationFor(context: Context, alert: Alert): Boolean = when (alert.kind) {
     AlertKind.OFF_TRACK -> postOffTrackNotification(context)
-    AlertKind.TURNAROUND -> postSundownNotification(context, SundownNotification.TURNAROUND)
-    AlertKind.SUNSET -> postSundownNotification(context, SundownNotification.SUNSET)
+    AlertKind.HEADS_UP, AlertKind.LEAVE_BY, AlertKind.SUNSET -> postSundownNotification(context, alert)
 }
 
 internal const val OFF_TRACK_CHANNEL_ID = "off_track_alert_v2"
@@ -204,9 +206,6 @@ internal const val SUNDOWN_NOTIFICATION_ID = 1003
  */
 internal val SUNDOWN_VIBRATION_PATTERN_MILLIS = longArrayOf(0L, 400L, 200L, 400L, 200L, 400L)
 
-/** Which of the two sundown moments is being announced. */
-internal enum class SundownNotification { TURNAROUND, SUNSET }
-
 internal fun createSundownNotificationChannel(context: Context) {
     val manager = context.getSystemService(NotificationManager::class.java)
     val channel = NotificationChannel(
@@ -225,28 +224,74 @@ internal fun createSundownNotificationChannel(context: Context) {
 /**
  * Best-effort, the same stance [postOffTrackNotification] takes: a POST_NOTIFICATIONS denial means
  * no notification, not a crash, and the vibration still runs on its install-time permission.
+ *
+ * One id for all three, so each replaces the one before it in the shade: the newest is the one
+ * that is true.
  */
-internal fun postSundownNotification(context: Context, which: SundownNotification): Boolean {
+internal fun postSundownNotification(context: Context, alert: Alert): Boolean {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
     ) {
         return false
     }
-    val title = when (which) {
-        SundownNotification.TURNAROUND -> R.string.sundown_turnaround_notification_title
-        SundownNotification.SUNSET -> R.string.sundown_sunset_notification_title
-    }
-    val text = when (which) {
-        SundownNotification.TURNAROUND -> R.string.sundown_turnaround_notification_text
-        SundownNotification.SUNSET -> R.string.sundown_sunset_notification_text
-    }
+    val (title, text) = sundownNotificationText(context, alert)
     val notification = NotificationCompat.Builder(context, SUNDOWN_CHANNEL_ID)
-        .setContentTitle(context.getString(title))
-        .setContentText(context.getString(text))
+        .setContentTitle(title)
+        .setContentText(text)
+        .setStyle(NotificationCompat.BigTextStyle().bigText(text))
         .setSmallIcon(R.drawable.ic_track_recording)
         .setPriority(NotificationCompat.PRIORITY_HIGH)
         .setAutoCancel(true)
         .build()
     NotificationManagerCompat.from(context).notify(SUNDOWN_NOTIFICATION_ID, notification)
     return true
+}
+
+/**
+ * The sundown alerts' words (dispatch 2026-09-28-516; the owner's wording in the coder's window,
+ * 2026-10-05). The heads-up and leave-by are titled with the sunset time and never order the
+ * walker back ("instead of 'turn around now' just tell them when sundown is"; people go on night
+ * forays). They share their text; the start-by clock time tells them apart, and a clock time
+ * rather than "in 30 min" keeps a notification read late true. The walk back is said the way the
+ * estimate supports it:
+ *
+ * - measured ([WalkBack.About]): "about", **the way you came** (on the owner's three S22 walks the
+ *   way home was longer than the way out, and the estimate measures only the way out), and the
+ *   start-by time;
+ * - thin ([WalkBack.AtLeast]): "at least", and the start-by time "at the latest";
+ * - withheld ([WalkBack.Unknown]): "unknown", and nothing about getting back.
+ *
+ * The sunset alert is unchanged. An alert with no [Alert.sundown] (none is built that way) says
+ * the walk back is unknown rather than inventing a time.
+ */
+internal fun sundownNotificationText(context: Context, alert: Alert): Pair<String, String> {
+    if (alert.kind == AlertKind.SUNSET) {
+        return context.getString(R.string.sundown_sunset_notification_title) to context.getString(R.string.sundown_sunset_notification_text)
+    }
+    val detail = alert.sundown ?: return context.getString(R.string.sundown_notification_channel_name) to
+        context.getString(R.string.sundown_walk_back_unknown)
+    val clock = DateFormat.getTimeFormat(context)
+    val title = context.getString(R.string.sundown_alert_title, clock.format(Date(detail.sunsetAtEpochMillis)))
+    val startBy = clock.format(Date(detail.leaveByAtEpochMillis))
+    val text = when (val walkBack = detail.walkBack) {
+        is WalkBack.About -> context.getString(R.string.sundown_walk_back_measured, formatWalkDuration(walkBack.millis), startBy)
+        is WalkBack.AtLeast -> context.getString(R.string.sundown_walk_back_at_least, formatWalkDuration(walkBack.millis), startBy)
+        WalkBack.Unknown -> context.getString(R.string.sundown_walk_back_unknown)
+    }
+    return title to text
+}
+
+/**
+ * A walking time as the owner wrote it ("1 h 30", "45 min"), **rounded up** to the minute: every
+ * uncertainty in the walk back rounds toward more time ([com.zynergylabs.forager.app.domain.returnWalkingTime]).
+ */
+internal fun formatWalkDuration(millis: Long): String {
+    val minutes = (millis + 59_999L) / 60_000L
+    val hours = minutes / 60
+    val rest = minutes % 60
+    return when {
+        hours == 0L -> "$minutes min"
+        rest == 0L -> "$hours h"
+        else -> "$hours h %02d".format(rest)
+    }
 }

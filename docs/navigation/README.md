@@ -55,3 +55,4 @@ These files were moved here from `docs/plans/` and `docs/audits/`. Links in the 
 | [2026-10-04-location-fusion-research.md](2026-10-04-location-fusion-research.md) | Forager's own location fusion: steps, compass, satellites and towers (research for the owner, RECORD -509, -511) |
 | [2026-10-05-location-failure-fallbacks.md](2026-10-05-location-failure-fallbacks.md) | Location failures and what fills each gap, for the next plan session (RECORD -519, -520) |
 | [2026-10-05-no-position-bubble-report.md](2026-10-05-no-position-bubble-report.md) | No bubble under the dot: the "Approximate location" / "Last seen …" label removed, the strip and the HUD carry the words (dispatch 2026-09-28-535, RECORD -534) |
+| [2026-10-05-sundown-alerts-report.md](2026-10-05-sundown-alerts-report.md) | The three sundown alerts from the recording service, with the walk back in them (dispatch -516, T2 and T13; RECORD -513 to -515, -519) |

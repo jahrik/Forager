@@ -11886,3 +11886,226 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **What the planner checked itself:** the full suite's 454 XML files in the coder's worktree at 895104b5 (3,691 tests, 0 failures, 0 errors, 24 skipped); no compile-error lines in the full and revert logs. The coder's logs were in `/tmp/535`; the planner copied them to `~/Zynergy/device-evidence/2026-10-05-no-position-bubble/`.
 **Not shown:** the look on a phone, left for the next S22 session after it merges, with the grey dot still unconfirmed.
 **Notes:** Written by the planner by hand, on branch records-after-172.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-537
+**Timestamp:** 2026-10-05T16:30:00Z
+**Continues:** 2026-09-28-536
+**Observed:** pull request #173 (t535-merge into main: -535 and records -525 to -536) was merged as 1d3d2bbb35411888fc65c702742c7a922d0a87f6 at 2026-10-05T16:27:39Z, on green CI at its head 59c1e1648b6080d1099679022dd641ae455a868e (run 37339889002, 7 m 29 s), read from GitHub, on the owner's "Merge now (Recommended)", with backup 2026-10-05-02 of main at a9dfdd59. Main's tree equals t535-merge's.
+**Next:** the -516 coder brings main (1d3d2bbb) into sundown-alerts before its S22 step at sunset, so the S22 runs a build with no bubble too.
+**Notes:** Written by the planner by hand, on branch records-after-173 cut from main at 1d3d2bbb.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-538
+**Timestamp:** 2026-10-05T16:50:00Z
+**Continues:** 2026-09-28-526
+**The owner, verbatim,** to the planner's summary of the EKF plan and its open questions: "May as well wait for a fuller picture before answering anything".
+**Open for the owner, to be put with what the walk logs show, after -532's walks:**
+1. Which side of the live 50 m gate the filter sits. `domain/LiveFixGate.kt:47-48` says a future filter goes behind it, never in front ("a filter fed rejected fixes would smooth a bad position into a confident one"); -526 kept GPS readings worse than 50 m for the filter to weigh. Weighing them lightly would reconcile the two, but it reverses a ruling written into the code.
+2. What the filtered position replaces: the dot and HUD only, or also arrival, the off-track alert, the track and the way back.
+3. Where it runs: in the recording service (survives a swipe-away), and what serves the map when nothing is recording.
+4. The dead-reckoning cap (provisionally about 5 minutes or 300 m, not derived) and the jump gate, from the logs.
+**Notes:** Written by the planner by hand, on branch records-after-173.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-539
+**Timestamp:** 2026-10-05T18:35:00Z
+**Continues:** 2026-09-28-533
+**Observed by the planner over adb, read only:** the S26 is an SM-S948U (build CP2A.260605.016), Forager 1.0.2695+gc3ba0f46 sideloaded (installer com.google.android.packageinstaller, first installed 2026-10-03, updated 2026-10-04), signed with the committed `app/debug.keystore` (certificate SHA-256 CB:2F:6D:A5…, compared with keytool). So laptop debug builds install over it as updates with its data kept; -533's "S26 has no Play version" holds. Commit c3ba0f46 is on no branch of the remote.
+**The owner, verbatim:** "My S26 is connected and ready to load up". The walk logger is not built yet; asked what to load, the owner chose "-516's build (Recommended)": the sundown alerts on main 1d3d2bbb, installed by the -516 coder on a Gradle go, so the S26 can run the sunset check beside the S22 or the out-and-back walk.
+**Notes:** Written by the planner by hand, on branch records-after-173.
+
+---
+
+**Kind:** observation
+**ID:** 2026-09-28-540
+**Timestamp:** 2026-10-05T20:25:00Z
+**Continues:** 2026-09-28-539
+**Context:** The previous planner session stopped mid-turn (its computer unreachable) at 20:01 UTC, after the owner sent the walk screenshots from both phones; this entry is its successor's, from that session's transcript and a read-only adb pass. Screenshots pulled to /tmp on the laptop, kept out of the repository (street addresses).
+**Observed, read only:** both phones' clocks are set about 4 h 09 min ahead with automatic time off (2026-10-05 20:15:22 UTC on the laptop; the S22 read 2026-10-06 00:24:44 UTC, the S26 00:25:03 UTC; auto_time=0 on both). Both run 1.0.2763+gbf34fc87 (-516 on main 1d3d2bbb) and both are still recording (TrackRecordingService foreground).
+**What the walk screenshots show (phone clock 4:57 to 5:13 PM):** on both phones the strip read "Approximate location, finding GPS…" and the dot stayed at one spot in its circle while the recorded track moved along the road; navigating, the HUD read "≈ 0.3 mi · Approximate, finding GPS…", and on the S22 later "No fix for 249 min" with coordinates. 249 min is the clock offset. At 5:13 PM both phones posted "Sunset at 6:42 PM / The walk back is unknown." The bubble under the dot is absent, as -535 intends.
+**Inferred, not confirmed in code:** GPS fixes carry the satellite time and the app ages them against the phone's wall clock, so with the clock 4 h ahead every GPS fix reads 249 min old: lost. That alone explains the approximate dot, "No fix for 249 min" and "The walk back is unknown" (no GPS fix that is not lost), while the recorder kept storing the GPS points. Network readings evidently aged as fresh. The fix-time read site was not traced in this pass.
+**So:** this walk does not test -510 or -516's walk-back figure; it tests the app with a wrong phone clock. The heads-up itself fired on time by the phone's clock. Open for the owner: whether the clocks were set ahead on purpose for the sunset check; and whether a wrong phone clock is a failure the app should survive (RECORD -519, every failure has a fallback), for example by ageing fixes on the phone's since-boot clock.
+**Notes:** Written by the planner by hand, on branch records-after-173. Nothing on either phone was changed.
+
+---
+
+**Kind:** finding
+**ID:** 2026-09-28-540
+**Timestamp:** 2026-10-05T20:15:00Z
+**Continues:** 2026-09-28-539
+**Observed:** the owner walked with both phones on 1.0.2763+gbf34fc87 (-516 with main 1d3d2bbb; installed by the -516 coder) and sent screenshots (kept out of the repository; they show street addresses). On both phones, with GPS plainly working (the track recorded point by point along the road), the strip read "Approximate location, finding GPS…" and the HUD "Approximate, finding GPS…" with a network-sized circle; on the S22, once away from Wi-Fi, the HUD read "No fix for 249 min" while its coordinates and the blue dot kept moving.
+**Read by the planner over adb, read only:** both phones' clocks are about 4 h 09 min ahead of real time (S22 and S26 at 2026-10-06T00:10Z when the laptop and GitHub's Date header both read 2026-10-05T20:00Z), and both have automatic time off (`settings get global auto_time` = 0). Neither the -516 report nor its commits mention setting a clock.
+**The planner's diagnosis, inferred, not yet confirmed by logs:** a GPS fix carries satellite time; the app judges freshness against the phone's wall clock (`LocationFix.Update.ageMillis`, `domain/LocationTracker.kt`; ten callers). With the wall clock 249 min ahead, every GPS fix reads as 249 min old, so lost (5 min and over): the display falls back to the newest network reading, stamped by the phone's own clock and so fresh, which -510 shows as approximate; with no network reading (the S22 off Wi-Fi), "No fix for 249 min". The track is unaffected (the sampler does not judge age). The same clock drives the sundown countdown and alerts, so on these phones they would fire against the wrong time.
+**Why it matters beyond the test:** a phone whose clock is wrong (set by hand, or a phone without a SIM that never syncs) loses every precise position the app shows, with GPS working. The platform offers a clock that cannot be set by hand (`Location.getElapsedRealtimeNanos` against `SystemClock.elapsedRealtime`), which the app already uses elsewhere (`ui/log/CameraAbsence.kt:47`). This is the "phone's clock" row -519's fallback table did not yet have.
+**Open for the owner:** who set the clocks and why; whether to set them back (not done by the planner); and a fix, to be dispatched after a log confirms the diagnosis.
+**Notes:** Written by the planner by hand, on branch records-after-173.
+
+**Confirmed (2026-10-05T20:31Z, read only):** each phone's newest `ForagerFix` GPS line, logged moments before, carries `time=` 249 min (S22) and 250 min (S26) behind that phone's own clock (`adb shell date +%s%3N`). The diagnosis in -540 holds: GPS is fine; the phones' clocks are wrong, and the app measures a fix's age against them.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-541
+**Timestamp:** 2026-10-05T20:40:00Z
+**Continues:** 2026-09-28-540
+**The owner, verbatim,** to -540's three questions: "1 yes" (the clocks were set ahead on purpose for the sunset check); "2 it's set back" (the S26's clock); "3 it should. An hour outside of network range means an hour of uncalibrated clock time. Is there any drawbacks to that?"
+**So:** the app should survive a wrong phone clock. Asked for the drawbacks of ageing fixes on the phone's since-boot clock; answered in the planner's window. No dispatch yet.
+**Notes:** Written by the planner by hand, on branch records-after-173.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-542
+**Timestamp:** 2026-10-05T20:50:00Z
+**Continues:** 2026-09-28-541
+**The planner's answer to the drawbacks question,** in brief: ageing a live fix on the phone's since-boot clock (Location's elapsed-realtime stamp) makes freshness immune to any wall-clock change. Its limits: it works only within one power-on, so stored things (the platform's last known position, track points) keep the wall clock; the sundown alerts still follow the phone's clock (correcting them from GPS time is a separate, larger decision with no data asking for it); a fix without the stamp falls back to wall-clock age, logged; the tests gain a second time per fix; a saved track's start (phone clock) and points (satellite time) still disagree when the clock is wrong. The premise "an hour outside network range is an hour of uncalibrated clock" was corrected: drift is about a second a day, and the 249 min of -540 was a manual change.
+**The owner, verbatim:** "I'd like to go on a few more walks before deciding that."
+**So:** no dispatch. The since-boot clock question waits for more walks, with the EKF's four questions (-538).
+**Notes:** Written by the planner by hand, on branch records-after-173.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-542
+**Timestamp:** 2026-10-05T20:50:00Z
+**Continues:** 2026-09-28-541
+**The planner's answer to the drawbacks question, in brief:** ageing live fixes on the since-boot clock (Location.elapsedRealtimeNanos) survives any wall-clock setting; it cannot age anything from before a reboot (the platform's last known position, stored points keep the wall clock); it does not correct the sundown alerts, which still follow the phone's clock (comparing against GPS time would be a separate, larger decision, not recommended without data); fixes lacking the since-boot time fall back to wall-clock age, logged; tests gain the second time; a saved track's start (phone clock) and points (satellite time) still disagree when the clock is wrong. Proposed as a small dispatch after -516 merges.
+**The owner, verbatim:** "I'd like to go on a few more walks before deciding that."
+**So:** deferred until after more walks, beside -538's EKF questions. Nothing dispatched.
+**Notes:** Written by the planner by hand, on branch records-after-173.
+
+---
+
+**Kind:** correction
+**ID:** 2026-09-28-543
+**Timestamp:** 2026-10-05T20:35:00Z
+**Corrects:** 2026-09-28-540, 2026-09-28-542
+**What happened:** two planner sessions wrote to records-after-173 at once. `session_01HQ3WaFp8HUfiN2ixfEVCi5`, made planner by the owner as successor to `session_01Xv2hQteLSg8o3qTPX7Hqnd` (offline mid-turn at 20:01 UTC), wrote -540 (observation, f087f153), -541 (faace456) and -542 (0a62d8c1). The earlier session had reconnected and wrote its own -540 (finding, 91bd0936 and cd78f44c) and -542 (860d5ade). So -540 and -542 each name two entries. Both are kept; neither is rewritten.
+**Which to cite:** for -540, the **finding**, which confirms the clock diagnosis from both phones' `ForagerFix` logs; the observation reached the same diagnosis from screenshots only, as an inference. For -542, either: the same owner words and the same outcome, deferred until more walks.
+**Next free ID:** -544. Handoff: `docs/audits/2026-10-05-planner-handoff.md`.
+**Notes:** Written by the planner by hand, on branch records-after-173.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-544
+**Timestamp:** 2026-10-06T01:20:00Z
+**Title:** walk-evidence: file what the 2026-10-05 walks show, the 4:49 walk's estimate replay and the noon walk read on its own clock
+**Dispatch-file:** preserved/2026-10-06-01.md
+**Context:** The owner, in the laptop coder's window (`session_012X8w7DNXZcsSgjKy4BZkk8`), after its replay of the build's walk-back estimate over the 4:49 PM out-and-back: "Write it up" (01:05 UTC); to its three questions (01:10 UTC): "Yes, two walks" (the 5:13 PM screenshots are the noon walk on the clock set ahead, -540), "records-after-173 (Recommended)", "No, only this one" (no other planner window on this branch). In the planner's window: "Answered the questions. Write a dispatch for the rest". The coder's chat reading of a "track on both phones whose start time is wrong" (00:43 UTC), passed to the owner by the planner as a possible recording bug, is to be checked against the noon walk's clock and withdrawn in the doc if it does not hold.
+**Evidence saved:** the coder's session-scoped scratch folder copied by the planner to `~/Zynergy/device-evidence/2026-10-05-sundown-walks/` at 2026-10-06T01:15Z, 67 files, every file identical by sha256; outside every repository (track databases with positions, logcat and notification dumps, the replay's source and outputs).
+**Not yet sent:** for the owner to send to that coder window. Records only: no Gradle, nothing on either phone. The coder's own entry is -545.
+**Record checkers:** the `check_record.py` and `check_prompts.py` this file's header says to run are not in the tree (removed with the kit at e1363308, 2026-09-26). The copies in `~/Zynergy/Claude-kit` check their own folder whatever path is passed, so a run of them from here passes on the kit and says nothing about this repository; the planner's first run did exactly that. Run from temporary copies placed in this tree, both fail on errors that predate this entry: 1,646 entry-error lines and 307 binding violations at efd8e2ff. This entry and its dispatch file add 8 and 1, the same kinds as their neighbours (intent fields this record stopped writing; no `Preserved:` header). Not fixed here; for the owner.
+**Notes:** Written by the planner by hand, on branch records-after-173 at efd8e2ff.
+
+---
+
+**Kind:** finding
+**ID:** 2026-09-28-545
+**Timestamp:** 2026-10-06T02:30:00Z
+**Continues:** 2026-09-28-540
+**Dispatch:** 2026-09-28-544 (`prompts/preserved/2026-10-06-01.md`, aa0ed917)
+**Doc:** `docs/audits/2026-10-06-walks-2026-10-05-estimate-replay-and-clock.md` (51ea85fe)
+**The 4:49 PM walk (correct clocks):** a clean out-and-back on both phones (the way back a median 3 m off the way out), 24.5 min, turnaround at 17:04:22 and 17:04:23, 622 m and 618 m out, 10.1 min back. The build's walk-back estimate, copied unchanged from bf34fc87 and compiled off Gradle with Kotlin 2.3.10, replayed on SundownWatch's cadence: it reproduces the 5:03 heads-up ("at least 10 min" on both phones) and was never under the actual walk back on the way out, by time or by distance; at the turnaround 10.8 min (S22) and 11.0 min (S26) against 10.0. The label stays "at least" until 15 min of moving (`PACE_FRESHLY_MEASURED`, `domain/ReturnWalkingTime.kt:73`; the 5-minute default-pace bar at `domain/MovingPace.kt:287`). The heads-up sounded or buzzed on silenced phones on both phones (the owner: "2 yes"). Leave-by and sunset alerts not yet seen on a correct clock. **-516's release gate stays open:** this is evidence toward it, not a pass (24.5 min against 30 or more).
+**The noon walk, read on its own clock:** the track's start, end and markers carry the phone clock, its GPS points satellite time; offsets from the rows 4 h 09 m 21.131 s (S22) and 4 h 09 m 40.654 s (S26); both ends at about 20:20:50Z, about 4 min (4 m 07 s and 4 m 10 s) before the handoff's "still recording at 20:25 UTC". Both clocks were correct by 4:32 PM. No logcat or notification dump reaches back to real 1:04 PM, so the absence of a noon post in them means nothing.
+**Withdrawn:** the coder's 00:43 UTC chat claim of "a track on both phones whose start time is wrong", passed to the owner as a possible recording bug. That track is the noon walk recorded on the clock set ahead; its two supports (a "5:09:19" point and a "4:45:12" log line) were each a coincidence of phone clock and real time.
+**Disproved and open:** the dispatch's prediction that every network-class point of the noon track reads the phone clock. 6 of the 7 carry real time; only the S26's last stored point (17:09:19.156 phone clock, 12:59:38.5 real) carries the phone clock. In tension with -540's inferred clause that the display fell back to a network reading "stamped by the phone's own clock and so fresh"; not resolved, -540 not edited. It cannot be settled from the saved evidence (no log reaches back to noon; stored rows carry no provider). -527 (fix-provider) and -532 (walk-logger) will record each fix's source and time.
+**Also read, not fixed:** "Arrived" beside "≈ 50 ft" is consistent (15 m arrival radius inside a 50 ft rounding step); the HUD's elevation is always metres (`ui/availability/NavigationHud.kt:549`), the already-open units decision of the 2026-09-07 pre-build report.
+**Notes:** Written by the coder (`session_012X8w7DNXZcsSgjKy4BZkk8`) at the owner's word, on branch records-after-173. The planner writes -544's terminal entry.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-546
+**Timestamp:** 2026-10-06T02:05:00Z
+**Closes:** 2026-09-28-544 (preserved 2026-10-06-01)
+**Outcome:** completed, not merged (records-after-173)
+**Observed:** on records-after-173: 51ea85fe (the doc, `docs/audits/2026-10-06-walks-2026-10-05-estimate-replay-and-clock.md`) and c23583d3 (its index row, finding -545, and a correction to one figure in the doc). One stop on the way, the planner's: verify item 2c predicted that every network-class point of the noon track reads the phone clock, and 6 of 7 carry real time, on both phones. The coder stopped and reported with nothing written. The owner then sent into the coder's window the go the planner had drafted: "Go on as you proposed: write the doc as dispatched, with item 2c reported as disproved and left open, not as part of the reading."
+**What the planner checked itself:** `git diff aa0ed917 c23583d3` removes nothing: RECORD.md gains 15 lines at its end, the index 1 row at its end. The 303-line doc holds no decimal-degree figure (the one numeric hit is the build version) and no address. 2c's counts and times re-read, read-only, from the saved databases: S22 245 = 243 GPS-class + 2 network-class, S26 229 = 224 + 5; the seven network-class times match the doc's table. The replay's 16 copied app files are each a blob of bf34fc87 by `git hash-object` (the 17th is the harness). Citations read at bf34fc87: `MovingPace.kt:275`, `:287`, `:296`; `ReturnWalkingTime.kt:71`, `:73`, `:106`; `NavigationReadout.kt:51`, `:61-62`, `:65`; `NetworkProviderFix.kt:48`; `NavigationHud.kt:549`; `AvailabilityMapControlsUi.kt:530`; `DistanceUnit.kt:139`. Both commits' co-author lines name no model.
+**Corrections, the doc and -545 not edited:** (1) the doc's "What the replay shows" says that after the switch to the measured pace the estimate "ran long by 8 to 16% at the half and three-quarter marks, by time and by distance". The S22's three-quarter mark by time is 6.8 against 6.4 min (`est/s22.out` in the evidence folder), 5 to 8% long allowing for the 0.1-min rounding, so the range is about 6 to 16%. It errs toward overstating the closest margin; -545 and the index row do not carry the figure. (2) -545's Timestamp, 2026-10-06T02:30:00Z, is later than its own commit (c23583d3, 01:44:39Z) and later than this entry.
+**Not checked by the planner:** items 2e, 2f and 3 (the log reach), the by-distance rows, and which phone said 5:32 and which 5:33; taken from the doc.
+**Open, carried:** what the six real-time network-class points are (-527, -532); -516's release gate and the leave-by and sunset alerts on a correct clock (the owner's walks, automatic time on); the elevation-units decision (2026-09-07 pre-build report); the record checkers absent from this tree (-544). **Next free ID:** -547.
+**Notes:** Written by the planner by hand, on branch records-after-173 at c23583d3.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-547
+**Timestamp:** 2026-10-06T02:13:00Z
+**Continues:** 2026-09-28-545
+**Decides:** elevation and soil temperature follow the Units setting
+**The owner, verbatim,** on -545's reading that the HUD shows "114 m" beside feet: "some metrics don't translate to imperial very well. Should we change it?" Then, to the planner's question "With Units set to Imperial (US), should elevation and soil temperature follow it too?", with the step path shown (Units: Imperial (US) > navigate > the HUD reads "374 ft" (now "114 m"); Maps > the compass strip "374 ft", rise "+33 ft"; Availability > "Soil temperature: 52.3°F"; Units: Metric > everything as today; nothing the app decides changes, only the printed figure): "Yes, both (Recommended)" (the other options: elevation only; leave as is).
+**What it sets:** completes the 2026-09-09 ruling that built `UnitSystem` and converted rainfall only (`domain/model/UnitSystem.kt`'s doc). The two quantities it left metric follow the setting: elevation (three sites) and soil temperature (one site, plus the guidance text's range). Values stay metric inside; only the label converts. Dispatched as -549.
+**Notes:** Written by the planner by hand, on branch records-after-173.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-548
+**Timestamp:** 2026-10-06T02:13:00Z
+**Continues:** 2026-09-28-544
+**Decides:** the record checkers are retired
+**The owner, verbatim,** on -544's note that the checkers are not in the tree: "depends if they're useful or not". Then, to "The two record-checking scripts: are they worth keeping?", with the planner's reading that as they stand they report about 1,650 errors on a sound record and that the copies on the laptop check their own folder and say PASS: "Retire them (Recommended)" (the other options: retire and add a check for an ID used twice; bring them back and rework the record to match).
+**What it sets:** the instruction in this file's header to run `check_record.py` and `check_prompts.py` before committing no longer applies. The header is not edited (this file is append-only); this entry supersedes that one instruction and nothing else in the header. No replacement script. What -544 to -546 did by hand in their place: fetch, confirm the next ID is free, and show that `git diff` against the remote branch adds lines only, at the end of RECORD.md and of the index.
+**Notes:** Written by the planner by hand, on branch records-after-173.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-549
+**Timestamp:** 2026-10-06T02:13:00Z
+**Title:** units-follow: elevation in feet and soil temperature in °F when Units is Imperial (US); Metric unchanged
+**Dispatch-file:** preserved/2026-10-06-02.md
+**Not yet sent:** for the owner to send; it can run now (nothing is building; none of its five files differs on sundown-alerts), Gradle on the owner's "go".
+**Notes:** Written by the planner by hand, on branch records-after-173 at b6dcbcb4.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-550
+**Timestamp:** 2026-10-06T02:15:00Z
+**Continues:** 2026-09-28-546
+**Decides:** -516's release gate is closed by the two walks of about 4:30 PM on 2026-10-05
+**The owner, verbatim:** "There were two walks around 4:30pm. Use them both." Then, to the planner's question, which set out that neither walk meets the gate alone (the 4:32 walk 15.5 min and a loop, the way back a median 45 m off the way out; the 4:49 walk a 24.5-min out-and-back) and that the estimate is worked out afresh per recording, so it never had more than 15 minutes of walking to work from: "Both close the check" (the other options: both as evidence with the gate left open; both, and walk again).
+**What it sets:** supersedes the gate in the -516 report ("one out-and-back walk of 30 minutes or more ... This branch must not ship in a release until that comparison is filed"). The gate is now these two walks, with both comparisons filed: the 4:49 walk's in -545, and the 4:32 walk's by -551. Still open before -516 merges: the leave-by and sunset alerts seen on a correct clock (the planner's question described the merge as following once those are seen). The planner's caution, given before the ruling: the estimate has not been compared on a walk with more than 15 minutes of moving, the case the 30-minute gate was set to test.
+**Notes:** Written by the planner by hand, on branch records-after-173.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-551
+**Timestamp:** 2026-10-06T02:15:00Z
+**Title:** walk-evidence-2: file the 4:32 PM walk's estimate replay beside the 4:49 walk's
+**Dispatch-file:** preserved/2026-10-06-03.md
+**Not yet sent:** for the owner to send; records only, no Gradle, can run alongside -549's verify step (-549 builds only on the owner's "go").
+**Notes:** Written by the planner by hand, on branch records-after-173 at 2c11d3e7.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-553
+**Timestamp:** 2026-10-06T02:18:00Z
+**Continues:** 2026-09-28-550
+**Decides:** -516 merges without first seeing the leave-by and sunset alerts on a correct clock
+**The owner, verbatim:** "More walks will be held so we will have more data coming in. We got what we are after so let's move on." Then: "Drop the condition. We collected the data we needed by having automatic clocks turned off while navigating, and compared it against having it turned on. If something comes along to change our decisions, it won't be an overhaul of the system."
+**What it sets:** removes the open item -550 kept before -516 merges. -516's merge now waits only on the owner's word. Later walks are evidence, not a gate. -551 stays written and unsent, the owner's to send or leave; -552 stays reserved for its coder's entry, so this entry is -553.
+**Notes:** Written by the planner by hand, on branch records-after-173 at ef1eefe9.
+
+---
+
+**Kind:** finding
+**ID:** 2026-09-28-552
+**Timestamp:** 2026-10-06T03:00:00Z
+**Continues:** 2026-09-28-550
+**Dispatch:** 2026-09-28-551 (`prompts/preserved/2026-10-06-03.md`, ef1eefe9)
+**Doc:** `docs/audits/2026-10-06-walks-2026-10-05-estimate-replay-and-clock.md`, section "The 4:32 PM walk (added for -550)", appended; the doc's earlier text unchanged.
+**The 4:32 PM walk (correct clocks):** a loop with a tail, both phones: way out 330 m and 323 m in 5.3 min to a turnaround 245 m and 244 m out at 16:38:06; way back 788 m and 779 m in 10.1 and 10.3 min, round a loop of 468 m and 460 m, then the last 320 m within 10 m of the way out. The build's estimate (16 files identical to bf34fc87 by `git hash-object`, the same harness, Kotlin 2.3.10 off Gradle) replayed on SundownWatch's cadence. Every way-out row matches the way back's last leg, 0 to 6 m off, so "actual" there is the walk home by the same route. On those rows the estimate, on the default pace and "at least" throughout (`NO_MEASURED_PACE`; the way out never reached 5 min of moving), ran from equal (S22, quarter by time) to about 1.6 times long, with one row under: the S26's quarter by time, 0.0 against 0.2 min, 8 m from the start, with a saved track 2 m long. At the turnaround the walk back went round the loop, a different route, and is shown beside the estimate as no evidence either way (-516's report). The label never reached "about" (13.5 min of moving by the end).
+**The gate:** closed by the owner's ruling on this walk and the 4:49 walk (-550); the leave-by and sunset alerts have still not been seen on a correct clock, which -553 dropped as a merge condition. This entry closes nothing.
+**Notes:** Written by the coder (`session_012X8w7DNXZcsSgjKy4BZkk8`) on branch records-after-173 at e960da49. The planner writes -551's terminal entry.
