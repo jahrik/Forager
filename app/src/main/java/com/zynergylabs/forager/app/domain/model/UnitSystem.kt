@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.domain.model
 
 import java.util.Locale
+import kotlin.math.roundToInt
 
 /**
  * Which system of units this person reads — the one place that question is answered (return-
@@ -61,3 +62,16 @@ fun formatRainfall(mm: Double, unitSystem: UnitSystem, metricDecimals: Int = 1):
         }
     }
 }
+
+/**
+ * A whole-number length a person reads (an elevation, a position's accuracy) in the user's units —
+ * dispatch 2026-09-28-549. PLUMBING ONLY in this commit: prints today's metric text in both systems.
+ */
+fun formatWholeLength(meters: Double, unitSystem: UnitSystem): String = "${meters.roundToInt()} m"
+
+/** A signed elevation change ("+33 m", "-12 m") in the user's units. PLUMBING ONLY, as above. */
+fun formatElevationChange(meters: Double, unitSystem: UnitSystem): String =
+    "${if (meters >= 0) "+" else ""}${meters.roundToInt()} m"
+
+/** A soil temperature in the user's units. PLUMBING ONLY, as above. */
+fun formatSoilTemperature(celsius: Double, unitSystem: UnitSystem): String = "${"%.1f".format(celsius)}°C"
