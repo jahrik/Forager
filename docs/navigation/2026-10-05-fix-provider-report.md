@@ -1,6 +1,6 @@
 # Every fix carries its true source (dispatch 2026-09-28-527): report
 
-**Status: verification done; the owner answered in RECORD -558. Stage A (`dbaa8efe`): the provider field and the failing tests, not yet run. No Gradle has run.** The dispatch is
+**Status: built on `fix-provider`, not merged. The owner answered the three stops in RECORD -558 (Amendment 1). Tests, revert checks and the full suite are below. The S22 step has not run: it needs the owner's word.** The dispatch is
 `prompts/preserved/2026-10-05-01.md`. It was written against `a9dfdd59`. -516 has merged since
 (PR #174), so this was read at `4b72b25c`, where `fix-provider` is cut. App paths are relative to
 `app/src/main/java/com/zynergylabs/forager/app/`. Line numbers are as of `4b72b25c`.
@@ -190,25 +190,231 @@ The limits: one phone, one desk session, three walks.
 
    **Recommend (a).** It is a mechanical edit to fixtures only, and no assertion changes.
 
-## Disclosure (so far)
+## The owner's answers (RECORD -558, relayed by the planner)
+
+The answers are quoted from the record on `records-after-173` (`ababdeef`). That record was read
+before acting on them.
+
+1. **Camera finds:** "Later, on the list (Recommended)". This dispatch does not change them. They are
+   recorded as L7 on the build list and as an uncovered failure under -519.
+2. **The recording's countdown:** "Keep it working (Recommended)". The origin waypoint and the route
+   home take GPS only. The countdown keeps reading any fix.
+3. **Places that build a fix:** "Must always say (Recommended)". There is no default provider, and
+   test fixtures say GPS.
+
+Two things the planner accepted while the work was under way:
+
+- **The end waypoint takes GPS only** (under the disclosures below).
+- **Replays of saved walks keep the timestamp rule.**
+
+## What was built
+
+| Commit | What |
+|---|---|
+| `f7824f15`, `80c3f2e0` | This report: verification, then the end waypoint the verification missed |
+| `dbaa8efe`, `26559f02` | Stage A: the provider field and the failing tests, with no behaviour change |
+| `68261b76` | Stage B: the behaviour |
+
+**Every fix carries its provider.** `domain/FixProvider.kt` is new: GPS, network or unknown, and
+`mayAct` is true for GPS only.
+
+- `LocationFix.Update.provider` has no default.
+- Both `Location` mappers fill it through `AndroidLocationTracker.fixProviderOf`: the live tracker,
+  and the last known source. The platform's GPS and network constants map to themselves. Anything
+  else, `null` included, maps to unknown.
+- It is never stored. `toTrackPoint()` is unchanged, and so is the schema.
+
+**The live gate** (`domain/LiveFixGate.kt`, `acceptLiveFix`) refuses any fix whose provider is not
+GPS, before the accuracy test. The collector already held a refused fix as -510's approximate
+reading. So a 15 m network fix now shows as the approximate dot, with the strip's or the HUD's
+"Approximate…" words. It never becomes `liveFix`, so these never read it:
+
+- "Arrived";
+- the waypoint's line;
+- a new find's location.
+
+The doc comment is corrected with the recounted figures and their limits.
+
+**`TrackRecordingViewModel`** now has `lastGatedGpsFix` beside `lastGatedFix`. It is the same
+mode-ceiling rule, for GPS fixes only, and these read it:
+
+- the origin waypoint;
+- the end waypoint;
+- the route home.
+
+`lastGatedFix`, of any provider, is read only by the sundown countdown (RECORD -558).
+
+**The service's stream.** The service passes `fix.provider` beside each point to `ReturnWatch.onFix`
+and `SundownWatch.onFix`.
+
+- `SundownWatch` sets its GPS fix (the walk back, and "arrived home") by provider.
+- `OffTrackJudge.next(reading, provider)` judges a live reading by its provider. With no provider
+  (a stored point in a replay) it judges by the timestamp rule, as before. The path is stored points,
+  and keeps the timestamp rule.
+- `isNetworkProviderTimestamp` is the timestamp rule itself, on a bare timestamp.
+  `TrackPoint.isNetworkProviderFix()` now calls it, so there is still one rule.
+
+**The disagreement log.** Tag `ForagerFixRule`, at debug level, in
+`AndroidLocationTracker.onLocationChanged`. It logs only when a GPS fix has milliseconds or a network
+fix lands on the whole second, for example `provider=gps timestampRule=network time=…`. During a
+recording it logs once per collector, as `ForagerFix` does.
+
+**Doc comments** were brought up to date in four places:
+
+- `SundownWatch`: the walk back reads the provider, and its failure direction.
+- `OffTrackJudge`: which rule judges which reading.
+- `AvailabilityUiState.approximateFix`: what the gate refuses.
+- `MushroomLogViewModel.freshDeviceLocation`: the find path reads GPS only, and the camera path
+  does not come through it.
+
+**Not touched:**
+
+- satellite status;
+- the 50 m value;
+- -510's display rules;
+- -516's alert rules, beyond how GPS is told from network;
+- `MovingPace` and `ReturnWalkingTime`;
+- the schema;
+- the sampler;
+- poor GPS readings in Battery-saver tracks and in the off-track judge;
+- the camera's one-shot path (L7).
+
+## Tests
+
+There are 31 new tests, all through real entry points. 47 existing fixtures gained a provider, and
+39 existing watch calls gained one. Every line removed from an existing test returns with only a
+provider added, so no assertion changed. That was checked mechanically.
+
+| Where | Tests |
+|---|---|
+| `AndroidLocationTrackerTest` | A 15 m GPS fix arrives as GPS, field for field. A 15 m network fix arrives as network, field for field. Fused, passive, an unheard-of name and a missing one are all unknown. The rule log fires for a GPS fix stamped with ms, and for a network fix on the whole second. It stays silent for a GPS fix on the whole second and for a network fix with ms; each of those has a control showing the fix was logged at all. |
+| `AndroidLastKnownLocationSourceTest` | A fused fix held by the passive provider is carried as unknown. This is the one real path another name can arrive by. |
+| `AvailabilityViewModelLiveFixTest` | A 15 m network fix, and a 15 m unknown one, never become the gated fix and are held as approximate. A 15 m GPS fix becomes the gated fix. A network fix after a GPS fix leaves the GPS fix held. |
+| `AvailabilityScreenApproximatePositionTest` | At the waypoint, a 15 m network fix and a 15 m unknown one: no "Arrived", no ring, no line, the approximate dot, the HUD's approximate message and no needle. A 15 m GPS fix: "Arrived", the ring and the precise dot. |
+| `MushroomLogViewModelWiringTest` | Through `createMushroomLogViewModel`, as `MainActivity` builds it: a find gets no location from a network or unknown fix, and gets the GPS fix's location. |
+| `TrackRecordingViewModelTest` | No origin from a network or unknown fix, and a GPS fix after it does seed one. The end waypoint is the last GPS fix, not a later network fix. The route home is not searched from a network or unknown fix, and is from a GPS fix. |
+| `TrackRecordingSundownTest` | A 15 m network fix still gives the countdown its place. This guards answer 2: it passes before and after, and r3 shows it can fail. |
+| `SundownWatchTest` | A GPS fix stamped with ms gives the walk back. A network fix on the whole second, or an unknown fix, gives none. |
+| `ApproximateReadingNeverDecidesTest` | While returning, network readings on the whole second, or unknown readings, never go off-track or alert. GPS readings stamped with ms count, and walking off alerts once. |
+
+**Red run at stage A** (`26559f02`, the nine classes): 118 tests, 20 failures. All 20 are new tests,
+each failing on its own claim:
+
+- a network or unknown fix became the gated fix, the origin, the end, the route-home source or a
+  find's location;
+- the timestamp rule decided instead of the provider;
+- the rule log was empty.
+
+The 11 new tests that passed are the expected ones:
+
+- the provider-mapping tests (the mapping is part of the field);
+- the countdown guard;
+- the GPS controls.
+
+The first compile at stage A failed on two watch calls the sweep had missed: a method reference
+`watch::onFix`, and a receiver call inside an extension. Both were fixed (now GPS) before the red
+run, and the compile log was clean when the results were read.
+
+**Green at stage B** (the nine classes): 118 tests, 0 failures. That was after one correction to a
+new test. It asserted the strip's note while navigating, where the HUD stands instead, as -510's own
+tests read it. It now asserts the HUD's "Approximate, finding GPS…" and no needle. Every assertion
+before that line had passed.
+
+### Revert checks
+
+Eight checks, run by `revert.py`. Each one:
+
+- saves a copy of the file, applies a one-line revert and runs the named classes;
+- refuses to read results if the build log has a compile error;
+- restores from the saved copy, never from git;
+- confirms by hash, and by finding the forward line, that the forward change is back.
+
+All eight restored, and `git status` was clean afterwards.
+
+| Check | Revert | Result |
+|---|---|---|
+| r1 | Gate ignores the provider | 7 fail: the 3 ViewModel tests, the 2 screen tests, and 2 wiring tests ("expected null, but was LatLng(45.52, -122.68)") |
+| r2 | Recording: any provider seeds the origin | 5 fail: origin from network or unknown, end at 45.5, route home `Ahead` from network or unknown |
+| r3 | Countdown reads the GPS-only fix | 1 fails: "NoPositionYet cannot be cast to Known" |
+| r4 | Sundown watch back on the timestamp rule | 3 fail: About ↔ Unknown |
+| r5 | Judge ignores the provider | 3 fail: the three new off-track tests |
+| r6 | Rule log never fires | 2 fail: the two disagreement tests, "but was: []" |
+| r7 | `toFix` drops the provider (unknown) | 6 fail: four whole-fix comparisons and the two log tests (unknown never disagrees) |
+| r8 | Unknown names map to GPS | 2 fail: "provider fused expected UNKNOWN but was GPS", and the passive test |
+
+Each failure is one that edit can produce.
+
+## Suite
+
+The full suite ran once, at stage B (`68261b76`): `:app:testDebugUnitTest`. The build log has no
+compile errors.
+
+- **After:** 3,750 tests, 0 failures, 24 skipped.
+- **Before:** 3,719, derived and not run. It is 3,750 less the 31 new `@Test`s, since the diff from
+  `4b72b25c` adds 31 and removes none. The suite was not run on `main` in this dispatch: one Gradle
+  build at a time, and the dispatch asks for the suite once.
+
+No skip was added. `@Ignore` appears 51 times under `app/src/test` at `4b72b25c` and at `HEAD`.
+
+## The S22 step (not run: needs the owner's word)
+
+The dispatch's step, ordered so the cheap check comes first. It runs on the S22 with
+`adb logcat -s ForagerFix ForagerFixRule`.
+
+1. **Indoors at the desk**, a waypoint placed at the desk, the Maps tab open.
+   - **Pass:** while logcat shows a network fix of 50 m or better arriving, the dot is the
+     approximate one, and the strip says "Approximate location, finding GPS…". Navigating to the
+     desk waypoint never shows "Arrived" and draws no line.
+   - **Evidence:** screenshots, and the logcat lines.
+2. **Outdoors.**
+   - **Pass:** a GPS fix takes over as before: the normal dot and the strip's coordinates.
+   - **Evidence:** a screenshot, and the logcat line with `provider=gps`.
+3. **Observation, not a gate:** whether any `ForagerFixRule` line appears, and how many against the
+   `ForagerFix` lines.
+
+## Against RECORD -519
+
+| Path | Failure covered | What fills the gap without GPS | Left uncovered |
+|---|---|---|---|
+| The live gated fix: "Arrived", the waypoint's line, a new find's location | A network fix of 50 m or better posing as precise | -510's approximate position, for display only; failing that, the last known position, greyed; failing that, "Location services unavailable". No "Arrived", no line, a find without a location. | A GPS fix that is poor but under 50 m (satellite status, -526) |
+| Recording: origin and end waypoints, the route home | The same | No origin or end waypoint ("validly absent", as before); the route home stays a dash until a GPS fix | A Battery-saver GPS fix up to 100 m still seeds them (kept by -526) |
+| Recording's sundown countdown | None: it deliberately reads any fix (-558) | Its sunset is right to seconds from a network fix | None new |
+| -516's sundown watch, the walk back | A network fix whole-second stamped, read as GPS | -516's fallback: leave-by is sunset minus the margin, and the walk back is "unknown" | None new |
+| The off-track judge, the live reading | The same | No judgement until GPS (as for network before) | Poor GPS readings count, the line widened by their accuracy (kept by -526) |
+| **Camera finds (the one-shot `LocationProvider`)** | **Not covered** | — | **A camera find can still be saved at a network position of any accuracy.** L7 on the build list (-558). |
+
+## Disclosure
 
 - **Confirmed vs inferred.**
-  - Confirmed by reading and grep: every path above, and the counts, from the logs with a script
-    (`/tmp/fixcount2.py`, which is not committed).
-  - Inferred: that "the network usually answers first" for camera finds. That comes from
+  - Confirmed by test, through real entry points and revert-checked: every behaviour in "Tests".
+  - Confirmed by reading and grep: every path in "Verify before building".
+  - Confirmed by script: the counts. The scripts are kept with the evidence, outside the repository,
+    at `~/Zynergy/device-evidence/2026-10-05-fix-provider/`; they read no positions into anything
+    committed.
+  - Inferred: that the network usually answers first for camera finds. That comes from
     `AndroidLocationProvider`'s own comment, not a measurement.
-- **Could not determine.** What the S22 sends from `getLastKnownLocation(PASSIVE_PROVIDER)`. No log
-  records it.
+  - Not seen at all: anything on the S22 with this build.
+- **Could not determine.**
+  - What the S22 returns from `getLastKnownLocation(PASSIVE_PROVIDER)`: no log records it.
+  - Whether `ForagerFixRule` fires on the S22 at the rate the logs suggest (4 in 1,969 on walks):
+    that needs the device step.
 - **Premises that were wrong.**
-  - The counts are lines, not fixes.
-  - "Agreed on 4,726 of 4,726" holds for the desk only. The walks disagree 4 times.
-  - The paths missed the one-shot `LocationProvider` path and the countdown's read of
-    `lastGatedFix`.
-  - **This verification step itself missed a reader.** The end waypoint, made when a recording
-    stops, is built from `lastGatedFix` (`TrackRecordingViewModel.kt:594`). It was found while the
-    tests were being written. It takes GPS only under the dispatch's rule 2, since it saves a
+  - The dispatch's counts were log lines, not fixes.
+  - "Agreed on 4,726 of 4,726" holds for the desk only; the walks disagree 4 times.
+  - The dispatch's paths missed the one-shot `LocationProvider` path (camera finds) and the
+    countdown's read of `lastGatedFix`.
+  - **This verification step itself missed a reader.** The end waypoint, made when a recording stops,
+    is built from `lastGatedFix` (`TrackRecordingViewModel.kt:594` at `4b72b25c`). It was found while
+    the tests were being written. It takes GPS only under the dispatch's rule 2, since it saves a
     position. The planner accepted that, matching the owner's answer for the origin waypoint
     (RECORD -558).
-  - The walk folder names are `2026-10-03-walk-t21` and `2026-10-03-walk-zoom`, not
-    `-owner-walk-t21` and `-owner-walk-zoom`.
-- **Decided beyond scope.** Nothing yet.
+  - The walk folders are `2026-10-03-walk-t21` and `2026-10-03-walk-zoom`.
+  - My own first sweep of watch calls missed two (a method reference and a receiver call). The
+    compiler found them.
+- **Decided beyond scope.**
+  - Test fixtures that already stood for network readings say network, not GPS: 9 of 47. Answer 3
+    said fixtures say GPS. Those nine are refused by accuracy already, so the result in their tests
+    is the same, and saying GPS would have mislabelled them.
+  - The off-track judge's provider parameter is nullable, with `null` meaning a stored point. This is
+    the dispatch's rule 4, and it lets replays of saved walks run unchanged; the planner agreed.
+  - `ForagerFixRule`'s message format.
