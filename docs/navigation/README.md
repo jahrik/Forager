@@ -56,3 +56,4 @@ These files were moved here from `docs/plans/` and `docs/audits/`. Links in the 
 | [2026-10-05-location-failure-fallbacks.md](2026-10-05-location-failure-fallbacks.md) | Location failures and what fills each gap, for the next plan session (RECORD -519, -520) |
 | [2026-10-05-no-position-bubble-report.md](2026-10-05-no-position-bubble-report.md) | No bubble under the dot: the "Approximate location" / "Last seen …" label removed, the strip and the HUD carry the words (dispatch 2026-09-28-535, RECORD -534) |
 | [2026-10-05-sundown-alerts-report.md](2026-10-05-sundown-alerts-report.md) | The three sundown alerts from the recording service, with the walk back in them (dispatch -516, T2 and T13; RECORD -513 to -515, -519) |
+| [2026-10-06-units-follow-report.md](2026-10-06-units-follow-report.md) | Elevation, the rise, position accuracy and soil temperature follow Settings > Units (dispatch 2026-09-28-549, RECORD -547, Amendment 1 RECORD -557) |
