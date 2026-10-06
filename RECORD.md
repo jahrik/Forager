@@ -12147,3 +12147,15 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Correction, -552 not edited:** its Timestamp, 2026-10-06T03:00:00Z, is later than its own commit (57e5618f, 02:21:01Z); the same slip -546 recorded for -545.
 **Not checked by the planner:** the by-distance rows beyond the table's own arithmetic, the loop and last-leg split (the coder's 10 m threshold, used only to describe the walk), the point counts.
 **Notes:** Written by the planner by hand, on branch records-after-173 at 52a7acf7. Next free ID -557.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-557
+**Timestamp:** 2026-10-06T03:38:00Z
+**Continues:** 2026-09-28-549
+**Amendment 1 to -549 (units-follow), after the coder's verify report:** base `origin/main` 4b72b25c, none of the five files changed since e1395fc9; -516 has merged (PR #174), so the dispatch's "-516 unmerged" note is stale and does not affect the work.
+**The owner, verbatim, to three questions the report raised:** (1) "Yes, include it (Recommended)": `accuracyLabel` (`ui/availability/AvailabilityPureFunctions.kt:259`, "±N m accuracy", shown in the bubble at `AvailabilityMapOverlaysUi.kt:316`) follows Units, "±40 ft accuracy" under Imperial (US), metric unchanged; a sixth site. (2) "Convert, no phone check (Recommended)": the rise from the start (`AvailabilityMapControlsUi.kt:582`) is only the Return button's screen-reader description (used at `:235`, `:566`), not on the strip as the dispatch's step path said; that was the planner's wrong premise. It converts, covered by a test; the device check drops the rise from step 1. (3) "Always a point (Recommended)": `Locale.US` in both systems for soil temperature, as `formatRainfall`; metric changes only on comma-language phones, which supersedes "byte-identical" for that one case.
+**Out of scope, as the coder proposed:** "Radius: N km" (`SightingsMap.kt:1916`, a snippet nothing reads, unverified on a device); "each 11 km cell" (`MapLegend.kt:31`, approved legend wording for a fixed grid); soil moisture m³/m³ (a ratio); bearings and the distance formatters' metric branches (already follow the setting).
+**Tests the report listed:** Imperial expectations change at `NavigationHudReadoutTest.kt:400`, `:416` and `AvailabilityScreenLandscapeB2Test.kt:780`; the Metric ones in `AvailabilityScreenMapIconStackTest.kt` (`:366`, `:504`, `:1493`, `:1637`) stay; `ForagingWeatherGuidanceTest.kt:66` gains an Imperial case; new tests for the soil-temperature row and `accuracyLabel`.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -558.
