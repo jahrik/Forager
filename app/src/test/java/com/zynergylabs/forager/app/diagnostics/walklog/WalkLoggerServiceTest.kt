@@ -61,6 +61,10 @@ class WalkLoggerServiceTest {
         shadowLocationManager = shadowOf(locationManager)
         shadowLocationManager.setProviderEnabled(LocationManager.GPS_PROVIDER, true)
         shadowLocationManager.setProviderEnabled(LocationManager.NETWORK_PROVIDER, false)
+        // Robolectric reports 0 bytes free in the app's external files directory, so without this
+        // every log here would stop at once as storage-low (seen in the first green run: "free=0
+        // min=209715200"). Plenty, unless a test sets its own.
+        WalkLogger.freeBytesOverride = { PLENTY_OF_SPACE }
     }
 
     @After
@@ -170,11 +174,15 @@ class WalkLoggerServiceTest {
             assertEquals(2, awaitListenerCount(2))
 
             simulateFix(index = 1)
+            // Read after the stop, which flushes and closes the file: the writer flushes every 5 s
+            // of since-boot time, and Robolectric's clock does not move unless a test moves it.
+            controller.withIntent(stopIntent()).startCommand(0, 2)
+            assertTrue(await { !WalkLogger.of(context).isLogging })
 
             val file = walkLogFiles().single()
             assertTrue(
-                "a FIX line from the logger's own listener",
-                await { file.readLines().any { " FIX " in it && "provider=gps" in it && "lat=10.001" in it } },
+                "a FIX line from the logger's own listener, in:\n${file.readLines().filterNot { it.startsWith("#") }.joinToString("\n")}",
+                file.readLines().any { " FIX " in it && "provider=gps" in it && "lat=10.001" in it },
             )
         } finally {
             end(controller)
@@ -226,6 +234,10 @@ class WalkLoggerServiceTest {
         } finally {
             end(controller)
         }
+    }
+
+    private companion object {
+        const val PLENTY_OF_SPACE = 10L * 1024 * 1024 * 1024
     }
 
     private fun simulateFix(index: Int) {
