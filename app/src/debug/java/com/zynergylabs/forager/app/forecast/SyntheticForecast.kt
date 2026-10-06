@@ -168,6 +168,9 @@ interface SyntheticForecastSwitch {
  * Each requested block's file is generated and then **parsed** with [parseForecastCells], so what the map
  * draws has passed the real validation; any rejected feature is counted in the result, not dropped
  * quietly. A switch that cannot be read is logged and treated as off.
+ *
+ * It also holds the walk logger's switch ([WalkLoggerSwitch], dispatch 2026-09-28-532, Amendment 3),
+ * under its own key in the same file, for the one-instance reason above.
  */
 class SyntheticForecastCellStore(
     context: Context,
@@ -187,10 +190,14 @@ class SyntheticForecastCellStore(
         dataStore.edit { prefs -> prefs[KEY_ENABLED] = enabled }
     }
 
-    // STUB for the failing-test commit (dispatch 2026-09-28-532): reads off, stores nothing.
-    override suspend fun isWalkLoggerEnabled(): Result<Boolean> = Result.success(false)
+    // The walk logger's switch (dispatch 2026-09-28-532, Amendment 3): here because this store owns
+    // the one debug diagnostics DataStore file, and DataStore refuses a second live instance on it.
+    // Its own key; independent of the forecast switch. Off by default.
+    override suspend fun isWalkLoggerEnabled(): Result<Boolean> = runCatchingCancellable { dataStore.data.first()[KEY_WALK_LOGGER] ?: false }
 
-    override suspend fun setWalkLoggerEnabled(enabled: Boolean): Result<Unit> = Result.success(Unit)
+    override suspend fun setWalkLoggerEnabled(enabled: Boolean): Result<Unit> = runCatchingCancellable {
+        dataStore.edit { prefs -> prefs[KEY_WALK_LOGGER] = enabled }
+    }
 
     override suspend fun availability(week: LocalDate): ForecastAvailability =
         if (enabled()) ForecastAvailability.Groups(groups) else ForecastAvailability.NoForecastData
@@ -228,6 +235,7 @@ class SyntheticForecastCellStore(
         const val TAG = "SyntheticForecast"
         const val DATA_STORE_NAME = "debug_diagnostics_preferences"
         val KEY_ENABLED = booleanPreferencesKey("diagnostics.synthetic_forecast")
+        val KEY_WALK_LOGGER = booleanPreferencesKey("diagnostics.walk_logger")
     }
 }
 

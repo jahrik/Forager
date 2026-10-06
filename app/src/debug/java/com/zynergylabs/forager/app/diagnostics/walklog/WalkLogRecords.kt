@@ -125,11 +125,12 @@ data class HeaderFacts(
 )
 
 /**
- * `GnssCapabilities` as flags, by name, in the order the platform documents them. Only the flags
- * the running API level offers are present; the header writes the rest as unsupported rather than
- * omitting them.
+ * `GnssCapabilities` by name, in insertion order. A flag the running API level does not have is
+ * present with the value `unsupported-below-api-N`, never left out. Values are booleans, the
+ * supported/unsupported/unknown names of an int capability, or a list (the signal types) written
+ * without spaces.
  */
-data class GnssCapabilitiesRecord(val flags: Map<String, Boolean>)
+data class GnssCapabilitiesRecord(val flags: Map<String, Any>)
 
 /** The sensors the logger asks for, with the rates the owner approved (RECORD -559, choice 4). [rateHz] null means "as delivered". */
 enum class WalkLogSensorKind(val androidType: Int, val label: String, val rateHz: Int?, val needsActivityRecognition: Boolean = false) {
