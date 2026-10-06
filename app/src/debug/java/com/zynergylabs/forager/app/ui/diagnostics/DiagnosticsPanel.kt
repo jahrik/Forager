@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import com.zynergylabs.forager.app.ForagerApplication
 import com.zynergylabs.forager.app.diagnostics.DiagnosticsLog
+import com.zynergylabs.forager.app.diagnostics.walklog.WalkLoggerSwitch
 import com.zynergylabs.forager.app.forecast.SyntheticForecastSwitch
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.io.File
@@ -102,6 +103,7 @@ internal fun DiagnosticsPanel(onBack: () -> Unit, modifier: Modifier = Modifier)
         onBack = onBack,
         modifier = modifier,
         syntheticForecastSwitch = remember(context) { appSyntheticForecastSwitch(context) },
+        walkLoggerSwitch = remember(context) { appWalkLoggerSwitch(context) },
     )
 }
 
@@ -116,6 +118,19 @@ private fun appSyntheticForecastSwitch(context: Context): SyntheticForecastSwitc
     val switch = store as? SyntheticForecastSwitch
     if (switch == null) {
         Log.w(TAG, "The app's forecast store is not the synthetic store; the Synthetic forecast layers toggle is not shown.")
+    }
+    return switch
+}
+
+/**
+ * The app's one walk logger switch (dispatch 2026-09-28-532, Amendment 3): the same debug store as
+ * [appSyntheticForecastSwitch], which owns the diagnostics DataStore file. `null`, and logged, when it
+ * is not that store; the toggle row is then absent rather than inert.
+ */
+private fun appWalkLoggerSwitch(context: Context): WalkLoggerSwitch? {
+    val switch = (context.applicationContext as? ForagerApplication)?.container?.forecastCellStore as? WalkLoggerSwitch
+    if (switch == null) {
+        Log.w(TAG, "The app's forecast store is not the walk logger switch; the Walk logger toggle is not shown.")
     }
     return switch
 }
@@ -148,6 +163,8 @@ internal fun DiagnosticsPanel(
     modifier: Modifier = Modifier,
     /** The "Synthetic forecast layers" toggle's switch (map layers L0b, B6); no toggle row when `null`. */
     syntheticForecastSwitch: SyntheticForecastSwitch? = null,
+    /** The "Walk logger" toggle's switch (dispatch 2026-09-28-532, Amendment 3); no toggle row when `null`. */
+    walkLoggerSwitch: WalkLoggerSwitch? = null,
 ) {
     var viewingLog by remember { mutableStateOf(false) }
     if (viewingLog) {
@@ -182,6 +199,7 @@ internal fun DiagnosticsPanel(
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
             syntheticForecastSwitch?.let { SyntheticForecastRow(it) }
+            walkLoggerSwitch?.let { WalkLoggerRow(it) }
             shareError?.let { message ->
                 Text(message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.testTag(DIAGNOSTICS_SHARE_ERROR_TAG))
             }
@@ -228,6 +246,47 @@ private fun SyntheticForecastRow(switch: SyntheticForecastSwitch) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(SYNTHETIC_FORECAST_TOGGLE_LABEL, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        Switch(checked = current, onCheckedChange = null)
+    }
+    HorizontalDivider()
+}
+
+/**
+ * The "Walk logger" toggle (dispatch 2026-09-28-532, Amendment 3, RECORD -560): off by default; while
+ * on, each track recording writes everything the phone senses to a file in `walklogs/`. Read when a
+ * recording starts, which the second line says. Same read and write rules as [SyntheticForecastRow].
+ */
+@Composable
+private fun WalkLoggerRow(switch: WalkLoggerSwitch) {
+    var enabled by remember(switch) { mutableStateOf<Boolean?>(null) }
+    LaunchedEffect(switch) {
+        enabled = switch.isWalkLoggerEnabled().getOrElse { error ->
+            Log.w(TAG, "Couldn't read the walk logger switch; showing it off.", error)
+            false
+        }
+    }
+    val current = enabled ?: return
+    val scope = rememberCoroutineScope()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .toggleable(value = current, role = Role.Switch) { wanted ->
+                scope.launch {
+                    switch.setWalkLoggerEnabled(wanted).fold(
+                        onSuccess = { enabled = wanted },
+                        onFailure = { error -> Log.w(TAG, "Couldn't store the walk logger switch.", error) },
+                    )
+                }
+            }
+            .testTag(DIAGNOSTICS_WALK_LOGGER_TAG),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(WALK_LOGGER_TOGGLE_LABEL, style = MaterialTheme.typography.bodyLarge)
+            Text(WALK_LOGGER_TOGGLE_DETAIL, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         Switch(checked = current, onCheckedChange = null)
     }
     HorizontalDivider()
@@ -412,6 +471,9 @@ internal const val DIAGNOSTICS_SHARE_ERROR_TAG = "diagnostics-share-error"
 /** The "Synthetic forecast layers" toggle's label and tag (map layers L0b, B6). */
 internal const val SYNTHETIC_FORECAST_TOGGLE_LABEL = "Synthetic forecast layers"
 internal const val DIAGNOSTICS_SYNTHETIC_FORECAST_TAG = "diagnostics-synthetic-forecast"
+internal const val WALK_LOGGER_TOGGLE_LABEL = "Walk logger"
+internal const val WALK_LOGGER_TOGGLE_DETAIL = "Records everything the phone senses during each track recording, to walklogs/. Starts with the next recording."
+internal const val DIAGNOSTICS_WALK_LOGGER_TAG = "diagnostics-walk-logger"
 internal fun diagnosticsShareTag(file: File): String = "diagnostics-share:${file.name}"
 
 private const val TAG = "DiagnosticsPanel"
