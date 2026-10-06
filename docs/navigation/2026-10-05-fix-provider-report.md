@@ -1,6 +1,6 @@
 # Every fix carries its true source (dispatch 2026-09-28-527): report
 
-**Status: verification only. Nothing is built. No Gradle has run.** The dispatch is
+**Status: verification done; the owner answered in RECORD -558. Stage A (`dbaa8efe`): the provider field and the failing tests, not yet run. No Gradle has run.** The dispatch is
 `prompts/preserved/2026-10-05-01.md`. It was written against `a9dfdd59`. -516 has merged since
 (PR #174), so this was read at `4b72b25c`, where `fix-provider` is cut. App paths are relative to
 `app/src/main/java/com/zynergylabs/forager/app/`. Line numbers are as of `4b72b25c`.
@@ -204,6 +204,11 @@ The limits: one phone, one desk session, three walks.
   - "Agreed on 4,726 of 4,726" holds for the desk only. The walks disagree 4 times.
   - The paths missed the one-shot `LocationProvider` path and the countdown's read of
     `lastGatedFix`.
+  - **This verification step itself missed a reader.** The end waypoint, made when a recording
+    stops, is built from `lastGatedFix` (`TrackRecordingViewModel.kt:594`). It was found while the
+    tests were being written. It takes GPS only under the dispatch's rule 2, since it saves a
+    position. The planner accepted that, matching the owner's answer for the origin waypoint
+    (RECORD -558).
   - The walk folder names are `2026-10-03-walk-t21` and `2026-10-03-walk-zoom`, not
     `-owner-walk-t21` and `-owner-walk-zoom`.
 - **Decided beyond scope.** Nothing yet.
