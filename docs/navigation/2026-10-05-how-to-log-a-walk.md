@@ -24,7 +24,8 @@ Each file says at the top which phone it came from and whether it had a SIM and 
 
 1. Both phones charged.
 2. On each phone, check the **Walk logger** switch is **on** (Settings, Diagnostics).
-3. Each phone needs at least 200 MB free. If it runs short mid-walk, the logger stops on its own and says so in its file. The recording carries on regardless.
+3. Close Google Maps and any other navigation app on both phones, so each walk's data stays comparable. (Another navigation app can switch the GPS into a different mode, which changes what the log records.)
+4. Each phone needs at least 200 MB free. If it runs short mid-walk, the logger stops on its own and says so in its file. The recording carries on regardless.
 
 ## During the walk
 
