@@ -12219,3 +12219,29 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Backup:** 2026-10-06-02
 **Observed:** pull request #175 (t549-merge into main: units-follow at f5534a81 with records-after-173 at fb223136) was merged as 315669e5 at 2026-10-06T04:24:32Z, on green CI at its head e1e86e98 (run 37412749789, 8 m 54 s), read from GitHub, on the owner's "Open and merge now (Recommended)". Main's tree equals t549-merge's.
 **Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -563.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-563
+**Timestamp:** 2026-10-06T04:35:00Z
+**Closes:** 2026-09-28-527 (preserved 2026-10-05-01)
+**Outcome:** completed; merged through PR #176
+**Observed:** fix-provider (session_01EbxiTgrEytNfS42ofSYoJA), cut from main 4b72b25c, head 3dd1abe8: f7824f15 (verify report), dbaa8efe and 26559f02 (stage A: the source field with no default, the failing tests, two watch calls the first sweep missed), 80c3f2e0 (the end waypoint, missed by the verify step at `TrackRecordingViewModel.kt:594`, added under rule 2 and accepted by the planner), 68261b76 (stage B), 3dd1abe8 (report `docs/navigation/2026-10-05-fix-provider-report.md` and index rows). Red at stage A: 118 tests in nine classes, 20 failures, all new, each for its predicted reason; stage B 118 of 118, after one fix to the coder's own new screen test (it read the strip while navigating, where the HUD shows). Eight revert checks, each failing with messages specific to its edit, restored from saved copies, forward changes confirmed by hash. Full suite 3,750 tests, 0 failures, 24 skipped; the "before" count, 3,719, derived from the diff, not run.
+**What the planner checked itself:** `git diff origin/main origin/fix-provider` before the merge: no `@Ignore` added, no assertion line removed, 61 added; app changes in 13 files, all on the location, recording, gate and watch paths. The PR's merge with main (315669e5) combined three test files both sides had changed without conflict; its CI (run 37413653030, 8 m 44 s) is the first build of that tree, and passed.
+**Not shown:** the report's S22 steps (indoors with a network fix of 50 m or better, then outdoors), waiting for one test build carrying -549, -527 and -532. Camera finds stay as L7.
+**Notes:** Written by the planner by hand, on branch records-after-173.
+
+---
+
+**Kind:** merge
+**ID:** 2026-09-28-564
+**Timestamp:** 2026-10-06T04:35:00Z
+**PR:** 176
+**Head:** t527-merge
+**Base:** main
+**Merge-commit:** 71c1de9cf5d80b2e58c0c857332e02b65e3f2c42
+**Pre-merge:** 315669e533065bcc689d068fd8890e80eeb0e007
+**Backup:** 2026-10-06-03
+**Observed:** pull request #176 (t527-merge into main: fix-provider at 3dd1abe8 merged with main 315669e5, the two index files keeping every row from both sides) was merged as 71c1de9c at 2026-10-06T04:34:59Z, on green CI at its head 657b222f (run 37413653030, 8 m 44 s), read from GitHub, on the owner's "Merge now, phone after (Recommended)". The PR description first said no file outside the indexes changed on both sides; three test files had, and it was corrected before the merge.
+**Notes:** Written by the planner by hand, on branch records-after-173. Next free ID -565.
