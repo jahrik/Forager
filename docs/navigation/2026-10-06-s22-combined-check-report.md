@@ -21,7 +21,7 @@ the exact values are in the evidence folder's UI dumps.
 | A4 Imperial: sighting bubble accuracy | **Pass**: "±39 ft accuracy" |
 | A5 Metric: steps 1 to 4 | **Pass**: "1NN m" (strip), "1NN m" (HUD), "Soil temperature: 14.8°C" and "roughly 10–20 °C", "±7 m accuracy" (and "Accuracy not reported" on another) |
 | B Fix provider step 1, indoors | **Pass**, on two network fixes of 50 m or better (acc 20.9 and 48.9) with no GPS fix since navigation started |
-| C Fix provider step 2, outdoors | **Not run**: it needs the owner to take the phone outside |
+| C Fix provider step 2, outdoors | **Pass** from the phone's own log buffer (no live capture) and the owner's report: 138 `provider=gps` fixes of 50 m or better after the indoor capture ended, down to 3.8 m; the normal dot rests on the owner's report (see C) |
 | D `ForagerFixRule` against `ForagerFix` | Observation: **0** against **641** |
 
 ## Before the install (the planner's added steps)
@@ -112,6 +112,45 @@ from the desk:
   window, which is why the second window was run from a fresh navigation.
 - The HUD's approximate readout in that window sometimes read "Turn 87° · ≈ 500 ft · Approximate, finding GPS…".
 
+## C. Fix provider step 2, outdoors (added 2026-10-06, after the owner's walk outside)
+
+The owner took the S22 outside while no capture was running and brought it back in, plugged in. On the planner's
+instruction C was read afterwards, with nothing started on the phone.
+
+**The log buffer** (`adb logcat -d -v time -s ForagerFix ForagerFixRule`, read at 00:04:58): 926 lines, from
+10-05 23:24:02 to 10-06 00:04:59. It begins after my own `logcat -c` at 23:21, so it covers the whole time since
+the indoor capture ended (23:58:08) without a gap: the largest interval between consecutive fix lines after
+23:58:08 is 20.0 s, the network provider's own cadence. **The buffer covers the whole window**, since the walk
+outside falls after 23:58:08.
+
+From 23:58:08 to 00:04:59:
+
+| Provider | 50 m or better | Worse than 50 m |
+|---|---|---|
+| `gps` | 138 | 133 |
+| `network` | 1 | 22 |
+
+`ForagerFixRule` lines: **0**. The first `provider=gps` line is at 23:59:59, acc 124.1. The first one of 50 m or
+better is at 00:00:10, acc 48.2.
+
+By minute, GPS accuracy ran 28.9–112.6 m (00:00), 72.5–265.5 m (00:01), 88.7–265.8 m (00:02), 3.8–237.7 m
+(00:03) and 3.8–24.2 m (00:04). There are 67 GPS fixes of 10 m or better, from 00:03:14 to 00:04:20, reaching
+3.8 m. The best GPS at the desk in B was about 20 m, so that stretch is read as the time outside. **That is
+inferred:** the log carries no indoor/outdoor marker. From 00:04:26 accuracy settles near 23.5 m, which I read as
+back inside.
+
+**The screen now, back inside** (UI dump at 00:05:30): the strip reads "310° NW · 366 ft · <grid reference,
+masked>". The screenshot shows the normal solid dot with its accuracy circle, not the approximate one.
+
+**The owner's report**, verbatim, relayed by the planner: "Normal dot and coordinates showed outside".
+
+**Do they agree?** Yes. The log shows `provider=gps` fixes of 50 m or better, down to 3.8 m, across the
+stretch read as outside, and no network fix took over. Under -527 that means the normal dot and the strip's
+coordinates, which is what the owner saw. The dot and coordinates outside rest on the owner's word alone: no
+screenshot or dump was taken outside. What I saw myself is the same state indoors afterwards.
+
+**Pass**, on the log and the owner's report together.
+
 ## D. Observation, not a gate
 
 Over 23:21:37 to 23:58:08: **641** `ForagerFix` lines and **0** `ForagerFixRule` lines. By provider:
@@ -141,8 +180,8 @@ inferred, not traced.
 
 ## Not run
 
-- **C, outdoors.** It waits for the owner. GPS took over indoors at 23:50 (fixes of 50 m or better, strip and HUD
-  in feet, the normal readout), but that is the desk, not the outdoor step.
+- **C, outdoors, as a live capture.** The owner took the phone out with no capture running; C was read
+  afterwards from the phone's log buffer (below). Nobody watched the screen outside except the owner.
 - The S26 fresh-folder check and the S26 capability read (-566, -570): not in this dispatch.
 - Nothing else Gradle: no tests were run.
 
