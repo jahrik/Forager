@@ -11,6 +11,7 @@ import android.os.Bundle
 import android.os.Looper
 import android.util.Log
 import androidx.core.content.ContextCompat
+import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.LocationTracker
 import kotlinx.coroutines.channels.awaitClose
@@ -92,11 +93,23 @@ class AndroidLocationTracker(
         altitude = if (hasAltitude()) altitude else null,
         accuracyMeters = if (hasAccuracy()) accuracy else null,
         timestampEpochMillis = time,
+        provider = fixProviderOf(provider),
         speedMetersPerSecond = if (hasSpeed()) speed else null,
         speedAccuracyMetersPerSecond = if (hasSpeedAccuracy()) speedAccuracyMetersPerSecond else null,
     )
 
     internal companion object {
+        /**
+         * The platform's provider name as this app's own [FixProvider] (dispatch 2026-09-28-527): GPS and
+         * network by the platform's constants, anything else, `null` included, [FixProvider.UNKNOWN] and
+         * never a guess. Shared with [AndroidLastKnownLocationSource], which reads the same `Location`s.
+         */
+        internal fun fixProviderOf(provider: String?): FixProvider = when (provider) {
+            LocationManager.GPS_PROVIDER -> FixProvider.GPS
+            LocationManager.NETWORK_PROVIDER -> FixProvider.NETWORK
+            else -> FixProvider.UNKNOWN
+        }
+
         // The platform's own throttle on how often it invokes the listener at all; the real
         // sampling decision (which of these become a persisted TrackPoint) is LocationSampler's,
         // downstream — this is only a ceiling on how much raw, unfiltered work this stream does.
@@ -104,5 +117,11 @@ class AndroidLocationTracker(
 
         /** The per-fix instrument log's tag — `adb logcat -s ForagerFix`. */
         internal const val FIX_LOG_TAG = "ForagerFix"
+
+        /**
+         * Dispatch 2026-09-28-527: a fix whose provider and the timestamp rule disagree —
+         * `adb logcat -s ForagerFixRule`. Silent while they agree.
+         */
+        internal const val RULE_LOG_TAG = "ForagerFixRule"
     }
 }

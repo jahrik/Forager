@@ -19,6 +19,7 @@ import com.zynergylabs.forager.app.domain.CompassReading
 import com.zynergylabs.forager.app.domain.ComputeTrueHeadingUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.DeclinationProvider
+import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.HeadingUncertainty
 import com.zynergylabs.forager.app.domain.LastKnownLocationSource
 import com.zynergylabs.forager.app.domain.LocationFix
@@ -92,11 +93,11 @@ class AvailabilityScreenApproximatePositionTest {
 
     /** A network reading [metersSouth] due south of [of], 120 m accuracy, stamped 123 ms past the second, [ageMillis] old. */
     private fun network(metersSouth: Double, of: Waypoint = creek, ageMillis: Long = 1_000L) =
-        LocationFix.Update(lat = of.lat - metersSouth / metersPerDegree, lng = of.lng, altitude = null, accuracyMeters = 120f, timestampEpochMillis = t - ageMillis + 123)
+        LocationFix.Update(lat = of.lat - metersSouth / metersPerDegree, lng = of.lng, altitude = null, accuracyMeters = 120f, timestampEpochMillis = t - ageMillis + 123, provider = FixProvider.NETWORK)
 
     /** A GPS fix [metersSouth] due south of the creek pin, the S22's 3.79 m, on the whole second. */
     private fun gps(metersSouth: Double) =
-        LocationFix.Update(lat = creek.lat - metersSouth / metersPerDegree, lng = creek.lng, altitude = 50.0, accuracyMeters = 3.79f, timestampEpochMillis = t)
+        LocationFix.Update(lat = creek.lat - metersSouth / metersPerDegree, lng = creek.lng, altitude = 50.0, accuracyMeters = 3.79f, timestampEpochMillis = t, provider = FixProvider.GPS)
 
     private val fixes = MutableSharedFlow<LocationFix>(replay = 1)
     private val tracker = object : LocationTracker {
@@ -218,7 +219,7 @@ class AvailabilityScreenApproximatePositionTest {
 
     @Test
     fun `with no live reading the last known position shows, greyed, with its age, until anything newer arrives`() {
-        lastKnown = LocationFix.Update(45.40, -122.70, null, 30f, t + 1_000L - 2L * 60L * 60L * 1_000L)
+        lastKnown = LocationFix.Update(45.40, -122.70, null, 30f, t + 1_000L - 2L * 60L * 60L * 1_000L, provider = FixProvider.GPS)
         setScreen()
 
         assertEquals(ShownPosition.LastKnown(lastKnown!!), shownPosition())
@@ -295,7 +296,7 @@ class AvailabilityScreenApproximatePositionTest {
 
     @Test
     fun `navigating with only the last known position, no distance and no needle, and its age`() {
-        lastKnown = LocationFix.Update(45.40, -122.70, null, 30f, t + 1_000L - 2L * 60L * 60L * 1_000L)
+        lastKnown = LocationFix.Update(45.40, -122.70, null, 30f, t + 1_000L - 2L * 60L * 60L * 1_000L, provider = FixProvider.GPS)
         setScreen()
         viewModel.onNavigateToWaypoint(creek.id)
         composeRule.waitForIdle()
@@ -328,5 +329,54 @@ class AvailabilityScreenApproximatePositionTest {
 
     private companion object {
         const val POSITION_MAP_TAG = "approximate-position-map"
+    }
+
+    // ── Dispatch 2026-09-28-527: a 15 m fix acts only if it is GPS ──
+
+    /** A 15 m fix at the creek pin from [provider], a second old: network stamped off the second, the others on it. */
+    private fun at15m(provider: FixProvider) = LocationFix.Update(
+        lat = creek.lat, lng = creek.lng, altitude = 50.0, accuracyMeters = 15f,
+        timestampEpochMillis = if (provider == FixProvider.NETWORK) t + 123 else t, provider = provider,
+    )
+
+    private fun assertNeverActs(provider: FixProvider) {
+        setScreen()
+        viewModel.onNavigateToWaypoint(creek.id)
+        val reading = at15m(provider)
+
+        arrive(reading)
+
+        assertNull("$provider: never the gated fix", viewModel.uiState.value.liveFix)
+        assertFalse("$provider: never \"Arrived\"", text(NAVIGATION_HUD_DISTANCE_TAG) == ARRIVED_TEXT)
+        val route = map.content!!.route!!
+        assertNull("$provider: no arrival ring", route.arrivedAt)
+        assertNull("$provider: no line to the waypoint", route.straight)
+        assertEquals("$provider: shown as the approximate position", ShownPosition.Approximate(reading), shownPosition())
+        assertEquals(PositionLook.APPROXIMATE, look())
+        assertEquals("Approximate location, finding GPS…", text(COMPASS_STRIP_POSITION_NOTE_TAG))
+    }
+
+    @Test
+    fun `a 15 m network fix at the waypoint never arrives, draws no line, and shows as the approximate position`() =
+        assertNeverActs(FixProvider.NETWORK)
+
+    @Test
+    fun `a 15 m fix from an unknown provider at the waypoint is treated as network`() =
+        assertNeverActs(FixProvider.UNKNOWN)
+
+    /** The control: the same fix from GPS arrives, as it does today, so the two above could have. */
+    @Test
+    fun `a 15 m GPS fix at the waypoint arrives, the precise dot`() {
+        setScreen()
+        viewModel.onNavigateToWaypoint(creek.id)
+        val fix = at15m(FixProvider.GPS)
+
+        arrive(fix)
+
+        assertEquals(fix, viewModel.uiState.value.liveFix)
+        assertEquals(ARRIVED_TEXT, text(NAVIGATION_HUD_DISTANCE_TAG))
+        assertTrue("the arrival ring", map.content!!.route!!.arrivedAt != null)
+        assertEquals(ShownPosition.Precise(fix), shownPosition())
+        assertEquals(PositionLook.PRECISE, look())
     }
 }

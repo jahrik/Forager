@@ -126,8 +126,11 @@ class SundownWatch(
      * One raw fix from the service's collector. Ignored when nothing is being watched. Returns
      * `true` for the first fix of a recording, so the service can evaluate at once rather than at
      * its next tick: a recording started past the leave-by time alerts as soon as it has a place.
+     *
+     * [provider] is where the platform said [fix] came from (dispatch 2026-09-28-527), passed beside it
+     * and never stored.
      */
-    fun onFix(fix: TrackPoint): Boolean = synchronized(lock) {
+    fun onFix(fix: TrackPoint, provider: FixProvider): Boolean = synchronized(lock) {
         if (trackId == null) return@synchronized false
         val first = newestFix == null
         newestFix = fix

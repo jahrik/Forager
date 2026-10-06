@@ -228,8 +228,11 @@ class ReturnWatch(
      * [OffTrackJudge]'s reading, against the start and the path as they stood at Return, and an
      * [Alert] is delivered on the reading the judge says goes off: once per stray (the owner's
      * choice), no repeat while it lasts.
+     *
+     * [provider] is where the platform said [current] came from (dispatch 2026-09-28-527), passed beside
+     * it and never stored.
      */
-    fun onFix(current: TrackPoint) {
+    fun onFix(current: TrackPoint, provider: FixProvider) {
         var recorded: ReturnRecordEvent? = null
         val alert = synchronized(lock) {
             if (!begun) return
