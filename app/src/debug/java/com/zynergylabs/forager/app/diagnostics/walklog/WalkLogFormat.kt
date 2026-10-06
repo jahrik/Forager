@@ -133,8 +133,9 @@ object WalkLogFormat {
     fun header(startWallClockMillis: Long, startNanos: Long, facts: HeaderFacts, capabilities: GnssCapabilitiesRecord?): List<String> {
         val lines = mutableListOf<String>()
         lines += "# walklog version=$VERSION"
-        lines += "# format: <since-boot ns> <TYPE> key=value ...; none = the phone did not report that value; " +
-            "UNSUPPORTED = the phone does not offer it"
+        // Worded so the legend never reads as an event line: " UNSUPPORTED " with spaces is what marks one.
+        lines += "# format: <since-boot ns> <TYPE> key=value ...; none: the phone did not report that value; " +
+            "UNSUPPORTED: the phone does not offer it"
         lines += "# start wall=${Instant.ofEpochMilli(startWallClockMillis)} wallMillis=$startWallClockMillis elapsedNanos=$startNanos"
         lines += "# device manufacturer=${facts.manufacturer} model=${facts.model} device=${facts.device} " +
             "build=${facts.buildId} fingerprint=${facts.fingerprint} sdk=${facts.sdkInt}"
