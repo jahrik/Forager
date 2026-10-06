@@ -12097,3 +12097,15 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **The owner, verbatim:** "More walks will be held so we will have more data coming in. We got what we are after so let's move on." Then: "Drop the condition. We collected the data we needed by having automatic clocks turned off while navigating, and compared it against having it turned on. If something comes along to change our decisions, it won't be an overhaul of the system."
 **What it sets:** removes the open item -550 kept before -516 merges. -516's merge now waits only on the owner's word. Later walks are evidence, not a gate. -551 stays written and unsent, the owner's to send or leave; -552 stays reserved for its coder's entry, so this entry is -553.
 **Notes:** Written by the planner by hand, on branch records-after-173 at ef1eefe9.
+
+---
+
+**Kind:** finding
+**ID:** 2026-09-28-552
+**Timestamp:** 2026-10-06T03:00:00Z
+**Continues:** 2026-09-28-550
+**Dispatch:** 2026-09-28-551 (`prompts/preserved/2026-10-06-03.md`, ef1eefe9)
+**Doc:** `docs/audits/2026-10-06-walks-2026-10-05-estimate-replay-and-clock.md`, section "The 4:32 PM walk (added for -550)", appended; the doc's earlier text unchanged.
+**The 4:32 PM walk (correct clocks):** a loop with a tail, both phones: way out 330 m and 323 m in 5.3 min to a turnaround 245 m and 244 m out at 16:38:06; way back 788 m and 779 m in 10.1 and 10.3 min, round a loop of 468 m and 460 m, then the last 320 m within 10 m of the way out. The build's estimate (16 files identical to bf34fc87 by `git hash-object`, the same harness, Kotlin 2.3.10 off Gradle) replayed on SundownWatch's cadence. Every way-out row matches the way back's last leg, 0 to 6 m off, so "actual" there is the walk home by the same route. On those rows the estimate, on the default pace and "at least" throughout (`NO_MEASURED_PACE`; the way out never reached 5 min of moving), ran from equal (S22, quarter by time) to about 1.6 times long, with one row under: the S26's quarter by time, 0.0 against 0.2 min, 8 m from the start, with a saved track 2 m long. At the turnaround the walk back went round the loop, a different route, and is shown beside the estimate as no evidence either way (-516's report). The label never reached "about" (13.5 min of moving by the end).
+**The gate:** closed by the owner's ruling on this walk and the 4:49 walk (-550); the leave-by and sunset alerts have still not been seen on a correct clock, which -553 dropped as a merge condition. This entry closes nothing.
+**Notes:** Written by the coder (`session_012X8w7DNXZcsSgjKy4BZkk8`) on branch records-after-173 at e960da49. The planner writes -551's terminal entry.
