@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.ui.availability
 
 import android.app.Application
 import android.content.ComponentName
+import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.collectAsState
@@ -166,6 +167,31 @@ class SundownSettingsTest {
         composeRule.waitForIdle()
     }
 
+    /**
+     * Waits for [condition], running Robolectric's main looper on every pass.
+     *
+     * Not `composeRule.waitUntil`: in this harness that only advances Compose's own test clock and
+     * sleeps; it never runs the paused main looper. The ViewModel stores a setting in
+     * `viewModelScope` (Dispatchers.Main), DataStore writes it on its IO scope, and the rest of the
+     * coroutine, which tells the watch, is posted back to the main looper. When the disk write
+     * finishes after the last `waitForIdle`, that post sits unrun and `waitUntil` times out however
+     * long it is given (CI run 37498429829; reproduced 17 of 40 with the test's files on a real
+     * disk, 0 of 80 on tmpfs, the local default; see the sundown-line report, "The CI timeout").
+     * Here the only thing waited for is the disk write itself.
+     */
+    private fun awaitOnMainLooper(timeoutMillis: Long, what: String, condition: () -> Boolean) {
+        val mainLooper = Shadows.shadowOf(Looper.getMainLooper())
+        val deadline = System.currentTimeMillis() + timeoutMillis
+        while (true) {
+            mainLooper.idle()
+            if (condition()) return
+            if (System.currentTimeMillis() >= deadline) {
+                throw AssertionError("$what: not within $timeoutMillis ms (stored $stored, errors $errors)")
+            }
+            Thread.sleep(10)
+        }
+    }
+
     @Test
     fun `the section reads as confirmed, alerts on and an hour selected by default`() {
         val (repository, _) = repository()
@@ -198,7 +224,7 @@ class SundownSettingsTest {
         assertEquals(listOf(true, false, false, false), listOf(30, 45, 60, 90).map(::selected))
         touchRow(darknessMarginTag(45), 0.1f)
         assertEquals(listOf(false, true, false, false), listOf(30, 45, 60, 90).map(::selected))
-        composeRule.waitUntil(5_000) { stored.lastOrNull() == 45 }
+        awaitOnMainLooper(5_000, "the watch told 45") { stored.lastOrNull() == 45 }
         assertEquals("the watch is told each stored margin", listOf(30, 45), stored)
 
         assertEquals(false, repository.getAlertsEnabled().getOrThrow())
