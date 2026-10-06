@@ -12086,3 +12086,14 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Dispatch-file:** preserved/2026-10-06-03.md
 **Not yet sent:** for the owner to send; records only, no Gradle, can run alongside -549's verify step (-549 builds only on the owner's "go").
 **Notes:** Written by the planner by hand, on branch records-after-173 at 2c11d3e7.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-553
+**Timestamp:** 2026-10-06T02:18:00Z
+**Continues:** 2026-09-28-550
+**Decides:** -516 merges without first seeing the leave-by and sunset alerts on a correct clock
+**The owner, verbatim:** "More walks will be held so we will have more data coming in. We got what we are after so let's move on." Then: "Drop the condition. We collected the data we needed by having automatic clocks turned off while navigating, and compared it against having it turned on. If something comes along to change our decisions, it won't be an overhaul of the system."
+**What it sets:** removes the open item -550 kept before -516 merges. -516's merge now waits only on the owner's word. Later walks are evidence, not a gate. -551 stays written and unsent, the owner's to send or leave; -552 stays reserved for its coder's entry, so this entry is -553.
+**Notes:** Written by the planner by hand, on branch records-after-173 at ef1eefe9.
