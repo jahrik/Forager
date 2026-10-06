@@ -25,7 +25,12 @@ class WalkLogSession(
     private val onStoppedEarly: () -> Unit = {},
 ) : WalkLogEvents {
 
-    private var active = false
+    /**
+     * Read from other threads (the logger's [isActive] callers). Set false only after the file is
+     * closed, so "not active" means the end line and every buffered line are on disk.
+     */
+    @Volatile private var active = false
+    private var stopping = false
     private var measurementsUnsupportedSaid = false
 
     val isActive: Boolean get() = active
@@ -57,10 +62,14 @@ class WalkLogSession(
     }
 
     fun stop(reason: String = REASON_RECORDING_STOPPED) {
-        if (!active) return
-        active = false
-        platform.unregisterAll()
-        writer.close(WalkLogFormat.end(platform.elapsedRealtimeNanos(), reason))
+        if (!active || stopping) return
+        stopping = true
+        try {
+            platform.unregisterAll()
+            writer.close(WalkLogFormat.end(platform.elapsedRealtimeNanos(), reason))
+        } finally {
+            active = false
+        }
     }
 
     override fun onFix(fix: FixRecord) {
