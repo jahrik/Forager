@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.domain
 
 import com.zynergylabs.forager.app.domain.model.TaxonFilter
 import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
+import com.zynergylabs.forager.app.domain.model.UnitSystem
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -11,11 +12,13 @@ import org.junit.Test
 
 class ForagingWeatherGuidanceTest {
 
-    private fun guidanceFor(selection: ForagingSelection) =
-        ForagingWeatherGuidance.forSelection(selection)
+    // Metric unless a test says otherwise: the band's own constant is in °C, so the metric text is
+    // the one the assumption tests below read against (dispatch 2026-09-28-549).
+    private fun guidanceFor(selection: ForagingSelection, unitSystem: UnitSystem = UnitSystem.METRIC) =
+        ForagingWeatherGuidance.forSelection(selection, unitSystem)
 
-    private fun textOf(selection: ForagingSelection) =
-        guidanceFor(selection).paragraphs.joinToString(" ")
+    private fun textOf(selection: ForagingSelection, unitSystem: UnitSystem = UnitSystem.METRIC) =
+        guidanceFor(selection, unitSystem).paragraphs.joinToString(" ")
 
     // ---- selection plumbing ----------------------------------------------------------------
 
@@ -67,6 +70,26 @@ class ForagingWeatherGuidanceTest {
         )
         assertEquals(10.0, FruitingPatternAssumptions.TEMPERATE_FRUITING_SOIL_TEMPERATURE_C.start, 0.0)
         assertEquals(20.0, FruitingPatternAssumptions.TEMPERATE_FRUITING_SOIL_TEMPERATURE_C.endInclusive, 0.0)
+    }
+
+    /**
+     * Dispatch 2026-09-28-549: under Imperial (US) the same band reads in whole °F, converted from
+     * the one °C constant (10 °C = 50 °F, 20 °C = 68 °F, worked by hand), and no °C figure is left.
+     */
+    @Test
+    fun `under the imperial setting the fungi guidance quotes the band in Fahrenheit`() {
+        val text = textOf(ForagingSelection.fromCategory(TaxonFilter.FUNGI), UnitSystem.IMPERIAL)
+
+        assertTrue("expected \"roughly 50–68 °F\" in: $text", text.contains("roughly 50–68 °F"))
+        assertFalse("no °C left in: $text", text.contains("°C"))
+    }
+
+    /** The metric text, exact, so the conversion cannot change what a metric reader sees. */
+    @Test
+    fun `under the metric setting the band reads exactly as before`() {
+        val text = textOf(ForagingSelection.fromCategory(TaxonFilter.FUNGI), UnitSystem.METRIC)
+
+        assertTrue(text, text.contains("A soil temperature of roughly 10–20 °C is often quoted"))
     }
 
     @Test
@@ -181,8 +204,8 @@ class ForagingWeatherGuidanceTest {
         )
         val forbidden = listOf("%", "best day", "chance of", "score", "star", "out of 5", "likely to find")
 
-        val offenders = everySelection.flatMap { selection ->
-            val guidance = guidanceFor(selection)
+        val offenders = UnitSystem.entries.flatMap { system -> everySelection.map { it to system } }.flatMap { (selection, system) ->
+            val guidance = guidanceFor(selection, system)
             val text = (guidance.paragraphs + listOfNotNull(guidance.speciesDataCaveat)).joinToString(" ")
             forbidden.filter { text.lowercase().contains(it) }.map { "${selection.filter.label}: $it" }
         }
