@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStoreFile
 import com.zynergylabs.forager.app.data.repository.runCatchingCancellable
+import com.zynergylabs.forager.app.diagnostics.walklog.WalkLoggerSwitch
 import com.zynergylabs.forager.app.domain.ForecastAvailability
 import com.zynergylabs.forager.app.domain.ForecastBlock
 import com.zynergylabs.forager.app.domain.ForecastCell
@@ -171,7 +172,7 @@ interface SyntheticForecastSwitch {
 class SyntheticForecastCellStore(
     context: Context,
     scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
-) : ForecastCellStore, SyntheticForecastSwitch {
+) : ForecastCellStore, SyntheticForecastSwitch, WalkLoggerSwitch {
 
     private val dataStore = PreferenceDataStoreFactory.create(
         scope = scope,
@@ -185,6 +186,11 @@ class SyntheticForecastCellStore(
     override suspend fun setEnabled(enabled: Boolean): Result<Unit> = runCatchingCancellable {
         dataStore.edit { prefs -> prefs[KEY_ENABLED] = enabled }
     }
+
+    // STUB for the failing-test commit (dispatch 2026-09-28-532): reads off, stores nothing.
+    override suspend fun isWalkLoggerEnabled(): Result<Boolean> = Result.success(false)
+
+    override suspend fun setWalkLoggerEnabled(enabled: Boolean): Result<Unit> = Result.success(Unit)
 
     override suspend fun availability(week: LocalDate): ForecastAvailability =
         if (enabled()) ForecastAvailability.Groups(groups) else ForecastAvailability.NoForecastData
