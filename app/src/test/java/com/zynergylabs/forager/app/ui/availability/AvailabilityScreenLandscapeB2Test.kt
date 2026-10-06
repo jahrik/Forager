@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import androidx.test.core.app.ApplicationProvider
+import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.model.AvailabilityEntry
 import com.zynergylabs.forager.app.domain.model.AvailabilityForecast
@@ -777,7 +778,9 @@ private val B2_REGION = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
 
 private val B2_FIX_LOCATION = LatLng(45.3301, -122.6402)
 
-private const val B2_ELEVATION_TEXT = "123 m"
+// In feet: this file's state carries the Imperial default, and the strip's elevation follows Units
+// (dispatch 2026-09-28-549; 123 / 0.3048 = 403.54).
+private const val B2_ELEVATION_TEXT = "404 ft"
 
 private fun b2Sighting(index: Int) = Sighting(
     observationId = index.toLong(),
@@ -803,6 +806,7 @@ private val B2_FIX_STATE = B2_SEARCHED_STATE.copy(
         altitude = 123.0,
         accuracyMeters = 5f,
         timestampEpochMillis = System.currentTimeMillis(),
+        provider = FixProvider.GPS,
     ),
 )
 

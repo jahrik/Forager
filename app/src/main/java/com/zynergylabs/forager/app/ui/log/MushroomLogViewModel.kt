@@ -398,7 +398,9 @@ class MushroomLogViewModel(
      * fallback never fires silently; no fix at all is the ordinary case and is not logged.
      *
      * What is not bounded here: accuracy. `AvailabilityViewModel`'s collector already refuses fixes
-     * worse than 50 m before they are held (`LiveFixGate`), so every fix this reads passed that.
+     * worse than 50 m before they are held (`LiveFixGate`), so every fix this reads passed that. It also
+     * refuses every fix not from GPS (dispatch 2026-09-28-527), so a find never takes a network position
+     * from here. The camera's own capture path does not come through here (the -527 report, stop 1).
      */
     private suspend fun freshDeviceLocation(): LatLng? {
         // Owner ruling, 2026-09-14: the setting gates every automatic location capture, finds

@@ -7,6 +7,7 @@ import com.zynergylabs.forager.app.domain.CommitDraftEntryUseCase
 import com.zynergylabs.forager.app.domain.CreateMushroomLogEntryUseCase
 import com.zynergylabs.forager.app.domain.DeleteGalleryPhotoUseCase
 import com.zynergylabs.forager.app.domain.DeleteMushroomLogEntryUseCase
+import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.GetDraftEntriesUseCase
 import com.zynergylabs.forager.app.domain.GetGalleryPhotosUseCase
 import com.zynergylabs.forager.app.domain.GetMushroomLogEntriesUseCase
@@ -2028,4 +2029,4 @@ private class FakeLocationProvider(
 private const val NOW = 1_700_000_000_000L
 
 private fun fixAgedMillis(ageMillis: Long, lat: Double = 45.5, lng: Double = -122.6) =
-    LocationFix.Update(lat = lat, lng = lng, altitude = null, accuracyMeters = 8f, timestampEpochMillis = NOW - ageMillis)
+    LocationFix.Update(lat = lat, lng = lng, altitude = null, accuracyMeters = 8f, timestampEpochMillis = NOW - ageMillis, provider = FixProvider.GPS)

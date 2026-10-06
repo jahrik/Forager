@@ -60,6 +60,9 @@ class AndroidLastKnownLocationSource(
         altitude = if (hasAltitude()) altitude else null,
         accuracyMeters = if (hasAccuracy()) accuracy else null,
         timestampEpochMillis = time,
+        // Display only, never acted on (dispatch -510); its provider is carried all the same, by the
+        // tracker's own rule, so a fix never travels without one (dispatch -527).
+        provider = AndroidLocationTracker.fixProviderOf(provider),
         speedMetersPerSecond = if (hasSpeed()) speed else null,
         speedAccuracyMetersPerSecond = if (hasSpeedAccuracy()) speedAccuracyMetersPerSecond else null,
     )

@@ -33,17 +33,20 @@ import kotlinx.coroutines.sync.withLock
  *   condition for merging this, with -510 merged first).
  * - **The walk back**, from [returnWalkingTime] over the stored track (read through the read seam,
  *   so the network-fix exclusion and its counts are the ones the estimate's "at least" rules
- *   expect), its origin waypoint, and the newest **GPS** fix only. GPS is told from network by
- *   [isNetworkProviderFix], the rule the track read and the off-track judge use, so the current
- *   fix and the track agree; the raw stream carries no provider. Its freshness is [fixFreshness]
+ *   expect), its origin waypoint, and the newest **GPS** fix only. GPS is told from network by the
+ *   provider the platform reported, passed beside each fix by the service ([FixProvider], dispatch
+ *   2026-09-28-527); an unknown provider is not GPS. Until -527 the raw stream carried no provider
+ *   and this used the timestamp rule ([isNetworkProviderFix]), which on the S22's walks disagreed with
+ *   the provider 4 times in 1,969 fixes. Its freshness is [fixFreshness]
  *   of its age, so a GPS fix older than five minutes withholds the estimate. The hop band is
  *   carried between ticks, as [returnWalkingTime] asks.
  * - **The decision**, [DecideSundownAlertUseCase], with what has already fired.
  *
- * **Failure direction of the timestamp rule** (recorded in the report against RECORD -519): on a
- * phone whose GPS stamps milliseconds, every GPS fix reads as network, the walk back reads
- * "unknown", and the leave-by time falls back to sunset minus the margin. Safe in direction: no
- * confident figure it does not have.
+ * **Failure direction** (recorded in -516's report against RECORD -519, and still the direction): a
+ * phone whose live fixes come only from network, or from a provider this app does not recognise, has
+ * no GPS fix, so the walk back reads "unknown" and the leave-by time falls back to sunset minus the
+ * margin. Safe in direction: no confident figure it does not have. The timestamp rule's own failure,
+ * a phone whose GPS stamps milliseconds, no longer reaches this watch (dispatch 2026-09-28-527).
  *
  * **The sunset held.** [ComputeSundownCountdownUseCase] always reports the *next* sunset, so
  * at sunset it reports tomorrow's (and its search turns over a fraction of a second early). The
@@ -126,12 +129,15 @@ class SundownWatch(
      * One raw fix from the service's collector. Ignored when nothing is being watched. Returns
      * `true` for the first fix of a recording, so the service can evaluate at once rather than at
      * its next tick: a recording started past the leave-by time alerts as soon as it has a place.
+     *
+     * [provider] is where the platform said [fix] came from (dispatch 2026-09-28-527), passed beside it
+     * and never stored.
      */
-    fun onFix(fix: TrackPoint): Boolean = synchronized(lock) {
+    fun onFix(fix: TrackPoint, provider: FixProvider): Boolean = synchronized(lock) {
         if (trackId == null) return@synchronized false
         val first = newestFix == null
         newestFix = fix
-        if (!fix.isNetworkProviderFix()) newestGpsFix = fix
+        if (provider.mayAct) newestGpsFix = fix
         first
     }
 
