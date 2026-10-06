@@ -11991,3 +11991,16 @@ So labels can ship online and in offline regions on today's MapLibre with Forage
 **Which to cite:** for -540, the **finding**, which confirms the clock diagnosis from both phones' `ForagerFix` logs; the observation reached the same diagnosis from screenshots only, as an inference. For -542, either: the same owner words and the same outcome, deferred until more walks.
 **Next free ID:** -544. Handoff: `docs/audits/2026-10-05-planner-handoff.md`.
 **Notes:** Written by the planner by hand, on branch records-after-173.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-544
+**Timestamp:** 2026-10-06T01:20:00Z
+**Title:** walk-evidence: file what the 2026-10-05 walks show, the 4:49 walk's estimate replay and the noon walk read on its own clock
+**Dispatch-file:** preserved/2026-10-06-01.md
+**Context:** The owner, in the laptop coder's window (`session_012X8w7DNXZcsSgjKy4BZkk8`), after its replay of the build's walk-back estimate over the 4:49 PM out-and-back: "Write it up" (01:05 UTC); to its three questions (01:10 UTC): "Yes, two walks" (the 5:13 PM screenshots are the noon walk on the clock set ahead, -540), "records-after-173 (Recommended)", "No, only this one" (no other planner window on this branch). In the planner's window: "Answered the questions. Write a dispatch for the rest". The coder's chat reading of a "track on both phones whose start time is wrong" (00:43 UTC), passed to the owner by the planner as a possible recording bug, is to be checked against the noon walk's clock and withdrawn in the doc if it does not hold.
+**Evidence saved:** the coder's session-scoped scratch folder copied by the planner to `~/Zynergy/device-evidence/2026-10-05-sundown-walks/` at 2026-10-06T01:15Z, 67 files, every file identical by sha256; outside every repository (track databases with positions, logcat and notification dumps, the replay's source and outputs).
+**Not yet sent:** for the owner to send to that coder window. Records only: no Gradle, nothing on either phone. The coder's own entry is -545.
+**Record checkers:** the `check_record.py` and `check_prompts.py` this file's header says to run are not in the tree (removed with the kit at e1363308, 2026-09-26). The copies in `~/Zynergy/Claude-kit` check their own folder whatever path is passed, so a run of them from here passes on the kit and says nothing about this repository; the planner's first run did exactly that. Run from temporary copies placed in this tree, both fail on errors that predate this entry: 1,646 entry-error lines and 307 binding violations at efd8e2ff. This entry and its dispatch file add 8 and 1, the same kinds as their neighbours (intent fields this record stopped writing; no `Preserved:` header). Not fixed here; for the owner.
+**Notes:** Written by the planner by hand, on branch records-after-173 at efd8e2ff.
