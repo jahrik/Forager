@@ -68,7 +68,11 @@ class WalkLogger private constructor(private val app: Context) {
             val startWall = System.currentTimeMillis()
             val logFile = File(directory, fileName(startWall))
             val override = freeBytesOverride
-            val platform = AndroidWalkLogPlatform(app, handler) { override?.invoke(directory) ?: directory.usableSpace }
+            // Free space is read from the app's files root, which always exists: a folder that does
+            // not exist yet reports 0 bytes free, which stopped the first recording after every fresh
+            // install as storage-low (RECORD -569). walklogs/ is created inside it by the writer.
+            val root = directory.parentFile ?: directory
+            val platform = AndroidWalkLogPlatform(app, handler) { override?.invoke(directory) ?: root.usableSpace }
             val writer = WalkLogWriter(logFile, platform::freeBytes, platform::elapsedRealtimeNanos)
             val newSession = WalkLogSession(platform, writer, onStoppedEarly = ::releaseWakeLock)
             file = logFile
