@@ -58,3 +58,5 @@ These files were moved here from `docs/plans/` and `docs/audits/`. Links in the 
 | [2026-10-05-sundown-alerts-report.md](2026-10-05-sundown-alerts-report.md) | The three sundown alerts from the recording service, with the walk back in them (dispatch -516, T2 and T13; RECORD -513 to -515, -519) |
 | [2026-10-05-fix-provider-report.md](2026-10-05-fix-provider-report.md) | Every fix carries its true source; only a GPS fix acts on position, and a network or unknown one shows as approximate (dispatch 2026-09-28-527, RECORD -519, -558) |
 | [2026-10-06-units-follow-report.md](2026-10-06-units-follow-report.md) | Elevation, the rise, position accuracy and soil temperature follow Settings > Units (dispatch 2026-09-28-549, RECORD -547, Amendment 1 RECORD -557) |
+| [2026-10-05-walk-logger-report.md](2026-10-05-walk-logger-report.md) | Walk logger: a debug-only recorder of everything the phone senses on a walk, behind a Diagnostics switch, off by default (dispatch 2026-09-28-532; RECORD -533, -559, -560) |
+| [2026-10-05-how-to-log-a-walk.md](2026-10-05-how-to-log-a-walk.md) | How to log a walk: the owner's one page, both phones (dispatch -532) |
