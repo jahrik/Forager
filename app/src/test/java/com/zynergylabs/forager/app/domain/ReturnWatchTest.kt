@@ -53,7 +53,7 @@ class ReturnWatchTest {
      * path from the first, and gone off at the fourth, 15 s and four readings in.
      */
     private fun ReturnWatch.walkAway(fromMillis: Long, fromLat: Double = 45.001) {
-        repeat(4) { i -> onFix(point(lat = fromLat + i * 0.001, t = fromMillis + i * 5_000L)) }
+        repeat(4) { i -> onFix(point(lat = fromLat + i * 0.001, t = fromMillis + i * 5_000L), FixProvider.GPS) }
     }
 
     /** The walk out, kept by the service: 45.000 to 45.003 north, every 0.0005° (56 m). */

@@ -5,6 +5,7 @@ import android.app.Application
 import android.app.NotificationManager
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.Alert
 import com.zynergylabs.forager.app.domain.AlertDeliveryOutcome
 import com.zynergylabs.forager.app.domain.AlertKind
@@ -80,7 +81,7 @@ class AlertDeliveryOutcomeTest {
         watch.setStartPoint("track-1", TrackPoint(45.0, -122.0, null, 4f, 1_000L))
         watch.startReturn("track-1")
         val collection = (0..5).map { i -> TrackPoint(45.001 + i * 0.001, -122.0, null, 4f, 2_000L + i * 5_000L) }
-        collection.forEach(watch::onFix) // the fourth goes off and delivers; the collection carries on
+        collection.forEach { watch.onFix(it, FixProvider.GPS) } // the fourth goes off and delivers; the collection carries on
         assertEquals("the last fix was measured", 666.0, watch.state.value.returnToStart!!.distanceMeters, 5.0)
         val delivered = written.filterIsInstance<ReturnRecordEvent.AlertDelivered>().single()
         assertEquals("SecurityException", delivered.outcome?.notificationProblem)
