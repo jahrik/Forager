@@ -322,3 +322,68 @@ ui/log/EntriesDrafts.kt:26:import com.zynergylabs.forager.app.ui.theme.Spacing
 ui/log/RecordsFilterChips.kt:28:import com.zynergylabs.forager.app.ui.theme.Spacing
 ui/log/FindsGalleryScreen.kt:40:import com.zynergylabs.forager.app.ui.theme.Spacing
 ```
+
+## Amendment 1 (RECORD -660), written 2026-10-07 after the owner's answers; supersedes the strings and stops above
+
+Still nothing compiled or run, apart from the design-token script (bash). Each item is the owner's
+answer as the planner relayed it.
+
+1. **Strings, "Shorter set".** J1 "Couldn't read this crash report. Go back and open it again."; M2
+   "Couldn't read the regions from your backup. Showing downloaded regions only. Reopen Offline maps to
+   try again."; R9 "Couldn't add the full GPS record. This file has the track only. Share again to
+   retry." In the three constants; the tests read the constants.
+2. **D10, "Reset it and say so once".** Every one of the ten settings files is now built through
+   `data/repository/SettingsDataStore.kt` `settingsDataStore(...)`, which installs DataStore's
+   `ReplaceFileCorruptionHandler`: a file that will not parse is replaced with empty preferences (that
+   file only), logged with its name and cause, and `SettingsResetNotice` (`domain/`, held by
+   `AppContainer` and handed to all ten) is raised. **Where the message shows (proposal):** a long Toast
+   from `MainActivity`, the first time the screen is started after the reset, then cleared; the reset is
+   found on the first read of that file, which the screen's ViewModels make as they start. Text:
+   "Some settings couldn't be read and were reset. Check Settings." Test: `SettingsResetAndDecodeTest`
+   writes a truncated proto to the theme file and reads it through the real repository (the read
+   works, reads as the default, the notice is pending, the file takes writes again); an intact file
+   raises nothing. The Toast itself is not tested: no test composes `MainActivity`.
+3. **D3, "Fall back and log".** `decodeStoredName` in the same file: nothing stored is the default,
+   silently; an unknown name is logged and is the default. Used by theme (default: the legacy choice,
+   else System Default, as before), units (IMPERIAL; also the legacy distance-unit key), backup
+   frequency (WEEKLY) and camera grid (Off). Tests: an unknown backup frequency and an unknown unit
+   system read through the real repositories, and the decode's log. **Existing test this breaks, not
+   edited:** `DataStoreCameraGridModeRepositoryTest`, "a stored name this build does not know is a
+   failed read, not a silent Off" asserts `gridModeFromStored("Crosshair").isFailure`; it is now a
+   success (Off). `gridModeFromStored` keeps its `Result` type so the test compiles. Proposed
+   replacement: assert Off and the logged line.
+4. **R7, "Fix it, say why".** `domain/RecordingHalts.kt` (held by `AppContainer`): the service reports
+   a refused foreground start, a start with no location permission, and permission lost mid-walk, ends
+   that track, then stops itself. `TrackRecordingViewModel` (built with
+   `container.recordingHalts.latest` in `MainActivity`) shows not recording for its own track and sets
+   the message the screen already shows as a Toast. Refused: the owner's "Recording couldn't start.
+   Open Forager and tap Record again." **Permission (proposal):** "Recording stopped because Forager
+   can't use your location. Allow location for Forager in your phone's Settings, then tap Record
+   again." Test: `TrackRecordingHaltTest`, the permission case end to end (the ViewModel's Record, then
+   the real service started with permission withdrawn: not recording, the message, the track ended);
+   the refused case by reporting to the same container object (Robolectric cannot refuse a foreground
+   start); a report for another track changes nothing.
+5. **R8:** comments only, unchanged.
+6. **DecodedPhotoTest, rewritten.** The rotation test now reads `decodeThumbnail` with exact sizes for
+   a 10 px and a 40 px cell (10×20 and 20×10, then 20×40 and 40×20), and a sized composable test checks
+   the thumbnail loads in its 10 dp cell. `DECODE_SAMPLE_SIZE` removed. Unverified: the other tests in
+   that class write non-image bytes and rely on Robolectric faking a 100×100 decode; the new bounds read
+   first is assumed to see the same fake size.
+7. **Design tokens, "Piece by piece".** Of the 74, eleven are in files this sweep changes. Fixed (3):
+   `AvailabilityScreen.kt`'s `Bark` and `Cream` imports (both unused), and `AvailabilitySearchUi.kt`'s
+   `Bark`, now through `ui/theme/MapChromeContentColor.kt` `mapChromeContentColor(isDark)` (same
+   colours), excluded in check 2 as `MapIconBarAccent` is. Check 2 now lists 71. **Not fixed (8), for
+   the owner:** `Spacing` in `AvailabilitySearchUi.kt`, `AvailabilityScreen.kt`,
+   `AvailabilitySettingsUi.kt`, `TrackExportPanel.kt`, `CrashLogPanel.kt` (the spacing scale, imported by
+   design; no call-site fix exists), and `navigationBarContainerColor` in `SightingsMap.kt`,
+   `AvailabilitySearchUi.kt`, `AvailabilityScreen.kt` (the theme's own role accessor, "the one token" of
+   the owner's C1 ruling; replacing it would undo that). Both look like candidates for check 2's
+   exclusion list rather than code changes.
+8. **Check 3, pattern fixed.** Now `(^|[^[:alnum:]_])tween\(`. With a planted file holding one
+   `tween(300)` and one `metersBetween(`: the fixed check listed the `tween` and not the other; the old
+   pattern listed both, plus the three real `metersBetween(` lines. Plant removed. Its findings, not
+   fixed (both files are motion Part 1's): `ui/map/fanout/MarkerFanOutState.kt:81`, and
+   `ui/backup/RestoreLoadingPage.kt:91`, `:92`, `:94`, `:97`.
+
+The R1 seam is accepted, R9 stays a Toast, `SearchEntryBar`'s unused parameter waits for motion Part 1
+(the planner). CLAUDE.md is not edited.
