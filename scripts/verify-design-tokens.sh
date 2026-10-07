@@ -8,15 +8,18 @@
 # records for verify-codeowners-placeholders.sh: that pipeline gates every PR in this repo, and a
 # violation here should not block unrelated changes from merging.
 #
-# EXPECTED STATE WHILE THE DESIGN SYSTEM LANDS. Checks 3 and 4 passed once step 4 of that plan
-# (the MotionTokens rewrite onto MotionScheme, docs/adr/0002-motion-scheme-adoption.md) landed.
-# Check 2 still fails, but not on MapPalette -- that landed as the hand-authored day/night palette
-# (R9 overriding the original "derive from ColorScheme" plan), and its own import is excluded
-# below. The remaining failures are Spacing imported broadly by design (step 3), plus one
-# pre-existing, separately tracked defect ("tag 05": Bark imported into AvailabilityScreen.kt).
-# That is the point -- a check written after the fact, which passes the moment it is introduced,
-# never demonstrated it could fail. Run it, read which checks fail, and expect the list to shrink
-# as the steps land.
+# STATE AS OF 2026-10-07 (dispatch 2026-09-28-658, scout items G1/F1), replacing an older header
+# that no longer matched. Check 2 had searched for imports under com.forager.app.ui.theme, the
+# package root from before the rename to com.zynergylabs.forager.app, so it found nothing and passed
+# whatever the code imported: a check that never saw the data that could fail it. It now searches
+# the current root, and fails: Spacing is imported broadly by design (step 3 of the plan), and
+# palette and type tokens are imported from feature packages (the list went to the owner with
+# that dispatch's report; nothing was changed to make it pass). Check 1 fails on one colour
+# literal in ui/log, and check 3 fails, partly on real tween( calls and partly because its pattern
+# also matches "metersBetween(". Check 4 passes. A check that passes the moment it is introduced
+# never demonstrated it could fail; check 2 was shown failing on a planted import before this
+# header was written. Run it, read which checks fail, and expect the list to shrink as the steps
+# land.
 set -uo pipefail
 
 cd "$(dirname "$0")/.."
@@ -51,7 +54,7 @@ report "no Color(0x literal outside ui/theme/" "$hits"
 #    palette literals reaching into a feature package. LocalForagerDarkTheme is excluded for the
 #    same reason ForagerTheme already is: it is the theme-resolution primitive itself (see its own
 #    doc comment for why it exists), not a colour or a palette constant.
-hits=$(grep -rn "^import com\.forager\.app\.ui\.theme\." app/src/main --include=*.kt \
+hits=$(grep -rn "^import com\.zynergylabs\.forager\.app\.ui\.theme\." app/src/main --include=*.kt \
        | grep -vE "\.(ForagerTheme|LocalForagerDarkTheme|MapPalette|MapIconBarAccent)$" || true)
 report "no palette constant imported outside the theme package" "$hits"
 
