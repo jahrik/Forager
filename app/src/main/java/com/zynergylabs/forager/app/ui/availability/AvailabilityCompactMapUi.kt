@@ -893,24 +893,26 @@ internal fun CompactMapTab(
                 // so stage two's picker cannot bring it back by accident — see AvailabilityScreen's
                 // own isNavigating doc comment.
                 // Motion Part 2, item 3: how the strip and the navigation display come and go (their comments below). Up and out,
-                // or down and in, by the panel's own height; a fade with it; the fade alone under reduced motion.
+                // or down and in, by the panel's own height, with a fade, all one timed animation exactly as long as the map's
+                // tilt (Amendment 1, RECORD -672). Under reduced motion the fade alone, on the pop-ups' fade.
                 val reduceMotion = LocalReduceMotion.current
                 val navigationChromeSlide = MotionTokens.navigationViewChromeSpec<IntOffset>()
-                val navigationChromeFade = MotionTokens.mapPopUpFadeSpec<Float>()
+                val navigationChromeTimedFade = MotionTokens.navigationViewChromeSpec<Float>()
+                val reducedFade = MotionTokens.mapPopUpFadeSpec<Float>()
                 val navigationChromeEnter = if (reduceMotion) {
-                    fadeIn(animationSpec = navigationChromeFade)
+                    fadeIn(animationSpec = reducedFade)
                 } else {
-                    slideInVertically(animationSpec = navigationChromeSlide) { fullHeight -> -fullHeight } + fadeIn(animationSpec = navigationChromeFade)
+                    slideInVertically(animationSpec = navigationChromeSlide) { fullHeight -> -fullHeight } + fadeIn(animationSpec = navigationChromeTimedFade)
                 }
                 val navigationChromeExit = if (reduceMotion) {
-                    fadeOut(animationSpec = navigationChromeFade)
+                    fadeOut(animationSpec = reducedFade)
                 } else {
-                    slideOutVertically(animationSpec = navigationChromeSlide) { fullHeight -> -fullHeight } + fadeOut(animationSpec = navigationChromeFade)
+                    slideOutVertically(animationSpec = navigationChromeSlide) { fullHeight -> -fullHeight } + fadeOut(animationSpec = navigationChromeTimedFade)
                 }
                 // Motion Part 2, item 3 (dispatch 2026-09-28-666, scouts N1 and N2; the owner, RECORD -651: "Move with the map"):
                 // on starting navigation the strip slides up and out, clipped at its own top edge so it goes in under the search
                 // bar, while the navigation display below slides down and in the same way, both on navigationViewChromeSpec,
-                // the motion scheme's nearest to the map's 750 ms tilt; on stopping, the reverse. Each fades as it moves; under
+                // exactly as long as the map's tilt; on stopping, the reverse. Each fades as it moves; under
                 // reduced motion each only fades. A leaving strip takes no touch (item 5) and gives up its keep-out and its
                 // measured height at once, so nothing waits on it. It is still composed for the length of its exit, so for that
                 // moment it reads the heading at sensor rate beside the HUD (the paragraph above): bounded, and the S22's to judge.
