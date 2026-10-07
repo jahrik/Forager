@@ -3,6 +3,8 @@ package com.zynergylabs.forager.app.ui.log
 import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasText
@@ -16,6 +18,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.domain.CartographyEntryMapData
 import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
+import com.zynergylabs.forager.app.domain.model.DerivedTrip
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.FindDecision
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
@@ -201,6 +204,27 @@ class CartographyEntryReportScreenTest {
         }
 
         composeRule.onNodeWithText("Gone Now Loop").assertIsDisplayed()
+        // RECORD -671: with the day's records not loaded, the track is not known to be gone, so no note.
+        composeRule.onNodeWithText(TRACK_NOT_IN_RECORDS_LINE).assertDoesNotExist()
+    }
+
+    /** RECORD -671: with the day loaded and the track not in it, its name row says it is gone and has nothing to open. */
+    @Test
+    fun `a kept track gone from a loaded day says it is no longer in Records and has no tap`() {
+        val entry = baseEntry.copy(
+            trackDecisions = listOf(
+                TrackDecision(trackId = "deleted-track", name = "Gone Now Loop", distanceMeters = 3_200.0, durationMillis = 1_800_000L, pointCount = 100, kept = true),
+            ),
+        )
+        val day = DerivedTrip(date = entry.date, finds = emptyList(), tracks = emptyList(), waypoints = emptyList(), offlineRegions = emptyList())
+
+        composeRule.setContent {
+            CartographyEntryReportScreen(entry = entry, galleryPhotos = emptyList(), distanceUnit = DistanceUnit.MILES, mapSlot = NoOpMapSlot, night = false, getMapData = { _, _ -> EmptyCartographyEntryMapData }, getCoveringOfflineRegion = { _, _ -> null }, getCurrentLocation = { LocationResult.LocationUnavailable }, onEdit ={}, onDeleteEntry = {}, onBack = {}, candidates = day)
+        }
+
+        composeRule.onNodeWithText("Gone Now Loop").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText(TRACK_NOT_IN_RECORDS_LINE).assertIsDisplayed()
+        composeRule.onNodeWithTag(entryTrackRowTag("deleted-track")).assert(SemanticsMatcher.keyNotDefined(SemanticsActions.OnClick))
     }
 
     /** Stage 2c dispatch, point 5: reuses [CartographyEntryEditScreen]'s own fallback — proves it still renders when the gallery row is gone. */

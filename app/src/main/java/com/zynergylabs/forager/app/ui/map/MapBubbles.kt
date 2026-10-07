@@ -319,7 +319,7 @@ private fun mgrsOf(location: LatLng): String? = (MgrsConverter.convert(location)
  * find does not count, as the find badge does not) and how many journal entries keep it.
  *
  * While the bubble shows J8's keeping-entry lines ([keepingEntriesShown]), the line leaves out its
- * "Kept in" part, so "Kept in" is said once, by J8's lines (dispatch `2026-09-28-70`; the owner:
+ * "In N journal entries" part (it said "Kept in" until the owner's RECORD -671), so it is said once, by J8's lines (dispatch `2026-09-28-70`; the owner:
  * "Option B"). The two counts differ: this one is every entry keeping the photo, J8's only the entries
  * shown on the map. With nothing else left the line is left out (`null`), so a photo a shown entry
  * keeps is never called "Not in a find or a journal entry".
@@ -333,7 +333,7 @@ private fun photoAttachmentLine(gallery: GalleryPhoto, sources: MapRecordSources
             1 -> add("In ${finds.single().ownIdentification?.takeIf { it.isNotBlank() } ?: findDateLabel(finds.single())}")
             else -> add("In ${finds.size} finds")
         }
-        if (entries > 0 && !keepingEntriesShown) add("Kept in ${journalEntryCountLabel(entries)}")
+        if (entries > 0 && !keepingEntriesShown) add("In ${journalEntryCountLabel(entries)}")
     }
     return when {
         parts.isNotEmpty() -> parts.joinToString(" · ")

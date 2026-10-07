@@ -209,6 +209,8 @@ internal fun CartographyScreen(
     onSetEntryGroupIncluded: (EntryGroup, Boolean) -> Unit = { _, _ -> },
     /** Which of that panel's groups are open: hoisted to the caller (`AvailabilityScreen` holds it), as [entryModeState] is, so it survives a tab change. */
     openEntryGroupsState: MutableState<Set<EntryGroup>> = remember { mutableStateOf(emptySet()) },
+    /** Which waypoint rows in an entry report show their coordinates, by waypoint id: hoisted the same way (RECORD -671). */
+    openEntryWaypointRowsState: MutableState<Set<String>> = remember { mutableStateOf(emptySet()) },
 ) {
     var mode by entryModeState
     var openEntryGroups by openEntryGroupsState
@@ -447,6 +449,7 @@ internal fun CartographyScreen(
                     mapBubbleSources = mapBubbleSources,
                     onSetShownOnMap = onSetShownOnMap?.let { set -> { shown: Boolean -> set(editingEntry.id, shown) } },
                     candidates = uiState.candidatesForEditingEntry,
+                    openWaypointRowsState = openEntryWaypointRowsState,
                     onEdit = { mode = CartographyEntryMode.EDIT },
                     onDeleteEntry = { onDeleteEntry(editingEntry.id) },
                     onBack = ::closeEntryByUser,

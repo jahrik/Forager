@@ -438,6 +438,27 @@ class EntryDataScreensTest {
         }
     }
 
+    /**
+     * RECORD -671 ("Keep Finds & maps, fold tracks"): a track is one name row, with no distance or time
+     * line (the tiles carry those), and a touch on it opens the track's details over the report. The
+     * touch is at 80% of the row's width, the empty part beside the name, which is where a row that
+     * only listened on its text would miss.
+     */
+    @Test
+    fun `a track below the table is its name alone, and a touch on its row opens its details`() {
+        setScreen(mode = CartographyEntryMode.VIEW)
+        val row = composeRule.onNodeWithTag(entryTrackRowTag(TRACK_ID)).performScrollTo()
+        row.assert(hasText("Ridge Loop"))
+        composeRule.onAllNodesWithText("0.8 mi · 1 min").assertCountEquals(0)
+        composeRule.onAllNodesWithText(TRACK_NOT_IN_RECORDS_LINE).assertCountEquals(0)
+        composeRule.onAllNodesWithTag(RECORD_DETAILS_SHEET_TAG).assertCountEquals(0)
+
+        row.performTouchInput { click(Offset(width * 0.8f, height / 2f)) }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(RECORD_DETAILS_SHEET_TAG).assertExists()
+    }
+
     /** A walk recorded with no heights draws no profile: one plain line says why, and Climb says it was not recorded. */
     @Test
     fun `a walk with no heights says so in one line instead of drawing a profile`() {

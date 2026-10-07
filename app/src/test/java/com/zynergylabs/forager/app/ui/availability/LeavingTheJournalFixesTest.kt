@@ -11,7 +11,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
@@ -122,6 +124,8 @@ import com.zynergylabs.forager.app.domain.EntryGroup
 import com.zynergylabs.forager.app.ui.log.CartographyViewModel
 import com.zynergylabs.forager.app.ui.log.entryGroupRowTag
 import com.zynergylabs.forager.app.ui.log.entryItemSwitchTag
+import com.zynergylabs.forager.app.ui.log.entryWaypointCoordinatesTag
+import com.zynergylabs.forager.app.ui.log.entryWaypointRowTag
 import com.zynergylabs.forager.app.ui.log.waypointItemKey
 import com.zynergylabs.forager.app.ui.log.ENTRIES_FAB_TAG
 import com.zynergylabs.forager.app.ui.log.ENTRIES_HOME_TAG
@@ -748,6 +752,27 @@ class LeavingTheJournalFixesTest {
             storedDayEntry(COMMITTED_DAY_ENTRY.id)?.waypointDecisions?.map { it.kept },
         )
         assertEquals(true, cartographyViewModel.uiState.value.hasUnsavedChanges)
+    }
+
+    /**
+     * RECORD -671 (the planner's call under CLAUDE.md's UX defaults): a waypoint row the user opened in an entry report to show its
+     * coordinates is still open after leaving for Maps and coming back, as the editor panel's open groups are. Coordinate touches.
+     */
+    @Test
+    fun `an entry report's waypoint row opened to its coordinates is still open after a tab change`() {
+        setScreen()
+        openCommittedDayEntry()
+        val coordinates = entryWaypointCoordinatesTag(DAY_WAYPOINT.id)
+        composeRule.onAllNodesWithTag(coordinates, useUnmergedTree = true).assertCountEquals(0)
+        composeRule.onNodeWithTag(entryWaypointRowTag(DAY_WAYPOINT.id)).performScrollTo().performTouchInput { click(Offset(width * 0.3f, height * 0.3f)) }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(coordinates, useUnmergedTree = true).assertTextEquals("Coordinates: 45.3200, -122.6400")
+
+        touchNavItem("Maps")
+        touchNavItem("Journal")
+
+        assertDayEntryReportView()
+        composeRule.onNodeWithTag(coordinates, useUnmergedTree = true).performScrollTo().assertTextEquals("Coordinates: 45.3200, -122.6400")
     }
 
     /** Ported from the investigation's new-draft test, with its assertion inverted: a draft comes back in its editor, Finish entry and all. */

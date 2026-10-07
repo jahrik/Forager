@@ -497,7 +497,7 @@ internal fun MapFeatureBubble(
 /**
  * J8-4, a highlighted record's keeping entries (owner's Q2 ruling, "Tap a date line"; planner's Q3,
  * the report header's date form): up to three, one line each showing its date, whose tap opens that
- * entry, labelled "Open entry <date>" for TalkBack; past three, one line, "Kept in N journal entries",
+ * entry, labelled "Open entry <date>" for TalkBack; past three, one line, "In N journal entries" (was "Kept in"; RECORD -671),
  * whose tap opens an untitled list of their dates, each opening its entry. Nothing for a record no
  * shown entry keeps, or without [onOpenEntry] (every map but the Maps tab). The list is a menu over the
  * map at the map chrome's opacity ([journalMenuContainerColor]).
@@ -592,7 +592,7 @@ internal const val MAP_BUBBLE_CHANCE_TAG = "map-bubble-chance"
 /** J8: a highlighted record's bubble line for one keeping entry, by its date; a tap opens that entry. */
 internal fun mapBubbleEntryLineTag(entryId: String) = "map-bubble-entry-$entryId"
 
-/** J8: the one line, "Kept in N journal entries", that stands for more than three keeping entries. */
+/** J8: the one line, "In N journal entries" (was "Kept in"; RECORD -671), that stands for more than three keeping entries. */
 internal const val MAP_BUBBLE_ENTRY_COUNT_TAG = "map-bubble-entry-count"
 
 /** J8: the untitled list of those entries' dates, opened from [MAP_BUBBLE_ENTRY_COUNT_TAG]. */
