@@ -165,6 +165,21 @@
             </intent-filter>
         </activity>
 
+        <!-- Plan T16, GPX import (dispatch 2026-09-28-634; the owner's "Invisible doorway", RECORD -636):
+             Open with and Share for a GPX file reach this no-UI Activity, never MainActivity, so the
+             sending app's task never gets a second MainActivity and a running recording is never taken
+             up again (see GpxImportActivity). It saves the file, opens MainActivity in Forager's own task
+             on the new track, and finishes; noHistory and excludeFromRecents keep it out of Back and
+             Recents, and configChanges keeps a rotation from importing the file twice.
+             The filters, as the owner's answer lists them:
+             1. VIEW of application/gpx+xml, text/xml or application/xml, from a content: or file: Uri.
+             2. VIEW of application/octet-stream or */* only where the path ends in .gpx (any case the
+                pattern lists). Many file managers send a .gpx as octet-stream; the path is what tells it
+                apart. A path pattern needs a host, hence host="*". A content: Uri whose path has no
+                .gpx in it does not match this filter; filter 1 or the in-app button covers it.
+             3. SEND (Share) of application/gpx+xml, text/xml or application/xml. A Share carries a type
+                and no path, so octet-stream is left out here: it would offer Forager for every file. -->
+
         <!-- The "Try again" action on the failed scheduled-backup notification: runs one backup to the same
              folder (dispatch 2026-09-28-153). Not exported: only this app's own PendingIntent reaches it. -->
         <receiver

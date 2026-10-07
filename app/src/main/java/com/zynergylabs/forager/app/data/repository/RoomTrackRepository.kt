@@ -66,6 +66,10 @@ class RoomTrackRepository(
         dao.insertTrack(track.toEntity())
     }
 
+    override suspend fun createWithPoints(track: Track): Result<Unit> = runCatchingCancellable {
+        dao.insertTrackWithPoints(track.toEntity(), track.points.map { it.toEntity(track.id) })
+    }
+
     override suspend fun appendPoints(trackId: String, points: List<TrackPoint>): Result<Unit> =
         runCatchingCancellable {
             dao.insertPoints(points.map { it.toEntity(trackId) })
@@ -100,6 +104,8 @@ private fun TrackEntity.toDomain(rows: List<TrackPointEntity>): Track {
         points = kept,
         originWaypointId = originWaypointId,
         excludedPointCount = stored.size - kept.size,
+        importedAtEpochMillis = importedAtEpochMillis,
+        importedWithoutTimes = importedWithoutTimes,
     )
 }
 
@@ -109,6 +115,8 @@ private fun Track.toEntity() = TrackEntity(
     startedAtEpochMillis = startedAtEpochMillis,
     endedAtEpochMillis = endedAtEpochMillis,
     originWaypointId = originWaypointId,
+    importedAtEpochMillis = importedAtEpochMillis,
+    importedWithoutTimes = importedWithoutTimes,
 )
 
 private fun TrackPointEntity.toDomain() = TrackPoint(
