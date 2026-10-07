@@ -1,13 +1,10 @@
 package com.zynergylabs.forager.app.location
 
-import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
-import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
 import android.util.Log
-import androidx.core.content.ContextCompat
 import com.zynergylabs.forager.app.domain.LastKnownLocationSource
 import com.zynergylabs.forager.app.domain.LocationFix
 
@@ -24,9 +21,9 @@ class AndroidLastKnownLocationSource(
     private val context: Context,
 ) : LastKnownLocationSource {
 
-    @SuppressLint("MissingPermission") // hasLocationPermission() below is the real (runtime) check.
+    @SuppressLint("MissingPermission") // hasLocationPermission(context) is the real (runtime) check.
     override fun lastKnown(): LocationFix.Update? {
-        if (!hasLocationPermission()) return null
+        if (!hasLocationPermission(context)) return null
         val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
         return PROVIDERS.mapNotNull { lastKnownFrom(locationManager, it) }
             .maxByOrNull { it.time }
@@ -44,12 +41,6 @@ class AndroidLastKnownLocationSource(
         // A phone without this provider: nothing to read from it, and said so.
         Log.w(TAG, "No $provider provider on this phone; its last known location is not read.", e)
         null
-    }
-
-    private fun hasLocationPermission(): Boolean {
-        val fine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
-        val coarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
-        return fine == PackageManager.PERMISSION_GRANTED || coarse == PackageManager.PERMISSION_GRANTED
     }
 
     // Field for field as AndroidLocationTracker maps a live fix, under the same has*() rule: "not

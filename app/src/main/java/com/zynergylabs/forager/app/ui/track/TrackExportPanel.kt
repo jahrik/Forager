@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app.ui.track
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -269,14 +270,29 @@ private suspend fun exportAndShareTrack(
     waypoints: List<Waypoint>,
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
 ) {
-    val fullRecord = getFullRecord(track.id)
+    val fullRecordRead = getFullRecord(track.id)
         .onFailure { error -> Log.w("TrackExportPanel", "Couldn't load track ${track.id}'s full record; exporting without it.", error) }
-        .getOrDefault(emptyList())
+    val fullRecord = fullRecordRead.getOrDefault(emptyList())
     val file = withContext(Dispatchers.IO) {
         TrackGpxExporter.forContext(context).write(track, fullRecord = fullRecord, waypoints = waypoints)
     }
+    // Dispatch 2026-09-28-658 (R9): an export without the full record is partial, and the person
+    // sharing it is told so before the share sheet opens, not left to believe it is complete.
+    // On the main thread explicitly: under the compose test harness this coroutine resumed from the
+    // IO hop on a thread with no Looper, and a Toast needs one (seen in TrackExportPartialTest).
+    if (fullRecordRead.isFailure) {
+        withContext(Dispatchers.Main) { Toast.makeText(context, PARTIAL_GPX_EXPORT_MESSAGE, Toast.LENGTH_LONG).show() }
+    }
     context.startActivity(Intent.createChooser(shareGpxIntent(context, file), "Share track"))
 }
+
+/**
+ * Shown before the share sheet when the track's full GPS record could not be read, so the file holds
+ * the track as the app shows it but not the raw record (dispatch 2026-09-28-658, R9). The owner's wording
+ * (RECORD -660, Amendment 1 to -658).
+ */
+internal const val PARTIAL_GPX_EXPORT_MESSAGE =
+    "Couldn't add the full GPS record. This file has the track only. Share again to retry."
 
 /**
  * Builds the `ACTION_SEND` intent for [file] — split out from [exportAndShareTrack] so the intent's
