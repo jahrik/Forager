@@ -162,6 +162,14 @@ import com.zynergylabs.forager.app.ui.motion.MotionTokens
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import com.zynergylabs.forager.app.ui.motion.PressHighlight
 import com.zynergylabs.forager.app.ui.motion.leavingTakesNoTouches
+import com.zynergylabs.forager.app.ui.motion.TabCrossfade
+import com.zynergylabs.forager.app.ui.motion.LocalReduceMotion
+import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.core.Animatable
+import androidx.compose.ui.zIndex
+import com.zynergylabs.forager.app.ui.motion.TabChromeFade
+import com.zynergylabs.forager.app.ui.motion.zeroHeightDrawnAbove
+import com.zynergylabs.forager.app.ui.motion.zeroWidthDrawnInPlace
 import com.zynergylabs.forager.app.ui.map.MapCameraMemory
 import com.zynergylabs.forager.app.ui.map.MapReturnMemory
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
@@ -590,7 +598,8 @@ internal fun CompactMainScaffold(
         //    the bottom bar's overlay is in portrait. The map stays full-bleed and never changes
         //    size; the map's *controls* are padded clear of the rail instead (mapControlsPadding
         //    below), the way portrait keeps them clear of the bottom bar by its measured height.
-        //    In fullscreen the rail is absent, with no animation (R13 revised, interim until B2).
+        //    In fullscreen it slides off toward the port edge and back (B2's S7, CompactMapTab's call site;
+        //    this line read "absent, with no animation", the interim R13 state, until motion Part 2, scout S4).
         //  - Every other tab: an opaque rail beside the content (railBeside), since there is no
         //    map to keep the size of and text under a translucent rail would hurt reading.
         // Portrait windows, short or not, are exactly as before. Since dispatch 2026-09-28-246 the rail is the
@@ -688,6 +697,23 @@ internal fun CompactMainScaffold(
             label = "attributionEndInset",
         )
         val safeAttributionEndInset = animatedAttributionEndInset.coerceAtLeast(0.dp)
+        // Motion Part 2, item 7 (dispatch 2026-09-28-666, scout S6; the owner: "glide like the attribution insets beside them").
+        // On the Maps tab the snackbar sits above the floating nav, or above the system bar in fullscreen and in the rail layout,
+        // and rises above Return to Route while that shows (dispatch 2026-09-28-430). That height used to jump when any of these
+        // changed; it now glides on the attribution insets' own spec. In fullscreen and the rail layout it is the system bar's
+        // raw inset (navigationBarBottom, as the attribution button's), where it was a windowInsetsPadding: the same figure
+        // unless something above has consumed that inset, which is device-only either way (Robolectric reports it as zero).
+        // A tab change does not glide it: the Scaffold's own placement changes at once then (it rises above the solid bar off
+        // Maps), so this figure jumps with it and the snackbar stays where it was on screen.
+        val snackbarMapBottom = glidingSnackbarBottom(
+            target = if (compactTab() != CompactTab.MAP) {
+                0.dp
+            } else {
+                (if (showRail || isMapFullscreen()) navigationBarBottom else bottomNavHeight) +
+                    (if (isNavigating && !navigationFollowing) RETURN_TO_ROUTE_SNACKBAR_LIFT else 0.dp)
+            },
+            tab = compactTab(),
+        )
         Scaffold(
             snackbarHost = {
                 // Material3's own snackbar, with its default colours passed explicitly. Its content
@@ -723,18 +749,10 @@ internal fun CompactMainScaffold(
                             // snackbar keeps the system-bar inset at the bottom and takes the map controls'
                             // own side padding (the cut-out and the rail's measured width), so the centred
                             // snackbar clears the rail.
-                            .then(
-                                when {
-                                    compactTab() != CompactTab.MAP -> Modifier
-                                    showRail -> Modifier
-                                        .padding(mapControlsPadding)
-                                        .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
-                                    isMapFullscreen() -> Modifier.windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
-                                    else -> Modifier.padding(bottom = bottomNavHeight)
-                                },
-                            )
-                            // Dispatch 2026-09-28-430: above "Return to Route" while it shows, not over it.
-                            .padding(bottom = if (compactTab() == CompactTab.MAP && isNavigating && !navigationFollowing) RETURN_TO_ROUTE_SNACKBAR_LIFT else 0.dp),
+                            // Motion Part 2, item 7 (scout S6): the bottom offset below glides (snackbarMapBottom), so these
+                            // cases and the Return to Route lift are one figure now. The rail case keeps its side padding.
+                            .then(if (compactTab() == CompactTab.MAP && showRail) Modifier.padding(mapControlsPadding) else Modifier)
+                            .padding(bottom = snackbarMapBottom),
                     ) {
                         Snackbar(
                             snackbarData = data,
@@ -808,7 +826,17 @@ internal fun CompactMainScaffold(
                 // trick applied after the fact.
                 // Landscape B1: nothing here in a short landscape window — the rail beside the
                 // content replaces this bar (showRail's own comment).
-                if (compactTab() != CompactTab.MAP && !showRail) {
+                // Motion Part 2, item 2 (dispatch 2026-09-28-666, scout S3; the owner, RECORD -651: "Fade with the tab": "Solid
+                // to 80% and back fades in time with the tab change"). The Maps tab's own 80% bar is inside that tab and fades
+                // with it; this solid bar fades on the same spec, so across the change the fill passes between solid and 80%.
+                // Its room comes and goes at once, as before, so this slot's reported height still depends on compactTab alone
+                // (the paragraph above): leaving for Maps it reports no height at once and goes on drawing where it was
+                // (zeroHeightDrawnAbove), taking no touch, for the length of the fade. Turning the phone plays no fade.
+                TabChromeFade(
+                    shown = compactTab() != CompactTab.MAP && !showRail,
+                    windowKey = showRail,
+                    zeroRoom = Modifier.zeroHeightDrawnAbove(),
+                ) {
                     ForagerBottomNav(
                         selectedTab = compactTab(),
                         isDrawerOpen = isDrawerOpen(),
@@ -828,7 +856,15 @@ internal fun CompactMainScaffold(
             // tab's rail is an overlay inside CompactMapTab instead. Everywhere else the Row
             // holds the Column alone.
             Row(modifier = Modifier.fillMaxSize().padding(padding)) {
-                if (railBeside && portEdge == ScreenEdge.Left) {
+                // Motion Part 2, item 2 (scout S4; the owner, RECORD -651: "Fade with the tab"): the opaque rail beside the
+                // content fades in and out with the tab change, as the bottom bar does in portrait. Its room comes and goes at
+                // once, as before; leaving for Maps it takes no width and is drawn where it was (over the incoming tab: zIndex, since it comes first in the Row), taking no touch.
+                // Turning the phone, or turning it over (the port edge changes side), plays no fade.
+                TabChromeFade(
+                    shown = railBeside && portEdge == ScreenEdge.Left,
+                    windowKey = showRail to portEdge,
+                    zeroRoom = Modifier.zIndex(1f).zeroWidthDrawnInPlace(atStart = true),
+                ) {
                     ForagerNavigationRail(
                         selectedTab = compactTab(),
                         isDrawerOpen = isDrawerOpen(),
@@ -957,7 +993,14 @@ internal fun CompactMainScaffold(
                             null
                         }
                         val landscapeSearchAlignment = if (punchHoleEdge == ScreenEdge.Left) Alignment.Start else Alignment.End
-                        when (compactTab()) {
+                        // Motion Part 2, item 1 (dispatch 2026-09-28-666, scouts S1 and S2; the owner, RECORD -651: "Quick crossfade"): one tab
+                        // fades into the next, every route between tabs included (they all change compactTab). The outgoing tab is held at its
+                        // size and place and takes no touch while it fades (TabCrossfade's doc comment), so the live map is not re-measured when
+                        // the bottom bar or the landscape rail comes back as Maps leaves. Each branch reads the tab it is handed, never
+                        // compactTab(), so the outgoing tab goes on drawing itself. Instant under reduced motion. The cost of keeping the map
+                        // alive through the fade is the S22's to judge (RECORD -651).
+                        TabCrossfade(targetState = compactTab(), modifier = Modifier.fillMaxSize()) { tab ->
+                        when (tab) {
                             CompactTab.LIST -> ListTab(
                                 uiState = uiState,
                                 currentTime = currentTime,
@@ -1115,8 +1158,10 @@ internal fun CompactMainScaffold(
                                 // Journal tab is the one showing"; on Maps the bar shows normally. This
                                 // slot composes only in this MAP branch, where the second half is false,
                                 // so here the conjunction always resolves to the bar; it is written out
-                                // so that the rule reads as the owner decided it, not as its consequence.
-                                searchBarSlot = if (isEditingJournalEntry && compactTab() == CompactTab.JOURNAL) {
+                                // so that the rule reads as the owner decided it, not as its consequence. It reads `tab`, the tab
+                                // this branch draws, not compactTab(): while Maps fades out to the Journal (motion Part 2, item 1)
+                                // compactTab() is already the Journal, and the fading map would lose its bar a frame early.
+                                searchBarSlot = if (isEditingJournalEntry && tab == CompactTab.JOURNAL) {
                                     { _ -> }
                                 } else {
                                     { compassStripHeight ->
@@ -1313,6 +1358,7 @@ internal fun CompactMainScaffold(
                             // compiles around a case the compiler can't see is impossible.
                             CompactTab.TOOLS -> Unit
                         }
+                        }
 
                         if (!isMapFullscreen()) {
                             // Dismiss-elsewhere scrim for SearchEntryBar's own "tap to focus, dismiss
@@ -1486,7 +1532,15 @@ internal fun CompactMainScaffold(
                         }
                     }
                 }
-                if (railBeside && portEdge != ScreenEdge.Left) {
+                // Motion Part 2, item 2 (scout S4; the owner, RECORD -651: "Fade with the tab"): the opaque rail beside the
+                // content fades in and out with the tab change, as the bottom bar does in portrait. Its room comes and goes at
+                // once, as before; leaving for Maps it takes no width and is drawn where it was, taking no touch.
+                // Turning the phone, or turning it over (the port edge changes side), plays no fade.
+                TabChromeFade(
+                    shown = railBeside && portEdge != ScreenEdge.Left,
+                    windowKey = showRail to portEdge,
+                    zeroRoom = Modifier.zIndex(1f).zeroWidthDrawnInPlace(atStart = false),
+                ) {
                     ForagerNavigationRail(
                         selectedTab = compactTab(),
                         isDrawerOpen = isDrawerOpen(),
@@ -1513,3 +1567,27 @@ internal const val COMPACT_SNACKBAR_TAG = "compact-snackbar"
  * press highlight sit this far in, on the drawn surface (motion Part 1, scout S7; Amendment 1, RECORD -657).
  */
 private val SNACKBAR_SURFACE_MARGIN = 12.dp
+
+/**
+ * The Maps tab snackbar's bottom offset, gliding to [target] on [MotionTokens.navigationMotionSpec], the attribution insets' own
+ * spec (motion Part 2, item 7). When [tab] changes it jumps to the new [target] in the same frame instead, because the
+ * Scaffold's own placement of the snackbar changes at once then and a glide would move it on screen. Instant under reduced
+ * motion. Never negative: a spatial spring overshoots, and a negative padding throws (animatedTopInset's comment).
+ */
+@Composable
+private fun glidingSnackbarBottom(target: Dp, tab: CompactTab): Dp {
+    val reduceMotion = LocalReduceMotion.current
+    val spec = MotionTokens.navigationMotionSpec<Dp>()
+    val animatable = remember { Animatable(target, Dp.VectorConverter) }
+    var settledTab by remember { mutableStateOf(tab) }
+    val jump = settledTab != tab || reduceMotion
+    LaunchedEffect(target, tab, reduceMotion) {
+        if (settledTab != tab || reduceMotion) {
+            animatable.snapTo(target)
+            settledTab = tab
+        } else {
+            animatable.animateTo(target, spec)
+        }
+    }
+    return if (jump) target else animatable.value.coerceAtLeast(0.dp)
+}
