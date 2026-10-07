@@ -406,7 +406,6 @@ internal fun NavigationHud(
                         }
                     }
                 }
-                }
             }
         }
     }
