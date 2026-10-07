@@ -1,6 +1,8 @@
 package com.zynergylabs.forager.app.ui.map
 
 import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
+import com.zynergylabs.forager.app.ui.motion.MapPopUp
+import com.zynergylabs.forager.app.ui.motion.rememberLastShown
 import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -276,64 +278,77 @@ internal fun MapBubbleLayer(
 
     BackHandler(enabled = backEnabled && tapped != null) { onDismiss() }
 
-    if (tapped != null) {
-        when (val target = tapped.target) {
-            is MapBubbleTarget.SightingTarget -> AnchoredAtScreenPoint(tapped.anchorPx, tapped.bearingDeg, minY, modifier.fillMaxSize(), insetLeft, insetRight) { tip ->
-                ObservationBubble(
-                    sighting = target.sighting,
-                    onViewOnINaturalist = { onViewSightingOnINaturalist(target.sighting) },
-                    onDismiss = onDismiss,
-                    tipInBubble = tip,
-                    unitSystem = UnitSystem.forDistanceUnit(sources.distanceUnit),
-                )
-            }
-
-            is MapBubbleTarget.FeatureTarget -> {
-                val content: MapBubbleContent? = if (target.kind == MapBubbleKind.FORECAST_CELL) {
-                    when (val cell = rememberForecastCell(target, forecast).value) {
-                        CellLookup.Loading -> null
-                        CellLookup.Missing -> {
-                            LaunchedEffect(target) {
-                                Log.w(MAP_BUBBLE_LOG_TAG, "No stored cell for ${target.featureId} on ${target.layerId}; its bubble was not shown.")
-                                onDismiss()
-                            }
-                            null
-                        }
-                        is CellLookup.Found -> forecastCellBubble(
-                            COLOUR_FIELDS.firstOrNull { it.layerId == target.layerId }?.label ?: target.layerId,
-                            cell.cell,
-                        )
-                    }
-                } else {
-                    mapBubbleContentFor(target, sources).also { found ->
-                        if (found == null) {
-                            LaunchedEffect(target) {
-                                Log.w(MAP_BUBBLE_LOG_TAG, "No ${target.kind} ${target.featureId} in the host's lists; its bubble was not shown.")
-                                onDismiss()
-                            }
-                        }
-                    }
+    // Motion Part 2, item 4 (dispatch 2026-09-28-666, scout M5; the owner, RECORD -651: "Fade and grow", from where it belongs):
+    // the bubble fades and grows from the glyph it is about, and shrinks back to it. Item 5 ("Let taps through at once"): from
+    // the moment it starts to leave it takes no touch, so a tap on it then reaches the map. It goes on drawing the thing it
+    // showed (`shown`) while it leaves. Another glyph tapped while it is open replaces it in place, as before (scout M6, not
+    // among the owner's choices). A forecast cell's bubble shows nothing until its cell is read (scout M7, also not among
+    // them): if the read outlasts the grow, that bubble still appears at once.
+    val shown = rememberLastShown(tapped)
+    MapPopUp(
+        visible = tapped != null,
+        pivot = { shown?.anchorPx ?: Offset.Zero },
+        modifier = modifier.fillMaxSize(),
+    ) {
+        if (shown != null) {
+            when (val target = shown.target) {
+                is MapBubbleTarget.SightingTarget -> AnchoredAtScreenPoint(shown.anchorPx, shown.bearingDeg, minY, Modifier.fillMaxSize(), insetLeft, insetRight) { tip ->
+                    ObservationBubble(
+                        sighting = target.sighting,
+                        onViewOnINaturalist = { onViewSightingOnINaturalist(target.sighting) },
+                        onDismiss = onDismiss,
+                        tipInBubble = tip,
+                        unitSystem = UnitSystem.forDistanceUnit(sources.distanceUnit),
+                    )
                 }
-                if (content != null) {
-                    AnchoredAtScreenPoint(tapped.anchorPx, tapped.bearingDeg, minY, modifier.fillMaxSize(), insetLeft, insetRight) { tip ->
-                        MapFeatureBubble(
-                            content = content,
-                            tipInBubble = tip,
-                            onDismiss = onDismiss,
-                            openFindLabel = sources.openFindLabel,
-                            onOpenFind = sources.onOpenFind?.let { open -> { id: String -> onDismiss(); open(id) } },
-                            onViewPhoto = { id -> onDismiss(); viewerPhotoId = id },
-                            onDirections = { name, at -> onDismiss(); launchDirections(context, name, at) },
-                            onDetails = { details -> onDismiss(); detailsTarget = details },
-                            onOpenEntry = sources.onOpenEntry?.let { open -> { id: String -> onDismiss(); open(id) } },
-                            // Dispatch -502: where the bubble was, for Back to open it there again.
-                            onNavigate = sources.onNavigateToWaypoint?.let { navigate ->
-                                { id: String ->
+
+                is MapBubbleTarget.FeatureTarget -> {
+                    val content: MapBubbleContent? = if (target.kind == MapBubbleKind.FORECAST_CELL) {
+                        when (val cell = rememberForecastCell(target, forecast).value) {
+                            CellLookup.Loading -> null
+                            CellLookup.Missing -> {
+                                LaunchedEffect(target) {
+                                    Log.w(MAP_BUBBLE_LOG_TAG, "No stored cell for ${target.featureId} on ${target.layerId}; its bubble was not shown.")
                                     onDismiss()
-                                    navigate(WaypointNavigationOrigin.MapBubble(id, tapped.anchorPx, tapped.bearingDeg))
                                 }
-                            },
-                        )
+                                null
+                            }
+                            is CellLookup.Found -> forecastCellBubble(
+                                COLOUR_FIELDS.firstOrNull { it.layerId == target.layerId }?.label ?: target.layerId,
+                                cell.cell,
+                            )
+                        }
+                    } else {
+                        mapBubbleContentFor(target, sources).also { found ->
+                            if (found == null) {
+                                LaunchedEffect(target) {
+                                    Log.w(MAP_BUBBLE_LOG_TAG, "No ${target.kind} ${target.featureId} in the host's lists; its bubble was not shown.")
+                                    onDismiss()
+                                }
+                            }
+                        }
+                    }
+                    if (content != null) {
+                        AnchoredAtScreenPoint(shown.anchorPx, shown.bearingDeg, minY, Modifier.fillMaxSize(), insetLeft, insetRight) { tip ->
+                            MapFeatureBubble(
+                                content = content,
+                                tipInBubble = tip,
+                                onDismiss = onDismiss,
+                                openFindLabel = sources.openFindLabel,
+                                onOpenFind = sources.onOpenFind?.let { open -> { id: String -> onDismiss(); open(id) } },
+                                onViewPhoto = { id -> onDismiss(); viewerPhotoId = id },
+                                onDirections = { name, at -> onDismiss(); launchDirections(context, name, at) },
+                                onDetails = { details -> onDismiss(); detailsTarget = details },
+                                onOpenEntry = sources.onOpenEntry?.let { open -> { id: String -> onDismiss(); open(id) } },
+                                // Dispatch -502: where the bubble was, for Back to open it there again.
+                                onNavigate = sources.onNavigateToWaypoint?.let { navigate ->
+                                    { id: String ->
+                                        onDismiss()
+                                        navigate(WaypointNavigationOrigin.MapBubble(id, shown.anchorPx, shown.bearingDeg))
+                                    }
+                                },
+                            )
+                        }
                     }
                 }
             }
