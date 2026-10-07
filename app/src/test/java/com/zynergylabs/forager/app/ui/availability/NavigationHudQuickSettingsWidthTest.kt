@@ -34,11 +34,12 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The navigation display's text columns with the quick-settings gear in its top row (dispatch
- * 2026-09-28-645, Amendment 2; the planner: the gear left of the exit, and "check the narrowed column at
- * 360 dp with 'Unable to calculate route' and the longest status strings"). On a 360 dp-wide window,
- * each state's large figure and status line are laid out whole, with the gear and, for the record,
- * without it, so a clip the gear did not cause is told apart from one it did.
+ * The navigation display's text columns with the quick-settings button in its top row (dispatch
+ * 2026-09-28-645, Amendments 2 and 3; the planner: the button left of the exit, and "check the narrowed
+ * column at 360 dp with 'Unable to calculate route' and the longest status strings"). The button is the
+ * three-dot one at [QUICK_SETTINGS_TAP_TARGET] since Amendment 3 (RECORD -648). On a 360 dp-wide window,
+ * each state's large figure and status line are laid out whole, with the button and, for the record,
+ * without it, so a clip the button did not cause is told apart from one it did.
  *
  * Native graphics, as `AvailabilityScreenSundownLineTest` reads its line: Robolectric's legacy text
  * metrics measure a character as one pixel wide, so nothing could be cut off there. The real phone's
@@ -47,7 +48,7 @@ import org.robolectric.annotation.GraphicsMode
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w360dp-h780dp-xxhdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-class NavigationHudGearWidthTest {
+class NavigationHudQuickSettingsWidthTest {
 
     private val composeRule = createAndroidComposeRule<ComponentActivity>()
 
@@ -96,7 +97,7 @@ class NavigationHudGearWidthTest {
     )
 
     private var case by mutableStateOf<Case?>(null)
-    private var withGear by mutableStateOf(true)
+    private var withButton by mutableStateOf(true)
 
     private fun layoutOf(tag: String): TextLayoutResult? {
         val nodes = composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes()
@@ -116,12 +117,12 @@ class NavigationHudGearWidthTest {
         return if (whole) null else "'$words' shows ${words.take(visibleEnd)}"
     }
 
-    private fun measure(gear: Boolean): Map<String, List<String>> {
+    private fun measure(button: Boolean): Map<String, List<String>> {
         val found = mutableMapOf<String, List<String>>()
         for (c in cases) {
             composeRule.runOnIdle {
                 case = c
-                withGear = gear
+                withButton = button
             }
             composeRule.waitForIdle()
             found[c.name] = listOfNotNull(clipped(NAVIGATION_HUD_DISTANCE_TAG), clipped(NAVIGATION_HUD_STATUS_TAG))
@@ -145,18 +146,18 @@ class NavigationHudGearWidthTest {
                 onToggleCoordinateFormat = {},
                 onExit = {},
                 route = c.route,
-                quickSettings = if (withGear) quickSettings else null,
+                quickSettings = if (withButton) quickSettings else null,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
-        val without = measure(gear = false)
-        val with = measure(gear = true)
+        val without = measure(button = false)
+        val with = measure(button = true)
         assertEquals("every case measured", cases.size, with.size)
-        val causedByGear = with.filter { (name, cut) -> cut.isNotEmpty() && without[name].orEmpty().isEmpty() }
+        val causedByButton = with.filter { (name, cut) -> cut.isNotEmpty() && without[name].orEmpty().isEmpty() }
         val clippedBoth = with.filter { (name, cut) -> cut.isNotEmpty() && without[name].orEmpty().isNotEmpty() }
         assertTrue(
-            "clipped with the gear and not without it: $causedByGear; clipped either way (not the gear's): $clippedBoth",
-            causedByGear.isEmpty() && clippedBoth.isEmpty(),
+            "clipped with the button and not without it: $causedByButton; clipped either way (not the button's): $clippedBoth",
+            causedByButton.isEmpty() && clippedBoth.isEmpty(),
         )
     }
 }

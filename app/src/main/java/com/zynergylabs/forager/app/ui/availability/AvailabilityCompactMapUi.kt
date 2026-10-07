@@ -310,9 +310,9 @@ internal fun CompactMapTab(
      */
     recordingSundownLine: com.zynergylabs.forager.app.domain.SundownLine? = null,
     /**
-     * The map's quick settings (dispatch 2026-09-28-645, Amendments 1 and 2): the gear at the strip's
-     * end, and in the HUD while navigating, with Back by, the sundown settings and the off-track
-     * reminder; its Back by also gives the strip's and the HUD's "Back by" line. `null` draws no gear.
+     * The map's quick settings (dispatch 2026-09-28-645, Amendments 1 to 3): the three-dot button at
+     * the strip's far right, and in the HUD while navigating, with Back by, the sundown settings and the off-track
+     * reminder; its Back by also gives the strip's and the HUD's "Back by" line. `null` draws no button.
      */
     quickSettings: MapQuickSettings? = null,
     compassProvider: CompassProvider,
@@ -922,10 +922,8 @@ internal fun CompactMapTab(
                         // Amendment 2 (RECORD -595): hidden until its window opens; see isShown.
                         sundownLine = recordingSundownLine?.let { sundownLineText(it, sundownClock) },
                         backByLine = backByLineText(quickSettings?.backBy, sundownClock),
+                        // Amendment 3 (RECORD -648): "a 3 dot menu at the far right", in every orientation.
                         quickSettings = quickSettings,
-                        // Amendment 2: the right end in portrait; in landscape the strip's inner end,
-                        // which is its start when the strip sits in the right-hand corner.
-                        gearAtStart = railPortEdge == ScreenEdge.Right,
                     )
                     DisposableEffect(Unit) { onDispose { compassStripHeightPx = 0 } }
                 }
@@ -933,7 +931,7 @@ internal fun CompactMapTab(
                 // Below the compass strip (topInset + compassStripClearance as top padding), same
                 // reasoning as AnchoredAtScreenPoint's own minY: the strip is drawn across the map's
                 // full width, so a chip placed underneath it would be hidden behind it, and where it
-                // sat under the strip's coordinates or its quick-settings gear (dispatch -645), its
+                // sat under the strip's coordinates or its quick-settings button (dispatch -645), its
                 // "Show all species" tap would go to them. Corrected in dispatch 2026-09-28-645: this
                 // said "the strip's Surface intercepts touches across its full width", which stopped
                 // being true when the strip became a plain Box that takes no touches of its own

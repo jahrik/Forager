@@ -1739,26 +1739,30 @@ class AvailabilityScreenMapIconStackTest {
      * this test originally guarded against — ever comes back.
      *
      * **Superseded by dispatch 2026-09-28-645, Amendment 2 (RECORD -647).** The strip now holds the
-     * map's quick-settings gear, a 48 dp square, inside its own height. The owner, asked whether the
-     * strip should grow to fit a finger-sized gear or keep it smaller or hanging over the map: "Taller
-     * strip (Recommended)". That ruling changed exactly the property this test asserted, so the
-     * assertion is replaced, not weakened (the planner's word, -645 Amendment 2): with a one-line
-     * readout the strip is the gear's height, 48 dp, and not more. It still fails on the
-     * `fillMaxSize()` regression it was first written for (the strip would be the map's height), and
-     * on anything else that grows the strip past its tallest child; the paragraph above is kept as the
-     * record of what it asserted before.
+     * map's quick-settings button inside its own height. The owner, asked whether the strip should
+     * grow to fit it or keep it smaller or hanging over the map: "Taller strip (Recommended)". That
+     * ruling changed exactly the property this test asserted, so the assertion was replaced, not
+     * weakened (the planner's word, -645 Amendment 2), first with the gear's 48 dp.
+     *
+     * **Then by Amendment 3 (RECORD -648).** The owner, verbatim: "48 is a lot for the strip. It needs
+     * to be thin to keep the UI compact. This matters more for smaller phones. Let's start with 36dp on
+     * the gear tap. Instead of a gear, have it be a 3 dot menu at the far right." So with a one-line
+     * readout the strip is the three-dot button's 36 dp ([QUICK_SETTINGS_TAP_TARGET]), and not more. It
+     * still fails on the `fillMaxSize()` regression it was first written for (the strip would be the
+     * map's height), and on anything else that grows the strip past its tallest child; the paragraphs
+     * above are kept as the record of what it asserted before.
      */
     @Test
-    fun `the compass strip container wraps its content, the gear's 48dp with a one-line readout, not the whole map's height`() {
+    fun `the compass strip container wraps its content, the quick-settings button's 36dp with a one-line readout, not the whole map's height`() {
         setScreen(isRecording = true)
         searchAReferenceRegion()
 
         val bounds = composeRule.onNodeWithTag("compass-elevation-strip").getUnclippedBoundsInRoot()
 
         assertEquals(
-            "expected the compass strip to be its tallest child, the 48dp quick-settings gear (was ${bounds.height}) — " +
+            "expected the compass strip to be its tallest child, the 36dp quick-settings button (was ${bounds.height}) — " +
                 "see this test's own doc comment",
-            48f,
+            36f,
             bounds.height.value,
             0.5f,
         )
