@@ -235,6 +235,7 @@ class MainActivity : ComponentActivity() {
                     abandonedTrackSweepOnce = container.abandonedTrackSweepOnce,
                     sundownShown = container.sundownWatch.shown,
                     shouldPromptBackgroundRun = container.offTrackReminderCheck::atRecordingStart,
+                    recordingHalts = container.recordingHalts.latest,
                 )
             }
         }

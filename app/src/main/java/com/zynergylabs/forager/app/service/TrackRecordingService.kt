@@ -19,6 +19,8 @@ import com.zynergylabs.forager.app.R
 import com.zynergylabs.forager.app.diagnostics.WalkLogger
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.LocationSampler
+import com.zynergylabs.forager.app.domain.RecordingHalt
+import com.zynergylabs.forager.app.domain.RecordingHaltReason
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
 import com.zynergylabs.forager.app.domain.toTrackPoint
@@ -122,7 +124,8 @@ class TrackRecordingService : Service() {
                         startRecording(trackId, mode)
                     } else {
                         Log.w(TAG, "Refusing to start recording for track '$trackId': no location permission.")
-                        stopSelf()
+                        // RECORD -660 (item 4): the screen is told, and the track it made is ended.
+                        halt(trackId, RecordingHaltReason.NO_LOCATION_PERMISSION)
                     }
                 } else if (trackId != null && trackId != currentTrackId) {
                     // One recording at a time. A start for another track while one is running is
@@ -154,9 +157,10 @@ class TrackRecordingService : Service() {
         currentTrackId = trackId
         if (!startForegroundWithLocationType(trackId)) {
             // Refused (dispatch 2026-09-28-658, R7): logged inside, and the service stops, as the
-            // permission branch above does. Nothing is begun, so there is nothing to end.
+            // permission branch above does. No watch was begun. RECORD -660 (item 4): the screen
+            // is told, so it shows not recording, and the track it made is ended.
             currentTrackId = null
-            stopSelf()
+            halt(trackId, RecordingHaltReason.FOREGROUND_REFUSED)
             return
         }
 
@@ -204,7 +208,11 @@ class TrackRecordingService : Service() {
                                 if (shouldFlush) flushPendingPoints(trackId, container)
                             }
                         }
-                        LocationFix.PermissionDenied -> stopRecording()
+                        LocationFix.PermissionDenied -> {
+                            // RECORD -660 (item 4): the screen is told why; stopRecording ends the track.
+                            (application as ForagerApplication).container.recordingHalts.report(RecordingHalt(trackId, RecordingHaltReason.NO_LOCATION_PERMISSION))
+                            stopRecording()
+                        }
                     }
                 }
             }
@@ -223,6 +231,23 @@ class TrackRecordingService : Service() {
                     tickSundown(container)
                 }
             }
+        }
+    }
+
+    /**
+     * A recording this service will not run (RECORD -660, item 4): reported to the screen through
+     * [com.zynergylabs.forager.app.domain.RecordingHalts], and the track the screen created for it
+     * ended, as a stop ends one, so it is not left open. Then the service stops itself, after the
+     * end is written, as [stopRecording] does: stopping first would cancel the write with the scope.
+     */
+    private fun halt(trackId: String, reason: RecordingHaltReason) {
+        val container = (application as ForagerApplication).container
+        container.recordingHalts.report(RecordingHalt(trackId, reason))
+        scope.launch {
+            container.endTrackUseCase(trackId).onFailure { error ->
+                Log.w(TAG, "Couldn't mark track '$trackId' ended after it could not be recorded.", error)
+            }
+            stopSelf()
         }
     }
 
