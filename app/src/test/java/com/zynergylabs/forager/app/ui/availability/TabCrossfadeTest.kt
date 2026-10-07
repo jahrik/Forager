@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.DpOffset
 import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.ui.map.MapSlot
+import com.zynergylabs.forager.app.ui.theme.ForagerTheme
 import com.zynergylabs.forager.app.ui.motion.TabChromeAlphaKey
 import com.zynergylabs.forager.app.ui.motion.TabLeavingKey
 import org.junit.After
@@ -89,7 +90,8 @@ class TabCrossfadeTest {
     }
 
     private fun setScreen() {
-        composeRule.setContent { LayoutFixesScreen(uiState = LAYOUT_FIXES_FIX_STATE, mapSlot = mapSlot) }
+        // Under the app's theme, so the reduce-motion setting is provided (ForagerTheme's ProvideReduceMotion).
+        composeRule.setContent { ForagerTheme { LayoutFixesScreen(uiState = LAYOUT_FIXES_FIX_STATE, mapSlot = mapSlot) } }
         settle()
     }
 
@@ -115,7 +117,7 @@ class TabCrossfadeTest {
             tapAt(centre)
             // With the clock stopped, the tap's state write reaches the next frame only once applied (motion Part 1's report).
             composeRule.runOnUiThread { Snapshot.sendApplyNotifications() }
-            repeat(2) { composeRule.mainClock.advanceTimeByFrame() }
+            repeat(FRAMES_INTO_FADE) { composeRule.mainClock.advanceTimeByFrame() }
         } else {
             tapAt(centre)
             settle()
@@ -198,5 +200,10 @@ class TabCrossfadeTest {
         tapTab("List", paused = true)
         assertFalse("the map went at once", mapShown())
         assertEquals("the solid bar is in at once", listOf(1f), solidBarAlphas())
+    }
+
+    private companion object {
+        /** Frames let through after a tap with the clock stopped: enough for a fade to have started, not to have ended. */
+        const val FRAMES_INTO_FADE = 4
     }
 }
