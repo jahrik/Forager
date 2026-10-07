@@ -3,7 +3,10 @@ package com.zynergylabs.forager.app.ui.log
 import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -79,12 +82,13 @@ class CartographyEntryReportScreenTest {
             CartographyEntryReportScreen(entry = entry, galleryPhotos = galleryPhotos, distanceUnit = DistanceUnit.MILES, mapSlot = NoOpMapSlot, night = false, getMapData = { _, _ -> EmptyCartographyEntryMapData }, getCoveringOfflineRegion = { _, _ -> null }, getCurrentLocation = { LocationResult.LocationUnavailable }, onEdit ={}, onDeleteEntry = {}, onBack = {})
         }
 
-        composeRule.onNodeWithText("2026-08-01").assertIsDisplayed()
+        // Data part A (dispatch 2026-09-28-667): the date reads "Aug 1, 2026" (the owner, RECORD -656).
+        composeRule.onNodeWithText("Aug 1, 2026").assertIsDisplayed()
         // No section headings render at all — nothing was kept in any of them.
         composeRule.onNodeWithText("Finds").assertDoesNotExist()
         composeRule.onNodeWithText("Tracks").assertDoesNotExist()
         composeRule.onNodeWithText("Waypoints").assertDoesNotExist()
-        composeRule.onNodeWithText("Offline Regions").assertDoesNotExist()
+        composeRule.onNodeWithText("Offline maps").assertDoesNotExist()
         // Never "Not recorded yet." or any other placeholder — see this class's own doc comment.
         composeRule.onNodeWithText("Not recorded yet.").assertDoesNotExist()
         composeRule.onNodeWithText("recorded", substring = true, ignoreCase = true).assertDoesNotExist()
@@ -112,8 +116,8 @@ class CartographyEntryReportScreenTest {
         }
 
         composeRule.onNodeWithText(
-            "This entry has nothing kept yet. An entry can hold the finds, tracks, waypoints, offline " +
-                "regions, and photos you choose to keep from a day's records, plus anything you write. " +
+            "This entry has nothing included yet. An entry can hold the finds, tracks, waypoints, offline " +
+                "maps, and photos you choose to include from a day's records, plus anything you write. " +
                 "Tap the three-dot menu, then Edit, to add something.",
         ).assertIsDisplayed()
     }
@@ -127,7 +131,7 @@ class CartographyEntryReportScreenTest {
             CartographyEntryReportScreen(entry = entry, galleryPhotos = emptyList(), distanceUnit = DistanceUnit.MILES, mapSlot = NoOpMapSlot, night = false, getMapData = { _, _ -> EmptyCartographyEntryMapData }, getCoveringOfflineRegion = { _, _ -> null }, getCurrentLocation = { LocationResult.LocationUnavailable }, onEdit ={}, onDeleteEntry = {}, onBack = {})
         }
 
-        composeRule.onNodeWithText("This entry has nothing kept yet.", substring = true).assertDoesNotExist()
+        composeRule.onNodeWithText("This entry has nothing included yet.", substring = true).assertDoesNotExist()
     }
 
     @Test
@@ -163,8 +167,9 @@ class CartographyEntryReportScreenTest {
             CartographyEntryReportScreen(entry = entry, galleryPhotos = emptyList(), distanceUnit = DistanceUnit.MILES, mapSlot = NoOpMapSlot, night = false, getMapData = { _, _ -> EmptyCartographyEntryMapData }, getCoveringOfflineRegion = { _, _ -> null }, getCurrentLocation = { LocationResult.LocationUnavailable }, onEdit ={}, onDeleteEntry = {}, onBack = {})
         }
 
-        composeRule.onNodeWithText("Finds").assertIsDisplayed()
-        composeRule.onNodeWithText("Find on 2026-08-01").assertIsDisplayed()
+        // Data part A: "Finds" is now both the tile's label and the list's heading, so the tile is read by its tag.
+        composeRule.onNodeWithTag(entryTileTag(TILE_FINDS)).assert(hasText("1"))
+        composeRule.onNodeWithText("Find on Aug 1, 2026").assertIsDisplayed()
         composeRule.onNodeWithText("Chanterelle").assertIsDisplayed()
         composeRule.onNodeWithText("Withheld find").assertDoesNotExist()
 
@@ -174,7 +179,7 @@ class CartographyEntryReportScreenTest {
         composeRule.onNodeWithText("Waypoints").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Trailhead").performScrollTo().assertIsDisplayed()
 
-        composeRule.onNodeWithText("Offline Regions").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Offline maps").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Ridge Region").performScrollTo().assertIsDisplayed()
     }
 
