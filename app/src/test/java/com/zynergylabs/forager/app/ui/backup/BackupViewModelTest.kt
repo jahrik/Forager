@@ -4,6 +4,8 @@ import com.zynergylabs.forager.app.domain.BackupFrequency
 import com.zynergylabs.forager.app.domain.BackupScheduleSettings
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.RestoreMode
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -653,6 +655,6 @@ class BackupViewModelTest {
     private fun heldIn(store: androidx.lifecycle.ViewModelStore): BackupViewModel =
         androidx.lifecycle.ViewModelProvider(
             store,
-            androidx.lifecycle.viewmodel.viewModelFactory { androidx.lifecycle.viewmodel.initializer { viewModel() } },
+            viewModelFactory { initializer { viewModel() } },
         )[BackupViewModel::class.java]
 }
