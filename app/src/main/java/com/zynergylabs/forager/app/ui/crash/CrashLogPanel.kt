@@ -188,10 +188,9 @@ private fun CrashLogDetailHeader(onBack: () -> Unit) {
 }
 
 /**
- * What the detail view shows when [readCrashLog] could not read the file. Proposed wording, to be
- * confirmed by the owner before the build (dispatch 2026-09-28-658).
+ * What the detail view shows when [readCrashLog] could not read the file. The owner's wording (RECORD -660, Amendment 1 to -658).
  */
-internal const val CRASH_LOG_UNREADABLE_TEXT = "Couldn't read this crash report. Go back and open it again. If it still won't open, it may have been removed."
+internal const val CRASH_LOG_UNREADABLE_TEXT = "Couldn't read this crash report. Go back and open it again."
 
 /**
  * The crash log's text, or `null` when it could not be read: a file removed or pruned between the

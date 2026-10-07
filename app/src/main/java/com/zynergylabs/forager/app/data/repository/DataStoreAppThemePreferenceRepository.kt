@@ -1,12 +1,11 @@
 package com.zynergylabs.forager.app.data.repository
 
+import com.zynergylabs.forager.app.domain.SettingsResetListener
 import android.content.Context
-import android.util.Log
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStoreFile
 import com.zynergylabs.forager.app.domain.AppThemePreferenceRepository
 import com.zynergylabs.forager.app.domain.model.AppThemeMode
 import kotlinx.coroutines.flow.first
@@ -30,25 +29,24 @@ import kotlinx.coroutines.flow.first
  * "No usable value" covers two cases, not one (dispatch 2026-09-28-658, D2, correcting this comment,
  * which said only a missing value falls back): no [KEY_THEME_MODE] at all, and a stored name this
  * build does not know (a downgrade, or a renamed mode). The second takes the same fallbacks, and is
- * logged when it does, so a reset theme leaves a trace. Whether an unknown name should instead fail
- * the read, as the camera grid setting's does, is left to the owner (scout item D3).
+ * logged when it does, so a reset theme leaves a trace. Every setting now reads a stored name that
+ * way, through [decodeStoredName] (the owner, RECORD -660: "Fall back and log").
  */
-class DataStoreAppThemePreferenceRepository(context: Context) : AppThemePreferenceRepository {
+class DataStoreAppThemePreferenceRepository(
+    context: Context,
+    /** Told when this file was corrupt and has been reset (RECORD -660); `AppContainer` passes its notice. */
+    settingsReset: SettingsResetListener = SettingsResetListener.None,
+) : AppThemePreferenceRepository {
 
-    private val dataStore = PreferenceDataStoreFactory.create(
-        produceFile = { context.applicationContext.preferencesDataStoreFile(DATA_STORE_NAME) },
-    )
+    private val dataStore = settingsDataStore(context, DATA_STORE_NAME, settingsReset)
 
     override suspend fun getThemeMode(): Result<AppThemeMode> = runCatchingCancellable {
         val prefs = dataStore.data.first()
-        val storedName = prefs[KEY_THEME_MODE]
-        val stored = storedName?.let { name -> AppThemeMode.entries.firstOrNull { it.name == name } }
-        if (storedName != null && stored == null) {
-            Log.w(TAG, "Unknown stored theme '$storedName'; falling back to the legacy setting or the system default.")
-        }
-        stored
-            ?: prefs[KEY_THEME_MODE_LEGACY_DARK]?.let { dark -> if (dark) AppThemeMode.DARK else AppThemeMode.LIGHT }
+        // The default for this read is the legacy choice where one exists, System Default otherwise;
+        // a stored name this build does not know falls back to it and is logged (decodeStoredName).
+        val default = prefs[KEY_THEME_MODE_LEGACY_DARK]?.let { dark -> if (dark) AppThemeMode.DARK else AppThemeMode.LIGHT }
             ?: AppThemeMode.SYSTEM_DEFAULT
+        decodeStoredName(prefs[KEY_THEME_MODE], AppThemeMode.entries, default, "theme")
     }
 
     override suspend fun setThemeMode(mode: AppThemeMode): Result<Unit> = runCatchingCancellable {
@@ -56,7 +54,6 @@ class DataStoreAppThemePreferenceRepository(context: Context) : AppThemePreferen
     }
 
     private companion object {
-        const val TAG = "AppThemePreference"
         const val DATA_STORE_NAME = "app_theme_preferences"
         val KEY_THEME_MODE = stringPreferencesKey("app_theme.mode")
         val KEY_THEME_MODE_LEGACY_DARK = booleanPreferencesKey("app_theme.dark")

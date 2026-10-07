@@ -20,7 +20,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
+import android.widget.Toast
 import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import com.zynergylabs.forager.app.domain.SETTINGS_RESET_MESSAGE
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.launch
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.viewmodel.initializer
 import kotlinx.coroutines.joinAll
@@ -381,6 +388,19 @@ class MainActivity : ComponentActivity() {
                 trackRecordingViewModel.onLeftForeground()
             }
         })
+
+        // RECORD -660 (D10): the one-time message after a settings file was found corrupt and reset.
+        // A long Toast the first time this screen is started after the reset, then cleared; the
+        // planner's proposal for where it shows, chosen because the reset is found on the first read
+        // of that file, which this screen's ViewModels make as they start.
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                container.settingsResetNotice.pending.filter { it }.collect {
+                    Toast.makeText(this@MainActivity, SETTINGS_RESET_MESSAGE, Toast.LENGTH_LONG).show()
+                    container.settingsResetNotice.shown()
+                }
+            }
+        }
 
         setContent {
             // Read before ForagerTheme wraps content, not inside it: themeMode is this state's own

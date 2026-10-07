@@ -1723,8 +1723,8 @@ private object NoStoredMapLayerPreferences : MapLayerPreferencesRepository {
 
 /**
  * Shown above the Offline maps list when the regions restored from a backup could not be read, so the
- * list holds only the downloaded ones (dispatch 2026-09-28-658, M2). Proposed wording, to be confirmed
- * by the owner before the build. Reopening Offline maps reads both lists again.
+ * list holds only the downloaded ones (dispatch 2026-09-28-658, M2). The owner's wording (RECORD -660,
+ * Amendment 1 to -658). Reopening Offline maps reads both lists again.
  */
 internal const val RESTORED_REGIONS_UNREADABLE_MESSAGE =
-    "Couldn't read the regions restored from your backup, so only downloaded regions are listed. Close Offline maps and open it again to retry."
+    "Couldn't read the regions from your backup. Showing downloaded regions only. Reopen Offline maps to try again."
