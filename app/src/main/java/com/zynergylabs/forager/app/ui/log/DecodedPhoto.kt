@@ -156,11 +156,4 @@ internal fun thumbnailSampleSize(width: Int, height: Int, cellEdgePx: Int): Int 
     return sampleSize
 }
 
-/**
- * The fixed sampling the thumbnail decode used before dispatch 2026-09-28-658. **No longer used by
- * any decode.** Kept only because `DecodedPhotoTest`'s rotation test derives its expected sizes from
- * it, and that test is reported to the planner as broken by the change rather than edited here (the
- * dispatch: report a broken test before touching it). Remove with that test's rewrite.
- */
-internal const val DECODE_SAMPLE_SIZE = 4
 private const val TAG = "LogPhotoDecode"
