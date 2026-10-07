@@ -44,6 +44,7 @@ abstract class TrackDao {
         SELECT * FROM tracks
         WHERE startedAtEpochMillis < :dayEndExclusive
         AND (endedAtEpochMillis IS NULL OR endedAtEpochMillis >= :dayStartInclusive)
+        AND importedAtEpochMillis IS NULL
         """,
     )
     abstract suspend fun getTracksForDay(dayStartInclusive: Long, dayEndExclusive: Long): List<TrackEntity>

@@ -27,7 +27,6 @@ class ContentUriGpxFileSource(
 ) : GpxFileSource {
 
     override suspend fun read(maxBytes: Int): GpxFileRead = withContext(Dispatchers.IO) {
-        if (maxBytes >= 0) return@withContext GpxFileRead.Failed(IllegalStateException("stub: not built yet"))
         try {
             val stream = contentResolver.openInputStream(uri) ?: throw FileNotFoundException("no stream for $uri")
             val bytes = stream.use { input ->

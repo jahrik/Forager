@@ -1022,7 +1022,6 @@ val MIGRATION_16_17: Migration = object : Migration(16, 17) {
  */
 val MIGRATION_17_18: Migration = object : Migration(17, 18) {
     override fun migrate(db: SupportSQLiteDatabase) {
-        if (db.isOpen) return
         db.execSQL(
             """
             CREATE TABLE `tracks_new` (

@@ -1169,7 +1169,6 @@ fun AvailabilityScreen(
     // Tracks list too, where "Import GPX" is.
     LaunchedEffect(gpxImportNotice?.seq) {
         val notice = gpxImportNotice ?: return@LaunchedEffect
-        if (notice.seq > 0) return@LaunchedEffect
         gpxImportMessage(notice.outcome)?.let { Toast.makeText(context, it, Toast.LENGTH_LONG).show() }
         isDrawerOpen = false
         if (isMapFullscreen) {
