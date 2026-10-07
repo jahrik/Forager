@@ -476,6 +476,84 @@ class TrackRecordingViewModelTest {
         assertNull(vm.uiState.value.waypointsErrorMessage)
     }
 
+    // ---- Dispatch -616 (plan T10): a waypoint dropped while recording belongs to that walk ----
+    //
+    // addWaypoint is what the map's '+' > Waypoint > name dialog calls (MainActivity's onDropWaypoint);
+    // the screen half of that path, up to onDropWaypoint, is AvailabilityScreenWaypointFlowTest's.
+
+    @Test
+    fun `a waypoint dropped while recording is linked to that recording and read back as one of its waypoints`() = runRecordingTest {
+        val waypointRepository = FakeWaypointRepository()
+        val vm = viewModel(waypointRepository = waypointRepository)
+        vm.startRecording(TrackRecordingMode.HIGH_ACCURACY)
+        runCurrent()
+        assertEquals("track-1", vm.uiState.value.activeTrack?.trackId)
+
+        vm.addWaypoint(lat = 45.0, lng = -122.0, name = "Chanterelle bank")
+        runCurrent()
+
+        val dropped = waypointRepository.getAll().getOrThrow().single()
+        assertEquals("Chanterelle bank", dropped.name)
+        assertEquals("track-1", dropped.trackId)
+        assertNull("a dropped waypoint is an ordinary one, not the walk's start or end", dropped.designation)
+        assertEquals(listOf(dropped), waypointRepository.getForTrack("track-1").getOrThrow())
+        vm.stopRecording()
+    }
+
+    @Test
+    fun `a waypoint dropped with no recording running stays standalone`() = runRecordingTest {
+        val waypointRepository = FakeWaypointRepository()
+        val vm = viewModel(waypointRepository = waypointRepository)
+        advanceUntilIdle()
+
+        vm.addWaypoint(lat = 45.0, lng = -122.0, name = "Big oak")
+        advanceUntilIdle()
+
+        assertNull(waypointRepository.getAll().getOrThrow().single().trackId)
+    }
+
+    @Test
+    fun `a waypoint dropped after the recording stopped is not linked to the walk that ended`() = runRecordingTest {
+        val waypointRepository = FakeWaypointRepository()
+        val vm = viewModel(waypointRepository = waypointRepository)
+        vm.startRecording(TrackRecordingMode.HIGH_ACCURACY)
+        runCurrent()
+        vm.stopRecording()
+        runCurrent()
+
+        vm.addWaypoint(lat = 45.0, lng = -122.0, name = "On the drive home")
+        runCurrent()
+
+        assertNull(waypointRepository.getAll().getOrThrow().single { it.name == "On the drive home" }.trackId)
+        assertEquals(emptyList<Waypoint>(), waypointRepository.getForTrack("track-1").getOrThrow())
+    }
+
+    @Test
+    fun `deleting the walk keeps its dropped waypoint, as an ordinary waypoint with no link`() = runRecordingTest {
+        val trackRepository = InMemoryTrackRepository()
+        val waypointRepository = FakeWaypointRepository()
+        val vm = viewModel(trackRepository, waypointRepository)
+        vm.startRecording(TrackRecordingMode.HIGH_ACCURACY)
+        runCurrent()
+        vm.addWaypoint(lat = 45.0, lng = -122.0, name = "Chanterelle bank")
+        runCurrent()
+        vm.stopRecording()
+        runCurrent()
+        assertEquals("linked before the delete", listOf("Chanterelle bank"), waypointRepository.getForTrack("track-1").getOrThrow().map { it.name })
+        // Ending the row is the recording service's job (stopRecording's doc comment), done here by hand.
+        trackRepository.end("track-1", 2_000L)
+        vm.loadTracks().join()
+
+        vm.requestRemoveTrack("track-1")
+        vm.commitRemoveTrack("track-1")
+        runCurrent()
+
+        assertNull("the walk is gone", trackRepository.getById("track-1").getOrThrow())
+        val kept = waypointRepository.getAll().getOrThrow().single()
+        assertEquals("Chanterelle bank", kept.name)
+        assertNull("its link is cleared, not left pointing at a deleted walk", kept.trackId)
+    }
+
     @Test
     fun `removing a waypoint refreshes the list`() = runRecordingTest {
         val waypointRepository = FakeWaypointRepository()
@@ -1180,10 +1258,15 @@ private class FakeWaypointRepository : com.zynergylabs.forager.app.domain.Waypoi
     // stubs in this suite use for methods outside their test's path).
     override suspend fun getById(id: String): Result<Waypoint?> =
         Result.failure(UnsupportedOperationException("getById is not part of this test's path"))
+    // Dispatch -616 (walk-waypoints) changed these two from an explicit "unsupported": its tests read a
+    // dropped waypoint back by its walk and delete the walk. Both mirror WaypointDao's queries: the walk's
+    // waypoints oldest first, and every link to the walk nulled with the waypoints kept.
     override suspend fun getForTrack(trackId: String): Result<List<Waypoint>> =
-        Result.failure(UnsupportedOperationException("getForTrack is not part of this test's path"))
-    override suspend fun detachFromTrack(trackId: String): Result<Unit> =
-        Result.failure(UnsupportedOperationException("detachFromTrack is not part of this test's path"))
+        Result.success(waypoints.values.filter { it.trackId == trackId }.sortedBy { it.createdAtEpochMillis })
+    override suspend fun detachFromTrack(trackId: String): Result<Unit> {
+        waypoints.replaceAll { _, waypoint -> if (waypoint.trackId == trackId) waypoint.copy(trackId = null) else waypoint }
+        return Result.success(Unit)
+    }
     override suspend fun save(waypoint: Waypoint): Result<Unit> {
         waypoints[waypoint.id] = waypoint
         return Result.success(Unit)

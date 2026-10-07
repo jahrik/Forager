@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -27,6 +28,7 @@ import androidx.compose.material3.contentColorFor
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.ui.Alignment
@@ -77,13 +79,27 @@ import kotlinx.coroutines.launch
  * Maps tab comes up, and Back from that navigation opens it again by request.
  */
 internal sealed interface RecordDetailsTarget {
-    data class WaypointDetails(val id: String) : RecordDetailsTarget
+    /**
+     * [fromTrackId] (dispatch -616 as amended by -618): the walk whose details this waypoint was opened
+     * from, through the "Waypoints on this track" list; Back returns there ([returnsTo]). `null` for a
+     * waypoint opened any other way, which Back closes as before.
+     */
+    data class WaypointDetails(val id: String, val fromTrackId: String? = null) : RecordDetailsTarget
     data class TrackDetails(val id: String) : RecordDetailsTarget
     data class OfflineRegionDetails(val id: Long) : RecordDetailsTarget
 }
 
 /**
- * Saves a [RecordDetailsTarget] as one string, `waypoint:<id>`, `track:<id>` or `region:<id>`. A
+ * Where Back on this target's sheet goes (dispatch -616 as amended by -618; the owner's "Back retraces the
+ * way in"): a waypoint opened from its walk's list returns to that walk's details; every other target has
+ * nowhere to return to, and Back closes the sheet.
+ */
+internal fun RecordDetailsTarget.returnsTo(): RecordDetailsTarget? =
+    (this as? RecordDetailsTarget.WaypointDetails)?.fromTrackId?.let { RecordDetailsTarget.TrackDetails(it) }
+
+/**
+ * Saves a [RecordDetailsTarget] as one string, `waypoint:<id>`, `track:<id>` or `region:<id>` (and, since dispatch -616,
+ * `walk-waypoint:<track id><U+001F><id>` for a waypoint opened from its walk). A
  * string that is none of these fails loudly on restore rather than quietly opening nothing, the
  * same choice [JournalScreenState]'s saver makes with `valueOf` and `toBooleanStrict`.
  */
@@ -91,7 +107,9 @@ internal val RecordDetailsTargetSaver: Saver<RecordDetailsTarget?, String> = Sav
     save = { target ->
         when (target) {
             null -> ""
-            is RecordDetailsTarget.WaypointDetails -> "$WAYPOINT_KEY${target.id}"
+            // Dispatch -616: a waypoint opened from its walk keeps the walk, so Back still returns there after a recreation.
+            is RecordDetailsTarget.WaypointDetails -> target.fromTrackId?.let { "$WALK_WAYPOINT_KEY$it$WALK_WAYPOINT_SEPARATOR${target.id}" }
+                ?: "$WAYPOINT_KEY${target.id}"
             is RecordDetailsTarget.TrackDetails -> "$TRACK_KEY${target.id}"
             is RecordDetailsTarget.OfflineRegionDetails -> "$REGION_KEY${target.id}"
         }
@@ -99,6 +117,11 @@ internal val RecordDetailsTargetSaver: Saver<RecordDetailsTarget?, String> = Sav
     restore = { saved ->
         when {
             saved.isEmpty() -> null
+            saved.startsWith(WALK_WAYPOINT_KEY) -> saved.removePrefix(WALK_WAYPOINT_KEY).let { rest ->
+                val at = rest.indexOf(WALK_WAYPOINT_SEPARATOR)
+                if (at < 0) error("Not a saved record-details target: '$saved'")
+                RecordDetailsTarget.WaypointDetails(id = rest.substring(at + 1), fromTrackId = rest.substring(0, at))
+            }
             saved.startsWith(WAYPOINT_KEY) -> RecordDetailsTarget.WaypointDetails(saved.removePrefix(WAYPOINT_KEY))
             saved.startsWith(TRACK_KEY) -> RecordDetailsTarget.TrackDetails(saved.removePrefix(TRACK_KEY))
             saved.startsWith(REGION_KEY) -> RecordDetailsTarget.OfflineRegionDetails(saved.removePrefix(REGION_KEY).toLong())
@@ -110,6 +133,10 @@ internal val RecordDetailsTargetSaver: Saver<RecordDetailsTarget?, String> = Sav
 private const val WAYPOINT_KEY = "waypoint:"
 private const val TRACK_KEY = "track:"
 private const val REGION_KEY = "region:"
+private const val WALK_WAYPOINT_KEY = "walk-waypoint:"
+
+/** Between the walk's id and the waypoint's: a control character, so neither id (a UUID, or anything with colons) can contain it. */
+private const val WALK_WAYPOINT_SEPARATOR = '\u001F'
 
 /**
  * What a Records row does on a tap once J5c has given it one: open [onClick], announced to TalkBack
@@ -170,6 +197,40 @@ internal fun RecordDetailsSheet(
     overMap: Boolean = false,
     /** Dispatch 2026-09-28-502: a waypoint's "Navigate", given its id; `null` offers none (an entry map's sheet). */
     onNavigateToWaypoint: ((String) -> Unit)? = null,
+    /**
+     * Dispatch -616 as amended by -618: shows another record's details in this sheet's place: a waypoint
+     * from a walk's "Waypoints on this track" list, and the walk again on Back from it. `null` leaves the
+     * list's rows without a tap, and Back closes the sheet.
+     */
+    onOpenDetails: ((RecordDetailsTarget) -> Unit)? = null,
+) {
+    // One sheet per target, so a target opened in this one's place gets a sheet of its own, shown fresh:
+    // the sheet Back has just hidden is not reused (its state is hidden, and it would stay so).
+    key(target) {
+        RecordDetailsSheetFor(
+            target, waypoints, tracks, offlineRegions, waypointEntryReferenceCounts, distanceUnit, nowEpochMillis,
+            staleThresholdDays, getFullRecord, onDeleteTrack, onDismiss, overMap, onNavigateToWaypoint, onOpenDetails,
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RecordDetailsSheetFor(
+    target: RecordDetailsTarget,
+    waypoints: List<Waypoint>,
+    tracks: List<Track>,
+    offlineRegions: List<OfflineRegionSummary>,
+    waypointEntryReferenceCounts: Map<String, Int>,
+    distanceUnit: DistanceUnit,
+    nowEpochMillis: Long,
+    staleThresholdDays: Int,
+    getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
+    onDeleteTrack: ((String) -> Unit)?,
+    onDismiss: () -> Unit,
+    overMap: Boolean,
+    onNavigateToWaypoint: ((String) -> Unit)?,
+    onOpenDetails: ((RecordDetailsTarget) -> Unit)?,
 ) {
     val waypoint = (target as? RecordDetailsTarget.WaypointDetails)?.let { t -> waypoints.firstOrNull { it.id == t.id } }
     val track = (target as? RecordDetailsTarget.TrackDetails)?.let { t -> tracks.firstOrNull { it.id == t.id } }
@@ -187,8 +248,11 @@ internal fun RecordDetailsSheet(
     // C1: the navigation bar's colour (was surfaceContainerLow); alpha as it was, 0.8 over a map and solid elsewhere.
     val containerColor = mapChromeFill(navigationBarContainerColor(), overMap)
     val contentColor = contentColorFor(navigationBarContainerColor())
+    // Back, a scrim touch or a drag down: back to where this target was opened from, if anywhere.
+    val parent = target.returnsTo()
+    val dismiss: () -> Unit = if (parent != null && onOpenDetails != null) ({ onOpenDetails(parent) }) else onDismiss
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
+        onDismissRequest = dismiss,
         sheetState = sheetState,
         modifier = Modifier.testTag(RECORD_DETAILS_SHEET_TAG).mapChromeContainerColor(containerColor),
         containerColor = containerColor,
@@ -218,6 +282,7 @@ internal fun RecordDetailsSheet(
                 getFullRecord = getFullRecord,
                 onDeleteTrack = onDeleteTrack,
                 onNavigateToWaypoint = onNavigateToWaypoint,
+                onOpenDetails = onOpenDetails,
             )
         }
     }
@@ -238,10 +303,18 @@ private fun RecordDetailsBody(
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
     onDeleteTrack: ((String) -> Unit)?,
     onNavigateToWaypoint: ((String) -> Unit)?,
+    onOpenDetails: ((RecordDetailsTarget) -> Unit)?,
 ) {
     when {
         waypoint != null -> WaypointDetails(waypoint, tracks, waypointEntryReferenceCounts, onNavigateToWaypoint)
-        track != null -> TrackDetails(track, waypoints, distanceUnit, getFullRecord, onDeleteTrack)
+        track != null -> TrackDetails(
+            track,
+            waypoints,
+            distanceUnit,
+            getFullRecord,
+            onDeleteTrack,
+            onOpenWaypoint = onOpenDetails?.let { open -> { id: String -> open(RecordDetailsTarget.WaypointDetails(id, fromTrackId = track.id)) } },
+        )
         region != null -> OfflineRegionDetails(region, distanceUnit, nowEpochMillis, staleThresholdDays)
     }
 }
@@ -293,6 +366,7 @@ private fun TrackDetails(
     distanceUnit: DistanceUnit,
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
     onDeleteTrack: ((String) -> Unit)?,
+    onOpenWaypoint: ((String) -> Unit)?,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -300,11 +374,14 @@ private fun TrackDetails(
     // (CartographyEntryEditScreen's TracksSection), from the points already in memory.
     val stats = ComputeTrackStatisticsUseCase()(track.points)
     DetailsTitle(trackTitle(track))
-    TrackThumbnail(
-        trackId = track.id,
-        points = track.points,
+    // Dispatch -616 as amended by -618: the drawing carries start, end and dropped-waypoint dots, and the
+    // list of those waypoints sits under it.
+    WalkThumbnail(
+        track = track,
+        waypoints = waypoints,
         modifier = Modifier.size(TRACK_THUMBNAIL_SIZE).testTag(RECORD_DETAILS_THUMBNAIL_TAG),
     )
+    WalkWaypointsSection(waypointsDroppedOn(track, waypoints), onOpenWaypoint)
     DetailField(FIELD_STARTED, "Started", formatRecordTimestamp(track.startedAtEpochMillis))
     DetailField(FIELD_ENDED, "Ended", track.endedAtEpochMillis?.let(::formatRecordTimestamp) ?: "Still recording")
     DetailField(FIELD_DISTANCE, "Distance", formatDistanceMeters(stats.distanceMeters, distanceUnit))
@@ -333,6 +410,43 @@ private fun TrackDetails(
                 Icon(Icons.Filled.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
                 Text(DELETE_ACTION_LABEL, modifier = Modifier.padding(start = Spacing.sm))
             }
+        }
+    }
+}
+
+/**
+ * "Waypoints on this track" (dispatch -616 as amended by -618; the owner chose the heading): the
+ * waypoints dropped on the walk, oldest first, each row its name and when it was dropped. A tap anywhere on
+ * a row opens that waypoint's details in this sheet's place ([onOpen]), and Back returns to the walk. A
+ * walk with none shows no section at all, not an empty heading. The rows have no fill of their own: over
+ * a map the sheet's container already carries the map chrome's alpha.
+ */
+@Composable
+private fun WalkWaypointsSection(dropped: List<Waypoint>, onOpen: ((String) -> Unit)?) {
+    if (dropped.isEmpty()) return
+    Text(
+        WALK_WAYPOINTS_HEADING,
+        style = MaterialTheme.typography.titleSmall,
+        modifier = Modifier.padding(top = Spacing.sm).testTag(RECORD_DETAILS_WALK_WAYPOINTS_HEADING_TAG),
+    )
+    dropped.forEach { waypoint ->
+        val tap = onOpen?.let { open -> Modifier.opensRecordDetails(waypoint.name) { open(waypoint.id) } }
+            ?: Modifier.semantics(mergeDescendants = true) {}
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = WALK_WAYPOINT_ROW_MIN_HEIGHT)
+                .then(tap)
+                .testTag(recordDetailsWalkWaypointTag(waypoint.id)),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(waypoint.name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+            Text(
+                formatRecordTimestamp(waypoint.createdAtEpochMillis),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -415,6 +529,13 @@ internal fun formatTrackDuration(durationMillis: Long): String {
 
 private val FIELD_LABEL_WIDTH = 112.dp
 private val TRACK_THUMBNAIL_SIZE = 96.dp
+
+/** The Material minimum touch target, so a row is easy to hit with a thumb. */
+private val WALK_WAYPOINT_ROW_MIN_HEIGHT = 48.dp
+
+internal const val WALK_WAYPOINTS_HEADING = "Waypoints on this track"
+internal const val RECORD_DETAILS_WALK_WAYPOINTS_HEADING_TAG = "record-details-walk-waypoints-heading"
+internal fun recordDetailsWalkWaypointTag(waypointId: String): String = "record-details-walk-waypoint-$waypointId"
 
 internal const val RECORD_DETAILS_SHEET_TAG = "record-details-sheet"
 
