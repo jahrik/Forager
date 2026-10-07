@@ -11,7 +11,6 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
-import androidx.annotation.VisibleForTesting
 import androidx.core.app.NotificationCompat
 import com.zynergylabs.forager.app.AppContainer
 import com.zynergylabs.forager.app.ForagerApplication
@@ -94,7 +93,6 @@ class TrackRecordingService : Service() {
      * Where each fix goes besides the sampler: the container's watches. A test replaces it, before
      * the start command, to hand the service a watch that throws (dispatch 2026-09-28-658, R1).
      */
-    @VisibleForTesting
     internal var watchesFor: (AppContainer) -> RecordingWatches = ::RecordingWatches
 
     override fun onBind(intent: Intent?): IBinder? = null

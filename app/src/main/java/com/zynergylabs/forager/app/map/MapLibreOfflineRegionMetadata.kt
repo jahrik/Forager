@@ -77,13 +77,13 @@ internal fun ByteArray.readRegionMetadata(): RegionMetadataRead {
             RegionMetadata(
                 name = text(KEY_NAME),
                 region = Region(
-                    lat = number(KEY_LAT, String::toDouble),
-                    lng = number(KEY_LNG, String::toDouble),
-                    radiusKm = number(KEY_RADIUS_KM, String::toInt),
+                    lat = number(KEY_LAT, { it.toDouble() }),
+                    lng = number(KEY_LNG, { it.toDouble() }),
+                    radiusKm = number(KEY_RADIUS_KM, { it.toInt() }),
                 ),
-                minZoom = number(KEY_MIN_ZOOM, String::toDouble),
-                maxZoom = number(KEY_MAX_ZOOM, String::toDouble),
-                downloadedAtEpochMillis = number(KEY_DOWNLOADED_AT, String::toLong),
+                minZoom = number(KEY_MIN_ZOOM, { it.toDouble() }),
+                maxZoom = number(KEY_MAX_ZOOM, { it.toDouble() }),
+                downloadedAtEpochMillis = number(KEY_DOWNLOADED_AT, { it.toLong() }),
             ),
         )
     } catch (e: MissingKey) {
