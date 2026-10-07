@@ -29,6 +29,7 @@ import com.zynergylabs.forager.app.ui.track.RecordingNotice
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.RuleChain
@@ -132,7 +133,13 @@ class SnackbarTrimmedTouchTest {
         setScreen()
         show(1)
         val s = surface()
-        edgePoints(s, (-6).dp).forEach { (edge, at) ->
+        val root = with(composeRule.density) {
+            composeRule.onAllNodes(androidx.compose.ui.test.isRoot()).fetchSemanticsNodes().first().boundsInRoot.let { DpRect(it.left.toDp(), it.top.toDp(), it.right.toDp(), it.bottom.toDp()) }
+        }
+        // An edge the snackbar shares with the screen has no "beside" to touch: a point off the screen is no sample.
+        val points = edgePoints(s, (-6).dp).filter { (_, at) -> at.first >= root.left && at.first <= root.right && at.second >= root.top && at.second <= root.bottom }
+        assertTrue("at least the top and bottom edges are sampled (${points.map { it.first }})", points.size >= 2)
+        points.forEach { (edge, at) ->
             val before = mapTaps
             composeRule.touchAt(at.first, at.second)
             assertEquals("6 dp outside the $edge edge (${at.first.value}, ${at.second.value}) of ${s.describe()} the map took the touch", before + 1, mapTaps)
