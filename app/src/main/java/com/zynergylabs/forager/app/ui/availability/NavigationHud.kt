@@ -3,6 +3,15 @@ package com.zynergylabs.forager.app.ui.availability
 import com.zynergylabs.forager.app.ui.motion.clickableWithShapedPress
 import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
 import com.zynergylabs.forager.app.ui.motion.WordSwap
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.ui.unit.IntSize
+import com.zynergylabs.forager.app.ui.motion.LocalReduceMotion
+import com.zynergylabs.forager.app.ui.motion.MotionTokens
+import com.zynergylabs.forager.app.ui.motion.rememberLastShown
 import com.zynergylabs.forager.app.domain.hasArrived
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -371,18 +380,32 @@ internal fun NavigationHud(
                         )
                     }
                 }
-                // Its words crossfade (item 6). Its coming and going is still at once: the HUD's sundown line (scout N6) is not
-                // among the pop-ups the owner chose to fade and grow, so it is left for the owner.
-                if (sundownLine != null) {
-                    WordSwap(text = sundownLine) { shown ->
-                        Text(
-                            text = shown,
-                            style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.testTag(NAVIGATION_HUD_SUNDOWN_LINE_TAG),
-                        )
+                // Motion Part 2, Amendment 1 (RECORD -672), item 2 (scout N6): the display's sundown line fades and grows like the
+                // strip's: when its window opens the display grows down to hold it, from under the rows above, and the reverse when
+                // it closes; the fade alone, the height changing at once, under reduced motion. Its words crossfade (item 6). The
+                // display takes no touch beside its coordinates and its buttons, so the growing band moves no touch.
+                val sundownLineShown = rememberLastShown(sundownLine)
+                val reduceMotion = LocalReduceMotion.current
+                val lineFade = MotionTokens.mapPopUpFadeSpec<Float>()
+                val lineGrow = MotionTokens.mapPopUpGrowSpec<IntSize>()
+                AnimatedVisibility(
+                    visible = sundownLine != null,
+                    enter = if (reduceMotion) fadeIn(animationSpec = lineFade) else fadeIn(animationSpec = lineFade) + expandVertically(animationSpec = lineGrow, expandFrom = Alignment.Top),
+                    exit = if (reduceMotion) fadeOut(animationSpec = lineFade) else fadeOut(animationSpec = lineFade) + shrinkVertically(animationSpec = lineGrow, shrinkTowards = Alignment.Top),
+                    label = "hudSundownLine",
+                ) {
+                    sundownLineShown?.let { line ->
+                        WordSwap(text = line) { shown ->
+                            Text(
+                                text = shown,
+                                style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.testTag(NAVIGATION_HUD_SUNDOWN_LINE_TAG),
+                            )
+                        }
                     }
+                }
                 }
             }
         }

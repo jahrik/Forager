@@ -1002,6 +1002,9 @@ internal fun CompactMainScaffold(
                         // at once (its slot's comment). Instant under reduced motion. The cost of keeping the map alive through the fade is
                         // the S22's to judge (RECORD -651).
                         TabCrossfade(targetState = compactTab(), modifier = Modifier.fillMaxSize()) { tab ->
+                        // Amendment 1 (RECORD -672), item 8: the Maps tab is kept through its fade (KEEP_MAP_THROUGH_TAB_FADE); the
+                        // fallback, if the S22 finds that too costly, is this one constant, which drops the leaving Maps tab at once.
+                        if (tab == CompactTab.MAP && tab != compactTab() && !KEEP_MAP_THROUGH_TAB_FADE) Unit else
                         when (tab) {
                             CompactTab.LIST -> ListTab(
                                 uiState = uiState,
@@ -1556,6 +1559,15 @@ internal fun CompactMainScaffold(
             }
         }
 }
+
+/**
+ * Whether the Maps tab, live map and all, is kept on screen through its fade when another tab is chosen (motion Part 2, item 1;
+ * Amendment 1, RECORD -672, item 8: "keep as built", with the fallback ready for the S22 check). RECORD -651: the phone cost of
+ * keeping the live map through the fade "is checked on the S22 before it is kept". `false` is the fallback: the Maps tab goes
+ * at once as it used to, while the arriving tab still fades in and the bar still fades with it. Not a setting; one build-time
+ * switch for the device check.
+ */
+internal const val KEEP_MAP_THROUGH_TAB_FADE = true
 
 /** Landscape B2 (S2): the search bar's width cap in a short landscape window. */
 internal val LANDSCAPE_SEARCH_MAX_WIDTH = 384.dp

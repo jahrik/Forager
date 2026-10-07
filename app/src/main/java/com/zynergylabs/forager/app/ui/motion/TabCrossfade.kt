@@ -1,6 +1,17 @@
 package com.zynergylabs.forager.app.ui.motion
 
+import androidx.activity.OnBackPressedDispatcher
+import androidx.activity.OnBackPressedDispatcherOwner
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ProvidedValue
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.navigationevent.NavigationEventDispatcher
+import androidx.navigationevent.NavigationEventDispatcherOwner
+import androidx.navigationevent.compose.LocalNavigationEventDispatcherOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.MutableTransitionState
@@ -64,6 +75,7 @@ fun <T> TabCrossfade(
 ) {
     val reduceMotion = LocalReduceMotion.current
     val fade = MotionTokens.tabCrossfadeSpec<Float>()
+    val inertBack = rememberInertBackOwner()
     AnimatedContent(
         targetState = targetState,
         modifier = modifier,
@@ -79,13 +91,41 @@ fun <T> TabCrossfade(
         label = "tabCrossfade",
     ) { tab ->
         val leaving = tab != targetState
-        Box(
-            Modifier
-                .holdWhileLeaving(leaving)
-                .leavingTakesNoTouches(leaving)
-                .semantics { tabLeaving = leaving },
-        ) { content(tab) }
+        // Amendment 1 (RECORD -672), item 5: from the moment a tab starts to leave its Back handlers are off, so a Back during
+        // the fade acts on the arriving tab (or the screen), never on one already going. Done by handing the leaving tab Back
+        // dispatchers nothing presses, so its BackHandlers re-register there. Both locals: activity-compose 1.13's BackHandler
+        // uses the navigation-event owner when there is one and the OnBackPressed owner otherwise (read from its bytecode).
+        // One provider call either way (an empty set while not leaving), so starting to leave does not rebuild the tab.
+        val inertProvided: Array<ProvidedValue<*>> = if (leaving) {
+            arrayOf(
+                LocalNavigationEventDispatcherOwner provides inertBack,
+                LocalOnBackPressedDispatcherOwner provides inertBack,
+            )
+        } else {
+            emptyArray<ProvidedValue<*>>()
+        }
+        CompositionLocalProvider(*inertProvided) {
+            Box(
+                Modifier
+                    .holdWhileLeaving(leaving)
+                    .leavingTakesNoTouches(leaving)
+                    .semantics { tabLeaving = leaving },
+            ) { content(tab) }
+        }
     }
+}
+
+/** Back dispatchers that nothing presses, for a leaving tab's handlers (see [TabCrossfade]). Shares the screen's lifecycle. */
+private class InertBack(private val lifecycleOwner: LifecycleOwner) : OnBackPressedDispatcherOwner, NavigationEventDispatcherOwner {
+    override val onBackPressedDispatcher: OnBackPressedDispatcher = OnBackPressedDispatcher()
+    override val navigationEventDispatcher: NavigationEventDispatcher = NavigationEventDispatcher()
+    override val lifecycle: Lifecycle get() = lifecycleOwner.lifecycle
+}
+
+@Composable
+private fun rememberInertBackOwner(): InertBack {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    return remember(lifecycleOwner) { InertBack(lifecycleOwner) }
 }
 
 /**
