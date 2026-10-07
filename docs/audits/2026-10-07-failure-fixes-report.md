@@ -482,3 +482,23 @@ and the new decode makes two (bounds, then pixels). Proposed fix, test-only: bot
 bounds-only call the way the platform does (set `outWidth`/`outHeight`, return null, and neither
 record nor gate it), so they count and gate only the pixel decode. Waiting for the planner's word
 before touching them.
+
+## The decode stand-ins fixed (RECORD -670), 2026-10-07; supersedes the previous section's 11 failures
+
+The owner: "Yes, fix and rerun (Recommended)". Test-only change (`af39a73e`): both stand-ins
+(`ThreadRecordingBitmapFactoryShadow`, `GatedBitmapFactoryShadow`) answer a dimensions-only call
+(`inJustDecodeBounds`) as the platform does, setting `outWidth`/`outHeight` to 8 and returning null,
+and neither record nor gate it; the pixel decode is recorded and gated as before. No assertion was
+changed: `PhotoDecodeThreadTest`'s "decoded exactly once" now counts the one pixel decode.
+
+- **The three classes:** 12 tests, 0 failures.
+- **Revert check:** the old stand-ins restored from copies saved before the edit, the three classes
+  run (no compile errors in the log): the same 11 failures as before, with the same messages. The new
+  stand-ins then restored from their saved copies and compared byte for byte with what was committed.
+- **Full suite, rerun** under the same caps, no Kotlin daemon left from earlier, JUnit folder cleared
+  first: **495 suites, 4,004 tests, 24 skipped, 0 failures.** No out-of-memory kill in this run (the
+  only one in the system log is the earlier, recorded one at 15:36).
+- `./gradlew --stop` run at the end; no Gradle or Kotlin daemon left.
+
+Device-only and still not checked: the capture size a phone picks, thumbnails' look, R7's foreground
+refusal, and the inset-dependent placement of the new snackbar.
