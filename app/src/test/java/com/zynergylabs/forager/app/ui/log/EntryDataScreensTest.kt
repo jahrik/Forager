@@ -440,12 +440,12 @@ class EntryDataScreensTest {
 
     /**
      * RECORD -671 ("Keep Finds & maps, fold tracks"): a track is one name row, with no distance or time
-     * line (the tiles carry those), and a touch on it opens the track's details over the report. The
-     * touch is at 80% of the row's width, the empty part beside the name, which is where a row that
-     * only listened on its text would miss.
+     * line (the tiles carry those), and a touch on it opens the track's details over the report.
+     * A finger is not a point (CLAUDE.md, Testing), so the touch is sampled across the row's bounds,
+     * one fresh composition per sample (RECORD -673): near its left edge on the name, at its centre,
+     * and near its right edge in the empty part beside the name, each at a different height.
      */
-    @Test
-    fun `a track below the table is its name alone, and a touch on its row opens its details`() {
+    private fun assertTrackRowTouchOpensDetails(fx: Float, fy: Float) {
         setScreen(mode = CartographyEntryMode.VIEW)
         val row = composeRule.onNodeWithTag(entryTrackRowTag(TRACK_ID)).performScrollTo()
         row.assert(hasText("Ridge Loop"))
@@ -453,11 +453,20 @@ class EntryDataScreensTest {
         composeRule.onAllNodesWithText(TRACK_NOT_IN_RECORDS_LINE).assertCountEquals(0)
         composeRule.onAllNodesWithTag(RECORD_DETAILS_SHEET_TAG).assertCountEquals(0)
 
-        row.performTouchInput { click(Offset(width * 0.8f, height / 2f)) }
+        row.performTouchInput { click(Offset(width * fx, height * fy)) }
         composeRule.waitForIdle()
 
         composeRule.onNodeWithTag(RECORD_DETAILS_SHEET_TAG).assertExists()
     }
+
+    @Test
+    fun `a track below the table is its name alone, and a touch near its left edge opens its details`() = assertTrackRowTouchOpensDetails(0.05f, 0.25f)
+
+    @Test
+    fun `a touch at the centre of a track's row opens its details`() = assertTrackRowTouchOpensDetails(0.5f, 0.5f)
+
+    @Test
+    fun `a touch near the right edge of a track's row, beside its name, opens its details`() = assertTrackRowTouchOpensDetails(0.95f, 0.75f)
 
     /** A walk recorded with no heights draws no profile: one plain line says why, and Climb says it was not recorded. */
     @Test

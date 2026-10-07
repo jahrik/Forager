@@ -955,7 +955,7 @@ internal class JournalEntriesOnMapFollowUpsTest : JournalEntriesOnMapHarness() {
         drawThePhoto(findIds = listOf(FIND.id), entryCount = 1)
         setScreen(entryKeepingPhoto("entry-a", day, "Shown later.", shown = false))
         openPhotoBubble()
-        assertEquals("not highlighted: as it was", listOf(photoDate, "In Golden chanterelle · In 1 journal entry", "View photo"), bubbleTexts())
+        assertEquals("not highlighted: as it was", listOf(photoDate, "Golden chanterelle · 1 journal entry", "View photo"), bubbleTexts())
 
         // Shown on the map from its report, as a user does it (J8-3).
         openEntryReport("entry-a", "Shown later.")
@@ -981,7 +981,7 @@ internal class JournalEntriesOnMapFollowUpsTest : JournalEntriesOnMapHarness() {
             entryKeepingPhoto("entry-b", day.minusDays(7), "Not shown.", shown = false),
         )
         openPhotoBubble()
-        assertEquals("switch off: as it was", listOf(photoDate, "In Golden chanterelle · In 2 journal entries", "View photo"), bubbleTexts())
+        assertEquals("switch off: as it was", listOf(photoDate, "Golden chanterelle · 2 journal entries", "View photo"), bubbleTexts())
 
         touchCentreOf(composeRule.onNodeWithContentDescription(LAYERS_ROW_DESCRIPTION))
         touchCentreOf(composeRule.onNodeWithText("Journal entries").performScrollTo())
