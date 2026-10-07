@@ -284,11 +284,11 @@ private suspend fun exportAndShareTrack(
 
 /**
  * Shown before the share sheet when the track's full GPS record could not be read, so the file holds
- * the track as the app shows it but not the raw record (dispatch 2026-09-28-658, R9). Proposed
- * wording, to be confirmed by the owner before the build.
+ * the track as the app shows it but not the raw record (dispatch 2026-09-28-658, R9). The owner's wording
+ * (RECORD -660, Amendment 1 to -658).
  */
 internal const val PARTIAL_GPX_EXPORT_MESSAGE =
-    "Couldn't add the full GPS record, so this file has the track as shown but not every raw point. Share again to try including it."
+    "Couldn't add the full GPS record. This file has the track only. Share again to retry."
 
 /**
  * Builds the `ACTION_SEND` intent for [file] — split out from [exportAndShareTrack] so the intent's
