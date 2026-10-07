@@ -1086,12 +1086,16 @@ class AvailabilityViewModel(
             offlineMapRepository.listRegions().fold(
                 onSuccess = { downloaded ->
                     // Regions restored from a backup with no tiles here are listed after the downloaded ones (owner, "1 B").
+                    // Dispatch 2026-09-28-658 (M2): a failed read of them is a partial list, and the
+                    // screen says so, rather than showing the downloaded ones as if they were all.
+                    var partialMessage: String? = null
                     val restored = offlineMapRepository.listNotDownloadedRegions().getOrElse { error ->
-                        errorLog.w(TAG, "Couldn't read restored offline regions.", error)
+                        errorLog.w(TAG, "Couldn't read restored offline regions; showing the downloaded ones only, and saying so.", error)
+                        partialMessage = RESTORED_REGIONS_UNREADABLE_MESSAGE
                         emptyList()
                     }
                     val regions = downloaded + restored
-                    _uiState.update { it.copy(offlineRegions = regions, offlineRegionsErrorMessage = null) }
+                    _uiState.update { it.copy(offlineRegions = regions, offlineRegionsErrorMessage = partialMessage) }
                     // One query per region — see TrackRecordingViewModel.loadWaypoints' identical
                     // choice for why this scale doesn't need a batched read.
                     val counts = regions.associate { it.id to getOfflineRegionReferenceCount(it.id) }
@@ -1716,3 +1720,11 @@ private object NoStoredMapLayerPreferences : MapLayerPreferencesRepository {
 
     override suspend fun setLayerOrder(layerIds: List<String>): Result<Unit> = Result.success(Unit)
 }
+
+/**
+ * Shown above the Offline maps list when the regions restored from a backup could not be read, so the
+ * list holds only the downloaded ones (dispatch 2026-09-28-658, M2). Proposed wording, to be confirmed
+ * by the owner before the build. Reopening Offline maps reads both lists again.
+ */
+internal const val RESTORED_REGIONS_UNREADABLE_MESSAGE =
+    "Couldn't read the regions restored from your backup, so only downloaded regions are listed. Close Offline maps and open it again to retry."
