@@ -368,31 +368,16 @@ internal fun darknessMarginTag(minutes: Int) = "settings-darkness-margin-$minute
 private fun SundownSection(sundown: SundownSettings) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text("Sundown", style = MaterialTheme.typography.titleMedium)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(role = Role.Checkbox) { sundown.onAlertsEnabledChanged(!sundown.alertsEnabled) }
-                .testTag(SUNDOWN_ALERTS_TAG),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            Checkbox(checked = sundown.alertsEnabled, onCheckedChange = sundown.onAlertsEnabledChanged)
-            Text(SUNDOWN_ALERTS_LABEL, style = MaterialTheme.typography.bodyLarge)
-        }
+        SettingsCheckboxRow(sundown.alertsEnabled, sundown.onAlertsEnabledChanged, SUNDOWN_ALERTS_LABEL, testTag = SUNDOWN_ALERTS_TAG)
         Text(DARK_UNDER_TREES_LABEL, style = MaterialTheme.typography.bodyLarge)
         Text(DARK_UNDER_TREES_EXPLANATION, style = MaterialTheme.typography.bodySmall)
         DARKNESS_MARGIN_CHOICES.forEach { (minutes, label) ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(role = Role.RadioButton) { sundown.onDarknessMarginChanged(minutes) }
-                    .testTag(darknessMarginTag(minutes)),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
-                RadioButton(selected = sundown.darknessMarginMinutes == minutes, onClick = { sundown.onDarknessMarginChanged(minutes) })
-                Text(label, style = MaterialTheme.typography.bodyLarge)
-            }
+            SettingsRadioRow(
+                selected = sundown.darknessMarginMinutes == minutes,
+                onSelect = { sundown.onDarknessMarginChanged(minutes) },
+                label = label,
+                testTag = darknessMarginTag(minutes),
+            )
         }
     }
 }
@@ -413,17 +398,7 @@ internal const val OFF_TRACK_REMINDER_TAG = "settings-off-track-reminder"
  */
 @Composable
 private fun OffTrackReminderSection(reminder: OffTrackReminderSettings) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(role = Role.Checkbox) { reminder.onEnabledChanged(!reminder.enabled) }
-            .testTag(OFF_TRACK_REMINDER_TAG),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
-        Checkbox(checked = reminder.enabled, onCheckedChange = reminder.onEnabledChanged)
-        Text(OFF_TRACK_REMINDER_LABEL, style = MaterialTheme.typography.bodyLarge)
-    }
+    SettingsCheckboxRow(reminder.enabled, reminder.onEnabledChanged, OFF_TRACK_REMINDER_LABEL, testTag = OFF_TRACK_REMINDER_TAG)
 }
 
 /**
@@ -445,16 +420,7 @@ private fun ThemeModeSection(themeMode: AppThemeMode, onThemeModeSelected: (AppT
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text("Night Mode", style = MaterialTheme.typography.titleMedium)
         AppThemeMode.entries.forEach { mode ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(role = Role.RadioButton) { onThemeModeSelected(mode) },
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
-                RadioButton(selected = mode == themeMode, onClick = { onThemeModeSelected(mode) })
-                Text(mode.label, style = MaterialTheme.typography.bodyLarge)
-            }
+            SettingsRadioRow(selected = mode == themeMode, onSelect = { onThemeModeSelected(mode) }, label = mode.label)
         }
     }
 }
@@ -468,16 +434,7 @@ private fun ThemeModeSection(themeMode: AppThemeMode, onThemeModeSelected: (AppT
  */
 @Composable
 private fun NightModeMapsSection(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(role = Role.Checkbox) { onCheckedChange(!checked) },
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
-        Checkbox(checked = checked, onCheckedChange = onCheckedChange)
-        Text("Night Maps", style = MaterialTheme.typography.bodyLarge)
-    }
+    SettingsCheckboxRow(checked, onCheckedChange, "Night Maps")
 }
 
 /**
@@ -493,23 +450,7 @@ private fun NightModeMapsSection(checked: Boolean, onCheckedChange: (Boolean) ->
  */
 @Composable
 private fun PhotoLocationSection(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(role = Role.Checkbox) { onCheckedChange(!checked) },
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            Checkbox(checked = checked, onCheckedChange = onCheckedChange)
-            Text(PHOTO_LOCATION_SETTING_LABEL, style = MaterialTheme.typography.bodyLarge)
-        }
-        Text(
-            PHOTO_LOCATION_SETTING_EXPLANATION,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
+    ExplainedSettingsCheckbox(checked, onCheckedChange, PHOTO_LOCATION_SETTING_LABEL, PHOTO_LOCATION_SETTING_EXPLANATION)
 }
 
 /**
@@ -520,22 +461,60 @@ private fun PhotoLocationSection(checked: Boolean, onCheckedChange: (Boolean) ->
  */
 @Composable
 private fun CameraPortraitLockSection(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    ExplainedSettingsCheckbox(checked, onCheckedChange, LOCK_CAMERA_SETTING_LABEL, LOCK_CAMERA_SETTING_EXPLANATION)
+}
+
+/**
+ * One Settings checkbox row: the whole row toggles, with the checkbox and its label in it. The one
+ * copy (dispatch 2026-09-28-658, F6) of the row this panel had written out five times. The row is
+ * the touch target, full width, exactly as each copy built it, and carries [testTag] when given,
+ * after the click as before.
+ */
+@Composable
+private fun SettingsCheckboxRow(checked: Boolean, onCheckedChange: (Boolean) -> Unit, label: String, testTag: String? = null) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Checkbox) { onCheckedChange(!checked) }
+            .then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        Checkbox(checked = checked, onCheckedChange = onCheckedChange)
+        Text(label, style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+/** [SettingsCheckboxRow] with a supporting line under it, the shape [PhotoLocationSection] and [CameraPortraitLockSection] share. */
+@Composable
+private fun ExplainedSettingsCheckbox(checked: Boolean, onCheckedChange: (Boolean) -> Unit, label: String, explanation: String) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(role = Role.Checkbox) { onCheckedChange(!checked) },
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            Checkbox(checked = checked, onCheckedChange = onCheckedChange)
-            Text(LOCK_CAMERA_SETTING_LABEL, style = MaterialTheme.typography.bodyLarge)
-        }
+        SettingsCheckboxRow(checked, onCheckedChange, label)
         Text(
-            LOCK_CAMERA_SETTING_EXPLANATION,
+            explanation,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+    }
+}
+
+/**
+ * One Settings radio row: the whole row selects, with the radio button and its label in it. The one
+ * copy (dispatch 2026-09-28-658, F6) of the row this panel had written out three times. Touch
+ * target and [testTag] as [SettingsCheckboxRow].
+ */
+@Composable
+private fun SettingsRadioRow(selected: Boolean, onSelect: () -> Unit, label: String, testTag: String? = null) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.RadioButton) { onSelect() }
+            .then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        RadioButton(selected = selected, onClick = onSelect)
+        Text(label, style = MaterialTheme.typography.bodyLarge)
     }
 }
 
@@ -569,16 +548,11 @@ private fun DistanceUnitSection(distanceUnit: DistanceUnit, onDistanceUnitSelect
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text("Units", style = MaterialTheme.typography.titleMedium)
         UnitSystem.entries.forEach { system ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(role = Role.RadioButton) { onDistanceUnitSelected(system.distanceUnit) },
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
-                RadioButton(selected = system.distanceUnit == distanceUnit, onClick = { onDistanceUnitSelected(system.distanceUnit) })
-                Text(system.label, style = MaterialTheme.typography.bodyLarge)
-            }
+            SettingsRadioRow(
+                selected = system.distanceUnit == distanceUnit,
+                onSelect = { onDistanceUnitSelected(system.distanceUnit) },
+                label = system.label,
+            )
         }
     }
 }
