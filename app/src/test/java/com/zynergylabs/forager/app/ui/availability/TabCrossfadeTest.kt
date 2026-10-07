@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.ui.availability
 
 import android.app.Application
+import androidx.compose.runtime.snapshots.Snapshot
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.clickable
@@ -112,6 +113,8 @@ class TabCrossfadeTest {
         if (paused) {
             composeRule.mainClock.autoAdvance = false
             tapAt(centre)
+            // With the clock stopped, the tap's state write reaches the next frame only once applied (motion Part 1's report).
+            composeRule.runOnUiThread { Snapshot.sendApplyNotifications() }
             repeat(2) { composeRule.mainClock.advanceTimeByFrame() }
         } else {
             tapAt(centre)
@@ -163,6 +166,7 @@ class TabCrossfadeTest {
         val before = mapTaps
         // The middle of the window: the List tab draws its text there and takes no touch of its own.
         tapAt(DpOffset((map.left + map.right) / 2, (map.top + map.bottom) / 2))
+        composeRule.runOnUiThread { Snapshot.sendApplyNotifications() }
         repeat(2) { composeRule.mainClock.advanceTimeByFrame() }
         settle()
         assertEquals("the leaving map took no touch", before, mapTaps)
