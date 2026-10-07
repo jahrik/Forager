@@ -972,9 +972,20 @@ class TrackRecordingViewModel(
      */
     suspend fun getFullRecord(trackId: String): Result<List<TrackPointRecord>> = trackRepository.getFullRecord(trackId)
 
+    /**
+     * The map's '+' > Waypoint > name dialog (MainActivity's `onDropWaypoint`), the one place a user adds a
+     * waypoint. Dispatch -616 (plan T10): a waypoint dropped while a recording runs is linked to it by
+     * `trackId`, the column the origin and end waypoints already fill, so Records lists it under that walk
+     * and the walk's GPX carries it. "Runs" means what the screen shows, [TrackRecordingUiState.activeTrack],
+     * read when the name is confirmed. Two consequences, recorded rather than designed around: a waypoint
+     * dropped in the moment after the app reopens and before it has taken up the service's running
+     * recording ([takeUpRunningRecording]) is standalone, and so is one whose recording stopped while its
+     * name dialog was open. With no recording it is standalone, as before.
+     */
     fun addWaypoint(lat: Double, lng: Double, name: String, note: String = "") {
+        val trackId = uiState.value.activeTrack?.trackId
         viewModelScope.launch {
-            createWaypoint(lat, lng, altitude = null, name = name, note = note)
+            createWaypoint(lat, lng, altitude = null, name = name, note = note, trackId = trackId)
                 .onSuccess { loadWaypoints() }
                 .onFailure { error ->
                     errorLog.w(TAG, "Couldn't save waypoint.", error)
