@@ -11,6 +11,7 @@ package com.zynergylabs.forager.app.ui.availability
 // three symbols that stayed there (TripPlannerSection, CompassStripBackgroundColorDark/Light) went
 // internal because code here composes them.
 
+import com.zynergylabs.forager.app.ui.motion.clickableWithShapedPress
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -163,13 +164,6 @@ import java.util.Locale
 internal fun SearchEntryBar(
     uiState: AvailabilityUiState,
     distanceUnit: DistanceUnit,
-    /**
-     * No longer read (dispatch 2026-09-28-658, F3): it fed only [SpeciesSearchControls]' location
-     * icon, which this bar never showed. Left in the signature because removing it changes
-     * `AvailabilityCompactScaffold`'s two calls, a file motion Part 1 is changing; reported to the
-     * planner to remove with that file.
-     */
-    @Suppress("UNUSED_PARAMETER") onUseCurrentLocation: () -> Unit,
     onTaxonSearchQueryChanged: (String) -> Unit,
     onTaxonSearchResultSelected: (TaxonSearchResult) -> Unit,
     onDismissTaxonSuggestions: () -> Unit,
@@ -688,7 +682,7 @@ internal fun CollapsibleSection(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { expanded = !expanded },
+                .clickableWithShapedPress { expanded = !expanded },
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {

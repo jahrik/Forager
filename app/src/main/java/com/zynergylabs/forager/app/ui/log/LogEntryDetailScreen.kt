@@ -1,5 +1,7 @@
 package com.zynergylabs.forager.app.ui.log
 
+import com.zynergylabs.forager.app.ui.motion.pressBounce
+import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.indication
@@ -142,7 +144,7 @@ internal fun LogEntryDetailScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
-                IconButton(onClick = onBack) {
+                BouncingIconButton(onClick = onBack) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to your log")
                 }
                 Text(
@@ -156,7 +158,7 @@ internal fun LogEntryDetailScreen(
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 TextButton(onClick = onCancel) { Text("Cancel") }
                 Button(onClick = onSave) { Text("Save", maxLines = 1, softWrap = false) }
-                IconButton(onClick = onDeleteEntry) {
+                BouncingIconButton(onClick = onDeleteEntry) {
                     Icon(Icons.Filled.Delete, contentDescription = "Delete this entry")
                 }
             }
@@ -353,6 +355,8 @@ private fun LogPhotoThumbnail(photo: LogPhoto, onOpen: () -> Unit, onRemove: () 
             Box(
                 modifier = Modifier
                     .size(REMOVE_GLYPH_SCRIM_SIZE_DP.dp)
+                    // Amendment 1 to dispatch -652 (RECORD -657, "Every icon button"): the glyph bounces; the square touch box does not move.
+                    .pressBounce(removeInteraction)
                     .clip(CircleShape)
                     .indication(removeInteraction, ripple())
                     .background(MaterialTheme.colorScheme.scrim.copy(alpha = REMOVE_GLYPH_SCRIM_ALPHA)),
