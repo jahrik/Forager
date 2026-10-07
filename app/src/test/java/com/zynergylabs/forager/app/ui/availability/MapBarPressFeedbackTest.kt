@@ -328,9 +328,12 @@ abstract class MapBarPressFeedbackTests(private val rotation: Int, private val l
     // ── The crossfade (item 5) ──
 
     /**
-     * Mid-swap both pictures are composed (that is the crossfade); the row must still say one thing, the new state. With the
-     * description on each icon, as before, the row would carry "Fullscreen" and "Exit fullscreen" at once for the length of the
-     * swap, which is why it moved onto the row.
+     * Mid-swap both pictures are composed (that is the crossfade); the row must still say one thing, the new state.
+     *
+     * **A pin, not a guard (revert check R4, 2026-10-07):** putting the description back on the icons does not fail this. The
+     * outgoing icon is recomposed with the row's current description, so both icons say the new thing; the worry that moved the
+     * description onto the row (two descriptions mid-swap) was wrong for this composable. Kept because it pins what TalkBack
+     * hears mid-swap, but it is not evidence that the move was needed.
      */
     @Test
     fun `while the fullscreen icon crossfades, the row carries one description, the new one`() {
@@ -340,6 +343,8 @@ abstract class MapBarPressFeedbackTests(private val rotation: Int, private val l
         composeRule.onAllNodes(isRoot()).onFirst().performTouchInput {
             click(with(composeRule.density) { Offset(((row.left + row.right) / 2).toPx(), ((row.top + row.bottom) / 2).toPx()) })
         }
+        // With the clock stopped, the click's state write reaches the next frame only once applied.
+        composeRule.runOnUiThread { androidx.compose.runtime.snapshots.Snapshot.sendApplyNotifications() }
         composeRule.mainClock.advanceTimeByFrame()
         composeRule.mainClock.advanceTimeByFrame()
         assertEquals("one node says Exit fullscreen mid-swap", 1, composeRule.onAllNodes(hasContentDescription("Exit fullscreen")).fetchSemanticsNodes().size)
