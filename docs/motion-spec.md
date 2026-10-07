@@ -80,6 +80,10 @@ a duration). No magic numbers or raw `tween`/`spring` calls at call sites.
 | Panels | Spring-driven, accepting mild overshoot as a taste call (`slowSpatialSpec`, provisional pending the device gate) — the app's primary interaction surface and the one category with a real production call site today |
 | Navigation chrome (nav bar, nav rail, tab switch) | Spring-driven (`defaultSpatialSpec`); chrome, no positional truth to distort, so overshoot here is a harmless flourish rather than felt on a primary surface |
 | Data layer overlays | Cross-fade or gentle radial growth (`defaultEffectsSpec`). No particle systems |
+| Tab switch and the bar with it | A quick crossfade from one tab to the next (`tabCrossfadeSpec`, `fastEffectsSpec`); the solid bottom bar, or the landscape rail beside the content, fades on the same spec while the Maps tab's own 80% bar fades with its tab. The outgoing tab is held at its size and place and takes no touch while it fades. Added 2026-10-07 for motion Part 2 (dispatch 2026-09-28-666; the owner's choices in RECORD -651, "Quick crossfade" and "Fade with the tab") |
+| Map pop-ups | Fade (`mapPopUpFadeSpec`, `defaultEffectsSpec`) and grow from where each belongs (`mapPopUpGrowSpec`, `defaultSpatialSpec`, from `MAP_POPUP_ENTER_SCALE`), the grow drawn only, so a pop-up takes touches at its settled size from its first frame; from the moment one starts to leave it takes no touch. The compass strip's sundown line grows its strip by layout, on the same pair. Motion Part 2 ("Fade and grow", "Let taps through at once") |
+| Navigation start and stop | The compass strip slides up and out while the navigation display slides down and in, and the reverse on stop, with a fade, on `navigationViewChromeSpec` (`slowSpatialSpec`): the scheme's nearest to the map's 750 ms tilt, an approximation, since a tween is ruled out. Motion Part 2 ("Move with the map") |
+| Words that change | A line whose words change crossfades (`wordSwapSpec`, `fastEffectsSpec`); a change in its numbers alone is drawn at once (`WordSwap`). Motion Part 2 ("Numbers instant, words fade") |
 
 Prefer `graphicsLayer` transforms and alpha. Avoid heavy path morphing
 while the user is moving.
@@ -118,8 +122,15 @@ motion tokens consult. This is a mapping layer, not a global kill switch
 | Press bounce | None: the press highlight alone shows the press |
 | Icon swap | Crossfade without the grow |
 | Icon cluster glide after a drag | Instant, as before the glide |
+| Tab crossfade, and the bar or rail fading with it | Instant: no outgoing tab is kept |
+| Map pop-up fade and grow | The fade alone |
+| Navigation start and stop slide | The fade alone, in place |
+| Compass strip's sundown line | The fade alone; the strip takes the line's height at once |
+| Snackbar height glide on the Maps tab | Instant |
+| Words that change | The crossfade, as an icon swap keeps its crossfade |
 
-The last three rows were added with motion Part 1 (dispatch 2026-09-28-652). The value is provided app-wide by
+The press bounce, icon swap and cluster glide rows were added with motion Part 1 (dispatch 2026-09-28-652); the six after
+them with motion Part 2 (dispatch 2026-09-28-666). The value is provided app-wide by
 `ProvideReduceMotion`, which `ForagerTheme` calls, and kept current while the app runs; the marker fan and the restore
 page read it there instead of reading the settings themselves.
 
