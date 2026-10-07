@@ -129,9 +129,9 @@ had an `e:` line (none did). 21 new tests:
   "Turning it back on" passes identically before and after, so on its own it does not guard
   anything. The revert table below shows what does.
 
-### Green (commit `533c516d`, pushed)
+### Green (commit `533c516d`, then `f0608de8`, both pushed)
 
-All 21 pass.
+All 21 pass. `f0608de8` fixes a wait in one of them and a cache race (see Full suite).
 
 ### Real touches
 
@@ -159,12 +159,40 @@ compiled with no `e:` line, and every failure below is one that edit can produce
 | R6 "once per block" dropped | `OffTrackReminderCheckTest` 2 (`[true, true, true]`) and the VM test |
 | R7 Restricted never read | `AndroidBackgroundRunCheckTest`: `expected:<BLOCKED> but was:<ALLOWED>` |
 | R8 the battery-list intent instead | `BackgroundRunPromptTest`: `[APPLICATION_DETAILS]` vs `[IGNORE_BATTERY_OPTIMIZATION]` |
-| R9 `setEnabled` not updating the cache | repository test: "set is seen at once by the synchronous read" |
-| R10 the ViewModel not storing the tick | `OffTrackReminderSettingsTest`: "the off is stored: not within 5000 ms" |
+| R9 `setEnabled` not updating the cache (run again on `f0608de8`) | repository test: "set is seen at once by the synchronous read" |
+| R10 the ViewModel not storing the tick (run again on `f0608de8`) | `OffTrackReminderSettingsTest`: "all three stores finished: not within 5000 ms" |
 
 ### Full suite
 
-FULL_SUITE_PLACEHOLDER
+All runs used `--rerun` with the results directory deleted first, and test temporary files on disk
+(`JAVA_TOOL_OPTIONS=-Djava.io.tmpdir=~/.cache/forager-test-tmp`). Each compiled first, then the
+Kotlin daemon was stopped, then the tests ran, all under the 5 GB cap.
+
+- **Before** (`d23aeaa6`, a separate worktree): **3,911 tests, 0 failures, 24 skipped.** 474 XML files.
+- **After, first run** (`a19b433a`): 3,932 tests, **1 failure**. It was this dispatch's own
+  `OffTrackReminderSettingsTest`, "off survives expected:<false> but was:<true>".
+  - Reproduced 1 of 6 on disk with that commit's test.
+  - The cause was the test's own wait, plus a race it exposed in the repository's cache. The test
+    waited until the cache read "off". The first of its three stores (off, on, off) already gives
+    that, so the store's scope was cancelled with the other two still in flight.
+  - Fixed in `f0608de8`. The test now waits for all three stores to finish. The repository's read
+    and store now share one lock, so a read begun before a change cannot write the old value into
+    the cache.
+  - After the fix, 10 of 10 runs on disk passed (the two Settings tests and the three repository tests).
+  - R9 and R10 were run again against the fixed code. R9: "set is seen at once by the synchronous
+    read". R10: "all three stores finished: not within 5000 ms".
+- **After** (`f0608de8`): **3,932 tests, 0 failures, 0 errors, 24 skipped.** 0 `e:` lines. All 480
+  XML files are newer than the run's start. 3,932 = 3,911 + the 21 new tests; 480 = 474 + 6 new
+  test classes.
+
+The first baseline attempt did not run. With `/tmp` (tmpfs) holding the test files, the Gradle
+daemon died with "Disk quota exceeded", and the user journal shows an `oom-kill` in that scope at
+the same minute. Moving the test temporary files to disk fixed it.
+
+**Disclosed:** the red run, the first green run and the R1 to R8 revert runs used the default
+temporary directory, which is tmpfs on this laptop. Each was a single-class run and completed.
+
+`./gradlew --stop` was run at the end.
 
 ## Not done, or not verified
 
