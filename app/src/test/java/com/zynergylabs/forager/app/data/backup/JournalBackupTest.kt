@@ -76,7 +76,7 @@ class JournalBackupTest {
         val manifest = JSONObject(String(zip.getValue("manifest.json")))
         assertEquals(1, manifest.getInt("formatVersion"))
         assertEquals(42L, manifest.getLong("appVersionCode"))
-        assertEquals(17, manifest.getInt("schemaVersion"))
+        assertEquals(18, manifest.getInt("schemaVersion"))
         assertTrue("created time is stamped", manifest.getLong("createdAtEpochMillis") > 0)
         val files = manifest.getJSONArray("files")
         assertEquals(5, files.length())
@@ -95,7 +95,7 @@ class JournalBackupTest {
         val db = SQLiteDatabase.openDatabase(snapshot.path, null, SQLiteDatabase.OPEN_READONLY)
         db.use {
             assertEquals("ok", it.rawQuery("PRAGMA integrity_check", null).use { c -> c.moveToFirst(); c.getString(0) })
-            assertEquals(17, it.version)
+            assertEquals(18, it.version)
             assertEquals(a.count("track_points"), it.rawQuery("SELECT COUNT(*) FROM track_points", null).use { c -> c.moveToFirst(); c.getLong(0) })
         }
     }
@@ -741,13 +741,13 @@ class JournalBackupTest {
         val b = phone().apply { insert("waypoints", "id" to "own-w") }
         val rows = b.dump(); val files = b.files()
         val entries = readZip(a.backUp())
-        val manifest = JSONObject(String(entries.getValue("manifest.json"))).put("schemaVersion", 18)
+        val manifest = JSONObject(String(entries.getValue("manifest.json"))).put("schemaVersion", 19)
         entries["manifest.json"] = manifest.toString().toByteArray()
 
         val result = b.restore(writeZip(entries), RestoreMode.REPLACE)
 
         assertRefused(result, "a backup from a newer schema")
-        assertTrue("the reason is logged: ${b.logged}", b.logged.any { "18" in it && "newer" in it })
+        assertTrue("the reason is logged: ${b.logged}", b.logged.any { "19" in it && "newer" in it })
         assertUnchanged(b, rows, files)
     }
 
@@ -789,7 +789,7 @@ class JournalBackupTest {
 
         b.restore(old.archive, RestoreMode.REPLACE).getOrThrow()
 
-        assertEquals("the live database stayed at the app's own version throughout", 17, liveVersionDuringRestore)
+        assertEquals("the live database stayed at the app's own version throughout", 18, liveVersionDuringRestore)
     }
 
     // ---- recent searches are left out (F5, dispatch 2026-09-28-216; owner, "2 A") ------------------
@@ -871,7 +871,7 @@ class JournalBackupTest {
         assertEquals(emptyList<String>(), journal.intersect(JournalTables.excluded.keys).toList())
         val pk = schemaPrimaryKeys(Phone.SCHEMA)
         for (spec in JournalTables.journal) assertEquals("${spec.name}'s key columns", pk.getValue(spec.name), spec.keyColumns)
-        assertEquals("the schema version this build restores up to is the one the database declares", 17, com.zynergylabs.forager.app.data.local.ForagerDatabase.SCHEMA_VERSION)
+        assertEquals("the schema version this build restores up to is the one the database declares", 18, com.zynergylabs.forager.app.data.local.ForagerDatabase.SCHEMA_VERSION)
         assertEquals(com.zynergylabs.forager.app.data.local.ForagerDatabase.SCHEMA_VERSION, phone().database.openHelper.readableDatabase.version)
     }
 

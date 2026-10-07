@@ -65,6 +65,8 @@ import com.zynergylabs.forager.app.ui.track.formatRecordTimestamp
 import com.zynergylabs.forager.app.ui.track.canBeDeleted
 import com.zynergylabs.forager.app.ui.track.shareTrackGpx
 import com.zynergylabs.forager.app.ui.track.trackTitle
+import com.zynergylabs.forager.app.ui.track.IMPORTED_LABEL
+import com.zynergylabs.forager.app.ui.track.NO_TIMES_IN_FILE
 import kotlinx.coroutines.launch
 
 /**
@@ -373,7 +375,8 @@ private fun TrackDetails(
     // The same derivation the entry editor's candidate rows use for a live track
     // (CartographyEntryEditScreen's TracksSection), from the points already in memory.
     val stats = ComputeTrackStatisticsUseCase()(track.points)
-    DetailsTitle(trackTitle(track))
+    // Plan T16: an imported track wears "Imported" beside its title, as a stale region wears "Stale".
+    DetailsTitle(trackTitle(track), label = null)
     // Dispatch -616 as amended by -618: the drawing carries start, end and dropped-waypoint dots, and the
     // list of those waypoints sits under it.
     WalkThumbnail(
@@ -382,10 +385,13 @@ private fun TrackDetails(
         modifier = Modifier.size(TRACK_THUMBNAIL_SIZE).testTag(RECORD_DETAILS_THUMBNAIL_TAG),
     )
     WalkWaypointsSection(waypointsDroppedOn(track, waypoints), onOpenWaypoint)
-    DetailField(FIELD_STARTED, "Started", formatRecordTimestamp(track.startedAtEpochMillis))
-    DetailField(FIELD_ENDED, "Ended", track.endedAtEpochMillis?.let(::formatRecordTimestamp) ?: "Still recording")
+    // Plan T16, "Import, show "No times"" (-636): a file with no times has none to show; its stored times are
+    // only an ordering, so each place a time or a duration would be says so instead.
+    val noTimes = false
+    DetailField(FIELD_STARTED, "Started", if (noTimes) NO_TIMES_IN_FILE else formatRecordTimestamp(track.startedAtEpochMillis))
+    DetailField(FIELD_ENDED, "Ended", if (noTimes) NO_TIMES_IN_FILE else track.endedAtEpochMillis?.let(::formatRecordTimestamp) ?: "Still recording")
     DetailField(FIELD_DISTANCE, "Distance", formatDistanceMeters(stats.distanceMeters, distanceUnit))
-    DetailField(FIELD_DURATION, "Duration", formatTrackDuration(stats.durationMillis))
+    DetailField(FIELD_DURATION, "Duration", trackDurationLabel(track, stats.durationMillis))
     DetailField(FIELD_POINTS, "Points", track.points.size.toString())
     networkFixExclusionNote(track)?.let { note ->
         Text(note, style = MaterialTheme.typography.bodySmall, modifier = Modifier.testTag(RECORD_DETAILS_NOTE_TAG))
@@ -468,9 +474,17 @@ private fun OfflineRegionDetails(region: OfflineRegionSummary, distanceUnit: Dis
 }
 
 @Composable
-private fun DetailsTitle(title: String, stale: Boolean = false) {
+private fun DetailsTitle(title: String, stale: Boolean = false, label: String? = null) {
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
         Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.testTag(RECORD_DETAILS_TITLE_TAG))
+        if (label != null) {
+            Text(
+                label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.testTag(RECORD_DETAILS_LABEL_TAG),
+            )
+        }
         if (stale) {
             Text(
                 "Stale",
@@ -520,6 +534,10 @@ internal fun journalEntryCountLabel(count: Int): String = when (count) {
  * duration half this repeats because that function returns distance and duration as one string and
  * its file is outside J5c).
  */
+/** Plan T16: a track's duration, or "No times in file" for an imported track whose file had none (its sheet and its map bubble). */
+internal fun trackDurationLabel(track: Track, durationMillis: Long): String =
+    formatTrackDuration(durationMillis)
+
 internal fun formatTrackDuration(durationMillis: Long): String {
     val totalMinutes = durationMillis / 60_000
     val hours = totalMinutes / 60
@@ -541,6 +559,7 @@ internal const val RECORD_DETAILS_SHEET_TAG = "record-details-sheet"
 
 internal const val RECORD_DETAILS_TITLE_TAG = "record-details-title"
 internal const val RECORD_DETAILS_STALE_TAG = "record-details-stale"
+internal const val RECORD_DETAILS_LABEL_TAG = "record-details-label"
 internal const val RECORD_DETAILS_NOTE_TAG = "record-details-note"
 internal const val RECORD_DETAILS_ZOOM_TAG = "record-details-zoom"
 internal const val RECORD_DETAILS_THUMBNAIL_TAG = "record-details-thumbnail"
@@ -560,6 +579,7 @@ internal const val FIELD_STARTED = "started"
 internal const val FIELD_ENDED = "ended"
 internal const val FIELD_DISTANCE = "distance"
 internal const val FIELD_DURATION = "duration"
+internal const val FIELD_IMPORTED = "imported"
 internal const val FIELD_POINTS = "points"
 internal const val FIELD_RADIUS = "radius"
 internal const val FIELD_CENTRE = "centre"

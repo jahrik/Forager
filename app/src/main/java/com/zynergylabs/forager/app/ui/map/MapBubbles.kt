@@ -33,6 +33,7 @@ import com.zynergylabs.forager.app.ui.availability.decimalDegreesLabel
 import com.zynergylabs.forager.app.ui.availability.offlineRegionSizeLabel
 import com.zynergylabs.forager.app.ui.availability.rectEdgeIntersection
 import com.zynergylabs.forager.app.ui.log.formatTrackDuration
+import com.zynergylabs.forager.app.ui.log.trackDurationLabel
 import com.zynergylabs.forager.app.ui.log.journalEntryCountLabel
 import com.zynergylabs.forager.app.ui.map.layers.COLOUR_FIELDS
 import com.zynergylabs.forager.app.ui.map.layers.ForecastCellsShown
@@ -277,7 +278,8 @@ fun mapBubbleContentFor(target: MapBubbleTarget.FeatureTarget, sources: MapRecor
                 title = trackTitle(track),
                 date = formatRecordTimestamp(track.startedAtEpochMillis),
                 distance = formatDistanceMeters(stats.distanceMeters, sources.distanceUnit),
-                duration = formatTrackDuration(stats.durationMillis),
+                // Plan T16: "No times in file" for an imported track whose file had none.
+                duration = trackDurationLabel(track, stats.durationMillis),
                 keptIn = keptIn(HighlightedRecordKind.TRACK),
             )
         } ?: sources.snapshotTracks.firstOrNull { it.trackId == id }?.let { kept ->

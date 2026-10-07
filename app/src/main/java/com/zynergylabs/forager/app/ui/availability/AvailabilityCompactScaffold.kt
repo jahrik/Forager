@@ -194,6 +194,10 @@ internal fun CompactMainScaffold(
     pendingJournalFindId: () -> String? = { null },
     /** J8-4: the day entry a [PendingJournalDestination.VIEW_ENTRY] request opens; threaded to [JournalTab]. */
     pendingJournalEntryId: () -> String? = { null },
+    /** Plan T16: the imported track a [PendingJournalDestination.VIEW_IMPORTED_TRACK] request opens; threaded to [JournalTab]. */
+    pendingJournalTrackId: () -> String? = { null },
+    /** Plan T16: Records > Tracks > "Import GPX"; threaded to [JournalTab]. `null` shows no button. */
+    onGpxFilePicked: ((android.net.Uri) -> Unit)? = null,
     /** J8-3: the entry report's "Show on map" and "Hide from map"; threaded to [JournalTab]. */
     onSetCartographyEntryShownOnMap: (entryId: String, shown: Boolean) -> Unit = { _, _ -> },
     /** M1: what the Maps tab's glyph bubbles look records up in; threaded to [CompactMapTab]. */
@@ -1276,6 +1280,8 @@ internal fun CompactMainScaffold(
                                 onNavigateToWaypoint = waypointNavigate.onNavigate,
                                 reopenWaypointDetails = waypointNavigate.recordsReopenDetails,
                                 onReopenWaypointDetailsConsumed = waypointNavigate.onRecordsReopenConsumed,
+                                onGpxFilePicked = onGpxFilePicked,
+                                pendingTrackId = pendingJournalTrackId(),
                             )
                             // Never actually reached — CompactTab.TOOLS never becomes compactTab itself,
                             // see that entry's own doc comment. Kept as a real branch (not an else) so

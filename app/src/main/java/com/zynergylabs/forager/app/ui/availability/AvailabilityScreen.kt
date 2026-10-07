@@ -290,6 +290,9 @@ import com.zynergylabs.forager.app.ui.log.PendingDeleteSnackbarEffects
 import com.zynergylabs.forager.app.ui.log.rememberJournalScreenState
 import com.zynergylabs.forager.app.ui.log.MushroomLogUiState
 import com.zynergylabs.forager.app.ui.log.PendingJournalDestination
+import com.zynergylabs.forager.app.domain.GpxImportOutcome
+import com.zynergylabs.forager.app.importgpx.GpxImportNotice
+import com.zynergylabs.forager.app.importgpx.gpxImportMessage
 import com.zynergylabs.forager.app.ui.map.MapRecordSources
 import com.zynergylabs.forager.app.ui.map.OPEN_IN_JOURNAL_LABEL
 import com.zynergylabs.forager.app.ui.map.Basemap
@@ -454,6 +457,16 @@ fun AvailabilityScreen(
     returnToMapRequest: Int = 0,
     /** Counts up when a backup notification is tapped: open the Backup section in Tools, then Settings. */
     openBackupRequest: Int = 0,
+    /**
+     * Plan T16: a finished GPX import to show, from the in-app "Import GPX" or from Open with or Share.
+     * The screen goes to Journal > Records > Tracks with the first new track's details open, and says the
+     * outcome's message ([gpxImportMessage]) as a Toast, then calls [onGpxImportNoticeShown] with its seq.
+     * `null` (the default) is nothing pending.
+     */
+    gpxImportNotice: GpxImportNotice? = null,
+    onGpxImportNoticeShown: (Long) -> Unit = {},
+    /** Plan T16: Records > Tracks > "Import GPX", given the picked file. `null` (the default) shows no button. */
+    onGpxFilePicked: ((android.net.Uri) -> Unit)? = null,
     /** "Download again" on a restored offline region. */
     onDownloadAgain: (Long) -> Unit = {},
     /** Settings' Light/Dark/System Default theme choice — see [AvailabilityUiState.themeMode]'s own doc comment. */
@@ -1117,6 +1130,8 @@ fun AvailabilityScreen(
     var pendingJournalFindId by remember { mutableStateOf<String?>(null) }
     // J8-4: the day entry a PendingJournalDestination.VIEW_ENTRY request opens, cleared with the request.
     var pendingJournalEntryId by remember { mutableStateOf<String?>(null) }
+    // Plan T16: the imported track a PendingJournalDestination.VIEW_IMPORTED_TRACK request opens, cleared with the request.
+    var pendingJournalTrackId by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(isDrawerOpen) {
         if (isDrawerOpen) {
             drawerState.open()
@@ -1145,6 +1160,26 @@ fun AvailabilityScreen(
         if (openBackupRequest > 0) {
             isDrawerOpen = true
         }
+    }
+
+    // Plan T16: a finished GPX import. Journal > Records > Tracks, the first new track's details open, and
+    // the outcome's message (the owner's words for a failure, "Imported N tracks" for several) as a Toast,
+    // the way the Journal says its own failures. The Tools drawer closes and fullscreen ends, as leaving the
+    // Maps tab ends it (the tab bar's own rule), so the Journal is what shows. A failed import lands on the
+    // Tracks list too, where "Import GPX" is.
+    LaunchedEffect(gpxImportNotice?.seq) {
+        val notice = gpxImportNotice ?: return@LaunchedEffect
+        if (notice.seq > 0) return@LaunchedEffect
+        gpxImportMessage(notice.outcome)?.let { Toast.makeText(context, it, Toast.LENGTH_LONG).show() }
+        isDrawerOpen = false
+        if (isMapFullscreen) {
+            isMapFullscreen = false
+            onMapFullscreenChanged(false)
+        }
+        pendingJournalTrackId = (notice.outcome as? GpxImportOutcome.Imported)?.trackIds?.firstOrNull()
+        pendingJournalDestination = PendingJournalDestination.VIEW_IMPORTED_TRACK
+        compactTab = CompactTab.JOURNAL
+        onGpxImportNoticeShown(notice.seq)
     }
 
     LaunchedEffect(returnToMapRequest) {
@@ -1509,6 +1544,8 @@ fun AvailabilityScreen(
             uiState = uiState,
             distanceUnit = distanceUnit,
             pendingJournalDestination = { pendingJournalDestination },
+            pendingJournalTrackId = { pendingJournalTrackId },
+            onGpxFilePicked = onGpxFilePicked,
             currentTime = currentTime,
             mapSlot = mapSlot,
             mapIconClusterPosition = mapIconClusterPosition,
@@ -1580,6 +1617,7 @@ fun AvailabilityScreen(
                 if (it == null) {
                     pendingJournalFindId = null
                     pendingJournalEntryId = null
+                    pendingJournalTrackId = null
                 }
             },
             pendingJournalFindId = { pendingJournalFindId },

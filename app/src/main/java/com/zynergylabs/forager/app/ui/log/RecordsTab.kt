@@ -1,9 +1,11 @@
 package com.zynergylabs.forager.app.ui.log
 
+import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -28,6 +30,8 @@ import com.zynergylabs.forager.app.ui.availability.OfflineMapsPanel
 import com.zynergylabs.forager.app.ui.availability.WaypointsSection
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.WaypointNavigationOrigin
+import com.zynergylabs.forager.app.ui.theme.Spacing
+import com.zynergylabs.forager.app.ui.track.ImportGpxButton
 import com.zynergylabs.forager.app.ui.track.TrackExportList
 
 /**
@@ -191,12 +195,30 @@ internal fun RecordsTab(
      */
     reopenWaypointDetails: String? = null,
     onReopenWaypointDetailsConsumed: () -> Unit = {},
+    /**
+     * Plan T16: the Tracks chip's "Import GPX", given the file the system picker returned. `null` (the
+     * default) shows no button.
+     */
+    onGpxFilePicked: ((Uri) -> Unit)? = null,
+    /**
+     * Plan T16: a track whose details sheet to open, once it is in [tracks] (a just-imported track arrives
+     * a moment after the request); [onOpenTrackDetailsConsumed] is told once it is open.
+     */
+    openTrackDetails: String? = null,
+    onOpenTrackDetailsConsumed: () -> Unit = {},
 ) {
     var selectedTab by selectedTabState
 
+    fun selectTab(tab: RecordsSubTab) {
+        if (selectedTab == RecordsSubTab.FINDS && tab != RecordsSubTab.FINDS) onFindsTabLeft()
+        selectedTab = tab
+    }
+
+    // Through selectTab (plan T16), so a request that moves off Finds mid-edit leaves the edit the way a
+    // chip tap does; the one earlier caller only ever asked for Finds, where the two are the same.
     LaunchedEffect(pendingSubTab) {
         if (pendingSubTab != null) {
-            selectedTab = pendingSubTab
+            selectTab(pendingSubTab)
             onPendingSubTabConsumed()
         }
     }
@@ -209,11 +231,6 @@ internal fun RecordsTab(
         }
     }
 
-    fun selectTab(tab: RecordsSubTab) {
-        if (selectedTab == RecordsSubTab.FINDS && tab != RecordsSubTab.FINDS) onFindsTabLeft()
-        selectedTab = tab
-    }
-
     // Journal redesign J5c: the record whose details sheet is open, if any. Saveable, so the sheet
     // survives a rotation and an Activity recreation (RecordDetailsTarget's doc comment). Every row
     // type that opens a sheet sets it; the sheet's own dismissal (Back, a scrim tap) clears it.
@@ -224,6 +241,15 @@ internal fun RecordsTab(
         reopenWaypointDetails?.let { id ->
             detailsTarget = RecordDetailsTarget.WaypointDetails(id)
             onReopenWaypointDetailsConsumed()
+        }
+    }
+    // Plan T16: an imported track's details, opened once the track has reached the list.
+    LaunchedEffect(openTrackDetails, tracks) {
+        openTrackDetails?.let { id ->
+            if (tracks.any { it.id == id }) {
+                detailsTarget = RecordDetailsTarget.TrackDetails(id)
+                onOpenTrackDetailsConsumed()
+            }
         }
     }
     val navigateFromRow: ((String) -> Unit)? = onNavigateToWaypoint?.let { navigate -> { id -> navigate(WaypointNavigationOrigin.RecordsRow(id)) } }
@@ -323,15 +349,21 @@ internal fun RecordsTab(
                 onOpenRegionDetails = { id -> openDetails(RecordDetailsTarget.OfflineRegionDetails(id)) },
             )
 
-            RecordsSubTab.RECORDED_TRACKS -> TrackExportList(
-                tracks = tracks,
-                waypoints = waypoints,
-                getFullRecord = getFullRecord,
-                modifier = Modifier.weight(1f),
-                onOpenTrackDetails = { id -> openDetails(RecordDetailsTarget.TrackDetails(id)) },
-                onDeleteTrack = onDeleteTrack,
-                errorMessage = tracksErrorMessage,
-            )
+            RecordsSubTab.RECORDED_TRACKS -> Column(modifier = Modifier.weight(1f)) {
+                // Plan T16: above the list, so it is there with no tracks yet too.
+                onGpxFilePicked?.let { picked ->
+                    ImportGpxButton(onPicked = picked, modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.xs))
+                }
+                TrackExportList(
+                    tracks = tracks,
+                    waypoints = waypoints,
+                    getFullRecord = getFullRecord,
+                    modifier = Modifier.weight(1f),
+                    onOpenTrackDetails = { id -> openDetails(RecordDetailsTarget.TrackDetails(id)) },
+                    onDeleteTrack = onDeleteTrack,
+                    errorMessage = tracksErrorMessage,
+                )
+            }
 
             // Column, not Box: the relocated find-editing composables (CentrePinLocationPicker,
             // LogEntryDetailScreen, etc.) each pass themselves Modifier.weight(1f), which only
