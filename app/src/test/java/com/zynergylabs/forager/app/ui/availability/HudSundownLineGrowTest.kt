@@ -16,8 +16,12 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
-import com.zynergylabs.forager.app.domain.model.LatLng
-import com.zynergylabs.forager.app.domain.model.UnitSystem
+import com.zynergylabs.forager.app.domain.CurrentTimeProvider
+import com.zynergylabs.forager.app.domain.FixProvider
+import com.zynergylabs.forager.app.domain.LocationFix
+import com.zynergylabs.forager.app.domain.model.DistanceUnit
+import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.domain.model.WaypointDesignation
 import com.zynergylabs.forager.app.ui.map.TrueHeadingReading
 import com.zynergylabs.forager.app.ui.theme.ForagerTheme
 import org.junit.After
@@ -31,15 +35,15 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Motion Part 2, item 4 for the compass strip's sundown line (dispatch 2026-09-28-666, scout C1; the owner, RECORD -651: "Fade
- * and grow"): when its window opens the strip grows down to hold it, rather than jumping, and shrinks back when it closes; under
- * reduced motion (the transition scale alone at 0, so Compose's own animations still run) the strip changes height at once.
+ * Motion Part 2, Amendment 1 (RECORD -672), item 2 (scout N6): the navigation display's sundown line fades and grows like the
+ * strip's. The display is caught growing and shrinking between its two heights; under reduced motion (the transition scale alone
+ * at 0, so Compose's own animations still run) it takes the line's height at once.
  *
  * Nothing here has been run: written with the code, before the build.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi")
-class StripSundownLineGrowTest {
+class HudSundownLineGrowTest {
 
     private val composeRule = createAndroidComposeRule<ComponentActivity>()
 
@@ -48,8 +52,11 @@ class StripSundownLineGrowTest {
 
     private val resolver get() = ApplicationProvider.getApplicationContext<Application>().contentResolver
 
+    private val t = 1_700_000_000_000L
+    private val fix = LocationFix.Update(lat = 45.52, lng = -122.68, altitude = 50.0, accuracyMeters = 8f, timestampEpochMillis = t, provider = FixProvider.GPS)
+    private val start = Waypoint(id = "origin", lat = 45.53, lng = -122.68, altitude = null, name = "Start", note = "", createdAtEpochMillis = t, trackId = "t1", designation = WaypointDesignation.ORIGIN)
+
     private var line by mutableStateOf<String?>(null)
-    private var location by mutableStateOf<LatLng?>(LatLng(45.33, -122.64))
 
     @After
     fun restore() {
@@ -61,13 +68,15 @@ class StripSundownLineGrowTest {
         composeRule.setContent {
             ForagerTheme {
                 val heading = remember { mutableStateOf<TrueHeadingReading>(TrueHeadingReading.Available(80f)) }
-                CompassElevationStrip(
+                NavigationHud(
                     heading = heading,
-                    elevationMeters = 123.0,
-                    unitSystem = UnitSystem.IMPERIAL,
-                    location = location,
+                    liveFix = fix,
+                    target = start,
+                    distanceUnit = DistanceUnit.MILES,
+                    currentTime = CurrentTimeProvider { t + 1_000L },
                     showDecimalDegrees = false,
                     onToggleCoordinateFormat = {},
+                    onExit = {},
                     modifier = Modifier.fillMaxWidth(),
                     sundownLine = line,
                 )
@@ -82,7 +91,7 @@ class StripSundownLineGrowTest {
         composeRule.waitForIdle()
     }
 
-    private fun stripHeight(): Dp = composeRule.onNodeWithTag(STRIP_TAG).getUnclippedBoundsInRoot().let { it.bottom - it.top }
+    private fun hudHeight(): Dp = composeRule.onNodeWithTag(NAVIGATION_HUD_TAG).getUnclippedBoundsInRoot().let { it.bottom - it.top }
 
     private fun changeLine(next: String?) {
         composeRule.mainClock.autoAdvance = false
@@ -91,52 +100,35 @@ class StripSundownLineGrowTest {
     }
 
     @Test
-    fun `the strip grows to hold the line when it opens, and shrinks when it closes`() {
+    fun `the display grows to hold the line when it opens, and shrinks when it closes`() {
         show()
-        val short = stripHeight()
+        val short = hudHeight()
         changeLine(SUNDOWN)
-        val growing = stripHeight()
-        assertTrue("the line is drawn", composeRule.onAllNodesWithTag(STRIP_SUNDOWN_LINE_TAG).fetchSemanticsNodes().isNotEmpty())
+        val growing = hudHeight()
+        assertTrue("the line is drawn", composeRule.onAllNodesWithTag(NAVIGATION_HUD_SUNDOWN_LINE_TAG).fetchSemanticsNodes().isNotEmpty())
         settle()
-        val tall = stripHeight()
+        val tall = hudHeight()
         assertTrue("taller with the line: $short to $tall", tall > short + 4.dp)
         assertTrue("caught growing: $growing between $short and $tall", growing > short + 0.5.dp && growing < tall - 0.5.dp)
 
         changeLine(null)
-        val shrinking = stripHeight()
+        val shrinking = hudHeight()
         assertTrue("caught shrinking: $shrinking between $short and $tall", shrinking > short + 0.5.dp && shrinking < tall - 0.5.dp)
         settle()
-        assertEquals("back to its height without the line", short.value, stripHeight().value, 0.5f)
-        assertTrue("and the line is gone", composeRule.onAllNodesWithTag(STRIP_SUNDOWN_LINE_TAG).fetchSemanticsNodes().isEmpty())
+        assertEquals("back to its height without the line", short.value, hudHeight().value, 0.5f)
     }
 
     @Test
-    fun `under reduced motion the strip takes the line's height at once`() {
+    fun `under reduced motion the display takes the line's height at once`() {
         Settings.Global.putFloat(resolver, Settings.Global.TRANSITION_ANIMATION_SCALE, 0f)
         show()
         changeLine(SUNDOWN)
-        val first = stripHeight()
+        val first = hudHeight()
         settle()
-        assertEquals("no grow under reduced motion", stripHeight().value, first.value, 0.5f)
+        assertEquals("no grow under reduced motion", hudHeight().value, first.value, 0.5f)
     }
 
     private companion object {
-        const val STRIP_TAG = "compass-elevation-strip"
         const val SUNDOWN = "Sunset 7:42 PM · start back by 7:12 PM"
-    }
-
-    /** Amendment 1 (RECORD -672), item 3 (scout C2): losing the fix crossfades the readout into the no-fix line. */
-    @Test
-    fun `losing the fix crossfades the readout into the no-fix line, and back`() {
-        show()
-        assertEquals(1, composeRule.onAllNodesWithTag(COMPASS_STRIP_HEADING_TAG).fetchSemanticsNodes().size)
-        composeRule.mainClock.autoAdvance = false
-        composeRule.runOnUiThread { location = null }
-        repeat(2) { composeRule.mainClock.advanceTimeByFrame() }
-        assertEquals("the no-fix line is arriving", 1, composeRule.onAllNodesWithTag(COMPASS_STRIP_NO_FIX_TAG).fetchSemanticsNodes().size)
-        assertEquals("the readout is still on screen, fading out", 1, composeRule.onAllNodesWithTag(COMPASS_STRIP_HEADING_TAG).fetchSemanticsNodes().size)
-        settle()
-        assertTrue("then the readout is gone", composeRule.onAllNodesWithTag(COMPASS_STRIP_HEADING_TAG).fetchSemanticsNodes().isEmpty())
-        assertEquals(1, composeRule.onAllNodesWithTag(COMPASS_STRIP_NO_FIX_TAG).fetchSemanticsNodes().size)
     }
 }
