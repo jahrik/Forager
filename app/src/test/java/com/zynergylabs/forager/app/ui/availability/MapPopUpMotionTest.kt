@@ -47,6 +47,7 @@ import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.motion.MapPopUpScaleKey
 import com.zynergylabs.forager.app.ui.track.RecordingNotice
+import com.zynergylabs.forager.app.ui.theme.ForagerTheme
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -123,7 +124,10 @@ class MapPopUpMotionTest {
     private fun reduceMotionOn() = Settings.Global.putFloat(resolver, Settings.Global.TRANSITION_ANIMATION_SCALE, 0f)
 
     private fun setScreen() {
+        // Under the app's theme, as MainActivity composes it, so the reduce-motion setting is provided (ForagerTheme's
+        // ProvideReduceMotion); without it every screen reads the default, motion on.
         composeRule.setContent {
+            ForagerTheme {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(liveFix = fix),
                 isRecording = true,
@@ -160,6 +164,7 @@ class MapPopUpMotionTest {
                 onNightModeMapsChanged = {},
                 onThemeModeChanged = {},
             )
+            }
         }
         settle()
     }
@@ -198,13 +203,17 @@ class MapPopUpMotionTest {
 
     private fun centre(b: DpRect) = DpOffset((b.left + b.right) / 2, (b.top + b.bottom) / 2)
 
-    /** Five points across a control's own bounds (CLAUDE.md: a finger is not a point), [inset] in from its edges. */
-    private fun samples(b: DpRect, inset: Dp = 6.dp) = listOf(
+    /**
+     * Five points across a control's own bounds (CLAUDE.md: a finger is not a point), inside its drawn shape: Return to Route is a
+     * stadium whose Surface clips its touches to that shape, so the corner samples are 12 dp in from the ends and 6 dp from the
+     * edges (the navigation view's own pill test uses 12 and 4), inside the rounded ends.
+     */
+    private fun samples(b: DpRect, insetX: Dp = 12.dp, insetY: Dp = 6.dp) = listOf(
         centre(b),
-        DpOffset(b.left + inset, b.top + inset),
-        DpOffset(b.right - inset, b.top + inset),
-        DpOffset(b.left + inset, b.bottom - inset),
-        DpOffset(b.right - inset, b.bottom - inset),
+        DpOffset(b.left + insetX, b.top + insetY),
+        DpOffset(b.right - insetX, b.top + insetY),
+        DpOffset(b.left + insetX, b.bottom - insetY),
+        DpOffset(b.right - insetX, b.bottom - insetY),
     )
 
     private fun shown(tag: String) = composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
