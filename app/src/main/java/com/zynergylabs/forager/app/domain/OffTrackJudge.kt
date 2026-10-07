@@ -2,7 +2,6 @@ package com.zynergylabs.forager.app.domain
 
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.TrackPoint
-import kotlin.math.cos
 import kotlin.math.hypot
 
 /** How far beyond the path, plus the reading's own reported accuracy, counts as off it. The owner: "About 40 m". Provisional. */
@@ -105,8 +104,7 @@ class OffTrackJudge(path: List<TrackPoint>) {
     /** Metres from [p] to the nearest point of the path's line, on a flat projection about [p]; tens to hundreds of metres, where its error is far below the fixes'. */
     private fun metersToLine(p: LatLng): Double {
         if (line.size == 1) return GeoDistance.metersBetween(p, line[0])
-        val metersPerDegreeLat = Math.PI * GeoDistance.EARTH_MEAN_RADIUS_METERS / 180.0
-        val metersPerDegreeLng = metersPerDegreeLat * cos(Math.toRadians(p.lat))
+        val (metersPerDegreeLat, metersPerDegreeLng) = GeoDistance.metersPerDegree(p.lat)
         var best = Double.MAX_VALUE
         for (i in 0 until line.lastIndex) {
             val ax = (line[i].lng - p.lng) * metersPerDegreeLng
