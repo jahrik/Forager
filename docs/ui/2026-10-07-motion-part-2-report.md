@@ -230,3 +230,72 @@ The owner's answers to the stops above, and what changed for each. Still code an
 7. **The drawn-only grow:** confirmed. No change.
 8. **Two maps:** kept as built. The fallback is one constant, `KEEP_MAP_THROUGH_TAB_FADE` (`AvailabilityCompactScaffold.kt`).
    Set to `false`, it drops the leaving Maps tab at once while the arriving tab and the bar still fade.
+
+## Merge with motion Part 1 (28de7c52), build and test results (RECORD -664's go), 2026-10-07
+
+**Merge.** `origin/motion-part-1` at 28de7c52 (motion Part 1 green on top of main, carrying failure-fixes) merged into this branch
+(d28e4126). Two conflicts:
+- `scripts/verify-design-tokens.sh` check 3. **Both sides changed the same logic**: -660 made the tween pattern start at a word
+  boundary (it had also matched `metersBetween(`), and -672 added the one allowed call site. Resolved by applying -660's pattern
+  to both of -672's greps and keeping the exception. This script is not part of the Gradle build, so the build did not wait on it.
+  **The planner should confirm this resolution.** Unplanted, check 3 now lists 5 hits (the 3 `metersBetween(` false positives are
+  gone) and not the allowed line. The planted-tween proof was not re-run after the merge.
+- `docs/audits/README.md`: both index rows kept (failure-fixes, then motion-part-2).
+
+Auto-merged: `AvailabilityCompactScaffold.kt`. Part 1 removed `SearchEntryBar`'s unused `onUseCurrentLocation` argument at two call
+sites, which none of Part 2's edits touch. No other file was changed on both sides (`git diff --name-only` from cdf0875b to each
+side, intersected).
+
+**How it was run.** Every Gradle run used `systemd-run --user --scope -q -p MemoryMax=5G -p MemorySwapMax=0`, with the Gradle heap
+at 1536m, the Kotlin daemon at 2g, and Java temp at `~/.cache/forager-test-tmp`. No daemon was running before the first run. Free disk
+was checked before each run and stayed between 5.2 and 5.6 GB. The Kotlin daemon was stopped after every compile and before every
+test run. `./gradlew --stop` ran at the end, and afterwards no Gradle or Kotlin daemon process is left. No phone or emulator was used.
+
+- **Compile.** The first compile had 3 errors, all mine: a stray closing brace left in `NavigationHud.kt` by the N6 edit, and
+  `constrainWidth`/`constrainHeight` not imported in `TabCrossfade.kt` (d9616a90). The second compile, main and unit tests, succeeded.
+- **New tests, first run.** 41 tests, 8 failures, all caused by the tests themselves:
+  - `MapPopUpMotionTest` and `TabCrossfadeTest` composed the screen without `ForagerTheme`, so reduced motion was never provided.
+    This caused all the reduced-motion failures.
+  - The corner samples on Return to Route fell outside its stadium shape, which its `Surface` clips touches to.
+  - Two frames after a tap had not yet moved the bar's fade.
+  - Fixed in a7ea3122. Every state write made with the clock stopped is now applied before frames are stepped, as Part 1's report
+    found (9cd03e35).
+- **New tests, second run.** 41 tests, 0 failures. Fresh XML (every timestamp from that run): `MapPopUpMotionTest` 13,
+  `TabCrossfadeTest` 4, `StripSundownLineGrowTest` 3, `HudSundownLineGrowTest` 2, `WordSwapTest` 3, `MotionTokensTest` 16.
+- **Revert checks.** 12 were run, each by a runner that:
+  - saves the file and makes a one-line edit (two for R2 and R11, where an import was needed);
+  - compiles, and refuses to read any result if the compile log has an error (none of the 12 had one);
+  - stops the Kotlin daemon, then runs the classes;
+  - reads only XML newer than the run;
+  - restores the file from the saved copy and confirms by checksum that it matches the forward version.
+
+  After all 12, `git status` was clean. Every check failed, with a message specific to its own edit:
+  - R1, `MapPopUp` without `leavingTakesNoTouches`: the four leave-the-map long-press tests failed, "reached the map expected:<1>
+    but was:<0>" (centre pin OK, Return to Route twice, bubble).
+  - R2, the grow done as a graphics-layer scale instead of drawn: the three mid-grow tests failed on "laid out where it settles"
+    (the bounds moved). This failure is on the bounds assertion, which comes before the touch assertion, so the touch itself was
+    not exercised under the revert.
+  - R3, `holdWhileLeaving` removed: the leaving map was measured at 2094 px tall instead of its own 2469.
+  - R4, the leaving bar keeping its room: the arriving map was measured at 2229 px, then 2469.
+  - R5, `WordSwap` without its words key: "[Fix 5 s ago, Fix 6 s ago]", two lines for a number-only change.
+  - R6, the strip's line without its grow: "caught growing: 34.0.dp between 18.0.dp and 34.0.dp".
+  - R7, the leaving tab's Back handlers left on: "Back from List went to Maps" failed.
+  - R8, the navigation token back to a spring: "SpringSpec … is the timed exception".
+  - R9, the snackbar always jumping: "caught mid-glide" failed (already at its final place).
+  - R10, the navigation display's line without its grow: "caught growing: 96.0.dp between 80.0.dp and 96.0.dp".
+  - R11, the readout swap without its crossfade: "the readout is still on screen, fading out expected:<1> but was:<0>".
+  - R12, the navigation display without its slide: "mid-start the display … is above where it settles" failed.
+- **Full suite.** 510 classes, **4,082 tests, 2 failures, 24 skipped**. All 510 XML files are fresh from this run. That is 29 more
+  tests than Part 1's 4,053, which matches the 29 `@Test` annotations this branch adds.
+  - **The 2 failures are existing tests, not yet touched:** `RestoreReturnsToMapPortraitTest` and
+    `RestoreReturnsToMapShortLandscapeTest`, "tapping Done from another tab lands on Maps at the tap, with the clock stopped
+    mid-animation" (`RestoreReturnsToMapTest.kt:98`).
+  - With the clock stopped 60 ms into the change, the test calls `onNodeWithText("Maps").assertIsSelected()`. It finds two nodes,
+    both selected and in the same place: the solid bar leaving (`TabChromeFade`, drawn where it was and taking no touch) and the
+    Maps tab's own bar arriving.
+  - So the change is not wrong in what it shows, but **for the length of the fade the leaving bar's semantics are still there**.
+    A screen reader would see two bars for that moment, and so does any test that reads one node mid-fade. The same is true of the
+    outgoing tab's content in `TabCrossfade`.
+  - Two ways out, for the planner: (a) clear the semantics of whatever is leaving (the bar, the rail and the tab), which would also
+    make these two tests pass as written; or (b) change the two tests to read the arriving bar. I prefer (a): no one should be
+    able to reach a control that takes no touch. I have touched neither.
