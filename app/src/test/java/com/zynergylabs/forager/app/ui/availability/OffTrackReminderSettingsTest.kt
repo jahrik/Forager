@@ -91,11 +91,12 @@ class OffTrackReminderSettingsTest {
     }
 
     private val errors = mutableListOf<String>()
+    private val writes = java.util.concurrent.atomic.AtomicInteger()
     private val map: MapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier.testTag("off-track-settings-map")) }
 
     private fun viewModelOver(repository: DataStoreOffTrackReminderPreferenceRepository) = mapLayersViewModel(
         getOffTrackReminderEnabled = repository::getEnabled,
-        setOffTrackReminderEnabled = repository::setEnabled,
+        setOffTrackReminderEnabled = { enabled -> repository.setEnabled(enabled).also { writes.incrementAndGet() } },
         errorLog = { _, message, error -> errors += "$message $error" },
     )
 
@@ -189,7 +190,8 @@ class OffTrackReminderSettingsTest {
             assertEquals("a touch at $fraction across the row flips it", !before, checked())
         }
         assertEquals("three flips from on is off", false, checked())
-        awaitOnMainLooper(5_000, "the off is stored") { !repository.enabledNow() }
+        // All three stores finished, not just the first: the first is already an off.
+        awaitOnMainLooper(5_000, "all three stores finished") { writes.get() == 3 }
         assertEquals(false, repository.getEnabled().getOrThrow())
         scope.cancelAndJoin()
 
