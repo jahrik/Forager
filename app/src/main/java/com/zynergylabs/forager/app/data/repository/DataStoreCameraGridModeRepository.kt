@@ -40,8 +40,7 @@ class DataStoreCameraGridModeRepository(
  * A stored name as a [GridMode]: never set is the default, and a name this build does not know (a
  * later build's mode, read after a downgrade) is logged and is the default too (RECORD -660, the
  * owner: "Fall back and log"; it was a failure carrying the name before). Still a [Result], always a
- * success now, so `DataStoreCameraGridModeRepositoryTest`, which asserts the old failure, compiles
- * and is reported rather than edited.
+ * success now; `DataStoreCameraGridModeRepositoryTest` asserts the fallback and the log line (RECORD -661).
  */
 internal fun gridModeFromStored(stored: String?): Result<GridMode> =
     Result.success(decodeStoredName(stored, GridMode.entries, GridMode.valueOf(DEFAULT_CAMERA_GRID_MODE_NAME), "camera grid mode"))

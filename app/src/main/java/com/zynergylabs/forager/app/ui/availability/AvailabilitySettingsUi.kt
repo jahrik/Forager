@@ -598,6 +598,8 @@ internal fun CompactToolsDrawerContent(
     backup: BackupControls = BackupControls(),
     /** Counts up when a backup notification is tapped: open Settings, at the Backup section. */
     openSettingsRequest: Int = 0,
+    /** Counts up when the settings-reset snackbar's "Settings" is tapped (RECORD -661): open Settings, at the top. */
+    openSettingsOnlyRequest: Int = 0,
     sundown: SundownSettings = SundownSettings(),
     /** Settings' "Off-track reminder" (dispatch 2026-09-28-626, plan T14). */
     offTrackReminder: OffTrackReminderSettings = OffTrackReminderSettings(),
@@ -611,6 +613,9 @@ internal fun CompactToolsDrawerContent(
     var showSettings by remember { mutableStateOf(false) }
     LaunchedEffect(openSettingsRequest) {
         if (openSettingsRequest > 0) showSettings = true
+    }
+    LaunchedEffect(openSettingsOnlyRequest) {
+        if (openSettingsOnlyRequest > 0) showSettings = true
     }
     BackHandler(enabled = showSettings) {
         showSettings = false

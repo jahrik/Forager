@@ -20,14 +20,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
-import android.widget.Toast
 import androidx.lifecycle.DefaultLifecycleObserver
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
-import com.zynergylabs.forager.app.domain.SETTINGS_RESET_MESSAGE
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.launch
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.viewmodel.initializer
 import kotlinx.coroutines.joinAll
@@ -390,25 +383,14 @@ class MainActivity : ComponentActivity() {
             }
         })
 
-        // RECORD -660 (D10): the one-time message after a settings file was found corrupt and reset.
-        // A long Toast the first time this screen is started after the reset, then cleared; the
-        // planner's proposal for where it shows, chosen because the reset is found on the first read
-        // of that file, which this screen's ViewModels make as they start.
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                container.settingsResetNotice.pending.filter { it }.collect {
-                    Toast.makeText(this@MainActivity, SETTINGS_RESET_MESSAGE, Toast.LENGTH_LONG).show()
-                    container.settingsResetNotice.shown()
-                }
-            }
-        }
-
         setContent {
             // Read before ForagerTheme wraps content, not inside it: themeMode is this state's own
             // AvailabilityUiState.themeMode (Settings' Light/Dark/System Default choice), so
             // ForagerTheme needs the resolved boolean below rather than the other way around.
             val uiState by viewModel.uiState.collectAsState()
             val backupUiState by backupViewModel.uiState.collectAsState()
+            // RECORD -660/-661: a corrupt settings file was reset; the screen shows the one-time snackbar.
+            val settingsResetPending by container.settingsResetNotice.pending.collectAsState()
             // AppThemeMode.SYSTEM_DEFAULT is the one choice this app doesn't store as an explicit
             // light/dark value — it means "follow the device" — and isSystemInDarkTheme() is a
             // @Composable-only signal (backed by LocalConfiguration), so this resolution has to
@@ -569,6 +551,8 @@ class MainActivity : ComponentActivity() {
                     backup = backupViewModel.controls(backupUiState),
                     returnToMapRequest = backupUiState.returnToMapRequest,
                     openBackupRequest = openBackupRequest,
+                    settingsResetNoticePending = settingsResetPending,
+                    onSettingsResetNoticeShown = container.settingsResetNotice::shown,
                     gpxImportNotice = gpxImportNotice,
                     onGpxImportNoticeShown = gpxImportViewModel::onNoticeShown,
                     onGpxFilePicked = { uri -> gpxImportViewModel.importFile(ContentUriGpxFileSource(contentResolver, uri, androidErrorLog)) },

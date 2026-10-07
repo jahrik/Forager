@@ -1248,7 +1248,7 @@ internal const val RECORDING_COULD_NOT_START_MESSAGE = "Recording couldn't start
 
 /**
  * The permission case (RECORD -660, item 4): the service has no location permission, at the start or
- * lost during the walk. Proposed wording, pointing to the permission, to be confirmed by the owner.
+ * lost during the walk. The planner's wording, pointing to the permission; the owner: "Use it as written" (RECORD -661).
  */
 internal const val RECORDING_NEEDS_LOCATION_PERMISSION_MESSAGE =
     "Recording stopped because Forager can't use your location. Allow location for Forager in your phone's Settings, then tap Record again."

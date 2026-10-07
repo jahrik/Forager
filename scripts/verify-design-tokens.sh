@@ -12,9 +12,9 @@
 # that no longer matched. Check 2 had searched for imports under com.forager.app.ui.theme, the
 # package root from before the rename to com.zynergylabs.forager.app, so it found nothing and passed
 # whatever the code imported: a check that never saw the data that could fail it. It now searches
-# the current root, and fails: Spacing is imported broadly by design (step 3 of the plan), and
-# palette and type tokens are imported from feature packages (the list went to the owner with
-# that dispatch's report; nothing was changed to make it pass). Check 1 fails on one colour
+# the current root, and fails on palette constants imported into feature packages (74 at first;
+# the owner then allowed Spacing and navigationBarContainerColor, RECORD -661, and three were
+# fixed in files that dispatch changed, leaving 11; none was changed just to make it pass). Check 1 fails on one colour
 # literal in ui/log, and check 3 fails on real tween( calls (its pattern also matched
 # "metersBetween(" until RECORD -660 anchored it to a word boundary). Check 4 passes. A check that passes the moment it is introduced
 # never demonstrated it could fail; check 2 was shown failing on a planted import before this
@@ -56,8 +56,10 @@ report "no Color(0x literal outside ui/theme/" "$hits"
 #    doc comment for why it exists), not a colour or a palette constant. mapChromeContentColor is
 #    excluded for MapIconBarAccent's reason: an owned accessor in ui/theme/ for chrome keyed off the
 #    map's night/day, added (RECORD -660) so feature files stop importing Bark for it.
+#    Spacing is allowed: it is the design scale, meant to be imported everywhere (RECORD -661).
+#    navigationBarContainerColor is allowed: the one chrome-colour token of the owner's C1 ruling (RECORD -661).
 hits=$(grep -rn "^import com\.zynergylabs\.forager\.app\.ui\.theme\." app/src/main --include=*.kt \
-       | grep -vE "\.(ForagerTheme|LocalForagerDarkTheme|MapPalette|MapIconBarAccent|mapChromeContentColor)$" || true)
+       | grep -vE "\.(ForagerTheme|LocalForagerDarkTheme|MapPalette|MapIconBarAccent|mapChromeContentColor|Spacing|navigationBarContainerColor)$" || true)
 report "no palette constant imported outside the theme package" "$hits"
 
 # 3. Motion comes from MaterialTheme.motionScheme. A tween at a call site is the tween-only rule

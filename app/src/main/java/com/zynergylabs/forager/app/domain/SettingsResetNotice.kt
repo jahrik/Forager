@@ -39,5 +39,8 @@ class SettingsResetNotice : SettingsResetListener {
     }
 }
 
-/** The owner's words (RECORD -660, item 2). */
+/** The owner's words (RECORD -660, item 2). Shown as a snackbar that stays until dismissed (RECORD -661). */
 const val SETTINGS_RESET_MESSAGE = "Some settings couldn't be read and were reset. Check Settings."
+
+/** The snackbar's action, which opens Settings (the owner, RECORD -661: "Snackbar with 'Settings' button"). */
+const val SETTINGS_RESET_ACTION_LABEL = "Settings"
