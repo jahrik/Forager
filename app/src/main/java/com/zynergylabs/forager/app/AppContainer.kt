@@ -185,7 +185,8 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     val compassProvider: CompassProvider = AndroidCompassProvider(context.applicationContext)
 
     // HUD-foundations dispatch, Item 2: declination, and the one place magnetic heading becomes
-    // true heading. No consumer yet by design — the navigation HUD dispatch wires it; see
+    // true heading. Consumed by MainActivity, which hands it to the map screen (dispatch
+    // 2026-09-28-658, F5: this said "no consumer yet", true when written); see
     // ComputeTrueHeadingUseCase's own doc comment for the strip/HUD consequence recorded there.
     val declinationProvider: DeclinationProvider = AndroidDeclinationProvider()
     val computeTrueHeadingUseCase = ComputeTrueHeadingUseCase(declinationProvider)
@@ -391,8 +392,9 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     // now detaches its waypoints first — HUD-foundations dispatch, Item 3, see DeleteTrackUseCase.
     val keptTrackPathRepository: KeptTrackPathRepository = RoomKeptTrackPathRepository(database.cartographyEntryDao())
     val deleteTrackUseCase = DeleteTrackUseCase(trackRepository, waypointRepository, keptTrackPathRepository)
-    // The origin-waypoint read path for Track.originWaypointId — no consumer until the navigation
-    // HUD dispatch, by design; see GetTrackOriginWaypointUseCase's own doc comment.
+    // The origin-waypoint read path for Track.originWaypointId. Consumed by MainActivity's
+    // recording ViewModel (dispatch 2026-09-28-658, F5: this said "no consumer until the navigation
+    // HUD dispatch", true when written); see GetTrackOriginWaypointUseCase's own doc comment.
     val getTrackOriginWaypointUseCase = GetTrackOriginWaypointUseCase(trackRepository, waypointRepository)
 
     // Journal Stage 2d: CartographyEntryReportScreen's own map, resolving kept references
