@@ -10,6 +10,12 @@
     <string name="track_recording_already_recording">Forager is already recording a track. Stop it before starting another.</string>
     <string name="sundown_notification_channel_name">Sundown alert</string>
     <string name="sundown_notification_channel_description">Tells you when the sun sets and how long the walk back is.</string>
+    <!-- Back by (dispatch 2026-09-28-645, plan T15). The title is the owner's words: a reminder, said plainly. -->
+    <string name="back_by_notification_channel_name">Back by reminder</string>
+    <string name="back_by_notification_channel_description">Reminds you when you planned to be back, while recording.</string>
+    <string name="back_by_notification_title">You planned to be back by %1$s</string>
+    <string name="back_by_action_im_back">I\'m back</string>
+    <string name="back_by_action_later">+30 min</string>
     <!-- Dispatch 2026-09-28-516: the heads-up and leave-by alerts inform and never order the walker back. %1$s is the sunset time. -->
     <string name="sundown_alert_title">Sunset at %1$s</string>
     <!-- The owner's wording, 2026-10-05: clock times, so a notification read late stays true. %1$s the walk back, %2$s the start-by time. "The way you came" because loops come home longer. -->

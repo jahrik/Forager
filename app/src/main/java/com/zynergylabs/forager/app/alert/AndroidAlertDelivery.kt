@@ -3,7 +3,9 @@ package com.zynergylabs.forager.app.alert
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioAttributes
 import android.os.Build
@@ -22,6 +24,7 @@ import com.zynergylabs.forager.app.domain.AlertDelivery
 import com.zynergylabs.forager.app.domain.AlertDeliveryOutcome
 import com.zynergylabs.forager.app.domain.AlertKind
 import com.zynergylabs.forager.app.domain.WalkBack
+import com.zynergylabs.forager.app.service.TrackRecordingService
 import java.util.Date
 
 /**
@@ -47,16 +50,20 @@ class AndroidAlertDelivery internal constructor(
     context: Context,
     /** Posts the alert's notification; `false` when it could not (POST_NOTIFICATIONS denied). A seam for tests. */
     private val postNotification: (Context, Alert) -> Boolean,
-    /** Issues the alert's vibration. A seam for tests. */
-    private val vibrate: (Context, Boolean) -> Unit,
+    /**
+     * Issues the alert's vibration. A seam for tests. Given the whole [Alert] since dispatch
+     * 2026-09-28-645 (Amendment 1), so the pattern can follow the kind ([vibrationPatternFor]).
+     */
+    private val vibrate: (Context, Alert) -> Unit,
 ) : AlertDelivery {
-    constructor(context: Context) : this(context, ::postNotificationFor, ::vibrateForAlert)
+    constructor(context: Context) : this(context, ::postNotificationFor, { c, alert -> vibrateForAlert(c, alert.overridesSilence, vibrationPatternFor(alert.kind)) })
 
     private val appContext = context.applicationContext
 
     init {
         createOffTrackNotificationChannel(appContext)
         createSundownNotificationChannel(appContext)
+        createBackByNotificationChannel(appContext)
     }
 
     override fun deliver(alert: Alert) {
@@ -80,7 +87,7 @@ class AndroidAlertDelivery internal constructor(
         }
         var vibrationProblem: String? = null
         val vibrated = try {
-            vibrate(appContext, alert.overridesSilence)
+            vibrate(appContext, alert)
             true
         } catch (e: Exception) {
             Log.w(TAG, "The ${alert.kind} alert's vibration could not be issued.", e)
@@ -99,6 +106,19 @@ class AndroidAlertDelivery internal constructor(
 internal fun postNotificationFor(context: Context, alert: Alert): Boolean = when (alert.kind) {
     AlertKind.OFF_TRACK -> postOffTrackNotification(context)
     AlertKind.HEADS_UP, AlertKind.LEAVE_BY, AlertKind.SUNSET -> postSundownNotification(context, alert)
+    AlertKind.BACK_BY -> postBackByNotification(context, alert)
+}
+
+/**
+ * The vibration for [kind]: off-track's two short buzzes; three longer ones for the sundown alerts and
+ * Back by. Until dispatch 2026-09-28-645 every alert played off-track's two, and
+ * [SUNDOWN_VIBRATION_PATTERN_MILLIS] was declared and never used (found in that dispatch's verify
+ * report; the owner, Amendment 1: "Also fix the sundown alerts to buzz three times"; Back by "buzzes
+ * three times too").
+ */
+internal fun vibrationPatternFor(kind: AlertKind): LongArray = when (kind) {
+    AlertKind.OFF_TRACK -> OFF_TRACK_VIBRATION_PATTERN_MILLIS
+    AlertKind.HEADS_UP, AlertKind.LEAVE_BY, AlertKind.SUNSET, AlertKind.BACK_BY -> SUNDOWN_VIBRATION_PATTERN_MILLIS
 }
 
 internal const val OFF_TRACK_CHANNEL_ID = "off_track_alert_v2"
@@ -151,14 +171,14 @@ internal fun postOffTrackNotification(context: Context): Boolean {
 }
 
 /** VIBRATE is a normal (install-time) permission — declared in AndroidManifest.xml, no runtime check needed. */
-internal fun vibrateForAlert(context: Context, overridesSilence: Boolean) {
+internal fun vibrateForAlert(context: Context, overridesSilence: Boolean, pattern: LongArray = OFF_TRACK_VIBRATION_PATTERN_MILLIS) {
     val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         (context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager).defaultVibrator
     } else {
         @Suppress("DEPRECATION")
         context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
     }
-    vibrateWith(vibrator, overridesSilence)
+    vibrateWith(vibrator, overridesSilence, pattern)
 }
 
 /**
@@ -176,8 +196,8 @@ internal fun vibrateForAlert(context: Context, overridesSilence: Boolean) {
  * tested only through this seam with a legacy `Vibrator`, and the real 33+ production path is
  * device-only.
  */
-internal fun vibrateWith(vibrator: Vibrator, overridesSilence: Boolean) {
-    val effect = VibrationEffect.createWaveform(OFF_TRACK_VIBRATION_PATTERN_MILLIS, -1)
+internal fun vibrateWith(vibrator: Vibrator, overridesSilence: Boolean, pattern: LongArray = OFF_TRACK_VIBRATION_PATTERN_MILLIS) {
+    val effect = VibrationEffect.createWaveform(pattern, -1)
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         val usage = if (overridesSilence) VibrationAttributes.USAGE_ALARM else VibrationAttributes.USAGE_NOTIFICATION
         vibrator.vibrate(effect, VibrationAttributes.Builder().setUsage(usage).build())
@@ -202,7 +222,8 @@ internal const val SUNDOWN_NOTIFICATION_ID = 1003
 
 /**
  * Three pulses rather than off-track's two, and longer. This is the alert that means the light is
- * going, and it should not be mistaken through a coat pocket for the advisory one.
+ * going, and it should not be mistaken through a coat pocket for the advisory one. Played since
+ * dispatch 2026-09-28-645 ([vibrationPatternFor]); declared and unused before it. Back by plays it too.
  */
 internal val SUNDOWN_VIBRATION_PATTERN_MILLIS = longArrayOf(0L, 400L, 200L, 400L, 200L, 400L)
 
@@ -295,3 +316,82 @@ internal fun formatWalkDuration(millis: Long): String {
         else -> "$hours h %02d".format(rest)
     }
 }
+
+/**
+ * Back by's own channel (dispatch 2026-09-28-645), apart from the sundown and off-track ones, so it
+ * can be adjusted on its own in Android's settings. HIGH, no channel vibration: the direct call
+ * carries alarm usage, as the sundown alerts' does, so it breaks through silent mode.
+ */
+internal const val BACK_BY_CHANNEL_ID = "back_by_alert"
+internal const val BACK_BY_NOTIFICATION_ID = 1004
+
+internal fun createBackByNotificationChannel(context: Context) {
+    val manager = context.getSystemService(NotificationManager::class.java)
+    val channel = NotificationChannel(
+        BACK_BY_CHANNEL_ID,
+        context.getString(R.string.back_by_notification_channel_name),
+        NotificationManager.IMPORTANCE_HIGH,
+    ).apply {
+        enableVibration(false)
+        description = context.getString(R.string.back_by_notification_channel_description)
+    }
+    manager.createNotificationChannel(channel)
+}
+
+/**
+ * "You planned to be back by 3:30 PM" (the owner's words), with "I'm back" and "+30 min". The two
+ * actions address `TrackRecordingService` directly ([PendingIntent.getService]), as its own "Stop
+ * recording" action does: the service is what runs while the app is swiped away, and it holds the
+ * watch. Each carries the recording's id, so a button on a notification left from an earlier
+ * recording changes nothing in a later one. Best-effort on POST_NOTIFICATIONS, as the other alerts.
+ */
+internal fun postBackByNotification(context: Context, alert: Alert): Boolean {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+    ) {
+        return false
+    }
+    val detail = alert.backBy ?: run {
+        Log.w("AlertDelivery", "A back-by alert with no time was not posted.")
+        return false
+    }
+    val title = backByNotificationTitle(context, detail.backByAtEpochMillis)
+    val notification = NotificationCompat.Builder(context, BACK_BY_CHANNEL_ID)
+        .setContentTitle(title)
+        .setSmallIcon(R.drawable.ic_track_recording)
+        .setPriority(NotificationCompat.PRIORITY_HIGH)
+        .setCategory(NotificationCompat.CATEGORY_REMINDER)
+        .setAutoCancel(true)
+        .addAction(
+            R.drawable.ic_track_recording,
+            context.getString(R.string.back_by_action_im_back),
+            backByActionIntent(context, TrackRecordingService.ACTION_BACK_BY_IM_BACK, detail.trackId, REQUEST_CODE_BACK_BY_IM_BACK),
+        )
+        .addAction(
+            R.drawable.ic_track_recording,
+            context.getString(R.string.back_by_action_later),
+            backByActionIntent(context, TrackRecordingService.ACTION_BACK_BY_LATER, detail.trackId, REQUEST_CODE_BACK_BY_LATER),
+        )
+        .build()
+    NotificationManagerCompat.from(context).notify(BACK_BY_NOTIFICATION_ID, notification)
+    return true
+}
+
+/** The alert's title, in the phone's 12/24-hour clock, as the sundown alerts write theirs. */
+internal fun backByNotificationTitle(context: Context, backByAtEpochMillis: Long): String =
+    context.getString(R.string.back_by_notification_title, DateFormat.getTimeFormat(context).format(Date(backByAtEpochMillis)))
+
+private fun backByActionIntent(context: Context, action: String, trackId: String, requestCode: Int): PendingIntent =
+    PendingIntent.getService(
+        context,
+        requestCode,
+        Intent(context, TrackRecordingService::class.java)
+            .setAction(action)
+            .putExtra(TrackRecordingService.EXTRA_TRACK_ID, trackId),
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+    )
+
+// Distinct from each other and from TrackRecordingService's own (0 and 1), so the platform's
+// (requestCode, filterEquals(Intent)) identity never hands one action the other's Intent.
+private const val REQUEST_CODE_BACK_BY_IM_BACK = 2
+private const val REQUEST_CODE_BACK_BY_LATER = 3

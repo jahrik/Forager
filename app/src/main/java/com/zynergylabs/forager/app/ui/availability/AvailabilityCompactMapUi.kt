@@ -309,6 +309,12 @@ internal fun CompactMapTab(
      * recording, the HUD shows sunset and dark only, computed here ([rememberScreenSundownLine]).
      */
     recordingSundownLine: com.zynergylabs.forager.app.domain.SundownLine? = null,
+    /**
+     * The map's quick settings (dispatch 2026-09-28-645, Amendments 1 and 2): the gear at the strip's
+     * end, and in the HUD while navigating, with Back by, the sundown settings and the off-track
+     * reminder; its Back by also gives the strip's and the HUD's "Back by" line. `null` draws no gear.
+     */
+    quickSettings: MapQuickSettings? = null,
     compassProvider: CompassProvider,
     /** See [AvailabilityScreen]'s own `computeTrueHeading` doc comment. */
     computeTrueHeading: ComputeTrueHeadingUseCase,
@@ -915,15 +921,23 @@ internal fun CompactMapTab(
                         positionNote = positionNote,
                         // Amendment 2 (RECORD -595): hidden until its window opens; see isShown.
                         sundownLine = recordingSundownLine?.let { sundownLineText(it, sundownClock) },
+                        backByLine = backByLineText(quickSettings?.backBy, sundownClock),
+                        quickSettings = quickSettings,
+                        // Amendment 2: the right end in portrait; in landscape the strip's inner end,
+                        // which is its start when the strip sits in the right-hand corner.
+                        gearAtStart = railPortEdge == ScreenEdge.Right,
                     )
                     DisposableEffect(Unit) { onDispose { compassStripHeightPx = 0 } }
                 }
 
                 // Below the compass strip (topInset + compassStripClearance as top padding), same
-                // reasoning as AnchoredAtScreenPoint's own minY — the strip's Surface intercepts
-                // touches across its full width, so a chip placed underneath it would have its own
-                // "Show all species" tap silently swallowed the same way a bubble anchored there
-                // would. topInset itself (see this composable's own doc comment) clears whatever
+                // reasoning as AnchoredAtScreenPoint's own minY: the strip is drawn across the map's
+                // full width, so a chip placed underneath it would be hidden behind it, and where it
+                // sat under the strip's coordinates or its quick-settings gear (dispatch -645), its
+                // "Show all species" tap would go to them. Corrected in dispatch 2026-09-28-645: this
+                // said "the strip's Surface intercepts touches across its full width", which stopped
+                // being true when the strip became a plain Box that takes no touches of its own
+                // (CompassElevationStripContent); its real long-press tests reach the map through it. topInset itself (see this composable's own doc comment) clears whatever
                 // chrome floats above the strip too — SearchEntryBar, on the Map tab.
                 //
                 // J8-3 (owner: "Top, by the species chip (Recommended)"): the journal-entries chip sits in
@@ -1011,6 +1025,8 @@ internal fun CompactMapTab(
                         // hidden until its window opens (Amendment 2, RECORD -595).
                         sundownLine = (recordingSundownLine ?: rememberScreenSundownLine(uiState.headingFix?.let { com.zynergylabs.forager.app.domain.model.LatLng(it.lat, it.lng) }, currentTime))
                             .let { sundownLineText(it, sundownClock) },
+                        backByLine = backByLineText(quickSettings?.backBy, sundownClock),
+                        quickSettings = quickSettings,
                         modifier = if (railPortEdge != null) {
                             // Landscape B2 (S4): the top corner on the rail side, below the
                             // status bar only, at most 360dp wide.

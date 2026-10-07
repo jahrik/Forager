@@ -10,6 +10,10 @@ import com.zynergylabs.forager.app.domain.alertAudibilityWarning
 import com.zynergylabs.forager.app.domain.BACKGROUND_RUN_PROMPT
 import com.zynergylabs.forager.app.domain.isMostlyNetworkFixes
 import com.zynergylabs.forager.app.domain.CreateWaypointUseCase
+import com.zynergylabs.forager.app.domain.BackByChoice
+import com.zynergylabs.forager.app.domain.BackByControl
+import com.zynergylabs.forager.app.domain.NoBackBy
+import com.zynergylabs.forager.app.domain.backByAtFor
 import com.zynergylabs.forager.app.domain.SundownShown
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
@@ -161,6 +165,13 @@ class TrackRecordingViewModel(
      */
     private val sundownShown: StateFlow<SundownShown?> = MutableStateFlow(null),
     /**
+     * Back by (dispatch 2026-09-28-645, plan task T15): the app's one
+     * [com.zynergylabs.forager.app.domain.BackByWatch], the instance the recording service drives. This
+     * screen sets and clears it ([setBackBy], [clearBackBy]) and copies what it publishes into
+     * [TrackRecordingUiState.backBy] while it is for this screen's recording. Defaults to [NoBackBy].
+     */
+    private val backBy: BackByControl = NoBackBy,
+    /**
      * Where a waypoint delete still pending when this ViewModel is cleared is committed (journal
      * redesign J4): `viewModelScope` is cancelled by then. See [PendingDeleteCommitScope].
      */
@@ -276,6 +287,36 @@ class TrackRecordingViewModel(
         viewModelScope.launch { returnWatch.state.collect(::copyFromWatch) }
         // The sundown line, the same way: published by the watch the service ticks.
         viewModelScope.launch { sundownShown.collect { copySundownLine() } }
+        // Back by, the same way: the service's ticks and the alert's buttons change it too.
+        viewModelScope.launch { backBy.shown.collect { copyBackBy() } }
+    }
+
+    /**
+     * The quick menu's "+1 h", "+2 h", "+3 h" or a picked time (dispatch 2026-09-28-645): sets this
+     * recording's back-by time, worked out from this class's clock and zone ([backByAtFor]). Does
+     * nothing with no recording: Back by exists only while recording (the owner, "During a recording
+     * only"), and the menu offers no choice then.
+     */
+    fun setBackBy(choice: BackByChoice) {
+        val trackId = uiState.value.activeTrack?.trackId ?: return
+        val at = backByAtFor(choice, currentTime.nowEpochMillis(), zone)
+        if (!backBy.set(trackId, at)) {
+            errorLog.w(TAG, "Back by was not set for track '$trackId': another recording is being watched.", IllegalStateException("back-by refused"))
+        }
+    }
+
+    /** The quick menu's "Clear". */
+    fun clearBackBy() {
+        val trackId = uiState.value.activeTrack?.trackId ?: return
+        backBy.clear(trackId)
+    }
+
+    /** Copies the watch's back-by time into the screen's state while it is for this screen's recording, as [copySundownLine] does. */
+    private fun copyBackBy() {
+        _uiState.update { state ->
+            val shown = backBy.shown.value
+            state.copy(backBy = shown?.takeIf { state.activeTrack != null && it.trackId == state.activeTrack.trackId })
+        }
     }
 
     /**
@@ -305,6 +346,7 @@ class TrackRecordingViewModel(
             state.copy(isReturning = mine && watch.isReturning, isOffTrack = mine && watch.isOffTrack)
         }
         copySundownLine()
+        copyBackBy()
         // The route tick runs exactly while this screen shows a return, whichever way the return
         // reached it: this screen's own Return, or a recording taken up mid-return.
         if (uiState.value.isReturning) {
@@ -461,7 +503,7 @@ class TrackRecordingViewModel(
         originCreationInFlight = false
         takenUpOrigin = null
         _uiState.update {
-            it.copy(activeTrack = null, isReturning = false, isOffTrack = false, returnToStart = null, originWaypoint = null, routeHome = null, routeLine = null, sundownLine = null)
+            it.copy(activeTrack = null, isReturning = false, isOffTrack = false, returnToStart = null, originWaypoint = null, routeHome = null, routeLine = null, sundownLine = null, backBy = null)
         }
     }
 

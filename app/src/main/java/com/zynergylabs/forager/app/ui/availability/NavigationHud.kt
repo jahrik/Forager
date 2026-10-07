@@ -231,6 +231,14 @@ internal fun NavigationHud(
      * Its own last row; `null` draws nothing.
      */
     sundownLine: String? = null,
+    /** Back by's line (dispatch 2026-09-28-645), under the sundown line, as on the strip it replaces; `null` draws nothing. */
+    backByLine: String? = null,
+    /**
+     * The map's quick settings (dispatch 2026-09-28-645, Amendment 2, the owner: "Gear in nav display
+     * too (Recommended)"): the strip's gear, here just before the exit, since the strip is hidden while
+     * navigating and the way back is when "+30 min" matters. `null` draws none.
+     */
+    quickSettings: MapQuickSettings? = null,
 ) {
     // Read here, in this leaf, never higher — see rememberTrueHeading's own doc comment.
     val reading by heading
@@ -320,6 +328,7 @@ internal fun NavigationHud(
                             modifier = Modifier.testTag(NAVIGATION_HUD_STATUS_TAG),
                         )
                     }
+                    if (quickSettings != null) MapQuickSettingsGear(quickSettings)
                     IconButton(
                         onClick = onExit,
                         modifier = Modifier.testTag(NAVIGATION_HUD_EXIT_TAG),
@@ -364,6 +373,15 @@ internal fun NavigationHud(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.testTag(NAVIGATION_HUD_SUNDOWN_LINE_TAG),
+                    )
+                }
+                if (backByLine != null) {
+                    Text(
+                        text = backByLine,
+                        style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.testTag(NAVIGATION_HUD_BACK_BY_LINE_TAG),
                     )
                 }
             }
@@ -693,3 +711,6 @@ private val COMPASS_ICON_SIZE = 22.dp
 private val RETRY_ICON_SIZE = 18.dp
 private val RETRY_ROW_MIN_HEIGHT = 48.dp
 private const val AGE_TICK_MILLIS = 1_000L
+
+/** The navigation display's back-by line (dispatch 2026-09-28-645). */
+internal const val NAVIGATION_HUD_BACK_BY_LINE_TAG = "navigation-hud-back-by-line"
