@@ -12,7 +12,7 @@ Anything you create can be deleted from inside Forager, item by item, and the de
 immediately:
 
 - **Journal entries** — including any coordinate attached to a find.
-- **Photos** — whether taken with your camera app or imported from your gallery. Deleting a photo
+- **Photos** — whether taken with Forager's camera or imported from your gallery. Deleting a photo
   removes the stored file, not just the reference to it.
 - **Recorded tracks** — the track and every GPS point in it.
 - **Waypoints** — including vehicle and origin markers.
