@@ -60,6 +60,9 @@ import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import android.view.KeyEvent
+import androidx.compose.ui.test.assertTextEquals
+import org.robolectric.shadows.ShadowDialog
 import com.zynergylabs.forager.app.domain.model.WaypointDecision
 import com.zynergylabs.forager.app.ui.log.CartographyUiState
 import com.zynergylabs.forager.app.ui.log.FIND_OVER_VIEW_TAG
@@ -288,7 +291,8 @@ class AvailabilityScreenMapBubblesTest {
     private val store = OneCellStore()
     private var log by mutableStateOf(MushroomLogUiState(entries = listOf(BUBBLE_FIND), galleryPhotos = listOf(BUBBLE_PHOTO)))
 
-    private fun setScreen() {
+    // Dispatch -616 changed this: `waypoints` added, the one bubble waypoint by default, as before.
+    private fun setScreen(waypoints: List<Waypoint> = listOf(BUBBLE_WAYPOINT)) {
         val viewModel = mapLayersViewModel(store = store, plannedTrips = listOf(BUBBLE_TRIP), offlineRegions = listOf(BUBBLE_REGION))
         composeRule.setContent {
             MapLayersTestScreen(
@@ -296,7 +300,7 @@ class AvailabilityScreenMapBubblesTest {
                 mapSlot = map.slot,
                 store = store,
                 logUiState = log,
-                waypoints = listOf(BUBBLE_WAYPOINT),
+                waypoints = waypoints,
                 tracks = listOf(BUBBLE_TRACK),
                 onOpenLogEntry = { id -> log = log.copy(editingEntry = log.entries.firstOrNull { it.id == id }) },
                 onCloseLogEntry = { log = log.copy(editingEntry = null) },
@@ -417,6 +421,33 @@ class AvailabilityScreenMapBubblesTest {
         composeRule.touchCentreOf(MAP_BUBBLE_DETAILS_TAG)
         composeRule.onNodeWithTag(RECORD_DETAILS_SHEET_TAG).assertIsDisplayed()
         assertEquals("the sheet is the track's", 1, composeRule.onAllNodesWithText("Morning loop").fetchSemanticsNodes().size)
+    }
+
+    /**
+     * Dispatch -616 (plan T10), amended by -618: the track sheet opened from a bubble lists the waypoints
+     * dropped on the walk; a real touch on one opens its details, and a real Back on that sheet's own
+     * window returns to the walk's details, not to the map.
+     */
+    @Test
+    fun `from a track's Details, a waypoint dropped on the walk opens its own details, and Back returns to the walk's`() {
+        val dropped = Waypoint("wp-walk", 45.505, -122.60, null, "Bolete log", "", 1_700_001_000_000L, trackId = "trk-1")
+        setScreen(waypoints = listOf(BUBBLE_WAYPOINT, dropped))
+        tapGlyph("trk-1")
+        composeRule.touchCentreOf(MAP_BUBBLE_DETAILS_TAG)
+        composeRule.onNodeWithTag(RECORD_DETAILS_TITLE_TAG).assertTextEquals("Morning loop")
+
+        composeRule.onNodeWithTag("record-details-walk-waypoint-wp-walk").performScrollTo()
+        composeRule.touchCentreOf("record-details-walk-waypoint-wp-walk")
+        composeRule.onNodeWithTag(RECORD_DETAILS_TITLE_TAG).assertTextEquals("Bolete log")
+
+        val dialog = ShadowDialog.getLatestDialog()
+        composeRule.runOnUiThread {
+            dialog.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_BACK))
+            dialog.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_BACK))
+        }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(RECORD_DETAILS_SHEET_TAG).assertIsDisplayed()
+        composeRule.onNodeWithTag(RECORD_DETAILS_TITLE_TAG).assertTextEquals("Morning loop")
     }
 
     @Test

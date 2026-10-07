@@ -39,6 +39,8 @@ import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.domain.model.WaypointDesignation
+import com.zynergylabs.forager.app.domain.GpxCodec
 import com.zynergylabs.forager.app.photo.FileProviderCacheReset
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreen
 import com.zynergylabs.forager.app.ui.availability.AvailabilityUiState
@@ -110,7 +112,12 @@ class RecordDetailsSheetTest {
     private val deletedWaypointIds = mutableListOf<String>()
 
     // Dispatch -502 changed this: onNavigateToWaypoint added, null by default, so every other test here sees the sheet as before.
-    private fun setScreen(waypointCounts: Map<String, Int> = DETAILS_COUNTS, onNavigateToWaypoint: ((String) -> Unit)? = null) {
+    // Dispatch -616 changed this: `waypoints` added, DETAILS_WAYPOINTS by default, so every other test here sees the same list as before.
+    private fun setScreen(
+        waypointCounts: Map<String, Int> = DETAILS_COUNTS,
+        onNavigateToWaypoint: ((String) -> Unit)? = null,
+        waypoints: List<Waypoint> = DETAILS_WAYPOINTS,
+    ) {
         composeRule.setContent {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(offlineRegions = listOf(DETAILS_REGION)),
@@ -139,7 +146,7 @@ class RecordDetailsSheetTest {
                 onNightModeMapsChanged = {},
                 onThemeModeChanged = {},
                 mapSlot = DETAILS_STUB_MAP,
-                waypoints = DETAILS_WAYPOINTS,
+                waypoints = waypoints,
                 waypointEntryReferenceCounts = waypointCounts,
                 onDeleteWaypoint = { id -> deletedWaypointIds += id },
                 tracks = DETAILS_TRACKS,
@@ -522,6 +529,104 @@ class RecordDetailsSheetTest {
         assertTrue("a scrim touch closed the sheet", !sheetShowing())
     }
 
+    // ── Dispatch -616 (plan T10), amended by -618: the waypoints dropped on a walk, in its sheet ──
+
+    /** Opens T1's details sheet from its row in All, with the walk fixtures. */
+    private fun openWalkT1() {
+        setScreen(waypoints = WALK_WAYPOINTS)
+        openRecords()
+        touch(logbookRowTag(RecordType.TRACKS, "T1"), Offset(0.4f, 0.5f))
+        composeRule.onNodeWithTag(TITLE).assertTextEquals(stamp(TRACK_T1.startedAtEpochMillis))
+    }
+
+    private fun top(tag: String): Float = composeRule.onNodeWithTag(tag).fetchSemanticsNode().boundsInRoot.top
+
+    @Test
+    fun `a walk's sheet lists the waypoints dropped on it under Waypoints on this track, oldest first, without its start and end`() {
+        openWalkT1()
+
+        composeRule.onNodeWithTag(WALK_HEADING).performScrollTo().assertTextEquals("Waypoints on this track")
+        composeRule.onNodeWithTag(walkWaypointRow("W4")).performScrollTo().assertTextEquals("Spring pin", stamp(SPRING.createdAtEpochMillis))
+        composeRule.onNodeWithTag(walkWaypointRow("W1")).performScrollTo().assertTextEquals("Creek pin", stamp(CREEK.createdAtEpochMillis))
+        assertTrue("oldest first: Spring pin above Creek pin", top(walkWaypointRow("W4")) < top(walkWaypointRow("W1")))
+        for (id in listOf("W-origin", "W-end", "W2", "W3")) {
+            assertTrue("no walk-waypoint row for $id (start, end, a standalone pin, another track's pin)", !exists(walkWaypointRow(id)))
+        }
+    }
+
+    @Test
+    fun `a walk with no dropped waypoints shows no waypoint section at all`() {
+        setScreen(waypoints = WALK_WAYPOINTS)
+        openRecords()
+        touch(logbookRowTag(RecordType.TRACKS, "T2"), Offset(0.4f, 0.5f))
+        composeRule.onNodeWithTag(TITLE).assertTextEquals("Ridge loop")
+        assertTrue("no heading for a walk with nothing dropped on it", !exists(WALK_HEADING))
+        assertTrue("and no rows", composeRule.onAllNodesWithText("Waypoints on this track").fetchSemanticsNodes().isEmpty())
+    }
+
+    @Test
+    fun `a real touch anywhere on a walk's waypoint row opens that waypoint's details, and Back returns to the walk's`() {
+        openWalkT1()
+        for (point in ROW_SAMPLES) {
+            touch(walkWaypointRow("W1"), point)
+            composeRule.onNodeWithTag(TITLE).assertTextEquals("Creek pin")
+            field("track").assertTextEquals("Track", stamp(TRACK_T1.startedAtEpochMillis))
+            composeRule.onNodeWithTag(DIRECTIONS).performScrollTo().assertIsDisplayed()
+
+            pressBackOnSheet()
+            assertTrue("Back from the waypoint (tap at $point) leaves a sheet showing", sheetShowing())
+            composeRule.onNodeWithTag(TITLE).assertTextEquals(stamp(TRACK_T1.startedAtEpochMillis))
+            composeRule.onNodeWithTag(WALK_HEADING).performScrollTo().assertIsDisplayed()
+        }
+        pressBackOnSheet()
+        assertTrue("Back from the walk closes the sheet", !sheetShowing())
+    }
+
+    @Test
+    fun `a waypoint opened from its walk offers Navigate, as one opened from its own row does`() {
+        setScreen(onNavigateToWaypoint = {}, waypoints = WALK_WAYPOINTS)
+        openRecords()
+        touch(logbookRowTag(RecordType.TRACKS, "T1"), Offset(0.4f, 0.5f))
+        touch(walkWaypointRow("W4"), Offset(0.5f, 0.5f))
+        composeRule.onNodeWithTag(TITLE).assertTextEquals("Spring pin")
+        composeRule.onNodeWithTag(NAVIGATE).performScrollTo().assertIsDisplayed()
+    }
+
+    @Config(qualifiers = SHORT_LANDSCAPE)
+    @Test
+    fun `short window - a walk's waypoint row opens its details from touches across it, and Back returns to the walk`() {
+        openWalkT1()
+        for (point in ROW_SAMPLES) {
+            touch(walkWaypointRow("W4"), point)
+            composeRule.onNodeWithTag(TITLE).assertTextEquals("Spring pin")
+            pressBackOnSheet()
+            composeRule.onNodeWithTag(TITLE).assertTextEquals(stamp(TRACK_T1.startedAtEpochMillis))
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    @Test
+    fun `the walk sheet's Share writes the waypoints dropped on it into the GPX, with its start and end, and no others`() {
+        openWalkT1()
+        composeRule.onNodeWithTag(SHARE).performScrollTo().performTouchInput { click(center) }
+        val shared = awaitStartedActivity().getParcelableExtra<Intent>(Intent.EXTRA_INTENT)?.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
+        val file = File(File(composeRule.activity.cacheDir, "tracks"), shared!!.lastPathSegment!!)
+
+        val decoded = GpxCodec.decode(file.readText())
+
+        assertEquals(
+            setOf(
+                Triple("W-origin", "T1", WaypointDesignation.ORIGIN),
+                Triple("W4", "T1", null),
+                Triple("W1", "T1", null),
+                Triple("W-end", "T1", WaypointDesignation.END),
+            ),
+            decoded.waypoints.map { Triple(it.id, it.trackId, it.designation) }.toSet(),
+        )
+        assertEquals("one <wpt> each, no duplicates", 4, decoded.waypoints.size)
+        assertEquals("Creek pin", decoded.waypoints.single { it.id == "W1" }.name)
+    }
+
     // ── Helpers ──
 
     private fun shortSwipeLeft(tag: String, distanceDp: Float = 64f) {
@@ -573,6 +678,8 @@ private const val ZOOM = "record-details-zoom"
 private const val DIRECTIONS = "record-details-directions"
 private const val NAVIGATE = "record-details-navigate"
 private const val SHARE = "record-details-share"
+private const val WALK_HEADING = "record-details-walk-waypoints-heading"
+private fun walkWaypointRow(id: String) = "record-details-walk-waypoint-$id"
 
 /** Three touch points across a row: its start edge (the badge, in All), upper middle, lower right short of its buttons. */
 private val ROW_SAMPLES = listOf(Offset(0.05f, 0.5f), Offset(0.4f, 0.25f), Offset(0.7f, 0.8f))
@@ -630,6 +737,21 @@ private val RIDGE = Waypoint(
     createdAtEpochMillis = NOW - 4 * DAY, trackId = "T-not-in-the-list",
 )
 private val DETAILS_WAYPOINTS = listOf(OAK, CREEK, RIDGE)
+
+// Dispatch -616: T1's start and end markers, and a second waypoint dropped on it, older than Creek pin.
+private val T1_ORIGIN = Waypoint(
+    id = "W-origin", lat = 45.00, lng = -122.0, altitude = null, name = "Start pin", note = "",
+    createdAtEpochMillis = NOW - 3 * DAY + MINUTE, trackId = "T1", designation = WaypointDesignation.ORIGIN,
+)
+private val T1_END = Waypoint(
+    id = "W-end", lat = 45.02, lng = -122.0, altitude = null, name = "End pin", note = "",
+    createdAtEpochMillis = NOW - 3 * DAY + 75 * MINUTE, trackId = "T1", designation = WaypointDesignation.END,
+)
+private val SPRING = Waypoint(
+    id = "W4", lat = 45.012, lng = -121.999, altitude = null, name = "Spring pin", note = "",
+    createdAtEpochMillis = NOW - 3 * DAY + 20 * MINUTE, trackId = "T1",
+)
+private val WALK_WAYPOINTS = DETAILS_WAYPOINTS + listOf(T1_ORIGIN, T1_END, SPRING)
 
 /** Creek pin keeps 2 entries, Ridge pin 0; Oak pin has no count at all. */
 private val DETAILS_COUNTS = mapOf("W1" to 2, "W3" to 0)
