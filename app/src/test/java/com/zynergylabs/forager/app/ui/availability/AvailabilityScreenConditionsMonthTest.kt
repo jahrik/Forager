@@ -10,6 +10,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -340,6 +341,33 @@ class AvailabilityScreenConditionsMonthTest {
         composeRule.onNode(hasText("Rain forecast today") and hasText("3.2mm")).assertIsDisplayed()
     }
 
+    /**
+     * Amendment 1 to -668 (RECORD -669): today's soil moisture is a row of the conditions table, on
+     * the plain scale. 0.27 m³/m³ is Moist (Dry below 0.15, Wet from 0.30). Driven from the forecast
+     * provider through the real ViewModel; the scale reads to TalkBack as one phrase, which is what
+     * is asserted.
+     */
+    @Test
+    fun `today's soil moisture shows on the plain scale in the conditions table`() {
+        setScreen(tripPlanningWeatherProvider = FakeSuccessfulTripPlanningWeatherProvider)
+
+        searchAReferenceRegion()
+        composeRule.onNodeWithText("Seasonal").performClick()
+
+        composeRule.onNode(hasText("Soil moisture") and hasContentDescription("Moist, 0.27 m³/m³")).performScrollTo().assertIsDisplayed()
+    }
+
+    /** No reading from the forecast, no row: the default provider here fails the forecast fetch. */
+    @Test
+    fun `with no soil moisture reading there is no soil moisture row`() {
+        setScreen()
+
+        searchAReferenceRegion()
+        composeRule.onNodeWithText("Seasonal").performClick()
+
+        composeRule.onNodeWithText("Soil moisture").assertDoesNotExist()
+    }
+
     @Test
     fun `a failed forecast fetch shows the neutral unavailable text`() {
         setScreen()
@@ -447,7 +475,7 @@ private object FakeSuccessfulTripPlanningWeatherProvider : TripPlanningWeatherPr
                         isForecast = true,
                         precipitationMm = 3.2,
                         evapotranspirationMm = null,
-                        shallowSoilMoistureM3M3 = null,
+                        shallowSoilMoistureM3M3 = 0.27,
                         deeperSoilMoistureM3M3 = null,
                         soilTemperatureMeanC = null,
                         soilTemperatureMinC = null,
