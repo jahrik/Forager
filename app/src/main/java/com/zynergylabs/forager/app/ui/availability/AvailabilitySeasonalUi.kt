@@ -304,6 +304,12 @@ private fun ConditionsCard(
                         }
                     },
                 )
+                // Amendment 1 to -668 (RECORD -669), the owner: "Yes, add it (Recommended)". Today's
+                // shallow soil moisture, already fetched with today's forecast, on the same plain scale
+                // as the trip windows. No row when the location's model served none.
+                todaysForecast?.shallowSoilMoistureM3M3?.let { moisture ->
+                    add(TableRow("Soil moisture") { SoilMoistureScaleValue(moisture) })
+                }
             }
             if (conditions == null && conditionsErrorMessage != null) {
                 Text(conditionsErrorMessage, style = MaterialTheme.typography.bodyMedium)

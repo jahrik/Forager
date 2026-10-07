@@ -165,3 +165,15 @@ call in the host (map-layers zoom test); drop the chip's note (same); use `TRIP_
   data, so no legend and no note shows at all until data ships.
 - The 80% map-chrome fill is unchanged: the note sits inside the existing legend chip.
 - Whether 7-day spans read well with real sample sizes is unjudged.
+
+## Amendment 1 (RECORD -669), applied after the report above
+
+The owner's answers to the stops, verbatim: "Loam scale, figure below (Recommended)" (thresholds kept;
+`SoilMoistureScale`'s doc already cites FAO-56 Table 19); "7-day bars (Recommended)" (histogram kept);
+"Yes, add it (Recommended)" (stop 3); "Approve (Recommended)" (the one-day correction and the rain
+wording; the other strings stand). Stop 3 is now built: the Seasonal conditions table has a "Soil
+moisture" row from `todaysForecast.shallowSoilMoistureM3M3`, on the same scale composable, and no
+row when the model served none. Tested through the real screen and ViewModel in
+`AvailabilityScreenConditionsMonthTest` (row shown as "Moist, 0.27 m³/m³"; no row without a
+reading). `displayDate` stays alone in `ui/availability/DisplayDates.kt` so a merge with data part
+A's formatter can unify them. Still not compiled or run.
