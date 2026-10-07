@@ -284,3 +284,17 @@ from D1 go to the owner as a list.
 - Per walk: the report's profile area in words (no screenshot committed).
 - The two counts from its GPX.
 - The share, computed as points with a height divided by all points.
+
+## Amendment 2 (RECORD -673)
+
+- "No longer in Records" is kept as written.
+- A photo bubble's line that names both a find and journal entries now says "In" for neither, for
+  example "Chanterelle · 2 journal entries". A line that names only one keeps its "In" ("In
+  Chanterelle", "In 2 journal entries"). The change is in `photoAttachmentLine` in
+  `ui/map/MapBubbles.kt`.
+  - Assertions changed: `MapBubblesTest.kt:177`, and `JournalEntriesOnMapScreenTest.kt` at the two
+    lines that show both ("Golden chanterelle · 1 journal entry", "Golden chanterelle · 2 journal
+    entries").
+- The track-row touch test now samples three touches across the row's bounds: near the left edge,
+  at the centre, and near the right edge beside the name, each at a different height. Each sample is
+  a fresh composition, one test each, in `EntryDataScreensTest`. Still not run.

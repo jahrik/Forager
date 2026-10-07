@@ -174,7 +174,7 @@ class MapBubblesTest {
     @Test
     fun `a photo shows itself, its date and what it is attached to`() {
         assertEquals(
-            MapBubbleContent.Photo(photo.photo, formatRecordTimestamp(1_700_000_000_000L), "In Chanterelle · In 2 journal entries"),
+            MapBubbleContent.Photo(photo.photo, formatRecordTimestamp(1_700_000_000_000L), "Chanterelle · 2 journal entries"),
             mapBubbleContentFor(target(MapBubbleKind.PHOTO, MapLayerIds.PHOTOS, "ph-1"), sources),
         )
         assertEquals(
