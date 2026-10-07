@@ -76,7 +76,6 @@ class OffTrackReminderCheck(
 
     /** Whether to show [BACKGROUND_RUN_PROMPT] for the recording that has just started. */
     suspend fun atRecordingStart(): Boolean {
-        if (STUB) return false
         val enabled = preferences.getEnabled().getOrElse { error ->
             errorLog.w(TAG, "Couldn't read whether the off-track reminder is on; checking as if on, the default.", error)
             true
@@ -111,6 +110,5 @@ class OffTrackReminderCheck(
 
     private companion object {
         const val TAG = "OffTrackReminderCheck"
-        const val STUB = true
     }
 }

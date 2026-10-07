@@ -323,6 +323,7 @@ internal fun SettingsContent(
         NightModeMapsSection(checked = nightModeMaps, onCheckedChange = onNightModeMapsChanged)
         HorizontalDivider()
         SundownSection(sundown)
+        OffTrackReminderSection(offTrackReminder)
         HorizontalDivider()
         PhotoLocationSection(checked = autoSaveLocationToPhotos, onCheckedChange = onAutoSaveLocationToPhotosChanged)
         CameraPortraitLockSection(checked = lockCameraToPortrait, onCheckedChange = onLockCameraToPortraitChanged)

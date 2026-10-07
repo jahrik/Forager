@@ -1334,7 +1334,7 @@ fun AvailabilityScreen(
     }
     val promptContext = LocalContext.current
     LaunchedEffect(backgroundRunPrompt?.id) {
-        backgroundRunPrompt?.takeIf { false }?.let { prompt ->
+        backgroundRunPrompt?.let { prompt ->
             val result = logDraftSnackbarHostState.showSnackbar(TappableNoticeVisuals(prompt.message))
             if (result == SnackbarResult.ActionPerformed) launchAppDetailsSettings(promptContext)
         }

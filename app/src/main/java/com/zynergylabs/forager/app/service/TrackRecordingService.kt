@@ -153,6 +153,14 @@ class TrackRecordingService : Service() {
         var lastAccepted: TrackPoint? = null
 
         recordingJob = scope.launch {
+            // Dispatch 2026-09-28-626: read Settings' "Off-track reminder" so the off-track rule's
+            // synchronous read holds the stored value, even for a recording the system restarted
+            // with no screen to have read it.
+            launch {
+                container.offTrackReminderPreferences.getEnabled().onFailure { error ->
+                    Log.w(TAG, "Couldn't read whether the off-track reminder is on; the alert stays on, the default.", error)
+                }
+            }
             launch {
                 container.locationTracker.fixes.collect { fix ->
                     when (fix) {
