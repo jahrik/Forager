@@ -368,7 +368,7 @@ internal fun darknessMarginTag(minutes: Int) = "settings-darkness-margin-$minute
 private fun SundownSection(sundown: SundownSettings) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text("Sundown", style = MaterialTheme.typography.titleMedium)
-        SettingsCheckboxRow(sundown.alertsEnabled, sundown.onAlertsEnabledChanged, SUNDOWN_ALERTS_LABEL, testTag = SUNDOWN_ALERTS_TAG)
+        SettingsCheckboxRow(sundown.alertsEnabled, sundown.onAlertsEnabledChanged, SUNDOWN_ALERTS_LABEL, tag = SUNDOWN_ALERTS_TAG)
         Text(DARK_UNDER_TREES_LABEL, style = MaterialTheme.typography.bodyLarge)
         Text(DARK_UNDER_TREES_EXPLANATION, style = MaterialTheme.typography.bodySmall)
         DARKNESS_MARGIN_CHOICES.forEach { (minutes, label) ->
@@ -376,7 +376,7 @@ private fun SundownSection(sundown: SundownSettings) {
                 selected = sundown.darknessMarginMinutes == minutes,
                 onSelect = { sundown.onDarknessMarginChanged(minutes) },
                 label = label,
-                testTag = darknessMarginTag(minutes),
+                tag = darknessMarginTag(minutes),
             )
         }
     }
@@ -398,7 +398,7 @@ internal const val OFF_TRACK_REMINDER_TAG = "settings-off-track-reminder"
  */
 @Composable
 private fun OffTrackReminderSection(reminder: OffTrackReminderSettings) {
-    SettingsCheckboxRow(reminder.enabled, reminder.onEnabledChanged, OFF_TRACK_REMINDER_LABEL, testTag = OFF_TRACK_REMINDER_TAG)
+    SettingsCheckboxRow(reminder.enabled, reminder.onEnabledChanged, OFF_TRACK_REMINDER_LABEL, tag = OFF_TRACK_REMINDER_TAG)
 }
 
 /**
@@ -467,16 +467,16 @@ private fun CameraPortraitLockSection(checked: Boolean, onCheckedChange: (Boolea
 /**
  * One Settings checkbox row: the whole row toggles, with the checkbox and its label in it. The one
  * copy (dispatch 2026-09-28-658, F6) of the row this panel had written out five times. The row is
- * the touch target, full width, exactly as each copy built it, and carries [testTag] when given,
+ * the touch target, full width, exactly as each copy built it, and carries [tag] as its test tag when given,
  * after the click as before.
  */
 @Composable
-private fun SettingsCheckboxRow(checked: Boolean, onCheckedChange: (Boolean) -> Unit, label: String, testTag: String? = null) {
+private fun SettingsCheckboxRow(checked: Boolean, onCheckedChange: (Boolean) -> Unit, label: String, tag: String? = null) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(role = Role.Checkbox) { onCheckedChange(!checked) }
-            .then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
+            .then(if (tag != null) Modifier.testTag(tag) else Modifier),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
@@ -501,15 +501,15 @@ private fun ExplainedSettingsCheckbox(checked: Boolean, onCheckedChange: (Boolea
 /**
  * One Settings radio row: the whole row selects, with the radio button and its label in it. The one
  * copy (dispatch 2026-09-28-658, F6) of the row this panel had written out three times. Touch
- * target and [testTag] as [SettingsCheckboxRow].
+ * target and [tag] as [SettingsCheckboxRow].
  */
 @Composable
-private fun SettingsRadioRow(selected: Boolean, onSelect: () -> Unit, label: String, testTag: String? = null) {
+private fun SettingsRadioRow(selected: Boolean, onSelect: () -> Unit, label: String, tag: String? = null) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(role = Role.RadioButton) { onSelect() }
-            .then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
+            .then(if (tag != null) Modifier.testTag(tag) else Modifier),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
