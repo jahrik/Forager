@@ -46,6 +46,7 @@ import com.zynergylabs.forager.app.ui.map.CENTRE_PIN_CONFIRM_ROW_TAG
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.motion.MapPopUpScaleKey
+import com.zynergylabs.forager.app.ui.motion.TabLeavingKey
 import com.zynergylabs.forager.app.ui.track.RecordingNotice
 import com.zynergylabs.forager.app.ui.theme.ForagerTheme
 import java.time.LocalDate
@@ -363,7 +364,8 @@ class MapPopUpMotionTest {
         assertTrue(shown(BUBBLE_TAG))
         val list = composeRule.onNodeWithText("List").getUnclippedBoundsInRoot()
         pauseAfter { tapAt(centre(list)) }
-        assertTrue("Maps is still on screen, fading out", shown(MAP_TAG))
+        // The leaving tab keeps only its leaving marker in the semantics tree (Amendment 2), so that is what is read here.
+        assertEquals("Maps is still on screen, fading out", 1, composeRule.onAllNodes(SemanticsMatcher.expectValue(TabLeavingKey, true), useUnmergedTree = true).fetchSemanticsNodes().size)
         composeRule.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
         settle()
         assertTrue("Back from List went to Maps: the arriving side took it", shown(MAP_TAG))
