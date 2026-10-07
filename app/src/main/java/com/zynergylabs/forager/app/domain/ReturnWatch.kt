@@ -267,7 +267,7 @@ class ReturnWatch(
         }
         recorded?.let(returnRecord::write)
         val alertedTrack = (recorded as? ReturnRecordEvent.WentOffTrack)?.trackId
-        if (alert && false && !isReminderOn()) {
+        if (alert && !isReminderOn()) {
             if (alertedTrack != null) returnRecord.write(ReturnRecordEvent.AlertWithheld(alertedTrack))
             return
         }

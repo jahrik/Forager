@@ -1,7 +1,6 @@
 package com.zynergylabs.forager.app.data.repository
 
 import android.content.Context
-import android.util.Log
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
@@ -11,7 +10,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 
 /**
  * [OffTrackReminderPreferenceRepository] backed by Jetpack DataStore (dispatch 2026-09-28-626).
@@ -20,9 +18,8 @@ import kotlinx.coroutines.launch
  * `preferencesDataStore` delegate, for the Robolectric-isolation reason
  * [DataStoreMapPreferencesRepository]'s header records. Its own file, `off_track_reminder_preferences`.
  *
- * [enabledNow] is the checkbox's value as this instance last read or stored it, first read as soon
- * as this is built (at app start, in `AppContainer`). A read that fails is logged and leaves the
- * default, on.
+ * [enabledNow] is the checkbox's value as this instance last read or stored it; on, the default,
+ * until something has read it.
  */
 class DataStoreOffTrackReminderPreferenceRepository(
     context: Context,
@@ -36,41 +33,36 @@ class DataStoreOffTrackReminderPreferenceRepository(
 
     /**
      * The checkbox as last read or stored by this instance. Production has one instance
-     * (`AppContainer`), and every change goes through [setEnabled], so this is the stored value
-     * once the first read below has finished.
+     * (`AppContainer`) and every change goes through [setEnabled], so once anything has read it this
+     * is the stored value. It is read when the app's screen starts (Settings loads it), when a
+     * recording starts (the background check reads it) and when the recording service begins.
+     *
+     * Not read in a constructor: `AppContainer` is built for every Robolectric test, and a read
+     * there makes this file's `DataStore` active, so any test building its own instance on the same
+     * file fails with "multiple DataStores active for the same file". Seen on the first green run.
      */
     @Volatile private var cached: Boolean = DEFAULT_ENABLED
 
-    init {
-        // Read once at app start, so [enabledNow] holds the stored value before any recording can
-        // begin. A failed read is logged and leaves the default, on.
-        scope.launch {
-            getEnabled().onFailure { error ->
-                Log.w(TAG, "Couldn't read whether the off-track reminder is on; the alert stays on, the default.", error)
-            }
-        }
-    }
-
     override suspend fun getEnabled(): Result<Boolean> = runCatchingCancellable {
-        DEFAULT_ENABLED
+        (dataStore.data.first()[KEY_ENABLED] ?: DEFAULT_ENABLED).also { cached = it }
     }
 
     override suspend fun setEnabled(enabled: Boolean): Result<Unit> = runCatchingCancellable {
-        Unit
+        dataStore.edit { prefs -> prefs[KEY_ENABLED] = enabled }
+        cached = enabled
     }
 
     override fun enabledNow(): Boolean = cached
 
     override suspend fun getLastSeenBlocked(): Result<Boolean> = runCatchingCancellable {
-        false
+        dataStore.data.first()[KEY_LAST_SEEN_BLOCKED] ?: false
     }
 
     override suspend fun setLastSeenBlocked(blocked: Boolean): Result<Unit> = runCatchingCancellable {
-        Unit
+        dataStore.edit { prefs -> prefs[KEY_LAST_SEEN_BLOCKED] = blocked }
     }
 
     private companion object {
-        const val TAG = "OffTrackReminderPrefs"
         const val DATA_STORE_NAME = "off_track_reminder_preferences"
 
         /** The owner, Amendment 1 to dispatch -626: "on by default". */

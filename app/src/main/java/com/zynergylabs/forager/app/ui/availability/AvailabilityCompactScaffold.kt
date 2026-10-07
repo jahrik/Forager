@@ -724,7 +724,7 @@ internal fun CompactMainScaffold(
                             .testTag(COMPACT_SNACKBAR_TAG)
                             // Dispatch 2026-09-28-626: a prompt whose whole surface is its tap (TappableNoticeVisuals).
                             .then(
-                                if (false && data.visuals is TappableNoticeVisuals) {
+                                if (data.visuals is TappableNoticeVisuals) {
                                     Modifier.clickable(role = Role.Button) { data.performAction() }
                                 } else {
                                     Modifier

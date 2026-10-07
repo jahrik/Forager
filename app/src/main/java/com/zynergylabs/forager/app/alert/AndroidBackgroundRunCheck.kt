@@ -21,7 +21,6 @@ class AndroidBackgroundRunCheck(context: Context) : BackgroundRunCheck {
     private val appContext = context.applicationContext
 
     override fun current(): BackgroundRun {
-        if (true) return BackgroundRun.ALLOWED
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return BackgroundRun.UNSUPPORTED
         val restricted = appContext.getSystemService(ActivityManager::class.java).isBackgroundRestricted
         return if (restricted) BackgroundRun.BLOCKED else BackgroundRun.ALLOWED

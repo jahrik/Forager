@@ -52,7 +52,7 @@ class DataStoreOffTrackReminderPreferenceRepositoryTest {
     }
 
     @Test
-    fun `both values survive a recreated instance, and the new one's enabledNow reads the stored off`() = runBlocking {
+    fun `both values survive a recreated instance, and its enabledNow holds the stored off once read`() = runBlocking {
         val (first, job) = repository()
         first.setEnabled(false).getOrThrow()
         first.setLastSeenBlocked(true).getOrThrow()
@@ -60,11 +60,8 @@ class DataStoreOffTrackReminderPreferenceRepositoryTest {
         job.cancelAndJoin()
 
         val (second, _) = repository()
-        // The read made when the instance is built: enabledNow holds the stored value without anyone asking.
-        val deadline = System.currentTimeMillis() + 5_000
-        while (second.enabledNow() && System.currentTimeMillis() < deadline) Thread.sleep(10)
-        assertEquals("enabledNow reads the stored off after a restart", false, second.enabledNow())
         assertEquals(false, second.getEnabled().getOrThrow())
+        assertEquals("once read after a restart, enabledNow holds the stored off", false, second.enabledNow())
         assertEquals(true, second.getLastSeenBlocked().getOrThrow())
     }
 

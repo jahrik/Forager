@@ -399,7 +399,7 @@ class TrackRecordingViewModel(
                     // on", read once here, as the silenced-phone warning is. Its own launch, so a
                     // slow settings read never holds up the recording.
                     viewModelScope.launch {
-                        if (false && shouldPromptBackgroundRun()) {
+                        if (shouldPromptBackgroundRun()) {
                             _uiState.update { it.copy(backgroundRunPrompt = RecordingNotice(++recordingNoticeIds, BACKGROUND_RUN_PROMPT)) }
                         }
                     }
