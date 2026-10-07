@@ -101,7 +101,7 @@ class AvailabilityScreenLandscapeB2Test {
     /** Bumped to hand the screen a new [Configuration] object, so it re-reads the display's rotation (a turn from 90 to 270). */
     private var configurationTick by mutableStateOf(0)
 
-    private fun setScreen(rotation: Int, uiState: AvailabilityUiState = B2_SEARCHED_STATE, isReturning: Boolean = false) {
+    private fun setScreen(rotation: Int, uiState: AvailabilityUiState = B2_SEARCHED_STATE, isReturning: Boolean = false, now: Long = B2_DAY_NOW) {
         Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(rotation)
         composeRule.setContent {
             val base = LocalConfiguration.current
@@ -116,7 +116,7 @@ class AvailabilityScreenLandscapeB2Test {
             }
             CompositionLocalProvider(LocalConfiguration provides configuration) {
                 rotationSeenByScreen = LocalView.current.display?.rotation
-                B2Screen(uiState = uiState, mapSlot = map.slot, isReturning = isReturning)
+                B2Screen(uiState = uiState, mapSlot = map.slot, isReturning = isReturning, now = now)
             }
         }
         composeRule.waitForIdle()
@@ -534,16 +534,58 @@ class AvailabilityScreenLandscapeB2Test {
         assertCentreClear(listOf(SEARCH_ENTRY_BAR_TAG, B2_STRIP_TAG, MAP_ICON_CLUSTER_TAG, COMPACT_NAVIGATION_RAIL_TAG))
     }
 
+    // The navigating cases run at B2_DAY_NOW, when the sundown line (dispatch 2026-09-28-592) is
+    // hidden: the HUD computes that line from the screen's clock, and this class used to read the
+    // real one, so these two failed from 2 h 30 min before the fixture's sunset until sunrise
+    // (RECORD -621). The line-shown cases are the dusk pair below.
     @Test
     fun `S10 at ROTATION_90 while navigating, the HUD and the rest leave the central third clear`() {
         setScreen(Surface.ROTATION_90, B2_FIX_STATE, isReturning = true)
+        assertHudSundownLine(shown = false)
         assertCentreClear(listOf(SEARCH_ENTRY_BAR_TAG, NAVIGATION_HUD_TAG, MAP_ICON_CLUSTER_TAG, COMPACT_NAVIGATION_RAIL_TAG))
     }
 
     @Test
     fun `S10 at ROTATION_270 while navigating, the HUD and the rest leave the central third clear`() {
         setScreen(Surface.ROTATION_270, B2_FIX_STATE, isReturning = true)
+        assertHudSundownLine(shown = false)
         assertCentreClear(listOf(SEARCH_ENTRY_BAR_TAG, NAVIGATION_HUD_TAG, MAP_ICON_CLUSTER_TAG, COMPACT_NAVIGATION_RAIL_TAG))
+    }
+
+    // RECORD -621: S10 with the sundown line in the HUD, at dusk (41 min before the fixture's sunset).
+    // Under NATIVE graphics, as S10's chip case (the owner's "Option B", RECORD -119): the default
+    // graphics mode measures each text row far taller than the phone does (the HUD reads 124 dp
+    // without the line there, 80 dp under NATIVE; the S22's own dump at 90, device evidence
+    // 2026-09-30-part-3 r4, puts it at 80 dp). The central-third assertion is unchanged. Robolectric
+    // reports no status bar, which on the S22 puts the HUD 30 dp lower; that clearance is a device item.
+    @Test
+    @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
+    fun `S10 at ROTATION_90 while navigating at dusk, the HUD with its sundown line leaves the central third clear`() {
+        setScreen(Surface.ROTATION_90, b2FixStateAt(B2_DUSK_NOW), isReturning = true, now = B2_DUSK_NOW)
+        assertHudSundownLine(shown = true)
+        assertCentreClear(listOf(SEARCH_ENTRY_BAR_TAG, NAVIGATION_HUD_TAG, MAP_ICON_CLUSTER_TAG, COMPACT_NAVIGATION_RAIL_TAG))
+    }
+
+    @Test
+    @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
+    fun `S10 at ROTATION_270 while navigating at dusk, the HUD with its sundown line leaves the central third clear`() {
+        setScreen(Surface.ROTATION_270, b2FixStateAt(B2_DUSK_NOW), isReturning = true, now = B2_DUSK_NOW)
+        assertHudSundownLine(shown = true)
+        assertCentreClear(listOf(SEARCH_ENTRY_BAR_TAG, NAVIGATION_HUD_TAG, MAP_ICON_CLUSTER_TAG, COMPACT_NAVIGATION_RAIL_TAG))
+    }
+
+    /** The HUD's sundown line is drawn (inside the HUD, with the text the dusk instant gives) or absent. */
+    private fun assertHudSundownLine(shown: Boolean) {
+        val nodes = composeRule.onAllNodesWithTag(NAVIGATION_HUD_SUNDOWN_LINE_TAG, useUnmergedTree = true).fetchSemanticsNodes()
+        if (!shown) {
+            assertTrue("at B2_DAY_NOW the HUD must carry no sundown line; found ${nodes.size}", nodes.isEmpty())
+            return
+        }
+        val text = nodes.singleOrNull()?.config?.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.Text)?.joinToString()
+        assertTrue("the HUD's sundown line at dusk reads sunset, 41 min and dark; was <$text>", text != null && B2_DUSK_LINE.matches(text))
+        val line = composeRule.onNodeWithTag(NAVIGATION_HUD_SUNDOWN_LINE_TAG, useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val hud = tagBounds(NAVIGATION_HUD_TAG)
+        assertTrue("the sundown line $line is laid out inside the HUD $hud", line.isInside(hud) && line.height > 0.dp)
     }
 
     // Planner message 2026-09-29-05 (the owner's "Option B"): a harness correction, not a weaker assertion. The default
@@ -741,8 +783,10 @@ private class B2RecordingMapSlot {
 }
 
 @Composable
-private fun B2Screen(uiState: AvailabilityUiState, mapSlot: MapSlot, isReturning: Boolean) {
+private fun B2Screen(uiState: AvailabilityUiState, mapSlot: MapSlot, isReturning: Boolean, now: Long = B2_DAY_NOW) {
     AvailabilityScreen(
+        // A pinned clock: the HUD's sundown line follows it (RECORD -621).
+        currentTime = { now },
         uiState = uiState,
         isRecording = isReturning,
         isReturning = isReturning,
@@ -798,17 +842,36 @@ private val B2_SEARCHED_STATE = AvailabilityUiState(
     sightings = List(12) { b2Sighting(it) },
 )
 
+/**
+ * The clock every test in this file runs at unless it names another: 11:00 PDT on 2026-10-06 at the
+ * fixture's position, 7 h 41 min before sunset, so the sundown line is hidden (its window opens
+ * 2 h 30 min before sunset). The screen and the fix both read it, so the fix is fresh.
+ */
+private val B2_DAY_NOW: Long = java.time.Instant.parse("2026-10-06T18:00:00Z").toEpochMilli()
+
+/** 18:00 PDT the same day, 41 minutes before the fixture's sunset: the sundown line is shown. */
+private val B2_DUSK_NOW: Long = java.time.Instant.parse("2026-10-07T01:00:00Z").toEpochMilli()
+
+/**
+ * What the HUD says at [B2_DUSK_NOW] with no recording: sunset and dark only (RECORD -593), e.g.
+ * "Sunset 6:41 PM · in 41 min · dark 7:10" in Pacific time. The clock times follow the JVM's zone
+ * (a laptop in PDT, CI in UTC), so only the countdown, which depends on instants alone, is exact.
+ */
+private val B2_DUSK_LINE = Regex("Sunset .+ · in 41 min · dark .+")
+
 /** A live fix, so the strip shows heading, elevation and coordinates rather than its no-fix line. */
-private val B2_FIX_STATE = B2_SEARCHED_STATE.copy(
+private fun b2FixStateAt(now: Long) = B2_SEARCHED_STATE.copy(
     liveFix = LocationFix.Update(
         lat = B2_FIX_LOCATION.lat,
         lng = B2_FIX_LOCATION.lng,
         altitude = 123.0,
         accuracyMeters = 5f,
-        timestampEpochMillis = System.currentTimeMillis(),
+        timestampEpochMillis = now,
         provider = FixProvider.GPS,
     ),
 )
+
+private val B2_FIX_STATE = b2FixStateAt(B2_DAY_NOW)
 
 private val B2_FORECAST = AvailabilityForecast(
     region = B2_REGION,
