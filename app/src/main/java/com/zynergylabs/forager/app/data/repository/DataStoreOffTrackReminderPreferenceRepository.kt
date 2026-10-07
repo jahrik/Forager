@@ -1,10 +1,10 @@
 package com.zynergylabs.forager.app.data.repository
 
+import com.zynergylabs.forager.app.domain.SettingsResetListener
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.preferencesDataStoreFile
 import com.zynergylabs.forager.app.domain.OffTrackReminderPreferenceRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,12 +26,11 @@ import kotlinx.coroutines.sync.withLock
 class DataStoreOffTrackReminderPreferenceRepository(
     context: Context,
     scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
+    /** Told when this file was corrupt and has been reset (RECORD -660); `AppContainer` passes its notice. */
+    settingsReset: SettingsResetListener = SettingsResetListener.None,
 ) : OffTrackReminderPreferenceRepository {
 
-    private val dataStore = PreferenceDataStoreFactory.create(
-        scope = scope,
-        produceFile = { context.applicationContext.preferencesDataStoreFile(DATA_STORE_NAME) },
-    )
+    private val dataStore = settingsDataStore(context, DATA_STORE_NAME, settingsReset, scope)
 
     /**
      * The checkbox as last read or stored by this instance. Production has one instance

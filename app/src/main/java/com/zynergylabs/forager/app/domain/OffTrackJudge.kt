@@ -2,7 +2,6 @@ package com.zynergylabs.forager.app.domain
 
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.TrackPoint
-import kotlin.math.cos
 import kotlin.math.hypot
 
 /** How far beyond the path, plus the reading's own reported accuracy, counts as off it. The owner: "About 40 m". Provisional. */
@@ -79,6 +78,11 @@ class OffTrackJudge(path: List<TrackPoint>) {
         val counts = provider?.mayAct ?: !reading.isNetworkProviderFix()
         if (line.isEmpty() || !counts) return OffTrackVerdict(offTrack, alert = false)
         val t = reading.timestampEpochMillis
+        // A reading with no accuracy (null, not reported) widens the line by nothing: it is judged
+        // as if it were exact, at OFF_TRACK_LINE_METERS alone. That is the rule today, stated here
+        // (dispatch 2026-09-28-658, scout item R8), not decided here: the sampler and the live-fix
+        // gate let a null through as "not reported", and this treats it as 0 m. Changing it changes
+        // when the off-track alert fires, which is the owner's call, and was taken to them.
         val limit = OFF_TRACK_LINE_METERS + (reading.accuracyMeters?.toDouble() ?: 0.0)
         var alert = false
         if (metersToLine(LatLng(reading.lat, reading.lng)) > limit) {
@@ -105,8 +109,7 @@ class OffTrackJudge(path: List<TrackPoint>) {
     /** Metres from [p] to the nearest point of the path's line, on a flat projection about [p]; tens to hundreds of metres, where its error is far below the fixes'. */
     private fun metersToLine(p: LatLng): Double {
         if (line.size == 1) return GeoDistance.metersBetween(p, line[0])
-        val metersPerDegreeLat = Math.PI * GeoDistance.EARTH_MEAN_RADIUS_METERS / 180.0
-        val metersPerDegreeLng = metersPerDegreeLat * cos(Math.toRadians(p.lat))
+        val (metersPerDegreeLat, metersPerDegreeLng) = GeoDistance.metersPerDegree(p.lat)
         var best = Double.MAX_VALUE
         for (i in 0 until line.lastIndex) {
             val ax = (line[i].lng - p.lng) * metersPerDegreeLng

@@ -141,6 +141,33 @@ class OfflineRegionReconciliationTest {
         assertEquals("Ridge", result.dao.rows.getValue(11L).name)
     }
 
+    /**
+     * Dispatch 2026-09-28-658 (M1): a complete region with no Room row and metadata that can't be
+     * read is left out of the list, its tiles kept, and that is logged with its id and the reason.
+     * Before, this branch dropped the region with no log line at all.
+     */
+    @Test
+    fun `a complete region with no Room row and unreadable metadata is kept, not shown, and logged with why`() {
+        val result = run(rows = emptyList(), live = listOf(complete(12, metadata = "junk".toByteArray())))
+
+        assertEquals(emptyList<Long>(), result.shown)
+        assertEquals(emptyList<Long>(), result.tilesDeleted)
+        assertEquals(
+            "one warning, naming the region and the missing key: ${result.warnings}",
+            1,
+            result.warnings.count { "12" in it && "kept, not shown" in it && "no region.name" in it },
+        )
+    }
+
+    @Test
+    fun `a complete region with no Room row and no metadata is kept, not shown, and logged`() {
+        val result = run(rows = emptyList(), live = listOf(complete(13, metadata = null)))
+
+        assertEquals(emptyList<Long>(), result.shown)
+        assertEquals(emptyList<Long>(), result.tilesDeleted)
+        assertEquals(1, result.warnings.count { "13" in it && "no metadata" in it && "kept, not shown" in it })
+    }
+
     @Test
     fun `a null list from MapLibre is a failed read, not an empty one`() {
         assertThrows(IOException::class.java) { regionListOrFailure<Long>(null) }

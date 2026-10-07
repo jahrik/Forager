@@ -4,6 +4,7 @@ import com.zynergylabs.forager.app.ui.motion.clickableWithShapedPress
 import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -36,6 +37,7 @@ import androidx.core.content.FileProvider
 import com.zynergylabs.forager.app.crash.CrashFileStore
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.io.File
+import java.io.IOException
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -147,11 +149,13 @@ private fun CrashLogRow(file: File, onOpen: () -> Unit) {
 
 @Composable
 private fun CrashLogDetail(file: File, onBack: () -> Unit, modifier: Modifier = Modifier) {
-    // file.readText() is disk I/O — kept off the composing thread, same reasoning as any other
-    // suspend read triggered from a LaunchedEffect elsewhere in this app.
+    // The read is disk I/O — kept off the composing thread, same reasoning as any other
+    // suspend read triggered from a LaunchedEffect elsewhere in this app. It goes through the one
+    // guarded read below (dispatch 2026-09-28-658, J1), so a file that cannot be read shows a plain
+    // line instead of throwing out of the effect.
     var content by remember(file) { mutableStateOf<String?>(null) }
     LaunchedEffect(file) {
-        content = withContext(Dispatchers.IO) { file.readText() }
+        content = withContext(Dispatchers.IO) { readCrashLog(file) } ?: CRASH_LOG_UNREADABLE_TEXT
     }
     Column(modifier = modifier.fillMaxWidth()) {
         CrashLogDetailHeader(onBack = onBack)
@@ -183,6 +187,30 @@ private fun CrashLogDetailHeader(onBack: () -> Unit) {
         Text("Crash Report", style = MaterialTheme.typography.titleMedium)
     }
 }
+
+/**
+ * What the detail view shows when [readCrashLog] could not read the file. The owner's wording (RECORD -660, Amendment 1 to -658).
+ */
+internal const val CRASH_LOG_UNREADABLE_TEXT = "Couldn't read this crash report. Go back and open it again."
+
+/**
+ * The crash log's text, or `null` when it could not be read: a file removed or pruned between the
+ * list and the tap, or one the app is not allowed to read. The failure is logged with its cause,
+ * and the caller shows [CRASH_LOG_UNREADABLE_TEXT] (dispatch 2026-09-28-658, J1). The one read of a
+ * crash file in this panel.
+ */
+internal fun readCrashLog(file: File): String? =
+    try {
+        file.readText()
+    } catch (e: IOException) {
+        Log.w(TAG, "Couldn't read the crash report ${file.name}.", e)
+        null
+    } catch (e: SecurityException) {
+        Log.w(TAG, "Not allowed to read the crash report ${file.name}.", e)
+        null
+    }
+
+private const val TAG = "CrashLogPanel"
 
 /** A locale-formatted "when" for [file], derived from the epoch millis its filename encodes — see [CrashFileStore.epochMillisOf]. */
 private fun formatCrashTimestamp(file: File): String {

@@ -26,6 +26,8 @@ import androidx.compose.ui.unit.dp
  * step for "sheet and dialog internal padding" and "empty-state and first-run breathing room" to
  * reach for the next time either is needed, rather than another ad hoc value invented at that call
  * site the way the four steps below were before this file existed.
+ *
+ * Still unwired, and kept for the design system (dispatch 2026-09-28-658; the owner: "Remove what costs, keep plans").
  */
 object Spacing {
     /** Within a tightly related group — a line and its own subtext, one card's internal rows. */

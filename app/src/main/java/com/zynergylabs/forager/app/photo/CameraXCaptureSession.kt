@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.photo
 
 import android.content.Context
 import android.util.Log
+import android.util.Size
 import android.view.OrientationEventListener
 import android.view.Surface
 import androidx.camera.core.Camera
@@ -12,6 +13,8 @@ import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.core.TorchState
 import androidx.camera.core.UseCase
+import androidx.camera.core.resolutionselector.ResolutionSelector
+import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.runtime.Composable
@@ -270,6 +273,9 @@ internal class CameraXCaptureSession(
                     val newPreview = Preview.Builder().build()
                     val capture = ImageCapture.Builder()
                         .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                        // Dispatch 2026-09-28-658: the phone's standard photo size, never its
+                        // largest mode. See STANDARD_PHOTO_SIZE.
+                        .setResolutionSelector(standardPhotoSizeSelector())
                         .build()
                     provider.unbindAll()
                     val boundCamera = provider.bindToLifecycle(lifecycleOwner, selector, newPreview, capture)
@@ -555,6 +561,26 @@ internal class CameraXCaptureSession(
         const val TAG = "CameraXCaptureSession"
     }
 }
+
+/**
+ * The photo size the in-app camera captures at: the phone's standard size, about 12 MP, never its
+ * largest mode. The owner chose "Phone's standard size (Recommended)" (dispatch 2026-09-28-658, RECORD
+ * -655), against keeping the device's largest mode: the device reports what it can do, which is not
+ * a safe operating size (CLAUDE.md), and a 50 MP or 200 MP capture costs storage, backup size and
+ * decode memory with nothing a forager can see on a phone screen.
+ *
+ * 4032×3024 is the 12 MP 4:3 size phone cameras save by default. It is a bound, in the sensor's
+ * landscape frame as CameraX states sizes: CameraX picks the closest supported size at or below it
+ * (a phone whose standard mode is 4000×3000 gets that), and only on a camera with nothing that small
+ * the closest above it. Which size a given phone then picks is device-only and not checked here.
+ */
+internal val STANDARD_PHOTO_SIZE = Size(4032, 3024)
+
+/** The capture's [ResolutionSelector]: [STANDARD_PHOTO_SIZE] as the bound, the default 4:3 aspect kept. */
+private fun standardPhotoSizeSelector(): ResolutionSelector =
+    ResolutionSelector.Builder()
+        .setResolutionStrategy(ResolutionStrategy(STANDARD_PHOTO_SIZE, ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER_THEN_HIGHER))
+        .build()
 
 /**
  * The device rotation the camera acts on — for the controls' angle and for each shot's
