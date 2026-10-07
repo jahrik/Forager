@@ -6,6 +6,7 @@ import com.zynergylabs.forager.app.domain.RunScheduledBackupUseCase
 import com.zynergylabs.forager.app.domain.JournalBackup
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.SettingsResetNotice
+import com.zynergylabs.forager.app.domain.RecordingHalts
 import com.zynergylabs.forager.app.domain.BackupScheduler
 import com.zynergylabs.forager.app.domain.BackupScheduleSettings
 import com.zynergylabs.forager.app.domain.BackupSchedulePreferences
@@ -173,6 +174,9 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
      * before any of them, since properties initialise in source order.
      */
     val settingsResetNotice = SettingsResetNotice()
+
+    /** The recording service's report of a recording it stopped on its own (RECORD -660, item 4); the recording screen reads it. */
+    val recordingHalts = RecordingHalts()
 
     private val api = INaturalistClient.create(debug = BuildConfig.DEBUG)
     private val weatherApi = OpenMeteoClient.create(debug = BuildConfig.DEBUG)

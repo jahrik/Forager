@@ -39,6 +39,8 @@ import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.model.WaypointDesignation
 import com.zynergylabs.forager.app.domain.PendingDeleteSlot
+import com.zynergylabs.forager.app.domain.RecordingHalt
+import com.zynergylabs.forager.app.domain.RecordingHaltReason
 import com.zynergylabs.forager.app.domain.ReturnWatch
 import com.zynergylabs.forager.app.domain.ReturnWatchState
 import com.zynergylabs.forager.app.ui.log.PendingDeleteCommitScope
@@ -204,6 +206,12 @@ class TrackRecordingViewModel(
      * Defaults to never, like the optional dependencies above.
      */
     private val shouldPromptBackgroundRun: suspend () -> Boolean = { false },
+    /**
+     * RECORD -660 (item 4): the recording service's report of a recording it stopped on its own,
+     * `AppContainer.recordingHalts` in production. A report for this screen's recording turns it to
+     * not recording, with the reason. Defaults to a service that never reports.
+     */
+    private val recordingHalts: StateFlow<RecordingHalt?> = MutableStateFlow(null),
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TrackRecordingUiState())
@@ -276,6 +284,24 @@ class TrackRecordingViewModel(
         viewModelScope.launch { returnWatch.state.collect(::copyFromWatch) }
         // The sundown line, the same way: published by the watch the service ticks.
         viewModelScope.launch { sundownShown.collect { copySundownLine() } }
+        viewModelScope.launch { recordingHalts.collect { halt -> if (halt != null) onRecordingHalted(halt) } }
+    }
+
+    /**
+     * The service stopped [halt]'s recording on its own (RECORD -660, item 4; the owner: "Fix it, say
+     * why"). If it is this screen's recording, the screen shows not recording, exactly as a stop leaves
+     * it, and says why through [TrackRecordingUiState.startRecordingErrorMessage], the field the screen
+     * already shows as a Toast. A report for any other track is ignored. The service has already ended
+     * the track and stopped itself; the stop this sends it in turn finds nothing running.
+     */
+    private fun onRecordingHalted(halt: RecordingHalt) {
+        if (uiState.value.activeTrack?.trackId != halt.trackId) return
+        stopRecording()
+        val message = when (halt.reason) {
+            RecordingHaltReason.FOREGROUND_REFUSED -> RECORDING_COULD_NOT_START_MESSAGE
+            RecordingHaltReason.NO_LOCATION_PERMISSION -> RECORDING_NEEDS_LOCATION_PERMISSION_MESSAGE
+        }
+        _uiState.update { it.copy(startRecordingErrorMessage = message) }
     }
 
     /**
@@ -1216,3 +1242,13 @@ class TrackRecordingViewModel(
         const val TAG = "TrackRecordingViewModel"
     }
 }
+
+/** The owner's words (RECORD -660, item 4): the service was refused the foreground, so nothing is recording. */
+internal const val RECORDING_COULD_NOT_START_MESSAGE = "Recording couldn't start. Open Forager and tap Record again."
+
+/**
+ * The permission case (RECORD -660, item 4): the service has no location permission, at the start or
+ * lost during the walk. Proposed wording, pointing to the permission, to be confirmed by the owner.
+ */
+internal const val RECORDING_NEEDS_LOCATION_PERMISSION_MESSAGE =
+    "Recording stopped because Forager can't use your location. Allow location for Forager in your phone's Settings, then tap Record again."
