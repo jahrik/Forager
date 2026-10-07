@@ -73,6 +73,25 @@ installs the SDK pieces CI uses. The Gradle wrapper pins Gradle 9.7.0.
 The app runs on Android 8.0 (API 26) and up and targets API 37. It has debug and release variants; the debug
 build adds the Diagnostics switch and the synthetic forecast data described above.
 
+### Building in a container
+
+The `Dockerfile` holds the whole toolchain, JDK 21 and the Android SDK from `scripts/setup-android-sdk.sh`, so
+podman or Docker is all you need. It mirrors CI's Temurin 21 on Ubuntu 24.04. The image contains no source: you
+mount your checkout, which must have its full git history, as above.
+
+```
+podman build -t local/forager-build:test .
+mkdir -p ~/.cache/forager-container-home    # Gradle and Robolectric caches, kept between runs
+podman run --rm --userns=keep-id -e HOME=/home/builder \
+  -v "$PWD":/workspace -v ~/.cache/forager-container-home:/home/builder \
+  local/forager-build:test ./gradlew assembleDebug
+```
+
+Swap in `./gradlew testDebugUnitTest` to run the tests. With Docker, use `--user "$(id -u):$(id -g)"` in place
+of `--userns=keep-id`. Run as your own uid so the build's files in your checkout stay yours. The first build
+downloads Gradle and the dependencies, so expect several minutes. The SDK sits at `/opt/android-sdk`, outside the
+checkout, so it does not mark the build `.dirty`.
+
 ## Continuous integration
 
 `.github/workflows/ci.yml` runs on every pull request and on pushes to `main` and `pre-main`, on
