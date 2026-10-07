@@ -183,3 +183,41 @@ The owner's answers to the stops above, and what changed for each. Still code an
   `ShutterButton` is in `ui/log/InAppCameraDialog.kt`. Test: `log/InAppCameraShutterBounceTest`, through `InAppCameraDialog`
   with a real finger, run with animations on and off. Rows that pair an icon with words stay without a bounce.
 - **"Rounded shade".** `clickableWithShapedPress` is kept as it is, to be judged on the S22.
+
+## Build and test results (RECORD -664, the owner's Gradle go), 2026-10-07
+
+Run on `motion-part-1` after merging `origin/main` (98c31b32, which then carried only a CLAUDE.md note over `aa79f25a`). Every
+Gradle run went through `systemd-run --user --scope -p MemoryMax=5G -p MemorySwapMax=0`, with the Gradle heap at 1536m, the Kotlin
+daemon at 2g and Java temp at `~/.cache/forager-test-tmp`. No daemon was running before the first run. Free disk stayed between
+5.4 and 5.7 GB. The Kotlin daemon was stopped after compiling and before the full suite, and `./gradlew --stop` ran at the end.
+No phone or emulator was used.
+
+- **Compile.** The first compile failed on one error: `drawOutline` was not imported in `PressFeedback.kt`. The fix is
+  a4dbcf3a. The second compile, main and unit tests, succeeded.
+- **New tests, first run.** 63 tests, 2 failures. Both were mine, and both had the same cause. With the test clock stopped, a
+  state change made outside composition (the Back press, the finger lifting) only reaches the next frame once it is applied,
+  so the tests stepped frames that had not yet seen it. The fix applies the change before stepping, as the fan's tests already
+  do (2082a0c0).
+- **Revert checks.** Each one edits a saved copy, checks the build log for compile errors before reading any result, and
+  restores from the saved copy, never from git. Every file was confirmed identical to the forward version after its restore.
+  - R1: dropdown pass-through removed. Failed: "the closing panel's button did not fire, expected 0 but was 1".
+  - R2: the glide moved to layout. Failed: "the finger lifted clear of the landed box", and the box was not back at rest at
+    once. Both failures belong to this edit.
+  - R3: species card clipped before its tap. The first attempt hit a compile error (no `clip` import), so the runner refused to
+    read its results. Re-run with the import: "the touch 2 dp in from the card's top left corner did not open it on the map".
+  - R4: content descriptions put back on the bar icons. **Did not fail.** The outgoing icon recomposes with the row's current
+    description, so the mid-swap two-descriptions problem I designed that test against does not happen. The test is kept as a
+    pin and marked in its doc as not evidence that the move was needed.
+  - R5: bounce target set to 1. Failed: "dipped while held: 1.0" in the bar, `BouncingIconButtonTest` and the shutter test. A
+    fourth failure in that run, in the crossfade test, came from the stopped-clock problem above, not from this edit. It is
+    fixed.
+  - R6: highlight inset set to 0. Failed: the stadium-fit and 40 dp-size checks in the L.
+  - R7: provider removed from `ForagerTheme`. Failed: three cases, "expected true but was false".
+  - R8: snackbar trim undone. Failed: "6 dp outside the bottom edge … the map took the touch".
+  - R9: the change observer's update removed. Failed: "after the change".
+  - The snackbar test now skips "outside" samples that fall off the screen. In portrait the drawn snackbar spans the full
+    width, so only its top and bottom edges have a beside.
+- **Full suite.** 497 classes, **4,015 tests, 0 failures, 24 skipped**. No existing test broke. The one I expected to break,
+  `MarkerFanOutHostTest`, was wrapped in the provider by Amendment 1.
+- **Not merged:** `origin/main` moved to `4f078b8b` (PR #191, failure-fixes) after this build started. This branch has not been
+  merged with it or rebuilt against it.
