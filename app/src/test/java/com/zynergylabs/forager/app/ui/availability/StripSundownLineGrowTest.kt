@@ -49,6 +49,7 @@ class StripSundownLineGrowTest {
     private val resolver get() = ApplicationProvider.getApplicationContext<Application>().contentResolver
 
     private var line by mutableStateOf<String?>(null)
+    private var location by mutableStateOf<LatLng?>(LatLng(45.33, -122.64))
 
     @After
     fun restore() {
@@ -64,7 +65,7 @@ class StripSundownLineGrowTest {
                     heading = heading,
                     elevationMeters = 123.0,
                     unitSystem = UnitSystem.IMPERIAL,
-                    location = LatLng(45.33, -122.64),
+                    location = location,
                     showDecimalDegrees = false,
                     onToggleCoordinateFormat = {},
                     modifier = Modifier.fillMaxWidth(),
@@ -122,5 +123,20 @@ class StripSundownLineGrowTest {
     private companion object {
         const val STRIP_TAG = "compass-elevation-strip"
         const val SUNDOWN = "Sunset 7:42 PM · start back by 7:12 PM"
+    }
+
+    /** Amendment 1 (RECORD -672), item 3 (scout C2): losing the fix crossfades the readout into the no-fix line. */
+    @Test
+    fun `losing the fix crossfades the readout into the no-fix line, and back`() {
+        show()
+        assertEquals(1, composeRule.onAllNodesWithTag(COMPASS_STRIP_HEADING_TAG).fetchSemanticsNodes().size)
+        composeRule.mainClock.autoAdvance = false
+        composeRule.runOnUiThread { location = null }
+        repeat(2) { composeRule.mainClock.advanceTimeByFrame() }
+        assertEquals("the no-fix line is arriving", 1, composeRule.onAllNodesWithTag(COMPASS_STRIP_NO_FIX_TAG).fetchSemanticsNodes().size)
+        assertEquals("the readout is still on screen, fading out", 1, composeRule.onAllNodesWithTag(COMPASS_STRIP_HEADING_TAG).fetchSemanticsNodes().size)
+        settle()
+        assertTrue("then the readout is gone", composeRule.onAllNodesWithTag(COMPASS_STRIP_HEADING_TAG).fetchSemanticsNodes().isEmpty())
+        assertEquals(1, composeRule.onAllNodesWithTag(COMPASS_STRIP_NO_FIX_TAG).fetchSemanticsNodes().size)
     }
 }

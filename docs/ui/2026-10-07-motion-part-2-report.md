@@ -191,3 +191,42 @@ fill passing between solid and 80%; the strip and the HUD against the map's tilt
 grow, in light and dark, and a tap on each as it leaves; word crossfades on the strip while turning the phone (a compass point
 changing near a boundary could crossfade repeatedly); the snackbar's glide on fullscreen and on Return to Route; all of it again
 with the phone's animations turned off.
+
+## Amendment 1 (RECORD -672), applied 2026-10-07, also not compiled
+
+The owner's answers to the stops above, and what changed for each. Still code and tests only.
+
+1. **Stop 1, "Allow one exception".** `MotionTokens.navigationViewChromeSpec` is now a tween of exactly
+   `NAVIGATION_VIEW_TRANSITION_MILLIS`, read from `map/NavigationView.kt` (made `internal` there; not copied), with Material's
+   standard easing (chosen: MapLibre's camera curve was not read). It carries both the slide and the fade of the strip and the
+   navigation display, so they are one timed animation; under reduced motion they still fade alone on the pop-ups' fade. Recorded
+   in `docs/motion-spec.md` §2 and in ADR-0002's new amendment section, with the reason and the rejected alternative.
+   `scripts/verify-design-tokens.sh` check 3 allows that one line, by file and exact text, with a reason comment.
+   `MotionTokensTest` holds every other category to "no TweenSpec" and this one to the constant's duration.
+   **Check 3 shown still to fail** (run as a plain script, no Gradle), each time with the planted line named in its output: a tween
+   in another file; a second tween in `MotionTokens.kt`; the allowed text copied to a second line of `MotionTokens.kt`. Each plant
+   was undone from a saved copy, and `MotionTokens.kt` was confirmed byte-identical to its saved copy by checksum. Unplanted,
+   check 3 lists the same 8 hits as at `cdf0875b` and not the allowed line.
+   **Found on the way (not fixed):** the first plants, written `tween<Float>(300)`, passed check 3. Its pattern `tween(` does not
+   match a tween written with explicit type arguments, so the check is blind to that form. Reported for the hygiene sweep's
+   "blind checks" list rather than widened here. Its 3 false positives on `metersBetween(` remain as before.
+2. **N6.** The navigation display's sundown line fades and grows like the strip's (`availability/NavigationHud.kt`, by layout,
+   fade alone under reduced motion). Test: `availability/HudSundownLineGrowTest.kt`.
+3. **C2.** The strip's swap between the readout, "Location services unavailable" and the position note crossfades
+   (`AnimatedContent` keyed on which of the three, on the word swap's spec; the outgoing one keeps what it showed and takes no
+   touch). The width the three used to take by weight is on the crossfade's box. Test: a new case in
+   `availability/StripSundownLineGrowTest.kt` (both on screen mid-change, then the no-fix line alone).
+4. **C5.** The coordinate tap stays instant. No change.
+5. **Back during a tab fade.** From its first leaving frame the leaving tab is handed Back dispatchers nothing presses, so its
+   handlers stop. activity-compose 1.13's `BackHandler` uses the navigation-event owner when there is one and the
+   OnBackPressed owner otherwise (read from its bytecode, `BackHandlerKt`), so both are provided (`motion/TabCrossfade.kt`).
+   `navigationevent-compose` is an API dependency of activity-compose 1.13.0 (its Gradle module file), so it is on the compile
+   classpath. Test: in `MapPopUpMotionTest`, a bubble open on Maps, List tapped, Back pressed mid-fade: the screen goes back to
+   Maps (the arriving side's Back). Before the change the leaving bubble's handler would have taken it and the screen stayed on
+   List.
+6. **M7.** What a tapped thing shows is resolved before the pop-up (`map/MapBubble.kt`), and the bubble is shown only once there
+   is content, so a late forecast cell fades and grows when it arrives. **Not tested:** driving a slow forecast read through the
+   real feed was beyond what I could set up without running anything.
+7. **The drawn-only grow:** confirmed. No change.
+8. **Two maps:** kept as built. The fallback is one constant, `KEEP_MAP_THROUGH_TAB_FADE` (`AvailabilityCompactScaffold.kt`).
+   Set to `false`, it drops the leaving Maps tab at once while the arriving tab and the bar still fade.

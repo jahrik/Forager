@@ -335,6 +335,27 @@ class MapPopUpMotionTest {
         assertEquals(1f, popUpScale(BUBBLE_TAG), 0.0001f)
     }
 
+    // ── Back during a tab fade (Amendment 1, RECORD -672, item 5) ──────────────────────────────
+
+    /**
+     * With a bubble open on Maps, the bubble's Back handler is the innermost one. Leaving Maps for List and pressing Back
+     * mid-fade must act on the arriving side: the screen's own Back, which from List goes to Maps. Before the leaving tab's
+     * handlers were switched off, the leaving bubble took that Back, closed itself, and the screen stayed on List.
+     */
+    @Test
+    fun `Back during a tab fade acts on the arriving tab, not on the leaving tab's bubble`() {
+        setScreen()
+        openBubble()
+        settle()
+        assertTrue(shown(BUBBLE_TAG))
+        val list = composeRule.onNodeWithText("List").getUnclippedBoundsInRoot()
+        pauseAfter { tapAt(centre(list)) }
+        assertTrue("Maps is still on screen, fading out", shown(MAP_TAG))
+        composeRule.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+        settle()
+        assertTrue("Back from List went to Maps: the arriving side took it", shown(MAP_TAG))
+    }
+
     // ── The centre pin and its OK/Cancel row (scout M9) ────────────────────────────────────────
 
     private fun openTripPicker(paused: Boolean) {
