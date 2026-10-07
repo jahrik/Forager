@@ -1,6 +1,6 @@
 # Forager — privacy policy
 
-**Last updated: 2026-09-09.** Applies to the Forager Android app (package `com.zynergylabs.forager.app`),
+**Last updated: 2026-10-07.** Applies to the Forager Android app (package `com.zynergylabs.forager.app`),
 including its Google Play closed test.
 
 This is the document Play's Data safety declaration points at. It is written to match what the code
@@ -111,15 +111,18 @@ shared with anyone else, or used for advertising or profiling.
 Photos stay on the phone. What the app does with the location metadata embedded in a photo file is
 narrower than it may sound, and is stated here as it actually is (`FilePhotoStore.kt`):
 
-- Forager does not run an EXIF-stripping step over the photo it stores.
-- For a **gallery import** on Android 10 (API 29) and later, the platform itself redacts GPS tags
+- For a **photo taken inside Forager**, the app's own camera writes it into Forager's private
+  storage and attaches no location to it (`CameraXCaptureSession.kt`). Before the photo is stored,
+  Forager removes its embedded metadata, including GPS tags, timestamps, camera make and model, and
+  thumbnails, keeping only its orientation, its colour profile and what is needed to display it
+  (`PhotoMetadataScrub.kt`). If that step cannot complete, the photo is stored as it was, with its
+  metadata, rather than lost.
+- For a **gallery import**, Forager does not run a metadata-stripping step over the copy it stores.
+  On Android 10 (API 29) and later, the platform itself redacts GPS tags
   from the copy the app reads, because the app does not opt in to the original via
   `MediaStore.setRequireOriginal` for that read. On Android 9 and earlier (the app supports back to
   Android 8.0) there is no such redaction, and an imported photo's copy can keep its embedded GPS
   tags.
-- For a **photo taken inside Forager**, the camera app writes into a file in Forager's own directory
-  (`CameraCaptureFiles.kt`). That is not a MediaStore read, so the platform redaction above does not
-  apply to it; whatever GPS tags the camera app wrote are in the stored file.
 
 This matters only if you export or share a photo yourself — the app never transmits one. A find's
 coordinate, when the app records one, is stored in the app's own database, not read out of a camera
@@ -139,9 +142,11 @@ capture's EXIF.
   notification, not because the app holds background location access. Outside those two states,
   the app in the foreground or a recording running in the foreground service, the app receives no
   location at all.
-- **Photos** — you can attach a photo to a journal entry, taken with your device's camera app or
-  chosen from your gallery. The photo is stored on your device. Forager does not request camera
-  permission.
+- **Camera** (`CAMERA`) — Forager's own camera, for taking photos to attach to a journal entry.
+  The app asks for it when you first open the camera, not at launch; if you decline, the camera
+  does not open, and you can still attach photos from your gallery (`PhotoAcquisitionLaunchers.kt`).
+  Photos it takes are stored on your device, as described under "Photos and location metadata"
+  above. Choosing a photo from your gallery needs no permission: it uses Android's photo picker.
 - **`ACCESS_MEDIA_LOCATION`** — reading the capture date and coordinate of a photo you import, so a
   find can be dated and placed. Read separately from the stored copy's bytes.
 - **Notifications, vibrate, foreground service** — the off-track alert, the sundown alerts
