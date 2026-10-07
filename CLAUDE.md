@@ -150,7 +150,7 @@ here.
   went into refining that comparison (which could not discriminate anyway:
   both tracks recompute to their stored values by construction). The cheap
   question closed it in one grep: `returnWalkingTime` has no production
-  caller, so the path had never run and could not have, and the check was
+  caller (true then; noted 2026-10-07: it now has one, in `SundownWatch`), so the path had never run and could not have, and the check was
   designed to detect something unreachable. The distinguishing feature of
   this instance is that no value could ever have carried the answer — the
   first three checked a value through a lossy step; this one checked a
