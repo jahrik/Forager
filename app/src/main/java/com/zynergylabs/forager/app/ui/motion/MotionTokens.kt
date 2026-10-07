@@ -58,6 +58,52 @@ object MotionTokens {
     @ReadOnlyComposable
     fun <T> navigationMotionSpec(): FiniteAnimationSpec<T> = MaterialTheme.motionScheme.defaultSpatialSpec()
 
+    // §2 "Navigation chrome", the tab-switch half (dispatch 2026-09-28-666, items 1 and 2; the owner,
+    // RECORD -651: tabs "Quick crossfade", the bottom bar "Fade with the tab"). One tab fading into the
+    // next, and the bar's fill fading between solid and 80% on the same spec, so the two move as one.
+    // Effects (alpha only, never a bounds change: the live map must not re-measure) and fast. Callers:
+    // TabCrossfade and TabChromeFade (motion/TabCrossfade.kt).
+    @Composable
+    @ReadOnlyComposable
+    fun <T> tabCrossfadeSpec(): FiniteAnimationSpec<T> = MaterialTheme.motionScheme.fastEffectsSpec()
+
+    // §2 "Map pop-ups" (item 4; the owner, RECORD -651: "Fade and grow", each from where it belongs):
+    // the bubble, the centre pin and its OK/Cancel row, Return to Route, the chips and the legend. The
+    // fade is effects (critically damped, so it cannot overshoot an alpha bound); the grow, a draw-only
+    // scale (MapPopUp.kt), rides the default spatial spec. The strip's sundown line grows its strip on
+    // the same pair.
+    @Composable
+    @ReadOnlyComposable
+    fun <T> mapPopUpFadeSpec(): FiniteAnimationSpec<T> = MaterialTheme.motionScheme.defaultEffectsSpec()
+
+    @Composable
+    @ReadOnlyComposable
+    fun <T> mapPopUpGrowSpec(): FiniteAnimationSpec<T> = MaterialTheme.motionScheme.defaultSpatialSpec()
+
+    // Where a map pop-up's drawing starts its grow from (to 1), and shrinks back to as it leaves. Not
+    // applied under reduced motion, where pop-ups fade alone (§4). Chosen, not measured, the same as
+    // ICON_SWAP_ENTER_SCALE; whether it reads as a grow on the phone is a device check.
+    const val MAP_POPUP_ENTER_SCALE: Float = 0.85f
+
+    // §2 "Navigation chrome", start and stop (item 3; the owner, RECORD -651: "Move with the map"): the
+    // compass strip slides up and out while the navigation display slides down and in, timed to the
+    // map's tilt, and the reverse on stop. The map's own change takes 750 ms (MapLibre's camera,
+    // NAVIGATION_VIEW_TRANSITION_MILLIS in map/NavigationView.kt). A spring has no duration, and a
+    // tween is what ADR-0002 and check 3 of scripts/verify-design-tokens.sh rule out, so this is the
+    // scheme's slowest spatial spring, the closest it has to the tilt's length: an approximation,
+    // raised with the owner in the Part 2 report rather than settled here. Whether the two read as one
+    // movement is a device check.
+    @Composable
+    @ReadOnlyComposable
+    fun <T> navigationViewChromeSpec(): FiniteAnimationSpec<T> = MaterialTheme.motionScheme.slowSpatialSpec()
+
+    // §2 "Words that change" (item 6; the owner, RECORD -651: "Numbers instant, words fade"): a line
+    // whose words change crossfades quickly; a change in its numbers alone is drawn at once
+    // (motion/WordSwap.kt). Effects, fast, the same as an icon swap's fade.
+    @Composable
+    @ReadOnlyComposable
+    fun <T> wordSwapSpec(): FiniteAnimationSpec<T> = MaterialTheme.motionScheme.fastEffectsSpec()
+
     // §2 "Map markers": soft scale + fade entrance when density/performance allow. No production
     // caller yet.
     @Composable
