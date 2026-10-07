@@ -158,11 +158,19 @@ import com.zynergylabs.forager.app.sensor.AndroidDeclinationProvider
 
 /** Hand-wired dependency graph. No DI framework: the graph is small enough not to need one. */
 class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
+    /**
+     * `Log.w`-backed, for the pieces that take an [ErrorLog] and are built here rather than in an
+     * Activity. First in the container (dispatch 2026-09-28-658 moved it up from beside the
+     * backup) because properties initialise in source order and the iNaturalist repository below
+     * now takes it.
+     */
+    val errorLog: ErrorLog = ErrorLog { tag, message, error -> Log.w(tag, message, error) }
+
     private val api = INaturalistClient.create(debug = BuildConfig.DEBUG)
     private val weatherApi = OpenMeteoClient.create(debug = BuildConfig.DEBUG)
     private val historicalWeatherApi = OpenMeteoArchiveClient.create(debug = BuildConfig.DEBUG)
 
-    val mushroomRepository: MushroomRepository = INaturalistMushroomRepository(api)
+    val mushroomRepository: MushroomRepository = INaturalistMushroomRepository(api, errorLog)
 
     // One object, two owned interfaces, one API call behind both — see
     // TripPlanningWeatherProvider's doc comment for why they are separate interfaces.
@@ -214,9 +222,6 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     )
 
     private val database = ForagerDatabase.create(context)
-
-    /** `Log.w`-backed, for the pieces (the backup) that take an [ErrorLog] and are built here rather than in an Activity. */
-    val errorLog: ErrorLog = ErrorLog { tag, message, error -> Log.w(tag, message, error) }
 
     // Journal backup and restore (dispatch 2026-09-28-127). The snapshot copies `forager.db` itself, so the
     // backup is built over the same file the database above opened. Scratch space is the cache folder: the
