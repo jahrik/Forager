@@ -9,6 +9,8 @@ import androidx.compose.ui.platform.LocalConfiguration
  * M3 defines five width breakpoints; this app only ever changes composition at the first two
  * boundaries (600dp, 840dp) so the remaining three collapse into [EXPANDED] here rather than
  * being modeled as dead cases nothing branches on yet.
+ *
+ * Only [COMPACT] is branched on today; [MEDIUM], [EXPANDED] and the 840 dp breakpoint are kept for the tablet work (dispatch 2026-09-28-658; the owner: "Remove what costs, keep plans").
  */
 enum class WindowWidthClass {
     /** Phones in portrait. Layout is unchanged from before adaptive support existed. */

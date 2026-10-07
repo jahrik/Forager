@@ -3,7 +3,6 @@ package com.zynergylabs.forager.app.ui.map
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
-import android.content.pm.PackageManager
 import android.graphics.RectF
 import android.os.Handler
 import android.os.Looper
@@ -34,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color as ComposeColor
+import com.zynergylabs.forager.app.location.hasLocationPermission
 import com.zynergylabs.forager.app.ui.theme.MapPalette
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import androidx.compose.ui.layout.onSizeChanged
@@ -44,7 +44,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -1815,8 +1814,8 @@ internal fun puckReplacementOptions(alreadyInitialised: Boolean, options: Locati
  * locate-me fetch (which still exists unchanged, feeding that strip's own text readout, not the
  * map's camera). A no-op, not a crash or a silent guess, when [Manifest.permission.ACCESS_FINE_LOCATION]/
  * [Manifest.permission.ACCESS_COARSE_LOCATION] aren't granted — same "explicit unsupported state,
- * never fabricated" rule [com.zynergylabs.forager.app.location.AndroidLocationProvider.hasLocationPermission]
- * already follows for the one-shot path; the map simply won't show a puck until permission exists
+ * never fabricated" rule the one-shot path ([com.zynergylabs.forager.app.location.AndroidLocationProvider]) behind the shared [hasLocationPermission]
+ * already follows; the map simply won't show a puck until permission exists
  * and something re-triggers this (a fresh style load, or the locate-me icon — see
  * [resumeTrackingRequestId][MapOverlayContent.resumeTrackingRequestId]'s own doc comment).
  *
@@ -1843,7 +1842,7 @@ internal fun puckReplacementOptions(alreadyInitialised: Boolean, options: Locati
  * drags, or zooms, which is also what the data+camera refresh effect above checks to decide
  * whether it's safe to move the camera itself without fighting an active puck.
  */
-@SuppressLint("MissingPermission") // hasLocationPermission() below is the real (runtime) check.
+@SuppressLint("MissingPermission") // hasLocationPermission(context) is the real (runtime) check.
 private fun activateLiveLocationIfPermitted(
     map: MapLibreMap,
     style: Style,
@@ -1887,13 +1886,6 @@ private fun activateLiveLocationIfPermitted(
  * elsewhere (Google Maps, among others) — not derived from anything specific to this app.
  */
 private const val FIRST_ACTIVATION_ZOOM = 16.0
-
-/** Same check, same two permissions, as [com.zynergylabs.forager.app.location.AndroidLocationProvider.hasLocationPermission] — not shared code across an app/domain-layer boundary that owns neither Context nor Manifest. */
-private fun hasLocationPermission(context: Context): Boolean {
-    val fine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
-    val coarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
-    return fine == PackageManager.PERMISSION_GRANTED || coarse == PackageManager.PERMISSION_GRANTED
-}
 
 private fun emptyFeatureCollection(): FeatureCollection = FeatureCollection.fromFeatures(emptyList())
 

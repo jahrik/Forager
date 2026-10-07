@@ -5,6 +5,7 @@ import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
@@ -106,6 +107,8 @@ class MapIconClusterGlideTest {
         composeRule.waitForIdle()
         composeRule.mainClock.autoAdvance = false
         composeRule.onAllNodes(isRoot()).onFirst().performTouchInput { up() }
+        // With the clock stopped, the release's state writes reach the next frame only once applied (as the fan's tests do it).
+        composeRule.runOnUiThread { Snapshot.sendApplyNotifications() }
         composeRule.mainClock.advanceTimeByFrame()
         composeRule.mainClock.advanceTimeByFrame()
         return startX + dx to startY
@@ -120,6 +123,7 @@ class MapIconClusterGlideTest {
 
     private fun tapStopped(x: Dp, y: Dp) {
         composeRule.onAllNodes(isRoot()).onFirst().performTouchInput { click(px(x, y)) }
+        composeRule.runOnUiThread { Snapshot.sendApplyNotifications() }
         composeRule.mainClock.advanceTimeByFrame()
     }
 

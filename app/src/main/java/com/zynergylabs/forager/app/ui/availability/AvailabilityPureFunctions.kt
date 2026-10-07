@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.ui.geometry.Offset
 import com.zynergylabs.forager.app.domain.FruitingPatternAssumptions
@@ -163,18 +164,23 @@ internal fun directionsIntent(trip: PlannedTrip): Intent = directionsIntent(trip
 internal fun launchDirections(context: Context, name: String, location: LatLng) {
     val intent = directionsIntent(name, location)
     if (intent.resolveActivity(context.packageManager) == null) {
+        // Dispatch 2026-09-28-658 (L4): the user is told, and the log says so too.
+        Log.w(LAUNCH_TAG, "No app resolves the directions intent; told the user.")
         Toast.makeText(context, NO_MAPS_APP_MESSAGE, Toast.LENGTH_SHORT).show()
         return
     }
     try {
         context.startActivity(intent)
     } catch (e: ActivityNotFoundException) {
+        Log.w(LAUNCH_TAG, "The directions app went away between the check and the launch; told the user.", e)
         Toast.makeText(context, NO_MAPS_APP_MESSAGE, Toast.LENGTH_SHORT).show()
     }
 }
 
 /** [launchDirections] for a [PlannedTrip] specifically — see [WaypointRow] for the other caller of the shared, name-plus-location overload. */
 internal fun launchDirections(context: Context, trip: PlannedTrip) = launchDirections(context, trip.name, trip.location)
+
+private const val LAUNCH_TAG = "ExternalLaunch"
 
 /** Shown when nothing can handle [inaturalistObservationIntent] — CLAUDE.md: report, don't swallow. */
 private const val NO_INATURALIST_LINK_MESSAGE = "Nothing installed can open this observation."
@@ -210,12 +216,15 @@ private fun launchINaturalist(context: Context, webIntent: Intent) {
     val packageManager = context.packageManager
     val intent = if (appIntent.resolveActivity(packageManager) != null) appIntent else webIntent
     if (intent.resolveActivity(packageManager) == null) {
+        // Dispatch 2026-09-28-658 (L4): the user is told, and the log says so too.
+        Log.w(LAUNCH_TAG, "Nothing resolves the iNaturalist observation link; told the user.")
         Toast.makeText(context, NO_INATURALIST_LINK_MESSAGE, Toast.LENGTH_SHORT).show()
         return
     }
     try {
         context.startActivity(intent)
     } catch (e: ActivityNotFoundException) {
+        Log.w(LAUNCH_TAG, "The app for the iNaturalist link went away between the check and the launch; told the user.", e)
         Toast.makeText(context, NO_INATURALIST_LINK_MESSAGE, Toast.LENGTH_SHORT).show()
     }
 }
