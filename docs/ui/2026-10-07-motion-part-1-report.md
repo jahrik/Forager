@@ -221,3 +221,20 @@ No phone or emulator was used.
   `MarkerFanOutHostTest`, was wrapped in the provider by Amendment 1.
 - **Not merged:** `origin/main` moved to `4f078b8b` (PR #191, failure-fixes) after this build started. This branch has not been
   merged with it or rebuilt against it.
+
+## Merge with failure-fixes (`origin/main` 4f078b8b) and rebuild, 2026-10-07
+
+- **Conflicts, two:**
+  - `docs/audits/README.md`: both sides' index rows kept.
+  - `availability/AvailabilitySearchUi.kt`, the species field's trailing icon. Failure-fixes (RECORD -658, F3) removed the
+    unreachable location icon. This branch had only renamed that icon's `IconButton` to `BouncingIconButton`. Not the same
+    logic changed twice: main's removal is kept, and with it the rename goes.
+- **Merged cleanly, checked by reading:** `CrashLogPanel.kt` (main's guarded read; this branch's shaped presses and bouncing
+  share button), `TrackExportPanel.kt` (main's partial-export Toast; this branch's bouncing share button) and
+  `AvailabilitySettingsUi.kt` (main's `SettingsCheckboxRow` refactor; this branch's two shaped-press rows). Both sides' changes
+  are present in each, and the logic of this branch's files is unchanged, so no new revert checks were run. None of main's new
+  code adds an `IconButton`.
+- **RECORD -660:** `SearchEntryBar`'s unused `onUseCurrentLocation` parameter is removed, along with its two arguments in
+  `AvailabilityCompactScaffold`. The scaffold's own `onUseCurrentLocation` still feeds the dropdown's button.
+- **Rebuild.** Same caps. No daemon before the run, the Kotlin daemon stopped after compiling, 5.4 GB free. Compile clean.
+  Full suite: 505 classes, **4,053 tests, 0 failures, 24 skipped**. `./gradlew --stop` at the end.
