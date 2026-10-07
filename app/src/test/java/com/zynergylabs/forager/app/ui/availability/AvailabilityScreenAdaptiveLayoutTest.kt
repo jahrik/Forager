@@ -30,6 +30,7 @@ import com.zynergylabs.forager.app.domain.model.AvailabilityEntry
 import com.zynergylabs.forager.app.domain.model.AvailabilityForecast
 import com.zynergylabs.forager.app.domain.model.FruitingLagBucket
 import com.zynergylabs.forager.app.domain.model.FruitingLagDistribution
+import com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 import com.zynergylabs.forager.app.domain.model.Region
@@ -315,6 +316,8 @@ private val DISTRIBUTION = FruitingLagDistribution(
     observationsExcludedForMissingDate = 7,
     sightingsConsidered = 19,
     totalResultsOnServer = 200,
+    // Data part C: the histogram the chart draws. This file measures the column's width, not the chart.
+    histogram = ComputeFruitingLagDistributionUseCase.equalSpanHistogram(List(19) { it }, spanDays = 7, spanCount = 6),
 )
 
 /** Same stub as [AvailabilityScreenLayoutTest]'s — see that file for why the real map isn't used here. */

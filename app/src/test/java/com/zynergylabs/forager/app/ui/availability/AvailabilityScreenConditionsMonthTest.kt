@@ -10,6 +10,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -48,6 +50,7 @@ import com.zynergylabs.forager.app.domain.TripPlanningWeatherProvider
 import com.zynergylabs.forager.app.domain.WeatherProvider
 import com.zynergylabs.forager.app.domain.model.AppThemeMode
 import com.zynergylabs.forager.app.domain.model.ConditionsSummary
+import com.zynergylabs.forager.app.domain.model.DailyRain
 import com.zynergylabs.forager.app.domain.model.DailyWeather
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.UnitSystem
@@ -245,8 +248,31 @@ class AvailabilityScreenConditionsMonthTest {
         composeRule.onNodeWithText("Seasonal").performClick()
 
         composeRule.onNodeWithText("Current Conditions").assertIsDisplayed()
-        composeRule.onNodeWithText("12.4mm of rain in the last 14 days").assertIsDisplayed()
-        composeRule.onNodeWithText("2 days since last rain.").assertIsDisplayed()
+        // Data part C (dispatch -668): labelled rows, each one merged node. 2 days before yesterday,
+        // the newest observed day, is 3 days ago.
+        composeRule.onNode(hasText("Rain, last 14 days") and hasText("12.4mm")).assertIsDisplayed()
+        composeRule.onNode(hasText("Last rainy day") and hasText("3 days ago")).assertIsDisplayed()
+    }
+
+    /**
+     * Data part C (dispatch -668): the 14 observed days the provider returns reach the screen as the
+     * daily rain chart, through the real ViewModel. The chart's canvas is not rendered under
+     * Robolectric, so its content description, built from the same days, is what is read; its x-axis
+     * ends are real text.
+     */
+    @Test
+    fun `the daily rain chart shows the observed days, from the first to the last`() {
+        setScreen()
+
+        searchAReferenceRegion()
+        composeRule.onNodeWithText("Seasonal").performClick()
+
+        composeRule.onNodeWithText("Daily rain, last 14 days").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(
+            "Daily rain from Sep 23, 2026 to Oct 6, 2026. Wettest day Oct 1, 2026, 6.0mm.",
+        ).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Sep 23, 2026").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Oct 6, 2026").performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -260,7 +286,7 @@ class AvailabilityScreenConditionsMonthTest {
         selectMonth(aMonthOtherThanThisOne())
 
         composeRule.onNodeWithText("Current Conditions").assertDoesNotExist()
-        composeRule.onNodeWithText("12.4mm of rain in the last 14 days").assertDoesNotExist()
+        composeRule.onNodeWithText("Rain, last 14 days").assertDoesNotExist()
     }
 
     /** January, unless it is January now, in which case February. */
@@ -310,8 +336,8 @@ class AvailabilityScreenConditionsMonthTest {
         searchAReferenceRegion()
         composeRule.onNodeWithText("Seasonal").performClick()
 
-        composeRule.onNodeWithText("Today's Forecast").assertIsDisplayed()
-        composeRule.onNodeWithText("3.2mm of rain forecast today.").assertIsDisplayed()
+        // Data part C: the "Today's Forecast" heading became this labelled row.
+        composeRule.onNode(hasText("Rain forecast today") and hasText("3.2mm")).assertIsDisplayed()
     }
 
     @Test
@@ -321,8 +347,7 @@ class AvailabilityScreenConditionsMonthTest {
         searchAReferenceRegion()
         composeRule.onNodeWithText("Seasonal").performClick()
 
-        composeRule.onNodeWithText("Today's Forecast").assertIsDisplayed()
-        composeRule.onNodeWithText("Forecast unavailable.").assertIsDisplayed()
+        composeRule.onNode(hasText("Rain forecast today") and hasText("Forecast unavailable.")).assertIsDisplayed()
     }
 }
 
@@ -370,6 +395,13 @@ private object FakeWeatherProvider : WeatherProvider {
             region = region,
             totalPrecipitationMm = 12.4,
             daysSinceSignificantRain = 2,
+            // 14 observed days, Sep 23 to Oct 6: 2.4mm on Sep 30, 6.0mm on Oct 1 and 4.0mm on Oct 4
+            // (12.4mm in all; Oct 4 is the last day at or over the 2mm rain-day threshold, 2 days
+            // before Oct 6, matching daysSinceSignificantRain above).
+            dailyRain = (0..13).map { offset ->
+                val date = LocalDate.of(2026, 9, 23).plusDays(offset.toLong())
+                DailyRain(date, mapOf(7 to 2.4, 8 to 6.0, 11 to 4.0)[offset] ?: 0.0)
+            },
         ),
     )
 }

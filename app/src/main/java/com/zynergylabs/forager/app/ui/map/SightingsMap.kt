@@ -1062,6 +1062,9 @@ fun SightingsMap(
             forecastCellsShownOf(cells)?.let { shown[field.layerId] = it }
         }
         currentForecast?.onCellsShown?.invoke(shown)
+        // Data part C (dispatch -668): whether the legend should say "Zoom in to see the forecast".
+        // Only while there is a feed to draw; with none the legend is not shown at all.
+        currentForecast?.onZoomedOutChanged?.invoke(feed != null && isBelowForecastZoom(map.cameraPosition.zoom))
     }
 
     // Dispatch 2026-09-28-510: the app's position into the dot. A new fix of any kind is handed to

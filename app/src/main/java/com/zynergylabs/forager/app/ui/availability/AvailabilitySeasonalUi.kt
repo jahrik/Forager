@@ -2,9 +2,9 @@ package com.zynergylabs.forager.app.ui.availability
 
 // Data part C (dispatch -668), under the owner's "Piece by piece (Recommended)" (RECORD -655): the
 // Seasonal tab's code, moved out of AvailabilityResultsUi.kt before this part changed it. Same package,
-// so every caller and test tag resolves unchanged. The move itself changed no line of it.
+// so every caller and test tag resolves unchanged. The move itself changed no line of it; the later
+// commits on branch data-c-seasonal then changed the chart and the conditions card.
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,15 +29,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.FruitingPatternAssumptions
-import com.zynergylabs.forager.app.domain.MgrsConverter
 import com.zynergylabs.forager.app.domain.model.AvailabilityEntry
 import com.zynergylabs.forager.app.domain.model.ConditionsSummary
 import com.zynergylabs.forager.app.domain.model.DailyWeather
@@ -155,7 +152,7 @@ private fun SeasonalPatternContent(distribution: FruitingLagDistribution) {
         )
 
         SeasonalSampleSizeSummary(distribution)
-        FruitingLagChart(distribution.buckets, modifier = Modifier.fillMaxWidth())
+        FruitingLagChart(distribution, modifier = Modifier.fillMaxWidth())
         FruitingLagBucketCounts(distribution.buckets)
 
         HorizontalDivider()
@@ -206,41 +203,33 @@ private fun SeasonalSampleSizeSummary(distribution: FruitingLagDistribution) {
 }
 
 /**
- * A hand-rolled Compose `Canvas` bar chart — no charting dependency, consistent with
- * [com.zynergylabs.forager.app.domain.GeoDistance]/[com.zynergylabs.forager.app.domain.MgrsConverter] being hand-built
- * rather than pulled from a library for a single use.
+ * The fruiting-lag chart (data part C, dispatch -668, the owner's "the chart gets axes, labels and
+ * equal spans"): sightings per week-long span of days after the nearest soaking rain, with a count
+ * axis, a days axis, each bar's count above it, and the rule of thumb's own days shaded behind the
+ * bars. What it shows is [fruitingLagChart], tested headless; the drawing is [SeasonalBarChart].
  *
- * The bucket whose [FruitingLagBucket.isFruitingLagRule] is true — the range this whole feature
- * exists to test — is drawn in the theme's primary color; every other bucket, including "no
- * preceding event", shares a second, unhighlighted color. That is the entire visual claim this
- * chart makes: whether the data's tallest bar (or not) lines up with the rule of thumb. The exact
- * counts behind each bar are [FruitingLagBucketCounts], not this canvas — pixel heights are for
- * the shape of the distribution, not for reading an exact number off a screen.
+ * Before this the chart drew [FruitingLagDistribution.buckets] directly, whose spans are 7, 15 and 14
+ * days wide plus an open "36+", so the 15-day rule-of-thumb bucket looked taller for being wider.
+ * Those buckets stay, as the counts listed under the chart ([FruitingLagBucketCounts]), because the
+ * second of them is exactly the range being tested; the bars now come from
+ * [FruitingLagDistribution.histogram], whose spans are equal.
+ *
+ * Still hand-rolled on a Canvas, with no chart library, for the reason the earlier one gave.
  */
 @Composable
-private fun FruitingLagChart(buckets: List<FruitingLagBucket>, modifier: Modifier = Modifier) {
-    val highlightColor = MaterialTheme.colorScheme.primary
-    val barColor = MaterialTheme.colorScheme.secondary
-    val maxCount = buckets.maxOfOrNull { it.count } ?: 0
-
-    Canvas(modifier = modifier.height(160.dp)) {
-        if (buckets.isEmpty()) return@Canvas
-        val gap = 8.dp.toPx()
-        val barWidth = ((size.width - gap * (buckets.size - 1)) / buckets.size).coerceAtLeast(0f)
-        buckets.forEachIndexed { index, bucket ->
-            val heightFraction = if (maxCount == 0) 0f else bucket.count.toFloat() / maxCount
-            val barHeight = size.height * heightFraction
-            drawRect(
-                color = if (bucket.isFruitingLagRule) highlightColor else barColor,
-                topLeft = Offset(x = index * (barWidth + gap), y = size.height - barHeight),
-                size = Size(width = barWidth, height = barHeight),
-            )
-        }
+private fun FruitingLagChart(distribution: FruitingLagDistribution, modifier: Modifier = Modifier) {
+    val histogram = distribution.histogram
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        SeasonalBarChart(fruitingLagChart(histogram))
+        Text(fruitingLagBandKey(), style = MaterialTheme.typography.bodySmall)
+        fruitingLagBeyondNote(histogram)?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
     }
 }
 
 /**
- * The exact count behind every bar of [FruitingLagChart], as real on-screen text — the canvas
+ * The count in each of [FruitingLagDistribution.buckets], as real on-screen text. (Since data part C
+ * the bars above are equal week-long spans and print their own counts, and these rows keep the
+ * rule-of-thumb bucket's own count.) Originally: the exact count behind every bar of [FruitingLagChart], as real on-screen text — the canvas
  * above is unmeasurable in the Robolectric layout tests this project relies on (no rendering
  * happens under Robolectric; see [AvailabilityScreenLayoutTest]'s own doc comment for the same
  * limitation on the map), so the numbers this feature's honesty rests on live here, not only in
@@ -290,48 +279,44 @@ private fun ConditionsCard(
     todaysForecast: DailyWeather? = null,
     todaysForecastErrorMessage: String? = null,
 ) {
+    // Data part C (dispatch -668, the owner's "conditions are a small table"): the three facts are
+    // labelled rows rather than sentences, and the 14 observed days are drawn as a bar chart under
+    // them. The "Today's Forecast" heading went: its one figure is now the table's last row, labelled.
     Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Text("Current Conditions", style = MaterialTheme.typography.titleSmall)
-            if (conditions != null) {
-                val totalMm = conditions.totalPrecipitationMm
-                Text(
-                    "${formatRainfall(totalMm, unitSystem)} of rain in the last 14 days",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                val daysSince = conditions.daysSinceSignificantRain
-                Text(
-                    when {
-                        daysSince == null -> "No significant rain in the last 14 days."
-                        daysSince == 0 -> "Rain today."
-                        daysSince == 1 -> "1 day since last rain."
-                        else -> "$daysSince days since last rain."
+            val rows = buildList<TableRow> {
+                if (conditions != null) {
+                    add(TableRow("Rain, last ${FruitingPatternAssumptions.OBSERVED_HISTORY_DAYS} days") { TableValue(formatRainfall(conditions.totalPrecipitationMm, unitSystem)) })
+                    add(TableRow("Last rainy day") { TableValue(lastRainyDayLabel(conditions.daysSinceSignificantRain)) })
+                }
+                add(
+                    TableRow("Rain forecast today") {
+                        when {
+                            isLoadingTodaysForecast -> CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp,
+                            )
+
+                            todaysForecastErrorMessage != null -> TableValue(todaysForecastErrorMessage)
+                            todaysForecast != null -> TableValue(formatRainfall(todaysForecast.precipitationMm, unitSystem))
+                            else -> TableValue("No forecast available for today.")
+                        }
                     },
-                    style = MaterialTheme.typography.bodySmall,
                 )
-            } else if (conditionsErrorMessage != null) {
+            }
+            if (conditions == null && conditionsErrorMessage != null) {
                 Text(conditionsErrorMessage, style = MaterialTheme.typography.bodyMedium)
             }
-
-            HorizontalDivider()
-            Text("Today's Forecast", style = MaterialTheme.typography.titleSmall)
-            when {
-                isLoadingTodaysForecast -> CircularProgressIndicator(
-                    modifier = Modifier.size(18.dp),
-                    strokeWidth = 2.dp,
+            LabelledTable(rows)
+            conditions?.let { dailyRainChart(it.dailyRain, unitSystem) }?.let { chart ->
+                HorizontalDivider()
+                Text(
+                    "Daily rain, last ${FruitingPatternAssumptions.OBSERVED_HISTORY_DAYS} days",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-
-                todaysForecastErrorMessage != null -> Text(
-                    todaysForecastErrorMessage,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-
-                todaysForecast != null -> Text(
-                    "${formatRainfall(todaysForecast.precipitationMm, unitSystem)} of rain forecast today.",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-
-                else -> Text("No forecast available for today.", style = MaterialTheme.typography.bodyMedium)
+                SeasonalBarChart(chart)
             }
         }
     }

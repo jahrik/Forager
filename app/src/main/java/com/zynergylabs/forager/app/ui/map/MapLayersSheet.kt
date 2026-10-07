@@ -74,6 +74,7 @@ import com.zynergylabs.forager.app.ui.map.layers.LEGEND_NO_FORECAST_HERE
 import com.zynergylabs.forager.app.ui.map.layers.LEGEND_RAMP_HIGH_LABEL
 import com.zynergylabs.forager.app.ui.map.layers.LEGEND_RAMP_LOW_LABEL
 import com.zynergylabs.forager.app.ui.map.layers.LEGEND_REFERENCE_CLASS
+import com.zynergylabs.forager.app.ui.map.layers.LEGEND_ZOOM_IN_FOR_FORECAST
 import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
@@ -171,6 +172,8 @@ data class MapLayersControls(
     val stored: MapLayersState = MapLayersState.DEFAULT,
     val availableColourFields: Set<String> = emptySet(),
     val cellsShown: Map<String, ForecastCellsShown> = emptyMap(),
+    /** Data part C (dispatch -668): the map reported the camera below the colour fields' minimum zoom, for the legend's note. */
+    val forecastZoomedOut: Boolean = false,
     val records: MapRecords = MapRecords.NONE,
     val legendExpanded: Boolean = false,
     val onLegendExpandedChange: (Boolean) -> Unit = {},
@@ -487,6 +490,11 @@ internal fun MapLegendChip(
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
             Text(legend.collapsedLabel, style = MaterialTheme.typography.labelLarge)
+            // Data part C (dispatch -668): said collapsed as well as expanded, so the user is told why
+            // the field is empty without having to open the legend to find out.
+            if (legend.zoomedOut) {
+                Text(LEGEND_ZOOM_IN_FOR_FORECAST, style = MaterialTheme.typography.labelSmall)
+            }
             if (expanded) {
                 legend.layers.forEach { layer ->
                     Column(modifier = Modifier.padding(top = Spacing.xs), verticalArrangement = Arrangement.spacedBy(2.dp)) {

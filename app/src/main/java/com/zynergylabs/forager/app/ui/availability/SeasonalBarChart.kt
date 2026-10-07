@@ -6,11 +6,12 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -156,24 +157,27 @@ private fun XAxisLabels(labels: List<AxisLabel>) {
  * table"). Each row reads as one item to TalkBack: "Rain, last 14 days, 12.4mm".
  */
 @Composable
-internal fun LabelledTable(rows: List<Pair<String, @Composable () -> Unit>>, modifier: Modifier = Modifier) {
+internal fun LabelledTable(rows: List<TableRow>, modifier: Modifier = Modifier) {
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        rows.forEach { (label, value) ->
+        rows.forEach { row ->
             Row(
                 modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
                 verticalAlignment = Alignment.Top,
             ) {
                 Text(
-                    label,
+                    row.label,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
                 )
-                Box(modifier = Modifier.weight(1f)) { value() }
+                Box(modifier = Modifier.weight(1f)) { row.value() }
             }
         }
     }
 }
+
+/** One row of [LabelledTable]: its label, and the composable that draws its value. */
+internal class TableRow(val label: String, val value: @Composable () -> Unit)
 
 /** A plain text value cell for [LabelledTable]. */
 @Composable
@@ -195,7 +199,7 @@ internal fun SoilMoistureScaleValue(m3m3: Double) {
         modifier = Modifier.clearAndSetSemantics { contentDescription = "$word, $figure" },
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             SoilMoistureLevel.entries.forEach { step ->
                 val current = step == level
                 val shape = RoundedCornerShape(Spacing.xs)
@@ -206,7 +210,7 @@ internal fun SoilMoistureScaleValue(m3m3: Double) {
                     color = if (current) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     modifier = Modifier
-                        .width(SOIL_SCALE_STEP_WIDTH)
+                        .widthIn(min = SOIL_SCALE_STEP_MIN_WIDTH)
                         .then(
                             if (current) {
                                 Modifier.background(MaterialTheme.colorScheme.primaryContainer, shape)
@@ -222,4 +226,5 @@ internal fun SoilMoistureScaleValue(m3m3: Double) {
     }
 }
 
-private val SOIL_SCALE_STEP_WIDTH: Dp = 44.dp
+/** A floor, not a fixed width, so a step's word is never cut at a large font scale. */
+private val SOIL_SCALE_STEP_MIN_WIDTH: Dp = 44.dp
