@@ -1,10 +1,10 @@
 package com.zynergylabs.forager.app.ui.log
 
+import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Timer10
 import androidx.compose.material.icons.filled.Timer3
 import androidx.compose.material.icons.filled.TimerOff
-import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import com.zynergylabs.forager.app.ui.motion.IconSwap
 import androidx.compose.ui.semantics.semantics
@@ -31,7 +31,7 @@ import com.zynergylabs.forager.app.photo.next
 @Composable
 internal fun TimerChip(mode: TimerMode, onTimerModeChanged: (TimerMode) -> Unit, deviceRotation: Int?, displayRotation: Int) {
     val glyph = timerGlyph(mode)
-    IconButton(
+    BouncingIconButton(
         onClick = { onTimerModeChanged(mode.next()) },
         modifier = Modifier
             .rotateWithDevice(deviceRotation, displayRotation)

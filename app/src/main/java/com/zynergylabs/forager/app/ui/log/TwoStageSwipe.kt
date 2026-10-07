@@ -3,7 +3,7 @@ package com.zynergylabs.forager.app.ui.log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import com.zynergylabs.forager.app.ui.motion.PressHighlight
-import androidx.compose.ui.graphics.RectangleShape
+import com.zynergylabs.forager.app.ui.motion.ShapedPressDefaultShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.gestures.AnchoredDraggableDefaults
@@ -178,10 +178,11 @@ internal fun TwoStageSwipeRow(
     modifier: Modifier = Modifier,
     /**
      * The shape of what [content] draws, for the press highlight of the tap that closes an open row (motion Part 1, dispatch
-     * 2026-09-28-652 item 3, scout J16; the owner, RECORD -651: "Yes, round them all"). A rectangle, as before, for a list row;
-     * the entry list passes its cards' rounded shape. Drawing only: the close tap still covers the whole row.
+     * 2026-09-28-652 item 3, scout J16; the owner, RECORD -651: "Yes, round them all"). Rounded by default since Amendment 1
+     * (RECORD -657), so a plain list row's highlight is rounded too; a card passes its own shape (the entry list, the waypoint
+     * list). Drawing only: the close tap still covers the whole row.
      */
-    highlightShape: Shape = RectangleShape,
+    highlightShape: Shape = ShapedPressDefaultShape,
     content: @Composable () -> Unit,
 ) {
     val currentOnDelete by rememberUpdatedState(onDelete)

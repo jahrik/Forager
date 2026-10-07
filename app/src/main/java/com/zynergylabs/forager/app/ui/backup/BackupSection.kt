@@ -1,5 +1,8 @@
 package com.zynergylabs.forager.app.ui.backup
 
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import com.zynergylabs.forager.app.ui.motion.shapedPressLayer
 import android.Manifest
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -104,15 +107,20 @@ internal fun BackupSection(controls: BackupControls, modifier: Modifier = Modifi
 
         Text("How often", style = MaterialTheme.typography.bodyLarge)
         BackupFrequency.entries.forEach { frequency ->
+            // Amendment 1 to motion Part 1 (RECORD -657): the row's press is drawn in a rounded shape; the tap is unchanged.
+            val pressSource = remember { MutableInteractionSource() }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag(backupFrequencyTag(frequency))
                     .selectable(
                         selected = frequency == state.schedule.frequency,
+                        interactionSource = pressSource,
+                        indication = null,
                         role = Role.RadioButton,
                         onClick = { controls.onFrequencyChanged(frequency) },
-                    ),
+                    )
+                    .shapedPressLayer(pressSource),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {

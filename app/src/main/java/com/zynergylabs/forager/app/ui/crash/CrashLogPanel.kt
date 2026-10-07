@@ -1,5 +1,7 @@
 package com.zynergylabs.forager.app.ui.crash
 
+import com.zynergylabs.forager.app.ui.motion.clickableWithShapedPress
+import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
 import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.clickable
@@ -16,7 +18,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -77,7 +78,7 @@ internal fun CrashLogsEntryRow(onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 48.dp)
-            .clickable(role = Role.Button, onClick = onClick)
+            .clickableWithShapedPress(role = Role.Button, onClick = onClick)
             .padding(vertical = Spacing.sm),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
@@ -94,7 +95,7 @@ private fun CrashLogHeader(onBack: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 48.dp)
-            .clickable(role = Role.Button, onClick = onBack)
+            .clickableWithShapedPress(role = Role.Button, onClick = onBack)
             .padding(horizontal = Spacing.lg),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
@@ -132,13 +133,13 @@ private fun CrashLogRow(file: File, onOpen: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 48.dp)
-            .clickable(role = Role.Button, onClick = onOpen)
+            .clickableWithShapedPress(role = Role.Button, onClick = onOpen)
             .padding(vertical = Spacing.xs),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(formatCrashTimestamp(file), style = MaterialTheme.typography.bodyLarge)
-        IconButton(onClick = { shareCrashLog(context, file) }) {
+        BouncingIconButton(onClick = { shareCrashLog(context, file) }) {
             Icon(Icons.Filled.Share, contentDescription = "Share crash report")
         }
     }
@@ -173,7 +174,7 @@ private fun CrashLogDetailHeader(onBack: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 48.dp)
-            .clickable(role = Role.Button, onClick = onBack)
+            .clickableWithShapedPress(role = Role.Button, onClick = onBack)
             .padding(horizontal = Spacing.lg),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,

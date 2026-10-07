@@ -10,7 +10,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasContentDescription
-import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onFirst
@@ -35,17 +34,19 @@ import org.robolectric.annotation.Config
 
 /**
  * Motion Part 1, item 6 (dispatch 2026-09-28-652; scout B14, B15; the owner, RECORD -651: "Glide to its side", and back when
- * released short). The cluster is long-pressed and dragged by its minimise handle with real touches, and the moment after the
- * finger lifts is read with the clock stopped, so the glide is caught in flight.
+ * released short; Amendment 1, RECORD -657: "At release", the arrangement switches the moment the finger lifts and touches stay
+ * as today throughout). The cluster is long-pressed and dragged by its minimise handle with real touches, and the moment after
+ * the finger lifts is read with the clock stopped, so the glide is caught in flight.
  *
- * What is checked: the cluster's touch box lands at once (where it always landed), so a tap where the finger let go reaches the
- * map mid-glide (the dispatch's "must not sweep across the map catching touches"); the handle stays on its old side until the
- * glide lands and then moves (the owner's order: "the handle side ... change when it lands"); a tap on the landed box mid-glide
- * fires nothing; after landing, its rows and the map around it take touches as before. Under the phone's animations turned off
- * none of this is in flight: it lands at once, as before.
+ * What is checked: the cluster's touch box lands at once, where it always landed, so a tap where the finger let go reaches the
+ * map mid-glide (the dispatch's "must not sweep across the map catching touches"); the handle is already on its new side
+ * mid-glide; a tap on the landed box mid-glide reaches the row there, as it would have before the glide existed; after landing
+ * the map around it takes touches as before. Under the phone's animations turned off it lands at once, as before.
  *
  * What cannot be checked here: that the drawing actually travels from the finger to the edge. That is draw-only by design, and
- * Robolectric's pixels are not trusted for it; it is a device check.
+ * Robolectric's pixels are not trusted for it; it is a device check. Nor does anything here show that a glide is in flight at
+ * the moment of the mid-glide taps (the clock is stopped two frames after the lift, which is inside the glide as written, but
+ * nothing in the tree reports it): these tests pin that touches are as they always were, which holds with or without a glide.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi")
@@ -87,7 +88,6 @@ class MapIconClusterGlideTest {
 
     private fun px(x: Dp, y: Dp) = with(composeRule.density) { Offset(x.toPx(), y.toPx()) }
 
-    private fun guards() = composeRule.onAllNodes(hasTestTag(MAP_ICON_CLUSTER_GLIDE_GUARD_TAG)).fetchSemanticsNodes().size
 
     /**
      * Long-presses the minimise handle and drags it by [dx], with the clock running, then stops the clock and lifts the finger,
@@ -130,7 +130,6 @@ class MapIconClusterGlideTest {
         assertTrue("the cluster starts on the right", tag(MAP_ICON_CLUSTER_TAG).left > (map.left + map.right) / 2)
 
         val (liftX, liftY) = dragAndLiftThenHold((-220).dp)
-        assertEquals("the glide is in flight (its guard is up)", 1, guards())
         val cluster = tag(MAP_ICON_CLUSTER_TAG)
         assertTrue("the touch box is already on the left, where it lands: ${cluster.describe()}", cluster.right < (map.left + map.right) / 2)
         assertTrue("the finger lifted clear of the landed box", liftX > cluster.right + 24.dp)
@@ -138,46 +137,36 @@ class MapIconClusterGlideTest {
         val before = mapTaps
         tapStopped(liftX, liftY)
         assertEquals("a tap where the finger lifted, mid-glide, reached the map", before + 1, mapTaps)
-        assertEquals("still mid-glide when tapped", 1, guards())
         land()
     }
 
     @Test
-    fun `dragged across, the handle keeps its old side until the glide lands, then moves`() {
+    fun `dragged across, the handle is on its new outer side the moment the finger lifts`() {
         setScreen()
         dragAndLiftThenHold((-220).dp)
         val cluster = tag(MAP_ICON_CLUSTER_TAG)
-        val handleMid = tag("map-icon-bar-minimize-handle")
-        assertEquals("mid-glide", 1, guards())
+        val handle = tag("map-icon-bar-minimize-handle")
         assertTrue(
-            "mid-glide the handle is still on the cluster's right (its old, outer side): handle ${handleMid.describe()}, cluster ${cluster.describe()}",
-            handleMid.left > (cluster.left + cluster.right) / 2,
+            "mid-glide the handle is already on the cluster's left, its new outer side: handle ${handle.describe()}, cluster ${cluster.describe()}",
+            handle.right < (cluster.left + cluster.right) / 2,
         )
         land()
-        assertEquals("landed", 0, guards())
         val landed = tag(MAP_ICON_CLUSTER_TAG)
         val handleLanded = tag("map-icon-bar-minimize-handle")
-        assertTrue(
-            "landed, the handle is on the cluster's left, its new outer side: handle ${handleLanded.describe()}, cluster ${landed.describe()}",
-            handleLanded.right < (landed.left + landed.right) / 2,
-        )
+        assertTrue("and stays there: handle ${handleLanded.describe()}, cluster ${landed.describe()}", handleLanded.right < (landed.left + landed.right) / 2)
     }
 
     @Test
-    fun `a tap on the landed box mid-glide fires nothing, and after landing the same row works`() {
+    fun `a tap on the landed box mid-glide reaches the row there, as before the glide existed`() {
         setScreen()
         dragAndLiftThenHold((-220).dp)
         val row = described("Fullscreen")
         val before = mapTaps
         tapStopped((row.left + row.right) / 2, (row.top + row.bottom) / 2)
-        assertEquals("mid-glide the tap did not toggle fullscreen", 0, composeRule.onAllNodes(hasContentDescription("Exit fullscreen")).fetchSemanticsNodes().size)
-        assertEquals("nor did it reach the map: the landed box is the cluster's", before, mapTaps)
+        composeRule.mainClock.advanceTimeByFrame()
+        assertEquals("mid-glide the tap toggled fullscreen", 1, composeRule.onAllNodes(hasContentDescription("Exit fullscreen")).fetchSemanticsNodes().size)
+        assertEquals("and did not reach the map", before, mapTaps)
         land()
-        val landedRow = described("Fullscreen")
-        composeRule.touchAt((landedRow.left + landedRow.right) / 2, (landedRow.top + landedRow.bottom) / 2)
-        composeRule.mainClock.advanceTimeBy(2_000)
-        composeRule.waitForIdle()
-        assertEquals("after landing the row takes the tap", 1, composeRule.onAllNodes(hasContentDescription("Exit fullscreen")).fetchSemanticsNodes().size)
     }
 
     @Test
@@ -208,11 +197,10 @@ class MapIconClusterGlideTest {
     }
 
     @Test
-    fun `released short, it glides back with its side and arrangement unchanged and nothing guarded`() {
+    fun `released short, its touch box is back at rest at once`() {
         setScreen()
         val restBefore = tag(MAP_ICON_CLUSTER_TAG)
         dragAndLiftThenHold((-40).dp)
-        assertEquals("no side change, so nothing is guarded", 0, guards())
         val cluster = tag(MAP_ICON_CLUSTER_TAG)
         assertEquals("the touch box is back at its rest at once", restBefore.left.value, cluster.left.value, 0.5f)
         land()
@@ -224,7 +212,6 @@ class MapIconClusterGlideTest {
         Settings.Global.putFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
         setScreen()
         dragAndLiftThenHold((-220).dp)
-        assertEquals("nothing in flight", 0, guards())
         val cluster = tag(MAP_ICON_CLUSTER_TAG)
         val handle = tag("map-icon-bar-minimize-handle")
         assertTrue("the handle is already on the new outer side: handle ${handle.describe()}, cluster ${cluster.describe()}", handle.right < (cluster.left + cluster.right) / 2)

@@ -1,11 +1,11 @@
 package com.zynergylabs.forager.app.ui.log
 
+import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FlashAuto
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.FlashlightOn
-import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import com.zynergylabs.forager.app.ui.motion.IconSwap
 import androidx.compose.ui.semantics.semantics
@@ -45,7 +45,7 @@ internal fun FlashChip(session: CameraCaptureSession, deviceRotation: Int?, disp
     if (!session.hasFlashUnit) return
     val mode = session.flashMode
     val glyph = flashGlyph(mode)
-    IconButton(
+    BouncingIconButton(
         onClick = { session.setFlashMode(mode.next()) },
         modifier = Modifier
             .rotateWithDevice(deviceRotation, displayRotation)

@@ -144,3 +144,34 @@ observer; and every look and feel item below.
 The highlights in portrait and landscape, light and dark, over the 80% chrome, on every row, both badges and both handles; the
 bounce with the phone's animations on and with them turned down; the crossfades on the bar, the camera chips and the Journal
 search icon; the cluster glide across and back, and the moment it lands; the search dropdown's close, with a tap during it.
+
+## Amendment 1 (RECORD -657), applied 2026-10-07, also not compiled
+
+The owner's answers to the stops above, and what changed for each. Still code and tests only: nothing compiled or run.
+
+- **Stop 2, cluster: "At release".** The handle side and the pill's order now switch the moment the finger lifts, and the
+  cluster glides there already in its new order. The guard that swallowed taps mid-glide is gone, so touches are as before the
+  glide existed throughout. `MapIconClusterGlideTest` now checks that the handle is on its new side mid-glide and that a tap on
+  the landed row mid-glide reaches it.
+- **Stop 4, bounce: "Every icon button".** Every `IconButton` (30 calls) and `FilledIconToggleButton` (2) in the app now goes
+  through `BouncingIconButton` / `BouncingFilledIconToggleButton` (`ui/motion/BouncingIconButton.kt`), which bounce their
+  content. The find editor's remove glyph bounces too. Not covered: rows that pair an icon with text (Settings rows, crash-log
+  rows, the swipe actions, the HUD's "Try again"), which are rows rather than icon buttons, and the camera's shutter. Test:
+  `motion/BouncingIconButtonTest`.
+- **The snackbar: "Trim to its visible edge".** The tap, the test tag and the chrome-colour semantics moved from the
+  snackbar's modifier onto a box laid exactly over the drawn surface (12 dp in). A touch beside the drawn snackbar now reaches
+  the map. This is a touch-area change, made on the owner's instruction. `COMPACT_SNACKBAR_TAG`'s bounds are now the drawn
+  surface, 12 dp smaller on each side. The existing tests that read them assert inequalities that still hold, as far as I can
+  tell from reading them. Test: `availability/SnackbarTrimmedTouchTest`, real touches 6 dp outside and 4 dp inside each of the
+  four edges.
+- **Stop 1, restore page: "Keep instant".** No change.
+- **Settled by -651:**
+  - The camera's Location chip now crossfades.
+  - Record's highlight stays round.
+  - Every swipe row's close highlight is rounded by default, and the waypoint rows take the card's own shape.
+  - The other hard-cornered highlights the scout lists are rounded: L2, M12, Q3, C6, N12, T4, T5, M10, and R3 and R20 through
+    `opensRecordDetails`. These use `clickableWithShapedPress` / `shapedPressLayer`, a draw-only state layer at Material's
+    pressed opacity in a rounded shape, not a clipped ripple. Clipping a ripple would clip the row's content and its children's
+    touches too. The taps stay where they were.
+- **Stop 3**, a finger already held on a dropdown button when the close begins: left as it is.
+- **`MarkerFanOutHostTest`:** its content is now composed inside `ProvideReduceMotion`. Its assertion is unchanged.

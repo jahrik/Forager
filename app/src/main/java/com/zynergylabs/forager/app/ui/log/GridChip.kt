@@ -1,10 +1,10 @@
 package com.zynergylabs.forager.app.ui.log
 
+import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.GridOff
 import androidx.compose.material.icons.filled.GridOn
 import androidx.compose.material.icons.filled.Straighten
-import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import com.zynergylabs.forager.app.ui.motion.IconSwap
 import androidx.compose.ui.semantics.semantics
@@ -31,7 +31,7 @@ import com.zynergylabs.forager.app.domain.next
 @Composable
 internal fun GridChip(mode: GridMode, onGridModeChanged: (GridMode) -> Unit, deviceRotation: Int?, displayRotation: Int) {
     val glyph = gridGlyph(mode)
-    IconButton(
+    BouncingIconButton(
         onClick = { onGridModeChanged(mode.next()) },
         modifier = Modifier
             .rotateWithDevice(deviceRotation, displayRotation)

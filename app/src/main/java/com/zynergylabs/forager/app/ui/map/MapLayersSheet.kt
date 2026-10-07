@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.map
 
+import com.zynergylabs.forager.app.ui.motion.shapedPressLayer
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -301,11 +302,14 @@ internal fun MapLayersSheet(
  */
 @Composable
 private fun LayerSwitchRow(layerId: String, label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    // Amendment 1 to motion Part 1 (RECORD -657): the row's press is drawn in a rounded shape; the toggle's touch is unchanged.
+    val pressSource = remember { MutableInteractionSource() }
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = MIN_TOUCH_TARGET)
-            .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange)
+            .toggleable(value = checked, interactionSource = pressSource, indication = null, role = Role.Switch, onValueChange = onCheckedChange)
+            .shapedPressLayer(pressSource)
             .testTag(mapLayerSwitchTag(layerId)),
         verticalAlignment = Alignment.CenterVertically,
     ) {

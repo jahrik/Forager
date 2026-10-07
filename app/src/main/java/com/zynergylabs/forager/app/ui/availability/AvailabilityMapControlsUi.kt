@@ -12,6 +12,7 @@ package com.zynergylabs.forager.app.ui.availability
 // AvailabilityCompactMapUi.kt. No symbol left behind is reached from here. Seam F (the wide layout)
 // was released by the owner for this split, as recorded in the Understory amendment merged in #130.
 
+import com.zynergylabs.forager.app.ui.motion.clickableWithShapedPress
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandIn
@@ -558,7 +559,7 @@ private fun CompassElevationStripContent(
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier
                                 .weight(1f, fill = false)
-                                .clickable(onClick = onToggleCoordinateFormat),
+                                .clickableWithShapedPress(onClick = onToggleCoordinateFormat),
                         )
                     }
                 }
