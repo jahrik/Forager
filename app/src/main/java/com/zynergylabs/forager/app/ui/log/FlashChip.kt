@@ -7,6 +7,9 @@ import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.FlashlightOn
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
+import com.zynergylabs.forager.app.ui.motion.IconSwap
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
@@ -44,9 +47,14 @@ internal fun FlashChip(session: CameraCaptureSession, deviceRotation: Int?, disp
     val glyph = flashGlyph(mode)
     IconButton(
         onClick = { session.setFlashMode(mode.next()) },
-        modifier = Modifier.rotateWithDevice(deviceRotation, displayRotation).testTag(CAMERA_FLASH_CHIP_TAG),
+        modifier = Modifier
+            .rotateWithDevice(deviceRotation, displayRotation)
+            .testTag(CAMERA_FLASH_CHIP_TAG)
+            .semantics { contentDescription = glyph.label },
     ) {
-        OverlayIcon(glyph.icon, contentDescription = glyph.label)
+        // Motion Part 1 (dispatch 2026-09-28-652, item 5): the glyph crossfades with a slight grow when the mode changes. The
+        // label sits on the button, not the icon, because both glyphs are composed for the length of the swap.
+        IconSwap(targetState = glyph.icon) { icon -> OverlayIcon(icon, contentDescription = null) }
     }
 }
 

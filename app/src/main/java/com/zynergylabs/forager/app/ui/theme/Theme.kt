@@ -6,6 +6,7 @@ import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import com.zynergylabs.forager.app.ui.motion.ProvideReduceMotion
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 
@@ -140,14 +141,18 @@ fun ForagerTheme(
     content: @Composable () -> Unit,
 ) {
     val colorScheme = if (darkTheme) DarkColors else LightColors
-    CompositionLocalProvider(LocalForagerDarkTheme provides darkTheme) {
-        MaterialExpressiveTheme(
-            colorScheme = colorScheme,
-            typography = ForagerTypography,
-            shapes = ForagerShapes,
-            motionScheme = ForagerMotionScheme,
-            content = content,
-        )
+    // Dispatch 2026-09-28-652, item 1: the phone's reduce-motion setting, provided here because this is the app's one
+    // theme root (MainActivity's only one), so every screen reads it without asking. See ProvideReduceMotion.
+    ProvideReduceMotion {
+        CompositionLocalProvider(LocalForagerDarkTheme provides darkTheme) {
+            MaterialExpressiveTheme(
+                colorScheme = colorScheme,
+                typography = ForagerTypography,
+                shapes = ForagerShapes,
+                motionScheme = ForagerMotionScheme,
+                content = content,
+            )
+        }
     }
 }
 

@@ -159,6 +159,9 @@ import com.zynergylabs.forager.app.ui.map.Basemap
 import com.zynergylabs.forager.app.ui.map.MapMode
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import com.zynergylabs.forager.app.ui.motion.PressHighlight
+import com.zynergylabs.forager.app.ui.motion.leavingTakesNoTouches
 import com.zynergylabs.forager.app.ui.map.MapCameraMemory
 import com.zynergylabs.forager.app.ui.map.MapReturnMemory
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
@@ -696,8 +699,13 @@ internal fun CompactMainScaffold(
                     // bar's own content colour, onSurfaceVariant, and the action `primary`.
                     val snackbarColor = mapChromeFill(navigationBarContainerColor(), compactTab() == CompactTab.MAP)
                     val snackbarContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    Snackbar(
-                        snackbarData = data,
+                    // Motion Part 1 (dispatch 2026-09-28-652, item 3, scout S7; the owner, RECORD -651: "Yes, round them all"):
+                    // a tappable notice's press highlight follows the snackbar's rounded shape. The placement (the padding
+                    // below) moved onto this Box so that the highlight, a sibling drawn over the snackbar, has exactly the
+                    // snackbar's bounds; the snackbar's own tag and tap stay on the snackbar, so where it takes touches is
+                    // unchanged. Not a clip on the snackbar itself, which would also cut off its shadow.
+                    val tapInteraction = remember { MutableInteractionSource() }
+                    Box(
                         modifier = Modifier
                             // Dispatch 2026-09-28-104, item 6: on the Maps tab the Scaffold has no bottom
                             // bar to sit above and its contentWindowInsets drop the bottom side (below), so
@@ -724,23 +732,35 @@ internal fun CompactMainScaffold(
                                 },
                             )
                             // Dispatch 2026-09-28-430: above "Return to Route" while it shows, not over it.
-                            .padding(bottom = if (compactTab() == CompactTab.MAP && isNavigating && !navigationFollowing) RETURN_TO_ROUTE_SNACKBAR_LIFT else 0.dp)
-                            .testTag(COMPACT_SNACKBAR_TAG)
-                            // Dispatch 2026-09-28-626: a prompt whose whole surface is its tap (TappableNoticeVisuals).
-                            .then(
-                                if (data.visuals is TappableNoticeVisuals) {
-                                    Modifier.clickable(role = Role.Button) { data.performAction() }
-                                } else {
-                                    Modifier
-                                },
-                            )
-                            .mapChromeContainerColor(snackbarColor)
-                            .mapChromeContentColor(snackbarContentColor),
-                        containerColor = snackbarColor,
-                        contentColor = snackbarContentColor,
-                        actionContentColor = MaterialTheme.colorScheme.primary,
-                        dismissActionContentColor = snackbarContentColor,
-                    )
+                            .padding(bottom = if (compactTab() == CompactTab.MAP && isNavigating && !navigationFollowing) RETURN_TO_ROUTE_SNACKBAR_LIFT else 0.dp),
+                    ) {
+                        Snackbar(
+                            snackbarData = data,
+                            modifier = Modifier
+                                .testTag(COMPACT_SNACKBAR_TAG)
+                                // Dispatch 2026-09-28-626: a prompt whose whole surface is its tap (TappableNoticeVisuals).
+                                .then(
+                                    if (data.visuals is TappableNoticeVisuals) {
+                                        Modifier.clickable(interactionSource = tapInteraction, indication = null, role = Role.Button) { data.performAction() }
+                                    } else {
+                                        Modifier
+                                    },
+                                )
+                                .mapChromeContainerColor(snackbarColor)
+                                .mapChromeContentColor(snackbarContentColor),
+                            containerColor = snackbarColor,
+                            contentColor = snackbarContentColor,
+                            actionContentColor = MaterialTheme.colorScheme.primary,
+                            dismissActionContentColor = snackbarContentColor,
+                        )
+                        if (data.visuals is TappableNoticeVisuals) {
+                            // Inset by the margin Material's Snackbar(snackbarData) puts around its own surface (padding(12.dp) on
+                            // the modifier it is given; read from the material3 1.5.0-alpha26 bytecode, Snackbar.kt:280). The
+                            // tap, on the modifier, still reaches that margin as it always has; the drawn highlight is the
+                            // rounded surface only.
+                            PressHighlight(interactionSource = tapInteraction, shape = SnackbarDefaults.shape, modifier = Modifier.padding(SNACKBAR_SURFACE_MARGIN))
+                        }
+                    }
                 }
             },
             // Fullscreen-fixes dispatch ("still shifting"): Material3's own Scaffold falls back to
@@ -1403,7 +1423,7 @@ internal fun CompactMainScaffold(
                                 // reported bounds genuinely overlapped the nav's), not assumed. Capped
                                 // to what's actually left below this panel's own top offset, minus the
                                 // nav's own band on the Map tab, so it scrolls instead of overflowing.
-                                modifier = if (landscapeSearchWidth != null) {
+                                modifier = (if (landscapeSearchWidth != null) {
                                     // Landscape B2 (S2): the bar's width and side.
                                     Modifier
                                         .align(if (punchHoleEdge == ScreenEdge.Left) Alignment.TopStart else Alignment.TopEnd)
@@ -1419,7 +1439,13 @@ internal fun CompactMainScaffold(
                                             max = maxHeight - searchDropdownTopOffset -
                                                 (if (compactTab() == CompactTab.MAP) maxOf(bottomNavHeight, searchDropdownImeBottom) else 0.dp),
                                         )
-                                },
+                                })
+                                    // Scout item Q5 (dispatch 2026-09-28-652, item 7; the owner, RECORD -651: "Fix it in this
+                                    // sweep"): from the moment the panel starts closing it takes no touch. The dismiss scrim above
+                                    // is already gone by then (it is composed only while showSearchDropdown), so a tap anywhere,
+                                    // the shrinking panel included, reaches the map, and none of the panel's buttons can be pressed.
+                                    // The panel still draws its shrink and fade. Last in the chain, so its bounds are the panel's.
+                                    .leavingTakesNoTouches(leaving = !showSearchDropdown),
                             ) {
                                 SearchDropdown(
                                     uiState = uiState,
@@ -1476,3 +1502,10 @@ internal val LANDSCAPE_SEARCH_CENTRE_GAP = 8.dp
 
 /** The compact scaffold's snackbar, for tests (map chrome at 80%, dispatch 2026-09-28-56 as amended by -58). */
 internal const val COMPACT_SNACKBAR_TAG = "compact-snackbar"
+
+/**
+ * The margin Material3's `Snackbar(snackbarData, modifier)` adds inside the modifier it is given, around its own surface: 12 dp,
+ * read from the material3 1.5.0-alpha26 bytecode (`modifier.padding(12.dp)` before the surface). Used to draw a tappable
+ * notice's press highlight on the surface alone (motion Part 1, scout S7).
+ */
+private val SNACKBAR_SURFACE_MARGIN = 12.dp

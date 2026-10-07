@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.log
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -179,6 +180,8 @@ internal fun CartographyEntryListScreen(
                                 group = swipeGroup,
                                 onDelete = { onDeleteEntry(entry.id) },
                                 onEdit = onEditEntry?.let { edit -> { edit(entry.id) } },
+                                // The cards' own shape (CartographyEntryCard, CollapsedEntryRow), for the close tap's highlight.
+                                highlightShape = RoundedCornerShape(Spacing.sm),
                                 content = card,
                             )
                         } else {

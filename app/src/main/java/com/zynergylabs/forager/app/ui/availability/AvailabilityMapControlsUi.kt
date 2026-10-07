@@ -80,6 +80,7 @@ import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_EDGE_INSET
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_DARK
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_LIGHT
 import com.zynergylabs.forager.app.ui.map.MapBarIconButton
+import com.zynergylabs.forager.app.ui.map.MapBarHighlight
 import com.zynergylabs.forager.app.ui.map.MapIconBar
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorDark
 import com.zynergylabs.forager.app.ui.map.mapIconClusterChildColor
@@ -229,6 +230,8 @@ private fun ControlPill(
                 filled = isRecording,
                 fillColor = mapIconBarRecordAccent(isDarkTheme).fill,
                 fillContentColor = mapIconBarRecordAccent(isDarkTheme).onFill,
+                // Round whether or not recording: the control is the Record badge (RECORD -651), and the shape must not flip under the finger.
+                highlight = MapBarHighlight.BADGE,
                 modifier = Modifier.testTag("control-pill-record"),
             )
         }
