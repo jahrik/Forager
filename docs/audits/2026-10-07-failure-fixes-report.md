@@ -387,3 +387,29 @@ answer as the planner relayed it.
 
 The R1 seam is accepted, R9 stays a Toast, `SearchEntryBar`'s unused parameter waits for motion Part 1
 (the planner). CLAUDE.md is not edited.
+
+## Amendment 2 (RECORD -661), written 2026-10-07; supersedes Amendment 1's items 1, 2, 3 and 7 where they differ
+
+Still nothing compiled or run apart from the design-token script.
+
+1. **R7 permission string:** used as written ("Use it as written"); its KDoc now says so.
+2. **The settings-reset notice is a snackbar** ("Snackbar with 'Settings' button"). The `MainActivity`
+   Toast is removed. `MainActivity` collects `container.settingsResetNotice.pending` and hands it to
+   `AvailabilityScreen` (`settingsResetNoticePending`, `onSettingsResetNoticeShown`), which clears it as
+   it shows it, on the shared snackbar host's own scope, with `SnackbarDuration.Indefinite`, a dismiss
+   button, and the action "Settings" (`SETTINGS_RESET_ACTION_LABEL`). "Settings" opens Tools, then
+   Settings, through a new `openSettingsOnlyRequest` (the backup notification's request also scrolls to
+   Backup, which this should not). Test: `SettingsResetSnackbarTest` composes the real
+   `AvailabilityScreen` with a real `SettingsResetNotice`: shown, cleared as shown, still there 30 s
+   later, a real touch on "Settings" closes it and Settings shows; dismissed, it does not return;
+   nothing owed, nothing shown. Not reached: `MainActivity`'s two lines of wiring (no test composes it),
+   and the dismiss button is found by M3's default description "Dismiss" (assumed, not checked).
+3. **`DataStoreCameraGridModeRepositoryTest` rewritten:** an unknown name is Off, with exactly one
+   warning, "Unknown stored camera grid mode 'Crosshair'; using Off, the default.", read from
+   `ShadowLog`; a known or absent name logs nothing.
+4. **Check 2 allows `Spacing` (the design scale) and `navigationBarContainerColor` (the owner's C1
+   ruling), one line each.** Rerun: check 2 lists **11** (was 74, then 71). They are `Bark` in
+   `MapBubble.kt`, `JournalEntriesChip.kt`, `MapLayersSheet.kt`, `MapChrome.kt`, `NavigationHud.kt`,
+   `AvailabilityMapControlsUi.kt`, `AvailabilityMapOverlaysUi.kt`; `Cream` in `MapChrome.kt` and
+   `AvailabilityMapControlsUi.kt`; `SurfaceContainerDark`/`Light` in `MapChrome.kt`. None is in a file
+   this sweep changes. Checks 1 and 3 unchanged (1 and 5 findings).
